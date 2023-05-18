@@ -135,6 +135,13 @@ export const DevToolbarPlugin = ({ editorBottom }) => {
         Bundle stats
       </a>
       <a
+        href="/yjs.html"
+        target="_blank"
+        className="btn btn-link float-end"
+      >
+        Yjs
+      </a>
+      <a
         href="/data/playwright-report/"
         target="_blank"
         className="btn btn-link float-end"
