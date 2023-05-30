@@ -250,7 +250,7 @@ function getPort({ page, vitest_preview, playwright }) {
 export default defineConfig({
   server: {
     port: getPort({
-      page: 3000,
+      page: 3010,
       vitest_preview: 3001,
       playwright: process.env.PORT,
     }),

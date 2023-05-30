@@ -1,7 +1,8 @@
+1234 # lexical collab
 9323 # playwright
 8000 # vscode
 8080 # websocket
-3000 # notes server
+3000 # lexical server
 3001 # vitest preview
 3002 # unused/test
 3003 # notes server HMR
@@ -11,7 +12,7 @@
 3007 # 
 3008 # 
 3009 # 
-3010 # 
+3010 # notes server
 3011 # 
 3012 # 
 3013 # 

@@ -120,6 +120,14 @@ export const DevToolbarPlugin = ({ editorBottom }) => {
         Load State
       </button>
       <a
+        href={"http://"+location.hostname+":3000/?isCollab=true&collabEndpoint=ws://"+location.hostname+":1234"}
+        target="_blank"
+        rel="noreferrer"
+        className="btn btn-link float-end"
+      >
+        Lexical
+      </a>
+      <a
         href="/data/.vitest-preview/"
         target="_blank"
         className="btn btn-link float-end"
