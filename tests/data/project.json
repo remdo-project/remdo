@@ -30,7 +30,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "Init: git submodule update --init --recursive ",
+                "text": "Affine",
                 "type": "text",
                 "version": 1
               }
@@ -38,7 +38,7 @@
           },
           {
             "direction": "ltr",
-            "folded": true,
+            "folded": false,
             "format": "",
             "indent": 0,
             "type": "listitem",
@@ -50,7 +50,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "Before production",
+                "text": "Init: git submodule update --init --recursive",
                 "type": "text",
                 "version": 1
               }
@@ -66,46 +66,23 @@
             "version": 1,
             "children": [
               {
-                "direction": "ltr",
-                "format": "",
-                "indent": 0,
-                "listType": "bullet",
-                "start": 1,
-                "tag": "ul",
-                "type": "list",
-                "version": 1,
-                "children": [
-                  {
-                    "direction": "ltr",
-                    "folded": false,
-                    "format": "",
-                    "indent": 1,
-                    "type": "listitem",
-                    "value": 1,
-                    "version": 1,
-                    "children": [
-                      {
-                        "detail": 0,
-                        "format": 0,
-                        "mode": "normal",
-                        "style": "",
-                        "text": "improve tiny-invariant in production",
-                        "type": "text",
-                        "version": 1
-                      }
-                    ]
-                  }
-                ]
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": "Before productio",
+                "type": "text",
+                "version": 1
               }
             ]
           },
           {
             "direction": "ltr",
-            "folded": true,
+            "folded": false,
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 3,
+            "value": 4,
             "version": 1,
             "children": [
               {
@@ -125,110 +102,7 @@
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 4,
-            "version": 1,
-            "children": [
-              {
-                "direction": "ltr",
-                "format": "",
-                "indent": 0,
-                "listType": "bullet",
-                "start": 1,
-                "tag": "ul",
-                "type": "list",
-                "version": 1,
-                "children": [
-                  {
-                    "direction": "ltr",
-                    "folded": false,
-                    "format": "",
-                    "indent": 1,
-                    "type": "listitem",
-                    "value": 1,
-                    "version": 1,
-                    "children": [
-                      {
-                        "detail": 0,
-                        "format": 0,
-                        "mode": "normal",
-                        "style": "",
-                        "text": "bin/deno - Why?",
-                        "type": "text",
-                        "version": 1
-                      }
-                    ]
-                  },
-                  {
-                    "direction": "ltr",
-                    "folded": false,
-                    "format": "",
-                    "indent": 1,
-                    "type": "listitem",
-                    "value": 2,
-                    "version": 1,
-                    "children": [
-                      {
-                        "detail": 0,
-                        "format": 0,
-                        "mode": "normal",
-                        "style": "",
-                        "text": "https://www.npmjs.com/package/match-sorter",
-                        "type": "text",
-                        "version": 1
-                      }
-                    ]
-                  },
-                  {
-                    "direction": "ltr",
-                    "folded": false,
-                    "format": "",
-                    "indent": 1,
-                    "type": "listitem",
-                    "value": 3,
-                    "version": 1,
-                    "children": [
-                      {
-                        "detail": 0,
-                        "format": 0,
-                        "mode": "normal",
-                        "style": "",
-                        "text": "https://mdbootstrap.com/",
-                        "type": "text",
-                        "version": 1
-                      }
-                    ]
-                  },
-                  {
-                    "direction": "ltr",
-                    "folded": false,
-                    "format": "",
-                    "indent": 1,
-                    "type": "listitem",
-                    "value": 4,
-                    "version": 1,
-                    "children": [
-                      {
-                        "detail": 0,
-                        "format": 0,
-                        "mode": "normal",
-                        "style": "",
-                        "text": "https://github.com/speedskater/babel-plugin-rewire",
-                        "type": "text",
-                        "version": 1
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "direction": "ltr",
-            "folded": true,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "value": 4,
+            "value": 5,
             "version": 1,
             "children": [
               {
@@ -248,7 +122,7 @@
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 5,
+            "value": 6,
             "version": 1,
             "children": [
               {
@@ -291,7 +165,7 @@
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 5,
+            "value": 6,
             "version": 1,
             "children": [
               {
@@ -311,7 +185,7 @@
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 6,
+            "value": 7,
             "version": 1,
             "children": [
               {
@@ -370,11 +244,11 @@
           },
           {
             "direction": "ltr",
-            "folded": true,
+            "folded": false,
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 6,
+            "value": 7,
             "version": 1,
             "children": [
               {
@@ -394,7 +268,7 @@
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 7,
+            "value": 8,
             "version": 1,
             "children": [
               {
@@ -1072,7 +946,7 @@
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 7,
+            "value": 8,
             "version": 1,
             "children": [
               {
@@ -1092,7 +966,7 @@
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 8,
+            "value": 9,
             "version": 1,
             "children": [
               {
@@ -1107,10 +981,31 @@
                 "children": [
                   {
                     "direction": "ltr",
+                    "folded": false,
                     "format": "",
                     "indent": 1,
                     "type": "listitem",
                     "value": 1,
+                    "version": 1,
+                    "children": [
+                      {
+                        "detail": 0,
+                        "format": 0,
+                        "mode": "normal",
+                        "style": "",
+                        "text": "events[0].target.toDelta()[0].insert.toDelta()[0].insert.toDelta()[1].insert",
+                        "type": "text",
+                        "version": 1
+                      }
+                    ]
+                  },
+                  {
+                    "direction": "ltr",
+                    "folded": false,
+                    "format": "",
+                    "indent": 1,
+                    "type": "listitem",
+                    "value": 2,
                     "version": 1,
                     "children": [
                       {
@@ -1130,7 +1025,7 @@
                     "format": "",
                     "indent": 1,
                     "type": "listitem",
-                    "value": 2,
+                    "value": 3,
                     "version": 1,
                     "children": [
                       {
@@ -1151,7 +1046,7 @@
                     "format": "",
                     "indent": 1,
                     "type": "listitem",
-                    "value": 3,
+                    "value": 4,
                     "version": 1,
                     "children": [
                       {
@@ -1171,7 +1066,7 @@
                     "format": "",
                     "indent": 1,
                     "type": "listitem",
-                    "value": 4,
+                    "value": 5,
                     "version": 1,
                     "children": [
                       {
@@ -1192,7 +1087,7 @@
                     "format": "",
                     "indent": 1,
                     "type": "listitem",
-                    "value": 5,
+                    "value": 6,
                     "version": 1,
                     "children": [
                       {
@@ -1213,7 +1108,7 @@
                     "format": "",
                     "indent": 1,
                     "type": "listitem",
-                    "value": 6,
+                    "value": 7,
                     "version": 1,
                     "children": [
                       {
@@ -1233,7 +1128,7 @@
                     "format": "",
                     "indent": 1,
                     "type": "listitem",
-                    "value": 7,
+                    "value": 8,
                     "version": 1,
                     "children": [
                       {
@@ -1253,7 +1148,7 @@
                     "format": "",
                     "indent": 1,
                     "type": "listitem",
-                    "value": 8,
+                    "value": 9,
                     "version": 1,
                     "children": [
                       {
@@ -1273,7 +1168,7 @@
                     "format": "",
                     "indent": 1,
                     "type": "listitem",
-                    "value": 9,
+                    "value": 10,
                     "version": 1,
                     "children": [
                       {
@@ -1293,7 +1188,7 @@
                     "format": "",
                     "indent": 1,
                     "type": "listitem",
-                    "value": 10,
+                    "value": 11,
                     "version": 1,
                     "children": [
                       {
@@ -1314,7 +1209,7 @@
                     "format": "",
                     "indent": 1,
                     "type": "listitem",
-                    "value": 11,
+                    "value": 12,
                     "version": 1,
                     "children": [
                       {
@@ -1334,11 +1229,11 @@
           },
           {
             "direction": "ltr",
-            "folded": true,
+            "folded": false,
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 8,
+            "value": 9,
             "version": 1,
             "children": [
               {
@@ -1358,7 +1253,7 @@
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 9,
+            "value": 10,
             "version": 1,
             "children": [
               {
@@ -1978,6 +1873,26 @@
                                 "version": 1
                               }
                             ]
+                          },
+                          {
+                            "direction": "ltr",
+                            "folded": false,
+                            "format": "",
+                            "indent": 2,
+                            "type": "listitem",
+                            "value": 15,
+                            "version": 1,
+                            "children": [
+                              {
+                                "detail": 0,
+                                "format": 0,
+                                "mode": "normal",
+                                "style": "",
+                                "text": "https://github.com/facebook/lexical/pull/4285 context menu",
+                                "type": "text",
+                                "version": 1
+                              }
+                            ]
                           }
                         ]
                       }
@@ -1989,11 +1904,11 @@
           },
           {
             "direction": "ltr",
-            "folded": true,
+            "folded": false,
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 9,
+            "value": 10,
             "version": 1,
             "children": [
               {
@@ -2013,7 +1928,7 @@
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 10,
+            "value": 11,
             "version": 1,
             "children": [
               {
@@ -2072,11 +1987,11 @@
           },
           {
             "direction": "ltr",
-            "folded": true,
+            "folded": false,
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 10,
+            "value": 11,
             "version": 1,
             "children": [
               {
@@ -2096,7 +2011,7 @@
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 11,
+            "value": 12,
             "version": 1,
             "children": [
               {
@@ -2357,11 +2272,11 @@
           },
           {
             "direction": "ltr",
-            "folded": true,
+            "folded": false,
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 11,
+            "value": 12,
             "version": 1,
             "children": [
               {
@@ -2381,7 +2296,7 @@
             "format": "",
             "indent": 0,
             "type": "listitem",
-            "value": 12,
+            "value": 13,
             "version": 1,
             "children": [
               {
@@ -2437,6 +2352,56 @@
                 ]
               }
             ]
+          },
+          {
+            "direction": null,
+            "folded": false,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "value": 13,
+            "version": 1,
+            "children": []
+          },
+          {
+            "direction": null,
+            "folded": false,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "value": 14,
+            "version": 1,
+            "children": []
+          },
+          {
+            "direction": null,
+            "folded": false,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "value": 15,
+            "version": 1,
+            "children": []
+          },
+          {
+            "direction": null,
+            "folded": false,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "value": 16,
+            "version": 1,
+            "children": []
+          },
+          {
+            "direction": null,
+            "folded": false,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "value": 17,
+            "version": 1,
+            "children": []
           }
         ]
       }
