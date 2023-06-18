@@ -11,13 +11,14 @@ import {
 import { ListNode, ListItemNode as LexicalListItemNode } from "@lexical/list";
 import { findNearestListItemNode } from "@lexical/list/utils";
 import {
-  ElementNode,
   $getNodeByKey,
   $isTextNode,
   $createTextNode,
   EditorState,
   $getSelection,
   $isRangeSelection,
+  createCommand,
+  LexicalCommand,
 } from "lexical";
 
 //TODO
@@ -25,8 +26,13 @@ import {
 
 const ROOT_TEXT = "root";
 
+export const REMDO_RELOAD_YJS_DOCUMENT: LexicalCommand<string> = createCommand(
+  "REMDO_RELOAD_YJS_DOCUMENT"
+);
+
 interface NotesEditorState extends EditorState {
   _notesFilterChanged?: boolean;
+  _remdoReloadYJSDoc?: boolean;
 }
 
 export function getNotesEditorState() {
@@ -39,6 +45,7 @@ export function isNestedLI(liNode: ListItemNode) {
     : liNode.getChildren().some($isListNode);
 }
 
+//TODO explain the difference between NotesEditorState and NotesState
 export class NotesState {
   _element: HTMLElement;
   _focus: null | { nodeKey: string; parentKey: string };
@@ -95,7 +102,9 @@ export class NotesState {
   }
 
   static documents(): string[] {
-    return import.meta.env.VITE_DOCUMENTS?.split(",").filter(Boolean) ?? [];
+    return (
+      (import.meta as any).env.VITE_DOCUMENTS?.split(",").filter(Boolean) ?? []
+    );
   }
 }
 
@@ -308,7 +317,8 @@ export class Note {
 
   //TODO add setFolded/getFolded to RootNode
   set folded(value: boolean) {
-    !this.isRoot && this.lexicalNode.setFolded(value && this.hasChildren);
+    !this.isRoot && this.lexicalNode.setFolded(value);
+    getNotesEditorState()._remdoReloadYJSDoc = true;
   }
 
   setFoldLevel(level: number) {

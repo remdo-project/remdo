@@ -49,6 +49,13 @@ export function applyNodePatches(NodeType: any) {
       }
     }
 
+    //FIXME
+    const dom: HTMLElement = oldMethod(config, editor);
+    if (Note.from(this).folded) {
+      addClassNamesToElement(dom, "note-folded");
+    }
+    return dom;
+
     //
     // focus & fold
     //

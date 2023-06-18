@@ -65,9 +65,7 @@ function MenuOptions({ closeMenu, position, noteKeys }) {
         title: "<b>F</b>old",
         icon: <i className="bi bi-arrows-collapse" />,
         action: () =>
-          editor.dispatchCommand(NOTES_TOGGLE_FOLD_COMMAND, {
-            noteKeys,
-          }),
+          editor.dispatchCommand(NOTES_TOGGLE_FOLD_COMMAND, { noteKeys }),
       }),
       new NoteMenuOption({
         title: "<b>M</b>ove to...",

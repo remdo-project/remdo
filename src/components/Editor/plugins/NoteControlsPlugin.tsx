@@ -1,4 +1,7 @@
-import { NOTES_OPEN_QUICK_MENU_COMMAND } from "../commands";
+import {
+  NOTES_OPEN_QUICK_MENU_COMMAND,
+  NOTES_TOGGLE_FOLD_COMMAND,
+} from "../commands";
 import { useNotesLexicalComposerContext } from "../lexical/NotesComposerContext";
 import { Note } from "../lexical/api";
 import { getOffsetPosition, isBeforeEvent } from "@/utils";
@@ -9,6 +12,7 @@ import {
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_CRITICAL,
+  COMMAND_PRIORITY_LOW,
   RootNode,
   SELECTION_CHANGE_COMMAND,
 } from "lexical";
@@ -36,7 +40,9 @@ export function NoteControlsPlugin() {
   const updateNoteState = useCallback(
     (targetElement: HTMLElement, { folded = null } = {}) => {
       setNoteFolded(
-        folded !== null ? folded : targetElement.classList.contains("note-folded")
+        folded !== null
+          ? folded
+          : targetElement.classList.contains("note-folded")
       );
       setNoteHasChildren(
         targetElement?.nextElementSibling?.classList.contains("li-nested")
@@ -62,11 +68,12 @@ export function NoteControlsPlugin() {
 
   const toggleFold = event => {
     event.preventDefault();
-    editor.fullUpdate(() => {
-      const note = Note.from($getNearestNodeFromDOMNode(noteElement));
-      note.folded = !note.folded;
-      updateNoteState(noteElement, { folded: note.folded });
-    });
+    editor.update(
+      () => {
+        const key = $getNearestNodeFromDOMNode(noteElement).getKey();
+        editor.dispatchCommand(NOTES_TOGGLE_FOLD_COMMAND, { noteKeys: [key] });
+      }
+    );
   };
 
   const rootMouseMove = (event: MouseEvent) => {
@@ -100,6 +107,21 @@ export function NoteControlsPlugin() {
   useEffect(() => {
     return mergeRegister(
       editor.registerCommand(
+        NOTES_TOGGLE_FOLD_COMMAND,
+        ({ noteKeys }) => {
+          if (!noteKeys.length) {
+            return false;
+          }
+          const folded = !Note.from(noteKeys[0]).folded;
+          noteKeys.forEach(key => {
+            Note.from(key).folded = folded;
+            updateNoteState(noteElement, { folded });
+          });
+          return true;
+        },
+        COMMAND_PRIORITY_LOW
+      ),
+      editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
         () => {
           const selection = $getSelection();
@@ -115,7 +137,7 @@ export function NoteControlsPlugin() {
         COMMAND_PRIORITY_CRITICAL
       )
     );
-  }, [editor, setMenuPosition]);
+  }, [editor, noteElement, setMenuPosition, updateNoteState]);
 
   return (
     <>
@@ -126,7 +148,7 @@ export function NoteControlsPlugin() {
       />
       {menuStyle && (
         <div id="hovered-note-menu" style={menuStyle}>
-          {noteHasChildren && (
+          {(noteHasChildren || noteFolded) && (
             <a
               href="/"
               onClick={toggleFold}

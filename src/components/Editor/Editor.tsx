@@ -27,7 +27,7 @@ import { DevToolbarPlugin } from "./plugins/DevToolbarPlugin";
 import IndentationPlugin from "./plugins/IndentationPlugin";
 import { NotesPlugin } from "./plugins/NotesPlugin";
 import { QuickMenuPlugin } from "./plugins/QuickMenuPlugin";
-
+import { RemdoYJSPlugin } from "./plugins/RemdoYJS";
 
 let yIDB = null;
 if ("indexedDB" in window) {
@@ -36,48 +36,62 @@ if ("indexedDB" in window) {
   yIDB = import("y-indexeddb");
 }
 
-function providerFactory(id: string, yjsDocMap: Map<string, Doc>): Provider {
-  //console.log("providerFactory", id);
-  let doc = yjsDocMap.get(id);
+/**
+ * it would be easier to directly use binding from @lexical/yjs,
+ * however there is not way to access it without patching the library
+ */
+type YJSData = {
+  provider?: Provider;
+  docMap?: Map<string, Doc>;
+  docID?: string;
+};
 
-  if (doc === undefined) {
-    doc = new Doc();
-    yjsDocMap.set(id, doc);
-  } else {
-    doc.load();
-  }
+/**
+ * yes it does generate a factory with a fixed handler to yjsData
+ * the idea is to pass the generated factory to the LexicalComposer
+ */
+function providerFactoryGenerator(
+  yjsData: YJSData
+): (id: string, yjsDocMap: Map<string, Doc>) => Provider {
+  return function (id: string, yjsDocMap: Map<string, Doc>): Provider {
+    //console.log("providerFactory", id);
+    let doc = yjsDocMap.get(id);
 
-  if ("indexedDB" in window) {
-    yIDB.then(({ IndexeddbPersistence }) => {
-      new IndexeddbPersistence(id, doc);
-    });
-  } else if (!("__vitest_environment__" in globalThis)) {
-    console.warn(
-      "IndexedDB is not supported in this browser. Disabling offline mode."
-    );
-  }
-
-  const wsProvider = new WebsocketProvider(
-    "ws://athena:8080",
-    "notes/0/" + id,
-    doc,
-    {
-      connect: true,
+    if (doc === undefined) {
+      doc = new Doc();
+      yjsDocMap.set(id, doc);
+    } else {
+      doc.load();
     }
-  );
-  wsProvider.shouldConnect = true; //reconnect after disconnecting
 
-  /*
-  const events = ["status", "synced", "sync", "update", "error", "destroy", "reload"];
-  events.forEach((event) => {
-    wsProvider.on(event, () => {
-      console.log("wsProvider", event);
+    if ("indexedDB" in window) {
+      yIDB.then(({ IndexeddbPersistence }) => {
+        new IndexeddbPersistence(id, doc);
+      });
+    } else if (!("__vitest_environment__" in globalThis)) {
+      console.warn(
+        "IndexedDB is not supported in this browser. Disabling offline mode."
+      );
+    }
+
+    const wsProvider = new WebsocketProvider(
+      "ws://athena:8080",
+      "notes/0/" + id,
+      doc,
+      {
+        connect: true,
+      }
+    );
+    wsProvider.shouldConnect = true; //reconnect after disconnecting
+    Object.assign(yjsData, {
+      provider: wsProvider as unknown as Provider,
+      docMap: yjsDocMap,
+      docID: id,
     });
-  });
-  */
 
-  // @ts-ignore
-  return wsProvider;
+    // @ts-ignore
+    return wsProvider;
+  };
 }
 
 function Placeholder() {
@@ -95,6 +109,16 @@ export default function Editor() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const documentID = params.get("documentID") || "main";
+  const [collabKey, setCollabKey] = useState(0);
+  const yjsData: YJSData = {};
+  const providerFactory = providerFactoryGenerator(yjsData);
+
+  /**
+   * forces a re-render of the CollaborationPlugin
+   */
+  function updateCollabKey() {
+    setCollabKey(collabKey + 1);
+  }
 
   const onRef = _floatingAnchorElem => {
     if (_floatingAnchorElem !== null) {
@@ -128,7 +152,8 @@ export default function Editor() {
       },
     },
     editorState: null,
-    disableCollab: !!import.meta.env.VITE_DISABLECOLLAB,
+
+    disableCollab: !!(import.meta as any).env.VITE_DISABLECOLLAB,
   };
 
   return (
@@ -141,6 +166,7 @@ export default function Editor() {
             documentID={documentID}
           />
         )}
+        <RemdoYJSPlugin updateCollabKey={updateCollabKey} yjsData={yjsData} />
         <QuickMenuPlugin />
         <RichTextPlugin
           contentEditable={
@@ -164,6 +190,7 @@ export default function Editor() {
             id={documentID}
             providerFactory={providerFactory}
             shouldBootstrap={true}
+            key={collabKey}
           />
         )}
         <div id="editor-bottom" ref={setEditorBottom} />

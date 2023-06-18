@@ -6,7 +6,7 @@
     "module": "ES2022",
     "moduleResolution": "node",
     "typeRoots": ["node_modules/@types"],
-    "types": ["node", "vite/client"],
+    "types": ["node"],
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
@@ -15,6 +15,8 @@
       "@lexical/playground/*": ["./lexical/packages/lexical-playground/src/*"],
       //copied from lexical/tsconfig.json
       "lexical": ["./lexical/packages/lexical/src/"],
+      "@lexical/shared/invariant": ["./lexical/packages/shared/src/invariant.ts"],
+      "@lexical/LexicalEditor": ["./lexical/packages/lexical/src/LexicalEditor.ts"],
       "@lexical/clipboard": ["./lexical/packages/lexical-clipboard/src/"],
       "@lexical/list": ["./lexical/packages/lexical-list/src/"],
       "@lexical/table": ["./lexical/packages/lexical-table/src/"],

@@ -16,6 +16,10 @@ const moduleResolution = [
     replacement: path.resolve("../lexical/src/index.ts"),
   },
   {
+    find: "@lexical/shared/invariant",
+    replacement: path.resolve("../shared/src/invariant.ts"),
+  },
+  {
     find: "@lexical/clipboard",
     replacement: path.resolve("../lexical-clipboard/src/index.ts"),
   },

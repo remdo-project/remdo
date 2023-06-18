@@ -18,6 +18,7 @@
     }
   ],
   "settings": {
+    "prettier.prettierPath": "./node_modules/prettier",
     "typescript.preferences.includePackageJsonAutoImports": "on",
     "[css]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode"

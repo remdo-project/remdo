@@ -10,10 +10,7 @@ import { Navigation } from "./NavigationPlugin";
 import { NoteControlsPlugin } from "./NoteControlsPlugin";
 import "./NotesPlugin.scss";
 import { SearchPlugin } from "./SearchPlugin";
-import {
-  $createListItemNode,
-  $isListItemNode,
-} from "@lexical/list";
+import { $createListItemNode, $isListItemNode } from "@lexical/list";
 import { ListItemNode } from "@lexical/list";
 import { mergeRegister } from "@lexical/utils";
 import {
@@ -133,22 +130,6 @@ export function NotesPlugin({ anchorElement, documentID }) {
         COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerNodeTransform(RootNode, $fixRoot),
-      editor.registerCommand(
-        NOTES_TOGGLE_FOLD_COMMAND,
-        ({ noteKeys }) => {
-          if (!noteKeys.length) {
-            return false;
-          }
-          editor.fullUpdate(() => {
-            const folded = !Note.from(noteKeys[0]).folded;
-            noteKeys.forEach(key => {
-              Note.from(key).folded = folded;
-            });
-          });
-          return true;
-        },
-        COMMAND_PRIORITY_LOW
-      ),
       editor.registerCommand(
         NOTES_MOVE_COMMAND,
         ({ keys, targetKey }) => {
