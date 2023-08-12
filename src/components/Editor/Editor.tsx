@@ -16,6 +16,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
 import { Provider } from "@lexical/yjs";
 import { TextNode } from "lexical";
+import { CollabElementNode } from "lexical/packages/lexical-yjs/src/CollabElementNode";
 import { useState } from "react";
 import React from "react";
 import { useLocation } from "react-router-dom";
@@ -46,6 +47,15 @@ type YJSData = {
   docID?: string;
 };
 
+function shouldRendedNode(collabElementNode: CollabElementNode) {
+  return !(
+    collabElementNode._type === "list" &&
+    (
+      collabElementNode._children[0] as CollabElementNode
+    )?._xmlText.getAttribute("__folded")
+  );
+}
+
 /**
  * yes it does generate a factory with a fixed handler to yjsData
  * the idea is to pass the generated factory to the LexicalComposer
@@ -59,6 +69,7 @@ function providerFactoryGenerator(
 
     if (doc === undefined) {
       doc = new Doc();
+      doc['shouldRenderNode'] = shouldRendedNode;
       yjsDocMap.set(id, doc);
     } else {
       doc.load();
