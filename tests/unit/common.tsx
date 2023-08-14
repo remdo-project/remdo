@@ -265,6 +265,9 @@ beforeEach(async context => {
     context.editor = editor;
   }
 
+  //lexical/node_modules causes YJS to be loaded twice and leads to issues
+  expect(fs.existsSync("lexical/node_modules")).toBeFalsy();
+
   const routerEntries = ["/"];
   const serializationFile = process.env.VITEST_SERIALIZATION_FILE;
   if (serializationFile) {
@@ -305,7 +308,7 @@ beforeEach(async context => {
   context.lexicalUpdate = updateFunction => {
     let err = null;
     context.editor.fullUpdate(
-      function () {
+      function() {
         try {
           return updateFunction();
         } catch (e) {
@@ -322,8 +325,14 @@ beforeEach(async context => {
 
   if (!process.env.VITE_DISABLECOLLAB) {
     //wait for yjs to connect via websocket and init the editor content
+    let i = 0;
+    const waitingTime = 10;
     while (editorElement.children.length == 0) {
-      await new Promise(r => setTimeout(r, 10));
+      if ((i += waitingTime) % 1000 === 0) {
+        console.log(`waiting for yjs to load some data - ${i}ms`);
+        //console.log(editorElement.outerHTML)
+      }
+      await new Promise(r => setTimeout(r, waitingTime));
     }
   }
   if (!serializationFile) {
