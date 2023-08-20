@@ -87,7 +87,7 @@ function providerFactoryGenerator(
 
     const wsURL = "ws://" + window.location.hostname + ":8080";
     const roomName = "notes/0/" + id;
-    console.log(`WebSocket URL: ${wsURL}/${roomName}`)
+    //console.log(`WebSocket URL: ${wsURL}/${roomName}`)
     const wsProvider = new WebsocketProvider(
       wsURL,
       roomName,
@@ -102,10 +102,10 @@ function providerFactoryGenerator(
       docMap: yjsDocMap,
       docID: id,
     });
-    wsProvider.on("status", event => { console.log("wsProvider status", event) })
-    wsProvider.on("sync", event => { console.log("wsProvider sync", event) })
-    wsProvider.on("connecttion-close", event => { console.log("wsProvider connection close", event) })
-    wsProvider.on("connecttion-error", event => { console.log("wsProvider connection errror", event) })
+    //wsProvider.on("status", event => { console.log("wsProvider status", event) })
+    //wsProvider.on("sync", event => { console.log("wsProvider sync", event) })
+    //wsProvider.on("connecttion-close", event => { console.log("wsProvider connection close", event) })
+    //wsProvider.on("connecttion-error", event => { console.log("wsProvider connection errror", event) })
 
     // @ts-ignore
     return wsProvider;
