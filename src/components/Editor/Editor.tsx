@@ -27,7 +27,7 @@ import { DevToolbarPlugin } from "./plugins/DevToolbarPlugin";
 import IndentationPlugin from "./plugins/IndentationPlugin";
 import { NotesPlugin } from "./plugins/NotesPlugin";
 import { QuickMenuPlugin } from "./plugins/QuickMenuPlugin";
-
+import Outliner from "../Outliner";
 
 let yIDB = null;
 if ("indexedDB" in window) {
@@ -57,18 +57,13 @@ function providerFactory(id: string, yjsDocMap: Map<string, Doc>): Provider {
     );
   }
 
-    const wsURL = "ws://" + window.location.hostname + ":8080";
-    const roomName = "notes/0/" + id;
-    //console.log(`WebSocket URL: ${wsURL}/${roomName}`)
-    const wsProvider = new WebsocketProvider(
-      wsURL,
-      roomName,
-      doc,
-      {
-        connect: true,
-      }
-    );
-    wsProvider.shouldConnect = true; //reconnect after disconnecting
+  const wsURL = "ws://" + window.location.hostname + ":8080";
+  const roomName = "notes/0/" + id;
+  //console.log(`WebSocket URL: ${wsURL}/${roomName}`)
+  const wsProvider = new WebsocketProvider(wsURL, roomName, doc, {
+    connect: true,
+  });
+  wsProvider.shouldConnect = true; //reconnect after disconnecting
 
   /*
   const events = ["status", "synced", "sync", "update", "error", "destroy", "reload"];
@@ -99,7 +94,7 @@ export default function Editor() {
   const params = new URLSearchParams(location.search);
   const documentID = params.get("documentID") || "main";
 
-  const onRef = _floatingAnchorElem => {
+  const onRef = (_floatingAnchorElem) => {
     if (_floatingAnchorElem !== null) {
       setFloatingAnchorElem(_floatingAnchorElem);
     }
@@ -135,42 +130,45 @@ export default function Editor() {
   };
 
   return (
-    <LexicalComposer initialConfig={editorConfig}>
-      <div className="editor-container editor-shell">
-        <DevToolbarPlugin editorBottom={editorBottom} />
-        {floatingAnchorElem && (
-          <NotesPlugin
-            anchorElement={floatingAnchorElem}
-            documentID={documentID}
+    <div>
+      <Outliner />
+      <LexicalComposer initialConfig={editorConfig}>
+        <div className="editor-container editor-shell">
+          <DevToolbarPlugin editorBottom={editorBottom} />
+          {floatingAnchorElem && (
+            <NotesPlugin
+              anchorElement={floatingAnchorElem}
+              documentID={documentID}
+            />
+          )}
+          <QuickMenuPlugin />
+          <RichTextPlugin
+            contentEditable={
+              <div className="editor" ref={onRef}>
+                <ContentEditable className="editor-input form-control" />
+              </div>
+            }
+            placeholder={<Placeholder />}
+            ErrorBoundary={LexicalErrorBoundary}
           />
-        )}
-        <QuickMenuPlugin />
-        <RichTextPlugin
-          contentEditable={
-            <div className="editor" ref={onRef}>
-              <ContentEditable className="editor-input form-control" />
-            </div>
-          }
-          placeholder={<Placeholder />}
-          ErrorBoundary={LexicalErrorBoundary}
-        />
-        <DevComponentTestPlugin />
-        <FloatingTextFormatToolbarPlugin />
-        <ClearEditorPlugin />
-        <ListPlugin />
-        <TabIndentationPlugin />
-        <IndentationPlugin />
-        {editorConfig.disableCollab ? (
-          <HistoryPlugin />
-        ) : (
-          <CollaborationPlugin
-            id={documentID}
-            providerFactory={providerFactory}
-            shouldBootstrap={true}
-          />
-        )}
-        <div id="editor-bottom" ref={setEditorBottom} />
-      </div>
-    </LexicalComposer>
+          <DevComponentTestPlugin />
+          <FloatingTextFormatToolbarPlugin />
+          <ClearEditorPlugin />
+          <ListPlugin />
+          <TabIndentationPlugin />
+          <IndentationPlugin />
+          {editorConfig.disableCollab ? (
+            <HistoryPlugin />
+          ) : (
+            <CollaborationPlugin
+              id={documentID}
+              providerFactory={providerFactory}
+              shouldBootstrap={true}
+            />
+          )}
+          <div id="editor-bottom" ref={setEditorBottom} />
+        </div>
+      </LexicalComposer>
+    </div>
   );
 }

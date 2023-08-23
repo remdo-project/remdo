@@ -15,7 +15,7 @@ function log(source, event): void {
 const ydoc = new Y.Doc();
 
 // Define the websocket server URL
-const websocketServerUrl = "ws://athena:8080";
+const websocketServerUrl = "ws://" + window.location.hostname + ":8080";
 
 // Initialize the websocket provider
 const provider = new WebsocketProvider(
@@ -37,7 +37,7 @@ ydoc.on("reload", e => log("reload", e));
 
 // Listen to events on the Y.Map instance
 ymap.observeDeep((event, transaction) => {
-  log("observeDeep", event);
+  //log("observeDeep", event);
 });
 
 // Listen to events on the websocket provider
@@ -47,3 +47,11 @@ provider.on("status", event => {
 
 // Example: add data to the Y.Map instance
 //ymap.set('key', 'value');
+
+
+const yarray = ydoc.getArray('my-array')
+yarray.observe(event => {
+  log('yarray was modified', event)
+})
+// every time a local or remote client modifies yarray, the observer is called
+yarray.insert(0, ['val']) // => "yarray was modified"
