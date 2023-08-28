@@ -1,31 +1,47 @@
 import { Binding } from "@/yjs/binding";
+import React, { createContext, useContext, useEffect, useRef } from "react";
+import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-} from "react";
 
-type YJSContextType = {
+export type YJSContextType = {
   doc: Y.Doc;
-}
+  provider: WebsocketProvider; //TODO breaks the idea of multiple providers, should be rather exposed through a higer level object
+  synced: boolean;
+};
 
-const YJSContext = createContext<YJSContextType>({doc: null});
+const YJSContext = createContext<YJSContextType>({
+  doc: null,
+  provider: null,
+  synced: false,
+});
 
 export const useYJSContext = () => useContext<YJSContextType>(YJSContext);
 
 export const YJSProvider = ({ docID, children }) => {
-  const  yjsContext = useYJSContext();
+  const [synced, setSynced] = React.useState(false);
+  const bindingRef = useRef<Binding>(null);
 
   useEffect(() => {
+    const onSync = () => setSynced(true);
     const binding = new Binding(docID);
-    yjsContext.doc = binding.doc;
-    
+    bindingRef.current = binding;
+    setSynced(binding.wsProvider.synced);
+    binding.wsProvider.on("sync", onSync);
+
     return () => {
+      binding.wsProvider.off("sync", onSync);
       binding.close();
     };
-  }, [docID, yjsContext]);
+  }, [docID]);
 
-  return <YJSContext.Provider value={yjsContext}>{children}</YJSContext.Provider>;
+  const binding = bindingRef.current;
+  const yjsContext: YJSContextType = {
+    doc: binding ? binding.doc : null,
+    provider: binding ? binding.wsProvider : null,
+    synced: synced,
+  };
+
+  return (
+    <YJSContext.Provider value={yjsContext}>{children}</YJSContext.Provider>
+  );
 };
-

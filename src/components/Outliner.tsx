@@ -1,36 +1,41 @@
-import { YJSProvider, useYJSContext } from "@/contexts/YJSContext";
+import * as api from "@/api";
+import { useYJSContext } from "@/contexts/YJSContext";
 import React, { useEffect, useState } from "react";
 
-const Outliner = () => {
-  const yjsContext = useYJSContext();
-  const [notes, setNotes] = useState<string[]>([]);
+const Note = ({ note }: { note: api.Note }) => {
+  const [children, setChildren] = useState<api.Note[]>([]);
 
   useEffect(() => {
-    const ynotes = yjsContext.doc.getArray<string>("notes");
-
-    // Update React state whenever Yjs notes are updated
-    const updateNotes = () => {
-      //console.log("updateNotes", ynotes.toArray());
-      setNotes(ynotes.toArray());
+    const updateChildren = () => {
+      console.log("updating: ", note.id, note._y.length);
+      setChildren(note.getChildren());
     };
 
-    ynotes.observe(updateNotes);
+    updateChildren();
 
-    updateNotes();
-
-    return () => {
-      ynotes.unobserve(updateNotes);
-    };
-  }, [yjsContext]);
+    return note.observe(updateChildren);
+  }, [setChildren, note]);
 
   return (
-    <YJSProvider docID="main">
+    <li>
+      {note.id}: {note.text}
       <ul style={{ border: "1px solid red" }}>
-        {notes.map((note, index) => (
-          <li key={index}>{note}</li>
+        {children.map((note) => (
+          <Note note={note} key={note.id} />
         ))}
       </ul>
-    </YJSProvider>
+    </li>
+  );
+};
+
+//TODO rename to Document
+const Outliner = () => {
+  const { doc } = useYJSContext();
+
+  return (
+    <div>
+      {doc ? <Note note={api.getDocument(doc)} /> : <div>Loading...</div>}
+    </div>
   );
 };
 

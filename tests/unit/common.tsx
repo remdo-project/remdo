@@ -3,6 +3,7 @@ import { NotesLexicalEditor } from "@/components/Editor/lexical/NotesComposerCon
 import { Note } from "@/components/Editor/lexical/api";
 import { TestContext as ComponentTestContext } from "@/components/Editor/plugins/DevComponentTestPlugin";
 import { Layout } from "@/components/Layout";
+import { YJSContextType } from "@/contexts/YJSContext";
 import {
   BoundFunctions,
   getAllByRole,
@@ -10,6 +11,7 @@ import {
   render,
   RenderResult,
   within,
+  waitFor,
 } from "@testing-library/react";
 import fs from "fs";
 import yaml from "js-yaml";
@@ -20,6 +22,7 @@ import React from "react";
 import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
 import { getDataPath } from "tests/common";
 import { it, afterAll, expect, beforeEach, afterEach } from "vitest";
+import * as Y from "yjs";
 
 declare module "vitest" {
   export interface TestContext {
@@ -28,9 +31,10 @@ declare module "vitest" {
       typeof queries & { getAllNotNestedIListItems: typeof getAllByRole.bind }
     >;
     lexicalUpdate: (fn: () => void) => void;
-    log: Function;
+    log: Function; //eslint-disable-line @typescript-eslint/ban-types
     editor: NotesLexicalEditor;
     expect: typeof expect;
+    yjsDoc: Y.Doc;
   }
 }
 
@@ -70,7 +74,7 @@ export function testUpdate(
   if (fn.constructor.name == "AsyncFunction") {
     throw Error("Async functions can't be wrapped with update");
   }
-  return runner(title, context => {
+  return runner(title, (context) => {
     context.lexicalUpdate(() => {
       const rootNode = $getRoot();
       fn({ context, root: Note.from(rootNode), rootNode });
@@ -261,12 +265,16 @@ export function getMinimizedState(editor: LexicalEditor) {
   });
 }
 
-beforeEach(async context => {
+beforeEach(async (context) => {
+  let yjsContext: YJSContextType = null;
   const LOG_FILE_PATH = path.join(process.cwd(), "data", "test.log");
-  fs.writeFileSync(LOG_FILE_PATH, '', 'utf8');
+  fs.writeFileSync(LOG_FILE_PATH, "", "utf8");
 
-  function testHandler(editor: NotesLexicalEditor) {
+  function testHandler(editor: NotesLexicalEditor, yjsCtx: YJSContextType) {
     context.editor = editor;
+    context.yjsDoc = yjsCtx.doc;
+    yjsContext = yjsCtx;
+    //console.log("testHandler", yjsContext);
   }
 
   //lexical/node_modules causes YJS to be loaded twice and leads to issues
@@ -306,10 +314,10 @@ beforeEach(async context => {
     getAllNotNestedIListItems: () =>
       context.queries
         .getAllByRole("listitem")
-        .filter(li => !li.classList.contains("li-nested")),
+        .filter((li) => !li.classList.contains("li-nested")),
   });
 
-  context.lexicalUpdate = updateFunction => {
+  context.lexicalUpdate = (updateFunction) => {
     let err = null;
     context.editor.fullUpdate(
       function() {
@@ -326,19 +334,22 @@ beforeEach(async context => {
       throw err;
     }
   };
+  //console.log("ok2");
 
   context.log = function(...args: any[]) {
-    const formattedArgs = args.map(arg => {
-      if (typeof arg === 'object') {
-        return JSON.stringify(arg);
-      }
-      return String(arg);
-    }).join(' ');
+    const formattedArgs = args
+      .map((arg) => {
+        if (typeof arg === "object") {
+          return JSON.stringify(arg);
+        }
+        return String(arg);
+      })
+      .join(" ");
     const formattedMessage = `${new Date().toISOString()} - ${formattedArgs}\n`;
 
     fs.appendFileSync(LOG_FILE_PATH, formattedMessage);
     console.log(formattedMessage);
-  }
+  };
 
   if (!process.env.VITE_DISABLECOLLAB) {
     //wait for yjs to connect via websocket and init the editor content
@@ -346,15 +357,19 @@ beforeEach(async context => {
     const waitingTime = 10;
     while (editorElement.children.length == 0) {
       if ((i += waitingTime) % 1000 === 0) {
+        if (i % 3000 === 0) {
+          console.log("no data loaded, not waiting anymore");
+          break;
+        }
         console.log(`waiting for yjs to load some data - ${i}ms`);
         //console.log(editorElement.outerHTML)
       }
-      await new Promise(r => setTimeout(r, waitingTime));
+      await new Promise((r) => setTimeout(r, waitingTime));
     }
   }
   if (!serializationFile && !process.env.VITE_PERFORMANCE_TESTS) {
     //clear the editor's content before each test
-    //except for the serialization, where potentially we may want to save the 
+    //except for the serialization, where potentially we may want to save the
     //current content or performance where some of the tests should be stateful
     //it's important to do it here once collab is already initialized
     context.lexicalUpdate(() => {
@@ -362,17 +377,19 @@ beforeEach(async context => {
       root.clear();
     });
   }
+
+  await waitFor(() => expect(yjsContext.provider).not.toBeNull(), { timeout: 60 * 1000 });
 });
 
-afterEach(async context => {
+afterEach(async (context) => {
   if (!process.env.VITE_DISABLECOLLAB) {
     //an ugly workaround - to give a chance for yjs to sync
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
   }
   context.component.unmount();
 });
 
 afterAll(async () => {
   //an ugly workaround - otherwise we may loose some messages written to console
-  await new Promise(r => setTimeout(r, 10));
+  await new Promise((r) => setTimeout(r, 10));
 });

@@ -1,5 +1,5 @@
-import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
+import * as Y from "yjs";
 
 //conditionally y-indexeddb, because it breaks unit tests, where indexedDB is
 //neither available nor used
@@ -24,6 +24,7 @@ export class Binding {
   constructor(docID: string) {
     this.doc = new Y.Doc();
 
+    /* FIXME
     //IndexedDBProvider
     if ("indexedDB" in window) {
       yIDB.then(({ IndexeddbPersistence }) => {
@@ -34,6 +35,7 @@ export class Binding {
         "IndexedDB is not supported in this browser. Disabling offline mode."
       );
     }
+    */
 
     //WebsocketProvider
     const wsURL = "ws://" + window.location.hostname + ":8080";
@@ -43,10 +45,26 @@ export class Binding {
       connect: true,
     });
     this.wsProvider.shouldConnect = true; //reconnect after disconnecting
+
+    //this.wsProvider.on("update", (isLoaded) => {
+    //  console.log("ws update", this.doc.isLoaded, this.doc.isSynced, isLoaded);
+    //});
+    ////this.doc.on("update", (isLoaded) => {
+    ////  console.log("doc update", this.doc.isLoaded, this.doc.isSynced, isLoaded);
+    ////});
+    //this.wsProvider.on("sync", (isLoaded) => {
+    //  console.log("ws synced", this.doc.isLoaded, this.doc.isSynced, isLoaded);
+    //  //this.doc.load();
+    //});
+    //this.doc.on("sync", (isLoaded) => {
+    //  console.log("doc synced", this.doc.isLoaded, this.doc.isSynced, isLoaded);
+    //});
+    //this.doc.on("load", (isLoaded) => {
+    //  console.log("doc loaded", this.doc.isLoaded, this.doc.isSynced, isLoaded);
+    //});
   }
 
   close() {
     this.indexedDBProvider && this.indexedDBProvider.close();
   }
 }
-

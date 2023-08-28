@@ -28,6 +28,7 @@ import IndentationPlugin from "./plugins/IndentationPlugin";
 import { NotesPlugin } from "./plugins/NotesPlugin";
 import { QuickMenuPlugin } from "./plugins/QuickMenuPlugin";
 import Outliner from "../Outliner";
+import { YJSProvider, useYJSContext } from "@/contexts/YJSContext";
 
 let yIDB = null;
 if ("indexedDB" in window) {
@@ -47,6 +48,7 @@ function providerFactory(id: string, yjsDocMap: Map<string, Doc>): Provider {
     doc.load();
   }
 
+  /* FIXME
   if ("indexedDB" in window) {
     yIDB.then(({ IndexeddbPersistence }) => {
       new IndexeddbPersistence(id, doc);
@@ -56,6 +58,7 @@ function providerFactory(id: string, yjsDocMap: Map<string, Doc>): Provider {
       "IndexedDB is not supported in this browser. Disabling offline mode."
     );
   }
+  */
 
   const wsURL = "ws://" + window.location.hostname + ":8080";
   const roomName = "notes/0/" + id;
@@ -131,44 +134,46 @@ export default function Editor() {
 
   return (
     <div>
-      <Outliner />
-      <LexicalComposer initialConfig={editorConfig}>
-        <div className="editor-container editor-shell">
-          <DevToolbarPlugin editorBottom={editorBottom} />
-          {floatingAnchorElem && (
-            <NotesPlugin
-              anchorElement={floatingAnchorElem}
-              documentID={documentID}
+      <YJSProvider docID="main">
+        <Outliner />
+        <LexicalComposer initialConfig={editorConfig}>
+          <div className="editor-container editor-shell">
+            <DevToolbarPlugin editorBottom={editorBottom} />
+            {floatingAnchorElem && (
+              <NotesPlugin
+                anchorElement={floatingAnchorElem}
+                documentID={documentID}
+              />
+            )}
+            <QuickMenuPlugin />
+            <RichTextPlugin
+              contentEditable={
+                <div className="editor" ref={onRef}>
+                  <ContentEditable className="editor-input form-control" />
+                </div>
+              }
+              placeholder={<Placeholder />}
+              ErrorBoundary={LexicalErrorBoundary}
             />
-          )}
-          <QuickMenuPlugin />
-          <RichTextPlugin
-            contentEditable={
-              <div className="editor" ref={onRef}>
-                <ContentEditable className="editor-input form-control" />
-              </div>
-            }
-            placeholder={<Placeholder />}
-            ErrorBoundary={LexicalErrorBoundary}
-          />
-          <DevComponentTestPlugin />
-          <FloatingTextFormatToolbarPlugin />
-          <ClearEditorPlugin />
-          <ListPlugin />
-          <TabIndentationPlugin />
-          <IndentationPlugin />
-          {editorConfig.disableCollab ? (
-            <HistoryPlugin />
-          ) : (
-            <CollaborationPlugin
-              id={documentID}
-              providerFactory={providerFactory}
-              shouldBootstrap={true}
-            />
-          )}
-          <div id="editor-bottom" ref={setEditorBottom} />
-        </div>
-      </LexicalComposer>
+            <DevComponentTestPlugin />
+            <FloatingTextFormatToolbarPlugin />
+            <ClearEditorPlugin />
+            <ListPlugin />
+            <TabIndentationPlugin />
+            <IndentationPlugin />
+            {editorConfig.disableCollab ? (
+              <HistoryPlugin />
+            ) : (
+              <CollaborationPlugin
+                id={documentID}
+                providerFactory={providerFactory}
+                shouldBootstrap={true}
+              />
+            )}
+            <div id="editor-bottom" ref={setEditorBottom} />
+          </div>
+        </LexicalComposer>
+      </YJSProvider>
     </div>
   );
 }
