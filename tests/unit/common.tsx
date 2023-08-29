@@ -22,7 +22,7 @@ import React from "react";
 import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
 import { getDataPath } from "tests/common";
 import { it, afterAll, expect, beforeEach, afterEach } from "vitest";
-import * as Y from "yjs";
+import * as api from "@/api";
 
 declare module "vitest" {
   export interface TestContext {
@@ -34,7 +34,7 @@ declare module "vitest" {
     log: Function; //eslint-disable-line @typescript-eslint/ban-types
     editor: NotesLexicalEditor;
     expect: typeof expect;
-    yjsDoc: Y.Doc;
+    document: api.Note;
   }
 }
 
@@ -272,9 +272,8 @@ beforeEach(async (context) => {
 
   function testHandler(editor: NotesLexicalEditor, yjsCtx: YJSContextType) {
     context.editor = editor;
-    context.yjsDoc = yjsCtx.doc;
+    context.document = yjsCtx.doc && api.getDocument(yjsCtx.doc);
     yjsContext = yjsCtx;
-    //console.log("testHandler", yjsContext);
   }
 
   //lexical/node_modules causes YJS to be loaded twice and leads to issues
@@ -334,7 +333,6 @@ beforeEach(async (context) => {
       throw err;
     }
   };
-  //console.log("ok2");
 
   context.log = function(...args: any[]) {
     const formattedArgs = args
@@ -362,7 +360,6 @@ beforeEach(async (context) => {
           break;
         }
         console.log(`waiting for yjs to load some data - ${i}ms`);
-        //console.log(editorElement.outerHTML)
       }
       await new Promise((r) => setTimeout(r, waitingTime));
     }
@@ -378,7 +375,10 @@ beforeEach(async (context) => {
     });
   }
 
-  await waitFor(() => expect(yjsContext.provider).not.toBeNull(), { timeout: 60 * 1000 });
+  //wait for yjs to connect via websocket and connect and sync
+  await waitFor(() => expect(yjsContext.provider.synced).toBeTruthy());
+  //delete all existing notes
+  context.document._y.delete(0, context.document._y.length);
 });
 
 afterEach(async (context) => {

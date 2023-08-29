@@ -7,7 +7,6 @@ const Note = ({ note }: { note: api.Note }) => {
 
   useEffect(() => {
     const updateChildren = () => {
-      console.log("updating: ", note.id, note._y.length);
       setChildren(note.getChildren());
     };
 
@@ -18,8 +17,8 @@ const Note = ({ note }: { note: api.Note }) => {
 
   return (
     <li>
-      {note.id}: {note.text}
-      <ul style={{ border: "1px solid red" }}>
+      {note.text}
+      <ul>
         {children.map((note) => (
           <Note note={note} key={note.id} />
         ))}
@@ -28,8 +27,7 @@ const Note = ({ note }: { note: api.Note }) => {
   );
 };
 
-//TODO rename to Document
-const Outliner = () => {
+const Document = () => {
   const { doc } = useYJSContext();
 
   return (
@@ -39,4 +37,4 @@ const Outliner = () => {
   );
 };
 
-export default Outliner;
+export default Document;

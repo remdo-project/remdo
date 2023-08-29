@@ -27,8 +27,8 @@ import { DevToolbarPlugin } from "./plugins/DevToolbarPlugin";
 import IndentationPlugin from "./plugins/IndentationPlugin";
 import { NotesPlugin } from "./plugins/NotesPlugin";
 import { QuickMenuPlugin } from "./plugins/QuickMenuPlugin";
-import Outliner from "../Outliner";
-import { YJSProvider, useYJSContext } from "@/contexts/YJSContext";
+import Document from "../Document";
+import { YJSProvider} from "@/contexts/YJSContext";
 
 let yIDB = null;
 if ("indexedDB" in window) {
@@ -135,7 +135,7 @@ export default function Editor() {
   return (
     <div>
       <YJSProvider docID="main">
-        <Outliner />
+        <Document />
         <LexicalComposer initialConfig={editorConfig}>
           <div className="editor-container editor-shell">
             <DevToolbarPlugin editorBottom={editorBottom} />

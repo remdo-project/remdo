@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import * as Y from "yjs";
 
-const ROOT_NAME = "notes12";
+const ROOT_NAME = "notes13";
 
 export class Note {
   _y: Y.XmlElement;
@@ -27,8 +27,8 @@ export class Note {
   }
 
   observe(callback: () => void) {
-    this._y.observeDeep(callback);
-    return this._y.unobserveDeep(callback);
+    this._y.observe(callback);
+    return () => this._y.unobserve(callback);
   }
 
   getChildren() {
