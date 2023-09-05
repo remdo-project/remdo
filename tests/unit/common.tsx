@@ -349,7 +349,7 @@ beforeEach(async (context) => {
     console.log(formattedMessage);
   };
 
-  if (!process.env.VITE_DISABLECOLLAB) {
+  if (false && !process.env.VITE_DISABLECOLLAB) { //FIXME
     //wait for yjs to connect via websocket and init the editor content
     let i = 0;
     const waitingTime = 10;

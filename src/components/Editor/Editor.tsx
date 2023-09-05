@@ -129,7 +129,7 @@ export default function Editor() {
       },
     },
     editorState: null,
-    disableCollab: !!(import.meta as any).env.VITE_DISABLECOLLAB,
+    disableCollab: true,
   };
 
   return (

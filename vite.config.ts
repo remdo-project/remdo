@@ -199,6 +199,12 @@ playgroundResolveAlias.unshift(
     ),
   },
   {
+    find: "@lexical/react/shared/useYjsCollaboration",
+    replacement: path.resolve(
+      "./lexical/packages/lexical-react/src/shared/useYjsCollaboration.tsx"
+    ),
+  },
+  {
     find: "@lexical/list/utils",
     replacement: path.resolve("./lexical/packages/lexical-list/src/utils.ts"),
   },

@@ -38,6 +38,9 @@
       "@lexical/markdown": ["./lexical/packages/lexical-markdown/src/"],
       "@lexical/mark": ["./lexical/packages/lexical-mark/src/"],
 
+      "@lexical/react/shared/useYjsCollaboration": [
+        "./lexical/packages/lexical-react/src/shared/useYjsCollaboration.tsx"
+      ],
       "@lexical/react/DEPRECATED_useLexicalEditor": [
         "./lexical/packages/lexical-react/src/DEPRECATED_useLexicalEditor.ts"
       ],

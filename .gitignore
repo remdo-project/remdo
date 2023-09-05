@@ -9,3 +9,4 @@
 /data/
 .vitest-preview/
 log
+.lvim

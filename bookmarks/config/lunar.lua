@@ -1,0 +1,1 @@
+/home/piotr/.config/lvim/config.lua
