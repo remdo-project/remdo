@@ -10,3 +10,5 @@
 .vitest-preview/
 log
 .lvim
+.ports
+project.code-workspace
