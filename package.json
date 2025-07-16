@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@hocuspocus/extension-logger": "^2.13.0",
+    "@hocuspocus/extension-logger": "^3.2.0",
     "@hocuspocus/provider": "^2.13.0",
     "@hocuspocus/server": "^2.13.0",
     "@lexical/list": "file:./lexical/packages/lexical-list",
