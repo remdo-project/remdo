@@ -1,0 +1,117 @@
+[submodule "lexical"]
+	path = lexical
+    url = github.comnhtthlh  1) [chromium] › notebook/breadcrumbs.spec.ts:35:5 › focus on a particular note ───────────────────
+
+    Error: expect(string).toMatchSnapshot(expected)
+
+      <ulm class="filtered"m>
+        <li mclass="filteremdm" dmir="ltr" value="1">
+          <span data-lexical-text="true">note0</span>
+          <ulm class="filtered"m>
+            <li mclass="filteremdm" dmir="ltr" value="1">
+              <span data-lexical-text="true">note00</span>
+              <ulm class="filtered"m>
+                <li mclass="filteremdm" dmir="ltr" value="1">
+                  <span data-lexical-text="true">note000</span>
+                </li>
+              </ul>
+            </li>
+            <li mclass="filteremdm" dmir="ltr" value="2">mm
+      m        m<span data-lexical-text="true">note01</span>mm
+      m      m</li>
+          </ul>
+        </li>
+        <li mclass="filteremdm" dmir="ltr" value="2">
+          <span data-lexical-text="true">note1</span>
+          <ulm class="unfiltered"m>
+            <li mclass="filteremdm" dmir="ltr" value="1">mm
+      m        m<span data-lexical-text="true">note10</span>mm
+      m      m</li>
+            <li mclass="filteremdm" dmir="ltr" value="2">mm
+      m        m<span data-lexical-text="true">note11</span>mm
+      m      m</li>
+            <li mclass="unfilteremdm" dmir="ltr" value="3">
+              <span data-lexical-text="true">note12</span>
+              <ulm class="unfiltered"m>
+                <li mclass="unfilteremdm" dmir="ltr" value="1">
+                  <span data-lexical-text="true">note120</span>
+                  <ulm class="unfiltered"m>
+                    <li mclass="unfilteremdm" dmir="ltr" value="1">
+                      <span data-lexical-text="true">note1200</span>
+                    </li>
+                    <li mclass="unfilteremdm" dmir="ltr" value="2">
+                      <span data-lexical-text="true">note1201</span>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+      </ul>
+
+    Expected: /home/runner/work/remdo/remdo/tests/browser/notebook/__snapshots__/breadcrumbs.spec.ts/focus-on-a-particular-note_focused
+    Received: /home/runner/work/remdo/remdo/data/test-results/notebook-breadcrumbs-focus-on-a-particular-note-chromium/focused-actual
+
+
+      74 |   expect(await breadcrumbs(page)).toEqual(['Documents', 'main']);
+      75 |   expect(urlPath(page)).toBe('/');
+    > 76 |   expect(await notebook.html()).toMatchSnapshot('focused');
+         |                                 ^
+      77 |
+      78 |   const note1Breadcrumb = page.locator('li.breadcrumb-item a:has-text("note1")');
+      79 |   if (await note1Breadcrumb.isVisible()) {
+        at /home/runner/work/remdo/remdo/tests/browser/notebook/breadcrumbs.spec.ts:76:33
+
+    attachment #1: focused-expected (application/octet-string) ─────────────────────────────────────
+    tests/browser/notebook/__snapshots__/breadcrumbs.spec.ts/focus-on-a-particular-note_focused
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: focused-actual (application/octet-string) ───────────────────────────────────────
+    data/test-results/notebook-breadcrumbs-focus-on-a-particular-note-chromium/focused-actual
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › notebook/breadcrumbs.spec.ts:104:5 › reload ──────────────────────────────────────
+
+    Error: A snapshot doesn't exist at /home/runner/work/remdo/remdo/tests/browser/notebook/__snapshots__/breadcrumbs.spec.ts/reload_unfocused, writing actual.
+
+      118 |     'note1', 'note10', 'note11', 'note12', 'note120', 'note1200', 'note1201'
+      119 |   ]);
+    > 120 |   expect(await notebook.html()).toMatchSnapshot('unfocused');
+          |                                 ^
+      121 |
+      122 |   console.log('Yjs state pre-reload:', await page.evaluate(() => JSON.stringify(window.ydoc?.getMap('notes')?.toJSON() || {})));
+      123 |   await page.reload({ waitUntil: 'domcontentloaded' });
+        at /home/runner/work/remdo/remdo/tests/browser/notebook/breadcrumbs.spec.ts:120:33
+
+    Error: A snapshot doesn't exist at /home/runner/work/remdo/remdo/tests/browser/notebook/__snapshots__/breadcrumbs.spec.ts/reload_unfocused-empty, writing actual.
+
+      137 |   if (isDomEmpty || Object.keys(yjsState).length === 0) {
+      138 |     console.log('Empty DOM or Yjs state detected post-reload, snapping empty state');
+    > 139 |     expect(await notebook.html()).toMatchSnapshot('unfocused-empty');
+          |                                   ^
+      140 |     return;
+      141 |   }
+      142 |
+        at /home/runner/work/remdo/remdo/tests/browser/notebook/breadcrumbs.spec.ts:139:35
+
+    attachment #1: unfocused-expected (application/octet-string) ───────────────────────────────────
+    tests/browser/notebook/__snapshots__/breadcrumbs.spec.ts/reload_unfocused
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: unfocused-actual (application/octet-string) ─────────────────────────────────────
+    data/test-results/notebook-breadcrumbs-reload-chromium/unfocused-actual
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: unfocused-empty-expected (application/octet-string) ─────────────────────────────
+    tests/browser/notebook/__snapshots__/breadcrumbs.spec.ts/reload_unfocused-empty
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: unfocused-empty-actual (application/octet-string) ───────────────────────────────
+    data/test-results/notebook-breadcrumbs-reload-chromium/unfocused-empty-actual
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › notebook/breadcrumbs.spec.ts:35:5 › focus on a particular note ────────────────────
+    [chromium] › notebook/breadcrumbs.spec.ts:104:5 › reload ───────────────────────────────────────https/piotrlewalski/lexical.git
+    branch = main
