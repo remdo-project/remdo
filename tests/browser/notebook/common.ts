@@ -74,6 +74,18 @@ export class Notebook {
     }
     return result;
   }
+
+  async state() {
+  return this.page.$$eval(".editor-input .note", (nodes) =>
+    nodes.map((el) => ({
+      id: el.getAttribute("data-id") ?? "",
+      text: el.querySelector(".note-content")?.textContent ?? "",
+      checked: el.classList.contains("is-checked"),
+      folded: el.classList.contains("is-folded"),
+      level: parseInt(el.getAttribute("data-level") || "0", 10),
+    }))
+  );
+}
 }
 
 class Menu {
