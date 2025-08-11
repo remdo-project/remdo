@@ -102,7 +102,7 @@
     "prettier-plugin-organize-attributes": "^1.0.0",
     "prettier-plugin-sort-json": "^4.0.0",
     "prettier-plugin-tailwindcss": "^0.6.9",
-    "rollup-plugin-visualizer": "^5.9.0",
+    "rollup-plugin-visualizer": "^6.0.3",
     "sass": "1.77.6",
     "vite": "^6.0.5",
     "vitest": "^2.0.5",
