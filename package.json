@@ -25,7 +25,7 @@
     "uuid": "^11.0.3",
     "web-vitals": "^4.0.0",
     "y-indexeddb": "^9.0.9",
-    "y-websocket": "^2.0.3"
+    "y-websocket": "^3.0.0"
   },
   "scripts": {
     "start": "NODE_OPTIONS=--openssl-legacy-provider react-scripts start",
