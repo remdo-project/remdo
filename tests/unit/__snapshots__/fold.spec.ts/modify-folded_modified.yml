@@ -8,8 +8,6 @@ root:
       children:
       - text: note0 - modified
         type: text
-    - type: listitem
-      children:
       - type: list
         children:
         - indent: 1

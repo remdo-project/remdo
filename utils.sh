@@ -17,7 +17,15 @@ function repo_files {
         echo $NEW_FILES $TRACKED_FILES
     else
         SUBMODULES_REGEXP=$(git submodule foreach --quiet 'echo ^$path' | $SCRIPT_PATH list_to_regexp)
-        echo $NEW_FILES $TRACKED_FILES | grep -Ev $SUBMODULES_REGEXP
+        echo "$NEW_FILES $TRACKED_FILES" |
+          grep -Ev "$SUBMODULES_REGEXP" |
+          cut -d ' ' -f 1 | #convert to one file per line
+          grep -Ev '\.(mts|svg|png|ico|json)$' | #exclude some file types
+          while read -r file; do # remove symlinks
+            if [ ! -L "$file" ]; then
+              echo "$file"
+            fi
+          done
     fi
 }
 
@@ -51,8 +59,8 @@ function run_serialization {
         echo "Usage: $SCRIPT_PATH run_serialization [load|save] [serialization_file]"
         exit 1
     fi
-    #TODO add --no-api once this is merged: https://github.com/vitest-dev/vitest/pull/4228
-    VITEST_SERIALIZATION_FILE=$2 npx vitest run serialization -t $1 $3
+    #disable API to not compete for the port with the main test instance
+    VITEST_SERIALIZATION_FILE=$2 VITE_LOG_LEVEL="info" VITE_WS="true" npx vitest run serialization --api=false -t $1 $3
 }
 
 #loads data from the file and saves it back repeatedly

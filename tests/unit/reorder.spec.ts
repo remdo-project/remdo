@@ -1,5 +1,5 @@
 import "./common";
-import { Note } from "@/components/Editor/api";
+import { Note } from "@/components/Editor/plugins/remdo/utils/api";
 import { it } from "vitest";
 
 it("reorder flat", async ({ load, editor, expect, lexicalUpdate }) => {

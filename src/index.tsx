@@ -1,7 +1,12 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
+/// <reference types="vite/client" />
 import App from "./App";
+import ReactDOM from "react-dom/client";
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+//clear console on hot reload
+if (import.meta.hot) {
+  import.meta.hot.on("vite:beforeUpdate", () => console.clear());
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root")!);
 
 root.render(<App />);

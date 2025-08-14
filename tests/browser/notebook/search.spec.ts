@@ -1,39 +1,34 @@
-import { test } from "./common";
+import { test } from "./common"; 
 import { expect } from "@playwright/test";
 
-test("search", async ({ page, notebook }) => {
-  await notebook.load("flat");
+test("search", async ({ page, notebook }) => { 
+  await notebook.load("flat"); 
   const searchInput = page.locator("#search");
+  
+  const allNotes = ["note0", "note1", "note2"]; 
+  let visibleNotes = await notebook.getNotes(); 
+  expect(visibleNotes).toEqual(allNotes);
 
-  await searchInput.fill("note");
-  let html = await notebook.html();
-  expect(html).toContain("note0");
-  expect(html).toContain("note1");
-  expect(html).toContain("note2");
+  await searchInput.fill("note"); 
+  visibleNotes = await notebook.getNotes(); 
+  expect(visibleNotes).toEqual(allNotes);
 
-  await searchInput.fill("1");
-  html = await notebook.html();
-  expect(html).not.toContain("note0");
-  expect(html).toContain("note1");
-  expect(html).not.toContain("note2");
+  await searchInput.fill("1"); 
+  visibleNotes = await notebook.getNotes(); 
+  expect(visibleNotes).toEqual(["note1"]); 
 });
 
-test("find", async ({ page, notebook }) => {
+test("search and focus", async ({ page, notebook }) => { 
   await notebook.load("tree");
-  let html = await notebook.html();
 
-  expect(html).toContain("note0");
-  expect(html).toContain("sub note 0");
-  expect(html).toContain("note1");
-  expect(html).toContain("sub note 1");
+  const initialNotes = ["note0", "sub note 0", "note1", "sub note 1"];
+  expect(await notebook.getNotes()).toEqual(initialNotes);
 
-  const searchInput = page.locator("#search");
-  await searchInput.fill("note0");
+  const searchInput = page.locator("#search"); 
+  await searchInput.fill("note0"); 
   await page.keyboard.press("Enter");
 
-  html = await notebook.html();
-  expect(html).toContain("note0");
-  expect(html).toContain("sub note 0");
-  expect(html).not.toContain("note1");
-  expect(html).not.toContain("sub note 1");
+  const filteredNotes = await notebook.getNotes(); 
+  expect(filteredNotes).toEqual(["note0", "sub note 0"]); 
 });
+

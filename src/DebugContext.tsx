@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext, useEffect } from "react";
+import { useState, createContext, useContext, useEffect, ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 interface DebugContextType {
@@ -8,7 +8,7 @@ interface DebugContextType {
 
 const DebugContext = createContext<DebugContextType>({
   isDebugMode: false,
-  toggleDebugMode: () => {},
+  toggleDebugMode: () => { },
 });
 
 export const useDebug = (): DebugContextType => {
@@ -19,10 +19,10 @@ export const useDebug = (): DebugContextType => {
   return context;
 };
 
-export const DebugProvider = ({ children }) => {
+export const DebugProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isDebugMode, setDebugMode] = useState(null);
+  const [isDebugMode, setDebugMode] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

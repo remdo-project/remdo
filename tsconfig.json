@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "strict": false,
+    "strict": true,
     "jsx": "react-jsx",
     "module": "ES2022",
     "moduleResolution": "node",
@@ -229,8 +229,13 @@
         "lexical/packages/lexical/src/LexicalUpdates.ts"
       ],
       "@lexical/LexicalUtils": ["lexical/packages/lexical/src/LexicalUtils.ts"],
-      "@lexical/LexicalNode": ["lexical/packages/lexical/src/LexicalNode.ts"],
+      "@lexical/LexicalNode": ["lexical/packages/lexical/src/LexicalNode.ts"]
     }
   },
-  "exclude": ["**/node_modules/**"]
+  "exclude": ["**/node_modules/**"],
+  "include": [
+    "./types",
+    "./src",
+    "./tests"
+  ]
 }

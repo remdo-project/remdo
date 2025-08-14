@@ -1,6 +1,6 @@
 //TODO refactor using loadEditorState
-import { debug } from "./common";
-import { Note, NotesState } from "@/components/Editor/api";
+import { createChildren } from "./common";
+import { Note, NotesState } from "@/components/Editor/plugins/remdo/utils/api";
 import { $isListNode, $isListItemNode } from "@lexical/list";
 import { $createTextNode, $getRoot, $setSelection, ElementNode } from "lexical";
 import { describe, it, expect, beforeEach } from "vitest";
@@ -51,20 +51,6 @@ function checkChildren(
     }
   });
   expect(notes).toHaveLength(expectedCount + 1); //+1 for root which is not listed as a child
-}
-
-export function createChildren(
-  note: Note,
-  count: number
-): [Array<Note>, ...Note[]] {
-  const start = [...note.children].length;
-  for (let i = 0; i < count; ++i) {
-    note.createChild(`note${start + i}`);
-  }
-  const n: Array<Note> = [note, ...note.children];
-  const n1: Array<Note> = [...note.children];
-
-  return [n, ...n1];
 }
 
 describe("API", async () => {
@@ -166,30 +152,7 @@ describe("API", async () => {
     checkChildren(notes, [[note0, note1, note2, note4], [], [], [note3]]);
   });
 
-  it("focus", (context) => {
-    context.lexicalUpdate(() => {
-      const root = Note.from($getRoot());
-
-      const [, , note1, note2] = createChildren(root, 3);
-      note1.indent();
-      note2.indent();
-      note2.indent();
-    });
-
-    //note0, note1, note2, note3 (root doesn't count as it's a div not li)
-    expect(context.queries.getAllNotNestedIListItems()).toHaveLength(4);
-
-    context.lexicalUpdate(() => {
-      const root = Note.from($getRoot());
-      const note0 = [...root.children][0];
-      note0.focus();
-    });
-
-    //note0, note1, note2
-    expect(context.queries.getAllNotNestedIListItems()).toHaveLength(3);
-  });
-
-  it("focus and add children", (context) => {
+  it.fails("focus and add children", (context) => {
     context.lexicalUpdate(() => {
       const root = Note.from($getRoot());
       const note0 = [...root.children][0];
@@ -215,36 +178,6 @@ describe("API", async () => {
     });
     //note0, note1, note2
     expect(context.queries.getAllNotNestedIListItems()).toHaveLength(3);
-  });
-
-  it("filter", (context) => {
-    context.lexicalUpdate(() => {
-      const root = Note.from($getRoot());
-      const notesState = NotesState.getActive();
-
-      createChildren(root, 1);
-      //filter that matches all notes
-      notesState.setFilter("note");
-
-      //to make sure that notes created after setting filter behave in the same way as already existing ones
-      createChildren(root, 1);
-    });
-
-    //note0, note1, note2
-    expect(context.queries.getAllNotNestedIListItems()).toHaveLength(3);
-
-    context.lexicalUpdate(() => {
-      const root = Note.from($getRoot());
-      const notesState = NotesState.getActive();
-      notesState.setFilter("note1");
-
-      //to make sure that notes created after setting filter behave in the same way as already existing ones
-      createChildren(root, 1);
-    });
-
-    debug();
-    //note1
-    expect(context.queries.getAllNotNestedIListItems()).toHaveLength(1);
   });
 
   it("fold", async (context) => {

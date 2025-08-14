@@ -7,13 +7,13 @@ import { getDataPath } from "tests/common.js";
 export class Notebook {
   constructor(private readonly page: Page) {}
 
-  locator(selector="") {
+  locator(selector = ""): Locator {
     const editorSelector = ".editor-input" + (selector ? " " + selector : "");
     return this.page.locator(editorSelector);
   }
 
   noteLocator(title: string): Locator {
-    return this.locator("li span:text-is('" + title + "')");
+    return this.locator(`li span:text-is('${title}')`);
   }
 
   async load(file: string) {
@@ -25,35 +25,56 @@ export class Notebook {
     await this.page.click("text=Load State");
     await this.locator().focus();
 
-    //FIXME - wait for lexical to fully update the editor
-    //perhabs the whole loading mechanism should be improved
-    await this.page.waitForTimeout(50);
+    // FIXME: wait for Lexical to fully update the editor.
+    // Consider improving the whole loading mechanism, see:
+    // https://lexical.dev/docs/intro
+    await this.page.waitForTimeout(200);
   }
 
+  /**
+   * Returns the HTML content of the editor, formatted for stable comparison.
+   * Use in tests where HTML output is the expected value.
+   */
   async html() {
-    return prettier
-      .format(await this.locator().innerHTML(), {
-        //@ts-ignore
-        attributeSort: "ASC",
+    return (
+      await prettier.format(await this.locator().innerHTML(), {
         parser: "html",
+        plugins: ["prettier-plugin-organize-attributes"],
+        attributeSort: "ASC",
       })
-      .trim();
+    ).trim();
   }
 
-  /** places cursor on the very end of given's note title */
+  async selectNote(title: string) {
+    await this.noteLocator(title).selectText();
+
+    // Give Lexical time to visually reflect the selection
+    await this.page.waitForTimeout(200);
+  }
+
+  /** Places cursor at the very end of a given note's title */
   async clickEndOfNote(title: string) {
     const noteLocator = this.noteLocator(title);
     const { width, height } = await noteLocator.boundingBox();
     await noteLocator.click({
-      position: { x: width - 1, y: height - 1 }, //the idea is that bottom right corner should be the end of the title's text
+      position: { x: width - 1, y: height - 1 }, // bottom-right corner = end of text
     });
   }
 
   async clickBeginningOfNote(title: string) {
     const noteLocator = this.noteLocator(title);
-    await noteLocator.click({
-      position: { x: 1, y: 1 }, 
-    });
+    await noteLocator.click({ position: { x: 1, y: 1 } });
+  }
+
+  async getNotes() {
+    const result: string[] = [];
+    for (const notes of await this.locator("span").all()) {
+      const text = await notes.textContent();
+      if (await notes.isVisible() && text) {
+        result.push(text);
+      }
+    }
+    return result;
   }
 }
 
@@ -83,21 +104,45 @@ class Menu {
   }
 
   async fold() {
-    await this.page.keyboard.press("f"); 
+    await this.page.keyboard.press("f");
+    await this.page.waitForTimeout(20);
+  }
+
+  async focus() {
+    await this.page.keyboard.press("z");
     await this.page.waitForTimeout(20);
   }
 }
 
-export let test = base.extend<{ notebook: Notebook}>({
-  notebook: async ({ baseURL, page }, use) => {
+export const test = base.extend<{
+  notebook: Notebook;
+  urlPath: string;
+  takeScreenshot: (name?: string, page?: Page) => Promise<void>;
+  menu: Menu;
+}>({
+  urlPath: async ({}, use) => {
+    await use("");
+  },
+  notebook: async ({ baseURL, urlPath, page }, use) => {
     const notebook = new Notebook(page);
-    await page.goto(baseURL);
+    const baseUrlObj = new URL(baseURL ?? "");
+    if (urlPath) {
+      baseUrlObj.pathname = urlPath;
+    }
+    await page.goto(baseUrlObj.toString());
     await notebook.locator().focus();
     await use(notebook);
   },
-});
-
-test = test.extend<{menu: Menu }>({
+  takeScreenshot: async ({ page }, use, testInfo) => {
+    let i = 0;
+    await use(async (name?: string, page_?: Page) => {
+      const screenshot = await (page_ ?? page).screenshot();
+      await testInfo.attach(
+        `screenshot-${i++}${name ? "-" + name : ""}.png`,
+        { body: screenshot, contentType: "image/png" }
+      );
+    });
+  },
   menu: async ({ page, notebook }, use) => {
     await use(new Menu(page, notebook));
   },

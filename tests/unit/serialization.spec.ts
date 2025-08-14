@@ -10,23 +10,13 @@ import { $convertToMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import fs from "fs";
 import { it } from "vitest";
 
-const SERIALIZATION_FILE = process.env.VITEST_SERIALIZATION_FILE;
+const SERIALIZATION_FILE = process.env.VITEST_SERIALIZATION_FILE as string;
 
-it.runIf(SERIALIZATION_FILE)("load", async ({ load /*, component*/ }) => {
-  //console.log(component.container.querySelector("#notes-path a").map(e => e.textContent));
-  //const documentSelector = component.getByTestId("document-selector");
-  //console.log(documentSelector.innerHTML);
-  //fireEvent.click(within(documentSelector).getByRole("button"));
-  //console.log(documentSelector.innerHTML);
-  //const option = await within(documentSelector).findByRole("link");
-  //console.log(option.innerHTML);
-  //return;
-  //console.log(documentSelector.innerHTML);
-  ////console.log(component.container.querySelector("#notes-path a").click());
+it.runIf(SERIALIZATION_FILE)("load", async ({ load }) => {
   const dataPath = getDataPath(SERIALIZATION_FILE);
-  console.log();
-  console.log();
-  console.log("Loading from", dataPath);
+  logger.info();
+  logger.info();
+  logger.info("Loading from", dataPath);
   load(dataPath);
 });
 
@@ -54,17 +44,17 @@ it.runIf(SERIALIZATION_FILE)("save", ({ editor }) => {
   }
 
   const dataPath = getDataPath(SERIALIZATION_FILE);
-  console.log("Saving to", dataPath);
+  logger.info("Saving to", dataPath);
   const editorState = JSON.parse(JSON.stringify(editor.getEditorState()));
   const sortedJsonObj = sortObjectKeys(editorState);
   const sortedJson = JSON.stringify(sortedJsonObj, null, 2);
   fs.writeFileSync(dataPath, sortedJson);
 
   const mdDataPath = dataPath.replace(/\.json$/, ".md");
-  let markdown: string;
+  let markdown = "";
   editor.update(() => {
     markdown = $convertToMarkdownString(TRANSFORMERS);
   });
-  console.log("Saving to", mdDataPath);
+  logger.info("Saving to", mdDataPath);
   fs.writeFileSync(mdDataPath, markdown);
 });

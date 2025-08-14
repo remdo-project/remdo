@@ -33,18 +33,7 @@
                 "text": "Alternatives",
                 "type": "text",
                 "version": 1
-              }
-            ]
-          },
-          {
-            "direction": "ltr",
-            "folded": false,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "value": 2,
-            "version": 1,
-            "children": [
+              },
               {
                 "direction": "ltr",
                 "format": "",
@@ -96,18 +85,7 @@
                 "text": "Ideas",
                 "type": "text",
                 "version": 1
-              }
-            ]
-          },
-          {
-            "direction": "ltr",
-            "folded": false,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "value": 3,
-            "version": 1,
-            "children": [
+              },
               {
                 "direction": "ltr",
                 "format": "",
@@ -135,18 +113,7 @@
                         "text": "Dependencies",
                         "type": "text",
                         "version": 1
-                      }
-                    ]
-                  },
-                  {
-                    "direction": "ltr",
-                    "folded": false,
-                    "format": "",
-                    "indent": 1,
-                    "type": "listitem",
-                    "value": 2,
-                    "version": 1,
-                    "children": [
+                      },
                       {
                         "direction": "ltr",
                         "format": "",
@@ -190,6 +157,7 @@
                                 "direction": "ltr",
                                 "format": "",
                                 "indent": 0,
+                                "isUnlinked": false,
                                 "rel": null,
                                 "target": null,
                                 "title": null,
@@ -235,18 +203,7 @@
                 "text": "ToDo",
                 "type": "text",
                 "version": 1
-              }
-            ]
-          },
-          {
-            "direction": "ltr",
-            "folded": false,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "value": 4,
-            "version": 1,
-            "children": [
+              },
               {
                 "direction": "ltr",
                 "format": "",
@@ -274,18 +231,7 @@
                         "text": "Bugs",
                         "type": "text",
                         "version": 1
-                      }
-                    ]
-                  },
-                  {
-                    "direction": "ltr",
-                    "folded": false,
-                    "format": "",
-                    "indent": 1,
-                    "type": "listitem",
-                    "value": 2,
-                    "version": 1,
-                    "children": [
+                      },
                       {
                         "direction": "ltr",
                         "format": "",
@@ -297,7 +243,6 @@
                         "version": 1,
                         "children": [
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -318,7 +263,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -339,7 +283,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -360,7 +303,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -377,18 +319,7 @@
                                 "text": "moving the first child up (so it becomes parent's sibling's last child)",
                                 "type": "text",
                                 "version": 1
-                              }
-                            ]
-                          },
-                          {
-                            "direction": "ltr",
-                            "folded": false,
-                            "format": "",
-                            "indent": 2,
-                            "type": "listitem",
-                            "value": 5,
-                            "version": 1,
-                            "children": [
+                              },
                               {
                                 "direction": "ltr",
                                 "format": "",
@@ -400,7 +331,6 @@
                                 "version": 1,
                                 "children": [
                                   {
-                                    "checked": true,
                                     "direction": "ltr",
                                     "folded": false,
                                     "format": "",
@@ -445,7 +375,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -466,7 +395,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -487,7 +415,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -508,7 +435,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -529,7 +455,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -550,7 +475,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -571,7 +495,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -592,7 +515,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -613,7 +535,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -654,18 +575,7 @@
                         "text": "Features",
                         "type": "text",
                         "version": 1
-                      }
-                    ]
-                  },
-                  {
-                    "direction": "ltr",
-                    "folded": false,
-                    "format": "",
-                    "indent": 1,
-                    "type": "listitem",
-                    "value": 3,
-                    "version": 1,
-                    "children": [
+                      },
                       {
                         "direction": "ltr",
                         "format": "",
@@ -853,18 +763,7 @@
                                 "text": "checked items are not exported correctly to Markdown",
                                 "type": "text",
                                 "version": 1
-                              }
-                            ]
-                          },
-                          {
-                            "direction": "ltr",
-                            "folded": false,
-                            "format": "",
-                            "indent": 2,
-                            "type": "listitem",
-                            "value": 10,
-                            "version": 1,
-                            "children": [
+                              },
                               {
                                 "direction": "ltr",
                                 "format": "",
@@ -920,7 +819,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -941,7 +839,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -962,7 +859,6 @@
                             ]
                           },
                           {
-                            "checked": true,
                             "direction": "ltr",
                             "folded": false,
                             "format": "",
@@ -1003,18 +899,7 @@
                         "text": "Before production",
                         "type": "text",
                         "version": 1
-                      }
-                    ]
-                  },
-                  {
-                    "direction": "ltr",
-                    "folded": false,
-                    "format": "",
-                    "indent": 1,
-                    "type": "listitem",
-                    "value": 4,
-                    "version": 1,
-                    "children": [
+                      },
                       {
                         "direction": "ltr",
                         "format": "",
@@ -1051,7 +936,7 @@
                   },
                   {
                     "direction": "ltr",
-                    "folded": true,
+                    "folded": false,
                     "format": "",
                     "indent": 1,
                     "type": "listitem",
@@ -1066,18 +951,7 @@
                         "text": "Lexical bugs",
                         "type": "text",
                         "version": 1
-                      }
-                    ]
-                  },
-                  {
-                    "direction": "ltr",
-                    "folded": false,
-                    "format": "",
-                    "indent": 1,
-                    "type": "listitem",
-                    "value": 5,
-                    "version": 1,
-                    "children": [
+                      },
                       {
                         "direction": "ltr",
                         "format": "",
@@ -1105,18 +979,7 @@
                                 "text": "Noted",
                                 "type": "text",
                                 "version": 1
-                              }
-                            ]
-                          },
-                          {
-                            "direction": "ltr",
-                            "folded": false,
-                            "format": "",
-                            "indent": 2,
-                            "type": "listitem",
-                            "value": 2,
-                            "version": 1,
-                            "children": [
+                              },
                               {
                                 "direction": "ltr",
                                 "format": "",
@@ -1164,18 +1027,7 @@
                                         "text": "doubled notes with yjs open:",
                                         "type": "text",
                                         "version": 1
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "direction": "ltr",
-                                    "folded": false,
-                                    "format": "",
-                                    "indent": 3,
-                                    "type": "listitem",
-                                    "value": 3,
-                                    "version": 1,
-                                    "children": [
+                                      },
                                       {
                                         "direction": "ltr",
                                         "format": "",
@@ -1200,7 +1052,7 @@
                                                 "format": 0,
                                                 "mode": "normal",
                                                 "style": "",
-                                                "text": "      editor.registerMutationListener(ListItemNode, mutatedNodes => {        editor.update(() => {          return;          for (const [key, mutation] of mutatedNodes) {            console.log(key, mutation);            if (mutation !== \"created\") {              continue;            }            const node: ListItemNode = $getNodeByKey(key);            if ($isRemdoListItem(node)) {              continue;            }            const p = node =>              console.log(node.getType(), node.getKey(), node.getChildren()[0]);            p(node);            const newNode = node.replace(              new RemdoListItem(node.getValue(), node.getChecked()),              true            );            //const newNode = RemdoListItem.clone(node);            p(newNode);            p(node);            //console.log(\"transforming list item node\", $getNodeByKey(key));          }        });      }),",
+                                                "text": "editor.registerMutationListener(ListItemNode, mutatedNodes => {        editor.update(() => {          return;          for (const [key, mutation] of mutatedNodes) {            console.log(key, mutation);            if (mutation !== \"created\") {              continue;            }            const node: ListItemNode = $getNodeByKey(key);            if ($isRemdoListItem(node)) {              continue;            }            const p = node =>              console.log(node.getType(), node.getKey(), node.getChildren()[0]);            p(node);            const newNode = node.replace(              new RemdoListItem(node.getValue(), node.getChecked()),              true            );            //const newNode = RemdoListItem.clone(node);            p(newNode);            p(node);            //console.log(\"transforming list item node\", $getNodeByKey(key));          }        });      }),",
                                                 "type": "text",
                                                 "version": 1
                                               }
@@ -1320,36 +1172,13 @@
                                     "version": 1,
                                     "children": [
                                       {
-                                        "direction": "ltr",
-                                        "format": "",
-                                        "indent": 0,
-                                        "listType": "bullet",
-                                        "start": 1,
-                                        "tag": "ul",
-                                        "type": "list",
-                                        "version": 1,
-                                        "children": [
-                                          {
-                                            "direction": "ltr",
-                                            "folded": false,
-                                            "format": "",
-                                            "indent": 4,
-                                            "type": "listitem",
-                                            "value": 1,
-                                            "version": 1,
-                                            "children": [
-                                              {
-                                                "detail": 0,
-                                                "format": 0,
-                                                "mode": "normal",
-                                                "style": "",
-                                                "text": "editor.update(() => {key = $getNearestNodeFromDOMNode(event.target).getKey();});",
-                                                "type": "text",
-                                                "version": 1
-                                              }
-                                            ]
-                                          }
-                                        ]
+                                        "detail": 0,
+                                        "format": 0,
+                                        "mode": "normal",
+                                        "style": "",
+                                        "text": "editor.update(() => {key = $getNearestNodeFromDOMNode(event.target).getKey();});",
+                                        "type": "text",
+                                        "version": 1
                                       }
                                     ]
                                   },
@@ -1359,7 +1188,7 @@
                                     "format": "",
                                     "indent": 3,
                                     "type": "listitem",
-                                    "value": 8,
+                                    "value": 9,
                                     "version": 1,
                                     "children": [
                                       {
@@ -1379,7 +1208,7 @@
                           },
                           {
                             "direction": "ltr",
-                            "folded": true,
+                            "folded": false,
                             "format": "",
                             "indent": 2,
                             "type": "listitem",
@@ -1394,18 +1223,7 @@
                                 "text": "Watched",
                                 "type": "text",
                                 "version": 1
-                              }
-                            ]
-                          },
-                          {
-                            "direction": "ltr",
-                            "folded": false,
-                            "format": "",
-                            "indent": 2,
-                            "type": "listitem",
-                            "value": 3,
-                            "version": 1,
-                            "children": [
+                              },
                               {
                                 "direction": "ltr",
                                 "format": "",
@@ -1430,7 +1248,7 @@
                                         "format": 0,
                                         "mode": "normal",
                                         "style": "",
-                                        "text": "Watched lexical issues:list: ",
+                                        "text": "list: ",
                                         "type": "text",
                                         "version": 1
                                       },
@@ -1438,6 +1256,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1480,6 +1299,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1513,6 +1333,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1546,6 +1367,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1579,6 +1401,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1612,6 +1435,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1645,6 +1469,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1678,6 +1503,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1711,6 +1537,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1744,6 +1571,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1777,6 +1605,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1810,6 +1639,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1843,6 +1673,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1876,6 +1707,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,
@@ -1909,6 +1741,7 @@
                                         "direction": "ltr",
                                         "format": "",
                                         "indent": 0,
+                                        "isUnlinked": false,
                                         "rel": null,
                                         "target": null,
                                         "title": null,

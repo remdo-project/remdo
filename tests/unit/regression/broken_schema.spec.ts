@@ -1,14 +1,13 @@
 import "../common";
-import { Note } from "@/components/Editor/api";
-import { getActiveEditorState } from "@lexical/LexicalUpdates";
+import { Note } from "@/components/Editor/plugins/remdo/utils/api";
 import { $isListItemNode } from "@lexical/list";
-import { $isTextNode } from "lexical";
+import { $getEditor, $isTextNode } from "lexical";
 import { it } from "vitest";
 
 it("broken schema", async ({ load, expect, lexicalUpdate }) => {
   load("tests/data/regression/broken_schema");
   lexicalUpdate(() => {
-    const listItem = Array.from(getActiveEditorState()._nodeMap.values())
+    const listItem = Array.from($getEditor().getEditorState()._nodeMap.values())
       .find((n) => $isTextNode(n) && n.getTextContent() === "outdent")
       .getParent();
     expect($isListItemNode(listItem)).toBeTruthy();

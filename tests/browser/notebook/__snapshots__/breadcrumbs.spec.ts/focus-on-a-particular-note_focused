@@ -1,0 +1,45 @@
+<ul class="filtered">
+  <li class="filtered" dir="ltr" value="1">
+    <span data-lexical-text="true">note0</span>
+    <ul class="filtered">
+      <li class="filtered" dir="ltr" value="1">
+        <span data-lexical-text="true">note00</span>
+        <ul class="filtered">
+          <li class="filtered" dir="ltr" value="1">
+            <span data-lexical-text="true">note000</span>
+          </li>
+        </ul>
+      </li>
+      <li class="filtered" dir="ltr" value="2">
+        <span data-lexical-text="true">note01</span>
+      </li>
+    </ul>
+  </li>
+  <li class="filtered" dir="ltr" value="2">
+    <span data-lexical-text="true">note1</span>
+    <ul class="unfiltered">
+      <li class="filtered" dir="ltr" value="1">
+        <span data-lexical-text="true">note10</span>
+      </li>
+      <li class="filtered" dir="ltr" value="2">
+        <span data-lexical-text="true">note11</span>
+      </li>
+      <li class="unfiltered" dir="ltr" value="3">
+        <span data-lexical-text="true">note12</span>
+        <ul class="unfiltered">
+          <li class="unfiltered" dir="ltr" value="1">
+            <span data-lexical-text="true">note120</span>
+            <ul class="unfiltered">
+              <li class="unfiltered" dir="ltr" value="1">
+                <span data-lexical-text="true">note1200</span>
+              </li>
+              <li class="unfiltered" dir="ltr" value="2">
+                <span data-lexical-text="true">note1201</span>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
