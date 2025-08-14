@@ -5,7 +5,7 @@ import prettier from "prettier";
 import { getDataPath } from "tests/common.js";
 
 export class Notebook {
-  constructor(private readonly page: Page) { }
+  constructor(private readonly page: Page) {}
 
   locator(selector = ""): Locator {
     const editorSelector = ".editor-input" + (selector ? " " + selector : "");
@@ -13,7 +13,7 @@ export class Notebook {
   }
 
   noteLocator(title: string): Locator {
-    return this.locator("li span:text-is('" + title + "')");
+    return this.locator(`li span:text-is('${title}')`);
   }
 
   async load(file: string) {
@@ -25,43 +25,45 @@ export class Notebook {
     await this.page.click("text=Load State");
     await this.locator().focus();
 
-    //FIXME - wait for lexical to fully update the editor
-    //perhabs the whole loading mechanism should be improved
-    //consider following the Tip from https://lexical.dev/docs/intro
+    // FIXME: wait for Lexical to fully update the editor.
+    // Consider improving the whole loading mechanism, see:
+    // https://lexical.dev/docs/intro
     await this.page.waitForTimeout(200);
   }
 
+  /**
+   * Returns the HTML content of the editor, formatted for stable comparison.
+   * Use in tests where HTML output is the expected value.
+   */
   async html() {
-    return (await prettier
-      .format(await this.locator().innerHTML(), {
+    return (
+      await prettier.format(await this.locator().innerHTML(), {
         parser: "html",
         plugins: ["prettier-plugin-organize-attributes"],
         attributeSort: "ASC",
-      }))
-      .trim();
+      })
+    ).trim();
   }
 
   async selectNote(title: string) {
     await this.noteLocator(title).selectText();
 
-    //it takes some time for the selection to be visible and lexical to update
+    // Give Lexical time to visually reflect the selection
     await this.page.waitForTimeout(200);
   }
 
-  /** places cursor on the very end of given's note title */
+  /** Places cursor at the very end of a given note's title */
   async clickEndOfNote(title: string) {
     const noteLocator = this.noteLocator(title);
     const { width, height } = await noteLocator.boundingBox();
     await noteLocator.click({
-      position: { x: width - 1, y: height - 1 }, //the idea is that bottom right corner should be the end of the title's text
+      position: { x: width - 1, y: height - 1 }, // bottom-right corner = end of text
     });
   }
 
   async clickBeginningOfNote(title: string) {
     const noteLocator = this.noteLocator(title);
-    await noteLocator.click({
-      position: { x: 1, y: 1 },
-    });
+    await noteLocator.click({ position: { x: 1, y: 1 } });
   }
 
   async getNotes() {
@@ -80,7 +82,7 @@ class Menu {
   constructor(
     private readonly page: Page,
     private readonly notebook: Notebook
-  ) { }
+  ) {}
 
   locator(selector = "") {
     return this.page.locator(`#quick-menu ${selector}`.trim());
@@ -113,14 +115,13 @@ class Menu {
 }
 
 export const test = base.extend<{
-  notebook: Notebook,
-  urlPath: string,
-  takeScreenshot: (name?: string, page?: Page) => Promise<void>,
-  menu: Menu
+  notebook: Notebook;
+  urlPath: string;
+  takeScreenshot: (name?: string, page?: Page) => Promise<void>;
+  menu: Menu;
 }>({
-  // eslint-disable-next-line no-empty-pattern
-  urlPath: async ({ }, use) => {
-    await use('');
+  urlPath: async ({}, use) => {
+    await use("");
   },
   notebook: async ({ baseURL, urlPath, page }, use) => {
     const notebook = new Notebook(page);
@@ -136,8 +137,10 @@ export const test = base.extend<{
     let i = 0;
     await use(async (name?: string, page_?: Page) => {
       const screenshot = await (page_ ?? page).screenshot();
-      await testInfo.attach(`screenshot-${i++}${name ? "-"+name : ""}.png`,
-        { body: screenshot, contentType: 'image/png' });
+      await testInfo.attach(
+        `screenshot-${i++}${name ? "-" + name : ""}.png`,
+        { body: screenshot, contentType: "image/png" }
+      );
     });
   },
   menu: async ({ page, notebook }, use) => {
