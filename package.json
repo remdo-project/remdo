@@ -5,7 +5,7 @@
   "dependencies": {
     "@hocuspocus/extension-logger": "^3.2.3",
     "@hocuspocus/provider": "^2.13.0",
-    "@hocuspocus/server": "^2.13.0",
+    "@hocuspocus/server": "^3.2.3",
     "@lexical/list": "file:./lexical/packages/lexical-list",
     "@lexical/react": "file:./lexical/packages/lexical-react",
     "@lexical/utils": "file:./lexical/packages/lexical-utils",
