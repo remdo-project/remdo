@@ -1,4 +1,4 @@
-import { test, Notebook } from "./common";
+import { test, Notebook, waitForSelectionChange } from "./common";
 import { Page, expect } from "@playwright/test";
 
 function urlPath(page: Page) {
@@ -36,12 +36,15 @@ test("focus on a particular note", async ({ page, notebook }) => {
     "note12", "note120", "note1200", "note1201"
   ]);
 
-  expect(await getBreadcrumbs(page)).toEqual(["Documents", "main", "note1", "note12"])
+  expect(await getBreadcrumbs(page)).toEqual(["Documents", "main", "note1", "note12"]);
   expect(await notebook.html()).toMatchSnapshot("focused");
 
   // Click root breadcrumb to unfocus
   const rootBreadcrumb = page.locator('li.breadcrumb-item a:has-text("main")');
-  await rootBreadcrumb.click();
+  await waitForSelectionChange(page, async () => {
+    await rootBreadcrumb.click();
+  });
+
   await waitForNoteVisible(notebook, "note12");
 
   expect(await notebook.html()).toMatchSnapshot("unfocused");
@@ -64,7 +67,9 @@ test("folding and breadcrumb navigation", async ({ page, notebook }) => {
   const note1Locator = notebook.noteLocator("note1");
   const box = await note1Locator.boundingBox();
   if (!box) throw new Error("note1 bounding box not found");
-  await page.mouse.click(box.x - 1, box.y + box.height / 2);
+  await waitForSelectionChange(page, async () => {
+    await page.mouse.click(box.x - 1, box.y + box.height / 2);
+  });
 
   expect(await notebook.getNotes()).toContain("note12");
 
@@ -73,7 +78,9 @@ test("folding and breadcrumb navigation", async ({ page, notebook }) => {
 
   // Click root to go back
   const rootBreadcrumb = page.locator('li.breadcrumb-item a:has-text("main")');
-  await rootBreadcrumb.click();
+  await waitForSelectionChange(page, async () => {
+    await rootBreadcrumb.click();
+  });
   await waitForNoteVisible(notebook, "note12");
 
   expect(await getBreadcrumbs(page)).toEqual(["Documents", "main"]);

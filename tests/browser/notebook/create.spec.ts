@@ -1,4 +1,4 @@
-import { test } from "./common";
+import { test, waitForSelectionChange } from "./common";
 import { expect } from "@playwright/test";
 
 test("add the first child to note with existing children", async ({ notebook, page }) => {
@@ -51,8 +51,10 @@ test("split note", async ({ page, notebook }) => {
   await notebook.clickEndOfNote("note1");
 
   // Move left a few times to split in a safer spot
-  await page.keyboard.press("ArrowLeft");
-  await page.keyboard.press("ArrowLeft");
+  await waitForSelectionChange(page, async () => {
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("ArrowLeft");
+  });
 
   await page.keyboard.press("Enter");
 

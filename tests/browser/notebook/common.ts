@@ -5,7 +5,7 @@ import prettier from "prettier";
 import { getDataPath } from "tests/common.js";
 
 export class Notebook {
-  constructor(private readonly page: Page) {}
+  constructor(private readonly page: Page) { }
 
   locator(selector = ""): Locator {
     const editorSelector = ".editor-input" + (selector ? " " + selector : "");
@@ -56,14 +56,18 @@ export class Notebook {
   async clickEndOfNote(title: string) {
     const noteLocator = this.noteLocator(title);
     const { width, height } = await noteLocator.boundingBox();
-    await noteLocator.click({
-      position: { x: width - 1, y: height - 1 }, // bottom-right corner = end of text
+    await waitForSelectionChange(this.page, async () => {
+      await noteLocator.click({
+        position: { x: width - 1, y: height - 1 }, // bottom-right corner = end of text
+      });
     });
   }
 
   async clickBeginningOfNote(title: string) {
     const noteLocator = this.noteLocator(title);
-    await noteLocator.click({ position: { x: 1, y: 1 } });
+    await waitForSelectionChange(this.page, async () => {
+      await noteLocator.click({ position: { x: 1, y: 1 } });
+    });
   }
 
   async getNotes() {
@@ -82,7 +86,7 @@ class Menu {
   constructor(
     private readonly page: Page,
     private readonly notebook: Notebook
-  ) {}
+  ) { }
 
   locator(selector = "") {
     return this.page.locator(`#quick-menu ${selector}`.trim());
@@ -120,7 +124,7 @@ export const test = base.extend<{
   takeScreenshot: (name?: string, page?: Page) => Promise<void>;
   menu: Menu;
 }>({
-  urlPath: async ({}, use) => {
+  urlPath: async ({ }, use) => {
     await use("");
   },
   notebook: async ({ baseURL, urlPath, page }, use) => {
@@ -147,3 +151,38 @@ export const test = base.extend<{
     await use(new Menu(page, notebook));
   },
 });
+
+export async function waitForSelectionChange(
+  page: Page,
+  action: () => Promise<unknown>,
+  timeoutMs = 100
+): Promise<boolean> {
+  // Start listening before triggering the action
+  const waitPromise = page.evaluate((timeoutMs) => {
+    return new Promise<boolean>((resolve) => {
+      let settled = false;
+
+      const onChange = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        document.removeEventListener('selectionchange', onChange);
+        resolve(true); // changed within timeout
+      };
+
+      document.addEventListener('selectionchange', onChange, { once: true });
+      const timer = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        document.removeEventListener('selectionchange', onChange);
+        resolve(false); // timed out
+      }, timeoutMs);
+    });
+  }, timeoutMs);
+
+  // Perform the action that should cause a selection change
+  await action();
+
+  // Now wait for the selectionchange (or timeout)
+  return await waitPromise;
+}

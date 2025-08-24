@@ -28,6 +28,7 @@ function getPort({ page, vitest_preview, playwright }) {
 export default defineConfig(({ command }) => {
   return {
     server: {
+      allowedHosts: true,
       port: getPort({
         page: 3010,
         vitest_preview: 3001,
