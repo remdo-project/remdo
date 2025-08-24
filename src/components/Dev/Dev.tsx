@@ -13,11 +13,6 @@ export function Dev() {
           </a>
         </li>
         <li>
-          <a href={`http://${location.hostname}:3010/`}>
-            Playwright - TODO {IconPlaywright}
-          </a>
-        </li>
-        <li>
           <a href={`http://${location.hostname}:51204/__vitest__/#/`}>
             Vitest {IconVitest}
           </a>

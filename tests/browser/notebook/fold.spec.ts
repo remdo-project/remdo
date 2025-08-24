@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { test, notebook } from "./common"; 
+import { test, waitForSelectionChange } from "./common";
 
 
 test("add new element after a folded one", async ({ page, notebook }) => {
@@ -23,20 +23,27 @@ test("fold to a specific level", async ({ page, notebook }) => {
   expect(baseHtml).toMatchSnapshot("base");
 
   // Fold to level 1
-  await page.keyboard.press("Shift");
-  await page.keyboard.press("Shift");
-  await page.keyboard.press("1");
+  // TODO use menu open instead
+  await waitForSelectionChange(page, async () => {
+    await page.keyboard.press("Shift");
+    await page.keyboard.press("Shift");
+    await page.keyboard.press("1");
+  });
   expect(await notebook.html()).toMatchSnapshot("level1");
 
   // Fold to level 3
-  await page.keyboard.press("Shift");
-  await page.keyboard.press("Shift");
-  await page.keyboard.press("3");
+  await waitForSelectionChange(page, async () => {
+    await page.keyboard.press("Shift");
+    await page.keyboard.press("Shift");
+    await page.keyboard.press("3");
+  });
   expect(await notebook.html()).toMatchSnapshot("level3");
 
   // Unfold back to base
-  await page.keyboard.press("Shift");
-  await page.keyboard.press("Shift");
-  await page.keyboard.press("0");
+  await waitForSelectionChange(page, async () => {
+    await page.keyboard.press("Shift");
+    await page.keyboard.press("Shift");
+    await page.keyboard.press("0");
+  });
   expect(await notebook.html()).toMatchSnapshot("base");
 });

@@ -1,8 +1,10 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { test as base } from "../common";
 import { Page, Locator } from "@playwright/test";
 import fs from "fs";
 import prettier from "prettier";
 import { getDataPath } from "tests/common.js";
+import { env } from "../../../config/env.server";
 
 export class Notebook {
   constructor(private readonly page: Page) { }
@@ -124,16 +126,9 @@ export const test = base.extend<{
   takeScreenshot: (name?: string, page?: Page) => Promise<void>;
   menu: Menu;
 }>({
-  urlPath: async ({ }, use) => {
-    await use("");
-  },
-  notebook: async ({ baseURL, urlPath, page }, use) => {
+  notebook: async ({ page }, use) => {
     const notebook = new Notebook(page);
-    const baseUrlObj = new URL(baseURL ?? "");
-    if (urlPath) {
-      baseUrlObj.pathname = urlPath;
-    }
-    await page.goto(baseUrlObj.toString());
+    await page.goto(`/?debug=true${env.FORCE_WEBSOCKET ? "" : "&ws=false"}`);
     await notebook.locator().focus();
     await use(notebook);
   },

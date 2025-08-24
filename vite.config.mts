@@ -1,41 +1,19 @@
 /* eslint-disable prefer-rest-params */
 import babel from "@rollup/plugin-babel";
 import react from "@vitejs/plugin-react";
-import { createRequire } from "module";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
 import { PluginOption, defineConfig } from "vite";
 import moduleResolution from './lexical/packages/shared/viteModuleResolution';
-
-
-function getPort({ page, vitest_preview, playwright }) {
-  const modes = ["page", "vitest_preview", "playwright"];
-  const mode = process.env.SERVER_MODE || "page";
-
-  if (!modes.includes(mode)) {
-    throw Error(`Invalid server mode: ${mode}, should be one of ${modes}`);
-  }
-  const port = arguments[0][mode];
-  if (port === undefined) {
-    //null is fine, means that we don't need that port for a given scenario
-    throw Error(
-      `Wrong config args: ${JSON.stringify(arguments["0"])} mode: ${mode}`
-    );
-  }
-  return port;
-}
+import { env } from "./config/env.server";
 
 export default defineConfig(({ command }) => {
   return {
     server: {
       allowedHosts: true,
-      port: getPort({
-        page: 3010,
-        vitest_preview: 3001,
-        playwright: process.env.PORT,
-      }),
+      port: env.PORT,
       hmr: {
-        port: getPort({ page: 3003, vitest_preview: 3004, playwright: null }),
+        port: 3003,
       },
       watch: {
         ignored: ["data/**"],
@@ -76,16 +54,16 @@ export default defineConfig(({ command }) => {
     //},
     resolve: {
       alias: [...moduleResolution(command === 'serve' ? 'source' : 'development'),
-        {
-          find: "@",
-          replacement: path.resolve("./src"),
-        },
-        {
-          find: "@lexical/LexicalUpdates",
-          replacement: path.resolve(
-            "./lexical/packages/lexical/src/LexicalUpdates.ts"
-          ),
-        },
+      {
+        find: "@",
+        replacement: path.resolve("./src"),
+      },
+      {
+        find: "@lexical/LexicalUpdates",
+        replacement: path.resolve(
+          "./lexical/packages/lexical/src/LexicalUpdates.ts"
+        ),
+      },
       ]
     },
     build: {
@@ -106,7 +84,6 @@ export default defineConfig(({ command }) => {
       },
       api: {
         strictPort: true,
-        port: getPort({ page: null, vitest_preview: 3007, playwright: null }),
         host: "0.0.0.0",
       },
       css: true,
