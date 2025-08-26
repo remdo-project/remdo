@@ -20,12 +20,13 @@ import { useEditorConfig } from "../config";
 const yIDB = "indexedDB" in window ? import("y-indexeddb") : null;
 
 type ProviderFactory = (id: string, yjsDocMap: Map<string, Y.Doc>) => Provider;
-interface DocumentSelectorType {
+export interface DocumentSelectorType {
   documentID: string;
   setDocumentID: (id: string) => void;
   yjsProviderFactory: ProviderFactory;
   getYjsDoc: () => Y.Doc | null;
   yjsProvider: WebsocketProvider | null;
+  getYjsProvider: () => Provider;
 }
 
 const DocumentSelectorContext = createContext<DocumentSelectorType>(null);
@@ -77,6 +78,7 @@ export const DocumentSelectorProvider = ({ children }) => {
       }
 
       if (!editorConfig.disableWS) {
+        console.log("connecting")
         const wsURL = `ws://${window.location.hostname}:8080`;
         const roomName = "notes/0/" + id;
         const wsProvider = new WebsocketProvider(wsURL, roomName, doc, {
@@ -130,7 +132,8 @@ export const DocumentSelectorProvider = ({ children }) => {
         //yjsProviderFactory: hocuspocusProviderFactory, //currently doesn't support persistance, even between page reloads
         //TODO make it a property, same as provider
         getYjsDoc: () => yjsDoc.current,
-        yjsProvider: currentProvider,
+        yjsProvider: currentProvider, //FIXME remove
+        getYjsProvider: () => yjsProvider.current,
       }}
     >
       {children}

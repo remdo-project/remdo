@@ -5,7 +5,6 @@ import { Note } from '@/components/Editor/plugins/remdo/utils/api';
 
 it('get by ID', async ({ load, expect, lexicalUpdate }) => {
   const { note0, note00 } = load("basic");
-  logger.preview();
   lexicalUpdate(() => {
     expect(note0.id).not.toEqual(note00.id);
 

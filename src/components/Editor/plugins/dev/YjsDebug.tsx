@@ -1,6 +1,7 @@
 import { useDocumentSelector } from "../../DocumentSelector/DocumentSelector";
 import ReactJson from "@microlink/react-json-view";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import * as Y from "yjs";
 
 type YElement = Y.AbstractType<any>;
@@ -97,6 +98,7 @@ export function YjsDebug() {
   const documentSelector = useDocumentSelector();
   const documentElements = useRef(new Map());
   const [documentData, setDocumentData] = useState({});
+  const [searchParams] = useSearchParams();
 
   const refreshDocumentElements = useCallback(() => {
     const newDocumentElements = documentSelector.getYjsDoc()?.share;
@@ -131,6 +133,7 @@ export function YjsDebug() {
 
   return (
     <div>
+      <div>Params: <pre>{JSON.stringify(Object.fromEntries(searchParams), null, 2)}</pre></div>
       <div className="text-white font-weight-bold">Yjs Info</div>
       <div>DocumentID: {documentSelector.documentID}</div>
       <div style={{ fontSize: "0.75rem" }}>

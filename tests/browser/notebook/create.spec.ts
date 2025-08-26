@@ -59,7 +59,6 @@ test("split note", async ({ page, notebook }) => {
   await page.keyboard.press("Enter");
 
   const notes = await notebook.getNotes();
-  console.log("Notes after split:", notes);
 
   // Assert there are more notes than before
   expect(notes.length).toBeGreaterThan(3);

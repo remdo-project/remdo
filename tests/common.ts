@@ -17,7 +17,3 @@ export function htmlToCommaSeparatedText(html: string) {
     .trim()
     .replace(/\s+/g, ",");
 }
-
-//FIXME
-export const collabEnabled = process.env.VITE_WS === "true";
-export const debugEnabled = process.env.VITE_DEBUG === "true";

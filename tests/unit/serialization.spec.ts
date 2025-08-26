@@ -18,6 +18,8 @@ it.runIf(SERIALIZATION_FILE)("load", async ({ load }) => {
   logger.info();
   logger.info("Loading from", dataPath);
   load(dataPath);
+  logger.info("Loaded");
+  logger.preview();
 });
 
 it.runIf(SERIALIZATION_FILE)("save", ({ editor }) => {

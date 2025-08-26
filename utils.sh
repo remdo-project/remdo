@@ -60,7 +60,7 @@ function run_serialization {
         exit 1
     fi
     #disable API to not compete for the port with the main test instance
-    VITEST_SERIALIZATION_FILE=$2 VITE_LOG_LEVEL="info" VITE_WS="true" npx vitest run serialization --api=false -t $1 $3
+    VITEST_SERIALIZATION_FILE=$2 VITE_LOG_LEVEL="info" FORCE_WEBSOCKET="true" npx vitest run serialization --api=false -t $1 $3
 }
 
 #loads data from the file and saves it back repeatedly

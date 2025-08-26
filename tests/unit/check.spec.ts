@@ -3,7 +3,6 @@ import "./common";
 import { it } from "vitest";
 
 it("check/uncheck", async ({ load, editor, expect, lexicalUpdate }) => {
-  logger.info("Test1");
   const { note0 } = load("single");
   await expect(editor).toMatchFileSnapshot("base.yml");
 
@@ -12,7 +11,6 @@ it("check/uncheck", async ({ load, editor, expect, lexicalUpdate }) => {
 
   lexicalUpdate(() => (note0.checked = false));
   await expect(editor).toMatchFileSnapshot("base.yml");
-  logger.preview();
 });
 
 it("toggle check", async ({ load, editor, expect, lexicalUpdate }) => {

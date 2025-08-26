@@ -53,8 +53,7 @@ function LexicalEditor() {
         <LexicalClickableLinkPlugin />
         <TabIndentationPlugin />
         {
-          //TODO extract to config (all occurences)
-          "__vitest_environment__" in globalThis ?
+          editorConfig.disableWS ?
             (<HistoryPlugin />) : (
             <CollaborationPlugin
               id={documentSelector.documentID}

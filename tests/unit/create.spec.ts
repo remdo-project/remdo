@@ -33,6 +33,5 @@ it("insert paragraph after a folded note", async ({ load, lexicalUpdate, editor,
     note0.lexicalNode.getFirstChild()?.selectEnd();
   });
   editor.dispatchCommand(INSERT_PARAGRAPH_COMMAND, undefined);
-  logger.preview();
   await expect(editor).toMatchFileSnapshot("inserted.yml");
 });

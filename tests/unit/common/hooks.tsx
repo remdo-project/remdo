@@ -1,4 +1,4 @@
-import { collabEnabled, debugEnabled, getDataPath } from '../../common';
+import { getDataPath } from '../../common';
 import fs from 'fs';
 import { createSearchParams, MemoryRouter, URLSearchParamsInit } from 'react-router-dom';
 import { expect, beforeEach, afterEach, beforeAll } from 'vitest';
@@ -10,14 +10,30 @@ import { TestContext as ComponentTestContext } from '@/components/Editor/plugins
 import { Routes } from '@/Routes';
 import { $getRoot, CLEAR_HISTORY_COMMAND } from 'lexical';
 import { getNotes } from './utils';
+import { env } from '../../../config/env.server';
+import { DocumentSelectorType } from '@/components/Editor/DocumentSelector/DocumentSelector';
+import { WebsocketProvider } from 'y-websocket';
+
+function waitForProviderSync(provider: WebsocketProvider) {
+  if (provider.synced) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    const onSync = (s: boolean) => {
+      if (!s) return;
+      provider.off?.('sync', onSync);
+      resolve();
+    };
+    provider.on('sync', onSync);
+  });
+}
 
 beforeAll(() => {
   globalThis.logger = new Logger();
 });
 
 beforeEach(async (context) => {
-  function testHandler(editor: RemdoLexicalEditor) {
+  function testHandler(editor: RemdoLexicalEditor, documentSelector: DocumentSelectorType) {
     context.editor = editor;
+    context.documentSelector = documentSelector;
   }
 
   await logger.debug('beforeEach hook started');
@@ -34,13 +50,13 @@ beforeEach(async (context) => {
   }
 
 
-  if (!collabEnabled) {
-    urlParams.push(['collab', 'false']);
+  if (!env.FORCE_WEBSOCKET) {
+    urlParams.push(['ws', 'false']);
   } else {
     logger.info("Collab enabled");
   }
 
-  if (debugEnabled) {
+  if (env.DEBUG) {
     logger.info("Debug enabled");
     urlParams.push(['debug', 'true']);
   }
@@ -100,16 +116,9 @@ beforeEach(async (context) => {
   };
   logger.setFlushFunction(() => context.lexicalUpdate(() => { }));
 
-  if (collabEnabled) {
+  if (env.FORCE_WEBSOCKET) {
     //wait for yjs to connect via websocket and init the editor content
-    let i = 0;
-    const waitingTime = 10;
-    while (editorElement.children.length == 0) {
-      if ((i += waitingTime) % 1000 === 0) {
-        await logger.warn(`waiting for yjs to load some data - ${i}ms`);
-      }
-      await new Promise((r) => setTimeout(r, waitingTime));
-    }
+    await waitForProviderSync(context.documentSelector.getYjsProvider());
   }
   if (!serializationFile && !process.env.VITE_PERFORMANCE_TESTS) {
     //clear the editor's content before each test
@@ -125,7 +134,7 @@ beforeEach(async (context) => {
 });
 
 afterEach(async (context) => {
-  if (collabEnabled) {
+  if (env.FORCE_WEBSOCKET) {
     //an ugly workaround - to give a chance for yjs to sync
     await new Promise((r) => setTimeout(r, 10));
   }
