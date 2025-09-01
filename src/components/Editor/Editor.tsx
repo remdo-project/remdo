@@ -3,8 +3,8 @@ import {
   useDocumentSelector,
 } from "./DocumentSelector/DocumentSelector";
 import "./Editor.scss";
-import LexicalClickableLinkPlugin from "@lexical/react/LexicalClickableLinkPlugin";
-import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
+import { ClickableLinkPlugin as LexicalClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin";
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { useRef } from "react";
 import { ClearEditorPlugin } from "@lexical/react/LexicalClearEditorPlugin";
 import { CollaborationPlugin } from "@lexical/react/LexicalCollaborationPlugin";

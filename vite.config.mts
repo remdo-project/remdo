@@ -13,7 +13,7 @@ export default defineConfig(({ command }) => {
       allowedHosts: true,
       port: env.PORT,
       hmr: {
-        port: 3003,
+        port: env.PORT + 1,
       },
       watch: {
         ignored: ["data/**"],
