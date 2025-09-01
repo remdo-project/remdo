@@ -8,19 +8,34 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          submodules: recursive
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          # Speed up npm installs by caching the npm cache keyed by lockfile
+          cache: npm
+          cache-dependency-path: package-lock.json
       - name: Change Submodule URL to HTTPS
         run: |
           git config submodule.lexical.url https://github.com/piotrlewalski/lexical.git
+          git submodule sync --recursive
           git submodule update --init --recursive
       - name: Install Dependencies
         run: |
-          git submodule update --init --recursive
-          npm install
+          # Clean, deterministic install
+          npm ci
+      # Cache Playwright browsers between runs to avoid re-downloading
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
       - name: Run Playwright Tests
         run: |
           npm run test-browser
