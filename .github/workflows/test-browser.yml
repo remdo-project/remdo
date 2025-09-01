@@ -23,8 +23,8 @@ jobs:
           git submodule update --init --recursive
       - name: Install Dependencies
         run: |
-          # Clean, deterministic install
-          npm ci
+          # Clean, deterministic install. Ensure lockfile is in sync.
+          npm ci --no-audit --no-fund
       # Cache Playwright browsers between runs to avoid re-downloading
       - name: Cache Playwright Browsers
         uses: actions/cache@v4
