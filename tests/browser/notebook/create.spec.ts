@@ -56,16 +56,11 @@ test("split note", async ({ page, notebook }) => {
     await page.keyboard.press("ArrowLeft");
   });
 
-  await page.keyboard.press("Enter");
+  await waitForSelectionChange(page, async () => {
+    await page.keyboard.press("Enter");
+  });
 
-  const notes = await notebook.getNotes();
-
-  // Assert there are more notes than before
-  expect(notes.length).toBeGreaterThan(3);
-
-  // At least one of the new ones should be a substring of note1
-  const hasSplit = notes.some(n => n.includes("note1") || n === "not" || n === "e1");
-  expect(hasSplit).toBe(true);
+  expect(await notebook.getNotes()).toStrictEqual(['note0', 'not', 'e1', 'note2']);
 
   expect(await notebook.html()).toMatchSnapshot();
 });
