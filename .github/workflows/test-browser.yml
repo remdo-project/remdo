@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           submodules: recursive
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           # Speed up npm installs by caching the npm cache keyed by lockfile
