@@ -1,5 +1,4 @@
 /* eslint-disable prefer-rest-params */
-import babel from "@rollup/plugin-babel";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
@@ -35,15 +34,6 @@ export default defineConfig(({ command }) => {
           });
         },
       },
-      //@ts-ignore
-      babel({
-        babelHelpers: "bundled",
-        babelrc: false,
-        configFile: false,
-        exclude: "/**/node_modules/**",
-        extensions: ["jsx", "js", "ts", "tsx", "mjs"],
-        presets: ["@babel/preset-react"],
-      }),
       react(),
       visualizer({
         filename: "data/stats.html",
