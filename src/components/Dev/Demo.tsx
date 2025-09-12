@@ -4,7 +4,7 @@ import React from "react";
 function Window({ transform = null }) {
   return (
     <div className="window" style={{ transform, float: "left" }}>
-      <div className="title">
+      <div className="title bg-secondary">
         <div className="float-start">
           <i className="bi bi-record-fill" />
         </div>

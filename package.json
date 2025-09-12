@@ -82,7 +82,7 @@
     "@testing-library/react": "^16.1.0",
     "chokidar-cli": "^3.0.0",
     "esbuild": "^0.25.9",
-    "eslint": "^8.57.0",
+    "eslint": "^9.35.0",
     "eslint-config-fbjs": "^4.0.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-babel": "^5.3.1",
