@@ -9,7 +9,6 @@ import { describe, it, expect, beforeEach } from "vitest";
 export function testUpdate(
   title: string,
   fn: ({ root, context, rootNode }) => void,
-  // eslint-disable-next-line @typescript-eslint/ban-types
   runner: Function = it
 ) {
   if (fn.constructor.name == "AsyncFunction") {

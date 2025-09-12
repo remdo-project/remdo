@@ -7,7 +7,7 @@ import { DocumentSelector } from "@/components/Editor/DocumentSelector/DocumentS
 import { YJS_SYNCED_COMMAND } from "./utils/commands";
 import { COMMAND_PRIORITY_LOW } from "lexical";
 
-type Breadcrumb = {
+type Crumb = {
   text: string;
   id: string;
 };
@@ -16,7 +16,7 @@ export function BreadcrumbPlugin({ documentID }: { documentID: string }) {
   const [editor] = useRemdoLexicalComposerContext();
   const locationParams = useParams();
 
-  const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
+  const [breadcrumbs, setBreadcrumbs] = useState<Crumb[]>([]);
   const { noteID } = useParams();
 
   const updateBreadcrumbs = useCallback(() => {
