@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { debugEnabled } from '../../common';
+import { env } from '../../../config/env.server';
 
 declare global {
   // let/const won't work here
@@ -35,7 +36,7 @@ export class Logger {
   _flushFunction: (() => void) | null = null;
 
   constructor() {
-    this._performanceTests = process.env.VITE_PERFORMANCE_TESTS === "true";
+    this._performanceTests = !!env.VITE_PERFORMANCE_TESTS;
   }
 
   setFlushFunction(func: (() => void) | null) {
@@ -56,10 +57,7 @@ export class Logger {
   }
 
   async debug(...args: any[]) {
-    if (
-      process.env.VITE_LOG_LEVEL === "debug" ||
-      this._performanceTests
-    ) {
+    if (env.VITE_LOG_LEVEL === "debug" || this._performanceTests) {
       await this._write(process.stdout, _info, args);
     }
   }

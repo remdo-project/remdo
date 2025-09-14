@@ -42,7 +42,7 @@ beforeEach(async (context) => {
   expect(fs.existsSync('lexical/node_modules')).toBeFalsy();
 
   const urlParams: URLSearchParamsInit = [];
-  const serializationFile = process.env.VITEST_SERIALIZATION_FILE;
+  const serializationFile = env.VITEST_SERIALIZATION_FILE;
   if (serializationFile) {
     const fileName = path.basename(serializationFile);
     logger.info(fileName);
@@ -120,7 +120,7 @@ beforeEach(async (context) => {
     //wait for yjs to connect via websocket and init the editor content
     await waitForProviderSync(context.documentSelector.getYjsProvider());
   }
-  if (!serializationFile && !process.env.VITE_PERFORMANCE_TESTS) {
+  if (!serializationFile && !env.VITE_PERFORMANCE_TESTS) {
     //clear the editor's content before each test
     //except for the serialization, where potentially we may want to save the
     //current content or performance where some of the tests should be stateful

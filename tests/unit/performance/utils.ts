@@ -36,7 +36,7 @@ export function adjustDeltaToGetRoundedTotal(
  * if in performance test mode and the second one otherwise
  */
 export function getCount(performaceCount: number, regularCount: number) {
-  return process.env.VITE_PERFORMANCE_TESTS ? performaceCount : regularCount;
+  return env.VITE_PERFORMANCE_TESTS ? performaceCount : regularCount;
 }
 
 /**
@@ -131,3 +131,4 @@ export function countNotes(lexicalUpdate: (fn: () => void) => void) {
   });
   return count;
 }
+import { env } from "../../../config/env.server";

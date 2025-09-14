@@ -9,8 +9,9 @@ import { lexicalStateKeyCompare } from "./common";
 import { $convertToMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import fs from "fs";
 import { it } from "vitest";
+import { env } from "../../config/env.server";
 
-const SERIALIZATION_FILE = process.env.VITEST_SERIALIZATION_FILE as string;
+const SERIALIZATION_FILE = env.VITEST_SERIALIZATION_FILE;
 
 it.runIf(SERIALIZATION_FILE)("load", async ({ load }) => {
   const dataPath = getDataPath(SERIALIZATION_FILE);
