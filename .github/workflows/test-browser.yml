@@ -16,14 +16,9 @@ jobs:
           # Speed up npm installs by caching the npm cache keyed by lockfile
           cache: npm
           cache-dependency-path: package-lock.json
-      - name: Change Submodule URL to HTTPS
-        run: |
-          git config submodule.lexical.url https://github.com/piotrlewalski/lexical.git
-          git submodule sync --recursive
-          git submodule update --init --recursive
       - name: Install Dependencies
         run: |
-          # Clean, deterministic install. Ensure lockfile is in sync.
+          git submodule update --init --recursive
           npm ci --no-audit --no-fund
       # Cache Playwright browsers between runs to avoid re-downloading
       - name: Cache Playwright Browsers
@@ -45,4 +40,3 @@ jobs:
           name: data
           path: data/
           retention-days: 30
-          
