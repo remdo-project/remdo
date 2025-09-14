@@ -8,8 +8,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-        with:
-          submodules: recursive
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -18,7 +16,6 @@ jobs:
           cache-dependency-path: package-lock.json
       - name: Install Dependencies
         run: |
-          git submodule update --init --recursive
           npm ci --no-audit --no-fund
       # Cache Playwright browsers between runs to avoid re-downloading
       - name: Cache Playwright Browsers
