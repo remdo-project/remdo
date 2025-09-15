@@ -62,6 +62,17 @@
 - Updates: use `editor.update(...)` normally; use `editor.fullUpdate(...)` when you need full reconcile (e.g., after changing `_remdoState`).
 - Centralize new editor commands in `plugins/remdo/utils/commands.ts`.
 
+## Documentation Style
+
+- Prefer comments that explain the current state and intent for future readers,
+  not a narrative of “what changed in this PR”. Focus on:
+  - invariants and assumptions that must hold,
+  - why something is done a particular way,
+  - how to safely extend or modify it.
+- When using Lexical internals or monorepo source imports, include a brief note
+  and point to the alias definitions (tsconfig paths, Vite resolve.alias). Migrate
+  to public APIs when they become available.
+
 ## Testing
 
 - Unit (Vitest): `npm run test-unit`.
@@ -105,7 +116,6 @@
 
 - Adopt `*Overlay`/`*UI` naming for non-Lexical “plugins”?
 - Rename `disableWS` to `collabDisabled` (boolean) or `collabMode: 'websocket' | 'none'`?
-- Keep only `eslint.config.mjs` and remove `.eslintrc.json`?
 - Prefer `editor.update` with `editor.fullUpdate` only for `_remdoState` changes?
 - Standardize keyboard map (e.g., Quick menu on Double Shift vs Ctrl/Cmd+K)?
 - Confirm `Note` API as the public surface for editor mutations.
@@ -113,6 +123,5 @@
 ## Optional Follow-Ups
 
 - Add the missing imports in `unexported.ts`.
-- Normalize to the flat ESLint config and update `lint` scripts if needed.
 - Add brief JSDoc on `Note` methods and each RemDo plugin.
 - Create a short README “Runbook” mirroring Quick Start above.

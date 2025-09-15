@@ -43,7 +43,21 @@ export default defineConfig(({ command }) => {
     //  alias: moduleResolution,
     //},
     resolve: {
-      alias: [...moduleResolution(command === 'serve' ? 'source' : 'development'),
+      alias: [
+      // Ensure subpath aliases resolve before the package root alias
+      {
+        find: "@lexical/list/utils",
+        replacement: path.resolve(
+          "./lexical/packages/lexical-list/src/utils.ts"
+        ),
+      },
+      {
+        find: "@lexical/list/formatList",
+        replacement: path.resolve(
+          "./lexical/packages/lexical-list/src/formatList.ts"
+        ),
+      },
+      ...moduleResolution(command === 'serve' ? 'source' : 'development'),
       {
         find: "@",
         replacement: path.resolve("./src"),
