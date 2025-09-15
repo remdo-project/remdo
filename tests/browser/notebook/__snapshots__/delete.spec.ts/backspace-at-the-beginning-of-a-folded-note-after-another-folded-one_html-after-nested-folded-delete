@@ -1,7 +1,7 @@
-<ul>
+<ul dir="ltr">
   <li dir="ltr" value="1">
     <span data-lexical-text="true">note0</span>
-    <ul>
+    <ul dir="ltr">
       <li dir="ltr" value="1">
         <span data-lexical-text="true">sub note 0note1</span>
         <ul>
