@@ -80,6 +80,32 @@
   defaults and validation consistent across the repo. Only low-level config files
   (e.g., Vite/Playwright) may need direct `process.env` reads.
 
+## Running Watch Commands in This CLI
+
+- Long‑running “watch” tasks (e.g., `vitest --watch`, Playwright watch/UI) keep
+  the process attached and can hang this chat session. When you need to verify
+  a watch command from here, wrap it with a timeout, for example:
+
+  ```sh
+  timeout 10s npm run test-browser-watch || true
+  ```
+
+- Use the app’s Dev links (e.g., “Playwright Report”) or `npm run test-browser-show-report`
+  to inspect artifacts after a short watch run. Prefer running full interactive
+  watch sessions in your own terminal instead of this chat.
+
+## Command Execution Policy (timeouts)
+
+- To keep this session responsive, all shell commands invoked from the agent
+  use sane timeouts by default:
+  - default: 60s for typical commands (lint, unit tests, short scripts).
+  - extended: up to 5 minutes for installs/builds when necessary (npm i/ci,
+    vite build, playwright downloads), with a short note explaining why.
+  - watch/interactive commands: always wrapped with a short timeout (e.g., 10–15s)
+    for smoke verification only; use your own terminal for continuous runs.
+- If a command needs more time, we’ll state the reason and bump the timeout
+  explicitly for that call. Long‑running commands will not be left unbounded.
+
 ## Testing
 
 - Unit (Vitest): `npm run test-unit`.

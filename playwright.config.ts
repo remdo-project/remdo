@@ -17,8 +17,9 @@ const config: PlaywrightTestConfig = {
   forbidOnly: !!env.CI,
   retries: 0,
   workers: env.FORCE_WEBSOCKET ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
+  /* Reporters: keep terminal-friendly + HTML report on disk */
   reporter: [
+    ["line"],
     ["html", { open: "never", outputFolder: "./data/playwright-report" }],
   ],
   use: {
