@@ -1,4 +1,4 @@
 [submodule "lexical"]
 	path = lexical
-    url = git@github.com:piotrlewalski/lexical.git
+    url = https://github.com/piotrlewalski/lexical.git
     branch = main
