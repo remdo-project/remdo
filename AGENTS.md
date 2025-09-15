@@ -1,8 +1,118 @@
-# RemDo
+# RemDo – Agent Guidelines
 
-This is a note-taking project written in TypeScript.
-It uses lexical editor framework (which sources are in ./lexical/ git submodule).
-Notes are presented as html elements li and form outliner-like structure.
-Focus on a note means that only it and its children are displayed.
+## Scope
 
-Do not stage or commit any changes without an explicit approval. 
+- This repo is a TypeScript + React app that embeds a customized Lexical fork via a git submodule at `./lexical`.
+- Do not stage or commit any changes without explicit approval.
+
+## Quick Start
+
+- Submodules: `npm run submodules` (initializes/updates `./lexical`).
+- Install: `npm ci` (CI) or `npm install` (local).
+- Dev server: `npm run server` (Vite on port from `config/env.server.ts`, default 3010).
+- Collaboration backends (port 8080):
+  - WebSocket (no persistence): `npm run websocket`.
+  - WebSocket with persistence: `npm run websocket-persist` (stores in `./data/yjsDB`).
+  - Alternative (Hocuspocus): `npm run hocuspocus`.
+- In browser:
+  - Disable WS for local/editor-only: add `?ws=false` to the URL.
+  - Choose document: navbar “Documents” or `?documentID=your-file`.
+  - Enable dev toolbar: `?debug=true` or toggle via navbar.
+
+## Repo Structure
+
+- `src/`
+  - `components/Editor/` editor shell and RemDo plugins (`plugins/remdo/**`).
+  - `components/Editor/DocumentSelector/` Yjs provider + document switcher.
+  - `components/Dev/` dev-only helpers (TreeView, Yjs debug, demo).
+  - `DebugContext.tsx` toggles dev features via query param and navbar.
+  - `utils.ts` UI helpers (method patching, relative positioning, ::before hit testing).
+- `lexical/` customized fork (submodule) with RemDo-specific changes.
+- `tests/` Vitest unit (jsdom) and Playwright browser tests; fixtures in `tests/data`.
+- `config/` env and Vite/test configuration helpers.
+- `data/` build/test outputs (reports, coverage, bundle stats).
+
+## How It Works
+
+- Data model: notes are Lexical `ListItemNode`s enhanced with:
+  - `id` (short id), `folded` (boolean), `checked` (boolean | undefined).
+- Single-root invariant: `root → ListNode → ListItemNode*` enforced by `FixRootPlugin`.
+- Focus: `NOTES_FOCUS_COMMAND` updates `editor._remdoState` and route (`/note/:id`). Only focused note subtree renders as “unfiltered”.
+- Search filter: `editor._remdoState.filter` drives `.filtered/.unfiltered` classes in forked List/ListItem DOM; CSS hides filtered parts.
+- Keyboard:
+  - Indent/outdent: Tab / Shift+Tab (`IndentationPlugin`).
+  - Reorder: Meta+ArrowUp/ArrowDown (`ReorderPlugin`).
+  - Toggle check: Meta+Enter (`CheckPlugin`).
+  - Quick menu: double Shift (`QuickMenuPlugin`).
+  - Backspace at start of note merges or deletes (`BackspacePlugin`).
+- Prefer the `Note` API (`plugins/remdo/utils/api.ts`) for mutations: `createChild`, `indent/outdent`, `moveUp/down`, `toggleChecked`, `setFoldLevel`, `focus`.
+
+## Lexical Fork (Important)
+
+- RemDo depends on forked sources in `./lexical`:
+  - `RemdoState` (`editor._remdoState`) stores focus/filter for reconciliation.
+  - `ListNode`/`ListItemNode` add focus/filter classNames and `folded/checked/id` support.
+- Vite resolves Lexical from source for dev. Avoid upgrading or modifying the submodule without approval.
+
+## Conventions
+
+- Lint/format: ESLint + Prettier. Prefer the flat config `eslint.config.mjs` as the source of truth.
+- Imports: use `@/...` for app code; use path aliases from `tsconfig.json`/`vite.config.mts` for Lexical.
+- Plugin naming: Lexical state plugins live in `plugins/remdo`. Pure UI overlays mounted via portals should be named `*Overlay` or `*UI` (e.g., `QuickMenuOverlay`).
+- Updates: use `editor.update(...)` normally; use `editor.fullUpdate(...)` when you need full reconcile (e.g., after changing `_remdoState`).
+- Centralize new editor commands in `plugins/remdo/utils/commands.ts`.
+
+## Testing
+
+- Unit (Vitest): `npm run test-unit`.
+  - Use `tests/unit/common` helpers: run mutations in `context.lexicalUpdate(fn)`; load serialized states with `context.load(nameOrPath)`.
+  - Prefer JSON/YAML snapshots for structure; DOM snapshots where UI matters.
+- Browser (Playwright): `npm run test-browser` (spins Vite, stores artifacts in `data/`).
+- Watch/coverage: see `package.json` (`test-unit-watch`, `test-unit-watch-coverage`, `test-browser-watch`).
+
+## Environment & Ports
+
+- `config/env.server.ts` defaults:
+  - `PORT` (Vite) default 3010.
+  - WebSocket server default 8080.
+- Useful query params: `?debug=true`, `?ws=false`, `?documentID=...`.
+
+## Safety & Process
+
+- Never commit or stage without explicit approval.
+- Call out any changes under `./lexical` for explicit review.
+- For behavior changes, add/update unit and browser tests.
+
+## Common Tasks
+
+- Add/edit an editor feature: create a RemDo plugin in `plugins/remdo` and wire commands in `utils/commands.ts`.
+- Edit note behavior: use `Note` API; rely on `FixRootPlugin` to normalize when structure changes.
+- Add a keyboard shortcut: register in the relevant plugin; avoid global listeners; document here.
+
+## Known Gaps
+
+- `src/components/Editor/plugins/remdo/utils/unexported.ts` is missing imports for `LexicalEditor`, `NodeKey`, and `invariant`. Add:
+
+  ```ts
+  import type { LexicalEditor, NodeKey } from "lexical";
+  import invariant from "shared/invariant";
+  ```
+
+- `useEditorConfig.disableWS` is ambiguous; consider renaming to `collabDisabled` or `collabMode`.
+- `QuickMenuPlugin` is a UI component; consider renaming to match the overlay/UI convention.
+
+## Design/Style Decisions To Confirm
+
+- Adopt `*Overlay`/`*UI` naming for non-Lexical “plugins”?
+- Rename `disableWS` to `collabDisabled` (boolean) or `collabMode: 'websocket' | 'none'`?
+- Keep only `eslint.config.mjs` and remove `.eslintrc.json`?
+- Prefer `editor.update` with `editor.fullUpdate` only for `_remdoState` changes?
+- Standardize keyboard map (e.g., Quick menu on Double Shift vs Ctrl/Cmd+K)?
+- Confirm `Note` API as the public surface for editor mutations.
+
+## Optional Follow-Ups
+
+- Add the missing imports in `unexported.ts`.
+- Normalize to the flat ESLint config and update `lint` scripts if needed.
+- Add brief JSDoc on `Note` methods and each RemDo plugin.
+- Create a short README “Runbook” mirroring Quick Start above.
