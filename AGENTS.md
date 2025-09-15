@@ -152,9 +152,3 @@
 - Prefer `editor.update` with `editor.fullUpdate` only for `_remdoState` changes?
 - Standardize keyboard map (e.g., Quick menu on Double Shift vs Ctrl/Cmd+K)?
 - Confirm `Note` API as the public surface for editor mutations.
-
-## Optional Follow-Ups
-
-- Add the missing imports in `unexported.ts`.
-- Add brief JSDoc on `Note` methods and each RemDo plugin.
-- Create a short README “Runbook” mirroring Quick Start above.
