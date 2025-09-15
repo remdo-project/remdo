@@ -127,6 +127,10 @@
 - Call out any changes under `./lexical` for explicit review.
 - For behavior changes, add/update unit and browser tests.
 
+## CI & Submodules (Public Repo)
+
+- This repository is public: https://github.com/remdo-project/remdo
+
 ## Common Tasks
 
 - Add/edit an editor feature: create a RemDo plugin in `plugins/remdo` and wire commands in `utils/commands.ts`.
@@ -152,3 +156,8 @@
 - Prefer `editor.update` with `editor.fullUpdate` only for `_remdoState` changes?
 - Standardize keyboard map (e.g., Quick menu on Double Shift vs Ctrl/Cmd+K)?
 - Confirm `Note` API as the public surface for editor mutations.
+
+
+## CI Logs
+
+- Use the GitHub CLI (gh) to check repository and Actions status on GitHub.
