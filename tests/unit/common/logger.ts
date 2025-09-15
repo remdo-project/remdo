@@ -76,12 +76,12 @@ export class Logger {
   }
 
   /**
-   * Modified/renamed version of vitest-preview debug function
-   * to save the file in a different location
+   * Write a full HTML preview of the test DOM into data/.vitest-preview.
+   * Used for local debugging of failing tests and layout issues.
    */
   async preview() {
     const CACHE_FOLDER = path.join(process.cwd(), 'data', '.vitest-preview');
-    //content directly copied from vitest-preview to change the cache folder
+    // Minimal helper to ensure the folder exists and dump the current HTML
     function createCacheFolderIfNeeded() {
       if (!fs.existsSync(CACHE_FOLDER)) {
         fs.mkdirSync(CACHE_FOLDER, {
@@ -97,7 +97,7 @@ export class Logger {
         document.documentElement.outerHTML,
       );
     }
-    //end of copied code
+    // End of preview writer
     this._flushFunction?.();
     if (debugEnabled) {
       //debug mode enables Tree View, which is rendered asynchonously
