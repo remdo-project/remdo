@@ -86,10 +86,6 @@ export default defineConfig(({ command }) => {
         provider: "v8",
         reportsDirectory: "data/coverage",
       },
-      api: {
-        strictPort: true,
-        host: "0.0.0.0",
-      },
       css: true,
     },
   };
