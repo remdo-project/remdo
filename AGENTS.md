@@ -73,6 +73,13 @@
   and point to the alias definitions (tsconfig paths, Vite resolve.alias). Migrate
   to public APIs when they become available.
 
+## Environment Access
+
+- Do not read `process.env` directly in app or test code. Import `env` from
+  `config/env.server.ts` (envalid-backed) and use `env.MY_VAR` instead. This keeps
+  defaults and validation consistent across the repo. Only low-level config files
+  (e.g., Vite/Playwright) may need direct `process.env` reads.
+
 ## Testing
 
 - Unit (Vitest): `npm run test-unit`.

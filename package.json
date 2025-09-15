@@ -44,7 +44,6 @@
     "test-unit": "npx vitest run",
     "test-performance": "VITE_PERFORMANCE_TESTS=true VITE_LOG_LEVEL=info time -f 'Time: %es' npx vitest run performance/performance --reporter ./tests/unit/performance/reporter.ts -t",
     "test-unit-collab": "FORCE_WEBSOCKET=true npx vitest run --maxWorkers=1",
-    "test-unit-watch-coverage": "npx vitest --ui --coverage.enabled --coverage.include=src/**",
     "test-unit-watch": "npx vitest --watch --ui",
     "test-unit-minimal": "npx vitest --reporter=./tests/unit/common/reporter.ts --watch --ui",
     "test": "npm run test-unit && npm run test-browser",

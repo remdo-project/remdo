@@ -85,6 +85,15 @@ export default defineConfig(({ command }) => {
       coverage: {
         provider: "v8",
         reportsDirectory: "data/coverage",
+        exclude: [
+          "lexical/**",
+          "tests/**",
+          "types/**",
+          "vite.config.*",
+        ],
+        include: ["src/**"],
+        reporter: ["text-summary", "html", "lcov"],
+        enabled: true,
       },
       css: true,
     },
