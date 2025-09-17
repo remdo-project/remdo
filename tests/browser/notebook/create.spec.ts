@@ -51,8 +51,12 @@ test("split note", async ({ page, notebook }) => {
   await notebook.clickEndOfNote("note1");
 
   // Move left a few times to split in a safer spot
+  // Move left twice, waiting for each movement so the cursor is where we expect.
   await waitForSelectionChange(page, async () => {
     await page.keyboard.press("ArrowLeft");
+  });
+
+  await waitForSelectionChange(page, async () => {
     await page.keyboard.press("ArrowLeft");
   });
 
