@@ -1,4 +1,4 @@
 [submodule "lexical"]
 	path = lexical
-    url = https://github.com/piotrlewalski/lexical.git
-    branch = main
+	url = https://github.com/remdo-project/lexical.git
+	branch = main
