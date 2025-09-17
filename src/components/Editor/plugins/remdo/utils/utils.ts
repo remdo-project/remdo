@@ -8,6 +8,7 @@ import { nanoid } from "nanoid";
 import { FULL_RECONCILE } from "./unexported";
 import { getActiveEditorState } from "@lexical/LexicalUpdates";
 import { ListItemNode } from "@lexical/list";
+import { $getNoteID } from "./noteState";
 
 export function $setSearchFilter(filter: string) {
   const editor = $getEditor();
@@ -23,7 +24,9 @@ export function $getNodeByID(id: string, _editorState?: EditorState)  {
   }
   return Array.from(
     editorState._nodeMap.values()
-  ).find(node => (node as ListItemNode).getID?.() === id);
+  ).find((node) => {
+    return (node as ListItemNode).getKey && $getNoteID(node as ListItemNode) === id;
+  });
 }
 
 globalThis.remdoGenerateNoteID = () => {

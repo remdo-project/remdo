@@ -14,6 +14,10 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import * as Y from "yjs";
 import TreeViewPlugin from "./TreeViewPlugin";
+import {
+  ensureListItemSharedState,
+  restoreRemdoStateFromJSON,
+} from "../remdo/utils/noteState";
 
 function EditorStateInput() {
   const [editor] = useRemdoLexicalComposerContext();
@@ -22,10 +26,17 @@ function EditorStateInput() {
       "editor-state"
     ) as HTMLTextAreaElement;
     const serializedEditorState = editorStateElement.value;
-    const editorState = editor.parseEditorState(serializedEditorState);
-    editor.setEditorState(editorState);
-    editor.dispatchCommand(CLEAR_HISTORY_COMMAND, null);
-    editorStateElement.value = "";
+    try {
+      const parsedState = JSON.parse(serializedEditorState);
+      ensureListItemSharedState(editor as unknown as { _nodes?: Map<string, any> });
+      const editorState = editor.parseEditorState(serializedEditorState);
+      editor.setEditorState(editorState);
+      restoreRemdoStateFromJSON(editor, parsedState.root);
+      editor.dispatchCommand(CLEAR_HISTORY_COMMAND, null);
+      editorStateElement.value = "";
+    } catch (error) {
+      console.error("Invalid editor state JSON", error);
+    }
   };
 
   return (

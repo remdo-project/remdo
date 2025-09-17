@@ -3,6 +3,7 @@ import { it } from "vitest";
 import { getVisibleNotes } from "./common";
 import { $getEditor } from "lexical";
 import { ListItemNode } from "@lexical/list";
+import { $getNoteID } from "@/components/Editor/plugins/remdo/utils/noteState";
 
 it("focus", async ({ load, queries, expect, lexicalUpdate }) => {
   const { note12 } = load("tree_complex");
@@ -18,9 +19,7 @@ it("focus", async ({ load, queries, expect, lexicalUpdate }) => {
     'note1201',
   ]);
   lexicalUpdate(() => {
-    expect(
-      ($getEditor()._remdoState.getFocus() as ListItemNode).getID()
-    ).toEqual(note12ID);
+    const focusNode = $getEditor()._remdoState.getFocus() as ListItemNode;
+    expect($getNoteID(focusNode)).toEqual(note12ID);
   });
 });
-

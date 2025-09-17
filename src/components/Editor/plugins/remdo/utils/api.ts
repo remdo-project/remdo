@@ -4,8 +4,9 @@ import {
   $createListItemNode,
   $createListNode,
   $isListNode,
+  ListNode,
+  ListItemNode as LexicalListItemNode,
 } from "@lexical/list";
-import { ListNode, ListItemNode as LexicalListItemNode } from "@lexical/list";
 import {
   $getNodeByKey,
   $isTextNode,
@@ -21,6 +22,14 @@ import {
 import { $findNearestListItemNode, getElementByKeyOrThrow } from "./unexported";
 import { $getNodeByID } from "./utils";
 import { NOTES_FOCUS_COMMAND } from "./commands";
+import {
+  $ensureNoteID,
+  $getNoteID,
+  $isNoteFolded,
+  $setNoteFolded,
+  $getNoteChecked,
+  $setNoteChecked,
+} from "./noteState";
 
 //TODO
 //create folder api and split this to Note and NotesState
@@ -140,6 +149,7 @@ export class Note {
   createChild(text: string | null = null): Note {
     const childNode = $createListItemNode();
     this._getChildrenListNode(true).append(childNode);
+    $ensureNoteID(childNode);
     if (text) {
       childNode.append($createTextNode(text));
     }
@@ -297,7 +307,7 @@ export class Note {
   }
 
   get folded() {
-    return !this.isRoot && this.lexicalNode.getFolded();
+    return !this.isRoot && $isNoteFolded(this.lexicalNode);
   }
 
   //TODO add setFolded/getFolded to RootNode
@@ -310,7 +320,7 @@ export class Note {
         $getEditor(),
         this.lexicalKey
       ).classList.remove("note-folded");
-      this.lexicalNode.setFolded(value && this.hasChildren);
+      $setNoteFolded(this.lexicalNode, value && this.hasChildren);
     }
   }
 
@@ -323,11 +333,16 @@ export class Note {
   }
 
   get checked() {
-    return !this.isRoot && this.lexicalNode.getChecked();
+    return this.isRoot ? undefined : !!$getNoteChecked(this.lexicalNode);
   }
 
   set checked(value) {
-    !this.isRoot && this._walk((note) => note.lexicalNode.setChecked(value));
+    if (this.isRoot) {
+      return;
+    }
+    this._walk((note) => {
+      $setNoteChecked(note.lexicalNode, value ? true : undefined);
+    });
   }
 
   toggleChecked() {
@@ -335,7 +350,9 @@ export class Note {
       return;
     }
     const checked = !this.checked;
-    this._walk((note) => note.lexicalNode.setChecked(checked));
+    this._walk((note) => {
+      $setNoteChecked(note.lexicalNode, checked ? true : undefined);
+    });
   }
 
   get prevSibling() {
@@ -349,7 +366,7 @@ export class Note {
   }
 
   get id() {
-    return this.isRoot ? "root" : this.lexicalNode.__id;
+    return this.isRoot ? "root" : $getNoteID(this.lexicalNode);
   }
 
   _walk(

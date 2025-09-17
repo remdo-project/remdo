@@ -6,6 +6,12 @@ import prettier from "prettier";
 import { getDataPath } from "tests/common.js";
 import { env } from "../../../config/env.server";
 
+function removeDataNoteId(root: HTMLElement) {
+  root.querySelectorAll('[data-note-id]').forEach((el) => {
+    el.removeAttribute('data-note-id');
+  });
+}
+
 export class Notebook {
   constructor(private readonly page: Page) { }
 
@@ -38,8 +44,19 @@ export class Notebook {
    * Use in tests where HTML output is the expected value.
    */
   async html() {
+    const formatted = await this.page.evaluate(() => {
+      const root = document.querySelector('.editor-input');
+      if (!root) {
+        return '';
+      }
+      const clone = root.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll('[data-note-id]').forEach((el) => {
+        el.removeAttribute('data-note-id');
+      });
+      return clone.innerHTML;
+    });
     return (
-      await prettier.format(await this.locator().innerHTML(), {
+      await prettier.format(formatted, {
         parser: "html",
         plugins: ["prettier-plugin-organize-attributes"],
         attributeSort: "ASC",

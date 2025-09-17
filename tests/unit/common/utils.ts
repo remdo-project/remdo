@@ -64,6 +64,22 @@ export function getMinimizedState(editor: LexicalEditor) {
         throw new Error('No defaults for ' + node['type']);
       }
       for (const key in node) {
+        if (key === '$' && typeof node[key] === 'object' && node[key] !== null) {
+          const state = node[key] as Record<string, unknown>;
+          delete state['remdo:id'];
+          if (state['remdo:folded'] === true) {
+            node['folded'] = true;
+          }
+          delete state['remdo:folded'];
+          if (state['remdo:checked'] === true) {
+            node['checked'] = true;
+          }
+          delete state['remdo:checked'];
+          if (Object.keys(state).length === 0) {
+            delete node[key];
+          }
+          continue;
+        }
         if (node[key] === null || node[key] === d[key] || d[key] === SKIP) {
           delete node[key];
         }
@@ -139,4 +155,3 @@ export function getNotes(editor: LexicalEditor): Record<string, Note> {
   });
   return notes;
 }
-

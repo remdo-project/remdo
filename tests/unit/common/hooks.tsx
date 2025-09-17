@@ -10,6 +10,10 @@ import { TestContext as ComponentTestContext } from '@/components/Editor/plugins
 import { Routes } from '@/Routes';
 import { $getRoot, CLEAR_HISTORY_COMMAND } from 'lexical';
 import { getNotes } from './utils';
+import {
+  ensureListItemSharedState,
+  restoreRemdoStateFromJSON,
+} from '@/components/Editor/plugins/remdo/utils/noteState';
 import { env } from '../../../config/env.server';
 import { DocumentSelectorType } from '@/components/Editor/DocumentSelector/DocumentSelector';
 import { WebsocketProvider } from 'y-websocket';
@@ -91,8 +95,11 @@ beforeEach(async (context) => {
   context.load = function (name: string) {
     const dataPath = getDataPath(name);
     const serializedEditorState = fs.readFileSync(dataPath).toString();
+    const parsedState = JSON.parse(serializedEditorState);
+    ensureListItemSharedState(context.editor as unknown as { _nodes?: Map<string, any> });
     const editorState = context.editor.parseEditorState(serializedEditorState);
     context.editor.setEditorState(editorState);
+    restoreRemdoStateFromJSON(context.editor, parsedState.root);
     context.editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
     return getNotes(context.editor);
   };

@@ -6,6 +6,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { isBeforeEvent } from "@/utils";
 import { $isListItemNode } from "@lexical/list";
 import { $getNodeByID } from "./utils/utils";
+import { $getNoteID } from "./utils/noteState";
 import { mergeRegister } from "@lexical/utils";
 
 export function FocusPlugin({ anchorRef }:
@@ -29,8 +30,9 @@ export function FocusPlugin({ anchorRef }:
             if (!$isListItemNode(focusNode)) {
               throw new Error(`called NOTES_FOCUS_COMMAND on a non ListItemNode, key: ${key}, type: ${focusNode?.getType()}`);
             }
-            if (noteID !== focusNode.getID()) {
-              navigate(`/note/${focusNode.getID()}`);
+            const focusNodeID = $getNoteID(focusNode);
+            if (noteID !== focusNodeID) {
+              navigate(`/note/${focusNodeID}`);
             }
           }
 
