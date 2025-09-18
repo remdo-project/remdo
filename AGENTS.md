@@ -2,12 +2,11 @@
 
 ## Scope
 
-- This repo is a TypeScript + React app that embeds a customized Lexical fork via a git submodule at `./lexical`.
+- This repo is a TypeScript + React app that builds on the upstream Lexical packages with a thin RemDo-specific layer.
 - Do not stage or commit any changes without explicit approval.
 
 ## Quick Start
 
-- Submodules: `npm run submodules` (initializes/updates `./lexical`).
 - Install: `npm ci` (CI) or `npm install` (local).
 - Dev server: `npm run server` (Vite on port from `config/env.server.ts`, default 3010).
 - Collaboration backends (port 8080):
@@ -27,7 +26,6 @@
   - `components/Dev/` dev-only helpers (TreeView, Yjs debug, demo).
   - `DebugContext.tsx` toggles dev features via query param and navbar.
   - `utils.ts` UI helpers (method patching, relative positioning, ::before hit testing).
-- `lexical/` customized fork (submodule) with RemDo-specific changes.
 - `tests/` Vitest unit (jsdom) and Playwright browser tests; fixtures in `tests/data`.
 - `config/` env and Vite/test configuration helpers.
 - `data/` build/test outputs (reports, coverage, bundle stats).
@@ -47,16 +45,15 @@
   - Backspace at start of note merges or deletes (`BackspacePlugin`).
 - Prefer the `Note` API (`plugins/remdo/utils/api.ts`) for mutations: `createChild`, `indent/outdent`, `moveUp/down`, `toggleChecked`, `setFoldLevel`, `focus`.
 
-## Lexical Fork (Important)
+## Lexical Integration
 
-- RemDo depends on forked sources in `./lexical`:
-  - Custom list nodes expose note metadata hooks while app code handles DOM class toggling.
-- Vite resolves Lexical from source for dev. Avoid upgrading or modifying the submodule without approval.
+- RemDo relies on the published `lexical` packages (`0.35.x`) and a few local shims in `src/lexical-shims` for APIs that are not part of the public surface (e.g., list node helpers).
+- When upgrading Lexical, audit those shims and the RemDo plugins for compatibility before bumping the versions in `package.json`.
 
 ## Conventions
 
 - Lint/format: ESLint + Prettier. Prefer the flat config `eslint.config.mjs` as the source of truth.
-- Imports: use `@/...` for app code; use path aliases from `tsconfig.json`/`vite.config.mts` for Lexical.
+- Imports: use `@/...` for app code; avoid internal Lexical paths unless mirrored via `src/lexical-shims`.
 - Plugin naming: Lexical state plugins live in `plugins/remdo`. Pure UI overlays mounted via portals should be named `*Overlay` or `*UI` (e.g., `QuickMenuOverlay`).
 - Updates: use `editor.update(...)` normally; `editor.fullUpdate(...)` is only required when you need a forced reconcile for Lexical internals.
 - Centralize new editor commands in `plugins/remdo/utils/commands.ts`.
@@ -123,7 +120,7 @@
 ## Safety & Process
 
 - Never commit or stage without explicit approval.
-- Call out any changes under `./lexical` for explicit review.
+- Call out any Lexical version bumps or shim updates for explicit review.
 - For behavior changes, add/update unit and browser tests.
 
 ## CI & Submodules (Public Repo)

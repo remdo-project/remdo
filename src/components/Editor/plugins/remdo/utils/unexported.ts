@@ -1,7 +1,10 @@
 // RemDo-specific utilities and minimal shims around Lexical
 
-import { isNestedListNode, $findNearestListItemNode } from "@lexical/list/utils";
-import { mergeLists } from "@lexical/list/formatList";
+import {
+  isNestedListNode,
+  $findNearestListItemNode,
+  mergeLists,
+} from "@/lexical-shims/list";
 import { $getNearestNodeFromDOMNode, $isDecoratorNode, LexicalEditor, NodeKey } from "lexical";
 
 // Reconciling flags (internal). Avoid relying on these if possible.

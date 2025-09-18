@@ -55,7 +55,7 @@ const config: PlaywrightTestConfig = {
   outputDir: "data/test-results/",
 
   webServer: {
-    command: `PORT=${env.PORT} npm run server`,
+    command: `npm run preview -- --host --port ${env.PORT}`,
     port: env.PORT,
     timeout: 5 * 1000,
     reuseExistingServer: !env.CI,

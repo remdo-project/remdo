@@ -1,6 +1,5 @@
 import { $getEditor, $getRoot, $setSelection, EditorState } from "lexical";
 import { nanoid } from "nanoid";
-import { getActiveEditorState } from "@lexical/LexicalUpdates";
 import { ListItemNode } from "@lexical/list";
 import { $getNoteID } from "./noteState";
 import { setRemdoFilter } from "./remdoState";
@@ -13,8 +12,9 @@ export function $setSearchFilter(filter: string) {
   syncAllListMetadata(editor);
 };
 
-export function $getNodeByID(id: string, _editorState?: EditorState)  {
-  const editorState = _editorState || getActiveEditorState();
+export function $getNodeByID(id: string, _editorState?: EditorState) {
+  const editorState =
+    _editorState || $getEditor().getEditorState();
   if (id === "root") {
     return $getRoot();
   }
