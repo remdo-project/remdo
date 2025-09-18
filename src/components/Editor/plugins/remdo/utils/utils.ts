@@ -1,20 +1,16 @@
-import {
-  $getEditor,
-  $getRoot,
-  $setSelection,
-  EditorState,
-} from "lexical";
+import { $getEditor, $getRoot, $setSelection, EditorState } from "lexical";
 import { nanoid } from "nanoid";
-import { FULL_RECONCILE } from "./unexported";
 import { getActiveEditorState } from "@lexical/LexicalUpdates";
 import { ListItemNode } from "@lexical/list";
 import { $getNoteID } from "./noteState";
+import { setRemdoFilter } from "./remdoState";
+import { syncAllListMetadata } from "./metadata";
 
 export function $setSearchFilter(filter: string) {
   const editor = $getEditor();
-  editor._dirtyType = FULL_RECONCILE;
-  editor._remdoState.setFilter(filter);
+  setRemdoFilter(editor, filter);
   $setSelection(null);
+  syncAllListMetadata(editor);
 };
 
 export function $getNodeByID(id: string, _editorState?: EditorState)  {

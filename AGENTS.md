@@ -37,8 +37,8 @@
 - Data model: notes are Lexical `ListItemNode`s enhanced with:
   - `id` (short id), `folded` (boolean), `checked` (boolean | undefined).
 - Single-root invariant: `root → ListNode → ListItemNode*` enforced by `FixRootPlugin`.
-- Focus: `NOTES_FOCUS_COMMAND` updates `editor._remdoState` and route (`/note/:id`). Only focused note subtree renders as “unfiltered”.
-- Search filter: `editor._remdoState.filter` drives `.filtered/.unfiltered` classes in forked List/ListItem DOM; CSS hides filtered parts.
+- Focus: `NOTES_FOCUS_COMMAND` updates the Remdo state (see `plugins/remdo/utils/remdoState.ts`) and route (`/note/:id`). Only the focused note subtree renders as “unfiltered”.
+- Search filter: the Remdo state filter drives `.filtered/.unfiltered` classes; `NoteMetadataPlugin` updates DOM classes based on the shared state.
 - Keyboard:
   - Indent/outdent: Tab / Shift+Tab (`IndentationPlugin`).
   - Reorder: Meta+ArrowUp/ArrowDown (`ReorderPlugin`).
@@ -50,8 +50,7 @@
 ## Lexical Fork (Important)
 
 - RemDo depends on forked sources in `./lexical`:
-  - `RemdoState` (`editor._remdoState`) stores focus/filter for reconciliation.
-  - `ListNode`/`ListItemNode` add focus/filter classNames and `folded/checked/id` support.
+  - Custom list nodes expose note metadata hooks while app code handles DOM class toggling.
 - Vite resolves Lexical from source for dev. Avoid upgrading or modifying the submodule without approval.
 
 ## Conventions
@@ -59,7 +58,7 @@
 - Lint/format: ESLint + Prettier. Prefer the flat config `eslint.config.mjs` as the source of truth.
 - Imports: use `@/...` for app code; use path aliases from `tsconfig.json`/`vite.config.mts` for Lexical.
 - Plugin naming: Lexical state plugins live in `plugins/remdo`. Pure UI overlays mounted via portals should be named `*Overlay` or `*UI` (e.g., `QuickMenuOverlay`).
-- Updates: use `editor.update(...)` normally; use `editor.fullUpdate(...)` when you need full reconcile (e.g., after changing `_remdoState`).
+- Updates: use `editor.update(...)` normally; `editor.fullUpdate(...)` is only required when you need a forced reconcile for Lexical internals.
 - Centralize new editor commands in `plugins/remdo/utils/commands.ts`.
 
 ## Documentation Style
@@ -153,7 +152,7 @@
 
 - Adopt `*Overlay`/`*UI` naming for non-Lexical “plugins”?
 - Rename `disableWS` to `collabDisabled` (boolean) or `collabMode: 'websocket' | 'none'`?
-- Prefer `editor.update` with `editor.fullUpdate` only for `_remdoState` changes?
+- Prefer lightweight helpers (`syncAllListMetadata`) over `editor.fullUpdate` unless a full reconcile is required?
 - Standardize keyboard map (e.g., Quick menu on Double Shift vs Ctrl/Cmd+K)?
 - Confirm `Note` API as the public surface for editor mutations.
 

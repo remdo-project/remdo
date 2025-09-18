@@ -4,6 +4,7 @@ import { getVisibleNotes } from "./common";
 import { $getEditor } from "lexical";
 import { ListItemNode, $isListNode } from "@lexical/list";
 import { $getNoteID } from "@/components/Editor/plugins/remdo/utils/noteState";
+import { getRemdoState } from "@/components/Editor/plugins/remdo/utils/remdoState";
 
 it("focus", async ({ load, queries, expect, lexicalUpdate }) => {
   const { note12 } = load("tree_complex");
@@ -19,7 +20,8 @@ it("focus", async ({ load, queries, expect, lexicalUpdate }) => {
     'note1201',
   ]);
   lexicalUpdate(() => {
-    const focusNode = $getEditor()._remdoState.getFocus() as ListItemNode;
+    const focusNode = getRemdoState($getEditor())?.getFocus() as ListItemNode | undefined;
+    expect(focusNode).toBeTruthy();
     expect($getNoteID(focusNode)).toEqual(note12ID);
   });
 });

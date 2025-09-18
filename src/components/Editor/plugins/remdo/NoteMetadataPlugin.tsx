@@ -2,109 +2,15 @@
 import { useEffect } from "react";
 import { mergeRegister } from "@lexical/utils";
 import { useRemdoLexicalComposerContext } from "./ComposerContext";
+import { ListItemNode, ListNode, $isListItemNode, $isListNode } from "@lexical/list";
+import { $getNodeByKey } from "lexical";
 import {
-  ListItemNode,
-  ListNode,
-  $isListItemNode,
-  $isListNode,
-} from "@lexical/list";
-import {
-  $ensureNoteID,
-  $getNoteID,
-  $isNoteFolded,
-  $getNoteChecked,
-  getListItemOwnText,
-} from "./utils/noteState";
-import {
-  $getNodeByKey,
-  LexicalEditor,
-  LexicalNode,
-  $isRootOrShadowRoot,
-} from "lexical";
-
-const FILTER_TAG = "remdo:filter";
-const FOCUS_TAG = "remdo:focus";
-
-function hasNestedList(node: ListItemNode): boolean {
-  return node.getChildren().some((child) => $isListNode(child));
-}
-
-function syncListItemElement(editor: LexicalEditor, node: ListItemNode) {
-  const element = editor.getElementByKey(node.getKey());
-  if (!element) {
-    return;
-  }
-
-  const id = $getNoteID(node);
-  if (id) {
-    element.dataset.noteId = id;
-  }
-
-  const folded = $isNoteFolded(node) && hasNestedList(node);
-  element.classList.toggle("note-folded", folded);
-
-  const checked = $getNoteChecked(node);
-  element.classList.toggle("li-checked", !!checked);
-
-  const filter = editor._remdoState?.getFilter?.();
-  const focusNode = editor._remdoState?.getFocus?.();
-  element.classList.remove("filtered", "unfiltered");
-
-  if (filter) {
-    const ownText = getListItemOwnText(node);
-    const matches = ownText.includes(filter);
-    element.classList.add(matches ? "unfiltered" : "filtered");
-  } else if (focusNode) {
-    const focusMatches =
-      focusNode.getKey() === node.getKey() ||
-      focusNode.getParent()?.getKey() === node.getKey() ||
-      focusNode.isParentOf(node);
-    element.classList.add(focusMatches ? "unfiltered" : "filtered");
-  }
-}
-
-function syncListElement(editor: LexicalEditor, node: ListNode) {
-  const element = editor.getElementByKey(node.getKey());
-  if (!element) {
-    return;
-  }
-
-  const filter = editor._remdoState?.getFilter?.();
-  const focusNode = editor._remdoState?.getFocus?.();
-
-  element.classList.remove("list-unstyled", "filtered", "unfiltered");
-
-  if (
-    filter &&
-    !$isRootOrShadowRoot(node.getParent())
-  ) {
-    element.classList.add("list-unstyled");
-  }
-
-  if (focusNode && !filter) {
-    const focusMatches =
-      focusNode.getParent()?.getKey() === node.getKey() ||
-      focusNode.isParentOf(node);
-    element.classList.add(focusMatches ? "unfiltered" : "filtered");
-  }
-}
-
-function syncAllListItems(editor: LexicalEditor) {
-  const editorState = editor.getEditorState();
-  editorState.read(() => {
-    const nodeMap = (editorState as unknown as {
-      _nodeMap: Map<string, LexicalNode>;
-    })._nodeMap;
-    nodeMap.forEach((node) => {
-      if ($isListItemNode(node)) {
-        syncListItemElement(editor, node);
-      }
-      if ($isListNode(node)) {
-        syncListElement(editor, node);
-      }
-    });
-  });
-}
+  syncAllListMetadata,
+  syncListElement,
+  syncListItemElement,
+} from "./utils/metadata";
+import { $ensureNoteID, $getNoteID } from "./utils/noteState";
+import { REMDO_FILTER_TAG, REMDO_FOCUS_TAG } from "./utils/remdoState";
 
 export function NoteMetadataPlugin(): null {
   const [editor] = useRemdoLexicalComposerContext();
@@ -161,8 +67,8 @@ export function NoteMetadataPlugin(): null {
         {skipInitialization: false},
       ),
       editor.registerUpdateListener(({tags}) => {
-        if (tags.has(FILTER_TAG) || tags.has(FOCUS_TAG)) {
-          syncAllListItems(editor);
+        if (tags.has(REMDO_FILTER_TAG) || tags.has(REMDO_FOCUS_TAG)) {
+          syncAllListMetadata(editor);
         }
       }),
     );

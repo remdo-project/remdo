@@ -8,6 +8,8 @@ import { $isListItemNode } from "@lexical/list";
 import { $getNodeByID } from "./utils/utils";
 import { $getNoteID } from "./utils/noteState";
 import { mergeRegister } from "@lexical/utils";
+import { getRemdoState, setRemdoFocusKey } from "./utils/remdoState";
+import { syncAllListMetadata } from "./utils/metadata";
 
 export function FocusPlugin({ anchorRef }:
   { anchorRef: React.RefObject<HTMLElement> }) {
@@ -36,9 +38,8 @@ export function FocusPlugin({ anchorRef }:
             }
           }
 
-          editor.fullUpdate(() => {
-            $getEditor()._remdoState.setFocusKey(key);
-          });
+          setRemdoFocusKey(editor, key);
+          syncAllListMetadata(editor);
 
           return true;
         },
@@ -49,9 +50,7 @@ export function FocusPlugin({ anchorRef }:
         () => {
           const focusKey = noteID && $getNodeByID(noteID)?.getKey();
           if (focusKey) {
-            editor.fullUpdate(() => {
-              editor.dispatchCommand(NOTES_FOCUS_COMMAND, { key: focusKey });
-            });
+            editor.dispatchCommand(NOTES_FOCUS_COMMAND, { key: focusKey });
           }
           return false;
         },
@@ -95,7 +94,8 @@ export function FocusPlugin({ anchorRef }:
   useEffect(() => {
     editor.read(() => {
       const focusKey = $getNodeByID(noteID ?? "root")?.getKey();
-      if (focusKey && $getEditor()._remdoState.getFocus()?.getKey() !== focusKey) {
+      const currentFocusKey = getRemdoState($getEditor())?.getFocus()?.getKey();
+      if (focusKey && currentFocusKey !== focusKey) {
         editor.dispatchCommand(NOTES_FOCUS_COMMAND, { key: focusKey });
       }
     });
