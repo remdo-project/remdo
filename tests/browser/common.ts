@@ -20,6 +20,9 @@ const SKIP_CONTAINS = [
 
 export const test = base.extend({
   page: async ({ page }, use) => {
+    await page.addInitScript(() => {
+      (window as typeof window & { REMDO_TEST?: boolean }).REMDO_TEST = true;
+    });
     page.on("console", (message) => {
       const text = message.text();
 
