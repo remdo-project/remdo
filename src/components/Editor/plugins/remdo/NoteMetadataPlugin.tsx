@@ -4,6 +4,7 @@ import { mergeRegister } from "@lexical/utils";
 import { useRemdoLexicalComposerContext } from "./ComposerContext";
 import {
   ListItemNode,
+  ListNode,
   $isListItemNode,
   $isListNode,
 } from "@lexical/list";
@@ -14,7 +15,12 @@ import {
   $getNoteChecked,
   getListItemOwnText,
 } from "./utils/noteState";
-import { $getNodeByKey, LexicalEditor, LexicalNode } from "lexical";
+import {
+  $getNodeByKey,
+  LexicalEditor,
+  LexicalNode,
+  $isRootOrShadowRoot,
+} from "lexical";
 
 const FILTER_TAG = "remdo:filter";
 const FOCUS_TAG = "remdo:focus";
@@ -57,6 +63,32 @@ function syncListItemElement(editor: LexicalEditor, node: ListItemNode) {
   }
 }
 
+function syncListElement(editor: LexicalEditor, node: ListNode) {
+  const element = editor.getElementByKey(node.getKey());
+  if (!element) {
+    return;
+  }
+
+  const filter = editor._remdoState?.getFilter?.();
+  const focusNode = editor._remdoState?.getFocus?.();
+
+  element.classList.remove("list-unstyled", "filtered", "unfiltered");
+
+  if (
+    filter &&
+    !$isRootOrShadowRoot(node.getParent())
+  ) {
+    element.classList.add("list-unstyled");
+  }
+
+  if (focusNode && !filter) {
+    const focusMatches =
+      focusNode.getParent()?.getKey() === node.getKey() ||
+      focusNode.isParentOf(node);
+    element.classList.add(focusMatches ? "unfiltered" : "filtered");
+  }
+}
+
 function syncAllListItems(editor: LexicalEditor) {
   const editorState = editor.getEditorState();
   editorState.read(() => {
@@ -66,6 +98,9 @@ function syncAllListItems(editor: LexicalEditor) {
     nodeMap.forEach((node) => {
       if ($isListItemNode(node)) {
         syncListItemElement(editor, node);
+      }
+      if ($isListNode(node)) {
+        syncListElement(editor, node);
       }
     });
   });
@@ -105,6 +140,23 @@ export function NoteMetadataPlugin(): null {
               });
             }, {tag: "remdo:metadata"});
           }
+        },
+        {skipInitialization: false},
+      ),
+      editor.registerMutationListener(
+        ListNode,
+        (mutations) => {
+          editor.getEditorState().read(() => {
+            for (const [key, mutation] of mutations) {
+              if (mutation === "destroyed") {
+                continue;
+              }
+              const node = $getNodeByKey<ListNode>(key);
+              if ($isListNode(node)) {
+                syncListElement(editor, node);
+              }
+            }
+          });
         },
         {skipInitialization: false},
       ),

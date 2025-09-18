@@ -80,6 +80,20 @@ it("toggle check recursively", async ({
   await expect(editor).toMatchFileSnapshot("base.yml");
 });
 
+it("stores checked state outside lexical checklist flag", async ({
+  load,
+  lexicalUpdate,
+  expect,
+}) => {
+  const { note0 } = load("single");
+
+  lexicalUpdate(() => {
+    note0.toggleChecked();
+    expect(note0.checked).toBeTruthy();
+    expect(note0.lexicalNode.getChecked()).toBeUndefined();
+  });
+});
+
 it("check/uncheck recursively mixed", async ({
   load,
   expect,
