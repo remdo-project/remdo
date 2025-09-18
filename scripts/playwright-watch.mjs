@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import process from "node:process";
 
 // Wraps Playwright in a chokidar watcher so we can re-run browser tests without relying on PWTEST_WATCH.
-const args = process.argv.slice(2);
+const cliArgs = process.argv.slice(2);
 const watchTargets = [
   "src",
   "tests",
@@ -26,11 +26,12 @@ let currentRun = null;
 let rerunRequested = false;
 
 const startRun = () => {
-  const command = ["npx", "playwright", "test", ...args];
+  const commandArgs = ["playwright", "test", ...cliArgs];
+  const displayCommand = ["npx", ...commandArgs];
   console.log(`[watch] Starting tests.`);
-  console.log(`[watch] Running npx ${command.join(" ")}`);
+  console.log(`[watch] Running npx ${displayCommand.join(" ")}`);
 
-  currentRun = spawn(command, {
+  currentRun = spawn("npx", commandArgs, {
     env: process.env,
     stdio: "inherit"
   });
