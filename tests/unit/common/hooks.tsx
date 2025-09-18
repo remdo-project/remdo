@@ -156,8 +156,10 @@ beforeEach(async (context) => {
 
 afterEach(async (context) => {
   if (env.FORCE_WEBSOCKET) {
-    //an ugly workaround - to give a chance for yjs to sync
-    await new Promise((r) => setTimeout(r, 10));
+    const provider = context.documentSelector?.getYjsProvider();
+    if (provider instanceof WebsocketProvider) {
+      await waitForProviderSync(provider);
+    }
   }
   context.component.unmount();
   logger.setFlushFunction(null);
