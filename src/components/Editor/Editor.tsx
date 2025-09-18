@@ -15,6 +15,7 @@ import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
+import RemdoTestBridge from "@/dev/RemdoTestBridge";
 import { RemdoPlugin } from "./plugins/RemdoPlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
@@ -25,6 +26,8 @@ function LexicalEditor() {
   const editorBottomRef = useRef();
   const documentSelector = useDocumentSelector();
   const editorConfig = useEditorConfig();
+  const shouldMountTestBridge =
+    !import.meta.env.PROD || (typeof window !== "undefined" && window.REMDO_TEST === true);
 
   return (
     <LexicalComposer
@@ -47,6 +50,7 @@ function LexicalEditor() {
           ErrorBoundary={LexicalErrorBoundary}
         />
         <DevComponentTestPlugin />
+        {shouldMountTestBridge ? <RemdoTestBridge /> : null}
         <ClearEditorPlugin />
         <ListPlugin />
         <LinkPlugin />

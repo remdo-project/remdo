@@ -25,18 +25,23 @@ export class Notebook {
   }
 
   async load(file: string) {
-    await this.page.click("text=Load State");
     const dataPath = getDataPath(file);
-    const serializedEditorState = fs.readFileSync(dataPath).toString();
-    await this.page.locator("#editor-state").fill(serializedEditorState);
-    await this.page.click("text=Submit Editor State");
-    await this.page.click("text=Load State");
-    await this.locator().focus();
+    const serializedEditorState = fs.readFileSync(dataPath, "utf8");
+    const payload = JSON.parse(serializedEditorState);
 
-    // FIXME: wait for Lexical to fully update the editor.
-    // Consider improving the whole loading mechanism, see:
-    // https://lexical.dev/docs/intro
-    await this.page.waitForTimeout(200);
+    await this.page.evaluate(async (editorState) => {
+      const api = (window as typeof window & {
+        remdoTest?: { replaceDocument(json: unknown): Promise<void> };
+      }).remdoTest;
+
+      if (!api?.replaceDocument) {
+        throw new Error("remdoTest.replaceDocument is not available in this build");
+      }
+
+      await api.replaceDocument(editorState);
+    }, payload);
+
+    await this.locator().focus();
   }
 
   /**
