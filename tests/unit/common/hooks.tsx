@@ -17,6 +17,7 @@ import {
 import { env } from '../../../config/env.server';
 import { DocumentSelectorType } from '@/components/Editor/DocumentSelector/DocumentSelector';
 import { WebsocketProvider } from 'y-websocket';
+import * as Y from 'yjs';
 
 function waitForProviderSync(provider: WebsocketProvider) {
   if (provider.synced) return Promise.resolve();
@@ -106,8 +107,12 @@ beforeEach(async (context) => {
 
   context.lexicalUpdate = (updateFunction) => {
     let err = null;
-    context.editor.fullUpdate(
-      function () {
+    const runUpdate = env.FORCE_WEBSOCKET
+      ? context.editor.update.bind(context.editor)
+      : context.editor.fullUpdate.bind(context.editor);
+
+    runUpdate(
+      () => {
         try {
           return updateFunction();
         } catch (e) {
@@ -124,8 +129,17 @@ beforeEach(async (context) => {
   logger.setFlushFunction(() => context.lexicalUpdate(() => { }));
 
   if (env.FORCE_WEBSOCKET) {
+    const provider = context.documentSelector.getYjsProvider();
     //wait for yjs to connect via websocket and init the editor content
-    await waitForProviderSync(context.documentSelector.getYjsProvider());
+    await waitForProviderSync(provider);
+
+    const yDoc = context.documentSelector.getYjsDoc();
+    if (yDoc) {
+      yDoc.transact(() => {
+        const rootXmlText = yDoc.get('root', Y.XmlText);
+        rootXmlText.delete(0, rootXmlText.length);
+      });
+    }
   }
   if (!serializationFile && !env.VITE_PERFORMANCE_TESTS) {
     //clear the editor's content before each test

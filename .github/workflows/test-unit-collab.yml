@@ -1,0 +1,39 @@
+name: Vitest (Collab)
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install Dependencies
+        run: |
+          npm ci --no-audit --no-fund
+      - name: Start WebSocket server
+        run: |
+          npm run websocket &
+          echo $! > ws-server.pid
+          for _ in {1..20}; do
+            if nc -z localhost 8080; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "WebSocket server failed to start" >&2
+          exit 1
+      - name: Run Vitest (Collab)
+        env:
+          FORCE_WEBSOCKET: "true"
+        run: |
+          npm run test-unit-collab
+      - name: Stop WebSocket server
+        if: always()
+        run: |
+          if [ -f ws-server.pid ]; then
+            kill $(cat ws-server.pid) || true
+            rm -f ws-server.pid
+          fi
