@@ -79,10 +79,17 @@ export class Notebook {
   /** Places cursor at the very end of a given note's title */
   async clickEndOfNote(title: string) {
     const noteLocator = this.noteLocator(title);
-    const { width, height } = await noteLocator.boundingBox();
     await waitForSelectionChange(this.page, async () => {
-      await noteLocator.click({
-        position: { x: width - 1, y: height - 1 }, // bottom-right corner = end of text
+      await noteLocator.evaluate((element) => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        range.collapse(false);
+        const selection = window.getSelection();
+        if (!selection) {
+          return;
+        }
+        selection.removeAllRanges();
+        selection.addRange(range);
       });
     });
   }

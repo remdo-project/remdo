@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { $isListItemNode, $isListNode } from "@lexical/list";
 import { CLEAR_HISTORY_COMMAND, $getRoot, type LexicalEditor } from "lexical";
 import {
   ensureListItemSharedState,
@@ -55,7 +56,16 @@ function createAPI(editor: LexicalEditor) {
 
       await runAndWaitForCommit(editor, () => {
         editor.update(() => {
-          $getRoot().selectEnd();
+          const root = $getRoot();
+          const lastList = root.getLastChild();
+          if ($isListNode(lastList)) {
+            const lastItem = lastList.getLastChild();
+            if ($isListItemNode(lastItem)) {
+              lastItem.selectEnd();
+              return;
+            }
+          }
+          root.selectEnd();
         });
       });
     },
@@ -66,14 +76,17 @@ function runAndWaitForCommit(editor: LexicalEditor, action: () => void): Promise
   return new Promise((resolve, reject) => {
     let settled = false;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    let unsubscribe: () => void = () => {};
+    let unsubscribe: (() => void) | undefined;
 
     const cleanup = () => {
       if (timeoutId !== undefined) {
         clearTimeout(timeoutId);
         timeoutId = undefined;
       }
-      unsubscribe();
+      if (unsubscribe) {
+        unsubscribe();
+        unsubscribe = undefined;
+      }
     };
 
     unsubscribe = editor.registerUpdateListener(() => {
