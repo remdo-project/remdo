@@ -1,4 +1,5 @@
 import { test as base } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 // Exact matches
 const SKIP_CONSOLE_MESSAGES = [
@@ -18,8 +19,23 @@ const SKIP_CONTAINS = [
   "downloadable font: rejected by sanitizer",
 ];
 
+type PageWithScreenshot = Page & {
+  takeScreenshot(name?: string, page?: Page): Promise<void>;
+};
+
 export const test = base.extend({
-  page: async ({ page }, use) => {
+  page: async ({ page }, use, testInfo) => {
+    const pageWithScreenshot = page as PageWithScreenshot;
+    let screenshotIndex = 0;
+
+    pageWithScreenshot.takeScreenshot = async (name?: string) => {
+      const screenshot = await page.screenshot();
+      await testInfo.attach(
+        `screenshot-${screenshotIndex++}${name ? "-" + name : ""}.png`,
+        { body: screenshot, contentType: "image/png" }
+      );
+    };
+
     await page.addInitScript(() => {
       (window as typeof window & { REMDO_TEST?: boolean }).REMDO_TEST = true;
     });
@@ -44,6 +60,10 @@ export const test = base.extend({
       throw err;
     });
 
-    await use(page);
+    try {
+      await use(pageWithScreenshot);
+    } finally {
+      delete pageWithScreenshot.takeScreenshot;
+    }
   },
 });

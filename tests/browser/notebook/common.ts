@@ -152,7 +152,6 @@ class Menu {
 export const test = base.extend<{
   notebook: Notebook;
   urlPath: string;
-  takeScreenshot: (name?: string, page?: Page) => Promise<void>;
   menu: Menu;
 }>({
   notebook: async ({ page }, use) => {
@@ -160,16 +159,6 @@ export const test = base.extend<{
     await page.goto(`/?debug=true${env.FORCE_WEBSOCKET ? "" : "&ws=false"}`);
     await notebook.locator().focus();
     await use(notebook);
-  },
-  takeScreenshot: async ({ page }, use, testInfo) => {
-    let i = 0;
-    await use(async (name?: string, page_?: Page) => {
-      const screenshot = await (page_ ?? page).screenshot();
-      await testInfo.attach(
-        `screenshot-${i++}${name ? "-" + name : ""}.png`,
-        { body: screenshot, contentType: "image/png" }
-      );
-    });
   },
   menu: async ({ page, notebook }, use) => {
     await use(new Menu(page, notebook));

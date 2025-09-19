@@ -9,7 +9,6 @@ const watchTargets = [
   "src",
   "tests",
   "config",
-  "lexical",
   "playwright.config.ts",
   "vite.config.mts",
   "package.json"
