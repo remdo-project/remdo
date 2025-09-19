@@ -1,90 +1,140 @@
 import "./common";
-import { it } from "vitest";
+import { expect, it } from "vitest";
+import { getCurrentTest } from "vitest/suite";
+import type { TestContext } from "vitest";
 
-it("reorder flat", async ({ load, editor, expect, lexicalUpdate }) => {
-  const { note0 } = load("flat");
-  await expect(editor).toMatchFileSnapshot("base.yml");
-  await expect(editor).toMatchNoteTree([
-    { text: "note0" },
-    { text: "note1" },
-    { text: "note2" },
-  ]);
+function getTestContext(): TestContext {
+  const test = getCurrentTest() ?? expect.getState().test;
+  if (!test?.context) {
+    throw new Error("Missing test context");
+  }
+  return test.context as TestContext;
+}
 
-  lexicalUpdate(() => note0.moveDown());
-  await expect(editor).toMatchNoteTree([
-    { text: "note1" },
-    { text: "note0" },
-    { text: "note2" },
-  ]);
+const baseFlatTree = [
+  { text: "note0" },
+  { text: "note1" },
+  { text: "note2" },
+];
 
-  lexicalUpdate(() => note0.moveDown());
-  await expect(editor).toMatchNoteTree([
-    { text: "note1" },
-    { text: "note2" },
-    { text: "note0" },
-  ]);
+const reorderFlatSteps = [
+  {
+    name: "move note0 down once",
+    action: ({ note0 }: Record<string, any>) => note0.moveDown(),
+    expected: [
+      { text: "note1" },
+      { text: "note0" },
+      { text: "note2" },
+    ],
+  },
+  {
+    name: "move note0 below note2",
+    action: ({ note0 }: Record<string, any>) => note0.moveDown(),
+    expected: [
+      { text: "note1" },
+      { text: "note2" },
+      { text: "note0" },
+    ],
+  },
+  {
+    name: "moving past the end keeps order",
+    action: ({ note0 }: Record<string, any>) => note0.moveDown(),
+    expected: [
+      { text: "note1" },
+      { text: "note2" },
+      { text: "note0" },
+    ],
+  },
+  {
+    name: "move note0 up from bottom",
+    action: ({ note0 }: Record<string, any>) => note0.moveUp(),
+    expected: [
+      { text: "note1" },
+      { text: "note0" },
+      { text: "note2" },
+    ],
+  },
+  {
+    name: "move note0 back to the top",
+    action: ({ note0 }: Record<string, any>) => note0.moveUp(),
+    expected: baseFlatTree,
+  },
+  {
+    name: "moving above the first note keeps order",
+    action: ({ note0 }: Record<string, any>) => note0.moveUp(),
+    expected: baseFlatTree,
+  },
+].map((step, index) => ({ ...step, index }));
 
-  lexicalUpdate(() => note0.moveDown());
-  await expect(editor).toMatchNoteTree([
-    { text: "note1" },
-    { text: "note2" },
-    { text: "note0" },
-  ]);
+it.each(reorderFlatSteps)(
+  "reorder flat %s",
+  async function ({ index, expected }) {
+    const { load, editor, lexicalUpdate, expect: expectWithContext } =
+      getTestContext();
+    const assertion = expectWithContext ?? expect;
+    const notes = load("flat");
 
-  lexicalUpdate(() => note0.moveUp());
-  await expect(editor).toMatchNoteTree([
-    { text: "note1" },
-    { text: "note0" },
-    { text: "note2" },
-  ]);
+    await assertion(editor).toMatchNoteTree(baseFlatTree);
 
-  lexicalUpdate(() => note0.moveUp());
-  await expect(editor).toMatchNoteTree([
-    { text: "note0" },
-    { text: "note1" },
-    { text: "note2" },
-  ]);
+    for (let i = 0; i <= index; i += 1) {
+      lexicalUpdate(() => reorderFlatSteps[i].action(notes));
+    }
 
-  lexicalUpdate(() => note0.moveUp());
-  await expect(editor).toMatchNoteTree([
-    { text: "note0" },
-    { text: "note1" },
-    { text: "note2" },
-  ]);
-});
+    await assertion(editor).toMatchNoteTree(expected);
+  },
+);
 
-it("reorder tree", async ({ load, editor, expect, lexicalUpdate }) => {
-  const { note0 } = load("tree");
-  await expect(editor).toMatchFileSnapshot("base.yml");
-  await expect(editor).toMatchNoteTree([
-    { text: "note0", children: [{ text: "sub note 0" }] },
-    { text: "note1", children: [{ text: "sub note 1" }] },
-  ]);
+const baseTree = [
+  { text: "note0", children: [{ text: "sub note 0" }] },
+  { text: "note1", children: [{ text: "sub note 1" }] },
+];
 
-  lexicalUpdate(() => note0.moveDown());
-  await expect(editor).toMatchNoteTree([
-    { text: "note1", children: [{ text: "sub note 1" }] },
-    { text: "note0", children: [{ text: "sub note 0" }] },
-  ]);
+const reorderTreeSteps = [
+  {
+    name: "move note0 below note1",
+    action: ({ note0 }: Record<string, any>) => note0.moveDown(),
+    expected: [
+      { text: "note1", children: [{ text: "sub note 1" }] },
+      { text: "note0", children: [{ text: "sub note 0" }] },
+    ],
+  },
+  {
+    name: "moving past the last note keeps order",
+    action: ({ note0 }: Record<string, any>) => note0.moveDown(),
+    expected: [
+      { text: "note1", children: [{ text: "sub note 1" }] },
+      { text: "note0", children: [{ text: "sub note 0" }] },
+    ],
+  },
+  {
+    name: "move note0 back above note1",
+    action: ({ note0 }: Record<string, any>) => note0.moveUp(),
+    expected: baseTree,
+  },
+  {
+    name: "moving above the first note keeps order",
+    action: ({ note0 }: Record<string, any>) => note0.moveUp(),
+    expected: baseTree,
+  },
+].map((step, index) => ({ ...step, index }));
 
-  lexicalUpdate(() => note0.moveDown());
-  await expect(editor).toMatchNoteTree([
-    { text: "note1", children: [{ text: "sub note 1" }] },
-    { text: "note0", children: [{ text: "sub note 0" }] },
-  ]);
+it.each(reorderTreeSteps)(
+  "reorder tree %s",
+  async function ({ index, expected }) {
+    const { load, editor, lexicalUpdate, expect: expectWithContext } =
+      getTestContext();
+    const assertion = expectWithContext ?? expect;
+    const notes = load("tree");
 
-  lexicalUpdate(() => note0.moveUp());
-  await expect(editor).toMatchNoteTree([
-    { text: "note0", children: [{ text: "sub note 0" }] },
-    { text: "note1", children: [{ text: "sub note 1" }] },
-  ]);
+    await assertion(editor).toMatchNoteTree(baseTree);
 
-  lexicalUpdate(() => note0.moveUp());
-  await expect(editor).toMatchNoteTree([
-    { text: "note0", children: [{ text: "sub note 0" }] },
-    { text: "note1", children: [{ text: "sub note 1" }] },
-  ]);
-});
+    for (let i = 0; i <= index; i += 1) {
+      lexicalUpdate(() => reorderTreeSteps[i].action(notes));
+    }
+
+    await assertion(editor).toMatchNoteTree(expected);
+  },
+);
 
 it("change parent by moving up/down", async ({
   load,
