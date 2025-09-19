@@ -222,3 +222,70 @@ it("change parent by moving up/down", async ({
     { text: "note1", children: [{ text: "sub note 1" }] },
   ]);
 });
+
+it("move + reorder preserves subtree and IDs", async ({
+  load,
+  editor,
+  expect,
+  lexicalUpdate,
+}) => {
+  const { note0, subNote0, note1, subNote1 } = load("tree");
+  let initialIDs: Record<string, string> = {};
+
+  lexicalUpdate(() => {
+    initialIDs = {
+      note0: note0.id,
+      note1: note1.id,
+      subNote0: subNote0.id,
+      subNote1: subNote1.id,
+    };
+  });
+
+  await expect(editor).toMatchNoteTree([
+    { text: "note0", children: [{ text: "sub note 0" }] },
+    { text: "note1", children: [{ text: "sub note 1" }] },
+  ]);
+
+  lexicalUpdate(() => {
+    note1.indent();
+  });
+
+  await expect(editor).toMatchNoteTree([
+    {
+      text: "note0",
+      children: [
+        { text: "sub note 0" },
+        { text: "note1", children: [{ text: "sub note 1" }] },
+      ],
+    },
+  ]);
+
+  lexicalUpdate(() => {
+    note1.moveUp();
+  });
+
+  await expect(editor).toMatchNoteTree([
+    {
+      text: "note0",
+      children: [
+        { text: "note1", children: [{ text: "sub note 1" }] },
+        { text: "sub note 0" },
+      ],
+    },
+  ]);
+
+  lexicalUpdate(() => {
+    expect(note0.id).toBe(initialIDs.note0);
+    expect(note1.id).toBe(initialIDs.note1);
+    expect(subNote0.id).toBe(initialIDs.subNote0);
+    expect(subNote1.id).toBe(initialIDs.subNote1);
+
+    expect([...note1.children].map((child) => child.id)).toEqual([
+      initialIDs.subNote1,
+    ]);
+    expect([...note0.children].map((child) => child.id)).toEqual([
+      initialIDs.note1,
+      initialIDs.subNote0,
+    ]);
+  });
+});
