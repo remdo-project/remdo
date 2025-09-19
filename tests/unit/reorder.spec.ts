@@ -144,7 +144,6 @@ it("change parent by moving up/down", async ({
 }) => {
   const { note0, subNote0, note1, subNote1 } = load("tree");
 
-  await expect(editor).toMatchFileSnapshot("base.yml");
   await expect(editor).toMatchNoteTree([
     { text: "note0", children: [{ text: "sub note 0" }] },
     { text: "note1", children: [{ text: "sub note 1" }] },

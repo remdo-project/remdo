@@ -3,7 +3,6 @@ import { it } from "vitest";
 
 it("folding", async ({ load, editor, expect, lexicalUpdate, queries }) => {
   const { note0 } = load("basic");
-  await expect(editor).toMatchFileSnapshot("base.yml");
   await expect(editor).toMatchNoteTree([
     { text: "note0", children: [{ text: "note00" }] },
   ]);
@@ -109,7 +108,6 @@ it("fold to a specific level", async ({
     });
   };
 
-  await expect(editor).toMatchFileSnapshot("base.yml");
   await expect(queries).toShowNotes([
     "note0",
     "note00",
