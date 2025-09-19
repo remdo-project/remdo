@@ -6,6 +6,7 @@ import { LexicalEditor, type EditorUpdateOptions } from "lexical";
 import { FULL_RECONCILE } from "./utils/unexported";
 
 export interface RemdoLexicalEditor extends LexicalEditor {
+  //TODO try to remove
   fullUpdate(updateFunction: () => void, options?: EditorUpdateOptions): void;
 }
 
