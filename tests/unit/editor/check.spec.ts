@@ -1,4 +1,4 @@
-import "./common";
+import "../common";
 //imported for side effects
 import { it } from "vitest";
 

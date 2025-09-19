@@ -3,13 +3,13 @@
  * to/from file using command line.
  */
 //import { fireEvent, within } from "@testing-library/react";
-import { getDataPath } from "../common";
-import "./common";
-import { lexicalStateKeyCompare } from "./common";
+import { getDataPath } from "../../common";
+import "../common";
+import { lexicalStateKeyCompare } from "../common";
 import { $convertToMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import fs from "fs";
 import { it } from "vitest";
-import { env } from "../../config/env.server";
+import { env } from "../../../config/env.server";
 
 const SERIALIZATION_FILE = env.VITEST_SERIALIZATION_FILE;
 

@@ -1,5 +1,5 @@
 import { RenderResult, within } from "@testing-library/react";
-import "./common"; //imported for side effects
+import "../common"; //imported for side effects
 import { it } from "vitest";
 
 function getBreadcrumbElements(component: RenderResult) {

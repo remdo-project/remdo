@@ -1,4 +1,4 @@
-import "../common";
+import "../../common";
 import { it } from "vitest";
 
 it("broken schema", async ({ load, expect, lexicalUpdate }) => {

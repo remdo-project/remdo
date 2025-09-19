@@ -1,4 +1,4 @@
-import "./common"; //imported for side effects
+import "../common"; //imported for side effects
 import { INSERT_PARAGRAPH_COMMAND } from "lexical";
 import { it } from "vitest";
 

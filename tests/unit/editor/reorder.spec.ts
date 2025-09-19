@@ -1,4 +1,4 @@
-import "./common";
+import "../common";
 import { expect, it } from "vitest";
 import { getCurrentTest } from "vitest/suite";
 import type { TestContext } from "vitest";

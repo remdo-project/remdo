@@ -1,6 +1,6 @@
-import './common';
+import '../common';
 import { it } from 'vitest';
-import { getNotes } from './common';
+import { getNotes } from '../common';
 import { Note } from '@/components/Editor/plugins/remdo/utils/api';
 
 it('get by ID', async ({ load, expect, lexicalUpdate }) => {

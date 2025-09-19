@@ -1,4 +1,4 @@
-import "./common";
+import "../common";
 import { it } from "vitest";
 import { Note } from "@/components/Editor/plugins/remdo/utils/api";
 

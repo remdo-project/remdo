@@ -1,9 +1,9 @@
-import "./common";
+import "../common";
 import { $setSearchFilter } from "@/components/Editor/plugins/remdo/utils/utils";
 import { $isListNode } from "@lexical/list";
 import { $getSelection, $isRangeSelection, $isTextNode } from "lexical";
 import { it } from "vitest";
-import { getVisibleNotes } from "./common";
+import { getVisibleNotes } from "../common";
 
 it("search", async ({ load, queries, lexicalUpdate, expect }) => {
   load("tree_complex");

@@ -1,6 +1,6 @@
-import "./common";
+import "../common";
 import { it } from "vitest";
-import { getVisibleNotes } from "./common";
+import { getVisibleNotes } from "../common";
 import { $getEditor } from "lexical";
 import { ListItemNode, $isListNode } from "@lexical/list";
 import { $getNoteID } from "@/components/Editor/plugins/remdo/utils/noteState";

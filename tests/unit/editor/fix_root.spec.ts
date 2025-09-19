@@ -1,5 +1,5 @@
 //imported for side effects
-import "./common";
+import "../common";
 
 //intentionally use lexical API intead of Note API to test wrong editor schema
 import { $createListItemNode, $createListNode } from "@lexical/list";

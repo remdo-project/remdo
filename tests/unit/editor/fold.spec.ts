@@ -1,4 +1,4 @@
-import "./common";
+import "../common";
 import { it } from "vitest";
 
 it("folding", async ({ load, editor, expect, lexicalUpdate, queries }) => {
