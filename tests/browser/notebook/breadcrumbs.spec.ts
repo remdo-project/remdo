@@ -26,9 +26,7 @@ test("focus on a particular note", async ({ page, notebook }) => {
 
   // Click note12 to focus
   const note12Locator = notebook.noteLocator("note12");
-  const box = await note12Locator.boundingBox();
-  if (!box) throw new Error("note12 bounding box not found");
-  await page.mouse.click(box.x - 1, box.y + box.height / 2);
+  await notebook.clickLeftOf("note12");
 
   await expect(note12Locator).toBeVisible();
 
@@ -65,10 +63,8 @@ test("folding and breadcrumb navigation", async ({ page, notebook }) => {
 
   // Click note1 to focus
   const note1Locator = notebook.noteLocator("note1");
-  const box = await note1Locator.boundingBox();
-  if (!box) throw new Error("note1 bounding box not found");
   await waitForSelectionChange(page, async () => {
-    await page.mouse.click(box.x - 1, box.y + box.height / 2);
+    await notebook.clickLeftOf("note1");
   });
 
   expect(await notebook.getNotes()).toContain("note12");
