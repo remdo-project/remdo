@@ -110,6 +110,19 @@ export class Notebook {
     }
     return result;
   }
+
+  async clickLeftOf(title: string, minimumMargin = 4) {
+    const locator = this.noteLocator(title);
+    await locator.waitFor({ state: "visible" });
+    const box = await locator.boundingBox();
+    if (!box) {
+      throw new Error(`Bounding box not found for note "${title}"`);
+    }
+    const margin = Math.max(0, minimumMargin);
+    const x = Math.max(0, box.x - margin);
+    const y = box.y + box.height / 2;
+    await this.page.mouse.click(x, y);
+  }
 }
 
 class Menu {
