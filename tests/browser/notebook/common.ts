@@ -131,20 +131,25 @@ class Menu {
     private readonly notebook: Notebook
   ) { }
 
-  locator(selector = "") {
-    return this.page.locator(`#quick-menu ${selector}`.trim());
+  private async waitForQuickMenuHidden() {
+    await this.page.waitForFunction(() => {
+      const menu = document.querySelector<HTMLUListElement>("#quick-menu");
+      if (!menu) {
+        return true;
+      }
+      const style = window.getComputedStyle(menu);
+      const hiddenAttr = menu.getAttribute("hidden");
+      return (
+        style.display === "none" ||
+        style.visibility === "hidden" ||
+        hiddenAttr === "" ||
+        hiddenAttr === "true" ||
+        menu.childElementCount === 0
+      );
+    });
   }
 
-  iconLocator() {
-    return this.page.locator("#hovered-note-menu");
-  }
-
-  async open(noteText?: string) {
-    if (noteText) {
-      await this.notebook.selectNote(noteText);
-    }
-    await this.page.keyboard.press("Shift", { delay: 20 });
-    await this.page.keyboard.press("Shift", { delay: 20 });
+  private async waitForQuickMenuShown() {
     await this.page.waitForFunction(() => {
       const menu = document.querySelector<HTMLUListElement>("#quick-menu");
       if (!menu) {
@@ -159,14 +164,31 @@ class Menu {
     });
   }
 
+  locator(selector = "") {
+    return this.page.locator(`#quick-menu ${selector}`.trim());
+  }
+
+  iconLocator() {
+    return this.page.locator("#hovered-note-menu");
+  }
+
+  async open(noteText?: string) {
+    if (noteText) {
+      await this.notebook.selectNote(noteText);
+    }
+    await this.page.keyboard.press("Shift", { delay: 20 });
+    await this.page.keyboard.press("Shift", { delay: 20 });
+    await this.waitForQuickMenuShown();
+  }
+
   async fold() {
     await this.page.keyboard.press("f");
-    await this.page.waitForTimeout(20);
+    await this.waitForQuickMenuHidden();
   }
 
   async focus() {
     await this.page.keyboard.press("z");
-    await this.page.waitForTimeout(20);
+    await this.waitForQuickMenuHidden();
   }
 }
 
