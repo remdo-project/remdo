@@ -1,6 +1,7 @@
 import "./common"; //imported for side effects
 import { $setSearchFilter } from "@/components/Editor/plugins/remdo/utils/utils";
 import { $isListNode } from "@lexical/list";
+import { $getSelection, $isRangeSelection, $isTextNode } from "lexical";
 import { it } from "vitest";
 import { getVisibleNotes } from "./common";
 
@@ -73,4 +74,30 @@ it("marks nested lists when filtering", async ({
   expect(getNestedListElement()?.classList.contains("list-unstyled")).toBe(
     false,
   );
+});
+
+it("clears selection when filter applied", async ({
+  load,
+  lexicalUpdate,
+  expect,
+}) => {
+  const { note0 } = load("basic");
+
+  lexicalUpdate(() => {
+    const firstChild = note0.lexicalNode.getFirstChild();
+    expect(firstChild).toBeTruthy();
+    if (!$isTextNode(firstChild)) {
+      throw new Error("Expected first child to be a text node");
+    }
+
+    firstChild.select(0, firstChild.getTextContentSize());
+
+    const selection = $getSelection();
+    expect($isRangeSelection(selection)).toBe(true);
+  });
+
+  lexicalUpdate(() => {
+    $setSearchFilter("term");
+    expect($getSelection()).toBeNull();
+  });
 });
