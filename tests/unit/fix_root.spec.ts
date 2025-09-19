@@ -7,7 +7,7 @@ import { $getRoot, LexicalNode } from "lexical";
 import { it } from "vitest";
 
 it("empty", async ({ editor, expect }) => {
-  await expect(editor).toMatchFileSnapshot("empty.yml");
+  await expect(editor).toMatchNoteTree([{ text: "" }]);
 });
 
 it("single list - correct", async ({ editor, expect, lexicalUpdate }) => {
@@ -21,7 +21,7 @@ it("single list - correct", async ({ editor, expect, lexicalUpdate }) => {
     listNode.append(listItemNode);
     root.append(listNode);
   });
-  await expect(editor).toMatchFileSnapshot("correct.yml");
+  await expect(editor).toMatchNoteTree([{ text: "" }]);
 });
 
 it("multiple lists", async ({ editor, expect, lexicalUpdate }) => {
@@ -51,5 +51,9 @@ it("multiple lists", async ({ editor, expect, lexicalUpdate }) => {
         .map((node: LexicalNode) => node.getType())
     ).toEqual(["listitem", "listitem", "listitem"]);
   });
-  await expect(editor).toMatchFileSnapshot("fixed.yml");
+  await expect(editor).toMatchNoteTree([
+    { text: "" },
+    { text: "" },
+    { text: "" },
+  ]);
 });

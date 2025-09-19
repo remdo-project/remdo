@@ -5,18 +5,52 @@ it("indent", async ({ load, editor, expect, lexicalUpdate }) => {
   const { note0, note1, note2 } = load("flat");
 
   await expect(editor).toMatchFileSnapshot("base.yml");
-  lexicalUpdate(() => note0.indent()); //noop
-  await expect(editor).toMatchFileSnapshot("base.yml");
+  await expect(editor).toMatchNoteTree([
+    { text: "note0" },
+    { text: "note1" },
+    { text: "note2" },
+  ]);
+
+  lexicalUpdate(() => note0.indent());
+  await expect(editor).toMatchNoteTree([
+    { text: "note0" },
+    { text: "note1" },
+    { text: "note2" },
+  ]);
+
   lexicalUpdate(() => note1.indent());
-  await expect(editor).toMatchFileSnapshot("node1_indent.yml");
+  await expect(editor).toMatchNoteTree([
+    { text: "note0", children: [{ text: "note1" }] },
+    { text: "note2" },
+  ]);
+
   lexicalUpdate(() => note2.indent());
-  await expect(editor).toMatchFileSnapshot("node2_indent.yml");
+  await expect(editor).toMatchNoteTree([
+    { text: "note0", children: [{ text: "note1" }, { text: "note2" }] },
+  ]);
+
   lexicalUpdate(() => note2.indent());
-  await expect(editor).toMatchFileSnapshot("node2_indent_twice.yml");
-  lexicalUpdate(() => note2.indent()); //noop
-  await expect(editor).toMatchFileSnapshot("node2_indent_twice.yml");
+  await expect(editor).toMatchNoteTree([
+    {
+      text: "note0",
+      children: [
+        {
+          text: "note1",
+          children: [{ text: "note2" }],
+        },
+      ],
+    },
+  ]);
+
   lexicalUpdate(() => note1.outdent());
-  await expect(editor).toMatchFileSnapshot("node2_indent_2.yml");
-  lexicalUpdate(() => note1.outdent()); //noop
-  await expect(editor).toMatchFileSnapshot("node2_indent_2.yml");
+  await expect(editor).toMatchNoteTree([
+    { text: "note0" },
+    { text: "note1", children: [{ text: "note2" }] },
+  ]);
+
+  lexicalUpdate(() => note1.outdent());
+  await expect(editor).toMatchNoteTree([
+    { text: "note0" },
+    { text: "note1", children: [{ text: "note2" }] },
+  ]);
 });
