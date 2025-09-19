@@ -70,10 +70,9 @@ export class Notebook {
   }
 
   async selectNote(title: string) {
-    await this.noteLocator(title).selectText();
-
-    // Give Lexical time to visually reflect the selection
-    await this.page.waitForTimeout(200);
+    await waitForSelectionChange(this.page, async () => {
+      await this.noteLocator(title).selectText();
+    });
   }
 
   /** Places cursor at the very end of a given note's title */
