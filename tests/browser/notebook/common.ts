@@ -128,12 +128,22 @@ class Menu {
 
   async open(noteText?: string) {
     if (noteText) {
-      await this.notebook.noteLocator(noteText).selectText();
+      await this.notebook.selectNote(noteText);
     }
-    await this.page.waitForTimeout(20);
-    await this.page.keyboard.press("Shift");
-    await this.page.waitForTimeout(20);
-    await this.page.keyboard.press("Shift");
+    await this.page.keyboard.press("Shift", { delay: 20 });
+    await this.page.keyboard.press("Shift", { delay: 20 });
+    await this.page.waitForFunction(() => {
+      const menu = document.querySelector<HTMLUListElement>("#quick-menu");
+      if (!menu) {
+        return false;
+      }
+      const style = window.getComputedStyle(menu);
+      return (
+        style.display !== "none" &&
+        style.visibility !== "hidden" &&
+        menu.childElementCount > 0
+      );
+    });
   }
 
   async fold() {
