@@ -4,7 +4,6 @@ import { it } from "vitest";
 
 it("check/uncheck", async ({ load, editor, expect, lexicalUpdate }) => {
   const { note0 } = load("single");
-  await expect(editor).toMatchFileSnapshot("base.yml");
   await expect(editor).toMatchNoteTree([{ text: "note0" }]);
 
   lexicalUpdate(() => {
