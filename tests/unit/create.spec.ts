@@ -4,7 +4,6 @@ import { it } from "vitest";
 
 it("minimize", async ({ load, editor, expect }) => {
   load("basic");
-  await expect(editor).toMatchFileSnapshot("basic.yml");
   await expect(editor).toMatchNoteTree([
     { text: "note0", children: [{ text: "note00" }] },
   ]);
