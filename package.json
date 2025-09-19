@@ -91,7 +91,7 @@
     "globals": "^16.4.0",
     "husky": "^9.0.11",
     "js-yaml": "^4.1.0",
-    "jsdom": "^26.1.0",
+    "jsdom": "^27.0.0",
     "prettier": "^3.4.2",
     "prettier-plugin-organize-attributes": "^1.0.0",
     "prettier-plugin-sort-json": "^4.0.0",
