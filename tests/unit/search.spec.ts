@@ -74,3 +74,39 @@ it("marks nested lists when filtering", async ({
     false,
   );
 });
+
+it("filter overrides focus", async ({ load, lexicalUpdate, editor, expect }) => {
+  const { note12 } = load("tree_complex");
+  let noteKey: string | null = null;
+  let listKey: string | null = null;
+
+  lexicalUpdate(() => {
+    noteKey = note12.lexicalNode.getKey();
+    listKey = note12.lexicalNode.getParentOrThrow().getKey();
+    note12.focus();
+  });
+
+  const getNoteElement = () =>
+    noteKey ? editor.getElementByKey(noteKey) : null;
+  const getListElement = () =>
+    listKey ? editor.getElementByKey(listKey) : null;
+
+  expect(noteKey).toBeTruthy();
+  expect(listKey).toBeTruthy();
+
+  expect(getNoteElement()?.classList.contains("unfiltered")).toBe(true);
+  expect(getListElement()?.classList.contains("unfiltered")).toBe(true);
+
+  lexicalUpdate(() => {
+    $setSearchFilter("note0");
+  });
+
+  const noteElement = getNoteElement();
+  expect(noteElement?.classList.contains("filtered")).toBe(true);
+  expect(noteElement?.classList.contains("unfiltered")).toBe(false);
+
+  const listElement = getListElement();
+  expect(listElement?.classList.contains("list-unstyled")).toBe(true);
+  expect(listElement?.classList.contains("filtered")).toBe(false);
+  expect(listElement?.classList.contains("unfiltered")).toBe(false);
+});
