@@ -25,7 +25,7 @@ const config: PlaywrightTestConfig = {
   use: {
     baseURL: `http://localhost:${env.PORT}`,
 
-    screenshot: "off",
+    screenshot: "only-on-failure",
     //video: "retain-on-failure",
   },
 
