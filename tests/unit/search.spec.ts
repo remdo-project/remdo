@@ -1,4 +1,4 @@
-import "./common"; //imported for side effects
+import "./common";
 import { $setSearchFilter } from "@/components/Editor/plugins/remdo/utils/utils";
 import { $isListNode } from "@lexical/list";
 import { $getSelection, $isRangeSelection, $isTextNode } from "lexical";
@@ -9,17 +9,17 @@ it("search", async ({ load, queries, lexicalUpdate, expect }) => {
   load("tree_complex");
 
   const allNotes = [
-    'note0',
-    'note00',
-    'note000',
-    'note01',
-    'note1',
-    'note10',
-    'note11',
-    'note12',
-    'note120',
-    'note1200',
-    'note1201'
+    "note0",
+    "note00",
+    "note000",
+    "note01",
+    "note1",
+    "note10",
+    "note11",
+    "note12",
+    "note120",
+    "note1200",
+    "note1201",
   ];
   expect(getVisibleNotes(queries)).toEqual(allNotes);
 
@@ -28,16 +28,16 @@ it("search", async ({ load, queries, lexicalUpdate, expect }) => {
 
   lexicalUpdate(() => $setSearchFilter("note0"));
   expect(getVisibleNotes(queries)).toEqual([
-    'note0',
-    'note00',
-    'note000',
-    'note01',
+    "note0",
+    "note00",
+    "note000",
+    "note01",
   ]);
 
   lexicalUpdate(() => $setSearchFilter("note00"));
   expect(getVisibleNotes(queries)).toEqual([
-    'note00',
-    'note000',
+    "note00",
+    "note000",
   ]);
 });
 
