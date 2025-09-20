@@ -5,7 +5,6 @@ import WS from "ws";
 import { env } from "../../../config/env.server";
 
 declare global {
-  // eslint-disable-next-line no-var
   var __collabProviders: WebsocketProvider[] | undefined;
 }
 

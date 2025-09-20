@@ -5,7 +5,6 @@ import { env } from '../../../config/env.server';
 
 declare global {
   // let/const won't work here
-  // eslint-disable-next-line no-var
   var logger: Logger;
 }
 

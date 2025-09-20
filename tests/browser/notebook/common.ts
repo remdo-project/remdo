@@ -1,16 +1,9 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 import { test as base } from "../common";
 import { Page, Locator } from "@playwright/test";
 import fs from "fs";
 import prettier from "prettier";
 import { getDataPath } from "tests/common.js";
 import { env } from "../../../config/env.server";
-
-function removeDataNoteId(root: HTMLElement) {
-  root.querySelectorAll('[data-note-id]').forEach((el) => {
-    el.removeAttribute('data-note-id');
-  });
-}
 
 export class Notebook {
   constructor(private readonly page: Page) { }

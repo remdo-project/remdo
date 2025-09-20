@@ -1,5 +1,5 @@
 import { IconPlaywright, IconVitest } from "./icons";
-import { NavLink, Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 
 export function Dev() {
   return (

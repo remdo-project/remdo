@@ -38,7 +38,7 @@ export function useEditorConfig(): EditorConfig {
       },
     },
     editorState: null,
-    disableWS: disableWS, //TODO remove or rename
+    disableWS, //TODO remove or rename
   };
 }
 

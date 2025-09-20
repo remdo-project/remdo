@@ -1,4 +1,3 @@
-import { NotesState, Note } from "@/components/Editor/plugins/remdo/utils/api";
 import { patch } from "@/utils";
 
 export function applyNodePatches(NodeType: any) {

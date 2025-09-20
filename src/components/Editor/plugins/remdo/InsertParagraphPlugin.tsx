@@ -18,7 +18,7 @@ export function InsertParagraphPlugin() {
           return false;
         }
         const anchor = selection.anchor.getNode();
-        if (selection.anchor.offset != anchor.getTextContentSize()) {
+        if (selection.anchor.offset !== anchor.getTextContentSize()) {
           return false;
         }
 
