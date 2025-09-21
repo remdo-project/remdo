@@ -1,5 +1,6 @@
+import type { File, Vitest } from "vitest";
+import process from "node:process";
 import { getTests } from "@vitest/runner/utils";
-import { File, UserConsoleLog, Vitest } from "vitest";
 import { DefaultReporter } from "vitest/reporters";
 
 export default class PerformanceReporter extends DefaultReporter {
@@ -9,10 +10,10 @@ export default class PerformanceReporter extends DefaultReporter {
   onFinished(files?: File[], errors?: unknown[]): Promise<void> {
     // print summary only if there are failed tests or unhandled errors
     const failed = getTests(files).find((t) => t.result?.state === "fail");
-    if (failed || errors.length > 0) {
+    if (failed || errors?.length) {
       this.reportSummary(files, errors);
     }
-    return;
+    return Promise.resolve();
   }
 
   onInit(ctx: Vitest) {

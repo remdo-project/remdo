@@ -27,8 +27,8 @@ let rerunRequested = false;
 const startRun = () => {
   const commandArgs = ["playwright", "test", ...cliArgs];
   const displayCommand = ["npx", ...commandArgs];
-  console.log(`[watch] Starting tests.`);
-  console.log(`[watch] Running npx ${displayCommand.join(" ")}`);
+  console.warn(`[watch] Starting tests.`);
+  console.warn(`[watch] Running npx ${displayCommand.join(" ")}`);
 
   currentRun = spawn("npx", commandArgs, {
     env: process.env,
@@ -37,9 +37,9 @@ const startRun = () => {
 
   currentRun.on("exit", (code, signal) => {
     if (signal) {
-      console.log(`[watch] Test run finished (signal ${signal}).`);
+      console.warn(`[watch] Test run finished (signal ${signal}).`);
     } else {
-      console.log(`[watch] Test run finished (exit code ${code ?? "unknown"}).`);
+      console.warn(`[watch] Test run finished (exit code ${code ?? "unknown"}).`);
     }
     currentRun = null;
 
@@ -58,7 +58,7 @@ const startRun = () => {
 const queueRun = () => {
   if (currentRun) {
     rerunRequested = true;
-    console.log(`[watch] RERUN requested.`);
+    console.warn(`[watch] RERUN requested.`);
     return;
   }
 
@@ -71,7 +71,7 @@ const watcher = chokidar.watch(watchTargets, {
 });
 
 watcher.on("all", (event, filePath) => {
-  console.log(`[watch] Detected change: ${event} ${filePath}`);
+  console.warn(`[watch] Detected change: ${event} ${filePath}`);
   queueRun();
 });
 
@@ -82,7 +82,7 @@ watcher.on("error", (error) => {
 queueRun();
 
 const cleanup = () => {
-  console.log("\n[watch] Shutting down.");
+  console.warn("\n[watch] Shutting down.");
   watcher.close().finally(() => {
     if (currentRun) {
       currentRun.once("exit", () => process.exit(0));

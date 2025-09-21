@@ -16,7 +16,12 @@ it("breadcrumbs", async ({ load, expect, component }) => {
   expect(getBreadcrumbs(component)).toEqual(['Documents', 'main']);
 });
 
-it("breadcrumbs", async ({ load, expect, component, lexicalUpdate }) => {
+it("breadcrumbs update when focus changes", async ({
+  load,
+  expect,
+  component,
+  lexicalUpdate,
+}) => {
   const { note00 } = load("basic");
   lexicalUpdate(() => {
     note00.focus();

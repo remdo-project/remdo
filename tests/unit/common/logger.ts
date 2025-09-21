@@ -1,12 +1,13 @@
-import fs from 'fs';
-import path from 'path';
-import { debugEnabled } from '../../common';
+/* eslint-disable no-console -- test harness overrides console methods intentionally */
+import fs from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
 import { env } from '../../../config/env.server';
+import { debugEnabled } from '../../common';
 
 declare global {
-  // let/const won't work here
-  // eslint-disable-next-line no-var
-  var logger: Logger;
+  // Ambient declaration for the logger used in tests.
+  let logger: Logger;
 }
 
 const _info = console.info;
@@ -46,7 +47,7 @@ export class Logger {
   async _write(stream: NodeJS.WriteStream, consoleStream: typeof console.log, args: any[]) {
     if (this._performanceTests) {
       await new Promise<void>((resolve) => {
-        stream.write(args.join(" ") + "\n", "utf-8", () => {
+        stream.write(`${args.join(" ")}\n`, "utf-8", () => {
           resolve();
         });
       });
@@ -63,12 +64,7 @@ export class Logger {
   }
 
   async info(...args: any[]) {
-    //if (
-    //  process.env.VITE_LOG_LEVEL === "info" ||
-    //  process.env.VITE_LOG_LEVEL === "debug"
-    //) {
     await this._write(process.stdout, _info, args);
-    //}
   }
 
   async warn(...args: any[]) {
@@ -100,8 +96,6 @@ export class Logger {
     // End of preview writer
     this._flushFunction?.();
     if (debugEnabled) {
-      //debug mode enables Tree View, which is rendered asynchonously
-      //so let's wait a bit before generating the preview
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
     debug();

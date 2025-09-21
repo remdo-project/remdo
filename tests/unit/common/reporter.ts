@@ -5,7 +5,7 @@ import { BasicReporter } from 'vitest/reporters';
 export default class MinimalReporter extends BasicReporter {
   onInit(ctx: Vitest) {
     ctx.logger.printBanner = () => {
-      console.log("Starting...");
+      console.warn("Starting...");
     };
     super.onInit(ctx);
 

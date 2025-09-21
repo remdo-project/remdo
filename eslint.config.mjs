@@ -1,65 +1,48 @@
-import js from '@eslint/js';
+import antfu from '@antfu/eslint-config';
 import globals from 'globals';
-import tsParser from '@typescript-eslint/parser';
-import tsPlugin from '@typescript-eslint/eslint-plugin';
-import reactPlugin from 'eslint-plugin-react';
-import reactHooks from 'eslint-plugin-react-hooks';
-import prettier from 'eslint-config-prettier';
 
-export default [
-  // Ignore large/generated/external trees
-  { ignores: ['lexical/**', 'node_modules/**', 'data/**', 'public/**', 'bookmarks/**'] },
-
-  // Base JS recommended rules
-  js.configs.recommended,
-
-  // TypeScript + React rules (mirrors previous .eslintrc.json)
+export default antfu(
   {
-    files: ['**/*.{ts,tsx,cts,mts}'],
-    languageOptions: {
-      parser: tsParser,
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-      parserOptions: {
-        ecmaFeatures: { jsx: true },
-      },
-      globals: {
-        ...globals.browser,
-        ...globals.es2021,
-      },
-    },
-    plugins: {
-      '@typescript-eslint': tsPlugin,
-      react: reactPlugin,
-      'react-hooks': reactHooks,
-    },
+    react: true,
+    typescript: true,
+    ignores: ['lexical/**', 'node_modules/**', 'data/**', 'public/**', 'bookmarks/**'],
+    stylistic: false,
     rules: {
-      // TS type-checker handles undefined variables in TS; avoid false positives
-      'no-undef': 'off',
-      'react/jsx-uses-react': 'warn',
-      'react/jsx-uses-vars': 'warn',
-      'react/react-in-jsx-scope': 'off',
-      'react-hooks/rules-of-hooks': 'warn',
-      'react-hooks/exhaustive-deps': 'warn',
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/ban-ts-comment': 'off',
-      '@typescript-eslint/no-unused-vars': 'warn',
-      '@typescript-eslint/no-this-alias': 'off',
-      '@typescript-eslint/no-empty-function': 'off',
-      'no-empty': 'warn',
-      'react/prop-types': 'off',
-      'linebreak-style': ['warn', 'unix'],
-      'semi': ['warn', 'always'],
-      'no-unused-vars': 'warn',
-    },
-    settings: {
-      react: { version: 'detect' },
+      'no-console': ['error', { allow: ['warn', 'error', 'clear'] }],
+      'yaml/plain-scalar': 'off',
+      'jsonc/sort-keys': 'off',
+      'perfectionist/sort-imports': 'off',
+      'perfectionist/sort-named-imports': 'off',
+      'perfectionist/sort-exports': 'off',
+      'perfectionist/sort-named-exports': 'off',
+      'perfectionist/sort-objects': 'off',
+      'node/prefer-global/process': 'off',
+      'ts/consistent-type-imports': 'off',
+      'import/consistent-type-specifier-style': 'off',
+      'import/no-duplicates': 'off',
+      'ts/consistent-type-definitions': 'off',
+      'ts/no-use-before-define': 'off',
+      'import/first': 'off',
+      'prefer-template': 'off',
+      'prefer-arrow-callback': 'off',
+      'prefer-exponentiation-operator': 'off',
+      'one-var': 'off',
+      'dot-notation': 'off',
+      'ts/method-signature-style': 'off',
+      'regexp/prefer-w': 'off',
+      'regexp/prefer-d': 'off',
+      'regexp/no-dupe-character-class': 'off',
+      'regexp/no-dupe-characters-character-class': 'off',
+      'regexp/use-ignore-case': 'off',
+      'unicorn/prefer-node-protocol': 'off',
+      'unicorn/prefer-number-properties': 'off',
+      'unicorn/error-message': 'off',
+      'unicorn/new-for-builtins': 'off',
+      'unicorn/throw-new-error': 'off',
+      'unicorn/prefer-type-error': 'off',
+      'unicorn/no-instanceof-builtins': 'off',
     },
   },
-
-  // Keep Prettier last to turn off stylistic rules
-  prettier,
-  // Node globals for server/config/tests
   {
     files: [
       'config/**/*.{ts,tsx,js,mjs,cjs}',
@@ -73,5 +56,8 @@ export default [
         ...globals.node,
       },
     },
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+    },
   },
-];
+);

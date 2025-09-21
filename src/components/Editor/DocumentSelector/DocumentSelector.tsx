@@ -78,7 +78,6 @@ export const DocumentSelectorProvider = ({ children }) => {
       }
 
       if (!editorConfig.disableWS) {
-        console.log("connecting")
         const wsURL = `ws://${window.location.hostname}:8080`;
         const roomName = "notes/0/" + id;
         const wsProvider = new WebsocketProvider(wsURL, roomName, doc, {
@@ -96,14 +95,14 @@ export const DocumentSelectorProvider = ({ children }) => {
         */
 
         //TODO remove duplicated provider
-        // @ts-ignore
+        // @ts-expect-error yjsProvider stores IndexedDB provider types at runtime
         yjsProvider.current = wsProvider;
         setCurrentProvider(wsProvider);
       }
       return yjsProvider.current;
     };
     return factory;
-  }, []);
+  }, [editorConfig.disableWS]);
 
   const hocuspocusProviderFactory: ProviderFactory =
     useMemo((): ProviderFactory => {
@@ -122,6 +121,9 @@ export const DocumentSelectorProvider = ({ children }) => {
       };
       return factory;
     }, []);
+
+  // TODO: Revisit alternative Hocuspocus backend wiring once persistence is available without IndexedDB.
+  void hocuspocusProviderFactory;
 
   return (
     <DocumentSelectorContext.Provider

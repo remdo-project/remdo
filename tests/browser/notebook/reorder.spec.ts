@@ -4,8 +4,7 @@ import { test } from "./common";
 test("move", async ({ page, notebook, menu }) => {
   await notebook.load("flat");
 
-  let notes = await notebook.getNotes();
-  expect(notes).toEqual(["note0", "note1", "note2"]);
+  expect(await notebook.getNotes()).toEqual(["note0", "note1", "note2"]);
 
   await notebook.clickEndOfNote("note0");
   await menu.open();
@@ -15,8 +14,8 @@ test("move", async ({ page, notebook, menu }) => {
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
 
-  notes = await notebook.getNotes();
-  expect(notes).toEqual(["note1", "note2", "note0"]);
+  const reorderedNotes = await notebook.getNotes();
+  expect(reorderedNotes).toEqual(["note1", "note2", "note0"]);
 });
 
 test.fixme("move and search", async ({ page, notebook, menu }) => { 
@@ -56,8 +55,7 @@ test("reorder flat", async ({ page, notebook }) => {
   let order = await notebook.getNotes();
   expect(order).toEqual(["note0", "note1", "note2"]);
 
-  let notes = await notebook.getNotes();
-  expect(notes).toEqual(["note0", "note1", "note2"]);
+  expect(await notebook.getNotes()).toEqual(["note0", "note1", "note2"]);
   await notebook.clickEndOfNote("note2");
   await page.keyboard.press("Meta+ArrowUp");
   order = await notebook.getNotes();

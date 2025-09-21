@@ -51,7 +51,7 @@ test("focus on a particular note", async ({ page, notebook }) => {
 });
 
 // Keep the original reload test untouched as requested
-test.fixme("reload", async ({ page, notebook }) => {
+test.fixme("reload", async ({ page: _page, notebook }) => {
   await notebook.load("tree_complex");
 });
 
@@ -62,7 +62,6 @@ test("folding and breadcrumb navigation", async ({ page, notebook }) => {
   await waitForNoteVisible(notebook, "note1");
 
   // Click note1 to focus
-  const note1Locator = notebook.noteLocator("note1");
   await waitForSelectionChange(page, async () => {
     await notebook.clickLeftOf("note1");
   });

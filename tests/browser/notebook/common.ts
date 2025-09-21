@@ -1,16 +1,9 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 import { test as base } from "../common";
 import { Page, Locator } from "@playwright/test";
 import fs from "fs";
 import prettier from "prettier";
 import { getDataPath } from "tests/common.js";
 import { env } from "../../../config/env.server";
-
-function removeDataNoteId(root: HTMLElement) {
-  root.querySelectorAll('[data-note-id]').forEach((el) => {
-    el.removeAttribute('data-note-id');
-  });
-}
 
 export class Notebook {
   constructor(private readonly page: Page) { }
@@ -218,20 +211,27 @@ export async function waitForSelectionChange(
   const waitPromise = page.evaluate((timeoutMs) => {
     return new Promise<boolean>((resolve) => {
       let settled = false;
+      let timer: number | undefined;
 
-      const onChange = () => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
+      const cleanup = () => {
+        if (timer !== undefined) {
+          clearTimeout(timer);
+        }
         document.removeEventListener('selectionchange', onChange);
-        resolve(true); // changed within timeout
       };
 
-      document.addEventListener('selectionchange', onChange, { once: true });
-      const timer = window.setTimeout(() => {
+      function onChange() {
         if (settled) return;
         settled = true;
-        document.removeEventListener('selectionchange', onChange);
+        cleanup();
+        resolve(true); // changed within timeout
+      }
+
+      document.addEventListener('selectionchange', onChange, { once: true });
+      timer = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
         resolve(false); // timed out
       }, timeoutMs);
     });

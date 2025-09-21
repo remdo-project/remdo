@@ -193,9 +193,9 @@ export function SearchPlugin() {
           setAction(
             new ActionMove({
               stop: stopSearch,
-              notesData: keys.map(key => ({
+              notesData: keys.map((key) => ({
                 text: Note.from(key).text,
-                key: key,
+                key,
               })),
             })
           );

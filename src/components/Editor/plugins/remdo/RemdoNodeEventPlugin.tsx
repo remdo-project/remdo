@@ -55,7 +55,6 @@ export function RemdoNodeEventPlugin({
           /* end remdo customization */
           if (targetNode !== null) {
             listenerRef.current(event, editor, targetNode.getKey());
-            return;
           }
         }
       });

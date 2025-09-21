@@ -14,6 +14,6 @@ export function DevComponentTestPlugin() {
       return;
     }
     testContext.testHandler(editor, documentSelector);
-  }, [editor, testContext]);
+  }, [documentSelector, editor, testContext]);
   return null;
 }

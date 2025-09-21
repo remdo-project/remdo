@@ -177,15 +177,16 @@ export class Note {
   }
 
   get parents() {
-    const that = this;
+    function* iterateParents(note: Note) {
+      let parent = note.parent;
+      while (parent) {
+        yield parent;
+        parent = parent.parent;
+      }
+    }
+
     return {
-      *[Symbol.iterator]() {
-        let parent = that.parent;
-        while (parent) {
-          yield parent;
-          parent = parent.parent;
-        }
-      },
+      [Symbol.iterator]: () => iterateParents(this),
     };
   }
 
@@ -194,17 +195,18 @@ export class Note {
   }
 
   get children() {
-    const that = this;
+    function* iterateChildren(note: Note) {
+      for (
+        let child = note._getChildrenListNode()?.getFirstChild();
+        child;
+        child = child.getNextSibling()
+      ) {
+        yield Note.from(child);
+      }
+    }
+
     return {
-      *[Symbol.iterator]() {
-        for (
-          let child = that._getChildrenListNode()?.getFirstChild();
-          child;
-          child = child.getNextSibling()
-        ) {
-          yield Note.from(child);
-        }
-      },
+      [Symbol.iterator]: () => iterateChildren(this),
     };
   }
 

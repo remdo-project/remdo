@@ -5,8 +5,7 @@ import WS from "ws";
 import { env } from "../../../config/env.server";
 
 declare global {
-  // eslint-disable-next-line no-var
-  var __collabProviders: WebsocketProvider[] | undefined;
+  let __collabProviders: WebsocketProvider[] | undefined;
 }
 
 function waitForSync(provider: WebsocketProvider): Promise<void> {
@@ -14,12 +13,11 @@ function waitForSync(provider: WebsocketProvider): Promise<void> {
     return Promise.resolve();
   }
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error("provider failed to sync"));
-    }, 10000);
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     const cleanup = () => {
-      clearTimeout(timeout);
+      if (timeout) {
+        clearTimeout(timeout);
+      }
       provider.off?.("sync", onSync);
     };
     function onSync(isSynced: boolean) {
@@ -29,6 +27,10 @@ function waitForSync(provider: WebsocketProvider): Promise<void> {
       cleanup();
       resolve();
     }
+    timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error("provider failed to sync"));
+    }, 10000);
     provider.on("sync", onSync);
   });
 }

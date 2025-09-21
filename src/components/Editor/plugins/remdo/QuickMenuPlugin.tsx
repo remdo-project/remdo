@@ -130,7 +130,7 @@ function MenuOptions({ closeMenu, position, noteKeys }) {
                 : (highlightedOptionIndex + 1) % options.length
             );
           } else if (
-            event.key == "ArrowUp" ||
+          event.key === "ArrowUp" ||
             (event.key === "Tab" && event.shiftKey)
           ) {
             setHighlightedOptionIndex(

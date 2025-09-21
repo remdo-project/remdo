@@ -3,7 +3,7 @@ import { it } from "vitest";
 import { Note } from "@/components/Editor/plugins/remdo/utils/api";
 
 it("api", async ({ load, expect, lexicalUpdate }) => {
-  const { root, note0, subNote0, note1, subNote1 } = load("tree");
+  const { root, note0, subNote0, note1 } = load("tree");
 
   const childrenKeys = (n) => [...n.children].map((n) => n.lexicalKey);
 

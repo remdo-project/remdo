@@ -24,7 +24,7 @@ export function FocusPlugin({ anchorRef }:
         ({ key }) => {
           const focusNode = $getNodeByKey(key);
 
-          if (key == "root") {
+          if (key === "root") {
             if (noteID) {
               navigate(`/`);
             }

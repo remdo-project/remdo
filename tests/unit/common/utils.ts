@@ -90,7 +90,7 @@ export function getMinimizedState(editor: LexicalEditor) {
       ['number', 'string', 'boolean'].includes(typeof node) ||
       node === null
     ) {
-      return;
+      // Primitive nodes have no structure to traverse.
     } else if (node instanceof Array) {
       for (let i = 0; i < node.length; i++) {
         walk(node[i]);

@@ -36,7 +36,7 @@ ydoc.on("status", e => log("status", e));
 ydoc.on("reload", e => log("reload", e));
 
 // Listen to events on the Y.Map instance
-ymap.observeDeep((event, transaction) => {
+ymap.observeDeep((event, _transaction) => {
   log("observeDeep", event);
 });
 

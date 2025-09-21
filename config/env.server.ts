@@ -1,5 +1,6 @@
+import process from 'node:process';
 import 'dotenv/config';
-import { cleanEnv, num, bool, str } from 'envalid';
+import { bool, cleanEnv, num, str } from 'envalid';
 
 export const env = cleanEnv(process.env, {
   PORT: num({ default: 3010 }),
