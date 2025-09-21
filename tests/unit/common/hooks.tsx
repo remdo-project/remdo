@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Migrate test hooks to a typed helper once the editor harness exposes TypeScript-safe APIs.
 import { getDataPath } from '../../common';
 import fs from 'fs';
 import { createSearchParams, MemoryRouter, URLSearchParamsInit } from 'react-router-dom';

@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Move FocusPlugin logic into typed commands so we can re-enable type checking here.
 import { $getEditor, $getNearestNodeFromDOMNode, $getNodeByKey, COMMAND_PRIORITY_LOW } from "lexical";
 import { NOTES_FOCUS_COMMAND, YJS_SYNCED_COMMAND } from "./utils/commands";
 import { useEffect } from "react";

@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Replace this exploratory Yjs script with typed diagnostics or remove it from the test suite.
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 

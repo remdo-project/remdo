@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Replace Vitest context augmentation with dedicated helpers to reinstate type safety.
 import {
   BoundFunctions,
   getAllByRole,

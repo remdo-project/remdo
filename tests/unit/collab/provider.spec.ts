@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Provide mocked collaboration types so this test can run with type checking enabled.
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";

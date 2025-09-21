@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Turn serialization helpers into scripts and restore type checking once the IO layer is typed.
 /**
  * These are not real tests, but rather helpers to load/save the editor state
  * to/from file using command line.

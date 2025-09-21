@@ -1,6 +1,13 @@
+import type { RemdoLexicalEditor } from "@/components/Editor/plugins/remdo/ComposerContext";
+import type { WebsocketProvider } from "y-websocket";
+import type { Logger } from "../tests/unit/common/logger";
+
 export declare global {
-  const remdoGenerateNoteID: () => string;
-  const printStack: (message: string | undefined) => void; //TODO limit to dev
+  var remdoGenerateNoteID: () => string;
+  var printStack: (message: string | undefined) => void; //TODO limit to dev
+  var __collabProviders: WebsocketProvider[] | undefined;
+  var logger: Logger;
+  var debugEditor: RemdoLexicalEditor | undefined;
 }
 
 declare module "@playwright/test" {

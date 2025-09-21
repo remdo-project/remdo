@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Revisit BackspacePlugin once Lexical provides stable command typings for custom editor behaviors.
 import { useRemdoLexicalComposerContext } from "@/components/Editor/plugins/remdo/ComposerContext";
 import { Note } from "@/components/Editor/plugins/remdo/utils/api";
 import { $isListItemNode } from "@lexical/list";

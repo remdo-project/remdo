@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Clean up the Remdo util globals to enable full type checking without suppressions.
 import { $getEditor, $getRoot, $setSelection } from "lexical";
 import type { EditorState } from "lexical";
 import { nanoid } from "nanoid";

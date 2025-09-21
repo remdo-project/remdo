@@ -22,8 +22,8 @@ import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin
 import { useEditorConfig } from "./config";
 
 function LexicalEditor() {
-  const editorContainerRef = useRef();
-  const editorBottomRef = useRef();
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const editorBottomRef = useRef<HTMLDivElement | null>(null);
   const documentSelector = useDocumentSelector();
   const editorConfig = useEditorConfig();
   const shouldMountTestBridge =

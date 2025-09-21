@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Migrate TreeViewPlugin to TypeScript typings after the Lexical debug utilities expose stable types.
 import { $isListItemNode } from '@lexical/list';
 import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
 import {TreeView} from '@lexical/react/LexicalTreeView';

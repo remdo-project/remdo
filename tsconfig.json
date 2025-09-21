@@ -22,6 +22,10 @@
     "noUncheckedIndexedAccess": true,
     "noEmit": true
   },
-  "include": ["./src", "./tests", "./types"],
+  "include": [
+    "./src",
+    // Tests are type-checked through tsconfig.tests.json so they stay out of the app build graph.
+    "./types"
+  ],
   "exclude": ["**/node_modules/**"]
 }

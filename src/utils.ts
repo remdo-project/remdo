@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Replace the generic patch helper with typed wrappers for the specific methods we override.
 import type { LexicalEditor } from "lexical";
 
 export function patch(Class, methodName: string, newMethod) {

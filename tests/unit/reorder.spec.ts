@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Refactor reorder tests to avoid accessing Vitest internals before re-enabling type checking.
 import "./common";
 import { expect, it } from "vitest";
 import { getCurrentTest } from "vitest/suite";

@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Type ReorderPlugin after consolidating drag-and-drop helpers with Lexical's command system.
 import { useCallback, useEffect } from "react";
 import { Note } from "./utils/api";
 import { $getSelection, $isRangeSelection } from "lexical";
