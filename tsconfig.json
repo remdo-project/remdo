@@ -1,23 +1,27 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "strict": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+
+    "lib": ["ES2022", "DOM"],
     "jsx": "react-jsx",
-    "module": "ES2022",
-    "moduleResolution": "node",
-    "typeRoots": ["node_modules/@types"],
-    "types": ["node"],
-    "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
+
     "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "paths": { "@/*": ["./src/*"] },
+
+    "types": ["node", "vite/client"],
+    "allowSyntheticDefaultImports": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "strict": true,
+
+    "moduleDetection": "force",
+    "resolveJsonModule": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true
   },
-  "exclude": ["**/node_modules/**"],
-  "include": [
-    "./types",
-    "./src",
-    "./tests"
-  ]
+  "include": ["./src", "./tests", "./types"],
+  "exclude": ["**/node_modules/**"]
 }

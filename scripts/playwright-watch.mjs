@@ -6,16 +6,16 @@ import process from "node:process";
 // Wraps Playwright in a chokidar watcher so we can re-run browser tests without relying on PWTEST_WATCH.
 const cliArgs = process.argv.slice(2);
 const watchTargets = [
+  "config",
+  "package.json",,,
+  "playwright.config.ts",
   "src",
   "tests",
-  "config",
-  "playwright.config.ts",
   "vite.config.mts",
-  "package.json"
 ];
 const ignored = [
-  "node_modules/**",
   "data/**",
+  "node_modules/**",
   "tests/**/report/**",
   "tests/**/screenshots/**",
   "tests/**/videos/**"
