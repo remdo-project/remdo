@@ -3,7 +3,9 @@ import { expect } from "@playwright/test";
 
 test("backspace at the beginning of a note", async ({ page, notebook }) => {
   await notebook.load("basic");
-  await notebook.selectNote("note00");
+  await waitForSelectionChange(page, async () => {
+    await notebook.selectNote("note00");
+  });
   await page.keyboard.press("Backspace");
   await page.keyboard.press("Backspace");
 
@@ -16,10 +18,10 @@ test("backspace at the beginning of a note after a folded note", async ({ page, 
   await menu.open("note0");
   await menu.fold();
 
-  await notebook.clickBeginningOfNote("note1");
   await waitForSelectionChange(page, async () => {
-    await page.keyboard.press("Backspace");
+    await notebook.clickBeginningOfNote("note1");
   });
+  await page.keyboard.press("Backspace");
 
   expect(await notebook.html()).toMatchSnapshot("html-after-note1-delete");
 });
@@ -31,7 +33,9 @@ test("backspace at the beginning of a folded note after another folded one", asy
   await menu.open("note1");
   await menu.fold();
 
-  await notebook.clickBeginningOfNote("note1");
+  await waitForSelectionChange(page, async () => {
+    await notebook.clickBeginningOfNote("note1");
+  });
   await page.keyboard.press("Backspace");
 
   expect(await notebook.html()).toMatchSnapshot("html-after-nested-folded-delete");
@@ -43,7 +47,9 @@ test("delete folded notes", async ({ page, notebook, menu }) => {
   await menu.open("note0");
   await menu.fold();
 
-  await notebook.clickBeginningOfNote("note0");
+  await waitForSelectionChange(page, async () => {
+    await notebook.clickBeginningOfNote("note0");
+  });
   await page.keyboard.press("Backspace");
 
   expect(await notebook.html()).toMatchSnapshot("html-after-folded-tree-delete");
