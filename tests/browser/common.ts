@@ -47,7 +47,7 @@ export const test = base.extend({
         SKIP_CONTAINS.some((frag) => text.includes(frag));
 
       if (!shouldSkip) {
-        console.log("Browser:", message);
+        console.warn("Browser:", message);
         if (["warning", "error"].includes(message.type())) {
           console.error(`${message.type} inside the browser: `);
           throw Error(text);

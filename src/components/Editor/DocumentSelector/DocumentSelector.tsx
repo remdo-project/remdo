@@ -78,7 +78,6 @@ export const DocumentSelectorProvider = ({ children }) => {
       }
 
       if (!editorConfig.disableWS) {
-        console.log("connecting");
         const wsURL = `ws://${window.location.hostname}:8080`;
         const roomName = "notes/0/" + id;
         const wsProvider = new WebsocketProvider(wsURL, roomName, doc, {

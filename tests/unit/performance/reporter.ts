@@ -1,5 +1,6 @@
+import type { File, Vitest } from "vitest";
+import process from "node:process";
 import { getTests } from "@vitest/runner/utils";
-import { File, Vitest } from "vitest";
 import { DefaultReporter } from "vitest/reporters";
 
 export default class PerformanceReporter extends DefaultReporter {

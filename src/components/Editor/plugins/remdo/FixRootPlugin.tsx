@@ -54,7 +54,7 @@ export function FixRootPlugin() {
 
   useEffect(() => {
     //TODO consider using https://lexical.dev/docs/react/plugins#lexicalonchangeplugin
-    if (!globalThis.process?.env.VITEST_SERIALIZATION_FILE) {
+    if (!import.meta.env.VITEST_SERIALIZATION_FILE) {
       //FIXME - remove this condition and re-test serialization
       return editor.registerNodeTransform(RootNode, $fixRoot);
     }

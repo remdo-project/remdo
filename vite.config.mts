@@ -1,11 +1,12 @@
+import path from "node:path";
+import process from "node:process";
 import react from "@vitejs/plugin-react";
-import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
-import { PluginOption, defineConfig } from "vite";
+import { defineConfig } from "vite";
+import type { PluginOption } from "vite";
 import { env } from "./config/env.server";
 
 export default defineConfig(({ command }) => {
-  //TODO prevent using process.env directly in the code, instead use env from config/env.server.ts
   const enableFastRefresh = command === 'serve' && process.env.VITE_ENABLE_FAST_REFRESH !== 'false';
   return {
     server: {
@@ -24,7 +25,7 @@ export default defineConfig(({ command }) => {
         name: "log-requests",
         configureServer(server) {
           server.middlewares.use((req, _, next) => {
-            console.log(`Request: ${req.method} ${req.url}`);
+            console.warn(`Request: ${req.method} ${req.url}`);
             next();
           });
         },

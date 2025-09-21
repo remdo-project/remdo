@@ -113,13 +113,13 @@ expect.extend({
 
 declare module "vitest" {
   interface Assertion<T = any> {
-    toMatchNoteTree(expected: NoteTreeSnapshot): T extends Promise<any> ? Promise<void> : void;
-    toShowNotes(expected: string[]): T extends Promise<any> ? Promise<void> : void;
-    toHaveClasses(expected: string[]): T extends Promise<any> ? Promise<void> : void;
+    toMatchNoteTree: (expected: NoteTreeSnapshot) => T extends Promise<any> ? Promise<void> : void;
+    toShowNotes: (expected: string[]) => T extends Promise<any> ? Promise<void> : void;
+    toHaveClasses: (expected: string[]) => T extends Promise<any> ? Promise<void> : void;
   }
   interface AsymmetricMatchersContaining {
-    toMatchNoteTree(expected: NoteTreeSnapshot): void;
-    toShowNotes(expected: string[]): void;
-    toHaveClasses(expected: string[]): void;
+    toMatchNoteTree: (expected: NoteTreeSnapshot) => void;
+    toShowNotes: (expected: string[]) => void;
+    toHaveClasses: (expected: string[]) => void;
   }
 }

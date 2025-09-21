@@ -31,11 +31,11 @@ globalThis.remdoGenerateNoteID = () => {
 
 //TODO limit to dev
 globalThis.printStack = (message: string | undefined) => {
-  let res = message ? message + "\n" : "";
+  let res = message ? `${message}\n` : "";
   const styles: string[] = [];
-  const stack = new Error().stack;
+  const stack = new Error("printStack trace").stack;
   if (!stack) {
-    console.log("No stack available");
+    console.warn("No stack available");
     return;
   }
   stack.split("\n")
@@ -69,5 +69,5 @@ globalThis.printStack = (message: string | undefined) => {
       //query arg "a" is added, so chrome includes row in the link
       res += `\t%c${functionName || '(anonymous)'} file://.${path}:${row}?a\n`;
     });
-  console.log(res, ...styles);
+  console.warn(res, ...styles);
 };

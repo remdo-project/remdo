@@ -135,7 +135,7 @@ function parseEditorState(serialized: string): { root?: unknown } | undefined {
 declare global {
   interface Window {
     remdoTest?: {
-      replaceDocument(editorStateJson: unknown): Promise<void>;
+      replaceDocument: (editorStateJson: unknown) => Promise<void>;
     };
     REMDO_TEST?: boolean;
   }
