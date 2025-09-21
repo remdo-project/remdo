@@ -103,19 +103,25 @@ export function YjsDebug() {
   const refreshDocumentElements = useCallback(() => {
     const newDocumentElements = documentSelector.getYjsDoc()?.share;
 
-    newDocumentElements?.forEach((value, key) => {
-      setDocumentData((prev) => {
-        return { ...prev, [key]: yjsToJSON(value) };
-      });
-    });
-    documentElements.current?.forEach((_, key: string) => {
-      if (!newDocumentElements.get(key)) {
+      newDocumentElements?.forEach((value, key) => {
+        // TODO: Replace this eager state sync with a dedicated store helper so
+        // we can remove the direct setState call and rely on derived data.
+        // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
         setDocumentData((prev) => {
-          const newDocumentData = { ...prev };
-          delete newDocumentData[key];
-          return newDocumentData;
+          return { ...prev, [key]: yjsToJSON(value) };
         });
-      }
+      });
+      documentElements.current?.forEach((_, key: string) => {
+        if (!newDocumentElements.get(key)) {
+          // TODO: Replace this eager state sync with a dedicated store helper so
+          // we can remove the direct setState call and rely on derived data.
+          // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+          setDocumentData((prev) => {
+            const newDocumentData = { ...prev };
+            delete newDocumentData[key];
+            return newDocumentData;
+          });
+        }
     });
     documentElements.current = newDocumentElements;
   }, [documentSelector, documentElements]);
