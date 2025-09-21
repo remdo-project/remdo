@@ -19,6 +19,8 @@ test("backspace at the beginning of a note after a folded note", async ({ page, 
   await notebook.clickBeginningOfNote("note1");
   await page.keyboard.press("Backspace");
 
+  await expect(page.locator(".note-folded")).toHaveCount(0);
+
   expect(await notebook.html()).toMatchSnapshot("html-after-note1-delete");
 });
 
