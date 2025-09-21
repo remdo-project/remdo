@@ -57,7 +57,7 @@ function EditorStateInput() {
 export const DevToolbarPlugin = ({ editorBottomRef }) => {
   const [connected, setConnected] = useState(false);
   const [editor] = useRemdoLexicalComposerContext();
-  const [darkMode, setDarkMode] = useState(getDarkMode());
+  const [darkMode, setDarkMode] = useState(() => getDarkMode());
   const [showEditorStateInput, setShowEditorStateInput] = useState(false);
   const documentSelector = useDocumentSelector();
   const { isDebugMode } = useDebug();

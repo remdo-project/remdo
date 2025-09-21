@@ -86,8 +86,21 @@ function Finder({ action, filter }) {
 
   useEffect(() => {
     editor.update(() => $setSearchFilter(filter));
-    if (index >= results().length) {
-      setIndex(0);
+    const searchResults = results();
+    if (searchResults.length === 0) {
+      if (index !== 0) {
+        // TODO: Investigate exposing search result length as derived state so we
+        // can drop the corrective setState within this effect.
+        // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+        setIndex(() => 0);
+      }
+      return;
+    }
+    if (index >= searchResults.length) {
+      // TODO: Investigate exposing search result length as derived state so we
+      // can drop the corrective setState within this effect.
+      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+      setIndex(() => 0);
     }
   }, [editor, filter, index, results]);
 
@@ -104,7 +117,11 @@ function Finder({ action, filter }) {
       editor.registerCommand(
         KEY_ARROW_DOWN_COMMAND,
         () => {
-          setIndex((index + 1) % results().length);
+          const totalResults = results().length;
+          if (totalResults === 0) {
+            return true;
+          }
+          setIndex((current) => (current + 1) % totalResults);
           return true;
         },
         COMMAND_PRIORITY_CRITICAL
@@ -113,7 +130,10 @@ function Finder({ action, filter }) {
         KEY_ARROW_UP_COMMAND,
         () => {
           const resultsLength = results().length;
-          setIndex((index - 1 + resultsLength) % resultsLength);
+          if (resultsLength === 0) {
+            return true;
+          }
+          setIndex((current) => (current - 1 + resultsLength) % resultsLength);
           return true;
         },
         COMMAND_PRIORITY_CRITICAL

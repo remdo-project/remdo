@@ -29,20 +29,37 @@ export function BreadcrumbPlugin({ documentID }: { documentID: string }) {
         note = Note.fromID("root");
       }
 
-      setBreadcrumbs(
-        [note, ...note.parents]
-          .slice(0, -1) //skip root
-          .reverse()
-          .map((note) => ({
-            text: note.text,
-            id: note.id,
-          }))
-      );
+      const nextCrumbs = [note, ...note.parents]
+        .slice(0, -1) //skip root
+        .reverse()
+        .map((crumb) => ({
+          text: crumb.text,
+          id: crumb.id,
+        }));
+
+      // TODO: Replace this state bridge with a command subscription so we can
+      // drop the imperative setState call inside useEffect.
+      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+      setBreadcrumbs((previous) => {
+        if (
+          previous.length === nextCrumbs.length &&
+          previous.every(
+            (crumb, index) =>
+              crumb.id === nextCrumbs[index]?.id &&
+              crumb.text === nextCrumbs[index]?.text
+          )
+        ) {
+          return previous;
+        }
+
+        return nextCrumbs;
+      });
     });
   }, [editor, noteID]);
 
-  useEffect(() =>
-    updateBreadcrumbs(), [editor, locationParams, updateBreadcrumbs]);
+  useEffect(() => {
+    updateBreadcrumbs();
+  }, [locationParams, updateBreadcrumbs]);
 
   useEffect(() =>
     editor.registerCommand(

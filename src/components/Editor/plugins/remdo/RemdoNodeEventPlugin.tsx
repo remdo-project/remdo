@@ -34,6 +34,7 @@ export function RemdoNodeEventPlugin({
 
   useEffect(() => {
     const isCaptured = capturedEvents.has(eventType);
+    let activeRoot: HTMLElement | null = null;
 
     const onEvent = (event: Event) => {
       editor.update(() => {
@@ -60,18 +61,33 @@ export function RemdoNodeEventPlugin({
       });
     };
 
-    return editor.registerRootListener((rootElement, prevRootElement) => {
+    const unregisterRootListener = editor.registerRootListener((rootElement, prevRootElement) => {
       if (rootElement) {
+        // TODO: Evaluate exposing this logic as a Lexical command so we can
+        // avoid wiring DOM listeners directly and appease
+        // `react-web-api/no-leaked-event-listener`. The current approach mirrors
+        // Lexical's own plugin but the rule cannot infer the nested cleanup.
+        // eslint-disable-next-line react-web-api/no-leaked-event-listener
         rootElement.addEventListener(eventType, onEvent, isCaptured);
+        activeRoot = rootElement;
       }
 
       if (prevRootElement) {
         prevRootElement.removeEventListener(eventType, onEvent, isCaptured);
+        if (activeRoot === prevRootElement) {
+          activeRoot = null;
+        }
       }
     });
     // We intentionally don't respect changes to eventType.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, nodeType]);
+    return () => {
+      if (activeRoot) {
+        activeRoot.removeEventListener(eventType, onEvent, isCaptured);
+        activeRoot = null;
+      }
+      unregisterRootListener();
+    };
+  }, [editor, eventType, nodeType]);
 
   return null;
 }

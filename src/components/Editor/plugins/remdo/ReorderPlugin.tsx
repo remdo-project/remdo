@@ -37,11 +37,32 @@ export function ReorderPlugin() {
     [editor]
   );
   useEffect(() => {
-    editor.registerRootListener((root, prevRoot) => {
-      root && root.addEventListener("keydown", handleReorder);
-      prevRoot && prevRoot.removeEventListener("keydown", handleReorder);
+    let activeRoot: HTMLElement | null = null;
+
+    const unregisterRootListener = editor.registerRootListener((root, prevRoot) => {
+      if (root) {
+        // TODO: Evaluate replacing this DOM listener with a dedicated Lexical
+        // command so the browser-event lint rule no longer complains about the
+        // dynamic cleanup that registerRootListener performs for us.
+        // eslint-disable-next-line react-web-api/no-leaked-event-listener
+        root.addEventListener("keydown", handleReorder);
+        activeRoot = root;
+      }
+      if (prevRoot) {
+        prevRoot.removeEventListener("keydown", handleReorder);
+        if (activeRoot === prevRoot) {
+          activeRoot = null;
+        }
+      }
     });
-  }, [editor, handleReorder]
-  );
+
+    return () => {
+      if (activeRoot) {
+        activeRoot.removeEventListener("keydown", handleReorder);
+        activeRoot = null;
+      }
+      unregisterRootListener();
+    };
+  }, [editor, handleReorder]);
   return null;
 }

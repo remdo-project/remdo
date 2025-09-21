@@ -1,13 +1,22 @@
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { useEffect, useContext, createContext } from "react";
+import { createContext, use, useEffect } from "react";
+import type { LexicalEditor } from "lexical";
 import { useDocumentSelector } from "../../DocumentSelector/DocumentSelector";
 
-export const TestContext = createContext(null);
+// TODO: To satisfy `react-refresh/only-export-components`, split this context into
+// a standalone module once the dev tooling is ready to consume the new import.
+// eslint-disable-next-line react-refresh/only-export-components
+export const TestContext = createContext<{
+  testHandler: (
+    editor: LexicalEditor,
+    documentSelector: ReturnType<typeof useDocumentSelector>
+  ) => void;
+} | null>(null);
 
 export function DevComponentTestPlugin() {
   const [editor] = useLexicalComposerContext();
   const documentSelector = useDocumentSelector();
-  const testContext = useContext(TestContext);
+  const testContext = use(TestContext);
 
   useEffect(() => {
     if (!testContext) {

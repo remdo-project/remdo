@@ -3,7 +3,9 @@ import { HocuspocusProvider } from "@hocuspocus/provider";
 import type { Provider } from "@lexical/yjs";
 import {
   createContext,
-  useContext,
+  type ReactNode,
+  use,
+  useCallback,
   useMemo,
   useRef,
   useState,
@@ -29,10 +31,13 @@ export interface DocumentSelectorType {
   getYjsProvider: () => Provider;
 }
 
-const DocumentSelectorContext = createContext<DocumentSelectorType>(null);
+const DocumentSelectorContext = createContext<DocumentSelectorType | null>(null);
 
+// TODO: Split this hook into its own module so Fast Refresh can correctly
+// treat the provider file as component-only exports.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useDocumentSelector = () => {
-  const context = useContext(DocumentSelectorContext);
+  const context = use(DocumentSelectorContext);
   if (!context) {
     throw new Error(
       "useDocumentSelector must be used within a DocumentSelectorProvider"
@@ -41,9 +46,15 @@ export const useDocumentSelector = () => {
   return context;
 };
 
-export const DocumentSelectorProvider = ({ children }) => {
+export const DocumentSelectorProvider = ({
+  children,
+}: {
+  children: ReactNode;
+}) => {
   const [searchParams] = useSearchParams();
-  const [documentID, setDocumentID] = useState(searchParams.get("documentID") ?? "main");
+  const [documentID, setDocumentID] = useState(
+    searchParams.get("documentID") ?? "main"
+  );
   const yjsDoc = useRef<Y.Doc | null>(null);
   //FIXME remove the duplication
   const yjsProvider = useRef<Provider | null>(null);
@@ -125,21 +136,37 @@ export const DocumentSelectorProvider = ({ children }) => {
   // TODO: Revisit alternative Hocuspocus backend wiring once persistence is available without IndexedDB.
   void hocuspocusProviderFactory;
 
+  const getYjsDoc = useCallback(() => yjsDoc.current, []);
+  const getYjsProvider = useCallback(() => yjsProvider.current, []);
+
+  const contextValue = useMemo(
+    () => ({
+      documentID,
+      setDocumentID,
+      yjsProviderFactory,
+      //yjsProviderFactory: hocuspocusProviderFactory, //currently doesn't support persistance, even between page reloads
+      //TODO make it a property, same as provider
+      getYjsDoc,
+      yjsProvider: currentProvider, //FIXME remove
+      getYjsProvider,
+    }),
+    [
+      currentProvider,
+      documentID,
+      getYjsDoc,
+      getYjsProvider,
+      yjsProviderFactory,
+    ]
+  );
+
+  // TODO: Similar to DebugContext, this module mixes provider, hook, and context
+  // exports which trips `react-refresh/only-export-components`. Untangling it will
+  // require coordinating changes across the editor bootstrapping tests.
+
   return (
-    <DocumentSelectorContext.Provider
-      value={{
-        documentID,
-        setDocumentID,
-        yjsProviderFactory,
-        //yjsProviderFactory: hocuspocusProviderFactory, //currently doesn't support persistance, even between page reloads
-        //TODO make it a property, same as provider
-        getYjsDoc: () => yjsDoc.current,
-        yjsProvider: currentProvider, //FIXME remove
-        getYjsProvider: () => yjsProvider.current,
-      }}
-    >
+    <DocumentSelectorContext value={contextValue}>
       {children}
-    </DocumentSelectorContext.Provider>
+    </DocumentSelectorContext>
   );
 };
 

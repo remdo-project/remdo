@@ -7,7 +7,7 @@ import process from "node:process";
 const cliArgs = process.argv.slice(2);
 const watchTargets = [
   "config",
-  "package.json",,,
+  "package.json",
   "playwright.config.ts",
   "src",
   "tests",

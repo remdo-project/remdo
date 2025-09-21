@@ -69,11 +69,11 @@ beforeEach(async (context) => {
   //logger.info('URL: ', initialEntry);
 
   const component = render(
-    <ComponentTestContext.Provider value={{ testHandler }}>
+    <ComponentTestContext value={{ testHandler }}>
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes />
       </MemoryRouter>
-    </ComponentTestContext.Provider>,
+    </ComponentTestContext>,
   );
 
   const editorElement = component.getByRole('textbox');
