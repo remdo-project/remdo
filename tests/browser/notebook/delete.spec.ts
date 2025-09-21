@@ -1,4 +1,4 @@
-import { test } from "./common";
+import { test, waitForSelectionChange } from "./common";
 import { expect } from "@playwright/test";
 
 test("backspace at the beginning of a note", async ({ page, notebook }) => {
@@ -17,9 +17,9 @@ test("backspace at the beginning of a note after a folded note", async ({ page, 
   await menu.fold();
 
   await notebook.clickBeginningOfNote("note1");
-  await page.keyboard.press("Backspace");
-
-  await expect(page.locator(".note-folded")).toHaveCount(0);
+  await waitForSelectionChange(page, async () => {
+    await page.keyboard.press("Backspace");
+  });
 
   expect(await notebook.html()).toMatchSnapshot("html-after-note1-delete");
 });
