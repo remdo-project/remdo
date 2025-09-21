@@ -1,6 +1,6 @@
 import { NotesState } from "../plugins/remdo/utils/api";
 import { HocuspocusProvider } from "@hocuspocus/provider";
-import { Provider } from "@lexical/yjs";
+import type { Provider } from "@lexical/yjs";
 import {
   createContext,
   useContext,

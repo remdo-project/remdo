@@ -1,8 +1,6 @@
-import {
-  LexicalComposerContextType,
-  useLexicalComposerContext,
-} from "@lexical/react/LexicalComposerContext";
-import { LexicalEditor, type EditorUpdateOptions } from "lexical";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import type { LexicalComposerContextType } from "@lexical/react/LexicalComposerContext";
+import type { LexicalEditor, EditorUpdateOptions } from "lexical";
 import { FULL_RECONCILE } from "./utils/unexported";
 
 export interface RemdoLexicalEditor extends LexicalEditor {

@@ -1,11 +1,11 @@
 import {
   $getState,
   $setState,
-  ValueOrUpdater,
   createSharedNodeState,
   createState,
   $getRoot,
 } from "lexical";
+import type { ValueOrUpdater } from "lexical";
 import { ListItemNode, $isListItemNode, $isListNode } from "@lexical/list";
 
 const NOTE_ID_STATE = createState("remdo:id", {

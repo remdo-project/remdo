@@ -16,10 +16,10 @@ import {
   COMMAND_PRIORITY_LOW,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
+  KEY_ENTER_COMMAND,
   KEY_ESCAPE_COMMAND,
 } from "lexical";
-import { KEY_ENTER_COMMAND } from "lexical";
-import { LexicalEditor } from "lexical";
+import type { LexicalEditor } from "lexical";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { $setSearchFilter } from "./utils/utils";

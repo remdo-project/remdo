@@ -1,4 +1,5 @@
-import { $getEditor, $getRoot, $setSelection, EditorState } from "lexical";
+import { $getEditor, $getRoot, $setSelection } from "lexical";
+import type { EditorState } from "lexical";
 import { nanoid } from "nanoid";
 import { ListItemNode } from "@lexical/list";
 import { $getNoteID } from "./noteState";

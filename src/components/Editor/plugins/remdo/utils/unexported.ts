@@ -5,7 +5,8 @@ import {
   $findNearestListItemNode,
   mergeLists,
 } from "@/lexical-shims/list";
-import { $getNearestNodeFromDOMNode, $isDecoratorNode, LexicalEditor, NodeKey } from "lexical";
+import { $getNearestNodeFromDOMNode, $isDecoratorNode } from "lexical";
+import type { LexicalEditor, NodeKey } from "lexical";
 
 // Reconciling flags (internal). Avoid relying on these if possible.
 export const NO_DIRTY_NODES = 0;

@@ -1,6 +1,6 @@
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { ListItemNode, ListNode } from "@lexical/list";
-import { InitialConfigType } from "@lexical/react/LexicalComposer";
+import type { InitialConfigType } from "@lexical/react/LexicalComposer";
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -41,4 +41,3 @@ export function useEditorConfig(): EditorConfig {
     disableWS, //TODO remove or rename
   };
 }
-

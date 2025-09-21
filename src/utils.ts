@@ -1,4 +1,4 @@
-import { LexicalEditor } from "lexical";
+import type { LexicalEditor } from "lexical";
 
 export function patch(Class, methodName: string, newMethod) {
   if (methodName in Class.prototype) {

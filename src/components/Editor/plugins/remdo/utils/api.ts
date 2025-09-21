@@ -11,13 +11,12 @@ import {
   $getNodeByKey,
   $isTextNode,
   $createTextNode,
-  EditorState,
   $getSelection,
   $isRangeSelection,
   $getEditor,
   $getNodeByKeyOrThrow,
-  LexicalNode
 } from "lexical";
+import type { EditorState, LexicalNode } from "lexical";
 
 import { $findNearestListItemNode, getElementByKeyOrThrow } from "./unexported";
 import { $getNodeByID } from "./utils";

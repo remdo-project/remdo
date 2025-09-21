@@ -1,4 +1,5 @@
-import { createCommand, LexicalCommand } from "lexical";
+import { createCommand } from "lexical";
+import type { LexicalCommand } from "lexical";
 
 export const NOTES_TOGGLE_FOLD_COMMAND: LexicalCommand<{ noteKeys: string[] }> =
   createCommand("NOTES_TOGGLE_FOLD_COMMAND");
