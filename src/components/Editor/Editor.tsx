@@ -14,11 +14,11 @@ import { DevToolbarPlugin } from "./plugins/dev/DevToolbarPlugin";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
-import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import RemdoTestBridge from "@/dev/RemdoTestBridge";
 import { RemdoPlugin } from "./plugins/RemdoPlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
+import { RemdoListPlugin } from "./plugins/remdo/RemdoListPlugin";
 import { useEditorConfig } from "./config";
 
 function LexicalEditor() {
@@ -52,7 +52,7 @@ function LexicalEditor() {
         <DevComponentTestPlugin />
         {shouldMountTestBridge ? <RemdoTestBridge /> : null}
         <ClearEditorPlugin />
-        <ListPlugin />
+        <RemdoListPlugin />
         <LinkPlugin />
         <LexicalClickableLinkPlugin />
         <TabIndentationPlugin />
