@@ -2,7 +2,7 @@
 // TODO(remdo): Reintroduce type checking after the performance harness is rewritten with typed logging utilities.
 import { createChildren } from "../common";
 import { Timer, adjustDeltaToGetRoundedTotal, countNotes, getCount } from "./utils";
-import { Note } from "@/components/Editor/plugins/remdo/utils/api";
+import { Note } from "@/features/editor/plugins/remdo/utils/api";
 import { $getRoot, $createTextNode } from "lexical";
 import { it } from "vitest";
 

@@ -1,4 +1,4 @@
-import type { RemdoLexicalEditor } from "@/components/Editor/plugins/remdo/ComposerContext";
+import type { RemdoLexicalEditor } from "@/features/editor/plugins/remdo/ComposerContext";
 import type { WebsocketProvider } from "y-websocket";
 import type { Logger } from "../tests/unit/common/logger";
 

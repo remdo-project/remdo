@@ -5,19 +5,19 @@ import fs from 'fs';
 import { createSearchParams, MemoryRouter, URLSearchParamsInit } from 'react-router-dom';
 import { expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { Logger } from './logger';
-import { RemdoLexicalEditor } from '@/components/Editor/plugins/remdo/ComposerContext';
+import { RemdoLexicalEditor } from '@/features/editor/plugins/remdo/ComposerContext';
 import path from 'path';
 import { render, within, queries } from '@testing-library/react';
-import { TestContext as ComponentTestContext } from '@/components/Editor/plugins/dev/DevComponentTestPlugin';
+import { TestContext as ComponentTestContext } from '@/features/editor/plugins/dev/DevComponentTestPlugin';
 import { Routes } from '@/Routes';
 import { $getRoot, CLEAR_HISTORY_COMMAND } from 'lexical';
 import { getNotes } from './utils';
 import {
   ensureListItemSharedState,
   restoreRemdoStateFromJSON,
-} from '@/components/Editor/plugins/remdo/utils/noteState';
+} from '@/features/editor/plugins/remdo/utils/noteState';
 import { env } from '../../../config/env.server';
-import { DocumentSelectorType } from '@/components/Editor/DocumentSelector/DocumentSelector';
+import { DocumentSelectorType } from '@/features/editor/DocumentSelector/DocumentSelector';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 

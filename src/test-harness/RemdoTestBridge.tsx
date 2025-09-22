@@ -5,7 +5,7 @@ import { CLEAR_HISTORY_COMMAND, $getRoot, type LexicalEditor } from "lexical";
 import {
   ensureListItemSharedState,
   restoreRemdoStateFromJSON,
-} from "@/components/Editor/plugins/remdo/utils/noteState";
+} from "@/features/editor/plugins/remdo/utils/noteState";
 
 export default function RemdoTestBridge(): null {
   const [editor] = useLexicalComposerContext();

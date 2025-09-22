@@ -1,4 +1,4 @@
-import { Note } from "@/components/Editor/plugins/remdo/utils/api";
+import { Note } from "@/features/editor/plugins/remdo/utils/api";
 import { $getRoot } from "lexical";
 
 /**

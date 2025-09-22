@@ -1,5 +1,5 @@
 import "./common";
-import { $setSearchFilter } from "@/components/Editor/plugins/remdo/utils/utils";
+import { $setSearchFilter } from "@/features/editor/plugins/remdo/utils/utils";
 import { $isListNode } from "@lexical/list";
 import { $getSelection, $isRangeSelection, $isTextNode } from "lexical";
 import { it } from "vitest";
