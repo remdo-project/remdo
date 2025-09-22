@@ -13,9 +13,9 @@ import { $convertToMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import fs from "fs";
 import { it } from "vitest";
 import { env } from "../../config/env.server";
-import type { RemdoLexicalEditor } from "@/components/Editor/plugins/remdo/ComposerContext";
-import type { Note } from "@/components/Editor/plugins/remdo/utils/api";
-import { Note as NoteApi } from "@/components/Editor/plugins/remdo/utils/api";
+import type { RemdoLexicalEditor } from "@/features/editor/plugins/remdo/ComposerContext";
+import type { Note } from "@/features/editor/plugins/remdo/utils/api";
+import { Note as NoteApi } from "@/features/editor/plugins/remdo/utils/api";
 import { $getRoot } from "lexical";
 
 const SERIALIZATION_FILE = env.VITEST_SERIALIZATION_FILE;

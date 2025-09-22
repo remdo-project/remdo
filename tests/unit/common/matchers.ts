@@ -1,8 +1,8 @@
 import { expect } from "vitest";
 import type { MatcherState } from "@vitest/expect";
 import { $getRoot } from "lexical";
-import { Note } from "@/components/Editor/plugins/remdo/utils/api";
-import type { RemdoLexicalEditor } from "@/components/Editor/plugins/remdo/ComposerContext";
+import { Note } from "@/features/editor/plugins/remdo/utils/api";
+import type { RemdoLexicalEditor } from "@/features/editor/plugins/remdo/ComposerContext";
 import type { Queries } from "./test_context";
 import { getVisibleNotes } from "./utils";
 

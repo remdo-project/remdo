@@ -3,7 +3,7 @@ import { Note } from "./utils/api";
 import { useCallback, useEffect, useState } from "react";
 import Breadcrumb from "react-bootstrap/Breadcrumb";
 import { Link, useParams } from "react-router-dom";
-import { DocumentSelector } from "@/components/Editor/DocumentSelector/DocumentSelector";
+import { DocumentSelector } from "@/features/editor/DocumentSelector/DocumentSelector";
 import { YJS_SYNCED_COMMAND } from "./utils/commands";
 import { COMMAND_PRIORITY_LOW } from "lexical";
 

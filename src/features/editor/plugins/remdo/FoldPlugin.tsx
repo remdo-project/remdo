@@ -1,7 +1,7 @@
 // @ts-nocheck
 // TODO(remdo): Restore FoldPlugin type checking after folding state helpers expose TypeScript definitions.
-import { useRemdoLexicalComposerContext } from "@/components/Editor/plugins/remdo/ComposerContext";
-import { Note, NotesState } from "@/components/Editor/plugins/remdo/utils/api";
+import { useRemdoLexicalComposerContext } from "@/features/editor/plugins/remdo/ComposerContext";
+import { Note, NotesState } from "@/features/editor/plugins/remdo/utils/api";
 import {
   NOTES_SET_FOLD_LEVEL_COMMAND,
   NOTES_TOGGLE_FOLD_COMMAND,

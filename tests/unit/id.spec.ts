@@ -1,7 +1,7 @@
 import './common';
 import { it } from 'vitest';
 import { getNotes } from './common';
-import { Note } from '@/components/Editor/plugins/remdo/utils/api';
+import { Note } from '@/features/editor/plugins/remdo/utils/api';
 
 it('get by ID', async ({ load, expect, lexicalUpdate }) => {
   const { note0, note00 } = load("basic");

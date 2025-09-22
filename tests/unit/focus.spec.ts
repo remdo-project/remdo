@@ -3,8 +3,8 @@ import { it } from "vitest";
 import { getVisibleNotes } from "./common";
 import { $getEditor } from "lexical";
 import { ListItemNode, $isListNode } from "@lexical/list";
-import { $getNoteID } from "@/components/Editor/plugins/remdo/utils/noteState";
-import { getRemdoState } from "@/components/Editor/plugins/remdo/utils/remdoState";
+import { $getNoteID } from "@/features/editor/plugins/remdo/utils/noteState";
+import { getRemdoState } from "@/features/editor/plugins/remdo/utils/remdoState";
 
 it("focus", async ({ load, queries, expect, lexicalUpdate }) => {
   const { note12 } = load("tree_complex");

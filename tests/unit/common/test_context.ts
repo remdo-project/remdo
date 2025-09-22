@@ -7,9 +7,9 @@ import {
   RenderResult,
 } from '@testing-library/react';
 import { expect } from 'vitest';
-import { RemdoLexicalEditor } from '@/components/Editor/plugins/remdo/ComposerContext';
-import { Note } from '@/components/Editor/plugins/remdo/utils/api';
-import { DocumentSelectorType } from '@/components/Editor/DocumentSelector/DocumentSelector';
+import { RemdoLexicalEditor } from '@/features/editor/plugins/remdo/ComposerContext';
+import { Note } from '@/features/editor/plugins/remdo/utils/api';
+import { DocumentSelectorType } from '@/features/editor/DocumentSelector/DocumentSelector';
 
 export type Queries = BoundFunctions<
   typeof queries & { getAllNotNestedIListItems: typeof getAllByRole.bind }

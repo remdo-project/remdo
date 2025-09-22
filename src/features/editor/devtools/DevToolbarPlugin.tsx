@@ -1,10 +1,10 @@
 // @ts-nocheck
 // TODO(remdo): Annotate DevToolbarPlugin once the developer tooling utilities are migrated to TypeScript-safe APIs.
-import { useRemdoLexicalComposerContext } from "../remdo/ComposerContext";
-import { SPACER_COMMAND } from "../remdo/utils/commands";
+import { useRemdoLexicalComposerContext } from "../plugins/remdo/ComposerContext";
+import { SPACER_COMMAND } from "../plugins/remdo/utils/commands";
 import { YjsDebug } from "./YjsDebug";
 import { useDebug } from "@/DebugContext";
-import { useDocumentSelector } from "../../DocumentSelector/DocumentSelector";
+import { useDocumentSelector } from "../DocumentSelector/DocumentSelector";
 import { mergeRegister } from "@lexical/utils";
 import { CONNECTED_COMMAND, TOGGLE_CONNECT_COMMAND } from "@lexical/yjs";
 import {
@@ -19,7 +19,7 @@ import TreeViewPlugin from "./TreeViewPlugin";
 import {
   ensureListItemSharedState,
   restoreRemdoStateFromJSON,
-} from "../remdo/utils/noteState";
+} from "../plugins/remdo/utils/noteState";
 
 function EditorStateInput() {
   const [editor] = useRemdoLexicalComposerContext();

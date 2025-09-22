@@ -1,5 +1,5 @@
-import { useRemdoLexicalComposerContext } from "@/components/Editor/plugins/remdo/ComposerContext";
-import { Note } from "@/components/Editor/plugins/remdo/utils/api";
+import { useRemdoLexicalComposerContext } from "@/features/editor/plugins/remdo/ComposerContext";
+import { Note } from "@/features/editor/plugins/remdo/utils/api";
 import {
   KEY_ENTER_COMMAND,
 } from "lexical";

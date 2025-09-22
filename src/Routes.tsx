@@ -1,7 +1,6 @@
 import { DebugProvider } from "./DebugContext";
-import { Dev } from "./components/Dev/Dev";
-import { Yjs } from "./components/Dev/Yjs";
-import Editor from "@/components/Editor/Editor";
+import Editor from "@/features/editor/Editor";
+import { renderDevRoutes } from "@/devtools/routes";
 import { Routes as RouterRoutes, Route } from "react-router-dom";
 import { Outlet } from "react-router-dom";
 import { TopNavBar } from "./components/TopNavBar";
@@ -16,6 +15,8 @@ function Layout() {
 }
 
 export function Routes() {
+  const devRoutes = renderDevRoutes();
+
   return (
     <DebugProvider>
       <RouterRoutes>
@@ -25,10 +26,7 @@ export function Routes() {
             <Route path="note/:noteID" element="</>"></Route>
           </Route>
           <Route path="about" element={<div>About</div>} />
-          <Route path="dev">
-            <Route path="" element={<Dev />} index></Route>
-            <Route path="yjs" element={<Yjs />} />
-          </Route>
+          {devRoutes}
         </Route>
       </RouterRoutes>
     </DebugProvider>

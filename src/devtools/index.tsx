@@ -1,7 +1,11 @@
 import { IconPlaywright, IconVitest } from "./icons";
 import { Outlet } from "react-router-dom";
 
-export function Dev() {
+const yjsHtmlUrl = new URL("./yjs/yjs.html", import.meta.url);
+
+export function DevTools() {
+  if (import.meta.env.PROD) return null;
+
   return (
     <div>
       <Outlet />
@@ -28,7 +32,7 @@ export function Dev() {
           </a>
         </li>
         <li>
-          <a href="/dev/yjs">
+          <a href="/_dev/yjs">
             Yjs Component <img
               src="/images/yjs.png"
               style={{ height: "1em", width: "1em" }}
@@ -37,7 +41,7 @@ export function Dev() {
           </a>
         </li>
         <li>
-          <a href="/yjs.html">
+          <a href={yjsHtmlUrl.pathname}>
             Yjs <img
               src="/images/yjs.png"
               style={{ height: "1em", width: "1em" }}
@@ -46,18 +50,14 @@ export function Dev() {
           </a>
         </li>
         <li>
-          <a href="/demo.html">
-            Demo
-          </a>
+          <a href="/demo.html">Demo</a>
         </li>
         <li>
-          <a href="/demo">
-            Demo React
-          </a>
+          <a href="/_dev/demo">Demo React</a>
         </li>
         <li>
           <a
-            href={`http://{location.hostname}:3000/?isCollab=true&collabEndpoint=ws://{location.hostname}:1234`}
+            href={`http://${location.hostname}:3000/?isCollab=true&collabEndpoint=ws://${location.hostname}:1234`}
           >
             Lexical <img
               src="/images/lexical.ico"

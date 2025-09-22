@@ -1,4 +1,4 @@
-import { useRemdoLexicalComposerContext } from "@/components/Editor/plugins/remdo/ComposerContext";
+import { useRemdoLexicalComposerContext } from "@/features/editor/plugins/remdo/ComposerContext";
 import {
   $getRoot,
   RootNode,
