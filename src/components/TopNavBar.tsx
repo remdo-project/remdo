@@ -28,7 +28,7 @@ export function TopNavBar() {
   return (
       <nav className="navbar navbar-expand-lg">
         <Logo />
-        <NavLink className="nav-link" to="/dev">
+        <NavLink className="nav-link" to="/_dev">
           Dev
         </NavLink>
         <NavLink className="nav-link" to="/about">
