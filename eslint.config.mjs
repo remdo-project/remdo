@@ -18,6 +18,7 @@ export default antfu(
       'perfectionist/sort-objects': 'off',
       'node/prefer-global/process': 'off',
       'ts/consistent-type-imports': 'off',
+      'ts/ban-ts-comment': ['error', { 'ts-nocheck': false }], //TODO remove once all issues are fixed
       'import/consistent-type-specifier-style': 'off',
       'import/no-duplicates': 'off',
       'ts/consistent-type-definitions': 'off',
