@@ -72,24 +72,20 @@ export class Notebook {
   async clickEndOfNote(title: string) {
     const noteLocator = this.noteLocator(title);
     await waitForSelectionChange(this.page, async () => {
-      await noteLocator.evaluate((element) => {
-        const range = document.createRange();
-        range.selectNodeContents(element);
-        range.collapse(false);
-        const selection = window.getSelection();
-        if (!selection) {
-          return;
-        }
-        selection.removeAllRanges();
-        selection.addRange(range);
-      });
+      await noteLocator.selectText();
+    });
+    await waitForSelectionChange(this.page, async () => {
+      await this.page.keyboard.press("ArrowRight");
     });
   }
 
   async clickBeginningOfNote(title: string) {
     const noteLocator = this.noteLocator(title);
     await waitForSelectionChange(this.page, async () => {
-      await noteLocator.click({ position: { x: 1, y: 1 } });
+      await noteLocator.selectText();
+    });
+    await waitForSelectionChange(this.page, async () => {
+      await this.page.keyboard.press("ArrowLeft");
     });
   }
 
