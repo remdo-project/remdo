@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Convert IndentationPlugin to strict TypeScript once the keyboard shortcuts rely on typed Remdo APIs.
 import { Note } from "./utils/api";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {

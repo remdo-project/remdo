@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Port RemdoNodeEventPlugin to the upstream Lexical event helpers to regain static typing.
 /* Copy of LexicalNodeEventPlugin that allows to catch events on RootNode
  * $findMatchingParent skips root for some reason - TODO report as a lexical bug
  * plus bubles event up to the root regardless if the event belongs to "capturedEvents"

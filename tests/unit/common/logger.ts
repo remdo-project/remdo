@@ -3,12 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { env } from '../../../config/env.server';
-import { debugEnabled } from '../../common';
-
-declare global {
-  // Ambient declaration for the logger used in tests.
-  let logger: Logger;
-}
+const debugEnabled = env.DEBUG.length > 0;
 
 const _info = console.info;
 const _warn = console.warn;

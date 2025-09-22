@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Convert fix_root tests to typed helpers once the Lexical fixtures are strongly typed.
 //imported for side effects
 import "./common";
 

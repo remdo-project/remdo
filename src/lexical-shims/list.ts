@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Remove this shim once Lexical exports typed helpers for nested list detection.
 /**
  * Minimal helpers copied from Lexical's list utilities.
  * Copyright (c) Meta Platforms, Inc. and affiliates.

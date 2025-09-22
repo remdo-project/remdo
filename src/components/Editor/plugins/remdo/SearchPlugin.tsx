@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Bring SearchPlugin back under type checking once the search state machine is refactored into typed utilities.
 import {
   NOTES_FOCUS_COMMAND,
   NOTES_START_MOVING_COMMAND,

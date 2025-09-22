@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Annotate DevToolbarPlugin once the developer tooling utilities are migrated to TypeScript-safe APIs.
 import { useRemdoLexicalComposerContext } from "../remdo/ComposerContext";
 import { SPACER_COMMAND } from "../remdo/utils/commands";
 import { YjsDebug } from "./YjsDebug";

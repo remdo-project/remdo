@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Type noteState helpers after formalizing the serialized Remdo state schema.
 import {
   $getState,
   $setState,

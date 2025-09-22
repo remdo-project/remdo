@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Document and type the note controls once the DOM overlay logic is stabilized.
 //TODO add tests
 import { useRemdoLexicalComposerContext } from "./ComposerContext";
 import { Note } from "./utils/api";

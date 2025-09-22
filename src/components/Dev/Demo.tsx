@@ -1,7 +1,12 @@
 import "./Demo.scss";
+import type { CSSProperties } from "react";
 import React from "react";
 
-function Window({ transform = null }) {
+type WindowProps = {
+  transform?: CSSProperties["transform"];
+};
+
+function Window({ transform }: WindowProps) {
   return (
     <div className="window" style={{ transform, float: "left" }}>
       <div className="title bg-secondary">

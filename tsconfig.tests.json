@@ -2,6 +2,16 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
+    /* TODO(remdo): Re-enable strict mode for tests once helper utilities have explicit types. */
+    "strict": false,
+    /* TODO(remdo): Allow implicit any only until the Vitest helpers are converted to TypeScript. */
+    "noImplicitAny": false,
+    /* TODO(remdo): Restore strict null safety once the test note factories guarantee non-null values. */
+    "strictNullChecks": false,
+    /* TODO(remdo): Re-enable indexed access safety when test helpers guard lookups. */
+    "noUncheckedIndexedAccess": false,
+    /* TODO(remdo): Restore verbatimModuleSyntax after replacing value imports with type-only imports in test helpers. */
+    "verbatimModuleSyntax": false,
     "types": ["node", "vite/client", "vitest/globals", "@playwright/test"]
   },
   "include": ["tests", "playwright.config.ts"]

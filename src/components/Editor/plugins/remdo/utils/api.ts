@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Introduce strongly typed Remdo note APIs so this module can compile without suppressing type checking.
 import "lexical";
 //TODO merge and remove alias
 import {

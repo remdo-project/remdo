@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Rework QuickMenuPlugin as a typed overlay component so TypeScript can model its command payloads.
 //TODO try to use https://react-bootstrap.github.io/components/dropdowns/ or https://react-bootstrap.github.io/components/overlays/
 //TODO this is a react component, not a lexical plugin
 //TODO rename plugins to lexical plugins

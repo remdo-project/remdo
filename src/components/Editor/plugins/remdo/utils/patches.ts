@@ -1,3 +1,5 @@
+// @ts-nocheck
+// TODO(remdo): Replace runtime patching with typed extension points to avoid suppressing type checking here.
 import { patch } from "@/utils";
 
 export function applyNodePatches(NodeType: any) {

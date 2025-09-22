@@ -14,6 +14,7 @@ import { Dropdown, NavDropdown } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import { WebsocketProvider } from "y-websocket";
+import type { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import { useEditorConfig } from "../config";
 
@@ -21,14 +22,23 @@ import { useEditorConfig } from "../config";
 //neither available nor used
 const yIDB = "indexedDB" in window ? import("y-indexeddb") : null;
 
-type ProviderFactory = (id: string, yjsDocMap: Map<string, Y.Doc>) => Provider;
+export type DocumentProvider =
+  | Provider
+  | WebsocketProvider
+  | HocuspocusProvider
+  | IndexeddbPersistence;
+
+type ProviderFactory = (
+  id: string,
+  yjsDocMap: Map<string, Y.Doc>
+) => Provider;
 export interface DocumentSelectorType {
   documentID: string;
   setDocumentID: (id: string) => void;
   yjsProviderFactory: ProviderFactory;
   getYjsDoc: () => Y.Doc | null;
-  yjsProvider: WebsocketProvider | null;
-  getYjsProvider: () => Provider;
+  yjsProvider: DocumentProvider | null;
+  getYjsProvider: () => DocumentProvider | null;
 }
 
 const DocumentSelectorContext = createContext<DocumentSelectorType | null>(null);
@@ -57,8 +67,10 @@ export const DocumentSelectorProvider = ({
   );
   const yjsDoc = useRef<Y.Doc | null>(null);
   //FIXME remove the duplication
-  const yjsProvider = useRef<Provider | null>(null);
-  const [currentProvider, setCurrentProvider] = useState<Provider | null>(null);
+  const yjsProvider = useRef<DocumentProvider | null>(null);
+  const [currentProvider, setCurrentProvider] = useState<DocumentProvider | null>(
+    null
+  );
   const editorConfig = useEditorConfig();
 
   const yjsProviderFactory: ProviderFactory = useMemo((): ProviderFactory => {
@@ -106,11 +118,11 @@ export const DocumentSelectorProvider = ({
         */
 
         //TODO remove duplicated provider
-        // @ts-expect-error yjsProvider stores IndexedDB provider types at runtime
         yjsProvider.current = wsProvider;
         setCurrentProvider(wsProvider);
+        return wsProvider as unknown as Provider;
       }
-      return yjsProvider.current;
+      return yjsProvider.current as Provider;
     };
     return factory;
   }, [editorConfig.disableWS]);
@@ -128,7 +140,7 @@ export const DocumentSelectorProvider = ({
         yjsProvider.current = provider;
         yjsDocMap.set(id, provider.document);
         yjsDoc.current = provider.document;
-        return provider;
+        return provider as unknown as Provider;
       };
       return factory;
     }, []);
@@ -137,7 +149,10 @@ export const DocumentSelectorProvider = ({
   void hocuspocusProviderFactory;
 
   const getYjsDoc = useCallback(() => yjsDoc.current, []);
-  const getYjsProvider = useCallback(() => yjsProvider.current, []);
+  const getYjsProvider = useCallback(
+    () => yjsProvider.current,
+    []
+  );
 
   const contextValue = useMemo(
     () => ({
