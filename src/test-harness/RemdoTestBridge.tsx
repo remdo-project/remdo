@@ -1,11 +1,22 @@
 import { useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $isListItemNode, $isListNode } from "@lexical/list";
-import { CLEAR_HISTORY_COMMAND, $getRoot, type LexicalEditor } from "lexical";
+import {
+  CLEAR_HISTORY_COMMAND,
+  $getRoot,
+  COMMAND_PRIORITY_LOW,
+  type LexicalEditor,
+} from "lexical";
 import {
   ensureListItemSharedState,
   restoreRemdoStateFromJSON,
 } from "@/features/editor/plugins/remdo/utils/noteState";
+import { getNotesFromSelection } from "@/features/editor/plugins/remdo/utils/api";
+import {
+  NOTES_OPEN_QUICK_MENU_COMMAND,
+  YJS_SYNCED_COMMAND,
+} from "@/features/editor/plugins/remdo/utils/commands";
+import { getOffsetPosition } from "@/utils";
 
 export default function RemdoTestBridge(): null {
   const [editor] = useLexicalComposerContext();
@@ -15,13 +26,14 @@ export default function RemdoTestBridge(): null {
       return;
     }
 
-    const api = createAPI(editor);
+    const { api, dispose } = createAPI(editor);
     window.remdoTest = api;
 
     return () => {
       if (window.remdoTest === api) {
         delete window.remdoTest;
       }
+      dispose();
     };
   }, [editor]);
 
@@ -29,7 +41,45 @@ export default function RemdoTestBridge(): null {
 }
 
 function createAPI(editor: LexicalEditor) {
-  return {
+  const disposables: Array<() => void> = [];
+  const searchParams = new URLSearchParams(window.location.search);
+  const collabEnabled = searchParams.get("ws") !== "false";
+  let isYjsSynced = !collabEnabled;
+
+  type Waiter = {
+    resolve: () => void;
+    reject: (error: Error) => void;
+    timeoutId: ReturnType<typeof setTimeout>;
+  };
+
+  const waiters = new Set<Waiter>();
+
+  const notifySynced = () => {
+    if (isYjsSynced) {
+      return;
+    }
+    isYjsSynced = true;
+    for (const waiter of waiters) {
+      clearTimeout(waiter.timeoutId);
+      waiter.resolve();
+    }
+    waiters.clear();
+  };
+
+  if (collabEnabled) {
+    disposables.push(
+      editor.registerCommand(
+        YJS_SYNCED_COMMAND,
+        () => {
+          notifySynced();
+          return false;
+        },
+        COMMAND_PRIORITY_LOW
+      )
+    );
+  }
+
+  const api = {
     async replaceDocument(editorStateJson: unknown): Promise<void> {
       if ((editor as unknown as { __collab?: { enabled?: boolean } }).__collab?.enabled) {
         throw new Error("replaceDocument: collab mode is enabled. Disable Yjs for this test.");
@@ -68,6 +118,64 @@ function createAPI(editor: LexicalEditor) {
           root.selectEnd();
         });
       });
+    },
+    async waitForCollaborationReady(timeoutMs = 5000): Promise<void> {
+      if (!collabEnabled || isYjsSynced) {
+        return;
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        const waiter: Waiter = {
+          resolve: () => {
+            clearTimeout(waiter.timeoutId);
+            waiters.delete(waiter);
+            resolve();
+          },
+          reject: (error: Error) => {
+            clearTimeout(waiter.timeoutId);
+            waiters.delete(waiter);
+            reject(error);
+          },
+          timeoutId: setTimeout(() => {
+            waiters.delete(waiter);
+            reject(new Error(`waitForCollaborationReady timed out after ${timeoutMs}ms`));
+          }, timeoutMs),
+        };
+        waiters.add(waiter);
+      });
+    },
+    //TODO this should be implemented on the test level
+    async openQuickMenuFromSelection(): Promise<void> {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        throw new Error("openQuickMenuFromSelection: no active selection range");
+      }
+
+      const range = selection.getRangeAt(0);
+      const { left, top } = getOffsetPosition(editor, range);
+      const noteKeys = editor.read(() =>
+        getNotesFromSelection().map((note) => note.lexicalKey)
+      );
+
+      editor.dispatchCommand(NOTES_OPEN_QUICK_MENU_COMMAND, {
+        left,
+        top,
+        noteKeys,
+      });
+    },
+  };
+
+  return {
+    api,
+    dispose: () => {
+      for (const waiter of waiters) {
+        clearTimeout(waiter.timeoutId);
+        waiter.resolve();
+      }
+      waiters.clear();
+      for (const dispose of disposables) {
+        dispose();
+      }
     },
   };
 }
@@ -136,6 +244,8 @@ declare global {
   interface Window {
     remdoTest?: {
       replaceDocument: (editorStateJson: unknown) => Promise<void>;
+      waitForCollaborationReady: (timeoutMs?: number) => Promise<void>;
+      openQuickMenuFromSelection: () => Promise<void>;
     };
     REMDO_TEST?: boolean;
   }

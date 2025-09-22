@@ -24,7 +24,11 @@ export class Notebook {
 
     await this.page.evaluate(async (editorState) => {
       const api = (window as typeof window & {
-        remdoTest?: { replaceDocument(json: unknown): Promise<void> };
+        remdoTest?: {
+          replaceDocument(json: unknown): Promise<void>;
+          waitForCollaborationReady?(timeoutMs?: number): Promise<void>;
+          openQuickMenuFromSelection?(): Promise<void>;
+        };
       }).remdoTest;
 
       if (!api?.replaceDocument) {
@@ -35,6 +39,7 @@ export class Notebook {
     }, payload);
 
     await this.locator().focus();
+    await this.waitForCollaborationReady();
   }
 
   /**
@@ -63,30 +68,18 @@ export class Notebook {
   }
 
   async selectNote(title: string) {
-    await waitForSelectionChange(this.page, async () => {
-      await this.noteLocator(title).selectText();
-    });
+    await this.performSelectionAction(() => this.noteLocator(title).selectText());
   }
 
   /** Places cursor at the very end of a given note's title */
   async clickEndOfNote(title: string) {
-    const noteLocator = this.noteLocator(title);
-    await waitForSelectionChange(this.page, async () => {
-      await noteLocator.selectText();
-    });
-    await waitForSelectionChange(this.page, async () => {
-      await this.page.keyboard.press("ArrowRight");
-    });
+    await this.performSelectionAction(() => this.noteLocator(title).selectText());
+    await this.performSelectionAction(() => this.page.keyboard.press("ArrowRight"));
   }
 
   async clickBeginningOfNote(title: string) {
-    const noteLocator = this.noteLocator(title);
-    await waitForSelectionChange(this.page, async () => {
-      await noteLocator.selectText();
-    });
-    await waitForSelectionChange(this.page, async () => {
-      await this.page.keyboard.press("ArrowLeft");
-    });
+    await this.performSelectionAction(() => this.noteLocator(title).selectText());
+    await this.performSelectionAction(() => this.page.keyboard.press("ArrowLeft"));
   }
 
   async getNotes() {
@@ -111,6 +104,35 @@ export class Notebook {
     const x = Math.max(0, box.x - margin);
     const y = box.y + box.height / 2;
     await this.page.mouse.click(x, y);
+  }
+
+  private async performSelectionAction(action: () => Promise<unknown>) {
+    const maxAttempts = 3;
+    let lastError: unknown;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        await waitForSelectionChange(this.page, async () => {
+          await action();
+        });
+        return;
+      } catch (error) {
+        lastError = error;
+        if (!isDetachedError(error) || attempt === maxAttempts - 1) {
+          throw error;
+        }
+        await this.page.waitForTimeout(50 * (attempt + 1));
+      }
+    }
+    if (lastError instanceof Error) {
+      throw lastError;
+    }
+    throw new Error("performSelectionAction failed without an Error instance");
+  }
+
+  private async waitForCollaborationReady() {
+    await this.page.evaluate(async () => {
+      await window.remdoTest?.waitForCollaborationReady?.();
+    });
   }
 }
 
@@ -164,9 +186,22 @@ class Menu {
   async open(noteText?: string) {
     if (noteText) {
       await this.notebook.selectNote(noteText);
+    } else {
+      const hasSelection = await this.page.evaluate(() => {
+        const selection = window.getSelection();
+        return Boolean(selection && selection.rangeCount > 0);
+      });
+      if (!hasSelection) {
+        const notes = await this.notebook.getNotes();
+        const firstNote = notes[0];
+        if (firstNote) {
+          await this.notebook.selectNote(firstNote);
+        }
+      }
     }
-    await this.page.keyboard.press("Shift", { delay: 20 });
-    await this.page.keyboard.press("Shift", { delay: 20 });
+    await this.page.evaluate(async () => {
+      await window.remdoTest?.openQuickMenuFromSelection?.();
+    });
     await this.waitForQuickMenuShown();
   }
 
@@ -197,6 +232,13 @@ export const test = base.extend<{
     await use(new Menu(page, notebook));
   },
 });
+
+function isDetachedError(error: unknown): error is Error {
+  return (
+    error instanceof Error &&
+    error.message.includes("Element is not attached to the DOM")
+  );
+}
 
 export async function waitForSelectionChange(
   page: Page,

@@ -4,7 +4,7 @@ import { expect } from "@playwright/test";
 test("menu icon follows selection", async ({ menu, notebook }) => { 
      await notebook.load("flat");
      const note = notebook.noteLocator("note2"); 
-     await note.selectText();
+     await notebook.selectNote("note2");
      const noteBB = await note.boundingBox(); 
      const menuIconBB = await menu.iconLocator().boundingBox(); 
      const menuIconCenter = menuIconBB.y + menuIconBB.height / 2;
