@@ -1,0 +1,39 @@
+name: Playwright Collab Tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Playwright (Chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Run collab Playwright tests
+        run: |
+          npm run websocket &
+          WEBSOCKET_PID=$!
+          cleanup() {
+            kill $WEBSOCKET_PID 2>/dev/null || true
+          }
+          trap cleanup EXIT ERR INT TERM
+          npx wait-on ws://127.0.0.1:8080
+          npm run test-browser-collab
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: data
+          path: data/
+          retention-days: 30
