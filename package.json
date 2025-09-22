@@ -45,7 +45,7 @@
     "test-unit": "npx vitest run",
     "test-performance": "VITE_PERFORMANCE_TESTS=true VITE_LOG_LEVEL=info time -f 'Time: %es' npx vitest run performance/performance --reporter ./tests/unit/performance/reporter.ts -t",
     "test-unit-collab": "FORCE_WEBSOCKET=true npx vitest run tests/unit/collab --maxWorkers=1",
-    "test-unit-watch": "npx vitest --watch --ui",
+    "test-unit-watch": "npx vitest --watch --ui --api.host 0.0.0.0",
     "test-unit-minimal": "npx vitest --reporter=./tests/unit/common/reporter.ts --watch --ui",
     "test-serialization": "npx vitest run tests/unit/serialization.spec.ts",
     "test": "npm run test-unit && npm run test-browser",
