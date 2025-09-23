@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       publish: ${{ steps.publish.outputs.enabled }}
+      slug: ${{ steps.branch.outputs.slug }}
     steps:
       - uses: actions/checkout@v5
 
@@ -141,3 +142,10 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Log report location
+        run: |
+          set -euo pipefail
+          base_url='${{ steps.deployment.outputs.page_url }}'
+          branch_slug='${{ needs.test.outputs.slug }}'
+          base_url="${base_url%/}"
+          echo "Playwright report for branch '${branch_slug}' available at: ${base_url}/branches/${branch_slug}/"
