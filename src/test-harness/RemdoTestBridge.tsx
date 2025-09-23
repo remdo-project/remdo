@@ -5,6 +5,7 @@ import {
   CLEAR_HISTORY_COMMAND,
   $getRoot,
   COMMAND_PRIORITY_LOW,
+  SKIP_COLLAB_TAG,
   type LexicalEditor,
 } from "lexical";
 import {
@@ -81,10 +82,6 @@ function createAPI(editor: LexicalEditor) {
 
   const api = {
     async replaceDocument(editorStateJson: unknown): Promise<void> {
-      if ((editor as unknown as { __collab?: { enabled?: boolean } }).__collab?.enabled) {
-        throw new Error("replaceDocument: collab mode is enabled. Disable Yjs for this test.");
-      }
-
       const serialized =
         typeof editorStateJson === "string" ? editorStateJson : JSON.stringify(editorStateJson);
       const parsedState = parseEditorState(serialized);
@@ -92,6 +89,46 @@ function createAPI(editor: LexicalEditor) {
       ensureListItemSharedState(editor as unknown as { _nodes?: Map<string, unknown> });
 
       const nextState = editor.parseEditorState(serialized);
+      if (collabEnabled) {
+        await api.waitForCollaborationReady();
+        await runAndWaitForCommit(editor, () => {
+          editor.setEditorState(nextState, { tag: SKIP_COLLAB_TAG });
+        });
+
+        if (parsedState?.root !== undefined) {
+          await runAndWaitForCommit(editor, () => {
+            editor.update(
+              () => {
+                restoreRemdoStateFromJSON(editor, parsedState.root);
+              },
+              { tag: SKIP_COLLAB_TAG }
+            );
+          });
+        }
+
+        editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
+
+        await runAndWaitForCommit(editor, () => {
+          editor.update(
+            () => {
+              const root = $getRoot();
+              const lastList = root.getLastChild();
+              if ($isListNode(lastList)) {
+                const lastItem = lastList.getLastChild();
+                if ($isListItemNode(lastItem)) {
+                  lastItem.selectEnd();
+                  return;
+                }
+              }
+              root.selectEnd();
+            },
+            { tag: SKIP_COLLAB_TAG }
+          );
+        });
+
+        return;
+      }
+
       await runAndWaitForCommit(editor, () => {
         editor.setEditorState(nextState);
       });
