@@ -120,7 +120,6 @@ jobs:
           rm -rf pages/playwright-report
           rm -rf "pages/branches/${BRANCH_SLUG}"
           mv data/playwright-report "pages/branches/${BRANCH_SLUG}"
-          touch "pages/branches/${BRANCH_SLUG}"
           cd pages/branches
           ls -1t | tail -n +21 | xargs -r rm -rf
           cd ../..
