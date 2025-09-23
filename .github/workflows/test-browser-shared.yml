@@ -90,7 +90,6 @@ jobs:
         id: publish
         if: always()
         env:
-          REF: ${{ github.ref }}
           REPORT_PRESENT: ${{ steps.report.outputs.present }}
         run: |
           can_publish=false
