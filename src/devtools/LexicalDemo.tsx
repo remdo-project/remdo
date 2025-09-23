@@ -32,18 +32,16 @@ function createInitialState() {
 
 function createCollaborationProviderFactory(endpoint: string) {
   return (id: string, yjsDocMap: Map<string, Y.Doc>): Provider => {
-    const existingDoc = yjsDocMap.get(id);
-    const doc = existingDoc ?? new Y.Doc();
+    const doc = yjsDocMap.get(id) ?? new Y.Doc({ gc: false });
+    yjsDocMap.set(id, doc);
 
-    if (!existingDoc) {
-      yjsDocMap.set(id, doc);
-    }
-
-    doc.getXmlFragment("root");
+    // Lexical's Yjs binding expects the shared root to be a Y.XmlText node.
+    doc.get("root", Y.XmlText);
 
     const provider = new WebsocketProvider(endpoint, `lexical-demo/${id}`, doc, {
       connect: true,
     });
+    provider.shouldConnect = true;
 
     return provider;
   };
