@@ -1,37 +1,26 @@
-import { NotesState } from "../plugins/remdo/utils/api";
-import { HocuspocusProvider } from "@hocuspocus/provider";
 import type { Provider } from "@lexical/yjs";
+import type { WebsocketProvider } from "y-websocket";
 import {
   createContext,
   type ReactNode,
   use,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { Dropdown, NavDropdown } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
-import { useSearchParams } from "react-router-dom";
-import { WebsocketProvider } from "y-websocket";
-import type { IndexeddbPersistence } from "y-indexeddb";
-import * as Y from "yjs";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { createWebsocketProvider } from "../collab/createWebsocketProvider";
 import { useEditorConfig } from "../config";
+import { NotesState } from "../plugins/remdo/utils/api";
+import * as Y from "yjs";
 
-//import conditionally, because it breaks unit tests, where indexedDB is
-//neither available nor used
-const yIDB = "indexedDB" in window ? import("y-indexeddb") : null;
+export type DocumentProvider = Provider & WebsocketProvider;
 
-export type DocumentProvider =
-  | Provider
-  | WebsocketProvider
-  | HocuspocusProvider
-  | IndexeddbPersistence;
+type ProviderFactory = (id: string, yjsDocMap: Map<string, Y.Doc>) => Provider;
 
-type ProviderFactory = (
-  id: string,
-  yjsDocMap: Map<string, Y.Doc>
-) => Provider;
 export interface DocumentSelectorType {
   documentID: string;
   setDocumentID: (id: string) => void;
@@ -43,146 +32,92 @@ export interface DocumentSelectorType {
 
 const DocumentSelectorContext = createContext<DocumentSelectorType | null>(null);
 
-// TODO: Split this hook into its own module so Fast Refresh can correctly
-// treat the provider file as component-only exports.
 // eslint-disable-next-line react-refresh/only-export-components
 export const useDocumentSelector = () => {
   const context = use(DocumentSelectorContext);
   if (!context) {
-    throw new Error(
-      "useDocumentSelector must be used within a DocumentSelectorProvider"
-    );
+    throw new Error("useDocumentSelector must be used within a DocumentSelectorProvider");
   }
   return context;
 };
 
-export const DocumentSelectorProvider = ({
-  children,
-}: {
-  children: ReactNode;
-}) => {
+function getWebsocketEndpoint() {
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const host = window.location.hostname;
+  return `${protocol}://${host}:8080`;
+}
+
+export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) => {
   const [searchParams] = useSearchParams();
-  const [documentID, setDocumentID] = useState(
-    searchParams.get("documentID") ?? "main"
-  );
-  const yjsDoc = useRef<Y.Doc | null>(null);
-  //FIXME remove the duplication
-  const yjsProvider = useRef<DocumentProvider | null>(null);
-  const [currentProvider, setCurrentProvider] = useState<DocumentProvider | null>(
-    null
-  );
+  const [documentID, setDocumentID] = useState(searchParams.get("documentID") ?? "main");
   const editorConfig = useEditorConfig();
+  const yjsDocs = useRef(new Map<string, Y.Doc>());
+  const yjsProviderRef = useRef<DocumentProvider | null>(null);
+  const [currentProvider, setCurrentProvider] = useState<DocumentProvider | null>(null);
 
-  const yjsProviderFactory: ProviderFactory = useMemo((): ProviderFactory => {
-    const factory: ProviderFactory = (
-      id: string,
-      yjsDocMap: Map<string, Y.Doc>
-    ): Provider => {
-      let doc = yjsDocMap.get(id);
+  const getYjsDoc = useCallback(() => {
+    return yjsDocs.current.get(documentID) ?? null;
+  }, [documentID]);
 
-      if (doc) {
-        doc.load();
-      } else {
-        doc = new Y.Doc();
-        yjsDocMap.set(id, doc);
+  const getYjsProvider = useCallback(() => yjsProviderRef.current, []);
+
+  const yjsProviderFactory: ProviderFactory = useCallback((id: string, yjsDocMap: Map<string, Y.Doc>) => {
+    const existingDoc = yjsDocs.current.get(id);
+    const doc = existingDoc ?? new Y.Doc({ gc: false });
+    yjsDocs.current.set(id, doc);
+    yjsDocMap.set(id, doc);
+
+    // Ensure the shared root exists before Lexical binds to the document.
+    doc.get("root", Y.XmlText);
+
+    const provider = createWebsocketProvider({
+      id,
+      doc,
+      endpoint: getWebsocketEndpoint(),
+      roomPrefix: "notes/0/",
+    });
+
+    yjsProviderRef.current = provider;
+    setCurrentProvider(provider);
+
+    const handleDestroy = () => {
+      if (yjsDocs.current.get(id) === doc) {
+        yjsDocs.current.delete(id);
       }
-      yjsDoc.current = doc;
-
-      if (yIDB) {
-        yIDB.then(({ IndexeddbPersistence }) => {
-          const idbProvider = new IndexeddbPersistence(id, doc);
-          yjsProvider.current = idbProvider;
-          setCurrentProvider(idbProvider);
-        });
-      } else if (!("__vitest_environment__" in globalThis)) {
-        console.warn(
-          "IndexedDB is not supported in this browser. Disabling offline mode."
-        );
+      if (yjsProviderRef.current === provider) {
+        yjsProviderRef.current = null;
       }
-
-      if (!editorConfig.disableWS) {
-        const wsURL = `ws://${window.location.hostname}:8080`;
-        const roomName = "notes/0/" + id;
-        const wsProvider = new WebsocketProvider(wsURL, roomName, doc, {
-          connect: true,
-        });
-        wsProvider.shouldConnect = true; // reconnect after disconnecting
-
-        /*
-        const events = ["status", "synced", "sync", "update", "error", "destroy", "reload"];
-        events.forEach((event) => {
-          wsProvider.on(event, () => {
-            console.log("wsProvider", event);
-          });
-        });
-        */
-
-        //TODO remove duplicated provider
-        yjsProvider.current = wsProvider;
-        setCurrentProvider(wsProvider);
-        return wsProvider as unknown as Provider;
-      }
-      return yjsProvider.current as Provider;
+      setCurrentProvider((prev) => (prev === provider ? null : prev));
+      provider.off("destroy", handleDestroy);
     };
-    return factory;
-  }, [editorConfig.disableWS]);
 
-  const hocuspocusProviderFactory: ProviderFactory =
-    useMemo((): ProviderFactory => {
-      const factory: ProviderFactory = (
-        id: string,
-        yjsDocMap: Map<string, Y.Doc>
-      ): Provider => {
-        const wsURL = `ws://${window.location.hostname}:8080`;
-        const roomName = "notes/0/" + id;
-        const provider = new HocuspocusProvider({ url: wsURL, name: roomName });
+    provider.on("destroy", handleDestroy);
 
-        yjsProvider.current = provider;
-        yjsDocMap.set(id, provider.document);
-        yjsDoc.current = provider.document;
-        return provider as unknown as Provider;
-      };
-      return factory;
-    }, []);
-
-  // TODO: Revisit alternative Hocuspocus backend wiring once persistence is available without IndexedDB.
-  void hocuspocusProviderFactory;
-
-  const getYjsDoc = useCallback(() => yjsDoc.current, []);
-  const getYjsProvider = useCallback(
-    () => yjsProvider.current,
-    []
-  );
+    return provider;
+  }, []);
 
   const contextValue = useMemo(
     () => ({
       documentID,
       setDocumentID,
       yjsProviderFactory,
-      //yjsProviderFactory: hocuspocusProviderFactory, //currently doesn't support persistance, even between page reloads
-      //TODO make it a property, same as provider
       getYjsDoc,
-      yjsProvider: currentProvider, //FIXME remove
+      yjsProvider: currentProvider,
       getYjsProvider,
     }),
-    [
-      currentProvider,
-      documentID,
-      getYjsDoc,
-      getYjsProvider,
-      yjsProviderFactory,
-    ]
+    [currentProvider, documentID, getYjsDoc, getYjsProvider, yjsProviderFactory],
   );
 
-  // TODO: Similar to DebugContext, this module mixes provider, hook, and context
-  // exports which trips `react-refresh/only-export-components`. Untangling it will
-  // require coordinating changes across the editor bootstrapping tests.
+  useEffect(() => {
+    if (!editorConfig.disableWS) {
+      return;
+    }
+    yjsDocs.current.clear();
+    yjsProviderRef.current = null;
+    setCurrentProvider(null);
+  }, [editorConfig.disableWS]);
 
-  return (
-    <DocumentSelectorContext value={contextValue}>
-      {children}
-    </DocumentSelectorContext>
-  );
+  return <DocumentSelectorContext value={contextValue}>{children}</DocumentSelectorContext>;
 };
 
 export function DocumentSelector() {
