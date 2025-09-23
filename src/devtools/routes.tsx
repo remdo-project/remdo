@@ -13,6 +13,10 @@ const DevYjs = lazy(async () => ({
   default: (await import("./yjs/Yjs")).Yjs,
 }));
 
+const DevLexicalDemo = lazy(async () => ({
+  default: (await import("./LexicalDemo")).LexicalDemo,
+}));
+
 export function renderDevRoutes() {
   if (!import.meta.env.DEV) {
     return null;
@@ -40,6 +44,14 @@ export function renderDevRoutes() {
         element={
           <Suspense fallback={null}>
             <DevYjs />
+          </Suspense>
+        }
+      />
+      <Route
+        path="lexical"
+        element={
+          <Suspense fallback={null}>
+            <DevLexicalDemo />
           </Suspense>
         }
       />
