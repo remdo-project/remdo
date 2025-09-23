@@ -37,11 +37,15 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
+        id: run-standard
         if: ${{ !inputs.collab }}
+        continue-on-error: true
         run: npm run test-browser
 
       - name: Run collab Playwright tests
+        id: run-collab
         if: ${{ inputs.collab }}
+        continue-on-error: true
         run: |
           npm run websocket &
           WEBSOCKET_PID=$!
@@ -86,17 +90,12 @@ jobs:
         id: publish
         if: always()
         env:
-          REF: ${{ github.ref }}
           REPORT_PRESENT: ${{ steps.report.outputs.present }}
         run: |
           can_publish=false
-          case "$REF" in
-            refs/heads/main|refs/heads/codex/*)
-              if [ "$REPORT_PRESENT" = "true" ]; then
-                can_publish=true
-              fi
-              ;;
-          esac
+          if [ "$REPORT_PRESENT" = "true" ]; then
+            can_publish=true
+          fi
           echo "enabled=$can_publish" >>"$GITHUB_OUTPUT"
 
       - name: Fetch existing GitHub Pages content
@@ -130,6 +129,10 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: pages
+
+      - name: Capture Playwright failure
+        if: ${{ steps.run-standard.outcome == 'failure' || steps.run-collab.outcome == 'failure' }}
+        run: exit 1
 
   deploy:
     if: ${{ always() && needs.test.outputs.publish == 'true' }}
