@@ -2,6 +2,15 @@ name: Playwright Tests
 
 on: push
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -28,3 +37,21 @@ jobs:
           name: data
           path: data/
           retention-days: 30
+
+      - name: Upload Playwright report to GitHub Pages
+        if: ${{ always() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/codex/')) && hashFiles('data/playwright-report/index.html') != '' }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: data/playwright-report
+
+  deploy:
+    if: ${{ always() && needs.test.result != 'cancelled' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/codex/')) }}
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
