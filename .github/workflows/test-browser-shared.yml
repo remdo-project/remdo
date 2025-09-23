@@ -1,0 +1,144 @@
+name: Playwright Browser Tests
+
+on:
+  workflow_call:
+    inputs:
+      collab:
+        description: Run collaboration-specific Playwright suite
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ replace(github.ref, '/', '-') }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.publish.outputs.enabled }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Playwright (Chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        if: ${{ !inputs.collab }}
+        run: npm run test-browser
+
+      - name: Run collab Playwright tests
+        if: ${{ inputs.collab }}
+        run: |
+          npm run websocket &
+          WEBSOCKET_PID=$!
+          cleanup() {
+            if kill -0 "$WEBSOCKET_PID" 2>/dev/null; then
+              kill "$WEBSOCKET_PID"
+            fi
+          }
+          trap cleanup EXIT ERR INT TERM
+          npx wait-on --timeout 1000 tcp:127.0.0.1:8080
+          npm run test-browser-collab
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: data
+          path: data/
+          retention-days: 30
+
+      - name: Check for Playwright report
+        id: report
+        if: always()
+        run: |
+          if [ -f data/playwright-report/index.html ]; then
+            echo "present=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "present=false" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute branch slug
+        id: branch
+        if: always()
+        run: |
+          ref_name="${GITHUB_REF_NAME:-${GITHUB_REF##*/}}"
+          slug=$(echo "$ref_name" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g' | sed -E 's/^-+|-+$//g')
+          if [ -z "$slug" ]; then
+            slug="branch"
+          fi
+          echo "slug=$slug" >>"$GITHUB_OUTPUT"
+
+      - name: Determine publishing eligibility
+        id: publish
+        if: always()
+        env:
+          REF: ${{ github.ref }}
+          REPORT_PRESENT: ${{ steps.report.outputs.present }}
+        run: |
+          can_publish=false
+          case "$REF" in
+            refs/heads/main|refs/heads/codex/*)
+              if [ "$REPORT_PRESENT" = "true" ]; then
+                can_publish=true
+              fi
+              ;;
+          esac
+          echo "enabled=$can_publish" >>"$GITHUB_OUTPUT"
+
+      - name: Fetch existing GitHub Pages content
+        if: ${{ steps.publish.outputs.enabled == 'true' }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code origin gh-pages &>/dev/null; then
+            git fetch origin gh-pages:gh-pages
+            git worktree add gh-pages-source gh-pages
+          fi
+
+      - name: Prepare Pages artifact
+        if: ${{ steps.publish.outputs.enabled == 'true' }}
+        env:
+          BRANCH_SLUG: ${{ steps.branch.outputs.slug }}
+        run: |
+          set -euo pipefail
+          mkdir -p pages/branches
+          if [ -d gh-pages-source ]; then
+            rsync -a --delete --exclude '.git' gh-pages-source/ pages/
+          fi
+          rm -rf pages/playwright-report
+          rm -rf "pages/branches/${BRANCH_SLUG}"
+          mv data/playwright-report "pages/branches/${BRANCH_SLUG}"
+          touch "pages/branches/${BRANCH_SLUG}"
+          cd pages/branches
+          ls -1t | tail -n +21 | xargs -r rm -rf
+          cd ../..
+
+      - name: Upload Playwright report to GitHub Pages
+        if: ${{ steps.publish.outputs.enabled == 'true' }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+
+  deploy:
+    if: ${{ always() && needs.test.outputs.publish == 'true' }}
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
