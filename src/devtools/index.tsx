@@ -56,6 +56,9 @@ export function DevTools() {
           <a href="/_dev/demo">Demo React</a>
         </li>
         <li>
+          <a href="/_dev/lexical">Lexical Demo</a>
+        </li>
+        <li>
           <a
             href={`http://${location.hostname}:3000/?isCollab=true&collabEndpoint=ws://${location.hostname}:1234`}
           >
