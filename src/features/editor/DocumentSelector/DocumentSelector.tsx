@@ -28,6 +28,8 @@ export interface DocumentSelectorType {
   getYjsDoc: () => Y.Doc | null;
   yjsProvider: DocumentProvider | null;
   getYjsProvider: () => DocumentProvider | null;
+  resetDocument: () => void;
+  version: number;
 }
 
 const DocumentSelectorContext = createContext<DocumentSelectorType | null>(null);
@@ -54,6 +56,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   const yjsDocs = useRef(new Map<string, Y.Doc>());
   const yjsProviderRef = useRef<DocumentProvider | null>(null);
   const [currentProvider, setCurrentProvider] = useState<DocumentProvider | null>(null);
+  const [version, setVersion] = useState(0);
 
   const getYjsDoc = useCallback(() => {
     return yjsDocs.current.get(documentID) ?? null;
@@ -96,6 +99,16 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
     return provider;
   }, []);
 
+  const resetDocument = useCallback(() => {
+    const provider = yjsProviderRef.current;
+    if (provider) {
+      provider.destroy();
+    } else {
+      yjsDocs.current.delete(documentID);
+    }
+    setVersion((prev) => prev + 1);
+  }, [documentID]);
+
   const contextValue = useMemo(
     () => ({
       documentID,
@@ -104,8 +117,18 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
       getYjsDoc,
       yjsProvider: currentProvider,
       getYjsProvider,
+      resetDocument,
+      version,
     }),
-    [currentProvider, documentID, getYjsDoc, getYjsProvider, yjsProviderFactory],
+    [
+      currentProvider,
+      documentID,
+      getYjsDoc,
+      getYjsProvider,
+      resetDocument,
+      version,
+      yjsProviderFactory,
+    ],
   );
 
   useEffect(() => {

@@ -8,16 +8,23 @@ import { useDocumentSelector } from "../DocumentSelector/DocumentSelector";
 import { mergeRegister } from "@lexical/utils";
 import { CONNECTED_COMMAND, TOGGLE_CONNECT_COMMAND } from "@lexical/yjs";
 import {
-  CLEAR_EDITOR_COMMAND,
+  $createParagraphNode,
+  $createTextNode,
+  $getRoot,
   CLEAR_HISTORY_COMMAND,
   COMMAND_PRIORITY_EDITOR,
 } from "lexical";
+import {
+  $createListItemNode,
+  $createListNode,
+  $isListNode,
+} from "@lexical/list";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import * as Y from "yjs";
 import TreeViewPlugin from "./TreeViewPlugin";
 import {
   ensureListItemSharedState,
+  $ensureNoteID,
   restoreRemdoStateFromJSON,
 } from "../plugins/remdo/utils/noteState";
 
@@ -97,17 +104,41 @@ export const DevToolbarPlugin = ({ editorBottomRef }) => {
   }
 
   const clearContent = () => {
-    editor.update(() => {
-      editor.dispatchCommand(SPACER_COMMAND, undefined);
-      editor.dispatchCommand(SPACER_COMMAND, undefined);
-      editor.dispatchCommand(SPACER_COMMAND, undefined);
-      editor.dispatchCommand(CLEAR_EDITOR_COMMAND, undefined);
-    });
-    const yjsDoc = documentSelector.getYjsDoc();
-    if (yjsDoc) {
-      const undoManager = new Y.UndoManager(yjsDoc.get("root"));
-      undoManager.clear();
+    const provider = documentSelector.getYjsProvider();
+    if (provider) {
+      documentSelector.resetDocument();
+      return;
     }
+
+    ensureListItemSharedState(editor as unknown as { _nodes?: Map<string, any> });
+
+    editor.dispatchCommand(SPACER_COMMAND, undefined);
+    editor.dispatchCommand(SPACER_COMMAND, undefined);
+    editor.dispatchCommand(SPACER_COMMAND, undefined);
+
+    editor.update(() => {
+      const root = $getRoot();
+      let list = root.getFirstChild();
+
+      if (!$isListNode(list)) {
+        root.clear();
+        list = $createListNode("bullet");
+        root.append(list);
+      } else {
+        list.clear();
+      }
+
+      const listItem = $createListItemNode();
+      $ensureNoteID(listItem);
+      const paragraph = $createParagraphNode();
+      paragraph.append($createTextNode(""));
+      listItem.append(paragraph);
+
+      list.append(listItem);
+      paragraph.selectStart();
+    });
+
+    editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
   };
 
   const toggleEditorStateInput = (event) => {

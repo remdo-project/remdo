@@ -32,7 +32,7 @@ function LexicalEditor() {
   return (
     <LexicalComposer
       initialConfig={editorConfig}
-      key={documentSelector.documentID}
+      key={`${documentSelector.documentID}:${documentSelector.version}`}
     >
       <div className="editor-container editor-shell">
         <DevToolbarPlugin editorBottomRef={editorBottomRef} />
