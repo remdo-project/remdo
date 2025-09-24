@@ -5,7 +5,7 @@ import {
 import "./Editor.scss";
 import { ClickableLinkPlugin as LexicalClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { ClearEditorPlugin } from "@lexical/react/LexicalClearEditorPlugin";
 import { CollaborationPlugin } from "@lexical/react/LexicalCollaborationPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -19,15 +19,27 @@ import { RemdoPlugin } from "./plugins/RemdoPlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
 import { RemdoListPlugin } from "./plugins/remdo/RemdoListPlugin";
-import { useEditorConfig } from "./config";
+import { useDisableCollaboration, useEditorConfig } from "./config";
+import { createCollaborationProviderFactory, getCollaborationEndpoint } from "./collab/createCollaborationProviderFactory";
 
 function LexicalEditor() {
+  const disableCollaboration = useDisableCollaboration();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const editorBottomRef = useRef<HTMLDivElement | null>(null);
   const documentSelector = useDocumentSelector();
   const editorConfig = useEditorConfig();
   const shouldMountTestBridge =
     !import.meta.env.PROD || (typeof window !== "undefined" && window.REMDO_TEST === true);
+  const wsEndpoint = getCollaborationEndpoint();
+
+  //TODO extract collab to a separate component
+  const providerFactory = useMemo(
+    () =>
+      createCollaborationProviderFactory({
+        endpoint: wsEndpoint,
+      }),
+    [wsEndpoint],
+  );
 
   return (
     <LexicalComposer
@@ -56,15 +68,15 @@ function LexicalEditor() {
         <LinkPlugin />
         <LexicalClickableLinkPlugin />
         <TabIndentationPlugin />
-        {
-          editorConfig.disableWS ?
-            (<HistoryPlugin />) : (
-            <CollaborationPlugin
-              id={documentSelector.documentID}
-              providerFactory={documentSelector.yjsProviderFactory}
-              shouldBootstrap={true}
-            />
-          )}
+        {disableCollaboration ? (
+          <HistoryPlugin />
+        ) : (
+          <CollaborationPlugin
+            id={documentSelector.documentID}
+            providerFactory={providerFactory}
+            shouldBootstrap={true}
+          />
+        )}
         <div id="editor-bottom" ref={editorBottomRef} />
       </div>
     </LexicalComposer>

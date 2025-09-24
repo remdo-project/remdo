@@ -12,10 +12,13 @@ import {
 } from "react";
 import { Dropdown, NavDropdown } from "react-bootstrap";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { createWebsocketProvider } from "../collab/createWebsocketProvider";
 import { useEditorConfig } from "../config";
 import { NotesState } from "../plugins/remdo/utils/api";
 import * as Y from "yjs";
+import {
+  createCollaborationProviderFactory,
+  getCollaborationEndpoint,
+} from "../collab/createCollaborationProviderFactory";
 
 export type DocumentProvider = Provider & WebsocketProvider;
 
@@ -43,12 +46,6 @@ export const useDocumentSelector = () => {
   return context;
 };
 
-function getWebsocketEndpoint() {
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const host = window.location.hostname;
-  return `${protocol}://${host}:8080`;
-}
-
 export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) => {
   const [searchParams] = useSearchParams();
   const [documentID, setDocumentID] = useState(searchParams.get("documentID") ?? "main");
@@ -58,46 +55,59 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   const [currentProvider, setCurrentProvider] = useState<DocumentProvider | null>(null);
   const [version, setVersion] = useState(0);
 
+  const baseProviderFactory = useMemo(
+    () =>
+      createCollaborationProviderFactory({
+        endpoint: getCollaborationEndpoint(),
+        roomPrefix: "notes/0/",
+        // Let Lexical's CollaborationPlugin attach listeners before the provider connects,
+        // mirroring the working setup used by LexicalDemo.
+        createDoc: () => new Y.Doc({ gc: false }),
+        initializeDoc: (doc, id, isNew) => {
+          if (isNew) {
+            // Ensure the shared root exists before Lexical binds to the document.
+            doc.get("root", Y.XmlText);
+          }
+        },
+      }),
+    [],
+  );
+
   const getYjsDoc = useCallback(() => {
     return yjsDocs.current.get(documentID) ?? null;
   }, [documentID]);
 
   const getYjsProvider = useCallback(() => yjsProviderRef.current, []);
 
-  const yjsProviderFactory: ProviderFactory = useCallback((id: string, yjsDocMap: Map<string, Y.Doc>) => {
-    const existingDoc = yjsDocs.current.get(id);
-    const doc = existingDoc ?? new Y.Doc({ gc: false });
-    yjsDocs.current.set(id, doc);
-    yjsDocMap.set(id, doc);
+  const yjsProviderFactory: ProviderFactory = useCallback(
+    (id: string, yjsDocMap: Map<string, Y.Doc>) => {
+      const provider = baseProviderFactory(id, yjsDocMap) as DocumentProvider;
+      const doc = yjsDocMap.get(id);
 
-    // Ensure the shared root exists before Lexical binds to the document.
-    doc.get("root", Y.XmlText);
-
-    const provider = createWebsocketProvider({
-      id,
-      doc,
-      endpoint: getWebsocketEndpoint(),
-      roomPrefix: "notes/0/",
-    });
-
-    yjsProviderRef.current = provider;
-    setCurrentProvider(provider);
-
-    const handleDestroy = () => {
-      if (yjsDocs.current.get(id) === doc) {
-        yjsDocs.current.delete(id);
+      if (doc) {
+        yjsDocs.current.set(id, doc);
       }
-      if (yjsProviderRef.current === provider) {
-        yjsProviderRef.current = null;
-      }
-      setCurrentProvider((prev) => (prev === provider ? null : prev));
-      provider.off("destroy", handleDestroy);
-    };
 
-    provider.on("destroy", handleDestroy);
+      yjsProviderRef.current = provider;
+      setCurrentProvider(provider);
 
-    return provider;
-  }, []);
+      const handleDestroy = () => {
+        if (doc && yjsDocs.current.get(id) === doc) {
+          yjsDocs.current.delete(id);
+        }
+        if (yjsProviderRef.current === provider) {
+          yjsProviderRef.current = null;
+        }
+        setCurrentProvider((prev) => (prev === provider ? null : prev));
+        provider.off("destroy", handleDestroy);
+      };
+
+      provider.on("destroy", handleDestroy);
+
+      return provider;
+    },
+    [baseProviderFactory],
+  );
 
   const resetDocument = useCallback(() => {
     const provider = yjsProviderRef.current;
@@ -135,9 +145,14 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
     if (!editorConfig.disableWS) {
       return;
     }
+
+    const provider = yjsProviderRef.current;
+    if (provider) {
+      provider.destroy();
+    }
+
     yjsDocs.current.clear();
     yjsProviderRef.current = null;
-    setCurrentProvider(null);
   }, [editorConfig.disableWS]);
 
   return <DocumentSelectorContext value={contextValue}>{children}</DocumentSelectorContext>;

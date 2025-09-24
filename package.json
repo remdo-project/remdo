@@ -40,7 +40,7 @@
     "hocuspocus": "node ./hocuspocus.mjs",
     "build": "vite build",
     "test-browser": "npm run build && VITE_ENABLE_FAST_REFRESH=false npm run playwright -- test --project chromium",
-    "test-browser-collab": "npm run build && FORCE_WEBSOCKET=true VITE_ENABLE_FAST_REFRESH=false npm run playwright -- test --project chromium tests/browser/collab",
+    "test-browser-collab": "FORCE_WEBSOCKET=true npm run test-browser",
     "test-browser-watch": "npm run build && VITE_ENABLE_FAST_REFRESH=false node ./scripts/playwright-watch.mjs --project chromium",
     "test-unit": "npx vitest run",
     "test-performance": "VITE_PERFORMANCE_TESTS=true VITE_LOG_LEVEL=info time -f 'Time: %es' npx vitest run performance/performance --reporter ./tests/unit/performance/reporter.ts -t",
