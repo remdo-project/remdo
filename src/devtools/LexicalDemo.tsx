@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -7,19 +7,11 @@ import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { CollaborationPlugin } from "@lexical/react/LexicalCollaborationPlugin";
 import { ListItemNode, ListNode } from "@lexical/list";
-import { $createParagraphNode, $createTextNode, $getRoot } from "lexical";
 import type { Provider } from "@lexical/yjs";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 import TreeViewPlugin from "@/features/editor/devtools/TreeViewPlugin";
 import { useDisableCollaboration } from "@/features/editor/config";
-
-function createInitialState() {
-  const root = $getRoot();
-  if (root.getFirstChild() === null) {
-    root.append($createParagraphNode().append($createTextNode("hello world")));
-  }
-}
 
 function createCollaborationProviderFactory(endpoint: string) {
   return (id: string, yjsDocMap: Map<string, Y.Doc>): Provider => {
@@ -31,9 +23,8 @@ function createCollaborationProviderFactory(endpoint: string) {
       doc.load();
     }
 
-    const roomName = `playground/0/${id}`;
-    console.warn("Collaboration endpoint:", endpoint);
-    console.warn("Room name:", roomName);
+    const roomName = `remdo/0/${id}`;
+    console.warn(`WS URL: ${endpoint}/${roomName}`);
     return new WebsocketProvider(endpoint, roomName, doc, {
       connect: false,
     }) as unknown as Provider;
@@ -43,13 +34,8 @@ function createCollaborationProviderFactory(endpoint: string) {
 export function LexicalDemo() {
   const disableCollaboration = useDisableCollaboration();
 
-  const collabConfig = useMemo(() => {
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const endpoint = `${protocol}://${window.location.hostname}:8080`;
-
-    return endpoint;
-  }, []);
-
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const wsEndpoint = `${protocol}://${window.location.hostname}:8080`;
   const documentId = "main";
 
   const initialConfig = useMemo(() => ({
@@ -58,12 +44,11 @@ export function LexicalDemo() {
       throw error;
     },
     nodes: [ListNode, ListItemNode],
-    editorState: createInitialState,
   }), []);
 
   const providerFactory = useMemo(
-    () => createCollaborationProviderFactory(collabConfig),
-    [collabConfig],
+    () => createCollaborationProviderFactory(wsEndpoint),
+    [wsEndpoint],
   );
 
   return (
@@ -71,7 +56,6 @@ export function LexicalDemo() {
       <div className="lexical-demo-container">
         <RichTextPlugin
           contentEditable={<ContentEditable className="lexical-demo-editor" />}
-          placeholder={<div className="placeholder">Start typing...</div>}
           ErrorBoundary={LexicalErrorBoundary}
         />
         <ListPlugin />
@@ -82,7 +66,6 @@ export function LexicalDemo() {
             id={documentId}
             providerFactory={providerFactory}
             shouldBootstrap={true}
-            initialEditorState={createInitialState}
           />
         )}
         <TreeViewPlugin />
