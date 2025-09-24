@@ -20,8 +20,6 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/data/playwright-browsers
     outputs:
       publish: ${{ steps.publish.outputs.enabled }}
       slug: ${{ steps.branch.outputs.slug }}
@@ -32,16 +30,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: data/playwright-browsers
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+
+      - name: Install Playwright (Chromium)
+        run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
         id: run-standard

@@ -18,23 +18,21 @@ const ignored = [
   "node_modules/**",
   "tests/**/report/**",
   "tests/**/screenshots/**",
-  "tests/**/videos/**",
+  "tests/**/videos/**"
 ];
 
 let currentRun = null;
 let rerunRequested = false;
 
-const command = process.platform === "win32" ? "npm.cmd" : "npm";
-const commandArgs = ["run", "--silent", "playwright", "--", "test", ...cliArgs];
-const displayCommand = [command, ...commandArgs];
-
 const startRun = () => {
+  const commandArgs = ["playwright", "test", ...cliArgs];
+  const displayCommand = ["npx", ...commandArgs];
   console.warn(`[watch] Starting tests.`);
-  console.warn(`[watch] Running ${displayCommand.join(" ")}`);
+  console.warn(`[watch] Running npx ${displayCommand.join(" ")}`);
 
-  currentRun = spawn(command, commandArgs, {
+  currentRun = spawn("npx", commandArgs, {
     env: process.env,
-    stdio: "inherit",
+    stdio: "inherit"
   });
 
   currentRun.on("exit", (code, signal) => {
@@ -69,7 +67,7 @@ const queueRun = () => {
 
 const watcher = chokidar.watch(watchTargets, {
   ignored,
-  ignoreInitial: true,
+  ignoreInitial: true
 });
 
 watcher.on("all", (event, filePath) => {
