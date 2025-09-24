@@ -1,4 +1,5 @@
 import { expect, Page } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 import { test } from "../common";
 import { Notebook } from "../notebook/common";
 import { env } from "../../../config/env.server";
@@ -11,7 +12,8 @@ test.describe("collaboration", () => {
       takeScreenshot?: (name?: string) => Promise<void>;
     };
 
-    const documentId = "collab-smoke";
+    const documentSuffix = process.env.PLAYWRIGHT_COLLAB_DOC_ID ?? randomUUID();
+    const documentId = `collab-smoke-${documentSuffix}`;
     const basePath = `/?debug=true&documentID=${documentId}`;
 
     const primary = new Notebook(page);

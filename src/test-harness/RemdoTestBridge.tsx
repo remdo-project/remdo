@@ -5,7 +5,6 @@ import {
   CLEAR_HISTORY_COMMAND,
   $getRoot,
   COMMAND_PRIORITY_LOW,
-  SKIP_COLLAB_TAG,
   type LexicalEditor,
 } from "lexical";
 import {
@@ -18,16 +17,19 @@ import {
   YJS_SYNCED_COMMAND,
 } from "@/features/editor/plugins/remdo/utils/commands";
 import { getOffsetPosition } from "@/utils";
+import { useDocumentSelector, type DocumentSelectorType } from "@/features/editor/DocumentSelector/DocumentSelector";
+import * as Y from "yjs";
 
 export default function RemdoTestBridge(): null {
   const [editor] = useLexicalComposerContext();
+  const documentSelector = useDocumentSelector();
 
   useEffect(() => {
     if (import.meta.env.PROD && !window.REMDO_TEST) {
       return;
     }
 
-    const { api, dispose } = createAPI(editor);
+    const { api, dispose } = createAPI(editor, documentSelector);
     window.remdoTest = api;
 
     return () => {
@@ -36,12 +38,12 @@ export default function RemdoTestBridge(): null {
       }
       dispose();
     };
-  }, [editor]);
+  }, [documentSelector, editor]);
 
   return null;
 }
 
-function createAPI(editor: LexicalEditor) {
+function createAPI(editor: LexicalEditor, documentSelector: DocumentSelectorType) {
   const disposables: Array<() => void> = [];
   const searchParams = new URLSearchParams(window.location.search);
   const collabEnabled = searchParams.get("ws") !== "false";
@@ -88,42 +90,48 @@ function createAPI(editor: LexicalEditor) {
 
       ensureListItemSharedState(editor as unknown as { _nodes?: Map<string, unknown> });
 
+      const clearSharedDocument = () => {
+        const sharedDoc = documentSelector.getYjsDoc?.();
+        if (!sharedDoc) {
+          return;
+        }
+        sharedDoc.transact(() => {
+          const root = sharedDoc.get("root", Y.XmlText) as Y.XmlText;
+          root.delete(0, root.length);
+        }, "remdo-test-reset");
+      };
+
       const nextState = editor.parseEditorState(serialized);
       if (collabEnabled) {
         await api.waitForCollaborationReady();
+        clearSharedDocument();
         await runAndWaitForCommit(editor, () => {
-          editor.setEditorState(nextState, { tag: SKIP_COLLAB_TAG });
+          editor.setEditorState(nextState);
         });
 
         if (parsedState?.root !== undefined) {
           await runAndWaitForCommit(editor, () => {
-            editor.update(
-              () => {
-                restoreRemdoStateFromJSON(editor, parsedState.root);
-              },
-              { tag: SKIP_COLLAB_TAG }
-            );
+            editor.update(() => {
+              restoreRemdoStateFromJSON(editor, parsedState.root);
+            });
           });
         }
 
         editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
 
         await runAndWaitForCommit(editor, () => {
-          editor.update(
-            () => {
-              const root = $getRoot();
-              const lastList = root.getLastChild();
-              if ($isListNode(lastList)) {
-                const lastItem = lastList.getLastChild();
-                if ($isListItemNode(lastItem)) {
-                  lastItem.selectEnd();
-                  return;
-                }
+          editor.update(() => {
+            const root = $getRoot();
+            const lastList = root.getLastChild();
+            if ($isListNode(lastList)) {
+              const lastItem = lastList.getLastChild();
+              if ($isListItemNode(lastItem)) {
+                lastItem.selectEnd();
+                return;
               }
-              root.selectEnd();
-            },
-            { tag: SKIP_COLLAB_TAG }
-          );
+            }
+            root.selectEnd();
+          });
         });
 
         return;
@@ -132,6 +140,8 @@ function createAPI(editor: LexicalEditor) {
       await runAndWaitForCommit(editor, () => {
         editor.setEditorState(nextState);
       });
+
+      clearSharedDocument();
 
       if (parsedState?.root !== undefined) {
         await runAndWaitForCommit(editor, () => {

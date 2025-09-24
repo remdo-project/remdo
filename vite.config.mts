@@ -6,6 +6,9 @@ import { defineConfig } from "vite";
 import type { PluginOption } from "vite";
 import { env } from "./config/env.server";
 
+const REMDO_LEXICAL_YJS_SHIM = path.resolve("./src/lexical-shims/remdoLexicalYjs.ts");
+const REMDO_LEXICAL_YJS_RAW = path.resolve("./node_modules/@lexical/yjs/LexicalYjs.mjs");
+
 export default defineConfig(({ command }) => {
   const enableFastRefresh = command === 'serve' && process.env.VITE_ENABLE_FAST_REFRESH !== 'false';
   return {
@@ -39,10 +42,9 @@ export default defineConfig(({ command }) => {
     ],
     resolve: {
       alias: [
-        {
-          find: "@",
-          replacement: path.resolve("./src"),
-        },
+        { find: "@", replacement: path.resolve("./src") },
+        { find: "@lexical/yjs", replacement: REMDO_LEXICAL_YJS_SHIM },
+        { find: "@lexical/yjs-raw", replacement: REMDO_LEXICAL_YJS_RAW },
       ],
     },
     build: {

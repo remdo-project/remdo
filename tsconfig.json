@@ -8,7 +8,11 @@
     "jsx": "react-jsx",
 
     "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] },
+    "paths": {
+      "@/*": ["./src/*"],
+      "@lexical/yjs": ["./src/lexical-shims/remdoLexicalYjs.ts"],
+      "@lexical/yjs-raw": ["./node_modules/@lexical/yjs/index.d.ts"],
+    },
 
     "types": ["node", "vite/client"],
     "allowSyntheticDefaultImports": true,
