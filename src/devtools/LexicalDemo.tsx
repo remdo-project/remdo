@@ -1,27 +1,19 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
-import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { CollaborationPlugin } from "@lexical/react/LexicalCollaborationPlugin";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { ListItemNode, ListNode } from "@lexical/list";
-import { $createParagraphNode, $createTextNode, $getRoot } from "lexical";
+import { $createParagraphNode, $createTextNode, $getRoot, COMMAND_PRIORITY_LOW } from "lexical";
 import type { Provider } from "@lexical/yjs";
+import { CONNECTED_COMMAND } from "@lexical/yjs";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
-
-function useDisableCollaboration(): boolean {
-  const [searchParams] = useSearchParams();
-
-  // intentionally set it on the first render, so further actions
-  // like focusing on a particular node, won't impact the setting even if the
-  // url changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => searchParams.get("ws") === "false", []);
-}
+import TreeViewPlugin from "@/features/editor/devtools/TreeViewPlugin";
 
 function createInitialState() {
   const root = $getRoot();
@@ -30,30 +22,52 @@ function createInitialState() {
   }
 }
 
-function createCollaborationProviderFactory(endpoint: string) {
+interface CollaborationProviderConfig {
+  endpoint: string;
+  roomSlug: string;
+  collabId: string;
+}
+
+function createCollaborationProviderFactory({
+  endpoint,
+  roomSlug,
+  collabId,
+}: CollaborationProviderConfig) {
+  console.warn("Collaboration endpoint:", endpoint);
+  console.warn("Collaboration room:", `${roomSlug}/${collabId}`);
   return (id: string, yjsDocMap: Map<string, Y.Doc>): Provider => {
-    const doc = yjsDocMap.get(id) ?? new Y.Doc({ gc: false });
-    yjsDocMap.set(id, doc);
+    let doc = yjsDocMap.get(id);
+    if (!doc) {
+      doc = new Y.Doc();
+      yjsDocMap.set(id, doc);
+    } else {
+      doc.load();
+    }
 
-    // Lexical's Yjs binding expects the shared root to be a Y.XmlText node.
-    doc.get("root", Y.XmlText);
-
-    const provider = new WebsocketProvider(endpoint, `lexical-demo/${id}`, doc, {
-      connect: true,
-    });
-    provider.shouldConnect = true;
-
-    return provider;
+    const roomName = `${roomSlug}/${collabId}/${id}`;
+    return new WebsocketProvider(endpoint, roomName, doc, {
+      connect: false,
+    }) as unknown as Provider;
   };
 }
 
 export function LexicalDemo() {
-  const disableCollaboration = useDisableCollaboration();
+  const [searchParams] = useSearchParams();
 
-  const collabEndpoint = useMemo(() => {
+  const collabConfig = useMemo(() => {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    return `${protocol}://${window.location.hostname}:8080`;
-  }, []);
+    const defaultEndpoint = `${protocol}://${window.location.hostname}:8080`;
+    const endpoint = searchParams.get("collabEndpoint") ?? defaultEndpoint;
+    const roomSlug = searchParams.get("collabSlug") ?? "playground";
+    const collabId = searchParams.get("collabId") ?? "0";
+
+    return { endpoint, roomSlug, collabId } satisfies CollaborationProviderConfig;
+  }, [searchParams]);
+
+  const documentId = useMemo(
+    () => searchParams.get("collabDocument") ?? "main",
+    [searchParams],
+  );
 
   const initialConfig = useMemo(() => ({
     namespace: "lexical-demo",
@@ -67,8 +81,8 @@ export function LexicalDemo() {
   }), []);
 
   const providerFactory = useMemo(
-    () => createCollaborationProviderFactory(collabEndpoint),
-    [collabEndpoint],
+    () => createCollaborationProviderFactory(collabConfig),
+    [collabConfig],
   );
 
   return (
@@ -80,19 +94,34 @@ export function LexicalDemo() {
           ErrorBoundary={LexicalErrorBoundary}
         />
         <ListPlugin />
-        {disableCollaboration ? (
-          <HistoryPlugin />
-        ) : (
-          <CollaborationPlugin
-            id="lexical-demo"
-            providerFactory={providerFactory}
-            shouldBootstrap={true}
-            initialEditorState={createInitialState}
-          />
-        )}
+        <CollaborationPlugin
+          id={documentId}
+          providerFactory={providerFactory}
+          shouldBootstrap={true}
+          initialEditorState={createInitialState}
+        />
+        <CollaborationDebugPlugin />
+        <TreeViewPlugin />
       </div>
     </LexicalComposer>
   );
+}
+
+function CollaborationDebugPlugin() {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    return editor.registerCommand(
+      CONNECTED_COMMAND,
+      (payload: boolean) => {
+        console.info("CONNECTED_COMMAND", payload);
+        return false;
+      },
+      COMMAND_PRIORITY_LOW,
+    );
+  }, [editor]);
+
+  return null;
 }
 
 export default LexicalDemo;
