@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -22,19 +21,7 @@ function createInitialState() {
   }
 }
 
-interface CollaborationProviderConfig {
-  endpoint: string;
-  roomSlug: string;
-  collabId: string;
-}
-
-function createCollaborationProviderFactory({
-  endpoint,
-  roomSlug,
-  collabId,
-}: CollaborationProviderConfig) {
-  console.warn("Collaboration endpoint:", endpoint);
-  console.warn("Collaboration room:", `${roomSlug}/${collabId}`);
+function createCollaborationProviderFactory(endpoint: string) {
   return (id: string, yjsDocMap: Map<string, Y.Doc>): Provider => {
     let doc = yjsDocMap.get(id);
     if (!doc) {
@@ -44,7 +31,9 @@ function createCollaborationProviderFactory({
       doc.load();
     }
 
-    const roomName = `${roomSlug}/${collabId}/${id}`;
+    const roomName = `playground/0/${id}`;
+    console.warn("Collaboration endpoint:", endpoint);
+    console.warn("Room name:", roomName);
     return new WebsocketProvider(endpoint, roomName, doc, {
       connect: false,
     }) as unknown as Provider;
@@ -52,23 +41,16 @@ function createCollaborationProviderFactory({
 }
 
 export function LexicalDemo() {
-  const [searchParams] = useSearchParams();
   const disableCollaboration = useDisableCollaboration();
 
   const collabConfig = useMemo(() => {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const defaultEndpoint = `${protocol}://${window.location.hostname}:8080`;
-    const endpoint = searchParams.get("collabEndpoint") ?? defaultEndpoint;
-    const roomSlug = searchParams.get("collabSlug") ?? "playground";
-    const collabId = searchParams.get("collabId") ?? "0";
+    const endpoint = `${protocol}://${window.location.hostname}:8080`;
 
-    return { endpoint, roomSlug, collabId } satisfies CollaborationProviderConfig;
-  }, [searchParams]);
+    return endpoint;
+  }, []);
 
-  const documentId = useMemo(
-    () => searchParams.get("collabDocument") ?? "main",
-    [searchParams],
-  );
+  const documentId = "main";
 
   const initialConfig = useMemo(() => ({
     namespace: "lexical-demo",
@@ -76,9 +58,7 @@ export function LexicalDemo() {
       throw error;
     },
     nodes: [ListNode, ListItemNode],
-    editorState() {
-      createInitialState();
-    },
+    editorState: createInitialState,
   }), []);
 
   const providerFactory = useMemo(
