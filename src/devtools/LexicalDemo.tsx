@@ -1,19 +1,19 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { CollaborationPlugin } from "@lexical/react/LexicalCollaborationPlugin";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { ListItemNode, ListNode } from "@lexical/list";
-import { $createParagraphNode, $createTextNode, $getRoot, COMMAND_PRIORITY_LOW } from "lexical";
+import { $createParagraphNode, $createTextNode, $getRoot } from "lexical";
 import type { Provider } from "@lexical/yjs";
-import { CONNECTED_COMMAND } from "@lexical/yjs";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 import TreeViewPlugin from "@/features/editor/devtools/TreeViewPlugin";
+import { useDisableCollaboration } from "@/features/editor/config";
 
 function createInitialState() {
   const root = $getRoot();
@@ -53,6 +53,7 @@ function createCollaborationProviderFactory({
 
 export function LexicalDemo() {
   const [searchParams] = useSearchParams();
+  const disableCollaboration = useDisableCollaboration();
 
   const collabConfig = useMemo(() => {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
@@ -94,34 +95,20 @@ export function LexicalDemo() {
           ErrorBoundary={LexicalErrorBoundary}
         />
         <ListPlugin />
-        <CollaborationPlugin
-          id={documentId}
-          providerFactory={providerFactory}
-          shouldBootstrap={true}
-          initialEditorState={createInitialState}
-        />
-        <CollaborationDebugPlugin />
+        {disableCollaboration ? (
+          <HistoryPlugin />
+        ) : (
+          <CollaborationPlugin
+            id={documentId}
+            providerFactory={providerFactory}
+            shouldBootstrap={true}
+            initialEditorState={createInitialState}
+          />
+        )}
         <TreeViewPlugin />
       </div>
     </LexicalComposer>
   );
-}
-
-function CollaborationDebugPlugin() {
-  const [editor] = useLexicalComposerContext();
-
-  useEffect(() => {
-    return editor.registerCommand(
-      CONNECTED_COMMAND,
-      (payload: boolean) => {
-        console.info("CONNECTED_COMMAND", payload);
-        return false;
-      },
-      COMMAND_PRIORITY_LOW,
-    );
-  }, [editor]);
-
-  return null;
 }
 
 export default LexicalDemo;

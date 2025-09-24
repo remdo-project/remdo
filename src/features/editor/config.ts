@@ -6,14 +6,18 @@ import { useSearchParams } from "react-router-dom";
 
 type EditorConfig = InitialConfigType & { disableWS: boolean };
 
-export function useEditorConfig(): EditorConfig {
+export function useDisableCollaboration(): boolean {
   const [searchParams] = useSearchParams();
 
   // intentionally set it on the first render, so further actions
   // like focusing on a particular node, won't impact the setting even if the
   // url changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const disableWS = useMemo(() => searchParams.get("ws") === "false", []);
+  return useMemo(() => searchParams.get("ws") === "false", []);
+}
+
+export function useEditorConfig(): EditorConfig {
+  const disableWS = useDisableCollaboration();
 
   return {
     onError(error: any) {
