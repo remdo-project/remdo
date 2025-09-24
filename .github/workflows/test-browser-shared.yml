@@ -133,7 +133,7 @@ jobs:
 
       - name: Upload Playwright report to GitHub Pages
         if: ${{ steps.publish.outputs.enabled == 'true' }}
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: pages
 
