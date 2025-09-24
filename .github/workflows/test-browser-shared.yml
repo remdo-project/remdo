@@ -142,11 +142,7 @@ jobs:
         run: exit 1
 
   deploy:
-    if: ${{
-      always() &&
-      needs.test.outputs.publish == 'true' &&
-      (github.ref_name == 'main' || startsWith(github.ref_name, 'codex/'))
-    }}
+    if: ${{ always() && needs.test.outputs.publish == 'true' && (github.ref_name == 'main' || startsWith(github.ref_name, 'codex/')) }}
     needs: test
     runs-on: ubuntu-latest
     environment:
