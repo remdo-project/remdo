@@ -2,6 +2,24 @@ import type { PlaywrightTestConfig } from "@playwright/test";
 import { devices } from "@playwright/test";
 import { env } from "./config/env.server";
 
+const webServer: PlaywrightTestConfig["webServer"] = [
+  {
+    command: `npm run preview -- --host --port ${env.PORT}`,
+    port: env.PORT,
+    timeout: 5 * 1000,
+    reuseExistingServer: !env.CI,
+  },
+];
+
+if (env.FORCE_WEBSOCKET) {
+  webServer.push({
+    command: "npm run websocket",
+    port: 8080,
+    timeout: 5 * 1000,
+    reuseExistingServer: !env.CI,
+  });
+}
+
 const config: PlaywrightTestConfig = {
   testDir: "./tests/browser",
   snapshotPathTemplate:
@@ -28,7 +46,6 @@ const config: PlaywrightTestConfig = {
     screenshot: "only-on-failure",
     //video: "retain-on-failure",
   },
-
   projects: [
     {
       name: "chromium",
@@ -36,14 +53,12 @@ const config: PlaywrightTestConfig = {
         ...devices["Desktop Chrome"],
       },
     },
-
     {
       name: "firefox",
       use: {
         ...devices["Desktop Firefox"],
       },
     },
-
     {
       name: "webkit",
       use: {
@@ -51,15 +66,8 @@ const config: PlaywrightTestConfig = {
       },
     },
   ],
-
   outputDir: "data/test-results/",
-
-  webServer: {
-    command: `npm run preview -- --host --port ${env.PORT}`,
-    port: env.PORT,
-    timeout: 5 * 1000,
-    reuseExistingServer: !env.CI,
-  },
+  webServer,
 };
 
 export default config;

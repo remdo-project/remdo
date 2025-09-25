@@ -46,17 +46,7 @@ jobs:
         id: run-collab
         if: ${{ inputs.collab }}
         continue-on-error: true
-        run: |
-          npm run websocket &
-          WEBSOCKET_PID=$!
-          cleanup() {
-            if kill -0 "$WEBSOCKET_PID" 2>/dev/null; then
-              kill "$WEBSOCKET_PID"
-            fi
-          }
-          trap cleanup EXIT ERR INT TERM
-          npx wait-on --timeout 1000 tcp:127.0.0.1:8080
-          npm run test-browser-collab
+        run: npm run test-browser-collab
 
       - uses: actions/upload-artifact@v4
         if: always()
