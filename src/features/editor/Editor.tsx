@@ -5,6 +5,7 @@ import {
 import "./Editor.scss";
 import { ClickableLinkPlugin as LexicalClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
+import { LexicalCollaboration } from "@lexical/react/LexicalCollaborationContext";
 import { useRef } from "react";
 import { ClearEditorPlugin } from "@lexical/react/LexicalClearEditorPlugin";
 import { CollaborationPlugin } from "@lexical/react/LexicalCollaborationPlugin";
@@ -60,11 +61,13 @@ function LexicalEditor() {
         {disableCollaboration ? (
           <HistoryPlugin />
         ) : (
-          <CollaborationPlugin
-            id={documentSelector.documentID}
-            providerFactory={documentSelector.yjsProviderFactory}
-            shouldBootstrap
-          />
+          <LexicalCollaboration>
+            <CollaborationPlugin
+              id={documentSelector.documentID}
+              providerFactory={documentSelector.yjsProviderFactory}
+              shouldBootstrap
+            />
+          </LexicalCollaboration>
         )}
         <div id="editor-bottom" ref={editorBottomRef} />
       </div>
