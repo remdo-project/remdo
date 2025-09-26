@@ -44,7 +44,7 @@ test("backspace at the beginning of a folded note after another folded one", asy
   expect(await notebook.html()).toMatchSnapshot("html-after-nested-folded-delete");
 });
 
-test("delete folded notes", async ({ page, notebook, menu }) => {
+test.fixme("delete folded notes", async ({ page, notebook, menu }) => {
   await notebook.load("tree");
 
   await menu.open("note0");

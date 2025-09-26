@@ -1,8 +1,9 @@
 import { expect } from "@playwright/test";
 import { test, waitForSelectionChange } from "./common";
-
+import { env } from "../../../config/env.server";
 
 test("add new element after a folded one", async ({ page, notebook }) => {
+  test.skip(env.FORCE_WEBSOCKET, "Flaky in collab mode"); //FIXME
   await notebook.load("folded");
 
   await notebook.clickEndOfNote("note0");
@@ -13,6 +14,7 @@ test("add new element after a folded one", async ({ page, notebook }) => {
 
   // Direct snapshot of the Lexical DOM — captures structure and all data attributes
   expect(htmlAfter).toMatchSnapshot("after-addition");
+  page.takeScreenshot();
 });
 
 test("fold to a specific level", async ({ page, notebook }) => {

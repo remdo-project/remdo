@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { expect, Page } from "@playwright/test";
 import { test } from "../common";
 import { Notebook } from "../notebook/common";
@@ -11,7 +12,8 @@ test.describe("collaboration", () => {
       takeScreenshot?: (name?: string) => Promise<void>;
     };
 
-    const documentId = "collab-smoke";
+    //make documentID unique to test creating a brand new doc
+    const documentId = `collab-smoke-${randomUUID()}`;
     const basePath = `/?debug=true&documentID=${documentId}`;
 
     const primary = new Notebook(page);

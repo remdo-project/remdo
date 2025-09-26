@@ -50,6 +50,7 @@ function $fixRoot(rootNode: RootNode) {
 }
 
 export function FixRootPlugin() {
+  return; //FIXME
   const [editor] = useRemdoLexicalComposerContext();
 
   useEffect(() => {

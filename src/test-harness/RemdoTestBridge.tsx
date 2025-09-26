@@ -92,7 +92,7 @@ function createAPI(editor: LexicalEditor) {
       if (collabEnabled) {
         await api.waitForCollaborationReady();
         await runAndWaitForCommit(editor, () => {
-          editor.setEditorState(nextState, { tag: SKIP_COLLAB_TAG });
+          editor.setEditorState(nextState);
         });
 
         if (parsedState?.root !== undefined) {
@@ -101,7 +101,6 @@ function createAPI(editor: LexicalEditor) {
               () => {
                 restoreRemdoStateFromJSON(editor, parsedState.root);
               },
-              { tag: SKIP_COLLAB_TAG }
             );
           });
         }

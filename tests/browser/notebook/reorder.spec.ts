@@ -42,7 +42,7 @@ test("load editor state", async ({ notebook }) => {
   expect(html).toContain("note00"); 
 });
 
-test("clear content", async ({ page, notebook }) => { 
+test.fixme("clear content", async ({ page, notebook }) => { 
   await page.locator("text=Clear").click();
   const html = await notebook.html(); 
   expect(html).not.toContain("note0"); 

@@ -7,22 +7,9 @@ import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { CollaborationPlugin } from "@lexical/react/LexicalCollaborationPlugin";
 import type { Provider } from "@lexical/yjs";
 import { ListItemNode, ListNode } from "@lexical/list";
-import { $createParagraphNode, $createTextNode, $getRoot } from "lexical";
-import type { LexicalEditor } from "lexical";
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import TreeViewPlugin from "@/features/editor/devtools/TreeViewPlugin";
-
-function initialEditorState(_: LexicalEditor) {
-  const root = $getRoot();
-  if (root.getFirstChild() !== null) return;
-
-  const paragraph = $createParagraphNode();
-  paragraph.append(
-    $createTextNode("This shared document is powered by Lexical and Yjs."),
-  );
-  root.append(paragraph);
-}
 
 export function LexicalDemo() {
   const initialConfig = useMemo(() => ({
@@ -33,8 +20,6 @@ export function LexicalDemo() {
     editorState: null,
     nodes: [ListNode, ListItemNode],
   }), []);
-
-  const username = useMemo(() => `Guest ${Math.floor(Math.random() * 1_000)}`, []);
 
   const providerFactory = useCallback((id: string, docMap: Map<string, Y.Doc>): Provider => {
     let doc = docMap.get(id);
@@ -52,7 +37,7 @@ export function LexicalDemo() {
       return `${wsProtocol}://${hostname}:8080`;
     })();
 
-    const provider = new WebsocketProvider(endpoint, `${id}-2`, doc, {
+    const provider = new WebsocketProvider(endpoint, `${id}-3`, doc, {
       connect: false,
     });
 
@@ -76,8 +61,6 @@ export function LexicalDemo() {
           id="lexical-demo-room"
           providerFactory={providerFactory}
           shouldBootstrap
-          username={username}
-          initialEditorState={initialEditorState}
         />
         <TreeViewPlugin />
       </div>
