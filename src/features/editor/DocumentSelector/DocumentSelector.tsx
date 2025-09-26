@@ -62,10 +62,20 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
         roomPrefix: "notes/0/",
         // Let Lexical's CollaborationPlugin attach listeners before the provider connects,
         // mirroring the working setup used by LexicalDemo.
-        createDoc: () => new Y.Doc({ gc: false }),
-        initializeDoc: (doc, id, isNew) => {
-          if (isNew) {
-            // Ensure the shared root exists before Lexical binds to the document.
+        createDoc: () => {
+          const doc = new Y.Doc({ gc: false });
+          // Mirror Lexical's Playground initialization by creating the shared root
+          // type eagerly before the document is handed to Lexical. This prevents
+          // `syncLexicalUpdateToYjs` from reading a detached Yjs type when the
+          // first editor update runs for a brand-new document.
+          doc.get("root", Y.XmlText);
+          return doc;
+        },
+        initializeDoc: (doc) => {
+          // Persisted docs created before we eagerly instantiated the root may
+          // be missing it. Create the shared type on-demand so old docs behave
+          // like freshly initialized ones.
+          if (!doc.share.has("root")) {
             doc.get("root", Y.XmlText);
           }
         },
