@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig } from "vite";
 import type { PluginOption } from "vite";
-import { env } from "#config/env.server";
+import { env } from "#env";
 
 export default defineConfig(({ command }) => {
   const enableFastRefresh = command === 'serve' && process.env.VITE_ENABLE_FAST_REFRESH !== 'false';
@@ -44,8 +44,8 @@ export default defineConfig(({ command }) => {
           replacement: path.resolve("./src"),
         },
         {
-          find: "#config",
-          replacement: path.resolve("./config"),
+          find: "#env",
+          replacement: path.resolve("./config/env.server.ts"),
         },
       ],
     },

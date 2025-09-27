@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, Page } from "@playwright/test";
 import { test } from "../common";
 import { Notebook } from "../notebook/common";
-import { env } from "#config/env.server";
+import { env } from "#env";
 
 test.describe("collaboration", () => {
   test.skip(!env.FORCE_WEBSOCKET, "Collaboration smoke tests require FORCE_WEBSOCKET=true");

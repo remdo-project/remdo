@@ -10,7 +10,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "#config/*": ["./config/*"]
+      "#env": ["./config/env.server.ts"]
     },
 
     "types": ["node", "vite/client"],
