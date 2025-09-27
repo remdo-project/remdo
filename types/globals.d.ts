@@ -1,6 +1,6 @@
 import type { RemdoLexicalEditor } from "@/features/editor/plugins/remdo/ComposerContext";
 import type { WebsocketProvider } from "y-websocket";
-import type { Logger } from "../tests/unit/common/logger";
+import type { Logger } from "./testing/logger";
 
 export declare global {
   let remdoGenerateNoteID: () => string;

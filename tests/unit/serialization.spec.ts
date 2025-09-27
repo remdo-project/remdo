@@ -12,7 +12,7 @@ import { getNotes, lexicalStateKeyCompare } from "./common/utils";
 import { $convertToMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import fs from "fs";
 import { it } from "vitest";
-import { env } from "../../config/env.server";
+import { env } from "#env";
 import type { RemdoLexicalEditor } from "@/features/editor/plugins/remdo/ComposerContext";
 import type { Note } from "@/features/editor/plugins/remdo/utils/api";
 import { Note as NoteApi } from "@/features/editor/plugins/remdo/utils/api";

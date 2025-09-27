@@ -8,7 +8,10 @@
     "jsx": "react-jsx",
 
     "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] },
+    "paths": {
+      "@/*": ["./src/*"],
+      "#env": ["./config/env.server.ts"]
+    },
 
     "types": ["node", "vite/client"],
     "allowSyntheticDefaultImports": true,

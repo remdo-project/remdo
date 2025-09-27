@@ -1,6 +1,5 @@
 import { IconPlaywright, IconVitest } from "./icons";
 import { Outlet } from "react-router-dom";
-
 const yjsHtmlUrl = new URL("./yjs/yjs.html", import.meta.url);
 
 export function DevTools() {

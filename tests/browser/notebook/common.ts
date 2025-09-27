@@ -3,7 +3,7 @@ import { Page, Locator } from "@playwright/test";
 import fs from "fs";
 import prettier from "prettier";
 import { getDataPath } from "tests/common.js";
-import { env } from "../../../config/env.server";
+import { env } from "#env";
 
 export class Notebook {
   constructor(private readonly page: Page) { }

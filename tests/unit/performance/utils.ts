@@ -1,3 +1,4 @@
+import { env } from "#env";
 import { Note } from "@/features/editor/plugins/remdo/utils/api";
 import { $getRoot } from "lexical";
 
@@ -131,4 +132,3 @@ export function countNotes(lexicalUpdate: (fn: () => void) => void) {
   });
   return count;
 }
-import { env } from "../../../config/env.server";

@@ -16,7 +16,7 @@ import {
   ensureListItemSharedState,
   restoreRemdoStateFromJSON,
 } from '@/features/editor/plugins/remdo/utils/noteState';
-import { env } from '../../../config/env.server';
+import { env } from '#env';
 import { DocumentSelectorType } from '@/features/editor/DocumentSelector/DocumentSelector';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
