@@ -72,7 +72,7 @@ export default defineConfig(({ command }) => {
         ],
         include: ["src/**"],
         reporter: ["text-summary", "html", "lcov"],
-        enabled: true,
+        enabled: !env.VITE_PERFORMANCE_TESTS,
       },
       css: true,
     },
