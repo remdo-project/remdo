@@ -1,6 +1,6 @@
 import type { PlaywrightTestConfig } from "@playwright/test";
 import { devices } from "@playwright/test";
-import { env } from "#config/env.server";
+import { env } from "#env";
 
 const webServer: PlaywrightTestConfig["webServer"] = [
   {

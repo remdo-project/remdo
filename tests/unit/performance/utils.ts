@@ -1,4 +1,4 @@
-import { env } from "#config/env.server";
+import { env } from "#env";
 import { Note } from "@/features/editor/plugins/remdo/utils/api";
 import { $getRoot } from "lexical";
 
