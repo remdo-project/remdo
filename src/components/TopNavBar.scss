@@ -1,17 +1,22 @@
 .navbar-brand {
   color: var(--bs-gray-400);
+  display: inline-flex;
+  align-items: center;
 
-  svg {
-    fill: var(--bs-gray-400);
+  .logo {
+    background-color: currentColor;
+    display: inline-block;
+    height: 1em;
     margin-right: 3px;
     margin-top: -2px;
+    width: 1em;
+    mask: url("/images/remdo-logo.svg") no-repeat center / contain;
+    -webkit-mask: url("/images/remdo-logo.svg") no-repeat center / contain;
   }
 }
 
 .navbar-brand:hover {
-  svg {
-    fill: var(--bs-gray-100);
-  }
+  color: var(--bs-gray-100);
 }
 
 .nav-link {
