@@ -1,1 +1,0 @@
-../../lexical/packages/lexical-react/src/LexicalCollaborationPlugin.ts
