@@ -4,7 +4,7 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 import WS from "ws";
-import { env } from "../../../config/env.server";
+import { env } from "#config/env.server";
 
 declare global {
   let __collabProviders: WebsocketProvider[] | undefined;

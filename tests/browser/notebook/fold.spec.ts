@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
 import { test, waitForSelectionChange } from "./common";
-import { env } from "../../../config/env.server";
+import { env } from "#config/env.server";
 
 test("add new element after a folded one", async ({ page, notebook }) => {
   test.skip(env.FORCE_WEBSOCKET, "Flaky in collab mode"); //FIXME

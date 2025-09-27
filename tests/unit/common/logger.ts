@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { env } from '../../../config/env.server';
+import { env } from '#config/env.server';
 const debugEnabled = env.DEBUG.length > 0;
 
 const _info = console.info;
