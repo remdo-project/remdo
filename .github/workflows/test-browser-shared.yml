@@ -7,6 +7,10 @@ on:
         description: Command to execute Playwright suite
         required: true
         type: string
+      websocket:
+        description: Start the collab websocket server before running tests
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -29,6 +33,14 @@ jobs:
 
       - name: Install Playwright (Chromium)
         run: npx playwright install --with-deps chromium
+
+      - name: Start websocket server
+        if: ${{ inputs.websocket }}
+        run: |
+          set -euo pipefail
+          npm run websocket &
+          echo "WEBSOCKET_PID=$!" >>"$GITHUB_ENV"
+          npx wait-on --timeout 1000 tcp:127.0.0.1:8080
 
       - name: Run Playwright tests
         id: run-tests
@@ -66,3 +78,12 @@ jobs:
       - name: Capture Playwright failure
         if: ${{ steps.run-tests.outcome == 'failure' }}
         run: exit 1
+
+      - name: Stop websocket server
+        if: ${{ always() && inputs.websocket }}
+        run: |
+          set -euo pipefail
+          if [ -n "${WEBSOCKET_PID:-}" ] && kill -0 "$WEBSOCKET_PID" 2>/dev/null; then
+            kill "$WEBSOCKET_PID"
+            wait "$WEBSOCKET_PID" || true
+          fi

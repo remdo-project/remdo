@@ -20,6 +20,7 @@ jobs:
     uses: ./.github/workflows/test-browser-shared.yml
     with:
       command: npm run test-browser-collab
+      websocket: true
 
   prepare-pages:
     if: ${{ always() && needs.run.outputs.report_present == 'true' && (github.ref_name == 'main' || startsWith(github.ref_name, 'codex/')) }}
