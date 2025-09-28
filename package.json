@@ -52,6 +52,7 @@
     "test-serialization": "npx vitest run tests/unit/serialization.spec.ts",
     "test": "npm run test-unit && npm run test-browser",
     "preview": "vite preview --host",
+    "serve:prod": "npm run build && npm run preview",
     "kill-npm-processes": "ps -eaf | grep 'npm run' | awk '{print $2}' |  xargs kill",
     "load": "./utils.sh run_serialization load",
     "save": "./utils.sh run_serialization save",

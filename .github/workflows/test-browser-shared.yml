@@ -130,15 +130,15 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ format('{0}branches/{1}/', steps.deployment.outputs.page_url, needs.test.outputs.slug) }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
       - name: Log report location
+        env:
+          REPORT_URL: ${{ format('{0}branches/{1}/', steps.deployment.outputs.page_url, needs.test.outputs.slug) }}
+          BRANCH_SLUG: ${{ needs.test.outputs.slug }}
         run: |
           set -euo pipefail
-          base_url='${{ steps.deployment.outputs.page_url }}'
-          branch_slug='${{ needs.test.outputs.slug }}'
-          base_url="${base_url%/}"
-          echo "Playwright report for branch '${branch_slug}' available at: ${base_url}/branches/${branch_slug}/"
+          echo "Playwright report for branch '${BRANCH_SLUG}' available at: ${REPORT_URL}"

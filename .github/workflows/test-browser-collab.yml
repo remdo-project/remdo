@@ -2,11 +2,8 @@ name: Playwright Collab Tests
 
 on:
   workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+  schedule:
+    - cron: "13 * * * *"
 
 jobs:
   call-shared:
