@@ -1,0 +1,57 @@
+name: Node Tests
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        description: Command to execute in the Node environment
+        required: true
+        type: string
+      websocket:
+        description: Start collaboration WebSocket server before running
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Start WebSocket server
+        if: ${{ inputs.websocket }}
+        run: |
+          set -euo pipefail
+          npm run websocket &
+          echo $! > ws-server.pid
+          for _ in {1..20}; do
+            if nc -z localhost 8080; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "WebSocket server failed to start" >&2
+          exit 1
+
+      - name: Run command
+        env:
+          FORCE_COLOR: "1"
+        run: ${{ inputs.command }}
+
+      - name: Stop WebSocket server
+        if: ${{ always() && inputs.websocket }}
+        run: |
+          if [ -f ws-server.pid ]; then
+            kill $(cat ws-server.pid) || true
+            rm -f ws-server.pid
+          fi

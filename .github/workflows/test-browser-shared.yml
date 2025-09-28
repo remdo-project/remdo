@@ -3,25 +3,19 @@ name: Playwright Browser Tests
 on:
   workflow_call:
     inputs:
-      collab:
-        description: Run collaboration-specific Playwright suite
-        default: false
-        type: boolean
+      command:
+        description: Command to execute Playwright suite
+        required: true
+        type: string
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages-${{ github.ref }}
-  cancel-in-progress: false
 
 jobs:
   test:
     runs-on: ubuntu-latest
     outputs:
-      publish: ${{ steps.publish.outputs.enabled }}
+      report_present: ${{ steps.report.outputs.present }}
       slug: ${{ steps.branch.outputs.slug }}
     steps:
       - uses: actions/checkout@v5
@@ -37,16 +31,9 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
-        id: run-standard
-        if: ${{ !inputs.collab }}
+        id: run-tests
         continue-on-error: true
-        run: npm run test-browser
-
-      - name: Run collab Playwright tests
-        id: run-collab
-        if: ${{ inputs.collab }}
-        continue-on-error: true
-        run: npm run test-browser-collab
+        run: ${{ inputs.command }}
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -76,69 +63,6 @@ jobs:
           fi
           echo "slug=$slug" >>"$GITHUB_OUTPUT"
 
-      - name: Determine publishing eligibility
-        id: publish
-        if: always()
-        env:
-          REPORT_PRESENT: ${{ steps.report.outputs.present }}
-        run: |
-          can_publish=false
-          if [ "$REPORT_PRESENT" = "true" ]; then
-            can_publish=true
-          fi
-          echo "enabled=$can_publish" >>"$GITHUB_OUTPUT"
-
-      - name: Fetch existing GitHub Pages content
-        if: ${{ steps.publish.outputs.enabled == 'true' }}
-        run: |
-          set -euo pipefail
-          if git ls-remote --exit-code origin gh-pages &>/dev/null; then
-            git fetch origin gh-pages:gh-pages
-            git worktree add gh-pages-source gh-pages
-          fi
-
-      - name: Prepare Pages artifact
-        if: ${{ steps.publish.outputs.enabled == 'true' }}
-        env:
-          BRANCH_SLUG: ${{ steps.branch.outputs.slug }}
-        run: |
-          set -euo pipefail
-          mkdir -p pages/branches
-          if [ -d gh-pages-source ]; then
-            rsync -a --delete --exclude '.git' gh-pages-source/ pages/
-          fi
-          rm -rf pages/playwright-report
-          rm -rf "pages/branches/${BRANCH_SLUG}"
-          mv data/playwright-report "pages/branches/${BRANCH_SLUG}"
-          cd pages/branches
-          ls -1t | tail -n +21 | xargs -r rm -rf
-          cd ../..
-
-      - name: Upload Playwright report to GitHub Pages
-        if: ${{ steps.publish.outputs.enabled == 'true' }}
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: pages
-
       - name: Capture Playwright failure
-        if: ${{ steps.run-standard.outcome == 'failure' || steps.run-collab.outcome == 'failure' }}
+        if: ${{ steps.run-tests.outcome == 'failure' }}
         run: exit 1
-
-  deploy:
-    if: ${{ always() && needs.test.outputs.publish == 'true' && (github.ref_name == 'main' || startsWith(github.ref_name, 'codex/')) }}
-    needs: test
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ format('{0}branches/{1}/', steps.deployment.outputs.page_url, needs.test.outputs.slug) }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-      - name: Log report location
-        env:
-          REPORT_URL: ${{ format('{0}branches/{1}/', steps.deployment.outputs.page_url, needs.test.outputs.slug) }}
-          BRANCH_SLUG: ${{ needs.test.outputs.slug }}
-        run: |
-          set -euo pipefail
-          echo "Playwright report for branch '${BRANCH_SLUG}' available at: ${REPORT_URL}"
