@@ -5,3 +5,5 @@ on: push
 jobs:
   call-shared:
     uses: ./.github/workflows/test-browser-shared.yml
+    with:
+      command: npm run test-browser
