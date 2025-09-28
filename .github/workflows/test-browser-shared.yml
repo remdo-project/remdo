@@ -7,6 +7,13 @@ on:
         description: Command to execute Playwright suite
         required: true
         type: string
+    outputs:
+      report_present:
+        description: Whether the Playwright HTML report artifact exists
+        value: ${{ jobs.test.outputs.report_present }}
+      slug:
+        description: Slugified branch name used for report publishing
+        value: ${{ jobs.test.outputs.slug }}
 
 permissions:
   contents: read
