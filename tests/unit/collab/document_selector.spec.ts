@@ -1,0 +1,58 @@
+import "../common";
+import { act, waitFor } from "@testing-library/react";
+import { env } from "#env";
+import type { TestContext } from "vitest";
+import { it } from "vitest";
+import { getMinimizedState } from "../common";
+
+async function switchDocument(context: TestContext, id: string) {
+  const previousEditor = context.editor;
+
+  await act(async () => {
+    context.documentSelector.setDocumentID(id);
+  });
+
+  await waitFor(() => context.documentSelector.documentID === id);
+  await waitFor(() => context.editor !== previousEditor);
+  await waitFor(() => context.documentSelector.getYjsDoc() !== null);
+}
+
+const shouldRun = env.FORCE_WEBSOCKET;
+
+it.runIf(shouldRun)("preserves independent state for each document", async (context) => {
+  const { load, lexicalUpdate, expect } = context;
+
+  const { note0: mainNote } = load("basic");
+
+  lexicalUpdate(() => {
+    mainNote.text = "main note updated";
+    mainNote.createChild("main child 1");
+  });
+
+  const mainSnapshot = getMinimizedState(context.editor);
+
+  await switchDocument(context, "flat");
+
+  const { note0: flatNote0, note1: flatNote1 } = load("flat");
+
+  lexicalUpdate(() => {
+    flatNote0.text = "flat note0 updated";
+    flatNote1.text = "flat note1 updated";
+  });
+
+  const flatSnapshot = getMinimizedState(context.editor);
+
+  expect(flatSnapshot).not.toEqual(mainSnapshot);
+
+  await switchDocument(context, "main");
+
+  await waitFor(() => {
+    expect(getMinimizedState(context.editor)).toEqual(mainSnapshot);
+  });
+
+  await switchDocument(context, "flat");
+
+  await waitFor(() => {
+    expect(getMinimizedState(context.editor)).toEqual(flatSnapshot);
+  });
+});
