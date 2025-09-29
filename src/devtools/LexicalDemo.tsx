@@ -10,6 +10,7 @@ import { ListItemNode, ListNode } from "@lexical/list";
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import TreeViewPlugin from "@/features/editor/devtools/TreeViewPlugin";
+import { LexicalCollaboration } from "@lexical/react/LexicalCollaborationContext";
 
 export function LexicalDemo() {
   const initialConfig = useMemo(() => ({
@@ -57,11 +58,13 @@ export function LexicalDemo() {
           ErrorBoundary={LexicalErrorBoundary}
         />
         <ListPlugin />
-        <CollaborationPlugin
-          id="lexical-demo-room"
-          providerFactory={providerFactory}
-          shouldBootstrap
-        />
+        <LexicalCollaboration>
+          <CollaborationPlugin
+            id="lexical-demo-room"
+            providerFactory={providerFactory}
+            shouldBootstrap
+          />
+        </LexicalCollaboration>
         <TreeViewPlugin />
       </div>
     </LexicalComposer>
