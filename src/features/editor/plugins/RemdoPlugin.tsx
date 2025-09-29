@@ -4,7 +4,7 @@ import "./RemdoPlugin.scss";
 import { BackspacePlugin } from "./remdo/BackspacePlugin";
 import { BreadcrumbPlugin } from "./remdo/BreadcrumbsPlugin";
 import { CheckPlugin } from "./remdo/CheckPlugin";
-import { FixRootPlugin } from "./remdo/FixRootPlugin";
+import { RootSchemaPlugin } from "./remdo/RootSchemaPlugin";
 import { FocusPlugin } from "./remdo/FocusPlugin";
 import { FoldPlugin } from "./remdo/FoldPlugin";
 import { IndentationPlugin } from "./remdo/IndentationPlugin";
@@ -33,7 +33,7 @@ export function RemdoPlugin({ anchorRef, documentID }:
       <BackspacePlugin />
       <BreadcrumbPlugin documentID={documentID} />
       <CheckPlugin />
-      <FixRootPlugin />
+      <RootSchemaPlugin />
       <FocusPlugin anchorRef={anchorRef} />
       <FoldPlugin />
       <IndentationPlugin />

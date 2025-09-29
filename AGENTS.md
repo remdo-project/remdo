@@ -34,7 +34,7 @@
 
 - Data model: notes are Lexical `ListItemNode`s enhanced with:
   - `id` (short id), `folded` (boolean), `checked` (boolean | undefined).
-- Single-root invariant: `root → ListNode → ListItemNode*` enforced by `FixRootPlugin`.
+- Single-root invariant: `root → ListNode → ListItemNode*` enforced by `RootSchemaPlugin`.
 - Focus: `NOTES_FOCUS_COMMAND` updates the Remdo state (see `plugins/remdo/utils/remdoState.ts`) and route (`/note/:id`). Only the focused note subtree renders as “unfiltered”.
 - Search filter: the Remdo state filter drives `.filtered/.unfiltered` classes; `NoteMetadataPlugin` updates DOM classes based on the shared state.
 - Keyboard:
@@ -130,7 +130,7 @@
 ## Common Tasks
 
 - Add/edit an editor feature: create a RemDo plugin in `plugins/remdo` and wire commands in `utils/commands.ts`.
-- Edit note behavior: use `Note` API; rely on `FixRootPlugin` to normalize when structure changes.
+- Edit note behavior: use `Note` API; rely on `RootSchemaPlugin` to normalize when structure changes.
 - Add a keyboard shortcut: register in the relevant plugin; avoid global listeners; document here.
 
 ## Known Gaps
