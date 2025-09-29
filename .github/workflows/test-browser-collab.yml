@@ -1,9 +1,6 @@
 name: Playwright Collab Tests
 
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "13 * * * *"
+on: push
 
 permissions:
   actions: read
