@@ -32,6 +32,7 @@ export interface DocumentSelectorType {
   yjsProvider: DocumentProvider | null;
   getYjsProvider: () => DocumentProvider | null;
   resetDocument: () => void;
+  ready: () => Promise<void>;
   version: number;
 }
 
@@ -54,6 +55,26 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   const yjsProviderRef = useRef<DocumentProvider | null>(null);
   const [currentProvider, setCurrentProvider] = useState<DocumentProvider | null>(null);
   const [version, setVersion] = useState(0);
+  const readyStateRef = useRef<{
+    documentID: string;
+    deferred: { promise: Promise<void>; resolve: () => void };
+  } | null>(null);
+
+  const ensureReadyState = useCallback((id: string) => {
+    const current = readyStateRef.current;
+    if (current?.documentID === id) {
+      return current.deferred;
+    }
+
+    let resolve!: () => void;
+    const promise = new Promise<void>((res) => {
+      resolve = res;
+    });
+
+    const deferred = { promise, resolve };
+    readyStateRef.current = { documentID: id, deferred };
+    return deferred;
+  }, []);
 
   const baseProviderFactory = useMemo(
     () =>
@@ -93,13 +114,42 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
     (id: string, yjsDocMap: Map<string, Y.Doc>) => {
       const provider = baseProviderFactory(id, yjsDocMap) as DocumentProvider;
       const doc = yjsDocMap.get(id);
+      ensureReadyState(id);
 
       if (doc) {
+        if (!doc.share.has("root")) {
+          doc.get("root", Y.XmlText);
+        }
         yjsDocs.current.set(id, doc);
       }
 
       yjsProviderRef.current = provider;
       setCurrentProvider(provider);
+
+      const resolveReady = () => {
+        const current = readyStateRef.current;
+        if (current?.documentID !== id) {
+          return;
+        }
+
+        const readyDoc = yjsDocs.current.get(id);
+        if (!readyDoc) {
+          return;
+        }
+
+        if (!readyDoc.share.has("root")) {
+          readyDoc.get("root", Y.XmlText);
+        }
+
+        current.deferred.resolve();
+      };
+
+      const handleSync = (isSynced: boolean) => {
+        if (!isSynced) {
+          return;
+        }
+        resolveReady();
+      };
 
       const handleDestroy = () => {
         if (doc && yjsDocs.current.get(id) === doc) {
@@ -109,29 +159,56 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
           yjsProviderRef.current = null;
         }
         setCurrentProvider((prev) => (prev === provider ? null : prev));
+        if (readyStateRef.current?.documentID === id) {
+          readyStateRef.current = null;
+        }
+        // @ts-expect-error The Y-Websocket provider emits a "sync" event even though it's not part of
+        // the typed event map.
+        provider.off("sync", handleSync);
         // @ts-expect-error The Y-Websocket provider emits a "destroy" event even though it's
         // not part of the typed event map.
         provider.off("destroy", handleDestroy);
       };
 
+      // @ts-expect-error The Y-Websocket provider emits a "sync" event even though it's not part of
+      // the typed event map.
+      provider.on("sync", handleSync);
       // @ts-expect-error The Y-Websocket provider emits a "destroy" event even though it's not
       // part of the typed event map.
       provider.on("destroy", handleDestroy);
 
+      if (provider.synced) {
+        resolveReady();
+      }
+
       return provider;
     },
-    [baseProviderFactory],
+    [baseProviderFactory, ensureReadyState],
   );
 
   const resetDocument = useCallback(() => {
+    const pendingReady = readyStateRef.current;
     const provider = yjsProviderRef.current;
     if (provider) {
       provider.destroy();
     } else {
       yjsDocs.current.delete(documentID);
     }
+    if (pendingReady?.documentID === documentID) {
+      pendingReady.deferred.resolve();
+    }
+    if (readyStateRef.current?.documentID === documentID) {
+      readyStateRef.current = null;
+    }
     setVersion((prev) => prev + 1);
   }, [documentID]);
+
+  const ready = useCallback(() => {
+    if (editorConfig.disableWS) {
+      return Promise.resolve();
+    }
+    return ensureReadyState(documentID).promise;
+  }, [documentID, editorConfig.disableWS, ensureReadyState]);
 
   const contextValue = useMemo(
     () => ({
@@ -142,11 +219,13 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
       yjsProvider: currentProvider,
       getYjsProvider,
       resetDocument,
+      ready,
       version,
     }),
     [
       currentProvider,
       documentID,
+      ready,
       getYjsDoc,
       getYjsProvider,
       resetDocument,
@@ -160,6 +239,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
       return;
     }
 
+    const pendingReady = readyStateRef.current;
     const provider = yjsProviderRef.current;
     if (provider) {
       provider.destroy();
@@ -167,6 +247,10 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
 
     yjsDocs.current.clear();
     yjsProviderRef.current = null;
+    if (pendingReady) {
+      pendingReady.deferred.resolve();
+    }
+    readyStateRef.current = null;
   }, [editorConfig.disableWS]);
 
   return <DocumentSelectorContext value={contextValue}>{children}</DocumentSelectorContext>;

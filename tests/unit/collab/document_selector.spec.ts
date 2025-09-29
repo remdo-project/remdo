@@ -15,21 +15,7 @@ async function switchDocument(context: TestContext, id: string) {
 
   await waitFor(() => context.documentSelector.documentID === id);
   await waitFor(() => context.editor !== previousEditor);
-  await waitFor(() => context.documentSelector.getYjsProvider() !== null);
-  await waitFor(
-    () => context.documentSelector.getYjsProvider()?.synced === true,
-    { timeout: 5000 },
-  );
-  await waitFor(() => {
-    const doc = context.documentSelector.getYjsDoc();
-    if (!doc) {
-      return false;
-    }
-    if (!doc.share.has("root")) {
-      doc.get("root", Y.XmlText);
-    }
-    return true;
-  });
+  await context.documentSelector.ready();
 }
 
 const shouldRun = env.FORCE_WEBSOCKET;
@@ -44,6 +30,7 @@ it.runIf(shouldRun)("preserves independent state for each document", async (cont
     mainNote.createChild("main child 1");
   });
 
+  await context.documentSelector.ready();
   await waitFor(
     () => {
       const doc = context.documentSelector.getYjsDoc();
@@ -67,6 +54,7 @@ it.runIf(shouldRun)("preserves independent state for each document", async (cont
     flatNote1.text = "flat note1 updated";
   });
 
+  await context.documentSelector.ready();
   await waitFor(
     () => {
       const doc = context.documentSelector.getYjsDoc();
@@ -85,6 +73,7 @@ it.runIf(shouldRun)("preserves independent state for each document", async (cont
 
   await switchDocument(context, "main");
 
+  await context.documentSelector.ready();
   await waitFor(() => {
     const doc = context.documentSelector.getYjsDoc();
     if (!doc) {
@@ -100,6 +89,7 @@ it.runIf(shouldRun)("preserves independent state for each document", async (cont
 
   await switchDocument(context, "flat");
 
+  await context.documentSelector.ready();
   await waitFor(() => {
     const doc = context.documentSelector.getYjsDoc();
     if (!doc) {
