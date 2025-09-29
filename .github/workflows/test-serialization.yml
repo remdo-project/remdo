@@ -2,9 +2,16 @@ name: Serialization
 
 on: push
 
+permissions:
+  contents: read
+
 jobs:
   test:
-    uses: ./.github/workflows/node-test-shared.yml
-    with:
-      command: |
-        VITEST_SERIALIZATION_FILE=tree_complex npm run test-serialization
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./.github/actions/node-test-shared
+        with:
+          command: |
+            VITEST_SERIALIZATION_FILE=tree_complex npm run test-serialization
