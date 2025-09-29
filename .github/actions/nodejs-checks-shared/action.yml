@@ -1,0 +1,38 @@
+name: Node.js Checks
+
+description: Run lint and TypeScript type checks in a Node.js environment.
+
+inputs:
+  lint:
+    description: Run lint command when set to true
+    default: 'true'
+  typecheck:
+    description: Run typecheck command when set to true
+    default: 'true'
+  lint-command:
+    description: Command used to run linting
+    default: npm run lint
+  typecheck-command:
+    description: Command used to run type checking
+    default: npm run typecheck
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v5
+      with:
+        node-version: 22
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci --no-audit --no-fund
+
+    - name: Run ESLint
+      if: ${{ inputs.lint == 'true' }}
+      shell: bash
+      run: ${{ inputs.lint-command }}
+
+    - name: Run TypeScript type checks
+      if: ${{ inputs.typecheck == 'true' }}
+      shell: bash
+      run: ${{ inputs.typecheck-command }}
