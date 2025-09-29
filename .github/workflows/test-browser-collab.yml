@@ -16,9 +16,18 @@ concurrency:
 
 jobs:
   run:
-    uses: ./.github/workflows/test-browser-shared.yml
-    with:
-      command: npm run test-browser-collab
+    runs-on: ubuntu-latest
+    outputs:
+      report_present: ${{ steps.playwright.outputs.report_present }}
+      slug: ${{ steps.playwright.outputs.slug }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run Playwright suite
+        id: playwright
+        uses: ./.github/actions/test-browser-shared
+        with:
+          command: npm run test-browser-collab
 
   prepare-pages:
     if: ${{ always() && needs.run.outputs.report_present == 'true' && (github.ref_name == 'main' || startsWith(github.ref_name, 'codex/')) }}

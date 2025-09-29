@@ -2,8 +2,16 @@ name: Playwright Tests
 
 on: push
 
+permissions:
+  contents: read
+
 jobs:
-  call-shared:
-    uses: ./.github/workflows/test-browser-shared.yml
-    with:
-      command: npm run test-browser
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run Playwright suite
+        uses: ./.github/actions/test-browser-shared
+        with:
+          command: npm run test-browser
