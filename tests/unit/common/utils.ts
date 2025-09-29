@@ -52,6 +52,12 @@ export function getMinimizedState(editor: LexicalEditor) {
           text: '',
           version: 1,
         },
+        paragraph: {
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          version: 1,
+        },
         undefined: {},
         root: {
           direction: 'ltr',

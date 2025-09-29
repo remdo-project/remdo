@@ -4,6 +4,7 @@ import { env } from "#env";
 import type { TestContext } from "vitest";
 import { it } from "vitest";
 import { getMinimizedState } from "../common";
+import * as Y from "yjs";
 
 async function switchDocument(context: TestContext, id: string) {
   const previousEditor = context.editor;
@@ -14,7 +15,21 @@ async function switchDocument(context: TestContext, id: string) {
 
   await waitFor(() => context.documentSelector.documentID === id);
   await waitFor(() => context.editor !== previousEditor);
-  await waitFor(() => context.documentSelector.getYjsDoc() !== null);
+  await waitFor(() => context.documentSelector.getYjsProvider() !== null);
+  await waitFor(
+    () => context.documentSelector.getYjsProvider()?.synced === true,
+    { timeout: 5000 },
+  );
+  await waitFor(() => {
+    const doc = context.documentSelector.getYjsDoc();
+    if (!doc) {
+      return false;
+    }
+    if (!doc.share.has("root")) {
+      doc.get("root", Y.XmlText);
+    }
+    return true;
+  });
 }
 
 const shouldRun = env.FORCE_WEBSOCKET;
@@ -29,6 +44,18 @@ it.runIf(shouldRun)("preserves independent state for each document", async (cont
     mainNote.createChild("main child 1");
   });
 
+  await waitFor(
+    () => {
+      const doc = context.documentSelector.getYjsDoc();
+      if (!doc) {
+        return false;
+      }
+      const rootXmlText = doc.get("root", Y.XmlText);
+      return rootXmlText.length > 0;
+    },
+    { timeout: 5000 },
+  );
+
   const mainSnapshot = getMinimizedState(context.editor);
 
   await switchDocument(context, "flat");
@@ -40,6 +67,18 @@ it.runIf(shouldRun)("preserves independent state for each document", async (cont
     flatNote1.text = "flat note1 updated";
   });
 
+  await waitFor(
+    () => {
+      const doc = context.documentSelector.getYjsDoc();
+      if (!doc) {
+        return false;
+      }
+      const rootXmlText = doc.get("root", Y.XmlText);
+      return rootXmlText.length > 0;
+    },
+    { timeout: 5000 },
+  );
+
   const flatSnapshot = getMinimizedState(context.editor);
 
   expect(flatSnapshot).not.toEqual(mainSnapshot);
@@ -47,12 +86,30 @@ it.runIf(shouldRun)("preserves independent state for each document", async (cont
   await switchDocument(context, "main");
 
   await waitFor(() => {
-    expect(getMinimizedState(context.editor)).toEqual(mainSnapshot);
+    const doc = context.documentSelector.getYjsDoc();
+    if (!doc) {
+      return false;
+    }
+    const rootXmlText = doc.get("root", Y.XmlText);
+    return rootXmlText.length > 0;
   });
+
+  await waitFor(() => {
+    expect(getMinimizedState(context.editor)).toEqual(mainSnapshot);
+  }, { timeout: 5000 });
 
   await switchDocument(context, "flat");
 
   await waitFor(() => {
-    expect(getMinimizedState(context.editor)).toEqual(flatSnapshot);
+    const doc = context.documentSelector.getYjsDoc();
+    if (!doc) {
+      return false;
+    }
+    const rootXmlText = doc.get("root", Y.XmlText);
+    return rootXmlText.length > 0;
   });
+
+  await waitFor(() => {
+    expect(getMinimizedState(context.editor)).toEqual(flatSnapshot);
+  }, { timeout: 5000 });
 });
