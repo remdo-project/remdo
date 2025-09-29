@@ -1,4 +1,4 @@
-name: Vitest (Collab)
+name: Tests/Unit/Collab
 
 on: push
 

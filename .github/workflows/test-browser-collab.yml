@@ -1,4 +1,4 @@
-name: Playwright Collab Tests
+name: Tests/Browser/Collab
 
 on:
   push:
