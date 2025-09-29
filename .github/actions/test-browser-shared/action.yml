@@ -1,0 +1,72 @@
+name: Playwright Browser Tests
+
+inputs:
+  command:
+    description: Command to execute Playwright suite
+    required: true
+
+outputs:
+  report_present:
+    description: Whether a Playwright report artifact was generated
+    value: ${{ steps.report.outputs.present }}
+  slug:
+    description: Slugified branch name for artifact publishing
+    value: ${{ steps.branch.outputs.slug }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v5
+
+    - uses: actions/setup-node@v5
+      with:
+        node-version: 22
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci --no-audit --no-fund
+
+    - name: Install Playwright (Chromium)
+      shell: bash
+      run: npx playwright install --with-deps chromium
+
+    - name: Run Playwright tests
+      id: run-tests
+      continue-on-error: true
+      shell: bash
+      run: ${{ inputs.command }}
+
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: data
+        path: data/
+        retention-days: 30
+
+    - name: Check for Playwright report
+      id: report
+      if: always()
+      shell: bash
+      run: |
+        if [ -f data/playwright-report/index.html ]; then
+          echo "present=true" >>"$GITHUB_OUTPUT"
+        else
+          echo "present=false" >>"$GITHUB_OUTPUT"
+        fi
+
+    - name: Compute branch slug
+      id: branch
+      if: always()
+      shell: bash
+      run: |
+        ref_name="${GITHUB_REF_NAME:-${GITHUB_REF##*/}}"
+        slug=$(echo "$ref_name" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g' | sed -E 's/^-+|-+$//g')
+        if [ -z "$slug" ]; then
+          slug="branch"
+        fi
+        echo "slug=$slug" >>"$GITHUB_OUTPUT"
+
+    - name: Capture Playwright failure
+      if: ${{ steps.run-tests.outcome == 'failure' }}
+      shell: bash
+      run: exit 1
