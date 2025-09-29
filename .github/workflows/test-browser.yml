@@ -9,6 +9,8 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+
       - name: Run Playwright suite
         uses: ./.github/actions/test-browser-shared
         with:

@@ -21,6 +21,8 @@ jobs:
       report_present: ${{ steps.playwright.outputs.report_present }}
       slug: ${{ steps.playwright.outputs.slug }}
     steps:
+      - uses: actions/checkout@v5
+
       - name: Run Playwright suite
         id: playwright
         uses: ./.github/actions/test-browser-shared
