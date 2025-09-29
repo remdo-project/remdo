@@ -2,9 +2,14 @@ name: Tests/Unit/Collab
 
 on: push
 
+permissions:
+  contents: read
+
 jobs:
   test:
-    uses: ./.github/workflows/node-test-shared.yml
-    with:
-      command: FORCE_WEBSOCKET=true npm run test-unit-collab
-      websocket: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/node-test-shared
+        with:
+          command: FORCE_WEBSOCKET=true npm run test-unit-collab
+          websocket: true
