@@ -111,7 +111,7 @@ it.runIf(SERIALIZATION_FILE)("load, verify, save round-trip", async ({
   lexicalUpdate,
 }) => {
   const initialNotes = getNotes(editor);
-  expect(Object.keys(initialNotes)).toEqual(["root"]);
+  expect(Object.keys(initialNotes)).toEqual(["root", ""]);
 
   const { dataPath, notes } = loadSerializationFile(load, SERIALIZATION_FILE);
 

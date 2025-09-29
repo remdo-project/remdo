@@ -48,7 +48,7 @@
     "test-unit-collab": "FORCE_WEBSOCKET=true npx vitest run tests/unit/collab --maxWorkers=1",
     "test-unit-watch": "npx vitest --watch --ui --api.host 0.0.0.0",
     "test-unit-minimal": "npx vitest --reporter=./tests/unit/common/reporter.ts --watch --ui",
-    "test-serialization": "npx vitest run tests/unit/serialization.spec.ts",
+    "test-serialization": "npx vitest run tests/unit/serialization.spec.ts -t verify",
     "test": "npm run test-unit && npm run test-browser",
     "preview": "vite preview --host",
     "serve:prod": "npm run build && npm run preview",
