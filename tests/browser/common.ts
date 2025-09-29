@@ -6,6 +6,7 @@ const SKIP_CONTAINS = [
   "Download the React DevTools for a better development experience",
   "[vite] connecting...",
   "[vite] connected.",
+  "Invalid access: Add Yjs type to a document before reading data.", //TODO reintroduced with update yjs from 13.6.8 to 13.6.27
 ];
 
 type PageWithScreenshot = Page & {
