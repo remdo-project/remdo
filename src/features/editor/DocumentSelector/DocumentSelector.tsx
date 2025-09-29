@@ -151,6 +151,11 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
         resolveReady();
       };
 
+      const providerWithDestroy = provider as DocumentProvider & {
+        on(name: "destroy", listener: () => void): void;
+        off(name: "destroy", listener: () => void): void;
+      };
+
       const handleDestroy = () => {
         if (doc && yjsDocs.current.get(id) === doc) {
           yjsDocs.current.delete(id);
@@ -162,20 +167,12 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
         if (readyStateRef.current?.documentID === id) {
           readyStateRef.current = null;
         }
-        // @ts-expect-error The Y-Websocket provider emits a "sync" event even though it's not part of
-        // the typed event map.
         provider.off("sync", handleSync);
-        // @ts-expect-error The Y-Websocket provider emits a "destroy" event even though it's
-        // not part of the typed event map.
-        provider.off("destroy", handleDestroy);
+        providerWithDestroy.off("destroy", handleDestroy);
       };
 
-      // @ts-expect-error The Y-Websocket provider emits a "sync" event even though it's not part of
-      // the typed event map.
       provider.on("sync", handleSync);
-      // @ts-expect-error The Y-Websocket provider emits a "destroy" event even though it's not
-      // part of the typed event map.
-      provider.on("destroy", handleDestroy);
+      providerWithDestroy.on("destroy", handleDestroy);
 
       if (provider.synced) {
         resolveReady();
