@@ -14,6 +14,7 @@ test("add new element after a folded one", async ({ page, notebook }) => {
 
   // Direct snapshot of the Lexical DOM — captures structure and all data attributes
   expect(htmlAfter).toMatchSnapshot("after-addition");
+  // @ts-expect-error -- TODO: replace with page.screenshot() once the notebook helper stops relying on the untyped takeScreenshot shim.
   page.takeScreenshot();
 });
 

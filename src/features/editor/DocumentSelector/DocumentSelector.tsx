@@ -109,9 +109,13 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
           yjsProviderRef.current = null;
         }
         setCurrentProvider((prev) => (prev === provider ? null : prev));
+        // @ts-expect-error The Y-Websocket provider emits a "destroy" event even though it's
+        // not part of the typed event map.
         provider.off("destroy", handleDestroy);
       };
 
+      // @ts-expect-error The Y-Websocket provider emits a "destroy" event even though it's not
+      // part of the typed event map.
       provider.on("destroy", handleDestroy);
 
       return provider;
