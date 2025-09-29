@@ -8,7 +8,7 @@
 import path from "path";
 import { getDataPath } from "../common";
 import "./common";
-import { getNotes, lexicalStateKeyCompare } from "./common/utils";
+import { getNotes, getMinimizedState, lexicalStateKeyCompare } from "./common/utils";
 import { $convertToMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import fs from "fs";
 import { it } from "vitest";
@@ -44,8 +44,8 @@ function sortObjectKeys<T>(obj: T): T {
 }
 
 function serializeEditor(editor: RemdoLexicalEditor) {
-  const editorState = JSON.parse(JSON.stringify(editor.getEditorState()));
-  const sortedJsonObj = sortObjectKeys(editorState);
+  const minimized = getMinimizedState(editor);
+  const sortedJsonObj = sortObjectKeys(minimized);
   const json = JSON.stringify(sortedJsonObj, null, 2);
 
   let markdown = "";
@@ -111,7 +111,7 @@ it.runIf(SERIALIZATION_FILE)("load, verify, save round-trip", async ({
   lexicalUpdate,
 }) => {
   const initialNotes = getNotes(editor);
-  expect(Object.keys(initialNotes)).toEqual(["root", ""]);
+  expect(Object.keys(initialNotes)).toEqual(["root"]);
 
   const { dataPath, notes } = loadSerializationFile(load, SERIALIZATION_FILE);
 
