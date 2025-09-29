@@ -14,4 +14,6 @@ jobs:
       - uses: ./.github/actions/node-test-shared
         with:
           command: |
+            # FIXME(remdo): Set VITEST_SERIALIZATION_FILE directly in package.json so local runs
+            # and CI share the same entry point.
             VITEST_SERIALIZATION_FILE=tree_complex npm run test-serialization
