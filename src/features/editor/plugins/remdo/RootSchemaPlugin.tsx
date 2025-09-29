@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { RootNode } from "lexical";
 import {
   $createListItemNode,
@@ -8,6 +8,8 @@ import {
 } from "@lexical/list";
 
 import { useRemdoLexicalComposerContext } from "@/features/editor/plugins/remdo/ComposerContext";
+import { useDisableCollaboration } from "@/features/editor/config";
+import { useDocumentSelector } from "@/features/editor/DocumentSelector/DocumentSelector";
 import { mergeLists } from "./utils/unexported";
 
 function $ensureSingleListRoot(rootNode: RootNode): void {
@@ -60,10 +62,45 @@ function $ensureSingleListRoot(rootNode: RootNode): void {
 
 export function RootSchemaPlugin(): null {
   const [editor] = useRemdoLexicalComposerContext();
+  //FIXME review and simplify once collab is refactored
+  const disableCollaboration = useDisableCollaboration();
+  const { yjsProvider } = useDocumentSelector();
+  const [hasSynced, setHasSynced] = useState(
+    () => disableCollaboration || Boolean(yjsProvider?.synced)
+  );
 
   useEffect(() => {
+    setHasSynced(disableCollaboration || Boolean(yjsProvider?.synced));
+  }, [disableCollaboration, yjsProvider]);
+
+  useEffect(() => {
+    if (disableCollaboration || !yjsProvider) {
+      return;
+    }
+
+    const handleSynced = (synced: boolean) => {
+      setHasSynced(synced);
+    };
+
+    // y-websocket emits a "synced" event that toggles between true/false as the
+    // provider handshake completes or disconnects. It's missing from the type
+    // definitions.
+    // @ts-expect-error The "synced" event is not declared in the typings.
+    yjsProvider.on("synced", handleSynced);
+
+    return () => {
+      // @ts-expect-error The "synced" event is not declared in the typings.
+      yjsProvider.off("synced", handleSynced);
+    };
+  }, [disableCollaboration, yjsProvider]);
+
+  useEffect(() => {
+    if (!disableCollaboration && !hasSynced) {
+      return;
+    }
+
     return editor.registerNodeTransform(RootNode, $ensureSingleListRoot);
-  }, [editor]);
+  }, [disableCollaboration, editor, hasSynced]);
 
   return null;
 }
