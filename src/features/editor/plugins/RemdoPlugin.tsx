@@ -20,6 +20,7 @@ import { TextNode } from "lexical";
 import { applyNodePatches } from "./remdo/utils/patches";
 import { YjsPlugin } from "./remdo/YjsPlugin";
 import { NoteMetadataPlugin } from "./remdo/NoteMetadataPlugin";
+import { useDisableCollaboration } from "../config";
 
 applyNodePatches(ListItemNode);
 applyNodePatches(ListNode);
@@ -27,13 +28,15 @@ applyNodePatches(TextNode);
 
 export function RemdoPlugin({ anchorRef, documentID }:
   { anchorRef: React.RefObject<HTMLElement | null>; documentID: string }) {
+  const disableCollaboration = useDisableCollaboration();
 
   return (
+    //FIXME always enable RootSchemaPlugin and make it wait for collab to be ready
     <>
       <BackspacePlugin />
       <BreadcrumbPlugin documentID={documentID} />
       <CheckPlugin />
-      <RootSchemaPlugin />
+      {disableCollaboration && <RootSchemaPlugin />}
       <FocusPlugin anchorRef={anchorRef} />
       <FoldPlugin />
       <IndentationPlugin />
