@@ -1,27 +1,21 @@
 // @ts-nocheck
 // TODO(remdo): Restore YjsPlugin typing once collaboration wiring migrates to the new provider abstraction.
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRemdoLexicalComposerContext } from "./ComposerContext";
 import { YJS_SYNCED_COMMAND } from "./utils/commands";
 import { useDocumentSelector } from "../../DocumentSelector/DocumentSessionProvider";
 
 export function YjsPlugin() {
   const [editor] = useRemdoLexicalComposerContext();
-  const documentSelector = useDocumentSelector();
-  const provider = documentSelector.yjsProvider;
+  const { synced } = useDocumentSelector();
+  const previousSynced = useRef(false);
 
   useEffect(() => {
-    if (!provider) {
-      return;
-    }
-    const handleSynced = () => {
+    if (!previousSynced.current && synced) {
       editor.dispatchCommand(YJS_SYNCED_COMMAND, undefined);
-    };
-    provider.on("synced", handleSynced);
-    return () => {
-      provider.off("synced", handleSynced);
-    };
-  }, [provider, editor]);
+    }
+    previousSynced.current = synced;
+  }, [editor, synced]);
 
   return null;
 }
