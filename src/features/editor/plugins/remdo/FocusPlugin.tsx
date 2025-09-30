@@ -76,7 +76,7 @@ export function FocusPlugin({ anchorRef }:
       ) {
         return;
       }
-      //TODO read or just passing editor state should be enough, re-check in a newer lexical version
+      // TODO: read or just passing editor state should be enough, re-check with a newer Lexical release
       editor.update(() => {
         const node = $getNearestNodeFromDOMNode(target);
         if (node) {
