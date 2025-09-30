@@ -25,49 +25,12 @@ import TreeViewPlugin from "./TreeViewPlugin";
 import {
   ensureListItemSharedState,
   $ensureNoteID,
-  restoreRemdoStateFromJSON,
 } from "../plugins/remdo/utils/noteState";
-
-function EditorStateInput() {
-  const [editor] = useRemdoLexicalComposerContext();
-  const loadEditorState = () => {
-    const editorStateElement: HTMLTextAreaElement = document.getElementById(
-      "editor-state"
-    ) as HTMLTextAreaElement;
-    const serializedEditorState = editorStateElement.value;
-    try {
-      const parsedState = JSON.parse(serializedEditorState);
-      ensureListItemSharedState(editor as unknown as { _nodes?: Map<string, any> });
-      const editorState = editor.parseEditorState(serializedEditorState);
-      editor.setEditorState(editorState);
-      restoreRemdoStateFromJSON(editor, parsedState.root);
-      editor.dispatchCommand(CLEAR_HISTORY_COMMAND, null);
-      editorStateElement.value = "";
-    } catch (error) {
-      console.error("Invalid editor state JSON", error);
-    }
-  };
-
-  return (
-    <div>
-      <textarea id="editor-state"></textarea>
-      <br />
-      <button
-        type="button"
-        className="btn btn-primary"
-        onClick={loadEditorState}
-      >
-        Submit Editor State
-      </button>
-    </div>
-  );
-}
 
 export const DevToolbarPlugin = ({ editorBottomRef }) => {
   const [connected, setConnected] = useState(false);
   const [editor] = useRemdoLexicalComposerContext();
   const [darkMode, setDarkMode] = useState(() => getDarkMode());
-  const [showEditorStateInput, setShowEditorStateInput] = useState(false);
   const session = useDocumentSelector();
   const { isDebugMode } = useDebug();
   const editorBottom = editorBottomRef.current;
@@ -141,11 +104,6 @@ export const DevToolbarPlugin = ({ editorBottomRef }) => {
     editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
   };
 
-  const toggleEditorStateInput = (event) => {
-    event.preventDefault();
-    setShowEditorStateInput(!showEditorStateInput);
-  };
-
   const toggleColorMode = useCallback(() => {
     document.documentElement.dataset.bsTheme = darkMode ? "light" : "dark";
     setDarkMode(getDarkMode());
@@ -173,16 +131,6 @@ export const DevToolbarPlugin = ({ editorBottomRef }) => {
         >
           Clear
         </button>
-        <button
-          type="button"
-          className="btn btn-link float-end"
-          onClick={toggleEditorStateInput}
-        >
-          Load State
-        </button>
-        {editorBottom &&
-          showEditorStateInput &&
-          createPortal(<EditorStateInput />, editorBottom)}
         {editorBottom &&
           createPortal(<TreeViewPlugin />, editorBottom)}
         {editorBottom &&
