@@ -36,10 +36,6 @@ export type ProviderFactory = (id: string, yjsDocMap: Map<string, Y.Doc>) => Pro
 export type DocumentSession = {
   id: string;
   setId: (id: string, mode?: "push" | "replace" | "silent") => void;
-  /** @deprecated Use yjsProvider */
-  provider: DocumentProvider | null;
-  /** @deprecated Use yDoc */
-  doc: Y.Doc | null;
   yjsProvider: DocumentProvider | null;
   yDoc: Y.Doc | null;
   reset: () => void;
@@ -48,7 +44,6 @@ export type DocumentSession = {
 
 const DocumentSessionContext = createContext<DocumentSession | null>(null);
 export const CollabFactoryContext = createContext<ProviderFactory | null>(null);
-const legacySessionRef: { current: DocumentSession | null } = { current: null };
 
 function makeSearchWithDoc(id: string, current: URLSearchParams) {
   const next = new URLSearchParams(current);
@@ -68,7 +63,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const [documentID, setDocumentIDState] = useState(
+  const [documentID, setDocumentIdState] = useState(
     () => searchParams.get("documentID") ?? "main",
   );
   const editorConfig = useEditorConfig();
@@ -79,7 +74,6 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   const [currentDoc, setCurrentDoc] = useState<Y.Doc | null>(null);
   const [synced, setSynced] = useState(false);
   const lastSearchParamIdRef = useRef<string | null>(searchParams.get("documentID"));
-  const [resetToken, setResetToken] = useState(0);
 
   const scheduleSetDoc = useCallback((next: Y.Doc | null) => {
     if (!isMountedRef.current) {
@@ -91,7 +85,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
 
   const setDocumentIdSilently = useCallback((id: string) => {
     // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-    setDocumentIDState((prev) => (prev === id ? prev : id));
+    setDocumentIdState((prev) => (prev === id ? prev : id));
     scheduleSetDoc(yjsDocs.current.get(id) ?? null);
   }, [scheduleSetDoc]);
 
@@ -138,7 +132,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
     [],
   );
 
-  const yjsProviderFactory: ProviderFactory = useCallback(
+  const collaborationProviderFactory: ProviderFactory = useCallback(
     (id: string, yjsDocMap: Map<string, Y.Doc>) => {
       const storedDoc = yjsDocs.current.get(id) ?? null;
       if (storedDoc && !yjsDocMap.has(id)) {
@@ -190,7 +184,6 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
       yjsDocs.current.delete(documentID);
     }
     scheduleSetDoc(null);
-    setResetToken((prev) => prev + 1);
   }, [documentID, scheduleSetDoc]);
 
   const setId = useCallback(
@@ -209,30 +202,17 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   );
 
   const contextValue = useMemo(
-    () => {
-      void resetToken;
-      return {
+    () =>
+      ({
         id: documentID,
         setId,
-        provider: currentProvider,
-        doc: currentDoc,
         yjsProvider: currentProvider,
         yDoc: currentDoc,
         reset,
         synced,
-      } satisfies DocumentSession;
-    },
-    [currentDoc, currentProvider, documentID, reset, setId, synced, resetToken],
+      }) satisfies DocumentSession,
+    [currentDoc, currentProvider, documentID, reset, setId, synced],
   );
-
-  useEffect(() => {
-    legacySessionRef.current = contextValue;
-    return () => {
-      if (legacySessionRef.current === contextValue) {
-        legacySessionRef.current = null;
-      }
-    };
-  }, [contextValue]);
 
   useEffect(() => {
     return () => {
@@ -282,25 +262,8 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   }, [editorConfig.disableWS, scheduleSetDoc]);
 
   return (
-    <CollabFactoryContext value={yjsProviderFactory}>
+    <CollabFactoryContext value={collaborationProviderFactory}>
       <DocumentSessionContext value={contextValue}>{children}</DocumentSessionContext>
     </CollabFactoryContext>
   );
 };
-
-/** @deprecated Use session.yjsProvider instead */
-export const getYjsProvider = () => legacySessionRef.current?.yjsProvider ?? null;
-
-/** @deprecated Use session.yDoc instead */
-export const getYjsDoc = () => legacySessionRef.current?.yDoc ?? null;
-
-/** @deprecated Use useCollabFactory() */
-export const yjsProviderFactory = undefined as unknown as ProviderFactory;
-
-/** @deprecated Use session.setId(id, 'replace' | 'push' | 'silent') */
-export const setDocumentID = (id: string) => {
-  legacySessionRef.current?.setId(id, "replace");
-};
-
-/** @deprecated Internal; no external usage */
-export const version = undefined as unknown as number;
