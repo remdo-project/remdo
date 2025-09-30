@@ -1,10 +1,11 @@
+/* eslint-disable react-refresh/only-export-components, react/no-use-context */
 import type { Provider } from "@lexical/yjs";
 import type { WebsocketProvider } from "y-websocket";
 import {
   createContext,
   type ReactNode,
-  use,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -30,24 +31,20 @@ type TypedProvider = WebsocketProvider & {
 
 export type DocumentProvider = Provider & TypedProvider;
 
-type ProviderFactory = (id: string, yjsDocMap: Map<string, Y.Doc>) => Provider;
+export type ProviderFactory = (id: string, yjsDocMap: Map<string, Y.Doc>) => Provider;
 
-export interface DocumentSelectorType {
-  documentID: string;
-  selectDocument: (id: string, opts?: { replace?: boolean; path?: string }) => void;
-  setDocumentIdSilently: (id: string) => void;
-  /** @deprecated Use selectDocument or setDocumentIdSilently */
-  setDocumentID: (id: string) => void;
-  yjsProviderFactory: ProviderFactory;
-  getYjsDoc: () => Y.Doc | null;
-  yjsProvider: DocumentProvider | null;
-  getYjsProvider: () => DocumentProvider | null;
-  resetDocument: () => void;
-  version: number;
+export type DocumentSession = {
+  id: string;
+  setId: (id: string, mode?: "push" | "replace" | "silent") => void;
+  provider: DocumentProvider | null;
+  doc: Y.Doc | null;
+  reset: () => void;
   synced: boolean;
-}
+};
 
-const DocumentSelectorContext = createContext<DocumentSelectorType | null>(null);
+const DocumentSessionContext = createContext<DocumentSession | null>(null);
+export const CollabFactoryContext = createContext<ProviderFactory | null>(null);
+const legacySessionRef: { current: DocumentSession | null } = { current: null };
 
 function makeSearchWithDoc(id: string, current: URLSearchParams) {
   const next = new URLSearchParams(current);
@@ -55,9 +52,8 @@ function makeSearchWithDoc(id: string, current: URLSearchParams) {
   return `?${next.toString()}`;
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useDocumentSelector = () => {
-  const context = use(DocumentSelectorContext);
+  const context = useContext(DocumentSessionContext);
   if (!context) {
     throw new Error("useDocumentSelector must be used within a DocumentSelectorProvider");
   }
@@ -74,15 +70,26 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   const editorConfig = useEditorConfig();
   const yjsDocs = useRef(new Map<string, Y.Doc>());
   const yjsProviderRef = useRef<DocumentProvider | null>(null);
+  const isMountedRef = useRef(true);
   const [currentProvider, setCurrentProvider] = useState<DocumentProvider | null>(null);
-  const [version, setVersion] = useState(0);
+  const [doc, setDoc] = useState<Y.Doc | null>(null);
   const [synced, setSynced] = useState(false);
   const lastSearchParamIdRef = useRef<string | null>(searchParams.get("documentID"));
+  const [resetToken, setResetToken] = useState(0);
+
+  const scheduleSetDoc = useCallback((next: Y.Doc | null) => {
+    if (!isMountedRef.current) {
+      return;
+    }
+    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+    setDoc((prev) => (prev === next ? prev : next));
+  }, []);
 
   const setDocumentIdSilently = useCallback((id: string) => {
     // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
     setDocumentIDState((prev) => (prev === id ? prev : id));
-  }, []);
+    scheduleSetDoc(yjsDocs.current.get(id) ?? null);
+  }, [scheduleSetDoc]);
 
   const selectDocument = useCallback(
     (id: string, opts?: { replace?: boolean; path?: string }) => {
@@ -98,9 +105,6 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
     },
     [documentID, navigate, searchParams, setDocumentIdSilently],
   );
-
-  /** @deprecated Use selectDocument or setDocumentIdSilently */
-  const setDocumentID = setDocumentIdSilently;
 
   const baseProviderFactory = useMemo(
     () =>
@@ -130,27 +134,35 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
     [],
   );
 
-  const getYjsDoc = useCallback(() => {
-    return yjsDocs.current.get(documentID) ?? null;
-  }, [documentID]);
-
-  const getYjsProvider = useCallback(() => yjsProviderRef.current, []);
-
   const yjsProviderFactory: ProviderFactory = useCallback(
     (id: string, yjsDocMap: Map<string, Y.Doc>) => {
+      const storedDoc = yjsDocs.current.get(id) ?? null;
+      if (storedDoc && !yjsDocMap.has(id)) {
+        yjsDocMap.set(id, storedDoc);
+      }
       const provider = baseProviderFactory(id, yjsDocMap) as DocumentProvider;
-      const doc = yjsDocMap.get(id);
+      const previousDoc = yjsDocs.current.get(id) ?? null;
+      const nextDoc = yjsDocMap.get(id) ?? null;
 
-      if (doc) {
-        yjsDocs.current.set(id, doc);
+      if (nextDoc) {
+        yjsDocs.current.set(id, nextDoc);
+      } else {
+        yjsDocs.current.delete(id);
+      }
+      if (id === documentID && previousDoc !== nextDoc) {
+        scheduleSetDoc(nextDoc);
       }
 
       yjsProviderRef.current = provider;
       setCurrentProvider(provider);
 
       const handleDestroy = () => {
-        if (doc && yjsDocs.current.get(id) === doc) {
+        const storedDoc = yjsDocs.current.get(id) ?? null;
+        if (storedDoc && storedDoc === nextDoc) {
           yjsDocs.current.delete(id);
+          if (id === documentID) {
+            scheduleSetDoc(null);
+          }
         }
         if (yjsProviderRef.current === provider) {
           yjsProviderRef.current = null;
@@ -163,47 +175,64 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
 
       return provider;
     },
-    [baseProviderFactory],
+    [baseProviderFactory, documentID, scheduleSetDoc],
   );
 
-  const resetDocument = useCallback(() => {
+  const reset = useCallback(() => {
     const provider = yjsProviderRef.current;
     if (provider) {
       provider.destroy();
     } else {
       yjsDocs.current.delete(documentID);
     }
-    setVersion((prev) => prev + 1);
-  }, [documentID]);
+    scheduleSetDoc(null);
+    setResetToken((prev) => prev + 1);
+  }, [documentID, scheduleSetDoc]);
+
+  const setId = useCallback(
+    (id: string, mode: "push" | "replace" | "silent" = "push") => {
+      if (mode === "silent") {
+        setDocumentIdSilently(id);
+        return;
+      }
+      if (mode === "replace") {
+        selectDocument(id, { replace: true });
+        return;
+      }
+      selectDocument(id);
+    },
+    [selectDocument, setDocumentIdSilently],
+  );
 
   const contextValue = useMemo(
-    () => ({
-      documentID,
-      selectDocument,
-      setDocumentIdSilently,
-      setDocumentID,
-      yjsProviderFactory,
-      getYjsDoc,
-      yjsProvider: currentProvider,
-      getYjsProvider,
-      resetDocument,
-      version,
-      synced,
-    }),
-    [
-      currentProvider,
-      documentID,
-      getYjsDoc,
-      getYjsProvider,
-      resetDocument,
-      selectDocument,
-      setDocumentID,
-      setDocumentIdSilently,
-      synced,
-      version,
-      yjsProviderFactory,
-    ],
+    () => {
+      void resetToken;
+      return {
+        id: documentID,
+        setId,
+        provider: currentProvider,
+        doc,
+        reset,
+        synced,
+      } satisfies DocumentSession;
+    },
+    [currentProvider, doc, documentID, reset, setId, synced, resetToken],
   );
+
+  useEffect(() => {
+    legacySessionRef.current = contextValue;
+    return () => {
+      if (legacySessionRef.current === contextValue) {
+        legacySessionRef.current = null;
+      }
+    };
+  }, [contextValue]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const nextSearchParamId = searchParams.get("documentID");
@@ -243,7 +272,29 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
 
     yjsDocs.current.clear();
     yjsProviderRef.current = null;
-  }, [editorConfig.disableWS]);
+    scheduleSetDoc(null);
+  }, [editorConfig.disableWS, scheduleSetDoc]);
 
-  return <DocumentSelectorContext value={contextValue}>{children}</DocumentSelectorContext>;
+  return (
+    <CollabFactoryContext value={yjsProviderFactory}>
+      <DocumentSessionContext value={contextValue}>{children}</DocumentSessionContext>
+    </CollabFactoryContext>
+  );
 };
+
+/** @deprecated Use session.provider instead */
+export const getYjsProvider = () => legacySessionRef.current?.provider ?? null;
+
+/** @deprecated Use session.doc instead */
+export const getYjsDoc = () => legacySessionRef.current?.doc ?? null;
+
+/** @deprecated Use useCollabFactory() */
+export const yjsProviderFactory = undefined as unknown as ProviderFactory;
+
+/** @deprecated Use session.setId(id, 'replace' | 'push' | 'silent') */
+export const setDocumentID = (id: string) => {
+  legacySessionRef.current?.setId(id, "replace");
+};
+
+/** @deprecated Internal; no external usage */
+export const version = undefined as unknown as number;

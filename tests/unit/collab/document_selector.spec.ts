@@ -10,18 +10,15 @@ async function switchDocument(context: TestContext, id: string) {
   const previousEditor = context.editor;
 
   await act(async () => {
-    context.documentSelector.setDocumentIdSilently(id);
+    context.documentSelector.setId(id, "silent");
   });
 
-  await waitFor(() => context.documentSelector.documentID === id);
+  await waitFor(() => context.documentSelector.id === id);
   await waitFor(() => context.editor !== previousEditor);
-  await waitFor(() => context.documentSelector.getYjsProvider() !== null);
-  await waitFor(
-    () => context.documentSelector.getYjsProvider()?.synced === true,
-    { timeout: 5000 },
-  );
+  await waitFor(() => context.documentSelector.provider !== null);
+  await waitFor(() => context.documentSelector.provider?.synced === true, { timeout: 5000 });
   await waitFor(() => {
-    const doc = context.documentSelector.getYjsDoc();
+    const doc = context.documentSelector.doc;
     if (!doc) {
       return false;
     }
@@ -47,7 +44,7 @@ it.runIf(shouldRun && false)("preserves independent state for each document", as
 
   await waitFor(
     () => {
-      const doc = context.documentSelector.getYjsDoc();
+      const doc = context.documentSelector.doc;
       if (!doc) {
         return false;
       }
@@ -70,7 +67,7 @@ it.runIf(shouldRun && false)("preserves independent state for each document", as
 
   await waitFor(
     () => {
-      const doc = context.documentSelector.getYjsDoc();
+      const doc = context.documentSelector.doc;
       if (!doc) {
         return false;
       }
@@ -87,7 +84,7 @@ it.runIf(shouldRun && false)("preserves independent state for each document", as
   await switchDocument(context, "main");
 
   await waitFor(() => {
-    const doc = context.documentSelector.getYjsDoc();
+    const doc = context.documentSelector.doc;
     if (!doc) {
       return false;
     }
@@ -102,7 +99,7 @@ it.runIf(shouldRun && false)("preserves independent state for each document", as
   await switchDocument(context, "flat");
 
   await waitFor(() => {
-    const doc = context.documentSelector.getYjsDoc();
+    const doc = context.documentSelector.doc;
     if (!doc) {
       return false;
     }

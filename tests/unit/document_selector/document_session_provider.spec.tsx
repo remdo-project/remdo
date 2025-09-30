@@ -28,14 +28,14 @@ describe("document session provider navigation", () => {
     navigateMock.mockReset();
   });
 
-  it("selectDocument pushes a new history entry and updates the query", () => {
+  it("setId pushes a new history entry and updates the query by default", () => {
     const { result } = renderHook(() => useDocumentSelector(), { wrapper });
 
     act(() => {
-      result.current.selectDocument("secondary");
+      result.current.setId("secondary");
     });
 
-    expect(result.current.documentID).toBe("secondary");
+    expect(result.current.id).toBe("secondary");
     expect(currentSearchParams.get("documentID")).toBe("main");
     expect(navigateMock).toHaveBeenCalledTimes(1);
     expect(navigateMock).toHaveBeenCalledWith(
@@ -44,15 +44,15 @@ describe("document session provider navigation", () => {
     );
   });
 
-  it("selectDocument with replace does not push history", () => {
+  it("setId with replace does not push history", () => {
     currentSearchParams = new URLSearchParams("documentID=initial");
     const { result } = renderHook(() => useDocumentSelector(), { wrapper });
 
     act(() => {
-      result.current.selectDocument("replacement", { replace: true });
+      result.current.setId("replacement", "replace");
     });
 
-    expect(result.current.documentID).toBe("replacement");
+    expect(result.current.id).toBe("replacement");
     expect(currentSearchParams.get("documentID")).toBe("initial");
     expect(navigateMock).toHaveBeenCalledTimes(1);
     expect(navigateMock).toHaveBeenCalledWith(
@@ -61,14 +61,14 @@ describe("document session provider navigation", () => {
     );
   });
 
-  it("setDocumentIdSilently does not touch navigation", () => {
+  it("setId silently swaps the document without touching navigation", () => {
     const { result } = renderHook(() => useDocumentSelector(), { wrapper });
 
     act(() => {
-      result.current.setDocumentIdSilently("silent");
+      result.current.setId("silent", "silent");
     });
 
-    expect(result.current.documentID).toBe("silent");
+    expect(result.current.id).toBe("silent");
     expect(currentSearchParams.get("documentID")).toBe("main");
     expect(navigateMock).not.toHaveBeenCalled();
   });
@@ -77,7 +77,7 @@ describe("document session provider navigation", () => {
     const { result } = renderHook(() => useDocumentSelector(), { wrapper });
 
     act(() => {
-      result.current.selectDocument("main");
+      result.current.setId("main");
     });
 
     expect(navigateMock).not.toHaveBeenCalled();

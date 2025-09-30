@@ -68,7 +68,7 @@ export const DevToolbarPlugin = ({ editorBottomRef }) => {
   const [editor] = useRemdoLexicalComposerContext();
   const [darkMode, setDarkMode] = useState(() => getDarkMode());
   const [showEditorStateInput, setShowEditorStateInput] = useState(false);
-  const documentSelector = useDocumentSelector();
+  const session = useDocumentSelector();
   const { isDebugMode } = useDebug();
   const editorBottom = editorBottomRef.current;
 
@@ -104,9 +104,9 @@ export const DevToolbarPlugin = ({ editorBottomRef }) => {
   }
 
   const clearContent = () => {
-    const provider = documentSelector.getYjsProvider();
+    const provider = session.provider;
     if (provider) {
-      documentSelector.resetDocument();
+      session.reset();
       return;
     }
 
