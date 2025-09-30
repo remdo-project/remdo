@@ -1,11 +1,11 @@
-/* eslint-disable react-refresh/only-export-components */
+/* eslint-disable react-refresh/only-export-components, react/no-use-context */
 import type { Provider } from "@lexical/yjs";
 import type { WebsocketProvider } from "y-websocket";
 import {
   createContext,
   type ReactNode,
-  use,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -44,6 +44,7 @@ export type DocumentSession = {
 
 const DocumentSessionContext = createContext<DocumentSession | null>(null);
 export const CollabFactoryContext = createContext<ProviderFactory | null>(null);
+const legacySessionRef: { current: DocumentSession | null } = { current: null };
 
 function makeSearchWithDoc(id: string, current: URLSearchParams) {
   const next = new URLSearchParams(current);
@@ -52,7 +53,7 @@ function makeSearchWithDoc(id: string, current: URLSearchParams) {
 }
 
 export const useDocumentSelector = () => {
-  const context = use(DocumentSessionContext);
+  const context = useContext(DocumentSessionContext);
   if (!context) {
     throw new Error("useDocumentSelector must be used within a DocumentSelectorProvider");
   }
@@ -69,21 +70,26 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   const editorConfig = useEditorConfig();
   const yjsDocs = useRef(new Map<string, Y.Doc>());
   const yjsProviderRef = useRef<DocumentProvider | null>(null);
+  const isMountedRef = useRef(true);
   const [currentProvider, setCurrentProvider] = useState<DocumentProvider | null>(null);
   const [doc, setDoc] = useState<Y.Doc | null>(null);
   const [synced, setSynced] = useState(false);
   const lastSearchParamIdRef = useRef<string | null>(searchParams.get("documentID"));
   const [resetToken, setResetToken] = useState(0);
 
+  const scheduleSetDoc = useCallback((next: Y.Doc | null) => {
+    if (!isMountedRef.current) {
+      return;
+    }
+    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+    setDoc((prev) => (prev === next ? prev : next));
+  }, []);
+
   const setDocumentIdSilently = useCallback((id: string) => {
     // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
     setDocumentIDState((prev) => (prev === id ? prev : id));
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-    setDoc((prev) => {
-      const next = yjsDocs.current.get(id) ?? null;
-      return prev === next ? prev : next;
-    });
-  }, []);
+    scheduleSetDoc(yjsDocs.current.get(id) ?? null);
+  }, [scheduleSetDoc]);
 
   const selectDocument = useCallback(
     (id: string, opts?: { replace?: boolean; path?: string }) => {
@@ -130,30 +136,38 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
 
   const yjsProviderFactory: ProviderFactory = useCallback(
     (id: string, yjsDocMap: Map<string, Y.Doc>) => {
+      const storedDoc = yjsDocs.current.get(id) ?? null;
+      if (storedDoc && !yjsDocMap.has(id)) {
+        yjsDocMap.set(id, storedDoc);
+      }
       const provider = baseProviderFactory(id, yjsDocMap) as DocumentProvider;
-      const doc = yjsDocMap.get(id);
+      const previousDoc = yjsDocs.current.get(id) ?? null;
+      const nextDoc = yjsDocMap.get(id) ?? null;
 
-      if (doc) {
-        yjsDocs.current.set(id, doc);
-        if (id === documentID) {
-          setDoc(doc);
-        }
+      if (nextDoc) {
+        yjsDocs.current.set(id, nextDoc);
+      } else {
+        yjsDocs.current.delete(id);
+      }
+      if (id === documentID && previousDoc !== nextDoc) {
+        scheduleSetDoc(nextDoc);
       }
 
       yjsProviderRef.current = provider;
       setCurrentProvider(provider);
 
       const handleDestroy = () => {
-        if (doc && yjsDocs.current.get(id) === doc) {
+        const storedDoc = yjsDocs.current.get(id) ?? null;
+        if (storedDoc && storedDoc === nextDoc) {
           yjsDocs.current.delete(id);
+          if (id === documentID) {
+            scheduleSetDoc(null);
+          }
         }
         if (yjsProviderRef.current === provider) {
           yjsProviderRef.current = null;
         }
         setCurrentProvider((prev) => (prev === provider ? null : prev));
-        if (id === documentID) {
-          setDoc((prev) => (prev === doc ? null : prev));
-        }
         provider.off("destroy", handleDestroy);
       };
 
@@ -161,7 +175,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
 
       return provider;
     },
-    [baseProviderFactory, documentID],
+    [baseProviderFactory, documentID, scheduleSetDoc],
   );
 
   const reset = useCallback(() => {
@@ -171,9 +185,9 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
     } else {
       yjsDocs.current.delete(documentID);
     }
-    setDoc(null);
+    scheduleSetDoc(null);
     setResetToken((prev) => prev + 1);
-  }, [documentID]);
+  }, [documentID, scheduleSetDoc]);
 
   const setId = useCallback(
     (id: string, mode: "push" | "replace" | "silent" = "push") => {
@@ -204,6 +218,21 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
     },
     [currentProvider, doc, documentID, reset, setId, synced, resetToken],
   );
+
+  useEffect(() => {
+    legacySessionRef.current = contextValue;
+    return () => {
+      if (legacySessionRef.current === contextValue) {
+        legacySessionRef.current = null;
+      }
+    };
+  }, [contextValue]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const nextSearchParamId = searchParams.get("documentID");
@@ -243,9 +272,8 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
 
     yjsDocs.current.clear();
     yjsProviderRef.current = null;
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-    setDoc(null);
-  }, [editorConfig.disableWS]);
+    scheduleSetDoc(null);
+  }, [editorConfig.disableWS, scheduleSetDoc]);
 
   return (
     <CollabFactoryContext value={yjsProviderFactory}>
@@ -255,24 +283,17 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
 };
 
 /** @deprecated Use session.provider instead */
-export const getYjsProvider = () => {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  return useDocumentSelector().provider;
-};
+export const getYjsProvider = () => legacySessionRef.current?.provider ?? null;
 
 /** @deprecated Use session.doc instead */
-export const getYjsDoc = () => {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  return useDocumentSelector().doc;
-};
+export const getYjsDoc = () => legacySessionRef.current?.doc ?? null;
 
 /** @deprecated Use useCollabFactory() */
 export const yjsProviderFactory = undefined as unknown as ProviderFactory;
 
 /** @deprecated Use session.setId(id, 'replace' | 'push' | 'silent') */
 export const setDocumentID = (id: string) => {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useDocumentSelector().setId(id, "replace");
+  legacySessionRef.current?.setId(id, "replace");
 };
 
 /** @deprecated Internal; no external usage */
