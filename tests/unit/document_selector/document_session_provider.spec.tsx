@@ -7,16 +7,14 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const navigateMock = vi.fn();
-const setSearchParamsMock = vi.fn();
 let currentSearchParams = new URLSearchParams();
-let setSearchParamsCalls: Array<{ params: URLSearchParams; options: { replace?: boolean } | undefined }> = [];
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
   return {
     ...actual,
     useNavigate: vi.fn(() => navigateMock),
-    useSearchParams: vi.fn(() => [currentSearchParams, setSearchParamsMock] as const),
+    useSearchParams: vi.fn(() => [currentSearchParams, vi.fn()] as const),
   };
 });
 
@@ -27,14 +25,7 @@ function wrapper({ children }: { children: ReactNode }) {
 describe("document session provider navigation", () => {
   beforeEach(() => {
     currentSearchParams = new URLSearchParams("documentID=main");
-    setSearchParamsCalls = [];
     navigateMock.mockReset();
-    setSearchParamsMock.mockReset();
-    setSearchParamsMock.mockImplementation((init: any, options?: { replace?: boolean }) => {
-      const next = init instanceof URLSearchParams ? init : new URLSearchParams(init);
-      currentSearchParams = new URLSearchParams(next);
-      setSearchParamsCalls.push({ params: new URLSearchParams(currentSearchParams), options });
-    });
   });
 
   it("selectDocument pushes a new history entry and updates the query", () => {
@@ -45,10 +36,12 @@ describe("document session provider navigation", () => {
     });
 
     expect(result.current.documentID).toBe("secondary");
-    expect(currentSearchParams.get("documentID")).toBe("secondary");
-    expect(setSearchParamsCalls.length).toBeGreaterThanOrEqual(1);
-    expect(setSearchParamsCalls[setSearchParamsCalls.length - 1]?.options).toBeUndefined();
-    expect(navigateMock).toHaveBeenCalledWith("/", undefined);
+    expect(currentSearchParams.get("documentID")).toBe("main");
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigateMock).toHaveBeenCalledWith(
+      { pathname: "/", search: "?documentID=secondary" },
+      { replace: false },
+    );
   });
 
   it("selectDocument with replace does not push history", () => {
@@ -60,12 +53,12 @@ describe("document session provider navigation", () => {
     });
 
     expect(result.current.documentID).toBe("replacement");
-    expect(currentSearchParams.get("documentID")).toBe("replacement");
-    expect(setSearchParamsCalls.length).toBeGreaterThanOrEqual(1);
-    for (const call of setSearchParamsCalls) {
-      expect(call.options?.replace).toBe(true);
-    }
-    expect(navigateMock).toHaveBeenCalledWith("/", { replace: true });
+    expect(currentSearchParams.get("documentID")).toBe("initial");
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigateMock).toHaveBeenCalledWith(
+      { pathname: "/", search: "?documentID=replacement" },
+      { replace: true },
+    );
   });
 
   it("setDocumentIdSilently does not touch navigation", () => {
@@ -77,7 +70,6 @@ describe("document session provider navigation", () => {
 
     expect(result.current.documentID).toBe("silent");
     expect(currentSearchParams.get("documentID")).toBe("main");
-    expect(setSearchParamsCalls).toHaveLength(0);
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
@@ -88,7 +80,6 @@ describe("document session provider navigation", () => {
       result.current.selectDocument("main");
     });
 
-    expect(setSearchParamsCalls).toHaveLength(0);
     expect(navigateMock).not.toHaveBeenCalled();
   });
 });

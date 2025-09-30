@@ -49,6 +49,12 @@ export interface DocumentSelectorType {
 
 const DocumentSelectorContext = createContext<DocumentSelectorType | null>(null);
 
+function makeSearchWithDoc(id: string, current: URLSearchParams) {
+  const next = new URLSearchParams(current);
+  next.set("documentID", id);
+  return `?${next.toString()}`;
+}
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const useDocumentSelector = () => {
   const context = use(DocumentSelectorContext);
@@ -59,30 +65,8 @@ export const useDocumentSelector = () => {
 };
 
 export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) => {
-  type SetURLSearchParams = ReturnType<typeof useSearchParams>[1];
-
-  let searchParamsTuple: [URLSearchParams, SetURLSearchParams] | null = null;
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    searchParamsTuple = useSearchParams();
-  } catch {
-    searchParamsTuple = null;
-  }
-
-  const hasSearchParams = searchParamsTuple !== null;
-  const [searchParams, setSearchParams] =
-    searchParamsTuple ??
-    [new URLSearchParams(), (() => {}) as SetURLSearchParams];
-
-  let navigateFn: ReturnType<typeof useNavigate>;
-  let hasNavigate = true;
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    navigateFn = useNavigate();
-  } catch {
-    hasNavigate = false;
-    navigateFn = ((() => undefined) as unknown) as ReturnType<typeof useNavigate>;
-  }
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const [documentID, setDocumentIDState] = useState(
     () => searchParams.get("documentID") ?? "main",
@@ -106,36 +90,17 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
         return;
       }
 
+      navigate(
+        { pathname: opts?.path ?? "/", search: makeSearchWithDoc(id, searchParams) },
+        { replace: !!opts?.replace },
+      );
       setDocumentIdSilently(id);
-
-      if (hasSearchParams) {
-        const nextParams = new URLSearchParams(searchParams);
-        nextParams.set("documentID", id);
-        setSearchParams(nextParams, opts?.replace ? { replace: true } : undefined);
-      }
-
-      if (hasNavigate) {
-        const path = opts?.path ?? "/";
-        navigateFn(path, opts?.replace ? { replace: true } : undefined);
-      }
     },
-    [
-      documentID,
-      hasNavigate,
-      hasSearchParams,
-      navigateFn,
-      searchParams,
-      setDocumentIdSilently,
-      setSearchParams,
-    ],
+    [documentID, navigate, searchParams, setDocumentIdSilently],
   );
 
-  const setDocumentID = useCallback(
-    (id: string) => {
-      selectDocument(id, { replace: true });
-    },
-    [selectDocument],
-  );
+  /** @deprecated Use selectDocument or setDocumentIdSilently */
+  const setDocumentID = setDocumentIdSilently;
 
   const baseProviderFactory = useMemo(
     () =>
@@ -241,10 +206,6 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   );
 
   useEffect(() => {
-    if (!hasSearchParams) {
-      return;
-    }
-
     const nextSearchParamId = searchParams.get("documentID");
     if (lastSearchParamIdRef.current === nextSearchParamId) {
       return;
@@ -253,7 +214,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
     lastSearchParamIdRef.current = nextSearchParamId;
     const normalizedId = nextSearchParamId ?? "main";
     setDocumentIdSilently(normalizedId);
-  }, [hasSearchParams, searchParams, setDocumentIdSilently]);
+  }, [searchParams, setDocumentIdSilently]);
 
   useEffect(() => {
     if (!currentProvider) {
