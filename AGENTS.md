@@ -14,7 +14,7 @@
   - WebSocket with persistence: `npm run websocket-persist` (stores in `./data/yjsDB`).
   - Alternative (Hocuspocus): `npm run hocuspocus`.
 - In browser:
-  - Disable WS for local/editor-only: add `?ws=false` to the URL.
+  - Disable WS for local/editor-only: add `?collab=false` to the URL.
   - Choose document: navbar “Documents” or `?documentID=your-file`.
   - Enable dev toolbar: `?debug=true` or toggle via navbar.
 
@@ -115,7 +115,7 @@
 - `config/env.server.ts` defaults:
   - `PORT` (Vite) default 3010.
   - WebSocket server default 8080.
-- Useful query params: `?debug=true`, `?ws=false`, `?documentID=...`.
+- Useful query params: `?debug=true`, `?collab=false`, `?documentID=...`.
 
 ## Safety & Process
 
