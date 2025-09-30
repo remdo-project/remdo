@@ -10,7 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEditorConfig } from "../config";
 import * as Y from "yjs";
 import {
@@ -34,6 +34,9 @@ type ProviderFactory = (id: string, yjsDocMap: Map<string, Y.Doc>) => Provider;
 
 export interface DocumentSelectorType {
   documentID: string;
+  selectDocument: (id: string, opts?: { replace?: boolean; path?: string }) => void;
+  setDocumentIdSilently: (id: string) => void;
+  /** @deprecated Use selectDocument or setDocumentIdSilently */
   setDocumentID: (id: string) => void;
   yjsProviderFactory: ProviderFactory;
   getYjsDoc: () => Y.Doc | null;
@@ -56,14 +59,83 @@ export const useDocumentSelector = () => {
 };
 
 export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) => {
-  const [searchParams] = useSearchParams();
-  const [documentID, setDocumentID] = useState(searchParams.get("documentID") ?? "main");
+  type SetURLSearchParams = ReturnType<typeof useSearchParams>[1];
+
+  let searchParamsTuple: [URLSearchParams, SetURLSearchParams] | null = null;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    searchParamsTuple = useSearchParams();
+  } catch {
+    searchParamsTuple = null;
+  }
+
+  const hasSearchParams = searchParamsTuple !== null;
+  const [searchParams, setSearchParams] =
+    searchParamsTuple ??
+    [new URLSearchParams(), (() => {}) as SetURLSearchParams];
+
+  let navigateFn: ReturnType<typeof useNavigate>;
+  let hasNavigate = true;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    navigateFn = useNavigate();
+  } catch {
+    hasNavigate = false;
+    navigateFn = ((() => undefined) as unknown) as ReturnType<typeof useNavigate>;
+  }
+
+  const [documentID, setDocumentIDState] = useState(
+    () => searchParams.get("documentID") ?? "main",
+  );
   const editorConfig = useEditorConfig();
   const yjsDocs = useRef(new Map<string, Y.Doc>());
   const yjsProviderRef = useRef<DocumentProvider | null>(null);
   const [currentProvider, setCurrentProvider] = useState<DocumentProvider | null>(null);
   const [version, setVersion] = useState(0);
   const [synced, setSynced] = useState(false);
+  const lastSearchParamIdRef = useRef<string | null>(searchParams.get("documentID"));
+
+  const setDocumentIdSilently = useCallback((id: string) => {
+    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+    setDocumentIDState((prev) => (prev === id ? prev : id));
+  }, []);
+
+  const selectDocument = useCallback(
+    (id: string, opts?: { replace?: boolean; path?: string }) => {
+      if (documentID === id) {
+        return;
+      }
+
+      setDocumentIdSilently(id);
+
+      if (hasSearchParams) {
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set("documentID", id);
+        setSearchParams(nextParams, opts?.replace ? { replace: true } : undefined);
+      }
+
+      if (hasNavigate) {
+        const path = opts?.path ?? "/";
+        navigateFn(path, opts?.replace ? { replace: true } : undefined);
+      }
+    },
+    [
+      documentID,
+      hasNavigate,
+      hasSearchParams,
+      navigateFn,
+      searchParams,
+      setDocumentIdSilently,
+      setSearchParams,
+    ],
+  );
+
+  const setDocumentID = useCallback(
+    (id: string) => {
+      selectDocument(id, { replace: true });
+    },
+    [selectDocument],
+  );
 
   const baseProviderFactory = useMemo(
     () =>
@@ -142,6 +214,8 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   const contextValue = useMemo(
     () => ({
       documentID,
+      selectDocument,
+      setDocumentIdSilently,
       setDocumentID,
       yjsProviderFactory,
       getYjsDoc,
@@ -157,11 +231,29 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
       getYjsDoc,
       getYjsProvider,
       resetDocument,
+      selectDocument,
+      setDocumentID,
+      setDocumentIdSilently,
       synced,
       version,
       yjsProviderFactory,
     ],
   );
+
+  useEffect(() => {
+    if (!hasSearchParams) {
+      return;
+    }
+
+    const nextSearchParamId = searchParams.get("documentID");
+    if (lastSearchParamIdRef.current === nextSearchParamId) {
+      return;
+    }
+
+    lastSearchParamIdRef.current = nextSearchParamId;
+    const normalizedId = nextSearchParamId ?? "main";
+    setDocumentIdSilently(normalizedId);
+  }, [hasSearchParams, searchParams, setDocumentIdSilently]);
 
   useEffect(() => {
     if (!currentProvider) {
