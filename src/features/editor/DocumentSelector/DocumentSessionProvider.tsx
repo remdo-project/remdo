@@ -36,8 +36,12 @@ export type ProviderFactory = (id: string, yjsDocMap: Map<string, Y.Doc>) => Pro
 export type DocumentSession = {
   id: string;
   setId: (id: string, mode?: "push" | "replace" | "silent") => void;
+  /** @deprecated Use yjsProvider */
   provider: DocumentProvider | null;
+  /** @deprecated Use yDoc */
   doc: Y.Doc | null;
+  yjsProvider: DocumentProvider | null;
+  yDoc: Y.Doc | null;
   reset: () => void;
   synced: boolean;
 };
@@ -72,7 +76,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   const yjsProviderRef = useRef<DocumentProvider | null>(null);
   const isMountedRef = useRef(true);
   const [currentProvider, setCurrentProvider] = useState<DocumentProvider | null>(null);
-  const [doc, setDoc] = useState<Y.Doc | null>(null);
+  const [currentDoc, setCurrentDoc] = useState<Y.Doc | null>(null);
   const [synced, setSynced] = useState(false);
   const lastSearchParamIdRef = useRef<string | null>(searchParams.get("documentID"));
   const [resetToken, setResetToken] = useState(0);
@@ -82,7 +86,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
       return;
     }
     // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-    setDoc((prev) => (prev === next ? prev : next));
+    setCurrentDoc((prev) => (prev === next ? prev : next));
   }, []);
 
   const setDocumentIdSilently = useCallback((id: string) => {
@@ -211,12 +215,14 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
         id: documentID,
         setId,
         provider: currentProvider,
-        doc,
+        doc: currentDoc,
+        yjsProvider: currentProvider,
+        yDoc: currentDoc,
         reset,
         synced,
       } satisfies DocumentSession;
     },
-    [currentProvider, doc, documentID, reset, setId, synced, resetToken],
+    [currentDoc, currentProvider, documentID, reset, setId, synced, resetToken],
   );
 
   useEffect(() => {
@@ -282,11 +288,11 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   );
 };
 
-/** @deprecated Use session.provider instead */
-export const getYjsProvider = () => legacySessionRef.current?.provider ?? null;
+/** @deprecated Use session.yjsProvider instead */
+export const getYjsProvider = () => legacySessionRef.current?.yjsProvider ?? null;
 
-/** @deprecated Use session.doc instead */
-export const getYjsDoc = () => legacySessionRef.current?.doc ?? null;
+/** @deprecated Use session.yDoc instead */
+export const getYjsDoc = () => legacySessionRef.current?.yDoc ?? null;
 
 /** @deprecated Use useCollabFactory() */
 export const yjsProviderFactory = undefined as unknown as ProviderFactory;

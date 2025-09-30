@@ -131,11 +131,11 @@ beforeEach(async (context) => {
   logger.setFlushFunction(() => context.lexicalUpdate(() => { }));
 
   if (env.FORCE_WEBSOCKET) {
-    const provider = context.documentSelector.provider;
+    const provider = context.documentSelector.yjsProvider;
     //wait for yjs to connect via websocket and init the editor content
     await waitForProviderSync(provider);
 
-    const yDoc = context.documentSelector.doc;
+    const yDoc = context.documentSelector.yDoc;
     if (yDoc) {
       yDoc.transact(() => {
         const rootXmlText = yDoc.get('root', Y.XmlText);
@@ -158,7 +158,7 @@ beforeEach(async (context) => {
 
 afterEach(async (context) => {
   if (env.FORCE_WEBSOCKET) {
-    const provider = context.documentSelector?.provider;
+    const provider = context.documentSelector?.yjsProvider;
     if (provider instanceof WebsocketProvider) {
       await waitForProviderSync(provider);
     }
