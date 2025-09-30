@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRemdoLexicalComposerContext } from "./ComposerContext";
 import { YJS_SYNCED_COMMAND } from "./utils/commands";
-import { useDocumentSelector } from "../../DocumentSelector/DocumentSelector";
+import { useDocumentSelector } from "../../DocumentSelector/DocumentSessionProvider";
 
 export function YjsPlugin() {
   const [editor] = useRemdoLexicalComposerContext();

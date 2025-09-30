@@ -17,7 +17,7 @@ import {
   restoreRemdoStateFromJSON,
 } from '@/features/editor/plugins/remdo/utils/noteState';
 import { env } from '#env';
-import { DocumentSelectorType } from '@/features/editor/DocumentSelector/DocumentSelector';
+import { DocumentSelectorType } from '@/features/editor/DocumentSelector/DocumentSessionProvider';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 

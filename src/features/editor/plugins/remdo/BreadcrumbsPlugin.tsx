@@ -3,7 +3,7 @@ import { Note } from "./utils/api";
 import { useCallback, useEffect, useState } from "react";
 import Breadcrumb from "react-bootstrap/Breadcrumb";
 import { Link, useParams } from "react-router-dom";
-import { DocumentSelector } from "@/features/editor/DocumentSelector/DocumentSelector";
+import { DocumentMenu } from "@/features/editor/DocumentSelector/DocumentMenu";
 import { YJS_SYNCED_COMMAND } from "./utils/commands";
 import { COMMAND_PRIORITY_LOW } from "lexical";
 
@@ -88,7 +88,7 @@ export function BreadcrumbPlugin({ documentID }: { documentID: string }) {
     <div>
       <Breadcrumb id="notes-path">
         <Breadcrumb.Item linkAs="div">
-          <DocumentSelector />
+          <DocumentMenu />
         </Breadcrumb.Item>
         <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/" }}>
           {documentID}

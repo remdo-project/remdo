@@ -1,7 +1,7 @@
 import {
   DocumentSelectorProvider,
   useDocumentSelector,
-} from "./DocumentSelector/DocumentSelector";
+} from "./DocumentSelector/DocumentSessionProvider";
 import "./Editor.scss";
 import { ClickableLinkPlugin as LexicalClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";

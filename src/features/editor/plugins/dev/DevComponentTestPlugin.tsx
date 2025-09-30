@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { createContext, use, useEffect } from "react";
 import type { LexicalEditor } from "lexical";
-import { useDocumentSelector } from "../../DocumentSelector/DocumentSelector";
+import { useDocumentSelector } from "../../DocumentSelector/DocumentSessionProvider";
 
 // TODO: To satisfy `react-refresh/only-export-components`, split this context into
 // a standalone module once the dev tooling is ready to consume the new import.

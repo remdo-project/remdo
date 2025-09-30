@@ -9,7 +9,7 @@ import {
 
 import { useRemdoLexicalComposerContext } from "@/features/editor/plugins/remdo/ComposerContext";
 import { useDisableCollaboration } from "@/features/editor/config";
-import { useDocumentSelector } from "@/features/editor/DocumentSelector/DocumentSelector";
+import { useDocumentSelector } from "@/features/editor/DocumentSelector/DocumentSessionProvider";
 import { mergeLists } from "./utils/unexported";
 
 function $ensureSingleListRoot(rootNode: RootNode): void {
