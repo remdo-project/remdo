@@ -223,7 +223,7 @@ export const test = base.extend<{
 }>({
   notebook: async ({ page }, use) => {
     const notebook = new Notebook(page);
-    await page.goto(`/?debug=true${env.FORCE_WEBSOCKET ? "" : "&ws=false"}`);
+    await page.goto(`/?debug=true${env.FORCE_WEBSOCKET ? "" : "&collab=false"}`);
     await page.waitForLoadState("networkidle")
     await notebook.locator().focus();
     await use(notebook);
