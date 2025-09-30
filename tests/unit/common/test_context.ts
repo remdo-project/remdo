@@ -9,7 +9,7 @@ import {
 import { expect } from 'vitest';
 import { RemdoLexicalEditor } from '@/features/editor/plugins/remdo/ComposerContext';
 import { Note } from '@/features/editor/plugins/remdo/utils/api';
-import { DocumentSelectorType } from '@/features/editor/DocumentSelector/DocumentSessionProvider';
+import { DocumentSession } from '@/features/editor/DocumentSelector/DocumentSessionProvider';
 
 export type Queries = BoundFunctions<
   typeof queries & { getAllNotNestedIListItems: typeof getAllByRole.bind }
@@ -23,7 +23,7 @@ declare module 'vitest' {
     lexicalUpdate: (fn: () => void) => void;
     load: (name: string) => Record<string, Note>;
     editor: RemdoLexicalEditor;
-    documentSelector: DocumentSelectorType;
+    documentSelector: DocumentSession;
     expect: typeof expect;
   }
 }

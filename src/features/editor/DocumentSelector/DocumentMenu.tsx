@@ -3,7 +3,7 @@ import { NotesState } from "../plugins/remdo/utils/api";
 import { useDocumentSelector } from "./DocumentSessionProvider";
 
 export function DocumentMenu() {
-  const { documentID, selectDocument } = useDocumentSelector();
+  const { id, setId } = useDocumentSelector();
 
   return (
     <div data-testid="document-selector">
@@ -11,9 +11,9 @@ export function DocumentMenu() {
         {NotesState.documents().map((document) => (
           <Dropdown.Item
             key={document}
-            active={document === documentID}
+            active={document === id}
             onClick={() => {
-              selectDocument(document);
+              setId(document);
             }}
           >
             {document}

@@ -17,7 +17,7 @@ import {
   restoreRemdoStateFromJSON,
 } from '@/features/editor/plugins/remdo/utils/noteState';
 import { env } from '#env';
-import { DocumentSelectorType } from '@/features/editor/DocumentSelector/DocumentSessionProvider';
+import { DocumentSession } from '@/features/editor/DocumentSelector/DocumentSessionProvider';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
@@ -38,7 +38,7 @@ beforeAll(() => {
 });
 
 beforeEach(async (context) => {
-  function testHandler(editor: RemdoLexicalEditor, documentSelector: DocumentSelectorType) {
+  function testHandler(editor: RemdoLexicalEditor, documentSelector: DocumentSession) {
     context.editor = editor;
     context.documentSelector = documentSelector;
   }
@@ -131,11 +131,11 @@ beforeEach(async (context) => {
   logger.setFlushFunction(() => context.lexicalUpdate(() => { }));
 
   if (env.FORCE_WEBSOCKET) {
-    const provider = context.documentSelector.getYjsProvider();
+    const provider = context.documentSelector.provider;
     //wait for yjs to connect via websocket and init the editor content
     await waitForProviderSync(provider);
 
-    const yDoc = context.documentSelector.getYjsDoc();
+    const yDoc = context.documentSelector.doc;
     if (yDoc) {
       yDoc.transact(() => {
         const rootXmlText = yDoc.get('root', Y.XmlText);
@@ -158,7 +158,7 @@ beforeEach(async (context) => {
 
 afterEach(async (context) => {
   if (env.FORCE_WEBSOCKET) {
-    const provider = context.documentSelector?.getYjsProvider();
+    const provider = context.documentSelector?.provider;
     if (provider instanceof WebsocketProvider) {
       await waitForProviderSync(provider);
     }

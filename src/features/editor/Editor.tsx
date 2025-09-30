@@ -2,6 +2,7 @@ import {
   DocumentSelectorProvider,
   useDocumentSelector,
 } from "./DocumentSelector/DocumentSessionProvider";
+import { useCollabFactory } from "./DocumentSelector/useCollabFactory";
 import "./Editor.scss";
 import { ClickableLinkPlugin as LexicalClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
@@ -26,7 +27,8 @@ function LexicalEditor() {
   const disableCollaboration = useDisableCollaboration();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const editorBottomRef = useRef<HTMLDivElement | null>(null);
-  const documentSelector = useDocumentSelector();
+  const session = useDocumentSelector();
+  const collabFactory = useCollabFactory();
   const editorConfig = useEditorConfig();
   const shouldMountTestBridge =
     !import.meta.env.PROD || (typeof window !== "undefined" && window.REMDO_TEST === true);
@@ -34,13 +36,13 @@ function LexicalEditor() {
   return (
     <LexicalComposer
       initialConfig={editorConfig}
-      key={`${documentSelector.documentID}:${documentSelector.version}`}
+      key={`${session.id}:${session.doc?.guid ?? "local"}`}
     >
       <div className="editor-container editor-shell">
         <DevToolbarPlugin editorBottomRef={editorBottomRef} />
         <RemdoPlugin
           anchorRef={editorContainerRef}
-          documentID={documentSelector.documentID}
+          documentID={session.id}
         />
         <RichTextPlugin
           contentEditable={
@@ -63,8 +65,8 @@ function LexicalEditor() {
         ) : (
           <LexicalCollaboration>
             <CollaborationPlugin
-              id={documentSelector.documentID}
-              providerFactory={documentSelector.yjsProviderFactory}
+              id={session.id}
+              providerFactory={collabFactory}
               shouldBootstrap
             />
           </LexicalCollaboration>
