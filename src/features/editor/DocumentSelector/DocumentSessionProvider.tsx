@@ -24,14 +24,14 @@ type YWebsocketEvents = {
   destroy: () => void;
 };
 
-type TypedProvider = WebsocketProvider & {
-  on<K extends keyof YWebsocketEvents>(event: K, callback: YWebsocketEvents[K]): void;
-  off<K extends keyof YWebsocketEvents>(event: K, callback: YWebsocketEvents[K]): void;
-};
+export type DocumentProvider = Provider &
+  (WebsocketProvider & {
+    on<K extends keyof YWebsocketEvents>(event: K, callback: YWebsocketEvents[K]): void;
+    off<K extends keyof YWebsocketEvents>(event: K, callback: YWebsocketEvents[K]): void;
+    synced?: boolean;
+  });
 
-export type DocumentProvider = Provider & TypedProvider;
-
-export type ProviderFactory = (id: string, yjsDocMap: Map<string, Y.Doc>) => Provider;
+export type ProviderFactory = (id: string, yjsDocMap: Map<string, Y.Doc>) => DocumentProvider;
 
 export type DocumentSession = {
   id: string;
@@ -40,6 +40,7 @@ export type DocumentSession = {
   yDoc: Y.Doc | null;
   reset: () => void;
   synced: boolean;
+  collabDisabled: boolean;
 };
 
 const DocumentSessionContext = createContext<DocumentSession | null>(null);
@@ -67,6 +68,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
     () => searchParams.get("documentID") ?? "main",
   );
   const editorConfig = useEditorConfig();
+  const collabDisabled = editorConfig.collabDisabled;
   const yjsDocs = useRef(new Map<string, Y.Doc>());
   const yjsProviderRef = useRef<DocumentProvider | null>(null);
   const isMountedRef = useRef(true);
@@ -134,6 +136,9 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
 
   const collaborationProviderFactory: ProviderFactory = useCallback(
     (id: string, yjsDocMap: Map<string, Y.Doc>) => {
+      if (collabDisabled) {
+        throw new Error("Collaboration is disabled; no provider is available.");
+      }
       const storedDoc = yjsDocs.current.get(id) ?? null;
       if (storedDoc && !yjsDocMap.has(id)) {
         yjsDocMap.set(id, storedDoc);
@@ -173,7 +178,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
 
       return provider;
     },
-    [baseProviderFactory, documentID, scheduleSetDoc],
+    [baseProviderFactory, collabDisabled, documentID, scheduleSetDoc],
   );
 
   const reset = useCallback(() => {
@@ -210,8 +215,9 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
         yDoc: currentDoc,
         reset,
         synced,
+        collabDisabled,
       }) satisfies DocumentSession,
-    [currentDoc, currentProvider, documentID, reset, setId, synced],
+    [collabDisabled, currentDoc, currentProvider, documentID, reset, setId, synced],
   );
 
   useEffect(() => {
@@ -247,7 +253,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   }, [currentProvider]);
 
   useEffect(() => {
-    if (!editorConfig.disableWS) {
+    if (!collabDisabled) {
       return;
     }
 
@@ -259,7 +265,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
     yjsDocs.current.clear();
     yjsProviderRef.current = null;
     scheduleSetDoc(null);
-  }, [editorConfig.disableWS, scheduleSetDoc]);
+  }, [collabDisabled, scheduleSetDoc]);
 
   return (
     <CollabFactoryContext value={collaborationProviderFactory}>

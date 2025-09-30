@@ -44,7 +44,11 @@ export default function RemdoTestBridge(): null {
 function createAPI(editor: LexicalEditor) {
   const disposables: Array<() => void> = [];
   const searchParams = new URLSearchParams(window.location.search);
-  const collabEnabled = searchParams.get("ws") !== "false";
+  const collabParam = searchParams.get("collab");
+  const legacyWsParam = searchParams.get("ws");
+  const collabDisabled =
+    collabParam !== null ? collabParam === "false" : legacyWsParam === "false";
+  const collabEnabled = !collabDisabled;
   let isYjsSynced = !collabEnabled;
 
   type Waiter = {

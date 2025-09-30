@@ -3,11 +3,23 @@ import {
   DocumentSelectorProvider,
   useDocumentSelector,
 } from "@/features/editor/DocumentSelector/DocumentSessionProvider";
+import { useCollabFactory } from "@/features/editor/DocumentSelector/useCollabFactory";
+import type {
+  CollaborationProviderFactory,
+  CreateCollaborationProviderFactoryOptions,
+} from "@/features/editor/collab/createCollaborationProviderFactory";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const navigateMock = vi.fn();
 let currentSearchParams = new URLSearchParams();
+
+let actualCreateCollaborationProviderFactory:
+  | ((options?: CreateCollaborationProviderFactoryOptions) => CollaborationProviderFactory)
+  | null = null;
+const createCollaborationProviderFactoryMock = vi.fn<
+  (options?: CreateCollaborationProviderFactoryOptions) => CollaborationProviderFactory
+>();
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
@@ -18,14 +30,39 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+vi.mock("@/features/editor/collab/createCollaborationProviderFactory", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/features/editor/collab/createCollaborationProviderFactory")
+  >("@/features/editor/collab/createCollaborationProviderFactory");
+  return {
+    ...actual,
+    createCollaborationProviderFactory: (
+      ...args: Parameters<typeof actual.createCollaborationProviderFactory>
+    ) => createCollaborationProviderFactoryMock(...args),
+  };
+});
+
 function wrapper({ children }: { children: ReactNode }) {
   return <DocumentSelectorProvider>{children}</DocumentSelectorProvider>;
 }
 
 describe("document session provider navigation", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     currentSearchParams = new URLSearchParams("documentID=main");
     navigateMock.mockReset();
+    createCollaborationProviderFactoryMock.mockReset();
+    if (!actualCreateCollaborationProviderFactory) {
+      const actual = await vi.importActual<
+        typeof import("@/features/editor/collab/createCollaborationProviderFactory")
+      >("@/features/editor/collab/createCollaborationProviderFactory");
+      actualCreateCollaborationProviderFactory = actual.createCollaborationProviderFactory;
+    }
+    createCollaborationProviderFactoryMock.mockImplementation((options) => {
+      if (!actualCreateCollaborationProviderFactory) {
+        throw new Error("Expected actual createCollaborationProviderFactory to be available");
+      }
+      return actualCreateCollaborationProviderFactory(options);
+    });
   });
 
   it("setId pushes a new history entry and updates the query by default", () => {
@@ -81,5 +118,22 @@ describe("document session provider navigation", () => {
     });
 
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("does not create a provider when collaboration is disabled", () => {
+    const providerFactorySpy = vi.fn(() => {
+      throw new Error("Provider factory should not be called when disabled");
+    });
+    createCollaborationProviderFactoryMock.mockImplementation(() => providerFactorySpy);
+    currentSearchParams = new URLSearchParams("documentID=main&collab=false");
+
+    const { result: sessionResult } = renderHook(() => useDocumentSelector(), { wrapper });
+    const { result: factoryResult } = renderHook(() => useCollabFactory(), { wrapper });
+
+    expect(sessionResult.current.collabDisabled).toBe(true);
+    expect(() => factoryResult.current("main", new Map())).toThrowError(
+      /Collaboration is disabled/i,
+    );
+    expect(providerFactorySpy).not.toHaveBeenCalled();
   });
 });
