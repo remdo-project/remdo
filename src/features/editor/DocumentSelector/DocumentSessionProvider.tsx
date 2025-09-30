@@ -10,10 +10,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { Dropdown, NavDropdown } from "react-bootstrap";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useEditorConfig } from "../config";
-import { NotesState } from "../plugins/remdo/utils/api";
 import * as Y from "yjs";
 import {
   createCollaborationProviderFactory,
@@ -171,28 +169,3 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
 
   return <DocumentSelectorContext value={contextValue}>{children}</DocumentSelectorContext>;
 };
-
-export function DocumentSelector() {
-  const { setDocumentID } = useDocumentSelector();
-  const navigate = useNavigate();
-
-  return (
-    <div data-testid="document-selector">
-      <NavDropdown title="Documents">
-        {NotesState.documents().map((document) => (
-          <Dropdown.Item
-            href={`?documentID=${document}`}
-            key={document}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/");
-              setDocumentID(document);
-            }}
-          >
-            {document}
-          </Dropdown.Item>
-        ))}
-      </NavDropdown>
-    </div>
-  );
-}

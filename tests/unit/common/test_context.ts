@@ -9,7 +9,7 @@ import {
 import { expect } from 'vitest';
 import { RemdoLexicalEditor } from '@/features/editor/plugins/remdo/ComposerContext';
 import { Note } from '@/features/editor/plugins/remdo/utils/api';
-import { DocumentSelectorType } from '@/features/editor/DocumentSelector/DocumentSelector';
+import { DocumentSelectorType } from '@/features/editor/DocumentSelector/DocumentSessionProvider';
 
 export type Queries = BoundFunctions<
   typeof queries & { getAllNotNestedIListItems: typeof getAllByRole.bind }

@@ -1,4 +1,4 @@
-import { useDocumentSelector } from "../DocumentSelector/DocumentSelector";
+import { useDocumentSelector } from "../DocumentSelector/DocumentSessionProvider";
 import { useSearchParams } from "react-router-dom";
 
 export function YjsDebug() {

@@ -4,7 +4,7 @@ import { useRemdoLexicalComposerContext } from "../plugins/remdo/ComposerContext
 import { SPACER_COMMAND } from "../plugins/remdo/utils/commands";
 import { YjsDebug } from "./YjsDebug";
 import { useDebug } from "@/DebugContext";
-import { useDocumentSelector } from "../DocumentSelector/DocumentSelector";
+import { useDocumentSelector } from "../DocumentSelector/DocumentSessionProvider";
 import { mergeRegister } from "@lexical/utils";
 import { CONNECTED_COMMAND, TOGGLE_CONNECT_COMMAND } from "@lexical/yjs";
 import {
