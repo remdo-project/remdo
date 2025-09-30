@@ -104,7 +104,7 @@ export const DevToolbarPlugin = ({ editorBottomRef }) => {
   }
 
   const clearContent = () => {
-    const provider = session.provider;
+    const provider = session.yjsProvider;
     if (provider) {
       session.reset();
       return;

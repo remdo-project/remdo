@@ -15,10 +15,10 @@ async function switchDocument(context: TestContext, id: string) {
 
   await waitFor(() => context.documentSelector.id === id);
   await waitFor(() => context.editor !== previousEditor);
-  await waitFor(() => context.documentSelector.provider !== null);
-  await waitFor(() => context.documentSelector.provider?.synced === true, { timeout: 5000 });
+  await waitFor(() => context.documentSelector.yjsProvider !== null);
+  await waitFor(() => context.documentSelector.yjsProvider?.synced === true, { timeout: 5000 });
   await waitFor(() => {
-    const doc = context.documentSelector.doc;
+    const doc = context.documentSelector.yDoc;
     if (!doc) {
       return false;
     }
@@ -44,7 +44,7 @@ it.runIf(shouldRun && false)("preserves independent state for each document", as
 
   await waitFor(
     () => {
-      const doc = context.documentSelector.doc;
+      const doc = context.documentSelector.yDoc;
       if (!doc) {
         return false;
       }
@@ -67,7 +67,7 @@ it.runIf(shouldRun && false)("preserves independent state for each document", as
 
   await waitFor(
     () => {
-      const doc = context.documentSelector.doc;
+      const doc = context.documentSelector.yDoc;
       if (!doc) {
         return false;
       }
@@ -84,7 +84,7 @@ it.runIf(shouldRun && false)("preserves independent state for each document", as
   await switchDocument(context, "main");
 
   await waitFor(() => {
-    const doc = context.documentSelector.doc;
+    const doc = context.documentSelector.yDoc;
     if (!doc) {
       return false;
     }
@@ -99,7 +99,7 @@ it.runIf(shouldRun && false)("preserves independent state for each document", as
   await switchDocument(context, "flat");
 
   await waitFor(() => {
-    const doc = context.documentSelector.doc;
+    const doc = context.documentSelector.yDoc;
     if (!doc) {
       return false;
     }

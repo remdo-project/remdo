@@ -36,7 +36,7 @@ function LexicalEditor() {
   return (
     <LexicalComposer
       initialConfig={editorConfig}
-      key={`${session.id}:${session.doc?.guid ?? "local"}`}
+      key={`${session.id}:${session.yDoc?.guid ?? "local"}`}
     >
       <div className="editor-container editor-shell">
         <DevToolbarPlugin editorBottomRef={editorBottomRef} />
