@@ -1,23 +1,38 @@
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { ListItemNode, ListNode } from "@lexical/list";
 import type { InitialConfigType } from "@lexical/react/LexicalComposer";
-import { useMemo } from "react";
+import { useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 
-type EditorConfig = InitialConfigType & { disableWS: boolean };
+type EditorConfig = InitialConfigType & { collabDisabled: boolean };
 
-export function useDisableCollaboration(): boolean {
+let hasWarnedDisableWsParam = false;
+
+export function useCollaborationDisabled(): boolean {
   const [searchParams] = useSearchParams();
+  const collabDisabledRef = useRef<boolean | null>(null);
 
-  // intentionally set it on the first render, so further actions
-  // like focusing on a particular node, won't impact the setting even if the
-  // url changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => searchParams.get("ws") === "false", []);
+  if (collabDisabledRef.current === null) {
+    const collabParam = searchParams.get("collab");
+    if (collabParam !== null) {
+      collabDisabledRef.current = collabParam === "false";
+    } else {
+      const legacyParam = searchParams.get("ws");
+      if (legacyParam === "false" && !hasWarnedDisableWsParam && import.meta.env.DEV) {
+        console.warn(
+          "`ws=false` is deprecated. Use `collab=false` to disable collaboration.",
+        );
+        hasWarnedDisableWsParam = true;
+      }
+      collabDisabledRef.current = legacyParam === "false";
+    }
+  }
+
+  return collabDisabledRef.current ?? false;
 }
 
 export function useEditorConfig(): EditorConfig {
-  const disableWS = useDisableCollaboration();
+  const collabDisabled = useCollaborationDisabled();
 
   return {
     onError(error: any) {
@@ -42,6 +57,6 @@ export function useEditorConfig(): EditorConfig {
       },
     },
     editorState: null,
-    disableWS, //TODO remove or rename
+    collabDisabled,
   };
 }

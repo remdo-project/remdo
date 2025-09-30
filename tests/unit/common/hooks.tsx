@@ -58,7 +58,7 @@ beforeEach(async (context) => {
 
 
   if (!env.FORCE_WEBSOCKET) {
-    urlParams.push(['ws', 'false']);
+    urlParams.push(['collab', 'false']);
   } else {
     logger.info("Collab enabled");
   }

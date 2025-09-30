@@ -21,13 +21,13 @@ import { RemdoPlugin } from "./plugins/RemdoPlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
 import { RemdoListPlugin } from "./plugins/remdo/RemdoListPlugin";
-import { useDisableCollaboration, useEditorConfig } from "./config";
+import { useEditorConfig } from "./config";
 
 function LexicalEditor() {
-  const disableCollaboration = useDisableCollaboration();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const editorBottomRef = useRef<HTMLDivElement | null>(null);
   const session = useDocumentSelector();
+  const collabDisabled = session.collabDisabled;
   const collabFactory = useCollabFactory();
   const editorConfig = useEditorConfig();
   const shouldMountTestBridge =
@@ -60,7 +60,7 @@ function LexicalEditor() {
         <LinkPlugin />
         <LexicalClickableLinkPlugin />
         <TabIndentationPlugin />
-        {disableCollaboration ? (
+        {collabDisabled ? (
           <HistoryPlugin />
         ) : (
           <LexicalCollaboration>

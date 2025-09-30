@@ -8,7 +8,6 @@ import {
 } from "@lexical/list";
 
 import { useRemdoLexicalComposerContext } from "@/features/editor/plugins/remdo/ComposerContext";
-import { useDisableCollaboration } from "@/features/editor/config";
 import { useDocumentSelector } from "@/features/editor/DocumentSelector/DocumentSessionProvider";
 import { mergeLists } from "./utils/unexported";
 
@@ -62,24 +61,22 @@ function $ensureSingleListRoot(rootNode: RootNode): void {
 
 export function RootSchemaPlugin(): null {
   const [editor] = useRemdoLexicalComposerContext();
-  //FIXME review and simplify once collab is refactored
-  const disableCollaboration = useDisableCollaboration();
-  const { synced } = useDocumentSelector();
+  const { collabDisabled, synced } = useDocumentSelector();
   const serializationFile = import.meta.env.VITEST_SERIALIZATION_FILE;
   const disableForSerialization = Boolean(serializationFile);
-  const hasSynced = disableForSerialization || disableCollaboration || synced;
+  const hasSynced = disableForSerialization || collabDisabled || synced;
 
   useEffect(() => {
     if (disableForSerialization) {
       return;
     }
 
-    if (!disableCollaboration && !hasSynced) {
+    if (!collabDisabled && !hasSynced) {
       return;
     }
 
     return editor.registerNodeTransform(RootNode, $ensureSingleListRoot);
-  }, [disableCollaboration, disableForSerialization, editor, hasSynced]);
+  }, [collabDisabled, disableForSerialization, editor, hasSynced]);
 
   return null;
 }

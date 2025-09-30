@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(remdo): Restore YjsPlugin typing once collaboration wiring migrates to the new provider abstraction.
 import { useEffect, useRef } from "react";
 import { useRemdoLexicalComposerContext } from "./ComposerContext";
 import { YJS_SYNCED_COMMAND } from "./utils/commands";
