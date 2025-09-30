@@ -7,7 +7,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useReducer,
   useRef,
   useState,
 } from "react";
@@ -64,7 +63,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   const yjsProviderRef = useRef<DocumentProvider | null>(null);
   const [currentProvider, setCurrentProvider] = useState<DocumentProvider | null>(null);
   const [version, setVersion] = useState(0);
-  const [synced, updateSynced] = useReducer((_: boolean, value: boolean) => Boolean(value), false);
+  const [synced, setSynced] = useState(false);
 
   const baseProviderFactory = useMemo(
     () =>
@@ -165,19 +164,17 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   );
 
   useEffect(() => {
-    const handleSynced = (value: boolean) => {
-      updateSynced(Boolean(value));
-    };
-
     if (!currentProvider) {
-      handleSynced(false);
+      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+      setSynced(false);
       return;
     }
 
-    handleSynced(currentProvider.synced);
-    currentProvider.on("synced", handleSynced);
+    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+    setSynced(Boolean(currentProvider.synced));
+    currentProvider.on("synced", setSynced);
     return () => {
-      currentProvider.off("synced", handleSynced);
+      currentProvider.off("synced", setSynced);
     };
   }, [currentProvider]);
 
