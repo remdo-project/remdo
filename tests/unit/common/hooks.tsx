@@ -134,13 +134,13 @@ beforeEach(async (context) => {
     const provider = context.documentSelector.getYjsProvider();
     //wait for yjs to connect via websocket and init the editor content
     await waitForProviderSync(provider);
-
     const yDoc = context.documentSelector.getYjsDoc();
     if (yDoc) {
       yDoc.transact(() => {
         const rootXmlText = yDoc.get('root', Y.XmlText);
         rootXmlText.delete(0, rootXmlText.length);
       });
+      await waitForProviderSync(provider);
     }
   }
   if (!serializationFile && !env.VITE_PERFORMANCE_TESTS) {
