@@ -34,8 +34,7 @@ async function switchDocument(context: TestContext, id: string) {
 
 const shouldRun = env.FORCE_WEBSOCKET;
 
-//FIXME re-enable
-it.runIf(shouldRun && false)("preserves independent state for each document", async (context) => {
+it.runIf(shouldRun)("preserves independent state for each document", async (context) => {
   const { load, lexicalUpdate, expect } = context;
 
   const { note0: mainNote } = load("basic");
