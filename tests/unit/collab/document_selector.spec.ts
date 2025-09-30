@@ -10,7 +10,7 @@ async function switchDocument(context: TestContext, id: string) {
   const previousEditor = context.editor;
 
   await act(async () => {
-    context.documentSelector.setDocumentID(id);
+    context.documentSelector.setDocumentIdSilently(id);
   });
 
   await waitFor(() => context.documentSelector.documentID === id);

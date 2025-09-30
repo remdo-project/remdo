@@ -1,23 +1,19 @@
 import { Dropdown, NavDropdown } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
 import { NotesState } from "../plugins/remdo/utils/api";
 import { useDocumentSelector } from "./DocumentSessionProvider";
 
 export function DocumentMenu() {
-  const { setDocumentID } = useDocumentSelector();
-  const navigate = useNavigate();
+  const { documentID, selectDocument } = useDocumentSelector();
 
   return (
     <div data-testid="document-selector">
       <NavDropdown title="Documents">
         {NotesState.documents().map((document) => (
           <Dropdown.Item
-            href={`?documentID=${document}`}
             key={document}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/");
-              setDocumentID(document);
+            active={document === documentID}
+            onClick={() => {
+              selectDocument(document);
             }}
           >
             {document}
