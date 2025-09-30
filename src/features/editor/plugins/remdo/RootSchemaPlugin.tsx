@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { RootNode } from "lexical";
 import {
   $createListItemNode,
@@ -64,46 +64,10 @@ export function RootSchemaPlugin(): null {
   const [editor] = useRemdoLexicalComposerContext();
   //FIXME review and simplify once collab is refactored
   const disableCollaboration = useDisableCollaboration();
-  const { yjsProvider } = useDocumentSelector();
+  const { synced } = useDocumentSelector();
   const serializationFile = import.meta.env.VITEST_SERIALIZATION_FILE;
   const disableForSerialization = Boolean(serializationFile);
-  // FIXME(remdo): Re-enable the root transform during serialization runs once the snapshot
-  // pipeline no longer relies on the pre-transform document shape.
-  const [hasSynced, setHasSynced] = useState(
-    () =>
-      disableForSerialization ||
-      disableCollaboration ||
-      Boolean(yjsProvider?.synced)
-  );
-
-  useEffect(() => {
-    if (disableForSerialization) {
-      setHasSynced(true);
-      return;
-    }
-    setHasSynced(disableCollaboration || Boolean(yjsProvider?.synced));
-  }, [disableCollaboration, disableForSerialization, yjsProvider]);
-
-  useEffect(() => {
-    if (disableForSerialization || disableCollaboration || !yjsProvider) {
-      return;
-    }
-
-    const handleSynced = (synced: boolean) => {
-      setHasSynced(synced);
-    };
-
-    // y-websocket emits a "synced" event that toggles between true/false as the
-    // provider handshake completes or disconnects. It's missing from the type
-    // definitions.
-    // @ts-expect-error The "synced" event is not declared in the typings.
-    yjsProvider.on("synced", handleSynced);
-
-    return () => {
-      // @ts-expect-error The "synced" event is not declared in the typings.
-      yjsProvider.off("synced", handleSynced);
-    };
-  }, [disableCollaboration, disableForSerialization, yjsProvider]);
+  const hasSynced = disableForSerialization || disableCollaboration || synced;
 
   useEffect(() => {
     if (disableForSerialization) {

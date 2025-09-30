@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
 } from "react";
@@ -18,7 +19,17 @@ import {
   getCollaborationEndpoint,
 } from "../collab/createCollaborationProviderFactory";
 
-export type DocumentProvider = Provider & WebsocketProvider;
+type YWebsocketEvents = {
+  synced: (synced: boolean) => void;
+  destroy: () => void;
+};
+
+type TypedProvider = WebsocketProvider & {
+  on<K extends keyof YWebsocketEvents>(event: K, callback: YWebsocketEvents[K]): void;
+  off<K extends keyof YWebsocketEvents>(event: K, callback: YWebsocketEvents[K]): void;
+};
+
+export type DocumentProvider = Provider & TypedProvider;
 
 type ProviderFactory = (id: string, yjsDocMap: Map<string, Y.Doc>) => Provider;
 
@@ -31,6 +42,7 @@ export interface DocumentSelectorType {
   getYjsProvider: () => DocumentProvider | null;
   resetDocument: () => void;
   version: number;
+  synced: boolean;
 }
 
 const DocumentSelectorContext = createContext<DocumentSelectorType | null>(null);
@@ -52,6 +64,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   const yjsProviderRef = useRef<DocumentProvider | null>(null);
   const [currentProvider, setCurrentProvider] = useState<DocumentProvider | null>(null);
   const [version, setVersion] = useState(0);
+  const [synced, updateSynced] = useReducer((_: boolean, value: boolean) => Boolean(value), false);
 
   const baseProviderFactory = useMemo(
     () =>
@@ -107,13 +120,9 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
           yjsProviderRef.current = null;
         }
         setCurrentProvider((prev) => (prev === provider ? null : prev));
-        // @ts-expect-error The Y-Websocket provider emits a "destroy" event even though it's
-        // not part of the typed event map.
         provider.off("destroy", handleDestroy);
       };
 
-      // @ts-expect-error The Y-Websocket provider emits a "destroy" event even though it's not
-      // part of the typed event map.
       provider.on("destroy", handleDestroy);
 
       return provider;
@@ -141,6 +150,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
       getYjsProvider,
       resetDocument,
       version,
+      synced,
     }),
     [
       currentProvider,
@@ -148,10 +158,28 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
       getYjsDoc,
       getYjsProvider,
       resetDocument,
+      synced,
       version,
       yjsProviderFactory,
     ],
   );
+
+  useEffect(() => {
+    const handleSynced = (value: boolean) => {
+      updateSynced(Boolean(value));
+    };
+
+    if (!currentProvider) {
+      handleSynced(false);
+      return;
+    }
+
+    handleSynced(currentProvider.synced);
+    currentProvider.on("synced", handleSynced);
+    return () => {
+      currentProvider.off("synced", handleSynced);
+    };
+  }, [currentProvider]);
 
   useEffect(() => {
     if (!editorConfig.disableWS) {
