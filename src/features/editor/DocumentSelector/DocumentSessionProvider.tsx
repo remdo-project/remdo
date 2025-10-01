@@ -16,7 +16,12 @@ import {
   getCollaborationEndpoint,
 } from "../collab/createCollaborationProviderFactory";
 import { CollabFactoryContext } from "../collab/useCollabFactory";
-import { clearCollabSessions, resetCollabSession, useCollabSession } from "../collab/useCollabSession";
+import {
+  clearCollabSessions,
+  createCollabProvider,
+  resetCollabSession,
+  useCollabSession,
+} from "../collab/useCollabSession";
 import type { DocumentProvider, ProviderFactory } from "../collab/types";
 import type * as Y from "yjs";
 
@@ -28,6 +33,7 @@ export type DocumentSession = {
   reset: () => void;
   synced: boolean;
   collabDisabled: boolean;
+  editorKey: string;
 };
 
 const DocumentSessionContext = createContext<DocumentSession | null>(null);
@@ -50,16 +56,28 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const [documentID, setDocumentIdState] = useState(
-    () => searchParams.get("documentID") ?? "main",
-  );
+  const [documentID, setDocumentIdState] = useState(() => searchParams.get("documentID") ?? "main");
+  const [editorEpoch, setEditorEpoch] = useState(0);
   const collabDisabled = useCollaborationDisabled();
   const { yDoc, yjsProvider, synced } = useCollabSession(documentID);
   const lastSearchParamIdRef = useRef<string | null>(searchParams.get("documentID"));
+  const skipNextProviderEpochRef = useRef(true);
 
   const setDocumentIdSilently = useCallback((id: string) => {
+    let changed = false;
     // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-    setDocumentIdState((prev) => (prev === id ? prev : id));
+    setDocumentIdState((prev) => {
+      if (prev === id) {
+        return prev;
+      }
+      changed = true;
+      return id;
+    });
+    if (changed) {
+      skipNextProviderEpochRef.current = true;
+      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+      setEditorEpoch((value) => value + 1);
+    }
   }, []);
 
   const selectDocument = useCallback(
@@ -88,14 +106,24 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
 
   const providerFactory = useMemo<ProviderFactory>(() => {
     if (collabDisabled) {
-      return (_doc: Y.Doc, _room: string) => {
+      return (_id: string, _docMap: Map<string, Y.Doc>) => {
         throw new Error("Collaboration is disabled; no provider is available.");
       };
     }
-    return baseProviderFactory;
+    return (id: string, yjsDocMap: Map<string, Y.Doc>) => {
+      const provider = createCollabProvider(id, yjsDocMap, baseProviderFactory);
+      if (skipNextProviderEpochRef.current) {
+        skipNextProviderEpochRef.current = false;
+      } else {
+        setEditorEpoch((value) => value + 1);
+      }
+      return provider;
+    };
   }, [baseProviderFactory, collabDisabled]);
 
   const reset = useCallback(() => {
+    skipNextProviderEpochRef.current = true;
+    setEditorEpoch((value) => value + 1);
     resetCollabSession(documentID);
   }, [documentID]);
 
@@ -124,8 +152,9 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
         reset,
         synced,
         collabDisabled,
+        editorKey: `${documentID}:${editorEpoch}`,
       }) satisfies DocumentSession,
-    [collabDisabled, documentID, reset, setId, synced, yDoc, yjsProvider],
+    [collabDisabled, documentID, editorEpoch, reset, setId, synced, yDoc, yjsProvider],
   );
 
   useEffect(() => {

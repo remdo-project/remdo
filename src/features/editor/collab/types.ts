@@ -12,4 +12,6 @@ export type DocumentProvider = Provider & {
   synced?: boolean;
 };
 
-export type ProviderFactory = (doc: Y.Doc, room: string) => DocumentProvider;
+export type DocumentProviderFactory = (doc: Y.Doc, room: string) => DocumentProvider;
+
+export type ProviderFactory = (id: string, yjsDocMap: Map<string, Y.Doc>) => DocumentProvider;

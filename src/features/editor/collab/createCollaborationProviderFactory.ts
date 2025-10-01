@@ -1,6 +1,6 @@
 import { WebsocketProvider } from "y-websocket";
 
-import type { DocumentProvider, ProviderFactory } from "./types";
+import type { DocumentProvider, DocumentProviderFactory } from "./types";
 
 export interface CreateCollaborationProviderFactoryOptions {
   endpoint?: string;
@@ -23,7 +23,7 @@ export function createCollaborationProviderFactory({
   endpoint = getCollaborationEndpoint(),
   roomPrefix = "remdo/0/",
   connect = false,
-}: CreateCollaborationProviderFactoryOptions = {}): ProviderFactory {
+}: CreateCollaborationProviderFactoryOptions = {}): DocumentProviderFactory {
   return (doc, room) => {
     const roomName = `${roomPrefix}${room}`;
     const provider = new WebsocketProvider(endpoint, roomName, doc, {
