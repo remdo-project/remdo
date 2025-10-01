@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "@hocuspocus/extension-logger": "^3.2.4",
-    "@hocuspocus/provider": "^3.2.3",
+    "@hocuspocus/provider": "^3.2.4",
     "@hocuspocus/server": "^3.2.4",
     "@lexical/link": "^0.36.1",
     "@lexical/list": "^0.36.1",
