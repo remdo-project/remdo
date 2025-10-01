@@ -3,13 +3,11 @@ import {
   useDocumentSelector,
 } from "./DocumentSelector/DocumentSessionProvider";
 import { useCollabFactory } from "./collab/useCollabFactory";
-import { createCollabProvider } from "./collab/useCollabSession";
 import "./Editor.scss";
 import { ClickableLinkPlugin as LexicalClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { LexicalCollaboration } from "@lexical/react/LexicalCollaborationContext";
-import { useCallback, useRef } from "react";
-import type * as Y from "yjs";
+import { useRef } from "react";
 import { ClearEditorPlugin } from "@lexical/react/LexicalClearEditorPlugin";
 import { CollaborationPlugin } from "@lexical/react/LexicalCollaborationPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -31,18 +29,17 @@ function LexicalEditor() {
   const session = useDocumentSelector();
   const collabDisabled = session.collabDisabled;
   const collabFactory = useCollabFactory();
-  const providerFactory = useCallback(
-    (id: string, yjsDocMap: Map<string, Y.Doc>) => createCollabProvider(id, yjsDocMap, collabFactory),
-    [collabFactory],
-  );
   const editorConfig = useEditorConfig();
   const shouldMountTestBridge =
     !import.meta.env.PROD || (typeof window !== "undefined" && window.REMDO_TEST === true);
+  const lexicalConfig = collabDisabled
+    ? editorConfig
+    : { ...editorConfig, collaboration: { providerFactory: collabFactory } };
 
   return (
     <LexicalComposer
-      initialConfig={editorConfig}
-      key={`${session.id}:${session.yDoc?.guid ?? "local"}`}
+      initialConfig={lexicalConfig}
+      key={session.editorKey}
     >
       <div className="editor-container editor-shell">
         <DevToolbarPlugin editorBottomRef={editorBottomRef} />
@@ -72,7 +69,7 @@ function LexicalEditor() {
           <LexicalCollaboration>
             <CollaborationPlugin
               id={session.id}
-              providerFactory={providerFactory}
+              providerFactory={collabFactory}
               shouldBootstrap
             />
           </LexicalCollaboration>

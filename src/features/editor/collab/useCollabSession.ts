@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import * as Y from "yjs";
 
-import type { DocumentProvider, ProviderFactory } from "./types";
+import type { DocumentProvider, DocumentProviderFactory } from "./types";
 
 type SessionState = {
   doc: Y.Doc | null;
@@ -84,7 +84,7 @@ function ensureRoot(doc: Y.Doc) {
 export function createCollabProvider(
   id: string,
   yjsDocMap: Map<string, Y.Doc>,
-  factory: ProviderFactory,
+  factory: DocumentProviderFactory,
 ): DocumentProvider {
   const previous = getSession(id);
   if (previous.provider) {
