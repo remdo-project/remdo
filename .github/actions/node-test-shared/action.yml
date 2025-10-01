@@ -15,38 +15,17 @@ runs:
       with:
         node-version: 22
 
-    - name: Install dependencies
-      shell: bash
-      run: npm ci --no-audit --no-fund
-
-    - name: Start WebSocket server
-      if: ${{ inputs.websocket == 'true' }}
+    - name: Bootstrap environment
       shell: bash
       run: |
-        set -euo pipefail
-        npm run websocket &
-        echo $! > ws-server.pid
-        for _ in {1..20}; do
-          if nc -z localhost 8080; then
-            exit 0
-          fi
-          sleep 1
-        done
-        echo "WebSocket server failed to start" >&2
-        exit 1
+        if [ "${{ inputs.websocket }}" = "true" ]; then
+          scripts/env-setup.sh --collab
+        else
+          scripts/env-setup.sh
+        fi
 
     - name: Run command
       shell: bash
       env:
         FORCE_COLOR: "1"
       run: ${{ inputs.command }}
-
-    - name: Stop WebSocket server
-      if: ${{ always() && inputs.websocket == 'true' }}
-      shell: bash
-      run: |
-        set -euo pipefail
-        if [ -f ws-server.pid ]; then
-          kill $(cat ws-server.pid) || true
-          rm -f ws-server.pid
-        fi
