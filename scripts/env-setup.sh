@@ -15,8 +15,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# ---- deps --------------------------------------------------------------------
 npm ci --no-audit --no-fund
-$PLAYWRIGHT && npx playwright install --with-deps chromium
 
-$COLLAB && scripts/collab-server.sh
+if [[ $PLAYWRIGHT == true ]]; then
+  npx playwright install --with-deps chromium
+fi
+
+if [[ $COLLAB == true ]]; then
+  scripts/collab-server.sh
+fi
