@@ -1,6 +1,4 @@
 /* eslint-disable react-refresh/only-export-components, react/no-use-context */
-import type { Provider } from "@lexical/yjs";
-import type { WebsocketProvider } from "y-websocket";
 import {
   createContext,
   type ReactNode,
@@ -12,26 +10,15 @@ import {
   useState,
 } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useEditorConfig } from "../config";
-import * as Y from "yjs";
+import { useCollaborationDisabled } from "../config";
 import {
   createCollaborationProviderFactory,
   getCollaborationEndpoint,
 } from "../collab/createCollaborationProviderFactory";
-
-type YWebsocketEvents = {
-  synced: (synced: boolean) => void;
-  destroy: () => void;
-};
-
-export type DocumentProvider = Provider &
-  (WebsocketProvider & {
-    on<K extends keyof YWebsocketEvents>(event: K, callback: YWebsocketEvents[K]): void;
-    off<K extends keyof YWebsocketEvents>(event: K, callback: YWebsocketEvents[K]): void;
-    synced?: boolean;
-  });
-
-export type ProviderFactory = (id: string, yjsDocMap: Map<string, Y.Doc>) => DocumentProvider;
+import { CollabFactoryContext } from "../collab/useCollabFactory";
+import { clearCollabSessions, resetCollabSession, useCollabSession } from "../collab/useCollabSession";
+import type { DocumentProvider, ProviderFactory } from "../collab/types";
+import type * as Y from "yjs";
 
 export type DocumentSession = {
   id: string;
@@ -44,7 +31,6 @@ export type DocumentSession = {
 };
 
 const DocumentSessionContext = createContext<DocumentSession | null>(null);
-export const CollabFactoryContext = createContext<ProviderFactory | null>(null);
 
 function makeSearchWithDoc(id: string, current: URLSearchParams) {
   const next = new URLSearchParams(current);
@@ -67,29 +53,14 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   const [documentID, setDocumentIdState] = useState(
     () => searchParams.get("documentID") ?? "main",
   );
-  const editorConfig = useEditorConfig();
-  const collabDisabled = editorConfig.collabDisabled;
-  const yjsDocs = useRef(new Map<string, Y.Doc>());
-  const yjsProviderRef = useRef<DocumentProvider | null>(null);
-  const isMountedRef = useRef(true);
-  const [currentProvider, setCurrentProvider] = useState<DocumentProvider | null>(null);
-  const [currentDoc, setCurrentDoc] = useState<Y.Doc | null>(null);
-  const [synced, setSynced] = useState(false);
+  const collabDisabled = useCollaborationDisabled();
+  const { yDoc, yjsProvider, synced } = useCollabSession(documentID);
   const lastSearchParamIdRef = useRef<string | null>(searchParams.get("documentID"));
-
-  const scheduleSetDoc = useCallback((next: Y.Doc | null) => {
-    if (!isMountedRef.current) {
-      return;
-    }
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-    setCurrentDoc((prev) => (prev === next ? prev : next));
-  }, []);
 
   const setDocumentIdSilently = useCallback((id: string) => {
     // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
     setDocumentIdState((prev) => (prev === id ? prev : id));
-    scheduleSetDoc(yjsDocs.current.get(id) ?? null);
-  }, [scheduleSetDoc]);
+  }, []);
 
   const selectDocument = useCallback(
     (id: string, opts?: { replace?: boolean; path?: string }) => {
@@ -111,85 +82,22 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
       createCollaborationProviderFactory({
         endpoint: getCollaborationEndpoint(),
         roomPrefix: "notes/0/",
-        // Let Lexical's CollaborationPlugin attach listeners before the provider connects,
-        // mirroring the working setup used by LexicalDemo.
-        createDoc: () => {
-          const doc = new Y.Doc({ gc: false });
-          // Mirror Lexical's Playground initialization by creating the shared root
-          // type eagerly before the document is handed to Lexical. This prevents
-          // `syncLexicalUpdateToYjs` from reading a detached Yjs type when the
-          // first editor update runs for a brand-new document.
-          doc.get("root", Y.XmlText);
-          return doc;
-        },
-        initializeDoc: (doc) => {
-          // Persisted docs created before we eagerly instantiated the root may
-          // be missing it. Create the shared type on-demand so old docs behave
-          // like freshly initialized ones.
-          if (!doc.share.has("root")) {
-            doc.get("root", Y.XmlText);
-          }
-        },
       }),
     [],
   );
 
-  const collaborationProviderFactory: ProviderFactory = useCallback(
-    (id: string, yjsDocMap: Map<string, Y.Doc>) => {
-      if (collabDisabled) {
+  const providerFactory = useMemo<ProviderFactory>(() => {
+    if (collabDisabled) {
+      return (_doc: Y.Doc, _room: string) => {
         throw new Error("Collaboration is disabled; no provider is available.");
-      }
-      const storedDoc = yjsDocs.current.get(id) ?? null;
-      if (storedDoc && !yjsDocMap.has(id)) {
-        yjsDocMap.set(id, storedDoc);
-      }
-      const provider = baseProviderFactory(id, yjsDocMap) as DocumentProvider;
-      const previousDoc = yjsDocs.current.get(id) ?? null;
-      const nextDoc = yjsDocMap.get(id) ?? null;
-
-      if (nextDoc) {
-        yjsDocs.current.set(id, nextDoc);
-      } else {
-        yjsDocs.current.delete(id);
-      }
-      if (id === documentID && previousDoc !== nextDoc) {
-        scheduleSetDoc(nextDoc);
-      }
-
-      yjsProviderRef.current = provider;
-      setCurrentProvider(provider);
-
-      const handleDestroy = () => {
-        const storedDoc = yjsDocs.current.get(id) ?? null;
-        if (storedDoc && storedDoc === nextDoc) {
-          yjsDocs.current.delete(id);
-          if (id === documentID) {
-            scheduleSetDoc(null);
-          }
-        }
-        if (yjsProviderRef.current === provider) {
-          yjsProviderRef.current = null;
-        }
-        setCurrentProvider((prev) => (prev === provider ? null : prev));
-        provider.off("destroy", handleDestroy);
       };
-
-      provider.on("destroy", handleDestroy);
-
-      return provider;
-    },
-    [baseProviderFactory, collabDisabled, documentID, scheduleSetDoc],
-  );
+    }
+    return baseProviderFactory;
+  }, [baseProviderFactory, collabDisabled]);
 
   const reset = useCallback(() => {
-    const provider = yjsProviderRef.current;
-    if (provider) {
-      provider.destroy();
-    } else {
-      yjsDocs.current.delete(documentID);
-    }
-    scheduleSetDoc(null);
-  }, [documentID, scheduleSetDoc]);
+    resetCollabSession(documentID);
+  }, [documentID]);
 
   const setId = useCallback(
     (id: string, mode: "push" | "replace" | "silent" = "push") => {
@@ -211,20 +119,14 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
       ({
         id: documentID,
         setId,
-        yjsProvider: currentProvider,
-        yDoc: currentDoc,
+        yjsProvider,
+        yDoc,
         reset,
         synced,
         collabDisabled,
       }) satisfies DocumentSession,
-    [collabDisabled, currentDoc, currentProvider, documentID, reset, setId, synced],
+    [collabDisabled, documentID, reset, setId, synced, yDoc, yjsProvider],
   );
-
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   useEffect(() => {
     const nextSearchParamId = searchParams.get("documentID");
@@ -238,37 +140,15 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   }, [searchParams, setDocumentIdSilently]);
 
   useEffect(() => {
-    if (!currentProvider) {
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-      setSynced(false);
-      return;
-    }
-
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-    setSynced(Boolean(currentProvider.synced));
-    currentProvider.on("synced", setSynced);
-    return () => {
-      currentProvider.off("synced", setSynced);
-    };
-  }, [currentProvider]);
-
-  useEffect(() => {
     if (!collabDisabled) {
       return;
     }
 
-    const provider = yjsProviderRef.current;
-    if (provider) {
-      provider.destroy();
-    }
-
-    yjsDocs.current.clear();
-    yjsProviderRef.current = null;
-    scheduleSetDoc(null);
-  }, [collabDisabled, scheduleSetDoc]);
+    clearCollabSessions();
+  }, [collabDisabled]);
 
   return (
-    <CollabFactoryContext value={collaborationProviderFactory}>
+    <CollabFactoryContext value={providerFactory}>
       <DocumentSessionContext value={contextValue}>{children}</DocumentSessionContext>
     </CollabFactoryContext>
   );

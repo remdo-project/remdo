@@ -3,22 +3,21 @@ import {
   DocumentSelectorProvider,
   useDocumentSelector,
 } from "@/features/editor/DocumentSelector/DocumentSessionProvider";
-import { useCollabFactory } from "@/features/editor/DocumentSelector/useCollabFactory";
-import type {
-  CollaborationProviderFactory,
-  CreateCollaborationProviderFactoryOptions,
-} from "@/features/editor/collab/createCollaborationProviderFactory";
+import { useCollabFactory } from "@/features/editor/collab/useCollabFactory";
+import type { CreateCollaborationProviderFactoryOptions } from "@/features/editor/collab/createCollaborationProviderFactory";
+import type { ProviderFactory } from "@/features/editor/collab/types";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import * as Y from "yjs";
 
 const navigateMock = vi.fn();
 let currentSearchParams = new URLSearchParams();
 
 let actualCreateCollaborationProviderFactory:
-  | ((options?: CreateCollaborationProviderFactoryOptions) => CollaborationProviderFactory)
+  | ((options?: CreateCollaborationProviderFactoryOptions) => ProviderFactory)
   | null = null;
 const createCollaborationProviderFactoryMock = vi.fn<
-  (options?: CreateCollaborationProviderFactoryOptions) => CollaborationProviderFactory
+  (options?: CreateCollaborationProviderFactoryOptions) => ProviderFactory
 >();
 
 vi.mock("react-router-dom", async () => {
@@ -121,7 +120,7 @@ describe("document session provider navigation", () => {
   });
 
   it("does not create a provider when collaboration is disabled", () => {
-    const providerFactorySpy = vi.fn(() => {
+    const providerFactorySpy = vi.fn<ProviderFactory>(() => {
       throw new Error("Provider factory should not be called when disabled");
     });
     createCollaborationProviderFactoryMock.mockImplementation(() => providerFactorySpy);
@@ -131,7 +130,7 @@ describe("document session provider navigation", () => {
     const { result: factoryResult } = renderHook(() => useCollabFactory(), { wrapper });
 
     expect(sessionResult.current.collabDisabled).toBe(true);
-    expect(() => factoryResult.current("main", new Map())).toThrowError(
+    expect(() => factoryResult.current(new Y.Doc(), "main")).toThrowError(
       /Collaboration is disabled/i,
     );
     expect(providerFactorySpy).not.toHaveBeenCalled();
