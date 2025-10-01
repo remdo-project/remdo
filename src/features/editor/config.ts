@@ -4,7 +4,16 @@ import type { InitialConfigType } from "@lexical/react/LexicalComposer";
 import { useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 
-type EditorConfig = InitialConfigType & { collabDisabled: boolean };
+import { useCollabFactory } from "./collab/useCollabFactory";
+import type { ProviderFactory } from "./collab/types";
+
+type CollaborationConfig =
+  | { disabled: true }
+  | { disabled?: false; providerFactory: ProviderFactory };
+
+type EditorConfig = InitialConfigType & {
+  collaboration: CollaborationConfig;
+};
 
 export function useCollaborationDisabled(): boolean {
   const [searchParams] = useSearchParams();
@@ -20,6 +29,10 @@ export function useCollaborationDisabled(): boolean {
 
 export function useEditorConfig(): EditorConfig {
   const collabDisabled = useCollaborationDisabled();
+  const collabFactory = useCollabFactory();
+  const collaboration = collabDisabled
+    ? ({ disabled: true } as const)
+    : ({ providerFactory: collabFactory } satisfies CollaborationConfig);
 
   return {
     onError(error: any) {
@@ -44,6 +57,6 @@ export function useEditorConfig(): EditorConfig {
       },
     },
     editorState: null,
-    collabDisabled,
+    collaboration,
   };
 }
