@@ -32,13 +32,10 @@ function LexicalEditor() {
   const editorConfig = useEditorConfig();
   const shouldMountTestBridge =
     !import.meta.env.PROD || (typeof window !== "undefined" && window.REMDO_TEST === true);
-  const lexicalConfig = collabDisabled
-    ? editorConfig
-    : { ...editorConfig, collaboration: { providerFactory: collabFactory } };
 
   return (
     <LexicalComposer
-      initialConfig={lexicalConfig}
+      initialConfig={editorConfig}
       key={session.editorKey}
     >
       <div className="editor-container editor-shell">
