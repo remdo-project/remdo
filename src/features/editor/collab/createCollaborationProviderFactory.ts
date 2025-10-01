@@ -1,18 +1,11 @@
-import type { Provider } from "@lexical/yjs";
 import { WebsocketProvider } from "y-websocket";
-import * as Y from "yjs";
 
-export type CollaborationProviderFactory = (
-  id: string,
-  yjsDocMap: Map<string, Y.Doc>,
-) => Provider;
+import type { DocumentProvider, ProviderFactory } from "./types";
 
 export interface CreateCollaborationProviderFactoryOptions {
   endpoint?: string;
   roomPrefix?: string;
   connect?: boolean;
-  createDoc?: () => Y.Doc;
-  initializeDoc?: (doc: Y.Doc, id: string, isNew: boolean) => void;
 }
 
 export function getCollaborationEndpoint(): string {
@@ -30,30 +23,15 @@ export function createCollaborationProviderFactory({
   endpoint = getCollaborationEndpoint(),
   roomPrefix = "remdo/0/",
   connect = false,
-  createDoc = () => new Y.Doc(),
-  initializeDoc,
-}: CreateCollaborationProviderFactoryOptions = {}): CollaborationProviderFactory {
-  return (id, yjsDocMap) => {
-    let doc = yjsDocMap.get(id);
-    let isNewDoc = false;
-
-    if (!doc) {
-      doc = createDoc();
-      yjsDocMap.set(id, doc);
-      isNewDoc = true;
-    } else {
-      doc.load();
-    }
-
-    initializeDoc?.(doc, id, isNewDoc);
-
-    const roomName = `${roomPrefix}${id}`;
+}: CreateCollaborationProviderFactoryOptions = {}): ProviderFactory {
+  return (doc, room) => {
+    const roomName = `${roomPrefix}${room}`;
     const provider = new WebsocketProvider(endpoint, roomName, doc, {
       connect,
     });
 
     provider.shouldConnect = connect;
 
-    return provider as unknown as Provider;
+    return provider as unknown as DocumentProvider;
   };
 }
