@@ -3,12 +3,12 @@ set -Eeuo pipefail
 
 # ---- args --------------------------------------------------------------------
 COLLAB=false
-SKIP_PLAYWRIGHT=false
+PLAYWRIGHT=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --collab) COLLAB=true; shift ;;
-    --skip-playwright) SKIP_PLAYWRIGHT=true; shift ;;
+    --playwright) PLAYWRIGHT=true; shift ;;
     -h|--help)
       echo "Usage: $0 [--collab] [--skip-playwright]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 1 ;;
@@ -17,6 +17,6 @@ done
 
 # ---- deps --------------------------------------------------------------------
 npm ci --no-audit --no-fund
-$SKIP_PLAYWRIGHT || npx playwright install --with-deps chromium
+$PLAYWRIGHT && npx playwright install --with-deps chromium
 
 $COLLAB && scripts/collab-server.sh

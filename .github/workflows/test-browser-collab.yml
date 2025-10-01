@@ -17,6 +17,7 @@ jobs:
         uses: ./.github/actions/test-browser-shared
         with:
           command: npm run test-browser-collab
+          websocket: true
 
       - name: Upload Playwright report
         if: ${{ hashFiles('data/playwright-report/index.html') != '' }}

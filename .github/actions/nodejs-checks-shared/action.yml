@@ -23,9 +23,9 @@ runs:
       with:
         node-version: 22
 
-    - name: Install dependencies
+    - name: Bootstrap environment
       shell: bash
-      run: npm ci --no-audit --no-fund
+      run: ./scripts/env-setup.sh
 
     - name: Run ESLint
       if: ${{ inputs.lint == 'true' }}

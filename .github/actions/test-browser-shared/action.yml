@@ -4,6 +4,9 @@ inputs:
   command:
     description: Command to execute Playwright suite
     required: true
+  websocket:
+    description: Start collaboration WebSocket server before running
+    default: 'false'
 
 outputs:
   report_present:
@@ -20,13 +23,14 @@ runs:
       with:
         node-version: 22
 
-    - name: Install dependencies
+    - name: Bootstrap environment
       shell: bash
-      run: npm ci --no-audit --no-fund
-
-    - name: Install Playwright (Chromium)
-      shell: bash
-      run: npx playwright install --with-deps chromium
+      run: |
+        if [ "${{ inputs.websocket }}" = "true" ]; then
+          ./scripts/env-setup.sh --playwright --collab
+        else
+          ./scripts/env-setup.sh --playwright
+        fi
 
     - name: Run Playwright tests
       id: run-tests

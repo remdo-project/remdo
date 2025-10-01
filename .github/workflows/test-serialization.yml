@@ -7,7 +7,7 @@ permissions:
 
 jobs:
   test:
-    # FIXME(remdo): Disabled until serialization fixtures match minimized output (see GH-XXXX).
+    # FIXME(remdo): Disabled until serialization fixtures match minimized output
     if: false
     runs-on: ubuntu-latest
     steps:
