@@ -34,9 +34,30 @@ export type DocumentSession = {
   synced: boolean;
   collabDisabled: boolean;
   editorKey: string;
+  ready: boolean;
+  switchEpoch: number;
+  whenReady: (opts?: { since?: number; timeout?: number }) => Promise<void>;
 };
 
-const DocumentSessionContext = createContext<DocumentSession | null>(null);
+type ReadyWaiter = {
+  resolve: () => void;
+  reject: (error: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+};
+
+type DocumentSessionInternal = DocumentSession & {
+  /** @internal */
+  _notifyEditorReady: (epoch: number) => void;
+};
+
+declare global {
+  interface Window {
+    REMDO_TEST?: boolean;
+    __remdoDocumentSession?: DocumentSessionInternal;
+  }
+}
+
+const DocumentSessionContext = createContext<DocumentSessionInternal | null>(null);
 
 function makeSearchWithDoc(id: string, current: URLSearchParams) {
   const next = new URLSearchParams(current);
@@ -44,7 +65,7 @@ function makeSearchWithDoc(id: string, current: URLSearchParams) {
   return `?${next.toString()}`;
 }
 
-export const useDocumentSelector = () => {
+export const useDocumentSelector = (): DocumentSession => {
   const context = useContext(DocumentSessionContext);
   if (!context) {
     throw new Error("useDocumentSelector must be used within a DocumentSelectorProvider");
@@ -58,10 +79,106 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
 
   const [documentID, setDocumentIdState] = useState(() => searchParams.get("documentID") ?? "main");
   const [editorEpoch, setEditorEpoch] = useState(0);
+  const [ready, setReady] = useState(false);
+  const [switchEpoch, setSwitchEpoch] = useState(0);
   const collabDisabled = useCollaborationDisabled();
   const { yDoc, yjsProvider, synced } = useCollabSession(documentID);
   const lastSearchParamIdRef = useRef<string | null>(searchParams.get("documentID"));
   const skipNextProviderEpochRef = useRef(true);
+  const switchEpochRef = useRef(0);
+  const readyEpochRef = useRef(-1);
+  const waitersRef = useRef<Map<number, Set<ReadyWaiter>>>(new Map());
+
+  const cancelWaiters = useCallback((epoch: number, error: Error) => {
+    const waiters = waitersRef.current.get(epoch);
+    if (!waiters) {
+      return;
+    }
+    waitersRef.current.delete(epoch);
+    for (const waiter of waiters) {
+      waiter.reject(error);
+    }
+  }, []);
+
+  const beginNewEpoch = useCallback(() => {
+    const previousEpoch = switchEpochRef.current;
+    if (waitersRef.current.has(previousEpoch)) {
+      cancelWaiters(previousEpoch, new Error("Document session changed before readiness."));
+    }
+    switchEpochRef.current = previousEpoch + 1;
+    setSwitchEpoch(switchEpochRef.current);
+    setReady(false);
+  }, [cancelWaiters]);
+
+  const whenReady = useCallback(
+    (opts?: { since?: number; timeout?: number }) => {
+      const since = opts?.since ?? -1;
+      if (ready && readyEpochRef.current > since) {
+        return Promise.resolve();
+      }
+
+      const epoch = switchEpochRef.current;
+      const timeoutMs = opts?.timeout ?? 3000;
+
+      return new Promise<void>((resolve, reject) => {
+        let waiter: ReadyWaiter;
+        const removeWaiter = () => {
+          const waiters = waitersRef.current.get(epoch);
+          if (!waiters) {
+            return;
+          }
+          waiters.delete(waiter);
+          if (waiters.size === 0) {
+            waitersRef.current.delete(epoch);
+          }
+        };
+
+        const timeoutId = setTimeout(() => {
+          removeWaiter();
+          reject(new Error(`Document readiness timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+
+        waiter = {
+          timer: timeoutId,
+          resolve: () => {
+            clearTimeout(timeoutId);
+            removeWaiter();
+            resolve();
+          },
+          reject: (error: Error) => {
+            clearTimeout(timeoutId);
+            removeWaiter();
+            reject(error);
+          },
+        };
+
+        const waiters = waitersRef.current.get(epoch);
+        if (!waiters) {
+          waitersRef.current.set(epoch, new Set([waiter]));
+        } else {
+          waiters.add(waiter);
+        }
+      });
+    },
+    [ready],
+  );
+
+  const notifyEditorReady = useCallback((epoch: number) => {
+    if (epoch !== switchEpochRef.current) {
+      return;
+    }
+    readyEpochRef.current = epoch;
+    setReady(true);
+    const waiters = waitersRef.current.get(epoch);
+    if (!waiters) {
+      return;
+    }
+    waitersRef.current.delete(epoch);
+    for (const waiter of waiters) {
+      clearTimeout(waiter.timer);
+      waiter.resolve();
+    }
+  }, []);
 
   const setDocumentIdSilently = useCallback((id: string) => {
     let changed = false;
@@ -74,11 +191,12 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
       return id;
     });
     if (changed) {
+      beginNewEpoch();
       skipNextProviderEpochRef.current = true;
       // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setEditorEpoch((value) => value + 1);
     }
-  }, []);
+  }, [beginNewEpoch]);
 
   const selectDocument = useCallback(
     (id: string, opts?: { replace?: boolean; path?: string }) => {
@@ -122,10 +240,11 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
   }, [baseProviderFactory, collabDisabled]);
 
   const reset = useCallback(() => {
+    beginNewEpoch();
     skipNextProviderEpochRef.current = true;
     setEditorEpoch((value) => value + 1);
     resetCollabSession(documentID);
-  }, [documentID]);
+  }, [beginNewEpoch, documentID]);
 
   const setId = useCallback(
     (id: string, mode: "push" | "replace" | "silent" = "push") => {
@@ -153,9 +272,30 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
         synced,
         collabDisabled,
         editorKey: `${documentID}:${editorEpoch}`,
-      }) satisfies DocumentSession,
-    [collabDisabled, documentID, editorEpoch, reset, setId, synced, yDoc, yjsProvider],
+        ready,
+        switchEpoch,
+        whenReady,
+        _notifyEditorReady: notifyEditorReady,
+      }) satisfies DocumentSessionInternal,
+    [collabDisabled, documentID, editorEpoch, notifyEditorReady, ready, reset, setId, switchEpoch, synced, whenReady, yDoc, yjsProvider],
   );
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (window.REMDO_TEST !== true) {
+      return;
+    }
+
+    // Expose the live session during tests to make it observable without an additional probe component.
+    window.__remdoDocumentSession = contextValue;
+    return () => {
+      if (window.__remdoDocumentSession === contextValue) {
+        delete window.__remdoDocumentSession;
+      }
+    };
+  }, [contextValue]);
 
   useEffect(() => {
     const nextSearchParamId = searchParams.get("documentID");

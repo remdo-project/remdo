@@ -7,7 +7,7 @@ import "./Editor.scss";
 import { ClickableLinkPlugin as LexicalClickableLinkPlugin } from "@lexical/react/LexicalClickableLinkPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { LexicalCollaboration } from "@lexical/react/LexicalCollaborationContext";
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import { ClearEditorPlugin } from "@lexical/react/LexicalClearEditorPlugin";
 import { CollaborationPlugin } from "@lexical/react/LexicalCollaborationPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -77,9 +77,10 @@ function LexicalEditor() {
   );
 }
 
-export default function Editor() {
+export default function Editor({ children }: { children?: ReactNode }) {
   return (
     <DocumentSelectorProvider>
+      {children}
       <LexicalEditor />
     </DocumentSelectorProvider>
   );

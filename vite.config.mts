@@ -59,7 +59,10 @@ export default defineConfig(({ command }) => {
     },
     test: {
       globalSetup: ['./tests/global-setup.ts'],
-      include: ["tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+      include: [
+        "tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}",
+        "test/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}",
+      ],
       environment: "jsdom",
       open: false,
       coverage: {
