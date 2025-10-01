@@ -1,0 +1,34 @@
+name: Publish Browser Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: ID of the workflow run that produced the report
+        required: true
+
+permissions:
+  actions: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Pages artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: github-pages
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.run_id }}
+          path: github-pages
+
+      - name: Upload artifact for deployment
+        uses: actions/upload-pages-artifact@v3
+        with:
+          name: github-pages
+          path: github-pages
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
