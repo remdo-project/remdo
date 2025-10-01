@@ -14,4 +14,3 @@ jobs:
       - uses: ./.github/actions/node-test-shared
         with:
           command: FORCE_WEBSOCKET=true npm run test-unit-collab
-          websocket: true

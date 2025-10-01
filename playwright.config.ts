@@ -2,25 +2,8 @@ import type { PlaywrightTestConfig } from "@playwright/test";
 import { devices } from "@playwright/test";
 import { env } from "#env";
 
-const webServer: PlaywrightTestConfig["webServer"] = [
-  {
-    command: `npm run preview -- --host --port ${env.PORT}`,
-    port: env.PORT,
-    timeout: 5 * 1000,
-    reuseExistingServer: !env.CI,
-  },
-];
-
-if (env.FORCE_WEBSOCKET) {
-  webServer.push({
-    command: "npm run websocket",
-    port: 8080,
-    timeout: 5 * 1000,
-    reuseExistingServer: !env.CI,
-  });
-}
-
 const config: PlaywrightTestConfig = {
+  globalSetup: './tests/global-setup.ts',
   testDir: "./tests/browser",
   snapshotPathTemplate:
     "{testDir}/{testFileDir}/__snapshots__/{testFileName}/{testName}_{arg}{ext}",
@@ -67,7 +50,12 @@ const config: PlaywrightTestConfig = {
     },
   ],
   outputDir: "data/test-results/",
-  webServer,
+  webServer: {
+    command: `npm run preview -- --host --port ${env.PORT}`,
+    port: env.PORT,
+    timeout: 5 * 1000,
+    reuseExistingServer: !env.CI,
+  },
 };
 
 export default config;

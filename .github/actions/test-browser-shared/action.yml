@@ -4,9 +4,6 @@ inputs:
   command:
     description: Command to execute Playwright suite
     required: true
-  websocket:
-    description: Start collaboration WebSocket server before running
-    default: 'false'
 
 outputs:
   report_present:
@@ -25,12 +22,7 @@ runs:
 
     - name: Bootstrap environment
       shell: bash
-      run: |
-        if [ "${{ inputs.websocket }}" = "true" ]; then
-          ./scripts/env-setup.sh --playwright --collab
-        else
-          ./scripts/env-setup.sh --playwright
-        fi
+      run: ./scripts/env-setup.sh --playwright
 
     - name: Run Playwright tests
       id: run-tests

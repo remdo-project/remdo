@@ -4,9 +4,6 @@ inputs:
   command:
     description: Command to execute in the Node environment
     required: true
-  websocket:
-    description: Start collaboration WebSocket server before running
-    default: 'false'
 
 runs:
   using: composite
@@ -17,12 +14,7 @@ runs:
 
     - name: Bootstrap environment
       shell: bash
-      run: |
-        if [ "${{ inputs.websocket }}" = "true" ]; then
-          scripts/env-setup.sh --collab
-        else
-          scripts/env-setup.sh
-        fi
+      run: scripts/env-setup.sh
 
     - name: Run command
       shell: bash
