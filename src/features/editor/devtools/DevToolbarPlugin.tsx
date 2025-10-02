@@ -4,34 +4,21 @@ import { useRemdoLexicalComposerContext } from "../plugins/remdo/ComposerContext
 import { SPACER_COMMAND } from "../plugins/remdo/utils/commands";
 import { YjsDebug } from "./YjsDebug";
 import { useDebug } from "@/DebugContext";
-import { useDocumentSelector } from "../DocumentSelector/DocumentSessionProvider";
 import { mergeRegister } from "@lexical/utils";
 import { CONNECTED_COMMAND, TOGGLE_CONNECT_COMMAND } from "@lexical/yjs";
 import {
-  $createParagraphNode,
-  $createTextNode,
   $getRoot,
   CLEAR_HISTORY_COMMAND,
   COMMAND_PRIORITY_EDITOR,
 } from "lexical";
-import {
-  $createListItemNode,
-  $createListNode,
-  $isListNode,
-} from "@lexical/list";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import TreeViewPlugin from "./TreeViewPlugin";
-import {
-  ensureListItemSharedState,
-  $ensureNoteID,
-} from "../plugins/remdo/utils/noteState";
 
 export const DevToolbarPlugin = ({ editorBottomRef }) => {
   const [connected, setConnected] = useState(false);
   const [editor] = useRemdoLexicalComposerContext();
   const [darkMode, setDarkMode] = useState(() => getDarkMode());
-  const session = useDocumentSelector();
   const { isDebugMode } = useDebug();
   const editorBottom = editorBottomRef.current;
 
@@ -69,7 +56,7 @@ export const DevToolbarPlugin = ({ editorBottomRef }) => {
   const clearContent = () => {
     editor.update(() => {
       const root = $getRoot();
-        root.clear();
+      root.clear();
     });
     editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
   };
@@ -88,9 +75,8 @@ export const DevToolbarPlugin = ({ editorBottomRef }) => {
           onClick={toggleColorMode}
         >
           <i
-            className={`bi bi-${
-              darkMode ? "sun-fill" : "moon-stars-fill"
-            } text-secondary`}
+            className={`bi bi-${darkMode ? "sun-fill" : "moon-stars-fill"
+              } text-secondary`}
           ></i>
           {darkMode ? "Light" : "Dark"} Mode
         </button>
