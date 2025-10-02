@@ -1,5 +1,4 @@
 import { expect } from "@playwright/test";
-import { env } from "#env";
 import { test } from "./common";
 
 test("move", async ({ page, notebook, menu }) => { 

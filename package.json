@@ -31,7 +31,7 @@
     "yjs": "13.6.27"
   },
   "scripts": {
-    "lint": "eslint . --ext .ts,.tsx",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings=0",
     "typecheck:app": "tsc --noEmit -p tsconfig.json",
     "typecheck:tests": "tsc --noEmit -p tsconfig.tests.json",
     "typecheck": "npm run -s typecheck:app && npm run -s typecheck:tests",
