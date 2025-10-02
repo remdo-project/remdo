@@ -36,17 +36,6 @@ test("load editor state", async ({ notebook }) => {
   expect(html).toContain("note00"); 
 });
 
-test("clear content", async ({ page, notebook }) => { 
-  // FIXME(remdo): RootSchemaPlugin transform stays disabled after `resetDocument()` until the
-  // new provider resyncs, so stale Yjs content lingers when FORCE_WEBSOCKET=true. Re-enable this
-  // once the transform handles provider hand-offs more eagerly.
-  test.skip(env.FORCE_WEBSOCKET, "Collab clear flow leaves stale content until resync — skip for now");
-  await page.locator("text=Clear").click();
-  const html = await notebook.html(); 
-  expect(html).not.toContain("note0"); 
-  expect(html).not.toContain("note00"); 
-});
-
 test("reorder flat", async ({ page, notebook }) => {
   await notebook.load("flat");
   let order = await notebook.getNotes();

@@ -67,40 +67,10 @@ export const DevToolbarPlugin = ({ editorBottomRef }) => {
   }
 
   const clearContent = () => {
-    const provider = session.yjsProvider;
-    if (provider) {
-      session.reset();
-      return;
-    }
-
-    ensureListItemSharedState(editor as unknown as { _nodes?: Map<string, any> });
-
-    editor.dispatchCommand(SPACER_COMMAND, undefined);
-    editor.dispatchCommand(SPACER_COMMAND, undefined);
-    editor.dispatchCommand(SPACER_COMMAND, undefined);
-
     editor.update(() => {
       const root = $getRoot();
-      let list = root.getFirstChild();
-
-      if (!$isListNode(list)) {
         root.clear();
-        list = $createListNode("bullet");
-        root.append(list);
-      } else {
-        list.clear();
-      }
-
-      const listItem = $createListItemNode();
-      $ensureNoteID(listItem);
-      const paragraph = $createParagraphNode();
-      paragraph.append($createTextNode(""));
-      listItem.append(paragraph);
-
-      list.append(listItem);
-      paragraph.selectStart();
     });
-
     editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
   };
 

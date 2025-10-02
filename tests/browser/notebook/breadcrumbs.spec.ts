@@ -51,7 +51,7 @@ test("focus on a particular note", async ({ page, notebook }) => {
 });
 
 // Keep the original reload test untouched as requested
-test.fixme("reload", async ({ page: _page, notebook }) => {
+test("reload", async ({ page: _page, notebook }) => {
   await notebook.load("tree_complex");
 });
 

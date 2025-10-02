@@ -55,7 +55,6 @@ function LexicalEditor() {
         />
         <DevComponentTestPlugin />
         {shouldMountTestBridge ? <RemdoTestBridge /> : null}
-        <ClearEditorPlugin />
         <RemdoListPlugin />
         <LinkPlugin />
         <LexicalClickableLinkPlugin />
