@@ -8,7 +8,7 @@ import {
 } from "@lexical/list";
 
 import { useRemdoLexicalComposerContext } from "@/features/editor/plugins/remdo/ComposerContext";
-import { useDocumentSelector } from "@/features/editor/DocumentSelector/DocumentSessionProvider";
+import { useDocumentSelector as useDocumentSession } from "@/features/editor/DocumentSelector/DocumentSessionProvider";
 import { mergeLists } from "./utils/unexported";
 
 function $ensureSingleListRoot(rootNode: RootNode): void {
@@ -61,22 +61,22 @@ function $ensureSingleListRoot(rootNode: RootNode): void {
 
 export function RootSchemaPlugin(): null {
   const [editor] = useRemdoLexicalComposerContext();
-  const { collabDisabled, synced } = useDocumentSelector();
+  const { collabDisabled, ready } = useDocumentSession();
   const serializationFile = import.meta.env.VITEST_SERIALIZATION_FILE;
   const disableForSerialization = Boolean(serializationFile);
-  const hasSynced = disableForSerialization || collabDisabled || synced;
+  const disableFix = !collabDisabled && !ready;
 
   useEffect(() => {
     if (disableForSerialization) {
       return;
     }
 
-    if (!collabDisabled && !hasSynced) {
+    if (disableFix) {
       return;
     }
 
     return editor.registerNodeTransform(RootNode, $ensureSingleListRoot);
-  }, [collabDisabled, disableForSerialization, editor, hasSynced]);
+  }, [disableFix, disableForSerialization, editor]);
 
   return null;
 }
