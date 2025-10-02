@@ -8,7 +8,6 @@ import { ClickableLinkPlugin as LexicalClickableLinkPlugin } from "@lexical/reac
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { LexicalCollaboration } from "@lexical/react/LexicalCollaborationContext";
 import { useRef } from "react";
-import { ClearEditorPlugin } from "@lexical/react/LexicalClearEditorPlugin";
 import { CollaborationPlugin } from "@lexical/react/LexicalCollaborationPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { DevComponentTestPlugin } from "./plugins/dev/DevComponentTestPlugin";
