@@ -7,7 +7,7 @@ import { expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { Logger } from './logger';
 import { RemdoLexicalEditor } from '@/features/editor/plugins/remdo/ComposerContext';
 import path from 'path';
-import { render, within, queries } from '@testing-library/react';
+import { render, within, queries, waitFor } from '@testing-library/react';
 import { TestContext as ComponentTestContext } from '@/features/editor/plugins/dev/DevComponentTestPlugin';
 import { Routes } from '@/Routes';
 import { $getRoot, CLEAR_HISTORY_COMMAND } from 'lexical';
@@ -131,9 +131,19 @@ beforeEach(async (context) => {
   logger.setFlushFunction(() => context.lexicalUpdate(() => { }));
 
   if (env.FORCE_WEBSOCKET) {
-    const provider = context.documentSelector.yjsProvider;
+    await waitFor(async () => {
+      const provider = context.documentSelector.yjsProvider;
+      if (!(provider instanceof WebsocketProvider)) {
+        throw new Error('Collaboration provider not ready');
+      }
+    }, { timeout: 10_000 });
+
+    const provider = context.documentSelector.yjsProvider as WebsocketProvider;
+
     //wait for yjs to connect via websocket and init the editor content
     await waitForProviderSync(provider);
+
+    await context.documentSelector.whenReady({ timeout: 10_000 });
 
     const yDoc = context.documentSelector.yDoc;
     if (yDoc) {
@@ -141,6 +151,8 @@ beforeEach(async (context) => {
         const rootXmlText = yDoc.get('root', Y.XmlText);
         rootXmlText.delete(0, rootXmlText.length);
       });
+    } else {
+      throw new Error('Expected Yjs document to be initialised');
     }
   }
   if (!serializationFile && !env.VITE_PERFORMANCE_TESTS) {
