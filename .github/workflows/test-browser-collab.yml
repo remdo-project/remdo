@@ -20,7 +20,7 @@ jobs:
 
       - name: Upload Playwright report
         if: ${{ hashFiles('data/playwright-report/index.html') != '' }}
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           name: github-pages
           path: data/playwright-report
