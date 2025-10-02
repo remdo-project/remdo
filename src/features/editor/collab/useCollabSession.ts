@@ -96,8 +96,9 @@ export function createCollabProvider(
     doc.load();
   } else {
     doc = createDocument();
-    yjsDocMap.set(id, doc);
   }
+
+  yjsDocMap.set(id, doc);
 
   ensureRoot(doc);
   updateSession(id, { doc, synced: false, provider: null });
