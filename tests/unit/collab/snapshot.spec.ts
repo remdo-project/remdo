@@ -13,9 +13,9 @@ it.runIf(shouldRun)("load, edit and save editor's content", () => {
   execFileSync("npm", ["run", "load", "--", docID, loadPath], {
     stdio: "inherit",
   });
-  //execFileSync("npm", ["run", "save", "--", docID, savePath], {
-  //  stdio: "inherit",
-  //});
+  execFileSync("npm", ["run", "save", "--", docID, savePath], {
+    stdio: "inherit",
+  });
 
   //expect files to match
   const saved = JSON.parse(readFileSync(savePath, "utf-8"));
