@@ -108,6 +108,7 @@
   - Use `tests/unit/common` helpers: run mutations in `context.lexicalUpdate(fn)`; load serialized states with `context.load(nameOrPath)`.
   - Prefer JSON/YAML snapshots for structure; DOM snapshots where UI matters.
 - Browser (Playwright): `npm run test-browser` (spins Vite, stores artifacts in `data/`).
+- Browser collab tests: skip unless explicitly requested or the task requires them; they take too long and slow the process down.
 - Watch/coverage: see `package.json` (`test-unit-watch`, `test-unit-watch-coverage`, `test-browser-watch`).
 
 ## Environment & Ports
