@@ -18,7 +18,6 @@
         "children": [
           {
             "direction": "ltr",
-            "folded": false,
             "format": "",
             "indent": 0,
             "type": "listitem",
@@ -46,7 +45,6 @@
                 "children": [
                   {
                     "direction": "ltr",
-                    "folded": false,
                     "format": "",
                     "indent": 1,
                     "type": "listitem",
