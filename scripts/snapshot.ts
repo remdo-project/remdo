@@ -54,10 +54,8 @@ function parseArgs(argv: string[]): ParsedArgs {
   if (!docId || docId.trim() === "") {
     throw new CLIError(1, "Missing document id");
   }
-  const resolvedPath = path.resolve(
-    rawPath ?? path.join(DEFAULT_DATA_DIR, `${docId}.json`),
-  );
-  return { command, docId, filePath: resolvedPath };
+  const filePath = rawPath?.trim() || path.join(DEFAULT_DATA_DIR, `${docId}.json`);
+  return { command, docId, filePath };
 }
 
 function readLexicalJSON(filePath: string): SerializedEditorState {
@@ -85,11 +83,6 @@ function isSerializedEditorState(value: unknown): value is SerializedEditorState
   }
   const maybe = value as { root?: unknown };
   return !!maybe.root && typeof maybe.root === "object";
-}
-
-function ensureParentDir(filePath: string): void {
-  const dir = path.dirname(filePath);
-  fs.mkdirSync(dir, { recursive: true });
 }
 
 function stableStringify(value: unknown): string {
@@ -293,7 +286,6 @@ async function runSave(docId: string, filePath: string): Promise<void> {
   try {
     const json = session.editor.getEditorState().toJSON();
     const serialized = stableStringify(json);
-    ensureParentDir(filePath);
     fs.writeFileSync(filePath, `${serialized}\n`);
   } finally {
     session.cleanup();
