@@ -2,7 +2,8 @@ import path from "node:path";
 import { env } from "#env";
 import { execFileSync } from "node:child_process";
 
-import { it } from "vitest";
+import { expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 
 const shouldRun = env.FORCE_WEBSOCKET;
 it.runIf(shouldRun)("load, edit and save editor's content", () => {
@@ -12,8 +13,12 @@ it.runIf(shouldRun)("load, edit and save editor's content", () => {
   execFileSync("npm", ["run", "load", "--", docID, loadPath], {
     stdio: "inherit",
   });
-  //TODO make some changes and verify if they are saved correctly
-  execFileSync("npm", ["run", "save", "--", docID, savePath], {
-    stdio: "inherit",
-  });
+  //execFileSync("npm", ["run", "save", "--", docID, savePath], {
+  //  stdio: "inherit",
+  //});
+
+  //expect files to match
+  const saved = JSON.parse(readFileSync(savePath, "utf-8"));
+  const loaded = JSON.parse(readFileSync(loadPath, "utf-8"));
+  expect(saved).toEqual(loaded);
 });
