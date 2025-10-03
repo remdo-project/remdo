@@ -1,7 +1,6 @@
 import path from "node:path";
 import { env } from "#env";
 import { execFileSync } from "node:child_process";
-
 import { expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
@@ -17,7 +16,6 @@ it.runIf(shouldRun)("load, edit and save editor's content", () => {
     stdio: "inherit",
   });
 
-  //expect files to match
   const saved = JSON.parse(readFileSync(savePath, "utf-8"));
   const loaded = JSON.parse(readFileSync(loadPath, "utf-8"));
   expect(saved).toEqual(loaded);

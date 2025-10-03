@@ -35,7 +35,6 @@
     "typecheck:app": "tsc --noEmit -p tsconfig.json",
     "typecheck:tests": "tsc --noEmit -p tsconfig.tests.json",
     "typecheck": "npm run -s typecheck:app && npm run -s typecheck:tests",
-    "open": "./utils.sh open_document",
     "server": "VITE_DOCUMENTS=$(cd tests/data && ls *.json | sed 's/\\.json//' | tr '\n' ',') vite --host",
     "websocket-persist": "HOST=0.0.0.0 PORT=8080 YPERSISTENCE=./data/yjsDB npx y-websocket",
     "websocket": "HOST=0.0.0.0 PORT=8080 npx y-websocket",

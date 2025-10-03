@@ -15,11 +15,3 @@ declare module "@playwright/test" {
     takeScreenshot: (name?: string) => Promise<void>;
   }
 }
-
-interface ImportMetaEnv {
-  readonly VITEST_SERIALIZATION_FILE: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}

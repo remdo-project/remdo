@@ -7,7 +7,6 @@ export const env = cleanEnv(process.env, {
   FORCE_WEBSOCKET: bool({ default: false }),
   CI: bool({ default: false }),
   DEBUG: str({ default: '' }), //not a bool, since some tools (like playwright treat this as a sting, ex. "pw:*")
-  VITEST_SERIALIZATION_FILE: str({ default: '' }),
   VITE_PERFORMANCE_TESTS: bool({ default: false }),
   VITE_LOG_LEVEL: str({ default: '' }),
 });

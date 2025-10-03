@@ -6,7 +6,6 @@ import { createSearchParams, MemoryRouter, URLSearchParamsInit } from 'react-rou
 import { expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { Logger } from './logger';
 import { RemdoLexicalEditor } from '@/features/editor/plugins/remdo/ComposerContext';
-import path from 'path';
 import { render, within, queries, waitFor } from '@testing-library/react';
 import { TestContext as ComponentTestContext } from '@/features/editor/plugins/dev/DevComponentTestPlugin';
 import { Routes } from '@/Routes';
@@ -49,14 +48,6 @@ beforeEach(async (context) => {
   expect(fs.existsSync('lexical/node_modules')).toBeFalsy();
 
   const urlParams: URLSearchParamsInit = [];
-  const serializationFile = env.VITEST_SERIALIZATION_FILE;
-  if (serializationFile) {
-    const fileName = path.basename(serializationFile);
-    logger.info(fileName);
-    urlParams.push(['documentID', fileName]);
-  }
-
-
   if (!env.FORCE_WEBSOCKET) {
     urlParams.push(['collab', 'false']);
   } else {
@@ -155,10 +146,9 @@ beforeEach(async (context) => {
       throw new Error('Expected Yjs document to be initialised');
     }
   }
-  if (!serializationFile && !env.VITE_PERFORMANCE_TESTS) {
+  if (!env.VITE_PERFORMANCE_TESTS) {
     //clear the editor's content before each test
-    //except for the serialization, where potentially we may want to save the
-    //current content or performance where some of the tests should be stateful
+    //except for performance where some of the tests should be stateful
     //it's important to do it here once collab is already initialized
     context.lexicalUpdate(() => {
       const root = $getRoot();

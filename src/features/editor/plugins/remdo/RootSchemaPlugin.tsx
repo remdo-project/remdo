@@ -62,21 +62,15 @@ function $ensureSingleListRoot(rootNode: RootNode): void {
 export function RootSchemaPlugin(): null {
   const [editor] = useRemdoLexicalComposerContext();
   const { collabDisabled, ready } = useDocumentSession();
-  const serializationFile = import.meta.env.VITEST_SERIALIZATION_FILE;
-  const disableForSerialization = Boolean(serializationFile);
   const disableFix = !collabDisabled && !ready;
 
   useEffect(() => {
-    if (disableForSerialization) {
-      return;
-    }
-
     if (disableFix) {
       return;
     }
 
     return editor.registerNodeTransform(RootNode, $ensureSingleListRoot);
-  }, [disableFix, disableForSerialization, editor]);
+  }, [disableFix, editor]);
 
   return null;
 }
