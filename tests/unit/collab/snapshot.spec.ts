@@ -13,7 +13,7 @@ it.runIf(shouldRun)("load, edit and save editor's content", () => {
     stdio: "inherit",
   });
   //TODO make some changes and verify if they are saved correctly
-  e,ecFileSync("npm", ["run", "save", "--", docID, savePath], {
+  execFileSync("npm", ["run", "save", "--", docID, savePath], {
     stdio: "inherit",
   });
 });
