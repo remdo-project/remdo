@@ -21,6 +21,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
 import { RemdoListPlugin } from "./plugins/remdo/RemdoListPlugin";
 import { useEditorConfig } from "./config";
+import "@/yjs-shims/suppressInvalidAccessWarning";
 
 function LexicalEditor() {
   const editorContainerRef = useRef<HTMLDivElement | null>(null);

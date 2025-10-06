@@ -37,9 +37,6 @@ export default defineConfig(({ command }) => {
         filename: "data/stats.html",
       }) as unknown as PluginOption,
     ],
-    esbuild: {
-      banner: 'import "@/yjs-shims/suppressInvalidAccessWarning";',
-    },
     resolve: {
       alias: [
         {
