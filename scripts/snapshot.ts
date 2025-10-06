@@ -5,6 +5,7 @@ import process from "node:process";
 
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { ListItemNode, ListNode } from "@lexical/list";
+import { $convertToMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import { createBinding, syncLexicalUpdateToYjs, syncYjsChangesToLexical } from "@lexical/yjs";
 import type { Binding, Provider } from "@lexical/yjs";
 import { createEditor } from "lexical";
@@ -287,8 +288,19 @@ async function runSave(docId: string, filePath: string): Promise<void> {
     const json = session.editor.getEditorState().toJSON();
     const serialized = stableStringify(json);
     fs.writeFileSync(filePath, `${serialized}\n`);
+    maybeSaveMarkdown(filePath, session);
   } finally {
     session.cleanup();
+  }
+}
+
+function maybeSaveMarkdown(filePath: string, session: Session): void {
+  const markdownPath = filePath.replace(/\.json$/, ".md");
+  if (fs.existsSync(markdownPath)) {
+    const markdown = session.editor
+      .getEditorState()
+      .read(() => $convertToMarkdownString(TRANSFORMERS));
+    fs.writeFileSync(markdownPath, `${markdown}\n`);
   }
 }
 
