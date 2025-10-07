@@ -61,4 +61,34 @@ export default antfu(
       'react-hooks/rules-of-hooks': 'off',
     },
   },
+  //async function rules
+  {
+    files: ['src/**/*.{ts,tsx}', 'types/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: {
+          defaultProject: './tsconfig.json',
+        },
+        tsconfigRootDir: process.cwd(),
+      },
+    },
+    rules: {
+      'ts/no-floating-promises': 'error',
+      'ts/no-misused-promises': 'warn',
+    },
+  },
+  //async function rules (tests)
+  {
+    files: ['tests/**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.tests.json'],
+        tsconfigRootDir: process.cwd(),
+      },
+    },
+    rules: {
+      'ts/no-floating-promises': 'error',
+      'ts/no-misused-promises': 'warn',
+    },
+  },
 );

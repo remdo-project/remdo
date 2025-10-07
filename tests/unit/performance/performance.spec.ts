@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(remdo): Reintroduce type checking after the performance harness is rewritten with typed logging utilities.
 import { createChildren } from "../common";
 import { Timer, adjustDeltaToGetRoundedTotal, countNotes, getCount } from "./utils";
 import { Note } from "@/features/editor/plugins/remdo/utils/api";
@@ -73,7 +71,7 @@ it(
       addNotes(currentBatchSize);
       remainingCount -= currentBatchSize;
 
-      logger.debug(
+      await logger.debug(
         ` batch ${batch}/${numberOfBatches}`,
         timer.calculateRemainingTime(remainingCount)
       );
@@ -124,7 +122,7 @@ it(
       queue.push(root);
     });
     while (n > 0) {
-      logger.debug(n, timer.calculateRemainingTime(n));
+      await logger.debug(n, timer.calculateRemainingTime(n));
       lexicalUpdate(() => {
         const currentNote = queue.shift();
         const parentName = currentNote.text.replace("root", "note");

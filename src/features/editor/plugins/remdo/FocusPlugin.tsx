@@ -28,7 +28,7 @@ export function FocusPlugin({ anchorRef }:
 
           if (key === "root") {
             if (noteID) {
-              navigate(`/`);
+              void navigate(`/`);
             }
           } else {
             if (!$isListItemNode(focusNode)) {
@@ -36,7 +36,7 @@ export function FocusPlugin({ anchorRef }:
             }
             const focusNodeID = $getNoteID(focusNode);
             if (noteID !== focusNodeID) {
-              navigate(`/note/${focusNodeID}`);
+              void navigate(`/note/${focusNodeID}`);
             }
           }
 

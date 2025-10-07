@@ -14,5 +14,5 @@
     "verbatimModuleSyntax": false,
     "types": ["node", "vite/client", "vitest/globals", "@playwright/test"]
   },
-  "include": ["tests", "playwright.config.ts"]
+  "include": ["tests", "playwright.config.ts", "types"]
 }

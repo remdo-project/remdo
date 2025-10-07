@@ -38,7 +38,7 @@ function ProviderBridge() {
 
   useEffect(() => {
     const provider = factory(session.id, docMapRef.current);
-    provider.connect?.();
+    void provider.connect?.();
     return () => {
       provider.destroy();
     };

@@ -54,7 +54,7 @@ export const DebugProvider = ({ children }: { children: ReactNode }) => {
         params.delete("debug");
       }
       const search = params.toString();
-      navigate(search ? `?${search}` : "?", { replace: true });
+      void navigate(search ? `?${search}` : "?", { replace: true });
       return nextValue;
     });
   }, [location.search, navigate]);

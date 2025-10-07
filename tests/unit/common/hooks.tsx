@@ -49,13 +49,13 @@ beforeEach(async (context) => {
 
   const urlParams: URLSearchParamsInit = [];
   if (env.FORCE_WEBSOCKET) {
-    logger.debug("Collab enabled");
+    await logger.debug("Collab enabled");
   } else {
     urlParams.push(['collab', 'false']);
   }
 
   if (env.DEBUG) {
-    logger.info("Debug enabled");
+    await logger.info("Debug enabled");
     urlParams.push(['debug', 'true']);
   }
   const initialEntry = '/?' + createSearchParams(urlParams).toString();

@@ -224,7 +224,7 @@ export const DocumentSelectorProvider = ({ children }: { children: ReactNode }) 
         return;
       }
 
-      navigate(
+      void navigate(
         { pathname: opts?.path ?? "/", search: makeSearchWithDoc(id, searchParams) },
         { replace: !!opts?.replace },
       );
