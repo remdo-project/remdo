@@ -44,7 +44,7 @@
     "test-browser-collab": "npm run build && FORCE_WEBSOCKET=true VITE_ENABLE_FAST_REFRESH=false npx playwright test --project=chromium",
     "test-unit": "npx vitest run",
     "test-performance": "FORCE_WEBSOCKET=true VITE_PERFORMANCE_TESTS=true VITE_LOG_LEVEL=info time -f 'Time: %es' npx vitest run performance/performance --reporter ./tests/unit/performance/reporter.ts -t",
-    "test-unit-collab": "FORCE_WEBSOCKET=true npx vitest run tests/unit/collab --maxWorkers=1",
+    "test-unit-collab": "FORCE_WEBSOCKET=true npx vitest run --maxWorkers=1",
     "test-unit-watch": "npx vitest --watch --ui --api.host 0.0.0.0",
     "test-unit-minimal": "npx vitest --reporter=./tests/unit/common/reporter.ts --watch --ui",
     "test-serialization": "npx vitest run tests/unit/serialization.spec.ts -t verify",

@@ -48,10 +48,10 @@ beforeEach(async (context) => {
   expect(fs.existsSync('lexical/node_modules')).toBeFalsy();
 
   const urlParams: URLSearchParamsInit = [];
-  if (!env.FORCE_WEBSOCKET) {
-    urlParams.push(['collab', 'false']);
+  if (env.FORCE_WEBSOCKET) {
+    logger.debug("Collab enabled");
   } else {
-    logger.info("Collab enabled");
+    urlParams.push(['collab', 'false']);
   }
 
   if (env.DEBUG) {
@@ -155,6 +155,10 @@ beforeEach(async (context) => {
       root.clear();
     });
   }
+  if (env.FORCE_WEBSOCKET) {
+    //TODO this waits for RootSchemaPlugin to catch up
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  };
   await logger.debug('beforeEach hook finished');
 });
 
