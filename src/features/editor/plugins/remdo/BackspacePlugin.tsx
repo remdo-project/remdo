@@ -95,14 +95,21 @@ export function BackspacePlugin() {
                 if (toMove.length > 0) {
                   targetList.append(...toMove);
                 }
-                currChildrenList.remove();
+                note._removeChildrenList(currChildrenList);
               }
 
               const li = note.lexicalNode;
               const parentList = li.getParent();
+              const parentContainer = parentList?.getParent();
               li.remove();
               if (parentList.getChildrenSize() === 0) {
                 parentList.remove();
+                if (
+                  $isListItemNode(parentContainer) &&
+                  parentContainer.getChildrenSize() === 0
+                ) {
+                  parentContainer.remove();
+                }
               }
               // Place selection at end of target text to avoid cursor placeholders
               const targetText = target.lexicalNode
@@ -119,10 +126,17 @@ export function BackspacePlugin() {
             if (!note.isRoot && !note.prevSibling && !note.parent.isRoot) {
               const li = note.lexicalNode;
               const parentList = li.getParent();
+              const parentContainer = parentList?.getParent();
               li.remove();
               if (parentList.getChildrenSize() === 0) {
                 // remove empty container list left after deleting the only child
                 parentList.remove();
+                if (
+                  $isListItemNode(parentContainer) &&
+                  parentContainer.getChildrenSize() === 0
+                ) {
+                  parentContainer.remove();
+                }
               }
               return true;
             }
