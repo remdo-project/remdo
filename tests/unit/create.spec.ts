@@ -16,6 +16,8 @@ it("set text", async ({ load, lexicalUpdate, expect }) => {
 
     const newNoteText = "note0 - modified";
     note0.text = newNoteText;
+    //FIXME setting text removes note0 children, correct both test to check that and implementation
+    //await logger.preview();
     expect(note0.text).toBe(newNoteText);
   });
 });

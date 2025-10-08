@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(remdo): Migrate test hooks to a typed helper once the editor harness exposes TypeScript-safe APIs.
 import { getDataPath } from '../../common';
 import fs from 'fs';
 import { createSearchParams, MemoryRouter, URLSearchParamsInit } from 'react-router-dom';
@@ -129,7 +127,8 @@ beforeEach(async (context) => {
       }
     }, { timeout: 10_000 });
 
-    const provider = context.documentSelector.yjsProvider as WebsocketProvider;
+    //TODO use proper type
+    const provider = context.documentSelector.yjsProvider as unknown as WebsocketProvider;
 
     //wait for yjs to connect via websocket and init the editor content
     await waitForProviderSync(provider);
