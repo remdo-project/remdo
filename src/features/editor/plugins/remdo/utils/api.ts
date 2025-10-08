@@ -5,7 +5,6 @@ import "lexical";
 import {
   $createListItemNode,
   $createListNode,
-  $isListItemNode,
   $isListNode,
   ListNode,
   ListItemNode as LexicalListItemNode,
@@ -21,11 +20,7 @@ import {
 } from "lexical";
 import type { EditorState, LexicalNode } from "lexical";
 
-import {
-  $findNearestListItemNode,
-  getElementByKeyOrThrow,
-  isNestedListNode,
-} from "./unexported";
+import { $findNearestListItemNode, getElementByKeyOrThrow } from "./unexported";
 import { $getNodeByID } from "./utils";
 import { NOTES_FOCUS_COMMAND } from "./commands";
 import {
@@ -155,14 +150,6 @@ export class Note {
   createChild(text: string | null = null): Note {
     const childNode = $createListItemNode();
     this._getChildrenListNode(true).append(childNode);
-    if (typeof childNode.setIndent === "function") {
-      const parentIndent = this.isRoot
-        ? -1
-        : typeof this.lexicalNode.getIndent === "function"
-          ? this.lexicalNode.getIndent()
-          : 0;
-      childNode.setIndent(Math.max(parentIndent + 1, 0));
-    }
     $ensureNoteID(childNode);
     if (text) {
       childNode.append($createTextNode(text));
@@ -186,22 +173,8 @@ export class Note {
     if (this.isRoot) {
       return null;
     }
-    const parentList = this.lexicalNode.getParent();
-    if (!$isListNode(parentList)) {
-      return Note.from("root");
-    }
-    const containerListItem = $findNearestListItemNode(parentList);
-    if (!$isListItemNode(containerListItem)) {
-      return Note.from("root");
-    }
-    if (isContainerListItem(containerListItem)) {
-      const previousSibling = getPreviousNoteListItem(containerListItem);
-      if ($isListItemNode(previousSibling)) {
-        return Note.from(previousSibling);
-      }
-      return Note.from("root");
-    }
-    return Note.from(containerListItem);
+    const lexicalParentNode = this.lexicalNode.getParent();
+    return Note.from(lexicalParentNode.getKey());
   }
 
   get parents() {
@@ -229,9 +202,6 @@ export class Note {
         child;
         child = child.getNextSibling()
       ) {
-        if (isContainerListItem(child)) {
-          continue;
-        }
         yield Note.from(child);
       }
     }
@@ -243,52 +213,12 @@ export class Note {
 
 
   _getChildrenListNode(createIfNeeded = false): ListNode | null {
-    if (this.isRoot) {
-      let rootList = this.lexicalNode.getChildren().find($isListNode);
-      if (!rootList && createIfNeeded) {
-        rootList = $createListNode("bullet");
-        this.lexicalNode.append(rootList);
-      }
-      return rootList ?? null;
+    let list = this.lexicalNode.getChildren().find($isListNode);
+    if (!list && createIfNeeded) {
+      list = $createListNode("bullet");
+      this.lexicalNode.append(list);
     }
-
-    const directList = this.lexicalNode.getChildren().find($isListNode);
-    if (directList) {
-      return directList;
-    }
-
-    const siblingContainer = getChildrenContainer(this.lexicalNode);
-    if (siblingContainer) {
-      return siblingContainer.getFirstChild();
-    }
-
-    if (!createIfNeeded) {
-      return null;
-    }
-
-    const parentList = this.lexicalNode.getParent();
-    if (!$isListNode(parentList)) {
-      return null;
-    }
-
-    const wrapper = $createListItemNode();
-    const nestedList = $createListNode(parentList.getListType());
-
-    wrapper.append(nestedList);
-    this.lexicalNode.insertAfter(wrapper);
-    return nestedList;
-  }
-
-  _removeChildrenList(list: ListNode | null = null) {
-    const targetList = list ?? this._getChildrenListNode();
-    if (!targetList) {
-      return;
-    }
-    const container = targetList.getParent();
-    targetList.remove();
-    if ($isListItemNode(container) && isContainerListItem(container)) {
-      container.remove();
-    }
+    return list;
   }
 
   get text() {
@@ -313,37 +243,11 @@ export class Note {
   }
 
   _appendChild(child: Note) {
-    const childContainer = getChildrenContainer(child.lexicalNode);
-    const list = this._getChildrenListNode(true);
-    list.append(child.lexicalNode);
-    if (childContainer) {
-      child.lexicalNode.insertAfter(childContainer);
-    }
-    const parentIndent = this.isRoot
-      ? -1
-      : typeof this.lexicalNode.getIndent === "function"
-        ? this.lexicalNode.getIndent()
-        : 0;
-    if (typeof child.lexicalNode.setIndent === "function") {
-      child.lexicalNode.setIndent(Math.max(parentIndent + 1, 0));
-    }
+    this._getChildrenListNode(true).append(child.lexicalNode);
   }
 
   _insertChild(child: Note) {
-    const childContainer = getChildrenContainer(child.lexicalNode);
-    const list = this._getChildrenListNode(true);
-    list.splice(0, 0, [child.lexicalNode]);
-    if (childContainer) {
-      child.lexicalNode.insertAfter(childContainer);
-    }
-    const parentIndent = this.isRoot
-      ? -1
-      : typeof this.lexicalNode.getIndent === "function"
-        ? this.lexicalNode.getIndent()
-        : 0;
-    if (typeof child.lexicalNode.setIndent === "function") {
-      child.lexicalNode.setIndent(Math.max(parentIndent + 1, 0));
-    }
+    this._getChildrenListNode(true).splice(0, 0, [child.lexicalNode]);
   }
 
   _insertNextSibling(noteToInsert: Note) {
@@ -353,69 +257,26 @@ export class Note {
     if (this.isRoot) {
       throw new Error("Can't insert after root note");
     }
-    const childContainer = getChildrenContainer(noteToInsert.lexicalNode);
     const prevParentList = noteToInsert.lexicalNode.getParent();
-    const prevContainer = prevParentList?.getParent();
     this.lexicalNode.insertAfter(noteToInsert.lexicalNode);
-    if (childContainer) {
-      noteToInsert.lexicalNode.insertAfter(childContainer);
+    if (prevParentList.getChildrenSize() === 0) {
+      prevParentList.remove();
     }
-    if (typeof noteToInsert.lexicalNode.setIndent === "function") {
-      const currentIndent =
-        typeof this.lexicalNode.getIndent === "function"
-          ? this.lexicalNode.getIndent()
-          : 0;
-      noteToInsert.lexicalNode.setIndent(currentIndent);
-    }
-    cleanupEmptyList(prevParentList, prevContainer);
   }
 
   indent() {
     const prevSibling = this.lexicalNode.getPreviousSibling();
-    const targetSibling = getPreviousNoteListItem(prevSibling);
-    if (!$isListItemNode(targetSibling)) {
+    if (prevSibling === null) {
       return;
     }
-    const parentListBefore = this.lexicalNode.getParent();
-    const parentContainerBefore = parentListBefore?.getParent();
-    Note.from(targetSibling)._appendChild(this);
-    cleanupEmptyList(parentListBefore, parentContainerBefore);
+    Note.from(prevSibling)._appendChild(this);
   }
 
   outdent() {
-    const currentIndent =
-      typeof this.lexicalNode.getIndent === "function"
-        ? this.lexicalNode.getIndent()
-        : 0;
-    if (currentIndent === 0) {
-      return;
-    }
-
-    const parentList = this.lexicalNode.getParent();
-    const containerListItem = parentList?.getParent();
-    const childContainer = getChildrenContainer(this.lexicalNode);
-    if ($isListItemNode(containerListItem)) {
-      const grandparentList = containerListItem.getParent();
-      if ($isListNode(grandparentList)) {
-        containerListItem.insertBefore(this.lexicalNode);
-        if (childContainer) {
-          this.lexicalNode.insertAfter(childContainer);
-        }
-        if (typeof this.lexicalNode.setIndent === "function") {
-          this.lexicalNode.setIndent(Math.max(currentIndent - 1, 0));
-        }
-        cleanupEmptyList(parentList, containerListItem);
-        return;
-      }
-    }
-
     if (this.parent.isRoot) {
       return;
     }
     this.parent._insertNextSibling(this);
-    if (typeof this.lexicalNode.setIndent === "function") {
-      this.lexicalNode.setIndent(Math.max(currentIndent - 1, 0));
-    }
   }
 
   moveDown() {
@@ -426,27 +287,20 @@ export class Note {
       const parent = this.parent;
       parent.nextSibling?._insertChild(this);
       if (!parent.hasChildren) {
-        parent._removeChildrenList();
+        parent._getChildrenListNode().remove();
       }
     }
   }
 
   moveUp() {
-    const parentListBefore = this.lexicalNode.getParent();
-    const parentContainerBefore = parentListBefore?.getParent();
-    const childContainer = getChildrenContainer(this.lexicalNode);
     if (this.prevSibling) {
       this.prevSibling.lexicalNode.insertBefore(this.lexicalNode);
-      if (childContainer) {
-        this.lexicalNode.insertAfter(childContainer);
-      }
-      cleanupEmptyList(parentListBefore, parentContainerBefore);
     }
     else {
       const parent = this.parent;
       parent.prevSibling?._appendChild(this);
       if (!parent.hasChildren) {
-        parent._removeChildrenList();
+        parent._getChildrenListNode().remove();
       }
     }
   }
@@ -505,13 +359,13 @@ export class Note {
   }
 
   get prevSibling() {
-    const sibling = getPreviousNoteListItem(this.lexicalNode.getPreviousSibling());
-    return $isListItemNode(sibling) ? Note.from(sibling) : null;
+    const sibling = this.lexicalNode.getPreviousSibling();
+    return sibling ? Note.from(sibling) : null;
   }
 
   get nextSibling() {
-    const sibling = getNextNoteListItem(this.lexicalNode.getNextSibling());
-    return $isListItemNode(sibling) ? Note.from(sibling) : null;
+    const sibling = this.lexicalNode.getNextSibling();
+    return sibling ? Note.from(sibling) : null;
   }
 
   get id() {
@@ -529,53 +383,6 @@ export class Note {
     for (const child of this.children) {
       child._walk(walker, level - 1);
     }
-  }
-}
-
-function isContainerListItem(node: LexicalListItemNode | null | undefined): boolean {
-  if (!$isListItemNode(node)) {
-    return false;
-  }
-  if (!isNestedListNode(node)) {
-    return false;
-  }
-  return node.getChildren().every($isListNode);
-}
-
-function getChildrenContainer(node: LexicalListItemNode) {
-  const sibling = node.getNextSibling();
-  if (isContainerListItem(sibling)) {
-    return sibling;
-  }
-  return null;
-}
-
-function getPreviousNoteListItem(node: LexicalListItemNode | null | undefined) {
-  let current = node;
-  while (isContainerListItem(current)) {
-    current = current.getPreviousSibling();
-  }
-  return current ?? null;
-}
-
-function getNextNoteListItem(node: LexicalListItemNode | null | undefined) {
-  let current = node;
-  while (isContainerListItem(current)) {
-    current = current.getNextSibling();
-  }
-  return current ?? null;
-}
-
-function cleanupEmptyList(list: ListNode | null | undefined, container: LexicalListItemNode | null | undefined) {
-  if (!$isListNode(list)) {
-    return;
-  }
-  if (list.getChildrenSize() > 0) {
-    return;
-  }
-  list.remove();
-  if ($isListItemNode(container) && container.getChildrenSize() === 0) {
-    container.remove();
   }
 }
 
