@@ -313,8 +313,12 @@ export class Note {
   }
 
   _appendChild(child: Note) {
+    const childContainer = getChildrenContainer(child.lexicalNode);
     const list = this._getChildrenListNode(true);
     list.append(child.lexicalNode);
+    if (childContainer) {
+      child.lexicalNode.insertAfter(childContainer);
+    }
     const parentIndent = this.isRoot
       ? -1
       : typeof this.lexicalNode.getIndent === "function"
@@ -326,8 +330,12 @@ export class Note {
   }
 
   _insertChild(child: Note) {
+    const childContainer = getChildrenContainer(child.lexicalNode);
     const list = this._getChildrenListNode(true);
     list.splice(0, 0, [child.lexicalNode]);
+    if (childContainer) {
+      child.lexicalNode.insertAfter(childContainer);
+    }
     const parentIndent = this.isRoot
       ? -1
       : typeof this.lexicalNode.getIndent === "function"
@@ -424,8 +432,15 @@ export class Note {
   }
 
   moveUp() {
+    const parentListBefore = this.lexicalNode.getParent();
+    const parentContainerBefore = parentListBefore?.getParent();
+    const childContainer = getChildrenContainer(this.lexicalNode);
     if (this.prevSibling) {
       this.prevSibling.lexicalNode.insertBefore(this.lexicalNode);
+      if (childContainer) {
+        this.lexicalNode.insertAfter(childContainer);
+      }
+      cleanupEmptyList(parentListBefore, parentContainerBefore);
     }
     else {
       const parent = this.parent;
