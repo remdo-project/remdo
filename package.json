@@ -2,5 +2,12 @@
   "packageManager": "pnpm@10.18.1+sha512.77a884a165cbba2d8d1c19e3b4880eee6d2fcabd0d879121e282196b80042351d5eb3ca0935fa599da1dc51265cc68816ad2bddd2a2de5ea9fdf92adbec7cd34",
   "devDependencies": {
     "vite": "^7.1.9"
+  },
+  "dependencies": {
+    "@lexical/history": "^0.36.2",
+    "@lexical/react": "^0.36.2",
+    "@lexical/rich-text": "^0.36.2",
+    "@lexical/utils": "^0.36.2",
+    "lexical": "^0.36.2"
   }
 }
