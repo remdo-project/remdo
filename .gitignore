@@ -2,6 +2,9 @@
 node_modules/
 *.log
 
+#build
+dist/
+
 # editor/OS
 .DS_Store
 Thumbs.db
