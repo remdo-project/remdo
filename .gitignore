@@ -10,3 +10,7 @@ dist/
 Thumbs.db
 .idea/
 .vscode/*
+bookmarks/
+
+# environment variables
+.env.local
