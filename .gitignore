@@ -2,8 +2,9 @@
 node_modules/
 *.log
 
-#build
+#data
 dist/
+data/
 
 # editor/OS
 .DS_Store

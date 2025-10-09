@@ -1,17 +1,17 @@
-import { defineConfig } from "vite";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { env } from "#env";
-import path from "path";
+import { defineConfig } from "vite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export default defineConfig(({ }) => {
+export default defineConfig(() => {
   return {
     server: {
       host: env.HOST,
       port: env.PORT,
       strictPort: true,
-      allowedHosts: true,
+      allowedHosts: true as const,
       hmr: {
         port: env.HMR_PORT,
       },

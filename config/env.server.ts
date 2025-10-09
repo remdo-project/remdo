@@ -1,6 +1,6 @@
 import process from 'node:process';
+import { bool, cleanEnv, num, port, str } from 'envalid';
 import 'dotenv-flow/config';
-import { bool, cleanEnv, num, str, port } from 'envalid';
 
 const base = cleanEnv(process.env, {
   HOST: str({ default: '127.0.0.1' }),

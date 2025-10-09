@@ -1,14 +1,15 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
     "lib": [
       "ES2022",
       "DOM"
     ],
-    "jsx": "react-jsx",
+    "moduleDetection": "force",
     "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "paths": {
       "@/*": [
         "./src/*"
@@ -17,19 +18,18 @@
         "./config/env.server.ts"
       ]
     },
+    "resolveJsonModule": true,
     "types": [
       "node",
       "vite/client"
     ],
-    "allowSyntheticDefaultImports": true,
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "skipLibCheck": true,
     "strict": true,
-    "moduleDetection": "force",
-    "resolveJsonModule": true,
     "noUncheckedIndexedAccess": true,
-    "noEmit": true
+    "noEmit": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true
   },
   "include": [
     ".",

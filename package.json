@@ -1,18 +1,16 @@
 {
   "packageManager": "pnpm@10.18.1+sha512.77a884a165cbba2d8d1c19e3b4880eee6d2fcabd0d879121e282196b80042351d5eb3ca0935fa599da1dc51265cc68816ad2bddd2a2de5ea9fdf92adbec7cd34",
-  "devDependencies": {
-    "@antfu/eslint-config": "^5.4.1",
-    "@eslint-react/eslint-plugin": "^1.53.1",
-    "@types/node": "^22.18.8",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.1",
-    "@vitejs/plugin-react-swc": "^4.1.0",
-    "eslint": "^9.37.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.23",
-    "jiti": "^2.6.1",
-    "typescript": "^5.9.3",
-    "vite": "^7.1.9"
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "pnpm run lint:peers && pnpm run lint:types && pnpm run lint:code",
+    "lint:code": "eslint . --max-warnings=0",
+    "lint:code:watch": "chokidar \"**/*\" --initial -i \"**/{node_modules,data,.git}/**\" -d 150 -c \"echo ::ESLINT START::; pnpm exec eslint -f stylish --cache --cache-location data/.eslintcache . --max-warnings=0 || true; echo ::ESLINT END::\"",
+    "lint:fix": "pnpm exec eslint . --fix",
+    "lint:types": "tsc",
+    "lint:types:watch": "pnpm run lint:types --watch",
+    "lint:peers": "pnpm install --resolution-only --strict-peer-dependencies --prefer-frozen-lockfile"
   },
   "dependencies": {
     "@lexical/history": "^0.36.2",
@@ -25,15 +23,19 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "lint": "pnpm run lint:peers && pnpm run lint:types && pnpm run lint:code",
-    "lint:code": "eslint . --max-warnings=0",
-    "lint:code:fix": "pnpm exec eslint . --fix",
-    "lint:types": "tsc",
-    "lint:types:watch": "pnpm run lint:types --watch",
-    "lint:peers": "pnpm install --resolution-only --strict-peer-dependencies --prefer-frozen-lockfile"
+  "devDependencies": {
+    "@antfu/eslint-config": "^5.4.1",
+    "@eslint-react/eslint-plugin": "^1.53.1",
+    "@types/node": "^22.18.8",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.1",
+    "@vitejs/plugin-react-swc": "^4.1.0",
+    "chokidar-cli": "^3.0.0",
+    "eslint": "^9.37.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.23",
+    "jiti": "^2.6.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9"
   }
 }

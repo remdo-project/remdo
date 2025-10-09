@@ -2,10 +2,24 @@
     "version": "2.0.0",
     "tasks": [
       {
-        "label": "tsc:watch",
+        "label": "type:watch",
         "type": "shell",
         "command": "pnpm lint:types:watch",
         "problemMatcher": "$tsc-watch",
+        "isBackground": true
+      },
+      {
+        "label": "lint:watch",
+        "type": "shell",
+        "command": "pnpm lint:code:watch",
+        "problemMatcher": {
+          "base": "$eslint-stylish",
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "^::ESLINT START::$",
+            "endsPattern": "^::ESLINT END::$"
+          }
+        },
         "isBackground": true
       },
       {
@@ -15,9 +29,10 @@
         "isBackground": true
       },
       {
-        "label": "All: dev",
+        "label": "all",
         "dependsOn": [
-          "tsc:watch",
+          "type:watch",
+          "lint:watch",
           "web:dev"
         ],
         "dependsOrder": "parallel",
