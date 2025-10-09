@@ -9,8 +9,6 @@ dist/
 .DS_Store
 Thumbs.db
 .idea/
-.vscode/*
-bookmarks/
 
-# environment variables
-.env.local
+# local files
+*.local

@@ -1,0 +1,27 @@
+  {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "tsc:watch",
+        "type": "shell",
+        "command": "pnpm lint:types:watch",
+        "problemMatcher": "$tsc-watch",
+        "isBackground": true
+      },
+      {
+        "label": "web:dev",
+        "type": "shell",
+        "command": "pnpm dev || (sleep 10 && false) # wait some time between potentially failing commands, then fail",
+        "isBackground": true
+      },
+      {
+        "label": "All: dev",
+        "dependsOn": [
+          "tsc:watch",
+          "web:dev"
+        ],
+        "dependsOrder": "parallel",
+        "isBackground": true
+      }
+    ]
+  }
