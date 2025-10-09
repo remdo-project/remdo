@@ -7,6 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(() => {
   return {
+    build: {
+      outDir: "data/dist",
+      emptyOutDir: true,
+    },
     server: {
       host: env.HOST,
       port: env.PORT,

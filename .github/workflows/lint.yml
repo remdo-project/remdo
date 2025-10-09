@@ -1,4 +1,4 @@
-name: Typecheck
+name: Lint
 
 on: [push, pull_request]
 
@@ -13,4 +13,4 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run typecheck
+      - run: pnpm run lint
