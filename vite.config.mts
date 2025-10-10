@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { env } from "#env";
-import { defineConfig } from "vite";
+import { defineConfig } from 'vitest/config'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -30,5 +30,15 @@ export default defineConfig(() => {
         "#env": path.resolve(__dirname, "./config/env.server.ts"),
       },
     },
+    test: {
+      environment: 'jsdom',
+      setupFiles: './tests/unit/setup.ts',
+      include: ['tests/**/*.spec.{ts,tsx}'],
+      css: true,
+      coverage: {
+        provider: 'v8' as const,
+        reportsDirectory: 'data/coverage',
+      },
+    }
   }
 });

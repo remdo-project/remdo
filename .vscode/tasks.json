@@ -1,42 +1,49 @@
-  {
-    "version": "2.0.0",
-    "tasks": [
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "type:watch",
+      "type": "shell",
+      "command": "pnpm lint:types:watch",
+      "problemMatcher": "$tsc-watch",
+      "isBackground": true
+    },
+    {
+      "label": "lint:watch",
+      "type": "shell",
+      "command": "pnpm lint:code:watch",
+      "problemMatcher": {
+        "base": "$eslint-stylish",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^::ESLINT START::$",
+          "endsPattern": "^::ESLINT END::$"
+        }
+      },
+      "isBackground": true
+    },
       {
-        "label": "type:watch",
-        "type": "shell",
-        "command": "pnpm lint:types:watch",
-        "problemMatcher": "$tsc-watch",
+        "label": "test:unit:watch",
+        "type": "npm",
+        "script": "test:unit:watch",
         "isBackground": true
       },
-      {
-        "label": "lint:watch",
-        "type": "shell",
-        "command": "pnpm lint:code:watch",
-        "problemMatcher": {
-          "base": "$eslint-stylish",
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": "^::ESLINT START::$",
-            "endsPattern": "^::ESLINT END::$"
-          }
-        },
-        "isBackground": true
-      },
-      {
-        "label": "web:dev",
-        "type": "shell",
-        "command": "pnpm dev || (sleep 10 && false) # wait some time between potentially failing commands, then fail",
-        "isBackground": true
-      },
-      {
-        "label": "all",
-        "dependsOn": [
-          "type:watch",
-          "lint:watch",
-          "web:dev"
-        ],
-        "dependsOrder": "parallel",
-        "isBackground": true
-      }
-    ]
-  }
+    {
+      "label": "web:dev",
+      "type": "shell",
+      "command": "pnpm dev || (sleep 10 && false) # wait some time between potentially failing commands, then fail",
+      "isBackground": true
+    },
+    {
+      "label": "all",
+      "dependsOn": [
+        "type:watch",
+        "lint:watch",
+        "test:unit:watch",
+        "web:dev"
+      ],
+      "dependsOrder": "parallel",
+      "isBackground": true
+    }
+  ]
+}
