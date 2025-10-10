@@ -5,6 +5,10 @@ inputs:
     description: Node.js version to use
     default: '22'
     required: false
+  pnpm-version:
+    description: pnpm version to activate via Corepack
+    default: latest
+    required: false
 runs:
   using: composite
   steps:
@@ -14,7 +18,10 @@ runs:
         node-version: ${{ inputs.node-version }}
         cache: pnpm
     - name: Enable Corepack
-      run: corepack enable
+      run: corepack enable pnpm
+      shell: bash
+    - name: Activate pnpm
+      run: corepack prepare "pnpm@${{ inputs.pnpm-version }}" --activate
       shell: bash
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
