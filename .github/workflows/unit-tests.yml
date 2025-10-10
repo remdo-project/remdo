@@ -1,11 +1,12 @@
-name: Lint
+name: Unit Tests
 
 on: [push, pull_request]
 
 jobs:
-  typecheck:
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-pnpm
-      - run: pnpm run lint
+      - run: pnpm run test:unit
