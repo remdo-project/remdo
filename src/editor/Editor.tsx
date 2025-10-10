@@ -27,7 +27,7 @@ function onError(error: Error) {
   console.error(error);
 }
 
-export default function Editor() {
+export default function Editor({ extraPlugins }: { extraPlugins?: React.ReactNode }) {
   const initialConfig = {
     namespace: 'lexical-basic-rich-text',
     theme,
@@ -46,6 +46,7 @@ export default function Editor() {
           />
           <HistoryPlugin />
           <OnChangePlugin onChange={(state: EditorState) => void state} />
+          {extraPlugins}
         </div>
       </LexicalComposer>
     </div>

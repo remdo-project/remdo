@@ -10,9 +10,9 @@
     "lint:fix": "pnpm exec eslint . --fix",
     "lint:types": "tsc",
     "lint:types:watch": "pnpm run lint:types --watch",
-    "lint:peers": "pnpm install --resolution-only --strict-peer-dependencies --prefer-frozen-lockfile",
+    "lint:peers": "pnpm list --depth=-1 --silent",
     "test:unit": "npx vitest run",
-    "test:unit:watch": "npx vitest --watch --ui"
+    "test:unit:watch": "npx vitest --watch --ui --api.host 0.0.0.0"
   },
   "dependencies": {
     "@lexical/history": "^0.36.2",

@@ -32,13 +32,14 @@ export default defineConfig(() => {
     },
     test: {
       environment: 'jsdom',
-      setupFiles: './tests/unit/setup.ts',
+      setupFiles: './tests/unit/utils/setup.ts',
       include: ['tests/**/*.spec.{ts,tsx}'],
       css: true,
       coverage: {
         provider: 'v8' as const,
         reportsDirectory: 'data/coverage',
       },
+      open: false,
     }
   }
 });
