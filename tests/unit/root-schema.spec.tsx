@@ -1,3 +1,4 @@
+import type { ListNode } from '@lexical/list';
 import {
   $createListItemNode,
   $createListNode,
@@ -14,9 +15,9 @@ it('clear', async ({ lexicalMutate, lexicalValidate }) => {
   });
 
   lexicalValidate(() => {
-    //TODO check ul's child and use a structure check helper
-    expect($getRoot().getChildrenSize()).toBe(1);
-    expect($isListNode($getRoot().getFirstChild())).toBe(true);
+    const list = expectSingleListRoot();
+    expect(list.getListType()).toBe('bullet');
+    expectListItemCount(list, 1); // placeholder paragraph
   });
 });
 
@@ -38,17 +39,9 @@ it('normalizes root after list command dispatch', async ({ editor, lexicalMutate
   await lexicalMutate(() => { });
 
   lexicalValidate(() => {
-    const root = $getRoot();
-    expect(root.getChildrenSize()).toBe(1);
-
-    const list = root.getFirstChild();
-    expect($isListNode(list)).toBe(true);
-    if (!$isListNode(list)) {
-      throw new Error('Expected root child to be a list');
-    }
-
-    expect(list.getChildrenSize()).toBe(2);
-    list.getChildren().forEach((child) => expect($isListItemNode(child)).toBe(true));
+    const list = expectSingleListRoot();
+    expect(list.getListType()).toBe('bullet');
+    expectListItems(list, ['First', 'Second']);
   });
 });
 
@@ -65,25 +58,9 @@ it('allows ordered list as the root list type when present', async ({ lexicalMut
   });
 
   lexicalValidate(() => {
-    const root = $getRoot();
-    expect(root.getChildrenSize()).toBe(1);
-
-    const list = root.getFirstChild();
-    expect($isListNode(list)).toBe(true);
-    if (!$isListNode(list)) {
-      throw new Error('Expected root child to be a list');
-    }
-
+    const list = expectSingleListRoot();
     expect(list.getListType()).toBe('number');
-    expect(list.getChildrenSize()).toBe(1);
-
-    const item = list.getFirstChild();
-    expect($isListItemNode(item)).toBe(true);
-    if (!$isListItemNode(item)) {
-      throw new Error('Expected list child to be a list item');
-    }
-
-    expect(item.getTextContent()).toBe('ordered');
+    expectListItems(list, ['ordered']);
   });
 });
 
@@ -101,17 +78,9 @@ it('wraps non-list root children into list items', async ({ lexicalMutate, lexic
   });
 
   lexicalValidate(() => {
-    const root = $getRoot();
-    expect(root.getChildrenSize()).toBe(1);
-
-    const list = root.getFirstChild();
-    expect($isListNode(list)).toBe(true);
-    if (!$isListNode(list)) {
-      throw new Error('Expected root child to be a list');
-    }
-
-    expect(list.getChildrenSize()).toBe(2);
-    list.getChildren().forEach((child) => expect($isListItemNode(child)).toBe(true));
+    const list = expectSingleListRoot();
+    expect(list.getListType()).toBe('bullet');
+    expectListItems(list, ['alpha', 'beta']);
   });
 });
 
@@ -134,17 +103,9 @@ it('merges multiple bullet lists under a single root list', async ({ lexicalMuta
   });
 
   lexicalValidate(() => {
-    const root = $getRoot();
-    expect(root.getChildrenSize()).toBe(1);
-
-    const list = root.getFirstChild();
-    expect($isListNode(list)).toBe(true);
-    if (!$isListNode(list)) {
-      throw new Error('Expected root child to be a list');
-    }
-
-    expect(list.getChildrenSize()).toBe(2);
-    list.getChildren().forEach((child) => expect($isListItemNode(child)).toBe(true));
+    const list = expectSingleListRoot();
+    expect(list.getListType()).toBe('bullet');
+    expectListItems(list, ['one', 'two']);
   });
 });
 
@@ -170,17 +131,40 @@ it('leaves a canonical single list untouched', async ({ lexicalMutate, lexicalVa
   });
 
   lexicalValidate(() => {
-    const root = $getRoot();
-    expect(root.getChildrenSize()).toBe(1);
-
-    const list = root.getFirstChild();
-    expect($isListNode(list)).toBe(true);
-    if (!$isListNode(list)) {
-      throw new Error('Expected root child to be a list');
-    }
-
+    const list = expectSingleListRoot();
     expect(list.getKey()).toBe(originalListKey);
-    const itemKeys = list.getChildren().map((child) => child.getKey());
-    expect(itemKeys).toEqual(originalItemKeys);
+    const items = list.getChildren();
+    expect(items.map((child) => child.getKey())).toEqual(originalItemKeys);
   });
 });
+
+function expectSingleListRoot(): ListNode {
+  const root = $getRoot();
+  expect(root.getChildrenSize()).toBe(1);
+
+  const list = root.getFirstChild();
+  expect($isListNode(list)).toBe(true);
+  if (!$isListNode(list)) {
+    throw new Error('Expected root child to be a list');
+  }
+
+  return list;
+}
+
+function expectListItemCount(list: ListNode, expectedCount: number) {
+  const items = list.getChildren();
+  expect(items).toHaveLength(expectedCount);
+  items.forEach((child) => expect($isListItemNode(child)).toBe(true));
+}
+
+function expectListItems(list: ListNode, expectedTexts: string[]) {
+  const items = list.getChildren();
+  expect(items).toHaveLength(expectedTexts.length);
+
+  items.forEach((child, index) => {
+    expect($isListItemNode(child)).toBe(true);
+    if ($isListItemNode(child)) {
+      expect(child.getTextContent()).toBe(expectedTexts[index]);
+    }
+  });
+}
