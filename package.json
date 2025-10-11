@@ -11,8 +11,9 @@
     "lint:types": "tsc",
     "lint:types:watch": "pnpm run lint:types --watch",
     "lint:peers": "pnpm list --depth=-1 --silent",
-    "test:unit": "npx vitest run",
-    "test:unit:watch": "npx vitest --watch --ui --api.host 0.0.0.0",
+    "test:unit": "pnpm exec vitest run",
+    "test:unit:coverage": "pnpm exec vitest run --coverage",
+    "test:unit:watch": "pnpm exec vitest --watch --ui --api.host 0.0.0.0",
     "test:preview": "cross-env VITEST_PREVIEW=true TMPDIR=./data/.vitest-preview TMP=./data/.vitest-preview TEMP=./data/.vitest-preview vitest-preview"
   },
   "dependencies": {
