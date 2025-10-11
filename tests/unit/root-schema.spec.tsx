@@ -9,20 +9,22 @@ import {
 import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
 
-it('clear', async ({ lexicalMutate, lexicalValidate }) => {
-  await lexicalMutate(() => {
+it('clear', async ({ lexical }) => {
+  await lexical.mutate(() => {
     $getRoot().clear();
   });
 
-  lexicalValidate(() => {
+  lexical.validate(() => {
     const list = expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
     expectListItemCount(list, 1); // placeholder paragraph
   });
 });
 
-it('normalizes root after list command dispatch', async ({ editor, lexicalMutate, lexicalValidate }) => {
-  await lexicalMutate(() => {
+it('normalizes root after list command dispatch', async ({ lexical }) => {
+  const { editor, mutate, validate } = lexical;
+
+  await mutate(() => {
     const root = $getRoot();
     root.clear();
 
@@ -36,17 +38,17 @@ it('normalizes root after list command dispatch', async ({ editor, lexicalMutate
   });
 
   editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
-  await lexicalMutate(() => { });
+  await mutate(() => { });
 
-  lexicalValidate(() => {
+  validate(() => {
     const list = expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
     expectListItems(list, ['First', 'Second']);
   });
 });
 
-it('allows ordered list as the root list type when present', async ({ lexicalMutate, lexicalValidate }) => {
-  await lexicalMutate(() => {
+it('allows ordered list as the root list type when present', async ({ lexical }) => {
+  await lexical.mutate(() => {
     const root = $getRoot();
     root.clear();
 
@@ -57,15 +59,15 @@ it('allows ordered list as the root list type when present', async ({ lexicalMut
     root.append(list);
   });
 
-  lexicalValidate(() => {
+  lexical.validate(() => {
     const list = expectSingleListRoot();
     expect(list.getListType()).toBe('number');
     expectListItems(list, ['ordered']);
   });
 });
 
-it('wraps non-list root children into list items', async ({ lexicalMutate, lexicalValidate }) => {
-  await lexicalMutate(() => {
+it('wraps non-list root children into list items', async ({ lexical }) => {
+  await lexical.mutate(() => {
     const root = $getRoot();
     root.clear();
 
@@ -77,15 +79,15 @@ it('wraps non-list root children into list items', async ({ lexicalMutate, lexic
     root.append(firstParagraph, secondParagraph);
   });
 
-  lexicalValidate(() => {
+  lexical.validate(() => {
     const list = expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
     expectListItems(list, ['alpha', 'beta']);
   });
 });
 
-it('merges multiple bullet lists under a single root list', async ({ lexicalMutate, lexicalValidate }) => {
-  await lexicalMutate(() => {
+it('merges multiple bullet lists under a single root list', async ({ lexical }) => {
+  await lexical.mutate(() => {
     const root = $getRoot();
     root.clear();
 
@@ -102,18 +104,18 @@ it('merges multiple bullet lists under a single root list', async ({ lexicalMuta
     root.append(firstList, secondList);
   });
 
-  lexicalValidate(() => {
+  lexical.validate(() => {
     const list = expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
     expectListItems(list, ['one', 'two']);
   });
 });
 
-it('leaves a canonical single list untouched', async ({ lexicalMutate, lexicalValidate }) => {
+it('leaves a canonical single list untouched', async ({ lexical }) => {
   let originalListKey: string;
   let originalItemKeys: string[] = [];
 
-  await lexicalMutate(() => {
+  await lexical.mutate(() => {
     const root = $getRoot();
     root.clear();
 
@@ -130,7 +132,7 @@ it('leaves a canonical single list untouched', async ({ lexicalMutate, lexicalVa
     originalItemKeys = list.getChildren().map((child) => child.getKey());
   });
 
-  lexicalValidate(() => {
+  lexical.validate(() => {
     const list = expectSingleListRoot();
     expect(list.getKey()).toBe(originalListKey);
     const items = list.getChildren();
