@@ -7,6 +7,7 @@ const base = cleanEnv(process.env, {
   PORT: num({ default: 3020 }),
   HMR_PORT: port({ default: 0 }), // placeholder
   CI: bool({ default: false }),
+  VITEST_PREVIEW: bool({ default: false }),
 });
 
 export const env = {

@@ -4,6 +4,7 @@ import { env } from "#env";
 import { defineConfig } from 'vitest/config'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const isPreviewSession = env.VITEST_PREVIEW;
 
 export default defineConfig(() => {
   return {
@@ -16,7 +17,7 @@ export default defineConfig(() => {
       port: env.PORT,
       strictPort: true,
       allowedHosts: true as const,
-      hmr: {
+      hmr: isPreviewSession ? undefined : {
         port: env.HMR_PORT,
       },
     },

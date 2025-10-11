@@ -22,16 +22,22 @@
       },
       "isBackground": true
     },
-      {
-        "label": "test:unit:watch",
-        "type": "npm",
-        "script": "test:unit:watch",
-        "isBackground": true
-      },
+    {
+      "label": "test:unit:watch",
+      "type": "shell",
+      "command": "pnpm test:unit:watch",
+      "isBackground": true
+    },
     {
       "label": "web:dev",
       "type": "shell",
       "command": "pnpm dev || (sleep 10 && false) # wait some time between potentially failing commands, then fail",
+      "isBackground": true
+    },
+    {
+      "label": "preview:server",
+      "type": "shell",
+      "command": "pnpm test:preview",
       "isBackground": true
     },
     {
@@ -40,7 +46,8 @@
         "type:watch",
         "lint:watch",
         "test:unit:watch",
-        "web:dev"
+        "web:dev",
+        "preview:server"
       ],
       "dependsOrder": "parallel",
       "isBackground": true
