@@ -59,3 +59,7 @@
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
 }
+
+.editor-root li.list-nested-item {
+  list-style-type: none;
+}

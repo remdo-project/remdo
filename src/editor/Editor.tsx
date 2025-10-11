@@ -7,6 +7,7 @@ import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
+import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin';
 import { RootSchemaPlugin } from './RootSchemaPlugin';
 import './Editor.css';
 
@@ -18,6 +19,15 @@ const theme: EditorThemeClasses = {
     italic: 'text-italic',
     underline: 'text-underline',
     code: 'text-code',
+  },
+  list: {
+    ul: 'list-ul',
+    ol: 'list-ol',
+    listitem: 'list-item',
+    nested: {
+      list: 'list-nested',
+      listitem: 'list-nested-item',
+    },
   },
 };
 
@@ -46,6 +56,7 @@ export default function Editor({ extraPlugins }: { extraPlugins?: React.ReactNod
           />
           <HistoryPlugin />
           <RootSchemaPlugin />
+          <TabIndentationPlugin />
           <ListPlugin />
           {extraPlugins}
         </div>
