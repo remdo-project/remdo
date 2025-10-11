@@ -43,6 +43,8 @@ export default defineConfig(() => {
       coverage: {
         provider: 'v8' as const,
         reportsDirectory: 'data/coverage',
+        include: ['src/**/*.{ts,tsx}'],
+        exclude: ['src/main.tsx'],
       },
       open: false,
     }
