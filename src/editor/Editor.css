@@ -1,15 +1,14 @@
 .editor-container {
-  max-width: 720px;
-  margin: 1.5rem auto;
-  border: 1px solid #dcdde2;
-  border-radius: 12px;
-  background-color: #ffffff;
-  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06);
+  width: min(720px, 100%);
+  margin: 0 auto;
+  border: 1px solid #252c36;
+  border-radius: 10px;
+  background-color: #161b22;
 }
 
 .editor-inner {
   position: relative;
-  padding: 1.25rem 1.5rem;
+  padding: 1.5rem 1.75rem;
 }
 
 .editor-root {
@@ -17,24 +16,25 @@
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 1rem;
   line-height: 1.6;
-  color: #0f172a;
+  color: #f4f6f8;
 }
 
 .editor-paragraph {
-  margin: 0 0 0.75rem 0;
+  margin: 0 0 1rem 0;
 }
 
 .editor-input {
   outline: none;
   white-space: pre-wrap;
   word-break: break-word;
+  background-color: transparent;
 }
 
 .editor-placeholder {
   position: absolute;
-  top: 1.25rem;
-  left: 1.5rem;
-  color: #64748b;
+  top: 1.5rem;
+  left: 1.75rem;
+  color: #5c697a;
   pointer-events: none;
   user-select: none;
 }
@@ -54,7 +54,8 @@
 
 .text-code {
   font-family: "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
-  background: rgba(15, 23, 42, 0.08);
-  padding: 0.1rem 0.3rem;
-  border-radius: 6px;
+  background: #1f252f;
+  color: #f6f7f9;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
 }

@@ -1,10 +1,11 @@
 import Editor from './editor/Editor';
+import './App.css';
 
 export default function App() {
   return (
-    <>
-      <h1 style={{ textAlign: 'center', marginTop: '1.5rem' }}>Lexical Editor</h1>
+    <main className="app-shell">
+      <h1>Lexical Editor</h1>
       <Editor />
-    </>
+    </main>
   );
 }
