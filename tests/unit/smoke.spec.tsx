@@ -2,6 +2,7 @@ import type { LexicalEditor } from 'lexical';
 import { render, screen } from '@testing-library/react'
 import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical'
 import { expect, it } from 'vitest'
+// eslint-disable-next-line no-restricted-imports -- keep debug helper for local preview coverage
 import { debug } from 'vitest-preview'
 import App from '@/App'
 import Editor from '@/editor/Editor'
