@@ -22,6 +22,7 @@ beforeEach<TestContext>(async (ctx) => {
 
   ctx.lexicalMutate = (fn, opts) => lexicalMutate(editor!, fn, opts);
   ctx.lexicalValidate = <T,>(fn: () => T) => lexicalValidate(editor!, fn);
+  ctx.editor = editor!;
 });
 
 afterEach(() => {

@@ -1,11 +1,13 @@
-import type { EditorState, EditorThemeClasses } from 'lexical';
+import type { EditorThemeClasses } from 'lexical';
+import { ListItemNode, ListNode } from '@lexical/list';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
-import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 
+import { ListPlugin } from '@lexical/react/LexicalListPlugin';
+import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
+import { RootSchemaPlugin } from './RootSchemaPlugin';
 import './Editor.css';
 
 const theme: EditorThemeClasses = {
@@ -19,11 +21,10 @@ const theme: EditorThemeClasses = {
   },
 };
 
-function Placeholder() {
-  return <div className="editor-placeholder">Type something… (⌘/Ctrl+B, I, U)</div>;
-}
-
 function onError(error: Error) {
+  if (import.meta.env.MODE !== 'production') {
+    throw error;
+  }
   console.error(error);
 }
 
@@ -32,7 +33,7 @@ export default function Editor({ extraPlugins }: { extraPlugins?: React.ReactNod
     namespace: 'lexical-basic-rich-text',
     theme,
     onError,
-    nodes: [], // default paragraph/text nodes
+    nodes: [ListNode, ListItemNode],
   };
 
   return (
@@ -41,11 +42,11 @@ export default function Editor({ extraPlugins }: { extraPlugins?: React.ReactNod
         <div className="editor-inner">
           <RichTextPlugin
             contentEditable={<ContentEditable className="editor-input" />}
-            placeholder={<Placeholder />}
             ErrorBoundary={LexicalErrorBoundary}
           />
           <HistoryPlugin />
-          <OnChangePlugin onChange={(state: EditorState) => void state} />
+          <RootSchemaPlugin />
+          <ListPlugin />
           {extraPlugins}
         </div>
       </LexicalComposer>

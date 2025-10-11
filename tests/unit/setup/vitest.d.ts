@@ -1,4 +1,4 @@
-import type { EditorUpdateOptions } from 'lexical';
+import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
 
 declare module 'vitest' {
   export interface TestContext {
@@ -7,5 +7,6 @@ declare module 'vitest' {
       opts?: EditorUpdateOptions
     ) => Promise<void>;
     lexicalValidate: <T>(fn: () => T) => T;
+    editor: LexicalEditor;
   }
 }
