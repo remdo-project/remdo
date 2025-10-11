@@ -4,8 +4,8 @@ import { cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach  } from 'vitest';
 
 import Editor from '@/editor/Editor';
-import { lexicalMutate, lexicalValidate } from '../utils/lexical-helpers';
-import LexicalTestBridge from '../utils/LexicalTestBridge';
+import { lexicalMutate, lexicalValidate } from '#test/utils/lexical-helpers';
+import LexicalTestBridge from '#test/utils/LexicalTestBridge';
 
 beforeEach<TestContext>(async (ctx) => {
   let editor: LexicalEditor | null = null;
