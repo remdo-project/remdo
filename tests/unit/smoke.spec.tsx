@@ -1,5 +1,6 @@
-import type { LexicalEditor } from 'lexical'
+import type { LexicalEditor } from 'lexical';
 import { render, screen } from '@testing-library/react'
+import { $getRoot } from 'lexical'
 import { expect, it } from 'vitest'
 import App from '@/App'
 import Editor from '@/editor/Editor'
@@ -17,3 +18,13 @@ it('editor', async () => {
   )
   expect(editor).toBeTruthy()
 })
+
+it('lexical helpers', async ({ lexicalMutate, lexicalValidate }) => {
+  await lexicalMutate(() => {
+    $getRoot().clear();
+  });
+
+  lexicalValidate(() => {
+    expect($getRoot().getTextContent()).toBe('');
+  });
+});

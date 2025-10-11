@@ -20,9 +20,7 @@ export async function lexicalMutate(
       cleanup();
       reject(
         new Error(
-          `lexicalMutate timed out waiting for commit (tag: ${String(
-            uniqueTag
-          )}), did you run editor.update() and made any changes in it?`
+          `lexicalMutate timed out waiting for commit (tag: ${uniqueTag}), did you run editor.update() and made any changes in it?`
         )
       );
     }, timeoutMs);
