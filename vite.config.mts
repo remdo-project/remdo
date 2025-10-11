@@ -28,6 +28,7 @@ export default defineConfig(() => {
     resolve: {
       alias: {
         "@": "/src",
+        "#test": path.resolve(__dirname, "./tests/unit"),
         "#env": path.resolve(__dirname, "./config/env.server.ts"),
       },
     },
