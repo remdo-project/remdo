@@ -21,18 +21,18 @@ it('editor', async () => {
   expect(editor).toBeTruthy()
 })
 
-it('lexical helpers', async ({ lexicalMutate, lexicalValidate }) => {
-  await lexicalMutate(() => {
+it('lexical helpers', async ({ lexical }) => {
+  await lexical.mutate(() => {
     $getRoot().clear();
   });
 
-  lexicalValidate(() => {
+  lexical.validate(() => {
     expect($getRoot().getTextContent()).toBe('');
   });
 });
 
-it('debug preview', async ({ lexicalMutate}) => {
-  await lexicalMutate(() => {
+it('debug preview', async ({ lexical }) => {
+  await lexical.mutate(() => {
     const root = $getRoot();
     const paragraph = $createParagraphNode();
     paragraph.append($createTextNode('Vitest Preview in action'));

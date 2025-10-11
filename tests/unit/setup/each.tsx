@@ -1,4 +1,4 @@
-import type { LexicalEditor } from 'lexical';
+import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
 import type { TestContext } from 'vitest';
 import { lexicalMutate, lexicalValidate } from '#test/utils/lexical-helpers';
 import LexicalTestBridge from '#test/utils/LexicalTestBridge';
@@ -19,9 +19,16 @@ beforeEach<TestContext>(async (ctx) => {
     if (!editor) throw new Error('Lexical editor not initialized in time');
   });
 
-  ctx.lexicalMutate = (fn, opts) => lexicalMutate(editor!, fn, opts);
-  ctx.lexicalValidate = <T,>(fn: () => T) => lexicalValidate(editor!, fn);
-  ctx.editor = editor!;
+  const mutate = (fn: () => void, opts?: EditorUpdateOptions) =>
+    lexicalMutate(editor!, fn, opts);
+  const validate = <T,>(fn: () => T) => lexicalValidate(editor!, fn);
+
+  ctx.lexical = {
+    editor: editor!,
+    mutate,
+    validate,
+  };
+
 });
 
 afterEach(() => {

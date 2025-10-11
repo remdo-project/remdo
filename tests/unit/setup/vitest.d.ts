@@ -1,12 +1,16 @@
 import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
 
 declare module 'vitest' {
-  export interface TestContext {
-    lexicalMutate: (
+  interface LexicalTestHelpers {
+    editor: LexicalEditor;
+    mutate: (
       fn: () => void,
       opts?: EditorUpdateOptions
     ) => Promise<void>;
-    lexicalValidate: <T>(fn: () => T) => T;
-    editor: LexicalEditor;
+    validate: <T>(fn: () => T) => T;
+  }
+
+  export interface TestContext {
+    lexical: LexicalTestHelpers;
   }
 }

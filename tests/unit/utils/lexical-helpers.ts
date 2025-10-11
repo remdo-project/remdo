@@ -5,6 +5,12 @@ export async function lexicalMutate(
   fn: () => void,
   opts: EditorUpdateOptions = {}
 ): Promise<void> {
+  if (fn.constructor.name === 'AsyncFunction') {
+    throw new TypeError(
+      'lexicalMutate does not support async callbacks. Prepare any async work before calling lexicalMutate.'
+    );
+  }
+
   const timeoutMs = 1500;
   const uniqueTag = `test:${Date.now()}:${Math.random()}`;
   const tags = [uniqueTag, ...([opts.tag ?? []].flat())];
