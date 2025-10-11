@@ -32,7 +32,10 @@ export default defineConfig(() => {
     },
     test: {
       environment: 'jsdom',
-      setupFiles: './tests/unit/utils/setup.ts',
+      setupFiles: [
+        './tests/unit/setup/global.ts',
+        './tests/unit/setup/each.tsx'
+      ],
       include: ['tests/**/*.spec.{ts,tsx}'],
       css: true,
       coverage: {
