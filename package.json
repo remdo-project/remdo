@@ -21,7 +21,7 @@
     "@lexical/history": "^0.36.2",
     "@lexical/list": "^0.36.2",
     "@lexical/react": "^0.36.2",
-    "@lexical/rich-text": "^0.36.2",
+    "@lexical/rich-text": "^0.37.0",
     "@lexical/utils": "^0.36.2",
     "dotenv-flow": "^4.1.0",
     "envalid": "^8.1.0",
