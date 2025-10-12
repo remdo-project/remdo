@@ -8,3 +8,6 @@
 - Do not stage or commit any changes without explicit approval.
 - The project is in dev phase, do not introduce temporary shims when refactoring
   or fixing bugs, but rather aim for pernanent solutions.
+- Checks:
+  - pnpm run lint # mandatory after every change
+  - pnpm run test:unit # run often, mandatory before staging or committing
