@@ -1,10 +1,10 @@
 import { EditorComposer } from './EditorComposer';
 import './Editor.css';
 
-export default function Editor({ extraPlugins }: { extraPlugins?: React.ReactNode }) {
+export default function Editor({ children }: { children?: React.ReactNode }) {
   return (
     <div className="editor-container">
-      <EditorComposer extraPlugins={extraPlugins} />
+      <EditorComposer>{children}</EditorComposer>
     </div>
   );
 }

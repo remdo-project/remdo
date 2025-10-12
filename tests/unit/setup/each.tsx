@@ -10,9 +10,9 @@ beforeEach<TestContext>(async (ctx) => {
   let editor!: LexicalEditor;
 
   render(
-    <Editor
-      extraPlugins={<LexicalTestBridge onReady={(e) => { editor = e; }} />}
-    />
+    <Editor>
+      <LexicalTestBridge onReady={(e) => { editor = e; }} />
+    </Editor>
   );
 
   await waitFor(() => {

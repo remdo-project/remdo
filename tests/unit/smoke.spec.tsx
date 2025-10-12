@@ -16,7 +16,9 @@ it('app', () => {
 it('editor', async () => {
   let editor!: LexicalEditor
   render(
-    <Editor extraPlugins={<EditorTestBridge onReady={(e) => (editor = e)} />} />
+    <Editor>
+      <EditorTestBridge onReady={(e) => (editor = e)} />
+    </Editor>
   )
   expect(editor).toBeTruthy()
 })

@@ -10,10 +10,10 @@ import { useEditorConfig } from './config';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 
 interface EditorComposerProps {
-  extraPlugins?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
-export function EditorComposer({ extraPlugins }: EditorComposerProps) {
+export function EditorComposer({ children }: EditorComposerProps) {
   const initialConfig = useEditorConfig();
 
   return (
@@ -27,7 +27,7 @@ export function EditorComposer({ extraPlugins }: EditorComposerProps) {
         <RootSchemaPlugin />
         <TabIndentationPlugin />
         <ListPlugin hasStrictIndent />
-        {extraPlugins}
+        {children}
       </div>
     </LexicalComposer>
   );
