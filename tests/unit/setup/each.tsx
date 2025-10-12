@@ -7,7 +7,7 @@ import { afterEach, beforeEach } from 'vitest';
 import Editor from '@/editor/Editor';
 
 beforeEach<TestContext>(async (ctx) => {
-  let editor: LexicalEditor | null = null;
+  let editor!: LexicalEditor;
 
   render(
     <Editor
@@ -20,15 +20,14 @@ beforeEach<TestContext>(async (ctx) => {
   });
 
   const mutate = (fn: () => void, opts?: EditorUpdateOptions) =>
-    lexicalMutate(editor!, fn, opts);
-  const validate = <T,>(fn: () => T) => lexicalValidate(editor!, fn);
+    lexicalMutate(editor, fn, opts);
+  const validate = <T,>(fn: () => T) => lexicalValidate(editor, fn);
 
   ctx.lexical = {
-    editor: editor!,
+    editor,
     mutate,
     validate,
   };
-
 });
 
 afterEach(() => {

@@ -11,7 +11,7 @@ export async function lexicalMutate(
     );
   }
 
-  const timeoutMs = 1500;
+  const timeoutMs = 1000;
   const uniqueTag = `test:${Date.now()}:${Math.random()}`;
   const tags = [uniqueTag, ...([opts.tag ?? []].flat())];
 

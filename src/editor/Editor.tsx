@@ -57,7 +57,7 @@ export default function Editor({ extraPlugins }: { extraPlugins?: React.ReactNod
           <HistoryPlugin />
           <RootSchemaPlugin />
           <TabIndentationPlugin />
-          <ListPlugin />
+          <ListPlugin hasStrictIndent />
           {extraPlugins}
         </div>
       </LexicalComposer>
