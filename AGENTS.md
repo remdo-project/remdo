@@ -1,24 +1,57 @@
 # RemDo Agent Guidelines
 
+## General
+
+RemDo is a collaborative outliner for fast, structured note-taking. It’s
+keyboard-first and built on Lexical, emphasizing clarity, composability, and
+portability.
+
+### Core ideas
+
+- **Structure-first.** Notes form a hierarchical tree; every note is addressable
+  and linkable.
+- **Collaboration by default.** Real-time multi-user editing with clear
+  attribution.
+- **Small, composable primitives.** Predictable behaviors, minimal UI,
+  consistent commands.
+- **Extensibility.** Stable APIs for custom nodes and commands with typed
+  contracts.
+- **Trust & portability.** Data ownership, import/export, and version history.
+- **Performance.** Low-latency editing via Lexical’s efficient editor state and
+  DOM updates; minimize work per keystroke.
+
+### What is a note?
+
+- A **note** is the project’s fundamental unit.
+- A note’s **content** is represented by a Lexical `ListItemNode` (conceptually
+  an HTML `<li>`).
+- The surrounding `ListNode` (`<ul>`/`<ol>`) is **structural only** and **not**
+  a note.
+- **Child notes** are additional `ListItemNode`s nested beneath the parent’s
+  list; conceptually, they belong to the parent.
+- Collectively, notes create the outline’s hierarchical structure.
+
 ## Safety & Process
 
 - Do not change any code before explicitly asked for it.
   - If asked how something can be solved, answer the question and suggest a
     solution, but do not change any code.
-  - If asked to propose code, provide the snippet and wait for explicit
-    approval before making changes.
+  - If asked to propose code, provide the snippet and wait for explicit approval
+    before making changes.
 - Do not stage or commit any changes without explicit approval.
 - The project is in dev phase, do not introduce temporary shims when refactoring
   or fixing bugs; aim for permanent solutions.
 
 ## Checks
 
-- pnpm run lint # run after every code change before considering the work complete
-- pnpm run test:unit # run often, and always before staging or committing code changes
+- `pnpm run lint`: run after every code change before considering the work
+  complete.
+- `pnpm run test:unit`: run often, and always before staging or committing code
+  changes.
 
 ## Tools
 
 - Use the GitHub CLI (gh) to check repository and Actions status on GitHub.
-- Lexical sources are available locally at `.data/lexical`. Refer to them whenever
-  working on core editor functionalities. Their versions match the modules imported
-  from `node_modules`.
+- Lexical sources are available locally at `.data/lexical`. Refer to them
+  whenever working on core editor functionalities. Their versions match the
+  modules imported from `node_modules`.
