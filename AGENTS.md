@@ -14,11 +14,6 @@ portability.
   attribution.
 - **Small, composable primitives.** Predictable behaviors, minimal UI,
   consistent commands.
-- **Extensibility.** Stable APIs for custom nodes and commands with typed
-  contracts.
-- **Trust & portability.** Data ownership, import/export, and version history.
-- **Performance.** Low-latency editing via Lexical’s efficient editor state and
-  DOM updates; minimize work per keystroke.
 
 ### What is a note?
 
