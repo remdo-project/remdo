@@ -15,7 +15,7 @@
     "test": "pnpm run test:unit",
     "test:unit": "pnpm exec vitest run",
     "test:unit:coverage": "pnpm exec vitest run --coverage",
-    "test:unit:watch": "pnpm exec vitest --watch --ui --coverage --api.host 0.0.0.0",
+    "test:unit:watch": "node ./scripts/test-unit-watch.mjs",
     "test:preview": "cross-env VITEST_PREVIEW=true TMPDIR=./data/.vitest-preview TMP=./data/.vitest-preview TEMP=./data/.vitest-preview vitest-preview"
   },
   "dependencies": {

@@ -35,11 +35,12 @@
     "skipLibCheck": true
   },
   "include": [
-    ".",
+    "./**/*"
   ],
   "exclude": [
     "**/node_modules/**",
     "./bookmarks/",
-    "./dist/"
+    "./dist/",
+    "./data/"
   ]
 }
