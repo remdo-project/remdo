@@ -78,6 +78,4 @@ it('loads basic outline structure from JSON', ({ lexical }) => {
     // Second note: "note1"
     expect(notes[1]?.getTextContent()).toBe('note1');
   });
-
-  debug();
 });
