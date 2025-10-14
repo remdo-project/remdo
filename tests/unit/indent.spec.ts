@@ -164,4 +164,43 @@ describe('indentation via KEY_TAB_COMMAND (flat fixture)', () => {
       { text: 'note2', children: [] },
     ]);
   });
+
+  it("tab on both note1 and note2 nests them both under note0", async () => {
+    load('flat');
+
+    await placeCaretAtNoteStart('note1');
+    await pressTab(); // indent note1 under note0
+
+    await placeCaretAtNoteStart('note2');
+    await pressTab(); // indent note2 under note0
+
+    const outline = readOutline();
+
+    // After indenting both note1 and note2, they should both be children of note0
+    expect(outline).toEqual([
+      {
+        text: 'note0',
+        children: [
+          { text: 'note1', children: [] },
+          { text: 'note2', children: [] },
+        ],
+      },
+    ]);
+  });
+
+  it("shift+tab on a child outdents it to root level", async () => {
+    load('basic');
+
+    await placeCaretAtNoteStart('note00');
+    await pressTab({ shift: true }); // outdent child
+
+    const outline = readOutline();
+
+    // After outdenting the child, it should be at the same level as its former parent and siblings
+    expect(outline).toEqual([
+      { text: 'note0', children: [] },
+      { text: 'note00', children: [] },
+      { text: 'note1', children: [] },
+    ]);
+  });
 });
