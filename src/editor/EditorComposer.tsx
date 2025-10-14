@@ -4,9 +4,9 @@ import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin';
 
 import { useEditorConfig } from './config';
+import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 
 interface EditorComposerProps {
@@ -25,7 +25,7 @@ export function EditorComposer({ children }: EditorComposerProps) {
         />
         <HistoryPlugin />
         <RootSchemaPlugin />
-        <TabIndentationPlugin />
+        <IndentationPlugin />
         <ListPlugin hasStrictIndent />
         {children}
       </div>

@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { pressTab } from './helpers/keyboard';
-import { placeCaretAtNoteStart, readOutline } from './helpers/note';
+import { placeCaretAtNoteEnd, placeCaretAtNoteStart, placeCaretInNote, readOutline } from './helpers/note';
 
 it('tab on note0 at start is a no-op (no structure change)', async ({ lexical }) => {
   lexical.load('flat');
@@ -66,5 +66,35 @@ it("shift+tab on a child outdents it to root level", async ({ lexical }) => {
     { text: 'note0', children: [] },
     { text: 'note00', children: [] },
     { text: 'note1', children: [] },
+  ]);
+});
+
+it("tab on note1 at end nests it under note0", async ({ lexical }) => {
+  lexical.load('flat');
+
+  await placeCaretAtNoteEnd('note1', lexical.mutate);
+  await pressTab(lexical.editor); // indent note1 under note0
+
+  const outline = readOutline(lexical.validate);
+
+  // After indenting note1, it should become a child of note0, while note2 remains at root
+  expect(outline).toEqual([
+    { text: 'note0', children: [ { text: 'note1', children: [] } ] },
+    { text: 'note2', children: [] },
+  ]);
+});
+
+it("tab on note1 in the middle nests it under note0", async ({ lexical }) => {
+  lexical.load('flat');
+
+  await placeCaretInNote('note1', 2, lexical.mutate); // place caret at offset 2
+  await pressTab(lexical.editor); // indent note1 under note0
+
+  const outline = readOutline(lexical.validate);
+
+  // After indenting note1, it should become a child of note0, while note2 remains at root
+  expect(outline).toEqual([
+    { text: 'note0', children: [ { text: 'note1', children: [] } ] },
+    { text: 'note2', children: [] },
   ]);
 });
