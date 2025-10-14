@@ -8,9 +8,7 @@ import process from 'node:process';
 const require = createRequire(import.meta.url);
 const jiti = require('jiti')(import.meta.url);
 
-if (!process.env.NODE_ENV) {
-  process.env.NODE_ENV = 'test';
-}
+process.env.NODE_ENV ??= 'test';
 
 const { env } = jiti('../config/env.server.ts');
 

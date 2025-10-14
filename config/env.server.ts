@@ -3,10 +3,16 @@ import dotenvFlow from 'dotenv-flow';
 import { bool, cleanEnv, num, port, str } from 'envalid';
 
 // don't complain about missing .env.test.* files, use just silently use .env.*
+const nodeEnv = process.env.NODE_ENV || 'development';
+
 dotenvFlow.config({
-  node_env: process.env.NODE_ENV || 'development',
-  default_node_env: 'development',
   silent: true,
+  files: [
+    '.env',
+    '.env.local',
+    `.env.${nodeEnv}`,
+    `.env.${nodeEnv}.local`,
+  ],
 });
 
 const base = cleanEnv(process.env, {
