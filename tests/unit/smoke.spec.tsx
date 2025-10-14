@@ -7,7 +7,7 @@ import { expect, it } from 'vitest'
 import { debug } from 'vitest-preview'
 import App from '@/App'
 import Editor from '@/editor/Editor'
-import EditorTestBridge from './utils/LexicalTestBridge'
+import EditorTestBridge from './setup/internal/LexicalTestBridge'
 
 it('app', () => {
   render(<App />)

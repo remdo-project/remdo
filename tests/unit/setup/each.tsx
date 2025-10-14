@@ -1,7 +1,7 @@
 import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
 import type { TestContext } from 'vitest';
-import { lexicalLoad, lexicalMutate, lexicalValidate } from '#test/utils/lexical-helpers';
-import LexicalTestBridge from '#test/utils/LexicalTestBridge';
+import { lexicalLoad, lexicalMutate, lexicalValidate } from '#test/setup/internal/lexical-helpers';
+import LexicalTestBridge from '#test/setup/internal/LexicalTestBridge';
 import { cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
 import Editor from '@/editor/Editor';
