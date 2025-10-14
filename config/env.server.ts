@@ -20,6 +20,7 @@ const base = cleanEnv(process.env, {
   PORT: num({ default: 4000 }),
   HMR_PORT: port({ default: 0 }), // placeholder
   VITEST_PORT: port({ default: 0 }), // placeholder
+  VITEST_PREVIEW_PORT: port({ default: 0 }), // placeholder
   CI: bool({ default: false }),
   VITEST_PREVIEW: bool({ default: false }),
 });
@@ -28,4 +29,5 @@ export const env = {
   ...base,
   HMR_PORT: base.HMR_PORT || (base.PORT + 1),
   VITEST_PORT: base.VITEST_PORT || (base.PORT + 2),
+  VITEST_PREVIEW_PORT: base.VITEST_PREVIEW_PORT || (base.PORT + 3),
 }

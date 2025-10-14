@@ -16,7 +16,7 @@
     "test:unit": "pnpm exec vitest run",
     "test:unit:coverage": "pnpm exec vitest run --coverage",
     "test:unit:watch": "node ./scripts/test-unit-watch.mjs",
-    "test:preview": "cross-env VITEST_PREVIEW=true TMPDIR=./data/.vitest-preview TMP=./data/.vitest-preview TEMP=./data/.vitest-preview vitest-preview"
+    "test:preview": "node ./scripts/test-preview.mjs"
   },
   "dependencies": {
     "@lexical/history": "^0.36.2",
