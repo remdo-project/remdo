@@ -3,6 +3,7 @@ import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
 declare module 'vitest' {
   interface LexicalTestHelpers {
     editor: LexicalEditor;
+    load: (filename: string) => void;
     mutate: (
       fn: () => void,
       opts?: EditorUpdateOptions

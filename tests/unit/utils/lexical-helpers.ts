@@ -1,4 +1,36 @@
 import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import process from 'node:process';
+
+export function lexicalLoad(
+  editor: LexicalEditor,
+  filename: string
+): void {
+  const absPath = resolve(process.cwd(), 'tests/fixtures', `${filename}.json`);
+
+  let json: string;
+  try {
+    json = readFileSync(absPath, 'utf-8');
+  } catch (err) {
+    throw new Error(
+      `Failed to read file at ${absPath}: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+
+  let editorState;
+  try {
+    const parsed = JSON.parse(json);
+    const stateJson = JSON.stringify(parsed.editorState);
+    editorState = editor.parseEditorState(stateJson);
+  } catch (err) {
+    throw new Error(
+      `Failed to parse JSON from ${absPath}: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+
+  editor.setEditorState(editorState);
+}
 
 export async function lexicalMutate(
   editor: LexicalEditor,

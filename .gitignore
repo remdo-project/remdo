@@ -1,15 +1,15 @@
 # dependencies
-node_modules/
+/node_modules/
 *.log
 
 #data
-dist/
-data/
+/dist/
+/data/
 
 # editor/OS
 .DS_Store
 Thumbs.db
-.idea/
+/.idea/
 
 # local files
 *.local
