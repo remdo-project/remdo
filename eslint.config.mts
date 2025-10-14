@@ -21,6 +21,11 @@ export default antfu(
   },
   {
     files: ['tests/**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.tests.json',
+      },
+    },
     rules: {
       'no-restricted-imports': ['error', {
         paths: [
