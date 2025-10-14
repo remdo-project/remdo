@@ -1,206 +1,70 @@
-import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
-import { act } from '@testing-library/react';
-import { $getRoot, KEY_TAB_COMMAND } from 'lexical';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { expect, it } from 'vitest';
+import { pressTab } from './helpers/keyboard';
+import { placeCaretAtNoteStart, readOutline } from './helpers/note';
 
-/**
- * Helpers
- */
-describe('indentation via KEY_TAB_COMMAND (flat fixture)', () => {
-  let editor: LexicalEditor;
-  let load: (filename: string) => void;
-  let mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>;
-  let validate: <T>(fn: () => T) => T;
+it('tab on note0 at start is a no-op (no structure change)', async ({ lexical }) => {
+  lexical.load('flat');
 
-  beforeEach(({ lexical }) => {
-    ({ editor, load, mutate, validate } = lexical);
-  });
+  const before = readOutline(lexical.validate);
 
-  const placeCaretAtNoteStart = async (noteText: string) => {
-    await mutate(() => {
-      const root = $getRoot();
-      const list = root.getFirstChild();
-      if (!list) throw new Error('Expected a list root');
+  await placeCaretAtNoteStart('note0', lexical.mutate);
+  await pressTab(lexical.editor); // indent attempt on first root item
 
-      const findItemByText = (listNode: any): any => {
-        const items = listNode?.getChildren?.() ?? [];
-        for (const item of items) {
-          if (!item || typeof item.getChildren !== 'function') {
-            continue;
-          }
+  const after = readOutline(lexical.validate);
+  expect(after).toEqual(before);
+});
 
-          const children = item.getChildren();
-          const contentNodes = children.filter(
-            (child: any) => typeof child.getType === 'function' && child.getType() !== 'list'
-          );
-          const text = contentNodes
-            .map((child: any) => child?.getTextContent?.() ?? '')
-            .join('')
-            .trim();
+it("tab on note1 at start nests it under note0; note2 stays at root", async ({ lexical }) => {
+  lexical.load('flat');
 
-          if (text === noteText) {
-            return item;
-          }
+  await placeCaretAtNoteStart('note1', lexical.mutate);
+  await pressTab(lexical.editor); // indent note1 under note0
 
-          const nestedLists = children.filter(
-            (child: any) => typeof child.getType === 'function' && child.getType() === 'list'
-          );
-          for (const nested of nestedLists) {
-            const found = findItemByText(nested);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
+  const outline = readOutline(lexical.validate);
 
-      const item = findItemByText(list);
-      if (!item) throw new Error(`No list item found with text: ${noteText}`);
-      if (typeof item.selectStart !== 'function') {
-        throw new TypeError('Expected list item to support selectStart');
-      }
-      item.selectStart(); // caret at start
-    });
-  };
+  // Expectation assumes the flat fixture has three items: note0, note1, note2
+  // After indenting note1, it should become a child of note0, while note2 remains at root
+  expect(outline).toEqual([
+    { text: 'note0', children: [ { text: 'note1', children: [] } ] },
+    { text: 'note2', children: [] },
+  ]);
+});
 
-  const pressTab = async (opts: { shift?: boolean } = {}) => {
-    const { shift = false } = opts;
-    const event = new KeyboardEvent('keydown', {
-      key: 'Tab',
-      bubbles: true,
-      cancelable: true,
-      shiftKey: shift,
-    });
-    await act(async () => {
-      editor.dispatchCommand(KEY_TAB_COMMAND, event);
-    });
-  };
+it("tab on both note1 and note2 nests them both under note0", async ({ lexical }) => {
+  lexical.load('flat');
 
-  const readOutline = () => {
-    // Returns a simple nested structure of the current list: [{ text, children: [...] }]
-    return validate(() => {
-      const root = $getRoot();
-      const list = root.getFirstChild();
-      if (!list) return [];
+  await placeCaretAtNoteStart('note1', lexical.mutate);
+  await pressTab(lexical.editor); // indent note1 under note0
 
-      const flat: Array<{ text: string; indent: number }> = [];
+  await placeCaretAtNoteStart('note2', lexical.mutate);
+  await pressTab(lexical.editor); // indent note2 under note0
 
-      const collectItems = (listNode: any) => {
-        const items = listNode?.getChildren?.() ?? [];
-        for (const item of items) {
-          if (!item || typeof item.getChildren !== 'function') {
-            continue;
-          }
+  const outline = readOutline(lexical.validate);
 
-          const indent = typeof item.getIndent === 'function' ? item.getIndent() : 0;
-          const children = item.getChildren();
-          const contentNodes = children.filter(
-            (child: any) => typeof child.getType === 'function' && child.getType() !== 'list'
-          );
-          const text = contentNodes
-            .map((child: any) => child?.getTextContent?.() ?? '')
-            .join('')
-            .trim();
+  // After indenting both note1 and note2, they should both be children of note0
+  expect(outline).toEqual([
+    {
+      text: 'note0',
+      children: [
+        { text: 'note1', children: [] },
+        { text: 'note2', children: [] },
+      ],
+    },
+  ]);
+});
 
-          flat.push({ text, indent });
+it("shift+tab on a child outdents it to root level", async ({ lexical }) => {
+  lexical.load('basic');
 
-          const nestedLists = children.filter(
-            (child: any) => typeof child.getType === 'function' && child.getType() === 'list'
-          );
-          for (const nested of nestedLists) {
-            collectItems(nested);
-          }
-        }
-      };
+  await placeCaretAtNoteStart('note00', lexical.mutate);
+  await pressTab(lexical.editor, { shift: true }); // outdent child
 
-      collectItems(list);
+  const outline = readOutline(lexical.validate);
 
-      const outline: Array<{ text: string; children: any[] }> = [];
-      const stack: Array<{ indent: number; children: Array<{ text: string; children: any[] }> }> = [
-        { indent: -1, children: outline },
-      ];
-
-      for (const { text, indent } of flat) {
-        if (!text) {
-          continue;
-        }
-
-        const node = { text, children: [] as Array<{ text: string; children: any[] }> };
-        while (stack.length > 0 && stack[stack.length - 1]!.indent >= indent) {
-          stack.pop();
-        }
-
-        stack[stack.length - 1]?.children.push(node);
-        stack.push({ indent, children: node.children });
-      }
-
-      return outline;
-    });
-  };
-
-  it('tab on note0 at start is a no-op (no structure change)', async () => {
-    load('flat');
-
-    const before = readOutline();
-
-    await placeCaretAtNoteStart('note0');
-    await pressTab(); // indent attempt on first root item
-
-    const after = readOutline();
-    expect(after).toEqual(before);
-  });
-
-  it("tab on note1 at start nests it under note0; note2 stays at root", async () => {
-    load('flat');
-
-    await placeCaretAtNoteStart('note1');
-    await pressTab(); // indent note1 under note0
-
-    const outline = readOutline();
-
-    // Expectation assumes the flat fixture has three items: note0, note1, note2
-    // After indenting note1, it should become a child of note0, while note2 remains at root
-    expect(outline).toEqual([
-      { text: 'note0', children: [ { text: 'note1', children: [] } ] },
-      { text: 'note2', children: [] },
-    ]);
-  });
-
-  it("tab on both note1 and note2 nests them both under note0", async () => {
-    load('flat');
-
-    await placeCaretAtNoteStart('note1');
-    await pressTab(); // indent note1 under note0
-
-    await placeCaretAtNoteStart('note2');
-    await pressTab(); // indent note2 under note0
-
-    const outline = readOutline();
-
-    // After indenting both note1 and note2, they should both be children of note0
-    expect(outline).toEqual([
-      {
-        text: 'note0',
-        children: [
-          { text: 'note1', children: [] },
-          { text: 'note2', children: [] },
-        ],
-      },
-    ]);
-  });
-
-  it("shift+tab on a child outdents it to root level", async () => {
-    load('basic');
-
-    await placeCaretAtNoteStart('note00');
-    await pressTab({ shift: true }); // outdent child
-
-    const outline = readOutline();
-
-    // After outdenting the child, it should be at the same level as its former parent and siblings
-    expect(outline).toEqual([
-      { text: 'note0', children: [] },
-      { text: 'note00', children: [] },
-      { text: 'note1', children: [] },
-    ]);
-  });
+  // After outdenting the child, it should be at the same level as its former parent and siblings
+  expect(outline).toEqual([
+    { text: 'note0', children: [] },
+    { text: 'note00', children: [] },
+    { text: 'note1', children: [] },
+  ]);
 });
