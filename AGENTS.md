@@ -17,14 +17,10 @@ portability.
 
 ### What is a note?
 
-- A **note** is the project’s fundamental unit.
-- A note’s **content** is represented by a Lexical `ListItemNode` (conceptually
-  an HTML `<li>`).
-- The surrounding `ListNode` (`<ul>`/`<ol>`) is **structural only** and **not**
-  a note.
-- **Child notes** are additional `ListItemNode`s nested beneath the parent’s
-  list; conceptually, they belong to the parent.
-- Collectively, notes create the outline’s hierarchical structure.
+Refer to `docs/concepts.md` for the canonical definition of a note, including
+its invariants, structure, and adapter contracts. In short, notes are the
+addressable, typed units that form RemDo’s ordered tree; the concepts document
+captures the full model.
 
 ## Safety & Process
 
