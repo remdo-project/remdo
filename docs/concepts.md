@@ -93,26 +93,23 @@ tree_complex.json
 
 ### Lexical Representation
 
-The Lexical adapter serializes the conceptual note tree into a deterministic node
-shape:
+The Lexical adapter serializes the conceptual note tree into a deterministic
+node shape:
 
 - The conceptual root note is mapped to Lexical's `RootNode`. A dedicated schema
   plugin (`src/editor/plugins/RootSchemaPlugin.tsx`) keeps this root constrained
-  to a single child `ListNode`, preserving the invariant that all top-level
-  notes live inside one canonical list container.
-- Every ordered set of child notes is represented by a `ListNode`, which
-  expresses "these are the children of a given conceptual parent" while
-  preserving their sibling order and list metadata.
-- Each individual note becomes a content-bearing `ListItemNode` inside its
-  parent's `ListNode`. The position of that list item mirrors the note's ordinal
-  position among its siblings. Inside this list item Lexical stores the note's
-  payload—typically a `ParagraphNode` that wraps one or more `TextNode`s for the
-  textual content, but potentially any inline structure the adapter supports.
-- When a note has children, Lexical inserts an additional `ListItemNode`
-  immediately after the content item for that same note. This extra list item is
-  intentionally empty; its only child is a nested `ListNode` that serializes the
-  note's descendants. Each child note then repeats the same pattern (content
-  list item, optional wrapper list item, nested list) as needed.
-- `TextNode`s nested under the content `ListItemNode` store the literal string
-  payload (with formatting metadata) and remain isolated from the structural
-  nodes that encode hierarchy.
+  to a single child `ListNode`; the `ListItemNode` children of that list are the
+  root note's direct descendants.
+- Every non-root note is serialized as a `ListItemNode` whose children hold the
+  note's payload (for example a `ParagraphNode` with `TextNode`s).
+- When a note has children, the adapter inserts a second `ListItemNode`
+  immediately after the content item. This wrapper item contains a nested
+  `ListNode`, and the `ListItemNode`s inside that nested list represent the
+  note's conceptual descendants.
+
+### Operations
+
+Notes can be moved—reordered among siblings, indented to become the previous
+sibling's child, outdented to become the parent's sibling, or relocated under a
+different parent. Moving a note always moves its descendants, and the
+corresponding Lexical nodes must be updated to reflect the new hierarchy.
