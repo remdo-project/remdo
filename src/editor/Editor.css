@@ -1,5 +1,5 @@
 .editor-container {
-  width: min(720px, 100%);
+  width: min(720px, 100%); /* Optimal reading width (60-75 chars/line) */
   margin: 0 auto;
   border: 1px solid var(--mantine-color-dark-4);
   border-radius: var(--mantine-radius-md);
@@ -8,7 +8,7 @@
 
 .editor-inner {
   position: relative;
-  padding: var(--mantine-spacing-lg) 1.75rem;
+  padding: var(--mantine-spacing-lg) var(--mantine-spacing-xl);
 }
 
 .editor-root {
@@ -33,7 +33,7 @@
 .editor-placeholder {
   position: absolute;
   top: var(--mantine-spacing-lg);
-  left: 1.75rem;
+  left: var(--mantine-spacing-xl);
   color: var(--mantine-color-dark-3);
   pointer-events: none;
   user-select: none;
