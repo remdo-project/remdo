@@ -45,4 +45,5 @@ captures the full model.
 - Use the GitHub CLI (gh) to check repository and Actions status on GitHub.
 - Lexical sources are available locally at `.data/lexical`. Refer to them
   whenever working on core editor functionalities. Their versions match the
-  modules imported from `node_modules`.
+  modules imported from `node_modules`. Run `pnpm run dev:init` to fetch them if
+  not available.

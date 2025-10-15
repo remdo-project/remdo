@@ -1,4 +1,4 @@
-# Remdo v2 – Note Concept (early draft)
+# Remdo – Note Concept (early draft)
 
 ## Purpose
 
@@ -11,82 +11,31 @@ changing its invariants.
 
 ## Core Idea: Note (Concept)
 
-A **note** is the smallest addressable unit of knowledge in the app. It is:
+A **note** is the smallest addressable unit of knowledge in the app. A note is
+individually addressable, lives inside an ordered tree, and can be referenced by
+other notes or external tooling.
 
-- **Addressable** (optionally by a stable `NoteId`; otherwise via structural
-  path or adapter-native anchor; IDs are only required for persistent linking).
-- **Typed** (a discriminant “kind”, e.g., `text`, `link`, `document`, …).
-- **Content‑bearing** (optional body/payload, opaque to the core model).
-- **Relational** (owns an ordered list of children → forms a tree; optional
-  cross‑refs later).
-- **Extensible** (arbitrary per‑note metadata/properties).
+Notes carry three kinds of information: structure, content, and props.
 
-Think of the system as a **Note Graph constrained to a tree** for primary
-structure, with optional secondary relations (backlinks, references) that do not
-alter the tree.
+- **Structure** is the position of a note in the tree: its parent and the order
+  of its children.
+- **Content** is the payload a note exposes to adapters; the core model treats
+  it as opaque data.
+- **Props** are additional key/value attributes that enrich the note without
+  affecting its structure.
 
 ### Invariants (independent of any editor)
 
-- Every note has **exactly one parent** (except a root) and **an ordered list of
-  children**.
-- **Ordering lives with the parent**, not the children.
-- **Content is orthogonal to structure** (a note may have body content or be
-  purely structural).
-- **Kinds are additive**: selected by a discriminant (`kind`) with a flexible
-  `props` bag.
-- **Optional identity**: if present, `NoteId` must be stable across adapters
-  (Lexical, Markdown, filesystem, …). A note may exist **without** an id;
-  adapters must provide deterministic fallback addressing and can synthesize an
-  id when a stable link is requested.
+Adapters must preserve these guarantees whenever they create, import, or export
+notes:
 
-### Conceptual Shape (not an implementation)
-
-- `NoteId?`: optional stable identifier (used for persistent cross-source links;
-  may be absent for ephemeral/inline notes).
-- `address`: structural path (e.g., document root → child indices) or
-  adapter-native anchor; always derivable even when `NoteId` is absent.
-- `kind`: `text` | `link` | `document` | … (open set).
-- `content`: opaque payload (interpreted/rendered by adapters).
-- `props`: metadata per kind (e.g., `href` for `link`).
-- `children`: ordered list of `NoteId`.
-- Optional **view metadata** (e.g., `folded`, `checked`, tags) — can be per‑user
-  _or_ shared (see decisions below).
-
-## Addressing & Linking
-
-- A note is linkable if it has a stable `NoteId` or a stable adapter-native
-  anchor.
-- When linking is requested and a note lacks an id, adapters may synthesize one
-  (e.g., slug of a Markdown header plus collision disambiguators) and persist it
-  (front‑matter/sidecar, Lexical node-key mapping).
-- Fallback addressing (no id) uses a **structural path** (document root id +
-  child indices). This is deterministic but can break under reordering; good for
-  transient references, not long‑lived shares.
-
----
-
-## Document Relationship
-
-A **document** is a _view anchored at any note_. The anchored note becomes the
-document’s root. This keeps “note” pure and lets different sources (e.g., a
-Markdown section, a folder in a filesystem, or a Lexical sub‑tree) be treated as
-documents simply by pointing at their root `NoteId`.
-
-- A note may carry a semantic `kind: "document"`, but this conveys _intent_
-  (entry point) rather than structural special‑casing.
-
----
-
-## Kinds (examples; extensible)
-
-- **`text`**: generic body content.
-- **`link`**: `props.href` (+ optional `title`, preview policy).
-- **`document`**: semantic tag signalling “this note can be an entry point”.
-- **Future** (non‑exhaustive): `embed` (note→note reference), `query` (virtual
-  note with computed children), `todo`, etc.
-
-> Guideline: adding a kind should not change the core invariants or tree
-> mechanics.
+- Each note is uniquely addressable inside its tree.
+- Every note has exactly one parent (except the root) and maintains an ordered
+  list of children owned by that parent.
+- Ordering metadata lives with the parent, so sibling order changes do not
+  mutate child nodes.
+- Content and props never alter the structural contract; a note may be purely
+  structural or carry opaque content without affecting its position.
 
 ---
 
@@ -97,88 +46,73 @@ enforcing invariants.
 
 ### Lexical Adapter (current editor)
 
-**Known representation:** A note’s body is stored in a `ListItem`; its
-**children** live in the _nested `List` immediately under that `ListItem`_.
+- Lexical-based editor is currently the only available adapter.
 
-**Contract:**
+### Examples
 
-- Treat the **`ListItem`** as the _note content container_.
-- Treat the **immediately nested `List`** (if present) as the _children list_.
-- Maintain a bijection between `NoteId` and the corresponding `ListItem` key.
-- Normalize edge cases (splits, paste, merges):
-  - At most **one** nested `List` per `ListItem`.
-  - Create new `NoteId`s on structural splits; preserve IDs on pure content
-    edits.
+Examples below are in the following format:
 
-- Keep this two‑node shape **internal to the adapter**; externally, a note
-  remains a single conceptual unit.
+file.json # fixture file from tests/fixtures Note structure represtantation that
+mapps to data from file.json
 
-### Markdown Adapter
+#### Basic
 
-- Structure via lists; ordering is list order.
-- `- [ ]` / `- [x]` map to a `checked` property (if used).
-- Links via `[title](href)` map to `kind: link` with `props.href`.
-- Stable IDs via front‑matter (preferred) or hidden anchors
-  (`<!-- id: abc -->`).
-- Folding is not native → store per‑user folds in a sidecar index or
-  front‑matter.
+basic.json
 
-### Filesystem Adapter
+- note0
+  - note00
+- note1
 
-- Directory → `document` (or `container`) note; files → `document`/`link` notes.
-- `props.path` holds absolute/relative path.
-- Children order by a defined policy (name, mtime) or an explicit sidecar index
-  to make order deterministic.
+#### Flat
 
----
+flat.json
 
-## Operations (concept‑level)
+- note0
+- note1
+- note2
 
-- **Structure:** insert/move/indent/outdent/delete by `NoteId` (reorder children
-  on the parent; never reparent implicitly).
-- **Content:** set/replace the opaque body payload (adapter interprets it).
-- **State:** toggle/read properties (`folded`, `checked`, tags, custom props).
-- **Views:** open a document at `NoteId`, focus a subtree, search/filter.
+#### Tree
 
----
+tree.json
 
-## Open Decisions (with recommendations)
+- note0
+- note1
+  - note2
 
-1. **Folded state:** shared vs per‑user.
-   - **Recommend:** default **per‑user view state**, with optional “publish
-     shared folds” per document when collaboration needs stable outlines.
+#### Tree complex
 
-2. **Checked semantics:** local vs cascading to descendants.
-   - **Recommend:** default **local** (no surprise cascades). Provide an
-     explicit “cascade to subtree” operation when desired.
+tree_complex.json
 
-3. **Cross‑references:** allow DAG‑style secondary links (backlinks, mentions)
-   without changing the primary tree.
-   - **Recommend:** **Yes**. Keep the primary tree authoritative; secondary
-     relations live in metadata.
+- note0
+  - note00
+    - note000
+  - note01
+- note1
+- note2
+  - note20
 
-4. **Optional identity & persistence across adapters:**
-   - **Recommend:** Treat `NoteId` as **optional**. If absent, rely on
-     structural path/anchors for local addressing. When a stable link is
-     created, **synthesize and persist** an id (front‑matter/sidecar in
-     Markdown; key mapping in Lexical). If present, preserve across round‑trips;
-     only mint new ids on structural splits.
+### Lexical Representation
 
----
+The Lexical adapter serializes the conceptual note tree into a deterministic node
+shape:
 
-## Non‑Goals (for clarity)
-
-- Define concrete storage schema or class shapes (left to implementation docs).
-- Prescribe UI/keyboard interactions (adapter/UI‑level concerns).
-
----
-
-## Summary
-
-- **Note** is a stable, typed, extensible unit forming a tree via ordered
-  children.
-- **Documents** are views anchored at notes.
-- **Adapters** (Lexical, Markdown, filesystem) translate representations while
-  preserving invariants and identity.
-- **Extensibility** flows through `kind` and `props` without changing core
-  rules.
+- The conceptual root note is mapped to Lexical's `RootNode`. A dedicated schema
+  plugin (`src/editor/plugins/RootSchemaPlugin.tsx`) keeps this root constrained
+  to a single child `ListNode`, preserving the invariant that all top-level
+  notes live inside one canonical list container.
+- Every ordered set of child notes is represented by a `ListNode`, which
+  expresses "these are the children of a given conceptual parent" while
+  preserving their sibling order and list metadata.
+- Each individual note becomes a content-bearing `ListItemNode` inside its
+  parent's `ListNode`. The position of that list item mirrors the note's ordinal
+  position among its siblings. Inside this list item Lexical stores the note's
+  payload—typically a `ParagraphNode` that wraps one or more `TextNode`s for the
+  textual content, but potentially any inline structure the adapter supports.
+- When a note has children, Lexical inserts an additional `ListItemNode`
+  immediately after the content item for that same note. This extra list item is
+  intentionally empty; its only child is a nested `ListNode` that serializes the
+  note's descendants. Each child note then repeats the same pattern (content
+  list item, optional wrapper list item, nested list) as needed.
+- `TextNode`s nested under the content `ListItemNode` store the literal string
+  payload (with formatting metadata) and remain isolated from the structural
+  nodes that encode hierarchy.
