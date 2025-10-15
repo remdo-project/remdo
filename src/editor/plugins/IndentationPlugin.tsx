@@ -1,7 +1,21 @@
+import type { ListItemNode } from '@lexical/list';
+import type { LexicalNode } from 'lexical';
 import { $isListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, INDENT_CONTENT_COMMAND, KEY_TAB_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical';
+import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical';
 import { useEffect } from 'react';
+import { $indentNote } from '@/editor/note/lexical';
+
+function findNearestListItemNode(node: LexicalNode | null): ListItemNode | null {
+  let current: LexicalNode | null = node;
+  while (current !== null) {
+    if ($isListItemNode(current)) {
+      return current;
+    }
+    current = current.getParent();
+  }
+  return null;
+}
 
 export function IndentationPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -17,9 +31,9 @@ export function IndentationPlugin() {
           return false;
         }
 
-        // Check if we're in a list item
+        // Resolve nearest ListItemNode from the selection anchor
         const anchorNode = selection.anchor.getNode();
-        const listItem = anchorNode.getParent();
+        const listItem = findNearestListItemNode(anchorNode);
 
         if (!$isListItemNode(listItem)) {
           return false;
@@ -31,7 +45,7 @@ export function IndentationPlugin() {
         if (event.shiftKey) {
           editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined);
         } else {
-          editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined);
+          $indentNote(listItem);
         }
 
         return true;
