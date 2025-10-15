@@ -9,10 +9,8 @@ process.env.NODE_ENV ??= 'test';
 const require = createRequire(import.meta.url);
 const jiti = require('jiti')(import.meta.url);
 
-const {
-  env,
-  applyVitestPreviewCacheEnv,
-} = jiti('../config/vitest-preview-env.ts');
+const { env } = jiti('../config/env.server.ts');
+const { applyVitestPreviewCacheEnv } = jiti('../config/vitest-preview-env.ts');
 
 process.env.HOST = env.HOST;
 process.env.PORT = String(env.VITEST_PREVIEW_PORT);

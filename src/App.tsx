@@ -1,11 +1,22 @@
+import { Container, MantineProvider, Stack, Title } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 import Editor from './editor/Editor';
-import './App.css';
+import { theme } from './theme';
+import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css';
 
 export default function App() {
   return (
-    <main className="app-shell">
-      <h1>Lexical Editor</h1>
-      <Editor />
-    </main>
+    <MantineProvider theme={theme} defaultColorScheme="dark">
+      <Notifications />
+      <Container size="xl" p="xl" pb={48}>
+        <Stack gap="lg" align="center">
+          <Title order={1} ta="center">
+            Lexical Editor
+          </Title>
+          <Editor />
+        </Stack>
+      </Container>
+    </MantineProvider>
   );
 }
