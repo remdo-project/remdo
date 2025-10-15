@@ -8,32 +8,25 @@ import {
 } from '@lexical/list';
 import { $getNodeByKey } from 'lexical';
 
-function isChildrenWrapper(node: LexicalNode | null | undefined): node is ListItemNode {
-  if (!$isListItemNode(node)) {
-    return false;
+const isChildrenWrapper = (node: LexicalNode | null | undefined): node is ListItemNode =>
+  $isListItemNode(node) &&
+  node.getChildren().length === 1 &&
+  $isListNode(node.getFirstChild());
+
+function getPreviousContentItem(noteItem: ListItemNode): ListItemNode | null {
+  let sibling: LexicalNode | null = noteItem.getPreviousSibling();
+  while (sibling) {
+    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
+      return sibling;
+    }
+    sibling = sibling.getPreviousSibling();
   }
-  const children = node.getChildren();
-  return (
-    children.length === 1 &&
-    $isListNode(children[0])
-  );
+  return null;
 }
 
-function ensureChildList(
-  parentContentItem: ListItemNode,
-  parentList: ListNode
-): ListNode | null {
-  const existingWrapper = parentContentItem.getNextSibling();
-  if (isChildrenWrapper(existingWrapper)) {
-    const nested = existingWrapper.getFirstChild();
-    return $isListNode(nested) ? nested : null;
-  }
-
-  const wrapper = $createListItemNode();
-  const nestedList = $createListNode(parentList.getListType());
-  wrapper.append(nestedList);
-  parentContentItem.insertAfter(wrapper);
-  return nestedList;
+function getNodesToMove(noteItem: ListItemNode): ListItemNode[] {
+  const childWrapper = noteItem.getNextSibling();
+  return isChildrenWrapper(childWrapper) ? [noteItem, childWrapper] : [noteItem];
 }
 
 export function $indentNote(key: NodeKey): boolean {
@@ -47,43 +40,29 @@ export function $indentNote(key: NodeKey): boolean {
     return false;
   }
 
-  const siblings = parentList.getChildren();
-  const index = siblings.findIndex((child) => child.is(noteItem));
-  if (index <= 0) {
-    return false;
-  }
-
-  let previousContent: ListItemNode | null = null;
-  for (let i = index - 1; i >= 0; i--) {
-    const candidate = siblings[i];
-    if (!$isListItemNode(candidate)) {
-      continue;
-    }
-    if (isChildrenWrapper(candidate)) {
-      continue;
-    }
-    previousContent = candidate;
-    break;
-  }
-
+  const previousContent = getPreviousContentItem(noteItem);
   if (!previousContent) {
     return false;
   }
 
-  const targetList = ensureChildList(previousContent, parentList);
-  if (!targetList) {
-    return false;
-  }
-
-  const maybeChildWrapper = noteItem.getNextSibling();
-  const nodesToMove: ListItemNode[] = [noteItem];
-  if (isChildrenWrapper(maybeChildWrapper)) {
-    nodesToMove.push(maybeChildWrapper);
-  }
-
-  for (const node of nodesToMove) {
-    targetList.append(node);
-  }
-
+  const targetList = getOrCreateChildList(previousContent, parentList);
+  targetList.append(...getNodesToMove(noteItem));
   return true;
+}
+
+function getOrCreateChildList(parentContentItem: ListItemNode, parentList: ListNode): ListNode {
+  const existingWrapper = parentContentItem.getNextSibling();
+  if (isChildrenWrapper(existingWrapper)) {
+    const childList = existingWrapper.getFirstChild();
+    if ($isListNode(childList)) {
+      return childList;
+    }
+    existingWrapper.remove();
+  }
+
+  const wrapper = $createListItemNode();
+  const nestedList = $createListNode(parentList.getListType());
+  wrapper.append(nestedList);
+  parentContentItem.insertAfter(wrapper);
+  return nestedList;
 }
