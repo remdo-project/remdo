@@ -1,7 +1,8 @@
 import { $isListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, INDENT_CONTENT_COMMAND, KEY_TAB_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical';
+import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical';
 import { useEffect } from 'react';
+import { $indentNote } from '../lexical-helpers';
 
 export function IndentationPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -18,12 +19,21 @@ export function IndentationPlugin() {
         }
 
         // Check if we're in a list item
-        const anchorNode = selection.anchor.getNode();
-        const listItem = anchorNode.getParent();
+        let anchorNode = selection.anchor.getNode();
 
-        if (!$isListItemNode(listItem)) {
+        while (anchorNode && !$isListItemNode(anchorNode)) {
+          const parent = anchorNode.getParent();
+          if (!parent) {
+            break;
+          }
+          anchorNode = parent;
+        }
+
+        if (!$isListItemNode(anchorNode)) {
           return false;
         }
+
+        const listItem = anchorNode;
 
         event.preventDefault();
 
@@ -31,7 +41,9 @@ export function IndentationPlugin() {
         if (event.shiftKey) {
           editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined);
         } else {
-          editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined);
+          editor.update(() => {
+            $indentNote(listItem.getKey());
+          });
         }
 
         return true;
