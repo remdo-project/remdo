@@ -2,6 +2,9 @@ import { expect, it } from 'vitest';
 import { pressTab } from './helpers/keyboard';
 import { placeCaretAtNoteEnd, placeCaretAtNoteStart, placeCaretInNote, readOutline } from './helpers/note';
 
+const outlineIsFlat = (outline: Array<{ text: string; children: any[] }>): boolean =>
+  outline.every(({ children }) => children.length === 0 && outlineIsFlat(children));
+
 it('tab on note0 at start is a no-op (no structure change)', async ({ lexical }) => {
   lexical.load('flat');
 
@@ -69,6 +72,21 @@ it("shift+tab on a child outdents it to root level", async ({ lexical }) => {
   ]);
 });
 
+it('shift+tab on note00 flattens the outline', async ({ lexical }) => {
+  lexical.load('basic');
+
+  await placeCaretAtNoteStart('note00', lexical.mutate);
+  await pressTab(lexical.editor, { shift: true });
+
+  const outline = readOutline(lexical.validate);
+  expect(outline).toEqual([
+    { text: 'note0', children: [] },
+    { text: 'note00', children: [] },
+    { text: 'note1', children: [] },
+  ]);
+  expect(outlineIsFlat(outline)).toBe(true);
+});
+
 it("tab on note1 at end nests it under note0", async ({ lexical }) => {
   lexical.load('flat');
 
@@ -121,4 +139,17 @@ it("tab on note1 at start moves it with its child note2 under note0", async ({ l
       ],
     },
   ]);
+});
+
+it('tab then shift+tab on note1 keeps the tree outline intact', async ({ lexical }) => {
+  lexical.load('tree');
+
+  const before = readOutline(lexical.validate);
+
+  await placeCaretAtNoteStart('note1', lexical.mutate);
+  await pressTab(lexical.editor); // temporarily indent under note0
+  await pressTab(lexical.editor, { shift: true }); // outdent back to original spot
+
+  const after = readOutline(lexical.validate);
+  expect(after).toEqual(before);
 });

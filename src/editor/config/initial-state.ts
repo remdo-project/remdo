@@ -25,7 +25,10 @@ export function seedInitialState(_editor: LexicalEditor) {
 
   const note0 = makeListItem('note0');
   rootList.append(note0);
-  
+
   const note1 = makeListItem('note1');
   rootList.append(note1);
+
+  const note2 = makeListItem('note2');
+  rootList.append(note2);
 }
