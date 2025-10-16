@@ -23,12 +23,12 @@ export function seedInitialState(_editor: LexicalEditor) {
   const rootList = $createListNode('bullet');
   root.append(rootList);
 
-  const note0 = makeListItem('note0');
-  rootList.append(note0);
-
   const note1 = makeListItem('note1');
   rootList.append(note1);
 
   const note2 = makeListItem('note2');
   rootList.append(note2);
+
+  const note3 = makeListItem('note3');
+  rootList.append(note3);
 }

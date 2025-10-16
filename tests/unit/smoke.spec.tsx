@@ -1,7 +1,7 @@
 import type { LexicalEditor } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import { render, screen } from '@testing-library/react';
-import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
+import { $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
 import App from '@/App';
 import Editor from '@/editor/Editor';
@@ -33,12 +33,7 @@ it('lexical helpers', async ({ lexical }) => {
 });
 
 it('debug preview', async ({ lexical }) => {
-  await lexical.mutate(() => {
-    const root = $getRoot();
-    const paragraph = $createParagraphNode();
-    paragraph.append($createTextNode('Vitest Preview in action'));
-    root.append(paragraph);
-  });
+  lexical.load('basic');
 
   // commented to not overwrite output snapshot from other tests
   // preview();
@@ -60,8 +55,8 @@ it('loads basic outline structure from JSON', ({ lexical }) => {
 
     expect(notes).toHaveLength(2);
 
-    // First note: "note0" with one child "note00"
-    expect(notes[0]?.getTextContent()).toContain('note0');
+    // First note: "note1" with one child "note2"
+    expect(notes[0]?.getTextContent()).toContain('note1');
 
     const nextItem = allItems[allItems.indexOf(notes[0]!) + 1];
     if (!$isListItemNode(nextItem)) throw new Error('Expected list item');
@@ -70,9 +65,9 @@ it('loads basic outline structure from JSON', ({ lexical }) => {
     if (!$isListNode(nestedList)) throw new Error('Expected nested list');
 
     expect(nestedList.getChildren()).toHaveLength(1);
-    expect(nestedList.getChildren()[0]?.getTextContent()).toBe('note00');
+    expect(nestedList.getChildren()[0]?.getTextContent()).toBe('note2');
 
-    // Second note: "note1"
-    expect(notes[1]?.getTextContent()).toBe('note1');
+    // Second note: "note3"
+    expect(notes[1]?.getTextContent()).toBe('note3');
   });
 });
