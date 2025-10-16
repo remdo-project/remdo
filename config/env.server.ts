@@ -1,3 +1,4 @@
+/* eslint-disable node/no-process-env -- env loader needs direct Node.js environment access */
 import process from 'node:process';
 import dotenvFlow from 'dotenv-flow';
 import { bool, cleanEnv, num, port, str } from 'envalid';

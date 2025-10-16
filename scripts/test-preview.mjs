@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable node/no-process-env -- script scaffolds env vars before spawning preview */
 // Launches Vitest Preview with ports/env resolved through env.server.ts.
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';

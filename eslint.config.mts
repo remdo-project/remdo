@@ -20,6 +20,17 @@ export default antfu(
     },
   },
   {
+    files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
+    rules: {
+      'node/no-process-env': [
+        'error',
+        {
+          allowedVariables: ['NODE_ENV'],
+        },
+      ],
+    },
+  },
+  {
     files: ['tests/**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {

@@ -1,3 +1,4 @@
+/* eslint-disable node/no-process-env -- vitest preview needs to set process env vars */
 import { resolve } from 'node:path';
 import process from 'node:process';
 
