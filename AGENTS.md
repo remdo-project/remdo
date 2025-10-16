@@ -29,7 +29,10 @@ captures the full model.
     solution, but do not change any code.
   - If asked to propose code, provide the snippet and wait for explicit approval
     before making changes.
-- Do not stage or commit any changes without explicit approval.
+- Never stage or commit unless the user literally says “commit” (or explicitly
+  agrees to your request to commit). When in doubt, assume the answer is “no”.
+- Never push changes. Pushing must always be done manually outside of the
+  assistant session.
 - The project is in dev phase, do not introduce temporary shims when refactoring
   or fixing bugs; aim for permanent solutions.
 - Always focus on the simplest and shortest possible implementation that meets
