@@ -112,8 +112,23 @@ export function readOutline(validate: <T>(fn: () => T) => T) {
           continue;
         }
 
-        const indent = typeof item.getIndent === 'function' ? item.getIndent() : 0;
         const children = item.getChildren();
+        const nestedLists = children.filter(
+          (child: any) => typeof child.getType === 'function' && child.getType() === 'list'
+        );
+
+        if (nestedLists.length > 0) {
+          const firstListChildren = nestedLists[0]?.getChildren?.() ?? [];
+          const hasListItem = firstListChildren.some(
+            (child: any) => typeof child.getType === 'function' && child.getType() === 'listitem'
+          );
+
+          if (!hasListItem) {
+            throw new Error('Invalid outline structure: list wrapper without list item child');
+          }
+        }
+
+        const indent = typeof item.getIndent === 'function' ? item.getIndent() : 0;
         const contentNodes = children.filter(
           (child: any) => typeof child.getType === 'function' && child.getType() !== 'list'
         );
@@ -124,9 +139,6 @@ export function readOutline(validate: <T>(fn: () => T) => T) {
 
         flat.push({ text, indent });
 
-        const nestedLists = children.filter(
-          (child: any) => typeof child.getType === 'function' && child.getType() === 'list'
-        );
         for (const nested of nestedLists) {
           collectItems(nested);
         }
@@ -143,6 +155,13 @@ export function readOutline(validate: <T>(fn: () => T) => T) {
     for (const { text, indent } of flat) {
       if (!text) {
         continue;
+      }
+
+      const parentIndent = stack[stack.length - 1]!.indent;
+      if (indent > parentIndent + 1) {
+        throw new Error(
+          `Invalid outline structure: indent jumped from ${parentIndent} to ${indent} for "${text}"`
+        );
       }
 
       const node = { text, children: [] as Array<{ text: string; children: any[] }> };
