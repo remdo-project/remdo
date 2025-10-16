@@ -39,7 +39,7 @@ it('debug preview', async ({ lexical }) => {
 });
 
 it('loads basic outline structure from JSON', ({ lexical }) => {
-  lexical.load('tree');
+  lexical.load('basic');
 
   expect(lexical).toMatchOutline([
     {
