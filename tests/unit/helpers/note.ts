@@ -116,8 +116,26 @@ export function readOutline(validate: <T>(fn: () => T) => T) {
         const nestedLists = children.filter(
           (child: any) => typeof child.getType === 'function' && child.getType() === 'list'
         );
+        const contentNodes = children.filter(
+          (child: any) => typeof child.getType === 'function' && child.getType() !== 'list'
+        );
 
         if (nestedLists.length > 0) {
+          if (contentNodes.length === 0) {
+            const prevSibling = typeof item.getPreviousSibling === 'function' ? item.getPreviousSibling() : null;
+            const prevIsListItem = Boolean(
+              prevSibling &&
+              typeof prevSibling.getType === 'function' &&
+              prevSibling.getType() === 'listitem'
+            );
+
+            if (!prevIsListItem) {
+              throw new Error(
+                'Invalid outline structure: wrapper list item without preceding list item sibling'
+              );
+            }
+          }
+
           const firstListChildren = nestedLists[0]?.getChildren?.() ?? [];
           const hasListItem = firstListChildren.some(
             (child: any) => typeof child.getType === 'function' && child.getType() === 'listitem'
@@ -129,9 +147,6 @@ export function readOutline(validate: <T>(fn: () => T) => T) {
         }
 
         const indent = typeof item.getIndent === 'function' ? item.getIndent() : 0;
-        const contentNodes = children.filter(
-          (child: any) => typeof child.getType === 'function' && child.getType() !== 'list'
-        );
         const text = contentNodes
           .map((child: any) => child?.getTextContent?.() ?? '')
           .join('')
