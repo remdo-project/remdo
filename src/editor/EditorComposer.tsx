@@ -29,7 +29,7 @@ export function EditorComposer({ children }: EditorComposerProps) {
         <IndentationPlugin />
         <ListPlugin hasStrictIndent />
         {children}
-        {dev ? <TreeViewPlugin /> : null}
+        {dev && <TreeViewPlugin />}
       </div>
     </LexicalComposer>
   );
