@@ -1,5 +1,4 @@
 import type { LexicalEditor } from 'lexical';
-import { $isListItemNode, $isListNode } from '@lexical/list';
 import { render, screen } from '@testing-library/react';
 import { $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
@@ -40,34 +39,21 @@ it('debug preview', async ({ lexical }) => {
 });
 
 it('loads basic outline structure from JSON', ({ lexical }) => {
-  lexical.load('basic');
+  lexical.load('tree');
 
-  lexical.validate(() => {
-    const rootList = $getRoot().getFirstChild();
-    if (!$isListNode(rootList)) throw new Error('Expected root list');
-
-    const allItems = rootList.getChildren();
-    const notes = allItems.filter((item) =>
-      $isListItemNode(item) && item.getChildren().some((child) =>
-        !$isListNode(child) && child.getTextContent().trim()
-      )
-    );
-
-    expect(notes).toHaveLength(2);
-
-    // First note: "note1" with one child "note2"
-    expect(notes[0]?.getTextContent()).toContain('note1');
-
-    const nextItem = allItems[allItems.indexOf(notes[0]!) + 1];
-    if (!$isListItemNode(nextItem)) throw new Error('Expected list item');
-
-    const nestedList = nextItem.getChildren().find($isListNode);
-    if (!$isListNode(nestedList)) throw new Error('Expected nested list');
-
-    expect(nestedList.getChildren()).toHaveLength(1);
-    expect(nestedList.getChildren()[0]?.getTextContent()).toBe('note2');
-
-    // Second note: "note3"
-    expect(notes[1]?.getTextContent()).toBe('note3');
-  });
+  expect(lexical).toMatchOutline([
+    {
+      text: 'note1',
+      children: [
+        {
+          text: 'note2',
+          children: [],
+        },
+      ],
+    },
+    {
+      text: 'note3',
+      children: [],
+    },
+  ]);
 });

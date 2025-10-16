@@ -1,6 +1,13 @@
 import type { EditorUpdateOptions } from 'lexical';
 import { $getRoot } from 'lexical';
 
+export interface OutlineNode {
+  text: string;
+  children: OutlineNode[];
+}
+
+export type Outline = OutlineNode[];
+
 function findItemByText(listNode: any, noteText: string): any {
   const items = listNode?.getChildren?.() ?? [];
   for (const item of items) {
@@ -96,12 +103,12 @@ export async function placeCaretInNote(
   });
 }
 
-export function readOutline(validate: <T>(fn: () => T) => T) {
+export function readOutline(validate: <T>(fn: () => T) => T): Outline {
   // Returns a simple nested structure of the current list: [{ text, children: [...] }]
   return validate(() => {
     const root = $getRoot();
     const list = root.getFirstChild();
-    if (!list) return [];
+    if (!list) return [] as Outline;
 
     const flat: Array<{ text: string; indent: number }> = [];
 
@@ -162,10 +169,8 @@ export function readOutline(validate: <T>(fn: () => T) => T) {
 
     collectItems(list);
 
-    const outline: Array<{ text: string; children: any[] }> = [];
-    const stack: Array<{ indent: number; children: Array<{ text: string; children: any[] }> }> = [
-      { indent: -1, children: outline },
-    ];
+    const outline: Outline = [];
+    const stack: Array<{ indent: number; children: Outline }> = [{ indent: -1, children: outline }];
 
     for (const { text, indent } of flat) {
       if (!text) {
@@ -179,7 +184,7 @@ export function readOutline(validate: <T>(fn: () => T) => T) {
         );
       }
 
-      const node = { text, children: [] as Array<{ text: string; children: any[] }> };
+      const node: OutlineNode = { text, children: [] };
       while (stack.length > 0 && stack[stack.length - 1]!.indent >= indent) {
         stack.pop();
       }
