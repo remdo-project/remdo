@@ -1,12 +1,11 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
-import type { LexicalNode, NodeKey } from 'lexical';
+import type { LexicalNode } from 'lexical';
 import {
   $createListItemNode,
   $createListNode,
   $isListItemNode,
   $isListNode,
 } from '@lexical/list';
-import { $getNodeByKey } from 'lexical';
 
 const isChildrenWrapper = (node: LexicalNode | null | undefined): node is ListItemNode =>
   $isListItemNode(node) &&
@@ -29,12 +28,7 @@ function getNodesToMove(noteItem: ListItemNode): ListItemNode[] {
   return isChildrenWrapper(childWrapper) ? [noteItem, childWrapper] : [noteItem];
 }
 
-export function $indentNote(key: NodeKey): boolean {
-  const noteItem = $getNodeByKey(key);
-  if (!$isListItemNode(noteItem)) {
-    return false;
-  }
-
+export function $indentNote(noteItem: ListItemNode): boolean {
   const parentList = noteItem.getParent();
   if (!$isListNode(parentList)) {
     return false;
@@ -65,4 +59,39 @@ function getOrCreateChildList(parentContentItem: ListItemNode, parentList: ListN
   wrapper.append(nestedList);
   parentContentItem.insertAfter(wrapper);
   return nestedList;
+}
+
+export function $outdentNote(noteItem: ListItemNode): boolean {
+  const parentList = noteItem.getParent();
+  if (!$isListNode(parentList)) {
+    return false;
+  }
+
+  const parentWrapper = parentList.getParent();
+  if (!$isListItemNode(parentWrapper) || !isChildrenWrapper(parentWrapper)) {
+    return false;
+  }
+
+  const grandParentList = parentWrapper.getParent();
+  if (!$isListNode(grandParentList)) {
+    return false;
+  }
+
+  const nodesToMove = getNodesToMove(noteItem);
+  let referenceNode: ListItemNode = parentWrapper;
+
+  for (const node of nodesToMove) {
+    const inserted = referenceNode.insertAfter(node);
+    if (!$isListItemNode(inserted)) {
+      throw new Error('Outdent expected a list item node');
+    }
+    referenceNode = inserted;
+  }
+
+  const nestedList = parentWrapper.getFirstChild();
+  if ($isListNode(nestedList) && nestedList.getChildrenSize() === 0) {
+    parentWrapper.remove();
+  }
+
+  return true;
 }

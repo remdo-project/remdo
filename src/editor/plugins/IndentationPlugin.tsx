@@ -1,8 +1,8 @@
 import { $isListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical';
+import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
 import { useEffect } from 'react';
-import { $indentNote } from '../lexical-helpers';
+import { $indentNote, $outdentNote } from '../lexical-helpers';
 
 export function IndentationPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -37,14 +37,10 @@ export function IndentationPlugin() {
 
         event.preventDefault();
 
-        // Dispatch indent/outdent command based on shift key
         if (event.shiftKey) {
-          //FIXME introduce and use $outdentNote
-          editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined);
+          $outdentNote(listItem);
         } else {
-          editor.update(() => {
-            $indentNote(listItem.getKey());
-          });
+          $indentNote(listItem);
         }
 
         return true;
