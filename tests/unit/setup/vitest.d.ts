@@ -1,6 +1,8 @@
 import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
 import type { Outline } from '../helpers/note';
 
+type EditorStateJSON = ReturnType<ReturnType<LexicalEditor['getEditorState']>['toJSON']>;
+
 declare module 'vitest' {
   interface LexicalTestHelpers {
     editor: LexicalEditor;
@@ -10,6 +12,7 @@ declare module 'vitest' {
       opts?: EditorUpdateOptions
     ) => Promise<void>;
     validate: <T>(fn: () => T) => T;
+    getEditorState: () => EditorStateJSON;
   }
 
   export interface TestContext {
@@ -18,9 +21,11 @@ declare module 'vitest' {
 
   interface Assertion<T = any> {
     toMatchOutline: (expected: Outline) => void;
+    toMatchEditorState: (expected: unknown) => void;
   }
 
   interface AsymmetricMatchersContaining {
     toMatchOutline: (expected: Outline) => void;
+    toMatchEditorState: (expected: unknown) => void;
   }
 }

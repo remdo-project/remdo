@@ -8,13 +8,12 @@ const outlineIsFlat = (outline: Array<{ text: string; children: any[] }>): boole
 it('tab on note1 at start is a no-op (no structure change)', async ({ lexical }) => {
   lexical.load('flat');
 
-  const before = readOutline(lexical.validate);
+  const before = lexical.getEditorState();
 
   await placeCaretAtNoteStart('note1', lexical.mutate);
   await pressTab(lexical.editor); // indent attempt on first root item
 
-  const after = readOutline(lexical.validate);
-  expect(after).toEqual(before);
+  expect(lexical).toMatchEditorState(before);
 });
 
 it("tab on note2 at start nests it under note1; note3 stays at root", async ({ lexical }) => {
@@ -132,12 +131,11 @@ it("tab on note2 at start moves it with its child note3 under note1", async ({ l
 it('tab then shift+tab on note2 keeps the tree outline intact', async ({ lexical }) => {
   lexical.load('tree');
 
-  const before = readOutline(lexical.validate);
+  const beforeState = lexical.getEditorState();
 
   await placeCaretAtNoteStart('note2', lexical.mutate);
   await pressTab(lexical.editor); // temporarily indent under note1
   await pressTab(lexical.editor, { shift: true }); // outdent back to original spot
 
-  const after = readOutline(lexical.validate);
-  expect(after).toEqual(before);
+  expect(lexical).toMatchEditorState(beforeState);
 });

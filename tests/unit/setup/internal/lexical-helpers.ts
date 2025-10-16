@@ -77,3 +77,7 @@ export async function lexicalMutate(
 export function lexicalValidate<T>(editor: LexicalEditor, fn: () => T): T {
   return editor.getEditorState().read(fn);
 }
+
+export function lexicalGetEditorState(editor: LexicalEditor) {
+  return editor.getEditorState().toJSON();
+}

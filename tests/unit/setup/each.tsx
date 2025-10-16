@@ -1,6 +1,6 @@
 import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
 import type { TestContext } from 'vitest';
-import { lexicalLoad, lexicalMutate, lexicalValidate } from '#test/setup/internal/lexical-helpers';
+import { lexicalGetEditorState, lexicalLoad, lexicalMutate, lexicalValidate } from '#test/setup/internal/lexical-helpers';
 import LexicalTestBridge from '#test/setup/internal/LexicalTestBridge';
 import { cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
@@ -23,12 +23,14 @@ beforeEach<TestContext>(async (ctx) => {
   const mutate = (fn: () => void, opts?: EditorUpdateOptions) =>
     lexicalMutate(editor, fn, opts);
   const validate = <T,>(fn: () => T) => lexicalValidate(editor, fn);
+  const getEditorState = () => lexicalGetEditorState(editor);
 
   ctx.lexical = {
     editor,
     load,
     mutate,
     validate,
+    getEditorState,
   };
 });
 
