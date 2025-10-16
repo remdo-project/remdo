@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@lexical/devtools-core':
+        specifier: ^0.37.0
+        version: 0.37.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@lexical/history':
         specifier: ^0.37.0
         version: 0.37.0

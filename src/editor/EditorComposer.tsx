@@ -8,13 +8,14 @@ import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { useEditorConfig } from './config';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
+import { TreeViewPlugin } from './plugins/TreeViewPlugin';
 
 interface EditorComposerProps {
   children?: React.ReactNode;
 }
 
 export function EditorComposer({ children }: EditorComposerProps) {
-  const initialConfig = useEditorConfig();
+  const { initialConfig, dev } = useEditorConfig();
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
@@ -28,6 +29,7 @@ export function EditorComposer({ children }: EditorComposerProps) {
         <IndentationPlugin />
         <ListPlugin hasStrictIndent />
         {children}
+        {dev ? <TreeViewPlugin /> : null}
       </div>
     </LexicalComposer>
   );

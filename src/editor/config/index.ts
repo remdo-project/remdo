@@ -5,8 +5,13 @@ import { seedInitialState } from './initial-state';
 import { editorNodes } from './nodes';
 import { editorTheme } from './theme';
 
-export function useEditorConfig(): InitialConfigType {
-  return useMemo(
+interface EditorConfigResult {
+  initialConfig: InitialConfigType;
+  dev: boolean;
+}
+
+export function useEditorConfig(): EditorConfigResult {
+  const initialConfig = useMemo(
     () => ({
       namespace: 'lexical-basic-rich-text',
       theme: editorTheme,
@@ -16,6 +21,11 @@ export function useEditorConfig(): InitialConfigType {
     }),
     []
   );
+
+  return {
+    initialConfig,
+    dev: import.meta.env.DEV,
+  };
 }
 
 export default useEditorConfig;

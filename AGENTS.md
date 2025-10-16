@@ -32,6 +32,14 @@ captures the full model.
 - Do not stage or commit any changes without explicit approval.
 - The project is in dev phase, do not introduce temporary shims when refactoring
   or fixing bugs; aim for permanent solutions.
+- Always focus on the simplest and shortest possible implementation that meets
+  the request. Propose any additional guards, optimisations, checks, etc. as
+  follow ups instead of adding them by default.
+- If you spot any tradeoffs or pros and cons of alternative solutions always ask
+  first before implementing one.
+- Don't assume that the request is always clear, if in doubt ask before
+  proceeding.
+- When you propose/list a few things use an ordered list.
 
 ## Checks
 
