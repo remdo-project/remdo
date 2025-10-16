@@ -94,27 +94,3 @@
 .editor-root li.list-nested-item {
   list-style-type: none;
 }
-
-.app-heading {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--mantine-spacing-sm);
-  color: inherit;
-  text-decoration: none;
-}
-
-.app-heading__icon {
-  display: inline-flex;
-  line-height: 1;
-  width: 0.9em;
-  height: 0.9em;
-  flex-shrink: 0;
-  vertical-align: middle;
-  color: inherit;
-  transition: color 150ms ease;
-}
-
-.app-heading:hover .app-heading__icon,
-.app-heading:focus-visible .app-heading__icon {
-  color: var(--mantine-color-gray-0);
-}

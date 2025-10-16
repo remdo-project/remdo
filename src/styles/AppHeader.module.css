@@ -1,0 +1,20 @@
+.brandLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+  color: inherit;
+  text-decoration: none;
+}
+
+.brandIcon {
+  width: 0.9em;
+  height: 0.9em;
+  flex-shrink: 0;
+  color: inherit;
+  transition: color 150ms ease;
+}
+
+.brandLink:hover .brandIcon,
+.brandLink:focus-visible .brandIcon {
+  color: var(--mantine-color-gray-0);
+}
