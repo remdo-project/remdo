@@ -1,13 +1,11 @@
 import type { LexicalEditor } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
-import { render, screen } from '@testing-library/react'
-import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical'
-import { expect, it } from 'vitest'
-// eslint-disable-next-line no-restricted-imports -- keep debug helper for local preview coverage
-import { debug } from 'vitest-preview'
-import App from '@/App'
-import Editor from '@/editor/Editor'
-import EditorTestBridge from './setup/internal/LexicalTestBridge'
+import { render, screen } from '@testing-library/react';
+import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
+import { expect, it } from 'vitest';
+import App from '@/App';
+import Editor from '@/editor/Editor';
+import EditorTestBridge from './setup/internal/LexicalTestBridge';
 
 it('app', () => {
   render(<App />)
@@ -43,8 +41,7 @@ it('debug preview', async ({ lexical }) => {
   });
 
   // commented to not overwrite output snapshot from other tests
-  //debug();
-  void debug; // prevent unused warning
+  // preview();
 });
 
 it('loads basic outline structure from JSON', ({ lexical }) => {

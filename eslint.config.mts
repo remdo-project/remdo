@@ -27,15 +27,13 @@ export default antfu(
       },
     },
     rules: {
-      'no-restricted-imports': ['error', {
-        paths: [
-          {
-            name: 'vitest-preview',
-            importNames: ['debug'],
-            message: 'debug() is for local debugging only; remove before committing.',
-          },
-        ],
-      }],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.type='Identifier'][callee.name='preview']",
+          message: 'preview() is for local debugging only; remove preview() calls before committing.',
+        },
+      ],
     },
   },
 );
