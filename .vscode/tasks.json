@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "type:watch",
+      "label": "typecheck:watch",
       "type": "shell",
-      "command": "pnpm lint:types:watch",
+      "command": "pnpm typecheck:watch",
       "problemMatcher": "$tsc-watch",
       "isBackground": true
     },
@@ -43,7 +43,7 @@
     {
       "label": "all",
       "dependsOn": [
-        "type:watch",
+        "typecheck:watch",
         "lint:watch",
         "test:unit:watch",
         "web:dev",

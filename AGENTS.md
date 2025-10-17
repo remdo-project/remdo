@@ -31,7 +31,6 @@ captures the full model.
     before making changes.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
-- Never push changes. Pushing must always be done manually outside of the
   assistant session.
 - The project is in dev phase, do not introduce temporary shims when refactoring
   or fixing bugs; aim for permanent solutions.

@@ -8,4 +8,4 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-pnpm
-      - run: pnpm run lint
+      - run: pnpm run lint && pnpm run deps:list
