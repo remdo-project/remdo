@@ -19,7 +19,6 @@ const vitestArgs = [
   'vitest',
   '--watch',
   '--ui',
-  '--coverage',
   '--api.host',
   '0.0.0.0',
   '--api.port',
