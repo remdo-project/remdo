@@ -2,6 +2,7 @@ import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
+import { assertEditorSchema } from './editor-schema';
 
 export function lexicalLoad(
   editor: LexicalEditor,
@@ -48,9 +49,17 @@ export async function lexicalMutate(
   const tags = [uniqueTag, ...([opts.tag ?? []].flat())];
 
   return new Promise<void>((resolve, reject) => {
-    const off = editor.registerUpdateListener(({ tags }) => {
-      if (tags.has(uniqueTag)) {
-        cleanup(); resolve();
+    const off = editor.registerUpdateListener(({ tags: updateTags }) => {
+      if (updateTags.has(uniqueTag)) {
+        try {
+          const state = editor.getEditorState().toJSON();
+          assertEditorSchema(state);
+          cleanup();
+          resolve();
+        } catch (error) {
+          cleanup();
+          reject(error);
+        }
       }
     });
 

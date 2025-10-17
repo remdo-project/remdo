@@ -104,7 +104,6 @@ export async function placeCaretInNote(
 }
 
 export function readOutline(validate: <T>(fn: () => T) => T): Outline {
-  // Returns a simple nested structure of the current list: [{ text, children: [...] }]
   return validate(() => {
     const root = $getRoot();
     const list = root.getFirstChild();
@@ -126,32 +125,6 @@ export function readOutline(validate: <T>(fn: () => T) => T): Outline {
         const contentNodes = children.filter(
           (child: any) => typeof child.getType === 'function' && child.getType() !== 'list'
         );
-
-        if (nestedLists.length > 0) {
-          if (contentNodes.length === 0) {
-            const prevSibling = typeof item.getPreviousSibling === 'function' ? item.getPreviousSibling() : null;
-            const prevIsListItem = Boolean(
-              prevSibling &&
-              typeof prevSibling.getType === 'function' &&
-              prevSibling.getType() === 'listitem'
-            );
-
-            if (!prevIsListItem) {
-              throw new Error(
-                'Invalid outline structure: wrapper list item without preceding list item sibling'
-              );
-            }
-          }
-
-          const firstListChildren = nestedLists[0]?.getChildren?.() ?? [];
-          const hasListItem = firstListChildren.some(
-            (child: any) => typeof child.getType === 'function' && child.getType() === 'listitem'
-          );
-
-          if (!hasListItem) {
-            throw new Error('Invalid outline structure: list wrapper without list item child');
-          }
-        }
 
         const indent = typeof item.getIndent === 'function' ? item.getIndent() : 0;
         const text = contentNodes
@@ -175,13 +148,6 @@ export function readOutline(validate: <T>(fn: () => T) => T): Outline {
     for (const { text, indent } of flat) {
       if (!text) {
         continue;
-      }
-
-      const parentIndent = stack[stack.length - 1]!.indent;
-      if (indent > parentIndent + 1) {
-        throw new Error(
-          `Invalid outline structure: indent jumped from ${parentIndent} to ${indent} for "${text}"`
-        );
       }
 
       const node: OutlineNode = { text, children: [] };
