@@ -31,4 +31,4 @@ export const env = {
   HMR_PORT: base.HMR_PORT || (base.PORT + 1),
   VITEST_PORT: base.VITEST_PORT || (base.PORT + 2),
   VITEST_PREVIEW_PORT: base.VITEST_PREVIEW_PORT || (base.PORT + 3),
-}
+};

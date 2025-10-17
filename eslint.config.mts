@@ -22,6 +22,7 @@ export default antfu(
   {
     files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
     rules: {
+      semi: ['error', 'always'],
       'node/no-process-env': [
         'error',
         {

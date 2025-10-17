@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { env } from "#env";
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = env.VITEST_PREVIEW;
@@ -48,5 +48,5 @@ export default defineConfig(() => {
       },
       open: false,
     }
-  }
+  };
 });

@@ -7,19 +7,19 @@ import Editor from '@/editor/Editor';
 import EditorTestBridge from './setup/internal/LexicalTestBridge';
 
 it('app', () => {
-  render(<App />)
-  expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
-})
+  render(<App />);
+  expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+});
 
 it('editor', async () => {
-  let editor!: LexicalEditor
+  let editor!: LexicalEditor;
   render(
     <Editor>
       <EditorTestBridge onReady={(e) => (editor = e)} />
     </Editor>
-  )
-  expect(editor).toBeTruthy()
-})
+  );
+  expect(editor).toBeTruthy();
+});
 
 it('lexical helpers', async ({ lexical }) => {
   await lexical.mutate(() => {
