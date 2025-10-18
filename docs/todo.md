@@ -32,3 +32,17 @@ through the new module.
 2. Add passing fixture for wrapper items with valid preceding siblings.
 3. Add mixed valid/invalid nested list fixture to confirm validator behavior.
 4. Reuse editor schema fixtures across other tests that need serialized states.
+
+## Add minifyEditorState round-trip test coverage
+
+Evaluate adding a test that loops through every JSON fixture, runs
+`minifyEditorState`, loads the result into Lexical, then re-serializes and
+compares to the original data structure.
+
+Options to consider when implementing:
+1. Extend the existing `lexicalLoad` harness with a variant that accepts raw
+   JSON (no temp files). Pros: reuses the established editor config.
+   Cons: requires a small refactor of the helper.
+2. Spin up a headless `LexicalEditor` directly inside the test. Pros: minimal
+   setup, fast. Cons: must ensure node registrations/config match the main
+   editor to avoid false diffs.
