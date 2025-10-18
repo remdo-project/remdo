@@ -57,3 +57,7 @@ it('loads basic outline structure from JSON', ({ lexical }) => {
     },
   ]);
 });
+
+it.fails('fails when a warning is logged to the console', () => {
+  console.warn('intentional warning to assert console guard');
+});
