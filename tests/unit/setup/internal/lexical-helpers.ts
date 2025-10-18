@@ -2,7 +2,7 @@ import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
-import { assertEditorSchema } from './editor-schema';
+import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
 
 export function lexicalLoad(
   editor: LexicalEditor,

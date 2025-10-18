@@ -1,14 +1,13 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
-import type { Outline, OutlineNode } from '../../helpers/note';
-
-interface FlatOutlineEntry {
-  text: string;
-  indent: number;
-}
 
 type NodeWithChildren = SerializedLexicalNode & {
   children?: SerializedLexicalNode[];
 };
+
+export interface FlatOutlineEntry {
+  text: string;
+  indent: number;
+}
 
 const LIST_TYPE = 'list';
 const LIST_ITEM_TYPE = 'listitem';
@@ -37,10 +36,7 @@ function collectTextContent(node: SerializedLexicalNode | undefined | null): str
   return text + childrenText;
 }
 
-function visitList(
-  listNode: NodeWithChildren,
-  entries: FlatOutlineEntry[]
-): void {
+function visitList(listNode: NodeWithChildren, entries: FlatOutlineEntry[]): void {
   const children = getChildren(listNode);
   let previousListItem: SerializedLexicalNode | undefined;
 
@@ -83,7 +79,7 @@ function visitList(
   });
 }
 
-function collectOutlineEntries(state: SerializedEditorState): FlatOutlineEntry[] {
+export function collectOutlineEntries(state: SerializedEditorState): FlatOutlineEntry[] {
   const entries: FlatOutlineEntry[] = [];
   const root = state.root;
 
@@ -128,32 +124,4 @@ export function assertEditorSchema(state: SerializedEditorState): void {
 
     stack.push({ indent: entry.indent });
   }
-}
-
-export function outlineFromEditorState(state: SerializedEditorState): Outline {
-  const entries = collectOutlineEntries(state);
-
-  const outline: Outline = [];
-  const stack: Array<{ indent: number; children: Outline }> = [{ indent: -1, children: outline }];
-
-  for (const entry of entries) {
-    if (!entry.text) {
-      continue;
-    }
-
-    while (stack.length > 0 && stack[stack.length - 1]!.indent >= entry.indent) {
-      stack.pop();
-    }
-
-    const parent = stack[stack.length - 1];
-    if (!parent) {
-      continue;
-    }
-
-    const node: OutlineNode = { text: entry.text, children: [] };
-    parent.children.push(node);
-    stack.push({ indent: entry.indent, children: node.children });
-  }
-
-  return outline;
 }
