@@ -25,3 +25,10 @@ through the new module.
    list/item, unlike Lexical, so new wrappers lose typography.
 5. The helpers attempt to auto-heal malformed wrappers by removing them instead
    of surfacing invariants like Lexical does.
+
+## Harden editor schema validator tests
+
+1. Extract shared builders for editor schema fixtures to cut duplication.
+2. Add passing fixture for wrapper items with valid preceding siblings.
+3. Add mixed valid/invalid nested list fixture to confirm validator behavior.
+4. Reuse editor schema fixtures across other tests that need serialized states.
