@@ -7,7 +7,7 @@
     "preview": "vite preview",
     "lint": "pnpm run typecheck && pnpm run lint:code",
     "lint:code": "eslint --max-warnings=0",
-    "lint:code:watch": "chokidar \"**/*.{ts,tsx,js,jsx,mts,cts}\" --initial -i \"**/{node_modules,data,.git}/**\" -d 150 -c \"pnpm lint:code -- --cache --cache-location data/.eslintcache || true\"",
+    "lint:code:watch": "chokidar \"**/*.{ts,tsx,js,jsx,mts,cts}\" --initial -i \"**/{node_modules,data,.git}/**\" -d 150 -c \"pnpm lint:code && echo LINT_OK || { echo LINT_FAIL; exit 1; }\"",
     "lint:fix": "eslint --max-warnings=0 --fix",
     "typecheck": "tsc",
     "typecheck:watch": "pnpm run typecheck --watch",
