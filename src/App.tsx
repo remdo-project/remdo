@@ -33,6 +33,9 @@ export default function App() {
   const host = resolveHost();
   const previewUrl = host ? buildUrl(host, 3) : '#preview';
   const vitestUrl = host ? buildUrl(host, 2, '/__vitest__/') : '#vitest';
+  const lexicalUrl = host
+    ? `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`
+    : '#lexical';
 
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
@@ -53,6 +56,9 @@ export default function App() {
               </Anchor>
               <Anchor className="app-header-link" href={vitestUrl}>
                 Vitest
+              </Anchor>
+              <Anchor className="app-header-link" href={lexicalUrl}>
+                Lexical
               </Anchor>
             </Group>
           </nav>
