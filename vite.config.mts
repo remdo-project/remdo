@@ -1,6 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { env } from "#env";
+import { env } from "#env-server";
 import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -29,7 +29,8 @@ export default defineConfig(() => {
       alias: {
         "@": "/src",
         "#test": path.resolve(__dirname, "./tests/unit"),
-        "#env": path.resolve(__dirname, "./config/env.server.ts"),
+        "#env-server": path.resolve(__dirname, "./config/env.server.ts"),
+        "#env-client": path.resolve(__dirname, "./config/env.client.ts"),
       },
     },
     test: {

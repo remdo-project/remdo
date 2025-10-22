@@ -1,4 +1,4 @@
-import { env } from '#env';
+import { env } from '#env-server';
 import { applyVitestPreviewCacheEnv } from '../../../../config/vitest-preview-env';
 
 type DebugFn = typeof import('vitest-preview')['debug'];

@@ -4,10 +4,11 @@ import { CollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 
-import {  useCallback } from 'react';
+import { useCallback } from 'react';
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 import { useEditorConfig } from './config';
@@ -22,8 +23,13 @@ interface EditorComposerProps {
 
 export function EditorComposer({ children }: EditorComposerProps) {
   const { initialConfig, dev } = useEditorConfig();
+  const isTestEnv = import.meta.env.MODE === 'test';
+  const collabEnabled = dev && !isTestEnv;
 
-  const providerFactory = useCallback((id: string, docMap: Map<string, Y.Doc>): Provider => {
+  const providerFactory = useCallback((id: string, docMap: Map<string, Y.Doc>): Provider | null => {
+    if(!collabEnabled) {
+      return null;
+    }
     let doc = docMap.get(id);
     if (!doc) {
       doc = new Y.Doc();
@@ -46,7 +52,7 @@ export function EditorComposer({ children }: EditorComposerProps) {
     });
 
     return provider as unknown as Provider;
-  }, []);
+  }, [collabEnabled]);
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
@@ -58,13 +64,18 @@ export function EditorComposer({ children }: EditorComposerProps) {
         <RootSchemaPlugin />
         <IndentationPlugin />
         <ListPlugin hasStrictIndent />
-        <LexicalCollaboration>
-          <CollaborationPlugin
-            id="lexical-demo-room2"
-            providerFactory={providerFactory}
-            shouldBootstrap
-          />
-        </LexicalCollaboration>
+        {collabEnabled ? (
+          <LexicalCollaboration>
+            <CollaborationPlugin
+              id="lexical-demo-room2"
+              //@ts-expect-error TODO
+              providerFactory={providerFactory}
+              shouldBootstrap
+            />
+          </LexicalCollaboration>
+        ) : (
+          <HistoryPlugin />
+        )}
         {children}
         {dev && <SchemaValidationPlugin />}
         {dev && <TreeViewPlugin />}
