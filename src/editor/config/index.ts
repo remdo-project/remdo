@@ -1,7 +1,6 @@
 import type { InitialConfigType } from '@lexical/react/LexicalComposer';
 import { useMemo } from 'react';
 import { onError } from './error-handler';
-import { seedInitialState } from './initial-state';
 import { editorNodes } from './nodes';
 import { editorTheme } from './theme';
 
@@ -17,7 +16,7 @@ export function useEditorConfig(): EditorConfigResult {
       theme: editorTheme,
       nodes: editorNodes,
       onError,
-      editorState: seedInitialState,
+      editorState: null,
     }),
     []
   );
