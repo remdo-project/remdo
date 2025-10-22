@@ -1,7 +1,9 @@
 {
   "packageManager": "pnpm@10.18.2+sha512.9fb969fa749b3ade6035e0f109f0b8a60b5d08a1a87fdf72e337da90dcc93336e2280ca4e44f2358a649b83c17959e9993e777c2080879f3801e6f0d999ad3dd",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"pnpm run dev:web\" \"pnpm run dev:ws\"",
+    "dev:web": "vite",
+    "dev:ws": "node ./scripts/ws-server.mjs",
     "dev:init": "./scripts/dev-init.sh",
     "build": "vite build",
     "preview": "vite preview",
@@ -28,13 +30,16 @@
     "@lexical/react": "^0.37.0",
     "@lexical/rich-text": "^0.37.0",
     "@lexical/utils": "^0.37.0",
+    "@lexical/yjs": "^0.37.0",
     "@mantine/core": "^8.3.5",
     "@mantine/hooks": "^8.3.5",
     "dotenv-flow": "^4.1.0",
     "envalid": "^8.1.0",
     "lexical": "^0.37.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "y-websocket": "3.0.0",
+    "yjs": "^13.6.27"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^5.4.1",
@@ -49,7 +54,9 @@
     "@vitejs/plugin-react-swc": "^4.1.0",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
+    "@y/websocket-server": "^0.1.1",
     "chokidar-cli": "^3.0.0",
+    "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "eslint": "^9.37.0",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -60,6 +67,7 @@
     "typescript": "^5.9.3",
     "vite": "^7.1.9",
     "vitest": "^3.2.4",
-    "vitest-preview": "^0.0.3"
+    "vitest-preview": "^0.0.3",
+    "ws": "6.2.1"
   }
 }

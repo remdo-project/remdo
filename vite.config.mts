@@ -1,6 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { env } from "#env-server";
+import { browserEnv, env } from "#env-server";
 import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -25,6 +25,12 @@ export default defineConfig(() => {
       host: "0.0.0.0",
       strictPort: true,
     },
+    define: Object.fromEntries(
+      Object.entries(browserEnv).map(([key, value]) => [
+        `import.meta.env.VITE_${key}`,
+        JSON.stringify(value),
+      ])
+    ),
     resolve: {
       alias: {
         "@": "/src",

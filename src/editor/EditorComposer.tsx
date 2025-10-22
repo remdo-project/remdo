@@ -1,4 +1,5 @@
 import type { Provider } from "@lexical/yjs";
+import { env as clientEnv } from '#env-client';
 import { LexicalCollaboration } from '@lexical/react/LexicalCollaborationContext';
 import { CollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
@@ -26,9 +27,11 @@ export function EditorComposer({ children }: EditorComposerProps) {
   const isTestEnv = import.meta.env.MODE === 'test';
   const collabEnabled = dev && !isTestEnv;
 
-  const providerFactory = useCallback((id: string, docMap: Map<string, Y.Doc>): Provider | null => {
-    if(!collabEnabled) {
-      return null;
+  type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => Provider;
+
+  const providerFactory = useCallback<ProviderFactory>((id, docMap) => {
+    if (!collabEnabled) {
+      throw new Error('Collaboration provider requested while disabled');
     }
     let doc = docMap.get(id);
     if (!doc) {
@@ -39,7 +42,7 @@ export function EditorComposer({ children }: EditorComposerProps) {
     const endpoint = (() => {
       const { protocol, hostname } = window.location;
       const wsProtocol = protocol === "https:" ? "wss" : "ws";
-      return `${wsProtocol}://${hostname}:4004`;
+      return `${wsProtocol}://${hostname}:${clientEnv.collabPort}`;
     })();
 
     const provider = new WebsocketProvider(endpoint, `${id}-3`, doc, {
@@ -68,7 +71,6 @@ export function EditorComposer({ children }: EditorComposerProps) {
           <LexicalCollaboration>
             <CollaborationPlugin
               id="lexical-demo-room2"
-              //@ts-expect-error TODO
               providerFactory={providerFactory}
               shouldBootstrap
             />
