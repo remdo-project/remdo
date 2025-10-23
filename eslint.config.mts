@@ -32,6 +32,25 @@ export default antfu(
     },
   },
   {
+    files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
+    ignores: ['config/env.client.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']",
+          message: 'Use #env-client instead of accessing import.meta.env directly.',
+        },
+      ],
+    },
+  },
+  {
+    files: ['config/env.client.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
+    },
+  },
+  {
     files: ['tests/**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {

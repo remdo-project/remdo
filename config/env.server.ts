@@ -20,6 +20,7 @@ const base = cleanEnv(process.env, {
   HOST: str({ default: '127.0.0.1' }),
   PORT: num({ default: 4000 }),
   HMR_PORT: port({ default: 0 }), // placeholder
+  COLLAB_ENABLED: bool({ default: true }),
   COLLAB_SERVER_PORT: port({ default: 0 }), // placeholder
   COLLAB_CLIENT_PORT: port({ default: 0 }), // placeholder
   VITEST_PORT: port({ default: 0 }), // placeholder
@@ -35,8 +36,10 @@ export const env = {
   COLLAB_CLIENT_PORT: base.COLLAB_CLIENT_PORT || base.COLLAB_SERVER_PORT || (base.PORT + 4),
   VITEST_PORT: base.VITEST_PORT || (base.PORT + 2),
   VITEST_PREVIEW_PORT: base.VITEST_PREVIEW_PORT || (base.PORT + 3),
+  COLLAB_ENABLED: base.COLLAB_ENABLED,
 };
 
 export const browserEnv = {
   COLLAB_CLIENT_PORT: env.COLLAB_CLIENT_PORT,
+  COLLAB_ENABLED: env.COLLAB_ENABLED,
 };

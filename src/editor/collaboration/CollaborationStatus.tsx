@@ -1,5 +1,6 @@
 import type { Provider } from '@lexical/yjs';
 import type { ReactNode } from 'react';
+import { env } from '#env-client';
 import { LexicalCollaboration } from '@lexical/react/LexicalCollaborationContext';
 import { CollaborationPlugin as LexicalCollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
@@ -53,8 +54,7 @@ export function CollaborationPlugin() {
 }
 
 function useCollaborationRuntimeValue(): CollaborationStatusValue {
-  const isTestEnv = import.meta.env.MODE === 'test';
-  const enabled = import.meta.env.DEV && !isTestEnv;
+  const enabled = env.collabEnabled;
   const [ready, setReady] = useState(!enabled);
   const endpoint = useMemo(resolveDefaultEndpoint, []);
 
@@ -106,7 +106,7 @@ function createProviderFactory(setReady: (value: boolean) => void, endpoint: str
 function resolveDefaultEndpoint() {
   const { protocol, hostname } = window.location;
   const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
-  return `${wsProtocol}://${hostname}:${import.meta.env.VITE_COLLAB_CLIENT_PORT ?? ''}`;
+  return `${wsProtocol}://${hostname}:${env.collabPort}`;
 }
 
 function resolveRoom(id: string): string {
@@ -117,6 +117,8 @@ function getOrCreateDoc(id: string, docs: Map<string, Y.Doc>): Y.Doc {
   let doc = docs.get(id);
   if (!doc) {
     doc = new Y.Doc();
+    //TODO do we need that?
+    //doc.get('root', Y.XmlText);
     docs.set(id, doc);
   }
   return doc;

@@ -1,7 +1,8 @@
 import type { LexicalEditor } from 'lexical';
+import { env } from '#env-client';
 
 export function onError(error: Error, _editor: LexicalEditor) {
-  if (import.meta.env.MODE !== 'production') {
+  if (env.mode !== 'production') {
     throw error;
   }
 

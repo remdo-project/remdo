@@ -6,10 +6,6 @@ export function SchemaValidationPlugin(): null {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    if (!import.meta.env.DEV) {
-      return;
-    }
-
     return editor.registerUpdateListener(() => {
       try {
         const state = editor.getEditorState().toJSON();

@@ -1,3 +1,4 @@
+import { env } from '#env-client';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
@@ -30,8 +31,8 @@ export function EditorComposer({ children }: EditorComposerProps) {
           <ListPlugin hasStrictIndent />
           <CollaborationPlugin />
           {children}
-          {import.meta.env.DEV && <SchemaValidationPlugin />}
-          {import.meta.env.DEV && <TreeViewPlugin />}
+          {env.isDev && <SchemaValidationPlugin />}
+          {env.isDev && <TreeViewPlugin />}
         </div>
       </CollaborationProvider>
     </LexicalComposer>
