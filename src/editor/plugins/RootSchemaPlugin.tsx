@@ -1,29 +1,24 @@
-import type {
-  ListNode
-} from '@lexical/list';
+import type { ListNode } from '@lexical/list';
 import type { LexicalEditor } from 'lexical';
-import {
-  $createListItemNode,
-  $createListNode,
-  $isListItemNode,
-  $isListNode
-} from '@lexical/list';
+import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import {
-  $createParagraphNode,
-  $getRoot,
-  RootNode,
-} from 'lexical';
+import { $createParagraphNode, $getRoot, RootNode } from 'lexical';
 import { useEffect } from 'react';
+import { useCollaborationStatus } from '../collaboration/CollaborationStatus';
 
 export function RootSchemaPlugin() {
   const [editor] = useLexicalComposerContext();
+  const { ready } = useCollaborationStatus();
 
   useEffect(() => {
+    if (!ready) {
+      return;
+    }
+
     const unregister = editor.registerNodeTransform(RootNode, $ensureSingleListRoot);
     normalizeRootOnce(editor);
     return unregister;
-  }, [editor]);
+  }, [editor, ready]);
 
   return null;
 }

@@ -1,17 +1,9 @@
-import type { Provider } from "@lexical/yjs";
-import { env as clientEnv } from '#env-client';
-import { LexicalCollaboration } from '@lexical/react/LexicalCollaborationContext';
-import { CollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
-import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-
-import { useCallback } from 'react';
-import { WebsocketProvider } from "y-websocket";
-import * as Y from "yjs";
+import { CollaborationPlugin, CollaborationProvider } from './collaboration/CollaborationStatus';
 import { useEditorConfig } from './config';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
@@ -23,65 +15,25 @@ interface EditorComposerProps {
 }
 
 export function EditorComposer({ children }: EditorComposerProps) {
-  const { initialConfig, dev } = useEditorConfig();
-  const isTestEnv = import.meta.env.MODE === 'test';
-  const collabEnabled = dev && !isTestEnv;
-
-  type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => Provider;
-
-  const providerFactory = useCallback<ProviderFactory>((id, docMap) => {
-    if (!collabEnabled) {
-      throw new Error('Collaboration provider requested while disabled');
-    }
-    let doc = docMap.get(id);
-    if (!doc) {
-      doc = new Y.Doc();
-      docMap.set(id, doc);
-    }
-
-    const endpoint = (() => {
-      const { protocol, hostname } = window.location;
-      const wsProtocol = protocol === "https:" ? "wss" : "ws";
-      return `${wsProtocol}://${hostname}:${clientEnv.collabPort}`;
-    })();
-
-    const provider = new WebsocketProvider(endpoint, `${id}-3`, doc, {
-      connect: false,
-    });
-
-    provider.on("status", (event: { status: string }) => {
-      // eslint-disable-next-line no-console
-      console.info(`Collaboration status for "${id}": ${event.status}`);
-    });
-
-    return provider as unknown as Provider;
-  }, [collabEnabled]);
+  const { initialConfig } = useEditorConfig();
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className="editor-inner">
-        <RichTextPlugin
-          contentEditable={<ContentEditable className="editor-input" />}
-          ErrorBoundary={LexicalErrorBoundary}
-        />
-        <RootSchemaPlugin />
-        <IndentationPlugin />
-        <ListPlugin hasStrictIndent />
-        {collabEnabled ? (
-          <LexicalCollaboration>
-            <CollaborationPlugin
-              id="lexical-demo-room2"
-              providerFactory={providerFactory}
-              shouldBootstrap
-            />
-          </LexicalCollaboration>
-        ) : (
-          <HistoryPlugin />
-        )}
-        {children}
-        {dev && <SchemaValidationPlugin />}
-        {dev && <TreeViewPlugin />}
-      </div>
+      <CollaborationProvider>
+        <div className="editor-inner">
+          <RichTextPlugin
+            contentEditable={<ContentEditable className="editor-input" />}
+            ErrorBoundary={LexicalErrorBoundary}
+          />
+          <RootSchemaPlugin />
+          <IndentationPlugin />
+          <ListPlugin hasStrictIndent />
+          <CollaborationPlugin />
+          {children}
+          {import.meta.env.DEV && <SchemaValidationPlugin />}
+          {import.meta.env.DEV && <TreeViewPlugin />}
+        </div>
+      </CollaborationProvider>
     </LexicalComposer>
   );
 }

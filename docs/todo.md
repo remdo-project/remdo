@@ -7,8 +7,8 @@ from the proposed approaches). The module should encapsulate `import.meta.env`
 usage and expose fields like `env`, `dev`, and future shared flags so features
 can read configuration without touching environment globals directly. This
 change should replace the current `dev` flag sourced from the editor config, and
-allow us to remove the existing `#env-server` alias by routing all environment access
-through the new module.
+allow us to remove the existing `#env-server` alias by routing all environment
+access through the new module.
 
 ## Align note indent/outdent helpers with Lexical
 
@@ -40,9 +40,10 @@ Evaluate adding a test that loops through every JSON fixture, runs
 compares to the original data structure.
 
 Options to consider when implementing:
+
 1. Extend the existing `lexicalLoad` harness with a variant that accepts raw
-   JSON (no temp files). Pros: reuses the established editor config.
-   Cons: requires a small refactor of the helper.
+   JSON (no temp files). Pros: reuses the established editor config. Cons:
+   requires a small refactor of the helper.
 2. Spin up a headless `LexicalEditor` directly inside the test. Pros: minimal
    setup, fast. Cons: must ensure node registrations/config match the main
    editor to avoid false diffs.

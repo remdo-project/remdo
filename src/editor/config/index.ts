@@ -6,7 +6,6 @@ import { editorTheme } from './theme';
 
 interface EditorConfigResult {
   initialConfig: InitialConfigType;
-  dev: boolean;
 }
 
 export function useEditorConfig(): EditorConfigResult {
@@ -23,7 +22,6 @@ export function useEditorConfig(): EditorConfigResult {
 
   return {
     initialConfig,
-    dev: import.meta.env.DEV,
   };
 }
 

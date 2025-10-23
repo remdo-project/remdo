@@ -32,7 +32,7 @@ export const env = {
   ...base,
   HMR_PORT: base.HMR_PORT || (base.PORT + 1),
   COLLAB_SERVER_PORT: base.COLLAB_SERVER_PORT || (base.PORT + 4),
-  COLLAB_CLIENT_PORT: base.COLLAB_CLIENT_PORT || (base.PORT + 4),
+  COLLAB_CLIENT_PORT: base.COLLAB_CLIENT_PORT || base.COLLAB_SERVER_PORT || (base.PORT + 4),
   VITEST_PORT: base.VITEST_PORT || (base.PORT + 2),
   VITEST_PREVIEW_PORT: base.VITEST_PREVIEW_PORT || (base.PORT + 3),
 };
