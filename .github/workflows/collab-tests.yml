@@ -1,6 +1,6 @@
 name: Collaboration Tests
 
-on: [push, pull_request]
+on: push
 
 jobs:
   collab-unit-tests:
