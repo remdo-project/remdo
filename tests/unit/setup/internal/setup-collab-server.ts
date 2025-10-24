@@ -39,7 +39,7 @@ async function isPortOpen(host: string, port: number): Promise<boolean> {
   });
 }
 
-const MAX_ATTEMPTS = 10;
+const MAX_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
 
 async function waitForPort(host: string, port: number): Promise<void> {
