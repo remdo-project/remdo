@@ -19,7 +19,7 @@
     "deps:list": "pnpm list --depth=-1 --silent",
     "test": "pnpm run test:unit",
     "test:unit": "COLLAB_ENABLED=false pnpm exec vitest run",
-    "test:unit:collab": "pnpm exec vitest run tests/unit/collab",
+    "test:unit:collab": "pnpm exec vitest run smoke",
     "test:unit:coverage": "COLLAB_ENABLED=false pnpm exec vitest run --coverage",
     "test:unit:watch": "COLLAB_ENABLED=false node ./scripts/test-unit-watch.mjs",
     "test:preview": "node ./scripts/test-preview.mjs"

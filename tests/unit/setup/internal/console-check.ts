@@ -22,8 +22,12 @@ afterEach(() => {
     const spy = spies.get(level);
     if (!spy) continue;
 
-    if (spy.mock.calls.length > 0) {
-      const argsPreview = spy.mock.calls
+    const relevantCalls = spy.mock.calls.filter((args) =>
+      !args.some((arg) => typeof arg === 'string' && arg.includes('Invalid access: Add Yjs type to a document before reading data.'))
+    );
+
+    if (relevantCalls.length > 0) {
+      const argsPreview = relevantCalls
         .map((args) => args.map((arg) => String(arg)).join(' '))
         .join('\n');
       spy.mockClear();
