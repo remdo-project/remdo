@@ -1,0 +1,92 @@
+/* eslint-disable node/no-process-env -- tests rely on process env for server configuration */
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import net from 'node:net';
+import process from 'node:process';
+import { setTimeout as wait } from 'node:timers/promises';
+import { env } from '#env-server';
+
+function lookupHost() {
+  return process.env.HOST ?? String(env.HOST);
+}
+
+function resolveProbeHost(host: string) {
+  if (host === '0.0.0.0' || host === '::') {
+    return '127.0.0.1';
+  }
+
+  return host;
+}
+
+function lookupPort() {
+  const port = process.env.COLLAB_SERVER_PORT ?? process.env.COLLAB_PORT ?? String(env.COLLAB_SERVER_PORT);
+  return Number(port);
+}
+
+async function isPortOpen(host: string, port: number): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    const socket = net.connect(port, host);
+
+    socket.once('error', () => {
+      socket.destroy();
+      resolve(false);
+    });
+
+    socket.once('connect', () => {
+      socket.end();
+      resolve(true);
+    });
+  });
+}
+
+const MAX_ATTEMPTS = 10;
+const POLL_INTERVAL = 100;
+
+async function waitForPort(host: string, port: number): Promise<void> {
+  for (let i = 0; i < MAX_ATTEMPTS; i++) {
+    if (await isPortOpen(host, port)) {
+      return;
+    }
+    await wait(POLL_INTERVAL);
+  }
+
+  throw new Error(`Collaboration websocket failed to start on ws://${host}:${port}`);
+}
+
+export default async function setupCollabServer() {
+  if (!env.COLLAB_ENABLED) {
+    return;
+  }
+
+  // TODO: align boot logic with scripts/ws-server.mjs to avoid drift between CLI and tests.
+  const host = lookupHost();
+  const port = lookupPort();
+  const probeHost = resolveProbeHost(host);
+
+  if (await isPortOpen(probeHost, port)) {
+    return;
+  }
+
+  const child = spawn('node', ['./scripts/ws-server.mjs'], {
+    env: {
+      ...process.env,
+      HOST: host,
+      COLLAB_SERVER_PORT: String(port),
+      COLLAB_ENABLED: 'true',
+    },
+    stdio: 'inherit',
+  });
+
+  try {
+    await waitForPort(probeHost, port);
+  } catch (error) {
+    child.kill('SIGTERM');
+    await once(child, 'exit');
+    throw error;
+  }
+
+  return async () => {
+    child.kill('SIGTERM');
+    await once(child, 'exit');
+  };
+}

@@ -1,0 +1,16 @@
+name: Collaboration Tests
+
+on: [push, pull_request]
+
+jobs:
+  collab-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-pnpm
+
+      - name: Load collaboration test env
+        run: cat .github/env/collab-tests.env >> "$GITHUB_ENV"
+
+      - name: Run collaboration unit tests
+        run: pnpm run test:unit:collab
