@@ -1,10 +1,10 @@
 import { env } from '#env-server';
-import { applyVitestPreviewCacheEnv } from '../../../../config/vitest-preview-env';
+import { forceVitestPreviewCacheDir } from '../../../../config/vitest/preview-cache';
 
 type DebugFn = typeof import('vitest-preview')['debug'];
 type PreviewFn = (...args: Parameters<DebugFn>) => ReturnType<DebugFn>;
 
-applyVitestPreviewCacheEnv();
+forceVitestPreviewCacheDir();
 
 // eslint-disable-next-line antfu/no-top-level-await -- ensure vitest-preview reads TMP env overrides before initializing
 const { debug } = await import('vitest-preview');

@@ -11,13 +11,13 @@ const require = createRequire(import.meta.url);
 const jiti = require('jiti')(import.meta.url);
 
 const { env } = jiti('../config/env.server.ts');
-const { applyVitestPreviewCacheEnv } = jiti('../config/vitest-preview-env.ts');
+const { forceVitestPreviewCacheDir } = jiti('../config/vitest/preview-cache.ts');
 
 process.env.HOST = env.HOST;
 process.env.PORT = String(env.VITEST_PREVIEW_PORT);
 process.env.VITEST_PREVIEW = 'true';
 
-applyVitestPreviewCacheEnv();
+forceVitestPreviewCacheDir();
 
 const pnpmCmd = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const child = spawn(pnpmCmd, ['exec', 'vitest-preview'], {

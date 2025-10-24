@@ -1,23 +1,11 @@
-const rawCollabPort = import.meta.env.VITE_COLLAB_CLIENT_PORT;
-const rawCollabEnabled = import.meta.env.VITE_COLLAB_ENABLED;
+import { parseEnv } from './env.parse';
+import { envSpec } from './env.spec';
 
-const collabPort =
-  typeof rawCollabPort === 'number'
-    ? rawCollabPort
-    : rawCollabPort
-      ? Number(rawCollabPort)
-      : undefined;
-
-const collabEnabled =
-  typeof rawCollabEnabled === 'boolean'
-    ? rawCollabEnabled
-    : rawCollabEnabled === undefined
-      ? true
-      : rawCollabEnabled !== 'false';
+const parsed = parseEnv(envSpec, (key) => import.meta.env[`VITE_${key}`]);
 
 export const env = {
   mode: import.meta.env.MODE,
   isDev: import.meta.env.DEV,
-  collabPort,
-  collabEnabled,
+  collabPort: parsed.COLLAB_CLIENT_PORT,
+  collabEnabled: parsed.COLLAB_ENABLED,
 } as const;

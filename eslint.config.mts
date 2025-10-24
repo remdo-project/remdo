@@ -51,6 +51,12 @@ export default antfu(
     },
   },
   {
+    files: ['config/env.server.ts'],
+    rules: {
+      'node/no-process-env': 'off',
+    },
+  },
+  {
     files: ['tests/**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {
