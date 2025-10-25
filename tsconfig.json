@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": "./data/cache/tsconfig.tsbuildinfo",
     "target": "ES2022",
     "jsx": "react-jsx",
     "lib": [
@@ -35,9 +37,7 @@
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true,
-    "incremental": true,
-    "tsBuildInfoFile": "./data/cache/tsconfig.tsbuildinfo"
+    "skipLibCheck": true
   },
   "include": [
     "./**/*"
