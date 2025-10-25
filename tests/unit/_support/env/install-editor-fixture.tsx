@@ -6,7 +6,7 @@ import {
   lexicalMutate,
   LexicalTestBridge,
   lexicalValidate,
-} from '#tests';
+} from '../lexical';
 import { cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
 import Editor from '@/editor/Editor';
