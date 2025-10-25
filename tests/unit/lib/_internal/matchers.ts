@@ -1,7 +1,7 @@
 import type { TestContext } from 'vitest';
-import type { Outline } from '../../helpers/note';
+import type { Outline } from '../note';
 import { expect } from 'vitest';
-import { readOutline } from '../../helpers/note';
+import { readOutline } from '../note';
 
 type LexicalTestHelpers = TestContext['lexical'];
 

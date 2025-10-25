@@ -1,6 +1,11 @@
 import { expect, it } from 'vitest';
-import { pressTab } from './helpers/keyboard';
-import { placeCaretAtNoteEnd, placeCaretAtNoteStart, placeCaretInNote, readOutline } from './helpers/note';
+import {
+  placeCaretAtNoteEnd,
+  placeCaretAtNoteStart,
+  placeCaretInNote,
+  pressTab,
+  readOutline,
+} from '#tests';
 
 const outlineIsFlat = (outline: Array<{ text: string; children: any[] }>): boolean =>
   outline.every(({ children }) => children.length === 0 && outlineIsFlat(children));

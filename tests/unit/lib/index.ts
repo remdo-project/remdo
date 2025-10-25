@@ -2,10 +2,7 @@ import './_internal/console-check';
 import './_internal/matchers';
 import './_internal/setup-browser-mocks';
 
-export type {
-  Outline,
-  OutlineNode,
-} from '../helpers/note';
+export { pressTab } from './keyboard';
 export {
   lexicalGetEditorState,
   lexicalLoad,
@@ -15,3 +12,13 @@ export {
 export { default as LexicalTestBridge } from './_internal/LexicalTestBridge';
 export { default as setupCollabServer } from './_internal/setup-collab-server';
 export { preview } from './_internal/setup-preview';
+export {
+  placeCaretAtNoteEnd,
+  placeCaretAtNoteStart,
+  placeCaretInNote,
+  readOutline,
+} from './note';
+export type {
+  Outline,
+  OutlineNode,
+} from './note';

@@ -1,5 +1,5 @@
 import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
-import type { Outline } from '../helpers/note';
+import type { Outline } from '#tests';
 
 type EditorStateJSON = ReturnType<ReturnType<LexicalEditor['getEditorState']>['toJSON']>;
 
