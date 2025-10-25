@@ -42,7 +42,7 @@ export default defineConfig(() => {
     },
     test: {
       environment: 'jsdom',
-      globalSetup: './tests/unit/_support/env/start-collab-server.ts',
+      globalSetup: './tests/unit/_support/env/services/collab-server.ts',
       setupFiles: [
         './tests/unit/_support/env/install-global-helpers.ts',
         './tests/unit/_support/env/install-editor-fixture.tsx'
