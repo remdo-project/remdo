@@ -6,6 +6,13 @@ export default antfu(
     typescript: true,
     ignores: ['node_modules/**', 'data/**', 'public/**'],
     stylistic: false,
+    // disable as they slow down changes a lot (ai assitants in particular)
+    rules: {
+      'perfectionist/sort-imports': 'off',
+      'perfectionist/sort-named-imports': 'off',
+      'perfectionist/sort-exports': 'off',
+      'perfectionist/sort-named-exports': 'off',
+    },
   },
   {
     files: ['**/*.ts', '**/*.tsx'],
