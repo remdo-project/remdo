@@ -2,7 +2,8 @@ import './_internal/console-check';
 import './_internal/matchers';
 import './_internal/setup-browser-mocks';
 
-export { pressTab } from './keyboard';
+export * from './keyboard';
+export * from './note';
 export {
   lexicalGetEditorState,
   lexicalLoad,
@@ -11,13 +12,3 @@ export {
 } from './_internal/lexical-helpers';
 export { default as LexicalTestBridge } from './_internal/LexicalTestBridge';
 export { preview } from './_internal/setup-preview';
-export {
-  placeCaretAtNoteEnd,
-  placeCaretAtNoteStart,
-  placeCaretInNote,
-  readOutline,
-} from './note';
-export type {
-  Outline,
-  OutlineNode,
-} from './note';

@@ -17,13 +17,13 @@
         "./src/*"
       ],
       "#tests": [
-        "./tests/unit/lib/index.ts"
+        "./tests/unit/_support/lib/index.ts"
       ],
       "#fixtures/*": [
         "./tests/fixtures/*"
       ],
       "#tests/*": [
-        "./tests/unit/lib/*"
+        "./tests/unit/_support/lib/*"
       ],
       "#env-server": [
         "./config/env.server.ts"
