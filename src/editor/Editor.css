@@ -5,6 +5,8 @@
   border-radius: var(--mantine-radius-md);
   background-color: var(--mantine-color-dark-6);
   box-sizing: border-box;
+  position: relative;
+  padding: var(--mantine-spacing-lg) var(--mantine-spacing-xl);
 }
 
 .app-header {
@@ -34,12 +36,6 @@
 .app-header-link:hover,
 .app-header-link:focus-visible {
   color: var(--mantine-color-gray-0);
-}
-
-
-.editor-inner {
-  position: relative;
-  padding: var(--mantine-spacing-lg) var(--mantine-spacing-xl);
 }
 
 .editor-root {
