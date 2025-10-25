@@ -1,10 +1,10 @@
 import type { LexicalEditor } from 'lexical';
+import { LexicalTestBridge as EditorTestBridge } from '#tests';
 import { render, screen } from '@testing-library/react';
 import { $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
 import App from '@/App';
 import Editor from '@/editor/Editor';
-import EditorTestBridge from './lib/_internal/LexicalTestBridge';
 
 it('app', () => {
   render(<App />);

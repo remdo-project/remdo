@@ -16,8 +16,11 @@
       "@/*": [
         "./src/*"
       ],
-      "#test/*": [
-        "./tests/unit/*"
+      "#tests": [
+        "./tests/unit/lib/index.ts"
+      ],
+      "#tests/*": [
+        "./tests/unit/lib/*"
       ],
       "#env-server": [
         "./config/env.server.ts"
