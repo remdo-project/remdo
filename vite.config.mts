@@ -35,13 +35,14 @@ export default defineConfig(() => {
       alias: {
         "@": "/src",
         "#tests": path.resolve(__dirname, "./tests/unit/lib"),
+        "#fixtures": path.resolve(__dirname, "./tests/fixtures"),
         "#env-server": path.resolve(__dirname, "./config/env.server.ts"),
         "#env-client": path.resolve(__dirname, "./config/env.client.ts"),
       },
     },
     test: {
       environment: 'jsdom',
-      globalSetup: './tests/unit/lib/_internal/setup-collab-server.ts',
+      globalSetup: './tests/unit/config/setup-collab-server.ts',
       setupFiles: [
         './tests/unit/setup/global.ts',
         './tests/unit/setup/each.tsx'

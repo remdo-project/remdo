@@ -10,7 +10,6 @@ export {
   lexicalValidate,
 } from './_internal/lexical-helpers';
 export { default as LexicalTestBridge } from './_internal/LexicalTestBridge';
-export { default as setupCollabServer } from './_internal/setup-collab-server';
 export { preview } from './_internal/setup-preview';
 export {
   placeCaretAtNoteEnd,

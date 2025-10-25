@@ -19,6 +19,9 @@
       "#tests": [
         "./tests/unit/lib/index.ts"
       ],
+      "#fixtures/*": [
+        "./tests/fixtures/*"
+      ],
       "#tests/*": [
         "./tests/unit/lib/*"
       ],

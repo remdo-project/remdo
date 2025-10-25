@@ -1,11 +1,11 @@
 import type { SerializedEditorState } from 'lexical';
 import { describe, expect, it } from 'vitest';
 import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
-import emptyText from '../../../fixtures/editor-schema/empty-text.json';
-import indentJump from '../../../fixtures/editor-schema/indent-jump.json';
-import listWrapperNoListitem from '../../../fixtures/editor-schema/list-wrapper-no-listitem.json';
-import minimalValid from '../../../fixtures/editor-schema/minimal-valid.json';
-import wrapperWithoutSibling from '../../../fixtures/editor-schema/wrapper-without-sibling.json';
+import emptyText from '#fixtures/editor-schema/empty-text.json';
+import indentJump from '#fixtures/editor-schema/indent-jump.json';
+import listWrapperNoListitem from '#fixtures/editor-schema/list-wrapper-no-listitem.json';
+import minimalValid from '#fixtures/editor-schema/minimal-valid.json';
+import wrapperWithoutSibling from '#fixtures/editor-schema/wrapper-without-sibling.json';
 
 describe('assertEditorSchema', () => {
   const cast = (data: { editorState: unknown }) => data.editorState as unknown as SerializedEditorState;
