@@ -4,7 +4,7 @@ import { $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
 import App from '@/App';
 import Editor from '@/editor/Editor';
-import EditorTestBridge from './setup/internal/LexicalTestBridge';
+import EditorTestBridge from './lib/_internal/LexicalTestBridge';
 
 it('app', () => {
   render(<App />);
