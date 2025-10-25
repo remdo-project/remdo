@@ -35,7 +35,9 @@
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./data/cache/tsconfig.tsbuildinfo"
   },
   "include": [
     "./**/*"
