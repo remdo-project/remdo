@@ -25,11 +25,8 @@
       "#tests/*": [
         "./tests/unit/_support/lib/*"
       ],
-      "#env-server": [
-        "./config/env.server.ts"
-      ],
-      "#env-client": [
-        "./config/env.client.ts"
+      "#config/*": [
+        "./config/*"
       ]
     },
     "resolveJsonModule": true,

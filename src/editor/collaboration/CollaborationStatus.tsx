@@ -1,6 +1,6 @@
 import type { Provider } from '@lexical/yjs';
 import type { ReactNode } from 'react';
-import { env } from '#env-client';
+import { env } from '#config/env-client';
 import { LexicalCollaboration } from '@lexical/react/LexicalCollaborationContext';
 import { CollaborationPlugin as LexicalCollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';

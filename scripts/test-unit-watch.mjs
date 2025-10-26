@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* eslint-disable node/no-process-env -- script derives env vars for Vitest watch mode */
-// Runs Vitest with dynamically calculated API port from env.server.ts.
+// Runs Vitest with dynamically calculated API port from env-server.ts.
 // Required because Vitest doesn't support runtime port configuration.
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -11,7 +11,7 @@ const jiti = require('jiti')(import.meta.url);
 
 process.env.NODE_ENV ??= 'test';
 
-const { env } = jiti('../config/env.server.ts');
+const { env } = jiti('../config/env-server.ts');
 
 const pnpmCmd = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const vitestArgs = [

@@ -1,4 +1,4 @@
-import { env } from '#env-client';
+import { env } from '#config/env-client';
 import { $getRoot } from 'lexical';
 import { describe, expect, it } from 'vitest';
 

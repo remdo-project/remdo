@@ -7,7 +7,7 @@ import process from 'node:process';
 const require = createRequire(import.meta.url);
 const jiti = require('jiti')(import.meta.url);
 
-const { env } = jiti('../config/env.server.ts');
+const { env } = jiti('../config/env-server.ts');
 
 process.env.HOST = env.HOST;
 process.env.PORT = String(env.COLLAB_SERVER_PORT);
