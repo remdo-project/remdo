@@ -1,15 +1,27 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
 import type { TestContext } from 'vitest';
+import { cleanup, render, waitFor } from '@testing-library/react';
+import { useEffect } from 'react';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { afterEach, beforeEach } from 'vitest';
+import Editor from '@/editor/Editor';
 import {
   lexicalGetEditorState,
   lexicalLoad,
   lexicalMutate,
-  LexicalTestBridge,
   lexicalValidate,
-} from '../lexical';
-import { cleanup, render, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach } from 'vitest';
-import Editor from '@/editor/Editor';
+} from '../../lexical/helpers';
+
+function LexicalTestBridge({ onReady }: { onReady: (e: LexicalEditor) => void }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    onReady(editor);
+  }, [editor, onReady]);
+
+  return null;
+}
 
 beforeEach<TestContext>(async (ctx) => {
   let editor!: LexicalEditor;

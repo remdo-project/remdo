@@ -5,5 +5,4 @@ export {
   lexicalLoad,
   lexicalMutate,
   lexicalValidate,
-} from './helpers';
-export { default as LexicalTestBridge } from './LexicalTestBridge';
+} from '../lexical/helpers';

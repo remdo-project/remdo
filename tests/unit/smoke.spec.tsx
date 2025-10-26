@@ -1,24 +1,11 @@
-import type { LexicalEditor } from 'lexical';
-import { LexicalTestBridge as EditorTestBridge } from '#tests';
 import { render, screen } from '@testing-library/react';
 import { $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
 import App from '@/App';
-import Editor from '@/editor/Editor';
 
 it('app', () => {
   render(<App />);
   expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-});
-
-it('editor', async () => {
-  let editor!: LexicalEditor;
-  render(
-    <Editor>
-      <EditorTestBridge onReady={(e) => (editor = e)} />
-    </Editor>
-  );
-  expect(editor).toBeTruthy();
 });
 
 it('lexical helpers', async ({ lexical }) => {
