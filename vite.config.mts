@@ -43,10 +43,7 @@ export default defineConfig(() => {
     test: {
       environment: 'jsdom',
       globalSetup: './tests/unit/_support/services/collab-server.ts',
-      setupFiles: [
-        './tests/unit/_support/setup/global/index.ts',
-        './tests/unit/_support/setup/editor/install-editor-fixture.tsx'
-      ],
+      setupFiles: ['./tests/unit/_support/setup/index.ts'],
       include: ['tests/**/*.spec.{ts,tsx}'],
       css: true,
       coverage: {

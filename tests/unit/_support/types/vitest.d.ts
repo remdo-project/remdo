@@ -1,22 +1,11 @@
-import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
 import type { Outline } from '#tests';
-
-type EditorStateJSON = ReturnType<ReturnType<LexicalEditor['getEditorState']>['toJSON']>;
+import type { LexicalTestHelpers as LexicalHelpers } from '../setup/lexical/types';
 
 declare module 'vitest' {
-  interface LexicalTestHelpers {
-    editor: LexicalEditor;
-    load: (filename: string) => void;
-    mutate: (
-      fn: () => void,
-      opts?: EditorUpdateOptions
-    ) => Promise<void>;
-    validate: <T>(fn: () => T) => T;
-    getEditorState: () => EditorStateJSON;
-  }
+  interface LexicalTestHelpers extends LexicalHelpers {}
 
   export interface TestContext {
-    lexical: LexicalTestHelpers;
+    lexical: LexicalHelpers;
   }
 
   interface Assertion<T = any> {

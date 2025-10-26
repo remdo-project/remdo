@@ -1,0 +1,39 @@
+import { env } from '#env-server';
+import { forceVitestPreviewCacheDir } from '../../../../../config/vitest/preview-cache';
+
+type DebugFn = typeof import('vitest-preview')['debug'];
+export type PreviewFn = (...args: Parameters<DebugFn>) => ReturnType<DebugFn>;
+
+declare global {
+  // eslint-disable-next-line vars-on-top -- ambient declaration required for global helper exposure
+  var preview: PreviewFn;
+}
+
+let previewConfigured = false;
+
+export async function configurePreview(): Promise<void> {
+  if (previewConfigured) return;
+
+  forceVitestPreviewCacheDir();
+
+  const { debug } = await import('vitest-preview');
+  let hasPreviewRun = false;
+
+  const preview: PreviewFn = (...args) => {
+    if (env.CI) {
+      throw new Error('preview() is disabled in CI. Remove preview() before committing.');
+    }
+
+    if (hasPreviewRun) {
+      throw new Error(
+        'preview() called more than once. Remove earlier preview() calls to avoid overwriting the rendered output.'
+      );
+    }
+
+    hasPreviewRun = true;
+    return debug(...args);
+  };
+
+  globalThis.preview = preview;
+  previewConfigured = true;
+}
