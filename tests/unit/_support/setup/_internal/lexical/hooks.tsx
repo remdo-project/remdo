@@ -6,19 +6,19 @@ import { render, waitFor } from '@testing-library/react';
 import { beforeEach } from 'vitest';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import Editor from '@/editor/Editor';
-import { createLexicalTestHelpers } from './helpers';
+import { createLexicalTestHelpers } from './state';
+
+const Bridge = ({ onReady }: { onReady: (editor: LexicalEditor) => void }) => {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    onReady(editor);
+  }, [editor, onReady]);
+
+  return null;
+};
 
 const LexicalHarness = ({ onReady }: { onReady: (editor: LexicalEditor) => void }) => {
-  const Bridge = ({ onReady }: { onReady: (editor: LexicalEditor) => void }) => {
-    const [editor] = useLexicalComposerContext();
-
-    useEffect(() => {
-      onReady(editor);
-    }, [editor, onReady]);
-
-    return null;
-  };
-
   return (
     <Editor>
       <Bridge onReady={onReady} />

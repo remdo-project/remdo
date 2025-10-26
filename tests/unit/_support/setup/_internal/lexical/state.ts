@@ -3,8 +3,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
+import type { LexicalTestHelpers } from './types';
 
-export function lexicalLoad(
+function lexicalLoad(
   editor: LexicalEditor,
   filename: string
 ): void {
@@ -33,7 +34,7 @@ export function lexicalLoad(
   editor.setEditorState(editorState);
 }
 
-export async function lexicalMutate(
+async function lexicalMutate(
   editor: LexicalEditor,
   fn: () => void,
   opts: EditorUpdateOptions = {}
@@ -83,10 +84,20 @@ export async function lexicalMutate(
   });
 }
 
-export function lexicalValidate<T>(editor: LexicalEditor, fn: () => T): T {
+function lexicalValidate<T>(editor: LexicalEditor, fn: () => T): T {
   return editor.getEditorState().read(fn);
 }
 
-export function lexicalGetEditorState(editor: LexicalEditor) {
+function lexicalGetEditorState(editor: LexicalEditor) {
   return editor.getEditorState().toJSON();
+}
+
+export function createLexicalTestHelpers(editor: LexicalEditor): LexicalTestHelpers {
+  return {
+    editor,
+    load: (filename: string) => lexicalLoad(editor, filename),
+    mutate: (fn, opts) => lexicalMutate(editor, fn, opts),
+    validate: (fn) => lexicalValidate(editor, fn),
+    getEditorState: () => lexicalGetEditorState(editor),
+  } as LexicalTestHelpers;
 }
