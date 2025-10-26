@@ -36,12 +36,6 @@ export default antfu(
           allowedVariables: ['NODE_ENV'],
         },
       ],
-    },
-  },
-  {
-    files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
-    ignores: ['config/env.client.ts'],
-    rules: {
       'no-restricted-syntax': [
         'error',
         {
@@ -49,18 +43,6 @@ export default antfu(
           message: 'Use #env-client instead of accessing import.meta.env directly.',
         },
       ],
-    },
-  },
-  {
-    files: ['config/env.client.ts'],
-    rules: {
-      'no-restricted-syntax': 'off',
-    },
-  },
-  {
-    files: ['config/env.server.ts'],
-    rules: {
-      'node/no-process-env': 'off',
     },
   },
   {
@@ -78,6 +60,18 @@ export default antfu(
           ],
         },
       ],
+    },
+  },
+  {
+    files: ['config/env.server.ts'],
+    rules: {
+      'node/no-process-env': 'off',
+    },
+  },
+  {
+    files: ['config/env.client.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
     },
   },
   {
