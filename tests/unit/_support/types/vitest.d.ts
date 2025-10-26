@@ -1,5 +1,5 @@
 import type { Outline } from '#tests';
-import type { LexicalTestHelpers as LexicalHelpers } from '../setup/lexical/types';
+import type { LexicalTestHelpers as LexicalHelpers } from '../setup/_internal/lexical/types';
 
 declare module 'vitest' {
   interface LexicalTestHelpers extends LexicalHelpers {}

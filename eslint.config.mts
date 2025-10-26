@@ -64,6 +64,23 @@ export default antfu(
     },
   },
   {
+    files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
+    ignores: ['tests/unit/_support/setup/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/_support/setup/**'],
+              message: 'Test setup helpers are internal; reference them via Vitest configuration instead of importing directly.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['tests/**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {

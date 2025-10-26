@@ -1,5 +1,5 @@
 import { env } from '#env-server';
-import { forceVitestPreviewCacheDir } from '../../../../../config/vitest/preview-cache';
+import { forceVitestPreviewCacheDir } from '../../../../../../config/vitest/preview-cache';
 
 type DebugFn = typeof import('vitest-preview')['debug'];
 export type PreviewFn = (...args: Parameters<DebugFn>) => ReturnType<DebugFn>;

@@ -1,7 +1,7 @@
 import { beforeAll } from 'vitest';
-import './assertions';
-import { bootstrapEnv } from './env';
-import './lexical';
+import './_internal/assertions';
+import { bootstrapEnv } from './_internal/env';
+import './_internal/lexical';
 
 beforeAll(async () => {
   await bootstrapEnv();
