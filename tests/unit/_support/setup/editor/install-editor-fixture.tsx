@@ -11,7 +11,7 @@ import {
   lexicalLoad,
   lexicalMutate,
   lexicalValidate,
-} from '../../lexical/helpers';
+} from './lexical/helpers';
 
 function LexicalTestBridge({ onReady }: { onReady: (e: LexicalEditor) => void }) {
   const [editor] = useLexicalComposerContext();
