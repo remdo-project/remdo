@@ -4,7 +4,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { CollaborationPlugin, CollaborationProvider } from './collaboration/CollaborationStatus';
+import { CollaborationPlugin, CollaborationProvider } from './plugins/collaboration';
 import { useEditorConfig } from './config';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';

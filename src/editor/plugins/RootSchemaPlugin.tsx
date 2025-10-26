@@ -4,7 +4,7 @@ import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } fr
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $createParagraphNode, $getRoot, RootNode } from 'lexical';
 import { useEffect } from 'react';
-import { useCollaborationStatus } from '../collaboration/CollaborationStatus';
+import { useCollaborationStatus } from './collaboration';
 
 export function RootSchemaPlugin() {
   const [editor] = useLexicalComposerContext();
