@@ -1,8 +1,5 @@
-import { beforeAll } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import './_internal/assertions';
-import { bootstrapEnv } from './_internal/env';
+import './_internal/env';
 import './_internal/lexical';
-
-beforeAll(async () => {
-  await bootstrapEnv();
-});
+import './_internal/testing-library';
