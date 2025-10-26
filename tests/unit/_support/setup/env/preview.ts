@@ -9,11 +9,7 @@ declare global {
   var preview: PreviewFn;
 }
 
-let previewConfigured = false;
-
-export async function configurePreview(): Promise<void> {
-  if (previewConfigured) return;
-
+export const previewSetup = (async () => {
   forceVitestPreviewCacheDir();
 
   const { debug } = await import('vitest-preview');
@@ -35,5 +31,4 @@ export async function configurePreview(): Promise<void> {
   };
 
   globalThis.preview = preview;
-  previewConfigured = true;
-}
+})();

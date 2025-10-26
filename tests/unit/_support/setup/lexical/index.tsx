@@ -7,32 +7,25 @@ import { lexicalGetEditorState, lexicalLoad, lexicalMutate, lexicalValidate } fr
 import { LexicalTestBridge } from './test-bridge';
 import type { LexicalTestHelpers } from './types';
 
-let registered = false;
+beforeEach<TestContext>(async (ctx) => {
+  let editor!: LexicalEditor;
 
-export function registerLexicalTestHarness(): void {
-  if (registered) return;
-  registered = true;
+  render(
+    <Editor>
+      <LexicalTestBridge onReady={(instance) => { editor = instance; }} />
+    </Editor>
+  );
 
-  beforeEach<TestContext>(async (ctx) => {
-    let editor!: LexicalEditor;
-
-    render(
-      <Editor>
-        <LexicalTestBridge onReady={(instance) => { editor = instance; }} />
-      </Editor>
-    );
-
-    await waitFor(() => {
-      if (!editor) throw new Error('Lexical editor not initialized in time');
-    });
-
-    ctx.lexical = createLexicalTestHelpers(editor);
+  await waitFor(() => {
+    if (!editor) throw new Error('Lexical editor not initialized in time');
   });
 
-  afterEach(() => {
-    cleanup();
-  });
-}
+  ctx.lexical = createLexicalTestHelpers(editor);
+});
+
+afterEach(() => {
+  cleanup();
+});
 
 function createLexicalTestHelpers(editor: LexicalEditor): LexicalTestHelpers {
   return {

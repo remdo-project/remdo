@@ -1,10 +1,7 @@
 import { beforeAll } from 'vitest';
-import { registerAssertions } from './assertions';
+import './assertions';
 import { bootstrapEnv } from './env';
-import { registerLexicalTestHarness } from './lexical';
-
-registerAssertions();
-registerLexicalTestHarness();
+import './lexical';
 
 beforeAll(async () => {
   await bootstrapEnv();
