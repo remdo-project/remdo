@@ -1,11 +1,21 @@
+import type { ReactNode } from 'react';
 import { LexicalCollaboration } from '@lexical/react/LexicalCollaborationContext';
 import { CollaborationPlugin as LexicalCollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
-import { useCollaborationStatus } from './CollaborationProvider';
+import { CollaborationProvider, useCollaborationStatus } from './CollaborationProvider';
 
-const DEFAULT_ROOM_ID = 'lexical-demo-room2';
+const DEFAULT_ROOM_ID = 'main';
 
-export function CollaborationPlugin() {
+export function CollaborationPlugin({ children }: { children?: ReactNode }) {
+  return (
+    <CollaborationProvider>
+      {children}
+      <CollaborationRuntimePlugin />
+    </CollaborationProvider>
+  );
+}
+
+function CollaborationRuntimePlugin() {
   const { enabled, providerFactory } = useCollaborationStatus();
 
   if (!enabled) {

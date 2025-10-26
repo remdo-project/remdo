@@ -4,7 +4,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { CollaborationPlugin, CollaborationProvider } from './plugins/collaboration';
+import { CollaborationPlugin } from './plugins/collaboration';
 import { useEditorConfig } from './config';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
@@ -22,19 +22,18 @@ export default function Editor({ children }: EditorProps) {
   return (
     <div className="editor-container">
       <LexicalComposer initialConfig={initialConfig}>
-        <CollaborationProvider>
-          <RichTextPlugin
-            contentEditable={<ContentEditable className="editor-input" />}
-            ErrorBoundary={LexicalErrorBoundary}
-          />
+        <RichTextPlugin
+          contentEditable={<ContentEditable className="editor-input" />}
+          ErrorBoundary={LexicalErrorBoundary}
+        />
+        <IndentationPlugin />
+        <ListPlugin hasStrictIndent />
+        <CollaborationPlugin>
           <RootSchemaPlugin />
-          <IndentationPlugin />
-          <ListPlugin hasStrictIndent />
-          <CollaborationPlugin />
-          {children}
-          {env.isDev && <SchemaValidationPlugin />}
-          {env.isDev && <TreeViewPlugin />}
-        </CollaborationProvider>
+        </CollaborationPlugin>
+        {children}
+        {env.isDev && <SchemaValidationPlugin />}
+        {env.isDev && <TreeViewPlugin />}
       </LexicalComposer>
     </div>
   );

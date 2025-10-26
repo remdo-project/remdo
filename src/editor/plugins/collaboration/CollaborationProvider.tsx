@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { env } from '#config/env-client';
 import { createContext, use, useMemo, useState } from 'react';
 import type { ProviderFactory } from './collaborationRuntime';
-import { createProviderFactory, resolveDefaultEndpoint } from './collaborationRuntime';
+import { createProviderFactory } from './collaborationRuntime';
 
 interface CollaborationStatusValue {
   ready: boolean;
@@ -34,7 +34,11 @@ export function CollaborationProvider({ children }: { children: ReactNode }) {
 function useCollaborationRuntimeValue(): CollaborationStatusValue {
   const enabled = env.collabEnabled;
   const [ready, setReady] = useState(!enabled);
-  const endpoint = useMemo(resolveDefaultEndpoint, []);
+  const endpoint = useMemo(() => {
+    const { protocol, hostname } = window.location;
+    const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
+    return `${wsProtocol}://${hostname}:${env.collabPort}`;
+  }, []);
 
   const providerFactory = useMemo(
     () =>
