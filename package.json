@@ -19,7 +19,7 @@
     "deps:list": "pnpm list --depth=-1 --silent",
     "test": "pnpm run test:unit",
     "test:unit": "COLLAB_ENABLED=false pnpm exec vitest run",
-    "test:unit:collab": "pnpm exec vitest run smoke",
+    "test:unit:collab": "pnpm exec vitest run collab",
     "test:unit:coverage": "COLLAB_ENABLED=false pnpm exec vitest run --coverage",
     "test:unit:watch": "COLLAB_ENABLED=false node ./scripts/test-unit-watch.mjs",
     "test:preview": "node ./scripts/test-preview.mjs"
@@ -36,8 +36,10 @@
     "@mantine/hooks": "^8.3.5",
     "dotenv-flow": "^4.1.0",
     "lexical": "^0.37.0",
+    "lib0": "^0.2.114",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "y-protocols": "^1.0.6",
     "y-websocket": "3.0.0",
     "yjs": "^13.6.27"
   },

@@ -3,22 +3,30 @@ import type { LexicalEditor } from 'lexical';
 import { useEffect } from 'react';
 import type { TestContext } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
-import { beforeEach } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import Editor from '@/editor/Editor';
+import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
+import { useCollaborationStatus } from '@/editor/plugins/collaboration';
 import { createLexicalTestHelpers } from './state';
 
-const Bridge = ({ onReady }: { onReady: (editor: LexicalEditor) => void }) => {
+interface BridgePayload {
+  editor: LexicalEditor;
+  collab: CollaborationStatusValue;
+}
+
+const Bridge = ({ onReady }: { onReady: (payload: BridgePayload) => void }) => {
   const [editor] = useLexicalComposerContext();
+  const collab = useCollaborationStatus();
 
   useEffect(() => {
-    onReady(editor);
-  }, [editor, onReady]);
+    onReady({ editor, collab });
+  }, [collab, editor, onReady]);
 
   return null;
 };
 
-const LexicalHarness = ({ onReady }: { onReady: (editor: LexicalEditor) => void }) => {
+const LexicalHarness = ({ onReady }: { onReady: (payload: BridgePayload) => void }) => {
   return (
     <Editor>
       <Bridge onReady={onReady} />
@@ -28,12 +36,24 @@ const LexicalHarness = ({ onReady }: { onReady: (editor: LexicalEditor) => void 
 
 beforeEach<TestContext>(async (ctx) => {
   let editor!: LexicalEditor;
+  let collab!: CollaborationStatusValue;
 
-  render(<LexicalHarness onReady={(instance) => { editor = instance; }} />);
+  render(
+    <LexicalHarness
+      onReady={({ editor: instance, collab: status }) => {
+        editor = instance;
+        collab = status;
+      }}
+    />
+  );
 
   await waitFor(() => {
-    if (!editor) throw new Error('Lexical editor not initialized in time');
+    if (!editor || !collab) throw new Error('Lexical editor not initialized in time');
   });
 
-  ctx.lexical = createLexicalTestHelpers(editor);
+  ctx.lexical = createLexicalTestHelpers(editor, () => collab);
+});
+
+afterEach(async ({ lexical }) => {
+  await lexical.waitForCollabSync();
 });

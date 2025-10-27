@@ -4,10 +4,16 @@ import { describe, expect, it } from 'vitest';
 
 describe.skipIf(!env.collabEnabled)('collaboration smoke', () => {
   it('lexical helpers operate in collaboration mode', async ({ lexical }) => {
+    await lexical.waitForCollabSync();
+    expect(lexical.hasCollabUnsyncedChanges()).toBe(false);
+
     await lexical.mutate(() => {
       $getRoot().clear();
     });
 
     expect(lexical).toMatchOutline([]);
+
+    await lexical.waitForCollabSync();
+    expect(lexical.hasCollabUnsyncedChanges()).toBe(false);
   });
 });

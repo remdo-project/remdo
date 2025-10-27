@@ -30,8 +30,8 @@ export default function Editor({ children }: EditorProps) {
         <ListPlugin hasStrictIndent />
         <CollaborationPlugin>
           <RootSchemaPlugin />
+          {children}
         </CollaborationPlugin>
-        {children}
         {env.isDev && <SchemaValidationPlugin />}
         {env.isDev && <TreeViewPlugin />}
       </LexicalComposer>

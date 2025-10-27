@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
+import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
 import type { LexicalTestHelpers } from './types';
 
 function lexicalLoad(
@@ -92,12 +93,28 @@ function lexicalGetEditorState(editor: LexicalEditor) {
   return editor.getEditorState().toJSON();
 }
 
-export function createLexicalTestHelpers(editor: LexicalEditor): LexicalTestHelpers {
+export function createLexicalTestHelpers(
+  editor: LexicalEditor,
+  getCollabStatus: () => CollaborationStatusValue | null
+): LexicalTestHelpers {
+  async function waitForCollabSync(): Promise<void> {
+    await getCollabStatus()?.waitForSync();
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+  }
+
+  function hasCollabUnsyncedChanges(): boolean {
+    return Boolean(getCollabStatus()?.hasUnsyncedChanges);
+  }
+
   return {
     editor,
     load: (filename: string) => lexicalLoad(editor, filename),
     mutate: (fn, opts) => lexicalMutate(editor, fn, opts),
     validate: (fn) => lexicalValidate(editor, fn),
     getEditorState: () => lexicalGetEditorState(editor),
+    waitForCollabSync,
+    hasCollabUnsyncedChanges,
   } as LexicalTestHelpers;
 }
