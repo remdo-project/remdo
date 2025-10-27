@@ -97,7 +97,7 @@ The Lexical adapter serializes the conceptual note tree into a deterministic
 node shape:
 
 - The conceptual root note is mapped to Lexical's `RootNode`. A dedicated schema
-  plugin (`src/editor/plugins/RootSchemaPlugin.tsx`) keeps this root constrained
+  plugin (`src/editor/plugins/RootSchemaPlugin.ts`) keeps this root constrained
   to a single child `ListNode`; the `ListItemNode` children of that list are the
   root note's direct descendants.
 - Every non-root note is serialized as a `ListItemNode` whose children hold the

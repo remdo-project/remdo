@@ -1,34 +1,15 @@
 import type { ListNode } from '@lexical/list';
-import type { LexicalEditor } from 'lexical';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $createParagraphNode, $getRoot, RootNode } from 'lexical';
-import { useEffect } from 'react';
+import { RootNode, $createParagraphNode, $getRoot } from 'lexical';
+import { defineComponent, watchEffect } from 'vue';
+import { useLexicalComposer } from 'lexical-vue/LexicalComposer';
 import { useCollaborationStatus } from './collaboration';
-
-export function RootSchemaPlugin() {
-  const [editor] = useLexicalComposerContext();
-  const { ready } = useCollaborationStatus();
-
-  useEffect(() => {
-    if (!ready) {
-      return;
-    }
-
-    const unregister = editor.registerNodeTransform(RootNode, $ensureSingleListRoot);
-    normalizeRootOnce(editor);
-    return unregister;
-  }, [editor, ready]);
-
-  return null;
-}
 
 function $ensureSingleListRoot(root: RootNode) {
   if (!$needsListNormalization(root)) {
     return;
   }
 
-  // Ensure exactly one root list, preferring the existing list type when present.
   const rootChildren = root.getChildren();
   const firstChild = rootChildren[0];
   const existingList = rootChildren.find($isListNode);
@@ -46,26 +27,22 @@ function $ensureSingleListRoot(root: RootNode) {
     }
   }
 
-  // Move/merge all other root children into the canonical list.
   const mergeType = canonicalList.getListType();
   for (const child of rootChildren) {
     if (child === canonicalList) continue;
 
-    // Merge lists of the same type by lifting their items.
     if ($isListNode(child) && child.getListType() === mergeType) {
-      canonicalList.append(...child.getChildren()); // moves nodes, keeps keys
+      canonicalList.append(...child.getChildren());
       child.remove();
       continue;
     }
 
-    // Wrap any other node into a list item to preserve content.
     const li = $createListItemNode();
     child.remove();
     li.append(child);
     canonicalList.append(li);
   }
 
-  // Ensure at least one list item with a paragraph exists.
   if (canonicalList.getChildrenSize() === 0) {
     const li = $createListItemNode();
     li.append($createParagraphNode());
@@ -73,8 +50,7 @@ function $ensureSingleListRoot(root: RootNode) {
   }
 }
 
-function normalizeRootOnce(editor: LexicalEditor) {
-  // Run a one-time normalization outside the transform cycle for fresh editors.
+function normalizeRootOnce(editor: ReturnType<typeof useLexicalComposer>) {
   const needsNormalization = editor.getEditorState().read(() =>
     $needsListNormalization($getRoot())
   );
@@ -86,10 +62,6 @@ function normalizeRootOnce(editor: LexicalEditor) {
   }
 }
 
-/**
- * Returns true when the root diverges from our canonical single-list shape.
- * Assumes Lexical's ListPlugin already keeps list children as ListItemNodes.
- */
 function $needsListNormalization(root: RootNode): boolean {
   const first = root.getFirstChild();
   if (!$isListNode(first)) {
@@ -113,3 +85,24 @@ function $needsListNormalization(root: RootNode): boolean {
 
   return false;
 }
+
+export const RootSchemaPlugin = defineComponent({
+  name: 'RootSchemaPlugin',
+  setup() {
+    const editor = useLexicalComposer();
+    const collab = useCollaborationStatus();
+
+    watchEffect((onInvalidate) => {
+      if (!collab.ready.value) {
+        return;
+      }
+
+      const unregister = editor.registerNodeTransform(RootNode, $ensureSingleListRoot);
+      normalizeRootOnce(editor);
+
+      onInvalidate(unregister);
+    });
+
+    return () => null;
+  },
+});

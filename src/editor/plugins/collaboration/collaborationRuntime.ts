@@ -9,19 +9,29 @@ export type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => Provid
 export class CollaborationSyncController {
   private unsynced: boolean;
   private readonly setState: (value: boolean) => void;
+  private generation: number;
 
   constructor(setState: (value: boolean) => void, initialValue: boolean) {
     this.setState = setState;
     this.unsynced = initialValue;
+    this.generation = 0;
   }
 
   get current(): boolean {
     return this.unsynced;
   }
 
+  get version(): number {
+    return this.generation;
+  }
+
   setUnsynced(value: boolean) {
     if (this.unsynced === value) {
       return;
+    }
+
+    if (value) {
+      this.generation += 1;
     }
 
     this.unsynced = value;
@@ -47,11 +57,17 @@ export function createProviderFactory(
       docMap.set(id, doc);
     }
 
+    doc.get('root', Y.XmlText);
+
     const provider = new WebsocketProvider(endpoint, id, doc, {
       connect: false,
     });
 
     const detach = attachSyncTracking(provider, syncController);
+    const originalDisconnect = provider.disconnect.bind(provider);
+    provider.disconnect = () => {
+      // Prevent lexical-vue from tearing down the socket during reactive re-renders.
+    };
 
     provider.on('sync', (isSynced: boolean) => {
       if (isSynced) {
@@ -68,6 +84,8 @@ export function createProviderFactory(
     const originalDestroy = provider.destroy.bind(provider);
     provider.destroy = () => {
       detach();
+      provider.disconnect = originalDisconnect;
+      originalDisconnect();
       originalDestroy();
     };
 

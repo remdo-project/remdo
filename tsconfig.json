@@ -3,7 +3,7 @@
     "incremental": true,
     "tsBuildInfoFile": "./data/cache/tsconfig.tsbuildinfo",
     "target": "ES2022",
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "lib": [
       "ES2022",
       "DOM"
@@ -32,7 +32,8 @@
     "resolveJsonModule": true,
     "types": [
       "node",
-      "vite/client"
+      "vite/client",
+      "vue"
     ],
     "strict": true,
     "noUncheckedIndexedAccess": true,

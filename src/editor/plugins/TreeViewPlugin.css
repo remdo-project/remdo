@@ -1,34 +1,36 @@
 .editor-tree-view {
-  margin-top: var(--mantine-spacing-lg);
-  border-top: 1px solid var(--mantine-color-dark-4);
-  padding-top: var(--mantine-spacing-md);
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--remdo-border);
+  padding-top: 1rem;
 }
 
 .editor-tree-view-body {
   display: flex;
   flex-direction: column;
-  gap: var(--mantine-spacing-sm);
-  font-family: var(--mantine-font-family-monospace);
-  font-size: var(--mantine-font-size-xs);
-  color: var(--mantine-color-dark-1);
+  gap: 0.75rem;
+  font-family: var(--remdo-font-mono);
+  font-size: 0.8rem;
+  color: var(--remdo-text-muted);
 }
 
 .editor-tree-view-hidden {
-  display: none;
+  display: none !important;
 }
 
 .editor-tree-view-body pre {
   margin: 0;
-  background-color: var(--mantine-color-dark-7);
-  border-radius: var(--mantine-radius-sm);
-  padding: var(--mantine-spacing-md);
+  background: rgba(17, 24, 39, 0.7);
+  border-radius: 8px;
+  padding: 0.75rem;
   overflow: visible;
+  color: var(--remdo-text);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.05);
 }
 
 .editor-tree-view-time-travel {
   display: flex;
   flex-direction: column;
-  gap: var(--mantine-spacing-xs);
+  gap: 0.5rem;
 }
 
 .editor-tree-view-slider {

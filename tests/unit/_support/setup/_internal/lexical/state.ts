@@ -105,7 +105,8 @@ export function createLexicalTestHelpers(
   }
 
   function hasCollabUnsyncedChanges(): boolean {
-    return Boolean(getCollabStatus()?.hasUnsyncedChanges);
+    const status = getCollabStatus();
+    return status ? status.hasUnsyncedChanges.value : false;
   }
 
   return {

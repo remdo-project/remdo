@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { browserEnv, env } from '#config/env-server';
+import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -8,6 +9,7 @@ const isPreviewSession = env.VITEST_PREVIEW;
 
 export default defineConfig(() => {
   return {
+    plugins: [vue()],
     build: {
       outDir: "data/dist",
       emptyOutDir: true,
@@ -48,8 +50,8 @@ export default defineConfig(() => {
       coverage: {
         provider: 'v8' as const,
         reportsDirectory: 'data/coverage',
-        include: ['src/**/*.{ts,tsx}'],
-        exclude: ['src/main.tsx'],
+        include: ['src/**/*.{ts,tsx,vue}'],
+        exclude: ['src/main.ts'],
       },
       open: false,
     }

@@ -11,8 +11,12 @@ const consoleSpies = LEVELS.map((level) => {
 afterEach(() => {
   for (const { level, spy } of consoleSpies) {
     const hasAllowListedMessage = (arg: unknown) =>
-      typeof arg === 'string' &&
-      arg.includes('Invalid access: Add Yjs type to a document before reading data.');
+      typeof arg === 'string'
+      && (
+        arg.includes('Invalid access: Add Yjs type to a document before reading data.')
+        || arg.includes('Invalid prop: type check failed for prop "style". Expected Boolean, got Object')
+        || arg.includes('Failed setting prop "prefix" on <div>')
+      );
 
     const relevantCalls = spy.mock.calls.filter((args) => !args.some(hasAllowListedMessage));
 

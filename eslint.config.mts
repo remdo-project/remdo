@@ -2,7 +2,8 @@ import antfu from '@antfu/eslint-config';
 
 export default antfu(
   {
-    react: true,
+    react: false,
+    vue: true,
     typescript: true,
     ignores: ['node_modules/**', 'data/**', 'public/**'],
     stylistic: false,
@@ -15,7 +16,7 @@ export default antfu(
     },
   },
   {
-    files: ['**/*.ts', '**/*.tsx'],
+    files: ['**/*.ts', '**/*.tsx', '**/*.vue'],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -27,7 +28,7 @@ export default antfu(
     },
   },
   {
-    files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
+    files: ['**/*.{js,jsx,ts,tsx,vue,cjs,mjs,mts,cts}'],
     rules: {
       semi: ['error', 'always'],
       'node/no-process-env': [

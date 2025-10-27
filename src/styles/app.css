@@ -1,0 +1,131 @@
+:root {
+  color-scheme: dark;
+  --remdo-bg: #0f172a;
+  --remdo-surface: #111827;
+  --remdo-surface-muted: #0b1220;
+  --remdo-border: #1f2937;
+  --remdo-border-soft: #273449;
+  --remdo-text: #e2e8f0;
+  --remdo-text-muted: #94a3b8;
+  --remdo-accent: #60a5fa;
+  --remdo-radius: 12px;
+  --remdo-font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --remdo-font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 20%, #132a4a 0%, var(--remdo-bg) 55%),
+    linear-gradient(160deg, #0d1b2a 0%, #0f172a 100%);
+  color: var(--remdo-text);
+  font-family: var(--remdo-font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--remdo-accent);
+  outline-offset: 2px;
+}
+
+.app-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.9));
+  border: 1px solid var(--remdo-border);
+  border-radius: var(--remdo-radius);
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 18px 38px rgba(8, 15, 35, 0.45);
+}
+
+.app-heading {
+  margin: 0;
+  font-size: clamp(1.75rem, 2vw + 1rem, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.app-brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: inherit;
+  transition: color 0.2s ease;
+}
+
+.app-brand-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  color: currentColor;
+  transition: color 0.2s ease;
+}
+
+.app-brand-link:hover .app-brand-icon,
+.app-brand-link:focus-visible .app-brand-icon {
+  color: var(--remdo-accent);
+}
+
+.app-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.app-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.12);
+  color: var(--remdo-accent);
+  font-weight: 500;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.app-link:hover,
+.app-link:focus-visible {
+  background: rgba(96, 165, 250, 0.22);
+  color: #bfdbfe;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .app-container {
+    padding: 2rem 1rem 2.5rem;
+  }
+
+  .app-header {
+    padding: 1rem 1.15rem;
+  }
+}

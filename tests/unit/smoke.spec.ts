@@ -1,10 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/vue';
 import { $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
-import App from '@/App';
+import App from '@/App.vue';
 
 it('app', () => {
-  render(<App />);
+  render(App);
   expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
 });
 

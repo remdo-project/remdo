@@ -1,14 +1,14 @@
 import { env } from '#config/env-client';
-import { render, waitFor } from '@testing-library/react';
+import { $createListItemNode, $createListNode } from '@lexical/list';
+import { render, waitFor } from '@testing-library/vue';
 import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
 import type { LexicalEditor } from 'lexical';
-import { $createListItemNode, $createListNode } from '@lexical/list';
+import { defineComponent, h, onMounted } from 'vue';
+import type { PropType } from 'vue';
 import { describe, expect, it } from 'vitest';
-import { useEffect, useRef } from 'react';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import Editor from '@/editor/Editor';
-import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
+import Editor from '@/editor/Editor.vue';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration';
+import { useLexicalComposer } from 'lexical-vue/LexicalComposer';
 
 interface PeerHandle {
   editor: LexicalEditor;
@@ -16,35 +16,57 @@ interface PeerHandle {
   hasUnsyncedChanges: () => boolean;
 }
 
-function CollaborationPeer({ onReady }: { onReady: (handle: PeerHandle) => void }) {
-  const [editor] = useLexicalComposerContext();
-  const collab = useCollaborationStatus();
-  const statusRef = useRef<CollaborationStatusValue>(collab);
+const CollaborationPeer = defineComponent({
+  name: 'CollaborationPeer',
+  props: {
+    onReady: {
+      type: Function as PropType<(handle: PeerHandle) => void>,
+      required: true,
+    },
+  },
+  setup(props) {
+    const editor = useLexicalComposer();
+    const collab = useCollaborationStatus();
 
-  useEffect(() => {
-    statusRef.current = collab;
-  }, [collab]);
-
-  useEffect(() => {
-    onReady({
-      editor,
-      waitForSync: () => statusRef.current.waitForSync(),
-      hasUnsyncedChanges: () => statusRef.current.hasUnsyncedChanges,
+    onMounted(() => {
+      props.onReady({
+        editor,
+        waitForSync: () => collab.waitForSync(),
+        hasUnsyncedChanges: () => collab.hasUnsyncedChanges.value,
+      });
     });
-  }, [editor, onReady]);
 
-  return null;
-}
+    return () => null;
+  },
+});
+
+const SecondaryEditor = defineComponent({
+  name: 'SecondaryEditor',
+  props: {
+    onReady: {
+      type: Function as PropType<(handle: PeerHandle) => void>,
+      required: true,
+    },
+  },
+  setup(props) {
+    return () =>
+      h(Editor, null, {
+        default: () => h(CollaborationPeer, { onReady: props.onReady }),
+      });
+  },
+});
 
 describe.skipIf(!env.collabEnabled)('collaboration sync', () => {
   it('syncs edits between editors', async ({ lexical }) => {
     let secondary!: PeerHandle;
 
-    render(
-      <Editor>
-        <CollaborationPeer onReady={(handle) => { secondary = handle; }} />
-      </Editor>
-    );
+    render(SecondaryEditor, {
+      props: {
+        onReady: (handle: PeerHandle) => {
+          secondary = handle;
+        },
+      },
+    });
 
     await waitFor(() => {
       if (!secondary) throw new Error('Secondary editor not ready');
