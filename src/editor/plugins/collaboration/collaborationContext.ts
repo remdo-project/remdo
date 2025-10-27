@@ -1,34 +1,13 @@
-import { createRequire } from 'node:module';
-import { resolve } from 'node:path';
-import process from 'node:process';
-import type { Doc } from 'yjs';
+import { collaborationContext } from 'lexical-vue/dist/shared/useCollaborationContext.js';
+import type { CollaborationContextState } from 'lexical-vue/dist/shared/useCollaborationContext.js';
 
-interface CollaborationContextType {
-  clientID: number;
-  color: string;
-  isCollabActive: boolean;
-  name: string;
-  yjsDocMap: Map<string, Doc>;
-}
+const contextStack: CollaborationContextState[] = [];
 
-const require = createRequire(import.meta.url);
-const modulePath = resolve(
-  process.cwd(),
-  'node_modules/lexical-vue/dist/shared/useCollaborationContext.js'
-);
-
-const { collaborationContext } = require(modulePath) as {
-  collaborationContext: { value: CollaborationContextType };
-};
-
-const contextStack: CollaborationContextType[] = [];
-
-function cloneContext(source: CollaborationContextType): CollaborationContextType {
+function cloneContext(source: CollaborationContextState): CollaborationContextState {
   return {
+    ...source,
     clientID: 0,
-    color: source.color,
     isCollabActive: false,
-    name: source.name,
     yjsDocMap: new Map(),
   };
 }
