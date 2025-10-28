@@ -17,3 +17,5 @@ declare module 'lib0/encoding.js' {
 declare module 'y-protocols/sync.js' {
   export * from 'y-protocols/sync';
 }
+
+export {};

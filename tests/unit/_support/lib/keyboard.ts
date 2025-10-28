@@ -1,5 +1,4 @@
 import type { LexicalEditor } from 'lexical';
-import { act } from '@testing-library/react';
 import { KEY_TAB_COMMAND } from 'lexical';
 
 export async function pressTab(
@@ -13,7 +12,6 @@ export async function pressTab(
     cancelable: true,
     shiftKey: shift,
   });
-  await act(async () => {
-    editor.dispatchCommand(KEY_TAB_COMMAND, event);
-  });
+  editor.dispatchCommand(KEY_TAB_COMMAND, event);
+  await Promise.resolve();
 }

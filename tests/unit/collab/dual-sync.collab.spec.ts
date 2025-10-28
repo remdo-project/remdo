@@ -1,13 +1,12 @@
 import { env } from '#config/env-client';
-import { render, waitFor } from '@testing-library/react';
 import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 import { $createListItemNode, $createListNode } from '@lexical/list';
+import { defineComponent, h, onMounted } from 'vue';
 import { describe, expect, it } from 'vitest';
-import { useEffect, useRef } from 'react';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import Editor from '@/editor/Editor';
-import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
+import { render, waitFor } from '@testing-library/vue';
+import EditorRoot from '@/editor/EditorRoot.vue';
+import { useLexicalComposer } from 'lexical-vue/LexicalComposer';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration';
 
 interface PeerHandle {
@@ -16,41 +15,50 @@ interface PeerHandle {
   hasUnsyncedChanges: () => boolean;
 }
 
-function CollaborationPeer({ onReady }: { onReady: (handle: PeerHandle) => void }) {
-  const [editor] = useLexicalComposerContext();
-  const collab = useCollaborationStatus();
-  const statusRef = useRef<CollaborationStatusValue>(collab);
+const CollaborationPeer = defineComponent({
+  name: 'CollaborationPeer',
+  emits: ['ready'],
+  setup(_, { emit }) {
+    const editor = useLexicalComposer();
+    const status = useCollaborationStatus();
 
-  useEffect(() => {
-    statusRef.current = collab;
-  }, [collab]);
-
-  useEffect(() => {
-    onReady({
-      editor,
-      waitForSync: () => statusRef.current.waitForSync(),
-      hasUnsyncedChanges: () => statusRef.current.hasUnsyncedChanges,
+    onMounted(() => {
+      emit('ready', {
+        editor,
+        waitForSync: () => status.waitForSync(),
+        hasUnsyncedChanges: () => status.hasUnsyncedChanges,
+      } satisfies PeerHandle);
     });
-  }, [editor, onReady]);
 
-  return null;
-}
+    return () => null;
+  },
+});
 
 describe.skipIf(!env.collabEnabled)('collaboration sync', () => {
   it('syncs edits between editors', async ({ lexical }) => {
-    let secondary!: PeerHandle;
+    let secondary: PeerHandle | null = null;
 
-    render(
-      <Editor>
-        <CollaborationPeer onReady={(handle) => { secondary = handle; }} />
-      </Editor>
-    );
+    const Harness = defineComponent({
+      setup() {
+        return () =>
+          h(EditorRoot, null, {
+            default: () =>
+              h(CollaborationPeer, {
+                onReady: (handle: PeerHandle) => {
+                  secondary = handle;
+                },
+              }),
+          });
+      },
+    });
+
+    render(Harness);
 
     await waitFor(() => {
       if (!secondary) throw new Error('Secondary editor not ready');
     });
 
-    await Promise.all([lexical.waitForCollabSync(), secondary.waitForSync()]);
+    await Promise.all([lexical.waitForCollabSync(), secondary!.waitForSync()]);
 
     const readText = (editor: LexicalEditor) =>
       editor.getEditorState().read(() => $getRoot().getTextContent().trim());
@@ -59,12 +67,12 @@ describe.skipIf(!env.collabEnabled)('collaboration sync', () => {
       $getRoot().clear();
     });
 
-    await Promise.all([lexical.waitForCollabSync(), secondary.waitForSync()]);
+    await Promise.all([lexical.waitForCollabSync(), secondary!.waitForSync()]);
 
     expect(readText(lexical.editor)).toBe('');
-    expect(readText(secondary.editor)).toBe('');
+    expect(readText(secondary!.editor)).toBe('');
     expect(lexical.hasCollabUnsyncedChanges()).toBe(false);
-    expect(secondary.hasUnsyncedChanges()).toBe(false);
+    expect(secondary!.hasUnsyncedChanges()).toBe(false);
 
     lexical.editor.update(() => {
       const root = $getRoot();
@@ -79,11 +87,11 @@ describe.skipIf(!env.collabEnabled)('collaboration sync', () => {
       root.append(list);
     });
 
-    await Promise.all([lexical.waitForCollabSync(), secondary.waitForSync()]);
+    await Promise.all([lexical.waitForCollabSync(), secondary!.waitForSync()]);
 
     expect(lexical.hasCollabUnsyncedChanges()).toBe(false);
-    expect(secondary.hasUnsyncedChanges()).toBe(false);
+    expect(secondary!.hasUnsyncedChanges()).toBe(false);
     expect(readText(lexical.editor)).toBe('shared note');
-    expect(readText(secondary.editor)).toBe('shared note');
+    expect(readText(secondary!.editor)).toBe('shared note');
   });
 });

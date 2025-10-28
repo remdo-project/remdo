@@ -1,11 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/vue';
 import { $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
-import App from '@/App';
+import App from '@/App.vue';
 
 it('app', () => {
-  render(<App />);
-  expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+  render(App);
+  expect(screen.getByRole('heading', { level: 1, name: 'RemDo' })).toBeInTheDocument();
 });
 
 it('lexical helpers', async ({ lexical }) => {
@@ -20,8 +20,6 @@ it('lexical helpers', async ({ lexical }) => {
 
 it('debug preview', async ({ lexical }) => {
   lexical.load('basic');
-
-  // commented to not overwrite output snapshot from other tests
   // preview();
 });
 
