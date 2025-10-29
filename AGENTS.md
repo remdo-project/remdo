@@ -57,3 +57,10 @@ captures the full model.
   whenever working on core editor functionalities. Their versions match the
   modules imported from `node_modules`. Run `pnpm run dev:init` to fetch them if
   not available.
+
+## Vendored dependencies
+
+- `data/.vendor/lexical` mirrors the upstream Lexical repo at the version pinned
+  in `node_modules`. Refresh it with `pnpm run dev:init`.
+- `data/.vendor/lexical-vue` mirrors the upstream lexical-vue repo at the
+  version pinned in `node_modules`. `pnpm run dev:init` keeps it in sync.
