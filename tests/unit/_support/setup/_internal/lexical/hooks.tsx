@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
-import { $getRoot, type LexicalEditor } from 'lexical';
+import { $getRoot  } from 'lexical';
+import type {LexicalEditor} from 'lexical';
 import { useEffect } from 'react';
 import type { TestContext } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
