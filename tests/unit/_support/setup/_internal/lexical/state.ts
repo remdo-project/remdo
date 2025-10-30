@@ -1,9 +1,8 @@
 import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
-import { $createParagraphNode, $getRoot } from 'lexical';
+import { $getRoot } from 'lexical';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
-import { $createListItemNode, $createListNode } from '@lexical/list';
 import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
 import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
 import type { LexicalTestHelpers } from './types';
@@ -119,14 +118,7 @@ export function createLexicalTestHelpers(
     await waitForCollabSync();
 
     await lexicalMutate(editor, () => {
-      const root = $getRoot();
-      root.clear();
-
-      const list = $createListNode('bullet');
-      const item = $createListItemNode();
-      item.append($createParagraphNode());
-      list.append(item);
-      root.append(list);
+      $getRoot().clear();
     });
 
     await waitForCollabSync();
