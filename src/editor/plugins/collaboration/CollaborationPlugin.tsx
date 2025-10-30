@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import {
   LexicalCollaboration,
   useCollaborationContext as useLexicalCollaborationContext,
@@ -7,7 +7,6 @@ import {
 import { CollaborationPluginV2__EXPERIMENTAL } from '@lexical/react/LexicalCollaborationPlugin';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import type { Provider } from '@lexical/yjs';
-import type * as Y from 'yjs';
 import { CollaborationProvider, useCollaborationStatus } from './CollaborationProvider';
 import type { ProviderFactory } from './collaborationRuntime';
 
@@ -42,22 +41,22 @@ interface CollaborationRuntimeBridgeProps {
 
 function CollaborationRuntimeBridge({ providerFactory }: CollaborationRuntimeBridgeProps) {
   const { yjsDocMap } = useLexicalCollaborationContext();
-  const [provider, setProvider] = useState<Provider | null>(null);
-  const [doc, setDoc] = useState<Y.Doc | null>(null);
+  const providerRef = useRef<Provider | null>(null);
+  const [, forceUpdate] = useReducer((count: number) => count + 1, 0);
 
   useEffect(() => {
     const nextProvider = providerFactory(DEFAULT_ROOM_ID, yjsDocMap);
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect -- Provider lifecycle is orchestrated by this effect so the async factory only runs when dependencies change.
-    setProvider((current) => (current === nextProvider ? current : nextProvider));
-
-    const nextDoc = yjsDocMap.get(DEFAULT_ROOM_ID) ?? null;
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect -- Provider lifecycle is orchestrated by this effect so the async factory only runs when dependencies change.
-    setDoc((current) => (current === nextDoc ? current : nextDoc));
+    providerRef.current = nextProvider;
+    forceUpdate();
 
     return () => {
+      providerRef.current = null;
       nextProvider.disconnect();
     };
   }, [providerFactory, yjsDocMap]);
+
+  const provider = providerRef.current;
+  const doc = yjsDocMap.get(DEFAULT_ROOM_ID);
 
   if (provider == null || doc == null) {
     return null;
