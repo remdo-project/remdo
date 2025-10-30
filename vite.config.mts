@@ -5,6 +5,7 @@ import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = env.VITEST_PREVIEW;
+const isCollabEnabled = env.COLLAB_ENABLED;
 
 export default defineConfig(() => {
   return {
@@ -45,6 +46,22 @@ export default defineConfig(() => {
       setupFiles: ['./tests/unit/_support/setup/index.ts'],
       include: ['tests/**/*.spec.{ts,tsx}'],
       css: true,
+      threads: isCollabEnabled ? false : undefined,
+      maxConcurrency: isCollabEnabled ? 1 : undefined,
+      fileParallelism: isCollabEnabled ? false : undefined,
+      sequence: isCollabEnabled
+        ? {
+            concurrent: false,
+          }
+        : undefined,
+      pool: isCollabEnabled ? 'threads' : undefined,
+      poolOptions: isCollabEnabled
+        ? {
+            threads: {
+              singleThread: true,
+            },
+          }
+        : undefined,
       coverage: {
         provider: 'v8' as const,
         reportsDirectory: 'data/coverage',

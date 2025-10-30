@@ -10,4 +10,5 @@ export interface LexicalTestHelpers {
   getEditorState: () => EditorStateJSON;
   waitForCollabSync: () => Promise<void>;
   hasCollabUnsyncedChanges: () => boolean;
+  resetDocument: () => Promise<void>;
 }

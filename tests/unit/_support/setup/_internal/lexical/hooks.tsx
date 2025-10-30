@@ -51,7 +51,11 @@ beforeEach<TestContext>(async (ctx) => {
     if (!editor || !collab) throw new Error('Lexical editor not initialized in time');
   });
 
-  ctx.lexical = createLexicalTestHelpers(editor, () => collab);
+  const helpers = createLexicalTestHelpers(editor, () => collab);
+  ctx.lexical = helpers;
+
+  await helpers.resetDocument();
+  await helpers.waitForCollabSync();
 });
 
 afterEach(async ({ lexical }) => {

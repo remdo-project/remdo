@@ -1,7 +1,9 @@
 import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
+import { $createParagraphNode, $getRoot } from 'lexical';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
+import { $createListItemNode, $createListNode } from '@lexical/list';
 import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
 import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
 import type { LexicalTestHelpers } from './types';
@@ -108,6 +110,28 @@ export function createLexicalTestHelpers(
     return Boolean(getCollabStatus()?.hasUnsyncedChanges);
   }
 
+  async function resetDocument(): Promise<void> {
+    const collab = getCollabStatus();
+    if (!collab?.enabled) {
+      return;
+    }
+
+    await waitForCollabSync();
+
+    await lexicalMutate(editor, () => {
+      const root = $getRoot();
+      root.clear();
+
+      const list = $createListNode('bullet');
+      const item = $createListItemNode();
+      item.append($createParagraphNode());
+      list.append(item);
+      root.append(list);
+    });
+
+    await waitForCollabSync();
+  }
+
   return {
     editor,
     load: (filename: string) => lexicalLoad(editor, filename),
@@ -116,5 +140,6 @@ export function createLexicalTestHelpers(
     getEditorState: () => lexicalGetEditorState(editor),
     waitForCollabSync,
     hasCollabUnsyncedChanges,
+    resetDocument,
   } as LexicalTestHelpers;
 }
