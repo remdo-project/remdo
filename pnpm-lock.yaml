@@ -35,9 +35,6 @@ importers:
       '@mantine/hooks':
         specifier: ^8.3.5
         version: 8.3.5(react@19.2.0)
-      dotenv-flow:
-        specifier: ^4.1.0
-        version: 4.1.0
       lexical:
         specifier: ^0.37.0
         version: 0.37.0
@@ -108,6 +105,9 @@ importers:
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
+      dotenv-flow:
+        specifier: 4.1.0
+        version: 4.1.0
       eslint:
         specifier: ^9.38.0
         version: 9.38.0(jiti@2.6.1)
