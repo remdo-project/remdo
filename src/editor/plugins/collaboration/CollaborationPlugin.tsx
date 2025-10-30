@@ -51,7 +51,7 @@ function CollaborationRuntimeBridge({ providerFactory }: CollaborationRuntimeBri
 
     return () => {
       providerRef.current = null;
-      nextProvider.disconnect();
+      nextProvider.destroy();
     };
   }, [providerFactory, yjsDocMap]);
 

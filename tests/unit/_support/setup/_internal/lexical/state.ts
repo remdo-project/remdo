@@ -109,16 +109,11 @@ export function createLexicalTestHelpers(
         return;
       }
 
-      await collab.waitForSync();
-
-      await new Promise((resolve) => {
-        setTimeout(resolve, 0);
-      });
-
-      const next = getCollabStatus();
-      if (!next?.enabled || (!next.hasUnsyncedChanges && next.ready)) {
+      if (!collab.hasUnsyncedChanges && collab.ready) {
         return;
       }
+
+      await collab.waitForSync();
     }
   }
 
