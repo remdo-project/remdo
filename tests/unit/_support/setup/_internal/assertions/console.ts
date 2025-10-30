@@ -4,7 +4,7 @@ const LEVELS = ['error', 'warn'] as const;
 
 const consoleSpies = LEVELS.map((level) => {
   // swallow console noise while recording calls
-  const spy = vi.spyOn(console, level).mockImplementation(() => { });
+  const spy = vi.spyOn(console, level).mockImplementation(() => {});
   return { level, spy };
 });
 
@@ -12,7 +12,8 @@ afterEach(() => {
   for (const { level, spy } of consoleSpies) {
     const hasAllowListedMessage = (arg: unknown) =>
       typeof arg === 'string' &&
-      arg.includes('Invalid access: Add Yjs type to a document before reading data.');
+      // arg.includes('Invalid access: Add Yjs type to a document before reading data.');
+      false;
 
     const relevantCalls = spy.mock.calls.filter((args) => !args.some(hasAllowListedMessage));
 

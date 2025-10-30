@@ -47,6 +47,11 @@ export function createProviderFactory(
       docMap.set(id, doc);
     }
 
+    // Ensure the shared root exists before the provider starts syncing. Yjs warns when
+    // collaborative types are accessed prior to being attached to a document, and
+    // Lexical expects the `root` XmlText to always be present.
+    doc.get('root', Y.XmlText);
+
     const provider = new WebsocketProvider(endpoint, id, doc, {
       connect: false,
     });
