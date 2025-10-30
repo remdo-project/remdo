@@ -46,22 +46,7 @@ export default defineConfig(() => {
       setupFiles: ['./tests/unit/_support/setup/index.ts'],
       include: ['tests/**/*.spec.{ts,tsx}'],
       css: true,
-      threads: isCollabEnabled ? false : undefined,
-      maxConcurrency: isCollabEnabled ? 1 : undefined,
-      fileParallelism: isCollabEnabled ? false : undefined,
-      sequence: isCollabEnabled
-        ? {
-            concurrent: false,
-          }
-        : undefined,
-      pool: isCollabEnabled ? 'threads' : undefined,
-      poolOptions: isCollabEnabled
-        ? {
-            threads: {
-              singleThread: true,
-            },
-          }
-        : undefined,
+      threads: !isCollabEnabled,
       coverage: {
         provider: 'v8' as const,
         reportsDirectory: 'data/coverage',
