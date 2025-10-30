@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react';
 import { env } from '#config/env-client';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ProviderFactory } from './collaborationRuntime';
-import { CollaborationSyncController, createProviderFactory } from './collaborationRuntime';
+import type { CollaborationSessionFactory } from './collaborationRuntime';
+import { CollaborationSyncController, createSessionFactory } from './collaborationRuntime';
 
 interface CollaborationStatusValue {
   ready: boolean;
   enabled: boolean;
-  providerFactory: ProviderFactory;
+  sessionFactory: CollaborationSessionFactory;
   hasUnsyncedChanges: boolean;
   waitForSync: () => Promise<void>;
 }
@@ -67,8 +67,8 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
     }
   }, [enabled, syncController]);
 
-  const providerFactory = useMemo(
-    () => createProviderFactory({ setReady, syncController }, endpoint),
+  const sessionFactory = useMemo(
+    () => createSessionFactory({ setReady, syncController }, endpoint),
     [endpoint, setReady, syncController]
   );
 
@@ -105,11 +105,11 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
     () => ({
       ready: resolvedReady,
       enabled,
-      providerFactory,
+      sessionFactory,
       hasUnsyncedChanges,
       waitForSync,
     }),
-    [enabled, hasUnsyncedChanges, providerFactory, resolvedReady, waitForSync]
+    [enabled, hasUnsyncedChanges, resolvedReady, sessionFactory, waitForSync]
   );
 }
 

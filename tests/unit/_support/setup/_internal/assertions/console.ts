@@ -10,9 +10,14 @@ const consoleSpies = LEVELS.map((level) => {
 
 afterEach(() => {
   for (const { level, spy } of consoleSpies) {
-    const hasAllowListedMessage = (arg: unknown) =>
-      typeof arg === 'string' &&
-      arg.includes('Invalid access: Add Yjs type to a document before reading data.');
+    const hasAllowListedMessage = (arg: unknown) => {
+      if (typeof arg !== 'string') {
+        return false;
+      }
+
+      // arg.includes('Invalid access: Add Yjs type to a document before reading data.');
+      return false;
+    };
 
     const relevantCalls = spy.mock.calls.filter((args) => !args.some(hasAllowListedMessage));
 

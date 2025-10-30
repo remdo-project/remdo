@@ -4,7 +4,16 @@ import * as encoding from 'lib0/encoding';
 import * as syncProtocol from 'y-protocols/sync';
 import * as Y from 'yjs';
 
-export type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => Provider;
+export interface CollaborationSession {
+  doc: Y.Doc;
+  provider: Provider;
+  detach: () => void;
+}
+
+export type CollaborationSessionFactory = (
+  id: string,
+  docMap: Map<string, Y.Doc>
+) => CollaborationSession;
 
 export class CollaborationSyncController {
   private unsynced: boolean;
@@ -29,15 +38,15 @@ export class CollaborationSyncController {
   }
 }
 
-interface ProviderFactorySignals {
+interface SessionFactorySignals {
   setReady: (value: boolean) => void;
   syncController: CollaborationSyncController;
 }
 
-export function createProviderFactory(
-  { setReady, syncController }: ProviderFactorySignals,
+export function createSessionFactory(
+  { setReady, syncController }: SessionFactorySignals,
   endpoint: string
-): ProviderFactory {
+): CollaborationSessionFactory {
   return (id: string, docMap: Map<string, Y.Doc>) => {
     setReady(false);
 
@@ -45,6 +54,7 @@ export function createProviderFactory(
     if (!doc) {
       doc = new Y.Doc();
       docMap.set(id, doc);
+      initializeDocument(doc);
     }
 
     const provider = new WebsocketProvider(endpoint, id, doc, {
@@ -71,8 +81,16 @@ export function createProviderFactory(
       originalDestroy();
     };
 
-    return provider as unknown as Provider;
+    return {
+      doc,
+      provider: provider as unknown as Provider,
+      detach,
+    };
   };
+}
+
+function initializeDocument(doc: Y.Doc) {
+  doc.get('root-v2', Y.XmlElement);
 }
 
 function attachSyncTracking(provider: WebsocketProvider, controller: CollaborationSyncController) {
