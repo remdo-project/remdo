@@ -121,19 +121,6 @@ export function createLexicalTestHelpers(
     return Boolean(getCollabStatus()?.hasUnsyncedChanges);
   }
 
-  async function resetDocument(): Promise<void> {
-    const collab = getCollabStatus();
-    if (!collab?.enabled) {
-      return;
-    }
-
-    await waitForCollabSync();
-
-    await lexicalMutate(editor, () => {
-      $getRoot().clear();
-    });
-  }
-
   return {
     editor,
     load: (filename: string) => lexicalLoad(editor, filename),
@@ -142,6 +129,5 @@ export function createLexicalTestHelpers(
     getEditorState: () => lexicalGetEditorState(editor),
     waitForCollabSync,
     hasCollabUnsyncedChanges,
-    resetDocument,
   } as LexicalTestHelpers;
 }

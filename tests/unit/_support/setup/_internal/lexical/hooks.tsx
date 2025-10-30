@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import type { LexicalEditor } from 'lexical';
+import { $getRoot, type LexicalEditor } from 'lexical';
 import { useEffect } from 'react';
 import type { TestContext } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
@@ -54,7 +54,12 @@ beforeEach<TestContext>(async (ctx) => {
   const helpers = createLexicalTestHelpers(editor, () => collab);
   ctx.lexical = helpers;
 
-  await helpers.resetDocument();
+  if (collab.enabled) {
+    await helpers.waitForCollabSync();
+    await helpers.mutate(() => {
+      $getRoot().clear();
+    });
+  }
 });
 
 afterEach(async ({ lexical }) => {
