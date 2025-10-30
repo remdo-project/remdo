@@ -55,7 +55,6 @@ beforeEach<TestContext>(async (ctx) => {
   ctx.lexical = helpers;
 
   await helpers.resetDocument();
-  await helpers.waitForCollabSync();
 });
 
 afterEach(async ({ lexical }) => {
