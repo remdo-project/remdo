@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { env } from '#config/env-client';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from './collaborationRuntime';
-import { CollaborationSyncController, createProviderFactory } from './collaborationRuntime';
+import { createProviderFactory } from './collaborationRuntime';
 
 interface CollaborationStatusValue {
   ready: boolean;
@@ -43,10 +43,6 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
     return `${wsProtocol}://${hostname}:${env.collabPort}`;
   }, []);
 
-  const syncController = useMemo(
-    () => new CollaborationSyncController(setUnsynced, enabled),
-    [enabled, setUnsynced]
-  );
   const waitersRef = useRef<Set<() => void>>(new Set());
 
   const flushWaiters = useCallback(() => {
@@ -61,15 +57,9 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
     }
   }, []);
 
-  useEffect(() => {
-    if (!enabled) {
-      syncController.setUnsynced(false);
-    }
-  }, [enabled, syncController]);
-
   const providerFactory = useMemo(
-    () => createProviderFactory({ setReady, syncController }, endpoint),
-    [endpoint, setReady, syncController]
+    () => createProviderFactory({ setReady, setUnsynced }, endpoint),
+    [endpoint, setReady, setUnsynced]
   );
 
   const resolvedReady = !enabled || ready;

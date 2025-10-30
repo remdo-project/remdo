@@ -10,15 +10,8 @@ const consoleSpies = LEVELS.map((level) => {
 
 afterEach(() => {
   for (const { level, spy } of consoleSpies) {
-    const hasAllowListedMessage = (arg: unknown) =>
-      typeof arg === 'string' &&
-      // arg.includes('Invalid access: Add Yjs type to a document before reading data.');
-      false;
-
-    const relevantCalls = spy.mock.calls.filter((args) => !args.some(hasAllowListedMessage));
-
-    if (relevantCalls.length > 0) {
-      const argsPreview = relevantCalls
+    if (spy.mock.calls.length > 0) {
+      const argsPreview = spy.mock.calls
         .map((args) => args.map((arg) => String(arg)).join(' '))
         .join('\n');
       spy.mockClear();

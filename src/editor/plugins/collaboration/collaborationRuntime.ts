@@ -1,45 +1,21 @@
 import type { Provider } from '@lexical/yjs';
-import { WebsocketProvider, messageSync } from 'y-websocket';
-import * as encoding from 'lib0/encoding';
-import * as syncProtocol from 'y-protocols/sync';
+import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
 export type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => Provider;
 
-export class CollaborationSyncController {
-  private unsynced: boolean;
-  private readonly setState: (value: boolean) => void;
-
-  constructor(setState: (value: boolean) => void, initialValue: boolean) {
-    this.setState = setState;
-    this.unsynced = initialValue;
-  }
-
-  get current(): boolean {
-    return this.unsynced;
-  }
-
-  setUnsynced(value: boolean) {
-    if (this.unsynced === value) {
-      return;
-    }
-
-    this.unsynced = value;
-    this.setState(value);
-  }
-}
-
 interface ProviderFactorySignals {
   setReady: (value: boolean) => void;
-  syncController: CollaborationSyncController;
+  setUnsynced: (value: boolean) => void;
 }
 
 export function createProviderFactory(
-  { setReady, syncController }: ProviderFactorySignals,
+  { setReady, setUnsynced }: ProviderFactorySignals,
   endpoint: string
 ): ProviderFactory {
   return (id: string, docMap: Map<string, Y.Doc>) => {
     setReady(false);
+    setUnsynced(true);
 
     let doc = docMap.get(id);
     if (!doc) {
@@ -56,128 +32,62 @@ export function createProviderFactory(
       connect: false,
     });
 
-    const detach = attachSyncTracking(provider, syncController);
+    const markUnsynced = () => {
+      setUnsynced(true);
+    };
 
-    provider.on('sync', (isSynced: boolean) => {
+    const clearUnsynced = () => {
+      setUnsynced(false);
+    };
+
+    const handleDocUpdate = (_update: Uint8Array, origin: unknown) => {
+      if (origin === provider) {
+        return;
+      }
+
+      markUnsynced();
+    };
+
+    const handleSync = (isSynced: boolean) => {
+      setReady(isSynced);
+
       if (isSynced) {
-        setReady(true);
+        clearUnsynced();
+        return;
       }
-    });
 
-    provider.on('status', (event: { status: string }) => {
-      if (event.status === 'connecting') {
+      markUnsynced();
+    };
+
+    const handleStatus = ({ status }: { status: string }) => {
+      if (status === 'connecting') {
         setReady(false);
+        markUnsynced();
+        return;
       }
-    });
+
+      if (status === 'connected') {
+        if (provider.synced) {
+          clearUnsynced();
+        }
+        return;
+      }
+
+      markUnsynced();
+    };
+
+    provider.doc.on('update', handleDocUpdate);
+    provider.on('sync', handleSync);
+    provider.on('status', handleStatus);
 
     const originalDestroy = provider.destroy.bind(provider);
     provider.destroy = () => {
-      detach();
+      provider.doc.off('update', handleDocUpdate);
+      provider.off('sync', handleSync);
+      provider.off('status', handleStatus);
       originalDestroy();
     };
 
     return provider as unknown as Provider;
-  };
-}
-
-function attachSyncTracking(provider: WebsocketProvider, controller: CollaborationSyncController) {
-  let handshakePending = false;
-  let pendingAck = false;
-
-  const markUnsynced = () => {
-    controller.setUnsynced(true);
-  };
-
-  const ensureHandshake = () => {
-    if (handshakePending) {
-      return;
-    }
-
-    const socket = provider.ws;
-
-    if (!provider.wsconnected || socket == null) {
-      return;
-    }
-
-    const openState =
-      typeof WebSocket !== 'undefined'
-        ? WebSocket.OPEN
-        : socket.OPEN ?? 1;
-
-    if (socket.readyState !== openState) {
-      return;
-    }
-
-    handshakePending = true;
-    pendingAck = false;
-    controller.setUnsynced(true);
-
-    const encoder = encoding.createEncoder();
-    encoding.writeVarUint(encoder, messageSync);
-    syncProtocol.writeSyncStep1(encoder, provider.doc);
-
-    try {
-      provider.synced = false;
-      socket.send(encoding.toUint8Array(encoder));
-    } catch {
-      handshakePending = false;
-      pendingAck = true;
-    }
-  };
-
-  const handleLocalUpdate = (_update: Uint8Array, origin: unknown) => {
-    if (origin === provider) {
-      return;
-    }
-
-    pendingAck = true;
-    markUnsynced();
-
-    ensureHandshake();
-  };
-
-  const handleSync = (isSynced: boolean) => {
-    if (!isSynced) {
-      return;
-    }
-
-    handshakePending = false;
-
-    if (pendingAck) {
-      ensureHandshake();
-      return;
-    }
-
-    if (provider.wsconnected) {
-      controller.setUnsynced(false);
-    }
-  };
-
-  const handleStatus = ({ status }: { status: string }) => {
-    if (status === 'connected') {
-      if (pendingAck) {
-        ensureHandshake();
-      } else if (provider.synced) {
-        controller.setUnsynced(false);
-      }
-      return;
-    }
-
-    // Connection dropped or paused: mark unsynced and retry once we reconnect.
-    pendingAck = true;
-    handshakePending = false;
-    markUnsynced();
-  };
-
-  controller.setUnsynced(true);
-
-  provider.doc.on('update', handleLocalUpdate);
-  provider.on('sync', handleSync);
-  provider.on('status', handleStatus);
-
-  return () => {
-    provider.doc.off('update', handleLocalUpdate);
-    provider.off('sync', handleSync);
-    provider.off('status', handleStatus);
   };
 }
