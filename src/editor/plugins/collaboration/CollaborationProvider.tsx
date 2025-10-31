@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { env } from '#config/env-client';
+import { env } from '#config/env.client';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from './collaborationRuntime';
 import { CollaborationSyncController, createProviderFactory } from './collaborationRuntime';

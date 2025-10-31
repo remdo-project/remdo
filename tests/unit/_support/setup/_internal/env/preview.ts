@@ -1,4 +1,4 @@
-import { env } from '#config/env-server';
+import { env } from '#config/env.server';
 import { forceVitestPreviewCacheDir } from '#config/vitest/preview-cache';
 
 type DebugFn = typeof import('vitest-preview')['debug'];

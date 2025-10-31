@@ -11,7 +11,7 @@ const jiti = require('jiti')(import.meta.url);
 
 process.env.NODE_ENV ??= 'test';
 
-const { env } = jiti('../config/env-server.ts');
+const { env } = jiti('../config/env.server.ts');
 
 const pnpmCmd = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const vitestArgs = [

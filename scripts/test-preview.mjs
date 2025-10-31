@@ -10,7 +10,7 @@ process.env.NODE_ENV ??= 'test';
 const require = createRequire(import.meta.url);
 const jiti = require('jiti')(import.meta.url);
 
-const { env } = jiti('../config/env-server.ts');
+const { env } = jiti('../config/env.server.ts');
 const { forceVitestPreviewCacheDir } = jiti('../config/vitest/preview-cache.ts');
 
 process.env.HOST = env.HOST;

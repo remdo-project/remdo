@@ -1,4 +1,4 @@
-import { env } from '#config/env-client';
+import { env } from '#config/env.client';
 import { render, waitFor } from '@testing-library/react';
 import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
 import type { LexicalEditor } from 'lexical';
