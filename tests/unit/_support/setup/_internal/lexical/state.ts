@@ -95,29 +95,14 @@ function lexicalGetEditorState(editor: LexicalEditor) {
 
 export function createLexicalTestHelpers(
   editor: LexicalEditor,
-  getCollabStatus: () => CollaborationStatusValue | null
+  getCollabStatus: () => CollaborationStatusValue
 ): LexicalTestHelpers {
   async function waitForCollabSync(): Promise<void> {
-    // The collaboration status context updates asynchronously after Lexical
-    // mutations. Loop until the latest status reports that we're both ready and
-    // free of unsynced changes so test helpers never rely on double invocations.
-    while (true) {
-      const collab = getCollabStatus();
-
-      if (!collab?.enabled) {
-        return;
-      }
-
-      if (!collab.hasUnsyncedChanges && collab.ready) {
-        return;
-      }
-
-      await collab.waitForSync();
-    }
+    await getCollabStatus().waitForSync();
   }
 
   function hasCollabUnsyncedChanges(): boolean {
-    return Boolean(getCollabStatus()?.hasUnsyncedChanges);
+    return Boolean(getCollabStatus().hasUnsyncedChanges);
   }
 
   return {

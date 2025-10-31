@@ -73,14 +73,7 @@ export function createProviderFactory(
     });
 
     const originalDestroy = provider.destroy.bind(provider);
-    let destroyed = false;
-
     const destroy = () => {
-      if (destroyed) {
-        return;
-      }
-
-      destroyed = true;
       detach();
       originalDestroy();
     };
