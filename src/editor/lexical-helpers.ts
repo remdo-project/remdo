@@ -39,12 +39,12 @@ export function $indentNote(noteItem: ListItemNode): boolean {
     return false;
   }
 
-  const targetList = getOrCreateChildList(previousContent, parentList);
+  const targetList = $getOrCreateChildList(previousContent, parentList);
   targetList.append(...getNodesToMove(noteItem));
   return true;
 }
 
-function getOrCreateChildList(parentContentItem: ListItemNode, parentList: ListNode): ListNode {
+function $getOrCreateChildList(parentContentItem: ListItemNode, parentList: ListNode): ListNode {
   const existingWrapper = parentContentItem.getNextSibling();
   if (isChildrenWrapper(existingWrapper)) {
     const childList = existingWrapper.getFirstChild();

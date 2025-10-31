@@ -63,6 +63,9 @@ importers:
       '@eslint-react/eslint-plugin':
         specifier: ^1.53.1
         version: 1.53.1(eslint@9.38.0(jiti@2.6.1))(ts-api-utils@2.1.0(typescript@5.9.3))(typescript@5.9.3)
+      '@lexical/eslint-plugin':
+        specifier: ^0.38.2
+        version: 0.38.2(eslint@9.38.0(jiti@2.6.1))
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -772,6 +775,11 @@ packages:
 
   '@lexical/dragon@0.37.0':
     resolution: {integrity: sha512-iC4OKivEPtt7cGVSwZylLfz5T7Oqr9q9EOosS6E/byMyoqwkYWGjXn/qFiwIv1Xo3+G19vhfChi/+ZcYLXpHPw==}
+
+  '@lexical/eslint-plugin@0.38.2':
+    resolution: {integrity: sha512-T/en3lJBEU1ajLQve21L721hKzAtewEnGwFSmhq4fwGcqsey5UYvyHMIyn0wKcAh6fvWTRzQDLqxr7Ow4lwnrQ==}
+    peerDependencies:
+      eslint: '>=7.31.0 || ^8.0.0'
 
   '@lexical/extension@0.37.0':
     resolution: {integrity: sha512-Z58f2tIdz9bn8gltUu5cVg37qROGha38dUZv20gI2GeNugXAkoPzJYEcxlI1D/26tkevJ/7VaFUr9PTk+iKmaA==}
@@ -4440,6 +4448,10 @@ snapshots:
     dependencies:
       '@lexical/extension': 0.37.0
       lexical: 0.37.0
+
+  '@lexical/eslint-plugin@0.38.2(eslint@9.38.0(jiti@2.6.1))':
+    dependencies:
+      eslint: 9.38.0(jiti@2.6.1)
 
   '@lexical/extension@0.37.0':
     dependencies:

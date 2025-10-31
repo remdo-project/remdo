@@ -1,4 +1,5 @@
 import antfu from '@antfu/eslint-config';
+import lexicalPlugin from '@lexical/eslint-plugin';
 
 export default antfu(
   {
@@ -89,6 +90,14 @@ export default antfu(
           message: 'preview() is for local debugging only; remove preview() calls before committing.',
         },
       ],
+    },
+  },
+  {
+    plugins: {
+      '@lexical': lexicalPlugin,
+    },
+    rules: {
+      '@lexical/rules-of-lexical': 'error',
     },
   },
 );

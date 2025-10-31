@@ -21,7 +21,7 @@ access through the new module.
 3. `$indentNote`/`$outdentNote` return booleans and throw generic `Error`s,
    whereas Lexical silently no-ops or raises formatted dev invariants; the
    reporting style is inconsistent.
-4. `getOrCreateChildList` omits copying text format and style from the source
+4. `$getOrCreateChildList` omits copying text format and style from the source
    list/item, unlike Lexical, so new wrappers lose typography.
 5. The helpers attempt to auto-heal malformed wrappers by removing them instead
    of surfacing invariants like Lexical does.
