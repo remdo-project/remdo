@@ -1,4 +1,4 @@
-import type { ListNode } from '@lexical/list';
+import type { ListItemNode, ListNode } from '@lexical/list';
 import {
   $createListItemNode,
   $createListNode,
@@ -15,7 +15,7 @@ it('clear', async ({ lexical }) => {
   });
 
   lexical.validate(() => {
-    const list = expectSingleListRoot();
+    const list = $expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
     expectListItemCount(list, 1); // placeholder paragraph
   });
@@ -41,7 +41,7 @@ it('normalizes root after list command dispatch', async ({ lexical }) => {
   await mutate(() => { });
 
   validate(() => {
-    const list = expectSingleListRoot();
+    const list = $expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
     expectListItems(list, ['First', 'Second']);
   });
@@ -60,7 +60,7 @@ it('allows ordered list as the root list type when present', async ({ lexical })
   });
 
   lexical.validate(() => {
-    const list = expectSingleListRoot();
+    const list = $expectSingleListRoot();
     expect(list.getListType()).toBe('number');
     expectListItems(list, ['ordered']);
   });
@@ -80,7 +80,7 @@ it('wraps non-list root children into list items', async ({ lexical }) => {
   });
 
   lexical.validate(() => {
-    const list = expectSingleListRoot();
+    const list = $expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
     expectListItems(list, ['alpha', 'beta']);
   });
@@ -105,7 +105,7 @@ it('merges multiple bullet lists under a single root list', async ({ lexical }) 
   });
 
   lexical.validate(() => {
-    const list = expectSingleListRoot();
+    const list = $expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
     expectListItems(list, ['one', 'two']);
   });
@@ -133,14 +133,19 @@ it('leaves a canonical single list untouched', async ({ lexical }) => {
   });
 
   lexical.validate(() => {
-    const list = expectSingleListRoot();
+    const list = $expectSingleListRoot();
     expect(list.getKey()).toBe(originalListKey);
-    const items = list.getChildren();
+    const items = list.getChildren().map((child): ListItemNode => {
+      if (!$isListItemNode(child)) {
+        throw new Error('Expected root list child to remain a list item');
+      }
+      return child;
+    });
     expect(items.map((child) => child.getKey())).toEqual(originalItemKeys);
   });
 });
 
-function expectSingleListRoot(): ListNode {
+function $expectSingleListRoot(): ListNode {
   const root = $getRoot();
   expect(root.getChildrenSize()).toBe(1);
 
