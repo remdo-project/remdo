@@ -95,17 +95,14 @@ function lexicalGetEditorState(editor: LexicalEditor) {
 
 export function createLexicalTestHelpers(
   editor: LexicalEditor,
-  getCollabStatus: () => CollaborationStatusValue | null
+  getCollabStatus: () => CollaborationStatusValue
 ): LexicalTestHelpers {
   async function waitForCollabSync(): Promise<void> {
-    await getCollabStatus()?.waitForSync();
-    await new Promise((resolve) => {
-      setTimeout(resolve, 0);
-    });
+    await getCollabStatus().waitForSync();
   }
 
   function hasCollabUnsyncedChanges(): boolean {
-    return Boolean(getCollabStatus()?.hasUnsyncedChanges);
+    return Boolean(getCollabStatus().hasUnsyncedChanges);
   }
 
   return {

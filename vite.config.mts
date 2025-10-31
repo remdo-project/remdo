@@ -5,6 +5,7 @@ import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = env.VITEST_PREVIEW;
+const isCollabEnabled = env.COLLAB_ENABLED;
 
 export default defineConfig(() => {
   return {
@@ -45,6 +46,7 @@ export default defineConfig(() => {
       setupFiles: ['./tests/unit/_support/setup/index.ts'],
       include: ['tests/**/*.spec.{ts,tsx}'],
       css: true,
+      threads: !isCollabEnabled,
       coverage: {
         provider: 'v8' as const,
         reportsDirectory: 'data/coverage',

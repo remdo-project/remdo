@@ -4,7 +4,9 @@ import * as encoding from 'lib0/encoding';
 import * as syncProtocol from 'y-protocols/sync';
 import * as Y from 'yjs';
 
-export type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => Provider;
+export type CollaborationProviderInstance = Provider & { destroy: () => void };
+
+export type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => CollaborationProviderInstance;
 
 export class CollaborationSyncController {
   private unsynced: boolean;
@@ -71,12 +73,12 @@ export function createProviderFactory(
     });
 
     const originalDestroy = provider.destroy.bind(provider);
-    provider.destroy = () => {
+    const destroy = () => {
       detach();
       originalDestroy();
     };
 
-    return provider as unknown as Provider;
+    return Object.assign(provider as unknown as Provider, { destroy }) as CollaborationProviderInstance;
   };
 }
 
