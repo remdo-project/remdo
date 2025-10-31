@@ -1,4 +1,3 @@
-import { env } from '#config/env.client';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
@@ -7,9 +6,8 @@ import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { CollaborationPlugin } from './plugins/collaboration';
 import { useEditorConfig } from './config';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
+import { DevPlugin } from './plugins/DevPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
-import { SchemaValidationPlugin } from './plugins/SchemaValidationPlugin';
-import { TreeViewPlugin } from './plugins/TreeViewPlugin';
 import './Editor.css';
 
 interface EditorProps {
@@ -30,10 +28,8 @@ export default function Editor({ children }: EditorProps) {
         <ListPlugin hasStrictIndent />
         <CollaborationPlugin>
           <RootSchemaPlugin />
-          {children}
+          <DevPlugin>{children}</DevPlugin>
         </CollaborationPlugin>
-        {env.isDev && <SchemaValidationPlugin />}
-        {env.isDev && <TreeViewPlugin />}
       </LexicalComposer>
     </div>
   );
