@@ -7,13 +7,14 @@ import { describe, expect, it } from 'vitest';
 import { useEffect, useRef } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import Editor from '@/editor/Editor';
-import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration';
+import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
 
 interface PeerHandle {
   editor: LexicalEditor;
-  waitForSync: () => Promise<void>;
-  hasUnsyncedChanges: () => boolean;
+  waitForCollabSync: () => Promise<void>;
+  hasCollabUnsyncedChanges: () => boolean;
+  validate: <T>(fn: () => T) => T;
 }
 
 function CollaborationPeer({ onReady }: { onReady: (handle: PeerHandle) => void }) {
@@ -26,10 +27,16 @@ function CollaborationPeer({ onReady }: { onReady: (handle: PeerHandle) => void 
   }, [collab]);
 
   useEffect(() => {
+    const waitForCollabSync: PeerHandle['waitForCollabSync'] = () => statusRef.current.waitForSync();
+    const hasCollabUnsyncedChanges: PeerHandle['hasCollabUnsyncedChanges'] = () =>
+      statusRef.current.hasUnsyncedChanges;
+    const validate: PeerHandle['validate'] = (fn) => editor.getEditorState().read(fn);
+
     onReady({
       editor,
-      waitForSync: () => statusRef.current.waitForSync(),
-      hasUnsyncedChanges: () => statusRef.current.hasUnsyncedChanges,
+      waitForCollabSync,
+      hasCollabUnsyncedChanges,
+      validate,
     });
   }, [editor, onReady]);
 
@@ -50,26 +57,22 @@ describe.skipIf(!env.collabEnabled)('collaboration sync', () => {
       if (!secondary) throw new Error('Secondary editor not ready');
     });
 
-    await Promise.all([lexical.waitForCollabSync(), secondary.waitForSync()]);
-
-    const readText = (editor: LexicalEditor) =>
-      editor.getEditorState().read(() => $getRoot().getTextContent().trim());
+    await Promise.all([lexical.waitForCollabSync(), secondary.waitForCollabSync()]);
 
     lexical.editor.update(() => {
       $getRoot().clear();
     });
 
-    await Promise.all([lexical.waitForCollabSync(), secondary.waitForSync()]);
+    await Promise.all([lexical.waitForCollabSync(), secondary.waitForCollabSync()]);
 
-    expect(readText(lexical.editor)).toBe('');
-    expect(readText(secondary.editor)).toBe('');
+    expect(lexical).toMatchOutline([]);
+    expect(secondary as any).toMatchOutline([]);
     expect(lexical.hasCollabUnsyncedChanges()).toBe(false);
-    expect(secondary.hasUnsyncedChanges()).toBe(false);
+    expect(secondary.hasCollabUnsyncedChanges()).toBe(false);
 
     lexical.editor.update(() => {
+      //TODO use a higher level API once we have it
       const root = $getRoot();
-      root.clear();
-
       const list = $createListNode('bullet');
       const item = $createListItemNode();
       const paragraph = $createParagraphNode();
@@ -79,11 +82,12 @@ describe.skipIf(!env.collabEnabled)('collaboration sync', () => {
       root.append(list);
     });
 
-    await Promise.all([lexical.waitForCollabSync(), secondary.waitForSync()]);
+    await Promise.all([lexical.waitForCollabSync(), secondary.waitForCollabSync()]);
 
     expect(lexical.hasCollabUnsyncedChanges()).toBe(false);
-    expect(secondary.hasUnsyncedChanges()).toBe(false);
-    expect(readText(lexical.editor)).toBe('shared note');
-    expect(readText(secondary.editor)).toBe('shared note');
+    expect(secondary.hasCollabUnsyncedChanges()).toBe(false);
+    const sharedOutline = [{ text: 'shared note', children: [] }];
+    expect(lexical).toMatchOutline(sharedOutline);
+    expect(secondary as any).toMatchOutline(sharedOutline);
   });
 });
