@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { env } from '#config/env.client';
 
 function runSnapshotCommand(...args: string[]) {
-  execFileSync('pnpm', ['run', 'snapshot', '--', ...args], { stdio: 'inherit' });
+  execFileSync('pnpm', ['run', 'snapshot', ...args], { stdio: 'inherit' });
 }
 
 describe.skipIf(!env.collabEnabled)('snapshot CLI', () => {

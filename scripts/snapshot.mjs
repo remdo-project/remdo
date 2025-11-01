@@ -43,7 +43,15 @@ async function runSave(filePath) {
   try {
     const json = session.editor.getEditorState().toJSON();
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, `${JSON.stringify(json, null, 2)}\n`);
+    let target;
+    try {
+      const raw = fs.readFileSync(filePath, 'utf8');
+      target = JSON.parse(raw);
+    } catch {
+      target = {};
+    }
+    target.editorState = json;
+    fs.writeFileSync(filePath, `${JSON.stringify(target, null, 2)}\n`);
   } finally {
     session.cleanup();
   }
@@ -54,7 +62,7 @@ async function runLoad(filePath) {
   try {
     const raw = fs.readFileSync(filePath, 'utf8');
     const parsed = JSON.parse(raw);
-    const state = session.editor.parseEditorState(parsed);
+    const state = session.editor.parseEditorState(parsed.editorState);
     await applyEditorState(session.editor, state);
   } finally {
     session.cleanup();
