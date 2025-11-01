@@ -6,11 +6,10 @@ import {
 } from '@lexical/react/LexicalCollaborationContext';
 import { CollaborationPluginV2__EXPERIMENTAL } from '@lexical/react/LexicalCollaborationPlugin';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
+import { DEFAULT_DOC_ID } from '#config/collab.constants';
 import type { Provider } from '@lexical/yjs';
 import { CollaborationProvider, useCollaborationStatus } from './CollaborationProvider';
 import type { ProviderFactory } from './collaborationRuntime';
-
-const DEFAULT_ROOM_ID = 'main';
 
 export function CollaborationPlugin({ children }: { children?: ReactNode }) {
   return (
@@ -45,7 +44,7 @@ function CollaborationRuntimeBridge({ providerFactory }: CollaborationRuntimeBri
   const [, forceUpdate] = useReducer((count: number) => count + 1, 0);
 
   useEffect(() => {
-    const nextProvider = providerFactory(DEFAULT_ROOM_ID, yjsDocMap);
+    const nextProvider = providerFactory(DEFAULT_DOC_ID, yjsDocMap);
     providerRef.current = nextProvider;
     forceUpdate();
 
@@ -56,7 +55,7 @@ function CollaborationRuntimeBridge({ providerFactory }: CollaborationRuntimeBri
   }, [providerFactory, yjsDocMap]);
 
   const provider = providerRef.current;
-  const doc = yjsDocMap.get(DEFAULT_ROOM_ID);
+  const doc = yjsDocMap.get(DEFAULT_DOC_ID);
 
   if (provider == null || doc == null) {
     return null;
@@ -64,7 +63,7 @@ function CollaborationRuntimeBridge({ providerFactory }: CollaborationRuntimeBri
 
   return (
     <CollaborationPluginV2__EXPERIMENTAL
-      id={DEFAULT_ROOM_ID}
+      id={DEFAULT_DOC_ID}
       provider={provider}
       doc={doc}
       __shouldBootstrapUnsafe

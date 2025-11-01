@@ -14,9 +14,9 @@ import WebSocket from 'ws';
 const require = createRequire(import.meta.url);
 const jiti = require('jiti')(import.meta.url);
 const { env } = jiti('../config/env.server.ts');
+const { DEFAULT_DOC_ID } = jiti('../config/collab.constants.ts');
 
-const DOC_ID = 'main';
-const DEFAULT_FILE = path.join('data', `${DOC_ID}.json`);
+const DEFAULT_FILE = path.join('data', `${DEFAULT_DOC_ID}.json`);
 const ENDPOINT = `ws://${env.HOST}:${env.COLLAB_SERVER_PORT}`;
 const SYNC_TIMEOUT = 10000;
 
@@ -63,8 +63,8 @@ async function runLoad(filePath) {
 
 async function createSession() {
   const doc = new Doc();
-  const docMap = new Map([[DOC_ID, doc]]);
-  const provider = new WebsocketProvider(ENDPOINT, DOC_ID, doc, {
+  const docMap = new Map([[DEFAULT_DOC_ID, doc]]);
+  const provider = new WebsocketProvider(ENDPOINT, DEFAULT_DOC_ID, doc, {
     connect: false,
     WebSocketPolyfill: WebSocket,
   });
@@ -75,7 +75,7 @@ async function createSession() {
       throw error;
     },
   });
-  const binding = createBinding(editor, provider, DOC_ID, doc, docMap);
+  const binding = createBinding(editor, provider, DEFAULT_DOC_ID, doc, docMap);
   const sharedRoot = binding.root.getSharedType();
   const observer = (events, transaction) => {
     if (transaction.origin === binding) {
