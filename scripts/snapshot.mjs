@@ -18,7 +18,6 @@ const { DEFAULT_DOC_ID } = jiti('../config/collab.constants.ts');
 
 const DEFAULT_FILE = path.join('data', `${DEFAULT_DOC_ID}.json`);
 const ENDPOINT = `ws://${env.HOST}:${env.COLLAB_SERVER_PORT}`;
-const SYNC_TIMEOUT = 10000;
 
 main().catch((error) => {
   console.error(error instanceof Error ? error.message : error);
@@ -26,52 +25,36 @@ main().catch((error) => {
 });
 
 async function main() {
-  const [command, fileArg, ...rest] = process.argv.slice(2);
-  if (!command || rest.length > 0 || (command !== 'load' && command !== 'save')) {
-    throw new Error('Usage: snapshot.mjs <load|save> [filePath]');
-  }
-  const filePath = fileArg ?? DEFAULT_FILE;
+  const [command, filePath = DEFAULT_FILE] = process.argv.slice(2);
   if (command === 'save') {
     await runSave(filePath);
-  } else {
+  } else if (command === 'load') {
     await runLoad(filePath);
+  } else {
+    throw new Error('Usage: snapshot.mjs <load|save> [filePath]');
   }
 }
 
 async function runSave(filePath) {
-  const session = await createSession();
-  try {
-    const json = session.editor.getEditorState().toJSON();
+  await withSession(async (editor) => {
+    const editorState = editor.getEditorState().toJSON();
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    let target;
-    try {
-      const raw = fs.readFileSync(filePath, 'utf8');
-      target = JSON.parse(raw);
-    } catch {
-      target = {};
-    }
-    target.editorState = json;
-    fs.writeFileSync(filePath, `${JSON.stringify(target, null, 2)}\n`);
-  } finally {
-    session.cleanup();
-  }
+    const existing = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : {};
+    fs.writeFileSync(filePath, `${JSON.stringify({ ...existing, editorState }, null, 2)}\n`);
+  });
 }
 
 async function runLoad(filePath) {
-  const session = await createSession();
-  try {
-    const raw = fs.readFileSync(filePath, 'utf8');
-    const parsed = JSON.parse(raw);
-    const state = session.editor.parseEditorState(parsed.editorState);
-    await applyEditorState(session.editor, state);
-  } finally {
-    session.cleanup();
-  }
+  const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  await withSession(async (editor) => {
+    const done = waitForEditorUpdate(editor);
+    editor.setEditorState(editor.parseEditorState(data.editorState), { tag: 'snapshot-load' });
+    await done;
+  });
 }
 
-async function createSession() {
+async function withSession(run) {
   const doc = new Doc();
-  const docMap = new Map([[DEFAULT_DOC_ID, doc]]);
   const provider = new WebsocketProvider(ENDPOINT, DEFAULT_DOC_ID, doc, {
     connect: false,
     WebSocketPolyfill: WebSocket,
@@ -83,116 +66,65 @@ async function createSession() {
       throw error;
     },
   });
-  const binding = createBinding(editor, provider, DEFAULT_DOC_ID, doc, docMap);
+  const binding = createBinding(editor, provider, DEFAULT_DOC_ID, doc, new Map([[DEFAULT_DOC_ID, doc]]));
   const sharedRoot = binding.root.getSharedType();
   const observer = (events, transaction) => {
     if (transaction.origin === binding) {
       return;
     }
-    const isUndo = transaction.origin instanceof UndoManager;
-    syncYjsChangesToLexical(binding, provider, events, isUndo);
+    syncYjsChangesToLexical(binding, provider, events, transaction.origin instanceof UndoManager);
   };
   sharedRoot.observeDeep(observer);
-  const removeUpdateListener = editor.registerUpdateListener(
-    ({
+  const removeUpdateListener = editor.registerUpdateListener((payload) => {
+    const { prevEditorState, editorState, dirtyElements, dirtyLeaves, normalizedNodes, tags } = payload;
+    syncLexicalUpdateToYjs(
+      binding,
+      provider,
       prevEditorState,
       editorState,
       dirtyElements,
       dirtyLeaves,
       normalizedNodes,
       tags,
-    }) => {
-      syncLexicalUpdateToYjs(
-        binding,
-        provider,
-        prevEditorState,
-        editorState,
-        dirtyElements,
-        dirtyLeaves,
-        normalizedNodes,
-        tags,
-      );
-    },
-  );
+    );
+  });
+
+  const initialUpdate = waitForEditorUpdate(editor);
+  provider.connect();
+  await waitForSync(provider);
+  await initialUpdate;
+
   try {
-    const initialUpdate = waitForNextEditorUpdate(editor);
-    provider.connect();
-    await waitForProviderSync(provider);
-    await initialUpdate;
-  } catch (error) {
+    return await run(editor);
+  } finally {
     sharedRoot.unobserveDeep(observer);
     removeUpdateListener();
     provider.destroy();
     binding.root.destroy(binding);
     doc.destroy();
-    throw error;
   }
-  return {
-    editor,
-    cleanup() {
-      sharedRoot.unobserveDeep(observer);
-      removeUpdateListener();
-      provider.destroy();
-      binding.root.destroy(binding);
-      doc.destroy();
-    },
-  };
 }
 
-function waitForNextEditorUpdate(editor) {
+function waitForEditorUpdate(editor) {
   return new Promise((resolve) => {
-    let resolved = false;
-    let timer;
-    let unregister = () => {};
-    const finish = () => {
-      if (resolved) {
-        return;
-      }
-      resolved = true;
-      clearTimeout(timer);
+    const unregister = editor.registerUpdateListener(() => {
       unregister();
       resolve();
-    };
-    unregister = editor.registerUpdateListener(finish);
-    timer = setTimeout(finish, 1000);
+    });
   });
 }
 
-function waitForProviderSync(provider) {
+function waitForSync(provider) {
   if (provider.synced) {
     return Promise.resolve();
   }
-  return new Promise((resolve, reject) => {
-    let timer;
-    const cleanup = () => {
-      provider.off('sync', onSync);
-      provider.off('connection-close', onClose);
-      provider.off('connection-error', onClose);
-      clearTimeout(timer);
-    };
-    function onSync(isSynced) {
-      if (!isSynced) {
-        return;
+  return new Promise((resolve) => {
+    const handleSync = (isSynced) => {
+      if (isSynced) {
+        provider.off('sync', handleSync);
+        resolve();
       }
-      cleanup();
-      resolve();
-    }
-    function onClose() {
-      cleanup();
-      reject(new Error('Failed to connect to collaboration server'));
-    }
-    timer = setTimeout(() => {
-      cleanup();
-      reject(new Error('Timed out waiting for collaboration sync'));
-    }, SYNC_TIMEOUT);
-    provider.on('sync', onSync);
-    provider.on('connection-close', onClose);
-    provider.on('connection-error', onClose);
+    };
+    provider.on('sync', handleSync);
   });
-}
-
-async function applyEditorState(editor, state) {
-  const updatePromise = waitForNextEditorUpdate(editor);
-  editor.setEditorState(state, { tag: 'snapshot-load' });
-  await updatePromise;
 }
