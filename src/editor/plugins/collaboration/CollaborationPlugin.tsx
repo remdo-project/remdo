@@ -6,7 +6,7 @@ import {
 } from '@lexical/react/LexicalCollaborationContext';
 import { CollaborationPluginV2__EXPERIMENTAL } from '@lexical/react/LexicalCollaborationPlugin';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
-import { DEFAULT_DOC_ID } from '#config/collab.constants';
+import { DEFAULT_DOC_ID } from '#config/spec';
 import type { Provider } from '@lexical/yjs';
 import { CollaborationProvider, useCollaborationStatus } from './CollaborationProvider';
 import type { ProviderFactory } from './collaborationRuntime';

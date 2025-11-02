@@ -2,9 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { createRequire } from 'node:module';
 
-import type { InitialConfigType } from '@lexical/react/LexicalComposer';
 import { createBinding, syncLexicalUpdateToYjs, syncYjsChangesToLexical } from '@lexical/yjs';
 import type { Provider } from '@lexical/yjs';
 import { WebsocketProvider } from 'y-websocket';
@@ -14,18 +12,9 @@ import { Doc, UndoManager } from 'yjs';
 import type { Transaction } from 'yjs';
 import WebSocket from 'ws';
 
-import { env as serverEnv } from '../config/env.server';
-import { DEFAULT_DOC_ID } from '../config/collab.constants';
-
-const require = createRequire(import.meta.url);
-const jiti = require('jiti')(import.meta.url, {
-  tsconfig: path.join(process.cwd(), 'tsconfig.json'),
-  transformOptions: {
-    define: {
-      'import.meta.env': 'process.env',
-    },
-  },
-});
+import { env as serverEnv, runtime as serverRuntime } from '../config/server';
+import { DEFAULT_DOC_ID } from '../config/spec';
+import { createEditorInitialConfig } from '../lib/editor/config';
 
 interface SharedRootObserver {
   (events: unknown, transaction: Transaction): void;
@@ -38,9 +27,6 @@ interface SharedRoot {
 
 const DEFAULT_FILE = path.join('data', `${DEFAULT_DOC_ID}.json`);
 const ENDPOINT = `ws://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
-
-seedBrowserEnv();
-const editorConfigPromise = loadEditorConfig();
 
 main().catch((error) => {
   console.error(error instanceof Error ? error.message : error);
@@ -83,8 +69,9 @@ async function withSession(run: (editor: LexicalEditor) => Promise<void> | void)
     WebSocketPolyfill: WebSocket as unknown as typeof globalThis.WebSocket,
   });
   const lexicalProvider = provider as unknown as Provider;
-  const config = await editorConfigPromise;
-  const editor = createEditor({ ...config, editorState: undefined } as unknown as CreateEditorArgs);
+  const editor = createEditor(
+    createEditorInitialConfig({ isDev: serverRuntime.isDev }) as CreateEditorArgs
+  );
   const binding = createBinding(editor, lexicalProvider, DEFAULT_DOC_ID, doc, new Map([[DEFAULT_DOC_ID, doc]]));
   const sharedRoot = (binding.root as unknown as { getSharedType: () => SharedRoot }).getSharedType();
   const observer: SharedRootObserver = (events, transaction) => {
@@ -147,20 +134,3 @@ function waitForSync(provider: WebsocketProvider): Promise<void> {
     provider.on('sync', handleSync);
   });
 }
-
-async function loadEditorConfig(): Promise<InitialConfigType> {
-  const { editorInitialConfig } = jiti('../src/editor/config/index.ts') as {
-    editorInitialConfig: InitialConfigType;
-  };
-  return editorInitialConfig;
-}
-
-/* eslint-disable node/no-process-env */
-function seedBrowserEnv() {
-  process.env.MODE ??= process.env.NODE_ENV ?? 'development';
-  process.env.DEV ??= String(process.env.MODE !== 'production');
-  process.env.PROD ??= String(process.env.MODE === 'production');
-  process.env.VITE_COLLAB_ENABLED ??= String(serverEnv.COLLAB_ENABLED);
-  process.env.VITE_COLLAB_CLIENT_PORT ??= String(serverEnv.COLLAB_CLIENT_PORT);
-}
-/* eslint-enable node/no-process-env */

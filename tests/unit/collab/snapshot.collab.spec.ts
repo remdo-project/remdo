@@ -2,9 +2,9 @@ import path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { env } from '#config/env.client';
+import { config } from '#config/client';
 
-describe.skipIf(!env.collabEnabled)('snapshot CLI', () => {
+describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
   const runSnapshotCommand = (...args: string[]) => {
     execFileSync('pnpm', ['run', 'snapshot', ...args], { stdio: 'inherit' });
   };

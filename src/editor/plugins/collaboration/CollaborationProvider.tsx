@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { env } from '#config/env.client';
+import { config } from '#config/client';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from './collaborationRuntime';
 import { CollaborationSyncController, createProviderFactory } from './collaborationRuntime';
@@ -34,13 +34,13 @@ export function CollaborationProvider({ children }: { children: ReactNode }) {
 }
 
 function useCollaborationRuntimeValue(): CollaborationStatusValue {
-  const enabled = env.collabEnabled;
+  const enabled = config.COLLAB_ENABLED;
   const [ready, setReady] = useState(!enabled);
   const [unsynced, setUnsynced] = useState(enabled);
   const endpoint = useMemo(() => {
     const { protocol, hostname } = window.location;
     const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
-    return `${wsProtocol}://${hostname}:${env.collabPort}`;
+    return `${wsProtocol}://${hostname}:${config.COLLAB_CLIENT_PORT}`;
   }, []);
 
   const syncController = useMemo(

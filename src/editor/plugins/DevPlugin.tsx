@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from 'react';
 
-import { env } from '#config/env.client';
+import { config } from '#config/client';
 
 import { SchemaValidationPlugin } from './SchemaValidationPlugin';
 import { TreeViewPlugin } from './TreeViewPlugin';
@@ -10,7 +10,7 @@ interface DevPluginProps {
 }
 
 export function DevPlugin({ children }: DevPluginProps): ReactElement {
-  return !env.isDev
+  return !config.isDev
     ? <>{children}</>
     : <>
       <SchemaValidationPlugin />
