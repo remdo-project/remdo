@@ -1,6 +1,8 @@
 import type { EnvSpec } from './_internal/env/parse';
 import { defineEnvDerivatives, defineEnvSpec } from './_internal/env/parse';
 
+//TODO entries from this file should not be consumed externally.
+//move DEFAULT_DOC_ID to a more appropriate location and create eslint rule
 export const DEFAULT_DOC_ID = 'main' as const;
 
 export const envSpec = defineEnvSpec(
