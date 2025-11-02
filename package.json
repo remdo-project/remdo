@@ -29,7 +29,7 @@
     "@lexical/history": "^0.37.0",
     "@lexical/list": "^0.37.0",
     "@lexical/react": "^0.37.0",
-    "@lexical/rich-text": "^0.37.0",
+    "@lexical/rich-text": "^0.38.2",
     "@lexical/utils": "^0.37.0",
     "@lexical/yjs": "^0.37.0",
     "@mantine/core": "^8.3.5",
