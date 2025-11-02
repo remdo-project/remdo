@@ -23,7 +23,7 @@
     "test:unit:coverage": "COLLAB_ENABLED=false pnpm exec vitest run --coverage",
     "test:unit:watch": "COLLAB_ENABLED=false node ./scripts/test-unit-watch.mjs",
     "test:preview": "node ./scripts/test-preview.mjs",
-    "snapshot": "node ./scripts/snapshot.mjs"
+    "snapshot": "tsx ./scripts/snapshot.ts"
   },
   "dependencies": {
     "@lexical/devtools-core": "^0.37.0",
@@ -54,6 +54,7 @@
     "@types/node": "^24.9.1",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@types/ws": "^8.5.12",
     "@vitejs/plugin-react-swc": "^4.2.0",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
@@ -68,6 +69,7 @@
     "jiti": "^2.6.1",
     "jsdom": "^27.0.1",
     "lint-staged": "^16.2.6",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vite": "^7.1.12",
     "vitest": "^3.2.4",

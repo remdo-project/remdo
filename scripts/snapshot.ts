@@ -1,0 +1,166 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+import { createRequire } from 'node:module';
+
+import type { InitialConfigType } from '@lexical/react/LexicalComposer';
+import { createBinding, syncLexicalUpdateToYjs, syncYjsChangesToLexical } from '@lexical/yjs';
+import type { Provider } from '@lexical/yjs';
+import { WebsocketProvider } from 'y-websocket';
+import { createEditor } from 'lexical';
+import type { CreateEditorArgs, LexicalEditor } from 'lexical';
+import { Doc, UndoManager } from 'yjs';
+import type { Transaction } from 'yjs';
+import WebSocket from 'ws';
+
+import { env as serverEnv } from '../config/env.server';
+import { DEFAULT_DOC_ID } from '../config/collab.constants';
+
+const require = createRequire(import.meta.url);
+const jiti = require('jiti')(import.meta.url, {
+  tsconfig: path.join(process.cwd(), 'tsconfig.json'),
+  transformOptions: {
+    define: {
+      'import.meta.env': 'process.env',
+    },
+  },
+});
+
+interface SharedRootObserver {
+  (events: unknown, transaction: Transaction): void;
+}
+
+interface SharedRoot {
+  observeDeep: (callback: SharedRootObserver) => void;
+  unobserveDeep: (callback: SharedRootObserver) => void;
+}
+
+const DEFAULT_FILE = path.join('data', `${DEFAULT_DOC_ID}.json`);
+const ENDPOINT = `ws://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
+
+seedBrowserEnv();
+const editorConfigPromise = loadEditorConfig();
+
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+});
+
+async function main(): Promise<void> {
+  const [command, filePath = DEFAULT_FILE] = process.argv.slice(2);
+  if (command === 'save') {
+    await runSave(filePath);
+  } else if (command === 'load') {
+    await runLoad(filePath);
+  } else {
+    throw new Error('Usage: snapshot.ts <load|save> [filePath]');
+  }
+}
+
+async function runSave(filePath: string): Promise<void> {
+  await withSession(async (editor) => {
+    const editorState = editor.getEditorState().toJSON();
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    const existing = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : {};
+    fs.writeFileSync(filePath, `${JSON.stringify({ ...existing, editorState }, null, 2)}\n`);
+  });
+}
+
+async function runLoad(filePath: string): Promise<void> {
+  const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  await withSession(async (editor) => {
+    const done = waitForEditorUpdate(editor);
+    editor.setEditorState(editor.parseEditorState(data.editorState), { tag: 'snapshot-load' });
+    await done;
+  });
+}
+
+async function withSession(run: (editor: LexicalEditor) => Promise<void> | void): Promise<void> {
+  const doc = new Doc();
+  const provider = new WebsocketProvider(ENDPOINT, DEFAULT_DOC_ID, doc, {
+    connect: false,
+    WebSocketPolyfill: WebSocket as unknown as typeof globalThis.WebSocket,
+  });
+  const lexicalProvider = provider as unknown as Provider;
+  const config = await editorConfigPromise;
+  const editor = createEditor({ ...config, editorState: undefined } as unknown as CreateEditorArgs);
+  const binding = createBinding(editor, lexicalProvider, DEFAULT_DOC_ID, doc, new Map([[DEFAULT_DOC_ID, doc]]));
+  const sharedRoot = (binding.root as unknown as { getSharedType: () => SharedRoot }).getSharedType();
+  const observer: SharedRootObserver = (events, transaction) => {
+    if (transaction.origin === binding) {
+      return;
+    }
+    syncYjsChangesToLexical(binding, lexicalProvider, events as unknown as Parameters<typeof syncYjsChangesToLexical>[2], transaction.origin instanceof UndoManager);
+  };
+  sharedRoot.observeDeep(observer);
+  const removeUpdateListener = editor.registerUpdateListener((payload) => {
+    const { prevEditorState, editorState, dirtyElements, dirtyLeaves, normalizedNodes, tags } = payload;
+    syncLexicalUpdateToYjs(
+      binding,
+      lexicalProvider,
+      prevEditorState,
+      editorState,
+      dirtyElements,
+      dirtyLeaves,
+      normalizedNodes,
+      tags,
+    );
+  });
+
+  const initialUpdate = waitForEditorUpdate(editor);
+  provider.connect();
+  await waitForSync(provider);
+  await initialUpdate;
+
+  try {
+    return await run(editor);
+  } finally {
+    sharedRoot.unobserveDeep(observer);
+    removeUpdateListener();
+    provider.destroy();
+    binding.root.destroy(binding);
+    doc.destroy();
+  }
+}
+
+function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {
+  return new Promise((resolve) => {
+    const unregister = editor.registerUpdateListener(() => {
+      unregister();
+      resolve();
+    });
+  });
+}
+
+function waitForSync(provider: WebsocketProvider): Promise<void> {
+  if (provider.synced) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    const handleSync = (isSynced: boolean) => {
+      if (isSynced) {
+        provider.off('sync', handleSync);
+        resolve();
+      }
+    };
+    provider.on('sync', handleSync);
+  });
+}
+
+async function loadEditorConfig(): Promise<InitialConfigType> {
+  const { editorInitialConfig } = jiti('../src/editor/config/index.ts') as {
+    editorInitialConfig: InitialConfigType;
+  };
+  return editorInitialConfig;
+}
+
+/* eslint-disable node/no-process-env */
+function seedBrowserEnv() {
+  process.env.MODE ??= process.env.NODE_ENV ?? 'development';
+  process.env.DEV ??= String(process.env.MODE !== 'production');
+  process.env.PROD ??= String(process.env.MODE === 'production');
+  process.env.VITE_COLLAB_ENABLED ??= String(serverEnv.COLLAB_ENABLED);
+  process.env.VITE_COLLAB_CLIENT_PORT ??= String(serverEnv.COLLAB_CLIENT_PORT);
+}
+/* eslint-enable node/no-process-env */
