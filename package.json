@@ -28,7 +28,7 @@
     "@lexical/devtools-core": "^0.37.0",
     "@lexical/history": "^0.37.0",
     "@lexical/list": "^0.37.0",
-    "@lexical/react": "^0.37.0",
+    "@lexical/react": "^0.38.2",
     "@lexical/rich-text": "^0.37.0",
     "@lexical/utils": "^0.37.0",
     "@lexical/yjs": "^0.37.0",
