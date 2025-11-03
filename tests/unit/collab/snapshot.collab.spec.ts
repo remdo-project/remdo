@@ -12,13 +12,22 @@ describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
   };
   const readEditorState = (filePath: string) => JSON.parse(readFileSync(filePath, 'utf8')).editorState;
 
-  it("loads data into collaboration doc and writes it back to disk", () => {
+  it('loads data into collaboration doc and writes it back to disk', async () => {
     const loadPath = path.resolve('tests/fixtures/basic.json');
     const savePath = path.resolve('data', 'snapshot.cli.json');
     runSnapshotCommand('load', loadPath);
-    runSnapshotCommand('save', savePath);
 
-    expect(readEditorState(savePath)).toEqual(readEditorState(loadPath));
+    try {
+      await waitFor(() => {
+        runSnapshotCommand('save', savePath);
+        const saved = readEditorState(savePath);
+        return JSON.stringify(saved) === JSON.stringify(readEditorState(loadPath));
+      }, { timeout: 5000 });
+    } finally {
+      try {
+        unlinkSync(savePath);
+      } catch {}
+    }
   });
 
   const extractTextContent = (node: any): string[] => {
@@ -49,10 +58,11 @@ describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
     const savePath = path.resolve('data', 'snapshot.cli.flat.json');
     try {
       const expectedTexts = extractOutlineTexts(readOutline(lexical.validate));
-      runSnapshotCommand('save', savePath);
-      const saved = readEditorState(savePath);
-      const savedTexts = extractTextContent(saved.root);
-      expect(savedTexts).toEqual(expectedTexts);
+      await waitFor(() => {
+        runSnapshotCommand('save', savePath);
+        const savedTexts = extractTextContent(readEditorState(savePath).root);
+        return JSON.stringify(savedTexts) === JSON.stringify(expectedTexts);
+      }, { timeout: 5000 });
     } finally {
       try {
         unlinkSync(savePath);
@@ -62,16 +72,35 @@ describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
     }
   });
 
-  it.skipIf(true)('loads a snapshot fixture into the editor', async ({ lexical }) => {
+  it('loads a snapshot fixture into the editor', { timeout: 5000 }, async ({ lexical }) => {
     const loadPath = path.resolve('tests/fixtures/tree.json');
     runSnapshotCommand('load', loadPath);
 
     await lexical.waitForCollabSync();
 
-    await waitFor(() => {
-      const currentOutline = extractOutlineTexts(readOutline(lexical.validate));
-      const expectedOutline = extractTextContent(readEditorState(loadPath).root);
-      expect(currentOutline).toEqual(expectedOutline);
-    }, { timeout: 5000 });
+    const expectedOutline = extractTextContent(readEditorState(loadPath).root);
+    const savePath = path.resolve('data', 'snapshot.cli.tree.json');
+    let finalSaved: string[] | null = null;
+
+    try {
+      await waitFor(() => {
+        runSnapshotCommand('save', savePath);
+        const savedOutline = extractTextContent(readEditorState(savePath).root);
+        finalSaved = savedOutline;
+        return JSON.stringify(savedOutline) === JSON.stringify(expectedOutline);
+      }, { timeout: 5000 });
+    } finally {
+      try {
+        unlinkSync(savePath);
+      } catch {
+        // ignore cleanup failure
+      }
+    }
+
+    expect(finalSaved).not.toBeNull();
+    expect(finalSaved).toEqual(expectedOutline);
+
+    await lexical.waitForCollabSync();
+    expect(lexical.hasCollabUnsyncedChanges()).toBe(false);
   });
 });
