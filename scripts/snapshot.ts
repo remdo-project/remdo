@@ -3,7 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
-import { createBinding, syncLexicalUpdateToYjs, syncYjsChangesToLexical } from '@lexical/yjs';
+import {
+  createBindingV2__EXPERIMENTAL,
+  syncLexicalUpdateToYjsV2__EXPERIMENTAL,
+  syncYjsChangesToLexicalV2__EXPERIMENTAL,
+  syncYjsStateToLexicalV2__EXPERIMENTAL,
+} from '@lexical/yjs';
 import type { Provider } from '@lexical/yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { createEditor } from 'lexical';
@@ -32,6 +37,23 @@ main().catch((error) => {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
 });
+
+if (typeof globalThis.document === 'undefined') {
+  const createStubElement = (tagName: string) => {
+    const element: any = {
+      tagName,
+      style: {},
+      appendChild() {},
+      removeChild() {},
+      textContent: '',
+    };
+    return element;
+  };
+
+  globalThis.document = {
+    createElement: createStubElement,
+  } as unknown as Document;
+}
 
 async function main(): Promise<void> {
   const [command, filePath = DEFAULT_FILE] = process.argv.slice(2);
@@ -64,6 +86,7 @@ async function runLoad(filePath: string): Promise<void> {
 
 async function withSession(run: (editor: LexicalEditor) => Promise<void> | void): Promise<void> {
   const doc = new Doc();
+  doc.getXmlElement('root-v2');
   const provider = new WebsocketProvider(ENDPOINT, DEFAULT_DOC_ID, doc, {
     connect: false,
     WebSocketPolyfill: WebSocket as unknown as typeof globalThis.WebSocket,
@@ -72,24 +95,30 @@ async function withSession(run: (editor: LexicalEditor) => Promise<void> | void)
   const editor = createEditor(
     createEditorInitialConfig({ isDev: serverRuntime.isDev }) as CreateEditorArgs
   );
-  const binding = createBinding(editor, lexicalProvider, DEFAULT_DOC_ID, doc, new Map([[DEFAULT_DOC_ID, doc]]));
-  const sharedRoot = (binding.root as unknown as { getSharedType: () => SharedRoot }).getSharedType();
+  const docMap = new Map([[DEFAULT_DOC_ID, doc]]);
+  const binding = createBindingV2__EXPERIMENTAL(editor, DEFAULT_DOC_ID, doc, docMap);
+  const sharedRoot = binding.root as unknown as SharedRoot;
   const observer: SharedRootObserver = (events, transaction) => {
     if (transaction.origin === binding) {
       return;
     }
-    syncYjsChangesToLexical(binding, lexicalProvider, events as unknown as Parameters<typeof syncYjsChangesToLexical>[2], transaction.origin instanceof UndoManager);
+    syncYjsChangesToLexicalV2__EXPERIMENTAL(
+      binding,
+      lexicalProvider,
+      events as unknown as Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
+      transaction,
+      transaction.origin instanceof UndoManager
+    );
   };
   sharedRoot.observeDeep(observer);
   const removeUpdateListener = editor.registerUpdateListener((payload) => {
-    const { prevEditorState, editorState, dirtyElements, dirtyLeaves, normalizedNodes, tags } = payload;
-    syncLexicalUpdateToYjs(
+    const { prevEditorState, editorState, dirtyElements, normalizedNodes, tags } = payload;
+    syncLexicalUpdateToYjsV2__EXPERIMENTAL(
       binding,
       lexicalProvider,
       prevEditorState,
       editorState,
       dirtyElements,
-      dirtyLeaves,
       normalizedNodes,
       tags,
     );
@@ -98,6 +127,7 @@ async function withSession(run: (editor: LexicalEditor) => Promise<void> | void)
   const initialUpdate = waitForEditorUpdate(editor);
   provider.connect();
   await waitForSync(provider);
+  syncYjsStateToLexicalV2__EXPERIMENTAL(binding, lexicalProvider);
   await initialUpdate;
 
   try {
@@ -106,7 +136,6 @@ async function withSession(run: (editor: LexicalEditor) => Promise<void> | void)
     sharedRoot.unobserveDeep(observer);
     removeUpdateListener();
     provider.destroy();
-    binding.root.destroy(binding);
     doc.destroy();
   }
 }
