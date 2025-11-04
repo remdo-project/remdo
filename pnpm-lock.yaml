@@ -36,8 +36,8 @@ importers:
         specifier: ^8.3.5
         version: 8.3.5(react@19.2.0)
       lexical:
-        specifier: ^0.37.0
-        version: 0.37.0
+        specifier: ^0.38.2
+        version: 0.38.2
       lib0:
         specifier: ^0.2.114
         version: 0.2.114
@@ -2567,6 +2567,9 @@ packages:
 
   lexical@0.37.0:
     resolution: {integrity: sha512-r5VJR2TioQPAsZATfktnJFrGIiy6gjQN8b/+0a2u1d7/QTH7lhbB7byhGSvcq1iaa1TV/xcf/pFV55a5V5hTDQ==}
+
+  lexical@0.38.2:
+    resolution: {integrity: sha512-JJmfsG3c4gwBHzUGffbV7ifMNkKAWMCnYE3xJl87gty7hjyV5f3xq7eqTjP5HFYvO4XpjJvvWO2/djHp5S10tw==}
 
   lib0@0.2.114:
     resolution: {integrity: sha512-gcxmNFzA4hv8UYi8j43uPlQ7CGcyMJ2KQb5kZASw6SnAKAf10hK12i2fjrS3Cl/ugZa5Ui6WwIu1/6MIXiHttQ==}
@@ -6499,6 +6502,8 @@ snapshots:
       type-check: 0.4.0
 
   lexical@0.37.0: {}
+
+  lexical@0.38.2: {}
 
   lib0@0.2.114:
     dependencies:

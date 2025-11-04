@@ -35,7 +35,7 @@
     "@lexical/yjs": "^0.37.0",
     "@mantine/core": "^8.3.5",
     "@mantine/hooks": "^8.3.5",
-    "lexical": "^0.37.0",
+    "lexical": "^0.38.2",
     "lib0": "^0.2.114",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
