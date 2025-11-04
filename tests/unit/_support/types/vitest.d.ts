@@ -8,6 +8,10 @@ declare module 'vitest' {
     lexical: LexicalHelpers;
   }
 
+  interface TestCollectorOptions {
+    meta?: Record<string, unknown>;
+  }
+
   interface Assertion<T = any> {
     toMatchOutline: (expected: Outline) => void;
     toMatchEditorState: (expected: unknown) => void;

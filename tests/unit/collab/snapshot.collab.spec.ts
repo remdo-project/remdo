@@ -10,6 +10,7 @@ describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
     path.resolve('data', 'snapshot.cli.json'),
     path.resolve('data', 'snapshot.cli.flat.json'),
     path.resolve('data', 'snapshot.cli.tree.json'),
+    path.resolve('data', 'cli-flag.json'),
   ];
 
   const runSnapshotCommand = (...args: string[]) => {
@@ -70,5 +71,20 @@ describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
 
     await lexical.waitForCollabSync();
     expect(lexical.isCollabSyncing()).toBe(false);
+  });
+
+  it('resolves the document id from the CLI flag', async () => {
+    const docId = 'cli-flag';
+    const loadPath = path.resolve('tests/fixtures/basic.json');
+    const savePath = path.resolve('data', `${docId}.json`);
+
+    runSnapshotCommand('--doc', docId, 'load', loadPath);
+
+    await waitFor(() => {
+      runSnapshotCommand('--doc', docId, 'save', savePath);
+      const saved = readEditorState(savePath);
+      const expected = readEditorState(loadPath);
+      return JSON.stringify(saved) === JSON.stringify(expected);
+    }, { timeout: 5000 });
   });
 });

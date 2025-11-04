@@ -1,13 +1,11 @@
 import type { ReactNode } from 'react';
-import { useEffect, useReducer } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   LexicalCollaboration,
   useCollaborationContext as useLexicalCollaborationContext,
 } from '@lexical/react/LexicalCollaborationContext';
 import { CollaborationPluginV2__EXPERIMENTAL } from '@lexical/react/LexicalCollaborationPlugin';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
-import { DEFAULT_DOC_ID } from '#config/spec';
-import type { Provider } from '@lexical/yjs';
 import { CollaborationProvider, useCollaborationStatus } from './CollaborationProvider';
 import type { ProviderFactory } from './collaborationRuntime';
 
@@ -21,7 +19,7 @@ export function CollaborationPlugin({ children }: { children?: ReactNode }) {
 }
 
 function CollaborationRuntimePlugin() {
-  const { enabled, providerFactory } = useCollaborationStatus();
+  const { enabled, providerFactory, docId } = useCollaborationStatus();
 
   if (!enabled) {
     return <HistoryPlugin />;
@@ -29,33 +27,23 @@ function CollaborationRuntimePlugin() {
 
   return (
     <LexicalCollaboration>
-      <CollaborationRuntimeBridge providerFactory={providerFactory} />
+      <CollaborationRuntimeBridge providerFactory={providerFactory} docId={docId} />
     </LexicalCollaboration>
   );
 }
 
 interface CollaborationRuntimeBridgeProps {
   providerFactory: ProviderFactory;
+  docId: string;
 }
 
-function CollaborationRuntimeBridge({ providerFactory }: CollaborationRuntimeBridgeProps) {
+function CollaborationRuntimeBridge({ providerFactory, docId }: CollaborationRuntimeBridgeProps) {
   const { yjsDocMap } = useLexicalCollaborationContext();
-  const [provider, dispatchProvider] = useReducer(
-    (_: Provider | null, action: Provider | null) => action,
-    null,
-  );
+  const provider = useMemo(() => providerFactory(docId, yjsDocMap), [docId, providerFactory, yjsDocMap]);
 
-  useEffect(() => {
-    const nextProvider = providerFactory(DEFAULT_DOC_ID, yjsDocMap);
-    dispatchProvider(nextProvider);
+  useEffect(() => () => provider.destroy(), [provider]);
 
-    return () => {
-      dispatchProvider(null);
-      nextProvider.destroy();
-    };
-  }, [providerFactory, yjsDocMap]);
-
-  const doc = yjsDocMap.get(DEFAULT_DOC_ID);
+  const doc = yjsDocMap.get(docId);
 
   if (provider == null || doc == null) {
     return null;
@@ -63,7 +51,7 @@ function CollaborationRuntimeBridge({ providerFactory }: CollaborationRuntimeBri
 
   return (
     <CollaborationPluginV2__EXPERIMENTAL
-      id={DEFAULT_DOC_ID}
+      id={docId}
       provider={provider}
       doc={doc}
       __shouldBootstrapUnsafe

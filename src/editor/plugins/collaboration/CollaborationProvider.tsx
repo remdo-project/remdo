@@ -3,13 +3,15 @@ import { config } from '#config/client';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from './collaborationRuntime';
 import { CollaborationSyncController, createProviderFactory } from './collaborationRuntime';
+import { resolveCollabDocumentId } from './documentId';
 
 interface CollaborationStatusValue {
   ready: boolean;
   enabled: boolean;
   providerFactory: ProviderFactory;
-  syncing: boolean;
+  hasUnsyncedChanges: boolean;
   waitForSync: () => Promise<void>;
+  docId: string;
 }
 
 const missingContextError = new Error('Collaboration context is missing. Wrap the editor in <CollaborationProvider>.');
@@ -35,17 +37,20 @@ export function CollaborationProvider({ children }: { children: ReactNode }) {
 
 function useCollaborationRuntimeValue(): CollaborationStatusValue {
   const enabled = config.COLLAB_ENABLED;
+  const docId = useMemo(() => resolveCollabDocumentId(), []);
   const [ready, setReady] = useState(!enabled);
-  const [syncing, setSyncing] = useState(enabled);
+  const [unsynced, setUnsynced] = useState(enabled);
   const endpoint = useMemo(() => {
     const { protocol, hostname } = window.location;
     const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
-    return `${wsProtocol}://${hostname}:${config.COLLAB_CLIENT_PORT}`;
-  }, []);
+    const url = new URL(`${wsProtocol}://${hostname}:${config.COLLAB_CLIENT_PORT}`);
+    url.searchParams.set('doc', docId);
+    return url.toString();
+  }, [docId]);
 
   const syncController = useMemo(
-    () => new CollaborationSyncController(setSyncing),
-    [setSyncing]
+    () => new CollaborationSyncController(setUnsynced, enabled),
+    [enabled, setUnsynced]
   );
   const waitersRef = useRef<Set<() => void>>(new Set());
 
@@ -63,7 +68,7 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
 
   useEffect(() => {
     if (!enabled) {
-      syncController.setSyncing(false);
+      syncController.setUnsynced(false);
     }
   }, [enabled, syncController]);
 
@@ -73,16 +78,16 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
   );
 
   const resolvedReady = !enabled || ready;
-  const syncingPending = enabled && syncing;
+  const hasUnsyncedChanges = enabled && unsynced;
 
   useEffect(() => {
-    if (!enabled || (resolvedReady && !syncingPending)) {
+    if (!enabled || (resolvedReady && !hasUnsyncedChanges)) {
       flushWaiters();
     }
-  }, [enabled, flushWaiters, resolvedReady, syncingPending]);
+  }, [enabled, flushWaiters, hasUnsyncedChanges, resolvedReady]);
 
   const waitForSync = useCallback(() => {
-    if (!enabled || (resolvedReady && !syncingPending)) {
+    if (!enabled || (resolvedReady && !hasUnsyncedChanges)) {
       return Promise.resolve();
     }
 
@@ -95,21 +100,22 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
 
       waiters.add(release);
 
-      if (!enabled || (resolvedReady && !syncingPending)) {
+      if (!enabled || (resolvedReady && !hasUnsyncedChanges)) {
         release();
       }
     });
-  }, [enabled, resolvedReady, syncingPending]);
+  }, [enabled, hasUnsyncedChanges, resolvedReady]);
 
   return useMemo<CollaborationStatusValue>(
     () => ({
       ready: resolvedReady,
       enabled,
       providerFactory,
-      syncing: syncingPending,
+      hasUnsyncedChanges,
       waitForSync,
+      docId,
     }),
-    [enabled, providerFactory, resolvedReady, syncingPending, waitForSync]
+    [docId, enabled, hasUnsyncedChanges, providerFactory, resolvedReady, waitForSync]
   );
 }
 
