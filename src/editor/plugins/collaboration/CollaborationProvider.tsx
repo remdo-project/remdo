@@ -3,6 +3,7 @@ import { config } from '#config/client';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from './collaborationRuntime';
 import { CollaborationSyncController, createProviderFactory } from './collaborationRuntime';
+import { resolveCollabDocumentId } from './documentId';
 
 interface CollaborationStatusValue {
   ready: boolean;
@@ -10,6 +11,7 @@ interface CollaborationStatusValue {
   providerFactory: ProviderFactory;
   syncing: boolean;
   waitForSync: () => Promise<void>;
+  docId: string;
 }
 
 const missingContextError = new Error('Collaboration context is missing. Wrap the editor in <CollaborationProvider>.');
@@ -35,13 +37,16 @@ export function CollaborationProvider({ children }: { children: ReactNode }) {
 
 function useCollaborationRuntimeValue(): CollaborationStatusValue {
   const enabled = config.COLLAB_ENABLED;
+  const docId = useMemo(() => resolveCollabDocumentId(), []);
   const [ready, setReady] = useState(!enabled);
   const [syncing, setSyncing] = useState(enabled);
   const endpoint = useMemo(() => {
     const { protocol, hostname } = window.location;
     const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
-    return `${wsProtocol}://${hostname}:${config.COLLAB_CLIENT_PORT}`;
-  }, []);
+    const url = new URL(`${wsProtocol}://${hostname}:${config.COLLAB_CLIENT_PORT}`);
+    url.searchParams.set('doc', docId);
+    return url.toString();
+  }, [docId]);
 
   const syncController = useMemo(
     () => new CollaborationSyncController(setSyncing),
@@ -108,8 +113,9 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
       providerFactory,
       syncing: syncingPending,
       waitForSync,
+      docId,
     }),
-    [enabled, providerFactory, resolvedReady, syncingPending, waitForSync]
+    [docId, enabled, providerFactory, resolvedReady, syncingPending, waitForSync]
   );
 }
 

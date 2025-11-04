@@ -9,5 +9,6 @@ export interface LexicalTestHelpers {
   validate: <T>(fn: () => T) => T;
   getEditorState: () => EditorStateJSON;
   waitForCollabSync: () => Promise<void>;
-  isCollabSyncing: () => boolean;
+  hasCollabUnsyncedChanges: () => boolean;
+  getCollabDocId: () => string;
 }

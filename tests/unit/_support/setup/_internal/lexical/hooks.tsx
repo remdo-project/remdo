@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import { $getRoot  } from 'lexical';
-import type {LexicalEditor} from 'lexical';
+import { DEFAULT_DOC_ID } from '#config/spec';
+import { $getRoot } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 import { useEffect } from 'react';
 import type { TestContext } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
@@ -38,6 +39,15 @@ const LexicalHarness = ({ onReady }: { onReady: (payload: BridgePayload) => void
 beforeEach<TestContext>(async (ctx) => {
   let editor!: LexicalEditor;
   let collab!: CollaborationStatusValue;
+
+  const meta = (ctx.task?.meta ?? {}) as { collabDocId?: string };
+  const docId = meta.collabDocId ?? DEFAULT_DOC_ID;
+  const url = new URL(window.location.href);
+  const params = new URLSearchParams(url.search);
+  params.set('doc', docId);
+  const nextSearch = params.toString();
+  const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`;
+  window.history.replaceState(null, '', nextUrl);
 
   render(
     <LexicalHarness
