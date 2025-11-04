@@ -69,6 +69,6 @@ describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
     expect(finalSaved?.root).toEqual(expectedState.root);
 
     await lexical.waitForCollabSync();
-    expect(lexical.hasCollabUnsyncedChanges()).toBe(false);
+    expect(lexical.isCollabSyncing()).toBe(false);
   });
 });

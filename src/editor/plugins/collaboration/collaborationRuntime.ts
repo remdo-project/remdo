@@ -9,24 +9,13 @@ export type CollaborationProviderInstance = Provider & { destroy: () => void };
 export type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => CollaborationProviderInstance;
 
 export class CollaborationSyncController {
-  private unsynced: boolean;
   private readonly setState: (value: boolean) => void;
 
-  constructor(setState: (value: boolean) => void, initialValue: boolean) {
+  constructor(setState: (value: boolean) => void) {
     this.setState = setState;
-    this.unsynced = initialValue;
   }
 
-  get current(): boolean {
-    return this.unsynced;
-  }
-
-  setUnsynced(value: boolean) {
-    if (this.unsynced === value) {
-      return;
-    }
-
-    this.unsynced = value;
+  setSyncing(value: boolean) {
     this.setState(value);
   }
 }
@@ -86,8 +75,8 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
   let handshakePending = false;
   let pendingAck = false;
 
-  const markUnsynced = () => {
-    controller.setUnsynced(true);
+  const markSyncing = () => {
+    controller.setSyncing(true);
   };
 
   const ensureHandshake = () => {
@@ -112,7 +101,7 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
 
     handshakePending = true;
     pendingAck = false;
-    controller.setUnsynced(true);
+    controller.setSyncing(true);
 
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, messageSync);
@@ -133,7 +122,7 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
     }
 
     pendingAck = true;
-    markUnsynced();
+    markSyncing();
 
     ensureHandshake();
   };
@@ -151,7 +140,7 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
     }
 
     if (provider.wsconnected) {
-      controller.setUnsynced(false);
+      controller.setSyncing(false);
     }
   };
 
@@ -160,7 +149,7 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
       if (pendingAck) {
         ensureHandshake();
       } else if (provider.synced) {
-        controller.setUnsynced(false);
+        controller.setSyncing(false);
       }
       return;
     }
@@ -168,10 +157,10 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
     // Connection dropped or paused: mark unsynced and retry once we reconnect.
     pendingAck = true;
     handshakePending = false;
-    markUnsynced();
+    markSyncing();
   };
 
-  controller.setUnsynced(true);
+  controller.setSyncing(true);
 
   provider.doc.on('update', handleLocalUpdate);
   provider.on('sync', handleSync);

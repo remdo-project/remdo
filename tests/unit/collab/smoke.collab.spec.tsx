@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 describe.skipIf(!config.COLLAB_ENABLED)('collaboration smoke', () => {
   it('lexical helpers operate in collaboration mode', async ({ lexical }) => {
-    expect(lexical.hasCollabUnsyncedChanges()).toBe(false);
+    expect(lexical.isCollabSyncing()).toBe(false);
 
     await lexical.mutate(() => {
       $getRoot().clear();
@@ -12,6 +12,6 @@ describe.skipIf(!config.COLLAB_ENABLED)('collaboration smoke', () => {
 
     expect(lexical).toMatchOutline([]);
 
-    expect(lexical.hasCollabUnsyncedChanges()).toBe(false);
+    expect(lexical.isCollabSyncing()).toBe(false);
   });
 });

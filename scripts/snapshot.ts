@@ -95,7 +95,8 @@ async function runLoad(filePath: string): Promise<void> {
 async function withSession(run: (editor: LexicalEditor) => Promise<void> | void): Promise<void> {
   const doc = new Doc();
   const docMap = new Map([[DEFAULT_DOC_ID, doc]]);
-  const syncController = new CollaborationSyncController(() => {}, true);
+  const syncController = new CollaborationSyncController(() => {});
+  syncController.setSyncing(true);
   const providerFactory = createProviderFactory(
     {
       setReady: () => {},

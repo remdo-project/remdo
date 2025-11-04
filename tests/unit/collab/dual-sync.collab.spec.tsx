@@ -13,7 +13,7 @@ import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
 interface PeerHandle {
   editor: LexicalEditor;
   waitForCollabSync: () => Promise<void>;
-  hasCollabUnsyncedChanges: () => boolean;
+  isCollabSyncing: () => boolean;
   validate: <T>(fn: () => T) => T;
 }
 
@@ -28,14 +28,13 @@ function CollaborationPeer({ onReady }: { onReady: (handle: PeerHandle) => void 
 
   useEffect(() => {
     const waitForCollabSync: PeerHandle['waitForCollabSync'] = () => statusRef.current.waitForSync();
-    const hasCollabUnsyncedChanges: PeerHandle['hasCollabUnsyncedChanges'] = () =>
-      statusRef.current.hasUnsyncedChanges;
+    const isCollabSyncing: PeerHandle['isCollabSyncing'] = () => statusRef.current.syncing;
     const validate: PeerHandle['validate'] = (fn) => editor.getEditorState().read(fn);
 
     onReady({
       editor,
       waitForCollabSync,
-      hasCollabUnsyncedChanges,
+      isCollabSyncing,
       validate,
     });
   }, [editor, onReady]);
@@ -67,8 +66,8 @@ describe.skipIf(!config.COLLAB_ENABLED)('collaboration sync', () => {
 
     expect(lexical).toMatchOutline([]);
     expect(secondary as any).toMatchOutline([]);
-    expect(lexical.hasCollabUnsyncedChanges()).toBe(false);
-    expect(secondary.hasCollabUnsyncedChanges()).toBe(false);
+    expect(lexical.isCollabSyncing()).toBe(false);
+    expect(secondary.isCollabSyncing()).toBe(false);
 
     lexical.editor.update(() => {
       //TODO use a higher level API once we have it
@@ -84,8 +83,8 @@ describe.skipIf(!config.COLLAB_ENABLED)('collaboration sync', () => {
 
     await Promise.all([lexical.waitForCollabSync(), secondary.waitForCollabSync()]);
 
-    expect(lexical.hasCollabUnsyncedChanges()).toBe(false);
-    expect(secondary.hasCollabUnsyncedChanges()).toBe(false);
+    expect(lexical.isCollabSyncing()).toBe(false);
+    expect(secondary.isCollabSyncing()).toBe(false);
     const sharedOutline = [{ text: 'shared note', children: [] }];
     expect(lexical).toMatchOutline(sharedOutline);
     expect(secondary as any).toMatchOutline(sharedOutline);
