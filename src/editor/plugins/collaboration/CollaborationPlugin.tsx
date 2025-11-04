@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useReducer } from 'react';
 import {
   LexicalCollaboration,
   useCollaborationContext as useLexicalCollaborationContext,
@@ -39,9 +39,20 @@ interface CollaborationRuntimeBridgeProps {
 
 function CollaborationRuntimeBridge({ providerFactory, docId }: CollaborationRuntimeBridgeProps) {
   const { yjsDocMap } = useLexicalCollaborationContext();
-  const provider = useMemo(() => providerFactory(docId, yjsDocMap), [docId, providerFactory, yjsDocMap]);
+  const [provider, setProvider] = useReducer(
+    (_: ReturnType<ProviderFactory> | null, next: ReturnType<ProviderFactory> | null) => next,
+    null,
+  );
 
-  useEffect(() => () => provider.destroy(), [provider]);
+  useEffect(() => {
+    const nextProvider = providerFactory(docId, yjsDocMap);
+    setProvider(nextProvider);
+
+    return () => {
+      setProvider(null);
+      nextProvider.destroy();
+    };
+  }, [docId, providerFactory, yjsDocMap]);
 
   const doc = yjsDocMap.get(docId);
 
