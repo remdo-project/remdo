@@ -15,6 +15,7 @@ import type { CreateEditorArgs, LexicalEditor, SerializedEditorState, Serialized
 import { Doc, UndoManager } from 'yjs';
 import type { Transaction } from 'yjs';
 import WebSocket from 'ws';
+import { $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
 
 import { env as serverEnv, runtime as serverRuntime } from '../config/server';
 import { DEFAULT_DOC_ID } from '../config/spec';
@@ -63,21 +64,77 @@ if (typeof globalThis.document === 'undefined') {
   } as unknown as Document;
 }
 
+interface ParsedArgs {
+  command: string | undefined;
+  filePath: string;
+  markdownPath: string | null;
+}
+
+function parseArgs(): ParsedArgs {
+  const args = process.argv.slice(2);
+  let command: string | undefined;
+  let filePath: string | undefined;
+  let markdownPath: string | null = null;
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i]!;
+
+    if (arg === '--md') {
+      const next = args[i + 1];
+      if (next && !next.startsWith('--')) {
+        markdownPath = next;
+        i += 1;
+      } else {
+        markdownPath = '';
+      }
+      continue;
+    }
+
+    if (arg.startsWith('--md=')) {
+      markdownPath = arg.slice(5);
+      continue;
+    }
+
+    if (!command) {
+      command = arg;
+    } else if (!filePath) {
+      filePath = arg;
+    }
+  }
+
+  return { command, filePath: filePath ?? DEFAULT_FILE, markdownPath };
+}
+
 async function main(): Promise<void> {
-  const [command, filePath = DEFAULT_FILE] = process.argv.slice(2);
+  const { command, filePath, markdownPath } = parseArgs();
+
   if (command === 'save') {
-    await runSave(filePath);
+    await runSave(filePath, markdownPath);
   } else if (command === 'load') {
     await runLoad(filePath);
   } else {
-    throw new Error('Usage: snapshot.ts <load|save> [filePath]');
+    throw new Error('Usage: snapshot.ts <load|save> [filePath] [--md[=<file>]]');
   }
 }
 
-async function runSave(filePath: string): Promise<void> {
+async function runSave(filePath: string, markdownPath: string | null): Promise<void> {
   await withSession(async (editor) => {
     const editorState = editor.getEditorState().toJSON();
     writeJson(filePath, { editorState });
+
+    if (markdownPath !== null) {
+      const inferredPath = (() => {
+        if (markdownPath && markdownPath.length > 0) return markdownPath;
+        const base = filePath.endsWith('.json') ? filePath.slice(0, -5) : filePath;
+        return `${base}.md`;
+      })();
+      const absoluteMarkdownPath = path.isAbsolute(inferredPath)
+        ? inferredPath
+        : path.resolve(inferredPath);
+      const markdown = editor.getEditorState().read(() => $convertToMarkdownString(TRANSFORMERS));
+      fs.mkdirSync(path.dirname(absoluteMarkdownPath), { recursive: true });
+      fs.writeFileSync(absoluteMarkdownPath, `${markdown}\n`);
+    }
   });
 }
 
