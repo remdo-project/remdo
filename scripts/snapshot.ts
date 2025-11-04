@@ -11,7 +11,7 @@ import {
 } from '@lexical/yjs';
 import type { Provider } from '@lexical/yjs';
 import { createEditor } from 'lexical';
-import type { CreateEditorArgs, LexicalEditor } from 'lexical';
+import type { CreateEditorArgs, LexicalEditor, SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import { Doc, UndoManager } from 'yjs';
 import type { Transaction } from 'yjs';
 import WebSocket from 'ws';
@@ -35,6 +35,11 @@ interface SharedRoot {
 
 const DEFAULT_FILE = path.join('data', `${DEFAULT_DOC_ID}.json`);
 const ENDPOINT = `ws://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
+
+function writeJson(filePath: string, data: unknown): void {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`);
+}
 
 main().catch((error) => {
   console.error(error instanceof Error ? error.message : error);
@@ -72,17 +77,17 @@ async function main(): Promise<void> {
 async function runSave(filePath: string): Promise<void> {
   await withSession(async (editor) => {
     const editorState = editor.getEditorState().toJSON();
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    const existing = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : {};
-    fs.writeFileSync(filePath, `${JSON.stringify({ ...existing, editorState }, null, 2)}\n`);
+    writeJson(filePath, { editorState });
   });
 }
 
 async function runLoad(filePath: string): Promise<void> {
-  const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as {
+    editorState?: SerializedEditorState<SerializedLexicalNode>;
+  };
   await withSession(async (editor) => {
     const done = waitForEditorUpdate(editor);
-    editor.setEditorState(editor.parseEditorState(data.editorState), { tag: 'snapshot-load' });
+    editor.setEditorState(editor.parseEditorState(data.editorState ?? editor.getEditorState().toJSON()), { tag: 'snapshot-load' });
     await done;
   });
 }
