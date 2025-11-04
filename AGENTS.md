@@ -49,6 +49,8 @@ captures the full model.
   complete.
 - `pnpm run test:unit`: run often, and always before staging or committing code
   changes.
+- `pnpm run test:unit:collab`: run whenever you touch collaboration, Yjs, or
+  syncing logic to exercise the full collaboration-enabled suite.
 
 ## Tools
 
