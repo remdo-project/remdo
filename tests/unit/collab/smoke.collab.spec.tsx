@@ -1,8 +1,8 @@
-import { env } from '#config/env.client';
+import { config } from '#config/client';
 import { $getRoot } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
-describe.skipIf(!env.collabEnabled)('collaboration smoke', () => {
+describe.skipIf(!config.COLLAB_ENABLED)('collaboration smoke', () => {
   it('lexical helpers operate in collaboration mode', async ({ lexical }) => {
     expect(lexical.hasCollabUnsyncedChanges()).toBe(false);
 

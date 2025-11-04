@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* eslint-disable node/no-process-env -- script scaffolds env vars before spawning preview */
-// Launches Vitest Preview with ports/env resolved through env-server.ts.
+// Launches Vitest Preview with ports/env resolved through config/server.ts.
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import process from 'node:process';
@@ -10,7 +10,7 @@ process.env.NODE_ENV ??= 'test';
 const require = createRequire(import.meta.url);
 const jiti = require('jiti')(import.meta.url);
 
-const { env } = jiti('../config/env.server.ts');
+const { env } = jiti('../config/server.ts');
 const { forceVitestPreviewCacheDir } = jiti('../config/vitest/preview-cache.ts');
 
 process.env.HOST = env.HOST;
