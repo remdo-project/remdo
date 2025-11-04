@@ -10,7 +10,6 @@ import {
   syncYjsStateToLexicalV2__EXPERIMENTAL,
 } from '@lexical/yjs';
 import type { Provider } from '@lexical/yjs';
-import { WebsocketProvider } from 'y-websocket';
 import { createEditor } from 'lexical';
 import type { CreateEditorArgs, LexicalEditor } from 'lexical';
 import { Doc, UndoManager } from 'yjs';
@@ -20,6 +19,10 @@ import WebSocket from 'ws';
 import { env as serverEnv, runtime as serverRuntime } from '../config/server';
 import { DEFAULT_DOC_ID } from '../config/spec';
 import { createEditorInitialConfig } from '../lib/editor/config';
+import {
+  CollaborationSyncController,
+  createProviderFactory,
+} from '../src/editor/plugins/collaboration/collaborationRuntime'; // TODO: move provider factory to lib/ for reuse
 
 interface SharedRootObserver {
   (events: unknown, transaction: Transaction): void;
@@ -86,16 +89,31 @@ async function runLoad(filePath: string): Promise<void> {
 
 async function withSession(run: (editor: LexicalEditor) => Promise<void> | void): Promise<void> {
   const doc = new Doc();
-  doc.getXmlElement('root-v2');
-  const provider = new WebsocketProvider(ENDPOINT, DEFAULT_DOC_ID, doc, {
-    connect: false,
-    WebSocketPolyfill: WebSocket as unknown as typeof globalThis.WebSocket,
-  });
-  const lexicalProvider = provider as unknown as Provider;
+  const docMap = new Map([[DEFAULT_DOC_ID, doc]]);
+  const syncController = new CollaborationSyncController(() => {}, true);
+  const providerFactory = createProviderFactory(
+    {
+      setReady: () => {},
+      syncController,
+    },
+    ENDPOINT,
+  );
+  const lexicalProvider = providerFactory(DEFAULT_DOC_ID, docMap);
+  const provider = lexicalProvider as unknown as Provider & {
+    connect: () => void;
+    destroy: () => void;
+    synced: boolean;
+    on: (event: string, handler: (payload: unknown) => void) => void;
+    off: (event: string, handler: (payload: unknown) => void) => void;
+  };
+  (provider as unknown as { _WS?: typeof globalThis.WebSocket })._WS = WebSocket as unknown as typeof globalThis.WebSocket;
+  const syncDoc = docMap.get(DEFAULT_DOC_ID);
+  if (!syncDoc) {
+    throw new Error('Failed to resolve collaboration document.');
+  }
   const editor = createEditor(
     createEditorInitialConfig({ isDev: serverRuntime.isDev }) as CreateEditorArgs
   );
-  const docMap = new Map([[DEFAULT_DOC_ID, doc]]);
   const binding = createBindingV2__EXPERIMENTAL(editor, DEFAULT_DOC_ID, doc, docMap);
   const sharedRoot = binding.root as unknown as SharedRoot;
   const observer: SharedRootObserver = (events, transaction) => {
@@ -125,7 +143,7 @@ async function withSession(run: (editor: LexicalEditor) => Promise<void> | void)
   });
 
   const initialUpdate = waitForEditorUpdate(editor);
-  provider.connect();
+  void provider.connect();
   await waitForSync(provider);
   syncYjsStateToLexicalV2__EXPERIMENTAL(binding, lexicalProvider);
   await initialUpdate;
@@ -149,7 +167,7 @@ function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {
   });
 }
 
-function waitForSync(provider: WebsocketProvider): Promise<void> {
+function waitForSync(provider: Provider & { synced: boolean; on: (event: string, handler: (payload: unknown) => void) => void; off: (event: string, handler: (payload: unknown) => void) => void; }): Promise<void> {
   if (provider.synced) {
     return Promise.resolve();
   }
