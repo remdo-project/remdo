@@ -26,7 +26,7 @@
     "snapshot": "tsx ./scripts/snapshot.ts"
   },
   "dependencies": {
-    "@lexical/devtools-core": "^0.37.0",
+    "@lexical/devtools-core": "^0.38.2",
     "@lexical/history": "^0.37.0",
     "@lexical/list": "^0.37.0",
     "@lexical/react": "^0.37.0",
