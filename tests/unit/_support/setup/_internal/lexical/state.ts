@@ -105,6 +105,10 @@ export function createLexicalTestHelpers(
     return Boolean(getCollabStatus().syncing);
   }
 
+  function getCollabDocId(): string {
+    return getCollabStatus().docId;
+  }
+
   return {
     editor,
     load: (filename: string) => lexicalLoad(editor, filename),
@@ -113,5 +117,6 @@ export function createLexicalTestHelpers(
     getEditorState: () => lexicalGetEditorState(editor),
     waitForCollabSync,
     isCollabSyncing,
+    getCollabDocId,
   } as LexicalTestHelpers;
 }

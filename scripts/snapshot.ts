@@ -34,8 +34,55 @@ interface SharedRoot {
   unobserveDeep: (callback: SharedRootObserver) => void;
 }
 
-const DEFAULT_FILE = path.join('data', `${DEFAULT_DOC_ID}.json`);
-const ENDPOINT = `ws://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
+interface CliArguments {
+  command?: string;
+  filePath?: string;
+  docId?: string;
+  markdownPath: string | null;
+}
+
+function parseCliArguments(argv: string[]): CliArguments {
+  const result: CliArguments = { markdownPath: null };
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i]!;
+
+    if (arg === '--doc' || arg.startsWith('--doc=')) {
+      const value = arg === '--doc' ? argv[i + 1] : arg.slice(6);
+      if (!value || (arg === '--doc' && value.startsWith('--'))) {
+        throw new Error('Missing value for --doc');
+      }
+      result.docId = value;
+      if (arg === '--doc') {
+        i += 1;
+      }
+      continue;
+    }
+
+    if (arg === '--md') {
+      const next = argv[i + 1];
+      const hasValue = next && !next.startsWith('--');
+      result.markdownPath = hasValue ? next : '';
+      if (hasValue) {
+        i += 1;
+      }
+      continue;
+    }
+
+    if (arg.startsWith('--md=')) {
+      result.markdownPath = arg.slice(5);
+      continue;
+    }
+
+    if (!result.command) {
+      result.command = arg;
+    } else if (!result.filePath) {
+      result.filePath = arg;
+    }
+  }
+
+  return result;
+}
 
 function writeJson(filePath: string, data: unknown): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -64,67 +111,36 @@ if (typeof globalThis.document === 'undefined') {
   } as unknown as Document;
 }
 
-interface ParsedArgs {
-  command: string | undefined;
-  filePath: string;
-  markdownPath: string | null;
-}
-
-function parseArgs(): ParsedArgs {
-  const args = process.argv.slice(2);
-  let command: string | undefined;
-  let filePath: string | undefined;
-  let markdownPath: string | null = null;
-
-  for (let i = 0; i < args.length; i += 1) {
-    const arg = args[i]!;
-
-    if (arg === '--md') {
-      const next = args[i + 1];
-      if (next && !next.startsWith('--')) {
-        markdownPath = next;
-        i += 1;
-      } else {
-        markdownPath = '';
-      }
-      continue;
-    }
-
-    if (arg.startsWith('--md=')) {
-      markdownPath = arg.slice(5);
-      continue;
-    }
-
-    if (!command) {
-      command = arg;
-    } else if (!filePath) {
-      filePath = arg;
-    }
-  }
-
-  return { command, filePath: filePath ?? DEFAULT_FILE, markdownPath };
-}
-
 async function main(): Promise<void> {
-  const { command, filePath, markdownPath } = parseArgs();
-
-  if (command === 'save') {
-    await runSave(filePath, markdownPath);
-  } else if (command === 'load') {
-    await runLoad(filePath);
-  } else {
-    throw new Error('Usage: snapshot.ts <load|save> [filePath] [--md[=<file>]]');
+  const { command, filePath, docId: cliDocId, markdownPath } = parseCliArguments(process.argv.slice(2));
+  if (command !== 'save' && command !== 'load') {
+    throw new Error('Usage: snapshot.ts [--doc <id>] <load|save> [filePath] [--md[=<file>]]');
   }
+
+  const docId = cliDocId?.trim() || serverEnv.COLLAB_DOCUMENT_ID || DEFAULT_DOC_ID;
+  const targetFile = filePath ?? path.join('data', `${docId}.json`);
+  const endpoint = `ws://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
+
+  return command === 'save'
+    ? runSave(docId, endpoint, targetFile, markdownPath)
+    : runLoad(docId, endpoint, targetFile);
 }
 
-async function runSave(filePath: string, markdownPath: string | null): Promise<void> {
-  await withSession(async (editor) => {
+async function runSave(
+  docId: string,
+  endpoint: string,
+  filePath: string,
+  markdownPath: string | null
+): Promise<void> {
+  await withSession(docId, endpoint, async (editor) => {
     const editorState = editor.getEditorState().toJSON();
     writeJson(filePath, { editorState });
 
     if (markdownPath !== null) {
       const inferredPath = (() => {
-        if (markdownPath && markdownPath.length > 0) return markdownPath;
+        if (markdownPath && markdownPath.length > 0) {
+          return markdownPath;
+        }
         const base = filePath.endsWith('.json') ? filePath.slice(0, -5) : filePath;
         return `${base}.md`;
       })();
@@ -138,20 +154,24 @@ async function runSave(filePath: string, markdownPath: string | null): Promise<v
   });
 }
 
-async function runLoad(filePath: string): Promise<void> {
+async function runLoad(docId: string, endpoint: string, filePath: string): Promise<void> {
   const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as {
     editorState?: SerializedEditorState<SerializedLexicalNode>;
   };
-  await withSession(async (editor) => {
+  await withSession(docId, endpoint, async (editor) => {
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data.editorState ?? editor.getEditorState().toJSON()), { tag: 'snapshot-load' });
     await done;
   });
 }
 
-async function withSession(run: (editor: LexicalEditor) => Promise<void> | void): Promise<void> {
+async function withSession(
+  docId: string,
+  endpoint: string,
+  run: (editor: LexicalEditor) => Promise<void> | void
+): Promise<void> {
   const doc = new Doc();
-  const docMap = new Map([[DEFAULT_DOC_ID, doc]]);
+  const docMap = new Map([[docId, doc]]);
   const syncController = new CollaborationSyncController(() => {});
   syncController.setSyncing(true);
   const providerFactory = createProviderFactory(
@@ -159,9 +179,9 @@ async function withSession(run: (editor: LexicalEditor) => Promise<void> | void)
       setReady: () => {},
       syncController,
     },
-    ENDPOINT,
+    endpoint,
   );
-  const lexicalProvider = providerFactory(DEFAULT_DOC_ID, docMap);
+  const lexicalProvider = providerFactory(docId, docMap);
   const provider = lexicalProvider as unknown as Provider & {
     connect: () => void;
     destroy: () => void;
@@ -170,14 +190,14 @@ async function withSession(run: (editor: LexicalEditor) => Promise<void> | void)
     off: (event: string, handler: (payload: unknown) => void) => void;
   };
   (provider as unknown as { _WS?: typeof globalThis.WebSocket })._WS = WebSocket as unknown as typeof globalThis.WebSocket;
-  const syncDoc = docMap.get(DEFAULT_DOC_ID);
+  const syncDoc = docMap.get(docId);
   if (!syncDoc) {
     throw new Error('Failed to resolve collaboration document.');
   }
   const editor = createEditor(
     createEditorInitialConfig({ isDev: serverRuntime.isDev }) as CreateEditorArgs
   );
-  const binding = createBindingV2__EXPERIMENTAL(editor, DEFAULT_DOC_ID, doc, docMap);
+  const binding = createBindingV2__EXPERIMENTAL(editor, docId, doc, docMap);
   const sharedRoot = binding.root as unknown as SharedRoot;
   const observer: SharedRootObserver = (events, transaction) => {
     if (transaction.origin === binding) {

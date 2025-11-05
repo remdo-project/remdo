@@ -6,8 +6,6 @@ import {
 } from '@lexical/react/LexicalCollaborationContext';
 import { CollaborationPluginV2__EXPERIMENTAL } from '@lexical/react/LexicalCollaborationPlugin';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
-import { DEFAULT_DOC_ID } from '#config/spec';
-import type { Provider } from '@lexical/yjs';
 import { CollaborationProvider, useCollaborationStatus } from './CollaborationProvider';
 import type { ProviderFactory } from './collaborationRuntime';
 
@@ -21,7 +19,7 @@ export function CollaborationPlugin({ children }: { children?: ReactNode }) {
 }
 
 function CollaborationRuntimePlugin() {
-  const { enabled, providerFactory } = useCollaborationStatus();
+  const { enabled } = useCollaborationStatus();
 
   if (!enabled) {
     return <HistoryPlugin />;
@@ -29,33 +27,30 @@ function CollaborationRuntimePlugin() {
 
   return (
     <LexicalCollaboration>
-      <CollaborationRuntimeBridge providerFactory={providerFactory} />
+      <CollaborationRuntimeBridge />
     </LexicalCollaboration>
   );
 }
 
-interface CollaborationRuntimeBridgeProps {
-  providerFactory: ProviderFactory;
-}
-
-function CollaborationRuntimeBridge({ providerFactory }: CollaborationRuntimeBridgeProps) {
+function CollaborationRuntimeBridge() {
+  const { providerFactory, docId } = useCollaborationStatus();
   const { yjsDocMap } = useLexicalCollaborationContext();
-  const [provider, dispatchProvider] = useReducer(
-    (_: Provider | null, action: Provider | null) => action,
+  const [provider, setProvider] = useReducer(
+    (_: ReturnType<ProviderFactory> | null, next: ReturnType<ProviderFactory> | null) => next,
     null,
   );
 
   useEffect(() => {
-    const nextProvider = providerFactory(DEFAULT_DOC_ID, yjsDocMap);
-    dispatchProvider(nextProvider);
+    const nextProvider = providerFactory(docId, yjsDocMap);
+    setProvider(nextProvider);
 
     return () => {
-      dispatchProvider(null);
+      setProvider(null);
       nextProvider.destroy();
     };
-  }, [providerFactory, yjsDocMap]);
+  }, [docId, providerFactory, yjsDocMap]);
 
-  const doc = yjsDocMap.get(DEFAULT_DOC_ID);
+  const doc = yjsDocMap.get(docId);
 
   if (provider == null || doc == null) {
     return null;
@@ -63,7 +58,7 @@ function CollaborationRuntimeBridge({ providerFactory }: CollaborationRuntimeBri
 
   return (
     <CollaborationPluginV2__EXPERIMENTAL
-      id={DEFAULT_DOC_ID}
+      id={docId}
       provider={provider}
       doc={doc}
       __shouldBootstrapUnsafe

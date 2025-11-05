@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import { $getRoot  } from 'lexical';
-import type {LexicalEditor} from 'lexical';
+import { config } from '#config/client';
+import { $getRoot } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 import { useEffect } from 'react';
 import type { TestContext } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
@@ -35,9 +36,28 @@ const LexicalHarness = ({ onReady }: { onReady: (payload: BridgePayload) => void
   );
 };
 
+let previousDefaultDocId: string | null = null;
+
 beforeEach<TestContext>(async (ctx) => {
   let editor!: LexicalEditor;
   let collab!: CollaborationStatusValue;
+
+  const meta = (ctx.task?.meta ?? {}) as { collabDocId?: string; collabDefaultDoc?: string };
+
+  if (typeof meta.collabDefaultDoc === 'string') {
+    previousDefaultDocId = config.COLLAB_DOCUMENT_ID;
+    (config as any).COLLAB_DOCUMENT_ID = meta.collabDefaultDoc;
+  } else {
+    previousDefaultDocId = null;
+  }
+
+  const docId = meta.collabDocId ?? config.COLLAB_DOCUMENT_ID;
+  const url = new URL(window.location.href);
+  const params = new URLSearchParams(url.search);
+  params.set('doc', docId);
+  const nextSearch = params.toString();
+  const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`;
+  window.history.replaceState(null, '', nextUrl);
 
   render(
     <LexicalHarness
@@ -66,4 +86,9 @@ beforeEach<TestContext>(async (ctx) => {
 
 afterEach(async ({ lexical }) => {
   await lexical.waitForCollabSync();
+
+  if (previousDefaultDocId !== null) {
+    (config as any).COLLAB_DOCUMENT_ID = previousDefaultDocId;
+    previousDefaultDocId = null;
+  }
 });
