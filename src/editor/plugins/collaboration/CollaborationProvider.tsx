@@ -104,10 +104,6 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
       };
 
       waiters.add(release);
-
-      if (!enabled || (resolvedReady && !syncingPending)) {
-        release();
-      }
     });
   }, [enabled, resolvedReady, syncingPending]);
 
