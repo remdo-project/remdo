@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { config } from '#config/client';
+import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
 
 describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
   const SNAPSHOT_OUTPUTS = [
@@ -11,10 +12,23 @@ describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
     path.resolve('data', 'snapshot.cli.flat.json'),
     path.resolve('data', 'snapshot.cli.tree.json'),
     path.resolve('data', 'cli-flag.json'),
+    path.resolve('data', 'cross-doc-check.json'),
+    path.resolve('data', 'cross-doc-check-alt.json'),
   ];
 
+  const runSnapshotWithEnv = (args: string[], envOverrides?: NodeJS.ProcessEnv) => {
+    execFileSync('pnpm', ['run', 'snapshot', ...args], {
+      stdio: 'inherit',
+      env: { ...process.env, ...envOverrides },
+    });
+  };
+
   const runSnapshotCommand = (...args: string[]) => {
-    execFileSync('pnpm', ['run', 'snapshot', ...args], { stdio: 'inherit' });
+    runSnapshotWithEnv(args);
+  };
+
+  const runSnapshotCommandWithEnv = (args: string[], envOverrides: NodeJS.ProcessEnv) => {
+    runSnapshotWithEnv(args, envOverrides);
   };
   const readEditorState = (filePath: string) => JSON.parse(readFileSync(filePath, 'utf8')).editorState;
 
@@ -86,5 +100,51 @@ describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
       const expected = readEditorState(loadPath);
       return JSON.stringify(saved) === JSON.stringify(expected);
     }, { timeout: 5000 });
+  });
+
+  it('keeps browser doc id aligned with CLI default configuration', async ({ lexical }) => {
+    const defaultDoc = 'cross-doc-check';
+    const envOverrides = { COLLAB_DOCUMENT_ID: defaultDoc } satisfies NodeJS.ProcessEnv;
+    const defaultFixture = path.resolve('tests/fixtures/basic.json');
+
+    runSnapshotCommandWithEnv(['load', defaultFixture], envOverrides);
+
+    await lexical.waitForCollabSync();
+
+    expect(lexical.getCollabDocId()).toBe(defaultDoc);
+  });
+
+  it('cross-loads and saves multiple documents without crosstalk', async ({ lexical }) => {
+    const defaultDoc = 'cross-doc-check';
+    const secondaryDoc = 'cross-doc-check-alt';
+    const envOverrides = { COLLAB_DOCUMENT_ID: defaultDoc } satisfies NodeJS.ProcessEnv;
+
+    const defaultFixture = path.resolve('tests/fixtures/basic.json');
+    const secondaryFixture = path.resolve('tests/fixtures/tree.json');
+    const defaultOutput = path.resolve('data', `${defaultDoc}.json`);
+    const secondaryOutput = path.resolve('data', `${secondaryDoc}.json`);
+
+    runSnapshotCommandWithEnv(['load', defaultFixture], envOverrides);
+    runSnapshotCommand('--doc', secondaryDoc, 'load', secondaryFixture);
+
+    await lexical.waitForCollabSync();
+
+    await lexical.mutate(() => {
+      const root = $getRoot();
+      root.clear();
+      const paragraph = $createParagraphNode();
+      paragraph.append($createTextNode('cross-load check'));
+      root.append(paragraph);
+    });
+
+    await lexical.waitForCollabSync();
+
+    runSnapshotCommandWithEnv(['save', defaultOutput], envOverrides);
+    const savedDefault = readEditorState(defaultOutput);
+    expect(savedDefault.root).toEqual(lexical.getEditorState().root);
+
+    runSnapshotCommand('--doc', secondaryDoc, 'save', secondaryOutput);
+    const savedSecondary = readEditorState(secondaryOutput);
+    expect(savedSecondary.root).toEqual(readEditorState(secondaryFixture).root);
   });
 });

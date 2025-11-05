@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { DEFAULT_DOC_ID } from '#config/spec';
+import { config } from '#config/client';
 import { $getRoot } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 import { useEffect } from 'react';
@@ -41,7 +41,7 @@ beforeEach<TestContext>(async (ctx) => {
   let collab!: CollaborationStatusValue;
 
   const meta = (ctx.task?.meta ?? {}) as { collabDocId?: string };
-  const docId = meta.collabDocId ?? DEFAULT_DOC_ID;
+  const docId = meta.collabDocId ?? config.COLLAB_DOCUMENT_ID;
   const url = new URL(window.location.href);
   const params = new URLSearchParams(url.search);
   params.set('doc', docId);
