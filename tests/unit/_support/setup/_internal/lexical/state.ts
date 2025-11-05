@@ -101,8 +101,8 @@ export function createLexicalTestHelpers(
     await getCollabStatus().waitForSync();
   }
 
-  function hasCollabUnsyncedChanges(): boolean {
-    return Boolean(getCollabStatus().hasUnsyncedChanges);
+  function isCollabSyncing(): boolean {
+    return Boolean(getCollabStatus().syncing);
   }
 
   function getCollabDocId(): string {
@@ -116,7 +116,7 @@ export function createLexicalTestHelpers(
     validate: (fn) => lexicalValidate(editor, fn),
     getEditorState: () => lexicalGetEditorState(editor),
     waitForCollabSync,
-    hasCollabUnsyncedChanges,
+    isCollabSyncing,
     getCollabDocId,
   } as LexicalTestHelpers;
 }

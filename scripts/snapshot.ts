@@ -217,7 +217,8 @@ async function withSession(
 ): Promise<void> {
   const doc = new Doc();
   const docMap = new Map([[docId, doc]]);
-  const syncController = new CollaborationSyncController(() => {}, true);
+  const syncController = new CollaborationSyncController(() => {});
+  syncController.setSyncing(true);
   const providerFactory = createProviderFactory(
     {
       setReady: () => {},

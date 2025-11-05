@@ -9,7 +9,7 @@ interface CollaborationStatusValue {
   ready: boolean;
   enabled: boolean;
   providerFactory: ProviderFactory;
-  hasUnsyncedChanges: boolean;
+  syncing: boolean;
   waitForSync: () => Promise<void>;
   docId: string;
 }
@@ -39,7 +39,7 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
   const enabled = config.COLLAB_ENABLED;
   const docId = useMemo(() => resolveCollabDocumentId(), []);
   const [ready, setReady] = useState(!enabled);
-  const [unsynced, setUnsynced] = useState(enabled);
+  const [syncing, setSyncing] = useState(enabled);
   const endpoint = useMemo(() => {
     const { protocol, hostname } = window.location;
     const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
@@ -47,8 +47,8 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
   }, []);
 
   const syncController = useMemo(
-    () => new CollaborationSyncController(setUnsynced, enabled),
-    [enabled, setUnsynced]
+    () => new CollaborationSyncController(setSyncing),
+    [setSyncing]
   );
   const waitersRef = useRef<Set<() => void>>(new Set());
 
@@ -66,7 +66,7 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
 
   useEffect(() => {
     if (!enabled) {
-      syncController.setUnsynced(false);
+      syncController.setSyncing(false);
     }
   }, [enabled, syncController]);
 
@@ -76,16 +76,16 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
   );
 
   const resolvedReady = !enabled || ready;
-  const hasUnsyncedChanges = enabled && unsynced;
+  const syncingPending = enabled && syncing;
 
   useEffect(() => {
-    if (!enabled || (resolvedReady && !hasUnsyncedChanges)) {
+    if (!enabled || (resolvedReady && !syncingPending)) {
       flushWaiters();
     }
-  }, [enabled, flushWaiters, hasUnsyncedChanges, resolvedReady]);
+  }, [enabled, flushWaiters, resolvedReady, syncingPending]);
 
   const waitForSync = useCallback(() => {
-    if (!enabled || (resolvedReady && !hasUnsyncedChanges)) {
+    if (!enabled || (resolvedReady && !syncingPending)) {
       return Promise.resolve();
     }
 
@@ -98,22 +98,22 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
 
       waiters.add(release);
 
-      if (!enabled || (resolvedReady && !hasUnsyncedChanges)) {
+      if (!enabled || (resolvedReady && !syncingPending)) {
         release();
       }
     });
-  }, [enabled, hasUnsyncedChanges, resolvedReady]);
+  }, [enabled, resolvedReady, syncingPending]);
 
   return useMemo<CollaborationStatusValue>(
     () => ({
       ready: resolvedReady,
       enabled,
       providerFactory,
-      hasUnsyncedChanges,
+      syncing: syncingPending,
       waitForSync,
       docId,
     }),
-    [docId, enabled, hasUnsyncedChanges, providerFactory, resolvedReady, waitForSync]
+    [docId, enabled, providerFactory, resolvedReady, syncingPending, waitForSync]
   );
 }
 
