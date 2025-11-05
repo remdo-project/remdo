@@ -100,12 +100,11 @@ function $needsListNormalization(root: RootNode): boolean {
     return true;
   }
 
-  const ul = first as ListNode;
-  if (ul.getChildrenSize() === 0) {
+  if (first.getChildrenSize() === 0) {
     return true;
   }
 
-  for (const child of ul.getChildren()) {
+  for (const child of first.getChildren()) {
     if (!$isListItemNode(child)) {
       return true;
     }
