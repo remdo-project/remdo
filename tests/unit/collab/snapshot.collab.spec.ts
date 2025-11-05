@@ -1,6 +1,8 @@
+/* eslint-disable node/no-process-env */
 import path from 'node:path';
 import { readFileSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import type { TestContext } from 'vitest';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { config } from '#config/client';
@@ -10,11 +12,28 @@ describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
     path.resolve('data', 'snapshot.cli.json'),
     path.resolve('data', 'snapshot.cli.flat.json'),
     path.resolve('data', 'snapshot.cli.tree.json'),
+    path.resolve('data', 'cli-flag.json'),
+    path.resolve('data', 'cross-doc-check.json'),
+    path.resolve('data', 'cross-doc-check-alt.json'),
   ];
 
-  const runSnapshotCommand = (...args: string[]) => {
-    execFileSync('pnpm', ['run', 'snapshot', ...args], { stdio: 'inherit' });
+  const baseEnv = { ...process.env } satisfies NodeJS.ProcessEnv;
+
+  const runSnapshotWithEnv = (args: string[], envOverrides?: NodeJS.ProcessEnv) => {
+    execFileSync('pnpm', ['run', 'snapshot', ...args], {
+      stdio: 'inherit',
+      env: { ...baseEnv, ...envOverrides },
+    });
   };
+
+  const runSnapshotCommand = (...args: string[]) => {
+    runSnapshotWithEnv(args);
+  };
+
+  const runSnapshotCommandWithEnv = (args: string[], envOverrides: NodeJS.ProcessEnv) => {
+    runSnapshotWithEnv(args, envOverrides);
+  };
+
   const readEditorState = (filePath: string) => JSON.parse(readFileSync(filePath, 'utf8')).editorState;
 
   afterEach(() => {
@@ -71,4 +90,69 @@ describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
     await lexical.waitForCollabSync();
     expect(lexical.isCollabSyncing()).toBe(false);
   });
+
+  it('resolves the document id from the CLI flag', async () => {
+    const docId = 'cli-flag';
+    const loadPath = path.resolve('tests/fixtures/basic.json');
+    const savePath = path.resolve('data', `${docId}.json`);
+
+    runSnapshotCommand('--doc', docId, 'load', loadPath);
+
+    await waitFor(() => {
+      runSnapshotCommand('--doc', docId, 'save', savePath);
+      const saved = readEditorState(savePath);
+      const expected = readEditorState(loadPath);
+      return JSON.stringify(saved) === JSON.stringify(expected);
+    }, { timeout: 5000 });
+  });
+
+  it(
+    'keeps browser doc id aligned with CLI default configuration',
+    { meta: { collabDefaultDoc: 'cross-doc-check' } } as any,
+    async ({ lexical }: TestContext) => {
+      const defaultDoc = 'cross-doc-check';
+      const envOverrides = {
+        COLLAB_DOCUMENT_ID: defaultDoc,
+        VITE_COLLAB_DOCUMENT_ID: defaultDoc,
+      } satisfies NodeJS.ProcessEnv;
+      const defaultFixture = path.resolve('tests/fixtures/basic.json');
+      runSnapshotCommandWithEnv(['load', defaultFixture], envOverrides);
+
+      await lexical.waitForCollabSync();
+
+      expect(lexical.getCollabDocId()).toBe(defaultDoc);
+    }
+  );
+
+  it(
+    'cross-loads and saves multiple documents without crosstalk',
+    { meta: { collabDefaultDoc: 'cross-doc-check' } } as any,
+    async ({ lexical }: TestContext) => {
+      const defaultDoc = 'cross-doc-check';
+      const secondaryDoc = 'cross-doc-check-alt';
+      const envOverrides = {
+        COLLAB_DOCUMENT_ID: defaultDoc,
+        VITE_COLLAB_DOCUMENT_ID: defaultDoc,
+      } satisfies NodeJS.ProcessEnv;
+
+      const defaultFixture = path.resolve('tests/fixtures/basic.json');
+      const secondaryFixture = path.resolve('tests/fixtures/tree.json');
+      const defaultOutput = path.resolve('data', `${defaultDoc}.json`);
+      const secondaryOutput = path.resolve('data', `${secondaryDoc}.json`);
+
+      runSnapshotCommandWithEnv(['load', defaultFixture], envOverrides);
+      runSnapshotCommand('--doc', secondaryDoc, 'load', secondaryFixture);
+
+      await lexical.waitForCollabSync();
+      expect(lexical.getCollabDocId()).toBe(defaultDoc);
+
+      runSnapshotCommandWithEnv(['save', defaultOutput], envOverrides);
+      const savedDefault = readEditorState(defaultOutput);
+      expect(savedDefault.root).toEqual(readEditorState(defaultFixture).root);
+
+      runSnapshotCommand('--doc', secondaryDoc, 'save', secondaryOutput);
+      const savedSecondary = readEditorState(secondaryOutput);
+      expect(savedSecondary.root).toEqual(readEditorState(secondaryFixture).root);
+    }
+  );
 });

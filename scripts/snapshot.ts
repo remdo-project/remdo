@@ -68,6 +68,7 @@ interface ParsedArgs {
   command: string | undefined;
   filePath: string;
   markdownPath: string | null;
+  docId: string;
 }
 
 function parseArgs(): ParsedArgs {
@@ -75,6 +76,7 @@ function parseArgs(): ParsedArgs {
   let command: string | undefined;
   let filePath: string | undefined;
   let markdownPath: string | null = null;
+  let docId: string = serverEnv.COLLAB_DOCUMENT_ID ?? DEFAULT_DOC_ID;
 
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i]!;
@@ -95,6 +97,16 @@ function parseArgs(): ParsedArgs {
       continue;
     }
 
+    if (arg === '--doc') {
+      const next = args[i + 1];
+      if (!next) {
+        throw new Error('Missing value for --doc');
+      }
+      docId = next.trim();
+      i += 1;
+      continue;
+    }
+
     if (!command) {
       command = arg;
     } else if (!filePath) {
@@ -102,23 +114,24 @@ function parseArgs(): ParsedArgs {
     }
   }
 
-  return { command, filePath: filePath ?? DEFAULT_FILE, markdownPath };
+  const defaultFile = path.join('data', `${docId}.json`);
+  return { command, filePath: filePath ?? defaultFile, markdownPath, docId };
 }
 
 async function main(): Promise<void> {
-  const { command, filePath, markdownPath } = parseArgs();
+  const { command, filePath, markdownPath, docId } = parseArgs();
 
   if (command === 'save') {
-    await runSave(filePath, markdownPath);
+    await runSave(filePath, markdownPath, docId);
   } else if (command === 'load') {
-    await runLoad(filePath);
+    await runLoad(filePath, docId);
   } else {
-    throw new Error('Usage: snapshot.ts <load|save> [filePath] [--md[=<file>]]');
+    throw new Error('Usage: snapshot.ts [--doc <id>] <load|save> [filePath] [--md[=<file>]]');
   }
 }
 
-async function runSave(filePath: string, markdownPath: string | null): Promise<void> {
-  await withSession(async (editor) => {
+async function runSave(filePath: string, markdownPath: string | null, docId: string): Promise<void> {
+  await withSession(docId, async (editor) => {
     const editorState = editor.getEditorState().toJSON();
     writeJson(filePath, { editorState });
 
@@ -138,20 +151,20 @@ async function runSave(filePath: string, markdownPath: string | null): Promise<v
   });
 }
 
-async function runLoad(filePath: string): Promise<void> {
+async function runLoad(filePath: string, docId: string): Promise<void> {
   const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as {
     editorState?: SerializedEditorState<SerializedLexicalNode>;
   };
-  await withSession(async (editor) => {
+  await withSession(docId, async (editor) => {
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data.editorState ?? editor.getEditorState().toJSON()), { tag: 'snapshot-load' });
     await done;
   });
 }
 
-async function withSession(run: (editor: LexicalEditor) => Promise<void> | void): Promise<void> {
+async function withSession(docId: string, run: (editor: LexicalEditor) => Promise<void> | void): Promise<void> {
   const doc = new Doc();
-  const docMap = new Map([[DEFAULT_DOC_ID, doc]]);
+  const docMap = new Map([[docId, doc]]);
   const syncController = new CollaborationSyncController(() => {});
   syncController.setSyncing(true);
   const providerFactory = createProviderFactory(
@@ -161,7 +174,7 @@ async function withSession(run: (editor: LexicalEditor) => Promise<void> | void)
     },
     ENDPOINT,
   );
-  const lexicalProvider = providerFactory(DEFAULT_DOC_ID, docMap);
+  const lexicalProvider = providerFactory(docId, docMap);
   const provider = lexicalProvider as unknown as Provider & {
     connect: () => void;
     destroy: () => void;
@@ -170,14 +183,14 @@ async function withSession(run: (editor: LexicalEditor) => Promise<void> | void)
     off: (event: string, handler: (payload: unknown) => void) => void;
   };
   (provider as unknown as { _WS?: typeof globalThis.WebSocket })._WS = WebSocket as unknown as typeof globalThis.WebSocket;
-  const syncDoc = docMap.get(DEFAULT_DOC_ID);
+  const syncDoc = docMap.get(docId);
   if (!syncDoc) {
     throw new Error('Failed to resolve collaboration document.');
   }
   const editor = createEditor(
     createEditorInitialConfig({ isDev: serverRuntime.isDev }) as CreateEditorArgs
   );
-  const binding = createBindingV2__EXPERIMENTAL(editor, DEFAULT_DOC_ID, doc, docMap);
+  const binding = createBindingV2__EXPERIMENTAL(editor, docId, doc, docMap);
   const sharedRoot = binding.root as unknown as SharedRoot;
   const observer: SharedRootObserver = (events, transaction) => {
     if (transaction.origin === binding) {

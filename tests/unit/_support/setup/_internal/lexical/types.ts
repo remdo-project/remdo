@@ -10,4 +10,5 @@ export interface LexicalTestHelpers {
   getEditorState: () => EditorStateJSON;
   waitForCollabSync: () => Promise<void>;
   isCollabSyncing: () => boolean;
+  getCollabDocId: () => string;
 }
