@@ -2,6 +2,7 @@
 import path from 'node:path';
 import { readFileSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import type { TestContext } from 'vitest';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { config } from '#config/client';
@@ -107,7 +108,7 @@ describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
   it(
     'keeps browser doc id aligned with CLI default configuration',
     { meta: { collabDefaultDoc: 'cross-doc-check' } } as any,
-    async ({ lexical }) => {
+    async ({ lexical }: TestContext) => {
       const defaultDoc = 'cross-doc-check';
       const envOverrides = {
         COLLAB_DOCUMENT_ID: defaultDoc,
@@ -125,7 +126,7 @@ describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
   it(
     'cross-loads and saves multiple documents without crosstalk',
     { meta: { collabDefaultDoc: 'cross-doc-check' } } as any,
-    async ({ lexical }) => {
+    async ({ lexical }: TestContext) => {
       const defaultDoc = 'cross-doc-check';
       const secondaryDoc = 'cross-doc-check-alt';
       const envOverrides = {
