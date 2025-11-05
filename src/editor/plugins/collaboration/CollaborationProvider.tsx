@@ -39,11 +39,11 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
   const enabled = config.COLLAB_ENABLED;
   const docId = useMemo(() => {
     const fallback = config.COLLAB_DOCUMENT_ID ?? DEFAULT_DOC_ID;
-    if (typeof window === 'undefined') {
-      return fallback;
-    }
-    const doc = new URLSearchParams(window.location.search).get('doc')?.trim();
-    return doc || fallback;
+    const doc = globalThis.window?.location?.search
+      ? new URLSearchParams(globalThis.window.location.search).get('doc')?.trim()
+      : null;
+
+    return doc?.length ? doc : fallback;
   }, []);
   const [ready, setReady] = useState(!enabled);
   const [syncing, setSyncing] = useState(enabled);
