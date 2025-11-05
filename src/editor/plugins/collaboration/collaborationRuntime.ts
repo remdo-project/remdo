@@ -75,10 +75,6 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
   let handshakePending = false;
   let pendingAck = false;
 
-  const markSyncing = () => {
-    controller.setSyncing(true);
-  };
-
   const ensureHandshake = () => {
     if (handshakePending) {
       return;
@@ -122,7 +118,7 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
     }
 
     pendingAck = true;
-    markSyncing();
+    controller.setSyncing(true);
 
     ensureHandshake();
   };
@@ -157,7 +153,7 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
     // Connection dropped or paused: mark unsynced and retry once we reconnect.
     pendingAck = true;
     handshakePending = false;
-    markSyncing();
+    controller.setSyncing(true);
   };
 
   controller.setSyncing(true);
