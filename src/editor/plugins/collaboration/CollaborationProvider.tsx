@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { config } from '#config/client';
-import { DEFAULT_DOC_ID } from '#config/spec';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from './collaborationRuntime';
 import { CollaborationSyncController, createProviderFactory } from './collaborationRuntime';
@@ -38,12 +37,11 @@ export function CollaborationProvider({ children }: { children: ReactNode }) {
 function useCollaborationRuntimeValue(): CollaborationStatusValue {
   const enabled = config.COLLAB_ENABLED;
   const docId = useMemo(() => {
-    const fallback = config.COLLAB_DOCUMENT_ID ?? DEFAULT_DOC_ID;
     const doc = globalThis.window?.location?.search
       ? new URLSearchParams(globalThis.window.location.search).get('doc')?.trim()
       : null;
 
-    return doc?.length ? doc : fallback;
+    return doc?.length ? doc : config.COLLAB_DOCUMENT_ID;
   }, []);
   const [ready, setReady] = useState(!enabled);
   const [syncing, setSyncing] = useState(enabled);

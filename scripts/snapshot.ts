@@ -18,7 +18,6 @@ import WebSocket from 'ws';
 import { $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
 
 import { env as serverEnv, runtime as serverRuntime } from '../config/server';
-import { DEFAULT_DOC_ID } from '../config/spec';
 import { createEditorInitialConfig } from '../lib/editor/config';
 import {
   CollaborationSyncController,
@@ -117,7 +116,7 @@ async function main(): Promise<void> {
     throw new Error('Usage: snapshot.ts [--doc <id>] <load|save> [filePath] [--md[=<file>]]');
   }
 
-  const docId = cliDocId?.trim() || serverEnv.COLLAB_DOCUMENT_ID || DEFAULT_DOC_ID;
+  const docId = cliDocId?.trim() || serverEnv.COLLAB_DOCUMENT_ID;
   const targetFile = filePath ?? path.join('data', `${docId}.json`);
   const endpoint = `ws://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
 

@@ -1,10 +1,6 @@
 import type { EnvSpec } from './_internal/env/parse';
 import { defineEnvDerivatives, defineEnvSpec } from './_internal/env/parse';
 
-//TODO entries from this file should not be consumed externally.
-//move DEFAULT_DOC_ID to a more appropriate location and create eslint rule
-export const DEFAULT_DOC_ID = 'main' as const;
-
 export const envSpec = defineEnvSpec(
   {
     NODE_ENV: { default: 'development' },
@@ -14,7 +10,7 @@ export const envSpec = defineEnvSpec(
     COLLAB_ENABLED: { default: true, client: true },
     COLLAB_SERVER_PORT: { default: 0 },
     COLLAB_CLIENT_PORT: { default: 0, client: true },
-    COLLAB_DOCUMENT_ID: { default: DEFAULT_DOC_ID, client: true },
+    COLLAB_DOCUMENT_ID: { default: 'main', client: true },
     VITEST_PORT: { default: 0 },
     VITEST_PREVIEW_PORT: { default: 0 },
     CI: { default: false },
