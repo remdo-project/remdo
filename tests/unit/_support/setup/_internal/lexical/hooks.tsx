@@ -36,11 +36,21 @@ const LexicalHarness = ({ onReady }: { onReady: (payload: BridgePayload) => void
   );
 };
 
+let previousDefaultDocId: string | null = null;
+
 beforeEach<TestContext>(async (ctx) => {
   let editor!: LexicalEditor;
   let collab!: CollaborationStatusValue;
 
-  const meta = (ctx.task?.meta ?? {}) as { collabDocId?: string };
+  const meta = (ctx.task?.meta ?? {}) as { collabDocId?: string; collabDefaultDoc?: string };
+
+  if (typeof meta.collabDefaultDoc === 'string') {
+    previousDefaultDocId = config.COLLAB_DOCUMENT_ID;
+    (config as any).COLLAB_DOCUMENT_ID = meta.collabDefaultDoc;
+  } else {
+    previousDefaultDocId = null;
+  }
+
   const docId = meta.collabDocId ?? config.COLLAB_DOCUMENT_ID;
   const url = new URL(window.location.href);
   const params = new URLSearchParams(url.search);
@@ -76,4 +86,9 @@ beforeEach<TestContext>(async (ctx) => {
 
 afterEach(async ({ lexical }) => {
   await lexical.waitForCollabSync();
+
+  if (previousDefaultDocId !== null) {
+    (config as any).COLLAB_DOCUMENT_ID = previousDefaultDocId;
+    previousDefaultDocId = null;
+  }
 });
