@@ -101,10 +101,8 @@ function resolveDefaultFile(docId: string): string {
   return path.join('data', `${docId}.json`);
 }
 
-function createEndpoint(docId: string): string {
-  const url = new URL(`ws://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`);
-  url.searchParams.set('doc', docId);
-  return url.toString();
+function createEndpoint(): string {
+  return `ws://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
 }
 
 function writeJson(filePath: string, data: unknown): void {
@@ -143,7 +141,7 @@ async function main(): Promise<void> {
 
   const docId = resolveDocId(cliDocId);
   const targetFile = filePath ?? resolveDefaultFile(docId);
-  const endpoint = createEndpoint(docId);
+  const endpoint = createEndpoint();
 
   if (command === 'save') {
     await runSave(docId, endpoint, targetFile, markdownPath);

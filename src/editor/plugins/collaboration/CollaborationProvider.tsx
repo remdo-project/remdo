@@ -43,10 +43,8 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
   const endpoint = useMemo(() => {
     const { protocol, hostname } = window.location;
     const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
-    const url = new URL(`${wsProtocol}://${hostname}:${config.COLLAB_CLIENT_PORT}`);
-    url.searchParams.set('doc', docId);
-    return url.toString();
-  }, [docId]);
+    return `${wsProtocol}://${hostname}:${config.COLLAB_CLIENT_PORT}`;
+  }, []);
 
   const syncController = useMemo(
     () => new CollaborationSyncController(setSyncing),
