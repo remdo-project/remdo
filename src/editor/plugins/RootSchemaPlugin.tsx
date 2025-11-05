@@ -75,15 +75,9 @@ function $ensureSingleListRoot(root: RootNode) {
 
 function normalizeRootOnce(editor: LexicalEditor) {
   // Run a one-time normalization outside the transform cycle for fresh editors.
-  const needsNormalization = editor.getEditorState().read(() =>
-    $needsListNormalization($getRoot())
-  );
-
-  if (needsNormalization) {
-    editor.update(() => {
-      $ensureSingleListRoot($getRoot());
-    });
-  }
+  editor.update(() => {
+    $ensureSingleListRoot($getRoot());
+  });
 }
 
 /**
