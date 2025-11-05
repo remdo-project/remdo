@@ -34,43 +34,36 @@ interface SharedRoot {
   unobserveDeep: (callback: SharedRootObserver) => void;
 }
 
-interface CliArgs {
+interface CliArguments {
   command?: string;
   filePath?: string;
   docId?: string;
   markdownPath: string | null;
 }
 
-function parseCliArguments(argv: string[]): CliArgs {
-  const result: CliArgs = { markdownPath: null };
+function parseCliArguments(argv: string[]): CliArguments {
+  const result: CliArguments = { markdownPath: null };
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]!;
 
-    if (arg === '--doc') {
-      const next = argv[i + 1];
-      if (!next || next.startsWith('--')) {
-        throw new Error('Missing value for --doc');
-      }
-
-      result.docId = next;
-      i += 1;
-      continue;
-    }
-
-    if (arg.startsWith('--doc=')) {
-      const value = arg.slice(6);
-      if (!value) {
+    if (arg === '--doc' || arg.startsWith('--doc=')) {
+      const value = arg === '--doc' ? argv[i + 1] : arg.slice(6);
+      if (!value || (arg === '--doc' && value.startsWith('--'))) {
         throw new Error('Missing value for --doc');
       }
       result.docId = value;
+      if (arg === '--doc') {
+        i += 1;
+      }
       continue;
     }
 
     if (arg === '--md') {
       const next = argv[i + 1];
-      result.markdownPath = next && !next.startsWith('--') ? next : '';
-      if (next && !next.startsWith('--')) {
+      const hasValue = next && !next.startsWith('--');
+      result.markdownPath = hasValue ? next : '';
+      if (hasValue) {
         i += 1;
       }
       continue;
@@ -128,11 +121,9 @@ async function main(): Promise<void> {
   const targetFile = filePath ?? path.join('data', `${docId}.json`);
   const endpoint = `ws://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
 
-  if (command === 'save') {
-    await runSave(docId, endpoint, targetFile, markdownPath);
-  } else {
-    await runLoad(docId, endpoint, targetFile);
-  }
+  return command === 'save'
+    ? runSave(docId, endpoint, targetFile, markdownPath)
+    : runLoad(docId, endpoint, targetFile);
 }
 
 async function runSave(

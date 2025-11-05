@@ -42,9 +42,8 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
     if (typeof window === 'undefined') {
       return fallback;
     }
-    const value = new URLSearchParams(window.location.search).get('doc');
-    const trimmed = value?.trim();
-    return trimmed && trimmed.length > 0 ? trimmed : fallback;
+    const doc = new URLSearchParams(window.location.search).get('doc')?.trim();
+    return doc || fallback;
   }, []);
   const [ready, setReady] = useState(!enabled);
   const [syncing, setSyncing] = useState(enabled);
