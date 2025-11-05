@@ -19,7 +19,7 @@ export function CollaborationPlugin({ children }: { children?: ReactNode }) {
 }
 
 function CollaborationRuntimePlugin() {
-  const { enabled, providerFactory, docId } = useCollaborationStatus();
+  const { enabled } = useCollaborationStatus();
 
   if (!enabled) {
     return <HistoryPlugin />;
@@ -27,17 +27,13 @@ function CollaborationRuntimePlugin() {
 
   return (
     <LexicalCollaboration>
-      <CollaborationRuntimeBridge providerFactory={providerFactory} docId={docId} />
+      <CollaborationRuntimeBridge />
     </LexicalCollaboration>
   );
 }
 
-interface CollaborationRuntimeBridgeProps {
-  providerFactory: ProviderFactory;
-  docId: string;
-}
-
-function CollaborationRuntimeBridge({ providerFactory, docId }: CollaborationRuntimeBridgeProps) {
+function CollaborationRuntimeBridge() {
+  const { providerFactory, docId } = useCollaborationStatus();
   const { yjsDocMap } = useLexicalCollaborationContext();
   const [provider, setProvider] = useReducer(
     (_: ReturnType<ProviderFactory> | null, next: ReturnType<ProviderFactory> | null) => next,

@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { config } from '#config/client';
+import { DEFAULT_DOC_ID } from '#config/spec';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from './collaborationRuntime';
 import { CollaborationSyncController, createProviderFactory } from './collaborationRuntime';
-import { resolveCollabDocumentId } from './documentId';
 
 interface CollaborationStatusValue {
   ready: boolean;
@@ -37,7 +37,15 @@ export function CollaborationProvider({ children }: { children: ReactNode }) {
 
 function useCollaborationRuntimeValue(): CollaborationStatusValue {
   const enabled = config.COLLAB_ENABLED;
-  const docId = useMemo(() => resolveCollabDocumentId(), []);
+  const docId = useMemo(() => {
+    const fallback = config.COLLAB_DOCUMENT_ID ?? DEFAULT_DOC_ID;
+    if (typeof window === 'undefined') {
+      return fallback;
+    }
+    const value = new URLSearchParams(window.location.search).get('doc');
+    const trimmed = value?.trim();
+    return trimmed && trimmed.length > 0 ? trimmed : fallback;
+  }, []);
   const [ready, setReady] = useState(!enabled);
   const [syncing, setSyncing] = useState(enabled);
   const endpoint = useMemo(() => {
