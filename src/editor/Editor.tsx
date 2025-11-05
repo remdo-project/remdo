@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
@@ -17,10 +16,7 @@ interface EditorProps {
 }
 
 export default function Editor({ children }: EditorProps) {
-  const editorInitialConfig = useMemo(
-    () => createEditorInitialConfig({ isDev: config.isDev }),
-    []
-  );
+  const editorInitialConfig = createEditorInitialConfig({ isDev: config.isDev });
   return (
     <div className="editor-container">
       <LexicalComposer initialConfig={editorInitialConfig}>
