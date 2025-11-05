@@ -34,90 +34,61 @@ interface SharedRoot {
   unobserveDeep: (callback: SharedRootObserver) => void;
 }
 
-interface CliArguments {
+interface CliArgs {
   command?: string;
   filePath?: string;
   docId?: string;
   markdownPath: string | null;
 }
 
-function parseCliArguments(argv: string[]): CliArguments {
-  let command: string | undefined;
-  let filePath: string | undefined;
-  let docId: string | undefined;
-  let markdownPath: string | null = null;
+function parseCliArguments(argv: string[]): CliArgs {
+  const result: CliArgs = { markdownPath: null };
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]!;
 
     if (arg === '--doc') {
-      const value = argv[i + 1];
-
-      if (!value || value.startsWith('--')) {
+      const next = argv[i + 1];
+      if (!next || next.startsWith('--')) {
         throw new Error('Missing value for --doc');
       }
 
-      docId = value;
+      result.docId = next;
       i += 1;
       continue;
     }
 
     if (arg.startsWith('--doc=')) {
       const value = arg.slice(6);
-
       if (!value) {
         throw new Error('Missing value for --doc');
       }
-
-      docId = value;
+      result.docId = value;
       continue;
     }
 
     if (arg === '--md') {
       const next = argv[i + 1];
+      result.markdownPath = next && !next.startsWith('--') ? next : '';
       if (next && !next.startsWith('--')) {
-        markdownPath = next;
         i += 1;
-      } else {
-        markdownPath = '';
       }
       continue;
     }
 
     if (arg.startsWith('--md=')) {
-      markdownPath = arg.slice(5);
+      result.markdownPath = arg.slice(5);
       continue;
     }
 
-    if (!command) {
-      command = arg;
-      continue;
-    }
-
-    if (!filePath) {
-      filePath = arg;
+    if (!result.command) {
+      result.command = arg;
+    } else if (!result.filePath) {
+      result.filePath = arg;
     }
   }
 
-  return { command, filePath, docId, markdownPath };
-}
-
-function resolveDocId(cliDocId: string | undefined): string {
-  const resolved = cliDocId?.trim();
-
-  if (resolved) {
-    return resolved;
-  }
-
-  return serverEnv.COLLAB_DOCUMENT_ID ?? DEFAULT_DOC_ID;
-}
-
-function resolveDefaultFile(docId: string): string {
-  return path.join('data', `${docId}.json`);
-}
-
-function createEndpoint(): string {
-  return `ws://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
+  return result;
 }
 
 function writeJson(filePath: string, data: unknown): void {
@@ -149,26 +120,19 @@ if (typeof globalThis.document === 'undefined') {
 
 async function main(): Promise<void> {
   const { command, filePath, docId: cliDocId, markdownPath } = parseCliArguments(process.argv.slice(2));
-
-  if (!command) {
+  if (command !== 'save' && command !== 'load') {
     throw new Error('Usage: snapshot.ts [--doc <id>] <load|save> [filePath] [--md[=<file>]]');
   }
 
-  const docId = resolveDocId(cliDocId);
-  const targetFile = filePath ?? resolveDefaultFile(docId);
-  const endpoint = createEndpoint();
+  const docId = cliDocId?.trim() || serverEnv.COLLAB_DOCUMENT_ID || DEFAULT_DOC_ID;
+  const targetFile = filePath ?? path.join('data', `${docId}.json`);
+  const endpoint = `ws://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
 
   if (command === 'save') {
     await runSave(docId, endpoint, targetFile, markdownPath);
-    return;
-  }
-
-  if (command === 'load') {
+  } else {
     await runLoad(docId, endpoint, targetFile);
-    return;
   }
-
-  throw new Error('Usage: snapshot.ts [--doc <id>] <load|save> [filePath] [--md[=<file>]]');
 }
 
 async function runSave(
