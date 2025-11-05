@@ -1,3 +1,4 @@
+/* eslint-disable node/no-process-env */
 import path from 'node:path';
 import { readFileSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -15,10 +16,12 @@ describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
     path.resolve('data', 'cross-doc-check-alt.json'),
   ];
 
+  const baseEnv = { ...process.env } satisfies NodeJS.ProcessEnv;
+
   const runSnapshotWithEnv = (args: string[], envOverrides?: NodeJS.ProcessEnv) => {
     execFileSync('pnpm', ['run', 'snapshot', ...args], {
       stdio: 'inherit',
-      env: { ...process.env, ...envOverrides },
+      env: { ...baseEnv, ...envOverrides },
     });
   };
 
