@@ -53,10 +53,7 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
     return `${wsProtocol}://${hostname}:${config.COLLAB_CLIENT_PORT}`;
   }, []);
 
-  const syncController = useMemo(
-    () => new CollaborationSyncController(setSyncing),
-    [setSyncing]
-  );
+  const [syncController] = useState(() => new CollaborationSyncController(setSyncing));
   const waitersRef = useRef<Set<() => void>>(new Set());
 
   const flushWaiters = useCallback(() => {

@@ -18,5 +18,3 @@ export function SchemaValidationPlugin(): null {
 
   return null;
 }
-
-export default SchemaValidationPlugin;
