@@ -25,8 +25,8 @@
       "#tests/*": [
         "./tests/unit/_support/lib/*"
       ],
-      "#config/*": [
-        "./config/*"
+      "#config": [
+        "./config/index.ts"
       ],
       "#lib/*": [
         "./lib/*"

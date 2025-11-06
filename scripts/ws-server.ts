@@ -3,7 +3,7 @@
 import { spawn } from 'node:child_process';
 import process from 'node:process';
 
-import { env } from '#config/server';
+import { env } from '../config/server.js';
 
 process.env.HOST = env.HOST;
 process.env.PORT = String(env.COLLAB_SERVER_PORT);

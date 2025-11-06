@@ -4,7 +4,7 @@ import { once } from 'node:events';
 import net from 'node:net';
 import process from 'node:process';
 import { setTimeout as wait } from 'node:timers/promises';
-import { env } from '#config/server';
+import { env } from '../../../../config/server.js';
 
 function lookupHost() {
   return process.env.HOST ?? String(env.HOST);

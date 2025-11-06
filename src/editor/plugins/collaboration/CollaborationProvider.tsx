@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { config } from '#config/client';
+import { config } from '#config';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
 import { CollaborationSyncController, createProviderFactory } from '#lib/collaboration/runtime';

@@ -1,6 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { browserEnv, env } from '#config/server';
+import { browserEnv, env } from './config/server.js';
 import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -37,7 +37,7 @@ export default defineConfig(() => {
         "@": "/src",
         "#tests": path.resolve(__dirname, "./tests/unit/_support/lib/index.ts"),
         "#fixtures": path.resolve(__dirname, "./tests/fixtures"),
-        "#config": path.resolve(__dirname, "./config"),
+        "#config": path.resolve(__dirname, "./config/index.ts"),
         "#lib": path.resolve(__dirname, "./lib"),
       },
     },

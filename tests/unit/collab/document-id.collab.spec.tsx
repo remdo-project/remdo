@@ -1,6 +1,6 @@
 import type { TestContext } from 'vitest';
 import { describe, expect, it } from 'vitest';
-import { config } from '#config/client';
+import { config } from '#config';
 
 describe.skipIf(!config.COLLAB_ENABLED)('collaboration document id resolution', () => {
   it('falls back to the default document id', async ({ lexical }: TestContext) => {

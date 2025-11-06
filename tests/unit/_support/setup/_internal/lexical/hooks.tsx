@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { config } from '#config/client';
+import { config } from '#config';
 import { $getRoot } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 import { useEffect } from 'react';

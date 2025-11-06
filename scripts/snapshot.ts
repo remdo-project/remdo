@@ -18,7 +18,7 @@ import type { Provider } from '@lexical/yjs';
 import type { CreateEditorArgs, LexicalEditor, SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import type { Transaction } from 'yjs';
 
-import { env as serverEnv, runtime as serverRuntime } from '#config/server';
+import { env as serverEnv, runtime as serverRuntime } from '../config/server.js';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollaborationSyncController, createProviderFactory } from '#lib/collaboration/runtime';
 

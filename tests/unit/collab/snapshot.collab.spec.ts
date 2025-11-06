@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import type { TestContext } from 'vitest';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
-import { config } from '#config/client';
+import { config } from '#config';
 
 describe.skipIf(!config.COLLAB_ENABLED)('snapshot CLI', () => {
   const SNAPSHOT_OUTPUTS = [

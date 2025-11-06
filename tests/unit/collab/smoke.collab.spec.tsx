@@ -1,4 +1,4 @@
-import { config } from '#config/client';
+import { config } from '#config';
 import { $getRoot } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
