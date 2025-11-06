@@ -38,6 +38,7 @@ export default defineConfig(() => {
         "#tests": path.resolve(__dirname, "./tests/unit/_support/lib/index.ts"),
         "#fixtures": path.resolve(__dirname, "./tests/fixtures"),
         "#config": path.resolve(__dirname, "./config"),
+        "#lib": path.resolve(__dirname, "./lib"),
       },
     },
     test: {

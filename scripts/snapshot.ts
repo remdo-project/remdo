@@ -3,23 +3,24 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
+import { $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
 import {
   createBindingV2__EXPERIMENTAL,
   syncLexicalUpdateToYjsV2__EXPERIMENTAL,
   syncYjsChangesToLexicalV2__EXPERIMENTAL,
   syncYjsStateToLexicalV2__EXPERIMENTAL,
 } from '@lexical/yjs';
-import type { Provider } from '@lexical/yjs';
 import { createEditor } from 'lexical';
-import type { CreateEditorArgs, LexicalEditor, SerializedEditorState, SerializedLexicalNode } from 'lexical';
-import { Doc, UndoManager } from 'yjs';
-import type { Transaction } from 'yjs';
 import WebSocket from 'ws';
-import { $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
+import { Doc, UndoManager } from 'yjs';
 
-import { env as serverEnv, runtime as serverRuntime } from '../config/server';
-import { createEditorInitialConfig } from '../lib/editor/config';
-import { CollaborationSyncController, createProviderFactory } from '../lib/collaboration/runtime';
+import type { Provider } from '@lexical/yjs';
+import type { CreateEditorArgs, LexicalEditor, SerializedEditorState, SerializedLexicalNode } from 'lexical';
+import type { Transaction } from 'yjs';
+
+import { env as serverEnv, runtime as serverRuntime } from '#config/server';
+import { createEditorInitialConfig } from '#lib/editor/config';
+import { CollaborationSyncController, createProviderFactory } from '#lib/collaboration/runtime';
 
 interface SharedRootObserver {
   (events: unknown, transaction: Transaction): void;
