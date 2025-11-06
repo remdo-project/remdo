@@ -51,6 +51,12 @@ export default function App() {
           </Group>
           <nav>
             <Group gap="md" className="app-header-links">
+              <Anchor className="app-header-link" href="/?doc=notes">
+                Notes
+              </Anchor>
+              <Anchor className="app-header-link" href="/?doc=project">
+                Project
+              </Anchor>
               <Anchor className="app-header-link" href={previewUrl}>
                 Preview
               </Anchor>
