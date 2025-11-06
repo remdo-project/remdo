@@ -115,12 +115,33 @@ async function main(): Promise<void> {
   }
 
   const docId = cliDocId?.trim() || serverEnv.COLLAB_DOCUMENT_ID;
-  const targetFile = filePath ?? path.join('data', `${docId}.json`);
+  const targetFile = resolveSnapshotPath(command, docId, filePath);
   const endpoint = `ws://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
 
   return command === 'save'
     ? runSave(docId, endpoint, targetFile, markdownPath)
     : runLoad(docId, endpoint, targetFile);
+}
+
+function resolveSnapshotPath(
+  command: NonNullable<CliArguments['command']>,
+  docId: string,
+  filePath: CliArguments['filePath'],
+): string {
+  if (!filePath) {
+    return path.join('data', `${docId}.json`);
+  }
+
+  const absolutePath = path.resolve(filePath);
+  if (command === 'load' && !fs.existsSync(absolutePath)) {
+    const fixtureName = filePath.endsWith('.json') ? filePath : `${filePath}.json`;
+    const fixturePath = path.resolve('tests', 'fixtures', fixtureName);
+    if (fs.existsSync(fixturePath)) {
+      return fixturePath;
+    }
+  }
+
+  return absolutePath;
 }
 
 async function runSave(
