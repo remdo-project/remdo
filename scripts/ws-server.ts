@@ -1,13 +1,9 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /* eslint-disable node/no-process-env -- script scaffolds env vars before spawning WS server */
 import { spawn } from 'node:child_process';
-import { createRequire } from 'node:module';
 import process from 'node:process';
 
-const require = createRequire(import.meta.url);
-const jiti = require('jiti')(import.meta.url);
-
-const { env } = jiti('../config/server.ts');
+import { env } from '#config/server';
 
 process.env.HOST = env.HOST;
 process.env.PORT = String(env.COLLAB_SERVER_PORT);
@@ -19,16 +15,15 @@ const child = spawn(pnpmCmd, ['exec', 'y-websocket'], {
   shell: false,
 });
 
-child.on('close', (code, signal) => {
+child.on('close', (code: number | null, signal: NodeJS.Signals | null) => {
   if (signal) {
     process.kill(process.pid, signal);
-    return;
+  } else {
+    process.exit(code ?? 0);
   }
-
-  process.exit(code ?? 0);
 });
 
-child.on('error', (error) => {
+child.on('error', (error: unknown) => {
   console.error(error);
   process.exit(1);
 });

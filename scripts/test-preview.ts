@@ -1,17 +1,13 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /* eslint-disable node/no-process-env -- script scaffolds env vars before spawning preview */
 // Launches Vitest Preview with ports/env resolved through config/server.ts.
 import { spawn } from 'node:child_process';
-import { createRequire } from 'node:module';
 import process from 'node:process';
 
+import { env } from '#config/server';
+import { forceVitestPreviewCacheDir } from '#config/vitest/preview-cache';
+
 process.env.NODE_ENV ??= 'test';
-
-const require = createRequire(import.meta.url);
-const jiti = require('jiti')(import.meta.url);
-
-const { env } = jiti('../config/server.ts');
-const { forceVitestPreviewCacheDir } = jiti('../config/vitest/preview-cache.ts');
 
 process.env.HOST = env.HOST;
 process.env.PORT = String(env.VITEST_PREVIEW_PORT);
@@ -26,16 +22,15 @@ const child = spawn(pnpmCmd, ['exec', 'vitest-preview'], {
   shell: false,
 });
 
-child.on('close', (code, signal) => {
+child.on('close', (code: number | null, signal: NodeJS.Signals | null) => {
   if (signal) {
     process.kill(process.pid, signal);
-    return;
+  } else {
+    process.exit(code ?? 0);
   }
-
-  process.exit(code ?? 0);
 });
 
-child.on('error', (error) => {
+child.on('error', (error: unknown) => {
   console.error(error);
   process.exit(1);
 });

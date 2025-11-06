@@ -1,17 +1,13 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /* eslint-disable node/no-process-env -- script derives env vars for Vitest watch mode */
 // Runs Vitest with dynamically calculated API port from config/server.ts.
 // Required because Vitest doesn't support runtime port configuration.
 import { spawn } from 'node:child_process';
-import { createRequire } from 'node:module';
 import process from 'node:process';
 
-const require = createRequire(import.meta.url);
-const jiti = require('jiti')(import.meta.url);
+import { env } from '#config/server';
 
 process.env.NODE_ENV ??= 'test';
-
-const { env } = jiti('../config/server.ts');
 
 const pnpmCmd = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const vitestArgs = [
@@ -31,16 +27,15 @@ const child = spawn(pnpmCmd, vitestArgs, {
   env: { ...process.env },
 });
 
-child.on('close', (code, signal) => {
+child.on('close', (code: number | null, signal: NodeJS.Signals | null) => {
   if (signal) {
     process.kill(process.pid, signal);
-    return;
+  } else {
+    process.exit(code ?? 0);
   }
-
-  process.exit(code ?? 0);
 });
 
-child.on('error', (error) => {
+child.on('error', (error: unknown) => {
   console.error(error);
   process.exit(1);
 });
