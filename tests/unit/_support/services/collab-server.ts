@@ -4,10 +4,10 @@ import { once } from 'node:events';
 import net from 'node:net';
 import process from 'node:process';
 import { setTimeout as wait } from 'node:timers/promises';
-import { env } from '#config/server';
+import { config } from '#config';
 
 function lookupHost() {
-  return process.env.HOST ?? String(env.HOST);
+  return process.env.HOST ?? String(config.env.HOST);
 }
 
 function resolveProbeHost(host: string) {
@@ -19,7 +19,7 @@ function resolveProbeHost(host: string) {
 }
 
 function lookupPort() {
-  const port = process.env.COLLAB_SERVER_PORT ?? process.env.COLLAB_PORT ?? String(env.COLLAB_SERVER_PORT);
+  const port = process.env.COLLAB_SERVER_PORT ?? process.env.COLLAB_PORT ?? String(config.env.COLLAB_SERVER_PORT);
   return Number(port);
 }
 
@@ -54,7 +54,7 @@ async function waitForPort(host: string, port: number): Promise<void> {
 }
 
 export default async function setupCollabServer() {
-  if (!env.COLLAB_ENABLED) {
+  if (!config.env.COLLAB_ENABLED) {
     return;
   }
 

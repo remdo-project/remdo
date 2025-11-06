@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { config } from '#config/client';
+import { config } from '#config';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
 import { CollaborationSyncController, createProviderFactory } from '#lib/collaboration/runtime';
@@ -35,20 +35,20 @@ export function CollaborationProvider({ children }: { children: ReactNode }) {
 }
 
 function useCollaborationRuntimeValue(): CollaborationStatusValue {
-  const enabled = config.COLLAB_ENABLED;
+  const enabled = config.env.COLLAB_ENABLED;
   const docId = useMemo(() => {
     const doc = globalThis.window?.location?.search
       ? new URLSearchParams(globalThis.window.location.search).get('doc')?.trim()
       : null;
 
-    return doc?.length ? doc : config.COLLAB_DOCUMENT_ID;
+    return doc?.length ? doc : config.env.COLLAB_DOCUMENT_ID;
   }, []);
   const [ready, setReady] = useState(!enabled);
   const [syncing, setSyncing] = useState(enabled);
   const endpoint = useMemo(() => {
     const { protocol, hostname } = window.location;
     const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
-    return `${wsProtocol}://${hostname}:${config.COLLAB_CLIENT_PORT}`;
+    return `${wsProtocol}://${hostname}:${config.env.COLLAB_CLIENT_PORT}`;
   }, []);
 
   const syncController = useMemo(

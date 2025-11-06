@@ -1,11 +1,11 @@
 #!/usr/bin/env tsx
 /* eslint-disable node/no-process-env -- script derives env vars for Vitest watch mode */
-// Runs Vitest with dynamically calculated API port from config/server.ts.
+// Runs Vitest with dynamically calculated API port from the shared config module.
 // Required because Vitest doesn't support runtime port configuration.
 import { spawn } from 'node:child_process';
 import process from 'node:process';
 
-import { env } from '#config/server';
+import { config } from '#config';
 
 process.env.NODE_ENV ??= 'test';
 
@@ -18,7 +18,7 @@ const vitestArgs = [
   '--api.host',
   '0.0.0.0',
   '--api.port',
-  String(env.VITEST_PORT),
+  String(config.env.VITEST_PORT),
 ];
 
 const child = spawn(pnpmCmd, vitestArgs, {

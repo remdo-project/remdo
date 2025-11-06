@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { config } from '#config/client';
+import { config } from '#config';
 import { $getRoot } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 import { useEffect } from 'react';
@@ -45,13 +45,13 @@ beforeEach<TestContext>(async (ctx) => {
   const meta = (ctx.task?.meta ?? {}) as { collabDocId?: string; collabDefaultDoc?: string };
 
   if (typeof meta.collabDefaultDoc === 'string') {
-    previousDefaultDocId = config.COLLAB_DOCUMENT_ID;
-    (config as any).COLLAB_DOCUMENT_ID = meta.collabDefaultDoc;
+    previousDefaultDocId = config.env.COLLAB_DOCUMENT_ID;
+    (config.env as any).COLLAB_DOCUMENT_ID = meta.collabDefaultDoc;
   } else {
     previousDefaultDocId = null;
   }
 
-  const docId = meta.collabDocId ?? config.COLLAB_DOCUMENT_ID;
+  const docId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
   const url = new URL(window.location.href);
   const params = new URLSearchParams(url.search);
   params.set('doc', docId);
@@ -88,7 +88,7 @@ afterEach(async ({ lexical }) => {
   await lexical.waitForCollabSync();
 
   if (previousDefaultDocId !== null) {
-    (config as any).COLLAB_DOCUMENT_ID = previousDefaultDocId;
+    (config.env as any).COLLAB_DOCUMENT_ID = previousDefaultDocId;
     previousDefaultDocId = null;
   }
 });

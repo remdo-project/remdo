@@ -18,7 +18,7 @@ import type { Provider } from '@lexical/yjs';
 import type { CreateEditorArgs, LexicalEditor, SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import type { Transaction } from 'yjs';
 
-import { env as serverEnv, runtime as serverRuntime } from '#config/server';
+import { config } from '#config';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollaborationSyncController, createProviderFactory } from '#lib/collaboration/runtime';
 
@@ -114,9 +114,9 @@ async function main(): Promise<void> {
     throw new Error('Usage: snapshot.ts [--doc <id>] <load|save> [filePath] [--md[=<file>]]');
   }
 
-  const docId = cliDocId?.trim() || serverEnv.COLLAB_DOCUMENT_ID;
+  const docId = cliDocId?.trim() || config.env.COLLAB_DOCUMENT_ID;
   const targetFile = filePath ?? path.join('data', `${docId}.json`);
-  const endpoint = `ws://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
+  const endpoint = `ws://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
 
   return command === 'save'
     ? runSave(docId, endpoint, targetFile, markdownPath)
@@ -192,7 +192,7 @@ async function withSession(
     throw new Error('Failed to resolve collaboration document.');
   }
   const editor = createEditor(
-    createEditorInitialConfig({ isDev: serverRuntime.isDev }) as CreateEditorArgs
+    createEditorInitialConfig({ isDev: config.dev }) as CreateEditorArgs
   );
   const binding = createBindingV2__EXPERIMENTAL(editor, docId, doc, docMap);
   const sharedRoot = binding.root as unknown as SharedRoot;
