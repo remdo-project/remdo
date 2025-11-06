@@ -22,7 +22,7 @@ function getChildren(node: SerializedLexicalNode | undefined | null): Serialized
     return [];
   }
 
-  const { children } = node as NodeWithChildren;
+  const { children } = node;
   return Array.isArray(children) ? children : [];
 }
 
