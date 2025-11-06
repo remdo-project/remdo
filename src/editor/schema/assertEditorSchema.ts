@@ -18,12 +18,7 @@ function isNodeWithChildren(node: SerializedLexicalNode | undefined | null): nod
 }
 
 function getChildren(node: SerializedLexicalNode | undefined | null): SerializedLexicalNode[] {
-  if (!isNodeWithChildren(node)) {
-    return [];
-  }
-
-  const { children } = node;
-  return Array.isArray(children) ? children : [];
+  return isNodeWithChildren(node) ? (node.children ?? []) : [];
 }
 
 function collectTextContent(node: SerializedLexicalNode | undefined | null): string {
