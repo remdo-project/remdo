@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { config } from '#config/client';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ProviderFactory } from './collaborationRuntime';
-import { CollaborationSyncController, createProviderFactory } from './collaborationRuntime';
+import type { ProviderFactory } from '../../../../lib/collaboration/runtime';
+import { CollaborationSyncController, createProviderFactory } from '../../../../lib/collaboration/runtime';
 
 interface CollaborationStatusValue {
   ready: boolean;

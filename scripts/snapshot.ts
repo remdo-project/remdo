@@ -19,10 +19,7 @@ import { $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
 
 import { env as serverEnv, runtime as serverRuntime } from '../config/server';
 import { createEditorInitialConfig } from '../lib/editor/config';
-import {
-  CollaborationSyncController,
-  createProviderFactory,
-} from '../src/editor/plugins/collaboration/collaborationRuntime'; // TODO: move provider factory to lib/ for reuse
+import { CollaborationSyncController, createProviderFactory } from '../lib/collaboration/runtime';
 
 interface SharedRootObserver {
   (events: unknown, transaction: Transaction): void;

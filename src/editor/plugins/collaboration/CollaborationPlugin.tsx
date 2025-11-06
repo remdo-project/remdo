@@ -7,7 +7,7 @@ import {
 import { CollaborationPluginV2__EXPERIMENTAL } from '@lexical/react/LexicalCollaborationPlugin';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { CollaborationProvider, useCollaborationStatus } from './CollaborationProvider';
-import type { ProviderFactory } from './collaborationRuntime';
+import type { ProviderFactory } from '../../../../lib/collaboration/runtime';
 
 export function CollaborationPlugin({ children }: { children?: ReactNode }) {
   return (
