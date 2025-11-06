@@ -144,3 +144,33 @@ it('tab then shift+tab on note2 keeps the tree outline intact', async ({ lexical
 
   expect(lexical).toMatchEditorState(beforeState);
 });
+
+it('indenting item positioned between content and its wrapper', async ({ lexical }) => {
+  lexical.load('flat');
+
+  // Start with: note1, note2, note3
+  // Indent note2 under note1
+  await placeCaretAtNoteStart('note2', lexical.mutate);
+  await pressTab(lexical.editor);
+
+  // Now we have: note1 -> [note2], note3
+  expect(lexical).toMatchOutline([
+    { text: 'note1', children: [{ text: 'note2', children: [] }] },
+    { text: 'note3', children: [] },
+  ]);
+
+  // Indent note3 under note1 (note3 is now after note1's wrapper)
+  await placeCaretAtNoteStart('note3', lexical.mutate);
+  await pressTab(lexical.editor);
+
+  // note3 should become the last child of note1 (after note2)
+  expect(lexical).toMatchOutline([
+    {
+      text: 'note1',
+      children: [
+        { text: 'note2', children: [] },
+        { text: 'note3', children: [] },
+      ],
+    },
+  ]);
+});
