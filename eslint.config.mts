@@ -41,7 +41,7 @@ export default antfu(
         'error',
         {
           selector: "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']",
-          message: 'Use #config/client instead of accessing import.meta.env directly.',
+          message: 'Use #config instead of accessing import.meta.env directly.',
         },
       ],
     },
@@ -64,15 +64,11 @@ export default antfu(
     },
   },
   {
-    files: ['config/server.ts'],
+    files: ['config/index.ts'],
     rules: {
       'node/no-process-env': 'off',
-    },
-  },
-  {
-    files: ['config/client.ts'],
-    rules: {
       'no-restricted-syntax': 'off',
+      'node/prefer-global/process': 'off',
     },
   },
   {

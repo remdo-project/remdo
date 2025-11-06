@@ -16,6 +16,9 @@
       "@/*": [
         "./src/*"
       ],
+      "#config": [
+        "./config/index.ts"
+      ],
       "#tests": [
         "./tests/unit/_support/lib/index.ts"
       ],

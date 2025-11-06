@@ -1,4 +1,4 @@
-import { config } from '#config/client';
+import { config } from '#config';
 import { render, waitFor } from '@testing-library/react';
 import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
 import type { LexicalEditor } from 'lexical';
@@ -42,7 +42,7 @@ function CollaborationPeer({ onReady }: { onReady: (handle: PeerHandle) => void 
   return null;
 }
 
-describe.skipIf(!config.COLLAB_ENABLED)('collaboration sync', () => {
+describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
   it('syncs edits between editors', async ({ lexical }) => {
     let secondary!: PeerHandle;
 

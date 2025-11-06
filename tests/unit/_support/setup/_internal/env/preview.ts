@@ -1,4 +1,4 @@
-import { env } from '#config/server';
+import { config } from '#config';
 import { forceVitestPreviewCacheDir } from '#config/vitest/preview-cache';
 
 type DebugFn = typeof import('vitest-preview')['debug'];
@@ -16,7 +16,7 @@ export const previewSetup = (async () => {
   let hasPreviewRun = false;
 
   const preview: PreviewFn = (...args) => {
-    if (env.CI) {
+    if (config.env.CI) {
       throw new Error('preview() is disabled in CI. Remove preview() before committing.');
     }
 

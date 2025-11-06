@@ -1,11 +1,11 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { browserEnv, env } from '#config/server';
+import { config } from '#config';
 import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const isPreviewSession = env.VITEST_PREVIEW;
-const isCollabEnabled = env.COLLAB_ENABLED;
+const isPreviewSession = config.env.VITEST_PREVIEW;
+const isCollabEnabled = config.env.COLLAB_ENABLED;
 
 export default defineConfig(() => {
   return {
@@ -14,12 +14,12 @@ export default defineConfig(() => {
       emptyOutDir: true,
     },
     server: {
-      host: env.HOST,
-      port: env.PORT,
+      host: config.env.HOST,
+      port: config.env.PORT,
       strictPort: true,
       allowedHosts: true as const,
       hmr: isPreviewSession ? undefined : {
-        port: env.HMR_PORT,
+        port: config.env.HMR_PORT,
       },
     },
     preview: {
@@ -27,7 +27,7 @@ export default defineConfig(() => {
       strictPort: true,
     },
     define: Object.fromEntries(
-      Object.entries(browserEnv).map(([key, value]) => [
+      Object.entries(config.browser).map(([key, value]) => [
         `import.meta.env.VITE_${key}`,
         JSON.stringify(value),
       ])
