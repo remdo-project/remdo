@@ -115,12 +115,71 @@ async function main(): Promise<void> {
   }
 
   const docId = cliDocId?.trim() || config.env.COLLAB_DOCUMENT_ID;
-  const targetFile = filePath ?? path.join('data', `${docId}.json`);
+  const targetFile = resolveSnapshotPath(command, docId, filePath);
   const endpoint = `ws://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
 
   return command === 'save'
     ? runSave(docId, endpoint, targetFile, markdownPath)
     : runLoad(docId, endpoint, targetFile);
+}
+
+function resolveSnapshotPath(
+  command: NonNullable<CliArguments['command']>,
+  docId: string,
+  filePath: CliArguments['filePath'],
+): string {
+  if (!filePath) {
+    return path.join('data', `${docId}.json`);
+  }
+
+  const absolutePath = path.resolve(filePath);
+  if (command === 'load' && !fs.existsSync(absolutePath)) {
+    const fixturesRoot = path.resolve('tests', 'fixtures');
+    const normalizeToPosix = (target: string) =>
+      path.posix.normalize(target.split(path.win32.sep).join(path.posix.sep));
+    const ensureJsonExtension = (target: string) =>
+      target.endsWith('.json') ? target : `${target}.json`;
+    const fixturePrefix = 'tests/fixtures/';
+    const ensureFixturePrefix = (target: string) =>
+      target.startsWith(fixturePrefix) ? target : `${fixturePrefix}${target}`;
+    const normalizedInput = normalizeToPosix(filePath);
+    const candidateInputs = new Set<string>();
+
+    const addCandidate = (candidate: string) => {
+      if (!candidate) {
+        return;
+      }
+      candidateInputs.add(candidate);
+      candidateInputs.add(ensureJsonExtension(candidate));
+    };
+
+    const sanitizedInput = normalizedInput.replace(/^(?:\.\/)+/, '');
+    if (sanitizedInput.length > 0 && !sanitizedInput.startsWith('../')) {
+      addCandidate(sanitizedInput);
+      addCandidate(ensureFixturePrefix(sanitizedInput));
+    }
+
+    if (!normalizedInput.startsWith('../')) {
+      addCandidate(normalizedInput);
+      addCandidate(ensureFixturePrefix(normalizedInput));
+    }
+
+    const baseName = ensureJsonExtension(path.posix.basename(normalizedInput));
+    addCandidate(ensureFixturePrefix(baseName));
+
+    for (const candidate of candidateInputs) {
+      const directPath = path.resolve(candidate);
+      if (fs.existsSync(directPath)) {
+        return directPath;
+      }
+      const fixturePath = path.resolve(fixturesRoot, candidate);
+      if (fs.existsSync(fixturePath)) {
+        return fixturePath;
+      }
+    }
+  }
+
+  return absolutePath;
 }
 
 async function runSave(
