@@ -54,8 +54,14 @@ captures the full model.
 
 ## Tools
 
+- `pnpm run dev:init` is the one-shot workspace bootstrap. It runs `pnpm i
+  --frozen-lockfile`, fetches the pinned Lexical sources, and hydrates
+  `data/.vendor/lexical`. Use it when you clone RemDo for the first time—or if
+  you blow away `node_modules`/`data/.vendor`. Skip it in workspaces that are
+  already initialized so you don’t clobber local caches.
+- `data/.vendor/lexical` is our read-only mirror of the upstream Lexical repo
+  at the exact version declared in `package.json`. Consult it whenever you need
+  to inspect canonical Lexical behavior without poking inside
+  `node_modules`. Never edit files there; rerun `pnpm run dev:init` if you need
+  a fresh copy.
 - Use the GitHub CLI (gh) to check repository and Actions status on GitHub.
-- Lexical sources are available locally at `.data/lexical`. Refer to them
-  whenever working on core editor functionalities. Their versions match the
-  modules imported from `node_modules`. Run `pnpm run dev:init` to fetch them if
-  not available.
