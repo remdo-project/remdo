@@ -127,28 +127,42 @@ export function IndentationPlugin() {
           return false;
         }
 
-        const orderedItems = sortByDocumentOrder(listItems);
+        const orderedItems: ListItemNode[] = sortByDocumentOrder(listItems);
+        const targetParent = orderedItems[0]?.getParent() ?? null;
+        const contentItems: ListItemNode[] = [];
+        for (const item of orderedItems) {
+          const parent = item.getParent();
+          if (!isChildrenWrapper(item) && parent === targetParent) {
+            contentItems.push(item);
+          }
+        }
+        const rootItems = contentItems.filter(
+          (item, index) => !contentItems.some((other, otherIndex) => otherIndex !== index && other.isParentOf(item))
+        );
+        if (rootItems.length === 0) {
+          return true;
+        }
 
         event.preventDefault();
 
         if (event.shiftKey) {
-          const allCanOutdent = orderedItems.every(canOutdentNote);
+          const allCanOutdent = rootItems.every(canOutdentNote);
           if (!allCanOutdent) {
             return true;
           }
 
-          for (const listItem of [...orderedItems].reverse()) {
+          for (const listItem of [...rootItems].reverse()) {
             $outdentNote(listItem);
           }
         } else {
           // Check if all notes can be indented before attempting to indent any
-          const allCanIndent = orderedItems.every(canIndentNote);
+          const allCanIndent = rootItems.every(canIndentNote);
           if (!allCanIndent) {
             // If any note can't be indented, make the entire operation a no-op
             return true;
           }
 
-          for (const listItem of orderedItems) {
+          for (const listItem of rootItems) {
             $indentNote(listItem);
           }
         }
