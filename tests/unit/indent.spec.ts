@@ -124,6 +124,19 @@ it.fails('tab indents when note text selection spans the entire note', async ({ 
   ]);
 });
 
+it.fails('shift+tab outdents when note selection spans the entire note', async ({ lexical }) => {
+  lexical.load('basic');
+
+  await selectEntireNote('note2', lexical.mutate);
+  await pressTab(lexical.editor, { shift: true });
+
+  expect(lexical).toMatchOutline([
+    { text: 'note1', children: [] },
+    { text: 'note2', children: [] },
+    { text: 'note3', children: [] },
+  ]);
+});
+
 it("tab on note2 at start moves it with its child note3 under note1", async ({ lexical }) => {
   lexical.load('tree');
 
