@@ -111,4 +111,4 @@ node shape:
 
 Notes can be restructured via indent/outdent or reordering actions, and these edits
 must preserve the outline's structural guarantees; see
-`docs/outline-invariants.md` for the full set of editing rules.
+`docs/note-structure-rules.md` for the full set of editing rules.
