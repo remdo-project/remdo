@@ -112,7 +112,7 @@ it("tab on note2 in the middle nests it under note1", async ({ lexical }) => {
   ]);
 });
 
-it.fails('tab indents when note text selection spans the entire note', async ({ lexical }) => {
+it('tab indents when note text selection spans the entire note', async ({ lexical }) => {
   lexical.load('flat');
 
   await selectEntireNote('note2', lexical.mutate);
@@ -124,7 +124,7 @@ it.fails('tab indents when note text selection spans the entire note', async ({ 
   ]);
 });
 
-it.fails('shift+tab outdents when note selection spans the entire note', async ({ lexical }) => {
+it('shift+tab outdents when note selection spans the entire note', async ({ lexical }) => {
   lexical.load('basic');
 
   await selectEntireNote('note2', lexical.mutate);

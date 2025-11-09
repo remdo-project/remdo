@@ -13,8 +13,8 @@ export function IndentationPlugin() {
       (event: KeyboardEvent) => {
         const selection = $getSelection();
 
-        // Only handle collapsed (not range) selections
-        if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+        // Only handle range selections (both collapsed and non-collapsed)
+        if (!$isRangeSelection(selection)) {
           return false;
         }
 
