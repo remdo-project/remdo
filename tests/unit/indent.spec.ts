@@ -160,6 +160,26 @@ it('tab indents multi-note selection regardless of drag direction', async ({ lex
   ]);
 });
 
+it('tab refuses to indent a selection whose leading child lacks a previous sibling', async ({ lexical }) => {
+  lexical.load('basic');
+
+  await placeCaretAtNoteStart('note3', lexical.mutate);
+  await pressTab(lexical.editor);
+
+  await selectNoteRange('note2', 'note3', lexical.mutate);
+  await pressTab(lexical.editor);
+
+  expect(lexical).toMatchOutline([
+    {
+      text: 'note1',
+      children: [
+        { text: 'note2', children: [] },
+        { text: 'note3', children: [] },
+      ],
+    },
+  ]);
+});
+
 it('tab indents when note text selection spans the entire note', async ({ lexical }) => {
   lexical.load('flat');
 
