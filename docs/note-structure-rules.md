@@ -115,6 +115,32 @@ come along and remain under "note2", due to **Subtree Atomic Move**.)
 top-level note) will do nothing, because "note1" has no parent to move out of.
 The outline structure remains unchanged, as you cannot outdent above the root.
 
+### Outdent Variants
+
+RemDo exposes two first-class outdent operations. Both follow the constraints
+above and honor **Subtree Atomic Move** and **Whole-Note Selection**; the only
+difference is the position they take among the new siblings:
+
+- **Structural Outdent (default shortcut `Shift+Tab`):** Moves the selected note
+  block out of its parent and appends it directly after that parent in the new
+  sibling list. This keeps chronological ordering with the parent but may change
+  the relative order among peers. The moved block always lands at the end of the
+  new level, which matches WorkFlowy-style editors and keeps the hierarchy easy
+  to reason about during quick restructures.
+- **In-Place Outdent:** Moves the same block out of its parent while preserving
+  its previous vertical order. The reparented block is inserted immediately
+  after the ancestor it previously followed, so siblings that were not part of
+  the operation do not leapfrog it. This variant works on multi-note selections,
+  keeps entire subtrees contiguous, and is the preferred command when you only
+  want to change indentation depth without altering the document’s reading order.
+
+Both commands are available through keyboard shortcuts and the command palette.
+Choosing between them is a per-operation decision; there is no global toggle so
+that collaboration semantics remain deterministic across clients.
+Regression tests cover both variants: structural outdent assertions focus on
+tree depth changes, while in-place outdent tests verify the preorder text order
+remains unchanged other than the promoted subtree.
+
 ## Whole-Note Selection
 
 Selections in the editor are constrained such that you cannot partially select

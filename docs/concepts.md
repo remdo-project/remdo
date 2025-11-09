@@ -110,5 +110,8 @@ node shape:
 ### Operations
 
 Notes can be restructured via indent/outdent or reordering actions, and these edits
-must preserve the outline's structural guarantees; see
-`docs/note-structure-rules.md` for the full set of editing rules.
+must preserve the outline's structural guarantees. Two outdent commands are
+available: the default structural outdent (drops the subtree after its former
+parent) and an in-place outdent (keeps the subtree's relative order while
+moving it up one level). See `docs/note-structure-rules.md` for the full set of
+editing rules that govern both variants.
