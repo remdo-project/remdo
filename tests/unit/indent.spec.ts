@@ -113,7 +113,7 @@ it("tab on note2 in the middle nests it under note1", async ({ lexical }) => {
   ]);
 });
 
-it.fails('tab indents every note in a multi-note selection', async ({ lexical }) => {
+it('tab indents every note in a multi-note selection', async ({ lexical }) => {
   lexical.load('flat');
 
   await selectNoteRange('note2', 'note3', lexical.mutate);

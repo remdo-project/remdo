@@ -18,29 +18,42 @@ export function IndentationPlugin() {
           return false;
         }
 
-        // Check if we're in a list item
-        let anchorNode = selection.anchor.getNode();
+        // Get all nodes in the selection
+        const selectedNodes = selection.getNodes();
 
-        while (anchorNode && !$isListItemNode(anchorNode)) {
-          const parent = anchorNode.getParent();
-          if (!parent) {
-            break;
+        // Find all list items in the selection (including parent list items)
+        const listItems: Set<any> = new Set();
+
+        for (const node of selectedNodes) {
+          let currentNode = node;
+
+          // Traverse up to find the list item
+          while (currentNode && !$isListItemNode(currentNode)) {
+            const parent = currentNode.getParent();
+            if (!parent) {
+              break;
+            }
+            currentNode = parent;
           }
-          anchorNode = parent;
+
+          if ($isListItemNode(currentNode)) {
+            listItems.add(currentNode);
+          }
         }
 
-        if (!$isListItemNode(anchorNode)) {
+        if (listItems.size === 0) {
           return false;
         }
 
-        const listItem = anchorNode;
-
         event.preventDefault();
 
-        if (event.shiftKey) {
-          $outdentNote(listItem);
-        } else {
-          $indentNote(listItem);
+        // Apply indent/outdent to all selected list items
+        for (const listItem of listItems) {
+          if (event.shiftKey) {
+            $outdentNote(listItem);
+          } else {
+            $indentNote(listItem);
+          }
         }
 
         return true;
