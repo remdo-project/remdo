@@ -180,7 +180,7 @@ it('tab refuses to indent a selection whose leading child lacks a previous sibli
   ]);
 });
 
-it.fails('tab indents a subtree selection even when a child lacks its own previous sibling', async ({ lexical }) => {
+it('tab indents a subtree selection even when a child lacks its own previous sibling', async ({ lexical }) => {
   lexical.load('tree');
 
   await selectNoteRange('note2', 'note3', lexical.mutate);

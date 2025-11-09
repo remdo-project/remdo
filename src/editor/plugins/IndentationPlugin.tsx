@@ -75,6 +75,37 @@ const isChildrenWrapper = (node: LexicalNode | null): node is ListItemNode => {
   );
 };
 
+const isInSubtreeOf = (node: ListItemNode, potentialParent: ListItemNode): boolean => {
+  // Check if node is within the child list of potentialParent
+  const childWrapper = potentialParent.getNextSibling();
+  if (!isChildrenWrapper(childWrapper)) {
+    return false;
+  }
+
+  const childList = childWrapper.getFirstChild();
+  if (!$isListNode(childList)) {
+    return false;
+  }
+
+  // Walk up from node to see if we reach childList
+  let current: LexicalNode | null = node.getParent();
+  while (current) {
+    if (current === childList) {
+      return true;
+    }
+    current = current.getParent();
+  }
+
+  return false;
+};
+
+const getRootItemsInSelection = (items: ListItemNode[]): ListItemNode[] => {
+  return items.filter((item) => {
+    // An item is a root if it's not in any other selected item's subtree
+    return !items.some((otherItem) => otherItem !== item && isInSubtreeOf(item, otherItem));
+  });
+};
+
 const canOutdentNote = (noteItem: ListItemNode): boolean => {
   const parentList = noteItem.getParent();
   if (!$isListNode(parentList)) {
@@ -141,10 +172,11 @@ export function IndentationPlugin() {
             $outdentNote(listItem);
           }
         } else {
-          // Check if all notes can be indented before attempting to indent any
-          const allCanIndent = orderedItems.every(canIndentNote);
-          if (!allCanIndent) {
-            // If any note can't be indented, make the entire operation a no-op
+          // Only check if root items can be indented (not descendants)
+          const rootItems = getRootItemsInSelection(orderedItems);
+          const allRootsCanIndent = rootItems.every(canIndentNote);
+          if (!allRootsCanIndent) {
+            // If any root note can't be indented, make the entire operation a no-op
             return true;
           }
 
