@@ -185,6 +185,23 @@ it('shift+tab outdents when note selection spans the entire note', async ({ lexi
   ]);
 });
 
+it.fails('shift+tab refuses to partially outdent when selection includes a root note', async ({ lexical }) => {
+  lexical.load('basic');
+
+  await selectNoteRange('note1', 'note2', lexical.mutate);
+  await pressTab(lexical.editor, { shift: true });
+
+  expect(lexical).toMatchOutline([
+    {
+      text: 'note1',
+      children: [
+        { text: 'note2', children: [] },
+      ],
+    },
+    { text: 'note3', children: [] },
+  ]);
+});
+
 it("tab on note2 at start moves it with its child note3 under note1", async ({ lexical }) => {
   lexical.load('tree');
 
