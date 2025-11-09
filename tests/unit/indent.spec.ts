@@ -205,7 +205,7 @@ it('shift+tab outdents when note selection spans the entire note', async ({ lexi
   ]);
 });
 
-it.fails('shift+tab refuses to partially outdent when selection includes a root note', async ({ lexical }) => {
+it('shift+tab refuses to partially outdent when selection includes a root note', async ({ lexical }) => {
   lexical.load('basic');
 
   await selectNoteRange('note1', 'note2', lexical.mutate);

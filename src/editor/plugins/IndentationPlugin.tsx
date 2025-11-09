@@ -1,5 +1,5 @@
 import type { ListItemNode } from '@lexical/list';
-import { $isListItemNode } from '@lexical/list';
+import { $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { LexicalNode } from 'lexical';
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
@@ -67,6 +67,29 @@ const hasPreviousContentSibling = (noteItem: ListItemNode): boolean => {
 
 const canIndentNote = (noteItem: ListItemNode): boolean => hasPreviousContentSibling(noteItem);
 
+const isChildrenWrapper = (node: LexicalNode | null): node is ListItemNode => {
+  return (
+    $isListItemNode(node) &&
+    node.getChildren().length === 1 &&
+    $isListNode(node.getFirstChild())
+  );
+};
+
+const canOutdentNote = (noteItem: ListItemNode): boolean => {
+  const parentList = noteItem.getParent();
+  if (!$isListNode(parentList)) {
+    return false;
+  }
+
+  const parentWrapper = parentList.getParent();
+  if (!isChildrenWrapper(parentWrapper)) {
+    return false;
+  }
+
+  const grandParentList = parentWrapper.getParent();
+  return $isListNode(grandParentList);
+};
+
 export function IndentationPlugin() {
   const [editor] = useLexicalComposerContext();
 
@@ -109,6 +132,11 @@ export function IndentationPlugin() {
         event.preventDefault();
 
         if (event.shiftKey) {
+          const allCanOutdent = orderedItems.every(canOutdentNote);
+          if (!allCanOutdent) {
+            return true;
+          }
+
           for (const listItem of [...orderedItems].reverse()) {
             $outdentNote(listItem);
           }
