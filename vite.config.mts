@@ -48,6 +48,9 @@ export default defineConfig(() => {
       include: ['tests/**/*.spec.{ts,tsx}'],
       css: true,
       threads: !isCollabEnabled,
+      testTimeout: 5000,
+      hookTimeout: 5000,
+      teardownTimeout: 5000,
       coverage: {
         provider: 'v8' as const,
         reportsDirectory: 'data/coverage',
