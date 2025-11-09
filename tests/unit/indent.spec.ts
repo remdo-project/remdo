@@ -130,7 +130,7 @@ it('tab indents every note in a multi-note selection', async ({ lexical }) => {
   ]);
 });
 
-it.fails('tab on a multi-note selection starting at the first root note is a no-op', async ({ lexical }) => {
+it('tab on a multi-note selection starting at the first root note is a no-op', async ({ lexical }) => {
   lexical.load('flat');
 
   await selectNoteRange('note1', 'note2', lexical.mutate);
