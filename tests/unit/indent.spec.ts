@@ -130,6 +130,19 @@ it('tab indents every note in a multi-note selection', async ({ lexical }) => {
   ]);
 });
 
+it.fails('tab on a multi-note selection starting at the first root note is a no-op', async ({ lexical }) => {
+  lexical.load('flat');
+
+  await selectNoteRange('note1', 'note2', lexical.mutate);
+  await pressTab(lexical.editor);
+
+  expect(lexical).toMatchOutline([
+    { text: 'note1', children: [] },
+    { text: 'note2', children: [] },
+    { text: 'note3', children: [] },
+  ]);
+});
+
 it('tab indents multi-note selection regardless of drag direction', async ({ lexical }) => {
   lexical.load('flat');
 
