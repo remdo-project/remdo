@@ -28,13 +28,13 @@ it('normalizes root after list command dispatch', async ({ lexical }) => {
     const root = $getRoot();
     root.clear();
 
-    const firstParagraph = $createParagraphNode();
-    firstParagraph.append($createTextNode('First'));
-    const secondParagraph = $createParagraphNode();
-    secondParagraph.append($createTextNode('Second'));
+    const note1Paragraph = $createParagraphNode();
+    note1Paragraph.append($createTextNode('note1'));
+    const note2Paragraph = $createParagraphNode();
+    note2Paragraph.append($createTextNode('note2'));
 
-    root.append(firstParagraph, secondParagraph);
-    firstParagraph.select();
+    root.append(note1Paragraph, note2Paragraph);
+    note1Paragraph.select();
   });
 
   editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
@@ -43,7 +43,7 @@ it('normalizes root after list command dispatch', async ({ lexical }) => {
   validate(() => {
     const list = $expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
-    expectListItems(list, ['First', 'Second']);
+    expectListItems(list, ['note1', 'note2']);
   });
 });
 
@@ -54,7 +54,7 @@ it('allows ordered list as the root list type when present', async ({ lexical })
 
     const list = $createListNode('number');
     const item = $createListItemNode();
-    item.append($createTextNode('ordered'));
+    item.append($createTextNode('note1'));
     list.append(item);
     root.append(list);
   });
@@ -62,7 +62,7 @@ it('allows ordered list as the root list type when present', async ({ lexical })
   lexical.validate(() => {
     const list = $expectSingleListRoot();
     expect(list.getListType()).toBe('number');
-    expectListItems(list, ['ordered']);
+    expectListItems(list, ['note1']);
   });
 });
 
@@ -71,18 +71,18 @@ it('wraps non-list root children into list items', async ({ lexical }) => {
     const root = $getRoot();
     root.clear();
 
-    const firstParagraph = $createParagraphNode();
-    firstParagraph.append($createTextNode('alpha'));
-    const secondParagraph = $createParagraphNode();
-    secondParagraph.append($createTextNode('beta'));
+    const note1Paragraph = $createParagraphNode();
+    note1Paragraph.append($createTextNode('note1'));
+    const note2Paragraph = $createParagraphNode();
+    note2Paragraph.append($createTextNode('note2'));
 
-    root.append(firstParagraph, secondParagraph);
+    root.append(note1Paragraph, note2Paragraph);
   });
 
   lexical.validate(() => {
     const list = $expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
-    expectListItems(list, ['alpha', 'beta']);
+    expectListItems(list, ['note1', 'note2']);
   });
 });
 
@@ -91,23 +91,23 @@ it('merges multiple bullet lists under a single root list', async ({ lexical }) 
     const root = $getRoot();
     root.clear();
 
-    const firstList = $createListNode('bullet');
-    const firstItem = $createListItemNode();
-    firstItem.append($createTextNode('one'));
-    firstList.append(firstItem);
+    const note1List = $createListNode('bullet');
+    const note1Item = $createListItemNode();
+    note1Item.append($createTextNode('note1'));
+    note1List.append(note1Item);
 
-    const secondList = $createListNode('bullet');
-    const secondItem = $createListItemNode();
-    secondItem.append($createTextNode('two'));
-    secondList.append(secondItem);
+    const note2List = $createListNode('bullet');
+    const note2Item = $createListItemNode();
+    note2Item.append($createTextNode('note2'));
+    note2List.append(note2Item);
 
-    root.append(firstList, secondList);
+    root.append(note1List, note2List);
   });
 
   lexical.validate(() => {
     const list = $expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
-    expectListItems(list, ['one', 'two']);
+    expectListItems(list, ['note1', 'note2']);
   });
 });
 
@@ -120,12 +120,12 @@ it('leaves a canonical single list untouched', async ({ lexical }) => {
     root.clear();
 
     const list = $createListNode('bullet');
-    const firstItem = $createListItemNode();
-    firstItem.append($createTextNode('stay'));
-    const secondItem = $createListItemNode();
-    secondItem.append($createTextNode('here'));
+    const note1Item = $createListItemNode();
+    note1Item.append($createTextNode('note1'));
+    const note2Item = $createListItemNode();
+    note2Item.append($createTextNode('note2'));
 
-    list.append(firstItem, secondItem);
+    list.append(note1Item, note2Item);
     root.append(list);
 
     originalListKey = list.getKey();

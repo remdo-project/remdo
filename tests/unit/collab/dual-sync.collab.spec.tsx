@@ -75,7 +75,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
       const list = $createListNode('bullet');
       const item = $createListItemNode();
       const paragraph = $createParagraphNode();
-      paragraph.append($createTextNode('shared note'));
+      paragraph.append($createTextNode('note1'));
       item.append(paragraph);
       list.append(item);
       root.append(list);
@@ -85,7 +85,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
 
     expect(lexical.isCollabSyncing()).toBe(false);
     expect(secondary.isCollabSyncing()).toBe(false);
-    const sharedOutline = [{ text: 'shared note', children: [] }];
+    const sharedOutline = [{ text: 'note1', children: [] }];
     expect(lexical).toMatchOutline(sharedOutline);
     expect(secondary as any).toMatchOutline(sharedOutline);
   });

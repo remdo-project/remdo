@@ -32,7 +32,7 @@
                   "format": 0,
                   "mode": "normal",
                   "style": "",
-                  "text": "parent"
+                  "text": "note1"
                 },
                 {
                   "type": "list",
@@ -51,7 +51,7 @@
                       "format": 0,
                       "mode": "normal",
                       "style": "",
-                      "text": "should fail"
+                      "text": "note2"
                     }
                   ]
                 }
