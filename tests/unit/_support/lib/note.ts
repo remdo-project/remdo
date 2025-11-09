@@ -185,3 +185,55 @@ export async function selectEntireNote(
     selection.setTextNodeRange(anchorNode, 0, anchorNode, length);
   });
 }
+
+// TODO: replace with a first-class multi-note selection helper when editor UX supports it.
+export async function selectNoteRange(
+  startNote: string,
+  endNote: string,
+  mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>
+): Promise<void> {
+  await selectEntireNote(startNote, mutate);
+
+  if (startNote === endNote) {
+    return;
+  }
+
+  await mutate(() => {
+    const root = $getRoot();
+    const list = root.getFirstChild();
+    if (!list) {
+      throw new Error('Expected root list');
+    }
+
+    const endItem = findItemByText(list, endNote);
+    if (!endItem) {
+      throw new Error(`No list item found with text: ${endNote}`);
+    }
+
+    const textNode = endItem
+      .getChildren()
+      .find(
+        (child: any) =>
+          typeof child.getType === 'function' &&
+          child.getType() !== 'list' &&
+          typeof child.getTextContent === 'function'
+      );
+
+    if (!textNode || !$isTextNode(textNode)) {
+      throw new Error('Expected text node with select capability');
+    }
+
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection)) {
+      return;
+    }
+
+    const endLength = textNode.getTextContentSize?.() ?? textNode.getTextContent().length;
+    const anchorNode = selection.anchor.getNode();
+    if (!$isTextNode(anchorNode)) {
+      return;
+    }
+
+    selection.setTextNodeRange(anchorNode, 0, textNode, endLength);
+  });
+}
