@@ -3,6 +3,7 @@ import {
   placeCaretAtNoteEnd,
   placeCaretAtNoteStart,
   placeCaretInNote,
+  selectEntireNote,
   pressTab,
   readOutline,
 } from '#tests';
@@ -105,6 +106,18 @@ it("tab on note2 in the middle nests it under note1", async ({ lexical }) => {
   await pressTab(lexical.editor); // indent note2 under note1
 
   // After indenting note2, it should become a child of note1, while note3 remains at root
+  expect(lexical).toMatchOutline([
+    { text: 'note1', children: [ { text: 'note2', children: [] } ] },
+    { text: 'note3', children: [] },
+  ]);
+});
+
+it.fails('tab indents when note text selection spans the entire note', async ({ lexical }) => {
+  lexical.load('flat');
+
+  await selectEntireNote('note2', lexical.mutate);
+  await pressTab(lexical.editor);
+
   expect(lexical).toMatchOutline([
     { text: 'note1', children: [ { text: 'note2', children: [] } ] },
     { text: 'note3', children: [] },

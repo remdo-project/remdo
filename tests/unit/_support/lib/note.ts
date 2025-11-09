@@ -1,5 +1,5 @@
 import type { EditorUpdateOptions } from 'lexical';
-import { $getRoot } from 'lexical';
+import { $getRoot, $getSelection, $isRangeSelection, $isTextNode } from 'lexical';
 
 export interface OutlineNode {
   text: string;
@@ -160,5 +160,28 @@ export function readOutline(validate: <T>(fn: () => T) => T): Outline {
     }
 
     return outline;
+  });
+}
+// TODO: replace this helper with a top-level note selection API once we expose
+// proper whole-note selection controls in the editor harness.
+export async function selectEntireNote(
+  noteText: string,
+  mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>
+): Promise<void> {
+  await placeCaretAtNoteStart(noteText, mutate);
+
+  await mutate(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection)) {
+      return;
+    }
+
+    const anchorNode = selection.anchor.getNode();
+    if (!$isTextNode(anchorNode)) {
+      return;
+    }
+
+    const length = anchorNode.getTextContentSize?.() ?? anchorNode.getTextContent().length;
+    selection.setTextNodeRange(anchorNode, 0, anchorNode, length);
   });
 }
