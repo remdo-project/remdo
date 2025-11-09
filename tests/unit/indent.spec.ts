@@ -113,10 +113,27 @@ it("tab on note2 in the middle nests it under note1", async ({ lexical }) => {
   ]);
 });
 
-it.fails('tab indents every note in a multi-note selection', async ({ lexical }) => {
+it('tab indents every note in a multi-note selection', async ({ lexical }) => {
   lexical.load('flat');
 
   await selectNoteRange('note2', 'note3', lexical.mutate);
+  await pressTab(lexical.editor);
+
+  expect(lexical).toMatchOutline([
+    {
+      text: 'note1',
+      children: [
+        { text: 'note2', children: [] },
+        { text: 'note3', children: [] },
+      ],
+    },
+  ]);
+});
+
+it('tab indents multi-note selection regardless of drag direction', async ({ lexical }) => {
+  lexical.load('flat');
+
+  await selectNoteRange('note3', 'note2', lexical.mutate);
   await pressTab(lexical.editor);
 
   expect(lexical).toMatchOutline([

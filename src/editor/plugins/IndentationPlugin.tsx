@@ -1,8 +1,52 @@
+import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import type { LexicalNode } from 'lexical';
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
 import { useEffect } from 'react';
 import { $indentNote, $outdentNote } from '../lexical-helpers';
+
+const findNearestListItem = (node: LexicalNode | null) => {
+  let current: LexicalNode | null = node;
+
+  while (current && !$isListItemNode(current)) {
+    current = current.getParent();
+  }
+
+  return $isListItemNode(current) ? current : null;
+};
+
+const getNodePath = (node: ListItemNode): number[] => {
+  const path: number[] = [];
+  let current: LexicalNode | null = node;
+
+  while (current) {
+    const parent: LexicalNode | null = current.getParent();
+    if (!parent) {
+      break;
+    }
+    path.push(current.getIndexWithinParent());
+    current = parent;
+  }
+
+  return path.reverse();
+};
+
+const sortByDocumentOrder = (items: ListItemNode[]): ListItemNode[] =>
+  items
+    .map((node) => ({ node, path: getNodePath(node) }))
+    .sort((a, b) => {
+      const depth = Math.max(a.path.length, b.path.length);
+      for (let i = 0; i < depth; i++) {
+        const left = a.path[i] ?? -1;
+        const right = b.path[i] ?? -1;
+        if (left !== right) {
+          return left - right;
+        }
+      }
+      return 0;
+    })
+    .map(({ node }) => node);
 
 export function IndentationPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -18,29 +62,41 @@ export function IndentationPlugin() {
           return false;
         }
 
-        // Check if we're in a list item
-        let anchorNode = selection.anchor.getNode();
+        const selectionNodes = selection.getNodes();
+        const listItems: ListItemNode[] = [];
+        const seen = new Set<string>();
 
-        while (anchorNode && !$isListItemNode(anchorNode)) {
-          const parent = anchorNode.getParent();
-          if (!parent) {
-            break;
+        for (const node of selectionNodes) {
+          const listItem = findNearestListItem(node);
+          if (!listItem) {
+            continue;
           }
-          anchorNode = parent;
+
+          const key = listItem.getKey();
+          if (seen.has(key)) {
+            continue;
+          }
+
+          listItems.push(listItem);
+          seen.add(key);
         }
 
-        if (!$isListItemNode(anchorNode)) {
+        if (listItems.length === 0) {
           return false;
         }
 
-        const listItem = anchorNode;
+        const orderedItems = sortByDocumentOrder(listItems);
 
         event.preventDefault();
 
         if (event.shiftKey) {
-          $outdentNote(listItem);
+          for (const listItem of orderedItems) {
+            $outdentNote(listItem);
+          }
         } else {
-          $indentNote(listItem);
+          for (const listItem of orderedItems) {
+            $indentNote(listItem);
+          }
         }
 
         return true;
