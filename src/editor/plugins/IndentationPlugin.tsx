@@ -90,7 +90,7 @@ export function IndentationPlugin() {
         event.preventDefault();
 
         if (event.shiftKey) {
-          for (const listItem of orderedItems) {
+          for (const listItem of [...orderedItems].reverse()) {
             $outdentNote(listItem);
           }
         } else {

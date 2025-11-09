@@ -1,5 +1,12 @@
 import type { EditorUpdateOptions } from 'lexical';
-import { $getRoot, $getSelection, $isRangeSelection, $isTextNode } from 'lexical';
+import {
+  $createRangeSelection,
+  $getRoot,
+  $getSelection,
+  $isRangeSelection,
+  $isTextNode,
+  $setSelection,
+} from 'lexical';
 
 export interface OutlineNode {
   text: string;
@@ -186,15 +193,57 @@ export async function selectEntireNote(
   });
 }
 
+function getNodePath(node: any): number[] {
+  const path: number[] = [];
+  let current: any = node;
+
+  while (current) {
+    const parent = typeof current.getParent === 'function' ? current.getParent() : null;
+    if (!parent || typeof current.getIndexWithinParent !== 'function') {
+      break;
+    }
+    path.push(current.getIndexWithinParent());
+    current = parent;
+  }
+
+  return path.reverse();
+}
+
+function compareNodeOrder(a: any, b: any): number {
+  const aPath = getNodePath(a);
+  const bPath = getNodePath(b);
+  const depth = Math.max(aPath.length, bPath.length);
+
+  for (let i = 0; i < depth; i++) {
+    const left = aPath[i] ?? -1;
+    const right = bPath[i] ?? -1;
+    if (left !== right) {
+      return left - right;
+    }
+  }
+
+  return 0;
+}
+
+function findContentTextNode(item: any) {
+  return item
+    .getChildren()
+    .find(
+      (child: any) =>
+        typeof child.getType === 'function' &&
+        child.getType() !== 'list' &&
+        typeof child.getTextContent === 'function'
+    );
+}
+
 // TODO: replace with a first-class multi-note selection helper when editor UX supports it.
 export async function selectNoteRange(
   startNote: string,
   endNote: string,
   mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>
 ): Promise<void> {
-  await selectEntireNote(startNote, mutate);
-
   if (startNote === endNote) {
+    await selectEntireNote(startNote, mutate);
     return;
   }
 
@@ -205,35 +254,45 @@ export async function selectNoteRange(
       throw new Error('Expected root list');
     }
 
+    const startItem = findItemByText(list, startNote);
+    if (!startItem) {
+      throw new Error(`No list item found with text: ${startNote}`);
+    }
+
     const endItem = findItemByText(list, endNote);
     if (!endItem) {
       throw new Error(`No list item found with text: ${endNote}`);
     }
 
-    const textNode = endItem
-      .getChildren()
-      .find(
-        (child: any) =>
-          typeof child.getType === 'function' &&
-          child.getType() !== 'list' &&
-          typeof child.getTextContent === 'function'
-      );
+    const startTextNode = findContentTextNode(startItem);
+    const endTextNode = findContentTextNode(endItem);
 
-    if (!textNode || !$isTextNode(textNode)) {
-      throw new Error('Expected text node with select capability');
+    if (!startTextNode || !$isTextNode(startTextNode)) {
+      throw new Error('Expected start text node with select capability');
+    }
+    if (!endTextNode || !$isTextNode(endTextNode)) {
+      throw new Error('Expected end text node with select capability');
     }
 
-    const selection = $getSelection();
+    let selection = $getSelection();
+    if (!$isRangeSelection(selection)) {
+      selection = $createRangeSelection();
+      $setSelection(selection);
+    }
     if (!$isRangeSelection(selection)) {
       return;
     }
 
-    const endLength = textNode.getTextContentSize?.() ?? textNode.getTextContent().length;
-    const anchorNode = selection.anchor.getNode();
-    if (!$isTextNode(anchorNode)) {
-      return;
-    }
+    const rangeSelection = selection;
+    const startLength =
+      startTextNode.getTextContentSize?.() ?? startTextNode.getTextContent().length;
+    const endLength = endTextNode.getTextContentSize?.() ?? endTextNode.getTextContent().length;
 
-    selection.setTextNodeRange(anchorNode, 0, textNode, endLength);
+    const order = compareNodeOrder(startItem, endItem);
+    if (order <= 0) {
+      rangeSelection.setTextNodeRange(startTextNode, 0, endTextNode, endLength);
+    } else {
+      rangeSelection.setTextNodeRange(startTextNode, startLength, endTextNode, 0);
+    }
   });
 }
