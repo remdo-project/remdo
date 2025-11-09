@@ -85,6 +85,16 @@ export default antfu(
           selector: "CallExpression[callee.type='Identifier'][callee.name='preview']",
           message: 'preview() is for local debugging only; remove preview() calls before committing.',
         },
+        {
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.property.name='mutate'] CallExpression[callee.type='Identifier'][callee.name='expect']",
+          message: 'Run expectations outside lexical.mutate(); use lexical.validate() after the mutation completes.',
+        },
+        {
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.property.name='update']:matches([callee.object.property.name='editor'], [callee.object.name='editor']) CallExpression[callee.type='Identifier'][callee.name='expect']",
+          message: 'Run expectations outside editor.update(); validate state after committing.',
+        },
       ],
     },
   },

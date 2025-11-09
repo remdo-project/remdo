@@ -109,7 +109,6 @@ node shape:
 
 ### Operations
 
-Notes can be moved—reordered among siblings, indented to become the previous
-sibling's child, outdented to become the parent's sibling, or relocated under a
-different parent. Moving a note always moves its descendants, and the
-corresponding Lexical nodes must be updated to reflect the new hierarchy.
+Notes can be restructured via indent/outdent or reordering actions, and these edits
+must preserve the outline's structural guarantees; see
+`docs/outline-invariants.md` for the full set of editing rules.
