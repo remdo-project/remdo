@@ -48,6 +48,28 @@ const sortByDocumentOrder = (items: ListItemNode[]): ListItemNode[] =>
     })
     .map(({ node }) => node);
 
+const canIndentNote = (noteItem: ListItemNode): boolean => {
+  const parentList = noteItem.getParent();
+  if (!$isListItemNode(parentList?.getParent())) {
+    // This is a root-level list
+    const previousSibling = noteItem.getPreviousSibling();
+    // Can only indent if there's a previous sibling that's a content item
+    let sibling: LexicalNode | null = previousSibling;
+    while (sibling) {
+      if ($isListItemNode(sibling)) {
+        const children = sibling.getChildren();
+        const isWrapper = children.length === 1 && children[0]?.getType() === 'list';
+        if (!isWrapper) {
+          return true; // Found a content item to indent under
+        }
+      }
+      sibling = sibling.getPreviousSibling();
+    }
+    return false; // No previous content item found
+  }
+  return true; // Nested items can generally be indented
+};
+
 export function IndentationPlugin() {
   const [editor] = useLexicalComposerContext();
 
@@ -94,6 +116,13 @@ export function IndentationPlugin() {
             $outdentNote(listItem);
           }
         } else {
+          // Check if all notes can be indented before attempting to indent any
+          const allCanIndent = orderedItems.every(canIndentNote);
+          if (!allCanIndent) {
+            // If any note can't be indented, make the entire operation a no-op
+            return true;
+          }
+
           for (const listItem of orderedItems) {
             $indentNote(listItem);
           }
