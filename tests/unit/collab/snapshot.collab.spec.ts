@@ -21,8 +21,8 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
 
   const baseEnv = { ...process.env } satisfies NodeJS.ProcessEnv;
 
-  function runSnapshotCommand(args: string[], envOverrides?: NodeJS.ProcessEnv) {
-    execFileSync('pnpm', ['run', 'snapshot', ...args], {
+  function runSnapshotCommand(command: 'load' | 'save', args: string[], envOverrides?: NodeJS.ProcessEnv) {
+    execFileSync('pnpm', ['run', command, ...args], {
       stdio: 'inherit',
       env: { ...baseEnv, ...envOverrides },
     });
@@ -42,10 +42,10 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-basic' };
     const loadPath = path.resolve('tests/fixtures/basic.json');
     const savePath = SNAPSHOT_OUTPUTS[0]!;
-    runSnapshotCommand(['load', loadPath], docEnv);
+    runSnapshotCommand('load', [loadPath], docEnv);
 
     await waitFor(() => {
-      runSnapshotCommand(['save', savePath], docEnv);
+      runSnapshotCommand('save', [savePath], docEnv);
       const saved = readEditorState(savePath);
       return JSON.stringify(saved) === JSON.stringify(readEditorState(loadPath));
     });
@@ -62,7 +62,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
       const savePath = SNAPSHOT_OUTPUTS[1]!;
       const expectedState = readEditorState(path.resolve('tests/fixtures/flat.json'));
       await waitFor(() => {
-        runSnapshotCommand(['save', savePath], docEnv);
+        runSnapshotCommand('save', [savePath], docEnv);
         const saved = readEditorState(savePath);
         return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
       });
@@ -75,7 +75,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     async ({ lexical }) => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-tree' };
       const loadPath = path.resolve('tests/fixtures/tree.json');
-      runSnapshotCommand(['load', loadPath], docEnv);
+      runSnapshotCommand('load', [loadPath], docEnv);
 
       await lexical.waitForCollabSync();
 
@@ -84,7 +84,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
       let finalSaved: typeof expectedState | null = null;
 
       await waitFor(() => {
-        runSnapshotCommand(['save', savePath], docEnv);
+        runSnapshotCommand('save', [savePath], docEnv);
         const saved = readEditorState(savePath);
         finalSaved = saved;
         return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
@@ -103,10 +103,10 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     const loadPath = path.resolve('tests/fixtures/basic.json');
     const savePath = path.resolve('data', `${docId}.json`);
 
-    runSnapshotCommand(['--doc', docId, 'load', loadPath]);
+    runSnapshotCommand('load', ['--doc', docId, loadPath]);
 
     await waitFor(() => {
-      runSnapshotCommand(['--doc', docId, 'save', savePath]);
+      runSnapshotCommand('save', ['--doc', docId, savePath]);
       const saved = readEditorState(savePath);
       const expected = readEditorState(loadPath);
       return JSON.stringify(saved) === JSON.stringify(expected);
@@ -123,7 +123,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
         VITE_COLLAB_DOCUMENT_ID: defaultDoc,
       } satisfies NodeJS.ProcessEnv;
       const defaultFixture = path.resolve('tests/fixtures/basic.json');
-    runSnapshotCommand(['load', defaultFixture], envOverrides);
+      runSnapshotCommand('load', [defaultFixture], envOverrides);
 
       await lexical.waitForCollabSync();
 
@@ -147,17 +147,17 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
       const defaultOutput = path.resolve('data', `${defaultDoc}.json`);
       const secondaryOutput = path.resolve('data', `${secondaryDoc}.json`);
 
-      runSnapshotCommand(['load', defaultFixture], envOverrides);
-      runSnapshotCommand(['--doc', secondaryDoc, 'load', secondaryFixture]);
+      runSnapshotCommand('load', [defaultFixture], envOverrides);
+      runSnapshotCommand('load', ['--doc', secondaryDoc, secondaryFixture]);
 
       await lexical.waitForCollabSync();
       expect(lexical.getCollabDocId()).toBe(defaultDoc);
 
-      runSnapshotCommand(['save', defaultOutput], envOverrides);
+      runSnapshotCommand('save', [defaultOutput], envOverrides);
       const savedDefault = readEditorState(defaultOutput);
       expect(savedDefault.root).toEqual(readEditorState(defaultFixture).root);
 
-      runSnapshotCommand(['--doc', secondaryDoc, 'save', secondaryOutput]);
+      runSnapshotCommand('save', ['--doc', secondaryDoc, secondaryOutput]);
       const savedSecondary = readEditorState(secondaryOutput);
       expect(savedSecondary.root).toEqual(readEditorState(secondaryFixture).root);
     }

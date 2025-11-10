@@ -10,6 +10,7 @@
     "dev:init": "./scripts/dev-init.sh",
     "build": "vite build",
     "preview": "vite preview",
+    "load": "tsx ./scripts/snapshot.ts load",
     "lint": "cross-env CI=1 pnpm run typecheck && pnpm run lint:code",
     "lint:code": "cross-env CI=1 eslint --max-warnings=0 --cache --cache-location node_modules/.cache/eslint",
     "lint:code:watch": "chokidar \"**/*.{ts,tsx,js,jsx,mts,cts,json}\" --initial -i \"**/{node_modules,data,.git}/**\" -d 150 -c \"pnpm lint:code && echo LINT_OK || { echo LINT_FAIL; exit 1; }\"",
@@ -25,7 +26,7 @@
     "test:unit:coverage": "COLLAB_ENABLED=false pnpm exec vitest run --coverage",
     "test:unit:watch": "COLLAB_ENABLED=false tsx ./scripts/test-unit-watch.ts",
     "test:preview": "tsx ./scripts/test-preview.ts",
-    "snapshot": "tsx ./scripts/snapshot.ts"
+    "save": "tsx ./scripts/snapshot.ts save"
   },
   "dependencies": {
     "@lexical/devtools-core": "^0.38.2",
