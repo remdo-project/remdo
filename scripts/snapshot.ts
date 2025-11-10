@@ -48,6 +48,48 @@ type SnapshotProvider = Provider & {
 
 interface SessionContext {
   provider: SnapshotProvider;
+  waitForIdle: (timeoutMs?: number) => Promise<void>;
+}
+
+const SYNC_IDLE_TIMEOUT_MS = 10_000;
+
+function createSyncTracker() {
+  let syncing = true;
+  let waiters: Array<{ resolve: () => void; timeoutId: NodeJS.Timeout }> = [];
+
+  const setSyncing = (value: boolean) => {
+    syncing = value;
+    if (!syncing) {
+      const listeners = waiters;
+      waiters = [];
+      for (const entry of listeners) {
+        clearTimeout(entry.timeoutId);
+        entry.resolve();
+      }
+    }
+  };
+
+  const waitForIdle = (timeoutMs = SYNC_IDLE_TIMEOUT_MS): Promise<void> => {
+    if (!syncing) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve, reject) => {
+      let timeoutId: NodeJS.Timeout;
+      const resolveFn = () => {
+        clearTimeout(timeoutId);
+        waiters = waiters.filter((entry) => entry.resolve !== resolveFn);
+        resolve();
+      };
+      timeoutId = setTimeout(() => {
+        waiters = waiters.filter((entry) => entry.resolve !== resolveFn);
+        reject(new Error('Timed out waiting for collaboration sync to become idle.'));
+      }, timeoutMs);
+      waiters.push({ resolve: resolveFn, timeoutId });
+    });
+  };
+
+  return { setSyncing, waitForIdle };
 }
 
 function parseCliArguments(argv: string[]): CliArguments {
@@ -200,7 +242,7 @@ async function runSave(
   filePath: string,
   markdownPath: string | null
 ): Promise<void> {
-  await withSession(docId, endpoint, async (editor) => {
+  await withSession(docId, endpoint, async (editor, { waitForIdle }) => {
     const editorState = editor.getEditorState().toJSON();
     writeJson(filePath, { editorState });
 
@@ -219,6 +261,8 @@ async function runSave(
       fs.mkdirSync(path.dirname(absoluteMarkdownPath), { recursive: true });
       fs.writeFileSync(absoluteMarkdownPath, `${markdown}\n`);
     }
+
+    await waitForIdle();
   });
 }
 
@@ -226,10 +270,11 @@ async function runLoad(docId: string, endpoint: string, filePath: string): Promi
   const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as {
     editorState?: SerializedEditorState<SerializedLexicalNode>;
   };
-  await withSession(docId, endpoint, async (editor, { provider }) => {
+  await withSession(docId, endpoint, async (editor, { provider, waitForIdle }) => {
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data.editorState ?? editor.getEditorState().toJSON()), { tag: 'snapshot-load' });
     await done;
+    await waitForIdle();
     if (!provider.synced) {
       await waitForSync(provider);
     }
@@ -243,7 +288,8 @@ async function withSession(
 ): Promise<void> {
   const doc = new Doc();
   const docMap = new Map([[docId, doc]]);
-  const syncController = new CollaborationSyncController(() => {});
+  const syncTracker = createSyncTracker();
+  const syncController = new CollaborationSyncController(syncTracker.setSyncing);
   syncController.setSyncing(true);
   const providerFactory = createProviderFactory(
     {
@@ -295,9 +341,10 @@ async function withSession(
   await waitForSync(provider);
   syncYjsStateToLexicalV2__EXPERIMENTAL(binding, lexicalProvider);
   await initialUpdate;
+  await syncTracker.waitForIdle();
 
   try {
-    return await run(editor, { provider });
+    return await run(editor, { provider, waitForIdle: syncTracker.waitForIdle });
   } finally {
     sharedRoot.unobserveDeep(observer);
     removeUpdateListener();
