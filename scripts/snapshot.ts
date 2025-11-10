@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { setTimeout as delay } from 'node:timers/promises';
 
 import { $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
 import {
@@ -90,6 +91,42 @@ function createSyncTracker() {
   };
 
   return { setSyncing, waitForIdle };
+}
+
+async function fetchRemoteEditorState(
+  docId: string,
+  endpoint: string
+): Promise<SerializedEditorState<SerializedLexicalNode>> {
+  return withSession(
+    docId,
+    endpoint,
+    async (editor) => editor.getEditorState().toJSON(),
+    { readOnly: true }
+  );
+}
+
+async function ensureRemoteStateMatches(
+  docId: string,
+  endpoint: string,
+  expectedState: SerializedEditorState<SerializedLexicalNode>,
+  attempts = 20,
+  intervalMs = 250
+): Promise<void> {
+  const expectedRoot = JSON.stringify(expectedState.root ?? null);
+  for (let i = 0; i < attempts; i += 1) {
+    const remoteState = await fetchRemoteEditorState(docId, endpoint);
+    if (JSON.stringify(remoteState.root ?? null) === expectedRoot) {
+      return;
+    }
+    if (process.env.SNAPSHOT_DEBUG === '1') {
+      const snapshot = JSON.stringify(remoteState.root ?? null);
+      console.info(
+        `[snapshot] remote state mismatch for ${docId} (attempt ${i + 1}/${attempts}): ${snapshot}`
+      );
+    }
+    await delay(intervalMs);
+  }
+  throw new Error(`Collaborative document ${docId} did not reach expected state in time.`);
 }
 
 function parseCliArguments(argv: string[]): CliArguments {
@@ -270,7 +307,7 @@ async function runLoad(docId: string, endpoint: string, filePath: string): Promi
   const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as {
     editorState?: SerializedEditorState<SerializedLexicalNode>;
   };
-  await withSession(docId, endpoint, async (editor, { provider, waitForIdle }) => {
+  const appliedState = await withSession(docId, endpoint, async (editor, { provider, waitForIdle }) => {
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data.editorState ?? editor.getEditorState().toJSON()), { tag: 'snapshot-load' });
     await done;
@@ -278,14 +315,21 @@ async function runLoad(docId: string, endpoint: string, filePath: string): Promi
     if (!provider.synced) {
       await waitForSync(provider);
     }
+    return editor.getEditorState().toJSON();
   });
+  await ensureRemoteStateMatches(docId, endpoint, appliedState);
 }
 
-async function withSession(
+interface SessionOptions {
+  readOnly?: boolean;
+}
+
+async function withSession<T>(
   docId: string,
   endpoint: string,
-  run: (editor: LexicalEditor, context: SessionContext) => Promise<void> | void
-): Promise<void> {
+  run: (editor: LexicalEditor, context: SessionContext) => Promise<T> | T,
+  options: SessionOptions = {}
+): Promise<T> {
   const doc = new Doc();
   const docMap = new Map([[docId, doc]]);
   const syncTracker = createSyncTracker();
@@ -309,6 +353,7 @@ async function withSession(
     createEditorInitialConfig({ isDev: config.dev }) as CreateEditorArgs
   );
   const binding = createBindingV2__EXPERIMENTAL(editor, docId, doc, docMap);
+  const readOnly = Boolean(options.readOnly);
   const sharedRoot = binding.root as unknown as SharedRoot;
   const observer: SharedRootObserver = (events, transaction) => {
     if (transaction.origin === binding) {
@@ -322,19 +367,23 @@ async function withSession(
       transaction.origin instanceof UndoManager
     );
   };
-  sharedRoot.observeDeep(observer);
-  const removeUpdateListener = editor.registerUpdateListener((payload) => {
-    const { prevEditorState, editorState, dirtyElements, normalizedNodes, tags } = payload;
-    syncLexicalUpdateToYjsV2__EXPERIMENTAL(
-      binding,
-      lexicalProvider,
-      prevEditorState,
-      editorState,
-      dirtyElements,
-      normalizedNodes,
-      tags,
-    );
-  });
+  if (!readOnly) {
+    sharedRoot.observeDeep(observer);
+  }
+  const removeUpdateListener = readOnly
+    ? () => {}
+    : editor.registerUpdateListener((payload) => {
+        const { prevEditorState, editorState, dirtyElements, normalizedNodes, tags } = payload;
+        syncLexicalUpdateToYjsV2__EXPERIMENTAL(
+          binding,
+          lexicalProvider,
+          prevEditorState,
+          editorState,
+          dirtyElements,
+          normalizedNodes,
+          tags,
+        );
+      });
 
   const initialUpdate = waitForEditorUpdate(editor);
   void provider.connect();
@@ -346,7 +395,9 @@ async function withSession(
   try {
     return await run(editor, { provider, waitForIdle: syncTracker.waitForIdle });
   } finally {
-    sharedRoot.unobserveDeep(observer);
+    if (!readOnly) {
+      sharedRoot.unobserveDeep(observer);
+    }
     removeUpdateListener();
     provider.destroy();
     doc.destroy();
