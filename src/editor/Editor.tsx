@@ -9,6 +9,7 @@ import { CollaborationPlugin } from './plugins/collaboration';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { DevPlugin } from './plugins/DevPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
+import { NoteSelectionPlugin } from './plugins/NoteSelectionPlugin';
 import './Editor.css';
 
 interface EditorProps {
@@ -24,6 +25,7 @@ export default function Editor({ children }: EditorProps) {
           contentEditable={<ContentEditable className="editor-input" />}
           ErrorBoundary={LexicalErrorBoundary}
         />
+        <NoteSelectionPlugin />
         <IndentationPlugin />
         <ListPlugin hasStrictIndent />
         <CollaborationPlugin>

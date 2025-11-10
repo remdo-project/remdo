@@ -2,7 +2,13 @@ import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { LexicalNode } from 'lexical';
-import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
+import {
+  $getSelection,
+  $isNodeSelection,
+  $isRangeSelection,
+  COMMAND_PRIORITY_LOW,
+  KEY_TAB_COMMAND,
+} from 'lexical';
 import { useEffect } from 'react';
 import { $indentNote, $outdentNote } from '../lexical-helpers';
 
@@ -98,13 +104,13 @@ export function IndentationPlugin() {
       KEY_TAB_COMMAND,
       (event: KeyboardEvent) => {
         const selection = $getSelection();
+        let selectionNodes: LexicalNode[];
 
-        // Only handle range selections (both collapsed and non-collapsed)
-        if (!$isRangeSelection(selection)) {
+        if ($isRangeSelection(selection) || $isNodeSelection(selection)) {
+          selectionNodes = selection.getNodes();
+        } else {
           return false;
         }
-
-        const selectionNodes = selection.getNodes();
         const listItems: ListItemNode[] = [];
         const seen = new Set<string>();
 
