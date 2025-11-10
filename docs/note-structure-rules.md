@@ -143,32 +143,11 @@ remains unchanged other than the promoted subtree.
 
 ## Whole-Note Selection
 
-Selections in the editor are constrained such that you cannot partially select
-across note boundaries. If a text selection extends beyond the content of a
-single note into another note, the selection is **immediately expanded to
-encompass whole notes** (and, if applicable, entire subtrees). This ensures that
-any structural operation acts on complete notes rather than fragments.
-
-- It is acceptable to select text within a single note (e.g. part of a note’s
-  content or all of the content of one note). You can edit content freely inside
-  one note.
-- However, if a selection would span multiple notes – for example, extending a
-  selection from the end of one note into the text of its child or into the next
-  sibling note – the system will automatically adjust the selection to cover the
-  **full notes** involved. In practice, this means the moment your selection
-  crosses a note boundary, it snaps to select the entire note(s). The parent
-  note and all its children would become fully selected rather than allowing a
-  half-in/half-out selection range.
-
-**Example:** Suppose you highlight text starting in "note1" and continue the
-selection down into "note2" (the next note). Instead of ending up with a partial
-selection of "note1" and part of "note2", the editor will expand the selection
-to include both _note1_ and _note2_ entirely. Likewise, if you start selecting
-in a parent note and extend it into one of its child notes, the selection will
-jump to include the **entire parent note (and its subtree)**. This invariant
-preserves clarity so that outline edits (like indenting or reordering) operate
-on whole notes. Any structural command you execute will then apply to both notes
-as whole units, not to a fragment of the text.
+Selections that cross note boundaries always snap to entire notes (and their
+subtrees). This keeps every structural command operating on complete notes
+rather than fragments and ensures collaboration semantics stay deterministic.
+See `docs/selection.md` for the full gesture, shortcut, and progressive
+selection behavior.
 
 ## Reordering Behavior
 

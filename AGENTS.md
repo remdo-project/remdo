@@ -41,7 +41,8 @@ captures the full model.
   first before implementing one.
 - Don't assume that the request is always clear, if in doubt ask before
   proceeding.
-- When you propose/list a few things use an ordered list.
+- Whenever you present more than one item (thoughts, plans, recommendations,
+  etc.), format it as an ordered list (1., 2., …) instead of bullets.
 
 ## Checks
 
@@ -54,14 +55,13 @@ captures the full model.
 
 ## Tools
 
-- `pnpm run dev:init` is the one-shot workspace bootstrap. It runs `pnpm i
-  --frozen-lockfile`, fetches the pinned Lexical sources, and hydrates
+- `pnpm run dev:init` is the one-shot workspace bootstrap. It runs
+  `pnpm i --frozen-lockfile`, fetches the pinned Lexical sources, and hydrates
   `data/.vendor/lexical`. Use it when you clone RemDo for the first time—or if
   you blow away `node_modules`/`data/.vendor`. Skip it in workspaces that are
   already initialized so you don’t clobber local caches.
-- `data/.vendor/lexical` is our read-only mirror of the upstream Lexical repo
-  at the exact version declared in `package.json`. Consult it whenever you need
-  to inspect canonical Lexical behavior without poking inside
-  `node_modules`. Never edit files there; rerun `pnpm run dev:init` if you need
-  a fresh copy.
+- `data/.vendor/lexical` is our read-only mirror of the upstream Lexical repo at
+  the exact version declared in `package.json`. Consult it whenever you need to
+  inspect canonical Lexical behavior without poking inside `node_modules`. Never
+  edit files there; rerun `pnpm run dev:init` if you need a fresh copy.
 - Use the GitHub CLI (gh) to check repository and Actions status on GitHub.

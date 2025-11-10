@@ -115,3 +115,10 @@ available: the default structural outdent (drops the subtree after its former
 parent) and an in-place outdent (keeps the subtree's relative order while
 moving it up one level). See `docs/note-structure-rules.md` for the full set of
 editing rules that govern both variants.
+
+### Selection Overview
+
+RemDo’s editor keeps every selection aligned to whole notes so structural
+commands always act on complete subtrees. `docs/selection.md` details the
+cursor-driven gestures, progressive selection behavior, and command
+compatibility matrix that implementations must honor.
