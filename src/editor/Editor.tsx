@@ -7,6 +7,7 @@ import { config } from '#config';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollaborationPlugin } from './plugins/collaboration';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
+import { SelectionPlugin } from './plugins/SelectionPlugin';
 import { DevPlugin } from './plugins/DevPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import './Editor.css';
@@ -24,6 +25,7 @@ export default function Editor({ children }: EditorProps) {
           contentEditable={<ContentEditable className="editor-input" />}
           ErrorBoundary={LexicalErrorBoundary}
         />
+        <SelectionPlugin />
         <IndentationPlugin />
         <ListPlugin hasStrictIndent />
         <CollaborationPlugin>

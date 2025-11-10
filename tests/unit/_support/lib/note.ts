@@ -8,6 +8,19 @@ import {
   $setSelection,
 } from 'lexical';
 
+/**
+ * Get the text content of the current selection
+ */
+export function getSelectionText(validate: <T>(fn: () => T) => T): string {
+  return validate(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection)) {
+      return '';
+    }
+    return selection.getTextContent();
+  });
+}
+
 export interface OutlineNode {
   text: string;
   children: OutlineNode[];
