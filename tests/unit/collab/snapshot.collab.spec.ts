@@ -42,53 +42,76 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
   });
 
   it('loads data into collaboration doc and writes it back to disk', async () => {
+    const docId = 'snapshot-basic';
+    const docEnv = {
+      COLLAB_DOCUMENT_ID: docId,
+      VITE_COLLAB_DOCUMENT_ID: docId,
+    } satisfies NodeJS.ProcessEnv;
     const loadPath = path.resolve('tests/fixtures/basic.json');
     const savePath = SNAPSHOT_OUTPUTS[0]!;
-    runSnapshotCommand(['load', loadPath]);
+    runSnapshotCommand(['load', loadPath], docEnv);
 
     await waitFor(() => {
-      runSnapshotCommand(['save', savePath]);
+      runSnapshotCommand(['save', savePath], docEnv);
       const saved = readEditorState(savePath);
       return JSON.stringify(saved) === JSON.stringify(readEditorState(loadPath));
     });
   });
 
-  it('saves the current editor state via snapshot CLI', async ({ lexical }) => {
-    lexical.load('flat');
-    await lexical.waitForCollabSync();
+  it(
+    'saves the current editor state via snapshot CLI',
+    { meta: { collabDocId: 'snapshot-flat' } } as any,
+    async ({ lexical }) => {
+      const docId = 'snapshot-flat';
+      const docEnv = {
+        COLLAB_DOCUMENT_ID: docId,
+        VITE_COLLAB_DOCUMENT_ID: docId,
+      } satisfies NodeJS.ProcessEnv;
+      lexical.load('flat');
+      await lexical.waitForCollabSync();
 
-    const savePath = SNAPSHOT_OUTPUTS[1]!;
-    const expectedState = readEditorState(path.resolve('tests/fixtures/flat.json'));
-    await waitFor(() => {
-      runSnapshotCommand(['save', savePath]);
-      const saved = readEditorState(savePath);
-      return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
-    });
-  });
+      const savePath = SNAPSHOT_OUTPUTS[1]!;
+      const expectedState = readEditorState(path.resolve('tests/fixtures/flat.json'));
+      await waitFor(() => {
+        runSnapshotCommand(['save', savePath], docEnv);
+        const saved = readEditorState(savePath);
+        return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
+      });
+    }
+  );
 
-  it('loads a snapshot fixture into the editor', async ({ lexical }) => {
-    const loadPath = path.resolve('tests/fixtures/tree.json');
-    runSnapshotCommand(['load', loadPath]);
+  it(
+    'loads a snapshot fixture into the editor',
+    { meta: { collabDocId: 'snapshot-tree' } } as any,
+    async ({ lexical }) => {
+      const docId = 'snapshot-tree';
+      const docEnv = {
+        COLLAB_DOCUMENT_ID: docId,
+        VITE_COLLAB_DOCUMENT_ID: docId,
+      } satisfies NodeJS.ProcessEnv;
+      const loadPath = path.resolve('tests/fixtures/tree.json');
+      runSnapshotCommand(['load', loadPath], docEnv);
 
-    await lexical.waitForCollabSync();
+      await lexical.waitForCollabSync();
 
-    const expectedState = readEditorState(loadPath);
-    const savePath = SNAPSHOT_OUTPUTS[2]!;
-    let finalSaved: typeof expectedState | null = null;
+      const expectedState = readEditorState(loadPath);
+      const savePath = SNAPSHOT_OUTPUTS[2]!;
+      let finalSaved: typeof expectedState | null = null;
 
-    await waitFor(() => {
-      runSnapshotCommand(['save', savePath]);
-      const saved = readEditorState(savePath);
-      finalSaved = saved;
-      return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
-    });
+      await waitFor(() => {
+        runSnapshotCommand(['save', savePath], docEnv);
+        const saved = readEditorState(savePath);
+        finalSaved = saved;
+        return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
+      });
 
-    expect(finalSaved).not.toBeNull();
-    expect(finalSaved?.root).toEqual(expectedState.root);
+      expect(finalSaved).not.toBeNull();
+      expect(finalSaved?.root).toEqual(expectedState.root);
 
-    await lexical.waitForCollabSync();
-    expect(lexical.isCollabSyncing()).toBe(false);
-  });
+      await lexical.waitForCollabSync();
+      expect(lexical.isCollabSyncing()).toBe(false);
+    }
+  );
 
   it('resolves the document id from the CLI flag', async () => {
     const docId = 'cli-flag';

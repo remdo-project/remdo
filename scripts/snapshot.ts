@@ -10,7 +10,7 @@ import {
   syncYjsChangesToLexicalV2__EXPERIMENTAL,
   syncYjsStateToLexicalV2__EXPERIMENTAL,
 } from '@lexical/yjs';
-import { createEditor } from 'lexical';
+import { $getRoot, createEditor } from 'lexical';
 import WebSocket from 'ws';
 import { Doc, UndoManager } from 'yjs';
 
@@ -49,6 +49,7 @@ type SnapshotProvider = Provider & {
 interface SessionContext {
   provider: SnapshotProvider;
   waitForIdle: (timeoutMs?: number) => Promise<void>;
+  resetDocument: () => Promise<void>;
 }
 
 // eslint-disable-next-line node/no-process-env
@@ -56,7 +57,7 @@ const snapshotDebugDir = process.env.SNAPSHOT_DEBUG_DIR;
 
 function captureDebugState(
   docId: string,
-  phase: 'load' | 'save',
+  phase: 'load' | 'save' | 'verify',
   editorState: SerializedEditorState<SerializedLexicalNode>,
   metadata: Record<string, unknown> = {}
 ): void {
@@ -306,7 +307,9 @@ async function runLoad(docId: string, endpoint: string, filePath: string): Promi
   const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as {
     editorState?: SerializedEditorState<SerializedLexicalNode>;
   };
-  await withSession(docId, endpoint, async (editor, { provider, waitForIdle }) => {
+  const targetState = data.editorState ?? null;
+  const appliedState = await withSession(docId, endpoint, async (editor, { provider, waitForIdle, resetDocument }) => {
+    await resetDocument();
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data.editorState ?? editor.getEditorState().toJSON()), { tag: 'snapshot-load' });
     await done;
@@ -314,15 +317,46 @@ async function runLoad(docId: string, endpoint: string, filePath: string): Promi
     if (!provider.synced) {
       await waitForSync(provider);
     }
-    captureDebugState(docId, 'load', editor.getEditorState().toJSON(), { source: filePath });
+    return editor.getEditorState().toJSON();
   });
+  captureDebugState(docId, 'load', appliedState, { source: filePath });
+  await verifyRemoteState(docId, endpoint, targetState ?? appliedState);
 }
 
-async function withSession(
+async function verifyRemoteState(
   docId: string,
   endpoint: string,
-  run: (editor: LexicalEditor, context: SessionContext) => Promise<void> | void
+  expectedState: SerializedEditorState<SerializedLexicalNode>
 ): Promise<void> {
+  const verifyDir = path.resolve('data', '.snapshot.verify');
+  fs.mkdirSync(verifyDir, { recursive: true });
+  const verifyPath = path.join(verifyDir, `${docId}.${Date.now()}.json`);
+  await runSave(docId, endpoint, verifyPath, null);
+  const remote = JSON.parse(fs.readFileSync(verifyPath, 'utf8')) as {
+    editorState?: SerializedEditorState<SerializedLexicalNode>;
+  };
+  fs.rmSync(verifyPath, { force: true });
+  const remoteState = remote.editorState ?? null;
+  if (remoteState) {
+    captureDebugState(docId, 'verify', remoteState, { target: verifyPath });
+  }
+  const expectedRoot = JSON.stringify(expectedState.root ?? null);
+  const remoteRoot = JSON.stringify(remoteState?.root ?? null);
+  if (remoteRoot !== expectedRoot) {
+    console.error('[snapshot-debug] remote state mismatch', {
+      docId,
+      expectedRoot,
+      remoteRoot,
+    });
+    throw new Error(`Collaborative document ${docId} did not reach expected state after snapshot load.`);
+  }
+}
+
+async function withSession<T>(
+  docId: string,
+  endpoint: string,
+  run: (editor: LexicalEditor, context: SessionContext) => Promise<T> | T
+): Promise<T> {
   const doc = new Doc();
   const docMap = new Map([[docId, doc]]);
   const syncTracker = createSyncTracker();
@@ -380,8 +414,22 @@ async function withSession(
   await initialUpdate;
   await syncTracker.waitForIdle();
 
+  const resetDocument = async () => {
+    const shared = binding.root as unknown as { delete: (index: number, length: number) => void; length: number };
+    shared.delete(0, shared.length);
+    const cleared = waitForEditorUpdate(editor);
+    editor.update(() => {
+      $getRoot().clear();
+    });
+    await cleared;
+    await syncTracker.waitForIdle();
+    if (!provider.synced) {
+      await waitForSync(provider);
+    }
+  };
+
   try {
-    return await run(editor, { provider, waitForIdle: syncTracker.waitForIdle });
+    return await run(editor, { provider, waitForIdle: syncTracker.waitForIdle, resetDocument });
   } finally {
     sharedRoot.unobserveDeep(observer);
     removeUpdateListener();
