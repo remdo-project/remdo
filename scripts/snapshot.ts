@@ -51,6 +51,33 @@ interface SessionContext {
   waitForIdle: (timeoutMs?: number) => Promise<void>;
 }
 
+// eslint-disable-next-line node/no-process-env
+const snapshotDebugDir = process.env.SNAPSHOT_DEBUG_DIR;
+
+function captureDebugState(
+  docId: string,
+  phase: 'load' | 'save',
+  editorState: SerializedEditorState<SerializedLexicalNode>,
+  metadata: Record<string, unknown> = {}
+): void {
+  if (!snapshotDebugDir) {
+    return;
+  }
+
+  const debugPath = path.resolve(snapshotDebugDir, `${docId}.${phase}.json`);
+  const payload = {
+    timestamp: new Date().toISOString(),
+    docId,
+    phase,
+    ...metadata,
+    editorState,
+  } satisfies Record<string, unknown>;
+
+  fs.mkdirSync(path.dirname(debugPath), { recursive: true });
+  fs.writeFileSync(debugPath, `${JSON.stringify(payload, null, 2)}\n`);
+  console.info(`[snapshot-debug] captured ${phase} state for doc ${docId} -> ${debugPath}`);
+}
+
 const SYNC_IDLE_TIMEOUT_MS = 10_000;
 
 function createSyncTracker() {
@@ -245,6 +272,7 @@ async function runSave(
   await withSession(docId, endpoint, async (editor, { waitForIdle }) => {
     const editorState = editor.getEditorState().toJSON();
     writeJson(filePath, { editorState });
+    captureDebugState(docId, 'save', editorState, { target: filePath });
 
     if (markdownPath !== null) {
       const inferredPath = (() => {
@@ -278,6 +306,7 @@ async function runLoad(docId: string, endpoint: string, filePath: string): Promi
     if (!provider.synced) {
       await waitForSync(provider);
     }
+    captureDebugState(docId, 'load', editor.getEditorState().toJSON(), { source: filePath });
   });
 }
 

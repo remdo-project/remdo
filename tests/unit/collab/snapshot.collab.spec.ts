@@ -8,6 +8,7 @@ import { waitFor } from '@testing-library/react';
 import { config } from '#config';
 
 describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
+  const SNAPSHOT_DEBUG_DIR = path.resolve('data', 'snapshot-debug');
   const SNAPSHOT_OUTPUTS = [
     path.resolve('data', 'snapshot.cli.json'),
     path.resolve('data', 'snapshot.cli.flat.json'),
@@ -15,9 +16,13 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     path.resolve('data', 'cli-flag.json'),
     path.resolve('data', 'cross-doc-check.json'),
     path.resolve('data', 'cross-doc-check-alt.json'),
+    SNAPSHOT_DEBUG_DIR,
   ];
 
-  const baseEnv = { ...process.env } satisfies NodeJS.ProcessEnv;
+  const baseEnv = {
+    ...process.env,
+    SNAPSHOT_DEBUG_DIR,
+  } satisfies NodeJS.ProcessEnv;
 
   function runSnapshotCommand(args: string[], envOverrides?: NodeJS.ProcessEnv) {
     execFileSync('pnpm', ['run', 'snapshot', ...args], {
@@ -32,7 +37,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
 
   afterEach(() => {
     for (const filePath of SNAPSHOT_OUTPUTS) {
-      rmSync(filePath, { force: true });
+      rmSync(filePath, { force: true, recursive: true });
     }
   });
 
