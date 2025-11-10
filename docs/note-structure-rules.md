@@ -122,11 +122,12 @@ above and honor **Subtree Atomic Move** and **Whole-Note Selection**; the only
 difference is the position they take among the new siblings:
 
 - **Structural Outdent (default shortcut `Shift+Tab`):** Moves the selected note
-  block out of its parent and appends it directly after that parent in the new
-  sibling list. This keeps chronological ordering with the parent but may change
-  the relative order among peers. The moved block always lands at the end of the
-  new level, which matches WorkFlowy-style editors and keeps the hierarchy easy
-  to reason about during quick restructures.
+  block out of its parent and inserts it immediately after that parent at the
+  parent’s level. The subtree now lives right below the former parent, so it
+  retains the same chronological context without leaping ahead of unrelated
+  siblings. If the parent was already the last item at that depth, the promoted
+  block naturally becomes the final entry as well. This mirrors the established
+  behavior of whole-note outliners and keeps quick restructures predictable.
 - **In-Place Outdent:** Moves the same block out of its parent while preserving
   its previous vertical order. The reparented block is inserted immediately
   after the ancestor it previously followed, so siblings that were not part of

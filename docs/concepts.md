@@ -1,4 +1,4 @@
-# Remdo – Note Concept (early draft)
+# RemDo – Note Concept (early draft)
 
 ## Purpose
 
@@ -50,38 +50,29 @@ enforcing invariants.
 
 ### Examples
 
-Examples below are in the following format:
+Each example points to a fixture in `tests/fixtures/<file>.json` and shows how
+that serialized document maps to the resulting note tree using the format
+`file.json → note structure`.
 
-file.json # fixture file from tests/fixtures Note structure represtantation that
-mapps to data from file.json
-
-#### Basic
-
-basic.json
+#### Basic (`basic.json → outline`)
 
 - note0
   - note00
 - note1
 
-#### Flat
-
-flat.json
+#### Flat (`flat.json → outline`)
 
 - note0
 - note1
 - note2
 
-#### Tree
-
-tree.json
+#### Tree (`tree.json → outline`)
 
 - note0
 - note1
   - note2
 
-#### Tree complex
-
-tree_complex.json
+#### Tree complex (`tree_complex.json → outline`)
 
 - note0
   - note00
