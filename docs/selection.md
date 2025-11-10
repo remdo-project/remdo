@@ -2,7 +2,9 @@
 
 This document captures the cursor-driven selection model used throughout RemDo.
 All structural commands depend on these guarantees, so they serve as the
-contract for both UX and implementation.
+contract for both UX and implementation. The structural outcomes produced by
+these selections are detailed in
+[docs/note-structure-rules.md](./note-structure-rules.md).
 
 ## Whole-Note Selection
 
@@ -54,7 +56,7 @@ note’s text to return to inline editing.
 
 ## Cursor-Driven Gestures
 
-### Keyboard gestures
+### Keyboard Gestures
 
 1. `Shift+Arrow` behaves like a regular text editor while the caret stays inside
    the current note. Once the extension would cross a note boundary, RemDo snaps
@@ -67,21 +69,34 @@ note’s text to return to inline editing.
    caret state without changing the document, giving you a quick way to resume
    typing after structural commands.
 
-### Pointer gestures
+### Pointer Gestures
 
 1. Dragging within text highlights normally until the drag crosses into another
    note, at which point the selection snaps to whole notes per the invariant
    above.
 2. `Shift+Click` extends the existing selection from its anchor to the clicked
-   note, producing a contiguous block that follows the same progression stages
+   note, producing a contiguous note range that follows the same progression stages
    as keyboard-driven selection, regardless of whether the original anchor came
    from keyboard or mouse input.
 
-### Touch gestures
+### Touch Gestures
 
 1. Long-pressing within a note enters caret selection mode. Dragging handles
    within the note behaves like desktop text selection until the range crosses a
    note boundary, where it snaps to whole notes.
+
+## Shortcut Summary
+
+| Shortcut / Gesture | Context | Effect |
+| ------------------ | ------- | ------ |
+| `Tab`              | Structural | Indents the selected note range under the preceding sibling (see [docs/note-structure-rules.md](./note-structure-rules.md)). |
+| `Shift+Tab`        | Structural | Performs Structural Outdent, inserting the selection immediately after its former parent. |
+| `Command Palette → In-Place Outdent` | Structural | Performs In-Place Outdent while preserving document order. |
+| `Shift+Arrow`      | Keyboard | Extends the selection; once it crosses a note boundary it follows the Progressive Selection ladder. |
+| `Shift+Click`      | Pointer  | Extends from the anchor to the clicked note, yielding a contiguous note range. |
+| `Esc`              | Keyboard | Collapses any note range back to a caret without changing content. |
+| `Enter`            | Keyboard | Returns to inline editing by placing the caret inside the focused note. |
+| `Cmd/Ctrl+A`       | Keyboard | Advances the Progressive Selection ladder one stage per press. |
 
 ## Progressive Selection
 

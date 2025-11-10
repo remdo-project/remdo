@@ -54,26 +54,33 @@ Each example points to a fixture in `tests/fixtures/<file>.json` and shows how
 that serialized document maps to the resulting note tree using the format
 `file.json → note structure`.
 
-#### Basic (`basic.json → outline`)
+**basic.json → outline**
 
+```text
 - note0
   - note00
 - note1
+```
 
-#### Flat (`flat.json → outline`)
+**flat.json → outline**
 
+```text
 - note0
 - note1
 - note2
+```
 
-#### Tree (`tree.json → outline`)
+**tree.json → outline**
 
+```text
 - note0
 - note1
   - note2
+```
 
-#### Tree complex (`tree_complex.json → outline`)
+**tree_complex.json → outline**
 
+```text
 - note0
   - note00
     - note000
@@ -81,6 +88,7 @@ that serialized document maps to the resulting note tree using the format
 - note1
 - note2
   - note20
+```
 
 ### Lexical Representation
 
@@ -100,16 +108,18 @@ node shape:
 
 ### Operations
 
-Notes can be restructured via indent/outdent or reordering actions, and these edits
-must preserve the outline's structural guarantees. Two outdent commands are
-available: the default structural outdent (drops the subtree after its former
-parent) and an in-place outdent (keeps the subtree's relative order while
-moving it up one level). See `docs/note-structure-rules.md` for the full set of
+Notes can be restructured via indent/outdent or reordering actions, and these
+edits must preserve the outline's structural guarantees. Two outdent commands
+are available: the default structural outdent (drops the subtree immediately
+after its former parent) and an in-place outdent (keeps the subtree's relative
+order while moving it up one level). See
+[docs/note-structure-rules.md](./note-structure-rules.md) for the full set of
 editing rules that govern both variants.
 
 ### Selection Overview
 
 RemDo’s editor keeps every selection aligned to whole notes so structural
-commands always act on complete subtrees. `docs/selection.md` details the
-cursor-driven gestures, progressive selection behavior, and command
-compatibility matrix that implementations must honor.
+commands always act on complete subtrees.
+[docs/selection.md](./selection.md) details the cursor-driven gestures,
+progressive selection behavior, shortcut summary, and command compatibility
+matrix that implementations must honor.
