@@ -46,46 +46,10 @@ function findItemByText(listNode: any, noteText: string): any {
   return null;
 }
 
-export async function placeCaretAtNoteStart(
+export async function placeCaretAtNote(
   noteText: string,
-  mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>
-) {
-  await mutate(() => {
-    const root = $getRoot();
-    const list = root.getFirstChild();
-    if (!list) throw new Error('Expected a list root');
-
-    const item = findItemByText(list, noteText);
-    if (!item) throw new Error(`No list item found with text: ${noteText}`);
-    if (typeof item.selectStart !== 'function') {
-      throw new TypeError('Expected list item to support selectStart');
-    }
-    item.selectStart(); // caret at start
-  });
-}
-
-export async function placeCaretAtNoteEnd(
-  noteText: string,
-  mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>
-) {
-  await mutate(() => {
-    const root = $getRoot();
-    const list = root.getFirstChild();
-    if (!list) throw new Error('Expected a list root');
-
-    const item = findItemByText(list, noteText);
-    if (!item) throw new Error(`No list item found with text: ${noteText}`);
-    if (typeof item.selectEnd !== 'function') {
-      throw new TypeError('Expected list item to support selectEnd');
-    }
-    item.selectEnd(); // caret at end
-  });
-}
-
-export async function placeCaretInNote(
-  noteText: string,
-  offset: number,
-  mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>
+  mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>,
+  offset = 0
 ) {
   await mutate(() => {
     const root = $getRoot();
@@ -95,18 +59,30 @@ export async function placeCaretInNote(
     const item = findItemByText(list, noteText);
     if (!item) throw new Error(`No list item found with text: ${noteText}`);
 
-    // Get the first text node in the item
     const children = item.getChildren();
     const textNode = children.find((child: any) =>
       typeof child.getType === 'function' && child.getType() === 'text'
     );
 
-    if (!textNode || typeof textNode.select !== 'function') {
-      throw new TypeError('Expected to find a text node with select method');
+    if (textNode && typeof textNode.select === 'function') {
+      const length = textNode.getTextContentSize?.() ?? textNode.getTextContent().length;
+      const normalized = offset < 0 ? length + offset : offset;
+      const clamped = Math.max(0, Math.min(length, normalized));
+      textNode.select(clamped, clamped);
+      return;
     }
 
-    // Place caret at the specified offset
-    textNode.select(offset, offset);
+    if (offset <= 0 && typeof item.selectStart === 'function') {
+      item.selectStart();
+      return;
+    }
+
+    if (typeof item.selectEnd === 'function') {
+      item.selectEnd();
+      return;
+    }
+
+    throw new TypeError('Expected note to expose caret selection controls');
   });
 }
 
@@ -175,7 +151,7 @@ export async function selectEntireNote(
   noteText: string,
   mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>
 ): Promise<void> {
-  await placeCaretAtNoteStart(noteText, mutate);
+  await placeCaretAtNote(noteText, mutate);
 
   await mutate(() => {
     const selection = $getSelection();
