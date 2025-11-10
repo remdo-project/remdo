@@ -1,4 +1,6 @@
 name: Collaboration Tests
+permissions:
+  contents: read
 
 on: push
 
