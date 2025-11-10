@@ -91,7 +91,6 @@ note’s text to return to inline editing.
 | ------------------ | ------- | ------ |
 | `Tab`              | Structural | Indents the selected note range under the preceding sibling (see [docs/note-structure-rules.md](./note-structure-rules.md)). |
 | `Shift+Tab`        | Structural | Performs Structural Outdent, inserting the selection immediately after its former parent. |
-| `Command Palette → In-Place Outdent` | Structural | Performs In-Place Outdent while preserving document order. |
 | `Shift+Arrow`      | Keyboard | Extends the selection; once it crosses a note boundary it follows the Progressive Selection ladder. |
 | `Shift+Click`      | Pointer  | Extends from the anchor to the clicked note, yielding a contiguous note range. |
 | `Esc`              | Keyboard | Collapses any note range back to a caret without changing content. |

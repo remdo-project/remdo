@@ -21,11 +21,10 @@ details below.
 
 ## Shortcut Summary
 
-| Shortcut / Command                   | Operation          | Result                                                                                        |
-| ------------------------------------ | ------------------ | --------------------------------------------------------------------------------------------- |
-| `Tab`                                | Indent             | Nests the selected note(s) under the previous sibling when allowed.                           |
-| `Shift+Tab`                          | Structural Outdent | Moves the selected note(s) up one level and inserts them immediately after the former parent. |
-| `Command Palette → In-Place Outdent` | In-Place Outdent   | Reparents the selection up one level while keeping its previous document order.               |
+| Shortcut / Command | Operation | Result |
+| ------------------ | --------- | ------ |
+| `Tab`              | Indent    | Nests the selected note(s) under the previous sibling when allowed. |
+| `Shift+Tab`        | Outdent   | Moves the selected note(s) up one level and inserts them immediately after the former parent. |
 
 All other selection gestures and shortcuts are documented in
 [docs/selection.md](./selection.md); the invariants below describe the outcomes
@@ -144,33 +143,15 @@ The outline structure remains unchanged, as you cannot outdent above the root.
 _Rationale:_ Outdentation only works when there is a real parent to exit; this
 keeps the tree rooted, predictable, and free of phantom levels.
 
-### Outdent Variants
+### Outdent Placement
 
-RemDo exposes two first-class outdent operations. Both follow the constraints
-above and honor **Subtree Atomic Move** and **Whole-Note Selection**; the only
-difference is the position they take among the new siblings:
-
-- **Structural Outdent (default shortcut `Shift+Tab`):** Moves the selected note
-  up one level, inserting it immediately after its former parent in the new
-  sibling list. The subtree now lives right below that parent, so it retains the
-  same chronological context without leaping ahead of unrelated siblings. If the
-  parent was already the last item at that depth, the promoted note naturally
-  becomes the final entry as well. This mirrors the established behavior of
-  whole-note outliners and keeps quick restructures predictable.
-- **In-Place Outdent:** Moves the same note selection out of its parent while
-  preserving its previous vertical order. The reparented notes are inserted
-  immediately after the ancestor they previously followed, so siblings that were
-  not part of the operation do not leapfrog them. This variant works on
-  multi-note selections, keeps entire subtrees contiguous, and is the preferred
-  command when you only want to change indentation depth without altering the
-  document’s reading order.
-
-Both commands are available through keyboard shortcuts and the command palette.
-Choosing between them is a per-operation decision; there is no global toggle so
-that collaboration semantics remain deterministic across clients. Regression
-tests cover both variants: structural outdent assertions focus on tree depth
-changes, while in-place outdent tests verify the preorder text order remains
-unchanged other than the promoted subtree.
+The default outdent command (shortcut `Shift+Tab`) moves the selected notes up
+one level and inserts them immediately after their former parent. The subtree
+now lives right below that parent, so it retains the same chronological context
+without leaping ahead of unrelated siblings. If the parent was already the last
+item at that depth, the promoted notes naturally become the final entries as
+well. This mirrors the behavior of whole-note outliners and keeps quick
+restructures predictable.
 
 ## Whole-Note Selection
 

@@ -15,11 +15,9 @@ access through the new module.
 1. `isChildrenWrapper` currently requires the wrapper item to have exactly one
    child, while Lexical’s `isNestedListNode` only checks the first child’s type;
    the stricter check rejects bullets that mix text and nested lists.
-2. Provide explicit helpers for both **Structural Outdent** (append after the
-   former parent) and **In-Place Outdent** (preserve preorder position) so the
-   editor commands can call the appropriate operation without reimplementing
-   tree juggling. The in-place helper should mirror Lexical’s `$handleOutdent`
-   split/merge logic to keep siblings stable.
+2. Provide explicit helpers for the current **Outdent** behavior (append the
+   subtree directly after the former parent) so editor commands do not need to
+   reimplement the tree juggling.
 3. `$indentNote`/`$outdentNote` return booleans and throw generic `Error`s,
    whereas Lexical silently no-ops or raises formatted dev invariants; the
    reporting style is inconsistent.
@@ -27,6 +25,12 @@ access through the new module.
    list/item, unlike Lexical, so new wrappers lose typography.
 5. The helpers attempt to auto-heal malformed wrappers by removing them instead
    of surfacing invariants like Lexical does.
+
+### Follow-up: In-place Outdent
+
+- Add an optional in-place outdent variant (preserve preorder position) once
+  the helper layer above is solid, and document it alongside the existing
+  outdent behavior.
 
 ## Harden editor schema validator tests
 
