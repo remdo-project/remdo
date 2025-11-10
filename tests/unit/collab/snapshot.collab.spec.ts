@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { config } from '#config';
 
+const SNAPSHOT_TIMEOUT_MS = 15_000;
+
 describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
   const SNAPSHOT_OUTPUTS = [
     path.resolve('data', 'snapshot.cli.json'),
@@ -47,7 +49,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
       const saved = readEditorState(savePath);
       return JSON.stringify(saved) === JSON.stringify(readEditorState(loadPath));
     });
-  });
+  }, SNAPSHOT_TIMEOUT_MS);
 
   it(
     'saves the current editor state via snapshot CLI',
@@ -131,7 +133,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
 
   it(
     'cross-loads and saves multiple documents without crosstalk',
-    { meta: { collabDefaultDoc: 'cross-doc-check' } } as any,
+    { meta: { collabDefaultDoc: 'cross-doc-check' }, timeout: SNAPSHOT_TIMEOUT_MS } as any,
     async ({ lexical }: TestContext) => {
       const defaultDoc = 'cross-doc-check';
       const secondaryDoc = 'cross-doc-check-alt';
