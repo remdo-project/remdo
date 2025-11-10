@@ -38,6 +38,18 @@ interface CliArguments {
   markdownPath: string | null;
 }
 
+type SnapshotProvider = Provider & {
+  connect: () => void;
+  destroy: () => void;
+  synced: boolean;
+  on: (event: string, handler: (payload: unknown) => void) => void;
+  off: (event: string, handler: (payload: unknown) => void) => void;
+};
+
+interface SessionContext {
+  provider: SnapshotProvider;
+}
+
 function parseCliArguments(argv: string[]): CliArguments {
   const result: CliArguments = { markdownPath: null };
 
@@ -214,17 +226,20 @@ async function runLoad(docId: string, endpoint: string, filePath: string): Promi
   const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as {
     editorState?: SerializedEditorState<SerializedLexicalNode>;
   };
-  await withSession(docId, endpoint, async (editor) => {
+  await withSession(docId, endpoint, async (editor, { provider }) => {
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data.editorState ?? editor.getEditorState().toJSON()), { tag: 'snapshot-load' });
     await done;
+    if (!provider.synced) {
+      await waitForSync(provider);
+    }
   });
 }
 
 async function withSession(
   docId: string,
   endpoint: string,
-  run: (editor: LexicalEditor) => Promise<void> | void
+  run: (editor: LexicalEditor, context: SessionContext) => Promise<void> | void
 ): Promise<void> {
   const doc = new Doc();
   const docMap = new Map([[docId, doc]]);
@@ -238,13 +253,7 @@ async function withSession(
     endpoint,
   );
   const lexicalProvider = providerFactory(docId, docMap);
-  const provider = lexicalProvider as unknown as Provider & {
-    connect: () => void;
-    destroy: () => void;
-    synced: boolean;
-    on: (event: string, handler: (payload: unknown) => void) => void;
-    off: (event: string, handler: (payload: unknown) => void) => void;
-  };
+  const provider = lexicalProvider as unknown as SnapshotProvider;
   (provider as unknown as { _WS?: typeof globalThis.WebSocket })._WS = WebSocket as unknown as typeof globalThis.WebSocket;
   const syncDoc = docMap.get(docId);
   if (!syncDoc) {
@@ -288,7 +297,7 @@ async function withSession(
   await initialUpdate;
 
   try {
-    return await run(editor);
+    return await run(editor, { provider });
   } finally {
     sharedRoot.unobserveDeep(observer);
     removeUpdateListener();
