@@ -75,7 +75,15 @@ function captureDebugState(
 
   fs.mkdirSync(path.dirname(debugPath), { recursive: true });
   fs.writeFileSync(debugPath, `${JSON.stringify(payload, null, 2)}\n`);
-  console.info(`[snapshot-debug] captured ${phase} state for doc ${docId} -> ${debugPath}`);
+  const getChildren = (node: unknown): SerializedLexicalNode[] =>
+    node && typeof node === 'object' && Array.isArray((node as { children?: SerializedLexicalNode[] }).children)
+      ? ((node as { children?: SerializedLexicalNode[] }).children ?? [])
+      : [];
+  const rootChildren = getChildren(editorState.root);
+  const firstChildChildren = getChildren(rootChildren[0]).length;
+  console.info(
+    `[snapshot-debug] captured ${phase} state for doc ${docId} -> ${debugPath} (rootChildren=${rootChildren.length}, firstChildChildren=${firstChildChildren})`
+  );
 }
 
 const SYNC_IDLE_TIMEOUT_MS = 10_000;
