@@ -4,7 +4,7 @@ This document captures the cursor-driven selection model used throughout RemDo.
 All structural commands depend on these guarantees, so they serve as the
 contract for both UX and implementation. The structural outcomes produced by
 these selections are detailed in
-[docs/note-structure-rules.md](./note-structure-rules.md).
+[Note Structure Rules](./note-structure-rules.md).
 
 ## Whole-Note Selection
 
@@ -89,7 +89,7 @@ note’s text to return to inline editing.
 
 | Shortcut / Gesture | Context | Effect |
 | ------------------ | ------- | ------ |
-| `Tab`              | Structural | Indents the selected note range under the preceding sibling (see [docs/note-structure-rules.md](./note-structure-rules.md)). |
+| `Tab`              | Structural | Indents the selected note range under the preceding sibling (see [Note Structure Rules](./note-structure-rules.md)). |
 | `Shift+Tab`        | Structural | Performs Structural Outdent, inserting the selection immediately after its former parent. |
 | `Shift+Arrow`      | Keyboard | Extends the selection; once it crosses a note boundary it follows the Progressive Selection ladder. |
 | `Shift+Click`      | Pointer  | Extends from the anchor to the clicked note, yielding a contiguous note range. |

@@ -4,20 +4,20 @@ This document defines the core invariants that govern structural outline editing
 operations in RemDo. These rules ensure that indenting, outdenting, and
 reordering notes preserve a valid tree structure and maintain clarity in the
 outline hierarchy. Review the conceptual model in
-[docs/concepts.md](./concepts.md) and its
+[Concepts](./concepts.md) and its
 [Examples section](./concepts.md#examples) before diving into the behavioral
 details below.
 
 ## Design Goals
 
-1. **Preserve subtrees:** Any structural move must keep every descendant
-   attached to its parent note so no children are orphaned.
-2. **Prevent invalid hierarchies:** Operations never create cycles, reorder
-   outside valid parent/child relationships, or otherwise violate the ordered
-   tree.
-3. **Unify gestures:** Keyboard shortcuts, drag-and-drop, and command palette
-   entries all funnel through the same invariants so they produce identical
-   structures.
+- **Preserve subtrees:** Every move acts on whole notes, including all
+  descendants.
+- **Prevent illegal structures:** No cycles, no orphaned descendants; invalid
+  operations become no-ops.
+- **Parity of interactions:** Keyboard and drag-and-drop perform equivalent
+  structural operations.
+- **Predictability:** Outdent/indent placement is deterministic, so the same
+  command always lands notes in the expected position.
 
 ## Shortcut Summary
 
@@ -27,8 +27,8 @@ details below.
 | `Shift+Tab`        | Outdent   | Moves the selected note(s) up one level and inserts them immediately after the former parent. |
 
 All other selection gestures and shortcuts are documented in
-[docs/selection.md](./selection.md); the invariants below describe the outcomes
-those gestures must respect.
+[Selection](./selection.md); the invariants below describe the outcomes those
+gestures must respect.
 
 ## Subtree Atomic Move
 
@@ -92,7 +92,7 @@ If we indent "note2", and "note1" is directly above it, the result is:
 "note2" becomes a child of "note1". (If "note2" had its own sub-notes, they
 would move with it under "note1" due to **Subtree Atomic Move**.)
 
-**Example (Invalid Indent):** If we try to indent "note1" (the first item in the
+**Example (Invalid Indent):** If we try to indent "note1" (the first note in the
 list), nothing happens because there is no previous sibling to indent under. The
 operation is ignored since "note1" cannot be made a child of anything above it.
 
@@ -149,7 +149,7 @@ The default outdent command (shortcut `Shift+Tab`) moves the selected notes up
 one level and inserts them immediately after their former parent. The subtree
 now lives right below that parent, so it retains the same chronological context
 without leaping ahead of unrelated siblings. If the parent was already the last
-item at that depth, the promoted notes naturally become the final entries as
+note at that depth, the promoted notes naturally become the final entries as
 well. This mirrors the behavior of whole-note outliners and keeps quick
 restructures predictable.
 
@@ -158,8 +158,8 @@ restructures predictable.
 Selections that cross note boundaries always snap to entire notes (and their
 subtrees). This keeps every structural command operating on complete notes
 rather than fragments and ensures collaboration semantics stay deterministic.
-See [docs/selection.md](./selection.md) for the full gesture, shortcut, and
-progressive selection behavior.
+See [Selection](./selection.md) for the full gesture, shortcut, and progressive
+selection behavior.
 
 ## Reordering Behavior
 

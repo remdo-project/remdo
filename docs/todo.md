@@ -12,7 +12,7 @@ access through the new module.
 
 ## Align note indent/outdent helpers with Lexical
 
-1. `isChildrenWrapper` currently requires the wrapper item to have exactly one
+1. `isChildrenWrapper` currently requires the wrapper `ListItemNode` to have exactly one
    child, while Lexical’s `isNestedListNode` only checks the first child’s type;
    the stricter check rejects bullets that mix text and nested lists.
 2. Provide explicit helpers for the current **Outdent** behavior (append the
@@ -22,7 +22,7 @@ access through the new module.
    whereas Lexical silently no-ops or raises formatted dev invariants; the
    reporting style is inconsistent.
 4. `$getOrCreateChildList` omits copying text format and style from the source
-   list/item, unlike Lexical, so new wrappers lose typography.
+   `ListNode`/`ListItemNode`, unlike Lexical, so new wrappers lose typography.
 5. The helpers attempt to auto-heal malformed wrappers by removing them instead
    of surfacing invariants like Lexical does.
 
@@ -35,7 +35,7 @@ access through the new module.
 ## Harden editor schema validator tests
 
 1. Extract shared builders for editor schema fixtures to cut duplication.
-2. Add passing fixture for wrapper items with valid preceding siblings.
+2. Add passing fixture for wrapper `ListItemNode`s with valid preceding siblings.
 3. Add mixed valid/invalid nested list fixture to confirm validator behavior.
 4. Reuse editor schema fixtures across other tests that need serialized states.
 

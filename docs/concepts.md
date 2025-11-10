@@ -33,7 +33,7 @@ notes:
 - Every note has exactly one parent (except the root) and maintains an ordered
   list of children owned by that parent.
 - Ordering metadata lives with the parent, so sibling order changes do not
-  mutate child nodes.
+  mutate child notes.
 - Content and props never alter the structural contract; a note may be purely
   structural or carry opaque content without affecting its position.
 
@@ -50,50 +50,50 @@ enforcing invariants.
 
 ### Examples
 
-Each example points to a fixture in `tests/fixtures/<file>.json` and shows how
-that serialized document maps to the resulting note tree using the format
-`file.json → note structure`.
+Each example points to a fixture in `tests/fixtures/<file>.json`. The fixture
+name appears in bold with a trailing arrow, followed by a fenced outline of the
+resulting note tree.
 
-**basic.json → outline**
+- **basic.json →**
 
-```text
-- note0
-  - note00
-- note1
-```
+  ```text
+  - note0
+    - note00
+  - note1
+  ```
 
-**flat.json → outline**
+- **flat.json →**
 
-```text
-- note0
-- note1
-- note2
-```
-
-**tree.json → outline**
-
-```text
-- note0
-- note1
+  ```text
+  - note0
+  - note1
   - note2
-```
+  ```
 
-**tree_complex.json → outline**
+- **tree.json →**
 
-```text
-- note0
-  - note00
-    - note000
-  - note01
-- note1
-- note2
-  - note20
-```
+  ```text
+  - note0
+  - note1
+    - note2
+  ```
+
+- **tree_complex.json →**
+
+  ```text
+  - note0
+    - note00
+      - note000
+    - note01
+  - note1
+  - note2
+    - note20
+  ```
 
 ### Lexical Representation
 
 The Lexical adapter serializes the conceptual note tree into a deterministic
-node shape:
+Lexical node shape:
 
 - The conceptual root note is mapped to Lexical's `RootNode`. A dedicated schema
   plugin (`src/editor/plugins/RootSchemaPlugin.tsx`) keeps this root constrained
@@ -102,9 +102,9 @@ node shape:
 - Every non-root note is serialized as a `ListItemNode` whose children hold the
   note's payload (for example a `ParagraphNode` with `TextNode`s).
 - When a note has children, the adapter inserts a second `ListItemNode`
-  immediately after the content item. This wrapper item contains a nested
-  `ListNode`, and the `ListItemNode`s inside that nested list represent the
-  note's conceptual descendants.
+  immediately after the content `ListItemNode`. This wrapper `ListItemNode`
+  contains a nested `ListNode`, and the `ListItemNode`s inside that nested list
+  represent the note's conceptual descendants.
 
 ### Operations
 
@@ -112,13 +112,13 @@ Notes can be restructured via indent/outdent or reordering actions, and these
 edits must preserve the outline's structural guarantees. Outdenting (shortcut
 `Shift+Tab`) moves the selected note’s subtree up one level and inserts it
 directly after its former parent. See
-[docs/note-structure-rules.md](./note-structure-rules.md) for the full set of
-editing rules that govern these operations.
+[Note Structure Rules](./note-structure-rules.md) for the full set of editing
+rules that govern these operations.
 
 ### Selection Overview
 
 RemDo’s editor keeps every selection aligned to whole notes so structural
 commands always act on complete subtrees.
-[docs/selection.md](./selection.md) details the cursor-driven gestures,
-progressive selection behavior, shortcut summary, and command compatibility
-matrix that implementations must honor.
+[Selection](./selection.md) details the cursor-driven gestures, progressive
+selection behavior, shortcut summary, and command compatibility matrix that
+implementations must honor.
