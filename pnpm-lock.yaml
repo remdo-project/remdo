@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@y/websocket-server@0.1.1>ws': 6.2.3
+
 importers:
 
   .:
@@ -3718,8 +3721,8 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
-  ws@6.2.1:
-    resolution: {integrity: sha512-GIyAXC2cB7LjvpgMt9EKS2ldqr0MTrORaleiOno6TweZ6r3TKtoFQWay/2PceJ3RuBasOHzXNn5Lrw1X0bEjqA==}
+  ws@6.2.3:
+    resolution: {integrity: sha512-jmTjYU0j60B+vHey6TfR3Z7RD61z/hmxBS3VMSGIrroOWXQEneK1zNuotOUrGyBHQj0yrpsLHPWtigEFd13ndA==}
     peerDependencies:
       bufferutil: ^4.0.1
       utf-8-validate: ^5.0.2
@@ -5245,7 +5248,7 @@ snapshots:
       y-protocols: 1.0.6(yjs@13.6.27)
       yjs: 13.6.27
     optionalDependencies:
-      ws: 6.2.1
+      ws: 6.2.3
       y-leveldb: 0.1.2(yjs@13.6.27)
     transitivePeerDependencies:
       - bufferutil
@@ -7776,7 +7779,7 @@ snapshots:
 
   wrappy@1.0.2: {}
 
-  ws@6.2.1:
+  ws@6.2.3:
     dependencies:
       async-limiter: 1.0.1
     optional: true

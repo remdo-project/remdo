@@ -74,5 +74,10 @@
     "vitest": "^4.0.6",
     "vitest-preview": "^0.0.3",
     "ws": "8.18.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "@y/websocket-server@0.1.1>ws": "6.2.3"
+    }
   }
 }
