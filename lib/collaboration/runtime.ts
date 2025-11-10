@@ -74,7 +74,6 @@ export function createProviderFactory(
 function attachSyncTracking(provider: WebsocketProvider, controller: CollaborationSyncController) {
   let handshakePending = false;
   let pendingAck = false;
-  let awaitingAck = false;
 
   const ensureHandshake = () => {
     if (handshakePending) {
@@ -119,7 +118,6 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
     }
 
     pendingAck = true;
-    awaitingAck = true;
     controller.setSyncing(true);
 
     ensureHandshake();
@@ -137,10 +135,6 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
       return;
     }
 
-    if (awaitingAck) {
-      awaitingAck = false;
-    }
-
     if (provider.wsconnected) {
       controller.setSyncing(false);
     }
@@ -151,9 +145,6 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
       if (pendingAck) {
         ensureHandshake();
       } else if (provider.synced) {
-        if (awaitingAck) {
-          awaitingAck = false;
-        }
         controller.setSyncing(false);
       }
       return;
@@ -162,7 +153,6 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
     // Connection dropped or paused: mark unsynced and retry once we reconnect.
     pendingAck = true;
     handshakePending = false;
-    awaitingAck = true;
     controller.setSyncing(true);
   };
 
