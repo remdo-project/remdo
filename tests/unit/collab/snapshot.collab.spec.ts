@@ -38,10 +38,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
 
   it('loads data into collaboration doc and writes it back to disk', async () => {
     const docId = 'snapshot-basic';
-    const docEnv = {
-      COLLAB_DOCUMENT_ID: docId,
-      VITE_COLLAB_DOCUMENT_ID: docId,
-    } satisfies NodeJS.ProcessEnv;
+    const docEnv = { COLLAB_DOCUMENT_ID: docId } satisfies NodeJS.ProcessEnv;
     const loadPath = path.resolve('tests/fixtures/basic.json');
     const savePath = SNAPSHOT_OUTPUTS[0]!;
     runSnapshotCommand(['load', loadPath], docEnv);
@@ -58,10 +55,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     { meta: { collabDocId: 'snapshot-flat' } } as any,
     async ({ lexical }) => {
       const docId = 'snapshot-flat';
-      const docEnv = {
-        COLLAB_DOCUMENT_ID: docId,
-        VITE_COLLAB_DOCUMENT_ID: docId,
-      } satisfies NodeJS.ProcessEnv;
+      const docEnv = { COLLAB_DOCUMENT_ID: docId } satisfies NodeJS.ProcessEnv;
       lexical.load('flat');
       await lexical.waitForCollabSync();
 
@@ -80,10 +74,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     { meta: { collabDocId: 'snapshot-tree' } } as any,
     async ({ lexical }) => {
       const docId = 'snapshot-tree';
-      const docEnv = {
-        COLLAB_DOCUMENT_ID: docId,
-        VITE_COLLAB_DOCUMENT_ID: docId,
-      } satisfies NodeJS.ProcessEnv;
+      const docEnv = { COLLAB_DOCUMENT_ID: docId } satisfies NodeJS.ProcessEnv;
       const loadPath = path.resolve('tests/fixtures/tree.json');
       runSnapshotCommand(['load', loadPath], docEnv);
 
