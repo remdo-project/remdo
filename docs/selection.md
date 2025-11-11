@@ -120,9 +120,12 @@ back to the caret state.
    in structural mode. From this point forward, Delete/Backspace remove the
    entire selection and structural commands affect every highlighted note.
 3. **Press 3:** Adds every sibling at the same depth (including their
-   descendants) while keeping the parent untouched.
+   descendants) while keeping the parent untouched. If there are no siblings,
+   the ladder automatically skips this step and continues to the next stage.
 4. **Press 4:** Picks up the parent note and all of its descendants, effectively
-   covering the entire local subtree above the original note.
+   covering the entire local subtree above the original note. If this scope is
+   already covered because the sibling stage had nothing new to add, the ladder
+   jumps straight to the next meaningful expansion instead of pausing here.
 5. **Press 5 and beyond:** Repeat the sibling-then-parent climb for each higher
    level until the root note becomes selected.
 
