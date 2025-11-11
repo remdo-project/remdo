@@ -8,17 +8,15 @@ import {
   $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
-  KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
-  KEY_ARROW_UP_COMMAND,
   SELECT_ALL_COMMAND,
 } from 'lexical';
 import type { LexicalNode, RangeSelection, TextNode } from 'lexical';
 import { useEffect, useRef } from 'react';
 
-const SNAP_SELECTION_TAG = 'selection:snap-range';
 const PROGRESSIVE_SELECTION_TAG = 'selection:progressive-range';
+const SNAP_SELECTION_TAG = 'selection:snap-range';
 
 interface SnapPayload {
   anchorKey: string;
@@ -65,9 +63,8 @@ export function SelectionPlugin() {
   const progressionRef = useRef<ProgressiveSelectionState>(INITIAL_PROGRESSIVE_STATE);
 
   useEffect(() => {
-    const unregisterUpdate = editor.registerUpdateListener(({ editorState, tags }) => {
-      const isProgressiveUpdate = tags.has(PROGRESSIVE_SELECTION_TAG);
-      if (isProgressiveUpdate) {
+    const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
+      if (tags.has(PROGRESSIVE_SELECTION_TAG)) {
         progressionRef.current = { ...progressionRef.current, locked: true };
       } else {
         progressionRef.current = INITIAL_PROGRESSIVE_STATE;
@@ -91,11 +88,7 @@ export function SelectionPlugin() {
         }
 
         const candidate = createSnapPayload(selection, noteItems);
-        if (!candidate) {
-          return;
-        }
-
-        if (selectionMatchesPayload(selection, candidate)) {
+        if (!candidate || selectionMatchesPayload(selection, candidate)) {
           return;
         }
 
@@ -131,6 +124,25 @@ export function SelectionPlugin() {
       );
     });
 
+    const applyPlan = (planResult: ProgressivePlanResult) => {
+      editor.update(
+        () => {
+          const applied = $applyProgressivePlan(planResult);
+          if (!applied) {
+            progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+            return;
+          }
+
+          progressionRef.current = {
+            anchorKey: planResult.anchorKey,
+            stage: planResult.stage,
+            locked: true,
+          };
+        },
+        { tag: [SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG] }
+      );
+    };
+
     const unregisterSelectAll = editor.registerCommand(
       SELECT_ALL_COMMAND,
       (event) => {
@@ -145,17 +157,7 @@ export function SelectionPlugin() {
 
         event?.preventDefault();
 
-        editor.update(
-          () => {
-            $applyProgressivePlan(planResult!);
-            progressionRef.current = {
-              anchorKey: planResult!.anchorKey,
-              stage: planResult!.stage,
-              locked: true,
-            };
-          },
-          { tag: [SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG] }
-        );
+        applyPlan(planResult!);
 
         return true;
       },
@@ -178,6 +180,8 @@ export function SelectionPlugin() {
           return false;
         }
 
+        event.stopImmediatePropagation();
+        event.stopPropagation();
         event.preventDefault();
         return true;
       },
@@ -200,91 +204,58 @@ export function SelectionPlugin() {
           return false;
         }
 
+        event.stopImmediatePropagation();
+        event.stopPropagation();
         event.preventDefault();
         return true;
       },
       COMMAND_PRIORITY_CRITICAL
     );
 
-    const unregisterArrowDown = editor.registerCommand(
-      KEY_ARROW_DOWN_COMMAND,
-      (event) => {
-        if (!event?.shiftKey) {
-          return false;
-        }
+    const runDirectionalPlan = (direction: 'up' | 'down') => {
+      let planResult: ProgressivePlanResult | null = null;
+      editor.getEditorState().read(() => {
+        planResult = $computeDirectionalPlan(progressionRef, direction);
+      });
 
-        let planResult: ProgressivePlanResult | null = null;
-        editor.getEditorState().read(() => {
-          planResult = $computeDirectionalPlan(progressionRef, 'down');
-        });
+      if (!planResult) {
+        progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+        return;
+      }
 
-        event?.preventDefault();
+      applyPlan(planResult);
+    };
 
-        if (!planResult) {
-          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-          return true;
-        }
+    const handleDirectionalKeydown = (event: KeyboardEvent) => {
+      if (!event.shiftKey) {
+        return;
+      }
 
-        editor.update(
-          () => {
-            $applyProgressivePlan(planResult!);
-            progressionRef.current = {
-              anchorKey: planResult!.anchorKey,
-              stage: planResult!.stage,
-              locked: true,
-            };
-          },
-          { tag: [SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG] }
-        );
+      const direction = event.key === 'ArrowDown' ? 'down' : event.key === 'ArrowUp' ? 'up' : null;
+      if (!direction) {
+        return;
+      }
 
-        return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
+      event.stopImmediatePropagation?.();
+      event.stopPropagation();
+      event.preventDefault();
 
-    const unregisterArrowUp = editor.registerCommand(
-      KEY_ARROW_UP_COMMAND,
-      (event) => {
-        if (!event?.shiftKey) {
-          return false;
-        }
+      runDirectionalPlan(direction);
+    };
 
-        let planResult: ProgressivePlanResult | null = null;
-        editor.getEditorState().read(() => {
-          planResult = $computeDirectionalPlan(progressionRef, 'up');
-        });
-
-        event?.preventDefault();
-
-        if (!planResult) {
-          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-          return true;
-        }
-
-        editor.update(
-          () => {
-            $applyProgressivePlan(planResult!);
-            progressionRef.current = {
-              anchorKey: planResult!.anchorKey,
-              stage: planResult!.stage,
-              locked: true,
-            };
-          },
-          { tag: [SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG] }
-        );
-
-        return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
+    const unregisterDirectionalKeys = editor.registerRootListener((rootElement, prevRootElement) => {
+      prevRootElement?.removeEventListener('keydown', handleDirectionalKeydown, true);
+      rootElement?.addEventListener('keydown', handleDirectionalKeydown, true);
+    });
 
     return () => {
-      unregisterUpdate();
+      unregisterProgressionListener();
       unregisterSelectAll();
       unregisterArrowLeft();
       unregisterArrowRight();
-      unregisterArrowDown();
-      unregisterArrowUp();
+      const rootElement = editor.getRootElement();
+      rootElement?.removeEventListener('keydown', handleDirectionalKeydown, true);
+      unregisterDirectionalKeys();
     };
   }, [editor]);
 
@@ -316,6 +287,7 @@ function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
 
   return items.sort(compareDocumentOrder);
 }
+
 
 function selectionMatchesPayload(selection: RangeSelection, payload: SnapPayload): boolean {
   const anchorItem = findNearestListItem(selection.anchor.getNode());
@@ -583,6 +555,10 @@ function $computeDirectionalPlan(
     return null;
   }
 
+  if (selection.isCollapsed() && progressionRef.current.locked) {
+    progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+  }
+
   let anchorContent: ListItemNode | null = null;
   if (progressionRef.current.anchorKey) {
     const storedAnchor = $getNodeByKey<ListItemNode>(progressionRef.current.anchorKey);
@@ -628,6 +604,7 @@ function $buildDirectionalStagePlan(
   direction: 'up' | 'down'
 ): ProgressivePlanResult | null {
   const anchorKey = anchorContent.getKey();
+  const resolvedHeads = heads.length > 0 ? heads : [anchorContent];
 
   if (stage === 1) {
     const inlinePlan = $createInlinePlan(anchorContent);
@@ -639,13 +616,9 @@ function $buildDirectionalStagePlan(
     return subtreePlan ? { anchorKey, stage: 2, plan: subtreePlan } : null;
   }
 
-  if (heads.length === 0) {
-    return null;
-  }
-
   if (stage === 3) {
     if (direction === 'down') {
-      const lastHead = heads[heads.length - 1]!;
+      const lastHead = resolvedHeads[resolvedHeads.length - 1]!;
       const nextSibling = getNextContentSibling(lastHead);
       if (!nextSibling) {
         return null;
@@ -655,7 +628,7 @@ function $buildDirectionalStagePlan(
         stage: 3,
         plan: {
           type: 'range',
-          startKey: heads[0]!.getKey(),
+          startKey: resolvedHeads[0]!.getKey(),
           endKey: getSubtreeTail(nextSibling).getKey(),
           startMode: 'content',
           endMode: 'subtree',
@@ -664,7 +637,7 @@ function $buildDirectionalStagePlan(
       return planResult;
     }
 
-    const firstHead = heads[0]!;
+    const firstHead = resolvedHeads[0]!;
     const previousSibling = getPreviousContentSibling(firstHead);
     if (!previousSibling) {
       return null;
@@ -675,7 +648,7 @@ function $buildDirectionalStagePlan(
       plan: {
         type: 'range',
         startKey: previousSibling.getKey(),
-        endKey: getSubtreeTail(heads[heads.length - 1]!).getKey(),
+        endKey: getSubtreeTail(resolvedHeads[resolvedHeads.length - 1]!).getKey(),
         startMode: 'content',
         endMode: 'subtree',
       },
@@ -684,11 +657,11 @@ function $buildDirectionalStagePlan(
   }
 
   if (stage === 4) {
-    const parentCandidate = getParentContentItem(heads[0]!);
+    const parentCandidate = getParentContentItem(resolvedHeads[0]!);
     if (!parentCandidate) {
       return null;
     }
-    const alreadySelected = heads.some((head) => head.getKey() === parentCandidate.getKey());
+    const alreadySelected = resolvedHeads.some((head) => head.getKey() === parentCandidate.getKey());
     if (alreadySelected) {
       return null;
     }
@@ -787,30 +760,30 @@ function $hasInlineBoundary(item: ListItemNode): boolean {
   return Boolean(resolveContentBoundaryPoint(item, 'start') && resolveContentBoundaryPoint(item, 'end'));
 }
 
-function $applyProgressivePlan(result: ProgressivePlanResult) {
+function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
-    return;
+    return false;
   }
 
   if (result.plan.type === 'inline') {
     const item = $getNodeByKey<ListItemNode>(result.plan.itemKey);
     if (!item) {
-      return;
+      return false;
     }
     if (!selectInlineContent(selection, item)) {
-      selectNoteBody(selection, item);
+      return selectNoteBody(selection, item);
     }
-    return;
+    return true;
   }
 
   const startItem = $getNodeByKey<ListItemNode>(result.plan.startKey);
   const endItem = $getNodeByKey<ListItemNode>(result.plan.endKey);
   if (!startItem || !endItem) {
-    return;
+    return false;
   }
 
-  setSelectionBetweenItems(selection, startItem, endItem, result.plan.startMode, result.plan.endMode);
+  return setSelectionBetweenItems(selection, startItem, endItem, result.plan.startMode, result.plan.endMode);
 }
 
 function selectInlineContent(selection: RangeSelection, item: ListItemNode): boolean {
