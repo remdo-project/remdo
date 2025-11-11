@@ -91,9 +91,93 @@ export function SelectionPlugin() {
   const [editor] = useLexicalComposerContext();
   const progressionRef = useRef<ProgressiveSelectionState>(INITIAL_PROGRESSIVE_STATE);
   const unlockRef = useRef<ProgressiveUnlockState>({ pending: false, reason: 'external' });
+  const structuralSelectionRef = useRef(false);
 
   useEffect(() => {
+    interface StructuralSelectionRange {
+      startKey: string;
+      endKey: string;
+    }
+
+    const clearStructuralSelectionMetrics = () => {
+      const rootElement = editor.getRootElement();
+      if (!rootElement) {
+        return;
+      }
+      rootElement.style.removeProperty('--structural-selection-top');
+      rootElement.style.removeProperty('--structural-selection-height');
+    };
+
+    const applyStructuralSelectionMetrics = (range: StructuralSelectionRange | null) => {
+      if (!range) {
+        clearStructuralSelectionMetrics();
+        return;
+      }
+
+      const rootElement = editor.getRootElement();
+      if (!rootElement) {
+        return;
+      }
+
+      const startElement = editor.getElementByKey(range.startKey) as HTMLElement | null;
+      const endElement = editor.getElementByKey(range.endKey) as HTMLElement | null;
+      if (!startElement || !endElement) {
+        clearStructuralSelectionMetrics();
+        return;
+      }
+
+      const rootRect = rootElement.getBoundingClientRect();
+      const startRect = startElement.getBoundingClientRect();
+      const endRect = endElement.getBoundingClientRect();
+      const scrollTop = rootElement.scrollTop;
+      const top = startRect.top - rootRect.top + scrollTop;
+      const bottom = endRect.bottom - rootRect.top + scrollTop;
+      const height = Math.max(0, bottom - top);
+
+      rootElement.style.setProperty('--structural-selection-top', `${top}px`);
+      rootElement.style.setProperty('--structural-selection-height', `${height}px`);
+    };
+
+    const applyStructuralSelectionAttribute = () => {
+      const rootElement = editor.getRootElement();
+      if (!rootElement) {
+        return;
+      }
+
+      if (structuralSelectionRef.current) {
+        rootElement.dataset.structuralSelection = 'true';
+      } else {
+        delete rootElement.dataset.structuralSelection;
+      }
+    };
+
+    const setStructuralSelectionActive = (isActive: boolean) => {
+      if (structuralSelectionRef.current === isActive) {
+        return;
+      }
+
+      structuralSelectionRef.current = isActive;
+      applyStructuralSelectionAttribute();
+    };
+
+    const unregisterRootListener = editor.registerRootListener((rootElement, previousRootElement) => {
+      if (previousRootElement) {
+        delete previousRootElement.dataset.structuralSelection;
+      }
+
+      if (!rootElement) {
+        return;
+      }
+
+      if (structuralSelectionRef.current) {
+        rootElement.dataset.structuralSelection = 'true';
+      }
+    });
+
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
+      let hasStructuralSelection = false;
+      let structuralRange: StructuralSelectionRange | null = null;
+
       const payload = editorState.read(() => {
         const selection = $getSelection();
 
@@ -115,16 +199,24 @@ export function SelectionPlugin() {
           unlockRef.current = { pending: false, reason: 'external' };
         }
 
-        if (tags.has(SNAP_SELECTION_TAG)) {
-          return null;
-        }
-
         if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+          hasStructuralSelection = false;
           return null;
         }
 
         const noteItems = collectSelectedListItems(selection);
-        if (noteItems.length < 2) {
+        if (noteItems.length > 0) {
+          const orderedItems = noteItems.map((item) => getContentListItem(item));
+          structuralRange = {
+            startKey: orderedItems[0]!.getKey(),
+            endKey: orderedItems[orderedItems.length - 1]!.getKey(),
+          };
+        }
+
+        const hasMultiNoteRange = noteItems.length > 1;
+        const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
+        hasStructuralSelection = isProgressiveStructural || hasMultiNoteRange;
+        if (tags.has(SNAP_SELECTION_TAG) || noteItems.length < 2) {
           return null;
         }
 
@@ -135,6 +227,14 @@ export function SelectionPlugin() {
 
         return candidate;
       });
+
+      if (hasStructuralSelection && structuralRange) {
+        applyStructuralSelectionMetrics(structuralRange);
+      } else {
+        clearStructuralSelectionMetrics();
+      }
+
+      setStructuralSelectionActive(hasStructuralSelection && structuralRange !== null);
 
       if (!payload) {
         return;
@@ -288,11 +388,19 @@ export function SelectionPlugin() {
     );
 
     return () => {
+      structuralSelectionRef.current = false;
+      const rootElement = editor.getRootElement();
+      if (rootElement) {
+        delete rootElement.dataset.structuralSelection;
+      }
+      clearStructuralSelectionMetrics();
+
       unregisterProgressionListener();
       unregisterSelectAll();
       unregisterArrowLeft();
       unregisterArrowRight();
       unregisterDirectionalCommand();
+      unregisterRootListener();
     };
   }, [editor]);
 

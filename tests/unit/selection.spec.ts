@@ -189,6 +189,27 @@ describe('selection plugin', () => {
     expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
   });
 
+  it('toggles the structural selection dataset when escalating the ladder', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note2', lexical.mutate);
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+
+    await placeCaretAtNote('note1', lexical.mutate);
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+  });
+
   it('lets Shift+Down walk the progressive selection ladder', async ({ lexical }) => {
     lexical.load('tree_complex');
 
