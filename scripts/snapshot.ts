@@ -50,6 +50,8 @@ interface SessionContext {
   provider: SnapshotProvider;
 }
 
+const COLLAB_SYNC_TIMEOUT_MS = 10_000;
+
 function parseCliArguments(argv: string[]): CliArguments {
   const result: CliArguments = { markdownPath: null };
 
@@ -290,13 +292,13 @@ async function withSession(
     );
   });
 
-  const initialUpdate = waitForEditorUpdate(editor);
-  void provider.connect();
-  await waitForSync(provider);
-  syncYjsStateToLexicalV2__EXPERIMENTAL(binding, lexicalProvider);
-  await initialUpdate;
-
   try {
+    const initialUpdate = waitForEditorUpdate(editor);
+    void provider.connect();
+    await waitForSync(provider);
+    syncYjsStateToLexicalV2__EXPERIMENTAL(binding, lexicalProvider);
+    await initialUpdate;
+
     return await run(editor, { provider });
   } finally {
     sharedRoot.unobserveDeep(observer);
@@ -319,13 +321,62 @@ function waitForSync(provider: Provider & { synced: boolean; on: (event: string,
   if (provider.synced) {
     return Promise.resolve();
   }
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    let cleanup = () => {};
+
+    const finish = (callback: () => void) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      callback();
+    };
+
     const handleSync = (isSynced: boolean) => {
       if (isSynced) {
-        provider.off('sync', handleSync);
-        resolve();
+        finish(() => {
+          resolve();
+        });
       }
     };
+
+    const handleFailure = (payload: unknown) => {
+      finish(() => {
+        const error = payload instanceof Error ? payload : createConnectionError(payload);
+        reject(error);
+      });
+    };
+
+    cleanup = () => {
+      provider.off('sync', handleSync);
+      provider.off('connection-close', handleFailure);
+      provider.off('connection-error', handleFailure);
+      if (timeout !== undefined) {
+        clearTimeout(timeout);
+      }
+    };
+
+    timeout = setTimeout(() => {
+      finish(() => {
+        reject(new Error(`Timed out waiting for collaboration sync after ${COLLAB_SYNC_TIMEOUT_MS}ms`));
+      });
+    }, COLLAB_SYNC_TIMEOUT_MS);
+
     provider.on('sync', handleSync);
+    provider.on('connection-close', handleFailure);
+    provider.on('connection-error', handleFailure);
   });
+}
+
+function createConnectionError(payload: unknown): Error {
+  if (payload && typeof payload === 'object') {
+    const maybeReason = (payload as { reason?: unknown }).reason;
+    if (typeof maybeReason === 'string' && maybeReason.length > 0) {
+      return new Error(`Failed to connect to collaboration server: ${maybeReason}`);
+    }
+  }
+  return new Error('Failed to connect to collaboration server');
 }
