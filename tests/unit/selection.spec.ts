@@ -17,7 +17,7 @@ function readSelectionSnapshot(lexical: TestContext['lexical']): SelectionSnapsh
       throw new Error('Expected a range selection');
     }
 
-    const labels = collectLabelsFromSelection(selection);
+    const labels = $collectLabelsFromSelection(selection);
     const finalLabels = labels.length > 0 ? labels : $collectAllNoteLabels();
 
     return {
@@ -130,20 +130,17 @@ function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
   return null;
 }
 
-function collectLabelsFromSelection(selection: RangeSelection): string[] {
+function $collectLabelsFromSelection(selection: RangeSelection): string[] {
   const seen = new Set<string>();
-  for (const node of selection.getNodes()) {
-    const listItem = findNearestListItem(node);
-    if (!listItem) {
-      continue;
+  visitListItems($getRoot().getFirstChild(), (item) => {
+    if (!item.isSelected(selection)) {
+      return;
     }
-    const contentItem = resolveContentListItem(listItem);
-    const label = getListItemLabel(contentItem);
-    if (!label || seen.has(label)) {
-      continue;
+    const label = getListItemLabel(item);
+    if (label) {
+      seen.add(label);
     }
-    seen.add(label);
-  }
+  });
 
   if (seen.size === 0) {
     const anchorItem = findNearestListItem(selection.anchor.getNode());
