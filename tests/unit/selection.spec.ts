@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { TestContext } from 'vitest';
 import { placeCaretAtNote, pressKey } from '#tests';
-import { $getSelection, $isRangeSelection, $isTextNode, $getRoot } from 'lexical';
-import type { LexicalNode } from 'lexical';
+import { $getSelection, $isRangeSelection, $getRoot } from 'lexical';
+import type { LexicalNode, RangeSelection } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 
@@ -17,45 +17,15 @@ function readSelectionSnapshot(lexical: TestContext['lexical']): SelectionSnapsh
       throw new Error('Expected a range selection');
     }
 
-    const anchorNode = selection.anchor.getNode();
-    const focusNode = selection.focus.getNode();
-
-    if (!$isTextNode(anchorNode) || !$isTextNode(focusNode)) {
-      throw new Error('Expected text nodes on both selection endpoints');
-    }
-
-    const seen = new Set<string>();
-    const selectedNotes: string[] = [];
-    for (const node of selection.getNodes()) {
-      let current: LexicalNode | null = node;
-      let noteText: string | null = null;
-      while (current) {
-        if ($isListItemNode(current)) {
-          noteText = getListItemLabel(current);
-          break;
-        }
-        current = current.getParent();
-      }
-      if (!noteText || seen.has(noteText)) {
-        continue;
-      }
-      seen.add(noteText);
-      selectedNotes.push(noteText);
-    }
-
-    if (selectedNotes.length === 0) {
-      selectedNotes.push(...$collectAllNoteLabels());
-    }
+    const labels = collectLabelsFromSelection(selection);
+    const finalLabels = labels.length > 0 ? labels : $collectAllNoteLabels();
 
     return {
-      selectedNotes: selectedNotes.sort(),
+      selectedNotes: finalLabels,
     } satisfies SelectionSnapshot;
   });
 }
 
-function expectSnapshotMatchesInlineOnly(snapshot: SelectionSnapshot, note: string) {
-  expect(snapshot.selectedNotes).toEqual([note]);
-}
 
 function getListItemLabel(item: ListItemNode): string | null {
   const contentItem = resolveContentListItem(item);
@@ -88,11 +58,11 @@ function resolveContentListItem(item: ListItemNode): ListItemNode {
   return $isListItemNode(previous) ? previous : item;
 }
 
-function isChildrenWrapper(item: ListItemNode | null): boolean {
-  if (!item) {
+function isChildrenWrapper(node: LexicalNode | null): node is ListItemNode {
+  if (!$isListItemNode(node)) {
     return false;
   }
-  const children = item.getChildren();
+  const children = node.getChildren();
   return children.length === 1 && $isListNode(children[0] ?? null);
 }
 
@@ -104,37 +74,86 @@ function $collectAllNoteLabels(): string[] {
   }
 
   const labels: string[] = [];
-
-  const traverseList = (target: LexicalNode | null) => {
-    if (!$isListNode(target)) {
-      return;
+  visitListItems(list, (item) => {
+    const label = getListItemLabel(item);
+    if (label) {
+      labels.push(label);
     }
-    for (const child of target.getChildren()) {
-      if (!$isListItemNode(child)) {
-        continue;
-      }
-      const listItem = child as ListItemNode;
-      if (isChildrenWrapper(listItem)) {
-        const nested = listItem.getFirstChild();
-        traverseList(nested ?? null);
-        continue;
-      }
-
-      const label = getListItemLabel(listItem);
-      if (label) {
-        labels.push(label);
-      }
-
-      const wrapper = listItem.getNextSibling();
-      if ($isListItemNode(wrapper) && isChildrenWrapper(wrapper)) {
-        const nested = wrapper.getFirstChild();
-        traverseList(nested ?? null);
-      }
-    }
-  };
-
-  traverseList(list);
+  });
   return labels;
+}
+
+function visitListItems(node: LexicalNode | null, visit: (item: ListItemNode) => void) {
+  if (!$isListNode(node)) {
+    return;
+  }
+
+  for (const child of node.getChildren()) {
+    if (!$isListItemNode(child)) {
+      continue;
+    }
+
+    const contentItem = resolveContentListItem(child);
+    visit(contentItem);
+
+    const nestedList = getNestedList(contentItem);
+    if (nestedList) {
+      visitListItems(nestedList, visit);
+    }
+  }
+}
+
+function getNestedList(item: ListItemNode): LexicalNode | null {
+  const wrapper = item.getNextSibling();
+  if (isChildrenWrapper(wrapper)) {
+    const nested = wrapper.getFirstChild();
+    return $isListNode(nested) ? nested : null;
+  }
+
+  for (const child of item.getChildren()) {
+    if ($isListNode(child)) {
+      return child;
+    }
+  }
+
+  return null;
+}
+
+function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
+  let current: LexicalNode | null = node;
+  while (current) {
+    if ($isListItemNode(current)) {
+      return resolveContentListItem(current);
+    }
+    current = current.getParent();
+  }
+  return null;
+}
+
+function collectLabelsFromSelection(selection: RangeSelection): string[] {
+  const seen = new Set<string>();
+  for (const node of selection.getNodes()) {
+    const listItem = findNearestListItem(node);
+    if (!listItem) {
+      continue;
+    }
+    const contentItem = resolveContentListItem(listItem);
+    const label = getListItemLabel(contentItem);
+    if (!label || seen.has(label)) {
+      continue;
+    }
+    seen.add(label);
+  }
+
+  if (seen.size === 0) {
+    const anchorItem = findNearestListItem(selection.anchor.getNode());
+    const anchorLabel = anchorItem ? getListItemLabel(anchorItem) : null;
+    if (anchorLabel) {
+      seen.add(anchorLabel);
+    }
+  }
+
+  return Array.from(seen).sort();
 }
 
 describe('selection plugin', () => {
@@ -157,7 +176,7 @@ describe('selection plugin', () => {
     // Stage 1: inline text only.
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
     let snapshot = readSelectionSnapshot(lexical);
-    expectSnapshotMatchesInlineOnly(snapshot, 'note2');
+    expect(snapshot.selectedNotes).toEqual(['note2']);
 
     // Stage 2: note body plus its descendants.
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
