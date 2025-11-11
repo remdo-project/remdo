@@ -1,41 +1,58 @@
 import type { LexicalEditor } from 'lexical';
 import { act } from '@testing-library/react';
-import {
-  KEY_ARROW_DOWN_COMMAND,
-  KEY_ARROW_LEFT_COMMAND,
-  KEY_ARROW_RIGHT_COMMAND,
-  KEY_ARROW_UP_COMMAND,
-  KEY_BACKSPACE_COMMAND,
-  KEY_TAB_COMMAND,
-} from 'lexical';
 
-const KEY_COMMAND_MAP = {
-  Tab: { command: KEY_TAB_COMMAND, key: 'Tab' },
-  Backspace: { command: KEY_BACKSPACE_COMMAND, key: 'Backspace' },
-  ArrowUp: { command: KEY_ARROW_UP_COMMAND, key: 'ArrowUp' },
-  ArrowDown: { command: KEY_ARROW_DOWN_COMMAND, key: 'ArrowDown' },
-  ArrowLeft: { command: KEY_ARROW_LEFT_COMMAND, key: 'ArrowLeft' },
-  ArrowRight: { command: KEY_ARROW_RIGHT_COMMAND, key: 'ArrowRight' },
-} as const;
-
-type SupportedKey = keyof typeof KEY_COMMAND_MAP;
-
-interface PressKeyOptions {
-  key: SupportedKey;
-  shift?: boolean;
+interface NavigatorWithUAData extends Navigator {
+  userAgentData?: { platform?: string };
 }
 
-export async function pressKey(editor: LexicalEditor, { key, shift = false }: PressKeyOptions) {
-  const mapping = KEY_COMMAND_MAP[key];
+const APPLE_PATTERN = /Mac(?:intosh)?|iPhone|iPad|iPod/i;
+const navigatorRef =
+  typeof navigator === 'undefined' ? null : (navigator as NavigatorWithUAData);
+const platformSource = navigatorRef?.userAgentData?.platform ?? navigatorRef?.userAgent ?? '';
+const IS_APPLE = APPLE_PATTERN.test(platformSource);
+
+interface PressKeyOptions {
+  key: string;
+  shift?: boolean;
+  alt?: boolean;
+  meta?: boolean;
+  ctrl?: boolean;
+  ctrlOrMeta?: boolean;
+}
+
+export async function pressKey(
+  editor: LexicalEditor,
+  { key, shift = false, alt = false, meta = false, ctrl = false, ctrlOrMeta }: PressKeyOptions
+) {
+  const root = editor.getRootElement();
+  if (!root) {
+    throw new Error('Lexical root element is not mounted');
+  }
+
+  let nextMeta = meta;
+  let nextCtrl = ctrl;
+
+  if (typeof ctrlOrMeta === 'boolean') {
+    if (ctrlOrMeta) {
+      nextMeta = IS_APPLE;
+      nextCtrl = !IS_APPLE;
+    } else {
+      nextMeta = false;
+      nextCtrl = false;
+    }
+  }
 
   const event = new KeyboardEvent('keydown', {
-    key: mapping.key,
+    key,
     bubbles: true,
     cancelable: true,
     shiftKey: shift,
+    altKey: alt,
+    metaKey: nextMeta,
+    ctrlKey: nextCtrl,
   });
 
   await act(async () => {
-    editor.dispatchCommand(mapping.command, event);
+    root.dispatchEvent(event);
   });
 }
