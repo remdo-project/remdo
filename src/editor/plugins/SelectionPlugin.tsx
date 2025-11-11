@@ -485,6 +485,10 @@ function $computeProgressivePlan(
     return null;
   }
 
+  if (selection.isCollapsed() && progressionRef.current.locked) {
+    progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+  }
+
   let anchorContent: ListItemNode | null = null;
   if (progressionRef.current.anchorKey) {
     const storedAnchor = $getNodeByKey<ListItemNode>(progressionRef.current.anchorKey);
