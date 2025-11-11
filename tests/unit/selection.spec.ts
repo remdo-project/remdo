@@ -154,15 +154,38 @@ function $collectLabelsFromSelection(selection: RangeSelection): string[] {
 }
 
 describe('selection plugin', () => {
-  it('snaps partial cross-note selections to whole notes', async ({ lexical }) => {
+  it('keeps Shift+Left/Right selections confined to inline content', async ({ lexical }) => {
     lexical.load('flat');
 
-    await placeCaretAtNote('note2', lexical.mutate);
+    await placeCaretAtNote('note2', lexical.mutate, 0);
     await pressKey(lexical.editor, { key: 'ArrowLeft', shift: true });
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2']);
 
-    const snapshot = readSelectionSnapshot(lexical);
+    await placeCaretAtNote('note2', lexical.mutate, Number.POSITIVE_INFINITY);
+    await pressKey(lexical.editor, { key: 'ArrowRight', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2']);
+  });
 
-    expect(snapshot.selectedNotes).toEqual(['note1', 'note2']);
+  it('lets Shift+Down walk the progressive selection ladder', async ({ lexical }) => {
+    // TODO: Once Shift+ArrowDown supports stage-by-stage escalation (inline -> subtree -> siblings),
+    // update this test to cover the finer-grained ladder.
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note2', lexical.mutate);
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3', 'note4']);
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4']);
   });
 
   it('follows the Cmd/Ctrl+A progressive selection ladder', async ({ lexical }) => {

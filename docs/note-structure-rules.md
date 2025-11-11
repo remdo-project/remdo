@@ -156,8 +156,11 @@ restructures predictable.
 ## Whole-Note Selection
 
 Selections that cross note boundaries always snap to entire notes (and their
-subtrees). This keeps every structural command operating on complete notes
-rather than fragments and ensures collaboration semantics stay deterministic.
+subtrees). Structural expansion is driven by `Shift+Up/Down`, which walk through
+contiguous sibling slabs before climbing to parents, while `Shift+Left/Right`
+stay confined to inline text. This keeps every structural command operating on
+complete notes rather than fragments and ensures collaboration semantics stay
+deterministic.
 See [Selection](./selection.md) for the full gesture, shortcut, and progressive
 selection behavior.
 

@@ -8,6 +8,10 @@ import {
   $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
+  KEY_ARROW_DOWN_COMMAND,
+  KEY_ARROW_LEFT_COMMAND,
+  KEY_ARROW_RIGHT_COMMAND,
+  KEY_ARROW_UP_COMMAND,
   SELECT_ALL_COMMAND,
 } from 'lexical';
 import type { LexicalNode, RangeSelection, TextNode } from 'lexical';
@@ -158,9 +162,127 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
+    const unregisterArrowLeft = editor.registerCommand(
+      KEY_ARROW_LEFT_COMMAND,
+      (event) => {
+        if (!event?.shiftKey) {
+          return false;
+        }
+
+        let shouldBlock = false;
+        editor.getEditorState().read(() => {
+          shouldBlock = $shouldBlockHorizontalArrow('left');
+        });
+
+        if (!shouldBlock) {
+          return false;
+        }
+
+        event.preventDefault();
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const unregisterArrowRight = editor.registerCommand(
+      KEY_ARROW_RIGHT_COMMAND,
+      (event) => {
+        if (!event?.shiftKey) {
+          return false;
+        }
+
+        let shouldBlock = false;
+        editor.getEditorState().read(() => {
+          shouldBlock = $shouldBlockHorizontalArrow('right');
+        });
+
+        if (!shouldBlock) {
+          return false;
+        }
+
+        event.preventDefault();
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const unregisterArrowDown = editor.registerCommand(
+      KEY_ARROW_DOWN_COMMAND,
+      (event) => {
+        if (!event?.shiftKey) {
+          return false;
+        }
+
+        let planResult: ProgressivePlanResult | null = null;
+        editor.getEditorState().read(() => {
+          planResult = $computeDirectionalPlan(progressionRef, 'down');
+        });
+
+        event?.preventDefault();
+
+        if (!planResult) {
+          return true;
+        }
+
+        editor.update(
+          () => {
+            $applyProgressivePlan(planResult!);
+            progressionRef.current = {
+              anchorKey: planResult!.anchorKey,
+              stage: planResult!.stage,
+              locked: true,
+            };
+          },
+          { tag: [SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG] }
+        );
+
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const unregisterArrowUp = editor.registerCommand(
+      KEY_ARROW_UP_COMMAND,
+      (event) => {
+        if (!event?.shiftKey) {
+          return false;
+        }
+
+        let planResult: ProgressivePlanResult | null = null;
+        editor.getEditorState().read(() => {
+          planResult = $computeDirectionalPlan(progressionRef, 'up');
+        });
+
+        event?.preventDefault();
+
+        if (!planResult) {
+          return true;
+        }
+
+        editor.update(
+          () => {
+            $applyProgressivePlan(planResult!);
+            progressionRef.current = {
+              anchorKey: planResult!.anchorKey,
+              stage: planResult!.stage,
+              locked: true,
+            };
+          },
+          { tag: [SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG] }
+        );
+
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
     return () => {
       unregisterUpdate();
       unregisterSelectAll();
+      unregisterArrowLeft();
+      unregisterArrowRight();
+      unregisterArrowDown();
+      unregisterArrowUp();
     };
   }, [editor]);
 
@@ -208,6 +330,37 @@ function selectionMatchesPayload(selection: RangeSelection, payload: SnapPayload
     pointMatchesEdge(selection.anchor, payload.anchorEdge, anchorItem) &&
     pointMatchesEdge(selection.focus, payload.focusEdge, focusItem)
   );
+}
+
+function $shouldBlockHorizontalArrow(direction: 'left' | 'right'): boolean {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection)) {
+    return false;
+  }
+
+  const noteItems = collectSelectedListItems(selection);
+  if (noteItems.length === 0) {
+    return false;
+  }
+
+  if (noteItems.length > 1) {
+    return true;
+  }
+
+  const contentItem = getContentListItem(noteItems[0]!);
+  const focus = selection.focus;
+  const boundary = resolveContentBoundaryPoint(contentItem, direction === 'left' ? 'start' : 'end');
+
+  if (!boundary) {
+    return true;
+  }
+
+  const node = focus.getNode();
+  if (!$isTextNode(node)) {
+    return true;
+  }
+
+  return node.getKey() === boundary.node.getKey() && focus.offset === boundary.offset;
 }
 
 function pointMatchesEdge(
@@ -414,6 +567,156 @@ function $buildPlanForStage(
   return subtreePlan ? { plan: subtreePlan, stage } : null;
 }
 
+function $computeDirectionalPlan(
+  progressionRef: React.MutableRefObject<ProgressiveSelectionState>,
+  direction: 'up' | 'down'
+): ProgressivePlanResult | null {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection)) {
+    progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+    return null;
+  }
+
+  let anchorContent: ListItemNode | null = null;
+  if (progressionRef.current.anchorKey) {
+    const storedAnchor = $getNodeByKey<ListItemNode>(progressionRef.current.anchorKey);
+    if (storedAnchor) {
+      anchorContent = getContentListItem(storedAnchor);
+    }
+  }
+
+  if (!anchorContent) {
+    const anchorItem = findNearestListItem(selection.anchor.getNode());
+    if (!anchorItem) {
+      progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+      return null;
+    }
+    anchorContent = getContentListItem(anchorItem);
+  }
+
+  const anchorKey = anchorContent.getKey();
+
+  if ($isInlineScope(selection, anchorContent)) {
+    const subtreePlan = $createSubtreePlan(anchorContent);
+    if (!subtreePlan) {
+      return null;
+    }
+    const planResult: ProgressivePlanResult = {
+      anchorKey,
+      stage: 2,
+      plan: subtreePlan,
+    };
+    return planResult;
+  }
+
+  const heads = $collectSelectionHeads(selection);
+  if (heads.length === 0) {
+    return null;
+  }
+
+  return direction === 'down'
+    ? $expandSelectionDown(anchorContent, heads)
+    : $expandSelectionUp(anchorContent, heads);
+}
+
+function $expandSelectionDown(anchor: ListItemNode, heads: ListItemNode[]): ProgressivePlanResult | null {
+  const lastHead = heads[heads.length - 1]!;
+  const nextSibling = getNextContentSibling(lastHead);
+  if (nextSibling) {
+    const endTail = getSubtreeTail(nextSibling);
+    const planResult: ProgressivePlanResult = {
+      anchorKey: anchor.getKey(),
+      stage: 3,
+      plan: {
+        type: 'range',
+        startKey: heads[0]!.getKey(),
+        endKey: endTail.getKey(),
+        startMode: 'content',
+        endMode: 'subtree',
+      },
+    };
+    return planResult;
+  }
+
+  const parent = getParentContentItem(heads[0]!);
+  if (parent) {
+    const tail = getSubtreeTail(parent);
+    const planResult: ProgressivePlanResult = {
+      anchorKey: anchor.getKey(),
+      stage: 4,
+      plan: {
+        type: 'range',
+        startKey: parent.getKey(),
+        endKey: tail.getKey(),
+        startMode: 'content',
+        endMode: 'subtree',
+      },
+    };
+    return planResult;
+  }
+
+  const docPlan = $createDocumentPlan();
+  if (!docPlan) {
+    return null;
+  }
+
+  const planResult: ProgressivePlanResult = {
+    anchorKey: anchor.getKey(),
+    stage: 5,
+    plan: docPlan,
+  };
+  return planResult;
+}
+
+function $expandSelectionUp(anchor: ListItemNode, heads: ListItemNode[]): ProgressivePlanResult | null {
+  const firstHead = heads[0]!;
+  const previousSibling = getPreviousContentSibling(firstHead);
+  if (previousSibling) {
+    const tail = getSubtreeTail(heads[heads.length - 1]!);
+    const planResult: ProgressivePlanResult = {
+      anchorKey: anchor.getKey(),
+      stage: 3,
+      plan: {
+        type: 'range',
+        startKey: previousSibling.getKey(),
+        endKey: tail.getKey(),
+        startMode: 'content',
+        endMode: 'subtree',
+      },
+    };
+    return planResult;
+  }
+
+  const parent = getParentContentItem(firstHead);
+  if (parent) {
+    const tail = getSubtreeTail(parent);
+    const planResult: ProgressivePlanResult = {
+      anchorKey: anchor.getKey(),
+      stage: 4,
+      plan: {
+        type: 'range',
+        startKey: parent.getKey(),
+        endKey: tail.getKey(),
+        startMode: 'content',
+        endMode: 'subtree',
+      },
+    };
+    return planResult;
+  }
+
+  const docPlan = $createDocumentPlan();
+  if (!docPlan) {
+    return null;
+  }
+
+  const planResult: ProgressivePlanResult = {
+    anchorKey: anchor.getKey(),
+    stage: 5,
+    plan: docPlan,
+  };
+  return planResult;
+}
+
 function $createInlinePlan(item: ListItemNode): ProgressivePlan | null {
   return $hasInlineBoundary(item) ? { type: 'inline', itemKey: item.getKey() } : null;
 }
@@ -557,6 +860,101 @@ function resolveContentBoundaryPoint(listItem: ListItemNode, edge: 'start' | 'en
   const length = textNode.getTextContentSize?.() ?? textNode.getTextContent().length;
   const offset = edge === 'start' ? 0 : length;
   return { node: textNode, offset } as const;
+}
+
+function $isInlineScope(selection: RangeSelection, anchorContent: ListItemNode): boolean {
+  if (selection.isCollapsed()) {
+    return true;
+  }
+
+  const items = collectSelectedListItems(selection);
+  if (items.length === 0) {
+    return true;
+  }
+
+  if (items.length > 1) {
+    return false;
+  }
+
+  const content = getContentListItem(items[0]!);
+  return content.getKey() === anchorContent.getKey();
+}
+
+function $collectSelectionHeads(selection: RangeSelection): ListItemNode[] {
+  const items = collectSelectedListItems(selection);
+  if (items.length === 0) {
+    return [];
+  }
+
+  const orderedContent = items.map((item) => getContentListItem(item));
+  const seen = new Set<string>();
+  const unique: ListItemNode[] = [];
+
+  for (const item of orderedContent) {
+    const key = item.getKey();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    unique.push(item);
+  }
+
+  const heads: ListItemNode[] = [];
+  for (const item of unique) {
+    let covered = false;
+    for (const head of heads) {
+      if (isDescendantOf(item, head)) {
+        covered = true;
+        break;
+      }
+    }
+    if (covered) {
+      continue;
+    }
+
+    for (let i = heads.length - 1; i >= 0; i -= 1) {
+      if (isDescendantOf(heads[i]!, item)) {
+        heads.splice(i, 1);
+      }
+    }
+
+    heads.push(item);
+  }
+
+  return heads;
+}
+
+function getNextContentSibling(item: ListItemNode): ListItemNode | null {
+  let sibling: LexicalNode | null = item.getNextSibling();
+  while (sibling) {
+    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
+      return sibling;
+    }
+    sibling = sibling.getNextSibling();
+  }
+  return null;
+}
+
+function getPreviousContentSibling(item: ListItemNode): ListItemNode | null {
+  let sibling: LexicalNode | null = item.getPreviousSibling();
+  while (sibling) {
+    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
+      return sibling;
+    }
+    sibling = sibling.getPreviousSibling();
+  }
+  return null;
+}
+
+function isDescendantOf(node: ListItemNode, ancestor: ListItemNode): boolean {
+  let current: ListItemNode | null = node;
+  while (current) {
+    if (current.getKey() === ancestor.getKey()) {
+      return true;
+    }
+    current = getParentContentItem(current);
+  }
+  return false;
 }
 
 function findContentBoundaryTextNode(listItem: ListItemNode, edge: 'start' | 'end'): TextNode | null {

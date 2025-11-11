@@ -118,7 +118,8 @@ rules that govern these operations.
 ### Selection Overview
 
 RemDo’s editor keeps every selection aligned to whole notes so structural
-commands always act on complete subtrees.
+commands always act on complete subtrees. Inline arrows (`Shift+Left/Right`)
+stay inside a note, while structural expansion happens via `Shift+Up/Down`.
 [Selection](./selection.md) details the cursor-driven gestures, progressive
 selection behavior, shortcut summary, and command compatibility matrix that
 implementations must honor.

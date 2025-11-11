@@ -46,6 +46,16 @@ function findItemByText(listNode: any, noteText: string): any {
   return null;
 }
 
+/**
+ * Positions the caret inside the note whose rendered text matches {@link noteText}.
+ *
+ * `offset` behaves like a TextNode index with a couple of edge cases worth calling out:
+ * - Positive values clamp to the note’s text length, so large numbers (e.g. `Number.POSITIVE_INFINITY`)
+ *   jump to the end without needing to know the exact character count.
+ * - Negative values are treated as offsets from the end (so `-1` targets the last character).
+ * - When no textual child is available, the helper falls back to `selectStart`/`selectEnd` on the list item,
+ *   in which case the `offset` is ignored unless selecting the end is explicitly requested via a positive value.
+ */
 export async function placeCaretAtNote(
   noteText: string,
   mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>,
