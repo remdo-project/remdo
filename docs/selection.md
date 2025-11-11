@@ -58,13 +58,16 @@ note’s text to return to inline editing.
 
 ### Keyboard Gestures
 
-1. `Shift+Arrow` behaves like a regular text editor while the caret stays inside
-   the current note. The first escalation (press 1) highlights only that note’s
-   body, the next escalation (press 2) picks up the note plus its descendants,
-   and additional presses walk through siblings, then parents, just like the
-   ladder described below. `Shift+Up/Down` walk across siblings before
-   escalating upward, while `Shift+Left/Right` traverse between a note and its
-   parent/child when those relationships exist.
+1. `Shift+Left/Right` behave exactly like a regular text editor but are limited
+   to the active note’s inline content. When the caret reaches the note boundary
+   those keys become no-ops, so you never hop into structural selection via
+   horizontal arrows.
+2. `Shift+Up/Down` drive the structural ladder. Pressing either key while a
+   note is highlighted extends the selection to the next contiguous block in
+   that direction: additional siblings first, then the parent when you run out
+   of siblings, and finally the parent’s siblings as the ladder continues. This
+   keeps structural expansion intuitive (follow the arrow direction) while
+   honoring the contiguous-subtree invariant.
 2. `Esc` (or clicking back into text) collapses any note-range selection to the
    caret state without changing the document, giving you a quick way to resume
    typing after structural commands.
@@ -91,7 +94,8 @@ note’s text to return to inline editing.
 | ------------------ | ------- | ------ |
 | `Tab`              | Structural | Indents the selected note range under the preceding sibling (see [Note Structure Rules](./note-structure-rules.md)). |
 | `Shift+Tab`        | Structural | Performs Structural Outdent, inserting the selection immediately after its former parent. |
-| `Shift+Arrow`      | Keyboard | Extends the selection; once it crosses a note boundary it follows the Progressive Selection ladder. |
+| `Shift+Left/Right` | Keyboard | Inline-only expansion inside the active note; reaching a boundary is a no-op. |
+| `Shift+Up/Down`    | Keyboard | Structural expansion along the Progressive Selection ladder (siblings in direction of travel, then parents). |
 | `Shift+Click`      | Pointer  | Extends from the anchor to the clicked note, yielding a contiguous note range. |
 | `Esc`              | Keyboard | Collapses any note range back to a caret without changing content. |
 | `Enter`            | Keyboard | Returns to inline editing by placing the caret inside the focused note. |
@@ -123,9 +127,9 @@ back to the caret state.
    level until the root note becomes selected.
 
 Stopping at any stage leaves the selection in that scope so you can immediately
-run structural commands or copy/paste entire sections. `Shift+Arrow` uses this
-same progression whenever it pushes the selection across a note boundary, so
-keyboard-driven selection stays coherent regardless of the shortcut you use.
+run structural commands or copy/paste entire sections. `Shift+Up/Down` reuse
+this progression for keyboard-driven structural selection, while
+`Shift+Left/Right` remain inline-only.
 
 ## Command Compatibility
 
