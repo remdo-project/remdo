@@ -1,4 +1,4 @@
-import type { ListItemNode } from '@lexical/list';
+import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
@@ -65,8 +65,6 @@ export function SelectionPlugin() {
       const isProgressiveUpdate = tags.has(PROGRESSIVE_SELECTION_TAG);
       if (isProgressiveUpdate) {
         progressionRef.current = { ...progressionRef.current, locked: true };
-      } else if (progressionRef.current.locked) {
-        progressionRef.current = { ...progressionRef.current, locked: false };
       } else {
         progressionRef.current = INITIAL_PROGRESSIVE_STATE;
       }
@@ -334,16 +332,26 @@ function $computeProgressivePlan(
     return null;
   }
 
-  const anchorItem = findNearestListItem(selection.anchor.getNode());
-  if (!anchorItem) {
-    progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-    return null;
+  let anchorContent: ListItemNode | null = null;
+  if (progressionRef.current.anchorKey) {
+    const storedAnchor = $getNodeByKey<ListItemNode>(progressionRef.current.anchorKey);
+    if (storedAnchor) {
+      anchorContent = getContentListItem(storedAnchor);
+    }
   }
 
-  const anchorContent = getContentListItem(anchorItem);
+  if (!anchorContent) {
+    const anchorItem = findNearestListItem(selection.anchor.getNode());
+    if (!anchorItem) {
+      progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+      return null;
+    }
+    anchorContent = getContentListItem(anchorItem);
+  }
+
   const anchorKey = anchorContent.getKey();
-  const nextStage =
-    progressionRef.current.anchorKey === anchorKey ? progressionRef.current.stage + 1 : 1;
+  const isContinuing = progressionRef.current.anchorKey === anchorKey;
+  const nextStage = isContinuing ? progressionRef.current.stage + 1 : 1;
 
   const planEntry = $buildPlanForStage(anchorContent, nextStage);
   if (!planEntry) {
@@ -455,18 +463,16 @@ function $createDocumentPlan(): ProgressivePlan | null {
     return null;
   }
 
-  const contentItems = list
-    .getChildren()
-    .filter((node): node is ListItemNode => $isListItemNode(node) && !isChildrenWrapper(node));
-  if (contentItems.length === 0) {
+  const firstItem = getFirstDescendantListItem(list);
+  const lastItem = getLastDescendantListItem(list);
+  if (!firstItem || !lastItem) {
     return null;
   }
 
-  const last = contentItems[contentItems.length - 1]!;
-  const tail = getSubtreeTail(last);
+  const tail = getSubtreeTail(lastItem);
   return {
     type: 'range',
-    startKey: contentItems[0]!.getKey(),
+    startKey: firstItem.getKey(),
     endKey: tail.getKey(),
     startMode: 'content',
     endMode: 'subtree',
@@ -622,27 +628,35 @@ function getWrapperForContent(item: ListItemNode): ListItemNode | null {
 }
 
 function getSubtreeTail(item: ListItemNode): ListItemNode {
-  const wrapper = getWrapperForContent(item);
-  if (!wrapper) {
+  const nestedList = getNestedList(item);
+  if (!nestedList) {
     return item;
   }
 
-  const nestedList = wrapper.getFirstChild();
-  if (!$isListNode(nestedList)) {
-    return wrapper;
-  }
-
-  const children = nestedList.getChildren();
-  if (children.length === 0) {
-    return wrapper;
-  }
-
-  const lastChild = children[children.length - 1];
+  const lastChild = nestedList.getLastChild();
   if (!$isListItemNode(lastChild)) {
-    return wrapper;
+    return item;
   }
 
   return getSubtreeTail(lastChild);
+}
+
+function getNestedList(item: ListItemNode): ListNode | null {
+  const wrapper = getWrapperForContent(item);
+  if (wrapper) {
+    const nested = wrapper.getFirstChild();
+    if ($isListNode(nested)) {
+      return nested;
+    }
+  }
+
+  for (const child of item.getChildren()) {
+    if ($isListNode(child)) {
+      return child;
+    }
+  }
+
+  return null;
 }
 
 function getContentSiblings(item: ListItemNode): ListItemNode[] {
@@ -659,4 +673,50 @@ function getContentSiblings(item: ListItemNode): ListItemNode[] {
   }
 
   return siblings.length === 0 ? [item] : siblings;
+}
+
+function getFirstDescendantListItem(node: LexicalNode | null): ListItemNode | null {
+  if (!$isListNode(node)) {
+    return null;
+  }
+
+  for (const child of node.getChildren()) {
+    if ($isListItemNode(child)) {
+      const content = getContentListItem(child);
+      if (content) {
+        return content;
+      }
+      const nested = getNestedList(child);
+      const match = getFirstDescendantListItem(nested);
+      if (match) {
+        return match;
+      }
+    }
+  }
+
+  return null;
+}
+
+function getLastDescendantListItem(node: LexicalNode | null): ListItemNode | null {
+  if (!$isListNode(node)) {
+    return null;
+  }
+
+  const children = node.getChildren();
+  for (let i = children.length - 1; i >= 0; i -= 1) {
+    const child = children[i];
+    if ($isListItemNode(child)) {
+      const nested = getNestedList(child);
+      const match = getLastDescendantListItem(nested);
+      if (match) {
+        return match;
+      }
+      const content = getContentListItem(child);
+      if (content) {
+        return content;
+      }
+    }
+  }
+
+  return null;
 }
