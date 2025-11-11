@@ -221,6 +221,7 @@ export function SelectionPlugin() {
         event?.preventDefault();
 
         if (!planResult) {
+          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
           return true;
         }
 
@@ -256,6 +257,7 @@ export function SelectionPlugin() {
         event?.preventDefault();
 
         if (!planResult) {
+          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
           return true;
         }
 
@@ -599,91 +601,81 @@ function $computeDirectionalPlan(
   }
 
   const anchorKey = anchorContent.getKey();
+  const isContinuing = progressionRef.current.locked && progressionRef.current.anchorKey === anchorKey;
+  let stage = isContinuing ? progressionRef.current.stage : 0;
+  const heads = $collectSelectionHeads(selection);
 
-  if ($isInlineScope(selection, anchorContent)) {
-    const subtreePlan = $createSubtreePlan(anchorContent);
-    if (!subtreePlan) {
-      return null;
+  const MAX_STAGE = 5;
+  while (stage < MAX_STAGE + 1) {
+    stage += 1;
+    const planResult = $buildDirectionalStagePlan(anchorContent, heads, stage, direction);
+    if (planResult) {
+      return planResult;
     }
-    const planResult: ProgressivePlanResult = {
-      anchorKey,
-      stage: 2,
-      plan: subtreePlan,
-    };
-    return planResult;
+
+    if (stage >= MAX_STAGE) {
+      break;
+    }
   }
 
-  const heads = $collectSelectionHeads(selection);
+  return null;
+}
+
+function $buildDirectionalStagePlan(
+  anchorContent: ListItemNode,
+  heads: ListItemNode[],
+  stage: number,
+  direction: 'up' | 'down'
+): ProgressivePlanResult | null {
+  const anchorKey = anchorContent.getKey();
+
+  if (stage === 1) {
+    const inlinePlan = $createInlinePlan(anchorContent);
+    return inlinePlan ? { anchorKey, stage: 1, plan: inlinePlan } : null;
+  }
+
+  if (stage === 2) {
+    const subtreePlan = $createSubtreePlan(anchorContent);
+    return subtreePlan ? { anchorKey, stage: 2, plan: subtreePlan } : null;
+  }
+
   if (heads.length === 0) {
     return null;
   }
 
-  return direction === 'down'
-    ? $expandSelectionDown(anchorContent, heads)
-    : $expandSelectionUp(anchorContent, heads);
-}
+  if (stage === 3) {
+    if (direction === 'down') {
+      const lastHead = heads[heads.length - 1]!;
+      const nextSibling = getNextContentSibling(lastHead);
+      if (!nextSibling) {
+        return null;
+      }
+      const planResult: ProgressivePlanResult = {
+        anchorKey,
+        stage: 3,
+        plan: {
+          type: 'range',
+          startKey: heads[0]!.getKey(),
+          endKey: getSubtreeTail(nextSibling).getKey(),
+          startMode: 'content',
+          endMode: 'subtree',
+        },
+      };
+      return planResult;
+    }
 
-function $expandSelectionDown(anchor: ListItemNode, heads: ListItemNode[]): ProgressivePlanResult | null {
-  const lastHead = heads[heads.length - 1]!;
-  const nextSibling = getNextContentSibling(lastHead);
-  if (nextSibling) {
-    const endTail = getSubtreeTail(nextSibling);
+    const firstHead = heads[0]!;
+    const previousSibling = getPreviousContentSibling(firstHead);
+    if (!previousSibling) {
+      return null;
+    }
     const planResult: ProgressivePlanResult = {
-      anchorKey: anchor.getKey(),
-      stage: 3,
-      plan: {
-        type: 'range',
-        startKey: heads[0]!.getKey(),
-        endKey: endTail.getKey(),
-        startMode: 'content',
-        endMode: 'subtree',
-      },
-    };
-    return planResult;
-  }
-
-  const parent = getParentContentItem(heads[0]!);
-  if (parent) {
-    const tail = getSubtreeTail(parent);
-    const planResult: ProgressivePlanResult = {
-      anchorKey: anchor.getKey(),
-      stage: 4,
-      plan: {
-        type: 'range',
-        startKey: parent.getKey(),
-        endKey: tail.getKey(),
-        startMode: 'content',
-        endMode: 'subtree',
-      },
-    };
-    return planResult;
-  }
-
-  const docPlan = $createDocumentPlan();
-  if (!docPlan) {
-    return null;
-  }
-
-  const planResult: ProgressivePlanResult = {
-    anchorKey: anchor.getKey(),
-    stage: 5,
-    plan: docPlan,
-  };
-  return planResult;
-}
-
-function $expandSelectionUp(anchor: ListItemNode, heads: ListItemNode[]): ProgressivePlanResult | null {
-  const firstHead = heads[0]!;
-  const previousSibling = getPreviousContentSibling(firstHead);
-  if (previousSibling) {
-    const tail = getSubtreeTail(heads[heads.length - 1]!);
-    const planResult: ProgressivePlanResult = {
-      anchorKey: anchor.getKey(),
+      anchorKey,
       stage: 3,
       plan: {
         type: 'range',
         startKey: previousSibling.getKey(),
-        endKey: tail.getKey(),
+        endKey: getSubtreeTail(heads[heads.length - 1]!).getKey(),
         startMode: 'content',
         endMode: 'subtree',
       },
@@ -691,16 +683,22 @@ function $expandSelectionUp(anchor: ListItemNode, heads: ListItemNode[]): Progre
     return planResult;
   }
 
-  const parent = getParentContentItem(firstHead);
-  if (parent) {
-    const tail = getSubtreeTail(parent);
+  if (stage === 4) {
+    const parentCandidate = getParentContentItem(heads[0]!);
+    if (!parentCandidate) {
+      return null;
+    }
+    const alreadySelected = heads.some((head) => head.getKey() === parentCandidate.getKey());
+    if (alreadySelected) {
+      return null;
+    }
     const planResult: ProgressivePlanResult = {
-      anchorKey: anchor.getKey(),
+      anchorKey,
       stage: 4,
       plan: {
         type: 'range',
-        startKey: parent.getKey(),
-        endKey: tail.getKey(),
+        startKey: parentCandidate.getKey(),
+        endKey: getSubtreeTail(parentCandidate).getKey(),
         startMode: 'content',
         endMode: 'subtree',
       },
@@ -713,12 +711,11 @@ function $expandSelectionUp(anchor: ListItemNode, heads: ListItemNode[]): Progre
     return null;
   }
 
-  const planResult: ProgressivePlanResult = {
-    anchorKey: anchor.getKey(),
+  return {
+    anchorKey,
     stage: 5,
     plan: docPlan,
   };
-  return planResult;
 }
 
 function $createInlinePlan(item: ListItemNode): ProgressivePlan | null {
@@ -864,24 +861,6 @@ function resolveContentBoundaryPoint(listItem: ListItemNode, edge: 'start' | 'en
   const length = textNode.getTextContentSize?.() ?? textNode.getTextContent().length;
   const offset = edge === 'start' ? 0 : length;
   return { node: textNode, offset } as const;
-}
-
-function $isInlineScope(selection: RangeSelection, anchorContent: ListItemNode): boolean {
-  if (selection.isCollapsed()) {
-    return true;
-  }
-
-  const items = collectSelectedListItems(selection);
-  if (items.length === 0) {
-    return true;
-  }
-
-  if (items.length > 1) {
-    return false;
-  }
-
-  const content = getContentListItem(items[0]!);
-  return content.getKey() === anchorContent.getKey();
 }
 
 function $collectSelectionHeads(selection: RangeSelection): ListItemNode[] {
