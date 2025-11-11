@@ -168,6 +168,26 @@ describe('selection plugin', () => {
     expect(snapshot.selectedNotes).toEqual(['note2']);
   });
 
+  it('treats Shift+Left/Right as no-ops once the selection spans whole notes', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note2', lexical.mutate);
+
+    // Promote selection to stage 2: note + descendants.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
+
+    await pressKey(lexical.editor, { key: 'ArrowLeft', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
+
+    await pressKey(lexical.editor, { key: 'ArrowRight', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
+  });
+
   it('lets Shift+Down walk the progressive selection ladder', async ({ lexical }) => {
     lexical.load('tree_complex');
 

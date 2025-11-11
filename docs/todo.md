@@ -53,3 +53,10 @@ Options to consider when implementing:
 2. Spin up a headless `LexicalEditor` directly inside the test. Pros: minimal
    setup, fast. Cons: must ensure node registrations/config match the main
    editor to avoid false diffs.
+
+## Mouse-driven selection parity
+
+Structural snapping is only covered via keyboard progression today. Add a
+follow-up plan to exercise pointer gestures (dragging between notes and
+`Shift+Click` expansion) so the SelectionPlugin’s snap + blocking logic stays
+consistent once we wire up mouse interactions.
