@@ -82,6 +82,7 @@ function isNoopPlan(result: ProgressivePlanResult): boolean {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const PROGRESSIVE_SELECTION_DIRECTION_COMMAND = createCommand<{
   direction: 'up' | 'down';
 }>('selection:progressive-direction');
@@ -90,8 +91,6 @@ export function SelectionPlugin() {
   const [editor] = useLexicalComposerContext();
   const progressionRef = useRef<ProgressiveSelectionState>(INITIAL_PROGRESSIVE_STATE);
   const unlockRef = useRef<ProgressiveUnlockState>({ pending: false, reason: 'external' });
-  const debugSelections = process.env.DEBUG_SELECTION === '1';
-  const pendingProgressiveUnlock = useRef(false);
 
   useEffect(() => {
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
@@ -99,17 +98,6 @@ export function SelectionPlugin() {
 
       editorState.read(() => {
         const selection = $getSelection();
-        if (debugSelections) {
-          const state = $isRangeSelection(selection)
-            ? {
-                anchor: selection.anchor.getNode().getKey?.(),
-                focus: selection.focus.getNode().getKey?.(),
-                collapsed: selection.isCollapsed(),
-              }
-            : { collapsed: true };
-          // eslint-disable-next-line no-console
-          console.log('[SelectionPlugin] update', { tags: Array.from(tags), state });
-        }
 
         if (tags.has(PROGRESSIVE_SELECTION_TAG)) {
           const isLocked = $isRangeSelection(selection) && !selection.isCollapsed();
@@ -122,14 +110,6 @@ export function SelectionPlugin() {
           const anchorItem = findNearestListItem(selection.anchor.getNode());
           const anchorKey = anchorItem ? getContentListItem(anchorItem).getKey() : null;
           if (!anchorKey || selection.isCollapsed() || progressionRef.current.anchorKey !== anchorKey) {
-            if (debugSelections) {
-              // eslint-disable-next-line no-console
-              console.log('[SelectionPlugin] progression reset anchor mismatch', {
-                prev: progressionRef.current,
-                anchorKey,
-              });
-            }
-
             if (!unlockRef.current.pending || unlockRef.current.reason !== 'directional') {
               progressionRef.current = INITIAL_PROGRESSIVE_STATE;
             }
@@ -146,19 +126,11 @@ export function SelectionPlugin() {
         }
 
         const noteItems = collectSelectedListItems(selection);
-        if (debugSelections) {
-          // eslint-disable-next-line no-console
-          console.log('[SelectionPlugin] note items', noteItems.map((item) => item.getKey()));
-        }
         if (noteItems.length < 2) {
           return;
         }
 
         const candidate = createSnapPayload(selection, noteItems);
-        if (debugSelections) {
-          // eslint-disable-next-line no-console
-          console.log('[SelectionPlugin] snap candidate', candidate);
-        }
         if (!candidate || selectionMatchesPayload(selection, candidate)) {
           return;
         }
@@ -285,42 +257,20 @@ export function SelectionPlugin() {
 
     const runDirectionalPlan = (direction: 'up' | 'down') => {
       unlockRef.current = { pending: true, reason: 'directional' };
-      if (debugSelections) {
-        // eslint-disable-next-line no-console
-        console.log('[SelectionPlugin] directional request', direction, progressionRef.current);
-      }
 
       editor.update(
         () => {
           const planResult = $computeDirectionalPlan(progressionRef, direction);
           if (!planResult) {
-            if (debugSelections) {
-              // eslint-disable-next-line no-console
-              console.log('[SelectionPlugin] no plan for direction', direction);
-            }
             progressionRef.current = INITIAL_PROGRESSIVE_STATE;
             return;
-          }
-
-          if (debugSelections) {
-            // eslint-disable-next-line no-console
-            console.log('[SelectionPlugin] plan result', { direction, stage: planResult.stage });
           }
 
           const noopPlan = isNoopPlan(planResult);
           const applied = noopPlan || $applyProgressivePlan(planResult);
           if (!applied) {
-            if (debugSelections) {
-              // eslint-disable-next-line no-console
-              console.log('[SelectionPlugin] plan failed to apply');
-            }
             progressionRef.current = INITIAL_PROGRESSIVE_STATE;
             return;
-          }
-
-          if (debugSelections) {
-            // eslint-disable-next-line no-console
-            console.log('[SelectionPlugin] stage advanced', planResult.stage);
           }
 
           progressionRef.current = {
