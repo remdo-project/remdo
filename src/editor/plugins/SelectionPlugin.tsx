@@ -2,11 +2,13 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
+  $createRangeSelection,
   $getNodeByKey,
   $getRoot,
   $getSelection,
   $isRangeSelection,
   $isTextNode,
+  $setSelection,
   COMMAND_PRIORITY_CRITICAL,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
@@ -66,7 +68,7 @@ export function SelectionPlugin() {
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
       if (tags.has(PROGRESSIVE_SELECTION_TAG)) {
         progressionRef.current = { ...progressionRef.current, locked: true };
-      } else {
+      } else if (!tags.has(SNAP_SELECTION_TAG)) {
         progressionRef.current = INITIAL_PROGRESSIVE_STATE;
       }
 
@@ -118,7 +120,8 @@ export function SelectionPlugin() {
             return;
           }
 
-          selection.setTextNodeRange(anchorPoint.node, anchorPoint.offset, focusPoint.node, focusPoint.offset);
+          selection.anchor.set(anchorPoint.node.getKey(), anchorPoint.offset, 'text');
+          selection.focus.set(focusPoint.node.getKey(), focusPoint.offset, 'text');
         },
         { tag: SNAP_SELECTION_TAG }
       );
@@ -793,7 +796,9 @@ function selectInlineContent(selection: RangeSelection, item: ListItemNode): boo
     return selectNoteBody(selection, item);
   }
 
-  selection.setTextNodeRange(start.node, start.offset, end.node, end.offset);
+  // Use the existing selection and update it
+  selection.anchor.set(start.node.getKey(), start.offset, 'text');
+  selection.focus.set(end.node.getKey(), end.offset, 'text');
   return true;
 }
 
@@ -821,7 +826,9 @@ function setSelectionBetweenItems(
     return false;
   }
 
-  selection.setTextNodeRange(start.node, start.offset, end.node, end.offset);
+  // Use the existing selection and update it
+  selection.anchor.set(start.node.getKey(), start.offset, 'text');
+  selection.focus.set(end.node.getKey(), end.offset, 'text');
   return true;
 }
 
