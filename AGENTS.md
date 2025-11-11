@@ -60,7 +60,7 @@ captures the full model.
   you blow away `node_modules`/`data/.vendor`. Skip it in workspaces that are
   already initialized so you don’t clobber local caches.
 - `data/.vendor/lexical` is our read-only mirror of the upstream Lexical repo at
-  the exact version declared in `package.json`. Consult it whenever you need to
-  inspect canonical Lexical behavior without poking inside `node_modules`. Never
-  edit files there; rerun `pnpm run dev:init` if you need a fresh copy.
+  the exact version declared in `package.json`. **Always inspect Lexical sources
+  here first** (avoid `node_modules`, which may contain minified bundles). Never
+  edit files in `.vendor`; rerun `pnpm run dev:init` if you need a fresh copy.
 - Use the GitHub CLI (gh) to check repository and Actions status on GitHub.

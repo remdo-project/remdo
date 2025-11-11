@@ -372,13 +372,13 @@ function $buildPlanForStage(
   }
 
   if (stage === 2) {
-    const notePlan = $createNoteBodyPlan(anchorContent);
-    return notePlan ? { plan: notePlan, stage: 2 } : null;
+    const subtreePlan = $createSubtreePlan(anchorContent);
+    return subtreePlan ? { plan: subtreePlan, stage: 2 } : null;
   }
 
-  const offset = stage - 3;
-  const levelsUp = Math.floor(offset / 2);
-  const includeSiblings = offset % 2 === 1;
+  const relative = stage - 3;
+  const levelsUp = Math.floor((relative + 1) / 2);
+  const includeSiblings = relative % 2 === 0;
 
   const targetContent = ascendContentItem(anchorContent, levelsUp);
   if (!targetContent) {
@@ -387,6 +387,17 @@ function $buildPlanForStage(
   }
 
   if (includeSiblings) {
+    const parentList = targetContent.getParent();
+    if ($isListNode(parentList)) {
+      const parentParent = parentList.getParent();
+      if (parentParent && parentParent === $getRoot()) {
+        const docPlan = $createDocumentPlan();
+        if (docPlan) {
+          return { plan: docPlan, stage };
+        }
+      }
+    }
+
     const siblingPlan = $createSiblingRangePlan(targetContent);
     return siblingPlan ? { plan: siblingPlan, stage } : null;
   }
