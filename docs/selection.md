@@ -118,7 +118,11 @@ back to the caret state.
    subtree beneath the note so clipboard operations and destructive keys remove
    the whole section. Inline editing is disabled at this stage; you’re strictly
    in structural mode. From this point forward, Delete/Backspace remove the
-   entire selection and structural commands affect every highlighted note.
+   entire selection and structural commands affect every highlighted note. From
+   this stage onward the UI also presents a single block highlight across the
+   bullet column and note bodies, so the user sees one contiguous slab rather
+   than multiple inline fragments—reinforcing that they are operating on whole
+   notes instead of text spans.
 3. **Press 3:** Adds every sibling at the same depth (including their
    descendants) while keeping the parent untouched. If there are no siblings,
    the ladder automatically skips this step and continues to the next stage.
