@@ -199,6 +199,40 @@ describe('selection plugin', () => {
     expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
   });
 
+  it('lets Shift+Up walk the progressive selection ladder', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note4', lexical.mutate, 2);
+
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note4']);
+
+    // Stage 1: inline body only.
+    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note4']);
+
+    // Stage 2: note + descendants (note4 has no children, so the range is unchanged).
+    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note4']);
+
+    // Stage 3: include preceding siblings at this depth.
+    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3', 'note4']);
+
+    // Stage 4: hoist to the parent subtree.
+    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4']);
+
+    // Stage 5: include the rest of the document starting at the root level.
+    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
+  });
+
   it('follows the Cmd/Ctrl+A progressive selection ladder', async ({ lexical }) => {
     lexical.load('tree_complex');
 
