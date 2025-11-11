@@ -1,4 +1,10 @@
 import type { LexicalEditor } from 'lexical';
+import {
+  KEY_ARROW_DOWN_COMMAND,
+  KEY_ARROW_LEFT_COMMAND,
+  KEY_ARROW_RIGHT_COMMAND,
+  KEY_ARROW_UP_COMMAND,
+} from 'lexical';
 import { act } from '@testing-library/react';
 
 interface NavigatorWithUAData extends Navigator {
@@ -52,7 +58,40 @@ export async function pressKey(
     ctrlKey: nextCtrl,
   });
 
+  const arrowCommand = getArrowCommand(key);
+  if (arrowCommand) {
+    await act(async () => {
+      editor.dispatchCommand(arrowCommand, event);
+    });
+    await waitForEditorUpdate(editor);
+    return;
+  }
+
   await act(async () => {
     root.dispatchEvent(event);
+  });
+  await waitForEditorUpdate(editor);
+}
+
+function getArrowCommand(key: string) {
+  switch (key) {
+    case 'ArrowUp':
+      return KEY_ARROW_UP_COMMAND;
+    case 'ArrowDown':
+      return KEY_ARROW_DOWN_COMMAND;
+    case 'ArrowLeft':
+      return KEY_ARROW_LEFT_COMMAND;
+    case 'ArrowRight':
+      return KEY_ARROW_RIGHT_COMMAND;
+    default:
+      return null;
+  }
+}
+
+function waitForEditorUpdate(editor: LexicalEditor) {
+  return new Promise<void>((resolve) => {
+    editor.update(() => {
+      resolve();
+    });
   });
 }
