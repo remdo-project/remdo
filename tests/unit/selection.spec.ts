@@ -168,7 +168,7 @@ describe('selection plugin', () => {
     expect(snapshot.selectedNotes).toEqual(['note2']);
   });
 
-  it.fails('lets Shift+Down walk the progressive selection ladder', async ({ lexical }) => {
+  it('lets Shift+Down walk the progressive selection ladder', async ({ lexical }) => {
     lexical.load('tree_complex');
 
     await placeCaretAtNote('note2', lexical.mutate);
