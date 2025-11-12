@@ -675,3 +675,212 @@ describe('readSelectionSnapshot helper', () => {
     expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
   });
 });
+
+describe('structural range visual overlay', () => {
+  it('matches the exact block of selected notes across all ladder stages', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note2', lexical.mutate);
+
+    // Stage 1: inline body only (no structural selection yet).
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2']);
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    // Before stage 2, there should be no structural selection
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    // Stage 2: note + descendants.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+
+    // Verify structural range spans from note2 to note3
+    let structuralRange = getStructuralSelectionRange(lexical);
+    expect(structuralRange).not.toBeNull();
+    let firstSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.startKey);
+    let lastSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.endKey);
+    expect(firstSelectedLabel).toBe('note2');
+    expect(lastSelectedLabel).toBe('note3');
+
+    // Stage 3: siblings at the same depth.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3', 'note4']);
+
+    // Verify structural range spans from note2 to note4
+    structuralRange = getStructuralSelectionRange(lexical);
+    expect(structuralRange).not.toBeNull();
+    firstSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.startKey);
+    lastSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.endKey);
+    expect(firstSelectedLabel).toBe('note2');
+    expect(lastSelectedLabel).toBe('note4');
+
+    // Stage 4: hoist to parent subtree.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4']);
+
+    // Verify structural range spans from note1 to note4
+    structuralRange = getStructuralSelectionRange(lexical);
+    expect(structuralRange).not.toBeNull();
+    firstSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.startKey);
+    lastSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.endKey);
+    expect(firstSelectedLabel).toBe('note1');
+    expect(lastSelectedLabel).toBe('note4');
+
+    // Stage 5: include the rest of the document.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
+
+    // Verify structural range spans from note1 to note7
+    structuralRange = getStructuralSelectionRange(lexical);
+    expect(structuralRange).not.toBeNull();
+    firstSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.startKey);
+    lastSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.endKey);
+    expect(firstSelectedLabel).toBe('note1');
+    expect(lastSelectedLabel).toBe('note7');
+  });
+
+  it('matches the exact block when using Shift+Up to select upward', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note4', lexical.mutate, 2);
+
+    // Stage 1: inline body only.
+    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note4']);
+
+    // Stage 2: note + descendants (note4 has no children).
+    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note4']);
+
+    // Stage 3: include preceding siblings.
+    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3', 'note4']);
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    // Verify structural range spans from note2 to note4
+    let structuralRange = getStructuralSelectionRange(lexical);
+    expect(structuralRange).not.toBeNull();
+    let firstSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.startKey);
+    let lastSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.endKey);
+    expect(firstSelectedLabel).toBe('note2');
+    expect(lastSelectedLabel).toBe('note4');
+
+    // Stage 4: hoist to the parent subtree.
+    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4']);
+
+    // Verify structural range spans from note1 to note4
+    structuralRange = getStructuralSelectionRange(lexical);
+    expect(structuralRange).not.toBeNull();
+    firstSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.startKey);
+    lastSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.endKey);
+    expect(firstSelectedLabel).toBe('note1');
+    expect(lastSelectedLabel).toBe('note4');
+  });
+
+  it('matches the exact block when using Cmd/Ctrl+A', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note2', lexical.mutate);
+
+    // Stage 1: inline text only.
+    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2']);
+
+    // Stage 2: note body plus its descendants.
+    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
+
+    // Verify structural range spans from note2 to note3
+    let structuralRange = getStructuralSelectionRange(lexical);
+    expect(structuralRange).not.toBeNull();
+    let firstSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.startKey);
+    let lastSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.endKey);
+    expect(firstSelectedLabel).toBe('note2');
+    expect(lastSelectedLabel).toBe('note3');
+
+    // Stage 3: adds the active note's siblings.
+    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3', 'note4']);
+
+    // Verify structural range spans from note2 to note4
+    structuralRange = getStructuralSelectionRange(lexical);
+    expect(structuralRange).not.toBeNull();
+    firstSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.startKey);
+    lastSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.endKey);
+    expect(firstSelectedLabel).toBe('note2');
+    expect(lastSelectedLabel).toBe('note4');
+
+    // Stage 4: hoists to the parent note and its subtree.
+    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4']);
+
+    // Verify structural range spans from note1 to note4
+    structuralRange = getStructuralSelectionRange(lexical);
+    expect(structuralRange).not.toBeNull();
+    firstSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.startKey);
+    lastSelectedLabel = getListItemLabelByKey(lexical, structuralRange!.endKey);
+    expect(firstSelectedLabel).toBe('note1');
+    expect(lastSelectedLabel).toBe('note4');
+  });
+});
+
+function getStructuralSelectionRange(lexical: TestContext['lexical']): { startKey: string; endKey: string } | null {
+  return lexical.validate(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection)) {
+      return null;
+    }
+
+    const noteItems = $collectSelectedListItems(selection);
+    if (noteItems.length === 0) {
+      return null;
+    }
+
+    const orderedItems = noteItems.map((item) => resolveContentListItem(item));
+    return {
+      startKey: orderedItems[0]!.getKey(),
+      endKey: orderedItems[orderedItems.length - 1]!.getKey(),
+    };
+  });
+}
+
+function getListItemLabelByKey(lexical: TestContext['lexical'], itemKey: string): string | null {
+  return lexical.validate(() => {
+    const root = $getRoot();
+    const list = root.getFirstChild();
+    if (!$isListNode(list)) {
+      return null;
+    }
+
+    let foundLabel: string | null = null;
+    visitListItems(list, (item) => {
+      if (item.getKey() === itemKey) {
+        foundLabel = getListItemLabel(item);
+      }
+    });
+    return foundLabel;
+  });
+}

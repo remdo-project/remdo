@@ -74,6 +74,8 @@ interface ProgressivePlanResult {
 interface StructuralSelectionRange {
   startKey: string;
   endKey: string;
+  headStartKey?: string;
+  headEndKey?: string;
 }
 
 function isNoopPlan(result: ProgressivePlanResult): boolean {
@@ -212,18 +214,21 @@ export function SelectionPlugin() {
         if ($isRangeSelection(selection) && !selection.isCollapsed()) {
           noteItems = collectSelectedListItems(selection);
           if (noteItems.length > 0) {
+            // Always use the full range of selected items to ensure the visual
+            // overlay spans from the first to the last selected note, regardless
+            // of hierarchical relationships. This ensures the rendered structural
+            // range matches the exact contiguous block of selected notes.
+            const orderedItems = noteItems.map((item) => getContentListItem(item));
             const heads = $collectSelectionHeads(selection);
+            structuralRange = {
+              startKey: orderedItems[0]!.getKey(),
+              endKey: orderedItems[orderedItems.length - 1]!.getKey(),
+            };
+
+            // Store heads for caret placement when collapsing selections
             if (heads.length > 0) {
-              structuralRange = {
-                startKey: heads[0]!.getKey(),
-                endKey: heads[heads.length - 1]!.getKey(),
-              };
-            } else {
-              const orderedItems = noteItems.map((item) => getContentListItem(item));
-              structuralRange = {
-                startKey: orderedItems[0]!.getKey(),
-                endKey: orderedItems[orderedItems.length - 1]!.getKey(),
-              };
+              structuralRange.headStartKey = heads[0]!.getKey();
+              structuralRange.headEndKey = heads[heads.length - 1]!.getKey();
             }
           }
 
@@ -325,7 +330,11 @@ export function SelectionPlugin() {
           let handled = false;
 
           if (edge !== 'anchor' && range) {
-            const targetKey = edge === 'start' ? range.startKey : range.endKey;
+            // Use head keys for caret placement when available to maintain
+            // the expected collapsing behavior with hierarchical selections
+            const targetKey = edge === 'start'
+              ? (range.headStartKey ?? range.startKey)
+              : (range.headEndKey ?? range.endKey);
             handled = $applyCaretEdge(targetKey, edge);
           }
 
