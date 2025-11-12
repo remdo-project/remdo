@@ -36,23 +36,15 @@ const LexicalHarness = ({ onReady }: { onReady: (payload: BridgePayload) => void
   );
 };
 
-let previousDefaultDocId: string | null = null;
 let collabDocCounter = 0;
 beforeEach<TestContext>(async (ctx) => {
   let editor!: LexicalEditor;
   let collab!: CollaborationStatusValue;
 
-  const meta = (ctx.task?.meta ?? {}) as { collabDocId?: string; collabDefaultDoc?: string };
-
-  if (typeof meta.collabDefaultDoc === 'string') {
-    previousDefaultDocId = config.env.COLLAB_DOCUMENT_ID;
-    (config.env as any).COLLAB_DOCUMENT_ID = meta.collabDefaultDoc;
-  } else {
-    previousDefaultDocId = null;
-  }
+  const meta = (ctx.task?.meta ?? {}) as { collabDocId?: string };
 
   let docId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
-  if (config.env.COLLAB_ENABLED && meta.collabDocId == null && meta.collabDefaultDoc == null) {
+  if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {
     const base = ctx.task?.id ?? ctx.task?.name ?? 'spec';
     const normalized = base.replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'spec';
     docId = `test-${normalized}-${collabDocCounter++}`;
@@ -91,9 +83,4 @@ beforeEach<TestContext>(async (ctx) => {
 
 afterEach(async ({ lexical }) => {
   await lexical.waitForCollabSync();
-
-  if (previousDefaultDocId !== null) {
-    (config.env as any).COLLAB_DOCUMENT_ID = previousDefaultDocId;
-    previousDefaultDocId = null;
-  }
 });

@@ -5,7 +5,6 @@ import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = config.env.VITEST_PREVIEW;
-const isCollabEnabled = config.env.COLLAB_ENABLED;
 
 export default defineConfig(() => {
   return {
@@ -47,7 +46,7 @@ export default defineConfig(() => {
       setupFiles: ['./tests/unit/_support/setup/index.ts'],
       include: ['tests/**/*.spec.{ts,tsx}'],
       css: true,
-      threads: !isCollabEnabled,
+      threads: true,
       testTimeout: 5000,
       hookTimeout: 5000,
       teardownTimeout: 5000,
