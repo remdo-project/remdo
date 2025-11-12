@@ -2,12 +2,15 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
+  $createRangeSelection,
   $getNodeByKey,
   $getRoot,
   $getSelection,
   $isRangeSelection,
   $isTextNode,
+  $setSelection,
   COMMAND_PRIORITY_CRITICAL,
+  KEY_DOWN_COMMAND,
   KEY_ESCAPE_COMMAND,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
@@ -68,6 +71,11 @@ interface ProgressivePlanResult {
   plan: ProgressivePlan;
 }
 
+interface StructuralSelectionRange {
+  startKey: string;
+  endKey: string;
+}
+
 function isNoopPlan(result: ProgressivePlanResult): boolean {
   if (result.stage !== 2) {
     return false;
@@ -96,16 +104,9 @@ export function SelectionPlugin() {
   const progressionRef = useRef<ProgressiveSelectionState>(INITIAL_PROGRESSIVE_STATE);
   const unlockRef = useRef<ProgressiveUnlockState>({ pending: false, reason: 'external' });
   const structuralSelectionRef = useRef(false);
+  const structuralSelectionRangeRef = useRef<StructuralSelectionRange | null>(null);
 
   useEffect(() => {
-    interface StructuralSelectionRange {
-      startKey: string;
-      endKey: string;
-    }
-
-    let pendingFocusFrame: number | null = null;
-    let pendingFocusTimeout: ReturnType<typeof setTimeout> | null = null;
-
     const clearStructuralSelectionMetrics = () => {
       const rootElement = editor.getRootElement();
       if (!rootElement) {
@@ -113,28 +114,6 @@ export function SelectionPlugin() {
       }
       rootElement.style.removeProperty('--structural-selection-top');
       rootElement.style.removeProperty('--structural-selection-height');
-    };
-
-    const scheduleFocusRestore = () => {
-      if (typeof requestAnimationFrame === 'function') {
-        if (pendingFocusFrame !== null) {
-          cancelAnimationFrame(pendingFocusFrame);
-        }
-        pendingFocusFrame = requestAnimationFrame(() => {
-          pendingFocusFrame = null;
-          editor.focus();
-        });
-        return;
-      }
-
-      if (pendingFocusTimeout !== null) {
-        clearTimeout(pendingFocusTimeout);
-      }
-
-      pendingFocusTimeout = setTimeout(() => {
-        pendingFocusTimeout = null;
-        editor.focus();
-      }, 0);
     };
 
     const applyStructuralSelectionMetrics = (range: StructuralSelectionRange | null) => {
@@ -207,6 +186,7 @@ export function SelectionPlugin() {
       let payload: SnapPayload | null = null;
       let hasStructuralSelection = false;
       let structuralRange: StructuralSelectionRange | null = null;
+      let noteItems: ListItemNode[] = [];
 
       editorState.read(() => {
         const selection = $getSelection();
@@ -229,38 +209,44 @@ export function SelectionPlugin() {
           }
         }
 
-        if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+        if ($isRangeSelection(selection) && !selection.isCollapsed()) {
+          noteItems = collectSelectedListItems(selection);
+          if (noteItems.length > 0) {
+            const heads = $collectSelectionHeads(selection);
+            if (heads.length > 0) {
+              structuralRange = {
+                startKey: heads[0]!.getKey(),
+                endKey: heads[heads.length - 1]!.getKey(),
+              };
+            } else {
+              const orderedItems = noteItems.map((item) => getContentListItem(item));
+              structuralRange = {
+                startKey: orderedItems[0]!.getKey(),
+                endKey: orderedItems[orderedItems.length - 1]!.getKey(),
+              };
+            }
+          }
+
+          const hasMultiNoteRange = noteItems.length > 1;
+          const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
+          hasStructuralSelection = isProgressiveStructural || hasMultiNoteRange;
+          if (!tags.has(SNAP_SELECTION_TAG) && noteItems.length >= 2) {
+            const candidate = createSnapPayload(selection, noteItems);
+            if (candidate && !selectionMatchesPayload(selection, candidate)) {
+              payload = candidate;
+            }
+          }
+        } else {
           hasStructuralSelection = false;
-          return;
         }
 
-        const noteItems = collectSelectedListItems(selection);
-        if (noteItems.length > 0) {
-          const orderedItems = noteItems.map((item) => getContentListItem(item));
-          structuralRange = {
-            startKey: orderedItems[0]!.getKey(),
-            endKey: orderedItems[orderedItems.length - 1]!.getKey(),
-          };
-        }
-
-        const hasMultiNoteRange = noteItems.length > 1;
-        const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
-        hasStructuralSelection = isProgressiveStructural || hasMultiNoteRange;
-        if (tags.has(SNAP_SELECTION_TAG) || noteItems.length < 2) {
-          return;
-        }
-
-        const candidate = createSnapPayload(selection, noteItems);
-        if (!candidate || selectionMatchesPayload(selection, candidate)) {
-          return;
-        }
-
-        payload = candidate;
       });
 
       if (hasStructuralSelection && structuralRange) {
+        structuralSelectionRangeRef.current = structuralRange;
         applyStructuralSelectionMetrics(structuralRange);
       } else {
+        structuralSelectionRangeRef.current = null;
         clearStructuralSelectionMetrics();
       }
 
@@ -314,19 +300,40 @@ export function SelectionPlugin() {
       );
     };
 
-    const collapseStructuralSelectionToCaretAndReset = (): boolean => {
-      let handled = false;
+    const collapseStructuralSelectionToCaretAndReset = (
+      edge: 'start' | 'end' | 'anchor' = 'anchor'
+    ): boolean => {
+      const range = structuralSelectionRangeRef.current;
+      let hasCollapsibleSelection = false;
+
+      editor.getEditorState().read(() => {
+        const selection = $getSelection();
+        hasCollapsibleSelection = $isRangeSelection(selection) && !selection.isCollapsed();
+      });
+
+      if (!hasCollapsibleSelection) {
+        return false;
+      }
 
       editor.update(
         () => {
           const selection = $getSelection();
-          if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+          if (!$isRangeSelection(selection)) {
             return;
           }
 
-          handled = collapseSelectionToCaret(selection);
+          let handled = false;
+
+          if (edge !== 'anchor' && range) {
+            const targetKey = edge === 'start' ? range.startKey : range.endKey;
+            handled = $applyCaretEdge(targetKey, edge);
+          }
+
           if (!handled) {
-            return;
+            handled = collapseSelectionToCaret(selection);
+            if (!handled) {
+              return;
+            }
           }
 
           progressionRef.current = INITIAL_PROGRESSIVE_STATE;
@@ -335,13 +342,9 @@ export function SelectionPlugin() {
         { tag: PROGRESSIVE_SELECTION_TAG }
       );
 
-      if (!handled) {
-        return false;
-      }
-
       setStructuralSelectionActive(false);
+      structuralSelectionRangeRef.current = null;
       clearStructuralSelectionMetrics();
-      scheduleFocusRestore();
 
       return true;
     };
@@ -480,6 +483,18 @@ export function SelectionPlugin() {
       return !(event.shiftKey || event.altKey || event.metaKey || event.ctrlKey);
     };
 
+    const shouldHandlePlainHorizontalArrow = (event: KeyboardEvent | null): boolean => {
+      if (!structuralSelectionRef.current) {
+        return false;
+      }
+
+      if (!event) {
+        return true;
+      }
+
+      return !(event.shiftKey || event.altKey || event.metaKey || event.ctrlKey);
+    };
+
     const unregisterPlainArrowDown = editor.registerCommand(
       KEY_ARROW_DOWN_COMMAND,
       (event) => {
@@ -487,13 +502,78 @@ export function SelectionPlugin() {
           return false;
         }
 
-        const handled = collapseStructuralSelectionToCaretAndReset();
+        const handled = collapseStructuralSelectionToCaretAndReset('end');
         if (!handled) {
           return false;
         }
 
         event?.preventDefault();
         event?.stopPropagation();
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const unregisterPlainArrowLeft = editor.registerCommand(
+      KEY_ARROW_LEFT_COMMAND,
+      (event) => {
+        if (!shouldHandlePlainHorizontalArrow(event)) {
+          return false;
+        }
+
+        const handled = collapseStructuralSelectionToCaretAndReset('start');
+        if (!handled) {
+          return false;
+        }
+
+        event?.preventDefault();
+        event?.stopPropagation();
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const unregisterPlainArrowRight = editor.registerCommand(
+      KEY_ARROW_RIGHT_COMMAND,
+      (event) => {
+        if (!shouldHandlePlainHorizontalArrow(event)) {
+          return false;
+        }
+
+        const handled = collapseStructuralSelectionToCaretAndReset('end');
+        if (!handled) {
+          return false;
+        }
+
+        event?.preventDefault();
+        event?.stopPropagation();
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const unregisterHomeEnd = editor.registerCommand(
+      KEY_DOWN_COMMAND,
+      (event) => {
+        if (!event || !structuralSelectionRef.current) {
+          return false;
+        }
+
+        if (event.shiftKey || event.altKey || event.metaKey || event.ctrlKey) {
+          return false;
+        }
+
+        if (event.key !== 'Home' && event.key !== 'End') {
+          return false;
+        }
+
+        const handled = collapseStructuralSelectionToCaretAndReset(event.key === 'Home' ? 'start' : 'end');
+        if (!handled) {
+          return false;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
         return true;
       },
       COMMAND_PRIORITY_CRITICAL
@@ -506,7 +586,7 @@ export function SelectionPlugin() {
           return false;
         }
 
-        const handled = collapseStructuralSelectionToCaretAndReset();
+        const handled = collapseStructuralSelectionToCaretAndReset('start');
         if (!handled) {
           return false;
         }
@@ -539,22 +619,16 @@ export function SelectionPlugin() {
         delete rootElement.dataset.structuralSelection;
       }
       clearStructuralSelectionMetrics();
-      if (pendingFocusFrame !== null) {
-        cancelAnimationFrame(pendingFocusFrame);
-        pendingFocusFrame = null;
-      }
-      if (pendingFocusTimeout !== null) {
-        clearTimeout(pendingFocusTimeout);
-        pendingFocusTimeout = null;
-      }
-
       unregisterProgressionListener();
       unregisterSelectAll();
       unregisterArrowLeft();
       unregisterArrowRight();
+      unregisterPlainArrowLeft();
+      unregisterPlainArrowRight();
       unregisterDirectionalCommand();
       unregisterPlainArrowDown();
       unregisterPlainArrowUp();
+      unregisterHomeEnd();
       unregisterEnter();
       unregisterEscape();
       unregisterRootListener();
@@ -1158,6 +1232,41 @@ function collapseSelectionToCaret(selection: RangeSelection): boolean {
   return true;
 }
 
+function $applyCaretEdge(itemKey: string, edge: 'start' | 'end'): boolean {
+  const targetItem = $getNodeByKey<ListItemNode>(itemKey);
+  if (!targetItem) {
+    return false;
+  }
+
+  const contentItem = getContentListItem(targetItem);
+  const selectEdge =
+    edge === 'start'
+      ? (contentItem as ListItemNode & { selectStart?: () => RangeSelection }).selectStart?.bind(contentItem)
+      : (contentItem as ListItemNode & { selectEnd?: () => RangeSelection }).selectEnd?.bind(contentItem);
+
+  if (selectEdge) {
+    selectEdge();
+    return true;
+  }
+
+  const boundary = resolveContentBoundaryPoint(contentItem, edge) ?? resolveBoundaryPoint(contentItem, edge);
+  if (!boundary) {
+    return false;
+  }
+
+  const selectable = boundary.node as TextNode & { select?: (anchor: number, focus: number) => void };
+  if (typeof selectable.select === 'function') {
+    const offset = boundary.offset;
+    selectable.select(offset, offset);
+    return true;
+  }
+
+  const selection = $createRangeSelection();
+  selection.setTextNodeRange(boundary.node, boundary.offset, boundary.node, boundary.offset);
+  $setSelection(selection);
+  return true;
+}
+
 function resolveContentBoundaryPoint(listItem: ListItemNode, edge: 'start' | 'end') {
   const textNode = findContentBoundaryTextNode(listItem, edge);
   if (!textNode) {
@@ -1407,3 +1516,4 @@ function getLastDescendantListItem(node: LexicalNode | null): ListItemNode | nul
 
   return null;
 }
+
