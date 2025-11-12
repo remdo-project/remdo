@@ -50,9 +50,10 @@ non-contiguous toggling.
 Typing only inserts characters while the selection is a caret or inline text
 range (ladder stage 0 or 1). As soon as a selection covers any whole note (stage
 2 and beyond), the editor switches to structural mode: keystrokes that would
-normally type become no-ops, and only structural commands (indent, outdent,
-reorder, duplicate, delete, etc.) respond. Press `Enter` or click back into a
-note’s text to return to inline editing.
+normally type—including `Enter`—become no-ops, and only structural commands
+(indent, outdent, reorder, duplicate, delete, etc.) respond. Press `Esc` (or
+click back into a note’s text) to collapse the range when you want to resume
+inline editing.
 
 ## Cursor-Driven Gestures
 
@@ -98,7 +99,7 @@ note’s text to return to inline editing.
 | `Shift+Up/Down`    | Keyboard | Structural expansion along the Progressive Selection ladder (siblings in direction of travel, then parents). |
 | `Shift+Click`      | Pointer  | Extends from the anchor to the clicked note, yielding a contiguous note range. |
 | `Esc`              | Keyboard | Collapses any note range back to a caret without changing content. |
-| `Enter`            | Keyboard | Returns to inline editing by placing the caret inside the focused note. |
+| `Enter`            | Keyboard | Inserts a newline only while editing inline; once structural mode is active it becomes a no-op. |
 | `Cmd/Ctrl+A`       | Keyboard | Advances the Progressive Selection ladder one stage per press. |
 
 ## Progressive Selection
