@@ -210,6 +210,46 @@ describe('selection plugin', () => {
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
   });
 
+  it('collapses structural selection back to the caret when pressing Escape', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note2', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+
+    await pressKey(lexical.editor, { key: 'Escape' });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+  });
+
+  it('clears the structural highlight when navigating without modifiers', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note2', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+
+    await pressKey(lexical.editor, { key: 'ArrowRight' });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+  });
+
   it('lets Shift+Down walk the progressive selection ladder', async ({ lexical }) => {
     lexical.load('tree_complex');
 

@@ -8,6 +8,7 @@ import {
   $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
+  KEY_ESCAPE_COMMAND,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   SELECT_ALL_COMMAND,
@@ -99,6 +100,9 @@ export function SelectionPlugin() {
       endKey: string;
     }
 
+    let pendingFocusFrame: number | null = null;
+    let pendingFocusTimeout: ReturnType<typeof setTimeout> | null = null;
+
     const clearStructuralSelectionMetrics = () => {
       const rootElement = editor.getRootElement();
       if (!rootElement) {
@@ -106,6 +110,28 @@ export function SelectionPlugin() {
       }
       rootElement.style.removeProperty('--structural-selection-top');
       rootElement.style.removeProperty('--structural-selection-height');
+    };
+
+    const scheduleFocusRestore = () => {
+      if (typeof requestAnimationFrame === 'function') {
+        if (pendingFocusFrame !== null) {
+          cancelAnimationFrame(pendingFocusFrame);
+        }
+        pendingFocusFrame = requestAnimationFrame(() => {
+          pendingFocusFrame = null;
+          editor.focus();
+        });
+        return;
+      }
+
+      if (pendingFocusTimeout !== null) {
+        clearTimeout(pendingFocusTimeout);
+      }
+
+      pendingFocusTimeout = setTimeout(() => {
+        pendingFocusTimeout = null;
+        editor.focus();
+      }, 0);
     };
 
     const applyStructuralSelectionMetrics = (range: StructuralSelectionRange | null) => {
@@ -387,6 +413,44 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
+    const unregisterEscape = editor.registerCommand(
+      KEY_ESCAPE_COMMAND,
+      (event) => {
+        let handled = false;
+
+        editor.update(
+          () => {
+            const selection = $getSelection();
+            if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+              return;
+            }
+
+            handled = collapseSelectionToCaret(selection);
+            if (!handled) {
+              return;
+            }
+
+            progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+            unlockRef.current = { pending: false, reason: 'external' };
+          },
+          { tag: PROGRESSIVE_SELECTION_TAG }
+        );
+
+        if (!handled) {
+          return false;
+        }
+
+        event?.preventDefault();
+        event?.stopPropagation();
+        setStructuralSelectionActive(false);
+        clearStructuralSelectionMetrics();
+        scheduleFocusRestore();
+
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
     return () => {
       structuralSelectionRef.current = false;
       const rootElement = editor.getRootElement();
@@ -394,12 +458,21 @@ export function SelectionPlugin() {
         delete rootElement.dataset.structuralSelection;
       }
       clearStructuralSelectionMetrics();
+      if (pendingFocusFrame !== null) {
+        cancelAnimationFrame(pendingFocusFrame);
+        pendingFocusFrame = null;
+      }
+      if (pendingFocusTimeout !== null) {
+        clearTimeout(pendingFocusTimeout);
+        pendingFocusTimeout = null;
+      }
 
       unregisterProgressionListener();
       unregisterSelectAll();
       unregisterArrowLeft();
       unregisterArrowRight();
       unregisterDirectionalCommand();
+      unregisterEscape();
       unregisterRootListener();
     };
   }, [editor]);
@@ -961,6 +1034,28 @@ function setSelectionBetweenItems(
   }
 
   selection.setTextNodeRange(start.node, start.offset, end.node, end.offset);
+  return true;
+}
+
+function collapseSelectionToCaret(selection: RangeSelection): boolean {
+  const anchorNode = selection.anchor.getNode();
+
+  if ($isTextNode(anchorNode)) {
+    selection.setTextNodeRange(anchorNode, selection.anchor.offset, anchorNode, selection.anchor.offset);
+    return true;
+  }
+
+  const anchorItem = findNearestListItem(anchorNode);
+  if (!anchorItem) {
+    return false;
+  }
+
+  const caretPoint = resolveContentBoundaryPoint(getContentListItem(anchorItem), 'start');
+  if (!caretPoint) {
+    return false;
+  }
+
+  selection.setTextNodeRange(caretPoint.node, caretPoint.offset, caretPoint.node, caretPoint.offset);
   return true;
 }
 
