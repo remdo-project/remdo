@@ -136,8 +136,11 @@ back to the caret state.
    covering the entire local subtree above the original note. If this scope is
    already covered because the sibling stage had nothing new to add, the ladder
    jumps straight to the next meaningful expansion instead of pausing here.
-5. **Press 5 and beyond:** Repeat the sibling-then-parent climb for each higher
-   level until the root note becomes selected.
+5. **Press 5 and beyond:** Each subsequent press reruns the same “add siblings,
+   then hoist to the parent” cycle for the next ancestor up the tree. Depending
+   on whether that ancestor still has siblings to add, you may see the selection
+   expand in two steps (siblings first, then parent) or skip directly to the next
+   ancestor, but it always happens one press at a time until the root is covered.
 
 Stopping at any stage leaves the selection in that scope so you can immediately
 run structural commands or copy/paste entire sections. `Shift+Up/Down` reuse
