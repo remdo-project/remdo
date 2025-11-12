@@ -64,11 +64,13 @@ inline editing.
    those keys become no-ops, so you never hop into structural selection via
    horizontal arrows.
 2. `Shift+Up/Down` drive the structural ladder. Pressing either key while a
-   note is highlighted extends the selection to the next contiguous block in
-   that direction: additional siblings first, then the parent when you run out
-   of siblings, and finally the parent’s siblings as the ladder continues. This
-   keeps structural expansion intuitive (follow the arrow direction) while
-   honoring the contiguous-subtree invariant.
+   note is highlighted extends the selection by exactly **one** contiguous note
+   in that direction. As long as there are more siblings, each press adds the
+   next sibling (together with its descendants). Once the sibling run is
+   exhausted, the following press hoists the parent into the selection, and the
+   same “gather siblings one at a time, then climb” rhythm repeats at every
+   ancestor level. This keeps structural expansion intuitive (follow the arrow
+   direction) while honoring the contiguous-subtree invariant.
 2. `Esc` (or clicking back into text) collapses any note-range selection to the
    caret state without changing the document; unmodified cursor keys (Arrow
    Left/Right/Up/Down, Home/End, Page Up/Down) do the same but place the caret
