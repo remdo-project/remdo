@@ -305,6 +305,27 @@ describe('selection plugin', () => {
     expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
   });
 
+  it('skips the sibling stage when Shift+Down reaches a siblingless note', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note7', lexical.mutate);
+
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note7']);
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note7']);
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note7']);
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note6', 'note7']);
+  });
+
   it('lets Shift+Up walk the progressive selection ladder', async ({ lexical }) => {
     lexical.load('tree_complex');
 
@@ -374,6 +395,26 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot.selectedNotes).toEqual(['note4']);
+  });
+
+  it('skips the sibling stage when Cmd/Ctrl+A climbs from a siblingless note', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note7', lexical.mutate);
+
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note7']);
+
+    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note7']);
+
+    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
+    snapshot = readSelectionSnapshot(lexical);
+
+    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note6', 'note7']);
   });
 });
 
