@@ -531,7 +531,7 @@ describe('selection plugin', () => {
     expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
   });
 
-  it.fails('marks structural selection once Shift+Down reaches stage 2 even for leaf notes', async ({ lexical }) => {
+  it('marks structural selection once Shift+Down reaches stage 2 even for leaf notes', async ({ lexical }) => {
     lexical.load('tree_complex');
 
     const rootElement = lexical.editor.getRootElement();

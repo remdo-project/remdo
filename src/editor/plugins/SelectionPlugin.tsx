@@ -423,6 +423,15 @@ export function SelectionPlugin() {
           }
 
           const noopPlan = isNoopPlan(planResult);
+          if (noopPlan && planResult.plan.type === 'range') {
+            const range: StructuralSelectionRange = {
+              startKey: planResult.plan.startKey,
+              endKey: planResult.plan.endKey,
+            };
+            structuralSelectionRangeRef.current = range;
+            applyStructuralSelectionMetrics(range);
+            setStructuralSelectionActive(true);
+          }
           const applied = noopPlan || $applyProgressivePlan(planResult);
           if (!applied) {
             progressionRef.current = INITIAL_PROGRESSIVE_STATE;
