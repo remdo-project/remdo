@@ -14,6 +14,8 @@ import {
   KEY_ARROW_UP_COMMAND,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ENTER_COMMAND,
+  KEY_HOME_COMMAND,
+  KEY_END_COMMAND,
   SELECT_ALL_COMMAND,
   createCommand,
 } from 'lexical';
@@ -346,6 +348,38 @@ export function SelectionPlugin() {
       return true;
     };
 
+    const collapseStructuralSelectionToEdge = (mode: CollapseMode): boolean => {
+      let handled = false;
+
+      editor.update(
+        () => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+            return;
+          }
+
+          handled = collapseSelectionToCaret(selection, mode);
+          if (!handled) {
+            return;
+          }
+
+          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+          unlockRef.current = { pending: false, reason: 'external' };
+        },
+        { tag: PROGRESSIVE_SELECTION_TAG }
+      );
+
+      if (!handled) {
+        return false;
+      }
+
+      setStructuralSelectionActive(false);
+      clearStructuralSelectionMetrics();
+      scheduleFocusRestore();
+
+      return true;
+    };
+
     const unregisterSelectAll = editor.registerCommand(
       SELECT_ALL_COMMAND,
       (event) => {
@@ -370,6 +404,16 @@ export function SelectionPlugin() {
     const unregisterArrowLeft = editor.registerCommand(
       KEY_ARROW_LEFT_COMMAND,
       (event) => {
+        // Handle plain ArrowLeft to collapse structural selection to leading edge
+        if (!event?.shiftKey && structuralSelectionRef.current) {
+          const handled = collapseStructuralSelectionToEdge('leading-edge');
+          if (handled) {
+            event?.preventDefault();
+            event?.stopPropagation();
+            return true;
+          }
+        }
+
         if (!event?.shiftKey) {
           return false;
         }
@@ -394,6 +438,16 @@ export function SelectionPlugin() {
     const unregisterArrowRight = editor.registerCommand(
       KEY_ARROW_RIGHT_COMMAND,
       (event) => {
+        // Handle plain ArrowRight to collapse structural selection to trailing edge
+        if (!event?.shiftKey && structuralSelectionRef.current) {
+          const handled = collapseStructuralSelectionToEdge('trailing-edge');
+          if (handled) {
+            event?.preventDefault();
+            event?.stopPropagation();
+            return true;
+          }
+        }
+
         if (!event?.shiftKey) {
           return false;
         }
@@ -487,7 +541,7 @@ export function SelectionPlugin() {
           return false;
         }
 
-        const handled = collapseStructuralSelectionToCaretAndReset();
+        const handled = collapseStructuralSelectionToEdge('trailing-edge');
         if (!handled) {
           return false;
         }
@@ -532,6 +586,38 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
+    const unregisterHome = editor.registerCommand(
+      KEY_HOME_COMMAND,
+      (event) => {
+        if (!structuralSelectionRef.current) {
+          return false;
+        }
+
+        event?.preventDefault();
+        event?.stopPropagation();
+
+        const handled = collapseStructuralSelectionToEdge('leading-edge');
+        return handled;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const unregisterEnd = editor.registerCommand(
+      KEY_END_COMMAND,
+      (event) => {
+        if (!structuralSelectionRef.current) {
+          return false;
+        }
+
+        event?.preventDefault();
+        event?.stopPropagation();
+
+        const handled = collapseStructuralSelectionToEdge('trailing-edge');
+        return handled;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
     return () => {
       structuralSelectionRef.current = false;
       const rootElement = editor.getRootElement();
@@ -556,6 +642,8 @@ export function SelectionPlugin() {
       unregisterPlainArrowDown();
       unregisterPlainArrowUp();
       unregisterEnter();
+      unregisterHome();
+      unregisterEnd();
       unregisterEscape();
       unregisterRootListener();
     };
@@ -1136,20 +1224,30 @@ function setSelectionBetweenItems(
   return true;
 }
 
-function collapseSelectionToCaret(selection: RangeSelection): boolean {
-  const anchorNode = selection.anchor.getNode();
+type CollapseMode = 'leading-edge' | 'trailing-edge';
 
-  if ($isTextNode(anchorNode)) {
-    selection.setTextNodeRange(anchorNode, selection.anchor.offset, anchorNode, selection.anchor.offset);
+function collapseSelectionToCaret(selection: RangeSelection, mode: CollapseMode = 'leading-edge'): boolean {
+  // Determine which point to use based on selection direction and mode
+  const isBackward = selection.isBackward();
+
+  // For leading edge: use the first point in document order (anchor if forward, focus if backward)
+  // For trailing edge: use the last point in document order (focus if forward, anchor if backward)
+  const useAnchor = (mode === 'leading-edge' && !isBackward) || (mode === 'trailing-edge' && isBackward);
+  const targetNode = useAnchor ? selection.anchor.getNode() : selection.focus.getNode();
+
+  if ($isTextNode(targetNode)) {
+    const targetOffset = useAnchor ? selection.anchor.offset : selection.focus.offset;
+    selection.setTextNodeRange(targetNode, targetOffset, targetNode, targetOffset);
     return true;
   }
 
-  const anchorItem = findNearestListItem(anchorNode);
-  if (!anchorItem) {
+  const targetItem = findNearestListItem(targetNode);
+  if (!targetItem) {
     return false;
   }
 
-  const caretPoint = resolveContentBoundaryPoint(getContentListItem(anchorItem), 'start');
+  const targetEdge = mode === 'leading-edge' ? 'start' : 'end';
+  const caretPoint = resolveContentBoundaryPoint(getContentListItem(targetItem), targetEdge);
   if (!caretPoint) {
     return false;
   }
