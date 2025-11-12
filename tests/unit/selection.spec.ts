@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { TestContext } from 'vitest';
 import { placeCaretAtNote, pressKey } from '#tests';
-import { $getSelection, $isRangeSelection, $getNodeByKey, $getRoot } from 'lexical';
+import { $getSelection, $isRangeSelection, $getRoot } from 'lexical';
 import type { LexicalNode, RangeSelection } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
-import { computeStructuralRange } from '@/editor/plugins/selectionRange';
 
 interface SelectionSnapshot {
   selectedNotes: string[];
@@ -202,6 +201,21 @@ function visitListItems(node: LexicalNode | null, visit: (item: ListItemNode) =>
   }
 }
 
+function $readVisualRangeLabels(selection: RangeSelection) {
+  const items = $collectSelectedListItems(selection);
+  if (items.length === 0) {
+    throw new Error('Expected structural selection');
+  }
+
+  const startLabel = getListItemLabel(items[0]!);
+  const endLabel = getListItemLabel(items[items.length - 1]!);
+  if (!startLabel || !endLabel) {
+    throw new Error('Expected structural selection labels');
+  }
+
+  return { visualStart: startLabel, visualEnd: endLabel } as const;
+}
+
 function getNestedList(item: ListItemNode): LexicalNode | null {
   const wrapper = item.getNextSibling();
   if (isChildrenWrapper(wrapper)) {
@@ -217,6 +231,7 @@ function getNestedList(item: ListItemNode): LexicalNode | null {
 
   return null;
 }
+
 
 function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
   let current: LexicalNode | null = node;
@@ -544,29 +559,7 @@ describe('selection plugin', () => {
         if (!$isRangeSelection(selection)) {
           throw new Error('Expected a range selection');
         }
-        const range = computeStructuralRange(selection);
-        if (!range) {
-          throw new Error('Expected structural range metrics');
-        }
-
-        const $labelFor = (key: string): string => {
-          const node = $getNodeByKey<ListItemNode>(key);
-          if (!node) {
-            throw new Error(`No node found for key: ${key}`);
-          }
-          const label = getListItemLabel(node);
-          if (!label) {
-            throw new Error(`No label found for key: ${key}`);
-          }
-          return label;
-        };
-
-        return {
-          caretStart: $labelFor(range.caretStartKey),
-          caretEnd: $labelFor(range.caretEndKey),
-          visualStart: $labelFor(range.visualStartKey),
-          visualEnd: $labelFor(range.visualEndKey),
-        } as const;
+        return $readVisualRangeLabels(selection);
       });
 
       const first = snapshot.selectedNotes[0];

@@ -72,8 +72,10 @@ interface ProgressivePlanResult {
 }
 
 interface StructuralSelectionRange {
-  startKey: string;
-  endKey: string;
+  caretStartKey: string;
+  caretEndKey: string;
+  visualStartKey: string;
+  visualEndKey: string;
 }
 
 function isNoopPlan(result: ProgressivePlanResult): boolean {
@@ -127,8 +129,8 @@ export function SelectionPlugin() {
         return;
       }
 
-      const startElement = editor.getElementByKey(range.startKey) as HTMLElement | null;
-      const endElement = editor.getElementByKey(range.endKey) as HTMLElement | null;
+      const startElement = editor.getElementByKey(range.visualStartKey) as HTMLElement | null;
+      const endElement = editor.getElementByKey(range.visualEndKey) as HTMLElement | null;
       if (!startElement || !endElement) {
         clearStructuralSelectionMetrics();
         return;
@@ -211,21 +213,7 @@ export function SelectionPlugin() {
 
         if ($isRangeSelection(selection) && !selection.isCollapsed()) {
           noteItems = collectSelectedListItems(selection);
-          if (noteItems.length > 0) {
-            const heads = $collectSelectionHeads(selection);
-            if (heads.length > 0) {
-              structuralRange = {
-                startKey: heads[0]!.getKey(),
-                endKey: heads[heads.length - 1]!.getKey(),
-              };
-            } else {
-              const orderedItems = noteItems.map((item) => getContentListItem(item));
-              structuralRange = {
-                startKey: orderedItems[0]!.getKey(),
-                endKey: orderedItems[orderedItems.length - 1]!.getKey(),
-              };
-            }
-          }
+          structuralRange = computeStructuralRange(selection);
 
           const hasMultiNoteRange = noteItems.length > 1;
           const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
@@ -325,7 +313,7 @@ export function SelectionPlugin() {
           let handled = false;
 
           if (edge !== 'anchor' && range) {
-            const targetKey = edge === 'start' ? range.startKey : range.endKey;
+            const targetKey = edge === 'start' ? range.caretStartKey : range.caretEndKey;
             handled = $applyCaretEdge(targetKey, edge);
           }
 
@@ -431,9 +419,13 @@ export function SelectionPlugin() {
 
           const noopPlan = isNoopPlan(planResult);
           if (noopPlan && planResult.plan.type === 'range') {
+            const caretStartKey = planResult.plan.startKey;
+            const caretEndKey = planResult.plan.endKey;
             const range: StructuralSelectionRange = {
-              startKey: planResult.plan.startKey,
-              endKey: planResult.plan.endKey,
+              caretStartKey,
+              caretEndKey,
+              visualStartKey: caretStartKey,
+              visualEndKey: caretEndKey,
             };
             structuralSelectionRangeRef.current = range;
             applyStructuralSelectionMetrics(range);
@@ -647,33 +639,6 @@ export function SelectionPlugin() {
   return null;
 }
 
-function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
-  const seen = new Set<string>();
-  const items: ListItemNode[] = [];
-
-  for (const node of selection.getNodes()) {
-    const listItem = findNearestListItem(node);
-    if (!listItem) {
-      continue;
-    }
-
-    const key = listItem.getKey();
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    items.push(listItem);
-  }
-
-  if (items.length === 0) {
-    return items;
-  }
-
-  return items.sort(compareDocumentOrder);
-}
-
-
 function selectionMatchesPayload(selection: RangeSelection, payload: SnapPayload): boolean {
   const anchorItem = findNearestListItem(selection.anchor.getNode());
   const focusItem = findNearestListItem(selection.focus.getNode());
@@ -789,50 +754,6 @@ function findBoundaryTextNode(node: LexicalNode, edge: 'start' | 'end'): TextNod
   }
 
   return null;
-}
-
-function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
-  let current: LexicalNode | null = node;
-  while (current) {
-    if ($isListItemNode(current)) {
-      return current;
-    }
-    current = current.getParent();
-  }
-  return null;
-}
-
-function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
-  const aPath = getNodePath(a);
-  const bPath = getNodePath(b);
-  const depth = Math.max(aPath.length, bPath.length);
-
-  for (let i = 0; i < depth; i += 1) {
-    const left = aPath[i] ?? -1;
-    const right = bPath[i] ?? -1;
-    if (left !== right) {
-      return left - right;
-    }
-  }
-
-  return 0;
-}
-
-function getNodePath(node: ListItemNode): number[] {
-  const path: number[] = [];
-  let current: LexicalNode | null = node;
-
-  while (current) {
-    const parent: LexicalNode | null = current.getParent();
-    if (!parent) {
-      break;
-    }
-    const index = current.getIndexWithinParent();
-    path.push(index);
-    current = parent;
-  }
-
-  return path.reverse();
 }
 
 function $computeProgressivePlan(
@@ -972,7 +893,7 @@ function $computeDirectionalPlan(
   const anchorKey = anchorContent.getKey();
   const isContinuing = progressionRef.current.locked && progressionRef.current.anchorKey === anchorKey;
   let stage = isContinuing ? progressionRef.current.stage : 0;
-  const heads = $collectSelectionHeads(selection);
+            const heads = collectSelectionHeads(selection);
 
   const MAX_STAGE = 5;
   while (stage < MAX_STAGE + 1) {
@@ -1287,17 +1208,80 @@ function resolveContentBoundaryPoint(listItem: ListItemNode, edge: 'start' | 'en
   return { node: textNode, offset } as const;
 }
 
-function $collectSelectionHeads(selection: RangeSelection): ListItemNode[] {
-  const items = collectSelectedListItems(selection);
+function findContentBoundaryTextNode(listItem: ListItemNode, edge: 'start' | 'end'): TextNode | null {
+  const children = listItem.getChildren();
+  const ordered = edge === 'start' ? children : [...children].reverse();
+
+  for (const child of ordered) {
+    if ($isListNode(child)) {
+      continue;
+    }
+
+    const match = findBoundaryTextNode(child, edge);
+    if (match) {
+      return match;
+    }
+  }
+
+  return null;
+}
+
+function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
+  const seen = new Set<string>();
+  const items: ListItemNode[] = [];
+
+  for (const node of selection.getNodes()) {
+    const listItem = findNearestListItem(node);
+    if (!listItem) {
+      continue;
+    }
+
+    const key = listItem.getKey();
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    items.push(listItem);
+  }
+
+  if (items.length === 0) {
+    return items;
+  }
+
+  return items.sort(compareDocumentOrder);
+}
+
+function computeStructuralRange(selection: RangeSelection): StructuralSelectionRange | null {
+  const noteItems = collectSelectedListItems(selection);
+  if (noteItems.length === 0) {
+    return null;
+  }
+
+  const heads = collectSelectionHeads(selection, noteItems);
+  const caretItems = (heads.length > 0 ? heads : noteItems).map((item) => getContentListItem(item));
+  const caretStartItem = caretItems[0]!;
+  const caretEndItem = caretItems[caretItems.length - 1]!;
+  const visualEndItem = getSubtreeTail(caretEndItem);
+
+  return {
+    caretStartKey: caretStartItem.getKey(),
+    caretEndKey: caretEndItem.getKey(),
+    visualStartKey: caretStartItem.getKey(),
+    visualEndKey: visualEndItem.getKey(),
+  } satisfies StructuralSelectionRange;
+}
+
+function collectSelectionHeads(selection: RangeSelection, precomputed?: ListItemNode[]): ListItemNode[] {
+  const items = (precomputed ?? collectSelectedListItems(selection)).map((item) => getContentListItem(item));
   if (items.length === 0) {
     return [];
   }
 
-  const orderedContent = items.map((item) => getContentListItem(item));
   const seen = new Set<string>();
   const unique: ListItemNode[] = [];
 
-  for (const item of orderedContent) {
+  for (const item of items) {
     const key = item.getKey();
     if (seen.has(key)) {
       continue;
@@ -1331,6 +1315,26 @@ function $collectSelectionHeads(selection: RangeSelection): ListItemNode[] {
   return heads;
 }
 
+function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
+  let current: LexicalNode | null = node;
+  while (current) {
+    if ($isListItemNode(current)) {
+      return current;
+    }
+    current = current.getParent();
+  }
+  return null;
+}
+
+function getContentListItem(item: ListItemNode): ListItemNode {
+  if (!isChildrenWrapper(item)) {
+    return item;
+  }
+
+  const previous = item.getPreviousSibling();
+  return $isListItemNode(previous) ? previous : item;
+}
+
 function getNextContentSibling(item: ListItemNode): ListItemNode | null {
   let sibling: LexicalNode | null = item.getNextSibling();
   while (sibling) {
@@ -1353,42 +1357,51 @@ function getPreviousContentSibling(item: ListItemNode): ListItemNode | null {
   return null;
 }
 
-function isDescendantOf(node: ListItemNode, ancestor: ListItemNode): boolean {
-  let current: ListItemNode | null = node;
-  while (current) {
-    if (current.getKey() === ancestor.getKey()) {
-      return true;
-    }
-    current = getParentContentItem(current);
-  }
-  return false;
-}
-
-function findContentBoundaryTextNode(listItem: ListItemNode, edge: 'start' | 'end'): TextNode | null {
-  const children = listItem.getChildren();
-  const ordered = edge === 'start' ? children : [...children].reverse();
-
-  for (const child of ordered) {
-    if ($isListNode(child)) {
-      continue;
-    }
-
-    const match = findBoundaryTextNode(child, edge);
-    if (match) {
-      return match;
-    }
-  }
-
-  return null;
-}
-
-function getContentListItem(item: ListItemNode): ListItemNode {
-  if (!isChildrenWrapper(item)) {
+function getSubtreeTail(item: ListItemNode): ListItemNode {
+  const nestedList = getNestedList(item);
+  if (!nestedList) {
     return item;
   }
 
-  const previous = item.getPreviousSibling();
-  return $isListItemNode(previous) ? previous : item;
+  const lastChild = nestedList.getLastChild();
+  if (!$isListItemNode(lastChild)) {
+    return item;
+  }
+
+  return getSubtreeTail(lastChild);
+}
+
+function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
+  const aPath = getNodePath(a);
+  const bPath = getNodePath(b);
+  const depth = Math.max(aPath.length, bPath.length);
+
+  for (let i = 0; i < depth; i += 1) {
+    const left = aPath[i] ?? -1;
+    const right = bPath[i] ?? -1;
+    if (left !== right) {
+      return left - right;
+    }
+  }
+
+  return 0;
+}
+
+function getNodePath(node: ListItemNode): number[] {
+  const path: number[] = [];
+  let current: LexicalNode | null = node;
+
+  while (current) {
+    const parent: LexicalNode | null = current.getParent();
+    if (!parent) {
+      break;
+    }
+    const index = current.getIndexWithinParent();
+    path.push(index);
+    current = parent;
+  }
+
+  return path.reverse();
 }
 
 function ascendContentItem(item: ListItemNode, levels: number): ListItemNode | null {
@@ -1419,31 +1432,20 @@ function getParentContentItem(item: ListItemNode): ListItemNode | null {
   return $isListItemNode(parentContent) ? parentContent : null;
 }
 
-function isChildrenWrapper(node: LexicalNode | null | undefined): node is ListItemNode {
-  return (
-    $isListItemNode(node) &&
-    node.getChildren().length === 1 &&
-    $isListNode(node.getFirstChild())
-  );
-}
-
-function getWrapperForContent(item: ListItemNode): ListItemNode | null {
-  const next = item.getNextSibling();
-  return isChildrenWrapper(next) ? next : null;
-}
-
-function getSubtreeTail(item: ListItemNode): ListItemNode {
-  const nestedList = getNestedList(item);
-  if (!nestedList) {
-    return item;
+function getContentSiblings(item: ListItemNode): ListItemNode[] {
+  const parentList = item.getParent();
+  if (!$isListNode(parentList)) {
+    return [item];
   }
 
-  const lastChild = nestedList.getLastChild();
-  if (!$isListItemNode(lastChild)) {
-    return item;
+  const siblings: ListItemNode[] = [];
+  for (const child of parentList.getChildren()) {
+    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+      siblings.push(child);
+    }
   }
 
-  return getSubtreeTail(lastChild);
+  return siblings.length === 0 ? [item] : siblings;
 }
 
 function getNestedList(item: ListItemNode): ListNode | null {
@@ -1462,22 +1464,6 @@ function getNestedList(item: ListItemNode): ListNode | null {
   }
 
   return null;
-}
-
-function getContentSiblings(item: ListItemNode): ListItemNode[] {
-  const parentList = item.getParent();
-  if (!$isListNode(parentList)) {
-    return [item];
-  }
-
-  const siblings: ListItemNode[] = [];
-  for (const child of parentList.getChildren()) {
-    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
-      siblings.push(child);
-    }
-  }
-
-  return siblings.length === 0 ? [item] : siblings;
 }
 
 function getFirstDescendantListItem(node: LexicalNode | null): ListItemNode | null {
@@ -1526,3 +1512,26 @@ function getLastDescendantListItem(node: LexicalNode | null): ListItemNode | nul
   return null;
 }
 
+function isDescendantOf(node: ListItemNode, ancestor: ListItemNode): boolean {
+  let current: ListItemNode | null = node;
+  while (current) {
+    if (current.getKey() === ancestor.getKey()) {
+      return true;
+    }
+    current = getParentContentItem(current);
+  }
+  return false;
+}
+
+function getWrapperForContent(item: ListItemNode): ListItemNode | null {
+  const next = item.getNextSibling();
+  return isChildrenWrapper(next) ? next : null;
+}
+
+function isChildrenWrapper(node: LexicalNode | null | undefined): node is ListItemNode {
+  return (
+    $isListItemNode(node) &&
+    node.getChildren().length === 1 &&
+    $isListNode(node.getFirstChild())
+  );
+}
