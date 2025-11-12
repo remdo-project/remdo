@@ -11,6 +11,7 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
+  KEY_ENTER_COMMAND,
   SELECT_ALL_COMMAND,
   createCommand,
 } from 'lexical';
@@ -451,6 +452,20 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
+    const unregisterEnter = editor.registerCommand(
+      KEY_ENTER_COMMAND,
+      (event) => {
+        if (!structuralSelectionRef.current) {
+          return false;
+        }
+
+        event?.preventDefault();
+        event?.stopPropagation();
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
     return () => {
       structuralSelectionRef.current = false;
       const rootElement = editor.getRootElement();
@@ -472,6 +487,7 @@ export function SelectionPlugin() {
       unregisterArrowLeft();
       unregisterArrowRight();
       unregisterDirectionalCommand();
+      unregisterEnter();
       unregisterEscape();
       unregisterRootListener();
     };
