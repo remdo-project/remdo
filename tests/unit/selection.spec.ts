@@ -433,6 +433,26 @@ describe('selection plugin', () => {
     expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
   });
 
+  it.fails('marks structural selection once Shift+Down reaches stage 2 even for leaf notes', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note4', lexical.mutate);
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    // Stage 1 should stay unstructured.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    // Stage 2 should flip the structural dataset for leaf notes so the UI highlights the block.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+  });
+
   it('skips the sibling stage when Shift+Down reaches a siblingless note', async ({ lexical }) => {
     lexical.load('tree_complex');
 
