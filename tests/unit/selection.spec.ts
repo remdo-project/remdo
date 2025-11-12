@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { TestContext } from 'vitest';
 import { placeCaretAtNote, pressKey } from '#tests';
-import { $getSelection, $isRangeSelection, $getRoot } from 'lexical';
+import { $getSelection, $isRangeSelection, $getNodeByKey, $getRoot } from 'lexical';
 import type { LexicalNode, RangeSelection } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
+import { computeStructuralRange } from '@/editor/plugins/selectionRange';
 
 interface SelectionSnapshot {
   selectedNotes: string[];
@@ -529,6 +530,61 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
+  });
+
+  it('keeps the structural highlight aligned with the selected notes', async ({ lexical }) => {
+    // TODO: simplify this regression while preserving the coverage described above.
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note2', lexical.mutate);
+
+    const assertVisualEnvelopeMatchesSelection = async () => {
+      const snapshot = readSelectionSnapshot(lexical);
+      const labels = lexical.validate(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) {
+          throw new Error('Expected a range selection');
+        }
+        const range = computeStructuralRange(selection);
+        if (!range) {
+          throw new Error('Expected structural range metrics');
+        }
+
+        const $labelFor = (key: string): string => {
+          const node = $getNodeByKey<ListItemNode>(key);
+          if (!node) {
+            throw new Error(`No node found for key: ${key}`);
+          }
+          const label = getListItemLabel(node);
+          if (!label) {
+            throw new Error(`No label found for key: ${key}`);
+          }
+          return label;
+        };
+
+        return {
+          caretStart: $labelFor(range.caretStartKey),
+          caretEnd: $labelFor(range.caretEndKey),
+          visualStart: $labelFor(range.visualStartKey),
+          visualEnd: $labelFor(range.visualEndKey),
+        } as const;
+      });
+
+      const first = snapshot.selectedNotes[0];
+      const last = snapshot.selectedNotes[snapshot.selectedNotes.length - 1];
+      expect(labels.visualStart).toBe(first);
+      expect(labels.visualEnd).toBe(last);
+    };
+
+    // Stage 2: note2 + descendants.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await assertVisualEnvelopeMatchesSelection();
+
+    // Stage 4: parent subtree (note1..note4).
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await assertVisualEnvelopeMatchesSelection();
   });
 
   it('marks structural selection once Shift+Down reaches stage 2 even for leaf notes', async ({ lexical }) => {
