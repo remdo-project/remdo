@@ -350,6 +350,27 @@ describe('selection plugin', () => {
     });
   });
 
+  it('places the caret at the top edge when pressing ArrowUp in structural mode', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note2', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+
+    await pressKey(lexical.editor, { key: 'ArrowUp' });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    const snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2']);
+  });
+
   it('lets Home/End collapse structural selections to their respective edges', async ({ lexical }) => {
     lexical.load('tree_complex');
 
