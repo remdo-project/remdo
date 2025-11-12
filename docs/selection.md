@@ -70,8 +70,10 @@ inline editing.
    keeps structural expansion intuitive (follow the arrow direction) while
    honoring the contiguous-subtree invariant.
 2. `Esc` (or clicking back into text) collapses any note-range selection to the
-   caret state without changing the document, giving you a quick way to resume
-   typing after structural commands.
+   caret state without changing the document; unmodified cursor keys (Arrow
+   Left/Right/Up/Down, Home/End, Page Up/Down) do the same but place the caret
+   at the corresponding edge of the former range (start/end or top/bottom), so
+   you can resume typing exactly where you navigated.
 
 ### Pointer Gestures
 
@@ -99,6 +101,7 @@ inline editing.
 | `Shift+Up/Down`    | Keyboard | Structural expansion along the Progressive Selection ladder (siblings in direction of travel, then parents). |
 | `Shift+Click`      | Pointer  | Extends from the anchor to the clicked note, yielding a contiguous note range. |
 | `Esc`              | Keyboard | Collapses any note range back to a caret without changing content. |
+| `Home/End/Page`+Arrow | Keyboard | When structural mode is active, pressing an unmodified navigation key collapses the selection and drops the caret at the respective edge (start/end/top/bottom). |
 | `Enter`            | Keyboard | Inserts a newline only while editing inline; once structural mode is active it becomes a no-op. |
 | `Cmd/Ctrl+A`       | Keyboard | Advances the Progressive Selection ladder one stage per press. |
 
