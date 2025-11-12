@@ -10,12 +10,19 @@ interface SelectionSnapshot {
   selectedNotes: string[];
 }
 
+interface ListItemRange {
+  start: number;
+  end: number;
+}
+
 function readSelectionSnapshot(lexical: TestContext['lexical']): SelectionSnapshot {
   return lexical.validate(() => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection)) {
       throw new Error('Expected a range selection');
     }
+
+    $assertSelectionRespectsOutline(selection);
 
     const labels = $collectLabelsFromSelection(selection);
     const finalLabels = labels.length > 0 ? labels : $collectAllNoteLabels();
@@ -24,6 +31,97 @@ function readSelectionSnapshot(lexical: TestContext['lexical']): SelectionSnapsh
       selectedNotes: finalLabels,
     } satisfies SelectionSnapshot;
   });
+}
+
+// Ensures every multi-note selection matches the guarantees from docs/selection.md:
+// once a selection crosses a note boundary it must cover a contiguous block of
+// whole notes plus their subtrees, with no gaps or orphaned descendants.
+function $assertSelectionRespectsOutline(selection: RangeSelection) {
+  const selectedItems = $collectSelectedListItems(selection);
+  if (selectedItems.length <= 1) {
+    return;
+  }
+
+  const { orderedItems, rangeByKey } = $collectListItemOrderMetadata();
+  if (orderedItems.length === 0) {
+    return;
+  }
+
+  const selectedKeys = new Set(selectedItems.map((item) => item.getKey()));
+  let minIndex = Number.POSITIVE_INFINITY;
+  let maxIndex = Number.NEGATIVE_INFINITY;
+
+  for (const item of selectedItems) {
+    const range = rangeByKey.get(item.getKey());
+    if (!range) {
+      continue;
+    }
+    if (range.start < minIndex) {
+      minIndex = range.start;
+    }
+    if (range.end > maxIndex) {
+      maxIndex = range.end;
+    }
+  }
+
+  if (!Number.isFinite(minIndex) || !Number.isFinite(maxIndex)) {
+    return;
+  }
+
+  for (let index = minIndex; index <= maxIndex; index += 1) {
+    const item = orderedItems[index];
+    if (!item) {
+      continue;
+    }
+    if (!selectedKeys.has(item.getKey())) {
+      throw new Error('Selection must cover a contiguous block of notes and subtrees');
+    }
+  }
+}
+
+function $collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
+  const items: ListItemNode[] = [];
+  visitListItems($getRoot().getFirstChild(), (item) => {
+    if (item.isSelected(selection)) {
+      items.push(item);
+    }
+  });
+  return items;
+}
+
+function $collectListItemOrderMetadata(): {
+  orderedItems: ListItemNode[];
+  rangeByKey: Map<string, ListItemRange>;
+} {
+  const orderedItems: ListItemNode[] = [];
+  const rangeByKey = new Map<string, ListItemRange>();
+
+  const visit = (node: LexicalNode | null) => {
+    if (!$isListNode(node)) {
+      return;
+    }
+
+    for (const child of node.getChildren()) {
+      if (!$isListItemNode(child)) {
+        continue;
+      }
+
+      const contentItem = resolveContentListItem(child);
+      const start = orderedItems.length;
+      orderedItems.push(contentItem);
+
+      const nestedList = getNestedList(contentItem);
+      if (nestedList) {
+        visit(nestedList);
+      }
+
+      const end = orderedItems.length - 1;
+      rangeByKey.set(contentItem.getKey(), { start, end });
+    }
+  };
+
+  visit($getRoot().getFirstChild());
+  return { orderedItems, rangeByKey };
 }
 
 
