@@ -291,7 +291,93 @@ describe('selection plugin', () => {
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
     const snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note4']);
+  });
+
+  it('places the caret at the leading edge when pressing ArrowLeft in structural mode', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note5', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+
+    await pressKey(lexical.editor, { key: 'ArrowLeft' });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    await lexical.validate(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) {
+        throw new Error('Expected range selection');
+      }
+      const anchorItem = findNearestListItem(selection.anchor.getNode());
+      const label = anchorItem ? getListItemLabel(anchorItem) : null;
+      expect(label).toBe('note5');
+    });
+  });
+
+  it('places the caret at the trailing edge when pressing ArrowRight in structural mode', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note5', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+
+    await pressKey(lexical.editor, { key: 'ArrowRight' });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    await lexical.validate(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) {
+        throw new Error('Expected range selection');
+      }
+      const anchorItem = findNearestListItem(selection.anchor.getNode());
+      const label = anchorItem ? getListItemLabel(anchorItem) : null;
+      expect(label).toBe('note6');
+    });
+  });
+
+  it('lets Home/End collapse structural selections to their respective edges', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note2', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+
+    await pressKey(lexical.editor, { key: 'Home' });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    let snapshot = readSelectionSnapshot(lexical);
     expect(snapshot.selectedNotes).toEqual(['note2']);
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+
+    await pressKey(lexical.editor, { key: 'End' });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note4']);
   });
 
   it('lets Shift+Down walk the progressive selection ladder', async ({ lexical }) => {
