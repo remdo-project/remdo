@@ -51,10 +51,43 @@
 }
 
 .editor-input {
+  --remdo-structural-highlight-inset: var(--mantine-spacing-sm);
+  --remdo-selection-color: rgba(97, 140, 255, 0.35);
   outline: none;
   white-space: pre-wrap;
   word-break: break-word;
   background-color: transparent;
+  position: relative;
+}
+
+.editor-input::selection,
+.editor-input *::selection {
+  background: var(--remdo-selection-color);
+  color: inherit;
+}
+
+.editor-input::before {
+  content: '';
+  position: absolute;
+  left: calc(0px - var(--remdo-structural-highlight-inset));
+  right: calc(0px - var(--remdo-structural-highlight-inset));
+  border-radius: var(--mantine-radius-sm);
+  background: var(--remdo-selection-color);
+  pointer-events: none;
+  opacity: 0;
+  top: 0;
+  height: 0;
+}
+
+.editor-input[data-structural-selection='true']::before {
+  opacity: 1;
+  top: var(--structural-selection-top, 0px);
+  height: var(--structural-selection-height, 0px);
+}
+
+.editor-input[data-structural-selection='true']::selection,
+.editor-input[data-structural-selection='true'] *::selection {
+  background: transparent;
 }
 
 .editor-placeholder {

@@ -113,30 +113,26 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     });
   });
 
-  it(
-    'keeps browser doc id aligned with CLI default configuration',
-    { meta: { collabDefaultDoc: 'cross-doc-check' } } as any,
-    async ({ lexical }: TestContext) => {
-      const defaultDoc = 'cross-doc-check';
-      const envOverrides = {
-        COLLAB_DOCUMENT_ID: defaultDoc,
-        VITE_COLLAB_DOCUMENT_ID: defaultDoc,
-      } satisfies NodeJS.ProcessEnv;
-      const defaultFixture = path.resolve('tests/fixtures/basic.json');
-      runSnapshotCommand('load', [defaultFixture], envOverrides);
+  it('keeps browser doc id aligned with CLI default configuration', async ({ lexical }: TestContext) => {
+    const defaultDoc = lexical.getCollabDocId();
+    const envOverrides = {
+      COLLAB_DOCUMENT_ID: defaultDoc,
+      VITE_COLLAB_DOCUMENT_ID: defaultDoc,
+    } satisfies NodeJS.ProcessEnv;
+    const defaultFixture = path.resolve('tests/fixtures/basic.json');
+    runSnapshotCommand('load', [defaultFixture], envOverrides);
 
-      await lexical.waitForCollabSync();
+    await lexical.waitForCollabSync();
 
-      expect(lexical.getCollabDocId()).toBe(defaultDoc);
-    }
-  );
+    expect(lexical.getCollabDocId()).toBe(defaultDoc);
+  });
 
   it(
     'cross-loads and saves multiple documents without crosstalk',
-    { meta: { collabDefaultDoc: 'cross-doc-check' }, timeout: SNAPSHOT_TIMEOUT_MS } as any,
+    { timeout: SNAPSHOT_TIMEOUT_MS } as any,
     async ({ lexical }: TestContext) => {
-      const defaultDoc = 'cross-doc-check';
-      const secondaryDoc = 'cross-doc-check-alt';
+      const defaultDoc = lexical.getCollabDocId();
+      const secondaryDoc = `${defaultDoc}-secondary`;
       const envOverrides = {
         COLLAB_DOCUMENT_ID: defaultDoc,
         VITE_COLLAB_DOCUMENT_ID: defaultDoc,

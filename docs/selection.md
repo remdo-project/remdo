@@ -48,26 +48,32 @@ non-contiguous toggling.
 ### Editing vs. Structural Mode
 
 Typing only inserts characters while the selection is a caret or inline text
-range. As soon as a selection covers any whole note (even just the note without
-its children), the editor switches to structural mode: keystrokes that would
-normally type become no-ops, and only structural commands (indent, outdent,
-reorder, duplicate, delete, etc.) respond. Press `Enter` or click back into a
-note’s text to return to inline editing.
+range (ladder stage 0 or 1). As soon as a selection covers any whole note (stage
+2 and beyond), the editor switches to structural mode: keystrokes that would
+normally type—including `Enter`—become no-ops, and only structural commands
+(indent, outdent, reorder, duplicate, delete, etc.) respond. Press `Esc` (or
+click back into a note’s text) to collapse the range when you want to resume
+inline editing.
 
 ## Cursor-Driven Gestures
 
 ### Keyboard Gestures
 
-1. `Shift+Arrow` behaves like a regular text editor while the caret stays inside
-   the current note. Once the extension would cross a note boundary, RemDo snaps
-   the selection to whole notes and follows the Progressive Selection ladder:
-   entire note → note plus descendants → siblings at the same depth (and their
-   descendants) → parent, and so on toward the root. `Shift+Up/Down` walk across
-   siblings before escalating upward, while `Shift+Left/Right` traverse between
-   a note and its parent/child when those relationships exist.
+1. `Shift+Left/Right` behave exactly like a regular text editor but are limited
+   to the active note’s inline content. When the caret reaches the note boundary
+   those keys become no-ops, so you never hop into structural selection via
+   horizontal arrows.
+2. `Shift+Up/Down` drive the structural ladder. Pressing either key while a
+   note is highlighted extends the selection to the next contiguous block in
+   that direction: additional siblings first, then the parent when you run out
+   of siblings, and finally the parent’s siblings as the ladder continues. This
+   keeps structural expansion intuitive (follow the arrow direction) while
+   honoring the contiguous-subtree invariant.
 2. `Esc` (or clicking back into text) collapses any note-range selection to the
-   caret state without changing the document, giving you a quick way to resume
-   typing after structural commands.
+   caret state without changing the document; unmodified cursor keys (Arrow
+   Left/Right/Up/Down, Home/End, Page Up/Down) do the same but place the caret
+   at the corresponding edge of the former range (start/end or top/bottom), so
+   you can resume typing exactly where you navigated.
 
 ### Pointer Gestures
 
@@ -91,36 +97,52 @@ note’s text to return to inline editing.
 | ------------------ | ------- | ------ |
 | `Tab`              | Structural | Indents the selected note range under the preceding sibling (see [Note Structure Rules](./note-structure-rules.md)). |
 | `Shift+Tab`        | Structural | Performs Structural Outdent, inserting the selection immediately after its former parent. |
-| `Shift+Arrow`      | Keyboard | Extends the selection; once it crosses a note boundary it follows the Progressive Selection ladder. |
+| `Shift+Left/Right` | Keyboard | Inline-only expansion inside the active note; reaching a boundary is a no-op. |
+| `Shift+Up/Down`    | Keyboard | Structural expansion along the Progressive Selection ladder (siblings in direction of travel, then parents). |
 | `Shift+Click`      | Pointer  | Extends from the anchor to the clicked note, yielding a contiguous note range. |
 | `Esc`              | Keyboard | Collapses any note range back to a caret without changing content. |
-| `Enter`            | Keyboard | Returns to inline editing by placing the caret inside the focused note. |
+| `Home/End/Page`+Arrow | Keyboard | When structural mode is active, pressing an unmodified navigation key collapses the selection and drops the caret at the respective edge (start/end/top/bottom). |
+| `Enter`            | Keyboard | Inserts a newline only while editing inline; once structural mode is active it becomes a no-op. |
 | `Cmd/Ctrl+A`       | Keyboard | Advances the Progressive Selection ladder one stage per press. |
 
 ## Progressive Selection
 
 `Cmd/Ctrl+A` escalates selection scope without leaving the keyboard. Each press
 advances to the next level; any other navigation or edit resets the progression
-back to stage 1.
+back to the caret state.
 
-1. **Press 1:** Selects only the current note’s inline content (standard select
-   all inside the caret note).
-2. **Press 2:** Wraps the entire note body. Structural commands always operate
-   on the note as a subtree, so indenting/outdenting still carries any children
-   even though the highlight shows only the parent note.
-3. **Press 3:** Extends to the note plus all of its descendants so clipboard
-   operations (copy, duplicate, delete) explicitly include the full subtree.
-4. **Press 4:** Adds every sibling at the same depth (including their
-   descendants) while keeping the parent untouched.
-5. **Press 5:** Picks up the parent note and all of its descendants, effectively
-   covering the entire local subtree above the original note.
-6. **Press 6 and beyond:** Repeat the sibling-then-parent climb for each higher
+0. **Caret (no presses):** Only the caret is active. Typing behaves like any text
+   editor, while structural commands (indent/outdent, reorder, move up/down)
+   still treat the note and its descendants as a single movable unit.
+1. **Press 1 – Inline range:** Highlights the current note’s content block only.
+   Typing replaces that text, Delete clears it, but structural commands continue
+   to move/indent/outdent the note together with its subtree even though only
+   the parent body is visibly selected.
+2. **Press 2 – Note + descendants:** Expands the range to include the entire
+   subtree beneath the note so clipboard operations and destructive keys remove
+   the whole section. Inline editing is disabled at this stage; you’re strictly
+   in structural mode. From this point forward, Delete/Backspace remove the
+   entire selection and structural commands affect every highlighted note. From
+   this stage onward the UI also presents a single block highlight across the
+   bullet column and note bodies, so the user sees one contiguous slab rather
+   than multiple inline fragments—reinforcing that they are operating on whole
+   notes instead of text spans.
+3. **Press 3:** Adds every sibling at the same depth (including their
+   descendants) while keeping the parent untouched. If there are no siblings,
+   the ladder automatically skips this step and continues to the next stage—this
+   applies equally to `Shift+Up/Down` and `Cmd/Ctrl+A`, so orphan notes jump
+   straight to their parent stage without pausing at an empty rung.
+4. **Press 4:** Picks up the parent note and all of its descendants, effectively
+   covering the entire local subtree above the original note. If this scope is
+   already covered because the sibling stage had nothing new to add, the ladder
+   jumps straight to the next meaningful expansion instead of pausing here.
+5. **Press 5 and beyond:** Repeat the sibling-then-parent climb for each higher
    level until the root note becomes selected.
 
 Stopping at any stage leaves the selection in that scope so you can immediately
-run structural commands or copy/paste entire sections. `Shift+Arrow` uses this
-same progression whenever it pushes the selection across a note boundary, so
-keyboard-driven selection stays coherent regardless of the shortcut you use.
+run structural commands or copy/paste entire sections. `Shift+Up/Down` reuse
+this progression for keyboard-driven structural selection, while
+`Shift+Left/Right` remain inline-only.
 
 ## Command Compatibility
 

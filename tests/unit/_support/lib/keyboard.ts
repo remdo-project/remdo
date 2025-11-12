@@ -1,19 +1,97 @@
 import type { LexicalEditor } from 'lexical';
+import {
+  KEY_ARROW_DOWN_COMMAND,
+  KEY_ARROW_LEFT_COMMAND,
+  KEY_ARROW_RIGHT_COMMAND,
+  KEY_ARROW_UP_COMMAND,
+} from 'lexical';
 import { act } from '@testing-library/react';
-import { KEY_TAB_COMMAND } from 'lexical';
 
-export async function pressTab(
+interface NavigatorWithUAData extends Navigator {
+  userAgentData?: { platform?: string };
+}
+
+const APPLE_PATTERN = /Mac(?:intosh)?|iPhone|iPad|iPod/i;
+const navigatorRef =
+  typeof navigator === 'undefined' ? null : (navigator as NavigatorWithUAData);
+const platformSource = navigatorRef?.userAgentData?.platform ?? navigatorRef?.userAgent ?? '';
+const IS_APPLE = APPLE_PATTERN.test(platformSource);
+
+interface PressKeyOptions {
+  key: string;
+  shift?: boolean;
+  alt?: boolean;
+  meta?: boolean;
+  ctrl?: boolean;
+  ctrlOrMeta?: boolean;
+}
+
+export async function pressKey(
   editor: LexicalEditor,
-  opts: { shift?: boolean } = {}
+  { key, shift = false, alt = false, meta = false, ctrl = false, ctrlOrMeta }: PressKeyOptions
 ) {
-  const { shift = false } = opts;
+  const root = editor.getRootElement();
+  if (!root) {
+    throw new Error('Lexical root element is not mounted');
+  }
+
+  let nextMeta = meta;
+  let nextCtrl = ctrl;
+
+  if (typeof ctrlOrMeta === 'boolean') {
+    if (ctrlOrMeta) {
+      nextMeta = IS_APPLE;
+      nextCtrl = !IS_APPLE;
+    } else {
+      nextMeta = false;
+      nextCtrl = false;
+    }
+  }
+
   const event = new KeyboardEvent('keydown', {
-    key: 'Tab',
+    key,
     bubbles: true,
     cancelable: true,
     shiftKey: shift,
+    altKey: alt,
+    metaKey: nextMeta,
+    ctrlKey: nextCtrl,
   });
+
+  const arrowCommand = getArrowCommand(key);
+  if (arrowCommand) {
+    await act(async () => {
+      editor.dispatchCommand(arrowCommand, event);
+    });
+    await waitForEditorUpdate(editor);
+    return;
+  }
+
   await act(async () => {
-    editor.dispatchCommand(KEY_TAB_COMMAND, event);
+    root.dispatchEvent(event);
+  });
+  await waitForEditorUpdate(editor);
+}
+
+function getArrowCommand(key: string) {
+  switch (key) {
+    case 'ArrowUp':
+      return KEY_ARROW_UP_COMMAND;
+    case 'ArrowDown':
+      return KEY_ARROW_DOWN_COMMAND;
+    case 'ArrowLeft':
+      return KEY_ARROW_LEFT_COMMAND;
+    case 'ArrowRight':
+      return KEY_ARROW_RIGHT_COMMAND;
+    default:
+      return null;
+  }
+}
+
+function waitForEditorUpdate(editor: LexicalEditor) {
+  return new Promise<void>((resolve) => {
+    editor.update(() => {
+      resolve();
+    });
   });
 }
