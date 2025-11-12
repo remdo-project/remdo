@@ -126,7 +126,9 @@ back to the caret state.
    notes instead of text spans.
 3. **Press 3:** Adds every sibling at the same depth (including their
    descendants) while keeping the parent untouched. If there are no siblings,
-   the ladder automatically skips this step and continues to the next stage.
+   the ladder automatically skips this step and continues to the next stage—this
+   applies equally to `Shift+Up/Down` and `Cmd/Ctrl+A`, so orphan notes jump
+   straight to their parent stage without pausing at an empty rung.
 4. **Press 4:** Picks up the parent note and all of its descendants, effectively
    covering the entire local subtree above the original note. If this scope is
    already covered because the sibling stage had nothing new to add, the ladder

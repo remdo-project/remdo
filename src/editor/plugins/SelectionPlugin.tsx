@@ -11,6 +11,8 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
+  KEY_ARROW_UP_COMMAND,
+  KEY_ARROW_DOWN_COMMAND,
   KEY_ENTER_COMMAND,
   SELECT_ALL_COMMAND,
   createCommand,
@@ -312,6 +314,38 @@ export function SelectionPlugin() {
       );
     };
 
+    const collapseStructuralSelectionToCaretAndReset = (): boolean => {
+      let handled = false;
+
+      editor.update(
+        () => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+            return;
+          }
+
+          handled = collapseSelectionToCaret(selection);
+          if (!handled) {
+            return;
+          }
+
+          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+          unlockRef.current = { pending: false, reason: 'external' };
+        },
+        { tag: PROGRESSIVE_SELECTION_TAG }
+      );
+
+      if (!handled) {
+        return false;
+      }
+
+      setStructuralSelectionActive(false);
+      clearStructuralSelectionMetrics();
+      scheduleFocusRestore();
+
+      return true;
+    };
+
     const unregisterSelectAll = editor.registerCommand(
       SELECT_ALL_COMMAND,
       (event) => {
@@ -421,36 +455,64 @@ export function SelectionPlugin() {
     const unregisterEscape = editor.registerCommand(
       KEY_ESCAPE_COMMAND,
       (event) => {
-        let handled = false;
-
-        editor.update(
-          () => {
-            const selection = $getSelection();
-            if (!$isRangeSelection(selection) || selection.isCollapsed()) {
-              return;
-            }
-
-            handled = collapseSelectionToCaret(selection);
-            if (!handled) {
-              return;
-            }
-
-            progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-            unlockRef.current = { pending: false, reason: 'external' };
-          },
-          { tag: PROGRESSIVE_SELECTION_TAG }
-        );
-
+        const handled = collapseStructuralSelectionToCaretAndReset();
         if (!handled) {
           return false;
         }
 
         event?.preventDefault();
         event?.stopPropagation();
-        setStructuralSelectionActive(false);
-        clearStructuralSelectionMetrics();
-        scheduleFocusRestore();
 
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const shouldHandlePlainVerticalArrow = (event: KeyboardEvent | null): boolean => {
+      if (!structuralSelectionRef.current) {
+        return false;
+      }
+
+      if (!event) {
+        return true;
+      }
+
+      return !(event.shiftKey || event.altKey || event.metaKey || event.ctrlKey);
+    };
+
+    const unregisterPlainArrowDown = editor.registerCommand(
+      KEY_ARROW_DOWN_COMMAND,
+      (event) => {
+        if (!shouldHandlePlainVerticalArrow(event)) {
+          return false;
+        }
+
+        const handled = collapseStructuralSelectionToCaretAndReset();
+        if (!handled) {
+          return false;
+        }
+
+        event?.preventDefault();
+        event?.stopPropagation();
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const unregisterPlainArrowUp = editor.registerCommand(
+      KEY_ARROW_UP_COMMAND,
+      (event) => {
+        if (!shouldHandlePlainVerticalArrow(event)) {
+          return false;
+        }
+
+        const handled = collapseStructuralSelectionToCaretAndReset();
+        if (!handled) {
+          return false;
+        }
+
+        event?.preventDefault();
+        event?.stopPropagation();
         return true;
       },
       COMMAND_PRIORITY_CRITICAL
@@ -491,6 +553,8 @@ export function SelectionPlugin() {
       unregisterArrowLeft();
       unregisterArrowRight();
       unregisterDirectionalCommand();
+      unregisterPlainArrowDown();
+      unregisterPlainArrowUp();
       unregisterEnter();
       unregisterEscape();
       unregisterRootListener();

@@ -273,6 +273,27 @@ describe('selection plugin', () => {
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
   });
 
+  it('restores a single-note caret when navigating with plain arrows from structural mode', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note2', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+
+    await pressKey(lexical.editor, { key: 'ArrowDown' });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    const snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2']);
+  });
+
   it('lets Shift+Down walk the progressive selection ladder', async ({ lexical }) => {
     lexical.load('tree_complex');
 
