@@ -776,11 +776,19 @@ function $buildPlanForStage(
     }
 
     const siblingPlan = $createSiblingRangePlan(targetContent);
-    return siblingPlan ? { plan: siblingPlan, stage } : null;
+    if (siblingPlan) {
+      return { plan: siblingPlan, stage };
+    }
+
+    return $buildPlanForStage(anchorContent, stage + 1);
   }
 
   const subtreePlan = $createSubtreePlan(targetContent);
-  return subtreePlan ? { plan: subtreePlan, stage } : null;
+  if (subtreePlan) {
+    return { plan: subtreePlan, stage };
+  }
+
+  return $buildPlanForStage(anchorContent, stage + 1);
 }
 
 function $computeDirectionalPlan(
@@ -957,7 +965,7 @@ function $createSubtreePlan(item: ListItemNode): ProgressivePlan | null {
 
 function $createSiblingRangePlan(item: ListItemNode): ProgressivePlan | null {
   const siblings = getContentSiblings(item);
-  if (siblings.length === 0) {
+  if (siblings.length <= 1) {
     return null;
   }
 
