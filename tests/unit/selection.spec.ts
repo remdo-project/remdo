@@ -547,6 +547,47 @@ describe('selection plugin', () => {
     expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
   });
 
+  it('escalates Shift+Down from a nested leaf until the document is selected', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note3', lexical.mutate);
+
+    // Stage 1 (docs/selection.md): inline body only.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note3']);
+
+    // Stage 2: note + descendants; note3 is a leaf so nothing new appears.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note3']);
+
+    // Stage 3 would add siblings, but the ladder skips empty rungs per docs/selection.md and hoists to the parent subtree (Stage 4).
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
+
+    // Stage 5: include the parent's next sibling (note4) while keeping the range contiguous.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3', 'note4']);
+
+    // Stage 6: hoist to the next ancestor (note1) and capture its subtree.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4']);
+
+    // Stage 7+: walk root-level siblings one at a time, per docs/selection.md.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
+
+    // Selecting note6 (a parent) must automatically bring along its child note7.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
+  });
+
   it('keeps the structural highlight aligned with the selected notes', async ({ lexical }) => {
     // TODO: simplify this regression while preserving the coverage described above.
     lexical.load('tree_complex');
