@@ -575,11 +575,13 @@ export function SelectionPlugin() {
           return false;
         }
 
-        if (event.key !== 'Home' && event.key !== 'End') {
+        if (event.key !== 'Home' && event.key !== 'End' && event.key !== 'PageUp' && event.key !== 'PageDown') {
           return false;
         }
 
-        const handled = collapseStructuralSelectionToCaretAndReset(event.key === 'Home' ? 'start' : 'end');
+        const handled = collapseStructuralSelectionToCaretAndReset(
+          event.key === 'Home' || event.key === 'PageUp' ? 'start' : 'end'
+        );
         if (!handled) {
           return false;
         }

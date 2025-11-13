@@ -591,7 +591,7 @@ describe('selection plugin', () => {
     expect(snapshot).toEqual({ state: 'caret', note: 'note4' });
   });
 
-  it.fails('collapses structural selection when pressing PageUp/PageDown', async ({ lexical }) => {
+  it('collapses structural selection when pressing PageUp/PageDown', async ({ lexical }) => {
     lexical.load('tree_complex');
 
     const rootElement = lexical.editor.getRootElement();
