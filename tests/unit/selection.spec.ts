@@ -420,7 +420,7 @@ describe('selection plugin', () => {
     expect(snapshot).toEqual({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
   });
 
-  it.fails('treats typing as a no-op once structural selection is active', async ({ lexical }) => {
+  it('treats typing as a no-op once structural selection is active', async ({ lexical }) => {
     lexical.load('tree_complex');
 
     const rootElement = lexical.editor.getRootElement();

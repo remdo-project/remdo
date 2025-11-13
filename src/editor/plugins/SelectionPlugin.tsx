@@ -564,9 +564,25 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
+    const shouldBlockTypingInStructuralMode = (event: KeyboardEvent | null): boolean => {
+      if (!event || !structuralSelectionRef.current) {
+        return false;
+      }
+      if (event.altKey || event.metaKey || event.ctrlKey) {
+        return false;
+      }
+      return event.key.length === 1;
+    };
+
     const unregisterHomeEnd = editor.registerCommand(
       KEY_DOWN_COMMAND,
       (event) => {
+        if (shouldBlockTypingInStructuralMode(event)) {
+          event.preventDefault();
+          event.stopPropagation();
+          return true;
+        }
+
         if (!event || !structuralSelectionRef.current) {
           return false;
         }
