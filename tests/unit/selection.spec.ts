@@ -684,7 +684,7 @@ describe('selection plugin', () => {
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot.selectedNotes).toEqual(['note4']);
 
-    // Stage 3: include preceding siblings at this depth.
+    // Stage 3: include the nearest preceding sibling at this depth.
     await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot.selectedNotes).toEqual(['note2', 'note3', 'note4']);
