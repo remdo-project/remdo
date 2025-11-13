@@ -24,11 +24,8 @@ function readSelectionSnapshot(lexical: TestContext['lexical']): SelectionSnapsh
 
     $assertSelectionRespectsOutline(selection);
 
-    const labels = $collectLabelsFromSelection(selection);
-    const finalLabels = labels.length > 0 ? labels : $collectAllNoteLabels();
-
     return {
-      selectedNotes: finalLabels,
+      selectedNotes: $collectLabelsFromSelection(selection),
     } satisfies SelectionSnapshot;
   });
 }
@@ -86,7 +83,7 @@ function $collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
       items.push(item);
     }
   });
-  return items;
+  return items.filter((item) => item.isAttached());
 }
 
 function $collectListItemOrderMetadata(): {
@@ -257,15 +254,11 @@ function $collectLabelsFromSelection(selection: RangeSelection): string[] {
     }
   });
 
-  if (seen.size === 0) {
-    const anchorItem = findNearestListItem(selection.anchor.getNode());
-    const anchorLabel = anchorItem ? getListItemLabel(anchorItem) : null;
-    if (anchorLabel) {
-      seen.add(anchorLabel);
-    }
-  }
-
-  return Array.from(seen).toSorted((a, b) => a.localeCompare(b));
+<<<<<<< HEAD
+  return Array.from(seen).sort();
+=======
+  return Array.from(seen).sort();
+>>>>>>> 5620b0a (fix(selection): ensure readSelectionSnapshot only reports live note ranges — remove anchor/all-note fallbacks and filter detached items)
 }
 
 describe('selection plugin', () => {
