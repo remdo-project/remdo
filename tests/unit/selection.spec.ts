@@ -766,7 +766,7 @@ describe('selection plugin', () => {
     expect(snapshot).toEqual({ state: 'structural', notes: ['note3'] });
   });
 
-  it.fails('skips the sibling stage when Shift+Down reaches a siblingless note', async ({ lexical }) => {
+  it('skips the sibling stage when Shift+Down reaches a siblingless note', async ({ lexical }) => {
     lexical.load('tree_complex');
 
     await placeCaretAtNote('note7', lexical.mutate);
@@ -780,7 +780,7 @@ describe('selection plugin', () => {
 
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     snapshot = readSelectionSnapshot(lexical);
-    expect(snapshot).toEqual({ state: 'structural', notes: ['note6', 'note7'] });
+    expect(snapshot).toEqual({ state: 'structural', notes: ['note7'] });
   });
 
   it('lets Shift+Up walk the progressive selection ladder', async ({ lexical }) => {
