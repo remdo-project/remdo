@@ -73,6 +73,18 @@ export async function pressKey(
   await waitForEditorUpdate(editor);
 }
 
+export async function typeText(editor: LexicalEditor, text: string) {
+  const root = editor.getRootElement();
+  if (!root) {
+    throw new Error('Lexical root element is not mounted');
+  }
+
+  await act(async () => {
+    dispatchInputEvents(root, text);
+  });
+  await waitForEditorUpdate(editor);
+}
+
 function getArrowCommand(key: string) {
   switch (key) {
     case 'ArrowUp':
@@ -94,4 +106,26 @@ function waitForEditorUpdate(editor: LexicalEditor) {
       resolve();
     });
   });
+}
+
+function dispatchInputEvents(root: HTMLElement, text: string) {
+  const beforeInput = new InputEvent('beforeinput', {
+    bubbles: true,
+    cancelable: true,
+    inputType: 'insertText',
+    data: text,
+  });
+
+  const allowed = root.dispatchEvent(beforeInput);
+  if (!allowed) {
+    return;
+  }
+
+  const input = new InputEvent('input', {
+    bubbles: true,
+    cancelable: false,
+    inputType: 'insertText',
+    data: text,
+  });
+  root.dispatchEvent(input);
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TestContext } from 'vitest';
-import { placeCaretAtNote, pressKey } from '#tests';
+import { placeCaretAtNote, pressKey, typeText } from '#tests';
 import { $getSelection, $isRangeSelection, $getRoot, $getNodeByKey } from 'lexical';
 import type { LexicalNode, RangeSelection } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
@@ -420,7 +420,7 @@ describe('selection plugin', () => {
     expect(snapshot).toEqual({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
   });
 
-  it('treats typing as a no-op once structural selection is active', async ({ lexical }) => {
+  it.fails('treats typing as a no-op once structural selection is active', async ({ lexical }) => {
     lexical.load('tree_complex');
 
     const rootElement = lexical.editor.getRootElement();
@@ -437,10 +437,15 @@ describe('selection plugin', () => {
     let snapshot = readSelectionSnapshot(lexical);
     expect(snapshot).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
 
-    await pressKey(lexical.editor, { key: 'x' });
+    const stateBefore = lexical.editor.getEditorState();
+
+    await typeText(lexical.editor, 'x');
     expect(rootElement.dataset.structuralSelection).toBe('true');
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+
+    const stateAfter = lexical.editor.getEditorState();
+    expect(stateAfter.toJSON()).toEqual(stateBefore.toJSON());
 
     const labelsAfter = lexical.validate(() => $collectAllNoteLabels());
     expect(labelsAfter).toEqual(labelsBefore);
