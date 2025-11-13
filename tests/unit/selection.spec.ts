@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TestContext } from 'vitest';
-import { placeCaretAtNote, pressKey, typeText } from '#tests';
+import { placeCaretAtNote, pressKey } from '#tests';
 import { $getSelection, $isRangeSelection, $getRoot, $getNodeByKey } from 'lexical';
 import type { LexicalNode, RangeSelection } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
@@ -439,7 +439,7 @@ describe('selection plugin', () => {
 
     const stateBefore = lexical.editor.getEditorState();
 
-    await typeText(lexical.editor, 'x');
+    await pressKey(lexical.editor, { key: 'x' });
     expect(rootElement.dataset.structuralSelection).toBe('true');
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
