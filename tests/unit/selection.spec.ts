@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { TestContext } from 'vitest';
 import { placeCaretAtNote, pressKey } from '#tests';
-import { $getSelection, $isRangeSelection, $getRoot } from 'lexical';
+import { $getSelection, $isRangeSelection, $getRoot, $getNodeByKey } from 'lexical';
 import type { LexicalNode, RangeSelection } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
@@ -18,6 +18,7 @@ interface ListItemRange {
 }
 
 function readSelectionSnapshot(lexical: TestContext['lexical']): SelectionSnapshot {
+  const rootElement = lexical.editor.getRootElement();
   return lexical.validate(() => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection)) {
@@ -34,6 +35,22 @@ function readSelectionSnapshot(lexical: TestContext['lexical']): SelectionSnapsh
     const structuralNotes = $collectLabelsFromSelection(selection);
     if (structuralNotes.length > 0) {
       return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
+    }
+
+    const datasetNotes = rootElement?.dataset.structuralSelectionKeys
+      ?.split(',')
+      .filter(Boolean)
+      .map((key) => {
+        const node = $getNodeByKey<ListItemNode>(key);
+        if (!node || !node.isAttached()) {
+          return null;
+        }
+        return getListItemLabel(resolveContentListItem(node));
+      })
+      .filter((label): label is string => Boolean(label));
+
+    if (datasetNotes?.length) {
+      return { state: 'structural', notes: datasetNotes } satisfies SelectionSnapshot;
     }
 
     const inlineNote = $getCaretNoteLabel(selection);
@@ -641,7 +658,7 @@ describe('selection plugin', () => {
     expect(snapshot).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
-  it.fails('escalates Shift+Down from a nested leaf until the document is selected', async ({ lexical }) => {
+  it('escalates Shift+Down from a nested leaf until the document is selected', async ({ lexical }) => {
     lexical.load('tree_complex');
 
     await placeCaretAtNote('note3', lexical.mutate);
@@ -651,8 +668,11 @@ describe('selection plugin', () => {
     let snapshot = readSelectionSnapshot(lexical);
     expect(snapshot).toEqual({ state: 'inline', note: 'note3' });
 
-    // Stage 2 currently fails to promote nested leaves (captured via a dedicated it.fails test),
-    // so we resume assertions at Stage 3.
+    // Stage 2 promotes the nested leaf structurally.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot).toEqual({ state: 'structural', notes: ['note3'] });
+
     // Stage 3 would add siblings, but the ladder skips empty rungs per docs/selection.md and hoists to the parent subtree (Stage 4).
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     snapshot = readSelectionSnapshot(lexical);
@@ -735,7 +755,7 @@ describe('selection plugin', () => {
     expect(rootElement.dataset.structuralSelection).toBe('true');
   });
 
-  it.fails('selects nested leaves structurally at Shift+Down stage 2', async ({ lexical }) => {
+  it('selects nested leaves structurally at Shift+Down stage 2', async ({ lexical }) => {
     lexical.load('tree_complex');
 
     await placeCaretAtNote('note3', lexical.mutate);
@@ -758,13 +778,12 @@ describe('selection plugin', () => {
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot).toEqual({ state: 'inline', note: 'note7' });
 
-    // Stage 2 should latch onto the leaf note structurally, but this currently regresses (captured by an it.fails test).
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot).toEqual({ state: 'structural', notes: ['note6', 'note7'] });
   });
 
-  it.fails('lets Shift+Up walk the progressive selection ladder', async ({ lexical }) => {
+  it('lets Shift+Up walk the progressive selection ladder', async ({ lexical }) => {
     lexical.load('tree_complex');
 
     await placeCaretAtNote('note4', lexical.mutate, 2);
@@ -777,7 +796,11 @@ describe('selection plugin', () => {
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot).toEqual({ state: 'inline', note: 'note4' });
 
-    // Stage 2 should grab the leaf structurally, but this currently regresses (tracked via an it.fails test).
+    // Stage 2: grab the leaf structurally.
+    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot).toEqual({ state: 'structural', notes: ['note4'] });
+
     // Stage 3: include the nearest preceding sibling at this depth.
     await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
     snapshot = readSelectionSnapshot(lexical);
@@ -798,7 +821,7 @@ describe('selection plugin', () => {
     expect(snapshot).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
-  it.fails('selects leaf notes structurally at Shift+Up stage 2', async ({ lexical }) => {
+  it('selects leaf notes structurally at Shift+Up stage 2', async ({ lexical }) => {
     lexical.load('tree_complex');
 
     await placeCaretAtNote('note4', lexical.mutate, 2);
