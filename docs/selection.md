@@ -19,8 +19,9 @@ any structural operation acts on complete notes rather than fragments.
    freely inside one note without triggering structural snaps.
 2. Whenever a selection would span multiple notes—such as dragging from the end
    of one note into its child or into the next sibling—the editor snaps the
-   selection to cover the full notes involved. The parent note and all its
-   children become fully selected rather than allowing a half-in/half-out range.
+   selection to cover the full notes involved. The parent note and all of its
+   descendants become fully selected rather than allowing a half-in/half-out
+   range; for example, selecting `note6` automatically includes its child `note7`.
 3. Because selections always align to note boundaries, every structural command
    can assume it is operating on entire subtrees, keeping collaboration and undo
    behavior deterministic.
@@ -69,8 +70,9 @@ inline editing.
    next sibling (together with its descendants). Once the sibling run is
    exhausted, the following press hoists the parent into the selection, and the
    same “gather siblings one at a time, then climb” rhythm repeats at every
-   ancestor level. This keeps structural expansion intuitive (follow the arrow
-   direction) while honoring the contiguous-subtree invariant.
+   ancestor level. `Cmd/Ctrl+A` still advances one full rung per press (adding
+   the entire sibling slab in one go), so arrow keys may require several taps to
+   reach the scope that `Cmd/Ctrl+A` hits immediately.
 2. `Esc` (or clicking back into text) collapses any note-range selection to the
    caret state without changing the document; unmodified cursor keys (Arrow
    Left/Right/Up/Down, Home/End, Page Up/Down) do the same but place the caret
@@ -129,20 +131,23 @@ back to the caret state.
    bullet column and note bodies, so the user sees one contiguous slab rather
    than multiple inline fragments—reinforcing that they are operating on whole
    notes instead of text spans.
-3. **Press 3:** Adds every sibling at the same depth (including their
-   descendants) while keeping the parent untouched. If there are no siblings,
-   the ladder automatically skips this step and continues to the next stage—this
-   applies equally to `Shift+Up/Down` and `Cmd/Ctrl+A`, so orphan notes jump
-   straight to their parent stage without pausing at an empty rung.
-4. **Press 4:** Picks up the parent note and all of its descendants, effectively
-   covering the entire local subtree above the original note. If this scope is
-   already covered because the sibling stage had nothing new to add, the ladder
-   jumps straight to the next meaningful expansion instead of pausing here.
-5. **Press 5 and beyond:** Each subsequent press reruns the same “add siblings,
-   then hoist to the parent” cycle for the next ancestor up the tree. Depending
-   on whether that ancestor still has siblings to add, you may see the selection
-   expand in two steps (siblings first, then parent) or skip directly to the next
-   ancestor, but it always happens one press at a time until the root is covered.
+3. **Press 3 – Sibling slab:** For `Cmd/Ctrl+A`, this press adds every sibling
+   at the same depth (plus their descendants) in one shot. `Shift+Up/Down` walk
+   the same rung one contiguous note at a time—keep tapping the arrow to sweep
+   through siblings until the slab matches what `Cmd/Ctrl+A` produced instantly.
+   If there are no siblings in the direction of travel, both gestures skip this
+   rung.
+4. **Press 4 – Hoist to parent:** Once the sibling slab is complete, the next
+   press pulls in the parent note and its subtree. When the sibling stage had
+   nothing to add, the ladder immediately promotes the parent so there is no
+   empty pause.
+5. **Press 5 and beyond:** Every ancestor level reuses the same rhythm: gather
+   siblings (all at once via `Cmd/Ctrl+A`, sequentially via arrow presses), then
+   hoist to the next parent. Because each newly added note drags along its own
+   descendants, you will never see a parent selected without its children. Depending
+   on how many siblings exist, you may tap several times with arrow keys before
+   the hoist happens, but both gestures ultimately cover the entire tree up to
+   the root.
 
 Stopping at any stage leaves the selection in that scope so you can immediately
 run structural commands or copy/paste entire sections. `Shift+Up/Down` reuse
