@@ -541,7 +541,11 @@ describe('selection plugin', () => {
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4']);
 
-    // Stage 5: include the rest of the document (parent's siblings and beyond).
+    // Stage 5+: walk root-level siblings one at a time (per docs/selection.md).
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
+
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
@@ -690,7 +694,11 @@ describe('selection plugin', () => {
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4']);
 
-    // Stage 5: include the rest of the document starting at the root level.
+    // Stage 5+: walk root-level siblings upward one at a time, then finish the ladder.
+    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
+
     await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
