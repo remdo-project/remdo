@@ -43,6 +43,9 @@ captures the full model.
   proceeding.
 - Whenever you present more than one item (thoughts, plans, recommendations,
   etc.), format it as an ordered list (1., 2., …) instead of bullets.
+- The shared test harness treats console warnings/errors as failures; if you
+  need temporary instrumentation during debugging, prefer `console.log` or
+  `console.info` and remove the statements before finishing a task.
 
 ## Checks
 
