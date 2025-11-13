@@ -68,19 +68,10 @@ export async function pressKey(
   }
 
   await act(async () => {
-    root.dispatchEvent(event);
-  });
-  await waitForEditorUpdate(editor);
-}
-
-export async function typeText(editor: LexicalEditor, text: string) {
-  const root = editor.getRootElement();
-  if (!root) {
-    throw new Error('Lexical root element is not mounted');
-  }
-
-  await act(async () => {
-    dispatchInputEvents(root, text);
+    const allowed = root.dispatchEvent(event);
+    if (allowed && key.length === 1 && !alt && !nextMeta && !nextCtrl) {
+      dispatchInputEvents(root, key);
+    }
   });
   await waitForEditorUpdate(editor);
 }
