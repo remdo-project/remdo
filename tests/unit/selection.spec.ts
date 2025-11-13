@@ -371,6 +371,32 @@ describe('selection plugin', () => {
     expect(snapshot.selectedNotes).toEqual(['note2', 'note3', 'note4']);
   });
 
+  it('treats typing as a no-op once structural selection is active', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note2', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+
+    const labelsBefore = lexical.validate(() => $collectAllNoteLabels());
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
+
+    await pressKey(lexical.editor, { key: 'x' });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
+
+    const labelsAfter = lexical.validate(() => $collectAllNoteLabels());
+    expect(labelsAfter).toEqual(labelsBefore);
+  });
+
   it('clears the structural highlight when navigating without modifiers', async ({ lexical }) => {
     lexical.load('tree_complex');
 
@@ -514,6 +540,38 @@ describe('selection plugin', () => {
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot.selectedNotes).toEqual(['note4']);
+  });
+
+  it.fails('collapses structural selection when pressing PageUp/PageDown', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note2', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3', 'note4']);
+
+    await pressKey(lexical.editor, { key: 'PageDown' });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note4']);
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+
+    await pressKey(lexical.editor, { key: 'PageUp' });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2']);
   });
 
   it('lets Shift+Down walk the progressive selection ladder', async ({ lexical }) => {
@@ -759,6 +817,32 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot.selectedNotes).toEqual(['note6', 'note7']);
+  });
+
+  it('keeps the progressive ladder in sync when mixing Shift+Arrow and Cmd/Ctrl+A', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note2', lexical.mutate);
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2']);
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
+
+    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3', 'note4']);
+
+    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4']);
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
   });
 });
 
