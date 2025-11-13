@@ -86,24 +86,6 @@ interface StructuralSelectionRange {
   visualEndKey: string;
 }
 
-function isNoopPlan(result: ProgressivePlanResult): boolean {
-  if (result.stage !== 2) {
-    return false;
-  }
-
-  if (result.plan.type !== 'range') {
-    return false;
-  }
-
-  const { startKey, endKey, startMode, endMode } = result.plan;
-  return (
-    startKey === endKey &&
-    startKey === result.anchorKey &&
-    startMode === 'content' &&
-    endMode === 'content'
-  );
-}
-
 // eslint-disable-next-line react-refresh/only-export-components
 export const PROGRESSIVE_SELECTION_DIRECTION_COMMAND = createCommand<{
   direction: 'up' | 'down';
@@ -169,6 +151,19 @@ export function SelectionPlugin() {
       }
     };
 
+    const setStructuralSelectionSummary = (keys: string[] | null) => {
+      const rootElement = editor.getRootElement();
+      if (!rootElement) {
+        return;
+      }
+
+      if (keys && keys.length > 0) {
+        rootElement.dataset.structuralSelectionKeys = keys.join(',');
+      } else {
+        delete rootElement.dataset.structuralSelectionKeys;
+      }
+    };
+
     const setStructuralSelectionActive = (isActive: boolean) => {
       if (structuralSelectionRef.current === isActive) {
         return;
@@ -176,6 +171,10 @@ export function SelectionPlugin() {
 
       structuralSelectionRef.current = isActive;
       applyStructuralSelectionAttribute();
+
+      if (!isActive) {
+        setStructuralSelectionSummary(null);
+      }
     };
 
     const unregisterRootListener = editor.registerRootListener((rootElement, previousRootElement) => {
@@ -197,6 +196,7 @@ export function SelectionPlugin() {
       let hasStructuralSelection = false;
       let structuralRange: StructuralSelectionRange | null = null;
       let noteItems: ListItemNode[] = [];
+      let noteKeys: string[] = [];
 
       editorState.read(() => {
         const selection = $getSelection();
@@ -221,6 +221,7 @@ export function SelectionPlugin() {
 
         if ($isRangeSelection(selection) && !selection.isCollapsed()) {
           noteItems = collectSelectedListItems(selection);
+          noteKeys = noteItems.map((item) => getContentListItem(item).getKey());
           structuralRange = computeStructuralRange(selection);
 
           const hasMultiNoteRange = noteItems.length > 1;
@@ -241,9 +242,11 @@ export function SelectionPlugin() {
       if (hasStructuralSelection && structuralRange) {
         structuralSelectionRangeRef.current = structuralRange;
         applyStructuralSelectionMetrics(structuralRange);
+        setStructuralSelectionSummary(noteKeys);
       } else {
         structuralSelectionRangeRef.current = null;
         clearStructuralSelectionMetrics();
+        setStructuralSelectionSummary(null);
       }
 
       setStructuralSelectionActive(hasStructuralSelection && structuralRange !== null);
@@ -284,6 +287,20 @@ export function SelectionPlugin() {
           if (!applied) {
             progressionRef.current = INITIAL_PROGRESSIVE_STATE;
             return;
+          }
+
+          if (planResult.stage >= 2) {
+            setStructuralSelectionActive(true);
+            const selection = $getSelection();
+            if ($isRangeSelection(selection)) {
+              const range = computeStructuralRange(selection);
+              if (range) {
+                structuralSelectionRangeRef.current = range;
+                applyStructuralSelectionMetrics(range);
+              } else {
+                structuralSelectionRangeRef.current = null;
+              }
+            }
           }
 
           progressionRef.current = {
@@ -425,21 +442,7 @@ export function SelectionPlugin() {
             return;
           }
 
-          const noopPlan = isNoopPlan(planResult);
-          if (noopPlan && planResult.plan.type === 'range') {
-            const caretStartKey = planResult.plan.startKey;
-            const caretEndKey = planResult.plan.endKey;
-            const range: StructuralSelectionRange = {
-              caretStartKey,
-              caretEndKey,
-              visualStartKey: caretStartKey,
-              visualEndKey: caretEndKey,
-            };
-            structuralSelectionRangeRef.current = range;
-            applyStructuralSelectionMetrics(range);
-            setStructuralSelectionActive(true);
-          }
-          const applied = noopPlan || $applyProgressivePlan(planResult);
+          const applied = $applyProgressivePlan(planResult);
           if (!applied) {
             progressionRef.current = INITIAL_PROGRESSIVE_STATE;
             return;
@@ -626,6 +629,7 @@ export function SelectionPlugin() {
       const rootElement = editor.getRootElement();
       if (rootElement) {
         delete rootElement.dataset.structuralSelection;
+        delete rootElement.dataset.structuralSelectionKeys;
       }
       clearStructuralSelectionMetrics();
       unregisterProgressionListener();
@@ -1227,8 +1231,45 @@ function setSelectionBetweenItems(
     return false;
   }
 
+  if (applyElementRangeBetweenItems(selection, startItem, endItem, startMode, endMode)) {
+    return true;
+  }
+
   selection.setTextNodeRange(start.node, start.offset, end.node, end.offset);
   return true;
+}
+
+function applyElementRangeBetweenItems(
+  selection: RangeSelection,
+  startItem: ListItemNode,
+  endItem: ListItemNode,
+  startMode: BoundaryMode,
+  endMode: BoundaryMode
+): boolean {
+  const anchorItem = resolveElementBoundaryItem(startItem, startMode, 'start');
+  const focusItem = resolveElementBoundaryItem(endItem, endMode, 'end');
+
+  if (!anchorItem || !focusItem) {
+    return false;
+  }
+
+  selection.anchor.set(anchorItem.getKey(), 0, 'element');
+  selection.focus.set(focusItem.getKey(), focusItem.getChildrenSize(), 'element');
+  selection.dirty = true;
+  return true;
+}
+
+function resolveElementBoundaryItem(
+  item: ListItemNode,
+  mode: BoundaryMode,
+  edge: 'start' | 'end'
+): ListItemNode | null {
+  if (mode === 'subtree' && edge === 'end') {
+    const tail = getSubtreeTail(item);
+    return getContentListItem(tail);
+  }
+
+  return getContentListItem(item);
 }
 
 function collapseSelectionToCaret(selection: RangeSelection): boolean {
