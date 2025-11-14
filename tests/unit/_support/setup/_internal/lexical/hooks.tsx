@@ -42,7 +42,7 @@ beforeEach<TestContext>(async (ctx) => {
   let editor!: LexicalEditor;
   let collab!: CollaborationStatusValue;
 
-  const meta = (ctx.task?.meta ?? {}) as { collabDocId?: string; collabDefaultDoc?: string };
+  const meta = ctx.task.meta as { collabDocId?: string; collabDefaultDoc?: string };
 
   if (typeof meta.collabDefaultDoc === 'string') {
     previousDefaultDocId = config.env.COLLAB_DOCUMENT_ID;
@@ -69,6 +69,7 @@ beforeEach<TestContext>(async (ctx) => {
   );
 
   await waitFor(() => {
+    // eslint-disable-next-line ts/no-unnecessary-condition
     if (!editor || !collab) throw new Error('Lexical editor not initialized in time');
   });
 

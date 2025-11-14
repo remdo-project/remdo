@@ -53,6 +53,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
     );
 
     await waitFor(() => {
+      // eslint-disable-next-line ts/no-unnecessary-condition
       if (!secondary) throw new Error('Secondary editor not ready');
     });
 

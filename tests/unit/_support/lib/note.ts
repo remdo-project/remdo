@@ -188,7 +188,7 @@ export async function selectEntireNote(
       return;
     }
 
-    const length = anchorNode.getTextContentSize?.() ?? anchorNode.getTextContent().length;
+    const length = anchorNode.getTextContentSize();
     selection.setTextNodeRange(anchorNode, 0, anchorNode, length);
   });
 }
@@ -284,9 +284,8 @@ export async function selectNoteRange(
     }
 
     const rangeSelection = selection;
-    const startLength =
-      startTextNode.getTextContentSize?.() ?? startTextNode.getTextContent().length;
-    const endLength = endTextNode.getTextContentSize?.() ?? endTextNode.getTextContent().length;
+    const startLength = startTextNode.getTextContentSize();
+    const endLength = endTextNode.getTextContentSize();
 
     const order = compareNodeOrder(startItem, endItem);
     if (order <= 0) {

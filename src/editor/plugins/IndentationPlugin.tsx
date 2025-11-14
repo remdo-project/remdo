@@ -9,19 +9,22 @@ import { $indentNote, $outdentNote } from '../lexical-helpers';
 const findNearestListItem = (node: LexicalNode | null) => {
   let current: LexicalNode | null = node;
 
-  while (current && !$isListItemNode(current)) {
+  while (current) {
+    if ($isListItemNode(current)) {
+      return current;
+    }
     current = current.getParent();
   }
 
-  return $isListItemNode(current) ? current : null;
+  return null;
 };
 
 const getNodePath = (node: ListItemNode): number[] => {
   const path: number[] = [];
-  let current: LexicalNode | null = node;
+  let current: LexicalNode = node;
 
-  while (current) {
-    const parent: LexicalNode | null = current.getParent();
+  for (;;) {
+    const parent = current.getParent();
     if (!parent) {
       break;
     }
@@ -49,15 +52,13 @@ const sortByDocumentOrder = (items: ListItemNode[]): ListItemNode[] =>
     .map(({ node }) => node);
 
 const hasPreviousContentSibling = (noteItem: ListItemNode): boolean => {
-  let sibling: LexicalNode | null = noteItem.getPreviousSibling();
+  let sibling: ListItemNode | null = noteItem.getPreviousSibling();
 
   while (sibling) {
-    if ($isListItemNode(sibling)) {
-      const children = sibling.getChildren();
-      const isWrapper = children.length === 1 && children[0]?.getType() === 'list';
-      if (!isWrapper) {
-        return true;
-      }
+    const children = sibling.getChildren();
+    const isWrapper = children.length === 1 && children[0]?.getType() === 'list';
+    if (!isWrapper) {
+      return true;
     }
     sibling = sibling.getPreviousSibling();
   }
@@ -132,7 +133,9 @@ export function IndentationPlugin() {
         const contentItems: ListItemNode[] = [];
         for (const item of orderedItems) {
           const parent = item.getParent();
-          if (!isChildrenWrapper(item) && parent === targetParent) {
+          const children = item.getChildren();
+          const isWrapper = children.length === 1 && children[0] != null && $isListNode(children[0]);
+          if (!isWrapper && parent === targetParent) {
             contentItems.push(item);
           }
         }

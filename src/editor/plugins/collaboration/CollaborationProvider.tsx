@@ -37,9 +37,7 @@ export function CollaborationProvider({ children }: { children: ReactNode }) {
 function useCollaborationRuntimeValue(): CollaborationStatusValue {
   const enabled = config.env.COLLAB_ENABLED;
   const docId = useMemo(() => {
-    const doc = globalThis.window?.location?.search
-      ? new URLSearchParams(globalThis.window.location.search).get('doc')?.trim()
-      : null;
+    const doc = window.location.search ? new URLSearchParams(window.location.search).get('doc')?.trim() : null;
 
     return doc?.length ? doc : config.env.COLLAB_DOCUMENT_ID;
   }, []);

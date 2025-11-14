@@ -45,11 +45,7 @@ function getMemberName(node: MemberExpression | Identifier): string | null {
       parts.unshift(current.name);
       break;
     }
-    if (
-      current.type === 'MemberExpression' &&
-      current.property &&
-      current.property.type === 'Identifier'
-    ) {
+    if (current.type === 'MemberExpression' && current.property.type === 'Identifier') {
       parts.unshift(current.property.name);
       current = current.object as MemberExpression | Identifier | Expression | null;
     } else {
@@ -123,18 +119,17 @@ export const noLegacyFallbacksRule: Rule.RuleModule = {
         }
       },
       UnaryExpression(node) {
-        if (node.operator === 'typeof' && node.argument) {
+        if (node.operator === 'typeof') {
           const feature = isModernFeature(node.argument);
           if (
             feature &&
-            node.parent &&
             node.parent.type === 'BinaryExpression' &&
             isUndefinedLiteral(node.parent.right)
           ) {
             context.report({ node, messageId: 'legacyFallback', data: { name: feature } });
           }
         }
-        if (node.operator === '!' && node.argument) {
+        if (node.operator === '!') {
           const feature = isModernFeature(node.argument);
           if (feature) {
             context.report({ node, messageId: 'legacyFallback', data: { name: feature } });

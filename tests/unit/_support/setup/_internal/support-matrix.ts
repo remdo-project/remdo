@@ -32,12 +32,7 @@ function isNodeVersionSupported(range: string | undefined): boolean {
 }
 
 function ensureSelectionExtend() {
-  const getSelection =
-    typeof window !== 'undefined' && typeof window.getSelection === 'function'
-      ? window.getSelection.bind(window)
-      : (globalThis as typeof globalThis & { getSelection?: () => Selection | null }).getSelection?.bind(globalThis);
-
-  const selection = getSelection?.();
+  const selection = window.getSelection();
   if (!selection || typeof selection.extend !== 'function') {
     throw new Error('selection.extend must exist; tests require a modern DOM implementation');
   }

@@ -83,7 +83,7 @@ export function collectOutlineEntries(state: SerializedEditorState): FlatOutline
   const entries: FlatOutlineEntry[] = [];
   const root = state.root;
 
-  if (!root || root.type !== ROOT_TYPE) {
+  if (root.type !== ROOT_TYPE) {
     return entries;
   }
 
