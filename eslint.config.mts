@@ -34,6 +34,14 @@ export default antfu(
           checkTypePredicates: true,
         },
       ],
+      'ts/no-unnecessary-boolean-literal-compare': 'warn',
+      'ts/no-unnecessary-parameter-property-assignment': 'warn',
+      'ts/no-unnecessary-qualifier': 'warn',
+      'ts/no-unnecessary-template-expression': 'warn',
+      'ts/no-unnecessary-type-arguments': 'warn',
+      'ts/no-unnecessary-type-constraint': 'warn',
+      'ts/no-unnecessary-type-conversion': 'warn',
+      'ts/no-unnecessary-type-parameters': 'warn',
       'ts/consistent-type-assertions': [
         'error',
         {

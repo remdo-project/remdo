@@ -102,7 +102,7 @@ export function createLexicalTestHelpers(
   }
 
   function isCollabSyncing(): boolean {
-    return Boolean(getCollabStatus().syncing);
+    return getCollabStatus().syncing;
   }
 
   function getCollabDocId(): string {

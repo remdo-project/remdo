@@ -7,7 +7,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 import { config } from '#config';
 
 function lookupHost() {
-  return process.env.HOST ?? String(config.env.HOST);
+  return process.env.HOST ?? config.env.HOST;
 }
 
 function resolveProbeHost(host: string) {
@@ -19,8 +19,11 @@ function resolveProbeHost(host: string) {
 }
 
 function lookupPort() {
-  const port = process.env.COLLAB_SERVER_PORT ?? process.env.COLLAB_PORT ?? String(config.env.COLLAB_SERVER_PORT);
-  return Number(port);
+  const envPort = process.env.COLLAB_SERVER_PORT ?? process.env.COLLAB_PORT;
+  if (envPort !== undefined) {
+    return Number(envPort);
+  }
+  return config.env.COLLAB_SERVER_PORT;
 }
 
 async function isPortOpen(host: string, port: number): Promise<boolean> {

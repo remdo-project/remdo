@@ -15,7 +15,7 @@ import WebSocket from 'ws';
 import { Doc, UndoManager } from 'yjs';
 
 import type { Provider } from '@lexical/yjs';
-import type { CreateEditorArgs, LexicalEditor, SerializedEditorState, SerializedLexicalNode } from 'lexical';
+import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lexical';
 import type { Transaction } from 'yjs';
 
 import { config } from '#config';
@@ -227,7 +227,7 @@ async function runSave(
 
 async function runLoad(docId: string, endpoint: string, filePath: string): Promise<void> {
   const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as {
-    editorState?: SerializedEditorState<SerializedLexicalNode>;
+    editorState?: SerializedEditorState;
   };
   await withSession(docId, endpoint, async (editor, { provider }) => {
     const done = waitForEditorUpdate(editor);
