@@ -1,3 +1,4 @@
+import { act, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { TestContext } from 'vitest';
 import { placeCaretAtNote, pressKey } from '#tests';
@@ -317,7 +318,212 @@ function $getCaretNoteLabel(selection: RangeSelection): string | null {
   return resolveLabel(selection.focus) ?? resolveLabel(selection.anchor);
 }
 
+async function dragDomSelectionBetween(start: Text, startOffset: number, end: Text, endOffset: number) {
+  await act(async () => {
+    const selection = getDomSelection();
+    const range = document.createRange();
+    const normalizedStart = clampOffset(start, startOffset);
+    const normalizedEnd = clampOffset(end, endOffset);
+
+    range.setStart(start, normalizedStart);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    if (typeof selection.extend === 'function') {
+      selection.extend(end, normalizedEnd);
+    } else {
+      const ordered = orderRangePoints(start, normalizedStart, end, normalizedEnd);
+      const dragRange = document.createRange();
+      dragRange.setStart(ordered.startNode, ordered.startOffset);
+      dragRange.setEnd(ordered.endNode, ordered.endOffset);
+      selection.removeAllRanges();
+      selection.addRange(dragRange);
+    }
+
+    dispatchSelectionChange();
+  });
+}
+
+async function collapseDomSelectionAtText(target: Text, offset: number) {
+  await act(async () => {
+    const selection = getDomSelection();
+    const caretRange = document.createRange();
+    const clamped = clampOffset(target, offset);
+    caretRange.setStart(target, clamped);
+    caretRange.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(caretRange);
+    dispatchSelectionChange();
+  });
+}
+
+async function extendDomSelectionToText(target: Text, offset: number) {
+  await act(async () => {
+    const selection = getDomSelection();
+    if (selection.rangeCount === 0) {
+      throw new Error('Cannot extend selection without an existing anchor');
+    }
+
+    const clamped = clampOffset(target, offset);
+    if (typeof selection.extend === 'function') {
+      selection.extend(target, clamped);
+    } else {
+      const range = selection.getRangeAt(0);
+      const ordered = orderRangePoints(range.startContainer, range.startOffset, target, clamped);
+      const fallbackRange = document.createRange();
+      fallbackRange.setStart(ordered.startNode, ordered.startOffset);
+      fallbackRange.setEnd(ordered.endNode, ordered.endOffset);
+      selection.removeAllRanges();
+      selection.addRange(fallbackRange);
+    }
+
+    dispatchSelectionChange();
+  });
+}
+
+function getNoteTextNode(rootElement: HTMLElement, label: string): Text {
+  const noteElement = within(rootElement).getByText((_, node) => node?.textContent?.trim() === label, {
+    selector: '[data-lexical-text="true"]',
+  });
+  const textNode = findFirstTextNode(noteElement);
+  if (!textNode) {
+    throw new Error(`Expected text node for note: ${label}`);
+  }
+  return textNode;
+}
+
+function findFirstTextNode(element: Element | null): Text | null {
+  if (!element) {
+    return null;
+  }
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  const node = walker.nextNode();
+  return node instanceof Text ? node : null;
+}
+
+function getTextLength(node: Text): number {
+  return node.textContent?.length ?? 0;
+}
+
+function clampOffset(node: Text, offset: number): number {
+  const length = getTextLength(node);
+  return Math.max(0, Math.min(offset, length));
+}
+
+function getDomSelection(): Selection {
+  const selection = window.getSelection();
+  if (!selection) {
+    throw new Error('DOM selection is unavailable');
+  }
+  return selection;
+}
+
+function dispatchSelectionChange() {
+  document.dispatchEvent(new Event('selectionchange'));
+}
+
+function orderRangePoints(
+  anchorNode: Node,
+  anchorOffset: number,
+  focusNode: Node,
+  focusOffset: number
+): { startNode: Node; startOffset: number; endNode: Node; endOffset: number } {
+  if (anchorNode === focusNode) {
+    return anchorOffset <= focusOffset
+      ? { startNode: anchorNode, startOffset: anchorOffset, endNode: focusNode, endOffset: focusOffset }
+      : { startNode: focusNode, startOffset: focusOffset, endNode: anchorNode, endOffset: anchorOffset };
+  }
+
+  const position = anchorNode.compareDocumentPosition(focusNode);
+  const isAnchorBeforeFocus =
+    position & Node.DOCUMENT_POSITION_PRECEDING
+      ? false
+      : position & Node.DOCUMENT_POSITION_FOLLOWING
+        ? true
+        : anchorOffset <= focusOffset;
+
+  if (isAnchorBeforeFocus) {
+    return { startNode: anchorNode, startOffset: anchorOffset, endNode: focusNode, endOffset: focusOffset };
+  }
+
+  return { startNode: focusNode, startOffset: focusOffset, endNode: anchorNode, endOffset: anchorOffset };
+}
+
 describe('selection plugin', () => {
+  it('snaps pointer drags across note boundaries to contiguous structural slices', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const note2Text = getNoteTextNode(rootElement, 'note2');
+    const note5Text = getNoteTextNode(rootElement, 'note5');
+    await dragDomSelectionBetween(note2Text, 1, note5Text, 1);
+
+    await waitFor(() => {
+      expect(readSelectionSnapshot(lexical)).toEqual({
+        state: 'structural',
+        notes: ['note2', 'note3', 'note4', 'note5'],
+      });
+    });
+
+    const note6Text = getNoteTextNode(rootElement, 'note6');
+    const note7Text = getNoteTextNode(rootElement, 'note7');
+    await dragDomSelectionBetween(note6Text, 0, note7Text, getTextLength(note7Text));
+
+    await waitFor(() => {
+      expect(readSelectionSnapshot(lexical)).toEqual({
+        state: 'structural',
+        notes: ['note6', 'note7'],
+      });
+    });
+  });
+
+  it('extends pointer selections with Shift+Click to produce contiguous note ranges', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const note2Text = getNoteTextNode(rootElement, 'note2');
+    const note5Text = getNoteTextNode(rootElement, 'note5');
+    await collapseDomSelectionAtText(note2Text, 0);
+
+    await waitFor(() => {
+      expect(readSelectionSnapshot(lexical)).toEqual({ state: 'caret', note: 'note2' });
+    });
+
+    await extendDomSelectionToText(note5Text, getTextLength(note5Text));
+
+    await waitFor(() => {
+      expect(readSelectionSnapshot(lexical)).toEqual({
+        state: 'structural',
+        notes: ['note2', 'note3', 'note4', 'note5'],
+      });
+    });
+
+    await collapseDomSelectionAtText(note5Text, getTextLength(note5Text));
+
+    await waitFor(() => {
+      expect(readSelectionSnapshot(lexical)).toEqual({ state: 'caret', note: 'note5' });
+    });
+
+    const note3Text = getNoteTextNode(rootElement, 'note3');
+    await extendDomSelectionToText(note3Text, getTextLength(note3Text));
+
+    await waitFor(() => {
+      expect(readSelectionSnapshot(lexical)).toEqual({
+        state: 'structural',
+        notes: ['note2', 'note3', 'note4', 'note5'],
+      });
+    });
+  });
+
   it('keeps Shift+Left/Right selections confined to inline content', async ({ lexical }) => {
     lexical.load('flat');
 
