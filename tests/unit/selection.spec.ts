@@ -319,8 +319,7 @@ function $getCaretNoteLabel(selection: RangeSelection): string | null {
 }
 
 async function dragDomSelectionBetween(start: Text, startOffset: number, end: Text, endOffset: number) {
-  await act(async () => {
-    const selection = getDomSelection();
+  await mutateDomSelection((selection) => {
     const range = document.createRange();
     const normalizedStart = clampOffset(start, startOffset);
     const normalizedEnd = clampOffset(end, endOffset);
@@ -340,27 +339,22 @@ async function dragDomSelectionBetween(start: Text, startOffset: number, end: Te
       selection.removeAllRanges();
       selection.addRange(dragRange);
     }
-
-    dispatchSelectionChange();
   });
 }
 
 async function collapseDomSelectionAtText(target: Text, offset: number) {
-  await act(async () => {
-    const selection = getDomSelection();
+  await mutateDomSelection((selection) => {
     const caretRange = document.createRange();
     const clamped = clampOffset(target, offset);
     caretRange.setStart(target, clamped);
     caretRange.collapse(true);
     selection.removeAllRanges();
     selection.addRange(caretRange);
-    dispatchSelectionChange();
   });
 }
 
 async function extendDomSelectionToText(target: Text, offset: number) {
-  await act(async () => {
-    const selection = getDomSelection();
+  await mutateDomSelection((selection) => {
     if (selection.rangeCount === 0) {
       throw new Error('Cannot extend selection without an existing anchor');
     }
@@ -377,8 +371,6 @@ async function extendDomSelectionToText(target: Text, offset: number) {
       selection.removeAllRanges();
       selection.addRange(fallbackRange);
     }
-
-    dispatchSelectionChange();
   });
 }
 
@@ -419,8 +411,11 @@ function getDomSelection(): Selection {
   return selection;
 }
 
-function dispatchSelectionChange() {
-  document.dispatchEvent(new Event('selectionchange'));
+async function mutateDomSelection(mutator: (selection: Selection) => void) {
+  await act(async () => {
+    mutator(getDomSelection());
+    document.dispatchEvent(new Event('selectionchange'));
+  });
 }
 
 function orderRangePoints(
