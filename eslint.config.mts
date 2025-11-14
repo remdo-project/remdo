@@ -1,5 +1,6 @@
 import antfu from '@antfu/eslint-config';
 import lexicalPlugin from '@lexical/eslint-plugin';
+import compatPlugin from 'eslint-plugin-compat';
 
 export default antfu(
   {
@@ -44,6 +45,7 @@ export default antfu(
           message: 'Use #config instead of accessing import.meta.env directly.',
         },
       ],
+      'compat/compat': 'error',
     },
   },
   {
@@ -101,6 +103,7 @@ export default antfu(
   {
     plugins: {
       '@lexical': lexicalPlugin,
+      compat: compatPlugin,
     },
     rules: {
       '@lexical/rules-of-lexical': 'error',
