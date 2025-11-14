@@ -28,6 +28,13 @@ export default antfu(
       'ts/no-floating-promises': 'error',
       'ts/no-misused-promises': 'warn',
       'ts/no-unnecessary-type-assertion': 'warn',
+      'ts/consistent-type-assertions': [
+        'error',
+        {
+          assertionStyle: 'as',
+          objectLiteralTypeAssertions: 'never',
+        },
+      ],
     },
   },
   {

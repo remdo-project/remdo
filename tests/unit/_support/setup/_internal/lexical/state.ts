@@ -109,7 +109,7 @@ export function createLexicalTestHelpers(
     return getCollabStatus().docId;
   }
 
-  return {
+  const helpers: LexicalTestHelpers = {
     editor,
     load: (filename: string) => lexicalLoad(editor, filename),
     mutate: (fn, opts) => lexicalMutate(editor, fn, opts),
@@ -118,5 +118,7 @@ export function createLexicalTestHelpers(
     waitForCollabSync,
     isCollabSyncing,
     getCollabDocId,
-  } as LexicalTestHelpers;
+  };
+
+  return helpers;
 }
