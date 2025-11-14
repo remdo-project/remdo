@@ -32,13 +32,13 @@ const getNodePath = (node: ListItemNode): number[] => {
     current = parent;
   }
 
-  return path.reverse();
+  return path.toReversed();
 };
 
 const sortByDocumentOrder = (items: ListItemNode[]): ListItemNode[] =>
   items
     .map((node) => ({ node, path: getNodePath(node) }))
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       const depth = Math.max(a.path.length, b.path.length);
       for (let i = 0; i < depth; i++) {
         const left = a.path[i] ?? -1;
@@ -154,7 +154,7 @@ export function IndentationPlugin() {
             return true;
           }
 
-          for (const listItem of [...rootItems].reverse()) {
+          for (const listItem of rootItems.toReversed()) {
             $outdentNote(listItem);
           }
         } else {

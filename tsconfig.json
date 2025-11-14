@@ -5,7 +5,7 @@
     "target": "ES2022",
     "jsx": "react-jsx",
     "lib": [
-      "ES2022",
+      "ES2023",
       "DOM"
     ],
     "moduleDetection": "force",

@@ -206,7 +206,7 @@ function getNodePath(node: any): number[] {
     current = parent;
   }
 
-  return path.reverse();
+  return path.toReversed();
 }
 
 function compareNodeOrder(a: any, b: any): number {
