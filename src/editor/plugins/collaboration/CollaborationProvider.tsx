@@ -37,14 +37,14 @@ export function CollaborationProvider({ children }: { children: ReactNode }) {
 function useCollaborationRuntimeValue(): CollaborationStatusValue {
   const enabled = config.env.COLLAB_ENABLED;
   const docId = useMemo(() => {
-    const doc = window.location.search ? new URLSearchParams(window.location.search).get('doc')?.trim() : null;
+    const doc = globalThis.location.search ? new URLSearchParams(globalThis.location.search).get('doc')?.trim() : null;
 
     return doc?.length ? doc : config.env.COLLAB_DOCUMENT_ID;
   }, []);
   const [ready, setReady] = useState(!enabled);
   const [syncing, setSyncing] = useState(enabled);
   const endpoint = useMemo(() => {
-    const { protocol, hostname } = window.location;
+    const { protocol, hostname } = globalThis.location;
     const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
     return `${wsProtocol}://${hostname}:${config.env.COLLAB_CLIENT_PORT}`;
   }, []);

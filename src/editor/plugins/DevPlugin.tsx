@@ -10,13 +10,13 @@ interface DevPluginProps {
 }
 
 export function DevPlugin({ children }: DevPluginProps): ReactElement {
-  return !config.dev
-    ? <>{children}</>
-    : <>
+  return config.dev
+    ? <>
       <SchemaValidationPlugin />
       <TreeViewPlugin />
       {children}
-    </>;
+    </>
+    : <>{children}</>;
 }
 
 export default DevPlugin;

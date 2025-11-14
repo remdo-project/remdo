@@ -106,7 +106,7 @@ main().catch((error) => {
   process.exitCode = 1;
 });
 
-if (typeof globalThis.document === 'undefined') {
+if (globalThis.document === undefined) {
   const createStubElement = (tagName: string) => {
     const element: any = {
       tagName,

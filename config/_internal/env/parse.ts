@@ -52,7 +52,7 @@ function coerceValue<T extends Primitive>(
         throw new TypeError(`Expected numeric value for ${key}, received "${raw}"`);
       }
 
-      if (!Number.isInteger(parsed) || parsed < 0 || parsed > 65535) {
+      if (!Number.isInteger(parsed) || parsed < 0 || parsed > 65_535) {
         throw new TypeError(`Expected integer between 0 and 65535 for ${key}, received "${raw}"`);
       }
 

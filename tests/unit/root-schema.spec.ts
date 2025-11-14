@@ -37,7 +37,7 @@ it('normalizes root after list command dispatch', async ({ lexical }) => {
     note1Paragraph.select();
   });
 
-  editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+  editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND);
   await mutate(() => { });
 
   validate(() => {
@@ -161,17 +161,17 @@ function $expectSingleListRoot(): ListNode {
 function expectListItemCount(list: ListNode, expectedCount: number) {
   const items = list.getChildren();
   expect(items).toHaveLength(expectedCount);
-  items.forEach((child) => expect($isListItemNode(child)).toBe(true));
+  for (const child of items) expect($isListItemNode(child)).toBe(true);
 }
 
 function expectListItems(list: ListNode, expectedTexts: string[]) {
   const items = list.getChildren();
   expect(items).toHaveLength(expectedTexts.length);
 
-  items.forEach((child, index) => {
+  for (const [index, child] of items.entries()) {
     expect($isListItemNode(child)).toBe(true);
     if ($isListItemNode(child)) {
       expect(child.getTextContent()).toBe(expectedTexts[index]);
     }
-  });
+  }
 }

@@ -1,7 +1,10 @@
 import antfu from '@antfu/eslint-config';
-import lexicalPlugin from '@lexical/eslint-plugin';
 import compatPlugin from 'eslint-plugin-compat';
+import lexicalPlugin from '@lexical/eslint-plugin';
+import unicornPlugin from 'eslint-plugin-unicorn';
 import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
+
+const { plugins: _unusedUnicornPlugins, ...unicornUnopinionatedConfig } = unicornPlugin.configs.unopinionated;
 
 export default antfu(
   {
@@ -17,6 +20,7 @@ export default antfu(
       'perfectionist/sort-named-exports': 'off',
     },
   },
+  unicornUnopinionatedConfig,
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {

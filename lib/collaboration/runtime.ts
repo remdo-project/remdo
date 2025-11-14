@@ -86,7 +86,7 @@ function attachSyncTracking(provider: WebsocketProvider, controller: Collaborati
       return;
     }
 
-    const openState = typeof WebSocket !== 'undefined' ? WebSocket.OPEN : socket.OPEN;
+    const openState = typeof WebSocket === 'undefined' ? socket.OPEN : WebSocket.OPEN;
 
     if (socket.readyState !== openState) {
       return;

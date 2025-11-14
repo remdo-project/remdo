@@ -158,11 +158,11 @@ export function readOutline(validate: <T>(fn: () => T) => T): Outline {
       }
 
       const node: OutlineNode = { text, children: [] };
-      while (stack.length > 0 && stack[stack.length - 1]!.indent >= indent) {
+      while (stack.length > 0 && stack.at(-1)!.indent >= indent) {
         stack.pop();
       }
 
-      stack[stack.length - 1]?.children.push(node);
+      stack.at(-1)?.children.push(node);
       stack.push({ indent, children: node.children });
     }
 

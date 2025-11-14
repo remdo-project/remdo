@@ -52,12 +52,12 @@ beforeEach<TestContext>(async (ctx) => {
   }
 
   const docId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
-  const url = new URL(window.location.href);
+  const url = new URL(globalThis.location.href);
   const params = new URLSearchParams(url.search);
   params.set('doc', docId);
   const nextSearch = params.toString();
   const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`;
-  window.history.replaceState(null, '', nextUrl);
+  globalThis.history.replaceState(null, '', nextUrl);
 
   render(
     <LexicalHarness

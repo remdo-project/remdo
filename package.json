@@ -96,6 +96,7 @@
     "eslint-plugin-compat": "^6.0.2",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "eslint-plugin-unicorn": "^62.0.0",
     "jiti": "^2.6.1",
     "jsdom": "^27.1.0",
     "tsx": "^4.20.6",

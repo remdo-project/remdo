@@ -8,7 +8,7 @@ interface RemdoSupport {
 
 function readPackageJson() {
   const pkgPath = resolve(process.cwd(), 'package.json');
-  const raw = readFileSync(pkgPath, 'utf-8');
+  const raw = readFileSync(pkgPath, 'utf8');
   return JSON.parse(raw) as { engines?: { node?: string }; remdoSupport?: RemdoSupport };
 }
 
@@ -32,7 +32,7 @@ function isNodeVersionSupported(range: string | undefined): boolean {
 }
 
 function ensureSelectionExtend() {
-  const selection = window.getSelection();
+  const selection = globalThis.getSelection();
   if (!selection || typeof selection.extend !== 'function') {
     throw new Error('selection.extend must exist; tests require a modern DOM implementation');
   }
