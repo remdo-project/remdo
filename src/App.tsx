@@ -12,8 +12,6 @@ interface HostContext {
 }
 
 function resolveHost(): HostContext | null {
-  if (globalThis.window === undefined) return null;
-
   const { protocol, hostname, port } = globalThis.location;
   const basePort =
     port && Number(port) > 0
