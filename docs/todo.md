@@ -53,3 +53,10 @@ Options to consider when implementing:
 2. Spin up a headless `LexicalEditor` directly inside the test. Pros: minimal
    setup, fast. Cons: must ensure node registrations/config match the main
    editor to avoid false diffs.
+
+## Support Matrix
+
+1. Record the supported environments in `package.json` (`engines.node`, `browserslist`, `remdoSupport.tools`).
+2. Keep CI/tests/eslint in sync by reading from that single source of truth instead of scattering version checks.
+3. Update `AGENTS.md` so contributors know not to add fallbacks beyond the declared matrix.
+4. Reject legacy fallbacks explicitly—if a browser/node/tool version is not in the matrix, we do not support it.
