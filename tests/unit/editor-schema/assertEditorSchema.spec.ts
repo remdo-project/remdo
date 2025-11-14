@@ -8,7 +8,7 @@ import minimalValid from '#fixtures/editor-schema/minimal-valid.json';
 import wrapperWithoutSibling from '#fixtures/editor-schema/wrapper-without-sibling.json';
 
 describe('assertEditorSchema', () => {
-  const cast = (data: { editorState: unknown }) => data.editorState as unknown as SerializedEditorState;
+  const cast = (data: { editorState: unknown }) => data.editorState as SerializedEditorState;
 
   it('accepts a minimal valid outline', () => {
     expect(() => assertEditorSchema(cast(minimalValid))).not.toThrow();

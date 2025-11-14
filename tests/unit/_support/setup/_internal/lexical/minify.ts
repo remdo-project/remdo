@@ -89,10 +89,10 @@ function isEqual(a: unknown, b: unknown): boolean {
   }
 
   if (isPlainObject(a) && isPlainObject(b)) {
-    const keysA = Object.keys(a as Record<string, unknown>);
-    const keysB = Object.keys(b as Record<string, unknown>);
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
     if (keysA.length !== keysB.length) return false;
-    return keysA.every((key) => isEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]));
+    return keysA.every((key) => isEqual(a[key], b[key]));
   }
 
   return a === b;
@@ -120,7 +120,7 @@ function sortKeys(obj: Record<string, unknown>): Record<string, unknown> {
 
   for (const [key, value] of entries) {
     if (Array.isArray(value)) {
-      sorted[key] = value.map((item) => (isPlainObject(item) ? sortKeys(item as Record<string, unknown>) : item));
+      sorted[key] = value.map((item) => (isPlainObject(item) ? sortKeys(item) : item));
     } else if (isPlainObject(value)) {
       sorted[key] = sortKeys(value);
     } else {

@@ -68,7 +68,7 @@ function isUndefinedLiteral(node: Literal | Expression): boolean {
 
 function isModernFeature(node: Expression): string | null {
   if (node.type === 'Identifier' || node.type === 'MemberExpression') {
-    const name = getMemberName(node as MemberExpression | Identifier);
+    const name = getMemberName(node);
     if (name && MODERN_FEATURES.has(name)) {
       return name;
     }
@@ -144,7 +144,7 @@ export const noLegacyFallbacksRule: Rule.RuleModule = {
       BinaryExpression(node) {
         if (node.operator === 'in' && node.left.type === 'Literal' && typeof node.left.value === 'string') {
           const objectName = node.right.type === 'Identifier' || node.right.type === 'MemberExpression'
-            ? getMemberName(node.right as MemberExpression | Identifier)
+            ? getMemberName(node.right)
             : null;
           const featureName = objectName ? `${objectName}.${node.left.value}` : null;
           if (featureName && MODERN_FEATURES.has(featureName)) {

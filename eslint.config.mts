@@ -27,6 +27,7 @@ export default antfu(
     rules: {
       'ts/no-floating-promises': 'error',
       'ts/no-misused-promises': 'warn',
+      'ts/no-unnecessary-type-assertion': 'warn',
     },
   },
   {

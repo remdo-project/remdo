@@ -22,9 +22,10 @@ import { config } from '#config';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollaborationSyncController, createProviderFactory } from '#lib/collaboration/runtime';
 
-interface SharedRootObserver {
-  (events: unknown, transaction: Transaction): void;
-}
+type SharedRootObserver = (
+  events: Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
+  transaction: Transaction,
+) => void;
 
 interface SharedRoot {
   observeDeep: (callback: SharedRootObserver) => void;
@@ -273,7 +274,7 @@ async function withSession(
     syncYjsChangesToLexicalV2__EXPERIMENTAL(
       binding,
       lexicalProvider,
-      events as unknown as Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
+      events,
       transaction,
       transaction.origin instanceof UndoManager
     );
