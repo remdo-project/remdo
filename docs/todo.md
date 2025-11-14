@@ -57,6 +57,7 @@ Options to consider when implementing:
 ## Support Matrix
 
 1. DONE: Record the supported environments in `package.json` (`engines.node`, `browserslist`, `remdoSupport.tools`).
-2. Wire eslint/tests/CI to consume the package-level matrix so every check derives supported versions from one place.
-3. Update `AGENTS.md` so contributors know not to add fallbacks beyond the declared matrix.
-4. Reject legacy fallbacks explicitly—if a browser/node/tool version is not in the matrix, we do not support it.
+2. DONE: Wire ESLint to consume the package-level matrix so lint derives supported versions from one place.
+3. Wire CI/tests to consume the same package-level matrix.
+4. Update `AGENTS.md` so contributors know not to add fallbacks beyond the declared matrix.
+5. Reject legacy fallbacks explicitly—if a browser/node/tool version is not in the matrix, we do not support it.
