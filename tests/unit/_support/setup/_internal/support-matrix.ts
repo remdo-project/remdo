@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import path from 'node:path';
 import process from 'node:process';
 
 interface RemdoSupport {
@@ -7,7 +7,7 @@ interface RemdoSupport {
 }
 
 function readPackageJson() {
-  const pkgPath = resolve(process.cwd(), 'package.json');
+  const pkgPath = path.resolve(process.cwd(), 'package.json');
   const raw = readFileSync(pkgPath, 'utf8');
   return JSON.parse(raw) as { engines?: { node?: string }; remdoSupport?: RemdoSupport };
 }

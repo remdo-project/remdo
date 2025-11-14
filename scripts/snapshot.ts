@@ -101,12 +101,11 @@ function writeJson(filePath: string, data: unknown): void {
   fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`);
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+type GlobalWithOptionalDocument = Omit<typeof globalThis, 'document'> & { document?: Document };
 
-if (globalThis.document === undefined) {
+const globalWithOptionalDocument = globalThis as GlobalWithOptionalDocument;
+
+if (globalWithOptionalDocument.document === undefined) {
   const createStubElement = (tagName: string) => {
     const element: any = {
       tagName,
@@ -118,9 +117,16 @@ if (globalThis.document === undefined) {
     return element;
   };
 
-  globalThis.document = {
+  globalWithOptionalDocument.document = {
     createElement: createStubElement,
   } as unknown as Document;
+}
+
+try {
+  await main();
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
 }
 
 async function main(): Promise<void> {

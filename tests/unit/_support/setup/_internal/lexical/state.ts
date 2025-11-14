@@ -1,6 +1,6 @@
 import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import path from 'node:path';
 import process from 'node:process';
 import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
 import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
@@ -10,11 +10,11 @@ function lexicalLoad(
   editor: LexicalEditor,
   filename: string
 ): void {
-  const absPath = resolve(process.cwd(), 'tests/fixtures', `${filename}.json`);
+  const absPath = path.resolve(process.cwd(), 'tests/fixtures', `${filename}.json`);
 
   let json: string;
   try {
-    json = readFileSync(absPath, 'utf-8');
+    json = readFileSync(absPath, 'utf8');
   } catch (err) {
     throw new Error(
       `Failed to read file at ${absPath}: ${err instanceof Error ? err.message : String(err)}`
