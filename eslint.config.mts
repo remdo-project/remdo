@@ -1,6 +1,7 @@
 import antfu from '@antfu/eslint-config';
 import lexicalPlugin from '@lexical/eslint-plugin';
 import compatPlugin from 'eslint-plugin-compat';
+import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
 
 export default antfu(
   {
@@ -46,6 +47,7 @@ export default antfu(
         },
       ],
       'compat/compat': 'error',
+      'remdo/no-legacy-fallbacks': 'error',
     },
   },
   {
@@ -104,6 +106,11 @@ export default antfu(
     plugins: {
       '@lexical': lexicalPlugin,
       compat: compatPlugin,
+      remdo: {
+        rules: {
+          'no-legacy-fallbacks': noLegacyFallbacksRule,
+        },
+      },
     },
     rules: {
       '@lexical/rules-of-lexical': 'error',
