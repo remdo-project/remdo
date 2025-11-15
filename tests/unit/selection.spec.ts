@@ -50,7 +50,7 @@ function getListItemLabel(item: ListItemNode): string | null {
 }
 
 function resolveContentListItem(item: ListItemNode): ListItemNode {
-  if (!isChildrenWrapper(item)) {
+  if (!isListItemWrapper(item)) {
     return item;
   }
 
@@ -58,12 +58,13 @@ function resolveContentListItem(item: ListItemNode): ListItemNode {
   return $isListItemNode(previous) ? previous : item;
 }
 
-function isChildrenWrapper(node: LexicalNode | null): node is ListItemNode {
-  if (!$isListItemNode(node)) {
-    return false;
-  }
+function isListItemWrapper(node: ListItemNode): boolean {
   const children = node.getChildren();
   return children.length === 1 && $isListNode(children[0] ?? null);
+}
+
+function isWrapperNode(node: LexicalNode | null): node is ListItemNode {
+  return $isListItemNode(node) && isListItemWrapper(node);
 }
 
 function $collectAllNoteLabels(): string[] {
@@ -105,7 +106,7 @@ function visitListItems(node: LexicalNode | null, visit: (item: ListItemNode) =>
 
 function getNestedList(item: ListItemNode): LexicalNode | null {
   const wrapper = item.getNextSibling();
-  if (isChildrenWrapper(wrapper)) {
+  if (isWrapperNode(wrapper)) {
     const nested = wrapper.getFirstChild();
     return $isListNode(nested) ? nested : null;
   }
@@ -150,7 +151,7 @@ function $collectLabelsFromSelection(selection: RangeSelection): string[] {
     }
   }
 
-  return Array.from(seen).sort();
+  return Array.from(seen).toSorted((a, b) => a.localeCompare(b));
 }
 
 describe('selection plugin', () => {
@@ -166,6 +167,26 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowRight', shift: true });
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot.selectedNotes).toEqual(['note2']);
+  });
+
+  it('treats Shift+Left/Right as no-ops once the selection spans whole notes', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note2', lexical.mutate);
+
+    // Promote selection to stage 2: note + descendants.
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    let snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
+
+    await pressKey(lexical.editor, { key: 'ArrowLeft', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
+
+    await pressKey(lexical.editor, { key: 'ArrowRight', shift: true });
+    snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot.selectedNotes).toEqual(['note2', 'note3']);
   });
 
   it('lets Shift+Down walk the progressive selection ladder', async ({ lexical }) => {

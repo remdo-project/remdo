@@ -14,7 +14,7 @@ export function SelectionInputPlugin() {
     const unregisterArrowUp = editor.registerCommand(
       KEY_ARROW_UP_COMMAND,
       (event) => {
-        if (!event?.shiftKey) {
+        if (!event.shiftKey) {
           return false;
         }
 
@@ -28,7 +28,7 @@ export function SelectionInputPlugin() {
     const unregisterArrowDown = editor.registerCommand(
       KEY_ARROW_DOWN_COMMAND,
       (event) => {
-        if (!event?.shiftKey) {
+        if (!event.shiftKey) {
           return false;
         }
 

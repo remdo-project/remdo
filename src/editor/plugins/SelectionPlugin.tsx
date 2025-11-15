@@ -94,19 +94,14 @@ export function SelectionPlugin() {
 
   useEffect(() => {
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
-      let payload: SnapPayload | null = null;
-
-      editorState.read(() => {
+      const payload = editorState.read(() => {
         const selection = $getSelection();
 
         if (tags.has(PROGRESSIVE_SELECTION_TAG)) {
           const isLocked = $isRangeSelection(selection) && !selection.isCollapsed();
           progressionRef.current = { ...progressionRef.current, locked: isLocked };
           unlockRef.current.pending = false;
-        } else if (!$isRangeSelection(selection)) {
-          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-          unlockRef.current = { pending: false, reason: 'external' };
-        } else {
+        } else if ($isRangeSelection(selection)) {
           const anchorItem = findNearestListItem(selection.anchor.getNode());
           const anchorKey = anchorItem ? getContentListItem(anchorItem).getKey() : null;
           if (!anchorKey || selection.isCollapsed() || progressionRef.current.anchorKey !== anchorKey) {
@@ -115,27 +110,30 @@ export function SelectionPlugin() {
             }
             unlockRef.current = { pending: false, reason: 'external' };
           }
+        } else {
+          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+          unlockRef.current = { pending: false, reason: 'external' };
         }
 
         if (tags.has(SNAP_SELECTION_TAG)) {
-          return;
+          return null;
         }
 
         if (!$isRangeSelection(selection) || selection.isCollapsed()) {
-          return;
+          return null;
         }
 
         const noteItems = collectSelectedListItems(selection);
         if (noteItems.length < 2) {
-          return;
+          return null;
         }
 
         const candidate = createSnapPayload(selection, noteItems);
         if (!candidate || selectionMatchesPayload(selection, candidate)) {
-          return;
+          return null;
         }
 
-        payload = candidate;
+        return candidate;
       });
 
       if (!payload) {
@@ -149,14 +147,14 @@ export function SelectionPlugin() {
             return;
           }
 
-          const anchorItem = $getNodeByKey<ListItemNode>(payload!.anchorKey);
-          const focusItem = $getNodeByKey<ListItemNode>(payload!.focusKey);
+          const anchorItem = $getNodeByKey<ListItemNode>(payload.anchorKey);
+          const focusItem = $getNodeByKey<ListItemNode>(payload.focusKey);
           if (!anchorItem || !focusItem) {
             return;
           }
 
-          const anchorPoint = resolveBoundaryPoint(anchorItem, payload!.anchorEdge);
-          const focusPoint = resolveBoundaryPoint(focusItem, payload!.focusEdge);
+          const anchorPoint = resolveBoundaryPoint(anchorItem, payload.anchorEdge);
+          const focusPoint = resolveBoundaryPoint(focusItem, payload.focusEdge);
           if (!anchorPoint || !focusPoint) {
             return;
           }
@@ -189,18 +187,17 @@ export function SelectionPlugin() {
     const unregisterSelectAll = editor.registerCommand(
       SELECT_ALL_COMMAND,
       (event) => {
-        let planResult: ProgressivePlanResult | null = null;
-        editor.getEditorState().read(() => {
-          planResult = $computeProgressivePlan(progressionRef);
-        });
+        const planResult = editor.getEditorState().read(() =>
+          $computeProgressivePlan(progressionRef)
+        );
 
         if (!planResult) {
           return false;
         }
 
-        event?.preventDefault();
+        event.preventDefault();
 
-        applyPlan(planResult!);
+        applyPlan(planResult);
 
         return true;
       },
@@ -210,14 +207,13 @@ export function SelectionPlugin() {
     const unregisterArrowLeft = editor.registerCommand(
       KEY_ARROW_LEFT_COMMAND,
       (event) => {
-        if (!event?.shiftKey) {
+        if (!event.shiftKey) {
           return false;
         }
 
-        let shouldBlock = false;
-        editor.getEditorState().read(() => {
-          shouldBlock = $shouldBlockHorizontalArrow('left');
-        });
+        const shouldBlock = editor.getEditorState().read(() =>
+          $shouldBlockHorizontalArrow('left')
+        );
 
         if (!shouldBlock) {
           return false;
@@ -234,14 +230,13 @@ export function SelectionPlugin() {
     const unregisterArrowRight = editor.registerCommand(
       KEY_ARROW_RIGHT_COMMAND,
       (event) => {
-        if (!event?.shiftKey) {
+        if (!event.shiftKey) {
           return false;
         }
 
-        let shouldBlock = false;
-        editor.getEditorState().read(() => {
-          shouldBlock = $shouldBlockHorizontalArrow('right');
-        });
+        const shouldBlock = editor.getEditorState().read(() =>
+          $shouldBlockHorizontalArrow('right')
+        );
 
         if (!shouldBlock) {
           return false;
@@ -323,11 +318,7 @@ function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
     items.push(listItem);
   }
 
-  if (items.length === 0) {
-    return items;
-  }
-
-  return items.sort(compareDocumentOrder);
+  return items.toSorted(compareDocumentOrder);
 }
 
 
@@ -403,7 +394,7 @@ function createSnapPayload(selection: RangeSelection, items: ListItemNode[]): Sn
   }
 
   const first = items[0]!;
-  const last = items[items.length - 1]!;
+  const last = items.at(-1)!;
   const isBackward = selection.isBackward();
 
   return {
@@ -420,7 +411,7 @@ function resolveBoundaryPoint(listItem: ListItemNode, edge: 'start' | 'end') {
     return null;
   }
 
-  const length = textNode.getTextContentSize?.() ?? textNode.getTextContent().length;
+  const length = textNode.getTextContentSize();
   const offset = edge === 'start' ? 0 : length;
   return { node: textNode, offset } as const;
 }
@@ -435,8 +426,8 @@ function findBoundaryTextNode(node: LexicalNode, edge: 'start' | 'end'): TextNod
     return null;
   }
 
-  const children = (node as any).getChildren?.() ?? [];
-  const ordered = edge === 'start' ? children : [...children].reverse();
+  const children = ((node as any).getChildren?.() ?? []) as LexicalNode[];
+  const ordered = edge === 'start' ? children : children.toReversed();
 
   for (const child of ordered) {
     const match = findBoundaryTextNode(child, edge);
@@ -477,19 +468,16 @@ function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
 
 function getNodePath(node: ListItemNode): number[] {
   const path: number[] = [];
-  let current: LexicalNode | null = node;
+  let child: LexicalNode = node;
+  let parent: LexicalNode | null = node.getParent();
 
-  while (current) {
-    const parent: LexicalNode | null = current.getParent();
-    if (!parent) {
-      break;
-    }
-    const index = current.getIndexWithinParent();
-    path.push(index);
-    current = parent;
+  while (parent) {
+    path.push(child.getIndexWithinParent());
+    child = parent;
+    parent = child.getParent();
   }
 
-  return path.reverse();
+  return path.toReversed();
 }
 
 function $computeProgressivePlan(
@@ -660,7 +648,7 @@ function $buildDirectionalStagePlan(
 
   if (stage === 3) {
     if (direction === 'down') {
-      const lastHead = resolvedHeads[resolvedHeads.length - 1]!;
+      const lastHead = resolvedHeads.at(-1)!;
       const nextSibling = getNextContentSibling(lastHead);
       if (!nextSibling) {
         return null;
@@ -690,7 +678,7 @@ function $buildDirectionalStagePlan(
       plan: {
         type: 'range',
         startKey: previousSibling.getKey(),
-        endKey: getSubtreeTail(resolvedHeads[resolvedHeads.length - 1]!).getKey(),
+        endKey: getSubtreeTail(resolvedHeads.at(-1)!).getKey(),
         startMode: 'content',
         endMode: 'subtree',
       },
@@ -765,7 +753,7 @@ function $createSiblingRangePlan(item: ListItemNode): ProgressivePlan | null {
     return null;
   }
 
-  const lastSibling = siblings[siblings.length - 1]!;
+  const lastSibling = siblings.at(-1)!;
   const tail = getSubtreeTail(lastSibling);
   return {
     type: 'range',
@@ -874,7 +862,7 @@ function resolveContentBoundaryPoint(listItem: ListItemNode, edge: 'start' | 'en
     return null;
   }
 
-  const length = textNode.getTextContentSize?.() ?? textNode.getTextContent().length;
+  const length = textNode.getTextContentSize();
   const offset = edge === 'start' ? 0 : length;
   return { node: textNode, offset } as const;
 }
@@ -926,7 +914,7 @@ function $collectSelectionHeads(selection: RangeSelection): ListItemNode[] {
 function getNextContentSibling(item: ListItemNode): ListItemNode | null {
   let sibling: LexicalNode | null = item.getNextSibling();
   while (sibling) {
-    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
+    if ($isListItemNode(sibling) && !isListItemWrapper(sibling)) {
       return sibling;
     }
     sibling = sibling.getNextSibling();
@@ -937,7 +925,7 @@ function getNextContentSibling(item: ListItemNode): ListItemNode | null {
 function getPreviousContentSibling(item: ListItemNode): ListItemNode | null {
   let sibling: LexicalNode | null = item.getPreviousSibling();
   while (sibling) {
-    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
+    if ($isListItemNode(sibling) && !isListItemWrapper(sibling)) {
       return sibling;
     }
     sibling = sibling.getPreviousSibling();
@@ -958,7 +946,7 @@ function isDescendantOf(node: ListItemNode, ancestor: ListItemNode): boolean {
 
 function findContentBoundaryTextNode(listItem: ListItemNode, edge: 'start' | 'end'): TextNode | null {
   const children = listItem.getChildren();
-  const ordered = edge === 'start' ? children : [...children].reverse();
+  const ordered = edge === 'start' ? children : children.toReversed();
 
   for (const child of ordered) {
     if ($isListNode(child)) {
@@ -975,7 +963,7 @@ function findContentBoundaryTextNode(listItem: ListItemNode, edge: 'start' | 'en
 }
 
 function getContentListItem(item: ListItemNode): ListItemNode {
-  if (!isChildrenWrapper(item)) {
+  if (!isListItemWrapper(item)) {
     return item;
   }
 
@@ -1003,7 +991,7 @@ function getParentContentItem(item: ListItemNode): ListItemNode | null {
   }
 
   const parentWrapper = parentList.getParent();
-  if (!isChildrenWrapper(parentWrapper)) {
+  if (!isWrapperNode(parentWrapper)) {
     return null;
   }
 
@@ -1011,17 +999,26 @@ function getParentContentItem(item: ListItemNode): ListItemNode | null {
   return $isListItemNode(parentContent) ? parentContent : null;
 }
 
-function isChildrenWrapper(node: LexicalNode | null | undefined): node is ListItemNode {
-  return (
-    $isListItemNode(node) &&
-    node.getChildren().length === 1 &&
-    $isListNode(node.getFirstChild())
-  );
+function isListItemWrapper(node: ListItemNode): boolean {
+  if (node.getChildren().length !== 1) {
+    return false;
+  }
+
+  const firstChild = node.getFirstChild();
+  return $isListNode(firstChild);
+}
+
+function isWrapperNode(node: LexicalNode | null | undefined): node is ListItemNode {
+  return $isListItemNode(node) && isListItemWrapper(node);
 }
 
 function getWrapperForContent(item: ListItemNode): ListItemNode | null {
   const next = item.getNextSibling();
-  return isChildrenWrapper(next) ? next : null;
+  if (!$isListItemNode(next) || !isListItemWrapper(next)) {
+    return null;
+  }
+
+  return next;
 }
 
 function getSubtreeTail(item: ListItemNode): ListItemNode {
@@ -1064,7 +1061,7 @@ function getContentSiblings(item: ListItemNode): ListItemNode[] {
 
   const siblings: ListItemNode[] = [];
   for (const child of parentList.getChildren()) {
-    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+    if ($isListItemNode(child) && !isListItemWrapper(child)) {
       siblings.push(child);
     }
   }
@@ -1079,15 +1076,16 @@ function getFirstDescendantListItem(node: LexicalNode | null): ListItemNode | nu
 
   for (const child of node.getChildren()) {
     if ($isListItemNode(child)) {
-      const content = getContentListItem(child);
-      if (content) {
-        return content;
+      if (isListItemWrapper(child)) {
+        const nested = getNestedList(child);
+        const match = getFirstDescendantListItem(nested);
+        if (match) {
+          return match;
+        }
+        continue;
       }
-      const nested = getNestedList(child);
-      const match = getFirstDescendantListItem(nested);
-      if (match) {
-        return match;
-      }
+
+      return getContentListItem(child);
     }
   }
 
@@ -1103,15 +1101,16 @@ function getLastDescendantListItem(node: LexicalNode | null): ListItemNode | nul
   for (let i = children.length - 1; i >= 0; i -= 1) {
     const child = children[i];
     if ($isListItemNode(child)) {
+      if (isListItemWrapper(child)) {
+        continue;
+      }
+
       const nested = getNestedList(child);
       const match = getLastDescendantListItem(nested);
       if (match) {
         return match;
       }
-      const content = getContentListItem(child);
-      if (content) {
-        return content;
-      }
+      return getContentListItem(child);
     }
   }
 
