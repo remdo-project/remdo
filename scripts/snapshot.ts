@@ -122,12 +122,11 @@ if (globalWithOptionalDocument.document === undefined) {
   } as unknown as Document;
 }
 
-try {
-  await main();
-} catch (error) {
+/* eslint-disable-next-line unicorn/prefer-top-level-await -- tsx transpiles this script as CJS during tests */
+void main().catch((error) => {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
-}
+});
 
 async function main(): Promise<void> {
   const { command, filePath, docId: cliDocId, markdownPath } = parseCliArguments(process.argv.slice(2));
