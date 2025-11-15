@@ -15,16 +15,17 @@ import WebSocket from 'ws';
 import { Doc, UndoManager } from 'yjs';
 
 import type { Provider } from '@lexical/yjs';
-import type { CreateEditorArgs, LexicalEditor, SerializedEditorState, SerializedLexicalNode } from 'lexical';
+import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lexical';
 import type { Transaction } from 'yjs';
 
 import { config } from '#config';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollaborationSyncController, createProviderFactory } from '#lib/collaboration/runtime';
 
-interface SharedRootObserver {
-  (events: unknown, transaction: Transaction): void;
-}
+type SharedRootObserver = (
+  events: Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
+  transaction: Transaction,
+) => void;
 
 interface SharedRoot {
   observeDeep: (callback: SharedRootObserver) => void;
@@ -100,12 +101,11 @@ function writeJson(filePath: string, data: unknown): void {
   fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`);
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+type GlobalWithOptionalDocument = Omit<typeof globalThis, 'document'> & { document?: Document };
 
-if (typeof globalThis.document === 'undefined') {
+const globalWithOptionalDocument = globalThis as GlobalWithOptionalDocument;
+
+if (globalWithOptionalDocument.document === undefined) {
   const createStubElement = (tagName: string) => {
     const element: any = {
       tagName,
@@ -117,10 +117,16 @@ if (typeof globalThis.document === 'undefined') {
     return element;
   };
 
-  globalThis.document = {
+  globalWithOptionalDocument.document = {
     createElement: createStubElement,
   } as unknown as Document;
 }
+
+/* eslint-disable-next-line unicorn/prefer-top-level-await -- tsx transpiles this script as CJS during tests */
+void main().catch((error) => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+});
 
 async function main(): Promise<void> {
   const { command, filePath, docId: cliDocId, markdownPath } = parseCliArguments(process.argv.slice(2));
@@ -226,7 +232,7 @@ async function runSave(
 
 async function runLoad(docId: string, endpoint: string, filePath: string): Promise<void> {
   const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as {
-    editorState?: SerializedEditorState<SerializedLexicalNode>;
+    editorState?: SerializedEditorState;
   };
   await withSession(docId, endpoint, async (editor, { provider }) => {
     const done = waitForEditorUpdate(editor);
@@ -273,7 +279,7 @@ async function withSession(
     syncYjsChangesToLexicalV2__EXPERIMENTAL(
       binding,
       lexicalProvider,
-      events as unknown as Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
+      events,
       transaction,
       transaction.origin instanceof UndoManager
     );

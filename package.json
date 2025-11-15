@@ -3,6 +3,30 @@
   "engines": {
     "node": ">=22.0.0"
   },
+  "browserslist": {
+    "production": [
+      "last 2 Chrome versions",
+      "last 2 ChromeAndroid versions",
+      "last 2 Edge versions",
+      "last 2 Firefox versions",
+      "last 2 Safari versions"
+    ],
+    "development": [
+      "last 1 Chrome version",
+      "last 1 Firefox version",
+      "last 1 Safari version"
+    ]
+  },
+  "remdoSupport": {
+    "tools": {
+      "pnpm": ">=10.18.0",
+      "git": ">=2.40.0"
+    },
+    "notes": [
+      "Browsers outside the Browserslist ranges are unsupported.",
+      "Node runtimes must satisfy engines.node."
+    ]
+  },
   "scripts": {
     "dev": "concurrently \"pnpm run dev:web\" \"pnpm run dev:ws\" \"pnpm run test:preview\"",
     "dev:web": "vite",
@@ -54,6 +78,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/estree": "^1.0.8",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.2",
@@ -68,8 +93,10 @@
     "cross-env": "^10.1.0",
     "dotenv-flow": "4.1.0",
     "eslint": "^9.39.1",
+    "eslint-plugin-compat": "^6.0.2",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "eslint-plugin-unicorn": "^62.0.0",
     "jiti": "^2.6.1",
     "jsdom": "^27.1.0",
     "tsx": "^4.20.6",

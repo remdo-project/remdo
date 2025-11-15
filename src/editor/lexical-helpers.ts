@@ -7,15 +7,16 @@ import {
   $isListNode,
 } from '@lexical/list';
 
+const isListItemWrapper = (node: ListItemNode): boolean =>
+  node.getChildren().length === 1 && $isListNode(node.getFirstChild());
+
 const isChildrenWrapper = (node: LexicalNode | null | undefined): node is ListItemNode =>
-  $isListItemNode(node) &&
-  node.getChildren().length === 1 &&
-  $isListNode(node.getFirstChild());
+  $isListItemNode(node) && isListItemWrapper(node);
 
 function getPreviousContentItem(noteItem: ListItemNode): ListItemNode | null {
-  let sibling: LexicalNode | null = noteItem.getPreviousSibling();
+  let sibling = noteItem.getPreviousSibling();
   while (sibling) {
-    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
+    if ($isListItemNode(sibling) && !isListItemWrapper(sibling)) {
       return sibling;
     }
     sibling = sibling.getPreviousSibling();
@@ -68,7 +69,7 @@ export function $outdentNote(noteItem: ListItemNode): boolean {
   }
 
   const parentWrapper = parentList.getParent();
-  if (!$isListItemNode(parentWrapper) || !isChildrenWrapper(parentWrapper)) {
+  if (!isChildrenWrapper(parentWrapper)) {
     return false;
   }
 

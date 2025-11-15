@@ -14,7 +14,7 @@ afterEach(() => {
 
     if (relevantCalls.length > 0) {
       const argsPreview = relevantCalls
-        .map((args) => args.map((arg) => String(arg)).join(' '))
+        .map((args) => args.map(String).join(' '))
         .join('\n');
       spy.mockClear();
       expect.fail(`console.${level} was called:\n${argsPreview}`);
@@ -25,5 +25,5 @@ afterEach(() => {
 });
 
 afterAll(() => {
-  consoleSpies.forEach(({ spy }) => spy.mockRestore());
+  for (const { spy } of consoleSpies) spy.mockRestore();
 });

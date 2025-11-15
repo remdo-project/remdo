@@ -158,11 +158,11 @@ export function readOutline(validate: <T>(fn: () => T) => T): Outline {
       }
 
       const node: OutlineNode = { text, children: [] };
-      while (stack.length > 0 && stack[stack.length - 1]!.indent >= indent) {
+      while (stack.length > 0 && stack.at(-1)!.indent >= indent) {
         stack.pop();
       }
 
-      stack[stack.length - 1]?.children.push(node);
+      stack.at(-1)?.children.push(node);
       stack.push({ indent, children: node.children });
     }
 
@@ -188,7 +188,7 @@ export async function selectEntireNote(
       return;
     }
 
-    const length = anchorNode.getTextContentSize?.() ?? anchorNode.getTextContent().length;
+    const length = anchorNode.getTextContentSize();
     selection.setTextNodeRange(anchorNode, 0, anchorNode, length);
   });
 }
@@ -206,7 +206,7 @@ function getNodePath(node: any): number[] {
     current = parent;
   }
 
-  return path.reverse();
+  return path.toReversed();
 }
 
 function compareNodeOrder(a: any, b: any): number {
@@ -284,9 +284,8 @@ export async function selectNoteRange(
     }
 
     const rangeSelection = selection;
-    const startLength =
-      startTextNode.getTextContentSize?.() ?? startTextNode.getTextContent().length;
-    const endLength = endTextNode.getTextContentSize?.() ?? endTextNode.getTextContent().length;
+    const startLength = startTextNode.getTextContentSize();
+    const endLength = endTextNode.getTextContentSize();
 
     const order = compareNodeOrder(startItem, endItem);
     if (order <= 0) {

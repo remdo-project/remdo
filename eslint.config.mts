@@ -1,5 +1,10 @@
 import antfu from '@antfu/eslint-config';
+import compatPlugin from 'eslint-plugin-compat';
 import lexicalPlugin from '@lexical/eslint-plugin';
+import unicornPlugin from 'eslint-plugin-unicorn';
+import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
+
+const { plugins: _unusedUnicornPlugins, ...unicornUnopinionatedConfig } = unicornPlugin.configs.unopinionated;
 
 export default antfu(
   {
@@ -13,8 +18,30 @@ export default antfu(
       'perfectionist/sort-named-imports': 'off',
       'perfectionist/sort-exports': 'off',
       'perfectionist/sort-named-exports': 'off',
+      'unicorn/better-regex': 'warn',
+      'unicorn/consistent-destructuring': 'warn',
+      'unicorn/no-for-loop': 'warn',
+      'unicorn/prefer-import-meta-properties': 'warn',
+      'unicorn/prefer-query-selector': 'warn',
+      'unicorn/prefer-spread': 'warn',
+      'unicorn/switch-case-braces': 'warn',
+      'unicorn/template-indent': 'warn',
+      'unicorn/import-style': [
+        'warn',
+        {
+          styles: {
+            path: {
+              default: true,
+            },
+            'node:path': {
+              default: true,
+            },
+          },
+        },
+      ],
     },
   },
+  unicornUnopinionatedConfig,
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
@@ -25,6 +52,28 @@ export default antfu(
     rules: {
       'ts/no-floating-promises': 'error',
       'ts/no-misused-promises': 'warn',
+      'ts/no-unnecessary-type-assertion': 'warn',
+      'ts/no-unnecessary-condition': [
+        'warn',
+        {
+          checkTypePredicates: true,
+        },
+      ],
+      'ts/no-unnecessary-boolean-literal-compare': 'warn',
+      'ts/no-unnecessary-parameter-property-assignment': 'warn',
+      'ts/no-unnecessary-qualifier': 'warn',
+      'ts/no-unnecessary-template-expression': 'warn',
+      'ts/no-unnecessary-type-arguments': 'warn',
+      'ts/no-unnecessary-type-constraint': 'warn',
+      'ts/no-unnecessary-type-conversion': 'warn',
+      'ts/no-unnecessary-type-parameters': 'warn',
+      'ts/consistent-type-assertions': [
+        'error',
+        {
+          assertionStyle: 'as',
+          objectLiteralTypeAssertions: 'never',
+        },
+      ],
     },
   },
   {
@@ -44,6 +93,8 @@ export default antfu(
           message: 'Use #config instead of accessing import.meta.env directly.',
         },
       ],
+      'compat/compat': 'error',
+      'remdo/no-legacy-fallbacks': 'error',
     },
   },
   {
@@ -101,6 +152,12 @@ export default antfu(
   {
     plugins: {
       '@lexical': lexicalPlugin,
+      compat: compatPlugin,
+      remdo: {
+        rules: {
+          'no-legacy-fallbacks': noLegacyFallbacksRule,
+        },
+      },
     },
     rules: {
       '@lexical/rules-of-lexical': 'error',

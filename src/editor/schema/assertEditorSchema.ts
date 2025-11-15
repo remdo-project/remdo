@@ -14,7 +14,7 @@ const LIST_ITEM_TYPE = 'listitem';
 const ROOT_TYPE = 'root';
 
 function isNodeWithChildren(node: SerializedLexicalNode | undefined | null): node is NodeWithChildren {
-  return Boolean(node && typeof (node as NodeWithChildren).children !== 'undefined');
+  return Boolean(node && (node as NodeWithChildren).children !== undefined);
 }
 
 function getChildren(node: SerializedLexicalNode | undefined | null): SerializedLexicalNode[] {
@@ -40,20 +40,18 @@ function visitList(listNode: NodeWithChildren, entries: FlatOutlineEntry[]): voi
   const children = getChildren(listNode);
   let previousListItem: SerializedLexicalNode | undefined;
 
-  children.forEach((child) => {
+  for (const child of children) {
     if (!isNodeWithChildren(child) || child.type !== LIST_ITEM_TYPE) {
-      return;
+      continue;
     }
 
     const childChildren = getChildren(child);
     const nestedLists = childChildren.filter((nested) => nested.type === LIST_TYPE);
     const contentNodes = childChildren.filter((nested) => nested.type !== LIST_TYPE);
 
-    if (nestedLists.length > 0 && contentNodes.length === 0) {
-      if (!previousListItem || previousListItem.type !== LIST_ITEM_TYPE) {
+    if (nestedLists.length > 0 && contentNodes.length === 0 && (!previousListItem || previousListItem.type !== LIST_ITEM_TYPE)) {
         throw new Error('Invalid outline structure: wrapper list item without preceding list item sibling');
       }
-    }
 
     if (nestedLists.length > 0) {
       const firstListChildren = getChildren(nestedLists[0]);
@@ -69,21 +67,21 @@ function visitList(listNode: NodeWithChildren, entries: FlatOutlineEntry[]): voi
 
     entries.push({ text, indent });
 
-    nestedLists.forEach((nested) => {
+    for (const nested of nestedLists) {
       if (isNodeWithChildren(nested)) {
         visitList(nested, entries);
       }
-    });
+    }
 
     previousListItem = child;
-  });
+  }
 }
 
 export function collectOutlineEntries(state: SerializedEditorState): FlatOutlineEntry[] {
   const entries: FlatOutlineEntry[] = [];
   const root = state.root;
 
-  if (!root || root.type !== ROOT_TYPE) {
+  if (root.type !== ROOT_TYPE) {
     return entries;
   }
 
@@ -111,14 +109,14 @@ export function assertEditorSchema(state: SerializedEditorState): void {
       continue;
     }
 
-    const parentIndent = stack[stack.length - 1]!.indent;
+    const parentIndent = stack.at(-1)!.indent;
     if (entry.indent > parentIndent + 1) {
       throw new Error(
         `Invalid outline structure: indent jumped from ${parentIndent} to ${entry.indent} for "${entry.text}"`
       );
     }
 
-    while (stack.length > 0 && stack[stack.length - 1]!.indent >= entry.indent) {
+    while (stack.length > 0 && stack.at(-1)!.indent >= entry.indent) {
       stack.pop();
     }
 

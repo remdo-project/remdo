@@ -46,8 +46,7 @@ captures the full model.
 
 ## Checks
 
-- `pnpm run lint`: run after every code change before considering the work
-  complete.
+- `pnpm run lint`: run only when asked.
 - `pnpm run test:unit`: run often, and always before staging or committing code
   changes.
 - `pnpm run test:unit:collab`: run whenever you touch collaboration, Yjs, or
