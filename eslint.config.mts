@@ -18,27 +18,6 @@ export default antfu(
       'perfectionist/sort-named-imports': 'off',
       'perfectionist/sort-exports': 'off',
       'perfectionist/sort-named-exports': 'off',
-      'unicorn/better-regex': 'warn',
-      'unicorn/consistent-destructuring': 'warn',
-      'unicorn/no-for-loop': 'warn',
-      'unicorn/prefer-import-meta-properties': 'warn',
-      'unicorn/prefer-query-selector': 'warn',
-      'unicorn/prefer-spread': 'warn',
-      'unicorn/switch-case-braces': 'warn',
-      'unicorn/template-indent': 'warn',
-      'unicorn/import-style': [
-        'warn',
-        {
-          styles: {
-            path: {
-              default: true,
-            },
-            'node:path': {
-              default: true,
-            },
-          },
-        },
-      ],
     },
   },
   unicornUnopinionatedConfig,
@@ -93,8 +72,13 @@ export default antfu(
           message: 'Use #config instead of accessing import.meta.env directly.',
         },
       ],
-      'compat/compat': 'error',
       'remdo/no-legacy-fallbacks': 'error',
+    },
+  },
+  {
+    files: ['src/**/*.{js,jsx,ts,tsx,mts,cts}'],
+    rules: {
+      'compat/compat': 'error',
     },
   },
   {
