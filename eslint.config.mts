@@ -76,7 +76,10 @@ export default antfu(
     },
   },
   {
-    files: ['src/**/*.{js,jsx,ts,tsx,mts,cts}'],
+    files: [
+      'src/**/*.{js,jsx,ts,tsx,mts,cts}',
+      'lib/**/*.{js,jsx,ts,tsx,mts,cts}',
+    ],
     rules: {
       'compat/compat': 'error',
     },
