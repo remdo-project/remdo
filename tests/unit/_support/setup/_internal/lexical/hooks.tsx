@@ -41,15 +41,17 @@ beforeEach<TestContext>(async (ctx) => {
   let editor!: LexicalEditor;
   let collab!: CollaborationStatusValue;
 
-  const meta = (ctx.task?.meta ?? {}) as { collabDocId?: string };
+  const task = ctx.task as TestContext['task'] | undefined;
+  const metaRaw = task?.meta as { collabDocId?: string } | undefined;
+  const meta = metaRaw ?? {};
 
   let docId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
   if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {
-    const base = ctx.task?.id ?? ctx.task?.name ?? 'spec';
-    const normalized = base.replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'spec';
+    const base = task?.id ?? task?.name ?? 'spec';
+    const normalized = base.replaceAll(/[^a-z0-9-]+/g, '-').replaceAll(/^-+|-+$/g, '') || 'spec';
     docId = `test-${normalized}-${collabDocCounter++}`;
   }
-  const href = globalThis.location?.href ?? window.location.href;
+  const href = globalThis.location.href;
   const url = new URL(href);
   const params = new URLSearchParams(url.search);
   params.set('doc', docId);

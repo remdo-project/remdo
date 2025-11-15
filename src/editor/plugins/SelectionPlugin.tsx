@@ -100,7 +100,7 @@ export function SelectionPlugin() {
 
   useEffect(() => {
     const clearStructuralSelectionMetrics = () => {
-      const rootElement = editor.getRootElement();
+  const rootElement = editor.getRootElement();
       if (!rootElement) {
         return;
       }
@@ -119,8 +119,8 @@ export function SelectionPlugin() {
         return;
       }
 
-      const startElement = editor.getElementByKey(range.visualStartKey) as HTMLElement | null;
-      const endElement = editor.getElementByKey(range.visualEndKey) as HTMLElement | null;
+      const startElement = editor.getElementByKey(range.visualStartKey);
+      const endElement = editor.getElementByKey(range.visualEndKey);
       if (!startElement || !endElement) {
         clearStructuralSelectionMetrics();
         return;
@@ -192,23 +192,19 @@ export function SelectionPlugin() {
     });
 
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
-      let payload: SnapPayload | null = null;
-      let hasStructuralSelection = false;
-      let structuralRange: StructuralSelectionRange | null = null;
-      let noteItems: ListItemNode[] = [];
-      let noteKeys: string[] = [];
+      const { payload, hasStructuralSelection, structuralRange, noteKeys } = editorState.read(() => {
+        let computedPayload: SnapPayload | null = null;
+        let computedStructuralRange: StructuralSelectionRange | null = null;
+        let computedNoteKeys: string[] = [];
+        let hasStructuralSelection = false;
 
-      editorState.read(() => {
         const selection = $getSelection();
 
         if (tags.has(PROGRESSIVE_SELECTION_TAG)) {
           const isLocked = $isRangeSelection(selection) && !selection.isCollapsed();
           progressionRef.current = { ...progressionRef.current, locked: isLocked };
           unlockRef.current.pending = false;
-        } else if (!$isRangeSelection(selection)) {
-          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-          unlockRef.current = { pending: false, reason: 'external' };
-        } else {
+        } else if ($isRangeSelection(selection)) {
           const anchorItem = findNearestListItem(selection.anchor.getNode());
           const anchorKey = anchorItem ? getContentListItem(anchorItem).getKey() : null;
           if (!anchorKey || selection.isCollapsed() || progressionRef.current.anchorKey !== anchorKey) {
@@ -217,26 +213,40 @@ export function SelectionPlugin() {
             }
             unlockRef.current = { pending: false, reason: 'external' };
           }
-        }
-
-        if ($isRangeSelection(selection) && !selection.isCollapsed()) {
-          noteItems = collectSelectedListItems(selection);
-          noteKeys = noteItems.map((item) => getContentListItem(item).getKey());
-          structuralRange = computeStructuralRange(selection);
-
-          const hasMultiNoteRange = noteItems.length > 1;
-          const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
-          hasStructuralSelection = isProgressiveStructural || hasMultiNoteRange;
-          if (!tags.has(SNAP_SELECTION_TAG) && noteItems.length >= 2) {
-            const candidate = createSnapPayload(selection, noteItems);
-            if (candidate && !selectionMatchesPayload(selection, candidate)) {
-              payload = candidate;
-            }
-          }
         } else {
-          hasStructuralSelection = false;
+          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+          unlockRef.current = { pending: false, reason: 'external' };
         }
 
+        if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+          return {
+            payload: computedPayload,
+            hasStructuralSelection,
+            structuralRange: computedStructuralRange,
+            noteKeys: computedNoteKeys,
+          };
+        }
+
+        const noteItems = collectSelectedListItems(selection);
+        computedNoteKeys = noteItems.map((item) => getContentListItem(item).getKey());
+        computedStructuralRange = computeStructuralRange(selection);
+
+        const hasMultiNoteRange = noteItems.length > 1;
+        const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
+        hasStructuralSelection = isProgressiveStructural || hasMultiNoteRange;
+        if (!tags.has(SNAP_SELECTION_TAG) && noteItems.length >= 2) {
+          const candidate = createSnapPayload(selection, noteItems);
+          if (candidate && !selectionMatchesPayload(selection, candidate)) {
+            computedPayload = candidate;
+          }
+        }
+
+        return {
+          payload: computedPayload,
+          hasStructuralSelection,
+          structuralRange: computedStructuralRange,
+          noteKeys: computedNoteKeys,
+        };
       });
 
       if (hasStructuralSelection && structuralRange) {
@@ -255,6 +265,8 @@ export function SelectionPlugin() {
         return;
       }
 
+      const nextPayload = payload;
+
       editor.update(
         () => {
           const selection = $getSelection();
@@ -262,14 +274,14 @@ export function SelectionPlugin() {
             return;
           }
 
-          const anchorItem = $getNodeByKey<ListItemNode>(payload!.anchorKey);
-          const focusItem = $getNodeByKey<ListItemNode>(payload!.focusKey);
+          const anchorItem = $getNodeByKey<ListItemNode>(nextPayload.anchorKey);
+          const focusItem = $getNodeByKey<ListItemNode>(nextPayload.focusKey);
           if (!anchorItem || !focusItem) {
             return;
           }
 
-          const anchorPoint = resolveBoundaryPoint(anchorItem, payload!.anchorEdge);
-          const focusPoint = resolveBoundaryPoint(focusItem, payload!.focusEdge);
+          const anchorPoint = resolveBoundaryPoint(anchorItem, nextPayload.anchorEdge);
+          const focusPoint = resolveBoundaryPoint(focusItem, nextPayload.focusEdge);
           if (!anchorPoint || !focusPoint) {
             return;
           }
@@ -317,11 +329,9 @@ export function SelectionPlugin() {
       edge: 'start' | 'end' | 'anchor' = 'anchor'
     ): boolean => {
       const range = structuralSelectionRangeRef.current;
-      let hasCollapsibleSelection = false;
-
-      editor.getEditorState().read(() => {
+      const hasCollapsibleSelection = editor.getEditorState().read(() => {
         const selection = $getSelection();
-        hasCollapsibleSelection = $isRangeSelection(selection) && !selection.isCollapsed();
+        return $isRangeSelection(selection) && !selection.isCollapsed();
       });
 
       if (!hasCollapsibleSelection) {
@@ -364,11 +374,8 @@ export function SelectionPlugin() {
 
     const unregisterSelectAll = editor.registerCommand(
       SELECT_ALL_COMMAND,
-      (event) => {
-        let planResult: ProgressivePlanResult | null = null;
-        editor.getEditorState().read(() => {
-          planResult = $computeProgressivePlan(progressionRef);
-        });
+      (event: KeyboardEvent | null) => {
+        const planResult = editor.getEditorState().read(() => $computeProgressivePlan(progressionRef));
 
         if (!planResult) {
           return false;
@@ -376,7 +383,7 @@ export function SelectionPlugin() {
 
         event?.preventDefault();
 
-        applyPlan(planResult!);
+        applyPlan(planResult);
 
         return true;
       },
@@ -385,15 +392,12 @@ export function SelectionPlugin() {
 
     const unregisterArrowLeft = editor.registerCommand(
       KEY_ARROW_LEFT_COMMAND,
-      (event) => {
-        if (!event?.shiftKey) {
+      (event: KeyboardEvent | null) => {
+        if (!event || !event.shiftKey) {
           return false;
         }
 
-        let shouldBlock = false;
-        editor.getEditorState().read(() => {
-          shouldBlock = $shouldBlockHorizontalArrow('left');
-        });
+        const shouldBlock = editor.getEditorState().read(() => $shouldBlockHorizontalArrow('left'));
 
         if (!shouldBlock) {
           return false;
@@ -409,15 +413,12 @@ export function SelectionPlugin() {
 
     const unregisterArrowRight = editor.registerCommand(
       KEY_ARROW_RIGHT_COMMAND,
-      (event) => {
-        if (!event?.shiftKey) {
+      (event: KeyboardEvent | null) => {
+        if (!event || !event.shiftKey) {
           return false;
         }
 
-        let shouldBlock = false;
-        editor.getEditorState().read(() => {
-          shouldBlock = $shouldBlockHorizontalArrow('right');
-        });
+        const shouldBlock = editor.getEditorState().read(() => $shouldBlockHorizontalArrow('right'));
 
         if (!shouldBlock) {
           return false;
@@ -469,14 +470,16 @@ export function SelectionPlugin() {
 
     const unregisterEscape = editor.registerCommand(
       KEY_ESCAPE_COMMAND,
-      (event) => {
+      (event: KeyboardEvent | null) => {
         const handled = collapseStructuralSelectionToCaretAndReset();
         if (!handled) {
           return false;
         }
 
-        event?.preventDefault();
-        event?.stopPropagation();
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
 
         return true;
       },
@@ -509,7 +512,7 @@ export function SelectionPlugin() {
 
     const unregisterPlainArrowDown = editor.registerCommand(
       KEY_ARROW_DOWN_COMMAND,
-      (event) => {
+      (event: KeyboardEvent | null) => {
         if (!shouldHandlePlainVerticalArrow(event)) {
           return false;
         }
@@ -519,8 +522,10 @@ export function SelectionPlugin() {
           return false;
         }
 
-        event?.preventDefault();
-        event?.stopPropagation();
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
         return true;
       },
       COMMAND_PRIORITY_CRITICAL
@@ -528,7 +533,7 @@ export function SelectionPlugin() {
 
     const unregisterPlainArrowLeft = editor.registerCommand(
       KEY_ARROW_LEFT_COMMAND,
-      (event) => {
+      (event: KeyboardEvent | null) => {
         if (!shouldHandlePlainHorizontalArrow(event)) {
           return false;
         }
@@ -538,8 +543,10 @@ export function SelectionPlugin() {
           return false;
         }
 
-        event?.preventDefault();
-        event?.stopPropagation();
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
         return true;
       },
       COMMAND_PRIORITY_CRITICAL
@@ -547,7 +554,7 @@ export function SelectionPlugin() {
 
     const unregisterPlainArrowRight = editor.registerCommand(
       KEY_ARROW_RIGHT_COMMAND,
-      (event) => {
+      (event: KeyboardEvent | null) => {
         if (!shouldHandlePlainHorizontalArrow(event)) {
           return false;
         }
@@ -557,8 +564,10 @@ export function SelectionPlugin() {
           return false;
         }
 
-        event?.preventDefault();
-        event?.stopPropagation();
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
         return true;
       },
       COMMAND_PRIORITY_CRITICAL
@@ -576,10 +585,12 @@ export function SelectionPlugin() {
 
     const unregisterHomeEnd = editor.registerCommand(
       KEY_DOWN_COMMAND,
-      (event) => {
+      (event: KeyboardEvent | null) => {
         if (shouldBlockTypingInStructuralMode(event)) {
-          event.preventDefault();
-          event.stopPropagation();
+          if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
           return true;
         }
 
@@ -611,7 +622,7 @@ export function SelectionPlugin() {
 
     const unregisterPlainArrowUp = editor.registerCommand(
       KEY_ARROW_UP_COMMAND,
-      (event) => {
+      (event: KeyboardEvent | null) => {
         if (!shouldHandlePlainVerticalArrow(event)) {
           return false;
         }
@@ -621,8 +632,10 @@ export function SelectionPlugin() {
           return false;
         }
 
-        event?.preventDefault();
-        event?.stopPropagation();
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
         return true;
       },
       COMMAND_PRIORITY_CRITICAL
@@ -630,13 +643,15 @@ export function SelectionPlugin() {
 
     const unregisterEnter = editor.registerCommand(
       KEY_ENTER_COMMAND,
-      (event) => {
+      (event: KeyboardEvent | null) => {
         if (!structuralSelectionRef.current) {
           return false;
         }
 
-        event?.preventDefault();
-        event?.stopPropagation();
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
         return true;
       },
       COMMAND_PRIORITY_CRITICAL
@@ -741,7 +756,7 @@ function createSnapPayload(selection: RangeSelection, items: ListItemNode[]): Sn
   }
 
   const first = items[0]!;
-  const last = items[items.length - 1]!;
+  const last = items.at(-1)!;
   const isBackward = selection.isBackward();
 
   return {
@@ -758,7 +773,7 @@ function resolveBoundaryPoint(listItem: ListItemNode, edge: 'start' | 'end') {
     return null;
   }
 
-  const length = textNode.getTextContentSize?.() ?? textNode.getTextContent().length;
+  const length = textNode.getTextContentSize();
   const offset = edge === 'start' ? 0 : length;
   return { node: textNode, offset } as const;
 }
@@ -774,7 +789,7 @@ function findBoundaryTextNode(node: LexicalNode, edge: 'start' | 'end'): TextNod
   }
 
   const children = (node as any).getChildren?.() ?? [];
-  const ordered = edge === 'start' ? children : [...children].reverse();
+  const ordered = edge === 'start' ? children : children.toReversed();
 
   for (const child of ordered) {
     const match = findBoundaryTextNode(child, edge);
@@ -1007,7 +1022,7 @@ function $buildDirectionalSiblingPlan(
   const sortedLevelHeads = sortHeadsByDocumentOrder(headsAtLevel);
 
   if (direction === 'down') {
-    const forwardBoundary = sortedLevelHeads[sortedLevelHeads.length - 1]!;
+    const forwardBoundary = sortedLevelHeads.at(-1)!;
     let sibling = getNextContentSibling(forwardBoundary);
     let extendDirection: 'forward' | 'backward' = 'forward';
 
@@ -1033,7 +1048,7 @@ function $buildDirectionalSiblingPlan(
         : {
             type: 'range',
             startKey: sibling.getKey(),
-            endKey: getSubtreeTail(sortedHeads[sortedHeads.length - 1]!).getKey(),
+            endKey: getSubtreeTail(sortedHeads.at(-1)!).getKey(),
             startMode: 'content',
             endMode: 'subtree',
           };
@@ -1056,7 +1071,7 @@ function $buildDirectionalSiblingPlan(
   let extendDirection: 'forward' | 'backward' = 'backward';
 
   if (!sibling) {
-    const forwardBoundary = sortedLevelHeads[sortedLevelHeads.length - 1]!;
+    const forwardBoundary = sortedLevelHeads.at(-1)!;
     sibling = getNextContentSibling(forwardBoundary);
     extendDirection = 'forward';
   }
@@ -1070,7 +1085,7 @@ function $buildDirectionalSiblingPlan(
       ? {
           type: 'range',
           startKey: sibling.getKey(),
-          endKey: getSubtreeTail(sortedHeads[sortedHeads.length - 1]!).getKey(),
+          endKey: getSubtreeTail(sortedHeads.at(-1)!).getKey(),
           startMode: 'content',
           endMode: 'subtree',
         }
@@ -1150,7 +1165,7 @@ function $createSiblingRangePlan(item: ListItemNode): ProgressivePlan | null {
     return null;
   }
 
-  const lastSibling = siblings[siblings.length - 1]!;
+  const lastSibling = siblings.at(-1)!;
   const tail = getSubtreeTail(lastSibling);
   return {
     type: 'range',
@@ -1319,13 +1334,14 @@ function $applyCaretEdge(itemKey: string, edge: 'start' | 'end'): boolean {
   }
 
   const contentItem = getContentListItem(targetItem);
-  const selectEdge =
-    edge === 'start'
-      ? (contentItem as ListItemNode & { selectStart?: () => RangeSelection }).selectStart?.bind(contentItem)
-      : (contentItem as ListItemNode & { selectEnd?: () => RangeSelection }).selectEnd?.bind(contentItem);
+  const selectableContent = contentItem as ListItemNode & {
+    selectStart?: () => RangeSelection;
+    selectEnd?: () => RangeSelection;
+  };
+  const selectEdge = edge === 'start' ? selectableContent.selectStart : selectableContent.selectEnd;
 
-  if (selectEdge) {
-    selectEdge();
+  if (typeof selectEdge === 'function') {
+    selectEdge.call(selectableContent);
     return true;
   }
 
@@ -1353,14 +1369,14 @@ function resolveContentBoundaryPoint(listItem: ListItemNode, edge: 'start' | 'en
     return null;
   }
 
-  const length = textNode.getTextContentSize?.() ?? textNode.getTextContent().length;
+  const length = textNode.getTextContentSize();
   const offset = edge === 'start' ? 0 : length;
   return { node: textNode, offset } as const;
 }
 
 function findContentBoundaryTextNode(listItem: ListItemNode, edge: 'start' | 'end'): TextNode | null {
   const children = listItem.getChildren();
-  const ordered = edge === 'start' ? children : [...children].reverse();
+  const ordered = edge === 'start' ? children : children.toReversed();
 
   for (const child of ordered) {
     if ($isListNode(child)) {
@@ -1399,7 +1415,7 @@ function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
     return items;
   }
 
-  return items.sort(compareDocumentOrder);
+  return items.toSorted(compareDocumentOrder);
 }
 
 function computeStructuralRange(selection: RangeSelection): StructuralSelectionRange | null {
@@ -1411,7 +1427,7 @@ function computeStructuralRange(selection: RangeSelection): StructuralSelectionR
   const heads = collectSelectionHeads(selection, noteItems);
   const caretItems = (heads.length > 0 ? heads : noteItems).map((item) => getContentListItem(item));
   const caretStartItem = caretItems[0]!;
-  const caretEndItem = caretItems[caretItems.length - 1]!;
+  const caretEndItem = caretItems.at(-1)!;
   const visualEndItem = getSubtreeTail(caretEndItem);
 
   return {
@@ -1467,7 +1483,7 @@ function collectSelectionHeads(selection: RangeSelection, precomputed?: ListItem
 
 function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
   let current: LexicalNode | null = node;
-  while (current) {
+  while (current !== null) {
     if ($isListItemNode(current)) {
       return current;
     }
@@ -1539,19 +1555,16 @@ function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
 
 function getNodePath(node: ListItemNode): number[] {
   const path: number[] = [];
-  let current: LexicalNode | null = node;
+  let child: LexicalNode = node;
+  let parent: LexicalNode | null = child.getParent();
 
-  while (current) {
-    const parent: LexicalNode | null = current.getParent();
-    if (!parent) {
-      break;
-    }
-    const index = current.getIndexWithinParent();
-    path.push(index);
-    current = parent;
+  while (parent) {
+    path.push(child.getIndexWithinParent());
+    child = parent;
+    parent = child.getParent();
   }
 
-  return path.reverse();
+  return path.toReversed();
 }
 
 function ascendContentItem(item: ListItemNode, levels: number): ListItemNode | null {
@@ -1574,7 +1587,7 @@ function getParentContentItem(item: ListItemNode): ListItemNode | null {
   }
 
   const parentWrapper = parentList.getParent();
-  if (!isChildrenWrapper(parentWrapper)) {
+  if (!$isListItemNode(parentWrapper) || !isChildrenWrapper(parentWrapper)) {
     return null;
   }
 
@@ -1603,7 +1616,7 @@ function getHeadsSharingParent(heads: ListItemNode[], parentList: ListNode): Lis
 }
 
 function sortHeadsByDocumentOrder(heads: ListItemNode[]): ListItemNode[] {
-  return heads.slice().sort(compareDocumentOrder);
+  return heads.toSorted(compareDocumentOrder);
 }
 
 function getNestedList(item: ListItemNode): ListNode | null {
@@ -1631,15 +1644,7 @@ function getFirstDescendantListItem(node: LexicalNode | null): ListItemNode | nu
 
   for (const child of node.getChildren()) {
     if ($isListItemNode(child)) {
-      const content = getContentListItem(child);
-      if (content) {
-        return content;
-      }
-      const nested = getNestedList(child);
-      const match = getFirstDescendantListItem(nested);
-      if (match) {
-        return match;
-      }
+      return getContentListItem(child);
     }
   }
 
@@ -1660,10 +1665,7 @@ function getLastDescendantListItem(node: LexicalNode | null): ListItemNode | nul
       if (match) {
         return match;
       }
-      const content = getContentListItem(child);
-      if (content) {
-        return content;
-      }
+      return getContentListItem(child);
     }
   }
 
@@ -1683,10 +1685,13 @@ function isDescendantOf(node: ListItemNode, ancestor: ListItemNode): boolean {
 
 function getWrapperForContent(item: ListItemNode): ListItemNode | null {
   const next = item.getNextSibling();
-  return isChildrenWrapper(next) ? next : null;
+  if (!$isListItemNode(next) || !isChildrenWrapper(next)) {
+    return null;
+  }
+  return next;
 }
 
-function isChildrenWrapper(node: LexicalNode | null | undefined): node is ListItemNode {
+function isChildrenWrapper(node: LexicalNode | null | undefined): boolean {
   return (
     $isListItemNode(node) &&
     node.getChildren().length === 1 &&

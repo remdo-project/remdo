@@ -48,7 +48,7 @@ function readSelectionSnapshot(lexical: TestContext['lexical']): SelectionSnapsh
         }
         return getListItemLabel(resolveContentListItem(node));
       })
-      .filter((label): label is string => Boolean(label));
+      .filter((label): label is string => typeof label === 'string' && label.length > 0);
 
     if (datasetNotes?.length) {
       return { state: 'structural', notes: datasetNotes } satisfies SelectionSnapshot;
@@ -129,7 +129,7 @@ function $collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
     return items;
   }
 
-  return items.sort(compareDocumentOrder);
+  return items.toSorted(compareDocumentOrder);
 }
 
 function $collectListItemOrderMetadata(): {
@@ -203,7 +203,7 @@ function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
   return a === b ? 0 : a.isBefore(b) ? -1 : b.isBefore(a) ? 1 : 0;
 }
 
-function isChildrenWrapper(node: LexicalNode | null): node is ListItemNode {
+function isChildrenWrapper(node: LexicalNode | null): boolean {
   if (!$isListItemNode(node)) {
     return false;
   }
@@ -255,7 +255,7 @@ function $readVisualRangeLabels(selection: RangeSelection) {
   }
 
   const startLabel = getListItemLabel(items[0]!);
-  const endLabel = getListItemLabel(items[items.length - 1]!);
+  const endLabel = getListItemLabel(items.at(-1)!);
   if (!startLabel || !endLabel) {
     throw new Error('Expected structural selection labels');
   }
@@ -265,7 +265,7 @@ function $readVisualRangeLabels(selection: RangeSelection) {
 
 function getNestedList(item: ListItemNode): LexicalNode | null {
   const wrapper = item.getNextSibling();
-  if (isChildrenWrapper(wrapper)) {
+  if ($isListItemNode(wrapper) && isChildrenWrapper(wrapper)) {
     const nested = wrapper.getFirstChild();
     return $isListNode(nested) ? nested : null;
   }
@@ -303,7 +303,7 @@ function $collectLabelsFromSelection(selection: RangeSelection): string[] {
     }
   });
 
-  return Array.from(seen).sort();
+  return Array.from(seen).toSorted();
 }
 
 function $getCaretNoteLabel(selection: RangeSelection): string | null {
@@ -360,8 +360,9 @@ async function extendDomSelectionToText(target: Text, offset: number) {
     }
 
     const clamped = clampOffset(target, offset);
-    if (typeof selection.extend === 'function') {
-      selection.extend(target, clamped);
+    const extendableSelection = selection as Selection & { extend?: Selection['extend'] };
+    if (typeof extendableSelection.extend === 'function') {
+      extendableSelection.extend(target, clamped);
     } else {
       const range = selection.getRangeAt(0);
       const ordered = orderRangePoints(range.startContainer, range.startOffset, target, clamped);
@@ -375,9 +376,15 @@ async function extendDomSelectionToText(target: Text, offset: number) {
 }
 
 function getNoteTextNode(rootElement: HTMLElement, label: string): Text {
-  const noteElement = within(rootElement).getByText((_, node) => node?.textContent?.trim() === label, {
-    selector: '[data-lexical-text="true"]',
-  });
+  const noteElement = within(rootElement).getByText(
+    (_, node) => {
+      if (!node) {
+        return false;
+      }
+      return node.textContent.trim() === label;
+    },
+    { selector: '[data-lexical-text="true"]' }
+  );
   const textNode = findFirstTextNode(noteElement);
   if (!textNode) {
     throw new Error(`Expected text node for note: ${label}`);
@@ -395,7 +402,7 @@ function findFirstTextNode(element: Element | null): Text | null {
 }
 
 function getTextLength(node: Text): number {
-  return node.textContent?.length ?? 0;
+  return node.length;
 }
 
 function clampOffset(node: Text, offset: number): number {
@@ -404,7 +411,7 @@ function clampOffset(node: Text, offset: number): number {
 }
 
 function getDomSelection(): Selection {
-  const selection = window.getSelection();
+  const selection = globalThis.getSelection();
   if (!selection) {
     throw new Error('DOM selection is unavailable');
   }
@@ -925,7 +932,10 @@ describe('selection plugin', () => {
         throw new Error('Expected structural snapshot');
       }
       const first = snapshot.notes[0];
-      const last = snapshot.notes[snapshot.notes.length - 1];
+      const last = snapshot.notes.at(-1);
+      if (!last) {
+        throw new Error('Expected structural snapshot to include notes');
+      }
       expect(labels.visualStart).toBe(first);
       expect(labels.visualEnd).toBe(last);
     };
