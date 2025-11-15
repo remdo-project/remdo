@@ -108,7 +108,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@y/websocket-server@0.1.1>ws": "6.2.3"
+      "@y/websocket-server@0.1.1>ws": "6.2.3",
+      "js-yaml": "4.1.1"
     }
   }
 }
