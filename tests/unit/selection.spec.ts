@@ -483,6 +483,26 @@ describe('selection plugin', () => {
     });
   });
 
+  it('snaps drags that cross from a parent into its child to the full subtree', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const parentText = getNoteTextNode(rootElement, 'note2');
+    const childText = getNoteTextNode(rootElement, 'note3');
+    await dragDomSelectionBetween(parentText, getTextLength(parentText), childText, 1);
+
+    await waitFor(() => {
+      expect(readSelectionSnapshot(lexical)).toEqual({
+        state: 'structural',
+        notes: ['note2', 'note3'],
+      });
+    });
+  });
+
   it('extends pointer selections with Shift+Click to produce contiguous note ranges', async ({ lexical }) => {
     lexical.load('tree_complex');
 
@@ -868,6 +888,30 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     snapshot = readSelectionSnapshot(lexical);
     expect(snapshot).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
+  });
+
+  it('hoists the parent once Shift+Down runs out of siblings in an existing note range', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const note2Text = getNoteTextNode(rootElement, 'note2');
+    const note4Text = getNoteTextNode(rootElement, 'note4');
+    await dragDomSelectionBetween(note2Text, 0, note4Text, getTextLength(note4Text));
+
+    await waitFor(() => {
+      expect(readSelectionSnapshot(lexical)).toEqual({
+        state: 'structural',
+        notes: ['note2', 'note3', 'note4'],
+      });
+    });
+
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    const snapshot = readSelectionSnapshot(lexical);
+    expect(snapshot).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
   });
 
   it('escalates Shift+Down from a nested leaf until the document is selected', async ({ lexical }) => {
