@@ -810,7 +810,7 @@ function $computeProgressivePlan(
     return null;
   }
 
-  if (selection.isCollapsed() && progressionRef.current.locked) {
+  if (selection.isCollapsed()) {
     progressionRef.current = INITIAL_PROGRESSIVE_STATE;
   }
 
@@ -914,7 +914,7 @@ function $computeDirectionalPlan(
     return null;
   }
 
-  if (selection.isCollapsed() && progressionRef.current.locked) {
+  if (selection.isCollapsed()) {
     progressionRef.current = INITIAL_PROGRESSIVE_STATE;
   }
 

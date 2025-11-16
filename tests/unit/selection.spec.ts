@@ -360,18 +360,13 @@ async function extendDomSelectionToText(target: Text, offset: number) {
     }
 
     const clamped = clampOffset(target, offset);
-    const extendableSelection = selection as Selection & { extend?: Selection['extend'] };
-    if (typeof extendableSelection.extend === 'function') {
-      extendableSelection.extend(target, clamped);
-    } else {
-      const range = selection.getRangeAt(0);
-      const ordered = orderRangePoints(range.startContainer, range.startOffset, target, clamped);
-      const fallbackRange = document.createRange();
-      fallbackRange.setStart(ordered.startNode, ordered.startOffset);
-      fallbackRange.setEnd(ordered.endNode, ordered.endOffset);
-      selection.removeAllRanges();
-      selection.addRange(fallbackRange);
-    }
+    const range = selection.getRangeAt(0);
+    const ordered = orderRangePoints(range.startContainer, range.startOffset, target, clamped);
+    const nextRange = document.createRange();
+    nextRange.setStart(ordered.startNode, ordered.startOffset);
+    nextRange.setEnd(ordered.endNode, ordered.endOffset);
+    selection.removeAllRanges();
+    selection.addRange(nextRange);
   });
 }
 
@@ -420,6 +415,10 @@ function getDomSelection(): Selection {
 
 async function mutateDomSelection(mutator: (selection: Selection) => void) {
   await act(async () => {
+    const rootElement = document.querySelector('[data-lexical-editor="true"]');
+    if (rootElement instanceof HTMLElement && document.activeElement !== rootElement) {
+      rootElement.focus();
+    }
     mutator(getDomSelection());
     document.dispatchEvent(new Event('selectionchange'));
   });
