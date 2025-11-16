@@ -802,7 +802,7 @@ function findBoundaryTextNode(node: LexicalNode, edge: 'start' | 'end'): TextNod
 }
 
 function $computeProgressivePlan(
-  progressionRef: React.MutableRefObject<ProgressiveSelectionState>
+	progressionRef: React.RefObject<ProgressiveSelectionState>
 ): ProgressivePlanResult | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
@@ -905,8 +905,8 @@ function $buildPlanForStage(
 }
 
 function $computeDirectionalPlan(
-  progressionRef: React.MutableRefObject<ProgressiveSelectionState>,
-  direction: 'up' | 'down'
+	progressionRef: React.RefObject<ProgressiveSelectionState>,
+	direction: 'up' | 'down'
 ): ProgressivePlanResult | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {

@@ -18,6 +18,8 @@ export default antfu(
       'perfectionist/sort-named-imports': 'off',
       'perfectionist/sort-exports': 'off',
       'perfectionist/sort-named-exports': 'off',
+      'unicorn/no-unused-properties': 'error',
+      'unicorn/no-useless-undefined': 'error',
     },
   },
   unicornUnopinionatedConfig,
@@ -29,8 +31,11 @@ export default antfu(
       },
     },
     rules: {
+      'ts/await-thenable': 'error',
       'ts/no-floating-promises': 'error',
       'ts/no-misused-promises': 'warn',
+      'ts/no-deprecated': 'warn',
+      'ts/no-extra-non-null-assertion': 'error',
       'ts/no-unnecessary-type-assertion': 'warn',
       'ts/no-unnecessary-condition': [
         'warn',
@@ -38,6 +43,7 @@ export default antfu(
           checkTypePredicates: true,
         },
       ],
+      'ts/no-useless-empty-export': 'error',
       'ts/no-unnecessary-boolean-literal-compare': 'warn',
       'ts/no-unnecessary-parameter-property-assignment': 'warn',
       'ts/no-unnecessary-qualifier': 'warn',

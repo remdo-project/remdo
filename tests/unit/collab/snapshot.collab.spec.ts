@@ -2,6 +2,7 @@
 import path from 'node:path';
 import { readFileSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import type { SerializedEditorState } from 'lexical';
 import type { TestContext } from 'vitest';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
@@ -28,9 +29,9 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     });
   }
 
-  function readEditorState(filePath: string) {
-    return JSON.parse(readFileSync(filePath, 'utf8')).editorState;
-  }
+	function readEditorState(filePath: string): SerializedEditorState {
+	  return JSON.parse(readFileSync(filePath, 'utf8')).editorState;
+	}
 
   afterEach(() => {
     for (const filePath of SNAPSHOT_OUTPUTS) {
@@ -80,18 +81,16 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
       await lexical.waitForCollabSync();
 
       const expectedState = readEditorState(loadPath);
-      const savePath = SNAPSHOT_OUTPUTS[2]!;
-      let finalSaved: typeof expectedState | null = null;
+	      const savePath = SNAPSHOT_OUTPUTS[2]!;
 
-      await waitFor(() => {
-        runSnapshotCommand('save', [savePath], docEnv);
-        const saved = readEditorState(savePath);
-        finalSaved = saved;
-        return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
-      });
+	      await waitFor(() => {
+	        runSnapshotCommand('save', [savePath], docEnv);
+	        const saved = readEditorState(savePath);
+	        return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
+	      });
 
-      expect(finalSaved).not.toBeNull();
-      expect(finalSaved?.root).toEqual(expectedState.root);
+	      const savedState = readEditorState(savePath);
+	      expect(savedState.root).toEqual(expectedState.root);
 
       await lexical.waitForCollabSync();
       expect(lexical.isCollabSyncing()).toBe(false);

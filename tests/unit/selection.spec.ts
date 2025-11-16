@@ -713,7 +713,7 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowLeft' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    await lexical.validate(() => {
+	    lexical.validate(() => {
       const selection = $getSelection();
       if (!$isRangeSelection(selection)) {
         throw new Error('Expected range selection');
@@ -741,7 +741,7 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowRight' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    await lexical.validate(() => {
+	    lexical.validate(() => {
       const selection = $getSelection();
       if (!$isRangeSelection(selection)) {
         throw new Error('Expected range selection');
