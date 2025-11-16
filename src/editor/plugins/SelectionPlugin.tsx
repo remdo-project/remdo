@@ -234,6 +234,12 @@ export function SelectionPlugin() {
         const hasMultiNoteRange = noteItems.length > 1;
         const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
         hasStructuralSelection = isProgressiveStructural || hasMultiNoteRange;
+        if (!progressionRef.current.locked && hasMultiNoteRange) {
+          const inferredProgression = $inferPointerProgressionState(selection, noteItems);
+          if (inferredProgression) {
+            progressionRef.current = inferredProgression;
+          }
+        }
         if (!tags.has(SNAP_SELECTION_TAG) && noteItems.length >= 2) {
           const candidate = createSnapPayload(selection, noteItems);
           if (candidate && !selectionMatchesPayload(selection, candidate)) {
@@ -1479,6 +1485,31 @@ function collectSelectionHeads(selection: RangeSelection, precomputed?: ListItem
   }
 
   return heads;
+}
+
+function $inferPointerProgressionState(
+  selection: RangeSelection,
+  noteItems: ListItemNode[]
+): ProgressiveSelectionState | null {
+  const anchorItem = findNearestListItem(selection.anchor.getNode());
+  if (!anchorItem) {
+    return null;
+  }
+  const anchorContent = getContentListItem(anchorItem);
+  const heads = collectSelectionHeads(selection, noteItems);
+  if (heads.length <= 1) {
+    return null;
+  }
+  const firstParent = heads[0]!.getParent();
+  if (!heads.every((head) => head.getParent() === firstParent)) {
+    return null;
+  }
+
+  return {
+    anchorKey: anchorContent.getKey(),
+    stage: 3,
+    locked: true,
+  };
 }
 
 function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
