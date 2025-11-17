@@ -46,7 +46,7 @@ function readSelectionSnapshot(lexical: TestContext['lexical']): SelectionSnapsh
         if (!node || !node.isAttached()) {
           return null;
         }
-        return getListItemLabel(resolveContentListItem(node));
+        return getListItemLabel(node);
       })
       .filter((label): label is string => typeof label === 'string' && label.length > 0);
 
@@ -116,14 +116,13 @@ function $collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
       continue;
     }
 
-    const contentItem = resolveContentListItem(listItem);
-    const key = contentItem.getKey();
+    const key = listItem.getKey();
     if (seen.has(key)) {
       continue;
     }
 
     seen.add(key);
-    items.push(contentItem);
+    items.push(listItem);
   }
 
   if (items.length === 0) {
