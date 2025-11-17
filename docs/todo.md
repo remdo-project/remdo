@@ -87,3 +87,16 @@ consistent once we wire up mouse interactions.
   from SelectionPlugin and have tests consume the programmatic API instead.
 - Update `readSelectionSnapshot` to rely solely on Lexical’s selection or the
   new outline selection, removing the DOM fallback entirely.
+
+## Preserve unlabeled notes in outline matcher
+
+1. Update `readOutline` so every list item yields an entry, setting `text: ""`
+   when an inline node exists but is empty, and omitting the `text` field when
+   a list item only contains nested lists. Keep whitespace trimming for
+   non-empty text.
+2. Adjust the `toMatchOutline` matcher (and failure messaging) to surface these
+   richer outline nodes, highlighting blank inline content when diffs occur.
+3. Refresh all specs that rely on `$collectAllNoteLabels`/`$collectUnlabeledNoteKeys`
+   (notably `tests/unit/selection.spec.ts`) to assert the full outline via the
+   matcher instead of bespoke helpers, deleting the redundant helpers once the
+   matcher covers their use cases.
