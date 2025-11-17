@@ -350,6 +350,23 @@ async function dragDomSelectionBetween(start: Text, startOffset: number, end: Te
   });
 }
 
+async function dragDomSelectionWithoutExtendBetween(start: Text, startOffset: number, end: Text, endOffset: number) {
+  await mutateDomSelection(() => {
+    const { startNode, startOffset: normalizedStart, endNode, endOffset: normalizedEnd } = orderRangePoints(
+      start,
+      clampOffset(start, startOffset),
+      end,
+      clampOffset(end, endOffset)
+    );
+    const range = document.createRange();
+    range.setStart(startNode, normalizedStart);
+    range.setEnd(endNode, normalizedEnd);
+    const selection = getDomSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
+}
+
 async function collapseDomSelectionAtText(target: Text, offset: number) {
   await mutateDomSelection((selection) => {
     const caretRange = document.createRange();
@@ -519,6 +536,46 @@ describe('selection plugin', () => {
       expect(selectionReport(lexical)).toEqual({
         state: 'structural',
         notes: ['note2', 'note3'],
+      });
+    });
+  });
+
+  it('snaps drags that exit a child upward into its parent to the full subtree', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const childText = getNoteTextNode(rootElement, 'note3');
+    const parentText = getNoteTextNode(rootElement, 'note2');
+    await dragDomSelectionBetween(childText, childText.length, parentText, 0);
+
+    await waitFor(() => {
+      expect(selectionReport(lexical)).toEqual({
+        state: 'structural',
+        notes: ['note2', 'note3'],
+      });
+    });
+  });
+
+  it('snaps touch-handle drags across note boundaries to contiguous subtrees', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const parentText = getNoteTextNode(rootElement, 'note6');
+    const childText = getNoteTextNode(rootElement, 'note7');
+    await dragDomSelectionWithoutExtendBetween(parentText, parentText.length, childText, childText.length);
+
+    await waitFor(() => {
+      expect(selectionReport(lexical)).toEqual({
+        state: 'structural',
+        notes: ['note6', 'note7'],
       });
     });
   });
@@ -743,6 +800,31 @@ describe('selection plugin', () => {
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
     await pressKey(lexical.editor, { key: 'ArrowRight' });
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+  });
+
+  it('collapses structural selection when clicking back into a note body', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note2', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+
+    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+
+    const note4Text = getNoteTextNode(rootElement, 'note4');
+    await collapseDomSelectionAtText(note4Text, 0);
+
+    await waitFor(() => {
+      expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note4' });
+    });
+
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
   });
 
