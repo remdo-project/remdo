@@ -17,11 +17,11 @@ any structural operation acts on complete notes rather than fragments.
 1. It is acceptable to select text within a single note (for example part of a
    note’s content or all of the content of one note). You can edit content
    freely inside one note without triggering structural snaps.
-2. Whenever a selection would span multiple notes—such as dragging from the end
-   of one note into its child or into the next sibling—the editor snaps the
-   selection to cover the full notes involved. The parent note and all of its
-   descendants become fully selected rather than allowing a half-in/half-out
-   range; for example, selecting `note6` automatically includes its child `note7`.
+2. Whenever the selection crosses a note boundary—whether between siblings or
+   between a parent and child—the editor snaps to a **continuous list of sibling
+   notes** and, for each sibling, **the entirety of its subtree**. Nothing in that
+   contiguous slice is ever skipped or partially selected; for example, selecting
+   `note6` automatically includes its child `note7`.
 3. Because selections always align to note boundaries, every structural command
    can assume it is operating on entire subtrees, keeping collaboration and undo
    behavior deterministic.
