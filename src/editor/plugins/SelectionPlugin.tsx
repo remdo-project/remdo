@@ -240,8 +240,13 @@ export function SelectionPlugin() {
             progressionRef.current = inferredProgression;
           }
         }
+        const overrideAnchorKey =
+          progressionRef.current.locked && progressionRef.current.stage >= 2
+            ? progressionRef.current.anchorKey
+            : null;
+
         if (!tags.has(SNAP_SELECTION_TAG) && noteItems.length >= 2) {
-          const candidate = createSnapPayload(selection, noteItems);
+          const candidate = $createSnapPayload(selection, noteItems, overrideAnchorKey);
           if (candidate && !selectionMatchesPayload(selection, candidate)) {
             computedPayload = candidate;
           }
@@ -756,9 +761,32 @@ function pointMatchesEdge(
   return node.getKey() === boundary.node.getKey() && point.offset === boundary.offset;
 }
 
-function createSnapPayload(selection: RangeSelection, items: ListItemNode[]): SnapPayload | null {
+function $createSnapPayload(
+  selection: RangeSelection,
+  items: ListItemNode[],
+  overrideAnchorKey?: string | null
+): SnapPayload | null {
   if (items.length === 0) {
     return null;
+  }
+
+  if (overrideAnchorKey) {
+    const anchorNode = $getNodeByKey<ListItemNode>(overrideAnchorKey);
+    const focusNode = findNearestListItem(selection.focus.getNode());
+    if (anchorNode && focusNode) {
+      const anchorContent = getContentListItem(anchorNode);
+      const focusContent = getContentListItem(focusNode);
+      const isForward = anchorContent === focusContent ? !selection.isBackward() : anchorContent.isBefore(focusContent);
+      const anchorBoundary = isForward ? anchorContent : getSubtreeTail(anchorContent);
+      const focusBoundary = isForward ? getSubtreeTail(focusContent) : focusContent;
+
+      return {
+        anchorKey: anchorBoundary.getKey(),
+        focusKey: focusBoundary.getKey(),
+        anchorEdge: isForward ? 'start' : 'end',
+        focusEdge: isForward ? 'end' : 'start',
+      } satisfies SnapPayload;
+    }
   }
 
   const first = items[0]!;

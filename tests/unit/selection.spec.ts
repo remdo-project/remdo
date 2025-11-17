@@ -100,7 +100,8 @@ function $assertSelectionRespectsOutline(selection: RangeSelection) {
       continue;
     }
     if (!selectedKeys.has(item.getKey())) {
-      throw new Error('Selection must cover a contiguous block of notes and subtrees');
+      const missingLabel = getListItemLabel(item) ?? item.getKey();
+      throw new Error(`Selection must cover a contiguous block of notes and subtrees; missing ${missingLabel}`);
     }
   }
 }
@@ -360,13 +361,7 @@ async function extendDomSelectionToText(target: Text, offset: number) {
     }
 
     const clamped = clampOffset(target, offset);
-    const range = selection.getRangeAt(0);
-    const ordered = orderRangePoints(range.startContainer, range.startOffset, target, clamped);
-    const nextRange = document.createRange();
-    nextRange.setStart(ordered.startNode, ordered.startOffset);
-    nextRange.setEnd(ordered.endNode, ordered.endOffset);
-    selection.removeAllRanges();
-    selection.addRange(nextRange);
+    selection.extend(target, clamped);
   });
 }
 
@@ -541,6 +536,46 @@ describe('selection plugin', () => {
       expect(readSelectionSnapshot(lexical)).toEqual({
         state: 'structural',
         notes: ['note2', 'note3', 'note4', 'note5'],
+      });
+    });
+  });
+
+  it('lets Shift+Click extend keyboard-driven structural selections without breaking contiguity', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note2', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+
+    await waitFor(() => {
+      expect(readSelectionSnapshot(lexical)).toEqual({
+        state: 'structural',
+        notes: ['note2', 'note3'],
+      });
+    });
+
+    const note5Text = getNoteTextNode(rootElement, 'note5');
+    await extendDomSelectionToText(note5Text, getTextLength(note5Text));
+
+    await waitFor(() => {
+      expect(readSelectionSnapshot(lexical)).toEqual({
+        state: 'structural',
+        notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
+      });
+    });
+
+    const note6Text = getNoteTextNode(rootElement, 'note6');
+    await extendDomSelectionToText(note6Text, getTextLength(note6Text));
+
+    await waitFor(() => {
+      expect(readSelectionSnapshot(lexical)).toEqual({
+        state: 'structural',
+        notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'],
       });
     });
   });
