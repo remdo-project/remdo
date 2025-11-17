@@ -462,7 +462,7 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(readSelectionSnapshot(lexical)).toEqual({
         state: 'structural',
-        notes: ['note2', 'note3', 'note4', 'note5'],
+        notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
       });
     });
 
@@ -519,7 +519,7 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(readSelectionSnapshot(lexical)).toEqual({
         state: 'structural',
-        notes: ['note2', 'note3', 'note4', 'note5'],
+        notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
       });
     });
 
@@ -535,7 +535,7 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(readSelectionSnapshot(lexical)).toEqual({
         state: 'structural',
-        notes: ['note2', 'note3', 'note4', 'note5'],
+        notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
       });
     });
   });

@@ -228,6 +228,15 @@ export function SelectionPlugin() {
         }
 
         const noteItems = collectSelectedListItems(selection);
+        if (noteItems.length > 0) {
+          const normalized = normalizeContentRange(noteItems[0]!, noteItems.at(-1)!);
+          if (!noteItems.includes(normalized.start)) {
+            noteItems.unshift(normalized.start);
+          }
+          if (!noteItems.includes(normalized.end)) {
+            noteItems.push(normalized.end);
+          }
+        }
         computedNoteKeys = noteItems.map((item) => getContentListItem(item).getKey());
         computedStructuralRange = computeStructuralRange(selection);
 
@@ -770,34 +779,26 @@ function $createSnapPayload(
     return null;
   }
 
-  if (overrideAnchorKey) {
-    const anchorNode = $getNodeByKey<ListItemNode>(overrideAnchorKey);
-    const focusNode = findNearestListItem(selection.focus.getNode());
-    if (anchorNode && focusNode) {
-      const anchorContent = getContentListItem(anchorNode);
-      const focusContent = getContentListItem(focusNode);
-      const isForward = anchorContent === focusContent ? !selection.isBackward() : anchorContent.isBefore(focusContent);
-      const anchorBoundary = isForward ? anchorContent : getSubtreeTail(anchorContent);
-      const focusBoundary = isForward ? getSubtreeTail(focusContent) : focusContent;
-
-      return {
-        anchorKey: anchorBoundary.getKey(),
-        focusKey: focusBoundary.getKey(),
-        anchorEdge: isForward ? 'start' : 'end',
-        focusEdge: isForward ? 'end' : 'start',
-      } satisfies SnapPayload;
-    }
+  const anchorNode = overrideAnchorKey ? $getNodeByKey<ListItemNode>(overrideAnchorKey) : findNearestListItem(selection.anchor.getNode());
+  const focusNode = findNearestListItem(selection.focus.getNode());
+  if (!anchorNode || !focusNode) {
+    return null;
   }
 
-  const first = items[0]!;
-  const last = items.at(-1)!;
-  const isBackward = selection.isBackward();
+  const anchorContent = getContentListItem(anchorNode);
+  const focusContent = getContentListItem(focusNode);
+  const normalizedRange = normalizeContentRange(anchorContent, focusContent);
+  const startContent = normalizedRange.start;
+  const endContent = normalizedRange.end;
+  const isForward = startContent === endContent ? !selection.isBackward() : startContent.isBefore(endContent);
+  const anchorBoundary = isForward ? startContent : getSubtreeTail(endContent);
+  const focusBoundary = isForward ? getSubtreeTail(endContent) : startContent;
 
   return {
-    anchorKey: isBackward ? last.getKey() : first.getKey(),
-    focusKey: isBackward ? first.getKey() : last.getKey(),
-    anchorEdge: isBackward ? 'end' : 'start',
-    focusEdge: isBackward ? 'start' : 'end',
+    anchorKey: anchorBoundary.getKey(),
+    focusKey: focusBoundary.getKey(),
+    anchorEdge: isForward ? 'start' : 'end',
+    focusEdge: isForward ? 'end' : 'start',
   } satisfies SnapPayload;
 }
 
@@ -1549,6 +1550,62 @@ function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
     current = current.getParent();
   }
   return null;
+}
+
+function normalizeContentRange(start: ListItemNode, end: ListItemNode): { start: ListItemNode; end: ListItemNode } {
+  let first = start;
+  let last = end;
+
+  if (first !== last && !first.isBefore(last)) {
+    [first, last] = [last, first];
+  }
+
+  let firstDepth = getContentDepth(first);
+  let lastDepth = getContentDepth(last);
+
+  while (firstDepth > lastDepth) {
+    const parent = getParentContentItem(first);
+    if (!parent) {
+      break;
+    }
+    first = parent;
+    firstDepth -= 1;
+  }
+
+  while (lastDepth > firstDepth) {
+    const parent = getParentContentItem(last);
+    if (!parent) {
+      break;
+    }
+    last = parent;
+    lastDepth -= 1;
+  }
+
+  let firstParent = first.getParent();
+  let lastParent = last.getParent();
+  while (firstParent && lastParent && firstParent !== lastParent) {
+    const nextFirst = getParentContentItem(first);
+    const nextLast = getParentContentItem(last);
+    if (!nextFirst || !nextLast) {
+      break;
+    }
+    first = nextFirst;
+    last = nextLast;
+    firstParent = first.getParent();
+    lastParent = last.getParent();
+  }
+
+  return { start: first, end: last } as const;
+}
+
+function getContentDepth(item: ListItemNode): number {
+  let depth = 0;
+  let current: ListItemNode | null = getParentContentItem(item);
+  while (current) {
+    depth += 1;
+    current = getParentContentItem(current);
+  }
+  return depth;
 }
 
 function getContentListItem(item: ListItemNode): ListItemNode {
