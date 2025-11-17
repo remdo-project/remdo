@@ -6,6 +6,9 @@ RemDo is a collaborative outliner for fast, structured note-taking. It’s
 keyboard-first and built on Lexical, emphasizing clarity, composability, and
 portability.
 
+Target runtimes and browser support are defined in `docs/contributing.md`. Rely
+on those baselines—no legacy browser shims.
+
 ### Core ideas
 
 - **Structure-first.** Notes form a hierarchical tree; every note is addressable
