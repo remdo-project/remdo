@@ -294,17 +294,23 @@ function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
 
 function $collectLabelsFromSelection(selection: RangeSelection): string[] {
   const seen = new Set<string>();
-  visitListItems($getRoot().getFirstChild(), (item) => {
-    if (!item.isSelected(selection)) {
-      return;
-    }
-    const label = getListItemLabel(item);
-    if (label) {
-      seen.add(label);
-    }
-  });
+  const labels: string[] = [];
 
-  return Array.from(seen).toSorted();
+  for (const item of $collectSelectedListItems(selection)) {
+    if (!item.isSelected(selection)) {
+      continue;
+    }
+
+    const label = getListItemLabel(item);
+    if (!label || seen.has(label)) {
+      continue;
+    }
+
+    seen.add(label);
+    labels.push(label);
+  }
+
+  return labels;
 }
 
 function $getCaretNoteLabel(selection: RangeSelection): string | null {
