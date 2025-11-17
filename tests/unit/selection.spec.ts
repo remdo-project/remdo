@@ -382,28 +382,16 @@ function getNoteTextNode(rootElement: HTMLElement, label: string): Text {
     },
     { selector: '[data-lexical-text="true"]' }
   );
-  const textNode = findFirstTextNode(noteElement);
-  if (!textNode) {
-    throw new Error(`Expected text node for note: ${label}`);
+  const walker = document.createTreeWalker(noteElement, NodeFilter.SHOW_TEXT);
+  const textNode = walker.nextNode();
+  if (!(textNode instanceof Text)) {
+    throw new TypeError(`Expected text node for note: ${label}`);
   }
   return textNode;
 }
 
-function findFirstTextNode(element: Element | null): Text | null {
-  if (!element) {
-    return null;
-  }
-  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-  const node = walker.nextNode();
-  return node instanceof Text ? node : null;
-}
-
-function getTextLength(node: Text): number {
-  return node.length;
-}
-
 function clampOffset(node: Text, offset: number): number {
-  const length = getTextLength(node);
+  const length = node.length;
   return Math.max(0, Math.min(offset, length));
 }
 
@@ -475,7 +463,7 @@ describe('selection plugin', () => {
 
     const note6Text = getNoteTextNode(rootElement, 'note6');
     const note7Text = getNoteTextNode(rootElement, 'note7');
-    await dragDomSelectionBetween(note6Text, 0, note7Text, getTextLength(note7Text));
+    await dragDomSelectionBetween(note6Text, 0, note7Text, note7Text.length);
 
     await waitFor(() => {
       expect(readSelectionSnapshot(lexical)).toEqual({
@@ -495,7 +483,7 @@ describe('selection plugin', () => {
 
     const note5Text = getNoteTextNode(rootElement, 'note5');
     const note2Text = getNoteTextNode(rootElement, 'note2');
-    await dragDomSelectionBetween(note5Text, getTextLength(note5Text), note2Text, 0);
+    await dragDomSelectionBetween(note5Text, note5Text.length, note2Text, 0);
 
     await waitFor(() => {
       expect(readSelectionSnapshot(lexical)).toEqual({
@@ -525,7 +513,7 @@ describe('selection plugin', () => {
 
     const parentText = getNoteTextNode(rootElement, 'note2');
     const childText = getNoteTextNode(rootElement, 'note3');
-    await dragDomSelectionBetween(parentText, getTextLength(parentText), childText, 1);
+    await dragDomSelectionBetween(parentText, parentText.length, childText, 1);
 
     await waitFor(() => {
       expect(readSelectionSnapshot(lexical)).toEqual({
@@ -551,7 +539,7 @@ describe('selection plugin', () => {
       expect(readSelectionSnapshot(lexical)).toEqual({ state: 'caret', note: 'note2' });
     });
 
-    await extendDomSelectionToText(note5Text, getTextLength(note5Text));
+    await extendDomSelectionToText(note5Text, note5Text.length);
 
     await waitFor(() => {
       expect(readSelectionSnapshot(lexical)).toEqual({
@@ -560,14 +548,14 @@ describe('selection plugin', () => {
       });
     });
 
-    await collapseDomSelectionAtText(note5Text, getTextLength(note5Text));
+    await collapseDomSelectionAtText(note5Text, note5Text.length);
 
     await waitFor(() => {
       expect(readSelectionSnapshot(lexical)).toEqual({ state: 'caret', note: 'note5' });
     });
 
     const note3Text = getNoteTextNode(rootElement, 'note3');
-    await extendDomSelectionToText(note3Text, getTextLength(note3Text));
+    await extendDomSelectionToText(note3Text, note3Text.length);
 
     await waitFor(() => {
       expect(readSelectionSnapshot(lexical)).toEqual({
@@ -597,7 +585,7 @@ describe('selection plugin', () => {
     });
 
     const note5Text = getNoteTextNode(rootElement, 'note5');
-    await extendDomSelectionToText(note5Text, getTextLength(note5Text));
+    await extendDomSelectionToText(note5Text, note5Text.length);
 
     await waitFor(() => {
       expect(readSelectionSnapshot(lexical)).toEqual({
@@ -607,7 +595,7 @@ describe('selection plugin', () => {
     });
 
     const note6Text = getNoteTextNode(rootElement, 'note6');
-    await extendDomSelectionToText(note6Text, getTextLength(note6Text));
+    await extendDomSelectionToText(note6Text, note6Text.length);
 
     await waitFor(() => {
       expect(readSelectionSnapshot(lexical)).toEqual({
@@ -972,7 +960,7 @@ describe('selection plugin', () => {
 
     const note2Text = getNoteTextNode(rootElement, 'note2');
     const note4Text = getNoteTextNode(rootElement, 'note4');
-    await dragDomSelectionBetween(note2Text, 0, note4Text, getTextLength(note4Text));
+    await dragDomSelectionBetween(note2Text, 0, note4Text, note4Text.length);
 
     await waitFor(() => {
       expect(readSelectionSnapshot(lexical)).toEqual({
