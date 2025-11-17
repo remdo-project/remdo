@@ -432,22 +432,39 @@ export function SelectionPlugin() {
         return false;
       }
 
-      let deleted = false;
+      const structuralKeys = structuralSelectionKeysRef.current;
+      if (!structuralKeys || structuralKeys.length === 0) {
+        return false;
+      }
+
+      const hasAttachedSelection = editor.getEditorState().read(() => {
+        return structuralKeys.some((key) => {
+          const node = $getNodeByKey<ListItemNode>(key);
+          return $isListItemNode(node) && node.isAttached();
+        });
+      });
+
+      if (!hasAttachedSelection) {
+        return false;
+      }
 
       editor.update(
         () => {
           const structuralRange = structuralSelectionRangeRef.current;
-          const selection = structuralRange ? $applyStructuralRange(structuralRange) : $getSelection();
-          if (!$isRangeSelection(selection)) {
-            return;
-          }
+          const appliedSelection = structuralRange ? $applyStructuralRange(structuralRange) : $getSelection();
+          const selection = $isRangeSelection(appliedSelection) ? appliedSelection : null;
 
           const keyItems =
             structuralSelectionKeysRef.current
               ?.map((key) => $getNodeByKey<ListItemNode>(key))
-              .filter((node): node is ListItemNode => $isListItemNode(node)) ?? undefined;
+              .filter((node): node is ListItemNode => $isListItemNode(node)) ?? [];
 
-          const heads = collectSelectionHeads(selection, keyItems);
+          let heads = collectHeadsFromListItems(keyItems).filter((node) => node.isAttached());
+
+          if (heads.length === 0 && selection) {
+            heads = collectSelectionHeads(selection).filter((node) => node.isAttached());
+          }
+
           if (heads.length === 0) {
             return;
           }
@@ -471,7 +488,7 @@ export function SelectionPlugin() {
             }
           }
 
-          if (!caretApplied) {
+          if (!caretApplied && selection) {
             collapseSelectionToCaret(selection);
           }
 
@@ -479,18 +496,12 @@ export function SelectionPlugin() {
           structuralSelectionKeysRef.current = null;
           progressionRef.current = INITIAL_PROGRESSIVE_STATE;
           unlockRef.current = { pending: false, reason: 'external' };
-          deleted = true;
+          setStructuralSelectionActive(false);
+          clearStructuralSelectionMetrics();
         },
         { tag: PROGRESSIVE_SELECTION_TAG }
       );
 
-      // eslint-disable-next-line ts/no-unnecessary-condition -- set inside editor.update above.
-      if (!deleted) {
-        return false;
-      }
-
-      setStructuralSelectionActive(false);
-      clearStructuralSelectionMetrics();
       return true;
     };
 
@@ -1613,16 +1624,16 @@ function computeStructuralRange(selection: RangeSelection): StructuralSelectionR
   } satisfies StructuralSelectionRange;
 }
 
-function collectSelectionHeads(selection: RangeSelection, precomputed?: ListItemNode[]): ListItemNode[] {
-  const items = (precomputed ?? collectSelectedListItems(selection)).map((item) => getContentListItem(item));
-  if (items.length === 0) {
+function collectHeadsFromListItems(items: ListItemNode[]): ListItemNode[] {
+  const normalized = items.map((item) => getContentListItem(item));
+  if (normalized.length === 0) {
     return [];
   }
 
   const seen = new Set<string>();
   const unique: ListItemNode[] = [];
 
-  for (const item of items) {
+  for (const item of normalized) {
     const key = item.getKey();
     if (seen.has(key)) {
       continue;
@@ -1654,6 +1665,15 @@ function collectSelectionHeads(selection: RangeSelection, precomputed?: ListItem
   }
 
   return heads;
+}
+
+function collectSelectionHeads(selection: RangeSelection, precomputed?: ListItemNode[]): ListItemNode[] {
+  const items = precomputed ?? collectSelectedListItems(selection);
+  if (items.length === 0) {
+    return [];
+  }
+
+  return collectHeadsFromListItems(items);
 }
 
 function $inferPointerProgressionState(
@@ -1873,6 +1893,51 @@ function getHeadsSharingParent(heads: ListItemNode[], parentList: ListNode): Lis
 
 function sortHeadsByDocumentOrder(heads: ListItemNode[]): ListItemNode[] {
   return heads.toSorted(compareDocumentOrder);
+}
+
+interface CaretEdgePlan {
+  key: string;
+  edge: 'start' | 'end';
+}
+
+function resolveCaretTargetAfterDeletion(heads: ListItemNode[]): CaretEdgePlan | null {
+  if (heads.length === 0) {
+    return null;
+  }
+
+  const orderedHeads = sortHeadsByDocumentOrder(heads);
+  let nextAnchor: ListItemNode | null = getSubtreeTail(orderedHeads.at(-1)!);
+
+  while (nextAnchor) {
+    const nextSibling = getNextContentSibling(nextAnchor);
+    if (nextSibling) {
+      return { key: nextSibling.getKey(), edge: 'start' };
+    }
+    nextAnchor = getParentContentItem(nextAnchor);
+  }
+
+  let anchor: ListItemNode | null = orderedHeads[0]!;
+  let fallbackParent: ListItemNode | null = null;
+
+  while (anchor) {
+    const previousSibling = getPreviousContentSibling(anchor);
+    if (previousSibling) {
+      const caretTarget = getSubtreeTail(previousSibling);
+      return { key: caretTarget.getKey(), edge: 'end' };
+    }
+
+    const parent = getParentContentItem(anchor);
+    if (!fallbackParent && parent) {
+      fallbackParent = parent;
+    }
+    anchor = parent;
+  }
+
+  if (fallbackParent) {
+    return { key: fallbackParent.getKey(), edge: 'start' };
+  }
+
+  return null;
 }
 
 function getNestedList(item: ListItemNode): ListNode | null {

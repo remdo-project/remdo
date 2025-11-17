@@ -11,7 +11,7 @@ export function SelectionInputPlugin() {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    const unregisterArrowUp = editor.registerCommand(
+    const unregisterArrowUp = editor.registerCommand<KeyboardEvent>(
       KEY_ARROW_UP_COMMAND,
       (event) => {
         if (!event.shiftKey) {
@@ -25,7 +25,7 @@ export function SelectionInputPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
-    const unregisterArrowDown = editor.registerCommand(
+    const unregisterArrowDown = editor.registerCommand<KeyboardEvent>(
       KEY_ARROW_DOWN_COMMAND,
       (event) => {
         if (!event.shiftKey) {
