@@ -790,15 +790,17 @@ function $createSnapPayload(
   const normalizedRange = normalizeContentRange(anchorContent, focusContent);
   const startContent = normalizedRange.start;
   const endContent = normalizedRange.end;
-  const isForward = startContent === endContent ? !selection.isBackward() : startContent.isBefore(endContent);
-  const anchorBoundary = isForward ? startContent : getSubtreeTail(endContent);
-  const focusBoundary = isForward ? getSubtreeTail(endContent) : startContent;
+  const isBackward = selection.isBackward();
+  const structuralStart = startContent;
+  const structuralEnd = getSubtreeTail(endContent);
+  const anchorBoundary = isBackward ? structuralEnd : structuralStart;
+  const focusBoundary = isBackward ? structuralStart : structuralEnd;
 
   return {
     anchorKey: anchorBoundary.getKey(),
     focusKey: focusBoundary.getKey(),
-    anchorEdge: isForward ? 'start' : 'end',
-    focusEdge: isForward ? 'end' : 'start',
+    anchorEdge: isBackward ? 'end' : 'start',
+    focusEdge: isBackward ? 'start' : 'end',
   } satisfies SnapPayload;
 }
 

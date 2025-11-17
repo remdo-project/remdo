@@ -478,6 +478,36 @@ describe('selection plugin', () => {
     });
   });
 
+  it('preserves selection direction for backward pointer drags', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    const rootElement = lexical.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const note5Text = getNoteTextNode(rootElement, 'note5');
+    const note2Text = getNoteTextNode(rootElement, 'note2');
+    await dragDomSelectionBetween(note5Text, getTextLength(note5Text), note2Text, 0);
+
+    await waitFor(() => {
+      expect(readSelectionSnapshot(lexical)).toEqual({
+        state: 'structural',
+        notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
+      });
+    });
+
+    const isBackward = lexical.validate(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) {
+        throw new Error('Expected range selection');
+      }
+      return selection.isBackward();
+    });
+
+    expect(isBackward).toBe(true);
+  });
+
   it('snaps drags that cross from a parent into its child to the full subtree', async ({ lexical }) => {
     lexical.load('tree_complex');
 

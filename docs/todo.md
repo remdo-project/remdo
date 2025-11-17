@@ -63,14 +63,6 @@ follow-up plan to exercise pointer gestures (dragging between notes and
 `Shift+Click` expansion) so the SelectionPlugin’s snap + blocking logic stays
 consistent once we wire up mouse interactions.
 
-- Add a regression case where a backwards drag (start in a lower sibling,
-  continue upward) must keep the selection direction intact after snapping.
-  Today `$createSnapPayload` rewrites the anchor/focus to the forward order, so
-  the selection flips even though the user dragged backwards—anchor tracking
-  breaks and progressive ladder state desyncs. A test should assert that the
-  structural snapshot preserves the original direction for both forward and
-  backward drags.
-
 ## OutlineSelection + dataset removal
 
 ### Motivation
