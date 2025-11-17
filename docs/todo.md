@@ -100,3 +100,20 @@ consistent once we wire up mouse interactions.
    (notably `tests/unit/selection.spec.ts`) to assert the full outline via the
    matcher instead of bespoke helpers, deleting the redundant helpers once the
    matcher covers their use cases.
+
+## Structural delete regression coverage
+
+Add regression coverage for the stale structural-selection scenario (when a
+collaborator deletes the selected notes while the local editor still believes
+stage 2 is active).
+
+1. A real collaboration spec under `tests/unit/collab` that spins up two editors,
+   has editor A reach stage 2, editor B delete the targeted notes, and then checks
+   that pressing Delete on editor A bubbles (no DOM change, caret free to act).
+2. A faster unit spec beside the existing selection tests that mimics the remote
+   delete by running `editor.update` (or the harness helper) to remove the
+   structural heads while freezing `structuralSelectionRef`, then asserting the
+   same bubbling behavior.
+
+Both variants should prove that Delete/Backspace is only swallowed when an actual
+structural removal occurs.
