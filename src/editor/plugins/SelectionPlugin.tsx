@@ -1,7 +1,8 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $isListItemNode, $isListNode } from '@lexical/list';
+import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
+  $createParagraphNode,
   $createRangeSelection,
   $getNodeByKey,
   $getRoot,
@@ -16,6 +17,8 @@ import {
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_ARROW_DOWN_COMMAND,
+  KEY_BACKSPACE_COMMAND,
+  KEY_DELETE_COMMAND,
   KEY_ENTER_COMMAND,
   SELECT_ALL_COMMAND,
   createCommand,
@@ -97,6 +100,7 @@ export function SelectionPlugin() {
   const unlockRef = useRef<ProgressiveUnlockState>({ pending: false, reason: 'external' });
   const structuralSelectionRef = useRef(false);
   const structuralSelectionRangeRef = useRef<StructuralSelectionRange | null>(null);
+  const structuralSelectionKeysRef = useRef<string[] | null>(null);
 
   useEffect(() => {
     const clearStructuralSelectionMetrics = () => {
@@ -173,8 +177,37 @@ export function SelectionPlugin() {
       applyStructuralSelectionAttribute();
 
       if (!isActive) {
+        structuralSelectionRangeRef.current = null;
+        structuralSelectionKeysRef.current = null;
         setStructuralSelectionSummary(null);
       }
+    };
+
+    const ensureRootContentItem = (): ListItemNode | null => {
+      return editor.getEditorState().read(() => {
+        const root = $getRoot();
+        let list = root.getFirstChild();
+
+        if (!$isListNode(list)) {
+          const newList = $createListNode('bullet');
+          root.append(newList);
+          list = newList;
+        }
+
+        if (!$isListNode(list)) {
+          return null;
+        }
+
+        const first = getFirstDescendantListItem(list);
+        if (first) {
+          return getContentListItem(first);
+        }
+
+        const listItem = $createListItemNode();
+        listItem.append($createParagraphNode());
+        list.append(listItem);
+        return listItem;
+      });
     };
 
     const unregisterRootListener = editor.registerRootListener((rootElement, previousRootElement) => {
@@ -273,10 +306,12 @@ export function SelectionPlugin() {
         structuralSelectionRangeRef.current = structuralRange;
         applyStructuralSelectionMetrics(structuralRange);
         setStructuralSelectionSummary(noteKeys);
+        structuralSelectionKeysRef.current = noteKeys;
       } else {
         structuralSelectionRangeRef.current = null;
         clearStructuralSelectionMetrics();
         setStructuralSelectionSummary(null);
+        structuralSelectionKeysRef.current = null;
       }
 
       setStructuralSelectionActive(hasStructuralSelection && structuralRange !== null);
@@ -389,6 +424,73 @@ export function SelectionPlugin() {
       structuralSelectionRangeRef.current = null;
       clearStructuralSelectionMetrics();
 
+      return true;
+    };
+
+    const deleteStructuralSelection = (): boolean => {
+      if (!structuralSelectionRef.current) {
+        return false;
+      }
+
+      let deleted = false;
+
+      editor.update(
+        () => {
+          const structuralRange = structuralSelectionRangeRef.current;
+          const selection = structuralRange ? $applyStructuralRange(structuralRange) : $getSelection();
+          if (!$isRangeSelection(selection)) {
+            return;
+          }
+
+          const keyItems =
+            structuralSelectionKeysRef.current
+              ?.map((key) => $getNodeByKey<ListItemNode>(key))
+              .filter((node): node is ListItemNode => $isListItemNode(node)) ?? undefined;
+
+          const heads = collectSelectionHeads(selection, keyItems);
+          if (heads.length === 0) {
+            return;
+          }
+
+          const caretPlan = resolveCaretTargetAfterDeletion(heads);
+          const orderedHeads = sortHeadsByDocumentOrder(heads);
+
+          for (const head of orderedHeads.toReversed()) {
+            removeNoteSubtree(head);
+          }
+
+          let caretApplied = false;
+          if (caretPlan) {
+            caretApplied = $applyCaretEdge(caretPlan.key, caretPlan.edge);
+          }
+
+          if (!caretApplied) {
+            const fallbackItem = ensureRootContentItem();
+            if (fallbackItem) {
+              caretApplied = $applyCaretEdge(fallbackItem.getKey(), 'start');
+            }
+          }
+
+          if (!caretApplied) {
+            collapseSelectionToCaret(selection);
+          }
+
+          structuralSelectionRangeRef.current = null;
+          structuralSelectionKeysRef.current = null;
+          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+          unlockRef.current = { pending: false, reason: 'external' };
+          deleted = true;
+        },
+        { tag: PROGRESSIVE_SELECTION_TAG }
+      );
+
+      // eslint-disable-next-line ts/no-unnecessary-condition -- set inside editor.update above.
+      if (!deleted) {
+        return false;
+      }
+
+      setStructuralSelectionActive(false);
+      clearStructuralSelectionMetrics();
       return true;
     };
 
@@ -677,6 +779,40 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
+    const unregisterDelete = editor.registerCommand(
+      KEY_DELETE_COMMAND,
+      (event: KeyboardEvent | null) => {
+        if (!structuralSelectionRef.current) {
+          return false;
+        }
+        const handled = deleteStructuralSelection();
+        if (!handled) {
+          return false;
+        }
+        event?.preventDefault();
+        event?.stopPropagation();
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const unregisterBackspace = editor.registerCommand(
+      KEY_BACKSPACE_COMMAND,
+      (event: KeyboardEvent | null) => {
+        if (!structuralSelectionRef.current) {
+          return false;
+        }
+        const handled = deleteStructuralSelection();
+        if (!handled) {
+          return false;
+        }
+        event?.preventDefault();
+        event?.stopPropagation();
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
     return () => {
       structuralSelectionRef.current = false;
       const rootElement = editor.getRootElement();
@@ -696,6 +832,8 @@ export function SelectionPlugin() {
       unregisterPlainArrowUp();
       unregisterHomeEnd();
       unregisterEnter();
+      unregisterDelete();
+      unregisterBackspace();
       unregisterEscape();
       unregisterRootListener();
     };
@@ -1815,4 +1953,42 @@ function isChildrenWrapper(node: LexicalNode | null | undefined): boolean {
     node.getChildren().length === 1 &&
     $isListNode(node.getFirstChild())
   );
+}
+
+function removeNoteSubtree(item: ListItemNode) {
+  const contentItem = getContentListItem(item);
+  const parentList = contentItem.getParent();
+
+  const wrapper = getWrapperForContent(contentItem);
+  if (wrapper) {
+    wrapper.remove();
+  }
+
+  contentItem.remove();
+
+  if ($isListNode(parentList) && parentList.getChildrenSize() === 0) {
+    const wrapper = parentList.getParent();
+    if ($isListItemNode(wrapper) && isChildrenWrapper(wrapper)) {
+      wrapper.remove();
+    }
+  }
+}
+
+function $applyStructuralRange(range: StructuralSelectionRange): RangeSelection | null {
+  const selection = $createRangeSelection();
+  const startNode = $getNodeByKey<ListItemNode>(range.visualStartKey);
+  const endNode = $getNodeByKey<ListItemNode>(range.visualEndKey);
+  if (!startNode || !endNode) {
+    return null;
+  }
+
+  const startPoint = resolveBoundaryPoint(startNode, 'start');
+  const endPoint = resolveBoundaryPoint(endNode, 'end');
+  if (!startPoint || !endPoint) {
+    return null;
+  }
+
+  selection.setTextNodeRange(startPoint.node, startPoint.offset, endPoint.node, endPoint.offset);
+  $setSelection(selection);
+  return selection;
 }

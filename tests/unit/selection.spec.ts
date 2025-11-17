@@ -219,6 +219,22 @@ function $collectAllNoteLabels(): string[] {
   return labels;
 }
 
+function $collectUnlabeledNoteKeys(): string[] {
+  const root = $getRoot();
+  const list = root.getFirstChild();
+  if (!$isListNode(list)) {
+    return [];
+  }
+
+  const keys: string[] = [];
+  visitListItems(list, (item) => {
+    if (!getListItemLabel(item)) {
+      keys.push(item.getKey());
+    }
+  });
+  return keys;
+}
+
 interface ListItemTraversalCallbacks {
   enter?: (item: ListItemNode) => void;
   leave?: (item: ListItemNode) => void;
@@ -784,6 +800,50 @@ describe('selection plugin', () => {
 
     const labelsAfter = lexical.validate(() => $collectAllNoteLabels());
     expect(labelsAfter).toEqual(labelsBefore);
+  });
+
+  it('lets Delete remove the entire subtree at stage 2 of the progressive ladder', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note2', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+
+    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+
+    const labelsBefore = lexical.validate(() => $collectAllNoteLabels());
+    expect(Array.from(new Set(labelsBefore))).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
+
+    await pressKey(lexical.editor, { key: 'Delete' });
+
+    await waitFor(() => {
+      const labelsAfter = lexical.validate(() => $collectAllNoteLabels());
+      const unlabeled = lexical.validate(() => $collectUnlabeledNoteKeys());
+      expect(Array.from(new Set(labelsAfter))).toEqual(['note1', 'note4', 'note5', 'note6', 'note7']);
+      expect(unlabeled).toEqual([]);
+    });
+  });
+
+  it('lets Backspace remove the entire subtree at stage 2 of the progressive ladder', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note6', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+
+    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note6', 'note7'] });
+
+    const labelsBefore = lexical.validate(() => $collectAllNoteLabels());
+    expect(Array.from(new Set(labelsBefore))).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
+
+    await pressKey(lexical.editor, { key: 'Backspace' });
+
+    await waitFor(() => {
+      const labelsAfter = lexical.validate(() => $collectAllNoteLabels());
+      const unlabeled = lexical.validate(() => $collectUnlabeledNoteKeys());
+      expect(Array.from(new Set(labelsAfter))).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
+      expect(unlabeled).toEqual([]);
+    });
   });
 
   it('clears the structural highlight when navigating without modifiers', async ({ lexical }) => {
