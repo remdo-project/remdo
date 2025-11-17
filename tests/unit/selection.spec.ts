@@ -139,32 +139,23 @@ function $collectListItemOrderMetadata(): {
 } {
   const orderedItems: ListItemNode[] = [];
   const rangeByKey = new Map<string, ListItemRange>();
+  const startIndexByKey = new Map<string, number>();
 
-  const visit = (node: LexicalNode | null) => {
-    if (!$isListNode(node)) {
-      return;
-    }
-
-    for (const child of node.getChildren()) {
-      if (!$isListItemNode(child)) {
-        continue;
+  traverseListItems($getRoot().getFirstChild(), {
+    enter: (item) => {
+      startIndexByKey.set(item.getKey(), orderedItems.length);
+      orderedItems.push(item);
+    },
+    leave: (item) => {
+      const start = startIndexByKey.get(item.getKey());
+      if (start === undefined) {
+        return;
       }
-
-      const contentItem = resolveContentListItem(child);
-      const start = orderedItems.length;
-      orderedItems.push(contentItem);
-
-      const nestedList = getNestedList(contentItem);
-      if (nestedList) {
-        visit(nestedList);
-      }
-
       const end = orderedItems.length - 1;
-      rangeByKey.set(contentItem.getKey(), { start, end });
-    }
-  };
+      rangeByKey.set(item.getKey(), { start, end });
+    },
+  });
 
-  visit($getRoot().getFirstChild());
   return { orderedItems, rangeByKey };
 }
 
@@ -229,7 +220,12 @@ function $collectAllNoteLabels(): string[] {
   return labels;
 }
 
-function visitListItems(node: LexicalNode | null, visit: (item: ListItemNode) => void) {
+interface ListItemTraversalCallbacks {
+  enter?: (item: ListItemNode) => void;
+  leave?: (item: ListItemNode) => void;
+}
+
+function traverseListItems(node: LexicalNode | null, callbacks: ListItemTraversalCallbacks) {
   if (!$isListNode(node)) {
     return;
   }
@@ -240,13 +236,19 @@ function visitListItems(node: LexicalNode | null, visit: (item: ListItemNode) =>
     }
 
     const contentItem = resolveContentListItem(child);
-    visit(contentItem);
+    callbacks.enter?.(contentItem);
 
     const nestedList = getNestedList(contentItem);
     if (nestedList) {
-      visitListItems(nestedList, visit);
+      traverseListItems(nestedList, callbacks);
     }
+
+    callbacks.leave?.(contentItem);
   }
+}
+
+function visitListItems(node: LexicalNode | null, visit: (item: ListItemNode) => void) {
+  traverseListItems(node, { enter: visit });
 }
 
 function $readVisualRangeLabels(selection: RangeSelection) {
