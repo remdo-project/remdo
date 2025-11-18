@@ -35,10 +35,16 @@ function compareWithExpected<T>(
   ctx: any,
   actual: T,
   expected: T,
-  options: { matcher: string; args: string[]; passMessage: string; failMessage: string }
+  options: {
+    matcher: string;
+    args: string[];
+    passMessage: string;
+    failMessage: string;
+    formatDiff?: (actual: T, expected: T, ctx: any) => string | null | undefined;
+  }
 ): MatcherResult {
   const { matcherHint } = ctx.utils;
-  const { matcher, args, passMessage, failMessage } = options;
+  const { matcher, args, passMessage, failMessage, formatDiff } = options;
 
   if (ctx.equals(actual, expected)) {
     return {
@@ -47,12 +53,21 @@ function compareWithExpected<T>(
     };
   }
 
-  expect(actual).toEqual(expected);
+  const diffMessage =
+    formatDiff?.(actual, expected, ctx) ??
+    (typeof ctx.utils.diff === 'function'
+      ? ctx.utils.diff(expected, actual, { expand: ctx.expand }) ?? ''
+      : '');
 
   return {
     pass: false,
-    message: () => `${matcherHint(`.${matcher}`, ...args)}\n\n${failMessage}`,
+    message: () =>
+      `${matcherHint(`.${matcher}`, ...args)}\n\n${failMessage}${diffMessage ? `\n\n${diffMessage}` : ''}`,
   };
+}
+
+function formatOutlineForMessage(outline: Outline): string {
+  return JSON.stringify(outline, null, 2);
 }
 
 expect.extend({
@@ -65,6 +80,10 @@ expect.extend({
       args: ['lexical', 'expectedOutline'],
       passMessage: 'Expected outlines not to match, but readOutline produced the same structure.',
       failMessage: 'Outlines differ.',
+      formatDiff: (actual, expectedOutline) =>
+        ['Expected outline:', formatOutlineForMessage(expectedOutline), '', 'Received outline:', formatOutlineForMessage(actual)].join(
+          '\n'
+        ),
     });
   },
 

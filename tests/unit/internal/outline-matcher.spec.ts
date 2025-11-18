@@ -60,4 +60,25 @@ describe('toMatchOutline smoke coverage', () => {
       expect(lexical).toMatchOutline(outline);
     });
   }
+
+  it('surfaces expected vs received outline when the matcher fails', ({ lexical }) => {
+    lexical.load('flat');
+
+    let thrown: unknown;
+    try {
+      expect(lexical).toMatchOutline([{ text: 'wrong label', children: [] }]);
+    } catch (error) {
+      thrown = error;
+    }
+
+    if (!(thrown instanceof Error)) {
+      throw new Error('Expected toMatchOutline mismatch to throw');
+    }
+
+    expect(thrown.message).toContain('Outlines differ.');
+    expect(thrown.message).toContain('"text": "wrong label"');
+    expect(thrown.message).toContain('"text": "note1"');
+    expect(thrown.message).toContain('"text": "note2"');
+    expect(thrown.message).toContain('"text": "note3"');
+  });
 });
