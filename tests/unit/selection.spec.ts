@@ -904,24 +904,7 @@ describe('selection plugin', () => {
 
     await placeCaretAtNote('note2', lexical.mutate);
 
-    const assertVisualEnvelopeMatchesSelection = async () => {
-      const selectionLabels = lexical.validate(() => {
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection)) {
-          throw new Error('Expected a range selection');
-        }
-        const items = collectSelectedListItems(selection);
-        if (items.length === 0) {
-          throw new Error('Expected structural selection');
-        }
-        const first = getListItemLabel(items[0]!);
-        const last = getListItemLabel(items.at(-1)!);
-        if (!first || !last) {
-          throw new Error('Expected structural selection labels');
-        }
-        return { first, last } as const;
-      });
-
+    const assertVisualEnvelopeMatchesSelection = (expected: string[]) => {
       const labels = lexical.validate(() => {
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) {
@@ -930,19 +913,21 @@ describe('selection plugin', () => {
         return readVisualRangeLabels(selection);
       });
 
-      expect(labels.visualStart).toBe(selectionLabels.first);
-      expect(labels.visualEnd).toBe(selectionLabels.last);
+      expect(labels.visualStart).toBe(expected[0]);
+      expect(labels.visualEnd).toBe(expected.at(-1));
     };
 
     // Stage 2: note2 + descendants.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await assertVisualEnvelopeMatchesSelection();
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    assertVisualEnvelopeMatchesSelection(['note2', 'note3']);
 
     // Stage 4: parent subtree (note1..note4).
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await assertVisualEnvelopeMatchesSelection();
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    assertVisualEnvelopeMatchesSelection(['note1', 'note2', 'note3', 'note4']);
   });
 
   it('marks structural selection once Shift+Down reaches stage 2 even for leaf notes', async ({ lexical }) => {
