@@ -1,7 +1,11 @@
 import type { TestContext } from 'vitest';
-import type { Outline } from '#tests';
+import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
 import { readOutline } from '#tests';
+import { $getSelection, $isRangeSelection, $getNodeByKey, $getRoot } from 'lexical';
+import type { RangeSelection, LexicalNode } from 'lexical';
+import { $isListItemNode, $isListNode } from '@lexical/list';
+import type { ListItemNode } from '@lexical/list';
 
 type LexicalTestHelpers = TestContext['lexical'];
 
@@ -35,10 +39,16 @@ function compareWithExpected<T>(
   ctx: any,
   actual: T,
   expected: T,
-  options: { matcher: string; args: string[]; passMessage: string; failMessage: string }
+  options: {
+    matcher: string;
+    args: string[];
+    passMessage: string;
+    failMessage: string;
+    formatDiff?: (actual: T, expected: T, ctx: any) => string | null | undefined;
+  }
 ): MatcherResult {
   const { matcherHint } = ctx.utils;
-  const { matcher, args, passMessage, failMessage } = options;
+  const { matcher, args, passMessage, failMessage, formatDiff } = options;
 
   if (ctx.equals(actual, expected)) {
     return {
@@ -47,12 +57,171 @@ function compareWithExpected<T>(
     };
   }
 
-  expect(actual).toEqual(expected);
+  const diffMessage =
+    formatDiff?.(actual, expected, ctx) ??
+    (typeof ctx.utils.diff === 'function'
+      ? ctx.utils.diff(expected, actual, { expand: ctx.expand }) ?? ''
+      : '');
 
   return {
     pass: false,
-    message: () => `${matcherHint(`.${matcher}`, ...args)}\n\n${failMessage}`,
+    message: () =>
+      `${matcherHint(`.${matcher}`, ...args)}\n\n${failMessage}${diffMessage ? `\n\n${diffMessage}` : ''}`,
   };
+}
+
+function formatOutlineForMessage(outline: Outline): string {
+  return JSON.stringify(outline, null, 2);
+}
+
+function formatSelectionSnapshot(snapshot: SelectionSnapshot): string {
+  return JSON.stringify(snapshot, null, 2);
+}
+
+function readSelectionSnapshot(lexical: LexicalTestHelpers): SelectionSnapshot {
+  const rootElement = lexical.editor.getRootElement();
+  return lexical.validate(() => {
+    const docRoot = $getRoot().getFirstChild();
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection)) {
+      return { state: 'none' } satisfies SelectionSnapshot;
+    }
+
+    assertSelectionRespectsOutline(selection, docRoot);
+
+    if (selection.isCollapsed()) {
+      const caretNote = getCaretNoteLabel(selection);
+      return caretNote ? ({ state: 'caret', note: caretNote } satisfies SelectionSnapshot) : ({ state: 'none' } satisfies SelectionSnapshot);
+    }
+
+    const structuralNotes = collectLabelsFromSelection(selection);
+    if (structuralNotes.length > 0) {
+      return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
+    }
+
+    const datasetNotes = rootElement?.dataset.structuralSelectionKeys
+      ?.split(',')
+      .filter(Boolean)
+      .map((key) => {
+        const node = $getNodeByKey<ListItemNode>(key);
+        if (!node || !node.isAttached()) {
+          return null;
+        }
+        return getListItemLabel(node);
+      })
+      .filter((label): label is string => typeof label === 'string' && label.length > 0);
+
+    if (datasetNotes?.length) {
+      return { state: 'structural', notes: datasetNotes } satisfies SelectionSnapshot;
+    }
+
+    const inlineNote = getCaretNoteLabel(selection);
+    return inlineNote ? ({ state: 'inline', note: inlineNote } satisfies SelectionSnapshot) : ({ state: 'none' } satisfies SelectionSnapshot);
+  });
+}
+
+function collectLabelsFromSelection(selection: RangeSelection): string[] {
+  const items = collectSelectedListItems(selection);
+  const labels: string[] = [];
+  for (const item of items) {
+    if (!item.isSelected(selection)) {
+      continue;
+    }
+    const label = getListItemLabel(item);
+    if (label) {
+      labels.push(label);
+    }
+  }
+  return labels;
+}
+
+function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
+  const seen = new Set<string>();
+  const items: ListItemNode[] = [];
+
+  for (const node of selection.getNodes()) {
+    const listItem = findNearestListItem(node);
+    if (!listItem || !listItem.isAttached()) {
+      continue;
+    }
+
+    const key = listItem.getKey();
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    items.push(listItem);
+  }
+
+  return items.toSorted((a, b) => {
+    if (a === b) {
+      return 0;
+    }
+    return a.isBefore(b) ? -1 : 1;
+  });
+}
+
+function getCaretNoteLabel(selection: RangeSelection): string | null {
+  const resolveLabel = (point: RangeSelection['anchor']): string | null => {
+    const item = findNearestListItem(point.getNode());
+    if (!item || !item.isAttached()) {
+      return null;
+    }
+    return getListItemLabel(item);
+  };
+
+  return resolveLabel(selection.focus) ?? resolveLabel(selection.anchor);
+}
+
+function getListItemLabel(item: ListItemNode): string | null {
+  const contentItem = resolveContentListItem(item);
+  const pieces: string[] = [];
+  for (const child of contentItem.getChildren()) {
+    if (typeof child.getType === 'function' && child.getType() === 'list') {
+      continue;
+    }
+
+    const getTextContent = (child as { getTextContent?: () => string }).getTextContent;
+    if (typeof getTextContent === 'function') {
+      pieces.push(getTextContent.call(child));
+    }
+  }
+
+  const label = pieces.join('').trim();
+  if (label.length > 0) {
+    return label;
+  }
+
+  return contentItem === item ? null : getListItemLabel(contentItem);
+}
+
+function resolveContentListItem(item: ListItemNode): ListItemNode {
+  if (!isChildrenWrapper(item)) {
+    return item;
+  }
+
+  const previous = item.getPreviousSibling();
+  return $isListItemNode(previous) ? previous : item;
+}
+
+function isChildrenWrapper(node: LexicalNode | null): boolean {
+  if (!$isListItemNode(node)) {
+    return false;
+  }
+  const children = node.getChildren();
+  return children.length === 1 && $isListNode(children[0] ?? null);
+}
+
+function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
+  let current: LexicalNode | null = node;
+  while (current) {
+    if ($isListItemNode(current)) {
+      return resolveContentListItem(current);
+    }
+    current = current.getParent();
+  }
+  return null;
 }
 
 expect.extend({
@@ -65,6 +234,10 @@ expect.extend({
       args: ['lexical', 'expectedOutline'],
       passMessage: 'Expected outlines not to match, but readOutline produced the same structure.',
       failMessage: 'Outlines differ.',
+      formatDiff: (actual, expectedOutline) =>
+        ['Expected outline:', formatOutlineForMessage(expectedOutline), '', 'Received outline:', formatOutlineForMessage(actual)].join(
+          '\n'
+        ),
     });
   },
 
@@ -79,4 +252,134 @@ expect.extend({
       failMessage: 'Editor state differs.',
     });
   },
+  toMatchSelection(this: any, lexical: LexicalTestHelpers, expected: SelectionSnapshot) {
+    const selection = attemptRead(this, '.toMatchSelection', () => readSelectionSnapshot(lexical));
+    if (!selection.ok) return selection.result;
+
+    return compareWithExpected(this, selection.value, expected, {
+      matcher: 'toMatchSelection',
+      args: ['lexical', 'expectedSelection'],
+      passMessage: 'Expected selection not to match, but readSelectionSnapshot produced the same state.',
+      failMessage: 'Selections differ.',
+      formatDiff: (actual, expectedSnapshot) =>
+        ['Expected selection:', formatSelectionSnapshot(expectedSnapshot), '', 'Received selection:', formatSelectionSnapshot(actual)].join('\n'),
+    });
+  },
 });
+function assertSelectionRespectsOutline(selection: RangeSelection, root: LexicalNode | null) {
+  const selectedItems = collectSelectedListItems(selection);
+  if (selectedItems.length <= 1) {
+    return;
+  }
+
+  const { orderedItems, rangeByKey } = collectListItemOrderMetadata(root);
+  if (orderedItems.length === 0) {
+    return;
+  }
+
+  const selectedKeys = new Set(selectedItems.map((item) => item.getKey()));
+  let minIndex = Number.POSITIVE_INFINITY;
+  let maxIndex = Number.NEGATIVE_INFINITY;
+
+  for (const item of selectedItems) {
+    const range = rangeByKey.get(item.getKey());
+    if (!range) {
+      continue;
+    }
+    if (range.start < minIndex) {
+      minIndex = range.start;
+    }
+    if (range.end > maxIndex) {
+      maxIndex = range.end;
+    }
+  }
+
+  if (!Number.isFinite(minIndex) || !Number.isFinite(maxIndex)) {
+    return;
+  }
+
+  for (let index = minIndex; index <= maxIndex; index += 1) {
+    const item = orderedItems[index];
+    if (!item) {
+      continue;
+    }
+    if (!selectedKeys.has(item.getKey())) {
+      const missingLabel = getListItemLabel(item) ?? item.getKey();
+      throw new Error(`Selection must cover a contiguous block of notes and subtrees; missing ${missingLabel}`);
+    }
+  }
+}
+
+function collectListItemOrderMetadata(root: LexicalNode | null): {
+  orderedItems: ListItemNode[];
+  rangeByKey: Map<string, ListItemRange>;
+} {
+  const orderedItems: ListItemNode[] = [];
+  const rangeByKey = new Map<string, ListItemRange>();
+  const startIndexByKey = new Map<string, number>();
+
+  traverseListItems(root, {
+    enter: (item) => {
+      startIndexByKey.set(item.getKey(), orderedItems.length);
+      orderedItems.push(item);
+    },
+    leave: (item) => {
+      const start = startIndexByKey.get(item.getKey());
+      if (start === undefined) {
+        return;
+      }
+      const end = orderedItems.length - 1;
+      rangeByKey.set(item.getKey(), { start, end });
+    },
+  });
+
+  return { orderedItems, rangeByKey };
+}
+
+interface ListItemRange {
+  start: number;
+  end: number;
+}
+
+interface ListItemTraversalCallbacks {
+  enter?: (item: ListItemNode) => void;
+  leave?: (item: ListItemNode) => void;
+}
+
+function traverseListItems(node: LexicalNode | null, callbacks: ListItemTraversalCallbacks) {
+  if (!$isListNode(node)) {
+    return;
+  }
+
+  for (const child of node.getChildren()) {
+    if (!$isListItemNode(child)) {
+      continue;
+    }
+
+    const contentItem = resolveContentListItem(child);
+    callbacks.enter?.(contentItem);
+
+    const nestedList = getNestedList(contentItem);
+    if (nestedList) {
+      traverseListItems(nestedList, callbacks);
+    }
+
+    callbacks.leave?.(contentItem);
+  }
+}
+
+function getNestedList(item: ListItemNode): LexicalNode | null {
+  const wrapper = item.getNextSibling();
+  if ($isListItemNode(wrapper) && isChildrenWrapper(wrapper)) {
+    const nested = wrapper.getFirstChild();
+    return $isListNode(nested) ? nested : null;
+  }
+
+  for (const child of item.getChildren()) {
+    if ($isListNode(child)) {
+      return child;
+    }
+  }
+
+  return null;
+}

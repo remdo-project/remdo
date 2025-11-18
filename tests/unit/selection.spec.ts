@@ -1,112 +1,25 @@
 import { act, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { TestContext } from 'vitest';
-import { placeCaretAtNote, pressKey } from '#tests';
-import { $getSelection, $isRangeSelection, $getRoot, $getNodeByKey } from 'lexical';
+import { placeCaretAtNote, pressKey, readOutline } from '#tests';
+import type { Outline } from '#tests';
+import { $getSelection, $isRangeSelection } from 'lexical';
 import type { LexicalNode, RangeSelection } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 
-type SelectionSnapshot =
-  | { state: 'none' }
-  | { state: 'caret'; note: string }
-  | { state: 'inline'; note: string }
-  | { state: 'structural'; notes: string[] };
+const TREE_COMPLEX_OUTLINE: Outline = [
+  {
+    text: 'note1',
+    children: [
+      { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+      { text: 'note4', children: [] },
+    ],
+  },
+  { text: 'note5', children: [] },
+  { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+];
 
-interface ListItemRange {
-  start: number;
-  end: number;
-}
-
-function selectionReport(lexical: TestContext['lexical']): SelectionSnapshot {
-  const rootElement = lexical.editor.getRootElement();
-  return lexical.validate(() => {
-    const selection = $getSelection();
-    if (!$isRangeSelection(selection)) {
-      return { state: 'none' };
-    }
-
-    $assertSelectionRespectsOutline(selection);
-
-    if (selection.isCollapsed()) {
-      const caretNote = $getCaretNoteLabel(selection);
-      return caretNote ? ({ state: 'caret', note: caretNote } satisfies SelectionSnapshot) : { state: 'none' };
-    }
-
-    const structuralNotes = $collectLabelsFromSelection(selection);
-    if (structuralNotes.length > 0) {
-      return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
-    }
-
-    const datasetNotes = rootElement?.dataset.structuralSelectionKeys
-      ?.split(',')
-      .filter(Boolean)
-      .map((key) => {
-        const node = $getNodeByKey<ListItemNode>(key);
-        if (!node || !node.isAttached()) {
-          return null;
-        }
-        return getListItemLabel(node);
-      })
-      .filter((label): label is string => typeof label === 'string' && label.length > 0);
-
-    if (datasetNotes?.length) {
-      return { state: 'structural', notes: datasetNotes } satisfies SelectionSnapshot;
-    }
-
-    const inlineNote = $getCaretNoteLabel(selection);
-    return inlineNote ? ({ state: 'inline', note: inlineNote } satisfies SelectionSnapshot) : { state: 'none' };
-  });
-}
-
-// Ensures every multi-note selection matches the guarantees from docs/selection.md:
-// once a selection crosses a note boundary it must cover a contiguous block of
-// whole notes plus their subtrees, with no gaps or orphaned descendants.
-function $assertSelectionRespectsOutline(selection: RangeSelection) {
-  const selectedItems = $collectSelectedListItems(selection);
-  if (selectedItems.length <= 1) {
-    return;
-  }
-
-  const { orderedItems, rangeByKey } = $collectListItemOrderMetadata();
-  if (orderedItems.length === 0) {
-    return;
-  }
-
-  const selectedKeys = new Set(selectedItems.map((item) => item.getKey()));
-  let minIndex = Number.POSITIVE_INFINITY;
-  let maxIndex = Number.NEGATIVE_INFINITY;
-
-  for (const item of selectedItems) {
-    const range = rangeByKey.get(item.getKey());
-    if (!range) {
-      continue;
-    }
-    if (range.start < minIndex) {
-      minIndex = range.start;
-    }
-    if (range.end > maxIndex) {
-      maxIndex = range.end;
-    }
-  }
-
-  if (!Number.isFinite(minIndex) || !Number.isFinite(maxIndex)) {
-    return;
-  }
-
-  for (let index = minIndex; index <= maxIndex; index += 1) {
-    const item = orderedItems[index];
-    if (!item) {
-      continue;
-    }
-    if (!selectedKeys.has(item.getKey())) {
-      const missingLabel = getListItemLabel(item) ?? item.getKey();
-      throw new Error(`Selection must cover a contiguous block of notes and subtrees; missing ${missingLabel}`);
-    }
-  }
-}
-
-function $collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
+function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
   const seen = new Set<string>();
   const items: ListItemNode[] = [];
 
@@ -125,39 +38,8 @@ function $collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
     items.push(listItem);
   }
 
-  if (items.length === 0) {
-    return items;
-  }
-
-  return items.toSorted(compareDocumentOrder);
+  return items.toSorted((a, b) => (a === b ? 0 : a.isBefore(b) ? -1 : 1));
 }
-
-function $collectListItemOrderMetadata(): {
-  orderedItems: ListItemNode[];
-  rangeByKey: Map<string, ListItemRange>;
-} {
-  const orderedItems: ListItemNode[] = [];
-  const rangeByKey = new Map<string, ListItemRange>();
-  const startIndexByKey = new Map<string, number>();
-
-  traverseListItems($getRoot().getFirstChild(), {
-    enter: (item) => {
-      startIndexByKey.set(item.getKey(), orderedItems.length);
-      orderedItems.push(item);
-    },
-    leave: (item) => {
-      const start = startIndexByKey.get(item.getKey());
-      if (start === undefined) {
-        return;
-      }
-      const end = orderedItems.length - 1;
-      rangeByKey.set(item.getKey(), { start, end });
-    },
-  });
-
-  return { orderedItems, rangeByKey };
-}
-
 
 function getListItemLabel(item: ListItemNode): string | null {
   const contentItem = resolveContentListItem(item);
@@ -190,10 +72,6 @@ function resolveContentListItem(item: ListItemNode): ListItemNode {
   return $isListItemNode(previous) ? previous : item;
 }
 
-function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
-  return a === b ? 0 : a.isBefore(b) ? -1 : b.isBefore(a) ? 1 : 0;
-}
-
 function isChildrenWrapper(node: LexicalNode | null): boolean {
   if (!$isListItemNode(node)) {
     return false;
@@ -201,102 +79,6 @@ function isChildrenWrapper(node: LexicalNode | null): boolean {
   const children = node.getChildren();
   return children.length === 1 && $isListNode(children[0] ?? null);
 }
-
-function $collectAllNoteLabels(): string[] {
-  const root = $getRoot();
-  const list = root.getFirstChild();
-  if (!$isListNode(list)) {
-    return [];
-  }
-
-  const labels: string[] = [];
-  visitListItems(list, (item) => {
-    const label = getListItemLabel(item);
-    if (label) {
-      labels.push(label);
-    }
-  });
-  return labels;
-}
-
-function $collectUnlabeledNoteKeys(): string[] {
-  const root = $getRoot();
-  const list = root.getFirstChild();
-  if (!$isListNode(list)) {
-    return [];
-  }
-
-  const keys: string[] = [];
-  visitListItems(list, (item) => {
-    if (!getListItemLabel(item)) {
-      keys.push(item.getKey());
-    }
-  });
-  return keys;
-}
-
-interface ListItemTraversalCallbacks {
-  enter?: (item: ListItemNode) => void;
-  leave?: (item: ListItemNode) => void;
-}
-
-function traverseListItems(node: LexicalNode | null, callbacks: ListItemTraversalCallbacks) {
-  if (!$isListNode(node)) {
-    return;
-  }
-
-  for (const child of node.getChildren()) {
-    if (!$isListItemNode(child)) {
-      continue;
-    }
-
-    const contentItem = resolveContentListItem(child);
-    callbacks.enter?.(contentItem);
-
-    const nestedList = getNestedList(contentItem);
-    if (nestedList) {
-      traverseListItems(nestedList, callbacks);
-    }
-
-    callbacks.leave?.(contentItem);
-  }
-}
-
-function visitListItems(node: LexicalNode | null, visit: (item: ListItemNode) => void) {
-  traverseListItems(node, { enter: visit });
-}
-
-function $readVisualRangeLabels(selection: RangeSelection) {
-  const items = $collectSelectedListItems(selection);
-  if (items.length === 0) {
-    throw new Error('Expected structural selection');
-  }
-
-  const startLabel = getListItemLabel(items[0]!);
-  const endLabel = getListItemLabel(items.at(-1)!);
-  if (!startLabel || !endLabel) {
-    throw new Error('Expected structural selection labels');
-  }
-
-  return { visualStart: startLabel, visualEnd: endLabel } as const;
-}
-
-function getNestedList(item: ListItemNode): LexicalNode | null {
-  const wrapper = item.getNextSibling();
-  if ($isListItemNode(wrapper) && isChildrenWrapper(wrapper)) {
-    const nested = wrapper.getFirstChild();
-    return $isListNode(nested) ? nested : null;
-  }
-
-  for (const child of item.getChildren()) {
-    if ($isListNode(child)) {
-      return child;
-    }
-  }
-
-  return null;
-}
-
 
 function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
   let current: LexicalNode | null = node;
@@ -309,39 +91,23 @@ function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
   return null;
 }
 
-function $collectLabelsFromSelection(selection: RangeSelection): string[] {
-  const seen = new Set<string>();
-  const labels: string[] = [];
-
-  for (const item of $collectSelectedListItems(selection)) {
-    if (!item.isSelected(selection)) {
-      continue;
-    }
-
-    const label = getListItemLabel(item);
-    if (!label || seen.has(label)) {
-      continue;
-    }
-
-    seen.add(label);
-    labels.push(label);
+function readVisualRangeLabels(selection: RangeSelection) {
+  const items = collectSelectedListItems(selection);
+  if (items.length === 0) {
+    throw new Error('Expected structural selection');
   }
 
-  return labels;
+  const startLabel = getListItemLabel(items[0]!);
+  const endLabel = getListItemLabel(items.at(-1)!);
+  if (!startLabel || !endLabel) {
+    throw new Error('Expected structural selection labels');
+  }
+
+  return { visualStart: startLabel, visualEnd: endLabel } as const;
 }
-
-function $getCaretNoteLabel(selection: RangeSelection): string | null {
-  const resolveLabel = (point: RangeSelection['anchor']): string | null => {
-    const item = findNearestListItem(point.getNode());
-    if (!item || !item.isAttached()) {
-      return null;
-    }
-    return getListItemLabel(item);
-  };
-
-  return resolveLabel(selection.focus) ?? resolveLabel(selection.anchor);
-}
-
+// Ensures every multi-note selection matches the guarantees from docs/selection.md:
+// once a selection crosses a note boundary it must cover a contiguous block of
+// whole notes plus their subtrees, with no gaps or orphaned descendants.
 async function dragDomSelectionBetween(start: Text, startOffset: number, end: Text, endOffset: number) {
   await mutateDomSelection((selection) => {
     const range = document.createRange();
@@ -488,7 +254,7 @@ describe('selection plugin', () => {
     await dragDomSelectionBetween(note2Text, 1, note5Text, 1);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({
+      expect(lexical).toMatchSelection({
         state: 'structural',
         notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
       });
@@ -499,7 +265,7 @@ describe('selection plugin', () => {
     await dragDomSelectionBetween(note6Text, 0, note7Text, note7Text.length);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({
+      expect(lexical).toMatchSelection({
         state: 'structural',
         notes: ['note6', 'note7'],
       });
@@ -519,7 +285,7 @@ describe('selection plugin', () => {
     await dragDomSelectionBetween(note5Text, note5Text.length, note2Text, 0);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({
+      expect(lexical).toMatchSelection({
         state: 'structural',
         notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
       });
@@ -549,7 +315,7 @@ describe('selection plugin', () => {
     await dragDomSelectionBetween(parentText, parentText.length, childText, 1);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({
+      expect(lexical).toMatchSelection({
         state: 'structural',
         notes: ['note2', 'note3'],
       });
@@ -569,7 +335,7 @@ describe('selection plugin', () => {
     await dragDomSelectionBetween(childText, childText.length, parentText, 0);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({
+      expect(lexical).toMatchSelection({
         state: 'structural',
         notes: ['note2', 'note3'],
       });
@@ -589,7 +355,7 @@ describe('selection plugin', () => {
     await dragDomSelectionWithoutExtendBetween(parentText, parentText.length, childText, childText.length);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({
+      expect(lexical).toMatchSelection({
         state: 'structural',
         notes: ['note6', 'note7'],
       });
@@ -609,13 +375,13 @@ describe('selection plugin', () => {
     await collapseDomSelectionAtText(note2Text, 0);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note2' });
+      expect(lexical).toMatchSelection({ state: 'caret', note: 'note2' });
     });
 
     await extendDomSelectionToText(note5Text, note5Text.length);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({
+      expect(lexical).toMatchSelection({
         state: 'structural',
         notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
       });
@@ -624,14 +390,14 @@ describe('selection plugin', () => {
     await collapseDomSelectionAtText(note5Text, note5Text.length);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note5' });
+      expect(lexical).toMatchSelection({ state: 'caret', note: 'note5' });
     });
 
     const note3Text = getNoteTextNode(rootElement, 'note3');
     await extendDomSelectionToText(note3Text, note3Text.length);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({
+      expect(lexical).toMatchSelection({
         state: 'structural',
         notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
       });
@@ -651,7 +417,7 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({
+      expect(lexical).toMatchSelection({
         state: 'structural',
         notes: ['note2', 'note3'],
       });
@@ -661,7 +427,7 @@ describe('selection plugin', () => {
     await extendDomSelectionToText(note5Text, note5Text.length);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({
+      expect(lexical).toMatchSelection({
         state: 'structural',
         notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
       });
@@ -671,7 +437,7 @@ describe('selection plugin', () => {
     await extendDomSelectionToText(note6Text, note6Text.length);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({
+      expect(lexical).toMatchSelection({
         state: 'structural',
         notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'],
       });
@@ -683,11 +449,11 @@ describe('selection plugin', () => {
 
     await placeCaretAtNote('note2', lexical.mutate, 0);
     await pressKey(lexical.editor, { key: 'ArrowLeft', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note2' });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note2' });
 
     await placeCaretAtNote('note2', lexical.mutate, Number.POSITIVE_INFINITY);
     await pressKey(lexical.editor, { key: 'ArrowRight', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note2' });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
   it('treats Shift+Left/Right as no-ops once the selection spans whole notes', async ({ lexical }) => {
@@ -698,13 +464,13 @@ describe('selection plugin', () => {
     // Promote selection to stage 2: note + descendants.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     await pressKey(lexical.editor, { key: 'ArrowLeft', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     await pressKey(lexical.editor, { key: 'ArrowRight', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
 
   it('toggles the structural selection dataset when escalating the ladder', async ({ lexical }) => {
@@ -767,10 +533,10 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'Enter' });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
   });
 
   it('treats typing as a no-op once structural selection is active', async ({ lexical }) => {
@@ -786,20 +552,20 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    const labelsBefore = lexical.validate(() => $collectAllNoteLabels());
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+    const outlineBefore = readOutline(lexical.validate);
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     const stateBefore = lexical.editor.getEditorState();
 
     await pressKey(lexical.editor, { key: 'x' });
     expect(rootElement.dataset.structuralSelection).toBe('true');
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     const stateAfter = lexical.editor.getEditorState();
     expect(stateAfter.toJSON()).toEqual(stateBefore.toJSON());
 
-    const labelsAfter = lexical.validate(() => $collectAllNoteLabels());
-    expect(labelsAfter).toEqual(labelsBefore);
+    expect(lexical).toMatchOutline(outlineBefore);
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
 
   it('lets Delete remove the entire subtree at stage 2 of the progressive ladder', async ({ lexical }) => {
@@ -809,18 +575,18 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
 
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    const labelsBefore = lexical.validate(() => $collectAllNoteLabels());
-    expect(Array.from(new Set(labelsBefore))).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
+    expect(lexical).toMatchOutline(TREE_COMPLEX_OUTLINE);
 
     await pressKey(lexical.editor, { key: 'Delete' });
 
     await waitFor(() => {
-      const labelsAfter = lexical.validate(() => $collectAllNoteLabels());
-      const unlabeled = lexical.validate(() => $collectUnlabeledNoteKeys());
-      expect(Array.from(new Set(labelsAfter))).toEqual(['note1', 'note4', 'note5', 'note6', 'note7']);
-      expect(unlabeled).toEqual([]);
+      expect(lexical).toMatchOutline([
+        { text: 'note1', children: [ { text: 'note4', children: [] } ] },
+        { text: 'note5', children: [] },
+        { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+      ]);
     });
   });
 
@@ -831,18 +597,23 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
 
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note6', 'note7'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
 
-    const labelsBefore = lexical.validate(() => $collectAllNoteLabels());
-    expect(Array.from(new Set(labelsBefore))).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
+    expect(lexical).toMatchOutline(TREE_COMPLEX_OUTLINE);
 
     await pressKey(lexical.editor, { key: 'Backspace' });
 
     await waitFor(() => {
-      const labelsAfter = lexical.validate(() => $collectAllNoteLabels());
-      const unlabeled = lexical.validate(() => $collectUnlabeledNoteKeys());
-      expect(Array.from(new Set(labelsAfter))).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
-      expect(unlabeled).toEqual([]);
+      expect(lexical).toMatchOutline([
+        {
+          text: 'note1',
+          children: [
+            { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+            { text: 'note4', children: [] },
+          ],
+        },
+        { text: 'note5', children: [] },
+      ]);
     });
   });
 
@@ -875,14 +646,14 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
 
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
     const note4Text = getNoteTextNode(rootElement, 'note4');
     await collapseDomSelectionAtText(note4Text, 0);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note4' });
+      expect(lexical).toMatchSelection({ state: 'caret', note: 'note4' });
     });
 
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
@@ -905,7 +676,7 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowDown' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note4' });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note4' });
   });
 
   it('places the caret at the leading edge when pressing ArrowLeft in structural mode', async ({ lexical }) => {
@@ -924,16 +695,7 @@ describe('selection plugin', () => {
 
     await pressKey(lexical.editor, { key: 'ArrowLeft' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-
-	    lexical.validate(() => {
-      const selection = $getSelection();
-      if (!$isRangeSelection(selection)) {
-        throw new Error('Expected range selection');
-      }
-      const anchorItem = findNearestListItem(selection.anchor.getNode());
-      const label = anchorItem ? getListItemLabel(anchorItem) : null;
-      expect(label).toBe('note5');
-    });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note5' });
   });
 
   it('places the caret at the trailing edge when pressing ArrowRight in structural mode', async ({ lexical }) => {
@@ -952,16 +714,7 @@ describe('selection plugin', () => {
 
     await pressKey(lexical.editor, { key: 'ArrowRight' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-
-	    lexical.validate(() => {
-      const selection = $getSelection();
-      if (!$isRangeSelection(selection)) {
-        throw new Error('Expected range selection');
-      }
-      const anchorItem = findNearestListItem(selection.anchor.getNode());
-      const label = anchorItem ? getListItemLabel(anchorItem) : null;
-      expect(label).toBe('note6');
-    });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note6' });
   });
 
   it('places the caret at the top edge when pressing ArrowUp in structural mode', async ({ lexical }) => {
@@ -981,7 +734,7 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowUp' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note2' });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
   it('lets Home/End collapse structural selections to their respective edges', async ({ lexical }) => {
@@ -1000,7 +753,7 @@ describe('selection plugin', () => {
 
     await pressKey(lexical.editor, { key: 'Home' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-    expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note2' });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note2' });
 
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
@@ -1009,7 +762,7 @@ describe('selection plugin', () => {
 
     await pressKey(lexical.editor, { key: 'End' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-    expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note4' });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note4' });
   });
 
   it('collapses structural selection when pressing PageUp/PageDown', async ({ lexical }) => {
@@ -1025,11 +778,11 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     await pressKey(lexical.editor, { key: 'PageDown' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-    expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note4' });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note4' });
 
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
@@ -1038,7 +791,7 @@ describe('selection plugin', () => {
 
     await pressKey(lexical.editor, { key: 'PageUp' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-    expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note2' });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
   it('lets Shift+Down walk the progressive selection ladder', async ({ lexical }) => {
@@ -1048,26 +801,26 @@ describe('selection plugin', () => {
 
     // Stage 1: inline body only.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'inline', note: 'note2' });
+    expect(lexical).toMatchSelection({ state: 'inline', note: 'note2' });
 
     // Stage 2: note + descendants.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     // Stage 3: siblings at the same depth.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     // Stage 4: hoist to parent subtree.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Stage 5+: walk root-level siblings one at a time (per docs/selection.md).
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
 
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
   it('hoists the parent once Shift+Down runs out of siblings in an existing note range', async ({ lexical }) => {
@@ -1083,14 +836,14 @@ describe('selection plugin', () => {
     await dragDomSelectionBetween(note2Text, 0, note4Text, note4Text.length);
 
     await waitFor(() => {
-      expect(selectionReport(lexical)).toEqual({
+      expect(lexical).toMatchSelection({
         state: 'structural',
         notes: ['note2', 'note3', 'note4'],
       });
     });
 
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
   });
 
   it('escalates Shift+Down from a nested leaf until the document is selected', async ({ lexical }) => {
@@ -1100,31 +853,31 @@ describe('selection plugin', () => {
 
     // Stage 1 (docs/selection.md): inline body only.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'inline', note: 'note3' });
+    expect(lexical).toMatchSelection({ state: 'inline', note: 'note3' });
 
     // Stage 2 promotes the nested leaf structurally.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note3'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note3'] });
 
     // Stage 3 would add siblings, but the ladder skips empty rungs per docs/selection.md and hoists to the parent subtree (Stage 4).
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     // Stage 5: include the parent's next sibling (note4) while keeping the range contiguous.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     // Stage 6: hoist to the next ancestor (note1) and capture its subtree.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Stage 7+: walk root-level siblings one at a time, per docs/selection.md.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
 
     // Selecting note6 (a parent) must automatically bring along its child note7.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
   it('keeps the structural highlight aligned with the selected notes', async ({ lexical }) => {
@@ -1133,37 +886,30 @@ describe('selection plugin', () => {
 
     await placeCaretAtNote('note2', lexical.mutate);
 
-    const assertVisualEnvelopeMatchesSelection = async () => {
-      const snapshot = selectionReport(lexical);
+    const assertVisualEnvelopeMatchesSelection = (expected: string[]) => {
       const labels = lexical.validate(() => {
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) {
           throw new Error('Expected a range selection');
         }
-        return $readVisualRangeLabels(selection);
+        return readVisualRangeLabels(selection);
       });
 
-      if (snapshot.state !== 'structural') {
-        throw new Error('Expected structural snapshot');
-      }
-      const first = snapshot.notes[0];
-      const last = snapshot.notes.at(-1);
-      if (!last) {
-        throw new Error('Expected structural snapshot to include notes');
-      }
-      expect(labels.visualStart).toBe(first);
-      expect(labels.visualEnd).toBe(last);
+      expect(labels.visualStart).toBe(expected[0]);
+      expect(labels.visualEnd).toBe(expected.at(-1));
     };
 
     // Stage 2: note2 + descendants.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await assertVisualEnvelopeMatchesSelection();
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    assertVisualEnvelopeMatchesSelection(['note2', 'note3']);
 
     // Stage 4: parent subtree (note1..note4).
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await assertVisualEnvelopeMatchesSelection();
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    assertVisualEnvelopeMatchesSelection(['note1', 'note2', 'note3', 'note4']);
   });
 
   it('marks structural selection once Shift+Down reaches stage 2 even for leaf notes', async ({ lexical }) => {
@@ -1193,7 +939,7 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
 
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note3'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note3'] });
   });
 
   it('skips the sibling stage when Shift+Down reaches a siblingless note', async ({ lexical }) => {
@@ -1201,13 +947,13 @@ describe('selection plugin', () => {
 
     await placeCaretAtNote('note7', lexical.mutate);
 
-    expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note7' });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note7' });
 
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'inline', note: 'note7' });
+    expect(lexical).toMatchSelection({ state: 'inline', note: 'note7' });
 
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note7'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note7'] });
   });
 
   it('lets Shift+Up walk the progressive selection ladder', async ({ lexical }) => {
@@ -1215,30 +961,30 @@ describe('selection plugin', () => {
 
     await placeCaretAtNote('note4', lexical.mutate, 2);
 
-    expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note4' });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note4' });
 
     // Stage 1: inline body only.
     await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'inline', note: 'note4' });
+    expect(lexical).toMatchSelection({ state: 'inline', note: 'note4' });
 
     // Stage 2: grab the leaf structurally.
     await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note4'] });
 
     // Stage 3: include the nearest preceding sibling at this depth.
     await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     // Stage 4: hoist to the parent subtree.
     await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Stage 5+: walk root-level siblings upward one at a time, then finish the ladder.
     await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
 
     await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
   it('selects leaf notes structurally at Shift+Up stage 2', async ({ lexical }) => {
@@ -1248,7 +994,7 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
     await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
 
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note4'] });
   });
 
   it('follows the Cmd/Ctrl+A progressive selection ladder', async ({ lexical }) => {
@@ -1258,28 +1004,28 @@ describe('selection plugin', () => {
 
     // Stage 1: inline text only.
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'inline', note: 'note2' });
+    expect(lexical).toMatchSelection({ state: 'inline', note: 'note2' });
 
     // Stage 2: note body plus its descendants.
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     // Stage 3 adds the active note's siblings (and their descendants).
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     // Stage 4 hoists the selection to the parent note and its subtree.
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Stage 5 selects every ancestor level until the root.
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
 
     // Moving the caret resets the ladder back to stage 1.
     await placeCaretAtNote('note4', lexical.mutate);
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'inline', note: 'note4' });
+    expect(lexical).toMatchSelection({ state: 'inline', note: 'note4' });
   });
 
   it('skips the sibling stage when Cmd/Ctrl+A climbs from a siblingless note', async ({ lexical }) => {
@@ -1287,15 +1033,15 @@ describe('selection plugin', () => {
 
     await placeCaretAtNote('note7', lexical.mutate);
 
-    expect(selectionReport(lexical)).toEqual({ state: 'caret', note: 'note7' });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note7' });
 
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'inline', note: 'note7' });
+    expect(lexical).toMatchSelection({ state: 'inline', note: 'note7' });
 
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
 
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note6', 'note7'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
   });
 
   it('keeps the progressive ladder in sync when mixing Shift+Arrow and Cmd/Ctrl+A', async ({ lexical }) => {
@@ -1304,30 +1050,18 @@ describe('selection plugin', () => {
     await placeCaretAtNote('note2', lexical.mutate);
 
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'inline', note: 'note2' });
+    expect(lexical).toMatchSelection({ state: 'inline', note: 'note2' });
 
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
-  });
-});
-
-describe('selectionReport helper', () => {
-  it('reports every note when the root is selected', async ({ lexical }) => {
-    lexical.load('tree_complex');
-
-    await lexical.mutate(() => {
-      $getRoot().select(0, $getRoot().getChildrenSize());
-    });
-
-    expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
   });
 });
