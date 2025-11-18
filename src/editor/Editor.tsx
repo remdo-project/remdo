@@ -8,8 +8,7 @@ import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollaborationPlugin } from './plugins/collaboration';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { DevPlugin } from './plugins/DevPlugin';
-import { SelectionPlugin } from './plugins/SelectionPlugin';
-import { SelectionInputPlugin } from './plugins/SelectionInputPlugin';
+import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import './Editor.css';
 

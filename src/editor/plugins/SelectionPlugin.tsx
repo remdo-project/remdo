@@ -1,3 +1,4 @@
+//TODO deserves a major refactor, cleanup and review
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -2056,4 +2057,45 @@ function $applyStructuralRange(range: StructuralSelectionRange): RangeSelection 
   selection.setTextNodeRange(startPoint.node, startPoint.offset, endPoint.node, endPoint.offset);
   $setSelection(selection);
   return selection;
+}
+
+export function SelectionInputPlugin() {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    const unregisterArrowUp = editor.registerCommand<KeyboardEvent>(
+      KEY_ARROW_UP_COMMAND,
+      (event) => {
+        if (!event.shiftKey) {
+          return false;
+        }
+
+        event.preventDefault();
+        editor.dispatchCommand(PROGRESSIVE_SELECTION_DIRECTION_COMMAND, { direction: 'up' });
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const unregisterArrowDown = editor.registerCommand<KeyboardEvent>(
+      KEY_ARROW_DOWN_COMMAND,
+      (event) => {
+        if (!event.shiftKey) {
+          return false;
+        }
+
+        event.preventDefault();
+        editor.dispatchCommand(PROGRESSIVE_SELECTION_DIRECTION_COMMAND, { direction: 'down' });
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    return () => {
+      unregisterArrowUp();
+      unregisterArrowDown();
+    };
+  }, [editor]);
+
+  return null;
 }
