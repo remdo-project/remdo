@@ -2,17 +2,11 @@ import { act, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { TestContext } from 'vitest';
 import { placeCaretAtNote, pressKey, readOutline } from '#tests';
-import type { Outline } from '#tests';
+import type { Outline, SelectionSnapshot } from '#tests';
 import { $getSelection, $isRangeSelection, $getRoot, $getNodeByKey } from 'lexical';
 import type { LexicalNode, RangeSelection } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
-
-type SelectionSnapshot =
-  | { state: 'none' }
-  | { state: 'caret'; note: string }
-  | { state: 'inline'; note: string }
-  | { state: 'structural'; notes: string[] };
 
 interface ListItemRange {
   start: number;
@@ -776,6 +770,7 @@ describe('selection plugin', () => {
     expect(stateAfter.toJSON()).toEqual(stateBefore.toJSON());
 
     expect(lexical).toMatchOutline(outlineBefore);
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
 
   it('lets Delete remove the entire subtree at stage 2 of the progressive ladder', async ({ lexical }) => {

@@ -15,6 +15,13 @@ export interface OutlineNode {
 
 export type Outline = OutlineNode[];
 
+export type SelectionSnapshot =
+  | { state: 'none' }
+  | { state: 'caret'; note: string }
+  | { state: 'inline'; note: string }
+  | { state: 'structural'; notes: string[] };
+
+
 function findItemByText(listNode: any, noteText: string): any {
   const items = listNode?.getChildren?.() ?? [];
   for (const item of items) {

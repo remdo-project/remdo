@@ -1,4 +1,4 @@
-import type { Outline } from '#tests';
+import type { Outline, SelectionSnapshot } from '#tests';
 import type { LexicalTestHelpers as LexicalHelpers } from '../setup/_internal/lexical/types';
 
 declare module 'vitest' {
@@ -14,11 +14,13 @@ declare module 'vitest' {
 
   interface Assertion<T = any> {
     toMatchOutline: (expected: Outline) => void;
+    toMatchSelection: (expected: SelectionSnapshot) => void;
     toMatchEditorState: (expected: unknown) => void;
   }
 
   interface AsymmetricMatchersContaining {
     toMatchOutline: (expected: Outline) => void;
+    toMatchSelection: (expected: SelectionSnapshot) => void;
     toMatchEditorState: (expected: unknown) => void;
   }
 }

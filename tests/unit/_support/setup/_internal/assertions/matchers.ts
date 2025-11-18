@@ -1,7 +1,11 @@
 import type { TestContext } from 'vitest';
-import type { Outline } from '#tests';
+import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
 import { readOutline } from '#tests';
+import { $getSelection, $isRangeSelection, $getNodeByKey } from 'lexical';
+import type { RangeSelection, LexicalNode } from 'lexical';
+import { $isListItemNode, $isListNode } from '@lexical/list';
+import type { ListItemNode } from '@lexical/list';
 
 type LexicalTestHelpers = TestContext['lexical'];
 
@@ -70,6 +74,153 @@ function formatOutlineForMessage(outline: Outline): string {
   return JSON.stringify(outline, null, 2);
 }
 
+function formatSelectionSnapshot(snapshot: SelectionSnapshot): string {
+  return JSON.stringify(snapshot, null, 2);
+}
+
+function readSelectionSnapshot(lexical: LexicalTestHelpers): SelectionSnapshot {
+  const rootElement = lexical.editor.getRootElement();
+  return lexical.validate(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection)) {
+      return { state: 'none' } satisfies SelectionSnapshot;
+    }
+
+    if (selection.isCollapsed()) {
+      const caretNote = getCaretNoteLabel(selection);
+      return caretNote ? ({ state: 'caret', note: caretNote } satisfies SelectionSnapshot) : ({ state: 'none' } satisfies SelectionSnapshot);
+    }
+
+    const structuralNotes = collectLabelsFromSelection(selection);
+    if (structuralNotes.length > 0) {
+      return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
+    }
+
+    const datasetNotes = rootElement?.dataset.structuralSelectionKeys
+      ?.split(',')
+      .filter(Boolean)
+      .map((key) => {
+        const node = $getNodeByKey<ListItemNode>(key);
+        if (!node || !node.isAttached()) {
+          return null;
+        }
+        return getListItemLabel(node);
+      })
+      .filter((label): label is string => typeof label === 'string' && label.length > 0);
+
+    if (datasetNotes?.length) {
+      return { state: 'structural', notes: datasetNotes } satisfies SelectionSnapshot;
+    }
+
+    const inlineNote = getCaretNoteLabel(selection);
+    return inlineNote ? ({ state: 'inline', note: inlineNote } satisfies SelectionSnapshot) : ({ state: 'none' } satisfies SelectionSnapshot);
+  });
+}
+
+function collectLabelsFromSelection(selection: RangeSelection): string[] {
+  const items = collectSelectedListItems(selection);
+  const labels: string[] = [];
+  for (const item of items) {
+    if (!item.isSelected(selection)) {
+      continue;
+    }
+    const label = getListItemLabel(item);
+    if (label) {
+      labels.push(label);
+    }
+  }
+  return labels;
+}
+
+function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
+  const seen = new Set<string>();
+  const items: ListItemNode[] = [];
+
+  for (const node of selection.getNodes()) {
+    const listItem = findNearestListItem(node);
+    if (!listItem || !listItem.isAttached()) {
+      continue;
+    }
+
+    const key = listItem.getKey();
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    items.push(listItem);
+  }
+
+  return items.toSorted((a, b) => {
+    if (a === b) {
+      return 0;
+    }
+    return a.isBefore(b) ? -1 : 1;
+  });
+}
+
+function getCaretNoteLabel(selection: RangeSelection): string | null {
+  const resolveLabel = (point: RangeSelection['anchor']): string | null => {
+    const item = findNearestListItem(point.getNode());
+    if (!item || !item.isAttached()) {
+      return null;
+    }
+    return getListItemLabel(item);
+  };
+
+  return resolveLabel(selection.focus) ?? resolveLabel(selection.anchor);
+}
+
+function getListItemLabel(item: ListItemNode): string | null {
+  const contentItem = resolveContentListItem(item);
+  const pieces: string[] = [];
+  for (const child of contentItem.getChildren()) {
+    if (typeof child.getType === 'function' && child.getType() === 'list') {
+      continue;
+    }
+
+    const getTextContent = (child as { getTextContent?: () => string }).getTextContent;
+    if (typeof getTextContent === 'function') {
+      pieces.push(getTextContent.call(child));
+    }
+  }
+
+  const label = pieces.join('').trim();
+  if (label.length > 0) {
+    return label;
+  }
+
+  return contentItem === item ? null : getListItemLabel(contentItem);
+}
+
+function resolveContentListItem(item: ListItemNode): ListItemNode {
+  if (!isChildrenWrapper(item)) {
+    return item;
+  }
+
+  const previous = item.getPreviousSibling();
+  return $isListItemNode(previous) ? previous : item;
+}
+
+function isChildrenWrapper(node: LexicalNode | null): boolean {
+  if (!$isListItemNode(node)) {
+    return false;
+  }
+  const children = node.getChildren();
+  return children.length === 1 && $isListNode(children[0] ?? null);
+}
+
+function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
+  let current: LexicalNode | null = node;
+  while (current) {
+    if ($isListItemNode(current)) {
+      return resolveContentListItem(current);
+    }
+    current = current.getParent();
+  }
+  return null;
+}
+
 expect.extend({
   toMatchOutline(this: any, lexical: LexicalTestHelpers, expected: Outline) {
     const outline = attemptRead(this, '.toMatchOutline', () => readOutline(lexical.validate));
@@ -96,6 +247,19 @@ expect.extend({
       args: ['lexical', 'expectedState'],
       passMessage: 'Expected editor state not to match, but toJSON returned identical data.',
       failMessage: 'Editor state differs.',
+    });
+  },
+  toMatchSelection(this: any, lexical: LexicalTestHelpers, expected: SelectionSnapshot) {
+    const selection = attemptRead(this, '.toMatchSelection', () => readSelectionSnapshot(lexical));
+    if (!selection.ok) return selection.result;
+
+    return compareWithExpected(this, selection.value, expected, {
+      matcher: 'toMatchSelection',
+      args: ['lexical', 'expectedSelection'],
+      passMessage: 'Expected selection not to match, but readSelectionSnapshot produced the same state.',
+      failMessage: 'Selections differ.',
+      formatDiff: (actual, expectedSnapshot) =>
+        ['Expected selection:', formatSelectionSnapshot(expectedSnapshot), '', 'Received selection:', formatSelectionSnapshot(actual)].join('\n'),
     });
   },
 });

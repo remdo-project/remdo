@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Outline } from '#tests';
+import { placeCaretAtNote, pressKey } from '#tests';
 
 interface OutlineCase {
   fixture: string;
@@ -81,5 +82,27 @@ describe('toMatchOutline smoke coverage', () => {
     expect(thrown.message).toContain('"text": "note1"');
     expect(thrown.message).toContain('"text": "note2"');
     expect(thrown.message).toContain('"text": "note3"');
+  });
+
+  it('matches selection-only expectations', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note2', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+  });
+
+  it('reports selection mismatches', async ({ lexical }) => {
+    lexical.load('tree_complex');
+
+    await placeCaretAtNote('note2', lexical.mutate);
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+
+    expect(() => {
+      expect(lexical).toMatchSelection({ state: 'structural', notes: ['note5'] });
+    }).toThrowError(/Selections differ/);
   });
 });
