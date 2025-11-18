@@ -2,7 +2,7 @@ import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
 import { readOutline } from '#tests';
-import { $getSelection, $isRangeSelection, $getNodeByKey } from 'lexical';
+import { $getSelection, $isRangeSelection, $getNodeByKey, $getRoot } from 'lexical';
 import type { RangeSelection, LexicalNode } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
@@ -81,10 +81,13 @@ function formatSelectionSnapshot(snapshot: SelectionSnapshot): string {
 function readSelectionSnapshot(lexical: LexicalTestHelpers): SelectionSnapshot {
   const rootElement = lexical.editor.getRootElement();
   return lexical.validate(() => {
+    const docRoot = $getRoot().getFirstChild();
     const selection = $getSelection();
     if (!$isRangeSelection(selection)) {
       return { state: 'none' } satisfies SelectionSnapshot;
     }
+
+    assertSelectionRespectsOutline(selection, docRoot);
 
     if (selection.isCollapsed()) {
       const caretNote = getCaretNoteLabel(selection);
@@ -263,3 +266,120 @@ expect.extend({
     });
   },
 });
+function assertSelectionRespectsOutline(selection: RangeSelection, root: LexicalNode | null) {
+  const selectedItems = collectSelectedListItems(selection);
+  if (selectedItems.length <= 1) {
+    return;
+  }
+
+  const { orderedItems, rangeByKey } = collectListItemOrderMetadata(root);
+  if (orderedItems.length === 0) {
+    return;
+  }
+
+  const selectedKeys = new Set(selectedItems.map((item) => item.getKey()));
+  let minIndex = Number.POSITIVE_INFINITY;
+  let maxIndex = Number.NEGATIVE_INFINITY;
+
+  for (const item of selectedItems) {
+    const range = rangeByKey.get(item.getKey());
+    if (!range) {
+      continue;
+    }
+    if (range.start < minIndex) {
+      minIndex = range.start;
+    }
+    if (range.end > maxIndex) {
+      maxIndex = range.end;
+    }
+  }
+
+  if (!Number.isFinite(minIndex) || !Number.isFinite(maxIndex)) {
+    return;
+  }
+
+  for (let index = minIndex; index <= maxIndex; index += 1) {
+    const item = orderedItems[index];
+    if (!item) {
+      continue;
+    }
+    if (!selectedKeys.has(item.getKey())) {
+      const missingLabel = getListItemLabel(item) ?? item.getKey();
+      throw new Error(`Selection must cover a contiguous block of notes and subtrees; missing ${missingLabel}`);
+    }
+  }
+}
+
+function collectListItemOrderMetadata(root: LexicalNode | null): {
+  orderedItems: ListItemNode[];
+  rangeByKey: Map<string, ListItemRange>;
+} {
+  const orderedItems: ListItemNode[] = [];
+  const rangeByKey = new Map<string, ListItemRange>();
+  const startIndexByKey = new Map<string, number>();
+
+  traverseListItems(root, {
+    enter: (item) => {
+      startIndexByKey.set(item.getKey(), orderedItems.length);
+      orderedItems.push(item);
+    },
+    leave: (item) => {
+      const start = startIndexByKey.get(item.getKey());
+      if (start === undefined) {
+        return;
+      }
+      const end = orderedItems.length - 1;
+      rangeByKey.set(item.getKey(), { start, end });
+    },
+  });
+
+  return { orderedItems, rangeByKey };
+}
+
+interface ListItemRange {
+  start: number;
+  end: number;
+}
+
+interface ListItemTraversalCallbacks {
+  enter?: (item: ListItemNode) => void;
+  leave?: (item: ListItemNode) => void;
+}
+
+function traverseListItems(node: LexicalNode | null, callbacks: ListItemTraversalCallbacks) {
+  if (!$isListNode(node)) {
+    return;
+  }
+
+  for (const child of node.getChildren()) {
+    if (!$isListItemNode(child)) {
+      continue;
+    }
+
+    const contentItem = resolveContentListItem(child);
+    callbacks.enter?.(contentItem);
+
+    const nestedList = getNestedList(contentItem);
+    if (nestedList) {
+      traverseListItems(nestedList, callbacks);
+    }
+
+    callbacks.leave?.(contentItem);
+  }
+}
+
+function getNestedList(item: ListItemNode): LexicalNode | null {
+  const wrapper = item.getNextSibling();
+  if ($isListItemNode(wrapper) && isChildrenWrapper(wrapper)) {
+    const nested = wrapper.getFirstChild();
+    return $isListNode(nested) ? nested : null;
+  }
+
+  for (const child of item.getChildren()) {
+    if ($isListNode(child)) {
+      return child;
+    }
+  }
+
+  return null;
+}
