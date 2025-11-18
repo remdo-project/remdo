@@ -52,11 +52,27 @@ captures the full model.
 
 ## Checks
 
-- `pnpm run lint`: run only when asked.
-- `pnpm run test:unit`: run often, and always before staging or committing code
-  changes.
-- `pnpm run test:unit:collab`: run whenever you touch collaboration, Yjs, or
-  syncing logic to exercise the full collaboration-enabled suite.
+### Local agents
+
+1. Run `pnpm run lint`, `pnpm run test:unit`, or other checks only when the user
+   asks, or when the task obviously requires them (e.g., debugging a failing
+   test). Use your judgment; default to not running checks unless requested.
+2. If you do run a check and it fails because of your code, either fix the
+   regression or clearly report the failure before handing the task back.
+
+### Cloud agents
+
+1. Always run these checks before declaring a task done:
+   1. `pnpm run lint`
+   2. `pnpm run test:unit`
+   3. `pnpm run test:unit:collab`
+
+   These suites must pass at the end of every cloud-task unless the user
+   explicitly asks to skip a specific suite.
+
+2. When any of the required checks fail, fix the issue (or state why it cannot
+   be fixed) before finishing the task. Do not return success while a mandated
+   check is red.
 
 ## Tools
 
