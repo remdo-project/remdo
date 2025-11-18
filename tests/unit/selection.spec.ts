@@ -1,7 +1,8 @@
 import { act, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { TestContext } from 'vitest';
-import { placeCaretAtNote, pressKey } from '#tests';
+import { placeCaretAtNote, pressKey, readOutline } from '#tests';
+import type { Outline } from '#tests';
 import { $getSelection, $isRangeSelection, $getRoot, $getNodeByKey } from 'lexical';
 import type { LexicalNode, RangeSelection } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
@@ -17,6 +18,19 @@ interface ListItemRange {
   start: number;
   end: number;
 }
+
+const TREE_COMPLEX_OUTLINE: Outline = [
+  {
+    text: 'note1',
+    children: [
+      { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+      { text: 'note4', children: [] },
+    ],
+  },
+  { text: 'note5', children: [] },
+  { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+];
+
 
 function selectionReport(lexical: TestContext['lexical']): SelectionSnapshot {
   const rootElement = lexical.editor.getRootElement();
@@ -202,39 +216,6 @@ function isChildrenWrapper(node: LexicalNode | null): boolean {
   return children.length === 1 && $isListNode(children[0] ?? null);
 }
 
-function $collectAllNoteLabels(): string[] {
-  const root = $getRoot();
-  const list = root.getFirstChild();
-  if (!$isListNode(list)) {
-    return [];
-  }
-
-  const labels: string[] = [];
-  visitListItems(list, (item) => {
-    const label = getListItemLabel(item);
-    if (label) {
-      labels.push(label);
-    }
-  });
-  return labels;
-}
-
-function $collectUnlabeledNoteKeys(): string[] {
-  const root = $getRoot();
-  const list = root.getFirstChild();
-  if (!$isListNode(list)) {
-    return [];
-  }
-
-  const keys: string[] = [];
-  visitListItems(list, (item) => {
-    if (!getListItemLabel(item)) {
-      keys.push(item.getKey());
-    }
-  });
-  return keys;
-}
-
 interface ListItemTraversalCallbacks {
   enter?: (item: ListItemNode) => void;
   leave?: (item: ListItemNode) => void;
@@ -260,10 +241,6 @@ function traverseListItems(node: LexicalNode | null, callbacks: ListItemTraversa
 
     callbacks.leave?.(contentItem);
   }
-}
-
-function visitListItems(node: LexicalNode | null, visit: (item: ListItemNode) => void) {
-  traverseListItems(node, { enter: visit });
 }
 
 function $readVisualRangeLabels(selection: RangeSelection) {
@@ -786,7 +763,7 @@ describe('selection plugin', () => {
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    const labelsBefore = lexical.validate(() => $collectAllNoteLabels());
+    const outlineBefore = readOutline(lexical.validate);
     expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
 
     const stateBefore = lexical.editor.getEditorState();
@@ -798,8 +775,7 @@ describe('selection plugin', () => {
     const stateAfter = lexical.editor.getEditorState();
     expect(stateAfter.toJSON()).toEqual(stateBefore.toJSON());
 
-    const labelsAfter = lexical.validate(() => $collectAllNoteLabels());
-    expect(labelsAfter).toEqual(labelsBefore);
+    expect(lexical).toMatchOutline(outlineBefore);
   });
 
   it('lets Delete remove the entire subtree at stage 2 of the progressive ladder', async ({ lexical }) => {
@@ -811,16 +787,16 @@ describe('selection plugin', () => {
 
     expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note2', 'note3'] });
 
-    const labelsBefore = lexical.validate(() => $collectAllNoteLabels());
-    expect(Array.from(new Set(labelsBefore))).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
+    expect(lexical).toMatchOutline(TREE_COMPLEX_OUTLINE);
 
     await pressKey(lexical.editor, { key: 'Delete' });
 
     await waitFor(() => {
-      const labelsAfter = lexical.validate(() => $collectAllNoteLabels());
-      const unlabeled = lexical.validate(() => $collectUnlabeledNoteKeys());
-      expect(Array.from(new Set(labelsAfter))).toEqual(['note1', 'note4', 'note5', 'note6', 'note7']);
-      expect(unlabeled).toEqual([]);
+      expect(lexical).toMatchOutline([
+        { text: 'note1', children: [ { text: 'note4', children: [] } ] },
+        { text: 'note5', children: [] },
+        { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+      ]);
     });
   });
 
@@ -833,16 +809,21 @@ describe('selection plugin', () => {
 
     expect(selectionReport(lexical)).toEqual({ state: 'structural', notes: ['note6', 'note7'] });
 
-    const labelsBefore = lexical.validate(() => $collectAllNoteLabels());
-    expect(Array.from(new Set(labelsBefore))).toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7']);
+    expect(lexical).toMatchOutline(TREE_COMPLEX_OUTLINE);
 
     await pressKey(lexical.editor, { key: 'Backspace' });
 
     await waitFor(() => {
-      const labelsAfter = lexical.validate(() => $collectAllNoteLabels());
-      const unlabeled = lexical.validate(() => $collectUnlabeledNoteKeys());
-      expect(Array.from(new Set(labelsAfter))).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
-      expect(unlabeled).toEqual([]);
+      expect(lexical).toMatchOutline([
+        {
+          text: 'note1',
+          children: [
+            { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+            { text: 'note4', children: [] },
+          ],
+        },
+        { text: 'note5', children: [] },
+      ]);
     });
   });
 

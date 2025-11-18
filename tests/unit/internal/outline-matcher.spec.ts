@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import type { Outline } from '#tests';
 
 interface OutlineCase {
   fixture: string;
-  outline: Array<{ text: string; children: OutlineCase['outline'] }>;
+  outline: Outline;
 }
 
 const CASES: OutlineCase[] = [
