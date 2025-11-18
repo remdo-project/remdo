@@ -88,46 +88,6 @@ consistent once we wire up mouse interactions.
 - Update `readSelectionSnapshot` to rely solely on Lexical’s selection or the
   new outline selection, removing the DOM fallback entirely.
 
-## Preserve unlabeled notes in outline matcher
-
-1. Update `readOutline` so every list item yields an entry, setting `text: ""`
-   when an inline node exists but is empty, and omitting the `text` field when a
-   list item only contains nested lists. Keep whitespace trimming for non-empty
-   text.
-2. Adjust the `toMatchOutline` matcher (and failure messaging) to surface these
-   richer outline nodes, highlighting blank inline content when diffs occur.
-3. Refresh all specs that rely on
-   `$collectAllNoteLabels`/`$collectUnlabeledNoteKeys` (notably
-   `tests/unit/selection.spec.ts`) to assert the full outline via the matcher
-   instead of bespoke helpers, deleting the redundant helpers once the matcher
-   covers their use cases.
-
-### Implementation plan
-
-1. Confirm the Lexical list schema we rely on only ever produces two flavors of
-   `ListItemNode`: content-bearing items (possibly with empty text) and wrapper
-   items that exclusively hold nested `ListNode` children; document these
-   assumptions next to `readOutline` so the matcher never tries to assert
-   unsupported states.
-2. Add a fixture such as `tests/fixtures/empty-labels.json` that mixes non-empty
-   notes, notes whose text node is deliberately empty, and notes whose wrapper
-   sibling contains descendants without inline content. This gives us a
-   reproducible corpus for blank-label behavior.
-3. Create a dedicated matcher regression spec (e.g.
-   `tests/unit/outline-matcher.spec.ts`) that loads every outline fixture
-   (including the new one) and asserts the expected `toMatchOutline` payloads.
-   Treat these tests as smoke coverage for the matcher before we refactor
-   selection specs.
-4. Expand `OutlineNode` and `readOutline` to emit every list item in document
-   order (including blanks) with metadata (`text`, `children`, possibly
-   `key`/`hasText`) sufficient for selection tests to distinguish empty labels
-   from wrapper-only nodes.
-5. Update `expect.extend`'s `toMatchOutline` to handle the richer node shape and
-   improve its error output (highlighting empty strings vs. missing text). Once
-   this is stable, migrate `tests/unit/selection.spec.ts` from
-   `$collectAllNoteLabels`/`$collectUnlabeledNoteKeys` to the matcher so future
-   selection assertions rely on a single outline reader.
-
 ## Structural delete regression coverage
 
 Add regression coverage for the stale structural-selection scenario (when a
