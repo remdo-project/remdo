@@ -6,6 +6,9 @@ RemDo is a collaborative outliner for fast, structured note-taking. It’s
 keyboard-first and built on Lexical, emphasizing clarity, composability, and
 portability.
 
+Target runtimes and browser support are defined in `docs/contributing.md`. Rely
+on those baselines—no legacy browser shims.
+
 ### Core ideas
 
 - **Structure-first.** Notes form a hierarchical tree; every note is addressable
@@ -43,6 +46,9 @@ captures the full model.
   proceeding.
 - Whenever you present more than one item (thoughts, plans, recommendations,
   etc.), format it as an ordered list (1., 2., …) instead of bullets.
+- The shared test harness treats console warnings/errors as failures; if you
+  need temporary instrumentation during debugging, prefer `console.log` or
+  `console.info` and remove the statements before finishing a task.
 
 ## Checks
 
@@ -60,7 +66,7 @@ captures the full model.
   you blow away `node_modules`/`data/.vendor`. Skip it in workspaces that are
   already initialized so you don’t clobber local caches.
 - `data/.vendor/lexical` is our read-only mirror of the upstream Lexical repo at
-  the exact version declared in `package.json`. Consult it whenever you need to
-  inspect canonical Lexical behavior without poking inside `node_modules`. Never
-  edit files there; rerun `pnpm run dev:init` if you need a fresh copy.
+  the exact version declared in `package.json`. **Always inspect Lexical sources
+  here first** (avoid `node_modules`, which may contain minified bundles). Never
+  edit files in `.vendor`; rerun `pnpm run dev:init` if you need a fresh copy.
 - Use the GitHub CLI (gh) to check repository and Actions status on GitHub.

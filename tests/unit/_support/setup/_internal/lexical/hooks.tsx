@@ -36,23 +36,23 @@ const LexicalHarness = ({ onReady }: { onReady: (payload: BridgePayload) => void
   );
 };
 
-let previousDefaultDocId: string | null = null;
-
+let collabDocCounter = 0;
 beforeEach<TestContext>(async (ctx) => {
   let editor!: LexicalEditor;
   let collab!: CollaborationStatusValue;
 
-  const meta = ctx.task.meta as { collabDocId?: string; collabDefaultDoc?: string };
+  const task = ctx.task as TestContext['task'] | undefined;
+  const metaRaw = task?.meta as { collabDocId?: string } | undefined;
+  const meta = metaRaw ?? {};
 
-  if (typeof meta.collabDefaultDoc === 'string') {
-    previousDefaultDocId = config.env.COLLAB_DOCUMENT_ID;
-    (config.env as any).COLLAB_DOCUMENT_ID = meta.collabDefaultDoc;
-  } else {
-    previousDefaultDocId = null;
+  let docId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
+  if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {
+    const base = task?.id ?? task?.name ?? 'spec';
+    const normalized = base.replaceAll(/[^a-z0-9-]+/g, '-').replaceAll(/^-+|-+$/g, '') || 'spec';
+    docId = `test-${normalized}-${collabDocCounter++}`;
   }
-
-  const docId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
-  const url = new URL(globalThis.location.href);
+  const href = globalThis.location.href;
+  const url = new URL(href);
   const params = new URLSearchParams(url.search);
   params.set('doc', docId);
   const nextSearch = params.toString();
@@ -87,9 +87,4 @@ beforeEach<TestContext>(async (ctx) => {
 
 afterEach(async ({ lexical }) => {
   await lexical.waitForCollabSync();
-
-  if (previousDefaultDocId !== null) {
-    (config.env as any).COLLAB_DOCUMENT_ID = previousDefaultDocId;
-    previousDefaultDocId = null;
-  }
 });

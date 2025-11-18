@@ -2,6 +2,7 @@
 import path from 'node:path';
 import { readFileSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import type { SerializedEditorState } from 'lexical';
 import type { TestContext } from 'vitest';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
@@ -28,9 +29,9 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     });
   }
 
-  function readEditorState(filePath: string) {
-    return JSON.parse(readFileSync(filePath, 'utf8')).editorState;
-  }
+	function readEditorState(filePath: string): SerializedEditorState {
+	  return JSON.parse(readFileSync(filePath, 'utf8')).editorState;
+	}
 
   afterEach(() => {
     for (const filePath of SNAPSHOT_OUTPUTS) {
@@ -80,18 +81,16 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
       await lexical.waitForCollabSync();
 
       const expectedState = readEditorState(loadPath);
-      const savePath = SNAPSHOT_OUTPUTS[2]!;
-      let finalSaved: typeof expectedState | null = null;
+	      const savePath = SNAPSHOT_OUTPUTS[2]!;
 
-      await waitFor(() => {
-        runSnapshotCommand('save', [savePath], docEnv);
-        const saved = readEditorState(savePath);
-        finalSaved = saved;
-        return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
-      });
+	      await waitFor(() => {
+	        runSnapshotCommand('save', [savePath], docEnv);
+	        const saved = readEditorState(savePath);
+	        return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
+	      });
 
-      expect(finalSaved).not.toBeNull();
-      expect(finalSaved?.root).toEqual(expectedState.root);
+	      const savedState = readEditorState(savePath);
+	      expect(savedState.root).toEqual(expectedState.root);
 
       await lexical.waitForCollabSync();
       expect(lexical.isCollabSyncing()).toBe(false);
@@ -113,30 +112,26 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     });
   });
 
-  it(
-    'keeps browser doc id aligned with CLI default configuration',
-    { meta: { collabDefaultDoc: 'cross-doc-check' } } as any,
-    async ({ lexical }: TestContext) => {
-      const defaultDoc = 'cross-doc-check';
-      const envOverrides = {
-        COLLAB_DOCUMENT_ID: defaultDoc,
-        VITE_COLLAB_DOCUMENT_ID: defaultDoc,
-      } satisfies NodeJS.ProcessEnv;
-      const defaultFixture = path.resolve('tests/fixtures/basic.json');
-      runSnapshotCommand('load', [defaultFixture], envOverrides);
+  it('keeps browser doc id aligned with CLI default configuration', async ({ lexical }: TestContext) => {
+    const defaultDoc = lexical.getCollabDocId();
+    const envOverrides = {
+      COLLAB_DOCUMENT_ID: defaultDoc,
+      VITE_COLLAB_DOCUMENT_ID: defaultDoc,
+    } satisfies NodeJS.ProcessEnv;
+    const defaultFixture = path.resolve('tests/fixtures/basic.json');
+    runSnapshotCommand('load', [defaultFixture], envOverrides);
 
-      await lexical.waitForCollabSync();
+    await lexical.waitForCollabSync();
 
-      expect(lexical.getCollabDocId()).toBe(defaultDoc);
-    }
-  );
+    expect(lexical.getCollabDocId()).toBe(defaultDoc);
+  });
 
   it(
     'cross-loads and saves multiple documents without crosstalk',
-    { meta: { collabDefaultDoc: 'cross-doc-check' }, timeout: SNAPSHOT_TIMEOUT_MS } as any,
+    { timeout: SNAPSHOT_TIMEOUT_MS } as any,
     async ({ lexical }: TestContext) => {
-      const defaultDoc = 'cross-doc-check';
-      const secondaryDoc = 'cross-doc-check-alt';
+      const defaultDoc = lexical.getCollabDocId();
+      const secondaryDoc = `${defaultDoc}-secondary`;
       const envOverrides = {
         COLLAB_DOCUMENT_ID: defaultDoc,
         VITE_COLLAB_DOCUMENT_ID: defaultDoc,

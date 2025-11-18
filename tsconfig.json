@@ -2,7 +2,7 @@
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./data/cache/tsconfig.tsbuildinfo",
-    "target": "ES2022",
+    "target": "ES2023",
     "jsx": "react-jsx",
     "lib": [
       "ES2023",
