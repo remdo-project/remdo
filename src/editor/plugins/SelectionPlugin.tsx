@@ -185,30 +185,28 @@ export function SelectionPlugin() {
     };
 
     const ensureRootContentItem = (): ListItemNode | null => {
-      return editor.getEditorState().read(() => {
-        const root = $getRoot();
-        let list = root.getFirstChild();
+      const root = $getRoot();
+      let list = root.getFirstChild();
 
-        if (!$isListNode(list)) {
-          const newList = $createListNode('bullet');
-          root.append(newList);
-          list = newList;
-        }
+      if (!$isListNode(list)) {
+        const newList = $createListNode('bullet');
+        root.append(newList);
+        list = newList;
+      }
 
-        if (!$isListNode(list)) {
-          return null;
-        }
+      if (!$isListNode(list)) {
+        return null;
+      }
 
-        const first = getFirstDescendantListItem(list);
-        if (first) {
-          return getContentListItem(first);
-        }
+      const first = getFirstDescendantListItem(list);
+      if (first) {
+        return getContentListItem(first);
+      }
 
-        const listItem = $createListItemNode();
-        listItem.append($createParagraphNode());
-        list.append(listItem);
-        return listItem;
-      });
+      const listItem = $createListItemNode();
+      listItem.append($createParagraphNode());
+      list.append(listItem);
+      return listItem;
     };
 
     const unregisterRootListener = editor.registerRootListener((rootElement, previousRootElement) => {
