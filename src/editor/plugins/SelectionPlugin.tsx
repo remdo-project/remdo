@@ -478,9 +478,8 @@ export function SelectionPlugin() {
                 targetItem = listItem;
               }
 
-              if (targetItem) {
-                caretApplied = $applyCaretEdge(targetItem.getKey(), 'start');
-              }
+              caretApplied = $applyCaretEdge(targetItem.getKey(), 'start');
+            }
           }
 
           if (!caretApplied && selection) {
