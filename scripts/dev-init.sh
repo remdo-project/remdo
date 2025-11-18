@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 pnpm i --frozen-lockfile
 TAG="v$(node -p "require('./node_modules/lexical/package.json').version")"
 
