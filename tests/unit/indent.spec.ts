@@ -6,8 +6,9 @@ import {
   pressKey,
   readOutline,
 } from '#tests';
+import type { Outline } from '#tests';
 
-const outlineIsFlat = (outline: Array<{ text: string; children: any[] }>): boolean =>
+const outlineIsFlat = (outline: Outline): boolean =>
   outline.every(({ children }) => children.length === 0 && outlineIsFlat(children));
 
 it('tab on note1 at start is a no-op (no structure change)', async ({ lexical }) => {

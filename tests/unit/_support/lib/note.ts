@@ -9,7 +9,7 @@ import {
 } from 'lexical';
 
 export interface OutlineNode {
-  text: string;
+  text?: string;
   children: OutlineNode[];
 }
 
@@ -96,13 +96,19 @@ export async function placeCaretAtNote(
   });
 }
 
+/**
+ * Lexical represents each conceptual note with a content list item (holding the inline
+ * nodes) optionally followed by a wrapper list item that contains a nested list for the
+ * note's children. Wrapper items never include inline content. We only want to surface
+ * the content-bearing items in outlines so every entry corresponds to exactly one note.
+ */
 export function readOutline(validate: <T>(fn: () => T) => T): Outline {
   return validate(() => {
     const root = $getRoot();
     const list = root.getFirstChild();
     if (!list) return [] as Outline;
 
-    const flat: Array<{ text: string; indent: number }> = [];
+    const flat: Array<{ text?: string; indent: number }> = [];
 
     const collectItems = (listNode: any) => {
       const items = listNode?.getChildren?.() ?? [];
@@ -119,13 +125,15 @@ export function readOutline(validate: <T>(fn: () => T) => T): Outline {
           (child: any) => typeof child.getType === 'function' && child.getType() !== 'list'
         );
 
-        const indent = typeof item.getIndent === 'function' ? item.getIndent() : 0;
-        const text = contentNodes
-          .map((child: any) => child?.getTextContent?.() ?? '')
-          .join('')
-          .trim();
+        if (contentNodes.length > 0) {
+          const indent = typeof item.getIndent === 'function' ? item.getIndent() : 0;
+          const text = contentNodes
+            .map((child: any) => child?.getTextContent?.() ?? '')
+            .join('')
+            .trim();
 
-        flat.push({ text, indent });
+          flat.push({ text, indent });
+        }
 
         for (const nested of nestedLists) {
           collectItems(nested);
@@ -139,11 +147,14 @@ export function readOutline(validate: <T>(fn: () => T) => T): Outline {
     const stack: Array<{ indent: number; children: Outline }> = [{ indent: -1, children: outline }];
 
     for (const { text, indent } of flat) {
-      if (!text) {
-        continue;
+      const node: OutlineNode = {
+        children: [],
+      };
+
+      if (text !== undefined) {
+        node.text = text;
       }
 
-      const node: OutlineNode = { text, children: [] };
       while (stack.length > 0 && stack.at(-1)!.indent >= indent) {
         stack.pop();
       }

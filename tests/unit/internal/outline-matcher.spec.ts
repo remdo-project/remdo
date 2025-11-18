@@ -55,8 +55,7 @@ const CASES: OutlineCase[] = [
 
 describe('toMatchOutline smoke coverage', () => {
   for (const { fixture, outline } of CASES) {
-    const runner = fixture === 'empty-labels' ? it.fails : it;
-    runner(`reads ${fixture}`, ({ lexical }) => {
+    it(`reads ${fixture}`, ({ lexical }) => {
       lexical.load(fixture);
       expect(lexical).toMatchOutline(outline);
     });
