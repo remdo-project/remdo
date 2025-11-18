@@ -9,6 +9,37 @@ portability.
 Target runtimes and browser support are defined in `docs/contributing.md`. Rely
 on those baselines—no legacy browser shims.
 
+AGENTS.md is the only doc you must read at the start of every session. Do one
+full pass through the `docs/` folder when you onboard, then revisit only the
+sections relevant to your current task—use edits, diffs, and the map below to
+decide what matters.
+
+## Documentation Map
+
+- `docs/contributing.md` (~260 words). Runtime baselines, Git workflow, and
+  branch conventions—check before touching tooling or process.
+- `docs/concepts.md` (~550 words). Canonical definition of notes, invariants,
+  and adapters—skim when working on data modeling or serialization.
+- `docs/note-structure-rules.md` (~1.4k words). Detailed outlining rules and
+  validation behaviors—consult when editing tree transforms or note mutations.
+- `docs/selection.md` (~1.4k words). Cursor/selection semantics for the editor
+  runtime—reference for UX or Lexical selection work.
+- `docs/todo.md` (~780 words). Project roadmap plus outstanding design
+  questions—review when planning new features.
+
+Whenever you edit any of these docs, update their summaries/word counts here so
+the map stays trustworthy.
+
+## Doc Workflow
+
+1. Before coding, identify the feature area and read the matching sections from
+   the map above; do not reread unrelated docs.
+2. While working, deep-link to the authoritative doc (e.g.,
+   `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
+   source of truth.
+3. After modifying documentation, refresh this map and note significant changes
+   in AGENTS.md so future sessions have the latest pointers.
+
 ### Core ideas
 
 - **Structure-first.** Notes form a hierarchical tree; every note is addressable
