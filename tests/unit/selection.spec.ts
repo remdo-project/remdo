@@ -695,16 +695,7 @@ describe('selection plugin', () => {
 
     await pressKey(lexical.editor, { key: 'ArrowLeft' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-
-	    lexical.validate(() => {
-      const selection = $getSelection();
-      if (!$isRangeSelection(selection)) {
-        throw new Error('Expected range selection');
-      }
-      const anchorItem = findNearestListItem(selection.anchor.getNode());
-      const label = anchorItem ? getListItemLabel(anchorItem) : null;
-      expect(label).toBe('note5');
-    });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note5' });
   });
 
   it('places the caret at the trailing edge when pressing ArrowRight in structural mode', async ({ lexical }) => {
@@ -723,16 +714,7 @@ describe('selection plugin', () => {
 
     await pressKey(lexical.editor, { key: 'ArrowRight' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-
-	    lexical.validate(() => {
-      const selection = $getSelection();
-      if (!$isRangeSelection(selection)) {
-        throw new Error('Expected range selection');
-      }
-      const anchorItem = findNearestListItem(selection.anchor.getNode());
-      const label = anchorItem ? getListItemLabel(anchorItem) : null;
-      expect(label).toBe('note6');
-    });
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'note6' });
   });
 
   it('places the caret at the top edge when pressing ArrowUp in structural mode', async ({ lexical }) => {
