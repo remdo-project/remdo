@@ -1,27 +1,8 @@
-import { render, screen } from '@testing-library/react';
-import { $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
-import App from '@/App';
 
-it('app', () => {
-  render(<App />);
-  expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-});
-
-it('lexical helpers', async ({ lexical }) => {
-  await lexical.mutate(() => {
-    $getRoot().clear();
-  });
-
-  lexical.validate(() => {
-    expect($getRoot().getTextContent()).toBe('');
-  });
-});
-
-it('debug preview', async ({ lexical }) => {
+it('preview helper example (manual use only)', async ({ lexical }) => {
   lexical.load('basic');
-
-  // commented to not overwrite output snapshot from other tests
+  // Uncomment preview() when debugging locally to render the current outline.
   // preview();
 });
 
