@@ -2,6 +2,13 @@ import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
 import { readOutline } from '#tests';
+import {
+  collectSelectedListItems,
+  findNearestListItem,
+  getListItemLabel,
+  isChildrenWrapper,
+  resolveContentListItem,
+} from '#tests/selection';
 import { $getSelection, $isRangeSelection, $getNodeByKey, $getRoot } from 'lexical';
 import type { RangeSelection, LexicalNode } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
@@ -135,33 +142,6 @@ function collectLabelsFromSelection(selection: RangeSelection): string[] {
   return labels;
 }
 
-function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
-  const seen = new Set<string>();
-  const items: ListItemNode[] = [];
-
-  for (const node of selection.getNodes()) {
-    const listItem = findNearestListItem(node);
-    if (!listItem || !listItem.isAttached()) {
-      continue;
-    }
-
-    const key = listItem.getKey();
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    items.push(listItem);
-  }
-
-  return items.toSorted((a, b) => {
-    if (a === b) {
-      return 0;
-    }
-    return a.isBefore(b) ? -1 : 1;
-  });
-}
-
 function getCaretNoteLabel(selection: RangeSelection): string | null {
   const resolveLabel = (point: RangeSelection['anchor']): string | null => {
     const item = findNearestListItem(point.getNode());
@@ -172,56 +152,6 @@ function getCaretNoteLabel(selection: RangeSelection): string | null {
   };
 
   return resolveLabel(selection.focus) ?? resolveLabel(selection.anchor);
-}
-
-function getListItemLabel(item: ListItemNode): string | null {
-  const contentItem = resolveContentListItem(item);
-  const pieces: string[] = [];
-  for (const child of contentItem.getChildren()) {
-    if (typeof child.getType === 'function' && child.getType() === 'list') {
-      continue;
-    }
-
-    const getTextContent = (child as { getTextContent?: () => string }).getTextContent;
-    if (typeof getTextContent === 'function') {
-      pieces.push(getTextContent.call(child));
-    }
-  }
-
-  const label = pieces.join('').trim();
-  if (label.length > 0) {
-    return label;
-  }
-
-  return contentItem === item ? null : getListItemLabel(contentItem);
-}
-
-function resolveContentListItem(item: ListItemNode): ListItemNode {
-  if (!isChildrenWrapper(item)) {
-    return item;
-  }
-
-  const previous = item.getPreviousSibling();
-  return $isListItemNode(previous) ? previous : item;
-}
-
-function isChildrenWrapper(node: LexicalNode | null): boolean {
-  if (!$isListItemNode(node)) {
-    return false;
-  }
-  const children = node.getChildren();
-  return children.length === 1 && $isListNode(children[0] ?? null);
-}
-
-function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
-  let current: LexicalNode | null = node;
-  while (current) {
-    if ($isListItemNode(current)) {
-      return resolveContentListItem(current);
-    }
-    current = current.getParent();
-  }
-  return null;
 }
 
 expect.extend({
