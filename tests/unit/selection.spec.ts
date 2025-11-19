@@ -91,20 +91,6 @@ function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
   return null;
 }
 
-function readVisualRangeLabels(selection: RangeSelection) {
-  const items = collectSelectedListItems(selection);
-  if (items.length === 0) {
-    throw new Error('Expected structural selection');
-  }
-
-  const startLabel = getListItemLabel(items[0]!);
-  const endLabel = getListItemLabel(items.at(-1)!);
-  if (!startLabel || !endLabel) {
-    throw new Error('Expected structural selection labels');
-  }
-
-  return { visualStart: startLabel, visualEnd: endLabel } as const;
-}
 // Ensures every multi-note selection matches the guarantees from docs/selection.md:
 // once a selection crosses a note boundary it must cover a contiguous block of
 // whole notes plus their subtrees, with no gaps or orphaned descendants.
@@ -892,11 +878,20 @@ describe('selection plugin', () => {
         if (!$isRangeSelection(selection)) {
           throw new Error('Expected a range selection');
         }
-        return readVisualRangeLabels(selection);
+        const items = collectSelectedListItems(selection);
+        if (items.length === 0) {
+          throw new Error('Expected structural selection');
+        }
+        const startLabel = getListItemLabel(items[0]!);
+        const endLabel = getListItemLabel(items.at(-1)!);
+        if (!startLabel || !endLabel) {
+          throw new Error('Expected structural selection labels');
+        }
+        return { startLabel, endLabel } as const;
       });
 
-      expect(labels.visualStart).toBe(expected[0]);
-      expect(labels.visualEnd).toBe(expected.at(-1));
+      expect(labels.startLabel).toBe(expected[0]);
+      expect(labels.endLabel).toBe(expected.at(-1));
     };
 
     // Stage 2: note2 + descendants.
