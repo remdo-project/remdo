@@ -69,7 +69,6 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
     expect(secondary as any).toMatchOutline([]);
     expect(lexical.isCollabSyncing()).toBe(false);
     expect(secondary.isCollabSyncing()).toBe(false);
-
     lexical.editor.update(() => {
       //TODO use a higher level API once we have it
       const root = $getRoot();
@@ -87,7 +86,9 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
     expect(lexical.isCollabSyncing()).toBe(false);
     expect(secondary.isCollabSyncing()).toBe(false);
     const sharedOutline = [{ text: 'note1', children: [] }];
-    expect(lexical).toMatchOutline(sharedOutline);
-    expect(secondary as any).toMatchOutline(sharedOutline);
+    await waitFor(() => {
+      expect(lexical).toMatchOutline(sharedOutline);
+      expect(secondary as any).toMatchOutline(sharedOutline);
+    });
   });
 });

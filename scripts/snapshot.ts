@@ -136,7 +136,7 @@ async function main(): Promise<void> {
 
   const docId = cliDocId?.trim() || config.env.COLLAB_DOCUMENT_ID;
   const targetFile = resolveSnapshotPath(command, docId, filePath);
-  const endpoint = `ws://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
+  const endpoint = `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}/doc`;
 
   return command === 'save'
     ? runSave(docId, endpoint, targetFile, markdownPath)
@@ -258,7 +258,10 @@ async function withSession(
       setReady: () => {},
       syncController,
     },
-    endpoint,
+    (id) => ({
+      auth: `${endpoint}/${id}/auth`,
+      create: `${endpoint}/new`,
+    }),
   );
   const lexicalProvider = providerFactory(docId, docMap);
   const provider = lexicalProvider as unknown as SnapshotProvider;

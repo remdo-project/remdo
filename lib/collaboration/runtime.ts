@@ -54,11 +54,22 @@ export function createProviderFactory(
     const endpoints = resolveEndpoints(id);
 
     const authEndpoint = async () => {
-      const response = await fetch(endpoints.auth, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ docId: id }),
-      });
+      await ensureDocInitialized(id, endpoints.create);
+
+      const requestAuth = async () => {
+        const response = await fetch(endpoints.auth, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ docId: id }),
+        });
+        return response;
+      };
+
+      let response = await requestAuth();
+      if (response.status === 404) {
+        await ensureDocInitialized(id, endpoints.create);
+        response = await requestAuth();
+      }
 
       if (!response.ok) {
         throw new Error(`Failed to auth doc ${id}: ${response.status} ${response.statusText}`);
@@ -108,8 +119,10 @@ function ensureDocInitialized(docId: string, createEndpoint: string): Promise<vo
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ docId }),
-  }).then(() => {}).catch((error) => {
-    console.warn('Failed to ensure y-sweet doc exists', { docId, createEndpoint, error });
+  }).then((response) => {
+    if (!response.ok) {
+      throw new Error(`Failed to create doc ${docId}: ${response.status} ${response.statusText}`);
+    }
   });
 
   docInitPromises.set(docId, promise);
@@ -153,6 +166,10 @@ function attachSyncTracking(
     controller.setSyncing(true);
   };
 
+  const handleLocalChanges = (hasLocalChanges: boolean) => {
+    controller.setSyncing(hasLocalChanges);
+  };
+
   const handleStatus = ({ status }: { status: string }) => {
     if (status === 'connecting' || status === 'handshaking') {
       setReady(false);
@@ -174,9 +191,11 @@ function attachSyncTracking(
 
   provider.on('sync', handleSync);
   provider.on('status', handleStatus);
+  provider.on('local-changes', handleLocalChanges);
 
   return () => {
     provider.off('sync', handleSync);
     provider.off('status', handleStatus);
+    provider.off('local-changes', handleLocalChanges);
   };
 }
