@@ -83,6 +83,7 @@ export function createProviderFactory(
       connect: false,
       showDebuggerLink: false,
     });
+    let destroyed = false;
 
     void ensureDocInitialized(id, endpoints.create).catch(() => {});
 
@@ -90,6 +91,9 @@ export function createProviderFactory(
     const originalConnect = provider.connect.bind(provider);
     let initPromise: Promise<void> | null = null;
     provider.connect = async () => {
+      if (destroyed) {
+        return;
+      }
       if (!initPromise) {
         initPromise = ensureDocInitialized(id, endpoints.create);
       }
@@ -101,7 +105,12 @@ export function createProviderFactory(
 
     const originalDestroy = provider.destroy.bind(provider);
     const destroy = () => {
+      if (destroyed) {
+        return;
+      }
+      destroyed = true;
       detach();
+      provider.disconnect();
       originalDestroy();
     };
 
