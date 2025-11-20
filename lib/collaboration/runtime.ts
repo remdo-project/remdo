@@ -1,7 +1,6 @@
 import type { Provider } from '@lexical/yjs';
-import { WebsocketProvider, messageSync } from 'y-websocket';
-import * as encoding from 'lib0/encoding';
-import * as syncProtocol from 'y-protocols/sync';
+import { createYjsProvider } from '@y-sweet/client';
+import type { ClientToken } from '@y-sweet/sdk';
 import * as Y from 'yjs';
 
 export type CollaborationProviderInstance = Provider & { destroy: () => void };
@@ -25,9 +24,18 @@ interface ProviderFactorySignals {
   syncController: CollaborationSyncController;
 }
 
+interface ResolvedEndpoints {
+  auth: string;
+  create: string;
+}
+
+type EndpointResolver = (docId: string) => ResolvedEndpoints;
+
+const docInitPromises = new Map<string, Promise<void>>();
+
 export function createProviderFactory(
   { setReady, syncController }: ProviderFactorySignals,
-  endpoint: string
+  resolveEndpoints: EndpointResolver
 ): ProviderFactory {
   return (id: string, docMap: Map<string, Y.Doc>) => {
     setReady(false);
@@ -43,23 +51,42 @@ export function createProviderFactory(
     // Lexical expects the `root` XmlText to always be present.
     doc.get('root', Y.XmlText);
 
-    const provider = new WebsocketProvider(endpoint, id, doc, {
+    const endpoints = resolveEndpoints(id);
+
+    const authEndpoint = async () => {
+      const response = await fetch(endpoints.auth, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ docId: id }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to auth doc ${id}: ${response.status} ${response.statusText}`);
+      }
+
+      const token = (await response.json()) as ClientToken;
+      return rewriteTokenHost(token);
+    };
+
+    const provider = createYjsProvider(doc, id, authEndpoint, {
       connect: false,
+      showDebuggerLink: false,
     });
 
-    const detach = attachSyncTracking(provider, syncController);
+    void ensureDocInitialized(id, endpoints.create).catch(() => {});
 
-    provider.on('sync', (isSynced: boolean) => {
-      if (isSynced) {
-        setReady(true);
+    // Let Lexical trigger connects, but ensure doc exists and tokens are host-correct first.
+    const originalConnect = provider.connect.bind(provider);
+    let initPromise: Promise<void> | null = null;
+    provider.connect = async () => {
+      if (!initPromise) {
+        initPromise = ensureDocInitialized(id, endpoints.create);
       }
-    });
+      await initPromise;
+      return originalConnect();
+    };
 
-    provider.on('status', (event: { status: string }) => {
-      if (event.status === 'connecting') {
-        setReady(false);
-      }
-    });
+    const detach = attachSyncTracking(provider, syncController, setReady);
 
     const originalDestroy = provider.destroy.bind(provider);
     const destroy = () => {
@@ -71,96 +98,84 @@ export function createProviderFactory(
   };
 }
 
-function attachSyncTracking(provider: WebsocketProvider, controller: CollaborationSyncController) {
-  let handshakePending = false;
-  let pendingAck = false;
+function ensureDocInitialized(docId: string, createEndpoint: string): Promise<void> {
+  const existing = docInitPromises.get(docId);
+  if (existing) {
+    return existing;
+  }
 
-  const ensureHandshake = () => {
-    if (handshakePending) {
-      return;
+  const promise = fetch(createEndpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ docId }),
+  }).then(() => {}).catch((error) => {
+    console.warn('Failed to ensure y-sweet doc exists', { docId, createEndpoint, error });
+  });
+
+  docInitPromises.set(docId, promise);
+  return promise;
+}
+
+function rewriteTokenHost(token: ClientToken): ClientToken {
+  const hostname = typeof location !== 'undefined' ? location.hostname : null;
+  if (!hostname) {
+    return token;
+  }
+
+  const rewrite = (raw: string) => {
+    const url = new URL(raw);
+    if (url.hostname === '0.0.0.0' || url.hostname === 'localhost') {
+      url.hostname = hostname;
     }
-
-    const socket = provider.ws;
-
-    if (!provider.wsconnected || socket == null) {
-      return;
-    }
-
-    const openState = typeof WebSocket === 'undefined' ? socket.OPEN : WebSocket.OPEN;
-
-    if (socket.readyState !== openState) {
-      return;
-    }
-
-    handshakePending = true;
-    pendingAck = false;
-    controller.setSyncing(true);
-
-    const encoder = encoding.createEncoder();
-    encoding.writeVarUint(encoder, messageSync);
-    syncProtocol.writeSyncStep1(encoder, provider.doc);
-
-    try {
-      provider.synced = false;
-      socket.send(encoding.toUint8Array(encoder));
-    } catch {
-      handshakePending = false;
-      pendingAck = true;
-    }
+    return url.toString();
   };
 
-  const handleLocalUpdate = (_update: Uint8Array, origin: unknown) => {
-    if (origin === provider) {
-      return;
-    }
-
-    pendingAck = true;
-    controller.setSyncing(true);
-
-    ensureHandshake();
+  return {
+    ...token,
+    url: rewrite(token.url),
+    baseUrl: rewrite(token.baseUrl),
   };
+}
 
+function attachSyncTracking(
+  provider: ReturnType<typeof createYjsProvider>,
+  controller: CollaborationSyncController,
+  setReady: (value: boolean) => void
+) {
   const handleSync = (isSynced: boolean) => {
-    if (!isSynced) {
-      return;
-    }
-
-    handshakePending = false;
-
-    if (pendingAck) {
-      ensureHandshake();
-      return;
-    }
-
-    if (provider.wsconnected) {
+    if (isSynced) {
+      setReady(true);
       controller.setSyncing(false);
+      return;
     }
+
+    setReady(false);
+    controller.setSyncing(true);
   };
 
   const handleStatus = ({ status }: { status: string }) => {
-    if (status === 'connected') {
-      if (pendingAck) {
-        ensureHandshake();
-      } else if (provider.synced) {
-        controller.setSyncing(false);
-      }
+    if (status === 'connecting' || status === 'handshaking') {
+      setReady(false);
+      controller.setSyncing(true);
       return;
     }
 
-    // Connection dropped or paused: mark unsynced and retry once we reconnect.
-    pendingAck = true;
-    handshakePending = false;
+    if (status === 'connected') {
+      // syncing flag will be cleared by the sync handler once the doc is synced.
+      return;
+    }
+
+    // offline/error: surface as unsynced
     controller.setSyncing(true);
+    setReady(false);
   };
 
   controller.setSyncing(true);
 
-  provider.doc.on('update', handleLocalUpdate);
   provider.on('sync', handleSync);
   provider.on('status', handleStatus);
 
   return () => {
-    provider.doc.off('update', handleLocalUpdate);
     provider.off('sync', handleSync);
     provider.off('status', handleStatus);
   };

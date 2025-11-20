@@ -43,10 +43,19 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
   }, []);
   const [ready, setReady] = useState(!enabled);
   const [syncing, setSyncing] = useState(enabled);
-  const endpoint = useMemo(() => {
-    const { protocol, hostname } = globalThis.location;
-    const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
-    return `${wsProtocol}://${hostname}:${config.env.COLLAB_CLIENT_PORT}`;
+  const authBase = useMemo(() => {
+    const { protocol } = globalThis.location;
+    const httpProtocol = protocol === 'https:' ? 'https' : 'http';
+    const isVitest = typeof process !== 'undefined' && process.env.VITEST === 'true';
+
+    // In browser/dev, use a same-origin relative path so Vite can proxy to the collab server and avoid CORS.
+    if (!isVitest) {
+      return '/collab/doc';
+    }
+
+    // In Vitest (no dev server proxy), hit the collab server directly.
+    const host = config.env.HOST;
+    return `${httpProtocol}://${host}:${config.env.COLLAB_CLIENT_PORT}/doc`;
   }, []);
 
   const syncController = useMemo(
@@ -73,10 +82,15 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
     }
   }, [enabled, syncController]);
 
-  const providerFactory = useMemo(
-    () => createProviderFactory({ setReady, syncController }, endpoint),
-    [endpoint, setReady, syncController]
-  );
+  const providerFactory = useMemo(() => {
+    return createProviderFactory(
+      { setReady, syncController },
+      (id) => ({
+        auth: `${authBase}/${id}/auth`,
+        create: `${authBase}/new`,
+      })
+    );
+  }, [authBase, setReady, syncController]);
 
   const resolvedReady = !enabled || ready;
   const syncingPending = enabled && syncing;

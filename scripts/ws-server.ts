@@ -7,9 +7,10 @@ import { config } from '#config';
 
 process.env.HOST = config.env.HOST;
 process.env.PORT = String(config.env.COLLAB_SERVER_PORT);
+process.env.Y_SWEET_HOST = config.env.HOST;
 
 const pnpmCmd = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-const child = spawn(pnpmCmd, ['exec', 'y-websocket'], {
+const child = spawn(pnpmCmd, ['exec', 'y-sweet', 'serve'], {
   env: { ...process.env },
   stdio: 'inherit',
   shell: false,
