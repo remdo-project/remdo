@@ -46,7 +46,8 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
   const authBase = useMemo(() => {
     const { protocol } = globalThis.location;
     const httpProtocol = protocol === 'https:' ? 'https' : 'http';
-    const isVitest = typeof process !== 'undefined' && process.env.VITEST === 'true';
+    const vitestWorker = (globalThis as { __vitest_worker__?: unknown }).__vitest_worker__;
+    const isVitest = vitestWorker !== undefined;
 
     // In browser/dev, use a same-origin relative path so Vite can proxy to the collab server and avoid CORS.
     if (!isVitest) {

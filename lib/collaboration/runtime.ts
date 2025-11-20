@@ -139,8 +139,12 @@ function ensureDocInitialized(docId: string, createEndpoint: string): Promise<vo
 }
 
 function rewriteTokenHost(token: ClientToken): ClientToken {
-  const hostname = typeof location !== 'undefined' ? location.hostname : null;
-  if (!hostname) {
+  if (typeof location === 'undefined') {
+    return token;
+  }
+
+  const { hostname } = location;
+  if (hostname.length === 0) {
     return token;
   }
 

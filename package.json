@@ -89,7 +89,6 @@
     "@vitejs/plugin-react-swc": "^4.2.1",
     "@vitest/coverage-v8": "^4.0.6",
     "@vitest/ui": "^4.0.6",
-    "y-sweet": "^0.9.1",
     "chokidar-cli": "^3.0.0",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
@@ -106,7 +105,8 @@
     "vite": "^7.2.2",
     "vitest": "^4.0.6",
     "vitest-preview": "^0.0.3",
-    "ws": "8.18.3"
+    "ws": "8.18.3",
+    "y-sweet": "^0.9.1"
   },
   "pnpm": {
     "overrides": {
