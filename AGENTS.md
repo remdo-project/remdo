@@ -16,7 +16,7 @@ decide what matters.
 
 ## Documentation Map
 
-- `docs/contributing.md` (~260 words). Runtime baselines, Git workflow, and
+- `docs/contributing.md` (~270 words). Runtime baselines, Git workflow, and
   branch conventions—check before touching tooling or process.
 - `docs/concepts.md` (~550 words). Canonical definition of notes, invariants,
   and adapters—skim when working on data modeling or serialization.
