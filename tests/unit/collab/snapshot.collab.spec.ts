@@ -7,6 +7,7 @@ import type { TestContext } from 'vitest';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { config } from '#config';
+import type { Buffer } from 'node:buffer';
 
 const SNAPSHOT_TIMEOUT_MS = 15_000;
 
@@ -23,10 +24,21 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
   const baseEnv = { ...process.env } satisfies NodeJS.ProcessEnv;
 
   function runSnapshotCommand(command: 'load' | 'save', args: string[], envOverrides?: NodeJS.ProcessEnv) {
-    execFileSync('pnpm', ['run', command, ...args], {
-      stdio: 'inherit',
-      env: { ...baseEnv, ...envOverrides },
-    });
+    try {
+      execFileSync('pnpm', ['run', command, ...args], {
+        stdio: ['ignore', 'pipe', 'inherit'],
+        env: { ...baseEnv, ...envOverrides },
+      });
+    } catch (error) {
+      if (error && typeof error === 'object' && 'stdout' in error) {
+        const stdout = (error as { stdout?: Buffer | string }).stdout;
+        const message = typeof stdout === 'string' ? stdout.trim() : stdout?.toString().trim();
+        if (message) {
+          console.error(message);
+        }
+      }
+      throw error;
+    }
   }
 
 	function readEditorState(filePath: string): SerializedEditorState {
