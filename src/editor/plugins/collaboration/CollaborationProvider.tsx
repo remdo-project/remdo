@@ -60,16 +60,18 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
       const arm = () => {
         if (!active) return;
 
-        setDeferred(() => {
+        setDeferred((previous) => {
           const next = createDeferred(enabled);
 
           waitForProviderReady(provider)
             .then(() => {
               if (!active) return;
+              previous.resolve();
               next.resolve();
             })
             .catch((error) => {
               if (!active) return;
+              previous.reject(error);
               next.reject(error);
               queueMicrotask(arm);
             });
