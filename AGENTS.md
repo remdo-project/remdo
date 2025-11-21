@@ -83,6 +83,9 @@ captures the full model.
 
 ## Checks
 
+- Guard every test command with a 60s timeout; if it times out, treat the test
+  as broken and investigate instead of extending the timeout.
+
 ### Local agents
 
 1. Run `pnpm run lint`, `pnpm run test:unit`, or other checks only when the user
