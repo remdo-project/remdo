@@ -7,6 +7,7 @@ import type { TestContext } from 'vitest';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { config } from '#config';
+import type { Buffer } from 'node:buffer';
 
 const SNAPSHOT_TIMEOUT_MS = 15_000;
 
