@@ -20,6 +20,7 @@ import type { Transaction } from 'yjs';
 
 import { config } from '#config';
 import { createEditorInitialConfig } from '#lib/editor/config';
+import { buildCollabEndpointsFromBase } from '#lib/collaboration/endpoints';
 import { CollaborationSyncController, createProviderFactory } from '#lib/collaboration/runtime';
 
 type SharedRootObserver = (
@@ -136,11 +137,11 @@ async function main(): Promise<void> {
 
   const docId = cliDocId?.trim() || config.env.COLLAB_DOCUMENT_ID;
   const targetFile = resolveSnapshotPath(command, docId, filePath);
-  const endpoint = `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}/doc`;
+  const collabOrigin = `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
 
   return command === 'save'
-    ? runSave(docId, endpoint, targetFile, markdownPath)
-    : runLoad(docId, endpoint, targetFile);
+    ? runSave(docId, collabOrigin, targetFile, markdownPath)
+    : runLoad(docId, collabOrigin, targetFile);
 }
 
 function resolveSnapshotPath(
@@ -204,11 +205,11 @@ function resolveSnapshotPath(
 
 async function runSave(
   docId: string,
-  endpoint: string,
+  collabOrigin: string,
   filePath: string,
   markdownPath: string | null
 ): Promise<void> {
-  await withSession(docId, endpoint, async (editor) => {
+  await withSession(docId, collabOrigin, async (editor) => {
     const editorState = editor.getEditorState().toJSON();
     writeJson(filePath, { editorState });
 
@@ -230,11 +231,11 @@ async function runSave(
   });
 }
 
-async function runLoad(docId: string, endpoint: string, filePath: string): Promise<void> {
+async function runLoad(docId: string, collabOrigin: string, filePath: string): Promise<void> {
   const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as {
     editorState?: SerializedEditorState;
   };
-  await withSession(docId, endpoint, async (editor, { provider }) => {
+  await withSession(docId, collabOrigin, async (editor, { provider }) => {
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data.editorState ?? editor.getEditorState().toJSON()), { tag: 'snapshot-load' });
     await done;
@@ -246,22 +247,20 @@ async function runLoad(docId: string, endpoint: string, filePath: string): Promi
 
 async function withSession(
   docId: string,
-  endpoint: string,
+  collabOrigin: string,
   run: (editor: LexicalEditor, context: SessionContext) => Promise<void> | void
 ): Promise<void> {
   const doc = new Doc();
   const docMap = new Map([[docId, doc]]);
   const syncController = new CollaborationSyncController(() => {});
   syncController.setSyncing(true);
+  const resolveEndpoints = buildCollabEndpointsFromBase(`${collabOrigin}/doc`);
   const providerFactory = createProviderFactory(
     {
       setReady: () => {},
       syncController,
     },
-    (id) => ({
-      auth: `${endpoint}/${id}/auth`,
-      create: `${endpoint}/new`,
-    }),
+    resolveEndpoints,
   );
   const lexicalProvider = providerFactory(docId, docMap);
   const provider = lexicalProvider as unknown as SnapshotProvider;

@@ -45,9 +45,12 @@ function CollaborationPeer({ onReady }: { onReady: (handle: PeerHandle) => void 
 describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
   it('syncs edits between editors', async ({ lexical }) => {
     let secondary!: PeerHandle;
+    const { protocol, hostname } = globalThis.location;
+    const collabOrigin = `${protocol}//${hostname}:${config.env.COLLAB_CLIENT_PORT}`;
+    // TODO: unify editor construction and collab origin setup with the shared test harness helpers.
 
     render(
-      <Editor>
+      <Editor collabOrigin={collabOrigin}>
         <CollaborationPeer onReady={(handle) => { secondary = handle; }} />
       </Editor>
     );

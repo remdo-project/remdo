@@ -2,6 +2,7 @@ import type { Provider } from '@lexical/yjs';
 import { createYjsProvider } from '@y-sweet/client';
 import type { ClientToken } from '@y-sweet/sdk';
 import * as Y from 'yjs';
+import type { EndpointResolver } from './endpoints';
 
 export type CollaborationProviderInstance = Provider & { destroy: () => void };
 
@@ -23,13 +24,6 @@ interface ProviderFactorySignals {
   setReady: (value: boolean) => void;
   syncController: CollaborationSyncController;
 }
-
-interface ResolvedEndpoints {
-  auth: string;
-  create: string;
-}
-
-type EndpointResolver = (docId: string) => ResolvedEndpoints;
 
 const docInitPromises = new Map<string, Promise<void>>();
 
@@ -212,3 +206,5 @@ function attachSyncTracking(
     provider.off('local-changes', handleLocalChanges);
   };
 }
+
+export type { EndpointResolver, ResolvedEndpoints } from './endpoints';

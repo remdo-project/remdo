@@ -18,10 +18,9 @@ export default defineConfig(() => {
       strictPort: true,
       allowedHosts: true as const,
       proxy: {
-        '/collab': {
+        '/doc': {
           target: `http://${config.env.HOST}:${config.env.COLLAB_CLIENT_PORT}`,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/collab/, ''),
         },
       },
       hmr: isPreviewSession ? undefined : {

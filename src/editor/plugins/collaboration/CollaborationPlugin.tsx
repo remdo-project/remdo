@@ -9,9 +9,15 @@ import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { CollaborationProvider, useCollaborationStatus } from './CollaborationProvider';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
 
-export function CollaborationPlugin({ children }: { children?: ReactNode }) {
+export function CollaborationPlugin({
+  children,
+  collabOrigin,
+}: {
+  children?: ReactNode;
+  collabOrigin?: string;
+}) {
   return (
-    <CollaborationProvider>
+    <CollaborationProvider collabOrigin={collabOrigin}>
       {children}
       <CollaborationRuntimePlugin />
     </CollaborationProvider>
