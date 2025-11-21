@@ -25,6 +25,7 @@ interface ProviderFactorySignals {
 }
 
 const docInitPromises = new Map<string, Promise<void>>();
+const docAuthInFlight = new Map<string, Promise<ClientToken>>();
 
 export function createProviderFactory(
   { setReady, syncController }: ProviderFactorySignals,
@@ -49,28 +50,7 @@ export function createProviderFactory(
     const endpoints = resolveEndpoints(id);
 
     const authEndpoint = async () => {
-      await ensureDocInitialized(id, endpoints.create);
-
-      const requestAuth = async () => {
-        const response = await fetch(endpoints.auth, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ docId: id }),
-        });
-        return response;
-      };
-
-      let response = await requestAuth();
-      if (response.status === 404) {
-        await ensureDocInitialized(id, endpoints.create);
-        response = await requestAuth();
-      }
-
-      if (!response.ok) {
-        throw new Error(`Failed to auth doc ${id}: ${response.status} ${response.statusText}`);
-      }
-
-      const token = (await response.json()) as ClientToken;
+      const token = await getAuthToken(id, endpoints);
       return rewriteTokenHost(token);
     };
 
@@ -80,22 +60,6 @@ export function createProviderFactory(
     });
     let destroyed = false;
 
-    void ensureDocInitialized(id, endpoints.create).catch(() => {});
-
-    // Let Lexical trigger connects, but ensure doc exists and tokens are host-correct first.
-    const originalConnect = provider.connect.bind(provider);
-    let initPromise: Promise<void> | null = null;
-    provider.connect = async () => {
-      if (destroyed) {
-        return;
-      }
-      if (!initPromise) {
-        initPromise = ensureDocInitialized(id, endpoints.create);
-      }
-      await initPromise;
-      return originalConnect();
-    };
-
     const detach = attachSyncTracking(provider, syncController, setReady);
 
     const originalDestroy = provider.destroy.bind(provider);
@@ -104,6 +68,9 @@ export function createProviderFactory(
         return;
       }
       destroyed = true;
+      // Prevent the provider from scheduling reconnections after teardown, which can
+      // otherwise keep Node processes (e.g., snapshot CLI) alive.
+      provider.connect = () => Promise.resolve();
       detach();
       provider.disconnect();
       originalDestroy();
@@ -137,14 +104,54 @@ function ensureDocInitialized(docId: string, createEndpoint: string): Promise<vo
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ docId }),
-  }).then((response) => {
-    if (!response.ok) {
-      throw new Error(`Failed to create doc ${docId}: ${response.status} ${response.statusText}`);
-    }
-  });
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Failed to create doc ${docId}: ${response.status} ${response.statusText}`);
+      }
+    })
+    .catch((error) => {
+      docInitPromises.delete(docId);
+      throw error;
+    });
 
   docInitPromises.set(docId, promise);
   return promise;
+}
+
+function getAuthToken(docId: string, endpoints: { auth: string; create: string }): Promise<ClientToken> {
+  const existing = docAuthInFlight.get(docId);
+  if (existing) {
+    return existing;
+  }
+
+  const promise = (async () => {
+    await ensureDocInitialized(docId, endpoints.create);
+
+    const requestAuth = async () =>
+      fetch(endpoints.auth, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ docId }),
+      });
+
+    let response = await requestAuth();
+    if (response.status === 404) {
+      await ensureDocInitialized(docId, endpoints.create);
+      response = await requestAuth();
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to auth doc ${docId}: ${response.status} ${response.statusText}`);
+    }
+
+    return (await response.json()) as ClientToken;
+  })();
+
+  docAuthInFlight.set(docId, promise);
+  return promise.finally(() => {
+    docAuthInFlight.delete(docId);
+  });
 }
 
 function rewriteTokenHost(token: ClientToken): ClientToken {
