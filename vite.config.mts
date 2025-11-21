@@ -17,6 +17,12 @@ export default defineConfig(() => {
       port: config.env.PORT,
       strictPort: true,
       allowedHosts: true as const,
+      proxy: {
+        '/doc': {
+          target: `http://${config.env.HOST}:${config.env.COLLAB_CLIENT_PORT}`,
+          changeOrigin: true,
+        },
+      },
       hmr: isPreviewSession ? undefined : {
         port: config.env.HMR_PORT,
       },

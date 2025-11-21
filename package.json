@@ -63,12 +63,14 @@
     "@lexical/yjs": "^0.38.2",
     "@mantine/core": "^8.3.6",
     "@mantine/hooks": "^8.3.6",
+    "@y-sweet/client": "^0.9.1",
+    "@y-sweet/react": "^0.9.1",
+    "@y-sweet/sdk": "^0.9.1",
     "lexical": "^0.38.2",
     "lib0": "^0.2.114",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "y-protocols": "^1.0.6",
-    "y-websocket": "3.0.0",
     "yjs": "^13.6.27"
   },
   "devDependencies": {
@@ -87,7 +89,6 @@
     "@vitejs/plugin-react-swc": "^4.2.1",
     "@vitest/coverage-v8": "^4.0.6",
     "@vitest/ui": "^4.0.6",
-    "@y/websocket-server": "^0.1.1",
     "chokidar-cli": "^3.0.0",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
@@ -104,12 +105,17 @@
     "vite": "^7.2.2",
     "vitest": "^4.0.6",
     "vitest-preview": "^0.0.3",
-    "ws": "8.18.3"
+    "ws": "8.18.3",
+    "y-sweet": "^0.9.1"
   },
   "pnpm": {
     "overrides": {
-      "@y/websocket-server@0.1.1>ws": "6.2.3",
       "js-yaml": "4.1.1"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "esbuild",
+      "y-sweet"
+    ]
   }
 }

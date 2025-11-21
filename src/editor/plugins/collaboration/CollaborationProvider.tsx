@@ -28,13 +28,19 @@ export function useCollaborationStatus(): CollaborationStatusValue {
   return value;
 }
 
-export function CollaborationProvider({ children }: { children: ReactNode }) {
-  const value = useCollaborationRuntimeValue();
+export function CollaborationProvider({
+  children,
+  collabOrigin,
+}: {
+  children: ReactNode;
+  collabOrigin?: string;
+}) {
+  const value = useCollaborationRuntimeValue({ collabOrigin });
 
   return <CollaborationStatusContext value={value}>{children}</CollaborationStatusContext>;
 }
 
-function useCollaborationRuntimeValue(): CollaborationStatusValue {
+function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string }): CollaborationStatusValue {
   const enabled = config.env.COLLAB_ENABLED;
   const docId = useMemo(() => {
     const doc = globalThis.location.search ? new URLSearchParams(globalThis.location.search).get('doc')?.trim() : null;
@@ -43,11 +49,6 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
   }, []);
   const [ready, setReady] = useState(!enabled);
   const [syncing, setSyncing] = useState(enabled);
-  const endpoint = useMemo(() => {
-    const { protocol, hostname } = globalThis.location;
-    const wsProtocol = protocol === 'https:' ? 'wss' : 'ws';
-    return `${wsProtocol}://${hostname}:${config.env.COLLAB_CLIENT_PORT}`;
-  }, []);
 
   const syncController = useMemo(
     () => new CollaborationSyncController(setSyncing),
@@ -74,8 +75,8 @@ function useCollaborationRuntimeValue(): CollaborationStatusValue {
   }, [enabled, syncController]);
 
   const providerFactory = useMemo(
-    () => createProviderFactory({ setReady, syncController }, endpoint),
-    [endpoint, setReady, syncController]
+    () => createProviderFactory({ setReady, syncController }, collabOrigin),
+    [collabOrigin, setReady, syncController]
   );
 
   const resolvedReady = !enabled || ready;

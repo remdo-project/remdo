@@ -28,9 +28,15 @@ const Bridge = ({ onReady }: { onReady: (payload: BridgePayload) => void }) => {
   return null;
 };
 
-const LexicalHarness = ({ onReady }: { onReady: (payload: BridgePayload) => void }) => {
+const LexicalHarness = ({
+  onReady,
+  collabOrigin,
+}: {
+  onReady: (payload: BridgePayload) => void;
+  collabOrigin?: string;
+}) => {
   return (
-    <Editor>
+    <Editor collabOrigin={collabOrigin}>
       <Bridge onReady={onReady} />
     </Editor>
   );
@@ -59,8 +65,12 @@ beforeEach<TestContext>(async (ctx) => {
   const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`;
   globalThis.history.replaceState(null, '', nextUrl);
 
+  const { protocol, hostname } = globalThis.location;
+  const collabOrigin = `${protocol}//${hostname}:${config.env.COLLAB_CLIENT_PORT}`;
+
   render(
     <LexicalHarness
+      collabOrigin={collabOrigin}
       onReady={({ editor: instance, collab: status }) => {
         editor = instance;
         collab = status;

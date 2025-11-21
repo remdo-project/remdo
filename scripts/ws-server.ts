@@ -6,14 +6,17 @@ import process from 'node:process';
 import { config } from '#config';
 
 process.env.HOST = config.env.HOST;
-process.env.PORT = String(config.env.COLLAB_SERVER_PORT);
 
 const pnpmCmd = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-const child = spawn(pnpmCmd, ['exec', 'y-websocket'], {
-  env: { ...process.env },
-  stdio: 'inherit',
-  shell: false,
-});
+const child = spawn(
+  pnpmCmd,
+  ['exec', 'y-sweet', 'serve', '--host', config.env.HOST, '--port', String(config.env.COLLAB_SERVER_PORT)],
+  {
+    env: { ...process.env },
+    stdio: 'inherit',
+    shell: false,
+  },
+);
 
 child.on('close', (code: number | null, signal: NodeJS.Signals | null) => {
   if (signal) {

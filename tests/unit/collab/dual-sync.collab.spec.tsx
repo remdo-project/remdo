@@ -45,9 +45,12 @@ function CollaborationPeer({ onReady }: { onReady: (handle: PeerHandle) => void 
 describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
   it('syncs edits between editors', async ({ lexical }) => {
     let secondary!: PeerHandle;
+    const { protocol, hostname } = globalThis.location;
+    const collabOrigin = `${protocol}//${hostname}:${config.env.COLLAB_CLIENT_PORT}`;
+    // TODO: unify editor construction and collab origin setup with the shared test harness helpers.
 
     render(
-      <Editor>
+      <Editor collabOrigin={collabOrigin}>
         <CollaborationPeer onReady={(handle) => { secondary = handle; }} />
       </Editor>
     );
@@ -69,7 +72,6 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
     expect(secondary as any).toMatchOutline([]);
     expect(lexical.isCollabSyncing()).toBe(false);
     expect(secondary.isCollabSyncing()).toBe(false);
-
     lexical.editor.update(() => {
       //TODO use a higher level API once we have it
       const root = $getRoot();
@@ -87,7 +89,9 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
     expect(lexical.isCollabSyncing()).toBe(false);
     expect(secondary.isCollabSyncing()).toBe(false);
     const sharedOutline = [{ text: 'note1', children: [] }];
-    expect(lexical).toMatchOutline(sharedOutline);
-    expect(secondary as any).toMatchOutline(sharedOutline);
+    await waitFor(() => {
+      expect(lexical).toMatchOutline(sharedOutline);
+      expect(secondary as any).toMatchOutline(sharedOutline);
+    });
   });
 });

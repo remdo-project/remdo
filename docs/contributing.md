@@ -3,11 +3,12 @@
 ## Git Workflow
 
 RemDo protects the shared history by keeping `main` locked down: no direct
-pushes, and every change flows through a reviewed pull request. `dev` is our
-day-to-day integration branch, but treat it the same in practice—merge via PRs,
-keep a clean timeline, and never rewrite published history.
+pushes, and every change flows through a reviewed pull request. Cut topic
+branches from `main` so review surfaces against the canonical baseline. `dev`
+is the integration/staging branch—use it for coordination and test merges, but
+it does not need a perfectly linear history.
 
-Create topic branches off `dev` using clear prefixes so intent is obvious:
+Create topic branches off `main` using clear prefixes so intent is obvious:
 
 - `feat/` for new user-facing capabilities.
 - `fix/` for bug patches.

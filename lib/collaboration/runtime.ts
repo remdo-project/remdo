@@ -1,7 +1,6 @@
 import type { Provider } from '@lexical/yjs';
-import { WebsocketProvider, messageSync } from 'y-websocket';
-import * as encoding from 'lib0/encoding';
-import * as syncProtocol from 'y-protocols/sync';
+import { createYjsProvider } from '@y-sweet/client';
+import type { ClientToken } from '@y-sweet/sdk';
 import * as Y from 'yjs';
 
 export type CollaborationProviderInstance = Provider & { destroy: () => void };
@@ -25,10 +24,15 @@ interface ProviderFactorySignals {
   syncController: CollaborationSyncController;
 }
 
+const docInitPromises = new Map<string, Promise<void>>();
+const docAuthInFlight = new Map<string, Promise<ClientToken>>();
+
 export function createProviderFactory(
   { setReady, syncController }: ProviderFactorySignals,
-  endpoint: string
+  origin?: string
 ): ProviderFactory {
+  const resolveEndpoints = createEndpointResolver(origin);
+
   return (id: string, docMap: Map<string, Y.Doc>) => {
     setReady(false);
 
@@ -43,27 +47,32 @@ export function createProviderFactory(
     // Lexical expects the `root` XmlText to always be present.
     doc.get('root', Y.XmlText);
 
-    const provider = new WebsocketProvider(endpoint, id, doc, {
+    const endpoints = resolveEndpoints(id);
+
+    const authEndpoint = async () => {
+      const token = await getAuthToken(id, endpoints);
+      return rewriteTokenHost(token);
+    };
+
+    const provider = createYjsProvider(doc, id, authEndpoint, {
       connect: false,
+      showDebuggerLink: false,
     });
+    let destroyed = false;
 
-    const detach = attachSyncTracking(provider, syncController);
-
-    provider.on('sync', (isSynced: boolean) => {
-      if (isSynced) {
-        setReady(true);
-      }
-    });
-
-    provider.on('status', (event: { status: string }) => {
-      if (event.status === 'connecting') {
-        setReady(false);
-      }
-    });
+    const detach = attachSyncTracking(provider, syncController, setReady);
 
     const originalDestroy = provider.destroy.bind(provider);
     const destroy = () => {
+      if (destroyed) {
+        return;
+      }
+      destroyed = true;
+      // Prevent the provider from scheduling reconnections after teardown, which can
+      // otherwise keep Node processes (e.g., snapshot CLI) alive.
+      provider.connect = () => Promise.resolve();
       detach();
+      provider.disconnect();
       originalDestroy();
     };
 
@@ -71,97 +80,154 @@ export function createProviderFactory(
   };
 }
 
-function attachSyncTracking(provider: WebsocketProvider, controller: CollaborationSyncController) {
-  let handshakePending = false;
-  let pendingAck = false;
+function createEndpointResolver(origin?: string) {
+  const basePath = '/doc';
+  const normalizedOrigin = origin ? origin.replace(/\/$/, '') : '';
+  const base = normalizedOrigin ? `${normalizedOrigin}${basePath}` : basePath;
 
-  const ensureHandshake = () => {
-    if (handshakePending) {
-      return;
+  return (docId: string) => {
+    const encodedId = encodeURIComponent(docId);
+    return {
+      auth: `${base}/${encodedId}/auth`,
+      create: `${base}/new`,
+    };
+  };
+}
+
+function ensureDocInitialized(docId: string, createEndpoint: string): Promise<void> {
+  const existing = docInitPromises.get(docId);
+  if (existing) {
+    return existing;
+  }
+
+  const promise = fetch(createEndpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ docId }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Failed to create doc ${docId}: ${response.status} ${response.statusText}`);
+      }
+    })
+    .catch((error) => {
+      docInitPromises.delete(docId);
+      throw error;
+    });
+
+  docInitPromises.set(docId, promise);
+  return promise;
+}
+
+function getAuthToken(docId: string, endpoints: { auth: string; create: string }): Promise<ClientToken> {
+  const existing = docAuthInFlight.get(docId);
+  if (existing) {
+    return existing;
+  }
+
+  const promise = (async () => {
+    await ensureDocInitialized(docId, endpoints.create);
+
+    const requestAuth = async () =>
+      fetch(endpoints.auth, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ docId }),
+      });
+
+    let response = await requestAuth();
+    if (response.status === 404) {
+      // If the server dropped the doc, ensure we re-run creation instead of reusing
+      // the successful cached init promise.
+      docInitPromises.delete(docId);
+      await ensureDocInitialized(docId, endpoints.create);
+      response = await requestAuth();
     }
 
-    const socket = provider.ws;
-
-    if (!provider.wsconnected || socket == null) {
-      return;
+    if (!response.ok) {
+      throw new Error(`Failed to auth doc ${docId}: ${response.status} ${response.statusText}`);
     }
 
-    const openState = typeof WebSocket === 'undefined' ? socket.OPEN : WebSocket.OPEN;
+    return (await response.json()) as ClientToken;
+  })();
 
-    if (socket.readyState !== openState) {
-      return;
+  docAuthInFlight.set(docId, promise);
+  return promise.finally(() => {
+    docAuthInFlight.delete(docId);
+  });
+}
+
+function rewriteTokenHost(token: ClientToken): ClientToken {
+  if (typeof location === 'undefined') {
+    return token;
+  }
+
+  const { hostname } = location;
+  if (hostname.length === 0) {
+    return token;
+  }
+
+  const rewrite = (raw: string) => {
+    const url = new URL(raw);
+    if (url.hostname === '0.0.0.0' || url.hostname === 'localhost') {
+      url.hostname = hostname;
     }
-
-    handshakePending = true;
-    pendingAck = false;
-    controller.setSyncing(true);
-
-    const encoder = encoding.createEncoder();
-    encoding.writeVarUint(encoder, messageSync);
-    syncProtocol.writeSyncStep1(encoder, provider.doc);
-
-    try {
-      provider.synced = false;
-      socket.send(encoding.toUint8Array(encoder));
-    } catch {
-      handshakePending = false;
-      pendingAck = true;
-    }
+    return url.toString();
   };
 
-  const handleLocalUpdate = (_update: Uint8Array, origin: unknown) => {
-    if (origin === provider) {
-      return;
-    }
-
-    pendingAck = true;
-    controller.setSyncing(true);
-
-    ensureHandshake();
+  return {
+    ...token,
+    url: rewrite(token.url),
+    baseUrl: rewrite(token.baseUrl),
   };
+}
 
+function attachSyncTracking(
+  provider: ReturnType<typeof createYjsProvider>,
+  controller: CollaborationSyncController,
+  setReady: (value: boolean) => void
+) {
   const handleSync = (isSynced: boolean) => {
-    if (!isSynced) {
-      return;
-    }
-
-    handshakePending = false;
-
-    if (pendingAck) {
-      ensureHandshake();
-      return;
-    }
-
-    if (provider.wsconnected) {
+    if (isSynced) {
+      setReady(true);
       controller.setSyncing(false);
+      return;
     }
+
+    setReady(false);
+    controller.setSyncing(true);
+  };
+
+  const handleLocalChanges = (hasLocalChanges: boolean) => {
+    controller.setSyncing(hasLocalChanges);
   };
 
   const handleStatus = ({ status }: { status: string }) => {
-    if (status === 'connected') {
-      if (pendingAck) {
-        ensureHandshake();
-      } else if (provider.synced) {
-        controller.setSyncing(false);
-      }
+    if (status === 'connecting' || status === 'handshaking') {
+      setReady(false);
+      controller.setSyncing(true);
       return;
     }
 
-    // Connection dropped or paused: mark unsynced and retry once we reconnect.
-    pendingAck = true;
-    handshakePending = false;
+    if (status === 'connected') {
+      // syncing flag will be cleared by the sync handler once the doc is synced.
+      return;
+    }
+
+    // offline/error: surface as unsynced
     controller.setSyncing(true);
+    setReady(false);
   };
 
   controller.setSyncing(true);
 
-  provider.doc.on('update', handleLocalUpdate);
   provider.on('sync', handleSync);
   provider.on('status', handleStatus);
+  provider.on('local-changes', handleLocalChanges);
 
   return () => {
-    provider.doc.off('update', handleLocalUpdate);
     provider.off('sync', handleSync);
     provider.off('status', handleStatus);
+    provider.off('local-changes', handleLocalChanges);
   };
 }
