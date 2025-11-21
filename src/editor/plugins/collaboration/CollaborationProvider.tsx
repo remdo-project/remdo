@@ -59,7 +59,6 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
           onReady: (promise) => {
             promise.then(deferred.resolve).catch(deferred.reject);
           },
-          onReadyError: deferred.reject,
         },
         collabOrigin
       ),

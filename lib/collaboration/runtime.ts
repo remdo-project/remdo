@@ -10,17 +10,13 @@ export type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => Collab
 export interface ProviderReadySignals {
   /** Called when the provider reports a synced state. */
   onReady?: (promise: Promise<void>) => void;
-  /** Notified when the ready wait rejects due to connection error/timeout. */
-  onReadyError?: (error: Error) => void;
-  /** Optional timeout override for readiness. */
-  timeoutMs?: number;
 }
 
 const docInitPromises = new Map<string, Promise<void>>();
 const docAuthInFlight = new Map<string, Promise<ClientToken>>();
 
 export function createProviderFactory(
-  { onReady, onReadyError, timeoutMs }: ProviderReadySignals = {},
+  { onReady }: ProviderReadySignals = {},
   origin?: string
 ): ProviderFactory {
   const resolveEndpoints = createEndpointResolver(origin);
@@ -51,9 +47,7 @@ export function createProviderFactory(
     let destroyed = false;
 
     if (onReady) {
-      const readyPromise = waitForProviderReady(provider, { timeoutMs });
-      onReady(readyPromise);
-      readyPromise.catch((error) => onReadyError?.(error));
+      onReady(waitForProviderReady(provider));
     }
 
     const originalDestroy = provider.destroy.bind(provider);
