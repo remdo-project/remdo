@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { config } from '#config';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { buildCollabEndpointsFromBase } from '#lib/collaboration/endpoints';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
 import { CollaborationSyncController, createProviderFactory } from '#lib/collaboration/runtime';
 
@@ -50,12 +49,6 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
   }, []);
   const [ready, setReady] = useState(!enabled);
   const [syncing, setSyncing] = useState(enabled);
-  const resolveCollabEndpoints = useMemo(() => {
-    const basePath = '/doc';
-    const normalizedOrigin = collabOrigin ? collabOrigin.replace(/\/$/, '') : '';
-    const base = normalizedOrigin ? `${normalizedOrigin}${basePath}` : basePath;
-    return buildCollabEndpointsFromBase(base);
-  }, [collabOrigin]);
 
   const syncController = useMemo(
     () => new CollaborationSyncController(setSyncing),
@@ -82,8 +75,8 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
   }, [enabled, syncController]);
 
   const providerFactory = useMemo(
-    () => createProviderFactory({ setReady, syncController }, resolveCollabEndpoints),
-    [resolveCollabEndpoints, setReady, syncController]
+    () => createProviderFactory({ setReady, syncController }, collabOrigin),
+    [collabOrigin, setReady, syncController]
   );
 
   const resolvedReady = !enabled || ready;

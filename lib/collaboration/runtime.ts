@@ -2,7 +2,6 @@ import type { Provider } from '@lexical/yjs';
 import { createYjsProvider } from '@y-sweet/client';
 import type { ClientToken } from '@y-sweet/sdk';
 import * as Y from 'yjs';
-import type { EndpointResolver } from './endpoints';
 
 export type CollaborationProviderInstance = Provider & { destroy: () => void };
 
@@ -29,8 +28,10 @@ const docInitPromises = new Map<string, Promise<void>>();
 
 export function createProviderFactory(
   { setReady, syncController }: ProviderFactorySignals,
-  resolveEndpoints: EndpointResolver
+  origin?: string
 ): ProviderFactory {
+  const resolveEndpoints = createEndpointResolver(origin);
+
   return (id: string, docMap: Map<string, Y.Doc>) => {
     setReady(false);
 
@@ -109,6 +110,20 @@ export function createProviderFactory(
     };
 
     return Object.assign(provider as unknown as Provider, { destroy }) as CollaborationProviderInstance;
+  };
+}
+
+function createEndpointResolver(origin?: string) {
+  const basePath = '/doc';
+  const normalizedOrigin = origin ? origin.replace(/\/$/, '') : '';
+  const base = normalizedOrigin ? `${normalizedOrigin}${basePath}` : basePath;
+
+  return (docId: string) => {
+    const encodedId = encodeURIComponent(docId);
+    return {
+      auth: `${base}/${encodedId}/auth`,
+      create: `${base}/new`,
+    };
   };
 }
 
@@ -206,5 +221,3 @@ function attachSyncTracking(
     provider.off('local-changes', handleLocalChanges);
   };
 }
-
-export type { EndpointResolver, ResolvedEndpoints } from './endpoints';

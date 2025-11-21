@@ -20,7 +20,6 @@ import type { Transaction } from 'yjs';
 
 import { config } from '#config';
 import { createEditorInitialConfig } from '#lib/editor/config';
-import { buildCollabEndpointsFromBase } from '#lib/collaboration/endpoints';
 import { CollaborationSyncController, createProviderFactory } from '#lib/collaboration/runtime';
 
 type SharedRootObserver = (
@@ -254,13 +253,12 @@ async function withSession(
   const docMap = new Map([[docId, doc]]);
   const syncController = new CollaborationSyncController(() => {});
   syncController.setSyncing(true);
-  const resolveEndpoints = buildCollabEndpointsFromBase(`${collabOrigin}/doc`);
   const providerFactory = createProviderFactory(
     {
       setReady: () => {},
       syncController,
     },
-    resolveEndpoints,
+    collabOrigin,
   );
   const lexicalProvider = providerFactory(docId, docMap);
   const provider = lexicalProvider as unknown as SnapshotProvider;
