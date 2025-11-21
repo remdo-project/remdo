@@ -137,6 +137,9 @@ function getAuthToken(docId: string, endpoints: { auth: string; create: string }
 
     let response = await requestAuth();
     if (response.status === 404) {
+      // If the server dropped the doc, ensure we re-run creation instead of reusing
+      // the successful cached init promise.
+      docInitPromises.delete(docId);
       await ensureDocInitialized(docId, endpoints.create);
       response = await requestAuth();
     }
