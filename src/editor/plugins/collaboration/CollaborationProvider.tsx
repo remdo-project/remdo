@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { config } from '#config';
-import { createContext, use, useCallback, useMemo, useState } from 'react';
+import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
 import { createProviderFactory, waitForProviderReady } from '#lib/collaboration/runtime';
 import type * as Y from 'yjs';
@@ -48,6 +48,8 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
   }, []);
 
   const [deferred, setDeferred] = useState(() => createDeferred(enabled));
+  const currentDeferredRef = useRef<Deferred>(deferred);
+  const pendingDeferredsRef = useRef<Deferred[]>([]);
 
   const handleReady = useCallback(
     (provider: ReturnType<ProviderFactory>) => {
@@ -55,35 +57,82 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         return () => {};
       }
 
-      let active = true;
-
-      const arm = () => {
-        if (!active) return;
-
-        setDeferred((previous) => {
-          const next = createDeferred(enabled);
-
-          waitForProviderReady(provider)
-            .then(() => {
-              if (!active) return;
-              previous.resolve();
-              next.resolve();
-            })
-            .catch((error) => {
-              if (!active) return;
-              previous.reject(error);
-              next.reject(error);
-              queueMicrotask(arm);
-            });
-
-          return next;
-        });
+      const eventfulProvider = provider as unknown as {
+        on: (event: string, handler: (payload: unknown) => void) => void;
+        off: (event: string, handler: (payload: unknown) => void) => void;
       };
 
-      arm();
+      let active = true;
+      let waitingFor: number | null = null;
+      let generation = 0;
+
+      const startWait = () => {
+        if (!active || waitingFor === generation) return;
+        const runFor = generation;
+        waitingFor = runFor;
+
+        waitForProviderReady(provider)
+          .then(() => {
+            if (!active || generation !== runFor) return;
+            waitingFor = null;
+            const current = currentDeferredRef.current;
+            const deferreds = [current, ...pendingDeferredsRef.current.splice(0)];
+            for (const item of deferreds) {
+              item.resolve();
+            }
+          })
+          .catch((error) => {
+            if (!active || generation !== runFor) return;
+            waitingFor = null;
+            const current = currentDeferredRef.current;
+            const deferreds = [current, ...pendingDeferredsRef.current.splice(0)];
+            for (const item of deferreds) {
+              item.reject(error);
+            }
+            queueMicrotask(startWait);
+          });
+      };
+
+      const reset = () => {
+        if (!active) return;
+        generation += 1;
+        waitingFor = null;
+        setDeferred((previous) => {
+          pendingDeferredsRef.current.push(previous);
+          const next = createDeferred(enabled);
+          currentDeferredRef.current = next;
+          return next;
+        });
+        startWait();
+      };
+
+      const handleSync = (isSynced: unknown) => {
+        if (isSynced === false) {
+          reset();
+        }
+      };
+
+      const handleLocalChanges = (hasLocalChanges: unknown) => {
+        if (hasLocalChanges === true) {
+          reset();
+        }
+      };
+
+      const handleFailure = () => reset();
+
+      reset();
+
+      eventfulProvider.on('sync', handleSync);
+      eventfulProvider.on('local-changes', handleLocalChanges);
+      eventfulProvider.on('connection-close', handleFailure);
+      eventfulProvider.on('connection-error', handleFailure);
 
       return () => {
         active = false;
+        eventfulProvider.off('sync', handleSync);
+        eventfulProvider.off('local-changes', handleLocalChanges);
+        eventfulProvider.off('connection-close', handleFailure);
+        eventfulProvider.off('connection-error', handleFailure);
       };
     },
     [enabled]
@@ -122,6 +171,8 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
 }
 
 export type { CollaborationStatusValue };
+
+type Deferred = ReturnType<typeof createDeferred>;
 
 function createDeferred(enabled: boolean): { promise: Promise<void>; resolve: () => void; reject: (error: Error) => void } {
   if (!enabled) {
