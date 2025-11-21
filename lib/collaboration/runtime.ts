@@ -75,6 +75,7 @@ function ensureDocInitialized(docId: string, createEndpoint: string): Promise<vo
     return existing;
   }
 
+  // TODO: Remove client-side doc creation once the auth endpoint performs getOrCreate server-side.
   const promise = fetch(createEndpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
