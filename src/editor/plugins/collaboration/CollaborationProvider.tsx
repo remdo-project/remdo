@@ -1,15 +1,13 @@
 import type { ReactNode } from 'react';
 import { config } from '#config';
-import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, use, useCallback, useMemo, useState } from 'react';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
-import { CollaborationSyncController, createProviderFactory } from '#lib/collaboration/runtime';
+import { createProviderFactory } from '#lib/collaboration/runtime';
 
 interface CollaborationStatusValue {
-  ready: boolean;
   enabled: boolean;
   providerFactory: ProviderFactory;
-  syncing: boolean;
-  waitForSync: () => Promise<void>;
+  awaitReady: () => Promise<void>;
   docId: string;
 }
 
@@ -47,74 +45,55 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
 
     return doc?.length ? doc : config.env.COLLAB_DOCUMENT_ID;
   }, []);
-  const [ready, setReady] = useState(!enabled);
-  const [syncing, setSyncing] = useState(enabled);
 
-  const syncController = useMemo(
-    () => new CollaborationSyncController(setSyncing),
-    [setSyncing]
-  );
-  const waitersRef = useRef<Set<() => void>>(new Set());
+  const [deferred] = useState(() => createDeferred(enabled));
 
-  const flushWaiters = useCallback(() => {
-    if (waitersRef.current.size === 0) {
-      return;
-    }
-
-    const waiters = Array.from(waitersRef.current);
-    waitersRef.current.clear();
-    for (const resolve of waiters) {
-      resolve();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!enabled) {
-      syncController.setSyncing(false);
-    }
-  }, [enabled, syncController]);
+  const awaitReady = useCallback(() => {
+    return deferred.promise;
+  }, [deferred.promise]);
 
   const providerFactory = useMemo(
-    () => createProviderFactory({ setReady, syncController }, collabOrigin),
-    [collabOrigin, setReady, syncController]
+    () =>
+      createProviderFactory(
+        {
+          onReady: (promise) => {
+            promise.then(deferred.resolve).catch(deferred.reject);
+          },
+          onReadyError: deferred.reject,
+        },
+        collabOrigin
+      ),
+    [collabOrigin, deferred]
   );
-
-  const resolvedReady = !enabled || ready;
-  const syncingPending = enabled && syncing;
-
-  useEffect(() => {
-    if (!enabled || (resolvedReady && !syncingPending)) {
-      flushWaiters();
-    }
-  }, [enabled, flushWaiters, resolvedReady, syncingPending]);
-
-  const waitForSync = useCallback(() => {
-    if (!enabled || (resolvedReady && !syncingPending)) {
-      return Promise.resolve();
-    }
-
-    return new Promise<void>((resolve) => {
-      const waiters = waitersRef.current;
-      const release = () => {
-        waiters.delete(release);
-        resolve();
-      };
-
-      waiters.add(release);
-    });
-  }, [enabled, resolvedReady, syncingPending]);
 
   return useMemo<CollaborationStatusValue>(
     () => ({
-      ready: resolvedReady,
       enabled,
       providerFactory,
-      syncing: syncingPending,
-      waitForSync,
+      awaitReady,
       docId,
     }),
-    [docId, enabled, providerFactory, resolvedReady, syncingPending, waitForSync]
+    [awaitReady, docId, enabled, providerFactory]
   );
 }
 
 export type { CollaborationStatusValue };
+
+function createDeferred(enabled: boolean): { promise: Promise<void>; resolve: () => void; reject: (error: Error) => void } {
+  if (!enabled) {
+    return {
+      promise: Promise.resolve(),
+      resolve: () => {},
+      reject: () => {},
+    };
+  }
+
+  let resolve!: () => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<void>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
+}

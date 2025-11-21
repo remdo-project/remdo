@@ -33,6 +33,12 @@ environment access through the new module.
   helper layer above is solid, and document it alongside the existing outdent
   behavior.
 
+## Collaboration surface follow-ups
+
+1. Instantiate and own the provider inside `CollaborationProvider`, exporting the live instance (plus `awaitReady`) via context instead of a `providerFactory`, to reduce coupling with Lexical bridge setup.
+2. Reset the readiness deferred when the document id changes or on provider reconnects, so `awaitReady` remains correct across doc swaps without requiring a remount.
+3. Centralize collab origin + doc-id resolution in a shared helper reused by app, tests, and snapshot CLI to avoid drift in URL/query handling.
+
 ## Harden editor schema validator tests
 
 1. Extract shared builders for editor schema fixtures to cut duplication.

@@ -97,12 +97,8 @@ export function createLexicalTestHelpers(
   editor: LexicalEditor,
   getCollabStatus: () => CollaborationStatusValue
 ): LexicalTestHelpers {
-  async function waitForCollabSync(): Promise<void> {
-    await getCollabStatus().waitForSync();
-  }
-
-  function isCollabSyncing(): boolean {
-    return getCollabStatus().syncing;
+  async function waitForCollabReady(): Promise<void> {
+    await getCollabStatus().awaitReady();
   }
 
   function getCollabDocId(): string {
@@ -115,8 +111,7 @@ export function createLexicalTestHelpers(
     mutate: (fn, opts) => lexicalMutate(editor, fn, opts),
     validate: (fn) => lexicalValidate(editor, fn),
     getEditorState: () => lexicalGetEditorState(editor),
-    waitForCollabSync,
-    isCollabSyncing,
+    waitForCollabReady,
     getCollabDocId,
   };
 

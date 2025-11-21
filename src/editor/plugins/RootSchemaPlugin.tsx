@@ -8,17 +8,27 @@ import { useCollaborationStatus } from './collaboration';
 
 export function RootSchemaPlugin() {
   const [editor] = useLexicalComposerContext();
-  const { ready } = useCollaborationStatus();
+  const { awaitReady } = useCollaborationStatus();
 
   useEffect(() => {
-    if (!ready) {
-      return;
-    }
+    let cancelled = false;
+    let unregister: (() => void) | undefined;
 
-    const unregister = editor.registerNodeTransform(RootNode, $ensureSingleListRoot);
-    normalizeRootOnce(editor);
-    return unregister;
-  }, [editor, ready]);
+    void awaitReady()
+      .then(() => {
+        if (cancelled) return;
+        unregister = editor.registerNodeTransform(RootNode, $ensureSingleListRoot);
+        normalizeRootOnce(editor);
+      })
+      .catch(() => {
+        // readiness failed; allow effect to complete without registration
+      });
+
+    return () => {
+      cancelled = true;
+      unregister?.();
+    };
+  }, [awaitReady, editor]);
 
   return null;
 }

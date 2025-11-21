@@ -7,35 +7,25 @@ export type CollaborationProviderInstance = Provider & { destroy: () => void };
 
 export type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => CollaborationProviderInstance;
 
-export class CollaborationSyncController {
-  private readonly setState: (value: boolean) => void;
-
-  constructor(setState: (value: boolean) => void) {
-    this.setState = setState;
-  }
-
-  setSyncing(value: boolean) {
-    this.setState(value);
-  }
-}
-
-interface ProviderFactorySignals {
-  setReady: (value: boolean) => void;
-  syncController: CollaborationSyncController;
+export interface ProviderReadySignals {
+  /** Called when the provider reports a synced state. */
+  onReady?: (promise: Promise<void>) => void;
+  /** Notified when the ready wait rejects due to connection error/timeout. */
+  onReadyError?: (error: Error) => void;
+  /** Optional timeout override for readiness. */
+  timeoutMs?: number;
 }
 
 const docInitPromises = new Map<string, Promise<void>>();
 const docAuthInFlight = new Map<string, Promise<ClientToken>>();
 
 export function createProviderFactory(
-  { setReady, syncController }: ProviderFactorySignals,
+  { onReady, onReadyError, timeoutMs }: ProviderReadySignals = {},
   origin?: string
 ): ProviderFactory {
   const resolveEndpoints = createEndpointResolver(origin);
 
   return (id: string, docMap: Map<string, Y.Doc>) => {
-    setReady(false);
-
     let doc = docMap.get(id);
     if (!doc) {
       doc = new Y.Doc();
@@ -60,7 +50,11 @@ export function createProviderFactory(
     });
     let destroyed = false;
 
-    const detach = attachSyncTracking(provider, syncController, setReady);
+    if (onReady) {
+      const readyPromise = waitForProviderReady(provider, { timeoutMs });
+      onReady(readyPromise);
+      readyPromise.catch((error) => onReadyError?.(error));
+    }
 
     const originalDestroy = provider.destroy.bind(provider);
     const destroy = () => {
@@ -71,7 +65,6 @@ export function createProviderFactory(
       // Prevent the provider from scheduling reconnections after teardown, which can
       // otherwise keep Node processes (e.g., snapshot CLI) alive.
       provider.connect = () => Promise.resolve();
-      detach();
       provider.disconnect();
       originalDestroy();
     };
@@ -182,52 +175,63 @@ function rewriteTokenHost(token: ClientToken): ClientToken {
   };
 }
 
-function attachSyncTracking(
-  provider: ReturnType<typeof createYjsProvider>,
-  controller: CollaborationSyncController,
-  setReady: (value: boolean) => void
-) {
-  const handleSync = (isSynced: boolean) => {
-    if (isSynced) {
-      setReady(true);
-      controller.setSyncing(false);
-      return;
+interface MinimalProviderEvents {
+  on: (event: any, handler: (payload: any) => void) => void;
+  off: (event: any, handler: (payload: any) => void) => void;
+  synced?: boolean;
+}
+
+export function waitForProviderReady(
+  provider: MinimalProviderEvents,
+  { timeoutMs = 10_000 }: { timeoutMs?: number } = {}
+): Promise<void> {
+  if (provider.synced) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    let settled = false;
+    let cleanup: () => void = () => {};
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      fn();
+    };
+
+    const handleSync = (isSynced: unknown) => {
+      if (isSynced === true) {
+        finish(() => resolve());
+      }
+    };
+
+    const handleFailure = (payload: unknown) => {
+      finish(() => reject(createConnectionError(payload)));
+    };
+
+    const timeout = setTimeout(() => {
+      finish(() => reject(new Error(`Timed out waiting for collaboration sync after ${timeoutMs}ms`)));
+    }, timeoutMs);
+
+    cleanup = () => {
+      clearTimeout(timeout);
+      provider.off('sync', handleSync);
+      provider.off('connection-close', handleFailure);
+      provider.off('connection-error', handleFailure);
+    };
+
+    provider.on('sync', handleSync);
+    provider.on('connection-close', handleFailure);
+    provider.on('connection-error', handleFailure);
+  });
+}
+
+function createConnectionError(payload: unknown): Error {
+  if (payload && typeof payload === 'object') {
+    const maybeReason = (payload as { reason?: unknown }).reason;
+    if (typeof maybeReason === 'string' && maybeReason.length > 0) {
+      return new Error(`Failed to connect to collaboration server: ${maybeReason}`);
     }
-
-    setReady(false);
-    controller.setSyncing(true);
-  };
-
-  const handleLocalChanges = (hasLocalChanges: boolean) => {
-    controller.setSyncing(hasLocalChanges);
-  };
-
-  const handleStatus = ({ status }: { status: string }) => {
-    if (status === 'connecting' || status === 'handshaking') {
-      setReady(false);
-      controller.setSyncing(true);
-      return;
-    }
-
-    if (status === 'connected') {
-      // syncing flag will be cleared by the sync handler once the doc is synced.
-      return;
-    }
-
-    // offline/error: surface as unsynced
-    controller.setSyncing(true);
-    setReady(false);
-  };
-
-  controller.setSyncing(true);
-
-  provider.on('sync', handleSync);
-  provider.on('status', handleStatus);
-  provider.on('local-changes', handleLocalChanges);
-
-  return () => {
-    provider.off('sync', handleSync);
-    provider.off('status', handleStatus);
-    provider.off('local-changes', handleLocalChanges);
-  };
+  }
+  return new Error('Failed to connect to collaboration server');
 }

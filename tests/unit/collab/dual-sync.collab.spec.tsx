@@ -12,8 +12,7 @@ import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
 
 interface PeerHandle {
   editor: LexicalEditor;
-  waitForCollabSync: () => Promise<void>;
-  isCollabSyncing: () => boolean;
+  waitForCollabReady: () => Promise<void>;
   validate: <T>(fn: () => T) => T;
 }
 
@@ -27,14 +26,12 @@ function CollaborationPeer({ onReady }: { onReady: (handle: PeerHandle) => void 
   }, [collab]);
 
   useEffect(() => {
-    const waitForCollabSync: PeerHandle['waitForCollabSync'] = () => statusRef.current.waitForSync();
-    const isCollabSyncing: PeerHandle['isCollabSyncing'] = () => statusRef.current.syncing;
+    const waitForCollabReady: PeerHandle['waitForCollabReady'] = () => statusRef.current.awaitReady();
     const validate: PeerHandle['validate'] = (fn) => editor.getEditorState().read(fn);
 
     onReady({
       editor,
-      waitForCollabSync,
-      isCollabSyncing,
+      waitForCollabReady,
       validate,
     });
   }, [editor, onReady]);
@@ -60,18 +57,18 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
       if (!secondary) throw new Error('Secondary editor not ready');
     });
 
-    await Promise.all([lexical.waitForCollabSync(), secondary.waitForCollabSync()]);
+    await Promise.all([lexical.waitForCollabReady(), secondary.waitForCollabReady()]);
 
     lexical.editor.update(() => {
       $getRoot().clear();
     });
 
-    await Promise.all([lexical.waitForCollabSync(), secondary.waitForCollabSync()]);
+    await Promise.all([lexical.waitForCollabReady(), secondary.waitForCollabReady()]);
 
     expect(lexical).toMatchOutline([]);
     expect(secondary as any).toMatchOutline([]);
-    expect(lexical.isCollabSyncing()).toBe(false);
-    expect(secondary.isCollabSyncing()).toBe(false);
+    await lexical.waitForCollabReady();
+    await secondary.waitForCollabReady();
     lexical.editor.update(() => {
       //TODO use a higher level API once we have it
       const root = $getRoot();
@@ -84,10 +81,10 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
       root.append(list);
     });
 
-    await Promise.all([lexical.waitForCollabSync(), secondary.waitForCollabSync()]);
+    await Promise.all([lexical.waitForCollabReady(), secondary.waitForCollabReady()]);
 
-    expect(lexical.isCollabSyncing()).toBe(false);
-    expect(secondary.isCollabSyncing()).toBe(false);
+    await lexical.waitForCollabReady();
+    await secondary.waitForCollabReady();
     const sharedOutline = [{ text: 'note1', children: [] }];
     await waitFor(() => {
       expect(lexical).toMatchOutline(sharedOutline);
