@@ -66,6 +66,17 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
       let waitingFor: number | null = null;
       let generation = 0;
 
+      const bumpDeferred = (queuePrevious: boolean) => {
+        setDeferred((previous) => {
+          if (queuePrevious) {
+            pendingDeferredsRef.current.push(previous);
+          }
+          const next = createDeferred(enabled);
+          currentDeferredRef.current = next;
+          return next;
+        });
+      };
+
       const startWait = () => {
         if (!active || waitingFor === generation) return;
         const runFor = generation;
@@ -89,6 +100,8 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
             for (const item of deferreds) {
               item.reject(error);
             }
+            generation += 1;
+            bumpDeferred(false);
             queueMicrotask(startWait);
           });
       };
@@ -97,12 +110,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         if (!active) return;
         generation += 1;
         waitingFor = null;
-        setDeferred((previous) => {
-          pendingDeferredsRef.current.push(previous);
-          const next = createDeferred(enabled);
-          currentDeferredRef.current = next;
-          return next;
-        });
+        bumpDeferred(true);
         startWait();
       };
 
