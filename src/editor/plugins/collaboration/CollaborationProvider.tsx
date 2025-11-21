@@ -50,12 +50,39 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
   const [deferred, setDeferred] = useState(() => createDeferred(enabled));
 
   const handleReady = useCallback(
-    (promise: Promise<void>) => {
-      setDeferred(() => {
-        const next = createDeferred(enabled);
-        promise.then(next.resolve).catch(next.reject);
-        return next;
-      });
+    (provider: ReturnType<ProviderFactory>) => {
+      if (!enabled) {
+        return () => {};
+      }
+
+      let active = true;
+
+      const arm = () => {
+        if (!active) return;
+
+        setDeferred(() => {
+          const next = createDeferred(enabled);
+
+          waitForProviderReady(provider)
+            .then(() => {
+              if (!active) return;
+              next.resolve();
+            })
+            .catch((error) => {
+              if (!active) return;
+              next.reject(error);
+              queueMicrotask(arm);
+            });
+
+          return next;
+        });
+      };
+
+      arm();
+
+      return () => {
+        active = false;
+      };
     },
     [enabled]
   );
@@ -69,7 +96,12 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
       const factory = createProviderFactory(collabOrigin);
       return ((id: string, docMap: Map<string, Y.Doc>) => {
         const provider = factory(id, docMap);
-        handleReady(waitForProviderReady(provider));
+        const stopReady = handleReady(provider);
+        const destroy = provider.destroy.bind(provider);
+        provider.destroy = () => {
+          stopReady();
+          destroy();
+        };
         return provider;
       }) as ProviderFactory;
     },
