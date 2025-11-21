@@ -24,7 +24,7 @@ decide what matters.
   validation behaviors—consult when editing tree transforms or note mutations.
 - `docs/selection.md` (~1.4k words). Cursor/selection semantics for the editor
   runtime—reference for UX or Lexical selection work.
-- `docs/todo.md` (~760 words). Project roadmap plus outstanding design
+- `docs/todo.md` (~680 words). Project roadmap plus outstanding design
   questions—review when planning new features.
 
 Whenever you edit any of these docs, update their summaries/word counts here so
