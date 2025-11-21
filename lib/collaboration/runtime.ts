@@ -7,18 +7,10 @@ export type CollaborationProviderInstance = Provider & { destroy: () => void };
 
 export type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => CollaborationProviderInstance;
 
-export interface ProviderReadySignals {
-  /** Called when the provider reports a synced state. */
-  onReady?: (promise: Promise<void>) => void;
-}
-
 const docInitPromises = new Map<string, Promise<void>>();
 const docAuthInFlight = new Map<string, Promise<ClientToken>>();
 
-export function createProviderFactory(
-  { onReady }: ProviderReadySignals = {},
-  origin?: string
-): ProviderFactory {
+export function createProviderFactory(origin?: string): ProviderFactory {
   const resolveEndpoints = createEndpointResolver(origin);
 
   return (id: string, docMap: Map<string, Y.Doc>) => {
@@ -45,10 +37,6 @@ export function createProviderFactory(
       showDebuggerLink: false,
     });
     let destroyed = false;
-
-    if (onReady) {
-      onReady(waitForProviderReady(provider));
-    }
 
     const originalDestroy = provider.destroy.bind(provider);
     const destroy = () => {

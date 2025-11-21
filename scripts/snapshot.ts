@@ -246,7 +246,7 @@ async function withSession(
 ): Promise<void> {
   const doc = new Doc();
   const docMap = new Map([[docId, doc]]);
-  const providerFactory = createProviderFactory({}, collabOrigin);
+  const providerFactory = createProviderFactory(collabOrigin);
   const lexicalProvider = providerFactory(docId, docMap);
   const provider = lexicalProvider as unknown as SnapshotProvider;
   (provider as unknown as { _WS?: typeof globalThis.WebSocket })._WS = WebSocket as unknown as typeof globalThis.WebSocket;

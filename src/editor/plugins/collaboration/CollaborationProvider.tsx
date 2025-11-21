@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { config } from '#config';
 import { createContext, use, useCallback, useMemo, useState } from 'react';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
-import { createProviderFactory } from '#lib/collaboration/runtime';
+import { createProviderFactory, waitForProviderReady } from '#lib/collaboration/runtime';
+import type * as Y from 'yjs';
 
 interface CollaborationStatusValue {
   enabled: boolean;
@@ -46,23 +47,33 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
     return doc?.length ? doc : config.env.COLLAB_DOCUMENT_ID;
   }, []);
 
-  const [deferred] = useState(() => createDeferred(enabled));
+  const [deferred, setDeferred] = useState(() => createDeferred(enabled));
+
+  const handleReady = useCallback(
+    (promise: Promise<void>) => {
+      setDeferred(() => {
+        const next = createDeferred(enabled);
+        promise.then(next.resolve).catch(next.reject);
+        return next;
+      });
+    },
+    [enabled]
+  );
 
   const awaitReady = useCallback(() => {
     return deferred.promise;
   }, [deferred.promise]);
 
   const providerFactory = useMemo(
-    () =>
-      createProviderFactory(
-        {
-          onReady: (promise) => {
-            promise.then(deferred.resolve).catch(deferred.reject);
-          },
-        },
-        collabOrigin
-      ),
-    [collabOrigin, deferred]
+    () => {
+      const factory = createProviderFactory(collabOrigin);
+      return ((id: string, docMap: Map<string, Y.Doc>) => {
+        const provider = factory(id, docMap);
+        handleReady(waitForProviderReady(provider));
+        return provider;
+      }) as ProviderFactory;
+    },
+    [collabOrigin, handleReady]
   );
 
   return useMemo<CollaborationStatusValue>(
