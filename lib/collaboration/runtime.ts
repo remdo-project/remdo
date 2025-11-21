@@ -162,13 +162,16 @@ interface MinimalProviderEvents {
   on: (event: any, handler: (payload: any) => void) => void;
   off: (event: any, handler: (payload: any) => void) => void;
   synced?: boolean;
+  hasLocalChanges?: boolean;
 }
 
 export function waitForProviderReady(
   provider: MinimalProviderEvents,
   { timeoutMs = 10_000 }: { timeoutMs?: number } = {}
 ): Promise<void> {
-  if (provider.synced) {
+  const hasPendingLocalChanges = () => provider.hasLocalChanges === true;
+
+  if (provider.synced && !hasPendingLocalChanges()) {
     return Promise.resolve();
   }
 
@@ -182,9 +185,21 @@ export function waitForProviderReady(
       fn();
     };
 
+    const maybeResolve = () => {
+      if (provider.synced && !hasPendingLocalChanges()) {
+        finish(() => resolve());
+      }
+    };
+
     const handleSync = (isSynced: unknown) => {
       if (isSynced === true) {
-        finish(() => resolve());
+        maybeResolve();
+      }
+    };
+
+    const handleLocalChanges = (hasLocalChanges: unknown) => {
+      if (hasLocalChanges === false) {
+        maybeResolve();
       }
     };
 
@@ -199,13 +214,18 @@ export function waitForProviderReady(
     cleanup = () => {
       clearTimeout(timeout);
       provider.off('sync', handleSync);
+      provider.off('local-changes', handleLocalChanges);
       provider.off('connection-close', handleFailure);
       provider.off('connection-error', handleFailure);
     };
 
     provider.on('sync', handleSync);
+    provider.on('local-changes', handleLocalChanges);
     provider.on('connection-close', handleFailure);
     provider.on('connection-error', handleFailure);
+
+    // Re-check in case we subscribed after the provider was already ready.
+    maybeResolve();
   });
 }
 
