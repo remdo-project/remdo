@@ -106,31 +106,20 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         readyAbortRef.current = controller;
         const syncedDeferred = syncedDeferredRef.current;
 
-        waitForSync(provider, { signal: controller.signal, drainLocalChanges: false })
-          .then(() => {
+        const watch = async () => {
+          try {
+            await waitForSync(provider, { signal: controller.signal, drainLocalChanges: false });
             setHydrated(true);
-          })
-          .catch((error) => {
-            if (error instanceof Error && error.name === 'AbortError') {
-              return;
-            }
-            setHydrated(false);
 
-            if (providerRef.current === provider) {
-              syncedDeferredRef.current = createSyncedDeferred(enabled);
-              startProviderReadyWatch(provider);
-            }
-          });
-
-        waitForSync(provider, { signal: controller.signal, drainLocalChanges: true })
-          .then(() => {
+            await waitForSync(provider, { signal: controller.signal, drainLocalChanges: true });
             setSynced(true);
             syncedDeferred.resolve();
-          })
-          .catch((error) => {
+          } catch (error) {
             if (error instanceof Error && error.name === 'AbortError') {
               return;
             }
+
+            setHydrated(false);
             setSynced(false);
             syncedDeferred.reject(error instanceof Error ? error : new Error(String(error)));
 
@@ -138,7 +127,11 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
               syncedDeferredRef.current = createSyncedDeferred(enabled);
               startProviderReadyWatch(provider);
             }
-          });
+          }
+        };
+
+        // Fire-and-forget: watcher manages its own errors/retries and we must not block render.
+        void watch();
       };
 
       return ((id: string, docMap: Map<string, Y.Doc>) => {
