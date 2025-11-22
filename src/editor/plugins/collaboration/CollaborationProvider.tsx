@@ -17,6 +17,25 @@ const missingContextError = new Error('Collaboration context is missing. Wrap th
 
 const CollaborationStatusContext = createContext<CollaborationStatusValue | null>(null);
 
+function createReadyDeferred(enabled: boolean) {
+  if (!enabled) {
+    return { promise: Promise.resolve(), resolve: () => {}, reject: () => {} };
+  }
+
+  let resolve!: () => void;
+  let reject!: (error: Error) => void;
+
+  const promise = new Promise<void>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  // Attach a handler so rejections from unused deferreds do not surface as unhandled.
+  promise.catch(() => {});
+
+  return { promise, resolve, reject };
+}
+
 // eslint-disable-next-line react-refresh/only-export-components -- Safe: hook reads context without holding component state.
 export function useCollaborationStatus(): CollaborationStatusValue {
   const value = use(CollaborationStatusContext);
@@ -50,23 +69,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
 
   const [ready, setReady] = useState(!enabled);
   const providerRef = useRef<ReturnType<ProviderFactory> | null>(null);
-  const readyDeferredRef = useRef<{
-    promise: Promise<void>;
-    resolve: () => void;
-    reject: (error: Error) => void;
-  }>(
-    enabled
-      ? (() => {
-          let resolve!: () => void;
-          let reject!: (error: Error) => void;
-          const promise = new Promise<void>((res, rej) => {
-            resolve = res;
-            reject = rej;
-          });
-          return { promise, resolve, reject };
-        })()
-      : { promise: Promise.resolve(), resolve: () => {}, reject: () => {} }
-  );
+  const readyDeferredRef = useRef(createReadyDeferred(enabled));
   const readyAbortRef = useRef<AbortController | null>(null);
 
   const awaitReady = useCallback(() => {
@@ -75,37 +78,49 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
     }
 
     const provider = providerRef.current;
-    if (provider) {
-      return waitForProviderReady(provider, { signal: readyAbortRef.current?.signal });
-    }
+    const promise =
+      provider
+        ? waitForProviderReady(provider, { signal: readyAbortRef.current?.signal })
+        : readyDeferredRef.current.promise;
 
-    return readyDeferredRef.current.promise;
+    // Attach a handler immediately to avoid unhandled rejection warnings; awaiting the same promise will still reject.
+    promise.catch(() => {});
+    return promise;
   }, [enabled]);
 
   const providerFactory = useMemo(
     () => {
       const factory = createProviderFactory(collabOrigin);
-      return ((id: string, docMap: Map<string, Y.Doc>) => {
-        const provider = factory(id, docMap);
-        providerRef.current = provider;
-
-        setReady(false);
+      const startProviderReadyWatch = (provider: ReturnType<typeof factory>) => {
         const controller = new AbortController();
         readyAbortRef.current = controller;
         const deferred = readyDeferredRef.current;
+
         waitForProviderReady(provider, { signal: controller.signal })
           .then(() => {
             setReady(true);
             deferred.resolve();
           })
           .catch((error) => {
-            if (!(error instanceof Error && error.name === 'AbortError')) {
-              setReady(false);
-              deferred.reject(error instanceof Error ? error : new Error(String(error)));
+            if (error instanceof Error && error.name === 'AbortError') {
+              return;
             }
-            // Swallow abort/failure here; deferred handles propagation.
+            setReady(false);
+            deferred.reject(error instanceof Error ? error : new Error(String(error)));
+
+            if (providerRef.current === provider) {
+              readyDeferredRef.current = createReadyDeferred(enabled);
+              startProviderReadyWatch(provider);
+            }
           });
-        readyDeferredRef.current = deferred;
+      };
+
+      return ((id: string, docMap: Map<string, Y.Doc>) => {
+        const provider = factory(id, docMap);
+        providerRef.current = provider;
+
+        setReady(false);
+        startProviderReadyWatch(provider);
 
         const destroy = provider.destroy.bind(provider);
         provider.destroy = () => {
@@ -115,18 +130,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
             readyAbortRef.current?.abort();
             readyAbortRef.current = null;
             previousDeferred.reject(new Error('Collaboration provider disposed before ready'));
-            readyDeferredRef.current =
-              enabled
-                ? (() => {
-                    let resolve!: () => void;
-                    let reject!: (error: Error) => void;
-                    const promise = new Promise<void>((res, rej) => {
-                      resolve = res;
-                      reject = rej;
-                    });
-                    return { promise, resolve, reject };
-                  })()
-                : { promise: Promise.resolve(), resolve: () => {}, reject: () => {} };
+            readyDeferredRef.current = createReadyDeferred(enabled);
             setReady(!enabled);
           }
           destroy();
