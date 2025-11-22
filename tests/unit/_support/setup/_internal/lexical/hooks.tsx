@@ -91,7 +91,7 @@ beforeEach<TestContext>(async (ctx) => {
     await helpers.mutate(() => {
       $getRoot().clear();
     });
-    await helpers.waitForHydrated();
+    await helpers.waitForSynced();
   }
 });
 

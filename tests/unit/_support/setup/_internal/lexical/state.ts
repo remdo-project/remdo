@@ -117,7 +117,7 @@ export function createLexicalTestHelpers(
 
   const helpers: LexicalTestHelpers = {
     editor,
-    load: (filename: string) => lexicalLoad(editor, filename, waitForHydrated),
+    load: (filename: string) => lexicalLoad(editor, filename, waitForSynced),
     mutate: (fn, opts) => lexicalMutate(editor, fn, opts),
     validate: (fn) => lexicalValidate(editor, fn),
     getEditorState: () => lexicalGetEditorState(editor),
