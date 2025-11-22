@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { waitForProviderReady } from '#lib/collaboration/runtime';
+import { waitForSync } from '#lib/collaboration/runtime';
 
 type Handler = (payload: unknown) => void;
 
@@ -32,13 +32,13 @@ function createMockProvider() {
   return provider;
 }
 
-describe('waitForProviderReady', () => {
+describe('waitForSync', () => {
   it('resolves immediately when already synced with no local changes', async () => {
     const provider = createMockProvider();
     provider.synced = true;
     provider.hasLocalChanges = false;
 
-    await expect(waitForProviderReady(provider)).resolves.toBeUndefined();
+    await expect(waitForSync(provider)).resolves.toBeUndefined();
   });
 
   it('waits for sync and cleared local changes', async () => {
@@ -46,7 +46,7 @@ describe('waitForProviderReady', () => {
     provider.synced = false;
     provider.hasLocalChanges = true;
 
-    const readyPromise = waitForProviderReady(provider);
+    const readyPromise = waitForSync(provider);
 
     provider.synced = true;
     provider.hasLocalChanges = false;
@@ -61,7 +61,7 @@ describe('waitForProviderReady', () => {
     provider.synced = true;
     provider.hasLocalChanges = true;
 
-    const readyPromise = waitForProviderReady(provider);
+    const readyPromise = waitForSync(provider);
 
     provider.hasLocalChanges = false;
     provider.emit('local-changes', false);
@@ -71,7 +71,7 @@ describe('waitForProviderReady', () => {
 
   it('rejects on connection errors', async () => {
     const provider = createMockProvider();
-    const readyPromise = waitForProviderReady(provider);
+    const readyPromise = waitForSync(provider);
 
     provider.emit('connection-error', { reason: 'boom' });
 
@@ -81,7 +81,7 @@ describe('waitForProviderReady', () => {
   it('rejects when aborted', async () => {
     const provider = createMockProvider();
     const controller = new AbortController();
-    const readyPromise = waitForProviderReady(provider, { signal: controller.signal });
+    const readyPromise = waitForSync(provider, { signal: controller.signal });
 
     controller.abort(new Error('test abort'));
 

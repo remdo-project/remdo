@@ -87,7 +87,6 @@ beforeEach<TestContext>(async (ctx) => {
   ctx.lexical = helpers;
 
   if (collab.enabled) {
-    await helpers.waitForHydrated();
     await helpers.mutate(() => {
       $getRoot().clear();
     });

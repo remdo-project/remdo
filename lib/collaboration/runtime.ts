@@ -197,15 +197,23 @@ function waitForEvent(
   });
 }
 
-export function waitForProviderReady(
+/**
+ * Wait until a collaboration provider reports `synced`, and optionally until it has no pending
+ * local changes (hasLocalChanges === false). Rejects on connection errors or abort/timeout.
+ *
+ * Used by:
+ * - CollaborationProvider (awaitSynced)
+ * - snapshot CLI (save/load safety)
+ */
+export function waitForSync(
   provider: MinimalProviderEvents,
   {
     timeoutMs = 5000,
     signal,
-    waitForLocalClear = true,
-  }: { timeoutMs?: number; signal?: AbortSignal; waitForLocalClear?: boolean } = {}
+    drainLocalChanges = true,
+  }: { timeoutMs?: number; signal?: AbortSignal; drainLocalChanges?: boolean } = {}
 ): Promise<void> {
-  const requiresLocalClear = waitForLocalClear;
+  const requiresLocalClear = drainLocalChanges;
   const hasPendingLocalChanges = () => requiresLocalClear && provider.hasLocalChanges === true;
 
   if (provider.synced && !hasPendingLocalChanges()) {
@@ -226,7 +234,7 @@ export function waitForProviderReady(
   const watcherCancel = new AbortController();
   const watcherSignal = mergeAbortSignals([mergedSignal, watcherCancel.signal]);
 
-  const waitForSync = waitForEvent(provider, 'sync', watcherSignal);
+  const waitForSyncEvent = waitForEvent(provider, 'sync', watcherSignal);
   const waitForLocalClearEvent = requiresLocalClear
     ? waitForEvent(provider, 'local-changes', watcherSignal)
     : null;
@@ -245,7 +253,9 @@ export function waitForProviderReady(
     throw error;
   });
 
-  const waiters = waitForLocalClearEvent ? [waitForFailure, waitForSync, waitForLocalClearEvent] : [waitForFailure, waitForSync];
+  const waiters = waitForLocalClearEvent
+    ? [waitForFailure, waitForSyncEvent, waitForLocalClearEvent]
+    : [waitForFailure, waitForSyncEvent];
 
   return Promise.race(waiters)
     .then(() => {
@@ -253,7 +263,7 @@ export function waitForProviderReady(
         watcherCancel.abort(new DOMException('ready', 'AbortError'));
         return;
       }
-      return waitForProviderReady(provider, { timeoutMs, signal: mergedSignal, waitForLocalClear });
+      return waitForSync(provider, { timeoutMs, signal: mergedSignal, drainLocalChanges });
     })
     .finally(() => {
       if (!watcherCancel.signal.aborted) {

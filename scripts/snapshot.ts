@@ -20,7 +20,7 @@ import type { Transaction } from 'yjs';
 
 import { config } from '#config';
 import { createEditorInitialConfig } from '#lib/editor/config';
-import { createProviderFactory, waitForProviderReady } from '#lib/collaboration/runtime';
+import { createProviderFactory, waitForSync } from '#lib/collaboration/runtime';
 
 type SharedRootObserver = (
   events: Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
@@ -235,7 +235,7 @@ async function runLoad(docId: string, collabOrigin: string, filePath: string): P
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data.editorState ?? editor.getEditorState().toJSON()), { tag: 'snapshot-load' });
     await done;
-    await waitForProviderReady(provider);
+    await waitForSync(provider);
   });
 }
 
@@ -246,7 +246,7 @@ async function withSession(
 ): Promise<void> {
   const doc = new Doc();
   const docMap = new Map([[docId, doc]]);
-  const providerFactory = createProviderFactory(collabOrigin);
+  const providerFactory = createProviderFactory(collabOrigin); // shared with the app; see waitForSync for readiness semantics
   const lexicalProvider = providerFactory(docId, docMap);
   const provider = lexicalProvider as unknown as SnapshotProvider;
   (provider as unknown as { _WS?: typeof globalThis.WebSocket })._WS = WebSocket as unknown as typeof globalThis.WebSocket;
@@ -288,7 +288,7 @@ async function withSession(
   try {
     const initialUpdate = waitForEditorUpdate(editor);
     void provider.connect();
-    await waitForProviderReady(provider);
+    await waitForSync(provider);
     syncYjsStateToLexicalV2__EXPERIMENTAL(binding, lexicalProvider);
     await initialUpdate;
 

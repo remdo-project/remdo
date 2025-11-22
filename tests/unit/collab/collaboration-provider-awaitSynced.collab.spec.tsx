@@ -57,8 +57,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitHydrated', () => {
-  it('waits for the current provider to hydrate', async () => {
+describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitSynced', () => {
+  it('waits for sync plus local-change drain', async () => {
     const factory: runtime.ProviderFactory = (_id: string, _docMap: Map<string, unknown>) =>
       createMockProvider() as unknown as runtime.CollaborationProviderInstance;
 
@@ -80,40 +80,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitHydrate
       provider = collab.providerFactory('doc-id', new Map()) as unknown as MockProvider;
     });
 
-    const firstAwait = collab.awaitHydrated();
-
-    provider.synced = true;
-    provider.emit('sync', true);
-    provider.emit('local-changes', false);
-
-    await expect(firstAwait).resolves.toBeUndefined();
-
-    // Hydration ignores local-change drain; synced covers that path.
-  });
-
-  it('waits for local changes to flush via awaitSynced', async () => {
-    const factory: runtime.ProviderFactory = (_id: string, _docMap: Map<string, unknown>) =>
-      createMockProvider() as unknown as runtime.CollaborationProviderInstance;
-
-    vi.spyOn(runtime, 'createProviderFactory').mockReturnValue(factory);
-
-    let status: CollaborationStatusValue | undefined;
-    render(
-      <CollaborationProvider>
-        <CollabConsumer onReady={(value) => { status = value; }} />
-      </CollaborationProvider>
-    );
-
-    await waitFor(() => { expect(status).toBeDefined(); });
-
-    const collab = status!;
-    let provider!: MockProvider;
-
-    await act(async () => {
-      provider = collab.providerFactory('doc-id', new Map()) as unknown as MockProvider;
-    });
-
-    const firstAwait = collab.awaitSynced();
+    const pending = collab.awaitSynced();
 
     provider.synced = true;
     provider.hasLocalChanges = true;
@@ -121,18 +88,18 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitHydrate
     provider.emit('local-changes', true);
 
     const settled = vi.fn();
-    firstAwait.then(() => settled('resolved')).catch((error) => settled(error));
-
+    pending.then(() => settled('resolved')).catch((error) => settled(error));
     await Promise.resolve();
     expect(settled).not.toHaveBeenCalled();
 
     provider.hasLocalChanges = false;
     provider.emit('local-changes', false);
 
-    await expect(firstAwait).resolves.toBeUndefined();
+    await expect(pending).resolves.toBeUndefined();
+    await waitFor(() => { expect(status?.synced).toBe(true); });
   });
 
-  it('retries hydration after connection errors and later syncs', async () => {
+  it('recovers after connection errors', async () => {
     const factory: runtime.ProviderFactory = (_id: string, _docMap: Map<string, unknown>) =>
       createMockProvider() as unknown as runtime.CollaborationProviderInstance;
 
@@ -157,18 +124,18 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitHydrate
       provider = getCollab().providerFactory('doc-id', new Map()) as unknown as MockProvider;
     });
 
-    const firstAwait = getCollab().awaitHydrated();
+    const firstAwait = getCollab().awaitSynced();
 
     await act(async () => {
       provider.emit('connection-error', {});
     });
 
     await expect(firstAwait).rejects.toThrow();
-    expect(getCollab().hydrated).toBe(false);
+    expect(getCollab().synced).toBe(false);
 
     provider.hasLocalChanges = true;
 
-    const secondAwait = getCollab().awaitHydrated();
+    const secondAwait = getCollab().awaitSynced();
     const settled = vi.fn();
     secondAwait.then(() => settled('resolved')).catch((error) => settled(error));
 
@@ -183,6 +150,6 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitHydrate
     });
 
     await expect(secondAwait).resolves.toBeUndefined();
-    expect(getCollab().hydrated).toBe(true);
+    expect(getCollab().synced).toBe(true);
   });
 });

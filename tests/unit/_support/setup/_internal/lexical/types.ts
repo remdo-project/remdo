@@ -8,7 +8,6 @@ export interface LexicalTestHelpers {
   mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>;
   validate: <T>(fn: () => T) => T;
   getEditorState: () => EditorStateJSON;
-  waitForHydrated: () => Promise<void>;
   waitForSynced: () => Promise<void>;
   getCollabDocId: () => string;
 }
