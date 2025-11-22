@@ -104,4 +104,58 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitReady',
 
     await expect(secondAwait).resolves.toBeUndefined();
   });
+
+  it('retries readiness after connection errors and later syncs', async () => {
+    const factory: runtime.ProviderFactory = (_id: string, _docMap: Map<string, unknown>) =>
+      createMockProvider() as unknown as runtime.CollaborationProviderInstance;
+
+    vi.spyOn(runtime, 'createProviderFactory').mockReturnValue(factory);
+
+    let status: CollaborationStatusValue | undefined;
+    const getCollab = () => {
+      if (!status) throw new Error('Collaboration status unavailable');
+      return status;
+    };
+
+    render(
+      <CollaborationProvider>
+        <CollabConsumer onReady={(value) => { status = value; }} />
+      </CollaborationProvider>
+    );
+
+    await waitFor(() => { expect(status).toBeDefined(); });
+
+    let provider!: MockProvider;
+    await act(async () => {
+      provider = getCollab().providerFactory('doc-id', new Map()) as unknown as MockProvider;
+    });
+
+    const firstAwait = getCollab().awaitReady();
+
+    await act(async () => {
+      provider.emit('connection-error', {});
+    });
+
+    await expect(firstAwait).rejects.toThrow();
+    expect(getCollab().ready).toBe(false);
+
+    provider.hasLocalChanges = true;
+
+    const secondAwait = getCollab().awaitReady();
+    const settled = vi.fn();
+    secondAwait.then(() => settled('resolved')).catch((error) => settled(error));
+
+    await Promise.resolve();
+    expect(settled).not.toHaveBeenCalled();
+
+    await act(async () => {
+      provider.synced = true;
+      provider.emit('sync', true);
+      provider.hasLocalChanges = false;
+      provider.emit('local-changes', false);
+    });
+
+    await expect(secondAwait).resolves.toBeUndefined();
+    expect(getCollab().ready).toBe(true);
+  });
 });
