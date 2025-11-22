@@ -165,9 +165,41 @@ interface MinimalProviderEvents {
   hasLocalChanges?: boolean;
 }
 
+function waitForEvent(
+  provider: MinimalProviderEvents,
+  event: string,
+  signal: AbortSignal
+): Promise<void> {
+  if (signal.aborted) {
+    return Promise.reject(toAbortError(signal.reason));
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    let cleaned = false;
+
+    const onEvent = () => finish(resolve);
+    const onAbort = () => finish(() => reject(toAbortError(signal.reason)));
+
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      provider.off(event, onEvent);
+      signal.removeEventListener('abort', onAbort);
+    };
+
+    function finish(fn: () => void) {
+      cleanup();
+      fn();
+    }
+
+    signal.addEventListener('abort', onAbort, { once: true });
+    provider.on(event, onEvent);
+  });
+}
+
 export function waitForProviderReady(
   provider: MinimalProviderEvents,
-  { timeoutMs = 10_000 }: { timeoutMs?: number } = {}
+  { timeoutMs = 5000, signal }: { timeoutMs?: number; signal?: AbortSignal } = {}
 ): Promise<void> {
   const hasPendingLocalChanges = () => provider.hasLocalChanges === true;
 
@@ -175,58 +207,63 @@ export function waitForProviderReady(
     return Promise.resolve();
   }
 
-  return new Promise<void>((resolve, reject) => {
-    let settled = false;
-    let cleanup: () => void = () => {};
-    const finish = (fn: () => void) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      fn();
-    };
+  const mergedSignal = mergeAbortSignals([signal, AbortSignal.timeout(timeoutMs)]);
+  if (mergedSignal.aborted) {
+    const reason = mergedSignal.reason ?? new Error('Aborted');
+    return Promise.reject(reason instanceof Error ? reason : new Error(String(reason)));
+  }
 
-    const maybeResolve = () => {
-      if (provider.synced && !hasPendingLocalChanges()) {
-        finish(() => resolve());
-      }
-    };
+  const readyPredicate = () => provider.synced === true && !hasPendingLocalChanges();
+  if (readyPredicate()) {
+    return Promise.resolve();
+  }
 
-    const handleSync = (isSynced: unknown) => {
-      if (isSynced === true) {
-        maybeResolve();
-      }
-    };
+  const waitForSync = waitForEvent(provider, 'sync', mergedSignal);
+  const waitForLocalClear = waitForEvent(provider, 'local-changes', mergedSignal);
+  const waitForFailure = Promise.race([
+    waitForEvent(provider, 'connection-close', mergedSignal).then(() => {
+      throw createConnectionError({ reason: 'connection-close' });
+    }),
+    waitForEvent(provider, 'connection-error', mergedSignal).then(() => {
+      throw createConnectionError({ reason: 'connection-error' });
+    }),
+  ]);
 
-    const handleLocalChanges = (hasLocalChanges: unknown) => {
-      if (hasLocalChanges === false) {
-        maybeResolve();
-      }
-    };
-
-    const handleFailure = (payload: unknown) => {
-      finish(() => reject(createConnectionError(payload)));
-    };
-
-    const timeout = setTimeout(() => {
-      finish(() => reject(new Error(`Timed out waiting for collaboration sync after ${timeoutMs}ms`)));
-    }, timeoutMs);
-
-    cleanup = () => {
-      clearTimeout(timeout);
-      provider.off('sync', handleSync);
-      provider.off('local-changes', handleLocalChanges);
-      provider.off('connection-close', handleFailure);
-      provider.off('connection-error', handleFailure);
-    };
-
-    provider.on('sync', handleSync);
-    provider.on('local-changes', handleLocalChanges);
-    provider.on('connection-close', handleFailure);
-    provider.on('connection-error', handleFailure);
-
-    // Re-check in case we subscribed after the provider was already ready.
-    maybeResolve();
+  return Promise.race([waitForFailure, waitForSync, waitForLocalClear]).then(() => {
+    if (readyPredicate()) {
+      return;
+    }
+    return waitForProviderReady(provider, { timeoutMs, signal: mergedSignal });
   });
+}
+
+function mergeAbortSignals(signals: (AbortSignal | undefined)[]): AbortSignal {
+  const active = signals.filter(Boolean) as AbortSignal[];
+  if (active.length === 0) {
+    return new AbortController().signal; // never aborted
+  }
+  const controller = new AbortController();
+  const abort = (reason: unknown) => {
+    if (!controller.signal.aborted) {
+      controller.abort(reason);
+    }
+  };
+
+  for (const sig of active) {
+    if (sig.aborted) {
+      abort(sig.reason);
+      break;
+    }
+    sig.addEventListener('abort', () => abort(sig.reason), { once: true });
+  }
+  return controller.signal;
+}
+
+function toAbortError(reason: unknown): Error {
+  if (reason instanceof Error) {
+    return reason;
+  }
+  return new Error(typeof reason === 'string' ? reason : 'Aborted');
 }
 
 function createConnectionError(payload: unknown): Error {

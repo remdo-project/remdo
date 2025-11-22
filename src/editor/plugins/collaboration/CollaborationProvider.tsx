@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { config } from '#config';
-import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
+import { createContext, use, useCallback, useMemo, useRef } from 'react';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
 import { createProviderFactory, waitForProviderReady } from '#lib/collaboration/runtime';
 import type * as Y from 'yjs';
@@ -47,124 +47,57 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
     return doc?.length ? doc : config.env.COLLAB_DOCUMENT_ID;
   }, []);
 
-  const [deferred, setDeferred] = useState(() => createDeferred(enabled));
-  const currentDeferredRef = useRef<Deferred>(deferred);
-  const pendingDeferredsRef = useRef<Deferred[]>([]);
-
-  const handleReady = useCallback(
-    (provider: ReturnType<ProviderFactory>) => {
-      if (!enabled) {
-        return () => {};
-      }
-
-      const eventfulProvider = provider as unknown as {
-        on: (event: string, handler: (payload: unknown) => void) => void;
-        off: (event: string, handler: (payload: unknown) => void) => void;
-      };
-
-      let active = true;
-      let waitingFor: number | null = null;
-      let generation = 0;
-
-      const bumpDeferred = (queuePrevious: boolean) => {
-        setDeferred((previous) => {
-          if (queuePrevious) {
-            pendingDeferredsRef.current.push(previous);
-          }
-          const next = createDeferred(enabled);
-          currentDeferredRef.current = next;
-          return next;
-        });
-      };
-
-      const startWait = () => {
-        if (!active || waitingFor === generation) return;
-        const runFor = generation;
-        waitingFor = runFor;
-
-        waitForProviderReady(provider)
-          .then(() => {
-            if (!active || generation !== runFor) return;
-            waitingFor = null;
-            const current = currentDeferredRef.current;
-            const deferreds = [current, ...pendingDeferredsRef.current.splice(0)];
-            for (const item of deferreds) {
-              item.resolve();
-            }
-          })
-          .catch((error) => {
-            if (!active || generation !== runFor) return;
-            waitingFor = null;
-            const current = currentDeferredRef.current;
-            const deferreds = [current, ...pendingDeferredsRef.current.splice(0)];
-            for (const item of deferreds) {
-              item.reject(error);
-            }
-            generation += 1;
-            bumpDeferred(false);
-            queueMicrotask(startWait);
-          });
-      };
-
-      const reset = () => {
-        if (!active) return;
-        generation += 1;
-        waitingFor = null;
-        bumpDeferred(true);
-        startWait();
-      };
-
-      const handleSync = (isSynced: unknown) => {
-        if (isSynced === false) {
-          reset();
-        }
-      };
-
-      const handleLocalChanges = (hasLocalChanges: unknown) => {
-        if (hasLocalChanges === true) {
-          reset();
-        }
-      };
-
-      const handleFailure = () => reset();
-
-      reset();
-
-      eventfulProvider.on('sync', handleSync);
-      eventfulProvider.on('local-changes', handleLocalChanges);
-      eventfulProvider.on('connection-close', handleFailure);
-      eventfulProvider.on('connection-error', handleFailure);
-
-      return () => {
-        active = false;
-        eventfulProvider.off('sync', handleSync);
-        eventfulProvider.off('local-changes', handleLocalChanges);
-        eventfulProvider.off('connection-close', handleFailure);
-        eventfulProvider.off('connection-error', handleFailure);
-      };
-    },
-    [enabled]
-  );
+  const providerRef = useRef<ReturnType<ProviderFactory> | null>(null);
+  const waitersRef = useRef<Set<{ resolve: () => void; reject: (err: Error) => void }>>(new Set());
 
   const awaitReady = useCallback(() => {
-    return deferred.promise;
-  }, [deferred.promise]);
+    if (!enabled) {
+      return Promise.resolve();
+    }
+
+    const provider = providerRef.current;
+    if (provider) {
+      return waitForProviderReady(provider);
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      waitersRef.current.add({ resolve, reject });
+    });
+  }, [enabled]);
 
   const providerFactory = useMemo(
     () => {
       const factory = createProviderFactory(collabOrigin);
       return ((id: string, docMap: Map<string, Y.Doc>) => {
         const provider = factory(id, docMap);
-        const stopReady = handleReady(provider);
+        providerRef.current = provider;
+
+        if (waitersRef.current.size > 0) {
+          const pending = Array.from(waitersRef.current);
+          waitersRef.current.clear();
+          for (const waiter of pending) {
+            waitForProviderReady(provider).then(waiter.resolve, waiter.reject);
+          }
+        }
+
         const destroy = provider.destroy.bind(provider);
         provider.destroy = () => {
-          stopReady();
+          if (providerRef.current === provider) {
+            providerRef.current = null;
+          }
+          if (waitersRef.current.size > 0) {
+            const pending = Array.from(waitersRef.current);
+            waitersRef.current.clear();
+            for (const waiter of pending) {
+              waiter.reject(new Error('Collaboration provider disposed'));
+            }
+          }
           destroy();
         };
         return provider;
       }) as ProviderFactory;
     },
-    [collabOrigin, handleReady]
+    [collabOrigin]
   );
 
   return useMemo<CollaborationStatusValue>(
@@ -179,24 +112,3 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
 }
 
 export type { CollaborationStatusValue };
-
-type Deferred = ReturnType<typeof createDeferred>;
-
-function createDeferred(enabled: boolean): { promise: Promise<void>; resolve: () => void; reject: (error: Error) => void } {
-  if (!enabled) {
-    return {
-      promise: Promise.resolve(),
-      resolve: () => {},
-      reject: () => {},
-    };
-  }
-
-  let resolve!: () => void;
-  let reject!: (error: Error) => void;
-  const promise = new Promise<void>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-
-  return { promise, resolve, reject };
-}
