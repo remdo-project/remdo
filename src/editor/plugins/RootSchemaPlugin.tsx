@@ -5,30 +5,25 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { $createParagraphNode, $getRoot, RootNode } from 'lexical';
 import { useEffect } from 'react';
 import { useCollaborationStatus } from './collaboration';
+import { markRootSchemaReady } from '@/editor/root-schema-ready';
 
 export function RootSchemaPlugin() {
   const [editor] = useLexicalComposerContext();
-  const { awaitReady } = useCollaborationStatus();
+  const { ready } = useCollaborationStatus();
 
   useEffect(() => {
-    let cancelled = false;
-    let unregister: (() => void) | undefined;
+    if (!ready) {
+      return;
+    }
 
-    void awaitReady()
-      .then(() => {
-        if (cancelled) return;
-        unregister = editor.registerNodeTransform(RootNode, $ensureSingleListRoot);
-        normalizeRootOnce(editor);
-      })
-      .catch(() => {
-        // readiness failed; allow effect to complete without registration
-      });
+    const unregister = editor.registerNodeTransform(RootNode, $ensureSingleListRoot);
+    normalizeRootOnce(editor);
+    markRootSchemaReady(editor);
 
     return () => {
-      cancelled = true;
-      unregister?.();
+      unregister();
     };
-  }, [awaitReady, editor]);
+  }, [editor, ready]);
 
   return null;
 }

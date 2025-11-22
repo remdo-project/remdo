@@ -4,6 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
 import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
+import { awaitRootSchemaReady } from '@/editor/root-schema-ready';
 import type { LexicalTestHelpers } from './types';
 
 async function lexicalLoad(
@@ -102,6 +103,7 @@ export function createLexicalTestHelpers(
 ): LexicalTestHelpers {
   async function waitForCollabReady(): Promise<void> {
     await getCollabStatus().awaitReady();
+    await awaitRootSchemaReady(editor);
   }
 
   function getCollabDocId(): string {

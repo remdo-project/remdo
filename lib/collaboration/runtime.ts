@@ -218,23 +218,39 @@ export function waitForProviderReady(
     return Promise.resolve();
   }
 
-  const waitForSync = waitForEvent(provider, 'sync', mergedSignal);
-  const waitForLocalClear = waitForEvent(provider, 'local-changes', mergedSignal);
+  const watcherCancel = new AbortController();
+  const watcherSignal = mergeAbortSignals([mergedSignal, watcherCancel.signal]);
+
+  const waitForSync = waitForEvent(provider, 'sync', watcherSignal);
+  const waitForLocalClear = waitForEvent(provider, 'local-changes', watcherSignal);
   const waitForFailure = Promise.race([
-    waitForEvent(provider, 'connection-close', mergedSignal).then(() => {
+    waitForEvent(provider, 'connection-close', watcherSignal).then(() => {
       throw createConnectionError({ reason: 'connection-close' });
     }),
-    waitForEvent(provider, 'connection-error', mergedSignal).then(() => {
+    waitForEvent(provider, 'connection-error', watcherSignal).then(() => {
       throw createConnectionError({ reason: 'connection-error' });
     }),
-  ]);
-
-  return Promise.race([waitForFailure, waitForSync, waitForLocalClear]).then(() => {
-    if (readyPredicate()) {
+  ]).catch((error) => {
+    // When we cancel outstanding watchers after readiness, swallow the abort.
+    if (watcherCancel.signal.aborted && error instanceof Error && error.name === 'AbortError') {
       return;
     }
-    return waitForProviderReady(provider, { timeoutMs, signal: mergedSignal });
+    throw error;
   });
+
+  return Promise.race([waitForFailure, waitForSync, waitForLocalClear])
+    .then(() => {
+      if (readyPredicate()) {
+        watcherCancel.abort(new DOMException('ready', 'AbortError'));
+        return;
+      }
+      return waitForProviderReady(provider, { timeoutMs, signal: mergedSignal });
+    })
+    .finally(() => {
+      if (!watcherCancel.signal.aborted) {
+        watcherCancel.abort(new DOMException('cleanup', 'AbortError'));
+      }
+    });
 }
 
 function mergeAbortSignals(signals: (AbortSignal | undefined)[]): AbortSignal {
