@@ -217,7 +217,7 @@ export function waitForSync(
   const requiresLocalClear = drainLocalChanges;
   const hasPendingLocalChanges = () => requiresLocalClear && provider.hasLocalChanges !== false;
 
-  if (provider.synced && !hasPendingLocalChanges()) {
+  if (!requiresLocalClear && provider.synced && !hasPendingLocalChanges()) {
     return Promise.resolve();
   }
 
@@ -233,8 +233,10 @@ export function waitForSync(
   }
 
   const watchLoop = async () => {
+    let sawEvent = false;
+
     for (;;) {
-      if (readyPredicate()) {
+      if (readyPredicate() && (!requiresLocalClear || sawEvent)) {
         return;
       }
       if (mergedSignal.aborted) {
@@ -261,6 +263,7 @@ export function waitForSync(
 
       try {
         await Promise.race(waiters);
+        sawEvent = true;
       } finally {
         // Cancel remaining waiters to release listeners and swallow their abort rejections.
         iterationAbort.abort(new DOMException('iteration-complete', 'AbortError'));
