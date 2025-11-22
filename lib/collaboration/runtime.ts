@@ -199,9 +199,14 @@ function waitForEvent(
 
 export function waitForProviderReady(
   provider: MinimalProviderEvents,
-  { timeoutMs = 5000, signal }: { timeoutMs?: number; signal?: AbortSignal } = {}
+  {
+    timeoutMs = 5000,
+    signal,
+    waitForLocalClear = true,
+  }: { timeoutMs?: number; signal?: AbortSignal; waitForLocalClear?: boolean } = {}
 ): Promise<void> {
-  const hasPendingLocalChanges = () => provider.hasLocalChanges === true;
+  const requiresLocalClear = waitForLocalClear;
+  const hasPendingLocalChanges = () => requiresLocalClear && provider.hasLocalChanges === true;
 
   if (provider.synced && !hasPendingLocalChanges()) {
     return Promise.resolve();
@@ -222,7 +227,9 @@ export function waitForProviderReady(
   const watcherSignal = mergeAbortSignals([mergedSignal, watcherCancel.signal]);
 
   const waitForSync = waitForEvent(provider, 'sync', watcherSignal);
-  const waitForLocalClear = waitForEvent(provider, 'local-changes', watcherSignal);
+  const waitForLocalClearEvent = requiresLocalClear
+    ? waitForEvent(provider, 'local-changes', watcherSignal)
+    : null;
   const waitForFailure = Promise.race([
     waitForEvent(provider, 'connection-close', watcherSignal).then(() => {
       throw createConnectionError({ reason: 'connection-close' });
@@ -238,13 +245,15 @@ export function waitForProviderReady(
     throw error;
   });
 
-  return Promise.race([waitForFailure, waitForSync, waitForLocalClear])
+  const waiters = waitForLocalClearEvent ? [waitForFailure, waitForSync, waitForLocalClearEvent] : [waitForFailure, waitForSync];
+
+  return Promise.race(waiters)
     .then(() => {
       if (readyPredicate()) {
         watcherCancel.abort(new DOMException('ready', 'AbortError'));
         return;
       }
-      return waitForProviderReady(provider, { timeoutMs, signal: mergedSignal });
+      return waitForProviderReady(provider, { timeoutMs, signal: mergedSignal, waitForLocalClear });
     })
     .finally(() => {
       if (!watcherCancel.signal.aborted) {

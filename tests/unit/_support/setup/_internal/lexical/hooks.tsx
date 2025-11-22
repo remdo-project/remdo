@@ -87,14 +87,14 @@ beforeEach<TestContext>(async (ctx) => {
   ctx.lexical = helpers;
 
   if (collab.enabled) {
-    await helpers.waitForCollabReady();
+    await helpers.waitForHydrated();
     await helpers.mutate(() => {
       $getRoot().clear();
     });
-    await helpers.waitForCollabReady();
+    await helpers.waitForHydrated();
   }
 });
 
 afterEach(async ({ lexical }) => {
-  await lexical.waitForCollabReady();
+  await lexical.waitForSynced();
 });

@@ -9,10 +9,23 @@ import { markRootSchemaReady } from '@/editor/root-schema-ready';
 
 export function RootSchemaPlugin() {
   const [editor] = useLexicalComposerContext();
-  const { ready } = useCollaborationStatus();
+  // `hydrated` is true once the current document finishes its initial collab load
+  // (or immediately when collab is disabled). `docEpoch` increments whenever a
+  // new document/provider starts loading so we can tear down/re-arm cleanly.
+  const { hydrated, docEpoch } = useCollaborationStatus();
 
+  /**
+   * Root schema lifecycle contract:
+   * 1) If collaboration is disabled, normalize immediately.
+   * 2) If collaboration is enabled but the current document has not hydrated yet,
+   *    stay idle—do not attempt to repair the schema before collab data arrives.
+   * 3) Once the current document hydrates, keep enforcing the schema even if the
+   *    provider later disconnects.
+   * 4) When a new document starts loading (provider replaced/destroyed), pause
+   *    again until that document finishes hydrating.
+   */
   useEffect(() => {
-    if (!ready) {
+    if (!hydrated) {
       return;
     }
 
@@ -23,7 +36,7 @@ export function RootSchemaPlugin() {
     return () => {
       unregister();
     };
-  }, [editor, ready]);
+  }, [editor, hydrated, docEpoch]);
 
   return null;
 }

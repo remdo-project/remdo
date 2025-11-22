@@ -57,8 +57,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitReady', () => {
-  it('waits for the current provider to flush new local changes', async () => {
+describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitHydrated', () => {
+  it('waits for the current provider to hydrate', async () => {
     const factory: runtime.ProviderFactory = (_id: string, _docMap: Map<string, unknown>) =>
       createMockProvider() as unknown as runtime.CollaborationProviderInstance;
 
@@ -80,7 +80,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitReady',
       provider = collab.providerFactory('doc-id', new Map()) as unknown as MockProvider;
     });
 
-    const firstAwait = collab.awaitReady();
+    const firstAwait = collab.awaitHydrated();
 
     provider.synced = true;
     provider.emit('sync', true);
@@ -88,13 +88,40 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitReady',
 
     await expect(firstAwait).resolves.toBeUndefined();
 
+    // Hydration ignores local-change drain; synced covers that path.
+  });
+
+  it('waits for local changes to flush via awaitSynced', async () => {
+    const factory: runtime.ProviderFactory = (_id: string, _docMap: Map<string, unknown>) =>
+      createMockProvider() as unknown as runtime.CollaborationProviderInstance;
+
+    vi.spyOn(runtime, 'createProviderFactory').mockReturnValue(factory);
+
+    let status: CollaborationStatusValue | undefined;
+    render(
+      <CollaborationProvider>
+        <CollabConsumer onReady={(value) => { status = value; }} />
+      </CollaborationProvider>
+    );
+
+    await waitFor(() => { expect(status).toBeDefined(); });
+
+    const collab = status!;
+    let provider!: MockProvider;
+
+    await act(async () => {
+      provider = collab.providerFactory('doc-id', new Map()) as unknown as MockProvider;
+    });
+
+    const firstAwait = collab.awaitSynced();
+
+    provider.synced = true;
     provider.hasLocalChanges = true;
+    provider.emit('sync', true);
     provider.emit('local-changes', true);
 
-    const secondAwait = collab.awaitReady();
-
     const settled = vi.fn();
-    secondAwait.then(() => settled('resolved')).catch((error) => settled(error));
+    firstAwait.then(() => settled('resolved')).catch((error) => settled(error));
 
     await Promise.resolve();
     expect(settled).not.toHaveBeenCalled();
@@ -102,10 +129,10 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitReady',
     provider.hasLocalChanges = false;
     provider.emit('local-changes', false);
 
-    await expect(secondAwait).resolves.toBeUndefined();
+    await expect(firstAwait).resolves.toBeUndefined();
   });
 
-  it('retries readiness after connection errors and later syncs', async () => {
+  it('retries hydration after connection errors and later syncs', async () => {
     const factory: runtime.ProviderFactory = (_id: string, _docMap: Map<string, unknown>) =>
       createMockProvider() as unknown as runtime.CollaborationProviderInstance;
 
@@ -130,18 +157,18 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitReady',
       provider = getCollab().providerFactory('doc-id', new Map()) as unknown as MockProvider;
     });
 
-    const firstAwait = getCollab().awaitReady();
+    const firstAwait = getCollab().awaitHydrated();
 
     await act(async () => {
       provider.emit('connection-error', {});
     });
 
     await expect(firstAwait).rejects.toThrow();
-    expect(getCollab().ready).toBe(false);
+    expect(getCollab().hydrated).toBe(false);
 
     provider.hasLocalChanges = true;
 
-    const secondAwait = getCollab().awaitReady();
+    const secondAwait = getCollab().awaitHydrated();
     const settled = vi.fn();
     secondAwait.then(() => settled('resolved')).catch((error) => settled(error));
 
@@ -156,6 +183,6 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitReady',
     });
 
     await expect(secondAwait).resolves.toBeUndefined();
-    expect(getCollab().ready).toBe(true);
+    expect(getCollab().hydrated).toBe(true);
   });
 });

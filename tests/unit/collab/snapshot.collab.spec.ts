@@ -58,7 +58,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     async ({ lexical }) => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-flat' };
     await lexical.load('flat');
-    await lexical.waitForCollabReady();
+    await lexical.waitForSynced();
 
       const savePath = SNAPSHOT_OUTPUTS[1]!;
       const expectedState = readEditorState(path.resolve('tests/fixtures/flat.json'));
@@ -78,7 +78,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
       const loadPath = path.resolve('tests/fixtures/tree.json');
       runSnapshotCommand('load', [loadPath], docEnv);
 
-      await lexical.waitForCollabReady();
+      await lexical.waitForSynced();
 
       const expectedState = readEditorState(loadPath);
 	      const savePath = SNAPSHOT_OUTPUTS[2]!;
@@ -89,10 +89,10 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
         return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
       });
 
-	      const savedState = readEditorState(savePath);
-	      expect(savedState.root).toEqual(expectedState.root);
+      const savedState = readEditorState(savePath);
+      expect(savedState.root).toEqual(expectedState.root);
 
-      await lexical.waitForCollabReady();
+      await lexical.waitForSynced();
     }
   );
 
@@ -120,7 +120,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     const defaultFixture = path.resolve('tests/fixtures/basic.json');
     runSnapshotCommand('load', [defaultFixture], envOverrides);
 
-    await lexical.waitForCollabReady();
+    await lexical.waitForSynced();
 
     expect(lexical.getCollabDocId()).toBe(defaultDoc);
   });
@@ -144,7 +144,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
       runSnapshotCommand('load', [defaultFixture], envOverrides);
       runSnapshotCommand('load', ['--doc', secondaryDoc, secondaryFixture]);
 
-      await lexical.waitForCollabReady();
+      await lexical.waitForSynced();
       expect(lexical.getCollabDocId()).toBe(defaultDoc);
 
       runSnapshotCommand('save', [defaultOutput], envOverrides);

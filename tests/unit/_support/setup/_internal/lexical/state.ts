@@ -101,8 +101,13 @@ export function createLexicalTestHelpers(
   editor: LexicalEditor,
   getCollabStatus: () => CollaborationStatusValue
 ): LexicalTestHelpers {
-  async function waitForCollabReady(): Promise<void> {
-    await getCollabStatus().awaitReady();
+  async function waitForHydrated(): Promise<void> {
+    await getCollabStatus().awaitHydrated();
+    await awaitRootSchemaReady(editor);
+  }
+
+  async function waitForSynced(): Promise<void> {
+    await getCollabStatus().awaitSynced();
     await awaitRootSchemaReady(editor);
   }
 
@@ -112,11 +117,12 @@ export function createLexicalTestHelpers(
 
   const helpers: LexicalTestHelpers = {
     editor,
-    load: (filename: string) => lexicalLoad(editor, filename, waitForCollabReady),
+    load: (filename: string) => lexicalLoad(editor, filename, waitForHydrated),
     mutate: (fn, opts) => lexicalMutate(editor, fn, opts),
     validate: (fn) => lexicalValidate(editor, fn),
     getEditorState: () => lexicalGetEditorState(editor),
-    waitForCollabReady,
+    waitForHydrated,
+    waitForSynced,
     getCollabDocId,
   };
 

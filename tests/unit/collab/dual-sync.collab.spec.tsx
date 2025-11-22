@@ -12,7 +12,7 @@ import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
 
 interface PeerHandle {
   editor: LexicalEditor;
-  waitForCollabReady: () => Promise<void>;
+  waitForHydrated: () => Promise<void>;
   validate: <T>(fn: () => T) => T;
 }
 
@@ -26,12 +26,12 @@ function CollaborationPeer({ onReady }: { onReady: (handle: PeerHandle) => void 
   }, [collab]);
 
   useEffect(() => {
-    const waitForCollabReady: PeerHandle['waitForCollabReady'] = () => statusRef.current.awaitReady();
+    const waitForHydrated: PeerHandle['waitForHydrated'] = () => statusRef.current.awaitHydrated();
     const validate: PeerHandle['validate'] = (fn) => editor.getEditorState().read(fn);
 
     onReady({
       editor,
-      waitForCollabReady,
+      waitForHydrated,
       validate,
     });
   }, [editor, onReady]);
@@ -57,18 +57,18 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
       if (!secondary) throw new Error('Secondary editor not ready');
     });
 
-    await Promise.all([lexical.waitForCollabReady(), secondary.waitForCollabReady()]);
+    await Promise.all([lexical.waitForHydrated(), secondary.waitForHydrated()]);
 
     lexical.editor.update(() => {
       $getRoot().clear();
     });
 
-    await Promise.all([lexical.waitForCollabReady(), secondary.waitForCollabReady()]);
+    await Promise.all([lexical.waitForHydrated(), secondary.waitForHydrated()]);
 
     expect(lexical).toMatchOutline([]);
     expect(secondary as any).toMatchOutline([]);
-    await lexical.waitForCollabReady();
-    await secondary.waitForCollabReady();
+    await lexical.waitForHydrated();
+    await secondary.waitForHydrated();
     lexical.editor.update(() => {
       //TODO use a higher level API once we have it
       const root = $getRoot();
@@ -81,10 +81,10 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
       root.append(list);
     });
 
-    await Promise.all([lexical.waitForCollabReady(), secondary.waitForCollabReady()]);
+    await Promise.all([lexical.waitForHydrated(), secondary.waitForHydrated()]);
 
-    await lexical.waitForCollabReady();
-    await secondary.waitForCollabReady();
+    await lexical.waitForHydrated();
+    await secondary.waitForHydrated();
     const sharedOutline = [{ text: 'note1', children: [] }];
     await waitFor(() => {
       expect(lexical).toMatchOutline(sharedOutline);

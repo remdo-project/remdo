@@ -9,6 +9,6 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration smoke', () => {
     });
 
     expect(lexical).toMatchOutline([]);
-    await lexical.waitForCollabReady();
+    await lexical.waitForSynced();
   });
 });

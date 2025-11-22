@@ -6,10 +6,13 @@ import { createProviderFactory, waitForProviderReady } from '#lib/collaboration/
 import type * as Y from 'yjs';
 
 interface CollaborationStatusValue {
-  ready: boolean;
+  hydrated: boolean;
+  synced: boolean;
+  docEpoch: number;
   enabled: boolean;
   providerFactory: ProviderFactory;
-  awaitReady: () => Promise<void>;
+  awaitHydrated: () => Promise<void>;
+  awaitSynced: () => Promise<void>;
   docId: string;
 }
 
@@ -17,7 +20,7 @@ const missingContextError = new Error('Collaboration context is missing. Wrap th
 
 const CollaborationStatusContext = createContext<CollaborationStatusValue | null>(null);
 
-function createReadyDeferred(enabled: boolean) {
+function createHydrationDeferred(enabled: boolean) {
   if (!enabled) {
     return { promise: Promise.resolve(), resolve: () => {}, reject: () => {} };
   }
@@ -67,12 +70,31 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
     return doc?.length ? doc : config.env.COLLAB_DOCUMENT_ID;
   }, []);
 
-  const [ready, setReady] = useState(!enabled);
+  const [hydrated, setHydrated] = useState(!enabled);
+  const [synced, setSynced] = useState(!enabled);
+  const [docEpoch, setDocEpoch] = useState(0);
   const providerRef = useRef<ReturnType<ProviderFactory> | null>(null);
-  const readyDeferredRef = useRef(createReadyDeferred(enabled));
+  const readyDeferredRef = useRef(createHydrationDeferred(enabled));
+  const syncedDeferredRef = useRef(createHydrationDeferred(enabled));
   const readyAbortRef = useRef<AbortController | null>(null);
 
-  const awaitReady = useCallback(() => {
+  const awaitHydrated = useCallback(() => {
+    if (!enabled || hydrated) {
+      return Promise.resolve();
+    }
+
+    const provider = providerRef.current;
+    const promise =
+      provider
+        ? waitForProviderReady(provider, { signal: readyAbortRef.current?.signal, waitForLocalClear: false })
+        : readyDeferredRef.current.promise;
+
+    // Attach a handler immediately to avoid unhandled rejection warnings; awaiting the same promise will still reject.
+    promise.catch(() => {});
+    return promise;
+  }, [enabled, hydrated]);
+
+  const awaitSynced = useCallback(() => {
     if (!enabled) {
       return Promise.resolve();
     }
@@ -80,10 +102,9 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
     const provider = providerRef.current;
     const promise =
       provider
-        ? waitForProviderReady(provider, { signal: readyAbortRef.current?.signal })
-        : readyDeferredRef.current.promise;
+        ? waitForProviderReady(provider, { signal: readyAbortRef.current?.signal, waitForLocalClear: true })
+        : syncedDeferredRef.current.promise;
 
-    // Attach a handler immediately to avoid unhandled rejection warnings; awaiting the same promise will still reject.
     promise.catch(() => {});
     return promise;
   }, [enabled]);
@@ -94,22 +115,42 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
       const startProviderReadyWatch = (provider: ReturnType<typeof factory>) => {
         const controller = new AbortController();
         readyAbortRef.current = controller;
-        const deferred = readyDeferredRef.current;
+        const hydratedDeferred = readyDeferredRef.current;
+        const syncedDeferred = syncedDeferredRef.current;
 
-        waitForProviderReady(provider, { signal: controller.signal })
+        waitForProviderReady(provider, { signal: controller.signal, waitForLocalClear: false })
           .then(() => {
-            setReady(true);
-            deferred.resolve();
+            setHydrated(true);
+            hydratedDeferred.resolve();
           })
           .catch((error) => {
             if (error instanceof Error && error.name === 'AbortError') {
               return;
             }
-            setReady(false);
-            deferred.reject(error instanceof Error ? error : new Error(String(error)));
+            setHydrated(false);
+            hydratedDeferred.reject(error instanceof Error ? error : new Error(String(error)));
 
             if (providerRef.current === provider) {
-              readyDeferredRef.current = createReadyDeferred(enabled);
+              readyDeferredRef.current = createHydrationDeferred(enabled);
+              syncedDeferredRef.current = createHydrationDeferred(enabled);
+              startProviderReadyWatch(provider);
+            }
+          });
+
+        waitForProviderReady(provider, { signal: controller.signal, waitForLocalClear: true })
+          .then(() => {
+            setSynced(true);
+            syncedDeferred.resolve();
+          })
+          .catch((error) => {
+            if (error instanceof Error && error.name === 'AbortError') {
+              return;
+            }
+            setSynced(false);
+            syncedDeferred.reject(error instanceof Error ? error : new Error(String(error)));
+
+            if (providerRef.current === provider) {
+              syncedDeferredRef.current = createHydrationDeferred(enabled);
               startProviderReadyWatch(provider);
             }
           });
@@ -119,19 +160,27 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         const provider = factory(id, docMap);
         providerRef.current = provider;
 
-        setReady(false);
+        setHydrated(false);
+        setSynced(false);
+        setDocEpoch((epoch) => epoch + 1);
+        readyDeferredRef.current = createHydrationDeferred(enabled);
+        syncedDeferredRef.current = createHydrationDeferred(enabled);
         startProviderReadyWatch(provider);
 
         const destroy = provider.destroy.bind(provider);
         provider.destroy = () => {
           const previousDeferred = readyDeferredRef.current;
+          const previousSyncedDeferred = syncedDeferredRef.current;
           if (providerRef.current === provider) {
             providerRef.current = null;
             readyAbortRef.current?.abort();
             readyAbortRef.current = null;
             previousDeferred.reject(new Error('Collaboration provider disposed before ready'));
-            readyDeferredRef.current = createReadyDeferred(enabled);
-            setReady(!enabled);
+            previousSyncedDeferred.reject(new Error('Collaboration provider disposed before ready'));
+            readyDeferredRef.current = createHydrationDeferred(enabled);
+            syncedDeferredRef.current = createHydrationDeferred(enabled);
+            setHydrated(!enabled);
+            setSynced(!enabled);
           }
           destroy();
         };
@@ -143,13 +192,16 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
 
   return useMemo<CollaborationStatusValue>(
     () => ({
-      ready,
+      hydrated,
+      synced,
+      docEpoch,
       enabled,
       providerFactory,
-      awaitReady,
+      awaitHydrated,
+      awaitSynced,
       docId,
     }),
-    [awaitReady, docId, enabled, providerFactory, ready]
+    [awaitHydrated, awaitSynced, docEpoch, docId, enabled, providerFactory, hydrated, synced]
   );
 }
 
