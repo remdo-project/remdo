@@ -870,17 +870,7 @@ function $shouldBlockHorizontalArrow(direction: 'left' | 'right'): boolean {
     return false;
   }
 
-  const noteItems = (() => {
-    const items = collectSelectedListItems(selection);
-    if (items.length > 0) {
-      return items;
-    }
-
-    const anchorItem = findNearestListItem(selection.anchor.getNode());
-    const focusItem = findNearestListItem(selection.focus.getNode());
-    const merged = [anchorItem, focusItem].filter((item): item is ListItemNode => item != null);
-    return merged.length > 0 ? merged.toSorted(compareDocumentOrder) : merged;
-  })();
+  const noteItems = collectSelectedListItems(selection);
   if (noteItems.length === 0) {
     return false;
   }
