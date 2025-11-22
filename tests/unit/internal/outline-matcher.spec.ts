@@ -57,14 +57,14 @@ const CASES: OutlineCase[] = [
 
 describe('toMatchOutline smoke coverage', () => {
   for (const { fixture, outline } of CASES) {
-    it(`reads ${fixture}`, ({ lexical }) => {
-      lexical.load(fixture);
+    it(`reads ${fixture}`, async ({ lexical }) => {
+      await lexical.load(fixture);
       expect(lexical).toMatchOutline(outline);
     });
   }
 
-  it('surfaces expected vs received outline when the matcher fails', ({ lexical }) => {
-    lexical.load('flat');
+  it('surfaces expected vs received outline when the matcher fails', async ({ lexical }) => {
+    await lexical.load('flat');
 
     let thrown: unknown;
     try {
@@ -85,7 +85,7 @@ describe('toMatchOutline smoke coverage', () => {
   });
 
   it('matches selection-only expectations', async ({ lexical }) => {
-    lexical.load('tree_complex');
+    await lexical.load('tree_complex');
 
     await placeCaretAtNote('note2', lexical.mutate);
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
@@ -95,7 +95,7 @@ describe('toMatchOutline smoke coverage', () => {
   });
 
   it('reports selection mismatches', async ({ lexical }) => {
-    lexical.load('tree_complex');
+    await lexical.load('tree_complex');
 
     await placeCaretAtNote('note2', lexical.mutate);
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });

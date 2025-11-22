@@ -57,7 +57,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     { meta: { collabDocId: 'snapshot-flat' } } as any,
     async ({ lexical }) => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-flat' };
-    lexical.load('flat');
+    await lexical.load('flat');
     await lexical.waitForCollabReady();
 
       const savePath = SNAPSHOT_OUTPUTS[1]!;

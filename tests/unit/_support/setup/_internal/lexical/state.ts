@@ -6,10 +6,11 @@ import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
 import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
 import type { LexicalTestHelpers } from './types';
 
-function lexicalLoad(
+async function lexicalLoad(
   editor: LexicalEditor,
-  filename: string
-): void {
+  filename: string,
+  waitForReady: () => Promise<void>
+): Promise<void> {
   const absPath = path.resolve(process.cwd(), 'tests/fixtures', `${filename}.json`);
 
   let json: string;
@@ -33,6 +34,8 @@ function lexicalLoad(
   }
 
   editor.setEditorState(editorState);
+
+  await waitForReady();
 }
 
 async function lexicalMutate(
@@ -107,7 +110,7 @@ export function createLexicalTestHelpers(
 
   const helpers: LexicalTestHelpers = {
     editor,
-    load: (filename: string) => lexicalLoad(editor, filename),
+    load: (filename: string) => lexicalLoad(editor, filename, waitForCollabReady),
     mutate: (fn, opts) => lexicalMutate(editor, fn, opts),
     validate: (fn) => lexicalValidate(editor, fn),
     getEditorState: () => lexicalGetEditorState(editor),

@@ -4,7 +4,7 @@ export type EditorStateJSON = ReturnType<ReturnType<LexicalEditor['getEditorStat
 
 export interface LexicalTestHelpers {
   editor: LexicalEditor;
-  load: (filename: string) => void;
+  load: (filename: string) => Promise<void>;
   mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>;
   validate: <T>(fn: () => T) => T;
   getEditorState: () => EditorStateJSON;
