@@ -233,10 +233,14 @@ export function waitForSync(
   }
 
   const watchLoop = async () => {
-    let sawEvent = false;
+    let sawLocalEvent = false;
 
     for (;;) {
-      if (readyPredicate() && (!requiresLocalClear || sawEvent)) {
+      if (requiresLocalClear && !hasPendingLocalChanges()) {
+        sawLocalEvent = true;
+      }
+
+      if (readyPredicate() && (!requiresLocalClear || sawLocalEvent)) {
         return;
       }
       if (mergedSignal.aborted) {
@@ -247,23 +251,29 @@ export function waitForSync(
       const iterationAbort = new AbortController();
       const iterationSignal = mergeAbortSignals([mergedSignal, iterationAbort.signal]);
 
-      const waiters: Promise<unknown>[] = [
-        waitForEvent(provider, 'sync', iterationSignal),
-        waitForEvent(provider, 'connection-close', iterationSignal).then(() => {
-          throw createConnectionError({ reason: 'connection-close' });
-        }),
-        waitForEvent(provider, 'connection-error', iterationSignal).then(() => {
-          throw createConnectionError({ reason: 'connection-error' });
-        }),
+      const waitFor = (event: string, rejectAs?: () => Error) =>
+        waitForEvent(provider, event, iterationSignal).then(() => {
+          if (rejectAs) {
+            throw rejectAs();
+          }
+          return event;
+        });
+
+      const waiters: Promise<string>[] = [
+        waitFor('sync'),
+        waitFor('connection-close', () => createConnectionError({ reason: 'connection-close' })),
+        waitFor('connection-error', () => createConnectionError({ reason: 'connection-error' })),
       ];
 
       if (requiresLocalClear) {
-        waiters.push(waitForEvent(provider, 'local-changes', iterationSignal));
+        waiters.push(waitFor('local-changes'));
       }
 
       try {
-        await Promise.race(waiters);
-        sawEvent = true;
+        const event = await Promise.race(waiters);
+        if (requiresLocalClear && event === 'local-changes') {
+          sawLocalEvent = true;
+        }
       } finally {
         // Cancel remaining waiters to release listeners and swallow their abort rejections.
         iterationAbort.abort(new DOMException('iteration-complete', 'AbortError'));
