@@ -9,6 +9,7 @@ export type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => Collab
 
 const docInitPromises = new Map<string, Promise<void>>();
 const docAuthInFlight = new Map<string, Promise<ClientToken>>();
+const neverAbortingSignal = new AbortController().signal;
 
 export function createProviderFactory(origin?: string): ProviderFactory {
   const resolveEndpoints = createEndpointResolver(origin);
@@ -214,7 +215,7 @@ export function waitForSync(
   }: { timeoutMs?: number; signal?: AbortSignal; drainLocalChanges?: boolean } = {}
 ): Promise<void> {
   const requiresLocalClear = drainLocalChanges;
-  const hasPendingLocalChanges = () => requiresLocalClear && provider.hasLocalChanges === true;
+  const hasPendingLocalChanges = () => requiresLocalClear && provider.hasLocalChanges !== false;
 
   if (provider.synced && !hasPendingLocalChanges()) {
     return Promise.resolve();
@@ -231,52 +232,55 @@ export function waitForSync(
     return Promise.resolve();
   }
 
-  const watcherCancel = new AbortController();
-  const watcherSignal = mergeAbortSignals([mergedSignal, watcherCancel.signal]);
-
-  const waitForSyncEvent = waitForEvent(provider, 'sync', watcherSignal);
-  const waitForLocalClearEvent = requiresLocalClear
-    ? waitForEvent(provider, 'local-changes', watcherSignal)
-    : null;
-  const waitForFailure = Promise.race([
-    waitForEvent(provider, 'connection-close', watcherSignal).then(() => {
-      throw createConnectionError({ reason: 'connection-close' });
-    }),
-    waitForEvent(provider, 'connection-error', watcherSignal).then(() => {
-      throw createConnectionError({ reason: 'connection-error' });
-    }),
-  ]).catch((error) => {
-    // When we cancel outstanding watchers after readiness, swallow the abort.
-    if (watcherCancel.signal.aborted && error instanceof Error && error.name === 'AbortError') {
-      return;
-    }
-    throw error;
-  });
-
-  const waiters = waitForLocalClearEvent
-    ? [waitForFailure, waitForSyncEvent, waitForLocalClearEvent]
-    : [waitForFailure, waitForSyncEvent];
-
-  return Promise.race(waiters)
-    .then(() => {
+  const watchLoop = async () => {
+    for (;;) {
       if (readyPredicate()) {
-        watcherCancel.abort(new DOMException('ready', 'AbortError'));
         return;
       }
-      return waitForSync(provider, { timeoutMs, signal: mergedSignal, drainLocalChanges });
-    })
-    .finally(() => {
-      if (!watcherCancel.signal.aborted) {
-        watcherCancel.abort(new DOMException('cleanup', 'AbortError'));
+      if (mergedSignal.aborted) {
+        throw toAbortError(mergedSignal.reason);
       }
-    });
+
+      // Abort controller to clean up whichever waiters lose the race.
+      const iterationAbort = new AbortController();
+      const iterationSignal = mergeAbortSignals([mergedSignal, iterationAbort.signal]);
+
+      const waiters: Promise<unknown>[] = [
+        waitForEvent(provider, 'sync', iterationSignal),
+        waitForEvent(provider, 'connection-close', iterationSignal).then(() => {
+          throw createConnectionError({ reason: 'connection-close' });
+        }),
+        waitForEvent(provider, 'connection-error', iterationSignal).then(() => {
+          throw createConnectionError({ reason: 'connection-error' });
+        }),
+      ];
+
+      if (requiresLocalClear) {
+        waiters.push(waitForEvent(provider, 'local-changes', iterationSignal));
+      }
+
+      try {
+        await Promise.race(waiters);
+      } finally {
+        // Cancel remaining waiters to release listeners and swallow their abort rejections.
+        iterationAbort.abort(new DOMException('iteration-complete', 'AbortError'));
+        await Promise.allSettled(waiters);
+      }
+    }
+  };
+
+  return watchLoop();
 }
 
 function mergeAbortSignals(signals: (AbortSignal | undefined)[]): AbortSignal {
   const active = signals.filter(Boolean) as AbortSignal[];
   if (active.length === 0) {
-    return new AbortController().signal; // never aborted
+    return neverAbortingSignal;
   }
+  if (active.length === 1) {
+    return active[0]!;
+  }
+
   const controller = new AbortController();
   const abort = (reason: unknown) => {
     if (!controller.signal.aborted) {
