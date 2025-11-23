@@ -15,4 +15,4 @@ const previewEnv = {
 
 forceVitestPreviewCacheDir();
 
-spawnPnpm(['exec', 'vitest-preview'], previewEnv);
+spawnPnpm(['exec', 'vitest-preview'], { env: previewEnv });

@@ -1,11 +1,9 @@
-import { spawn } from 'node:child_process';
-import type { ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import net from 'node:net';
-import process from 'node:process';
 import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
+import { spawnPnpm } from './process';
 
 const MAX_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
@@ -55,25 +53,15 @@ export async function ensureCollabServer(): Promise<StopCollabServer | undefined
     return undefined;
   }
 
-  const pnpmCmd = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-  const childEnv: NodeJS.ProcessEnv = Object.assign(
-    {},
-    // eslint-disable-next-line node/no-process-env -- propagate current env to child along with overrides
-    process.env,
-    {
-      HOST: resolvedHost,
-      COLLAB_SERVER_PORT: String(resolvedPort),
-      COLLAB_ENABLED: 'true',
-    },
-  );
-
-  const child: ChildProcess = spawn(
-    pnpmCmd,
+  const child = spawnPnpm(
     ['exec', 'y-sweet', 'serve', '--host', resolvedHost, '--port', String(resolvedPort)],
     {
-      env: childEnv,
-      stdio: 'inherit',
-      shell: false,
+      env: {
+        HOST: resolvedHost,
+        COLLAB_SERVER_PORT: String(resolvedPort),
+        COLLAB_ENABLED: 'true',
+      },
+      forwardExit: false,
     },
   );
 

@@ -19,10 +19,16 @@ export function onChildExit(child: ChildProcess): void {
   });
 }
 
+interface SpawnPnpmOptions {
+  env?: NodeJS.ProcessEnv;
+  forwardExit?: boolean;
+}
+
 export function spawnPnpm(
   args: string[],
-  envOverrides?: NodeJS.ProcessEnv,
+  options?: SpawnPnpmOptions,
 ): ChildProcess {
+  const { env: envOverrides, forwardExit = true } = options ?? {};
   const child = spawn(pnpmCmd, args, {
     // eslint-disable-next-line node/no-process-env -- merge current env with overrides for the child process
     env: { ...process.env, ...envOverrides },
@@ -30,6 +36,8 @@ export function spawnPnpm(
     shell: false,
   });
 
-  onChildExit(child);
+  if (forwardExit) {
+    onChildExit(child);
+  }
   return child;
 }
