@@ -12,7 +12,7 @@ const outlineIsFlat = (outline: Outline): boolean =>
   outline.every(({ children }) => children.length === 0 && outlineIsFlat(children));
 
 it('tab on note1 at start is a no-op (no structure change)', async ({ lexical }) => {
-  lexical.load('flat');
+  await lexical.load('flat');
 
   const before = lexical.getEditorState();
 
@@ -23,7 +23,7 @@ it('tab on note1 at start is a no-op (no structure change)', async ({ lexical })
 });
 
 it("tab on note2 at start nests it under note1; note3 stays at root", async ({ lexical }) => {
-  lexical.load('flat');
+  await lexical.load('flat');
 
   await placeCaretAtNote('note2', lexical.mutate);
   await pressKey(lexical.editor, { key: 'Tab' }); // indent note2 under note1
@@ -37,7 +37,7 @@ it("tab on note2 at start nests it under note1; note3 stays at root", async ({ l
 });
 
 it("tab on both note2 and note3 nests them both under note1", async ({ lexical }) => {
-  lexical.load('flat');
+  await lexical.load('flat');
 
   await placeCaretAtNote('note2', lexical.mutate);
   await pressKey(lexical.editor, { key: 'Tab' }); // indent note2 under note1
@@ -58,7 +58,7 @@ it("tab on both note2 and note3 nests them both under note1", async ({ lexical }
 });
 
 it("shift+tab on a child outdents it to root level", async ({ lexical }) => {
-  lexical.load('basic');
+  await lexical.load('basic');
 
   await placeCaretAtNote('note2', lexical.mutate);
   await pressKey(lexical.editor, { key: 'Tab', shift: true }); // outdent child
@@ -72,7 +72,7 @@ it("shift+tab on a child outdents it to root level", async ({ lexical }) => {
 });
 
 it('shift+tab on note2 flattens the outline', async ({ lexical }) => {
-  lexical.load('basic');
+  await lexical.load('basic');
 
   await placeCaretAtNote('note2', lexical.mutate);
   await pressKey(lexical.editor, { key: 'Tab', shift: true });
@@ -87,7 +87,7 @@ it('shift+tab on note2 flattens the outline', async ({ lexical }) => {
 });
 
 it("tab on note2 at end nests it under note1", async ({ lexical }) => {
-  lexical.load('flat');
+  await lexical.load('flat');
 
   await placeCaretAtNote('note2', lexical.mutate, -1);
   await pressKey(lexical.editor, { key: 'Tab' }); // indent note2 under note1
@@ -100,7 +100,7 @@ it("tab on note2 at end nests it under note1", async ({ lexical }) => {
 });
 
 it("tab on note2 in the middle nests it under note1", async ({ lexical }) => {
-  lexical.load('flat');
+  await lexical.load('flat');
 
   await placeCaretAtNote('note2', lexical.mutate, 2); // place caret at offset 2
   await pressKey(lexical.editor, { key: 'Tab' }); // indent note2 under note1
@@ -113,7 +113,7 @@ it("tab on note2 in the middle nests it under note1", async ({ lexical }) => {
 });
 
 it('tab indents every note in a multi-note selection', async ({ lexical }) => {
-  lexical.load('flat');
+  await lexical.load('flat');
 
   await selectNoteRange('note2', 'note3', lexical.mutate);
   await pressKey(lexical.editor, { key: 'Tab' });
@@ -130,7 +130,7 @@ it('tab indents every note in a multi-note selection', async ({ lexical }) => {
 });
 
 it('tab on a multi-note selection starting at the first root note is a no-op', async ({ lexical }) => {
-  lexical.load('flat');
+  await lexical.load('flat');
 
   await selectNoteRange('note1', 'note2', lexical.mutate);
   await pressKey(lexical.editor, { key: 'Tab' });
@@ -143,7 +143,7 @@ it('tab on a multi-note selection starting at the first root note is a no-op', a
 });
 
 it('tab indents multi-note selection regardless of drag direction', async ({ lexical }) => {
-  lexical.load('flat');
+  await lexical.load('flat');
 
   await selectNoteRange('note3', 'note2', lexical.mutate);
   await pressKey(lexical.editor, { key: 'Tab' });
@@ -160,7 +160,7 @@ it('tab indents multi-note selection regardless of drag direction', async ({ lex
 });
 
 it('tab refuses to indent a selection whose leading child lacks a previous sibling', async ({ lexical }) => {
-  lexical.load('basic');
+  await lexical.load('basic');
 
   await placeCaretAtNote('note3', lexical.mutate);
   await pressKey(lexical.editor, { key: 'Tab' });
@@ -180,7 +180,7 @@ it('tab refuses to indent a selection whose leading child lacks a previous sibli
 });
 
 it('tab indents a subtree selection even when a child lacks its own previous sibling', async ({ lexical }) => {
-  lexical.load('tree');
+  await lexical.load('tree');
 
   await selectNoteRange('note2', 'note3', lexical.mutate);
   await pressKey(lexical.editor, { key: 'Tab' });
@@ -201,7 +201,7 @@ it('tab indents a subtree selection even when a child lacks its own previous sib
 });
 
 it('tab indents when note text selection spans the entire note', async ({ lexical }) => {
-  lexical.load('flat');
+  await lexical.load('flat');
 
   await selectEntireNote('note2', lexical.mutate);
   await pressKey(lexical.editor, { key: 'Tab' });
@@ -213,7 +213,7 @@ it('tab indents when note text selection spans the entire note', async ({ lexica
 });
 
 it('shift+tab outdents when note selection spans the entire note', async ({ lexical }) => {
-  lexical.load('basic');
+  await lexical.load('basic');
 
   await selectEntireNote('note2', lexical.mutate);
   await pressKey(lexical.editor, { key: 'Tab', shift: true });
@@ -226,7 +226,7 @@ it('shift+tab outdents when note selection spans the entire note', async ({ lexi
 });
 
 it('shift+tab refuses to partially outdent when selection includes a root note', async ({ lexical }) => {
-  lexical.load('basic');
+  await lexical.load('basic');
 
   await selectNoteRange('note1', 'note2', lexical.mutate);
   await pressKey(lexical.editor, { key: 'Tab', shift: true });
@@ -243,7 +243,7 @@ it('shift+tab refuses to partially outdent when selection includes a root note',
 });
 
 it("tab on note2 at start moves it with its child note3 under note1", async ({ lexical }) => {
-  lexical.load('tree');
+  await lexical.load('tree');
 
   await placeCaretAtNote('note2', lexical.mutate);
   await pressKey(lexical.editor, { key: 'Tab' }); // indent note2 (with its child note3) under note1
@@ -265,7 +265,7 @@ it("tab on note2 at start moves it with its child note3 under note1", async ({ l
 });
 
 it('tab then shift+tab on note2 keeps the tree outline intact', async ({ lexical }) => {
-  lexical.load('tree');
+  await lexical.load('tree');
 
   const beforeState = lexical.getEditorState();
 

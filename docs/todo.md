@@ -33,6 +33,7 @@ environment access through the new module.
   helper layer above is solid, and document it alongside the existing outdent
   behavior.
 
+
 ## Harden editor schema validator tests
 
 1. Extract shared builders for editor schema fixtures to cut duplication.

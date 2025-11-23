@@ -1,21 +1,56 @@
 import type { ReactNode } from 'react';
 import { config } from '#config';
-import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
-import { CollaborationSyncController, createProviderFactory } from '#lib/collaboration/runtime';
+import { createProviderFactory } from '#lib/collaboration/runtime';
+import type * as Y from 'yjs';
 
 interface CollaborationStatusValue {
-  ready: boolean;
+  /**
+   * hydrated: first remote snapshot has been received for the current doc (initial `sync` fired).
+   * synced: hydrated AND provider.hasLocalChanges === false (all local edits flushed).
+   * docEpoch: increments whenever a new provider/doc starts loading; use to re-arm effects that
+   * should reset on doc switch (e.g., RootSchemaPlugin).
+   * awaitSynced(): waits for the synced state (includes local-change drain).
+   */
+  hydrated: boolean;
+  synced: boolean;
+  docEpoch: number;
   enabled: boolean;
   providerFactory: ProviderFactory;
-  syncing: boolean;
-  waitForSync: () => Promise<void>;
+  awaitSynced: () => Promise<void>;
   docId: string;
+}
+
+interface MinimalProviderEvents {
+  on: (event: string, handler: (payload: unknown) => void) => void;
+  off: (event: string, handler: (payload: unknown) => void) => void;
+  synced?: boolean;
+  hasLocalChanges?: boolean;
 }
 
 const missingContextError = new Error('Collaboration context is missing. Wrap the editor in <CollaborationProvider>.');
 
 const CollaborationStatusContext = createContext<CollaborationStatusValue | null>(null);
+
+function createSyncedDeferred(enabled: boolean) {
+  if (!enabled) {
+    return { promise: Promise.resolve(), resolve: () => {}, reject: () => {} };
+  }
+
+  let resolve!: () => void;
+  let reject!: (error: Error) => void;
+
+  const promise = new Promise<void>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  // Attach a handler so rejections from unused deferreds do not surface as unhandled.
+  promise.catch(() => {});
+
+  return { promise, resolve, reject };
+}
 
 // eslint-disable-next-line react-refresh/only-export-components -- Safe: hook reads context without holding component state.
 export function useCollaborationStatus(): CollaborationStatusValue {
@@ -47,73 +82,135 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
 
     return doc?.length ? doc : config.env.COLLAB_DOCUMENT_ID;
   }, []);
-  const [ready, setReady] = useState(!enabled);
-  const [syncing, setSyncing] = useState(enabled);
 
-  const syncController = useMemo(
-    () => new CollaborationSyncController(setSyncing),
-    [setSyncing]
-  );
-  const waitersRef = useRef<Set<() => void>>(new Set());
+  const [hydrated, setHydrated] = useState(!enabled);
+  const [synced, setSynced] = useState(!enabled);
+  const [docEpoch, setDocEpoch] = useState(0);
+  const hydratedRef = useRef(hydrated);
+  const syncedRef = useRef(synced);
+  const providerRef = useRef<ReturnType<ProviderFactory> | null>(null);
+  const syncedDeferredRef = useRef(createSyncedDeferred(enabled));
+  const cleanupRef = useRef<(() => void) | null>(null);
 
-  const flushWaiters = useCallback(() => {
-    if (waitersRef.current.size === 0) {
-      return;
-    }
-
-    const waiters = Array.from(waitersRef.current);
-    waitersRef.current.clear();
-    for (const resolve of waiters) {
-      resolve();
-    }
+  const setHydratedState = useCallback((value: boolean) => {
+    hydratedRef.current = value;
+    setHydrated(value);
   }, []);
 
-  useEffect(() => {
-    if (!enabled) {
-      syncController.setSyncing(false);
-    }
-  }, [enabled, syncController]);
-
-  const providerFactory = useMemo(
-    () => createProviderFactory({ setReady, syncController }, collabOrigin),
-    [collabOrigin, setReady, syncController]
+  const resetDeferredAndFlags = useCallback(
+    (reason: Error, hydratedValue: boolean, syncedValue: boolean) => {
+      const previousSyncedDeferred = syncedDeferredRef.current;
+      previousSyncedDeferred.reject(reason);
+      syncedDeferredRef.current = createSyncedDeferred(enabled);
+      hydratedRef.current = hydratedValue;
+      setHydrated(hydratedValue);
+      setSynced(syncedValue);
+      syncedRef.current = syncedValue;
+    },
+    [enabled]
   );
 
-  const resolvedReady = !enabled || ready;
-  const syncingPending = enabled && syncing;
-
-  useEffect(() => {
-    if (!enabled || (resolvedReady && !syncingPending)) {
-      flushWaiters();
-    }
-  }, [enabled, flushWaiters, resolvedReady, syncingPending]);
-
-  const waitForSync = useCallback(() => {
-    if (!enabled || (resolvedReady && !syncingPending)) {
+  const awaitSynced = useCallback(() => {
+    if (!enabled) {
       return Promise.resolve();
     }
 
-    return new Promise<void>((resolve) => {
-      const waiters = waitersRef.current;
-      const release = () => {
-        waiters.delete(release);
-        resolve();
+    const promise = syncedDeferredRef.current.promise;
+    promise.catch(() => {});
+    return promise;
+  }, [enabled]);
+
+  const providerFactory = useMemo(
+    () => {
+      const factory = createProviderFactory(collabOrigin);
+      const startProviderWatchers = (provider: ReturnType<typeof factory>) => {
+        cleanupRef.current?.();
+
+        const events = provider as unknown as MinimalProviderEvents;
+
+        const updateState = () => {
+          const nextHydrated = hydratedRef.current || events.synced === true;
+          const nextSynced = nextHydrated && events.synced === true && events.hasLocalChanges !== true;
+
+          // Re-arm awaitSynced when leaving the synced state (e.g., new local edits).
+          if (syncedRef.current && !nextSynced) {
+            syncedDeferredRef.current = createSyncedDeferred(enabled);
+          }
+
+          setHydratedState(nextHydrated);
+          setSynced(nextSynced);
+          syncedRef.current = nextSynced;
+          if (nextSynced) {
+            syncedDeferredRef.current.resolve();
+          }
+        };
+
+        const handleError = (error: unknown) => {
+          resetDeferredAndFlags(
+            error instanceof Error ? error : new Error(String(error)),
+            hydratedRef.current,
+            false
+          );
+        };
+
+        events.on('sync', updateState);
+        events.on('local-changes', updateState);
+        events.on('connection-close', handleError);
+        events.on('connection-error', handleError);
+
+        // Run once in case the provider was already ready when attached.
+        updateState();
+
+        cleanupRef.current = () => {
+          events.off('sync', updateState);
+          events.off('local-changes', updateState);
+          events.off('connection-close', handleError);
+          events.off('connection-error', handleError);
+        };
       };
 
-      waiters.add(release);
-    });
-  }, [enabled, resolvedReady, syncingPending]);
+      return ((id: string, docMap: Map<string, Y.Doc>) => {
+        const provider = factory(id, docMap);
+        providerRef.current = provider;
+
+        hydratedRef.current = false;
+        setHydrated(false);
+        setSynced(false);
+        setDocEpoch((epoch) => epoch + 1);
+        syncedDeferredRef.current = createSyncedDeferred(enabled);
+        startProviderWatchers(provider);
+
+        const destroy = provider.destroy.bind(provider);
+        provider.destroy = () => {
+          if (providerRef.current === provider) {
+            providerRef.current = null;
+            cleanupRef.current?.();
+            cleanupRef.current = null;
+            resetDeferredAndFlags(
+              new Error('Collaboration provider disposed before ready'),
+              !enabled,
+              !enabled
+            );
+          }
+          destroy();
+        };
+        return provider;
+      }) as ProviderFactory;
+    },
+    [collabOrigin, enabled, resetDeferredAndFlags, setHydratedState]
+  );
 
   return useMemo<CollaborationStatusValue>(
     () => ({
-      ready: resolvedReady,
+      hydrated,
+      synced,
+      docEpoch,
       enabled,
       providerFactory,
-      syncing: syncingPending,
-      waitForSync,
+      awaitSynced,
       docId,
     }),
-    [docId, enabled, providerFactory, resolvedReady, syncingPending, waitForSync]
+    [awaitSynced, docEpoch, docId, enabled, providerFactory, hydrated, synced]
   );
 }
 

@@ -7,35 +7,13 @@ export type CollaborationProviderInstance = Provider & { destroy: () => void };
 
 export type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => CollaborationProviderInstance;
 
-export class CollaborationSyncController {
-  private readonly setState: (value: boolean) => void;
-
-  constructor(setState: (value: boolean) => void) {
-    this.setState = setState;
-  }
-
-  setSyncing(value: boolean) {
-    this.setState(value);
-  }
-}
-
-interface ProviderFactorySignals {
-  setReady: (value: boolean) => void;
-  syncController: CollaborationSyncController;
-}
-
 const docInitPromises = new Map<string, Promise<void>>();
 const docAuthInFlight = new Map<string, Promise<ClientToken>>();
 
-export function createProviderFactory(
-  { setReady, syncController }: ProviderFactorySignals,
-  origin?: string
-): ProviderFactory {
+export function createProviderFactory(origin?: string): ProviderFactory {
   const resolveEndpoints = createEndpointResolver(origin);
 
   return (id: string, docMap: Map<string, Y.Doc>) => {
-    setReady(false);
-
     let doc = docMap.get(id);
     if (!doc) {
       doc = new Y.Doc();
@@ -60,8 +38,6 @@ export function createProviderFactory(
     });
     let destroyed = false;
 
-    const detach = attachSyncTracking(provider, syncController, setReady);
-
     const originalDestroy = provider.destroy.bind(provider);
     const destroy = () => {
       if (destroyed) {
@@ -71,7 +47,6 @@ export function createProviderFactory(
       // Prevent the provider from scheduling reconnections after teardown, which can
       // otherwise keep Node processes (e.g., snapshot CLI) alive.
       provider.connect = () => Promise.resolve();
-      detach();
       provider.disconnect();
       originalDestroy();
     };
@@ -100,6 +75,7 @@ function ensureDocInitialized(docId: string, createEndpoint: string): Promise<vo
     return existing;
   }
 
+  // TODO: Remove client-side doc creation once the auth endpoint performs getOrCreate server-side.
   const promise = fetch(createEndpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -182,52 +158,106 @@ function rewriteTokenHost(token: ClientToken): ClientToken {
   };
 }
 
-function attachSyncTracking(
-  provider: ReturnType<typeof createYjsProvider>,
-  controller: CollaborationSyncController,
-  setReady: (value: boolean) => void
-) {
-  const handleSync = (isSynced: boolean) => {
-    if (isSynced) {
-      setReady(true);
-      controller.setSyncing(false);
-      return;
+interface MinimalProviderEvents {
+  on: (event: string, handler: (payload: unknown) => void) => void;
+  off: (event: string, handler: (payload: unknown) => void) => void;
+  synced?: boolean;
+  hasLocalChanges?: boolean;
+}
+
+/**
+ * Wait until a collaboration provider reports `synced`, and optionally until it has no pending
+ * local changes (hasLocalChanges === false). Rejects on connection errors or abort/timeout.
+ *
+ * Used by:
+ * - CollaborationProvider (awaitSynced)
+ * - snapshot CLI (save/load safety)
+ */
+export function waitForSync(
+  provider: MinimalProviderEvents,
+  {
+    timeoutMs = 5000,
+    signal,
+    drainLocalChanges = true,
+  }: { timeoutMs?: number; signal?: AbortSignal; drainLocalChanges?: boolean } = {}
+): Promise<void> {
+  const requiresLocalClear = drainLocalChanges;
+  const ready = () => provider.synced === true && (!requiresLocalClear || provider.hasLocalChanges !== true);
+
+  if (ready()) {
+    return Promise.resolve();
+  }
+
+  const mergedSignal = (() => {
+    const active = [signal, AbortSignal.timeout(timeoutMs)].filter(Boolean) as AbortSignal[];
+    if (active.length === 0) {
+      return new AbortController().signal; // never aborted
+    }
+    return AbortSignal.any(active);
+  })();
+
+  if (mergedSignal.aborted) {
+    return Promise.reject(toAbortError(mergedSignal.reason));
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    function onAbort() {
+      finish(() => reject(toAbortError(mergedSignal.reason)));
     }
 
-    setReady(false);
-    controller.setSyncing(true);
-  };
-
-  const handleLocalChanges = (hasLocalChanges: boolean) => {
-    controller.setSyncing(hasLocalChanges);
-  };
-
-  const handleStatus = ({ status }: { status: string }) => {
-    if (status === 'connecting' || status === 'handshaking') {
-      setReady(false);
-      controller.setSyncing(true);
-      return;
+    function onError(payload: unknown) {
+      finish(() => reject(createConnectionError(payload)));
     }
 
-    if (status === 'connected') {
-      // syncing flag will be cleared by the sync handler once the doc is synced.
-      return;
+    function onSyncLike() {
+      if (ready()) {
+        finish(resolve);
+      }
     }
 
-    // offline/error: surface as unsynced
-    controller.setSyncing(true);
-    setReady(false);
-  };
+    function cleanup() {
+      provider.off('sync', onSyncLike);
+      provider.off('connection-close', onError);
+      provider.off('connection-error', onError);
+      if (requiresLocalClear) {
+        provider.off('local-changes', onSyncLike);
+      }
+      mergedSignal.removeEventListener('abort', onAbort);
+    }
 
-  controller.setSyncing(true);
+    function finish(fn: () => void) {
+      cleanup();
+      fn();
+    }
 
-  provider.on('sync', handleSync);
-  provider.on('status', handleStatus);
-  provider.on('local-changes', handleLocalChanges);
+    mergedSignal.addEventListener('abort', onAbort, { once: true });
+    provider.on('sync', onSyncLike);
+    provider.on('connection-close', onError);
+    provider.on('connection-error', onError);
+    if (requiresLocalClear) {
+      provider.on('local-changes', onSyncLike);
+    }
 
-  return () => {
-    provider.off('sync', handleSync);
-    provider.off('status', handleStatus);
-    provider.off('local-changes', handleLocalChanges);
-  };
+    // Catch the case where state flipped between the initial ready check and listener registration.
+    if (ready()) {
+      finish(resolve);
+    }
+  });
+}
+
+function toAbortError(reason: unknown): Error {
+  if (reason instanceof Error) {
+    return reason;
+  }
+  return new Error(typeof reason === 'string' ? reason : 'Aborted');
+}
+
+function createConnectionError(payload: unknown): Error {
+  if (payload && typeof payload === 'object') {
+    const maybeReason = (payload as { reason?: unknown }).reason;
+    if (typeof maybeReason === 'string' && maybeReason.length > 0) {
+      return new Error(`Failed to connect to collaboration server: ${maybeReason}`);
+    }
+  }
+  return new Error('Failed to connect to collaboration server');
 }

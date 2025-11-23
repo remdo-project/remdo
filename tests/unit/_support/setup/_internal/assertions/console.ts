@@ -4,7 +4,7 @@ const LEVELS = ['error', 'warn'] as const;
 
 const consoleSpies = LEVELS.map((level) => {
   // swallow console noise while recording calls
-  const spy = vi.spyOn(console, level).mockImplementation(() => {});
+  const spy = vi.spyOn(console, level).mockImplementation(() => { });
   return { level, spy };
 });
 
@@ -14,7 +14,16 @@ afterEach(() => {
 
     if (relevantCalls.length > 0) {
       const argsPreview = relevantCalls
-        .map((args) => args.map(String).join(' '))
+        .map((args) =>
+          args
+            .map((arg) => {
+              if (arg instanceof Error) {
+                return arg.stack ?? arg.message;
+              }
+              return String(arg);
+            })
+            .join(' ')
+        )
         .join('\n');
       spy.mockClear();
       expect.fail(`console.${level} was called:\n${argsPreview}`);

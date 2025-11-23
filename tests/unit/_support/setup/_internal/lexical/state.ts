@@ -1,15 +1,20 @@
 import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
+import { waitFor } from '@testing-library/react';
+import { expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
 import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
+import { $getRoot } from 'lexical';
+import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalTestHelpers } from './types';
 
-function lexicalLoad(
+async function lexicalLoad(
   editor: LexicalEditor,
-  filename: string
-): void {
+  filename: string,
+  waitForReady: () => Promise<void>
+): Promise<void> {
   const absPath = path.resolve(process.cwd(), 'tests/fixtures', `${filename}.json`);
 
   let json: string;
@@ -33,6 +38,8 @@ function lexicalLoad(
   }
 
   editor.setEditorState(editorState);
+
+  await waitForReady();
 }
 
 async function lexicalMutate(
@@ -93,16 +100,22 @@ function lexicalGetEditorState(editor: LexicalEditor) {
   return editor.getEditorState().toJSON();
 }
 
+function rootIsCanonical(editor: LexicalEditor): boolean {
+  return editor.getEditorState().read(() => {
+    const first = $getRoot().getFirstChild();
+    if (!$isListNode(first)) return false;
+    const children = first.getChildren();
+    return first.getNextSibling() === null && children.length > 0 && children.every($isListItemNode);
+  });
+}
+
 export function createLexicalTestHelpers(
   editor: LexicalEditor,
   getCollabStatus: () => CollaborationStatusValue
 ): LexicalTestHelpers {
-  async function waitForCollabSync(): Promise<void> {
-    await getCollabStatus().waitForSync();
-  }
-
-  function isCollabSyncing(): boolean {
-    return getCollabStatus().syncing;
+  async function waitForSynced(): Promise<void> {
+    await getCollabStatus().awaitSynced();
+    await waitFor(() => expect(rootIsCanonical(editor)).toBe(true));
   }
 
   function getCollabDocId(): string {
@@ -111,12 +124,11 @@ export function createLexicalTestHelpers(
 
   const helpers: LexicalTestHelpers = {
     editor,
-    load: (filename: string) => lexicalLoad(editor, filename),
+    load: (filename: string) => lexicalLoad(editor, filename, waitForSynced),
     mutate: (fn, opts) => lexicalMutate(editor, fn, opts),
     validate: (fn) => lexicalValidate(editor, fn),
     getEditorState: () => lexicalGetEditorState(editor),
-    waitForCollabSync,
-    isCollabSyncing,
+    waitForSynced,
     getCollabDocId,
   };
 

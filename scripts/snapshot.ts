@@ -20,7 +20,7 @@ import type { Transaction } from 'yjs';
 
 import { config } from '#config';
 import { createEditorInitialConfig } from '#lib/editor/config';
-import { CollaborationSyncController, createProviderFactory } from '#lib/collaboration/runtime';
+import { createProviderFactory, waitForSync } from '#lib/collaboration/runtime';
 
 type SharedRootObserver = (
   events: Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
@@ -42,7 +42,6 @@ interface CliArguments {
 type SnapshotProvider = Provider & {
   connect: () => void;
   destroy: () => void;
-  synced: boolean;
   on: (event: string, handler: (payload: unknown) => void) => void;
   off: (event: string, handler: (payload: unknown) => void) => void;
 };
@@ -50,8 +49,6 @@ type SnapshotProvider = Provider & {
 interface SessionContext {
   provider: SnapshotProvider;
 }
-
-const COLLAB_SYNC_TIMEOUT_MS = 10_000;
 
 function parseCliArguments(argv: string[]): CliArguments {
   const result: CliArguments = { markdownPath: null };
@@ -238,9 +235,7 @@ async function runLoad(docId: string, collabOrigin: string, filePath: string): P
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data.editorState ?? editor.getEditorState().toJSON()), { tag: 'snapshot-load' });
     await done;
-    if (!provider.synced) {
-      await waitForSync(provider);
-    }
+    await waitForSync(provider);
   });
 }
 
@@ -251,15 +246,7 @@ async function withSession(
 ): Promise<void> {
   const doc = new Doc();
   const docMap = new Map([[docId, doc]]);
-  const syncController = new CollaborationSyncController(() => {});
-  syncController.setSyncing(true);
-  const providerFactory = createProviderFactory(
-    {
-      setReady: () => {},
-      syncController,
-    },
-    collabOrigin,
-  );
+  const providerFactory = createProviderFactory(collabOrigin); // shared with the app; see waitForSync for readiness semantics
   const lexicalProvider = providerFactory(docId, docMap);
   const provider = lexicalProvider as unknown as SnapshotProvider;
   (provider as unknown as { _WS?: typeof globalThis.WebSocket })._WS = WebSocket as unknown as typeof globalThis.WebSocket;
@@ -321,68 +308,4 @@ function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {
       resolve();
     });
   });
-}
-
-function waitForSync(provider: Provider & { synced: boolean; on: (event: string, handler: (payload: unknown) => void) => void; off: (event: string, handler: (payload: unknown) => void) => void; }): Promise<void> {
-  if (provider.synced) {
-    return Promise.resolve();
-  }
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-    let cleanup = () => {};
-
-    const finish = (callback: () => void) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      cleanup();
-      callback();
-    };
-
-    const handleSync = (isSynced: boolean) => {
-      if (isSynced) {
-        finish(() => {
-          resolve();
-        });
-      }
-    };
-
-    const handleFailure = (payload: unknown) => {
-      finish(() => {
-        const error = payload instanceof Error ? payload : createConnectionError(payload);
-        reject(error);
-      });
-    };
-
-    cleanup = () => {
-      provider.off('sync', handleSync);
-      provider.off('connection-close', handleFailure);
-      provider.off('connection-error', handleFailure);
-      if (timeout !== undefined) {
-        clearTimeout(timeout);
-      }
-    };
-
-    timeout = setTimeout(() => {
-      finish(() => {
-        reject(new Error(`Timed out waiting for collaboration sync after ${COLLAB_SYNC_TIMEOUT_MS}ms`));
-      });
-    }, COLLAB_SYNC_TIMEOUT_MS);
-
-    provider.on('sync', handleSync);
-    provider.on('connection-close', handleFailure);
-    provider.on('connection-error', handleFailure);
-  });
-}
-
-function createConnectionError(payload: unknown): Error {
-  if (payload && typeof payload === 'object') {
-    const maybeReason = (payload as { reason?: unknown }).reason;
-    if (typeof maybeReason === 'string' && maybeReason.length > 0) {
-      return new Error(`Failed to connect to collaboration server: ${maybeReason}`);
-    }
-  }
-  return new Error('Failed to connect to collaboration server');
 }
