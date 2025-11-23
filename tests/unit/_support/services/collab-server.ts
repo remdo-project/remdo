@@ -61,7 +61,7 @@ export default async function setupCollabServer() {
     return;
   }
 
-  // TODO: align boot logic with scripts/ws-server.ts to avoid drift between CLI and tests.
+  // TODO: align boot logic with tools/ws-server.ts to avoid drift between CLI and tests.
   const host = lookupHost();
   const port = lookupPort();
   const probeHost = resolveProbeHost(host);
@@ -71,7 +71,7 @@ export default async function setupCollabServer() {
   }
 
   const pnpmCmd = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-  const child = spawn(pnpmCmd, ['exec', 'tsx', './scripts/ws-server.ts'], {
+  const child = spawn(pnpmCmd, ['exec', 'tsx', './tools/ws-server.ts'], {
     env: {
       ...process.env,
       HOST: host,
