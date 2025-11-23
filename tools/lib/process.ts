@@ -22,6 +22,7 @@ export function onChildExit(child: ChildProcess): void {
 interface SpawnPnpmOptions {
   env?: NodeJS.ProcessEnv;
   forwardExit?: boolean;
+  stdio?: 'inherit' | 'ignore' | Array<null | undefined | 'pipe' | 'ignore' | 'inherit' | number | NodeJS.ReadStream | NodeJS.WriteStream>;
 }
 
 export function spawnPnpm(
@@ -32,7 +33,7 @@ export function spawnPnpm(
   const child = spawn(pnpmCmd, args, {
     // eslint-disable-next-line node/no-process-env -- merge current env with overrides for the child process
     env: { ...process.env, ...envOverrides },
-    stdio: 'inherit',
+    stdio: options?.stdio ?? 'inherit',
     shell: false,
   });
 

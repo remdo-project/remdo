@@ -1,5 +1,8 @@
 import { once } from 'node:events';
+import fs from 'node:fs';
 import net from 'node:net';
+import path from 'node:path';
+import process from 'node:process';
 import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
@@ -8,6 +11,12 @@ import { spawnPnpm } from './process';
 
 const MAX_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
+const LOG_PATH = path.resolve(process.cwd(), 'data/logs/collab-server.log');
+
+function ensureLogStream(): fs.WriteStream {
+  fs.mkdirSync(path.dirname(LOG_PATH), { recursive: true });
+  return fs.createWriteStream(LOG_PATH, { flags: 'w' });
+}
 
 async function isPortOpen(host: string, port: number): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
@@ -46,6 +55,7 @@ export async function ensureCollabServer(): Promise<StopCollabServer | undefined
     return undefined;
   }
 
+  const logStream = ensureLogStream();
   const child = spawnPnpm(
     ['exec', 'y-sweet', 'serve', '--host', resolvedHost, '--port', String(resolvedPort)],
     {
@@ -55,19 +65,46 @@ export async function ensureCollabServer(): Promise<StopCollabServer | undefined
         COLLAB_ENABLED: 'true',
       },
       forwardExit: false,
+      stdio: ['ignore', 'pipe', 'pipe'],
     },
   );
+
+  if (child.stdout) {
+    child.stdout.pipe(logStream, { end: false });
+  }
+  if (child.stderr) {
+    child.stderr.pipe(logStream, { end: false });
+  }
+
+  const teardownSignals = ['exit', 'SIGINT', 'SIGTERM'] as const;
+  const onSignal = () => {
+    if (!child.killed) {
+      child.kill('SIGTERM');
+    }
+  };
+  for (const event of teardownSignals) {
+    process.on(event, onSignal);
+  }
+
+  const cleanup = async () => {
+    for (const event of teardownSignals) {
+      process.off(event, onSignal);
+    }
+    logStream.end();
+  };
 
   try {
     await waitForPort(probeHost, resolvedPort);
   } catch (error) {
     child.kill('SIGTERM');
     await once(child, 'exit');
+    await cleanup();
     throw error;
   }
 
   return async () => {
     child.kill('SIGTERM');
     await once(child, 'exit');
+    await cleanup();
   };
 }
