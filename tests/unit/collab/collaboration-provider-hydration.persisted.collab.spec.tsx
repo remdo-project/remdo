@@ -1,7 +1,6 @@
 import { act, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { config } from '#config';
 import * as runtime from '#lib/collaboration/runtime';
 import { createMockProvider } from './_support/provider-test-helpers';
 import { renderCollabHarness } from './_support/provider-harness';
@@ -10,7 +9,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider hydration persistence', () => {
+describe('collaboration provider hydration persistence', () => {
   it('keeps hydrated true after a transient connection error on the same document', async () => {
     const provider = createMockProvider();
 

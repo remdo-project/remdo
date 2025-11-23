@@ -1,7 +1,6 @@
 import { act, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { config } from '#config';
 import * as runtime from '#lib/collaboration/runtime';
 import { createMockProvider } from './_support/provider-test-helpers';
 import { renderCollabHarness } from './_support/provider-harness';
@@ -11,7 +10,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitSynced', () => {
+describe('collaboration provider awaitSynced', () => {
   it('waits for sync plus local-change drain', async () => {
     const factory: runtime.ProviderFactory = (_id: string, _docMap: Map<string, unknown>) =>
       createMockProvider() as unknown as runtime.CollaborationProviderInstance;

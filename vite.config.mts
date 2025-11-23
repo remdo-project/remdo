@@ -50,7 +50,10 @@ export default defineConfig(() => {
       environment: 'jsdom',
       globalSetup: './tests/unit/_support/services/collab-server.ts',
       setupFiles: ['./tests/unit/_support/setup/index.ts'],
-      include: ['tests/**/*.spec.{ts,tsx}'],
+      include: [
+        'tests/**/*.spec.{ts,tsx}',
+        ...(config.env.COLLAB_ENABLED ? [] : ['!tests/unit/collab/**']),
+      ],
       css: true,
       threads: true,
       testTimeout: 5000,
