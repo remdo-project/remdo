@@ -188,7 +188,14 @@ export function waitForSync(
     return Promise.resolve();
   }
 
-  const mergedSignal = mergeAbortSignals([signal, AbortSignal.timeout(timeoutMs)]);
+  const mergedSignal = (() => {
+    const active = [signal, AbortSignal.timeout(timeoutMs)].filter(Boolean) as AbortSignal[];
+    if (active.length === 0) {
+      return new AbortController().signal; // never aborted
+    }
+    return AbortSignal.any(active);
+  })();
+
   if (mergedSignal.aborted) {
     return Promise.reject(toAbortError(mergedSignal.reason));
   }
@@ -236,15 +243,6 @@ export function waitForSync(
       finish(resolve);
     }
   });
-}
-
-function mergeAbortSignals(signals: (AbortSignal | undefined)[]): AbortSignal {
-  const active = signals.filter(Boolean) as AbortSignal[];
-  if (active.length === 0) {
-    return new AbortController().signal; // never aborted
-  }
-
-  return AbortSignal.any(active);
 }
 
 function toAbortError(reason: unknown): Error {
