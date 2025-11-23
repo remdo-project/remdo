@@ -1,57 +1,11 @@
-import { act, render, waitFor } from '@testing-library/react';
-import { useEffect } from 'react';
+import { act, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { config } from '#config';
-import { CollaborationProvider, useCollaborationStatus } from '@/editor/plugins/collaboration';
-import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
 import * as runtime from '#lib/collaboration/runtime';
-
-type Handler = (payload: unknown) => void;
-
-function createMockProvider() {
-  const listeners = new Map<string, Set<Handler>>();
-
-  return {
-    synced: false,
-    hasLocalChanges: false,
-    destroy: vi.fn(),
-    on(event: string, handler: Handler) {
-      const set = listeners.get(event) ?? new Set<Handler>();
-      set.add(handler);
-      listeners.set(event, set);
-    },
-    off(event: string, handler: Handler) {
-      const set = listeners.get(event);
-      if (!set) return;
-      set.delete(handler);
-      if (set.size === 0) {
-        listeners.delete(event);
-      }
-    },
-    emit(event: string, payload?: unknown) {
-      const set = listeners.get(event);
-      if (!set) return;
-      for (const handler of Array.from(set)) {
-        handler(payload);
-      }
-    },
-  };
-}
-
-function CollabConsumer({ onReady }: { onReady: (value: CollaborationStatusValue) => void }) {
-  const value = useCollaborationStatus();
-
-  useEffect(() => { onReady(value); }, [onReady, value]);
-
-  return null;
-}
-
-interface MockProvider {
-  synced: boolean;
-  hasLocalChanges: boolean;
-  emit: (event: string, payload?: unknown) => void;
-}
+import { createMockProvider } from './_support/provider-test-helpers';
+import { renderCollabHarness } from './_support/provider-harness';
+import type { MockProvider } from './_support/provider-test-helpers';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -64,23 +18,16 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitSynced'
 
     vi.spyOn(runtime, 'createProviderFactory').mockReturnValue(factory);
 
-    let status: CollaborationStatusValue | undefined;
-    render(
-      <CollaborationProvider>
-        <CollabConsumer onReady={(value) => { status = value; }} />
-      </CollaborationProvider>
-    );
+    const { getCollab, waitForReady } = renderCollabHarness();
 
-    await waitFor(() => { expect(status).toBeDefined(); });
-
-    const collab = status!;
+    await waitForReady();
     let provider!: MockProvider;
 
     await act(async () => {
-      provider = collab.providerFactory('doc-id', new Map()) as unknown as MockProvider;
+      provider = getCollab().providerFactory('doc-id', new Map()) as unknown as MockProvider;
     });
 
-    const pending = collab.awaitSynced();
+    const pending = getCollab().awaitSynced();
 
     provider.synced = true;
     provider.hasLocalChanges = true;
@@ -96,7 +43,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitSynced'
     provider.emit('local-changes', false);
 
     await expect(pending).resolves.toBeUndefined();
-    await waitFor(() => { expect(status?.synced).toBe(true); });
+    await waitFor(() => { expect(getCollab().synced).toBe(true); });
   });
 
   it('recovers after connection errors', async () => {
@@ -105,19 +52,9 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration provider awaitSynced'
 
     vi.spyOn(runtime, 'createProviderFactory').mockReturnValue(factory);
 
-    let status: CollaborationStatusValue | undefined;
-    const getCollab = () => {
-      if (!status) throw new Error('Collaboration status unavailable');
-      return status;
-    };
+    const { getCollab, waitForReady } = renderCollabHarness();
 
-    render(
-      <CollaborationProvider>
-        <CollabConsumer onReady={(value) => { status = value; }} />
-      </CollaborationProvider>
-    );
-
-    await waitFor(() => { expect(status).toBeDefined(); });
+    await waitForReady();
 
     let provider!: MockProvider;
     await act(async () => {

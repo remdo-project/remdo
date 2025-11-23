@@ -86,15 +86,22 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
   const [hydrated, setHydrated] = useState(!enabled);
   const [synced, setSynced] = useState(!enabled);
   const [docEpoch, setDocEpoch] = useState(0);
+  const hydratedRef = useRef(hydrated);
   const providerRef = useRef<ReturnType<ProviderFactory> | null>(null);
   const syncedDeferredRef = useRef(createSyncedDeferred(enabled));
   const cleanupRef = useRef<(() => void) | null>(null);
+
+  const setHydratedState = useCallback((value: boolean) => {
+    hydratedRef.current = value;
+    setHydrated(value);
+  }, []);
 
   const resetDeferredAndFlags = useCallback(
     (reason: Error, hydratedValue: boolean, syncedValue: boolean) => {
       const previousSyncedDeferred = syncedDeferredRef.current;
       previousSyncedDeferred.reject(reason);
       syncedDeferredRef.current = createSyncedDeferred(enabled);
+      hydratedRef.current = hydratedValue;
       setHydrated(hydratedValue);
       setSynced(syncedValue);
     },
@@ -120,9 +127,9 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         const events = provider as unknown as MinimalProviderEvents;
 
         const updateState = () => {
-          const nextHydrated = events.synced === true;
-          const nextSynced = nextHydrated && events.hasLocalChanges !== true;
-          setHydrated(nextHydrated);
+          const nextHydrated = hydratedRef.current || events.synced === true;
+          const nextSynced = nextHydrated && events.synced === true && events.hasLocalChanges !== true;
+          setHydratedState(nextHydrated);
           setSynced(nextSynced);
           if (nextSynced) {
             syncedDeferredRef.current.resolve();
@@ -130,7 +137,11 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         };
 
         const handleError = (error: unknown) => {
-          resetDeferredAndFlags(error instanceof Error ? error : new Error(String(error)), false, false);
+          resetDeferredAndFlags(
+            error instanceof Error ? error : new Error(String(error)),
+            hydratedRef.current,
+            false
+          );
         };
 
         events.on('sync', updateState);
@@ -153,6 +164,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         const provider = factory(id, docMap);
         providerRef.current = provider;
 
+        hydratedRef.current = false;
         setHydrated(false);
         setSynced(false);
         setDocEpoch((epoch) => epoch + 1);
@@ -176,7 +188,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         return provider;
       }) as ProviderFactory;
     },
-    [collabOrigin, enabled, resetDeferredAndFlags]
+    [collabOrigin, enabled, resetDeferredAndFlags, setHydratedState]
   );
 
   return useMemo<CollaborationStatusValue>(
