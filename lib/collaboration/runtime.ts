@@ -159,8 +159,8 @@ function rewriteTokenHost(token: ClientToken): ClientToken {
 }
 
 interface MinimalProviderEvents {
-  on: (event: any, handler: (payload: any) => void) => void;
-  off: (event: any, handler: (payload: any) => void) => void;
+  on: (event: string, handler: (payload: unknown) => void) => void;
+  off: (event: string, handler: (payload: unknown) => void) => void;
   synced?: boolean;
   hasLocalChanges?: boolean;
 }

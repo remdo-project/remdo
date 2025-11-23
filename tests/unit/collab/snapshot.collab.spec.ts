@@ -29,9 +29,9 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     });
   }
 
-	function readEditorState(filePath: string): SerializedEditorState {
-	  return JSON.parse(readFileSync(filePath, 'utf8')).editorState;
-	}
+  function readEditorState(filePath: string): SerializedEditorState {
+    return JSON.parse(readFileSync(filePath, 'utf8')).editorState;
+  }
 
   afterEach(() => {
     for (const filePath of SNAPSHOT_OUTPUTS) {
@@ -57,16 +57,16 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
     { meta: { collabDocId: 'snapshot-flat' } } as any,
     async ({ lexical }) => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-flat' };
-    await lexical.load('flat');
-    await lexical.waitForSynced();
+      await lexical.load('flat');
+      await lexical.waitForSynced();
 
       const savePath = SNAPSHOT_OUTPUTS[1]!;
       const expectedState = readEditorState(path.resolve('tests/fixtures/flat.json'));
-    await waitFor(() => {
-      runSnapshotCommand('save', [savePath], docEnv);
-      const saved = readEditorState(savePath);
-      return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
-    });
+      await waitFor(() => {
+        runSnapshotCommand('save', [savePath], docEnv);
+        const saved = readEditorState(savePath);
+        return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
+      });
     }
   );
 
@@ -81,7 +81,7 @@ describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
       await lexical.waitForSynced();
 
       const expectedState = readEditorState(loadPath);
-	      const savePath = SNAPSHOT_OUTPUTS[2]!;
+      const savePath = SNAPSHOT_OUTPUTS[2]!;
 
       await waitFor(() => {
         runSnapshotCommand('save', [savePath], docEnv);
