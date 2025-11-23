@@ -6,12 +6,11 @@ import type { SerializedEditorState } from 'lexical';
 import type { TestContext } from 'vitest';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
-import { config } from '#config';
 import type { Buffer } from 'node:buffer';
 
 const SNAPSHOT_TIMEOUT_MS = 15_000;
 
-describe.skipIf(!config.env.COLLAB_ENABLED)('snapshot CLI', () => {
+describe('snapshot CLI', () => {
   const SNAPSHOT_OUTPUTS = [
     path.resolve('data', 'snapshot.cli.json'),
     path.resolve('data', 'snapshot.cli.flat.json'),

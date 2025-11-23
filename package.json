@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "packageManager": "pnpm@10.18.2+sha512.9fb969fa749b3ade6035e0f109f0b8a60b5d08a1a87fdf72e337da90dcc93336e2280ca4e44f2358a649b83c17959e9993e777c2080879f3801e6f0d999ad3dd",
   "engines": {
     "node": ">=22.0.0"
@@ -30,11 +31,11 @@
   "scripts": {
     "dev": "concurrently \"pnpm run dev:web\" \"pnpm run dev:ws\" \"pnpm run test:preview\"",
     "dev:web": "vite",
-    "dev:ws": "tsx ./scripts/ws-server.ts",
-    "dev:init": "./scripts/dev-init.sh",
+    "dev:ws": "tsx ./tools/collab-server.ts",
+    "dev:init": "./tools/dev-init.sh",
     "build": "vite build",
     "preview": "vite preview",
-    "load": "tsx ./scripts/snapshot.ts load",
+    "load": "tsx ./tools/snapshot.ts load",
     "lint": "cross-env CI=1 pnpm run typecheck && pnpm run lint:code",
     "lint:code": "cross-env CI=1 eslint --max-warnings=0 --cache --cache-location node_modules/.cache/eslint",
     "lint:code:watch": "chokidar \"**/*.{ts,tsx,js,jsx,mts,cts,json}\" --initial -i \"**/{node_modules,data,.git}/**\" -d 150 -c \"pnpm lint:code && echo LINT_OK || { echo LINT_FAIL; exit 1; }\"",
@@ -48,9 +49,9 @@
     "test:unit": "COLLAB_ENABLED=false pnpm exec vitest run",
     "test:unit:collab": "pnpm exec vitest run",
     "test:unit:coverage": "COLLAB_ENABLED=false pnpm exec vitest run --coverage",
-    "test:unit:watch": "COLLAB_ENABLED=false tsx ./scripts/test-unit-watch.ts",
-    "test:preview": "tsx ./scripts/test-preview.ts",
-    "save": "tsx ./scripts/snapshot.ts save"
+    "test:unit:watch": "COLLAB_ENABLED=false tsx ./tools/test-unit-watch.ts",
+    "test:preview": "tsx ./tools/test-preview.ts",
+    "save": "tsx ./tools/snapshot.ts save"
   },
   "dependencies": {
     "@lexical/devtools-core": "^0.38.2",

@@ -119,25 +119,25 @@ if (globalWithOptionalDocument.document === undefined) {
   } as unknown as Document;
 }
 
-/* eslint-disable-next-line unicorn/prefer-top-level-await -- tsx transpiles this script as CJS during tests */
-void main().catch((error) => {
+const { command, filePath, docId: cliDocId, markdownPath } = parseCliArguments(process.argv.slice(2));
+if (command !== 'save' && command !== 'load') {
+  throw new Error('Usage: snapshot.ts [--doc <id>] <load|save> [filePath] [--md[=<file>]]');
+}
+
+const docId = cliDocId?.trim() || config.env.COLLAB_DOCUMENT_ID;
+const targetFile = resolveSnapshotPath(command, docId, filePath);
+const collabOrigin = `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
+
+const execute =
+  command === 'save'
+    ? () => runSave(docId, collabOrigin, targetFile, markdownPath)
+    : () => runLoad(docId, collabOrigin, targetFile);
+
+try {
+  await execute();
+} catch (error) {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
-});
-
-async function main(): Promise<void> {
-  const { command, filePath, docId: cliDocId, markdownPath } = parseCliArguments(process.argv.slice(2));
-  if (command !== 'save' && command !== 'load') {
-    throw new Error('Usage: snapshot.ts [--doc <id>] <load|save> [filePath] [--md[=<file>]]');
-  }
-
-  const docId = cliDocId?.trim() || config.env.COLLAB_DOCUMENT_ID;
-  const targetFile = resolveSnapshotPath(command, docId, filePath);
-  const collabOrigin = `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
-
-  return command === 'save'
-    ? runSave(docId, collabOrigin, targetFile, markdownPath)
-    : runLoad(docId, collabOrigin, targetFile);
 }
 
 function resolveSnapshotPath(

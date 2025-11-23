@@ -1,8 +1,7 @@
 import type { TestContext } from 'vitest';
 import { describe, expect, it } from 'vitest';
-import { config } from '#config';
 
-describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration document id resolution', () => {
+describe('collaboration document id resolution', () => {
   it('generates a unique document id by default', async ({ lexical }: TestContext) => {
     expect(lexical.getCollabDocId()).toMatch(/^test-/);
   });

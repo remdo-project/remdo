@@ -19,6 +19,9 @@
       "#config": [
         "./config/index.ts"
       ],
+      "#tools/*": [
+        "./tools/lib/*"
+      ],
       "#tests": [
         "./tests/unit/_support/lib/index.ts"
       ],

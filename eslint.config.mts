@@ -20,6 +20,7 @@ export default antfu(
       'perfectionist/sort-named-exports': 'off',
       'unicorn/no-unused-properties': 'error',
       'unicorn/no-useless-undefined': 'error',
+      'antfu/no-top-level-await': 'off',
     },
   },
   unicornUnopinionatedConfig,

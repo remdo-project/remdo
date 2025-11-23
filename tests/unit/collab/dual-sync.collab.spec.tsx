@@ -39,7 +39,7 @@ function CollaborationPeer({ onReady }: { onReady: (handle: PeerHandle) => void 
   return null;
 }
 
-describe.skipIf(!config.env.COLLAB_ENABLED)('collaboration sync', () => {
+describe('collaboration sync', () => {
   it('syncs edits between editors', async ({ lexical }) => {
     let secondary!: PeerHandle;
     const { protocol, hostname } = globalThis.location;
