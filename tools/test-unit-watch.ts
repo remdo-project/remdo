@@ -11,7 +11,7 @@ const vitestArgs = [
   '--watch',
   '--ui',
   '--api.host',
-  '0.0.0.0',
+  config.env.HOST,
   '--api.port',
   String(config.env.VITEST_PORT),
 ];
