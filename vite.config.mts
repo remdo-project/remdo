@@ -44,6 +44,7 @@ export default defineConfig(() => {
         "#fixtures": path.resolve(__dirname, "./tests/fixtures"),
         "#config": path.resolve(__dirname, "./config"),
         "#lib": path.resolve(__dirname, "./lib"),
+        "#tools": path.resolve(__dirname, "./tools/lib"),
       },
     },
     test: {
