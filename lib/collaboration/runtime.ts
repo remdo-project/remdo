@@ -216,7 +216,7 @@ export function waitForSync(
   const requiresLocalClear = drainLocalChanges;
   const hasPendingLocalChanges = () => requiresLocalClear && provider.hasLocalChanges === true;
 
-  if (!requiresLocalClear && provider.synced && !hasPendingLocalChanges()) {
+  if (provider.synced && !hasPendingLocalChanges()) {
     return Promise.resolve();
   }
 
