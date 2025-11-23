@@ -5,7 +5,6 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { $createParagraphNode, $getRoot, RootNode } from 'lexical';
 import { useEffect } from 'react';
 import { useCollaborationStatus } from './collaboration';
-import { markRootSchemaReady } from '@/editor/root-schema-ready';
 
 export function RootSchemaPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -31,7 +30,6 @@ export function RootSchemaPlugin() {
 
     const unregister = editor.registerNodeTransform(RootNode, $ensureSingleListRoot);
     normalizeRootOnce(editor);
-    markRootSchemaReady(editor);
 
     return () => {
       unregister();

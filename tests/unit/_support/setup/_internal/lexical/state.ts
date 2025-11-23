@@ -1,10 +1,13 @@
 import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
+import { waitFor } from '@testing-library/react';
+import { expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
 import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
-import { awaitRootSchemaReady } from '@/editor/root-schema-ready';
+import { $getRoot } from 'lexical';
+import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalTestHelpers } from './types';
 
 async function lexicalLoad(
@@ -97,13 +100,22 @@ function lexicalGetEditorState(editor: LexicalEditor) {
   return editor.getEditorState().toJSON();
 }
 
+function rootIsCanonical(editor: LexicalEditor): boolean {
+  return editor.getEditorState().read(() => {
+    const first = $getRoot().getFirstChild();
+    if (!$isListNode(first)) return false;
+    const children = first.getChildren();
+    return first.getNextSibling() === null && children.length > 0 && children.every($isListItemNode);
+  });
+}
+
 export function createLexicalTestHelpers(
   editor: LexicalEditor,
   getCollabStatus: () => CollaborationStatusValue
 ): LexicalTestHelpers {
   async function waitForSynced(): Promise<void> {
     await getCollabStatus().awaitSynced();
-    await awaitRootSchemaReady(editor);
+    await waitFor(() => expect(rootIsCanonical(editor)).toBe(true));
   }
 
   function getCollabDocId(): string {
