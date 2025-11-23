@@ -4,7 +4,7 @@ const LEVELS = ['error', 'warn'] as const;
 
 const consoleSpies = LEVELS.map((level) => {
   // swallow console noise while recording calls
-  const spy = vi.spyOn(console, level).mockImplementation(() => {});
+  const spy = vi.spyOn(console, level).mockImplementation(() => { });
   return { level, spy };
 });
 
@@ -25,14 +25,8 @@ afterEach(() => {
             .join(' ')
         )
         .join('\n');
-      const isAllowedLexicalNoise =
-        // TODO: eliminate the underlying Lexical/Yjs node reuse that triggers this dev-only warning, then remove this allowlist.
-        typeof argsPreview === 'string' &&
-        argsPreview.includes('Lexical node does not exist in active editor state');
       spy.mockClear();
-      if (!isAllowedLexicalNoise) {
-        expect.fail(`console.${level} was called:\n${argsPreview}`);
-      }
+      expect.fail(`console.${level} was called:\n${argsPreview}`);
     }
 
     spy.mockClear();

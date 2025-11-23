@@ -106,11 +106,3 @@ stage 2 is active).
 
 Both variants should prove that Delete/Backspace is only swallowed when an
 actual structural removal occurs.
-
-## Stabilize collaboration snapshot schema
-
-1. Remove the `root-schema-ready` hook from production code; keep schema gating in tests only.
-2. In collab test helpers, wait for canonical single-list roots after `awaitSynced` (no shared deferred across docs).
-3. Decide the canonical snapshot shape and normalize comparisons or fixtures accordingly to avoid implicit schema rewrites.
-4. If flakiness persists, revisit the 1acb985 async ready watcher (or revert) and drop later `waitForSync` tweaks that add no value.
-5. Re-run `pnpm run test:unit:collab` in a fresh workspace to mirror CI timing once the above is in place.
