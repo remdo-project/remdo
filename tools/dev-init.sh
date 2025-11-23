@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-pnpm i --frozen-lockfile
+pnpm fetch --frozen-lockfile
+pnpm install --offline --frozen-lockfile
 TAG="v$(node -p "require('./node_modules/lexical/package.json').version")"
 
 rm -rf data/.vendor/lexical
