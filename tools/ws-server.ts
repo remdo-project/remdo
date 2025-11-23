@@ -1,17 +1,11 @@
 #!/usr/bin/env tsx
-import { config } from '#config';
-import { spawnPnpm } from './lib/process';
+import process from 'node:process';
 
-const wsEnv = {
-  HOST: config.env.HOST,
-};
+import { ensureCollabServer } from './lib/collab-server';
 
-spawnPnpm([
-  'exec',
-  'y-sweet',
-  'serve',
-  '--host',
-  config.env.HOST,
-  '--port',
-  String(config.env.COLLAB_SERVER_PORT),
-], wsEnv);
+try {
+  await ensureCollabServer();
+} catch (error) {
+  console.error(error);
+  process.exitCode = 1;
+}
