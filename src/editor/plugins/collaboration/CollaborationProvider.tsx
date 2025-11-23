@@ -87,6 +87,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
   const [synced, setSynced] = useState(!enabled);
   const [docEpoch, setDocEpoch] = useState(0);
   const hydratedRef = useRef(hydrated);
+  const syncedRef = useRef(synced);
   const providerRef = useRef<ReturnType<ProviderFactory> | null>(null);
   const syncedDeferredRef = useRef(createSyncedDeferred(enabled));
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -104,6 +105,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
       hydratedRef.current = hydratedValue;
       setHydrated(hydratedValue);
       setSynced(syncedValue);
+      syncedRef.current = syncedValue;
     },
     [enabled]
   );
@@ -129,8 +131,15 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         const updateState = () => {
           const nextHydrated = hydratedRef.current || events.synced === true;
           const nextSynced = nextHydrated && events.synced === true && events.hasLocalChanges !== true;
+
+          // Re-arm awaitSynced when leaving the synced state (e.g., new local edits).
+          if (syncedRef.current && !nextSynced) {
+            syncedDeferredRef.current = createSyncedDeferred(enabled);
+          }
+
           setHydratedState(nextHydrated);
           setSynced(nextSynced);
+          syncedRef.current = nextSynced;
           if (nextSynced) {
             syncedDeferredRef.current.resolve();
           }
