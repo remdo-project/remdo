@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 import process from 'node:process';
 
-import { ensureCollabServer } from './lib/collab-server';
+import { ensureCollabServer } from './lib/collab-server-helper';
 
 try {
   await ensureCollabServer();

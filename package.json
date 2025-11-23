@@ -30,7 +30,7 @@
   "scripts": {
     "dev": "concurrently \"pnpm run dev:web\" \"pnpm run dev:ws\" \"pnpm run test:preview\"",
     "dev:web": "vite",
-    "dev:ws": "tsx ./tools/ws-server.ts",
+    "dev:ws": "tsx ./tools/collab-server.ts",
     "dev:init": "./tools/dev-init.sh",
     "build": "vite build",
     "preview": "vite preview",

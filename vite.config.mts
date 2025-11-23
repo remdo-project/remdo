@@ -48,7 +48,7 @@ export default defineConfig(() => {
     },
     test: {
       environment: 'jsdom',
-      globalSetup: './tests/unit/_support/services/collab-server.ts',
+      globalSetup: './tests/unit/_support/services/collab-server-setup.ts',
       setupFiles: ['./tests/unit/_support/setup/index.ts'],
       include: [
         'tests/**/*.spec.{ts,tsx}',
