@@ -3,18 +3,11 @@ import net from 'node:net';
 import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
+import { resolveLoopbackHost } from '#lib/net/loopback';
 import { spawnPnpm } from './process';
 
 const MAX_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
-
-function resolveProbeHost(host: string): string {
-  if (host === '0.0.0.0' || host === '::') {
-    return '127.0.0.1';
-  }
-
-  return host;
-}
 
 async function isPortOpen(host: string, port: number): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
@@ -47,7 +40,7 @@ export type StopCollabServer = () => Promise<void>;
 export async function ensureCollabServer(): Promise<StopCollabServer | undefined> {
   const resolvedHost = config.env.HOST;
   const resolvedPort = config.env.COLLAB_SERVER_PORT;
-  const probeHost = resolveProbeHost(resolvedHost);
+  const probeHost = resolveLoopbackHost(resolvedHost, '127.0.0.1');
 
   if (await isPortOpen(probeHost, resolvedPort)) {
     return undefined;

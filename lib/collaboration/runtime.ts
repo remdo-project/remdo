@@ -1,6 +1,7 @@
 import type { Provider } from '@lexical/yjs';
 import { createYjsProvider } from '@y-sweet/client';
 import type { ClientToken } from '@y-sweet/sdk';
+import { resolveLoopbackHost } from '#lib/net/loopback';
 import * as Y from 'yjs';
 
 export type CollaborationProviderInstance = Provider & { destroy: () => void };
@@ -145,9 +146,7 @@ function rewriteTokenHost(token: ClientToken): ClientToken {
 
   const rewrite = (raw: string) => {
     const url = new URL(raw);
-    if (url.hostname === '0.0.0.0' || url.hostname === 'localhost') {
-      url.hostname = hostname;
-    }
+    url.hostname = resolveLoopbackHost(url.hostname, hostname);
     return url.toString();
   };
 
