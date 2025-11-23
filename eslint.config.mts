@@ -34,6 +34,7 @@ export default antfu(
       'ts/await-thenable': 'error',
       'ts/no-floating-promises': 'error',
       'ts/no-misused-promises': 'warn',
+      'ts/require-await': 'off',
       'ts/no-deprecated': 'warn',
       'ts/no-extra-non-null-assertion': 'error',
       'ts/no-unnecessary-type-assertion': 'warn',

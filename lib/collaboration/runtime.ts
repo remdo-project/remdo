@@ -165,38 +165,6 @@ interface MinimalProviderEvents {
   hasLocalChanges?: boolean;
 }
 
-function waitForEvent(
-  provider: MinimalProviderEvents,
-  event: string,
-  signal: AbortSignal
-): Promise<void> {
-  if (signal.aborted) {
-    return Promise.reject(toAbortError(signal.reason));
-  }
-
-  return new Promise<void>((resolve, reject) => {
-    let cleaned = false;
-
-    const onEvent = () => finish(resolve);
-    const onAbort = () => finish(() => reject(toAbortError(signal.reason)));
-
-    const cleanup = () => {
-      if (cleaned) return;
-      cleaned = true;
-      provider.off(event, onEvent);
-      signal.removeEventListener('abort', onAbort);
-    };
-
-    function finish(fn: () => void) {
-      cleanup();
-      fn();
-    }
-
-    signal.addEventListener('abort', onAbort, { once: true });
-    provider.on(event, onEvent);
-  });
-}
-
 /**
  * Wait until a collaboration provider reports `synced`, and optionally until it has no pending
  * local changes (hasLocalChanges === false). Rejects on connection errors or abort/timeout.
@@ -214,62 +182,60 @@ export function waitForSync(
   }: { timeoutMs?: number; signal?: AbortSignal; drainLocalChanges?: boolean } = {}
 ): Promise<void> {
   const requiresLocalClear = drainLocalChanges;
-  const hasPendingLocalChanges = () => requiresLocalClear && provider.hasLocalChanges === true;
+  const ready = () => provider.synced === true && (!requiresLocalClear || provider.hasLocalChanges !== true);
 
-  if (provider.synced && !hasPendingLocalChanges()) {
+  if (ready()) {
     return Promise.resolve();
   }
 
   const mergedSignal = mergeAbortSignals([signal, AbortSignal.timeout(timeoutMs)]);
   if (mergedSignal.aborted) {
-    const reason = mergedSignal.reason ?? new Error('Aborted');
-    return Promise.reject(reason instanceof Error ? reason : new Error(String(reason)));
+    return Promise.reject(toAbortError(mergedSignal.reason));
   }
 
-  const readyPredicate = () => provider.synced === true && !hasPendingLocalChanges();
-  if (readyPredicate()) {
-    return Promise.resolve();
-  }
-
-  const watcherCancel = new AbortController();
-  const watcherSignal = mergeAbortSignals([mergedSignal, watcherCancel.signal]);
-
-  const waitForSyncEvent = waitForEvent(provider, 'sync', watcherSignal);
-  const waitForLocalClearEvent = requiresLocalClear
-    ? waitForEvent(provider, 'local-changes', watcherSignal)
-    : null;
-  const waitForFailure = Promise.race([
-    waitForEvent(provider, 'connection-close', watcherSignal).then(() => {
-      throw createConnectionError({ reason: 'connection-close' });
-    }),
-    waitForEvent(provider, 'connection-error', watcherSignal).then(() => {
-      throw createConnectionError({ reason: 'connection-error' });
-    }),
-  ]).catch((error) => {
-    // When we cancel outstanding watchers after readiness, swallow the abort.
-    if (watcherCancel.signal.aborted && error instanceof Error && error.name === 'AbortError') {
-      return;
+  return new Promise<void>((resolve, reject) => {
+    function onAbort() {
+      finish(() => reject(toAbortError(mergedSignal.reason)));
     }
-    throw error;
+
+    function onError(payload: unknown) {
+      finish(() => reject(createConnectionError(payload)));
+    }
+
+    function onSyncLike() {
+      if (ready()) {
+        finish(resolve);
+      }
+    }
+
+    function cleanup() {
+      provider.off('sync', onSyncLike);
+      provider.off('connection-close', onError);
+      provider.off('connection-error', onError);
+      if (requiresLocalClear) {
+        provider.off('local-changes', onSyncLike);
+      }
+      mergedSignal.removeEventListener('abort', onAbort);
+    }
+
+    function finish(fn: () => void) {
+      cleanup();
+      fn();
+    }
+
+    mergedSignal.addEventListener('abort', onAbort, { once: true });
+    provider.on('sync', onSyncLike);
+    provider.on('connection-close', onError);
+    provider.on('connection-error', onError);
+    if (requiresLocalClear) {
+      provider.on('local-changes', onSyncLike);
+    }
+
+    // Catch the case where state flipped between the initial ready check and listener registration.
+    if (ready()) {
+      finish(resolve);
+    }
   });
-
-  const waiters = waitForLocalClearEvent
-    ? [waitForFailure, waitForSyncEvent, waitForLocalClearEvent]
-    : [waitForFailure, waitForSyncEvent];
-
-  return Promise.race(waiters)
-    .then(() => {
-      if (readyPredicate()) {
-        watcherCancel.abort(new DOMException('ready', 'AbortError'));
-        return;
-      }
-      return waitForSync(provider, { timeoutMs, signal: mergedSignal, drainLocalChanges });
-    })
-    .finally(() => {
-      if (!watcherCancel.signal.aborted) {
-        watcherCancel.abort(new DOMException('cleanup', 'AbortError'));
-      }
-    });
 }
 
 function mergeAbortSignals(signals: (AbortSignal | undefined)[]): AbortSignal {

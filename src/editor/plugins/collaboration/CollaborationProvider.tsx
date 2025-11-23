@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { config } from '#config';
 import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
-import { createProviderFactory, waitForSync } from '#lib/collaboration/runtime';
+import { createProviderFactory } from '#lib/collaboration/runtime';
 import type * as Y from 'yjs';
 
 interface CollaborationStatusValue {
@@ -20,6 +20,13 @@ interface CollaborationStatusValue {
   providerFactory: ProviderFactory;
   awaitSynced: () => Promise<void>;
   docId: string;
+}
+
+interface MinimalProviderEvents {
+  on: (event: any, handler: (payload: any) => void) => void;
+  off: (event: any, handler: (payload: any) => void) => void;
+  synced?: boolean;
+  hasLocalChanges?: boolean;
 }
 
 const missingContextError = new Error('Collaboration context is missing. Wrap the editor in <CollaborationProvider>.');
@@ -81,19 +88,14 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
   const [docEpoch, setDocEpoch] = useState(0);
   const providerRef = useRef<ReturnType<ProviderFactory> | null>(null);
   const syncedDeferredRef = useRef(createSyncedDeferred(enabled));
-  const readyAbortRef = useRef<AbortController | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   const awaitSynced = useCallback(() => {
     if (!enabled) {
       return Promise.resolve();
     }
 
-    const provider = providerRef.current;
-    const promise =
-      provider
-        ? waitForSync(provider, { signal: readyAbortRef.current?.signal, drainLocalChanges: true })
-        : syncedDeferredRef.current.promise;
-
+    const promise = syncedDeferredRef.current.promise;
     promise.catch(() => {});
     return promise;
   }, [enabled]);
@@ -101,37 +103,44 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
   const providerFactory = useMemo(
     () => {
       const factory = createProviderFactory(collabOrigin);
-      const startProviderReadyWatch = (provider: ReturnType<typeof factory>) => {
-        const controller = new AbortController();
-        readyAbortRef.current = controller;
-        const syncedDeferred = syncedDeferredRef.current;
+      const startProviderWatchers = (provider: ReturnType<typeof factory>) => {
+        cleanupRef.current?.();
 
-        const watch = async () => {
-          try {
-            await waitForSync(provider, { signal: controller.signal, drainLocalChanges: false });
-            setHydrated(true);
+        const events = provider as unknown as MinimalProviderEvents;
+        const computeHydrated = () => events.synced === true;
+        const computeSynced = () => events.synced === true && events.hasLocalChanges !== true;
 
-            await waitForSync(provider, { signal: controller.signal, drainLocalChanges: true });
-            setSynced(true);
-            syncedDeferred.resolve();
-          } catch (error) {
-            if (error instanceof Error && error.name === 'AbortError') {
-              return;
-            }
-
-            setHydrated(false);
-            setSynced(false);
-            syncedDeferred.reject(error instanceof Error ? error : new Error(String(error)));
-
-            if (providerRef.current === provider) {
-              syncedDeferredRef.current = createSyncedDeferred(enabled);
-              startProviderReadyWatch(provider);
-            }
+        const updateState = () => {
+          const nextHydrated = computeHydrated();
+          const nextSynced = computeSynced();
+          setHydrated(nextHydrated);
+          setSynced(nextSynced);
+          if (nextSynced) {
+            syncedDeferredRef.current.resolve();
           }
         };
 
-        // Fire-and-forget: watcher manages its own errors/retries and we must not block render.
-        void watch();
+        const handleError = (error: unknown) => {
+          setHydrated(false);
+          setSynced(false);
+          syncedDeferredRef.current.reject(error instanceof Error ? error : new Error(String(error)));
+          syncedDeferredRef.current = createSyncedDeferred(enabled);
+        };
+
+        events.on('sync', updateState);
+        events.on('local-changes', updateState);
+        events.on('connection-close', handleError);
+        events.on('connection-error', handleError);
+
+        // Run once in case the provider was already ready when attached.
+        updateState();
+
+        cleanupRef.current = () => {
+          events.off('sync', updateState);
+          events.off('local-changes', updateState);
+          events.off('connection-close', handleError);
+          events.off('connection-error', handleError);
+        };
       };
 
       return ((id: string, docMap: Map<string, Y.Doc>) => {
@@ -142,15 +151,15 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         setSynced(false);
         setDocEpoch((epoch) => epoch + 1);
         syncedDeferredRef.current = createSyncedDeferred(enabled);
-        startProviderReadyWatch(provider);
+        startProviderWatchers(provider);
 
         const destroy = provider.destroy.bind(provider);
         provider.destroy = () => {
           const previousSyncedDeferred = syncedDeferredRef.current;
           if (providerRef.current === provider) {
             providerRef.current = null;
-            readyAbortRef.current?.abort();
-            readyAbortRef.current = null;
+            cleanupRef.current?.();
+            cleanupRef.current = null;
             previousSyncedDeferred.reject(new Error('Collaboration provider disposed before ready'));
             syncedDeferredRef.current = createSyncedDeferred(enabled);
             setHydrated(!enabled);
