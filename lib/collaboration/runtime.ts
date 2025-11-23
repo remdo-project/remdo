@@ -243,21 +243,8 @@ function mergeAbortSignals(signals: (AbortSignal | undefined)[]): AbortSignal {
   if (active.length === 0) {
     return new AbortController().signal; // never aborted
   }
-  const controller = new AbortController();
-  const abort = (reason: unknown) => {
-    if (!controller.signal.aborted) {
-      controller.abort(reason);
-    }
-  };
 
-  for (const sig of active) {
-    if (sig.aborted) {
-      abort(sig.reason);
-      break;
-    }
-    sig.addEventListener('abort', () => abort(sig.reason), { once: true });
-  }
-  return controller.signal;
+  return AbortSignal.any(active);
 }
 
 function toAbortError(reason: unknown): Error {
