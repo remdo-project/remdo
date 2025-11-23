@@ -1,4 +1,5 @@
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
 import process from 'node:process';
 
 export const pnpmCmd = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
@@ -8,19 +9,23 @@ export function onChildExit(child: ChildProcess): void {
     if (signal) {
       process.kill(process.pid, signal);
     } else {
-      process.exit(code ?? 0);
+      process.exitCode = code ?? 0;
     }
   });
 
   child.on('error', (error: unknown) => {
     console.error(error);
-    process.exit(1);
+    process.exitCode = 1;
   });
 }
 
-export function spawnPnpm(args: string[], env?: NodeJS.ProcessEnv): ChildProcess {
+export function spawnPnpm(
+  args: string[],
+  envOverrides?: NodeJS.ProcessEnv,
+): ChildProcess {
   const child = spawn(pnpmCmd, args, {
-    env: { ...process.env, ...env },
+    // eslint-disable-next-line node/no-process-env -- merge current env with overrides for the child process
+    env: { ...process.env, ...envOverrides },
     stdio: 'inherit',
     shell: false,
   });
