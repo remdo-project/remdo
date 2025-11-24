@@ -138,7 +138,7 @@ describe('snapshot CLI', () => {
 
   it(
     'cross-loads and saves multiple documents without crosstalk',
-    { timeout: SNAPSHOT_TIMEOUT_MS } as any,
+    { timeout: SNAPSHOT_TIMEOUT_MS },
     async ({ lexical }: TestContext) => {
       const defaultDoc = lexical.getCollabDocId();
       const secondaryDoc = `${defaultDoc}-secondary`;

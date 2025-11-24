@@ -4,6 +4,7 @@ import { $getRoot } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 import { useEffect } from 'react';
 import type { TestContext } from 'vitest';
+import { env } from 'node:process';
 import { render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -53,9 +54,8 @@ beforeEach<TestContext>(async (ctx) => {
 
   let docId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
   if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {
-    const base = task?.id ?? task?.name ?? 'spec';
-    const normalized = base.replaceAll(/[^a-z0-9-]+/g, '-').replaceAll(/^-+|-+$/g, '') || 'spec';
-    docId = `test-${normalized}-${collabDocCounter++}`;
+    const workerId = env.VITEST_WORKER_ID ?? '0';
+    docId = `test-${workerId}-${collabDocCounter++}`;
   }
   const href = globalThis.location.href;
   const url = new URL(href);
