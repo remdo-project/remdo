@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { config } from '#config';
 import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
-import { createProviderFactory } from '#lib/collaboration/runtime';
+import { createProviderFactory, waitForSync } from '#lib/collaboration/runtime';
 import type * as Y from 'yjs';
 
 interface CollaborationStatusValue {
@@ -32,25 +32,6 @@ interface MinimalProviderEvents {
 const missingContextError = new Error('Collaboration context is missing. Wrap the editor in <CollaborationProvider>.');
 
 const CollaborationStatusContext = createContext<CollaborationStatusValue | null>(null);
-
-function createSyncedDeferred(enabled: boolean) {
-  if (!enabled) {
-    return { promise: Promise.resolve(), resolve: () => {}, reject: () => {} };
-  }
-
-  let resolve!: () => void;
-  let reject!: (error: Error) => void;
-
-  const promise = new Promise<void>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-
-  // Attach a handler so rejections from unused deferreds do not surface as unhandled.
-  promise.catch(() => {});
-
-  return { promise, resolve, reject };
-}
 
 // eslint-disable-next-line react-refresh/only-export-components -- Safe: hook reads context without holding component state.
 export function useCollaborationStatus(): CollaborationStatusValue {
@@ -89,7 +70,6 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
   const hydratedRef = useRef(hydrated);
   const syncedRef = useRef(synced);
   const providerRef = useRef<ReturnType<ProviderFactory> | null>(null);
-  const syncedDeferredRef = useRef(createSyncedDeferred(enabled));
   const cleanupRef = useRef<(() => void) | null>(null);
 
   const setHydratedState = useCallback((value: boolean) => {
@@ -97,27 +77,22 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
     setHydrated(value);
   }, []);
 
-  const resetDeferredAndFlags = useCallback(
-    (reason: Error, hydratedValue: boolean, syncedValue: boolean) => {
-      const previousSyncedDeferred = syncedDeferredRef.current;
-      previousSyncedDeferred.reject(reason);
-      syncedDeferredRef.current = createSyncedDeferred(enabled);
-      hydratedRef.current = hydratedValue;
-      setHydrated(hydratedValue);
-      setSynced(syncedValue);
-      syncedRef.current = syncedValue;
-    },
-    [enabled]
-  );
+  const setSyncedState = useCallback((value: boolean) => {
+    syncedRef.current = value;
+    setSynced(value);
+  }, []);
 
   const awaitSynced = useCallback(() => {
     if (!enabled) {
       return Promise.resolve();
     }
 
-    const promise = syncedDeferredRef.current.promise;
-    promise.catch(() => {});
-    return promise;
+    const provider = providerRef.current as unknown as MinimalProviderEvents | null;
+    if (!provider) {
+      return Promise.reject(new Error('Collaboration provider is not ready'));
+    }
+
+    return waitForSync(provider, { drainLocalChanges: true, timeoutMs: null });
   }, [enabled]);
 
   const providerFactory = useMemo(
@@ -132,25 +107,13 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
           const nextHydrated = hydratedRef.current || events.synced === true;
           const nextSynced = nextHydrated && events.synced === true && events.hasLocalChanges !== true;
 
-          // Re-arm awaitSynced when leaving the synced state (e.g., new local edits).
-          if (syncedRef.current && !nextSynced) {
-            syncedDeferredRef.current = createSyncedDeferred(enabled);
-          }
-
           setHydratedState(nextHydrated);
-          setSynced(nextSynced);
-          syncedRef.current = nextSynced;
-          if (nextSynced) {
-            syncedDeferredRef.current.resolve();
-          }
+          setSyncedState(nextSynced);
         };
 
-        const handleError = (error: unknown) => {
-          resetDeferredAndFlags(
-            error instanceof Error ? error : new Error(String(error)),
-            hydratedRef.current,
-            false
-          );
+        const handleError = (_error: unknown) => {
+          setHydratedState(hydratedRef.current);
+          setSyncedState(false);
         };
 
         events.on('sync', updateState);
@@ -174,10 +137,9 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         providerRef.current = provider;
 
         hydratedRef.current = false;
-        setHydrated(false);
-        setSynced(false);
+        setHydratedState(false);
+        setSyncedState(false);
         setDocEpoch((epoch) => epoch + 1);
-        syncedDeferredRef.current = createSyncedDeferred(enabled);
         startProviderWatchers(provider);
 
         const destroy = provider.destroy.bind(provider);
@@ -186,18 +148,15 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
             providerRef.current = null;
             cleanupRef.current?.();
             cleanupRef.current = null;
-            resetDeferredAndFlags(
-              new Error('Collaboration provider disposed before ready'),
-              !enabled,
-              !enabled
-            );
+            setHydratedState(!enabled);
+            setSyncedState(!enabled);
           }
           destroy();
         };
         return provider;
       }) as ProviderFactory;
     },
-    [collabOrigin, enabled, resetDeferredAndFlags, setHydratedState]
+    [collabOrigin, enabled, setHydratedState, setSyncedState]
   );
 
   return useMemo<CollaborationStatusValue>(

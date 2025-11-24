@@ -178,7 +178,7 @@ export function waitForSync(
     timeoutMs = 5000,
     signal,
     drainLocalChanges = true,
-  }: { timeoutMs?: number; signal?: AbortSignal; drainLocalChanges?: boolean } = {}
+  }: { timeoutMs?: number | null; signal?: AbortSignal; drainLocalChanges?: boolean } = {}
 ): Promise<void> {
   const requiresLocalClear = drainLocalChanges;
   const ready = () => provider.synced === true && (!requiresLocalClear || provider.hasLocalChanges !== true);
@@ -188,7 +188,10 @@ export function waitForSync(
   }
 
   const mergedSignal = (() => {
-    const active = [signal, AbortSignal.timeout(timeoutMs)].filter(Boolean) as AbortSignal[];
+    const active = [signal].filter(Boolean) as AbortSignal[];
+    if (timeoutMs !== null) {
+      active.push(AbortSignal.timeout(timeoutMs));
+    }
     if (active.length === 0) {
       return new AbortController().signal; // never aborted
     }
