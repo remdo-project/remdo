@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { config } from '#config';
 import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
-import { createProviderFactory } from '#lib/collaboration/runtime';
+import { createProviderFactory, waitForSync } from '#lib/collaboration/runtime';
 import type * as Y from 'yjs';
 
 interface CollaborationStatusValue {
@@ -33,23 +33,10 @@ const missingContextError = new Error('Collaboration context is missing. Wrap th
 
 const CollaborationStatusContext = createContext<CollaborationStatusValue | null>(null);
 
-function createSyncedDeferred(enabled: boolean) {
-  if (!enabled) {
-    return { promise: Promise.resolve(), resolve: () => {}, reject: () => {} };
-  }
-
-  let resolve!: () => void;
-  let reject!: (error: Error) => void;
-
-  const promise = new Promise<void>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-
-  // Attach a handler so rejections from unused deferreds do not surface as unhandled.
-  promise.catch(() => {});
-
-  return { promise, resolve, reject };
+interface AwaitSyncedState {
+  provider: MinimalProviderEvents | null;
+  controller: AbortController | null;
+  promise: Promise<void>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- Safe: hook reads context without holding component state.
@@ -89,25 +76,61 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
   const hydratedRef = useRef(hydrated);
   const syncedRef = useRef(synced);
   const providerRef = useRef<ReturnType<ProviderFactory> | null>(null);
-  const syncedDeferredRef = useRef(createSyncedDeferred(enabled));
+  const awaitSyncedRef = useRef<AwaitSyncedState | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
+
+  if (awaitSyncedRef.current === null) {
+    const initialPromise = enabled
+      ? Promise.reject(new Error('Collaboration provider unavailable'))
+      : Promise.resolve();
+    initialPromise.catch(() => {});
+    awaitSyncedRef.current = { provider: null, controller: null, promise: initialPromise };
+  }
 
   const setHydratedState = useCallback((value: boolean) => {
     hydratedRef.current = value;
     setHydrated(value);
   }, []);
 
+  const armAwaitSynced = useCallback(
+    (provider: MinimalProviderEvents | null, reason?: Error) => {
+      const previous = awaitSyncedRef.current;
+      if (previous?.controller) {
+        previous.controller.abort(reason ?? new Error('Collaboration sync reset'));
+      }
+
+      if (!enabled) {
+        const resolved = Promise.resolve();
+        resolved.catch(() => {});
+        awaitSyncedRef.current = { provider: null, controller: null, promise: resolved };
+        return resolved;
+      }
+
+      if (!provider) {
+        const rejected = Promise.reject(reason ?? new Error('Collaboration provider unavailable'));
+        rejected.catch(() => {});
+        awaitSyncedRef.current = { provider: null, controller: null, promise: rejected };
+        return rejected;
+      }
+
+      const controller = new AbortController();
+      const promise = waitForSync(provider, { signal: controller.signal });
+      promise.catch(() => {});
+      awaitSyncedRef.current = { provider, controller, promise };
+      return promise;
+    },
+    [enabled]
+  );
+
   const resetDeferredAndFlags = useCallback(
-    (reason: Error, hydratedValue: boolean, syncedValue: boolean) => {
-      const previousSyncedDeferred = syncedDeferredRef.current;
-      previousSyncedDeferred.reject(reason);
-      syncedDeferredRef.current = createSyncedDeferred(enabled);
+    (reason: Error, hydratedValue: boolean, syncedValue: boolean, provider: MinimalProviderEvents | null) => {
+      void armAwaitSynced(provider, reason);
       hydratedRef.current = hydratedValue;
       setHydrated(hydratedValue);
       setSynced(syncedValue);
       syncedRef.current = syncedValue;
     },
-    [enabled]
+    [armAwaitSynced]
   );
 
   const awaitSynced = useCallback(() => {
@@ -115,10 +138,19 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
       return Promise.resolve();
     }
 
-    const promise = syncedDeferredRef.current.promise;
-    promise.catch(() => {});
-    return promise;
-  }, [enabled]);
+    const provider = providerRef.current as unknown as MinimalProviderEvents | null;
+    if (!provider) {
+      return armAwaitSynced(null, new Error('Collaboration provider unavailable'));
+    }
+
+    const current = awaitSyncedRef.current;
+    if (current?.provider === provider) {
+      current.promise.catch(() => {});
+      return current.promise;
+    }
+
+    return armAwaitSynced(provider);
+  }, [armAwaitSynced, enabled]);
 
   const providerFactory = useMemo(
     () => {
@@ -134,22 +166,20 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
 
           // Re-arm awaitSynced when leaving the synced state (e.g., new local edits).
           if (syncedRef.current && !nextSynced) {
-            syncedDeferredRef.current = createSyncedDeferred(enabled);
+            void armAwaitSynced(events);
           }
 
           setHydratedState(nextHydrated);
           setSynced(nextSynced);
           syncedRef.current = nextSynced;
-          if (nextSynced) {
-            syncedDeferredRef.current.resolve();
-          }
         };
 
         const handleError = (error: unknown) => {
           resetDeferredAndFlags(
             error instanceof Error ? error : new Error(String(error)),
             hydratedRef.current,
-            false
+            false,
+            events
           );
         };
 
@@ -176,8 +206,9 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         hydratedRef.current = false;
         setHydrated(false);
         setSynced(false);
+        syncedRef.current = false;
         setDocEpoch((epoch) => epoch + 1);
-        syncedDeferredRef.current = createSyncedDeferred(enabled);
+        void armAwaitSynced(provider as unknown as MinimalProviderEvents);
         startProviderWatchers(provider);
 
         const destroy = provider.destroy.bind(provider);
@@ -189,7 +220,8 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
             resetDeferredAndFlags(
               new Error('Collaboration provider disposed before ready'),
               !enabled,
-              !enabled
+              !enabled,
+              null
             );
           }
           destroy();
@@ -197,7 +229,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         return provider;
       }) as ProviderFactory;
     },
-    [collabOrigin, enabled, resetDeferredAndFlags, setHydratedState]
+    [armAwaitSynced, collabOrigin, enabled, resetDeferredAndFlags, setHydratedState]
   );
 
   return useMemo<CollaborationStatusValue>(
