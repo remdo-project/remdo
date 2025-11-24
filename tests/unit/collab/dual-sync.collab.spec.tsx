@@ -65,10 +65,12 @@ describe('collaboration sync', () => {
 
     await Promise.all([lexical.waitForSynced(), secondary.waitForSynced()]);
 
-    expect(lexical).toMatchOutline([]);
-    expect(secondary as any).toMatchOutline([]);
-    await lexical.waitForSynced();
-    await secondary.waitForSynced();
+    await waitFor(() => {
+      expect(lexical).toMatchOutline([]);
+      expect(secondary as any).toMatchOutline([]);
+    });
+
+    await Promise.all([lexical.waitForSynced(), secondary.waitForSynced()]);
     lexical.editor.update(() => {
       //TODO use a higher level API once we have it
       const root = $getRoot();

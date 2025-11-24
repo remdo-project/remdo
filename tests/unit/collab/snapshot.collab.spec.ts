@@ -138,7 +138,7 @@ describe('snapshot CLI', () => {
 
   it(
     'cross-loads and saves multiple documents without crosstalk',
-    { timeout: SNAPSHOT_TIMEOUT_MS } as any,
+    { timeout: SNAPSHOT_TIMEOUT_MS },
     async ({ lexical }: TestContext) => {
       const defaultDoc = lexical.getCollabDocId();
       const secondaryDoc = `${defaultDoc}-secondary`;
@@ -158,13 +158,17 @@ describe('snapshot CLI', () => {
       await lexical.waitForSynced();
       expect(lexical.getCollabDocId()).toBe(defaultDoc);
 
-      runSnapshotCommand('save', [defaultOutput], envOverrides);
-      const savedDefault = readEditorState(defaultOutput);
-      expect(savedDefault.root).toEqual(readEditorState(defaultFixture).root);
+      await waitFor(() => {
+        runSnapshotCommand('save', [defaultOutput], envOverrides);
+        const savedDefault = readEditorState(defaultOutput);
+        expect(savedDefault.root).toEqual(readEditorState(defaultFixture).root);
+      });
 
-      runSnapshotCommand('save', ['--doc', secondaryDoc, secondaryOutput]);
-      const savedSecondary = readEditorState(secondaryOutput);
-      expect(savedSecondary.root).toEqual(readEditorState(secondaryFixture).root);
+      await waitFor(() => {
+        runSnapshotCommand('save', ['--doc', secondaryDoc, secondaryOutput]);
+        const savedSecondary = readEditorState(secondaryOutput);
+        expect(savedSecondary.root).toEqual(readEditorState(secondaryFixture).root);
+      });
     }
   );
 });

@@ -3,7 +3,6 @@ import { createYjsProvider } from '@y-sweet/client';
 import type { ClientToken } from '@y-sweet/sdk';
 import { resolveLoopbackHost } from '#lib/net/loopback';
 import * as Y from 'yjs';
-
 export type CollaborationProviderInstance = Provider & { destroy: () => void };
 
 export type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => CollaborationProviderInstance;
@@ -157,11 +156,28 @@ function rewriteTokenHost(token: ClientToken): ClientToken {
   };
 }
 
-interface MinimalProviderEvents {
+export interface MinimalProviderEvents {
   on: (event: string, handler: (payload: unknown) => void) => void;
   off: (event: string, handler: (payload: unknown) => void) => void;
   synced?: boolean;
   hasLocalChanges?: boolean;
+}
+
+function mergeSignals(...sources: (AbortSignal | undefined)[]): AbortSignal {
+  const active = sources.filter(Boolean) as AbortSignal[];
+  if (active.length === 0) {
+    return new AbortController().signal; // never aborted
+  }
+  return AbortSignal.any(active);
+}
+
+export interface WaitForSyncOptions {
+  signal?: AbortSignal;
+  /**
+   * Optional timeout in milliseconds. Defaults to 5000. Pass null to disable.
+   */
+  timeoutMs?: number | null;
+  drainLocalChanges?: boolean;
 }
 
 /**
@@ -174,11 +190,7 @@ interface MinimalProviderEvents {
  */
 export function waitForSync(
   provider: MinimalProviderEvents,
-  {
-    timeoutMs = 5000,
-    signal,
-    drainLocalChanges = true,
-  }: { timeoutMs?: number; signal?: AbortSignal; drainLocalChanges?: boolean } = {}
+  { timeoutMs = 5000, signal, drainLocalChanges = true }: WaitForSyncOptions = {}
 ): Promise<void> {
   const requiresLocalClear = drainLocalChanges;
   const ready = () => provider.synced === true && (!requiresLocalClear || provider.hasLocalChanges !== true);
@@ -187,13 +199,9 @@ export function waitForSync(
     return Promise.resolve();
   }
 
-  const mergedSignal = (() => {
-    const active = [signal, AbortSignal.timeout(timeoutMs)].filter(Boolean) as AbortSignal[];
-    if (active.length === 0) {
-      return new AbortController().signal; // never aborted
-    }
-    return AbortSignal.any(active);
-  })();
+  const timeoutSignal =
+    typeof timeoutMs === 'number' ? AbortSignal.timeout(timeoutMs) : undefined;
+  const mergedSignal = mergeSignals(signal, timeoutSignal);
 
   if (mergedSignal.aborted) {
     return Promise.reject(toAbortError(mergedSignal.reason));
