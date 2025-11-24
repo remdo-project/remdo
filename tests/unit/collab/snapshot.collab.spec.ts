@@ -158,13 +158,17 @@ describe('snapshot CLI', () => {
       await lexical.waitForSynced();
       expect(lexical.getCollabDocId()).toBe(defaultDoc);
 
-      runSnapshotCommand('save', [defaultOutput], envOverrides);
-      const savedDefault = readEditorState(defaultOutput);
-      expect(savedDefault.root).toEqual(readEditorState(defaultFixture).root);
+      await waitFor(() => {
+        runSnapshotCommand('save', [defaultOutput], envOverrides);
+        const savedDefault = readEditorState(defaultOutput);
+        expect(savedDefault.root).toEqual(readEditorState(defaultFixture).root);
+      });
 
-      runSnapshotCommand('save', ['--doc', secondaryDoc, secondaryOutput]);
-      const savedSecondary = readEditorState(secondaryOutput);
-      expect(savedSecondary.root).toEqual(readEditorState(secondaryFixture).root);
+      await waitFor(() => {
+        runSnapshotCommand('save', ['--doc', secondaryDoc, secondaryOutput]);
+        const savedSecondary = readEditorState(secondaryOutput);
+        expect(savedSecondary.root).toEqual(readEditorState(secondaryFixture).root);
+      });
     }
   );
 });
