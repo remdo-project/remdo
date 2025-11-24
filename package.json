@@ -87,7 +87,7 @@
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@types/ws": "^8.5.12",
-    "@vitejs/plugin-react-swc": "^4.2.1",
+    "@vitejs/plugin-react-swc": "^4.2.2",
     "@vitest/coverage-v8": "^4.0.6",
     "@vitest/ui": "^4.0.6",
     "chokidar-cli": "^3.0.0",
