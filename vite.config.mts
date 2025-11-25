@@ -28,7 +28,8 @@ export default defineConfig(() => {
       },
     },
     preview: {
-      host: "0.0.0.0",
+      host: config.env.HOST,
+      port: config.env.PREVIEW_PORT,
       strictPort: true,
     },
     define: Object.fromEntries(

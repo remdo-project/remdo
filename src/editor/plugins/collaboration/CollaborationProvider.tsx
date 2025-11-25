@@ -50,6 +50,13 @@ export function CollaborationProvider({
 }
 
 function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string }): CollaborationStatusValue {
+  const envOrigin = typeof config.env.COLLAB_ORIGIN === 'string' && config.env.COLLAB_ORIGIN.length > 0
+    ? config.env.COLLAB_ORIGIN
+    : undefined;
+  const resolvedCollabOrigin =
+    collabOrigin
+    ?? envOrigin
+    ?? `${location.protocol}//${location.hostname}:${config.env.COLLAB_CLIENT_PORT}`;
   const enabled = config.env.COLLAB_ENABLED;
   const docId = useMemo(() => {
     const doc = globalThis.location.search ? new URLSearchParams(globalThis.location.search).get('doc')?.trim() : null;
@@ -121,7 +128,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
 
   const providerFactory = useMemo(
     () => {
-      const factory = createProviderFactory(collabOrigin);
+      const factory = createProviderFactory(resolvedCollabOrigin);
       const startProviderWatchers = (provider: ReturnType<typeof factory>) => {
         cleanupRef.current?.();
 
@@ -193,7 +200,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         return provider;
       }) as ProviderFactory;
     },
-    [collabOrigin, enabled, resetAwaitSynced, setHydratedState]
+    [resolvedCollabOrigin, enabled, resetAwaitSynced, setHydratedState]
   );
 
   return useMemo<CollaborationStatusValue>(

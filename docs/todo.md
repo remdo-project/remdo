@@ -106,3 +106,29 @@ stage 2 is active).
 
 Both variants should prove that Delete/Backspace is only swallowed when an
 actual structural removal occurs.
+
+## Render deployment plan (Static Site + Y-Sweet)
+
+1. Front-end: deploy the Vite build as a Render Static Site. Build command:
+   `corepack enable && pnpm install --frozen-lockfile && pnpm run build`.
+   Publish directory: `data/dist`. Set `NODE_VERSION=22` (Render env) and keep
+   `PNPM_HOME`/`PATH` defaults from `corepack enable`.
+2. Collaboration backend: run existing `ysweet/Dockerfile` as a Render Web
+   Service. Expose a single port (e.g., 4004), set `PORT` and `HOST=0.0.0.0`,
+   and attach a persistent disk if durable docs are needed.
+3. Front-end wiring: introduce a `COLLAB_ORIGIN` env consumed by the SPA so
+   `/doc/*` requests target the Y-Sweet host (e.g.,
+   `https://remdo-collab.onrender.com`). Keep `COLLAB_ENABLED=true` for prod;
+   allow disabling for demos.
+4. Blueprint: add `render.yaml` with two services—`type: static_site` for the
+   SPA (build command + publish dir) and `type: web` for Y-Sweet (Dockerfile,
+   env, disk, branch rules). Include `COLLAB_ORIGIN`, `NODE_ENV=production`,
+   and port/env mappings.
+5. CORS/hosts: confirm Y-Sweet accepts the SPA origin; tighten allowlist if
+   needed once the URL is final.
+6. Local smoke test: `pnpm run build && pnpm run preview -- --host 0.0.0.0
+   --port 4173`; in another shell `y-sweet serve --host 0.0.0.0 --port 4004`.
+   Set `COLLAB_ORIGIN=http://localhost:4004` and verify collaboration across
+   two tabs.
+7. Deploy: push `render.yaml` and the small `COLLAB_ORIGIN` plumbing; trigger
+   Render deploys; verify SPA loads and `/doc/*/auth` responds from Y-Sweet.

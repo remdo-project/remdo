@@ -11,6 +11,8 @@ export const envSpec = defineEnvSpec(
     COLLAB_SERVER_PORT: { default: 0 },
     COLLAB_CLIENT_PORT: { default: 0, client: true },
     COLLAB_DOCUMENT_ID: { default: 'main', client: true },
+    COLLAB_ORIGIN: { default: '', client: true },
+    PREVIEW_PORT: { default: 0 },
     VITEST_PORT: { default: 0 },
     VITEST_PREVIEW_PORT: { default: 0 },
     CI: { default: false },
@@ -24,4 +26,5 @@ export const envDerivedDefaults = defineEnvDerivatives(envSpec, (env) => {
   env.VITEST_PREVIEW_PORT ||= env.PORT + 3;
   env.COLLAB_SERVER_PORT ||= env.PORT + 4;
   env.COLLAB_CLIENT_PORT ||= env.COLLAB_SERVER_PORT || env.PORT + 4;
+  env.PREVIEW_PORT ||= env.PORT + 5;
 });
