@@ -6,7 +6,8 @@ RUN apk add --no-cache caddy \
   && npm install -g "y-sweet@${YSWEET_VERSION}" \
   && mkdir -p /data /etc/caddy
 
-COPY Caddyfile /etc/caddy/Caddyfile
+# When the build context is the repo root, reference the file with its path.
+COPY ysweet/Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE 8080
 
