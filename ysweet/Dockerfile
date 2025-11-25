@@ -14,4 +14,4 @@ EXPOSE 8080
 ENV YSWEET_PORT_INTERNAL=8081
 ENV ALLOW_ORIGIN="*"
 
-CMD ["sh", "-c", "y-sweet serve --host 0.0.0.0 --port ${YSWEET_PORT_INTERNAL} /data & caddy run --config /etc/caddy/Caddyfile --adapter caddyfile"]
+CMD ["sh", "-c", "y-sweet serve --host 0.0.0.0 --port ${YSWEET_PORT_INTERNAL} /data & caddy run --config /etc/caddy/Caddyfile --adapter caddyfile --disable-admin"]
