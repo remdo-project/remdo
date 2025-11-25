@@ -1,3 +1,7 @@
+{
+  admin off
+}
+
 :8080 {
   header {
     Access-Control-Allow-Origin {env.ALLOW_ORIGIN}
