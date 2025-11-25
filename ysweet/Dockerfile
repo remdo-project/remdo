@@ -1,1 +1,1 @@
-FROM ghcr.io/jamsocket/y-sweet:0.9.1
+FROM ghcr.io/jamsocket/y-sweet:latest
