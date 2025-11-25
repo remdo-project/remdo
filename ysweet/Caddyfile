@@ -1,0 +1,10 @@
+:8080 {
+  header {
+    Access-Control-Allow-Origin {env.ALLOW_ORIGIN}
+    Access-Control-Allow-Credentials true
+    Access-Control-Allow-Headers *
+    Access-Control-Allow-Methods *
+  }
+
+  reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL}
+}
