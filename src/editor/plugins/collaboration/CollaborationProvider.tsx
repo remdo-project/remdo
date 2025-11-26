@@ -56,7 +56,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
   const resolvedCollabOrigin =
     collabOrigin
     ?? envOrigin
-    ?? `${location.protocol}//${location.hostname}:${config.env.COLLAB_CLIENT_PORT}`;
+    ?? location.origin;
   const enabled = config.env.COLLAB_ENABLED;
   const docId = useMemo(() => {
     const doc = globalThis.location.search ? new URLSearchParams(globalThis.location.search).get('doc')?.trim() : null;
