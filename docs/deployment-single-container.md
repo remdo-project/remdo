@@ -4,8 +4,8 @@ This recipe builds the RemDo SPA and bundles the Y-Sweet collab backend into one
 
 ## Build
 
-1. `docker build -t remdo:single .`
-2. Build-time env baked into the image (adjustable via `--build-arg PUBLIC_PORT=443` when needed):
+1. `./docker/build.sh` (hardcoded: `PUBLIC_PORT=8080`, tag `remdo:single`); equivalent manual command: `docker build -f docker/Dockerfile --build-arg PUBLIC_PORT=8080 -t remdo:single .`
+2. Build-time env baked into the image (defaults shown):
    - `NODE_ENV=production`
    - `HOST=0.0.0.0`
    - `PORT=${PUBLIC_PORT}` (defaults to 8080)
@@ -16,12 +16,9 @@ This recipe builds the RemDo SPA and bundles the Y-Sweet collab backend into one
 
 ## Run
 
-1. `docker run -e APP_PORT=8080 -p 8080:8080 remdo:single`
-2. Runtime envs (defaults set in the image):
-   - `YSWEET_PORT_INTERNAL` (default `8081`, internal only)
-   - `APP_PORT` (default `8080`), controls the Caddy listen port; set to your platform’s `$PORT` (e.g., Render) and publish accordingly.
-3. The container exposes only `8080`; `/doc/*` is proxied to Y-Sweet inside the container. WebSockets are forwarded automatically by Caddy.
-4. Health check: `GET /health` returns 200.
+1. `./docker/run.sh` (hardcoded: tag `remdo:single`, `APP_PORT=8080`, `YSWEET_PORT_INTERNAL=8081`, no volume mounts). Manual equivalent: `docker run -e APP_PORT=8080 -e YSWEET_PORT_INTERNAL=8081 -p 8080:8080 remdo:single`.
+2. The container exposes only `8080`; `/doc/*` and `/d*` are proxied to Y-Sweet inside the container. WebSockets are forwarded automatically by Caddy.
+3. Health check: `GET /health` returns 200.
 
 ## Data
 
@@ -29,5 +26,6 @@ This recipe builds the RemDo SPA and bundles the Y-Sweet collab backend into one
 
 ## Notes
 
+- The Dockerfile lives at `docker/Dockerfile`; keep the build context at repo root so `data/.vendor/lexical` is available during builds.
 - `docker/Caddyfile` handles SPA fallback (`/index.html`) and the `/doc/*` reverse proxy; it listens on `APP_PORT`, and CORS headers are omitted because everything is same-origin.
 - If you need per-environment settings without rebuilding the image, switch to a runtime config injection approach (e.g., serve a small env JSON and have the SPA read it on startup).
