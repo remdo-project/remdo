@@ -1,0 +1,13 @@
+version: "1"
+services:
+- type: web
+  name: remdo
+  runtime: docker
+  repo: https://github.com/remdo-project/remdo
+  branch: feat/render
+  plan: free
+  region: frankfurt
+  dockerContext: .
+  dockerfilePath: ./docker/Dockerfile
+  autoDeployTrigger: commit
+
