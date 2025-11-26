@@ -4,6 +4,7 @@ import { RemDoIcon } from './icons/RemDoIcon';
 import headerStyles from './styles/AppHeader.module.css';
 import { theme } from './theme';
 import { config } from '#config';
+import footerStyles from './styles/AppFooter.module.css';
 import '@mantine/core/styles.css';
 
 interface HostContext {
@@ -75,6 +76,7 @@ export default function App() {
 
         <Editor />
       </Container>
+      <div className={footerStyles.versionBadge}>version: 1.1.1</div>
     </MantineProvider>
   );
 }

@@ -1,0 +1,12 @@
+.versionBadge {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #e6e6e6;
+  font-size: 11px;
+  pointer-events: none;
+  user-select: none;
+}
