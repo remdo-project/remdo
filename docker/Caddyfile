@@ -1,0 +1,21 @@
+{
+  admin off
+}
+
+:{env.APP_PORT} {
+  handle /doc/* {
+    reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL} {
+      header_up X-Forwarded-Proto https
+      header_up X-Forwarded-Host {host}
+      header_up X-Forwarded-For {remote}
+    }
+  }
+
+  handle_path /health {
+    respond 200
+  }
+
+  root * /srv/remdo
+  try_files {path} {path}/ /index.html
+  file_server
+}
