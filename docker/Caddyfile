@@ -3,6 +3,11 @@
 }
 
 :{$APP_PORT} {
+  @options method OPTIONS
+  handle @options {
+    respond 204
+  }
+
   handle /doc/* {
     reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL}
   }
