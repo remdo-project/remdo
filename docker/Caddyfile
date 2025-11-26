@@ -8,16 +8,21 @@
     respond 204
   }
 
-  route /doc* {
-    uri strip_prefix /doc
-    reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL}
-  }
-
   handle_path /health {
     respond 200
   }
 
-  root * /srv/remdo
-  try_files {path} {path}/ /index.html
-  file_server
+  handle_path /doc/* {
+    reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL}
+  }
+
+  handle_path /d/* {
+    reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL}
+  }
+
+  handle {
+    root * /srv/remdo
+    try_files {path} {path}/ /index.html
+    file_server
+  }
 }
