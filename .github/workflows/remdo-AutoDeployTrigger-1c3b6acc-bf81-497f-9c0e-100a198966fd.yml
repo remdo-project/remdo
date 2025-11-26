@@ -37,7 +37,6 @@ jobs:
           appSourcePath: ${{ github.workspace }}
           dockerfilePath: Dockerfile
           imageToBuild: remdo.azurecr.io/remdo:${{ github.sha }}
-          registryUrl: remdo.azurecr.io
           acrName: remdo
           containerAppName: remdo
           resourceGroup: remdo
