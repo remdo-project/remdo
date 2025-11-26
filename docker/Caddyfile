@@ -12,11 +12,11 @@
     respond 200
   }
 
-  handle_path /doc/* {
+  handle /doc* {
     reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL}
   }
 
-  handle_path /d/* {
+  handle /d/* {
     reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL}
   }
 
