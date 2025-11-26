@@ -8,7 +8,7 @@ on:
       [ feat/render ]
     paths:
     - '**'
-    - '.github/workflows/remdo-AutoDeployTrigger-1c3b6acc-bf81-497f-9c0e-100a198966fd.yml'
+    - .github/workflows/remdo-AutoDeployTrigger-1c3b6acc-bf81-497f-9c0e-100a198966fd.yml
 
   # Allow manual trigger 
   workflow_dispatch:      
