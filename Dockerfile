@@ -11,8 +11,8 @@ RUN corepack enable
 ARG PUBLIC_PORT=8080
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY tsconfig.json tsconfig.tests.json vite.config.mts .
-COPY eslint.config.mts index.html ./
+COPY tsconfig.json tsconfig.tests.json vite.config.mts ./
+COPY eslint.config.mts index.html ./ 
 COPY src ./src
 COPY lib ./lib
 COPY config ./config
