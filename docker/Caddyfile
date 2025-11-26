@@ -8,7 +8,7 @@
     respond 204
   }
 
-  handle /doc/* {
+  handle_path /doc/* {
     reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL}
   }
 
