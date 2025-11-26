@@ -50,6 +50,10 @@ ENV YSWEET_PORT_INTERNAL=8081 \
     APP_PORT=8080
 
 COPY docker/Caddyfile /etc/caddy/Caddyfile
+# Log the Caddyfile contents during build to verify deployment config.
+RUN echo "===== CADDYFILE BEGIN =====" \
+  && cat /etc/caddy/Caddyfile \
+  && echo "===== CADDYFILE END ====="
 COPY --from=builder /app/data/dist /srv/remdo
 
 EXPOSE 8080
