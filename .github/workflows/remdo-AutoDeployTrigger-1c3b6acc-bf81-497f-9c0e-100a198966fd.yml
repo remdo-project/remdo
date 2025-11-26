@@ -1,0 +1,49 @@
+name: Trigger auto deployment for remdo
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ feat/render ]
+    paths:
+    - '**'
+    - '.github/workflows/remdo-AutoDeployTrigger-1c3b6acc-bf81-497f-9c0e-100a198966fd.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.REMDO_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.REMDO_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.REMDO_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: 
+          registryUsername: ${{ secrets.REMDO_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.REMDO_REGISTRY_PASSWORD }}
+          containerAppName: remdo
+          resourceGroup: remdo
+          imageToBuild: default/[parameters('containerAppName')]:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
