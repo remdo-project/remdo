@@ -2,11 +2,9 @@
   admin off
 }
 
-:{\$APP_PORT} {
+:{$APP_PORT} {
   handle /doc/* {
-    reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL} {
-      header_up X-Forwarded-Proto {scheme}
-    }
+    reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL}
   }
 
   handle_path /health {
