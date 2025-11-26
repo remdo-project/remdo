@@ -31,6 +31,9 @@ jobs:
           tenant-id: ${{ secrets.REMDO_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.REMDO_AZURE_SUBSCRIPTION_ID }}
 
+      - name: Login to ACR
+        run: az acr login --name remdo
+
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
         with:
@@ -38,8 +41,7 @@ jobs:
           dockerfilePath: Dockerfile
           imageToBuild: remdo.azurecr.io/remdo:${{ github.sha }}
           registryUrl: remdo.azurecr.io
-          registryUsername: ${{ secrets.REMDO_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.REMDO_REGISTRY_PASSWORD }}
+          acrName: remdo
           containerAppName: remdo
           resourceGroup: remdo
           targetPort: 80
