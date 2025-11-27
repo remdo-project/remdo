@@ -1,0 +1,28 @@
+{
+  admin off
+}
+
+:{$APP_PORT} {
+  @options method OPTIONS
+  handle @options {
+    respond 204
+  }
+
+  handle_path /health {
+    respond 200
+  }
+
+  handle /doc* {
+    reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL}
+  }
+
+  handle /d/* {
+    reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL}
+  }
+
+  handle {
+    root * /srv/remdo
+    try_files {path} {path}/ /index.html
+    file_server
+  }
+}

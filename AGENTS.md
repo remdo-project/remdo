@@ -24,8 +24,11 @@ decide what matters.
   validation behaviors—consult when editing tree transforms or note mutations.
 - `docs/selection.md` (~1.4k words). Cursor/selection semantics for the editor
   runtime—reference for UX or Lexical selection work.
-- `docs/todo.md` (~680 words). Project roadmap plus outstanding design
-  questions—review when planning new features.
+- `docs/todo.md` (~678 words). Project roadmap plus outstanding design
+  questions—review when planning new features; now includes the Render
+  deployment plan.
+- `docs/deployment-single-container.md` (~253 words). How to build and run the
+  single-container image (Caddy + Y-Sweet) and its env knobs.
 
 Whenever you edit any of these docs, update their summaries/word counts here so
 the map stays trustworthy.

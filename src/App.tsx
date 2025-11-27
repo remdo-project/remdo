@@ -3,6 +3,7 @@ import Editor from './editor/Editor';
 import { RemDoIcon } from './icons/RemDoIcon';
 import headerStyles from './styles/AppHeader.module.css';
 import { theme } from './theme';
+import { config } from '#config';
 import '@mantine/core/styles.css';
 
 interface HostContext {
@@ -55,15 +56,19 @@ export default function App() {
               <Anchor className="app-header-link" href="/?doc=project">
                 Project
               </Anchor>
-              <Anchor className="app-header-link" href={previewUrl}>
-                Preview
-              </Anchor>
-              <Anchor className="app-header-link" href={vitestUrl}>
-                Vitest
-              </Anchor>
-              <Anchor className="app-header-link" href={lexicalUrl}>
-                Lexical
-              </Anchor>
+              {config.isDev && (
+                <>
+                  <Anchor className="app-header-link" href={previewUrl}>
+                    Preview
+                  </Anchor>
+                  <Anchor className="app-header-link" href={vitestUrl}>
+                    Vitest
+                  </Anchor>
+                  <Anchor className="app-header-link" href={lexicalUrl}>
+                    Lexical
+                  </Anchor>
+                </>
+              )}
             </Group>
           </nav>
         </header>
