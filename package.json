@@ -111,8 +111,8 @@
   },
   "pnpm": {
     "overrides": {
-      "js-yaml": "4.1.1",
-      "body-parser": "2.2.1"
+      "body-parser": "2.2.1",
+      "js-yaml": "4.1.1"
     },
     "onlyBuiltDependencies": [
       "@swc/core",
