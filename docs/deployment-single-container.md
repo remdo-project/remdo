@@ -7,11 +7,10 @@ single external port.
 ## Build & Run
 
 - One-step: `./docker/run.sh` builds (respecting `PUBLIC_PORT`, default 8080)
-  and then runs the image (tag `remdo` by default). It hashes the password on
-  the host using the `caddy:2` image before the container starts.
+  and then runs the image (tag `remdo` by default).
 - Manual equivalent (override port if needed):\
   `docker build -f docker/Dockerfile --build-arg PUBLIC_PORT=443 -t remdo .`
-  `docker run --rm -e APP_PORT=8080 -e YSWEET_PORT_INTERNAL=8081 -e BASICAUTH_USER -e BASICAUTH_PASSWORD_HASH -p 8080:8080 remdo`
+  `docker run --rm -e APP_PORT=8080 -e YSWEET_PORT_INTERNAL=8081 -e BASICAUTH_USER -e BASICAUTH_PASSWORD -p 8080:8080 remdo`
 
 Basic auth covers both the SPA and Y-Sweet. The script:
 
@@ -20,8 +19,7 @@ Basic auth covers both the SPA and Y-Sweet. The script:
 3. Verifies the file is mode `600`; otherwise exits and suggests
    `chmod 600 ~/.password`.
 4. Requires the password to be non-empty and ≥10 chars.
-5. Hashes it on the host (`caddy:2 caddy hash-password`) and exports
-   `BASICAUTH_USER` and `BASICAUTH_PASSWORD_HASH` for the container.
+5. Exports both for the container.
 
 The container exposes only `8080`; `/doc/*` and `/d*` are proxied to Y-Sweet
 inside the container. WebSockets are forwarded automatically by Caddy. Health
