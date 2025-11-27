@@ -17,10 +17,11 @@ COPY \
   tsconfig.json \
   vite.config.mts \
   index.html \
-  src \
-  lib \
-  config \
   ./
+
+COPY src ./src
+COPY lib ./lib
+COPY config ./config
 
 # Production build-time env (same-origin proxy on configurable PUBLIC_PORT)
 ENV NODE_ENV=production \

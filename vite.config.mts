@@ -1,6 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { config } from './config';
+import { config } from '#config';
 import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
