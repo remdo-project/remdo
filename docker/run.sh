@@ -25,7 +25,9 @@ if (( ${#BASICAUTH_PASSWORD} < 10 )); then
   exit 1
 fi
 
-export BASICAUTH_USER BASICAUTH_PASSWORD
+BASICAUTH_PASSWORD_HASH="$(printf %s "${BASICAUTH_PASSWORD}" | docker run --rm -i caddy:2 caddy hash-password --algorithm bcrypt)"
+
+export BASICAUTH_USER BASICAUTH_PASSWORD_HASH
 
 docker build -f docker/Dockerfile \
   --build-arg PUBLIC_PORT="${PUBLIC_PORT}" \
@@ -36,6 +38,6 @@ docker run --rm \
   -e APP_PORT=8080 \
   -e YSWEET_PORT_INTERNAL=8081 \
   -e BASICAUTH_USER \
-  -e BASICAUTH_PASSWORD \
+  -e BASICAUTH_PASSWORD_HASH \
   -p 8080:8080 \
   "${IMAGE_NAME}"

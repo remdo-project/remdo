@@ -3,8 +3,8 @@
 }
 
 :{$APP_PORT} {
-  basicauth {
-    {$BASICAUTH_USER} {$BASICAUTH_PASSWORD_HASH}
+  basic_auth {
+    {env.BASICAUTH_USER} {env.BASICAUTH_PASSWORD_HASH}
   }
 
   @options method OPTIONS
