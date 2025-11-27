@@ -4,7 +4,7 @@ services:
   name: remdo
   runtime: docker
   repo: https://github.com/remdo-project/remdo
-  branch: feat/render
+  branch: main
   plan: free
   region: frankfurt
   dockerContext: .
