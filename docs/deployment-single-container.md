@@ -4,17 +4,15 @@ This recipe builds the RemDo SPA and bundles the Y-Sweet collab backend into one
 Docker image. It assumes same-origin requests: the SPA and `/doc/*` share a
 single external port.
 
-## Build
+## Build & Run
 
-- Fast path: `./docker/build.sh` (uses `docker/Dockerfile`, tags `remdo`, sets `PUBLIC_PORT=8080`).
+- One-step: `./docker/run.sh` builds (respecting `PUBLIC_PORT`, default 8080)
+  and then runs the image (tag `remdo` by default).
 - Manual equivalent (override port if needed):\
   `docker build -f docker/Dockerfile --build-arg PUBLIC_PORT=443 -t remdo .`
+  `docker run --rm -e APP_PORT=8080 -e YSWEET_PORT_INTERNAL=8081 -e BASICAUTH_USER -e BASICAUTH_PASSWORD -p 8080:8080 remdo`
 
-## Run
-
-`./docker/run.sh` (hardcoded: tag `remdo`, `APP_PORT=8080`,
-`YSWEET_PORT_INTERNAL=8081`, no volume mounts). Basic auth now covers both the
-SPA and Y-Sweet. The script:
+Basic auth covers both the SPA and Y-Sweet. The script:
 
 1. Sets `BASICAUTH_USER` to the current shell user.
 2. Reads the password from `~/.password` (override with `PASSWORD_FILE`).
@@ -22,9 +20,6 @@ SPA and Y-Sweet. The script:
    `chmod 600 ~/.password`.
 4. Requires the password to be non-empty and ≥10 chars.
 5. Exports both for the container.
-
-Manual equivalent:\
-`docker run --rm -e APP_PORT=8080 -e YSWEET_PORT_INTERNAL=8081 -e BASICAUTH_USER -e BASICAUTH_PASSWORD -p 8080:8080 remdo`
 
 The container exposes only `8080`; `/doc/*` and `/d*` are proxied to Y-Sweet
 inside the container. WebSockets are forwarded automatically by Caddy. Health

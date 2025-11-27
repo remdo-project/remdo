@@ -3,6 +3,8 @@ set -euo pipefail
 
 BASICAUTH_USER="$(id -un)"
 PASSWORD_FILE="${PASSWORD_FILE:-${HOME}/.password}"
+IMAGE_NAME="${IMAGE_NAME:-remdo}"
+PUBLIC_PORT="${PUBLIC_PORT:-8080}"
 
 # Cross-platform permission check (GNU/BSD stat)
 perm="$(stat -c '%a' "${PASSWORD_FILE}" 2>/dev/null || stat -f '%OLp' "${PASSWORD_FILE}" 2>/dev/null || echo '')"
@@ -25,10 +27,15 @@ fi
 
 export BASICAUTH_USER BASICAUTH_PASSWORD
 
+docker build -f docker/Dockerfile \
+  --build-arg PUBLIC_PORT="${PUBLIC_PORT}" \
+  -t "${IMAGE_NAME}" \
+  .
+
 docker run --rm \
   -e APP_PORT=8080 \
   -e YSWEET_PORT_INTERNAL=8081 \
   -e BASICAUTH_USER \
   -e BASICAUTH_PASSWORD \
   -p 8080:8080 \
-  remdo
+  "${IMAGE_NAME}"
