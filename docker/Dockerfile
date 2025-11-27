@@ -48,7 +48,10 @@ RUN apk add --no-cache caddy \
 
 COPY --from=builder /app/data/dist /srv/remdo
 COPY docker/Caddyfile /etc/caddy/Caddyfile
+COPY docker/entrypoint.sh /entrypoint.sh
+
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "y-sweet serve --host 0.0.0.0 --port ${YSWEET_PORT_INTERNAL} /data & caddy run --config /etc/caddy/Caddyfile --adapter caddyfile"]
+CMD ["/entrypoint.sh"]

@@ -3,6 +3,10 @@
 }
 
 :{$APP_PORT} {
+  basicauth {
+    {$BASICAUTH_USER} {$BASICAUTH_PASSWORD_HASH}
+  }
+
   @options method OPTIONS
   handle @options {
     respond 204
