@@ -10,27 +10,24 @@ RUN corepack enable
 
 ARG PUBLIC_PORT=8080
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY tsconfig.json tsconfig.tests.json vite.config.mts ./
-COPY eslint.config.mts index.html ./ 
-COPY src ./src
-COPY lib ./lib
-COPY config ./config
-COPY tools ./tools
-COPY docs ./docs
-COPY data/.vendor ./data/.vendor
+COPY \
+  package.json \
+  pnpm-lock.yaml \
+  pnpm-workspace.yaml \
+  tsconfig.json \
+  vite.config.mts \
+  index.html \
+  src \
+  lib \
+  config \
+  ./
 
 # Production build-time env (same-origin proxy on configurable PUBLIC_PORT)
 ENV NODE_ENV=production \
-    HOST=0.0.0.0 \
-    PORT=${PUBLIC_PORT} \
-    COLLAB_ENABLED=true \
-    COLLAB_CLIENT_PORT=${PUBLIC_PORT} \
-    COLLAB_DOCUMENT_ID=main
+  PORT=${PUBLIC_PORT} \
+  COLLAB_CLIENT_PORT=${PUBLIC_PORT}
 
-RUN pnpm install --frozen-lockfile
-RUN pnpm run build
-
+RUN pnpm install --frozen-lockfile && pnpm run build
 
 ############################
 # Runner: serve SPA + YJS  #
@@ -41,20 +38,15 @@ ARG YSWEET_VERSION=0.9.1
 
 WORKDIR /app
 
+ENV YSWEET_PORT_INTERNAL=8081 \
+  APP_PORT=8080
+
 RUN apk add --no-cache caddy \
   && npm install -g "y-sweet@${YSWEET_VERSION}" \
   && mkdir -p /data /etc/caddy /srv/remdo
 
-# Runtime defaults
-ENV YSWEET_PORT_INTERNAL=8081 \
-    APP_PORT=8080
-
-COPY docker/Caddyfile /etc/caddy/Caddyfile
-# Log the Caddyfile contents during build to verify deployment config.
-RUN echo "===== CADDYFILE BEGIN =====" \
-  && cat /etc/caddy/Caddyfile \
-  && echo "===== CADDYFILE END ====="
 COPY --from=builder /app/data/dist /srv/remdo
+COPY docker/Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE 8080
 

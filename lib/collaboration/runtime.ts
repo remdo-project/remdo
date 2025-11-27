@@ -146,7 +146,8 @@ function rewriteTokenHost(token: ClientToken): ClientToken {
   const rewrite = (raw: string) => {
     const url = new URL(raw);
     url.hostname = resolveLoopbackHost(url.hostname, hostname);
-    if (protocol === 'https:' && (url.protocol === 'ws:' || url.protocol === 'http:')) {
+    const needsUpgrade = protocol === 'https:' && (url.protocol === 'ws:' || url.protocol === 'http:');
+    if (needsUpgrade) {
       url.protocol = url.protocol === 'ws:' ? 'wss:' : 'https:';
     }
     return url.toString();

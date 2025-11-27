@@ -50,13 +50,10 @@ export function CollaborationProvider({
 }
 
 function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string }): CollaborationStatusValue {
-  const envOrigin = typeof config.env.COLLAB_ORIGIN === 'string' && config.env.COLLAB_ORIGIN.length > 0
-    ? config.env.COLLAB_ORIGIN
-    : undefined;
   const resolvedCollabOrigin =
     collabOrigin
-    ?? envOrigin
-    ?? location.origin;
+    || config.env.COLLAB_ORIGIN
+    || location.origin;
   const enabled = config.env.COLLAB_ENABLED;
   const docId = useMemo(() => {
     const doc = globalThis.location.search ? new URLSearchParams(globalThis.location.search).get('doc')?.trim() : null;
@@ -72,7 +69,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
   const providerRef = useRef<ReturnType<ProviderFactory> | null>(null);
   const awaitSyncedRef = useRef<{ promise: Promise<void>; abort: (cause?: Error) => void }>({
     promise: Promise.resolve(),
-    abort: () => {},
+    abort: () => { },
   });
   const cleanupRef = useRef<(() => void) | null>(null);
 
@@ -91,14 +88,14 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
       }
 
       if (!enabled) {
-        awaitSyncedRef.current = { promise: Promise.resolve(), abort: () => {} };
+        awaitSyncedRef.current = { promise: Promise.resolve(), abort: () => { } };
         return;
       }
 
       if (!provider) {
         const promise = Promise.reject(reason ?? new Error('Collaboration provider unavailable'));
-        promise.catch(() => {});
-        awaitSyncedRef.current = { promise, abort: () => {} };
+        promise.catch(() => { });
+        awaitSyncedRef.current = { promise, abort: () => { } };
         return;
       }
 
@@ -107,7 +104,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
         signal: controller.signal,
         timeoutMs: null, // explicit no-timeout for UI awaitSynced
       });
-      promise.catch(() => {});
+      promise.catch(() => { });
       awaitSyncedRef.current = {
         promise,
         abort: (cause?: Error) => controller.abort(cause ?? reason ?? new Error('awaitSynced reset')),
@@ -122,7 +119,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
     }
 
     const promise = awaitSyncedRef.current.promise;
-    promise.catch(() => {});
+    promise.catch(() => { });
     return promise;
   }, [enabled]);
 
@@ -141,7 +138,7 @@ function useCollaborationRuntimeValue({ collabOrigin }: { collabOrigin?: string 
           // Re-arm awaitSynced when leaving the synced state (e.g., new local edits).
           if (syncedRef.current && !nextSynced) resetAwaitSynced(events);
 
-        setHydratedState(nextHydrated);
+          setHydratedState(nextHydrated);
           setSynced(nextSynced);
           syncedRef.current = nextSynced;
           if (nextSynced) resetAwaitSynced(events);
