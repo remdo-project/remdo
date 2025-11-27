@@ -10,4 +10,6 @@ services:
   dockerContext: .
   dockerfilePath: ./docker/Dockerfile
   autoDeployTrigger: commit
-
+  envVars:
+    - key: PORT
+      value: "8080"
