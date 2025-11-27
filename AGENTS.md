@@ -27,8 +27,9 @@ decide what matters.
 - `docs/todo.md` (~678 words). Project roadmap plus outstanding design
   questions—review when planning new features; now includes the Render
   deployment plan.
-- `docs/deployment-single-container.md` (~253 words). How to build and run the
-  single-container image (Caddy + Y-Sweet) and its env knobs.
+- `docs/deployment-single-container.md` (~274 words). How to build and run the
+  single-container image (Caddy + Y-Sweet) and its env knobs, including basic
+  auth requirements.
 
 Whenever you edit any of these docs, update their summaries/word counts here so
 the map stays trustworthy.
