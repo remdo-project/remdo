@@ -5,7 +5,7 @@ services:
   runtime: docker
   repo: https://github.com/remdo-project/remdo
   branch: main
-  plan: free
+  plan: starter
   region: frankfurt
   dockerContext: .
   dockerfilePath: ./docker/Dockerfile
@@ -13,3 +13,7 @@ services:
   envVars:
     - key: PORT
       value: "8080"
+  disk:
+    name: remdo-data
+    mountPath: /data
+    sizeGB: 2
