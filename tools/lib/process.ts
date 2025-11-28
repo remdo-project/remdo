@@ -42,3 +42,31 @@ export function spawnPnpm(
   }
   return child;
 }
+
+interface RunPnpmOptions extends SpawnPnpmOptions {
+  /**
+   * Treat non-zero exit codes as errors. Defaults to true.
+   */
+  rejectOnNonZeroExit?: boolean;
+}
+
+/**
+ * Convenience wrapper that awaits a pnpm process and resolves when it exits.
+ * Useful in tests/CLIs where we don't want the parent process to exit automatically.
+ */
+export function runPnpm(args: string[], options?: RunPnpmOptions): Promise<void> {
+  const { rejectOnNonZeroExit = true, ...spawnOptions } = options ?? {};
+
+  return new Promise<void>((resolve, reject) => {
+    const child = spawnPnpm(args, { ...spawnOptions, forwardExit: false });
+
+    child.once('error', reject);
+    child.once('close', (code) => {
+      if (!rejectOnNonZeroExit || code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`pnpm ${args.join(' ')} exited with code ${code ?? 'null'}`));
+      }
+    });
+  });
+}

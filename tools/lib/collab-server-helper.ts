@@ -7,11 +7,13 @@ import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
 import { resolveLoopbackHost } from '#lib/net/loopback';
+import { DATA_DIR } from './data-paths';
 import { spawnPnpm } from './process';
 
 const MAX_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
-const LOG_PATH = path.resolve(process.cwd(), 'data/logs/collab-server.log');
+const LOG_PATH = path.join(DATA_DIR, 'logs/collab-server.log');
+const DATA_PATH = path.join(DATA_DIR, 'collab');
 
 function ensureLogStream(): fs.WriteStream {
   fs.mkdirSync(path.dirname(LOG_PATH), { recursive: true });
@@ -46,18 +48,28 @@ async function waitForPort(host: string, port: number): Promise<void> {
 }
 export type StopCollabServer = () => Promise<void>;
 
-export async function ensureCollabServer(): Promise<StopCollabServer | undefined> {
+export async function ensureCollabServer(allowReuse = true): Promise<StopCollabServer | undefined> {
   const resolvedHost = config.env.HOST;
   const resolvedPort = config.env.COLLAB_SERVER_PORT;
   const probeHost = resolveLoopbackHost(resolvedHost, '127.0.0.1');
 
-  if (await isPortOpen(probeHost, resolvedPort)) {
+  if (allowReuse && (await isPortOpen(probeHost, resolvedPort))) {
     return undefined;
   }
 
   const logStream = ensureLogStream();
+  fs.mkdirSync(DATA_PATH, { recursive: true });
   const child = spawnPnpm(
-    ['exec', 'y-sweet', 'serve', '--host', resolvedHost, '--port', String(resolvedPort)],
+    [
+      'exec',
+      'y-sweet',
+      'serve',
+      '--host',
+      resolvedHost,
+      '--port',
+      String(resolvedPort),
+      DATA_PATH,
+    ],
     {
       env: {
         HOST: resolvedHost,
