@@ -16,4 +16,4 @@ services:
   disk:
     name: remdo-data
     mountPath: /data
-    sizeGB: 2
+    sizeGB: 1
