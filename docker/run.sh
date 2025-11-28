@@ -5,6 +5,8 @@ BASICAUTH_USER="$(id -un)"
 PASSWORD_FILE="${PASSWORD_FILE:-${HOME}/.password}"
 IMAGE_NAME="${IMAGE_NAME:-remdo}"
 PUBLIC_PORT="${PUBLIC_PORT:-8080}"
+DATA_DIR="${DATA_DIR:-data}"
+DATA_DIR="$(cd -- "$DATA_DIR" && pwd)"
 
 # Cross-platform permission check (GNU/BSD stat)
 perm="$(stat -c '%a' "${PASSWORD_FILE}" 2>/dev/null || stat -f '%OLp' "${PASSWORD_FILE}" 2>/dev/null || echo '')"
@@ -37,5 +39,6 @@ docker run --rm \
   -e YSWEET_PORT_INTERNAL=8081 \
   -e BASICAUTH_USER \
   -e BASICAUTH_PASSWORD \
+  -v "${DATA_DIR}:/data" \
   -p 8080:8080 \
   "${IMAGE_NAME}"
