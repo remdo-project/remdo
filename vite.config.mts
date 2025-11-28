@@ -57,7 +57,7 @@ export default defineConfig(() => {
         ...(config.env.COLLAB_ENABLED ? [] : ['!tests/unit/collab/**']),
       ],
       css: true,
-      slowTestThreshold: config.env.COLLAB_ENABLED ? 3000 : undefined,
+      slowTestThreshold: config.env.COLLAB_ENABLED ? 4000 : undefined,
       threads: true,
       testTimeout: 5000,
       hookTimeout: 5000,
