@@ -48,12 +48,12 @@ async function waitForPort(host: string, port: number): Promise<void> {
 }
 export type StopCollabServer = () => Promise<void>;
 
-export async function ensureCollabServer(): Promise<StopCollabServer | undefined> {
+export async function ensureCollabServer(allowReuse = true): Promise<StopCollabServer | undefined> {
   const resolvedHost = config.env.HOST;
   const resolvedPort = config.env.COLLAB_SERVER_PORT;
   const probeHost = resolveLoopbackHost(resolvedHost, '127.0.0.1');
 
-  if (await isPortOpen(probeHost, resolvedPort)) {
+  if (allowReuse && (await isPortOpen(probeHost, resolvedPort))) {
     return undefined;
   }
 
