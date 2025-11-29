@@ -5,7 +5,7 @@ BASICAUTH_USER="$(id -un)"
 PASSWORD_FILE="${PASSWORD_FILE:-${HOME}/.password}"
 IMAGE_NAME="${IMAGE_NAME:-remdo}"
 PUBLIC_PORT="${PUBLIC_PORT:-8080}"
-YSWEET_VERSION="${YSWEET_VERSION:-$(node -p "const pkg=require('./package.json'); pkg.dependencies?.['y-sweet'] ?? pkg.devDependencies?.['y-sweet'] ?? ''" 2>/dev/null)}"
+YSWEET_VERSION="${YSWEET_VERSION:-$(sed -n 's/.*\"y-sweet\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' package.json | head -n1)}"
 DATA_DIR="${DATA_DIR:-data}"
 DATA_DIR="$(cd -- "$DATA_DIR" && pwd)"
 
