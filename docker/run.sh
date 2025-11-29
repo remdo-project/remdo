@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PACKAGE_JSON="${SCRIPT_DIR}/package.json"
+
 BASICAUTH_USER="$(id -un)"
 PASSWORD_FILE="${PASSWORD_FILE:-${HOME}/.password}"
 IMAGE_NAME="${IMAGE_NAME:-remdo}"
 PUBLIC_PORT="${PUBLIC_PORT:-8080}"
-YSWEET_VERSION="${YSWEET_VERSION:-$(sed -n 's/.*\"y-sweet\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' package.json | head -n1)}"
+# Extract y-sweet version from package.json using POSIX awk (works on macOS/Linux).
+YSWEET_VERSION="${YSWEET_VERSION:-$(awk -F '\"' '/\"y-sweet\"[[:space:]]*:/ {print $4; exit}' "${PACKAGE_JSON}")}"
 DATA_DIR="${DATA_DIR:-data}"
 DATA_DIR="$(cd -- "$DATA_DIR" && pwd)"
 
@@ -35,11 +39,11 @@ fi
 
 export BASICAUTH_USER BASICAUTH_PASSWORD
 
-docker build -f docker/Dockerfile \
+docker build -f "${SCRIPT_DIR}/docker/Dockerfile" \
   --build-arg PUBLIC_PORT="${PUBLIC_PORT}" \
   --build-arg YSWEET_VERSION="${YSWEET_VERSION}" \
   -t "${IMAGE_NAME}" \
-  .
+  "${SCRIPT_DIR}"
 
 docker run --rm \
   -e APP_PORT=8080 \
