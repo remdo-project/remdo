@@ -47,6 +47,7 @@
     "format": "pnpm run lint:fix",
     "check": "pnpm run lint && pnpm run test",
     "deps:list": "pnpm list --depth=-1 --silent",
+    "postinstall": "chmod -R 755 node_modules/.pnpm/hadolint@0.4.1/node_modules/hadolint/.cache/hadolint",
     "test": "pnpm run test:unit",
     "test:unit": "COLLAB_ENABLED=false pnpm exec vitest run",
     "test:unit:collab": "pnpm exec vitest run",
