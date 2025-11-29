@@ -3,7 +3,7 @@
 import process from 'node:process';
 
 import { config } from '#config';
-import { forceVitestPreviewCacheDir } from '#config/vitest/preview-cache';
+import { setTmpDir } from '#config/vitest/tmpdir';
 import { spawnPnpm } from './lib/process';
 
 const previewEnv = {
@@ -13,6 +13,6 @@ const previewEnv = {
   VITEST_PREVIEW: 'true',
 };
 
-forceVitestPreviewCacheDir();
+setTmpDir();
 
 spawnPnpm(['exec', 'vitest-preview'], { env: previewEnv });
