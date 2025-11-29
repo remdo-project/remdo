@@ -35,7 +35,8 @@ RUN pnpm install --frozen-lockfile && pnpm run build
 ############################
 FROM node:22-alpine AS runner
 
-ARG YSWEET_VERSION=0.9.1
+ARG YSWEET_VERSION
+RUN test -n "$YSWEET_VERSION" || (echo "YSWEET_VERSION build-arg is required" >&2 && exit 1)
 
 WORKDIR /app
 

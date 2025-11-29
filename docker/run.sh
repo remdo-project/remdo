@@ -5,6 +5,7 @@ BASICAUTH_USER="$(id -un)"
 PASSWORD_FILE="${PASSWORD_FILE:-${HOME}/.password}"
 IMAGE_NAME="${IMAGE_NAME:-remdo}"
 PUBLIC_PORT="${PUBLIC_PORT:-8080}"
+YSWEET_VERSION="${YSWEET_VERSION:-$(node -p "require('./package.json').dependencies['y-sweet']" 2>/dev/null || echo '')}"
 DATA_DIR="${DATA_DIR:-data}"
 DATA_DIR="$(cd -- "$DATA_DIR" && pwd)"
 
@@ -27,10 +28,16 @@ if (( ${#BASICAUTH_PASSWORD} < 10 )); then
   exit 1
 fi
 
+if [[ -z "${YSWEET_VERSION}" ]]; then
+  echo "YSWEET_VERSION is required. Set env YSWEET_VERSION or ensure package.json declares y-sweet." >&2
+  exit 1
+fi
+
 export BASICAUTH_USER BASICAUTH_PASSWORD
 
 docker build -f docker/Dockerfile \
   --build-arg PUBLIC_PORT="${PUBLIC_PORT}" \
+  --build-arg YSWEET_VERSION="${YSWEET_VERSION}" \
   -t "${IMAGE_NAME}" \
   .
 
