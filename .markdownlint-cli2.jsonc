@@ -1,0 +1,30 @@
+{
+  "globs": [
+    "AGENTS.md",
+    "docs/**/*.md"
+  ],
+  "ignores": [
+    "node_modules",
+    "data"
+  ],
+  "config": {
+    "default": true,
+    "MD013": {
+      "line_length": 120,
+      "code_block_line_length": 0,
+      "tables": false
+    },
+    // MD012: existing docs intentionally keep double-blank separators.
+    "MD012": false,
+    // MD029: selection doc uses custom list numbering for readability.
+    "MD029": false,
+    // MD033: allow inline HTML fragments already present.
+    "MD033": false,
+    // MD040: allow unlabeled code fences in legacy sections.
+    "MD040": false,
+    // MD041: skip first-heading requirement for shared snippets.
+    "MD041": false,
+    // MD060: keep current table alignment as-is.
+    "MD060": false
+  }
+}
