@@ -42,6 +42,7 @@ WORKDIR /app
 ENV YSWEET_PORT_INTERNAL=8081 \
   APP_PORT=8080
 
+# hadolint ignore=DL3018
 RUN apk add --no-cache caddy \
   && npm install -g "y-sweet@${YSWEET_VERSION}" \
   && mkdir -p /data /etc/caddy /srv/remdo
