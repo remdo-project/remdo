@@ -114,7 +114,6 @@ export default antfu(
     rules: {
       'node/no-process-env': 'off',
       'no-restricted-syntax': 'off',
-      'node/prefer-global/process': 'off',
     },
   },
   {

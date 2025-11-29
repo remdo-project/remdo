@@ -1,6 +1,8 @@
+import process from 'node:process';
+
 import { loadEnv } from './_internal/env/load';
 
-const isNodeRuntime = typeof process !== 'undefined' && typeof process.versions.node === 'string';
+const isNodeRuntime = typeof process.versions.node === 'string';
 
 const loaded = (() => {
   if (isNodeRuntime) {

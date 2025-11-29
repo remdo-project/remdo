@@ -35,13 +35,15 @@ RUN pnpm install --frozen-lockfile && pnpm run build
 ############################
 FROM node:22-alpine AS runner
 
-ARG YSWEET_VERSION=0.9.1
+ARG YSWEET_VERSION
+RUN test -n "$YSWEET_VERSION" || (echo "YSWEET_VERSION build-arg is required" >&2 && exit 1)
 
 WORKDIR /app
 
 ENV YSWEET_PORT_INTERNAL=8081 \
   APP_PORT=8080
 
+# hadolint ignore=DL3018
 RUN apk add --no-cache caddy \
   && npm install -g "y-sweet@${YSWEET_VERSION}" \
   && mkdir -p /data /etc/caddy /srv/remdo

@@ -106,3 +106,8 @@ stage 2 is active).
 
 Both variants should prove that Delete/Backspace is only swallowed when an
 actual structural removal occurs.
+
+## Container image security lint
+
+Evaluate adding Dockle to scan the built container image (complements
+Hadolint’s Dockerfile checks) and decide whether to gate CI on its report.

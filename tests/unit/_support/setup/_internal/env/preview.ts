@@ -1,5 +1,4 @@
 import { config } from '#config';
-import { forceVitestPreviewCacheDir } from '#config/vitest/preview-cache';
 import { debug } from 'vitest-preview';
 
 export type PreviewFn = typeof debug;
@@ -9,7 +8,6 @@ declare global {
   var preview: PreviewFn;
 }
 
-forceVitestPreviewCacheDir();
 let hasPreviewRun = false;
 
 const preview: PreviewFn = (...args) => {
