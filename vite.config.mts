@@ -56,6 +56,11 @@ export default defineConfig(() => {
         'tests/**/*.spec.{ts,tsx}',
         ...(config.env.COLLAB_ENABLED ? [] : ['!tests/unit/collab/**']),
       ],
+      watchExclude: [
+        '**/pnpm-lock.yaml',
+        '**/package-lock.json',
+        '**/yarn.lock',
+      ],
       css: true,
       slowTestThreshold: config.env.COLLAB_ENABLED ? 4000 : undefined,
       threads: true,
