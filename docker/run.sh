@@ -30,11 +30,6 @@ if (( ${#BASICAUTH_PASSWORD} < 10 )); then
   exit 1
 fi
 
-if [[ -z "${YSWEET_VERSION}" ]]; then
-  echo "YSWEET_VERSION is required. Set env YSWEET_VERSION or ensure package.json declares y-sweet." >&2
-  exit 1
-fi
-
 export BASICAUTH_USER BASICAUTH_PASSWORD
 
 docker build -f "${SCRIPT_DIR}/docker/Dockerfile" \
