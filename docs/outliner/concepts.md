@@ -108,18 +108,10 @@ Lexical node shape:
 
 ### Operations
 
-Notes can be restructured via indent/outdent or reordering actions, and these
-edits must preserve the outline's structural guarantees. Outdenting (shortcut
-`Shift+Tab`) moves the selected note’s subtree up one level and inserts it
-directly after its former parent. See
-[Note Structure Rules](./note-structure-rules.md) for the full set of editing
-rules that govern these operations.
+Notes can be restructured via indent/outdent or reordering actions; see
+[Note Structure Rules](./note-structure-rules.md) for the editing invariants.
 
 ### Selection Overview
 
-RemDo’s editor keeps every selection aligned to whole notes so structural
-commands always act on complete subtrees. Inline arrows (`Shift+Left/Right`)
-stay inside a note, while structural expansion happens via `Shift+Up/Down`.
-[Selection](./selection.md) details the cursor-driven gestures, progressive
-selection behavior, shortcut summary, and command compatibility matrix that
-implementations must honor.
+Selection behavior is defined in [Selection](./selection.md), which describes
+whole-note snapping, progressive expansion, and shortcut coverage.

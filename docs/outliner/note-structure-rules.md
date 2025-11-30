@@ -21,17 +21,6 @@ guarantees.
 - **Predictability:** Outdent/indent placement is deterministic, so the same
   command always lands notes in the expected position.
 
-## Shortcut Summary
-
-| Shortcut / Command | Operation | Result |
-| ------------------ | --------- | ------ |
-| `Tab`              | Indent    | Nests the selected note(s) under the previous sibling when allowed. |
-| `Shift+Tab`        | Outdent   | Moves the selected note(s) up one level and inserts them immediately after the former parent. |
-
-All other selection gestures and shortcuts are documented in
-[Selection](./selection.md); the invariants below describe the outcomes those
-gestures must respect.
-
 ## Subtree Atomic Move
 
 Any structural move operation (indent, outdent, reorder) applied to a note
