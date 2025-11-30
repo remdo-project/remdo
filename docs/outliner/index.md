@@ -13,7 +13,7 @@ details.
 3. **Indent/Outdent & structure rules:** `./note-structure-rules.md` — structural invariants and indent/outdent semantics.
 4. **Reordering (keyboard):** `./reordering.md` — Reordering behavior and
    placement invariants.
-5. **Reordering (drag & drop):** `./drag-and-drop.md` — status placeholder until implemented.
+5. **Reordering (drag & drop):** `./drag-and-drop.md` — not supported yet; future plan lives here.
 
 ## Glossary (minimal)
 

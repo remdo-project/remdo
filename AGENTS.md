@@ -29,8 +29,8 @@ decide what matters.
   the editor runtime—reference for UX or Lexical selection work.
 - `docs/outliner/reordering.md` (~248 words). Reordering behavior and placement
   invariants.
-- `docs/outliner/drag-and-drop.md` (~63 words). Pointer-based reordering (drag
-  and drop) status placeholder.
+- `docs/outliner/drag-and-drop.md` (~81 words). Pointer-based reordering (drag
+  and drop) – not supported yet; future plan lives there.
 - `docs/todo.md` (~678 words). Project roadmap plus outstanding design
   questions—review when planning new features; now includes the Render
   deployment plan.
