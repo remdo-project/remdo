@@ -51,6 +51,19 @@ the map stays trustworthy.
 3. After modifying documentation, refresh this map and note significant changes
    in AGENTS.md so future sessions have the latest pointers.
 
+### Documentation invariants
+
+1. **Single source per topic.** Define each behavior once in the doc best suited
+   to it; eliminate duplicates and replace any extra copies with pointers.
+2. **Top-down linking.** Prefer links from higher-level docs (index, concepts)
+   into detailed docs (selection, indent/outdent, reordering); same-level links
+   only when they add clear value.
+3. **Self-contained set.** Keep required context inside this doc set; avoid external references.
+4. **Coherence checks.** When editing a doc, ensure the change aligns with
+   existing resolutions and update related docs/maps if needed.
+5. **Intentional gaps.** Stubs/placeholders are acceptable in dev—mark status
+   clearly when a section is partial.
+
 ### Core ideas
 
 - **Structure-first.** Notes form a hierarchical tree; every note is addressable
