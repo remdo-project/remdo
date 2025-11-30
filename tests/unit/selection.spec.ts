@@ -23,7 +23,7 @@ const TREE_COMPLEX_OUTLINE: Outline = [
   { text: 'note6', children: [ { text: 'note7', children: [] } ] },
 ];
 
-// Ensures every multi-note selection matches the guarantees from docs/selection.md:
+// Ensures every multi-note selection matches the guarantees from docs/outliner/selection.md:
 // once a selection crosses a note boundary it must cover a contiguous block of
 // whole notes plus their subtrees, with no gaps or orphaned descendants.
 async function dragDomSelectionBetween(start: Text, startOffset: number, end: Text, endOffset: number) {
@@ -744,7 +744,7 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
-    // Stage 5+: walk root-level siblings one at a time (per docs/selection.md).
+    // Stage 5+: walk root-level siblings one at a time (per docs/outliner/selection.md).
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
 
@@ -780,7 +780,7 @@ it.skipIf(config.env.COLLAB_ENABLED)(
 
     await placeCaretAtNote('note3', lexical.mutate);
 
-    // Stage 1 (docs/selection.md): inline body only.
+    // Stage 1 (docs/outliner/selection.md): inline body only.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     expect(lexical).toMatchSelection({ state: 'inline', note: 'note3' });
 
@@ -788,7 +788,7 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     expect(lexical).toMatchSelection({ state: 'structural', notes: ['note3'] });
 
-    // Stage 3 would add siblings, but the ladder skips empty rungs per docs/selection.md and hoists to the parent subtree (Stage 4).
+    // Stage 3 would add siblings, but the ladder skips empty rungs per docs/outliner/selection.md and hoists to the parent subtree (Stage 4).
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
@@ -800,7 +800,7 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
-    // Stage 7+: walk root-level siblings one at a time, per docs/selection.md.
+    // Stage 7+: walk root-level siblings one at a time, per docs/outliner/selection.md.
     await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
     expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
 
