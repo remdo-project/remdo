@@ -1,11 +1,21 @@
 # Reordering (keyboard)
 
-Reordering respects the outline invariants and provides a way to reorder or
-reparent notes within those rules:
+Scope: keyboard-driven sibling reordering only. Reparenting continues to use
+indent/outdent, and drag-and-drop is covered in `./drag-and-drop.md`.
 
-Pointer-based drag-and-drop reordering is tracked separately in
-`./drag-and-drop.md`.
+## Command surface (sibling order only)
 
-- **Sibling Reordering:** Moving a note to a new position among its current
-  siblings reorders it within the same parent. This doesn’t change its level,
-  just the order. (All children move with it due to **Subtree Atomic Move**.)
+1. **Move Down:** Swaps the selected note (or contiguous selection) with the
+   next sibling.
+2. **Move Up:** Swaps the selected note (or selection) with the previous
+   sibling. Same-level only.
+
+## Subtree atomicity
+
+Moving any note always carries its entire subtree; partial moves are disallowed.
+This keeps hierarchy intact and mirrors common outliner move semantics.
+
+## Boundary behavior
+
+Moves at the topmost or bottommost sibling become no-ops, avoiding surprises and
+keeping order deterministic.
