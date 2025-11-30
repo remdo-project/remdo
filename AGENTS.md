@@ -18,19 +18,19 @@ decide what matters.
 
 - `docs/contributing.md` (~270 words). Runtime baselines, Git workflow, and
   branch conventions—check before touching tooling or process.
-- `docs/outliner/index.md` (~203 words). Single entry point for outlining docs
+- `docs/outliner/index.md` (~180 words). Single entry point for outlining docs
   with links to model, selection, indent/outdent, and reordering specs.
 - `docs/outliner/concepts.md` (~553 words). Canonical definition of notes,
   invariants, and adapters—skim when working on data modeling or serialization.
-- `docs/outliner/note-structure-rules.md` (~1.45k words). Detailed outlining
-  rules and validation behaviors—consult when editing tree transforms or note
+- `docs/outliner/note-structure-rules.md` (~1.08k words). Structural invariants
+  and indent/outdent semantics—consult when editing tree transforms or note
   mutations.
 - `docs/outliner/selection.md` (~1.45k words). Cursor/selection semantics for
   the editor runtime—reference for UX or Lexical selection work.
-- `docs/outliner/reordering.md` (~40 words). Stub for keyboard Move Up/Down
-  reordering.
+- `docs/outliner/reordering.md` (~248 words). Reordering behavior and placement
+  invariants.
 - `docs/outliner/drag-and-drop.md` (~63 words). Pointer-based reordering (drag
-  and drop).
+  and drop) status placeholder.
 - `docs/todo.md` (~678 words). Project roadmap plus outstanding design
   questions—review when planning new features; now includes the Render
   deployment plan.
