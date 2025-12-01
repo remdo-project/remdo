@@ -1,0 +1,64 @@
+import { describe, expect, it } from 'vitest';
+import { placeCaretAtNote, pressKey } from '#tests';
+
+describe('insertion semantics (docs/insertion.md)', () => {
+  it.fails('enter at start inserts a previous sibling and keeps children with the original', async ({ lexical }) => {
+    await lexical.load('basic');
+
+    await placeCaretAtNote('note1', lexical.mutate, 0);
+    await pressKey(lexical.editor, { key: 'Enter' });
+
+    await pressKey(lexical.editor, { key: 'x' });
+
+    expect(lexical).toMatchOutline([
+      { text: 'x', children: [] },
+      { text: 'note1', children: [ { text: 'note2', children: [] } ] },
+      { text: 'note3', children: [] },
+    ]);
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'x' });
+  });
+
+  it.fails('enter in the middle splits into an above sibling while trailing text and children stay with the original', async ({ lexical }) => {
+    await lexical.load('tree_complex');
+
+    await placeCaretAtNote('note1', lexical.mutate, 2);
+    await pressKey(lexical.editor, { key: 'Enter' });
+
+    await pressKey(lexical.editor, { key: 'X' });
+
+    expect(lexical).toMatchOutline([
+      { text: 'no', children: [] },
+      {
+        text: 'Xte1',
+        children: [
+          { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+          { text: 'note4', children: [] },
+        ],
+      },
+      { text: 'note5', children: [] },
+      { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+    ]);
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'Xte1' });
+  });
+
+  it.fails('enter at end creates a first child and focuses it', async ({ lexical }) => {
+    await lexical.load('basic');
+
+    await placeCaretAtNote('note1', lexical.mutate, Number.POSITIVE_INFINITY);
+    await pressKey(lexical.editor, { key: 'Enter' });
+
+    await pressKey(lexical.editor, { key: 'x' });
+
+    expect(lexical).toMatchOutline([
+      {
+        text: 'note1',
+        children: [
+          { text: 'x', children: [] },
+          { text: 'note2', children: [] },
+        ],
+      },
+      { text: 'note3', children: [] },
+    ]);
+    expect(lexical).toMatchSelection({ state: 'caret', note: 'x' });
+  });
+});
