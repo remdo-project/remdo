@@ -77,7 +77,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^6.2.0",
-    "@eslint-react/eslint-plugin": "^2.3.7",
+    "@eslint-react/eslint-plugin": "^2.3.9",
     "@lexical/eslint-plugin": "^0.38.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
