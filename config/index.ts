@@ -1,8 +1,8 @@
-import process from 'node:process';
-
+/* eslint-disable node/prefer-global/process */
 import { loadEnv } from './_internal/env/load';
 
-const isNodeRuntime = typeof process.versions.node === 'string';
+// eslint-disable-next-line ts/no-unnecessary-condition -- in browser process is a stub with no versions
+const isNodeRuntime = Boolean(globalThis.process?.versions?.node);
 
 const loaded = (() => {
   if (isNodeRuntime) {
