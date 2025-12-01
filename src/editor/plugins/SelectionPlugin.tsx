@@ -1,6 +1,7 @@
 //TODO deserves a major refactor, cleanup and review
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
+import { getContentListItem } from '@/editor/outline/list-structure';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $createParagraphNode,
@@ -1762,15 +1763,6 @@ function getContentDepth(item: ListItemNode): number {
   return depth;
 }
 
-function getContentListItem(item: ListItemNode): ListItemNode {
-  if (!isChildrenWrapper(item)) {
-    return item;
-  }
-
-  const previous = item.getPreviousSibling();
-  return $isListItemNode(previous) ? previous : item;
-}
-
 function getNextContentSibling(item: ListItemNode): ListItemNode | null {
   let sibling: LexicalNode | null = item.getNextSibling();
   while (sibling) {
@@ -2059,7 +2051,7 @@ export function SelectionInputPlugin() {
     const unregisterArrowUp = editor.registerCommand<KeyboardEvent>(
       KEY_ARROW_UP_COMMAND,
       (event) => {
-        if (!event.shiftKey) {
+        if (!event.shiftKey || event.altKey || event.metaKey || event.ctrlKey) {
           return false;
         }
 
@@ -2073,7 +2065,7 @@ export function SelectionInputPlugin() {
     const unregisterArrowDown = editor.registerCommand<KeyboardEvent>(
       KEY_ARROW_DOWN_COMMAND,
       (event) => {
-        if (!event.shiftKey) {
+        if (!event.shiftKey || event.altKey || event.metaKey || event.ctrlKey) {
           return false;
         }
 

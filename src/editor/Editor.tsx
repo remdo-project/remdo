@@ -10,6 +10,7 @@ import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { DevPlugin } from './plugins/DevPlugin';
 import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
+import { ReorderingPlugin } from './plugins/ReorderingPlugin';
 import './Editor.css';
 
 interface EditorProps {
@@ -27,6 +28,7 @@ export default function Editor({ children, collabOrigin }: EditorProps) {
           ErrorBoundary={LexicalErrorBoundary}
         />
         <IndentationPlugin />
+        <ReorderingPlugin />
         <SelectionPlugin />
         <SelectionInputPlugin />
         <ListPlugin hasStrictIndent />

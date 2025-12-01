@@ -5,51 +5,7 @@ import type { LexicalNode } from 'lexical';
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
 import { useEffect } from 'react';
 import { $indentNote, $outdentNote } from '../lexical-helpers';
-
-const findNearestListItem = (node: LexicalNode | null) => {
-  let current: LexicalNode | null = node;
-
-  while (current) {
-    if ($isListItemNode(current)) {
-      return current;
-    }
-    current = current.getParent();
-  }
-
-  return null;
-};
-
-const getNodePath = (node: ListItemNode): number[] => {
-  const path: number[] = [];
-  let current: LexicalNode = node;
-
-  for (;;) {
-    const parent = current.getParent();
-    if (!parent) {
-      break;
-    }
-    path.push(current.getIndexWithinParent());
-    current = parent;
-  }
-
-  return path.toReversed();
-};
-
-const sortByDocumentOrder = (items: ListItemNode[]): ListItemNode[] =>
-  items
-    .map((node) => ({ node, path: getNodePath(node) }))
-    .toSorted((a, b) => {
-      const depth = Math.max(a.path.length, b.path.length);
-      for (let i = 0; i < depth; i++) {
-        const left = a.path[i] ?? -1;
-        const right = b.path[i] ?? -1;
-        if (left !== right) {
-          return left - right;
-        }
-      }
-      return 0;
-    })
-    .map(({ node }) => node);
+import { findNearestListItem } from '@/editor/outline/list-structure';
 
 const hasPreviousContentSibling = (noteItem: ListItemNode): boolean => {
   let sibling: ListItemNode | null = noteItem.getPreviousSibling();
@@ -128,7 +84,7 @@ export function IndentationPlugin() {
           return false;
         }
 
-        const orderedItems: ListItemNode[] = sortByDocumentOrder(listItems);
+        const orderedItems: ListItemNode[] = listItems;
         const targetParent = orderedItems[0]?.getParent() ?? null;
         const contentItems: ListItemNode[] = [];
         for (const item of orderedItems) {
