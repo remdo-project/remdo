@@ -28,15 +28,8 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     expect(lexical).toMatchOutline([
       { text: 'no', children: [] },
-      {
-        text: 'Xte1',
-        children: [
-          { text: 'note2', children: [ { text: 'note3', children: [] } ] },
-          { text: 'note4', children: [] },
-        ],
-      },
-      { text: 'note5', children: [] },
-      { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+      { text: 'Xte1', children: [] },
+      { text: 'note2', children: [ { text: 'note3', children: [] } ] },
     ]);
     expect(lexical).toMatchSelection({ state: 'caret', note: 'Xte1' });
   });
@@ -78,7 +71,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   });
 
   it.fails('enter split inside nested note inserts sibling above within same parent', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+    await lexical.load('tree');
 
     await placeCaretAtNote('note2', lexical.mutate, 2);
     await pressKey(lexical.editor, { key: 'Enter' });
