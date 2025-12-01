@@ -67,7 +67,7 @@ describe('collaboration sync', () => {
 
     await waitFor(() => {
       expect(lexical).toMatchOutline([]);
-      expect(secondary as any).toMatchOutline([]);
+      expect(secondary).toMatchOutline([]);
     });
 
     await Promise.all([lexical.waitForSynced(), secondary.waitForSynced()]);
@@ -90,7 +90,7 @@ describe('collaboration sync', () => {
     const sharedOutline = [{ text: 'note1', children: [] }];
     await waitFor(() => {
       expect(lexical).toMatchOutline(sharedOutline);
-      expect(secondary as any).toMatchOutline(sharedOutline);
+      expect(secondary).toMatchOutline(sharedOutline);
     });
   });
 });

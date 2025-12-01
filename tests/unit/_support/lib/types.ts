@@ -12,3 +12,4 @@ export interface LexicalTestHelpers {
   getCollabDocId: () => string;
 }
 
+export type LexicalMutate = LexicalTestHelpers['mutate'];

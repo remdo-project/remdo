@@ -1,4 +1,4 @@
-import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
+import type { LexicalEditor, EditorUpdateOptions } from 'lexical';
 import { waitFor } from '@testing-library/react';
 import { expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -8,7 +8,7 @@ import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
 import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
 import { $getRoot } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
-import type { LexicalTestHelpers } from '../../../lib/types';
+import type { LexicalTestHelpers, LexicalMutate } from '../../../lib/types';
 
 async function lexicalLoad(
   editor: LexicalEditor,
@@ -125,7 +125,7 @@ export function createLexicalTestHelpers(
   const helpers: LexicalTestHelpers = {
     editor,
     load: (filename: string) => lexicalLoad(editor, filename, waitForSynced),
-    mutate: (fn: () => void, opts?: EditorUpdateOptions) => lexicalMutate(editor, fn, opts),
+    mutate: ((fn, opts) => lexicalMutate(editor, fn, opts)) as LexicalMutate,
     validate: <T>(fn: () => T) => lexicalValidate(editor, fn),
     getEditorState: () => lexicalGetEditorState(editor),
     waitForSynced,
