@@ -85,7 +85,7 @@
     "@types/estree": "^1.0.8",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^24.10.1",
-    "@types/react": "^19.2.5",
+    "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@types/ws": "^8.5.12",
     "@vitejs/plugin-react-swc": "^4.2.2",
