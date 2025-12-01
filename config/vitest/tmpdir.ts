@@ -8,7 +8,7 @@ import process from 'node:process';
  * On Windows, libraries typically read TMP/TEMP; on POSIX, TMPDIR covers it.
  */
 export function setTmpDir(): void {
-  const tmpPath = path.resolve('data/.vitest-tmp');
+  const tmpPath = path.resolve('node_modules/.cache/vitest-tmp');
   mkdirSync(tmpPath, { recursive: true });
   process.env.TMPDIR = tmpPath;
   process.env.TMP = tmpPath;

@@ -16,6 +16,9 @@ export default defineConfig(() => {
       host: config.env.HOST,
       port: config.env.PORT,
       strictPort: true,
+      watch: {
+        ignored: ['**/data/**'],
+      },
       allowedHosts: true as const,
       proxy: {
         '/doc': {
@@ -32,6 +35,7 @@ export default defineConfig(() => {
       port: config.env.PREVIEW_PORT,
       strictPort: true,
     },
+    assetsInclude: ['**/*.ysweet'],
     define: Object.fromEntries(
       Object.entries(config.browser).map(([key, value]) => [
         `import.meta.env.VITE_${key}`,
@@ -60,6 +64,7 @@ export default defineConfig(() => {
         '**/pnpm-lock.yaml',
         '**/package-lock.json',
         '**/yarn.lock',
+        '**/data/**',
       ],
       css: true,
       slowTestThreshold: config.env.COLLAB_ENABLED ? 4000 : undefined,
