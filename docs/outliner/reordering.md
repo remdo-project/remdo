@@ -4,6 +4,11 @@ Scope: keyboard-driven reordering. Supports sibling swaps and boundary moves
 that reparent according to the rules below. Drag-and-drop is covered in
 `./drag-and-drop.md`.
 
+## Shortcuts
+
+- macOS: `Ctrl+Shift+ArrowUp` / `Ctrl+Shift+ArrowDown`
+- Windows/Linux: `Alt+Shift+ArrowUp` / `Alt+Shift+ArrowDown`
+
 ## Command surface (sibling order only)
 
 1. **Move Down:** Swaps the selected note (or contiguous selection) with the
@@ -21,8 +26,7 @@ outliner expectations while preserving order and subtree atomicity:
    sibling, the selection outdents and is inserted immediately after the parent.
 2. **Move Up from the first child:** If the parent has a previous sibling, the
    selection becomes that sibling’s last child. If the parent has no previous
-   sibling, the selection outdents and is inserted immediately after the parent
-   (consistent with the standard outdent placement).
+   sibling, the selection outdents and is inserted immediately before the parent.
 
 ## Boundary behavior
 
