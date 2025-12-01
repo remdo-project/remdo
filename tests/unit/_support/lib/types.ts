@@ -11,3 +11,4 @@ export interface LexicalTestHelpers {
   waitForSynced: () => Promise<void>;
   getCollabDocId: () => string;
 }
+

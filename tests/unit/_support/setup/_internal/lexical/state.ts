@@ -8,7 +8,7 @@ import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
 import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
 import { $getRoot } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
-import type { LexicalTestHelpers } from './types';
+import type { LexicalTestHelpers } from '../../../lib/types';
 
 async function lexicalLoad(
   editor: LexicalEditor,
@@ -125,8 +125,8 @@ export function createLexicalTestHelpers(
   const helpers: LexicalTestHelpers = {
     editor,
     load: (filename: string) => lexicalLoad(editor, filename, waitForSynced),
-    mutate: (fn, opts) => lexicalMutate(editor, fn, opts),
-    validate: (fn) => lexicalValidate(editor, fn),
+    mutate: (fn: () => void, opts?: EditorUpdateOptions) => lexicalMutate(editor, fn, opts),
+    validate: <T>(fn: () => T) => lexicalValidate(editor, fn),
     getEditorState: () => lexicalGetEditorState(editor),
     waitForSynced,
     getCollabDocId,

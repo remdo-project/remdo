@@ -107,20 +107,14 @@ stage 2 is active).
 Both variants should prove that Delete/Backspace is only swallowed when an
 actual structural removal occurs.
 
-## Keyboard reordering commands
-
-- Add explicit `MOVE_SELECTION_UP_COMMAND` / `MOVE_SELECTION_DOWN_COMMAND`.
-- Bind keys:
-  - macOS: `Ctrl+Shift+ArrowUp/Down`
-  - Windows/Linux: `Alt+Shift+ArrowUp/Down`
-- Reuse a single command implementation for swaps + boundary reparenting (per
-  `docs/outliner/reordering.md`), and keep keybinding smoke tests minimal.
-- Convert behavior tests to dispatch the commands directly; keep one keybinding
-  test per platform to verify wiring.
-- Replace current TODO reordering tests with command-based specs once commands
-  are implemented.
-
 ## Container image security lint
 
 Evaluate adding Dockle to scan the built container image (complements
 Hadolint’s Dockerfile checks) and decide whether to gate CI on its report.
+
+## Outline helper unit tests
+
+- Add coverage for `list-structure` helpers (content/wrapper detection,
+  child-list creation, wrapper cleanup) and `selection-utils` helpers
+  (contiguity + selected notes) to lock behaviors.
+- Prefer unit tests near the helpers; keep fixtures minimal and mirror current tree shapes in `tests/fixtures`.
