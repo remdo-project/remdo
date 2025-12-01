@@ -106,7 +106,7 @@ inline editing.
 | `Shift+Click`      | Pointer  | Extends from the anchor to the clicked note, yielding a contiguous note range. |
 | `Esc`              | Keyboard | Collapses any note range back to a caret without changing content. |
 | `Home/End/Page`+Arrow | Keyboard | When structural mode is active, pressing an unmodified navigation key collapses the selection and drops the caret at the respective edge (start/end/top/bottom). |
-| `Enter`            | Keyboard | Inserts a newline only while editing inline; once structural mode is active it becomes a no-op. |
+| `Enter`            | Keyboard | Caret-mode insertion rules are defined in [Insertion](./insertion.md); in structural mode `Enter` is a no-op. |
 | `Cmd/Ctrl+A`       | Keyboard | Advances the Progressive Selection ladder one stage per press. |
 
 ## Progressive Selection

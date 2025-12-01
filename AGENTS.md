@@ -75,10 +75,10 @@ the map stays trustworthy.
 
 ### What is a note?
 
-Refer to `docs/concepts.md` for the canonical definition of a note, including
-its invariants, structure, and adapter contracts. In short, notes are the
-addressable, typed units that form RemDo’s ordered tree; the concepts document
-captures the full model.
+Refer to `docs/outliner/concepts.md` for the canonical definition of a note,
+including its invariants, structure, and adapter contracts. In short, notes are
+the addressable, typed units that form RemDo’s ordered tree; the concepts
+document captures the full model.
 
 ## Safety & Process
 
