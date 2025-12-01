@@ -4,6 +4,7 @@ import type { LexicalTestHelpers } from '#tests';
 import { MOVE_SELECTION_DOWN_COMMAND, MOVE_SELECTION_UP_COMMAND } from '@/editor/commands';
 
 const macChordDown = { key: 'ArrowDown', ctrl: true, shift: true } as const;
+const macChordUp = { key: 'ArrowUp', ctrl: true, shift: true } as const;
 
 describe('keyboard reordering', () => {
   const dispatchMove = (lexical: LexicalTestHelpers, direction: 'up' | 'down') =>
@@ -16,6 +17,17 @@ describe('keyboard reordering', () => {
     await lexical.load('flat');
     await placeCaretAtNote('note2', lexical.mutate);
     await pressKey(lexical.editor, macChordDown);
+    expect(lexical).toMatchOutline([
+      { text: 'note1', children: [] },
+      { text: 'note3', children: [] },
+      { text: 'note2', children: [] },
+    ]);
+  });
+
+  it('move up chord triggers command dispatch (mac smoke)', async ({ lexical }) => {
+    await lexical.load('flat');
+    await placeCaretAtNote('note3', lexical.mutate);
+    await pressKey(lexical.editor, macChordUp);
     expect(lexical).toMatchOutline([
       { text: 'note1', children: [] },
       { text: 'note3', children: [] },
