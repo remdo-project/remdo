@@ -5,8 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  js-yaml: 4.1.1
   body-parser: 2.2.1
+  express: '>=5.2.0'
+  js-yaml: 4.1.1
 
 importers:
 
@@ -2325,8 +2326,8 @@ packages:
     resolution: {integrity: sha512-JhFGDVJ7tmDJItKhYgJCGLOWjuK9vPxiXoUFLwLDc99NlmklilbiQJwoctZtt13+xMw91MCk/REan6MWHqDjyA==}
     engines: {node: '>=12.0.0'}
 
-  express@5.1.0:
-    resolution: {integrity: sha512-DT9ck5YIRU+8GYzzU5kT3eHGA5iL+1Zd0EutOmTE9Dtk+Tvuzd23VBU+ec7HPNSTxXYO55gPV/hq4pSBJDjFpA==}
+  express@5.2.1:
+    resolution: {integrity: sha512-hIS4idWWai69NezIdRt2xFVofaF4j+6INOpJlVOLDO8zXGpUVEVzIYk12UUi2JzjEzWL3IOAxcTubgz9Po0yXw==}
     engines: {node: '>= 18'}
 
   exsolve@1.0.7:
@@ -6251,7 +6252,7 @@ snapshots:
 
   expect-type@1.2.2: {}
 
-  express@5.1.0:
+  express@5.2.1:
     dependencies:
       accepts: 2.0.0
       body-parser: 2.2.1
@@ -6260,6 +6261,7 @@ snapshots:
       cookie: 0.7.2
       cookie-signature: 1.2.2
       debug: 4.4.3
+      depd: 2.0.0
       encodeurl: 2.0.0
       escape-html: 1.0.3
       etag: 1.8.1
@@ -7805,7 +7807,7 @@ snapshots:
       '@vitest-preview/dev-utils': 0.0.3
       chalk: 5.6.2
       commander: 14.0.1
-      express: 5.1.0
+      express: 5.2.1
       inquirer: 12.9.6(@types/node@24.10.1)
       jsdom: 27.2.0
       vite: 7.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.1)
