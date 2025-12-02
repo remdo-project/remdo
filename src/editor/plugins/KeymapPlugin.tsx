@@ -44,26 +44,39 @@ function defaultsForPlatform(isApple: boolean): KeymapTable {
   ];
 }
 
-let overrides: KeymapTable | null = null;
+type KeymapPatch = Partial<Record<string, KeyChord[]>>;
+
+let overrides: KeymapPatch = {};
 
 // eslint-disable-next-line react-refresh/only-export-components
-export function setKeymapOverrides(table: KeymapTable | null) {
-  overrides = table;
+export function clearKeymapOverrides() {
+  overrides = {};
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function setKeymapOverrides(patch: KeymapPatch) {
+  overrides = patch;
 }
 
 function getKeymap(): KeymapTable {
-  return overrides ?? defaultsForPlatform(IS_APPLE_PLATFORM);
+  const base = defaultsForPlatform(IS_APPLE_PLATFORM);
+  return base.flatMap((entry) => {
+    const override = overrides[entry.command as string];
+    if (!override || override.length === 0) {
+      return entry;
+    }
+    return override.map((chord) => ({ command: entry.command, chord }));
+  });
 }
 
 function matchesChord(event: KeyboardEvent, chord: KeyChord): boolean {
-  if (event.key !== chord.key) return false;
-  const matches = (expected: boolean | undefined, actual: boolean) =>
-    expected === undefined ? !actual : actual === expected;
+  const { key, shift = false, alt = false, ctrl = false, meta = false } = chord;
   return (
-    matches(chord.shift ?? false, event.shiftKey) &&
-    matches(chord.alt, event.altKey) &&
-    matches(chord.ctrl, event.ctrlKey) &&
-    matches(chord.meta, event.metaKey)
+    event.key === key &&
+    event.shiftKey === shift &&
+    event.altKey === alt &&
+    event.ctrlKey === ctrl &&
+    event.metaKey === meta
   );
 }
 
