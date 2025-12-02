@@ -59,6 +59,17 @@ describe('keyboard reordering (command path)', () => {
     ]);
   });
 
+  it('move down from last child with no next parent outdents after parent', async ({ lexical }) => {
+    await lexical.load('tree');
+    await placeCaretAtNote('note3', lexical.mutate);
+    await dispatchMove(lexical, 'down');
+    expect(lexical).toMatchOutline([
+      { text: 'note1', children: [] },
+      { text: 'note2', children: [] },
+      { text: 'note3', children: [] },
+    ]);
+  });
+
   it('move up from first child reparents into previous sibling as last child', async ({ lexical }) => {
     await lexical.load('tree');
     await placeCaretAtNote('note3', lexical.mutate);
@@ -83,6 +94,42 @@ describe('keyboard reordering (command path)', () => {
       { text: 'note3', children: [] },
       { text: 'note1', children: [] },
       { text: 'note2', children: [] },
+    ]);
+  });
+
+  it('moving a note carries its subtree intact', async ({ lexical }) => {
+    await lexical.load('tree');
+    await placeCaretAtNote('note1', lexical.mutate); // note1 has no children, note3 is nested under note2
+    await selectNoteRange('note2', 'note2', lexical.mutate); // move note2 which has child note3
+    await dispatchMove(lexical, 'up');
+    expect(lexical).toMatchOutline([
+      {
+        text: 'note2',
+        children: [{ text: 'note3', children: [] }],
+      },
+      { text: 'note1', children: [] },
+    ]);
+  });
+
+  it('top boundary move up is a no-op', async ({ lexical }) => {
+    await lexical.load('flat');
+    await placeCaretAtNote('note1', lexical.mutate);
+    lexical.editor.dispatchCommand(MOVE_SELECTION_UP_COMMAND);
+    expect(lexical).toMatchOutline([
+      { text: 'note1', children: [] },
+      { text: 'note2', children: [] },
+      { text: 'note3', children: [] },
+    ]);
+  });
+
+  it('bottom boundary move down is a no-op', async ({ lexical }) => {
+    await lexical.load('flat');
+    await placeCaretAtNote('note3', lexical.mutate);
+    lexical.editor.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
+    expect(lexical).toMatchOutline([
+      { text: 'note1', children: [] },
+      { text: 'note2', children: [] },
+      { text: 'note3', children: [] },
     ]);
   });
 
