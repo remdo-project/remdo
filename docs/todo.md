@@ -123,7 +123,7 @@ Dockerfile checks) and decide whether to gate CI on its report.
 
 1. ✅ Make `isApplePlatform` file-local (export only `IS_APPLE_PLATFORM`);
    adjust tests/mocks if needed.
-2. Introduce minimal keymap stub for move commands
+2. ✅ Introduce minimal keymap stub for move commands
    (`getDefaultMoveBindingsForPlatform`, `getMoveBindings`,
    `setMoveBindingsForTests`, `getKeyBinding`); add unit tests for defaults and
    overrides.
