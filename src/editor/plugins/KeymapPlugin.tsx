@@ -44,24 +44,24 @@ function defaultsForPlatform(isApple: boolean): KeymapTable {
   ];
 }
 
-type KeymapPatch = Partial<Record<string, KeyChord[]>>;
+type KeymapPatch = Map<LexicalCommand<unknown>, KeyChord[]>;
 
-let overrides: KeymapPatch = {};
+let overrides: KeymapPatch = new Map();
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function clearKeymapOverrides() {
-  overrides = {};
+  overrides = new Map();
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function setKeymapOverrides(patch: KeymapPatch) {
-  overrides = patch;
+  overrides = new Map(patch);
 }
 
 function getKeymap(): KeymapTable {
   const base = defaultsForPlatform(IS_APPLE_PLATFORM);
   return base.flatMap((entry) => {
-    const override = overrides[entry.command as string];
+    const override = overrides.get(entry.command);
     if (!override || override.length === 0) {
       return entry;
     }
@@ -92,6 +92,9 @@ function createKeyHandler(editor: LexicalEditor) {
     return false;
   };
 }
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const __testCreateKeyHandler = createKeyHandler;
 
 export function KeymapPlugin() {
   const [editor] = useLexicalComposerContext();
