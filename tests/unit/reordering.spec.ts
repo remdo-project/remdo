@@ -1,22 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { placeCaretAtNote, selectNoteRange, pressKey } from '#tests';
+import { placeCaretAtNote, selectNoteRange } from '#tests';
 import type { LexicalTestHelpers } from '#tests';
 import { MOVE_SELECTION_DOWN_COMMAND, MOVE_SELECTION_UP_COMMAND } from '@/editor/commands';
 
-const macChordDown = { key: 'ArrowDown', ctrl: true, shift: true } as const;
-const macChordUp = { key: 'ArrowUp', ctrl: true, shift: true } as const;
-
-describe('keyboard reordering', () => {
+describe('keyboard reordering (command path)', () => {
   const dispatchMove = (lexical: LexicalTestHelpers, direction: 'up' | 'down') =>
     lexical.mutate(() => {
       const command = direction === 'up' ? MOVE_SELECTION_UP_COMMAND : MOVE_SELECTION_DOWN_COMMAND;
       lexical.editor.dispatchCommand(command);
     });
 
-  it('move down swaps with next sibling within the same parent (mac chord smoke)', async ({ lexical }) => {
+  it('move down swaps with next sibling within the same parent', async ({ lexical }) => {
     await lexical.load('flat');
     await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, macChordDown);
+    await dispatchMove(lexical, 'down');
     expect(lexical).toMatchOutline([
       { text: 'note1', children: [] },
       { text: 'note3', children: [] },
@@ -24,10 +21,10 @@ describe('keyboard reordering', () => {
     ]);
   });
 
-  it('move up chord triggers command dispatch (mac smoke)', async ({ lexical }) => {
+  it('move up swaps with previous sibling within the same parent', async ({ lexical }) => {
     await lexical.load('flat');
     await placeCaretAtNote('note3', lexical.mutate);
-    await pressKey(lexical.editor, macChordUp);
+    await dispatchMove(lexical, 'up');
     expect(lexical).toMatchOutline([
       { text: 'note1', children: [] },
       { text: 'note3', children: [] },
@@ -86,6 +83,22 @@ describe('keyboard reordering', () => {
       { text: 'note3', children: [] },
       { text: 'note1', children: [] },
       { text: 'note2', children: [] },
+    ]);
+  });
+
+  it('ignores selections spanning different parents', async ({ lexical }) => {
+    await lexical.load('tree');
+    await selectNoteRange('note1', 'note3', lexical.mutate); // crosses root note and nested child
+    lexical.editor.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
+    expect(lexical).toMatchOutline([
+      {
+        text: 'note1',
+        children: [],
+      },
+      {
+        text: 'note2',
+        children: [{ text: 'note3', children: [] }],
+      },
     ]);
   });
 });

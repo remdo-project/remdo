@@ -123,11 +123,9 @@ Dockerfile checks) and decide whether to gate CI on its report.
 
 1. ✅ Make `isApplePlatform` file-local (export only `IS_APPLE_PLATFORM`);
    adjust tests/mocks if needed.
-2. ✅ Introduce minimal keymap stub for move commands
-   (`getDefaultMoveBindingsForPlatform`, `getMoveBindings`,
-   `setMoveBindingsForTests`, `getKeyBinding`); add unit tests for defaults and
-   overrides.
-3. Refactor `ReorderingPlugin` to consume the keymap; update shortcut wiring
-   tests to use keymap overrides (no navigator mocking). Keep behavior tests
-   unchanged.
+2. Introduce a central KeymapPlugin that maps key chords to commands (starting
+   with move up/down) with platform defaults and override hooks; add unit tests
+   for defaults and overrides.
+3. Refactor `ReorderingPlugin` to rely solely on command handlers (keyboard is
+   handled by KeymapPlugin); keep behavior tests command-driven.
 4. (Optional) Fold shortcut suite into standard test filters / expand coverage.

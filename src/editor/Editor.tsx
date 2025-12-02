@@ -11,6 +11,7 @@ import { DevPlugin } from './plugins/DevPlugin';
 import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
+import { KeymapPlugin } from './plugins/KeymapPlugin';
 import './Editor.css';
 
 interface EditorProps {
@@ -27,6 +28,7 @@ export default function Editor({ children, collabOrigin }: EditorProps) {
           contentEditable={<ContentEditable className="editor-input" />}
           ErrorBoundary={LexicalErrorBoundary}
         />
+        <KeymapPlugin />
         <IndentationPlugin />
         <ReorderingPlugin />
         <SelectionPlugin />

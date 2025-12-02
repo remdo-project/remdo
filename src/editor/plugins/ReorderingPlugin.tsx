@@ -1,9 +1,8 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_DOWN_COMMAND } from 'lexical';
-import type { LexicalEditor, LexicalNode } from 'lexical';
-import { IS_APPLE_PLATFORM } from '@/editor/platform';
+import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
+import type { LexicalNode } from 'lexical';
 import { MOVE_SELECTION_DOWN_COMMAND, MOVE_SELECTION_UP_COMMAND } from '@/editor/commands';
 import {
   $getOrCreateChildList,
@@ -154,38 +153,13 @@ function $moveSelectionUp(): boolean {
   return moveUpWithinList(notes, siblings) || $moveUpAcrossBoundary(notes, parentList);
 }
 
-function isMoveShortcut(event: KeyboardEvent): boolean {
-  if (!event.shiftKey) return false;
-  if (IS_APPLE_PLATFORM) {
-    return event.ctrlKey;
-  }
-  return event.altKey || event.ctrlKey;
-}
-
-function createMoveKeyHandler(editor: LexicalEditor) {
-  return (event: KeyboardEvent): boolean => {
-    if (event.key === 'ArrowDown' && isMoveShortcut(event)) {
-      event.preventDefault();
-      return editor.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
-    }
-
-    if (event.key === 'ArrowUp' && isMoveShortcut(event)) {
-      event.preventDefault();
-      return editor.dispatchCommand(MOVE_SELECTION_UP_COMMAND);
-    }
-
-    return false;
-  };
-}
-
 export function ReorderingPlugin() {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
     return mergeRegister(
       editor.registerCommand(MOVE_SELECTION_UP_COMMAND, $moveSelectionUp, COMMAND_PRIORITY_LOW),
-      editor.registerCommand(MOVE_SELECTION_DOWN_COMMAND, $moveSelectionDown, COMMAND_PRIORITY_LOW),
-      editor.registerCommand(KEY_DOWN_COMMAND, createMoveKeyHandler(editor), COMMAND_PRIORITY_LOW)
+      editor.registerCommand(MOVE_SELECTION_DOWN_COMMAND, $moveSelectionDown, COMMAND_PRIORITY_LOW)
     );
   }, [editor]);
 
