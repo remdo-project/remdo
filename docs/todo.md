@@ -119,6 +119,17 @@ Dockerfile checks) and decide whether to gate CI on its report.
 - Prefer unit tests near the helpers; keep fixtures minimal and mirror current
   tree shapes in `tests/fixtures`.
 
+## Structural selection helper unification
+
+- Introduce a shared helper that derives the contiguous sibling slab from a
+  `RangeSelection`, collapses to the top-most heads (drops descendants when an
+  ancestor is selected), and exposes both the heads and the ordered slab.
+- Have SelectionPlugin consume that helper so overlays and progression state
+  reflect the same normalized selection used by commands.
+- Switch structural command plugins (reorder, indent/outdent, delete, etc.) to
+  rely on the helper instead of re-deriving from raw nodes; keep invalid/mixed
+  selections as safe no-ops.
+
 ## Incremental keymap refactor (shortcuts)
 
 1. ✅ Make `isApplePlatform` file-local (export only `IS_APPLE_PLATFORM`);
