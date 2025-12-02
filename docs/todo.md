@@ -33,7 +33,6 @@ environment access through the new module.
   helper layer above is solid, and document it alongside the existing outdent
   behavior.
 
-
 ## Harden editor schema validator tests
 
 1. Extract shared builders for editor schema fixtures to cut duplication.
@@ -109,12 +108,26 @@ actual structural removal occurs.
 
 ## Container image security lint
 
-Evaluate adding Dockle to scan the built container image (complements
-Hadolint’s Dockerfile checks) and decide whether to gate CI on its report.
+Evaluate adding Dockle to scan the built container image (complements Hadolint’s
+Dockerfile checks) and decide whether to gate CI on its report.
 
 ## Outline helper unit tests
 
 - Add coverage for `list-structure` helpers (content/wrapper detection,
   child-list creation, wrapper cleanup) and `selection-utils` helpers
   (contiguity + selected notes) to lock behaviors.
-- Prefer unit tests near the helpers; keep fixtures minimal and mirror current tree shapes in `tests/fixtures`.
+- Prefer unit tests near the helpers; keep fixtures minimal and mirror current
+  tree shapes in `tests/fixtures`.
+
+## Incremental keymap refactor (shortcuts)
+
+1. Make `isApplePlatform` file-local (export only `IS_APPLE_PLATFORM`); adjust
+   tests/mocks if needed.
+2. Introduce minimal keymap stub for move commands
+   (`getDefaultMoveBindingsForPlatform`, `getMoveBindings`,
+   `setMoveBindingsForTests`, `getKeyBinding`); add unit tests for defaults and
+   overrides.
+3. Refactor `ReorderingPlugin` to consume the keymap; update shortcut wiring
+   tests to use keymap overrides (no navigator mocking). Keep behavior tests
+   unchanged.
+4. (Optional) Fold shortcut suite into standard test filters / expand coverage.
