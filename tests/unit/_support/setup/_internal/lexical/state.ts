@@ -130,6 +130,13 @@ export function createLexicalTestHelpers(
     getEditorState: () => lexicalGetEditorState(editor),
     waitForSynced,
     getCollabDocId,
+    // Helper to dispatch a command and wait for the editor to settle; avoids
+    // test flakiness around untagged updates and keeps command-path tests
+    // consistent with collab sync expectations.
+    dispatchCommand: async (command, payload) => {
+      editor.dispatchCommand(command, payload as never);
+      await waitForSynced();
+    },
   };
 
   return helpers;

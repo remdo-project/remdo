@@ -22,7 +22,7 @@ it('clear', async ({ lexical }) => {
 });
 
 it('normalizes root after list command dispatch', async ({ lexical }) => {
-  const { editor, mutate, validate } = lexical;
+  const { mutate, validate } = lexical;
 
   await mutate(() => {
     const root = $getRoot();
@@ -37,8 +37,7 @@ it('normalizes root after list command dispatch', async ({ lexical }) => {
     note1Paragraph.select();
   });
 
-  editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND);
-  await mutate(() => { });
+  await lexical.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND);
 
   validate(() => {
     const list = $expectSingleListRoot();
