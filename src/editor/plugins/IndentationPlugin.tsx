@@ -5,7 +5,8 @@ import type { LexicalNode } from 'lexical';
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
 import { useEffect } from 'react';
 import { $indentNote, $outdentNote } from '../lexical-helpers';
-import { findNearestListItem } from '@/editor/outline/list-structure';
+import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
+import { getContiguousSelectionHeads } from '@/editor/outline/structural-selection';
 
 const hasPreviousContentSibling = (noteItem: ListItemNode): boolean => {
   let sibling: ListItemNode | null = noteItem.getPreviousSibling();
@@ -61,45 +62,18 @@ export function IndentationPlugin() {
           return false;
         }
 
-        const selectionNodes = selection.getNodes();
-        const listItems: ListItemNode[] = [];
-        const seen = new Set<string>();
+        const slice = getContiguousSelectionHeads(selection);
+        let rootItems = slice?.heads ?? [];
 
-        for (const node of selectionNodes) {
-          const listItem = findNearestListItem(node);
-          if (!listItem) {
-            continue;
-          }
-
-          const key = listItem.getKey();
-          if (seen.has(key)) {
-            continue;
-          }
-
-          listItems.push(listItem);
-          seen.add(key);
-        }
-
-        if (listItems.length === 0) {
-          return false;
-        }
-
-        const orderedItems: ListItemNode[] = listItems;
-        const targetParent = orderedItems[0]?.getParent() ?? null;
-        const contentItems: ListItemNode[] = [];
-        for (const item of orderedItems) {
-          const parent = item.getParent();
-          const children = item.getChildren();
-          const isWrapper = children.length === 1 && children[0] != null && $isListNode(children[0]);
-          if (!isWrapper && parent === targetParent) {
-            contentItems.push(item);
+        if (rootItems.length === 0 && selection.isCollapsed()) {
+          const caretItem = findNearestListItem(selection.anchor.getNode());
+          if (caretItem) {
+            rootItems = [getContentListItem(caretItem)];
           }
         }
-        const rootItems = contentItems.filter(
-          (item, index) => !contentItems.some((other, otherIndex) => otherIndex !== index && other.isParentOf(item))
-        );
+
         if (rootItems.length === 0) {
-          return true;
+          return false;
         }
 
         event.preventDefault();
