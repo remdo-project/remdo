@@ -93,6 +93,38 @@ describe('keyboard reordering (command path)', () => {
     expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
   });
 
+  it('deep nested boundary move down is a no-op (last child at depth)', async ({ lexical }) => {
+    await lexical.load('tree_complex');
+    // Select nested leaf note3 only; it is the last child of note2
+    await selectNoteRange('note3', 'note3', lexical.mutate);
+    const outlineBefore = readOutline(lexical.validate);
+    await lexical.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
+    expect(lexical).toMatchOutline(outlineBefore);
+  });
+
+  it('deep nested boundary move up is a no-op (first child at depth)', async ({ lexical }) => {
+    await lexical.load('tree_complex');
+    // Select nested leaf note3 only; it is also the first child of note2
+    await selectNoteRange('note3', 'note3', lexical.mutate);
+    const outlineBefore = readOutline(lexical.validate);
+    await lexical.dispatchCommand(MOVE_SELECTION_UP_COMMAND);
+    expect(lexical).toMatchOutline(outlineBefore);
+  });
+
+  it('ancestor-only selection swaps intact with sibling within parent list', async ({ lexical }) => {
+    await lexical.load('tree_complex');
+    await selectNoteRange('note2', 'note2', lexical.mutate); // select ancestor with child note3
+    await lexical.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
+
+    expect(lexical).toMatchOutline([
+      {
+        text: 'note1',
+        children: [{ text: 'note4', children: [] }, { text: 'note2', children: [{ text: 'note3', children: [] }] }],
+      },
+      { text: 'note5', children: [] },
+      { text: 'note6', children: [{ text: 'note7', children: [] }] },
+    ]);
+  });
   it('moving a mixed-depth contiguous range up is a no-op at a boundary (level-preserving)', async ({ lexical }) => {
     await lexical.load('tree_complex');
     const outlineBefore = readOutline(lexical.validate);
