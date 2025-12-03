@@ -27,7 +27,7 @@ decide what matters.
   mutations.
 - `docs/outliner/selection.md` (~1.45k words). Cursor/selection semantics for
   the editor runtime—reference for UX or Lexical selection work.
-- `docs/outliner/reordering.md` (~248 words). Reordering behavior and placement
+- `docs/outliner/reordering.md` (~100 words). Level-preserving reordering behavior and placement
   invariants.
 - `docs/outliner/drag-and-drop.md` (~81 words). Pointer-based reordering (drag
   and drop) – not supported yet; future plan lives there.
