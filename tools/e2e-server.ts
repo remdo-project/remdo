@@ -4,11 +4,13 @@ import process from 'node:process';
 
 import type { ChildProcess } from 'node:child_process';
 
+import { config } from '#config';
 import { ensureCollabServer } from './lib/collab-server-helper';
 import { spawnPnpm } from './lib/process';
 
 async function main() {
-  const stopCollab = await ensureCollabServer(true);
+  const collabEnabled = config.env.COLLAB_ENABLED;
+  const stopCollab = collabEnabled ? await ensureCollabServer(true) : undefined;
   let child: ChildProcess | undefined;
   let cleanedUp = false;
 
@@ -23,7 +25,10 @@ async function main() {
     }
   };
 
-  child = spawnPnpm(['run', 'dev:web'], { forwardExit: false });
+  child = spawnPnpm(['run', 'dev:web'], {
+    forwardExit: false,
+    env: collabEnabled ? undefined : { COLLAB_ENABLED: 'false' },
+  });
 
   const teardownSignals = ['SIGINT', 'SIGTERM', 'exit'] as const;
   for (const signal of teardownSignals) {

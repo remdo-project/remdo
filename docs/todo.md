@@ -131,4 +131,6 @@ Dockerfile checks) and decide whether to gate CI on its report.
    runs `pnpm run test:e2e`, and caches `~/.cache/ms-playwright` with explicit
    HOST/PORT/COLLAB envs.
 8. Document local e2e instructions in `docs/contributing.md` (or a new
-   `docs/testing.md`) and reflect the doc change in AGENTS.md.
+   `docs/testing.md`) and reflect the doc change in AGENTS.md. Include the two
+   lanes: `pnpm run test:e2e` (collab off) and `pnpm run test:e2e:collab`
+   (collab on).
