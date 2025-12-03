@@ -57,7 +57,7 @@ export default defineConfig(() => {
       globalSetup: './tests/unit/_support/services/collab-server-setup.ts',
       setupFiles: ['./tests/unit/_support/setup/index.ts'],
       include: [
-        'tests/**/*.spec.{ts,tsx}',
+        'tests/unit/**/*.spec.{ts,tsx}',
         ...(config.env.COLLAB_ENABLED ? [] : ['!tests/unit/collab/**']),
       ],
       watchExclude: [
