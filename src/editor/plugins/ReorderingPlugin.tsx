@@ -2,20 +2,15 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
-import type { LexicalNode } from 'lexical';
 import { MOVE_SELECTION_DOWN_COMMAND, MOVE_SELECTION_UP_COMMAND } from '@/editor/commands';
 import {
-  $getOrCreateChildList,
   findNearestListItem,
   flattenNoteNodes,
   getContentListItem,
   getContentSiblings,
   getNodesForNote,
-  getParentNote,
   insertAfter,
   insertBefore,
-  isChildrenWrapper,
-  maybeRemoveEmptyWrapper,
 } from '@/editor/outline/list-structure';
 import { getContiguousSelectionHeads } from '@/editor/outline/structural-selection';
 import { useEffect } from 'react';
@@ -53,70 +48,6 @@ function moveUpWithinList(notes: ListItemNode[], siblings: ListItemNode[]): bool
   return true;
 }
 
-function $moveDownAcrossBoundary(notes: ListItemNode[], parentList: ListNode): boolean {
-  const parentNote = getParentNote(parentList);
-  if (!parentNote) return false;
-
-  const grandParentList = parentNote.getParent();
-  if (!$isListNode(grandParentList)) return false;
-
-  const parentSiblings = getContentSiblings(grandParentList);
-  const parentIndex = parentSiblings.indexOf(parentNote);
-  if (parentIndex === -1) return false;
-  const nextParent = parentSiblings[parentIndex + 1];
-
-  const nodesToMove = flattenNoteNodes(notes);
-
-  if (nextParent) {
-    const targetChildList = $getOrCreateChildList(nextParent);
-    const firstChild = targetChildList.getFirstChild();
-    if (firstChild) {
-      insertBefore(firstChild, nodesToMove);
-    } else {
-      targetChildList.append(...nodesToMove);
-    }
-    maybeRemoveEmptyWrapper(parentList);
-    return true;
-  }
-
-  // Outdent after parent when there is no next parent sibling
-  let reference: LexicalNode = parentNote;
-  const maybeWrapper = parentNote.getNextSibling();
-  if (isChildrenWrapper(maybeWrapper)) {
-    reference = maybeWrapper;
-  }
-  insertAfter(reference, nodesToMove);
-  maybeRemoveEmptyWrapper(parentList);
-  return true;
-}
-
-function $moveUpAcrossBoundary(notes: ListItemNode[], parentList: ListNode): boolean {
-  const parentNote = getParentNote(parentList);
-  if (!parentNote) return false;
-
-  const grandParentList = parentNote.getParent();
-  if (!$isListNode(grandParentList)) return false;
-
-  const parentSiblings = getContentSiblings(grandParentList);
-  const parentIndex = parentSiblings.indexOf(parentNote);
-  if (parentIndex === -1) return false;
-  const previousParent = parentSiblings[parentIndex - 1];
-
-  const nodesToMove = flattenNoteNodes(notes);
-
-  if (previousParent) {
-    const targetChildList = $getOrCreateChildList(previousParent);
-    targetChildList.append(...nodesToMove);
-    maybeRemoveEmptyWrapper(parentList);
-    return true;
-  }
-
-  // Outdent before parent when there is no previous parent sibling
-  insertBefore(parentNote, nodesToMove);
-  maybeRemoveEmptyWrapper(parentList);
-  return true;
-}
-
 interface SelectionContext {
   notes: ListItemNode[];
   parentList: ListNode;
@@ -151,15 +82,15 @@ function $getSelectionContext(): SelectionContext | null {
 function $moveSelectionDown(): boolean {
   const ctx = $getSelectionContext();
   if (!ctx) return false;
-  const { notes, siblings, parentList } = ctx;
-  return moveDownWithinList(notes, siblings) || $moveDownAcrossBoundary(notes, parentList);
+  const { notes, siblings } = ctx;
+  return moveDownWithinList(notes, siblings);
 }
 
 function $moveSelectionUp(): boolean {
   const ctx = $getSelectionContext();
   if (!ctx) return false;
-  const { notes, siblings, parentList } = ctx;
-  return moveUpWithinList(notes, siblings) || $moveUpAcrossBoundary(notes, parentList);
+  const { notes, siblings } = ctx;
+  return moveUpWithinList(notes, siblings);
 }
 
 export function ReorderingPlugin() {
