@@ -6,7 +6,9 @@ import type { LexicalNode } from 'lexical';
 import { MOVE_SELECTION_DOWN_COMMAND, MOVE_SELECTION_UP_COMMAND } from '@/editor/commands';
 import {
   $getOrCreateChildList,
+  findNearestListItem,
   flattenNoteNodes,
+  getContentListItem,
   getContentSiblings,
   getNodesForNote,
   getParentNote,
@@ -15,7 +17,7 @@ import {
   isChildrenWrapper,
   maybeRemoveEmptyWrapper,
 } from '@/editor/outline/list-structure';
-import { getSelectedNotes, selectionIsContiguous } from '@/editor/outline/selection-utils';
+import { getContiguousSelectionHeads } from '@/editor/outline/structural-selection';
 import { useEffect } from 'react';
 import { mergeRegister } from '@lexical/utils';
 
@@ -125,16 +127,23 @@ function $getSelectionContext(): SelectionContext | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) return null;
 
-  const notes = getSelectedNotes(selection);
+  const slice = getContiguousSelectionHeads(selection);
+  let notes = slice?.heads ?? [];
+
+  if (notes.length === 0 && selection.isCollapsed()) {
+    const caretItem = findNearestListItem(selection.anchor.getNode());
+    if (caretItem) {
+      notes = [getContentListItem(caretItem)];
+    }
+  }
+
   const [first] = notes;
   if (!first) return null;
 
   const parentList = first.getParent();
   if (!$isListNode(parentList)) return null;
-  if (!notes.every((note) => note.getParent() === parentList)) return null;
 
   const siblings = getContentSiblings(parentList);
-  if (!selectionIsContiguous(notes, siblings)) return null;
 
   return { notes, parentList, siblings };
 };

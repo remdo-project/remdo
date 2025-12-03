@@ -2,6 +2,7 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { getContentListItem } from '@/editor/outline/list-structure';
+import { getContiguousSelectionHeads } from '@/editor/outline/structural-selection';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $createParagraphNode,
@@ -235,18 +236,10 @@ export function SelectionPlugin() {
           };
         }
 
-        const noteItems = collectSelectedListItems(selection);
-        if (noteItems.length > 0) {
-          const normalized = normalizeContentRange(noteItems[0]!, noteItems.at(-1)!);
-          if (!noteItems.includes(normalized.start)) {
-            noteItems.unshift(normalized.start);
-          }
-          if (!noteItems.includes(normalized.end)) {
-            noteItems.push(normalized.end);
-          }
-        }
+        const slice = getContiguousSelectionHeads(selection);
+        const noteItems = slice?.slab ?? [];
         computedNoteKeys = noteItems.map((item) => getContentListItem(item).getKey());
-        computedStructuralRange = computeStructuralRange(selection);
+        computedStructuralRange = computeStructuralRange(selection, noteItems);
 
         const hasMultiNoteRange = noteItems.length > 1;
         const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
@@ -1599,8 +1592,8 @@ function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
   return items.toSorted(compareDocumentOrder);
 }
 
-function computeStructuralRange(selection: RangeSelection): StructuralSelectionRange | null {
-  const noteItems = collectSelectedListItems(selection);
+function computeStructuralRange(selection: RangeSelection, precomputed?: ListItemNode[]): StructuralSelectionRange | null {
+  const noteItems = precomputed ?? collectSelectedListItems(selection);
   if (noteItems.length === 0) {
     return null;
   }

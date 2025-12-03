@@ -104,7 +104,7 @@ describe('keyboard reordering (command path)', () => {
     ]);
   });
 
-  it.fails('moving a mixed-depth contiguous range down hoists it under the next parent sibling', async ({ lexical }) => {
+  it('moving a mixed-depth contiguous range down hoists it under the next parent sibling', async ({ lexical }) => {
     await lexical.load('tree_complex');
     await selectNoteRange('note2', 'note4', lexical.mutate); // includes descendant note3
     await lexical.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
