@@ -112,9 +112,10 @@ captures the full model.
 
 ### Local agents
 
-1. Run `pnpm run lint`, `pnpm run test:unit`, or other checks only when the user
-   asks, or when the task obviously requires them (e.g., debugging a failing
-   test). Use your judgment; default to not running checks unless requested.
+1. Run `pnpm run lint`, `pnpm run test:unit`, and other relevant checks after
+   every non-trivial change and whenever it seems useful (e.g., debugging a
+   failing test). Still use judgment to avoid redundant runs, but bias toward
+   keeping these suites green regularly.
 2. If you do run a check and it fails because of your code, either fix the
    regression or clearly report the failure before handing the task back.
 
