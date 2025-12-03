@@ -13,7 +13,7 @@ export default defineConfig({
     baseURL,
   },
   webServer: {
-    command: 'pnpm run e2e:server',
+    command: 'pnpm run dev:web',
     url: baseURL,
     reuseExistingServer: !config.env.CI,
     timeout: 6e4,
