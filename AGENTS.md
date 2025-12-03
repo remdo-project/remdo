@@ -31,7 +31,7 @@ decide what matters.
   invariants.
 - `docs/outliner/drag-and-drop.md` (~81 words). Pointer-based reordering (drag
   and drop) – not supported yet; future plan lives there.
-- `docs/todo.md` (~760 words). Project roadmap plus outstanding design
+- `docs/todo.md` (~700 words). Project roadmap plus outstanding design
   questions—review when planning new features; now includes the Render
   deployment plan.
 - `docs/deployment-single-container.md` (~269 words). How to build and run the
