@@ -2,20 +2,25 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { RangeSelection } from 'lexical';
 
+import { reportInvariant } from '@/editor/invariant';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from './list-structure';
 
 // Returns the contiguous sibling slab that spans anchor/focus as the set of
 // top-most selected heads (dropping descendants when an ancestor is selected).
-// Returns null when the selection cannot be normalized to a single sibling run.
-export function getContiguousSelectionHeads(selection: RangeSelection): ListItemNode[] | null {
+// Returns an empty array when the selection cannot be normalized to a single sibling run.
+export function getContiguousSelectionHeads(selection: RangeSelection): ListItemNode[] {
   if (selection.isCollapsed()) {
-    return null;
+    return [];
   }
 
   const anchorItem = findNearestListItem(selection.anchor.getNode());
   const focusItem = findNearestListItem(selection.focus.getNode());
   if (!anchorItem || !focusItem) {
-    return null;
+    reportInvariant({
+      message: 'Selection anchor/focus is not within list items.',
+      context: { hasAnchor: Boolean(anchorItem), hasFocus: Boolean(focusItem) },
+    });
+    return [];
   }
 
   const anchorContent = getContentListItem(anchorItem);
@@ -24,14 +29,30 @@ export function getContiguousSelectionHeads(selection: RangeSelection): ListItem
 
   const parent = normalized.start.getParent();
   if (!parent || parent !== normalized.end.getParent() || !$isListNode(parent)) {
-    return null;
+    reportInvariant({
+      message: 'Selection heads do not share a list parent.',
+      context: {
+        startKey: normalized.start.getKey(),
+        endKey: normalized.end.getKey(),
+        hasParent: Boolean(parent),
+      },
+    });
+    return [];
   }
 
   const siblings = getContentSiblings(parent);
   const startIndex = siblings.indexOf(normalized.start);
   const endIndex = siblings.indexOf(normalized.end);
   if (startIndex === -1 || endIndex === -1) {
-    return null;
+    reportInvariant({
+      message: 'Selection heads are not found among content siblings.',
+      context: {
+        startKey: normalized.start.getKey(),
+        endKey: normalized.end.getKey(),
+        siblingCount: siblings.length,
+      },
+    });
+    return [];
   }
 
   const first = Math.min(startIndex, endIndex);

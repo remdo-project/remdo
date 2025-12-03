@@ -237,9 +237,9 @@ export function SelectionPlugin() {
         }
 
         const heads = getContiguousSelectionHeads(selection);
-        const noteItems = heads ?? [];
+        const noteItems = heads;
         computedNoteKeys = noteItems.map((item) => getContentListItem(item).getKey());
-        computedStructuralRange = heads ? computeStructuralRangeFromHeads(heads) : null;
+        computedStructuralRange = computeStructuralRangeFromHeads(noteItems);
 
         const hasMultiNoteRange = noteItems.length > 1;
         const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
@@ -329,7 +329,7 @@ export function SelectionPlugin() {
             const selection = $getSelection();
             if ($isRangeSelection(selection)) {
               const currentSlice = getContiguousSelectionHeads(selection);
-              const range = currentSlice ? computeStructuralRangeFromHeads(currentSlice) : null;
+              const range = computeStructuralRangeFromHeads(currentSlice);
               if (range) {
                 structuralSelectionRangeRef.current = range;
                 applyStructuralSelectionMetrics(range);
@@ -431,7 +431,7 @@ export function SelectionPlugin() {
           let heads = keyItems.filter((node) => node.isAttached());
 
           if (heads.length === 0 && selection) {
-            heads = getContiguousSelectionHeads(selection) ?? [];
+            heads = getContiguousSelectionHeads(selection);
           }
 
           if (heads.length === 0) {
@@ -1127,7 +1127,7 @@ function $computeDirectionalPlan(
   const anchorKey = anchorContent.getKey();
   const isContinuing = progressionRef.current.locked && progressionRef.current.anchorKey === anchorKey;
   let stage = isContinuing ? progressionRef.current.stage : 0;
-          const heads = getContiguousSelectionHeads(selection) ?? [];
+  const heads = getContiguousSelectionHeads(selection);
 
   const MAX_STAGE = 64;
   while (stage < MAX_STAGE + 1) {
@@ -1609,7 +1609,7 @@ function $inferPointerProgressionState(
     return null;
   }
   const anchorContent = getContentListItem(anchorItem);
-  const heads = noteItems.length > 0 ? noteItems : getContiguousSelectionHeads(selection) ?? [];
+  const heads = noteItems.length > 0 ? noteItems : getContiguousSelectionHeads(selection);
   if (heads.length <= 1) {
     return null;
   }

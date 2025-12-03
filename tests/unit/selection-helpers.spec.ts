@@ -14,13 +14,13 @@ describe('structural selection helper', () => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
       const result = getContiguousSelectionHeads(selection as RangeSelection);
-      return result ? result.map(getListItemLabel) : null;
+      return result.map(getListItemLabel);
     });
 
     expect(heads).toEqual(['note2', 'note4']);
   });
 
-  it('returns null for collapsed selections', async ({ lexical }) => {
+  it('returns empty array for collapsed selections', async ({ lexical }) => {
     await lexical.load('tree_complex');
     await placeCaretAtNote('note2', lexical.mutate);
 
@@ -30,7 +30,7 @@ describe('structural selection helper', () => {
       return getContiguousSelectionHeads(selection as RangeSelection);
     });
 
-    expect(slice).toBeNull();
+    expect(slice).toEqual([]);
   });
 
   it('normalizes parent/child spans to the ancestor slab', async ({ lexical }) => {
@@ -41,7 +41,7 @@ describe('structural selection helper', () => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
       const result = getContiguousSelectionHeads(selection as RangeSelection);
-      return result ? result.map(getListItemLabel) : null;
+      return result.map(getListItemLabel);
     });
 
     expect(heads).toEqual(['note1']);

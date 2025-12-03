@@ -63,7 +63,7 @@ export function IndentationPlugin() {
         }
 
         const heads = getContiguousSelectionHeads(selection);
-        let rootItems = heads ?? [];
+        let rootItems = heads;
 
         if (rootItems.length === 0 && selection.isCollapsed()) {
           const caretItem = findNearestListItem(selection.anchor.getNode());
