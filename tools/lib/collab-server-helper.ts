@@ -1,6 +1,5 @@
 import { once } from 'node:events';
 import fs from 'node:fs';
-import net from 'node:net';
 import path from 'node:path';
 import process from 'node:process';
 import { setTimeout as wait } from 'node:timers/promises';
@@ -8,6 +7,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 import { config } from '#config';
 import { resolveLoopbackHost } from '#lib/net/loopback';
 import { DATA_DIR } from './data-paths';
+import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
 
 const MAX_ATTEMPTS = 50;
@@ -18,22 +18,6 @@ const DATA_PATH = path.join(DATA_DIR, 'collab');
 function ensureLogStream(): fs.WriteStream {
   fs.mkdirSync(path.dirname(LOG_PATH), { recursive: true });
   return fs.createWriteStream(LOG_PATH, { flags: 'w' });
-}
-
-async function isPortOpen(host: string, port: number): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
-    const socket = net.connect(port, host);
-
-    socket.once('error', () => {
-      socket.destroy();
-      resolve(false);
-    });
-
-    socket.once('connect', () => {
-      socket.end();
-      resolve(true);
-    });
-  });
 }
 
 async function waitForPort(host: string, port: number): Promise<void> {

@@ -52,8 +52,7 @@
     "test:unit:coverage": "COLLAB_ENABLED=false pnpm exec vitest run --coverage",
     "test:unit:watch": "COLLAB_ENABLED=false tsx ./tools/test-unit-watch.ts",
     "test:preview": "tsx ./tools/test-preview.ts",
-    "test:e2e": "COLLAB_ENABLED=false pnpm exec playwright test",
-    "test:e2e:collab": "pnpm exec playwright test",
+    "test:e2e": "pnpm exec playwright test",
     "e2e:server": "tsx ./tools/e2e-server.ts",
     "save": "tsx ./tools/snapshot.ts save"
   },
