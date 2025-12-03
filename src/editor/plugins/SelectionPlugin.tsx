@@ -864,16 +864,30 @@ function $shouldBlockHorizontalArrow(direction: 'left' | 'right'): boolean {
     return false;
   }
 
-  const noteItems = collectSelectedListItems(selection);
-  if (noteItems.length === 0) {
+  const selectionListItems: ListItemNode[] = [];
+  const seen = new Set<string>();
+  for (const node of selection.getNodes()) {
+    const listItem = findNearestListItem(node);
+    if (!listItem) continue;
+    const key = listItem.getKey();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    selectionListItems.push(listItem);
+  }
+
+  const isCollapsed = selection.isCollapsed();
+  if (!isCollapsed && selectionListItems.length > 1) {
+    return true; // already structural, block horizontal expansion
+  }
+
+  const targetItem =
+    selectionListItems[0] ??
+    (isCollapsed ? findNearestListItem(selection.focus.getNode()) : null);
+  if (!targetItem) {
     return false;
   }
 
-  if (noteItems.length > 1) {
-    return true;
-  }
-
-  const contentItem = getContentListItem(noteItems[0]!);
+  const contentItem = getContentListItem(targetItem);
   const focus = selection.focus;
   const boundary = resolveContentBoundaryPoint(contentItem, direction === 'left' ? 'start' : 'end');
 
@@ -1566,34 +1580,8 @@ function findContentBoundaryTextNode(listItem: ListItemNode, edge: 'start' | 'en
   return null;
 }
 
-function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
-  const seen = new Set<string>();
-  const items: ListItemNode[] = [];
-
-  for (const node of selection.getNodes()) {
-    const listItem = findNearestListItem(node);
-    if (!listItem) {
-      continue;
-    }
-
-    const key = listItem.getKey();
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    items.push(listItem);
-  }
-
-  if (items.length === 0) {
-    return items;
-  }
-
-  return items.toSorted(compareDocumentOrder);
-}
-
 function computeStructuralRange(selection: RangeSelection, precomputed?: ListItemNode[]): StructuralSelectionRange | null {
-  const noteItems = precomputed ?? collectSelectedListItems(selection);
+  const noteItems = precomputed ?? getContiguousSelectionHeads(selection)?.slab ?? [];
   if (noteItems.length === 0) {
     return null;
   }
@@ -1656,7 +1644,7 @@ function collectHeadsFromListItems(items: ListItemNode[]): ListItemNode[] {
 }
 
 function collectSelectionHeads(selection: RangeSelection, precomputed?: ListItemNode[]): ListItemNode[] {
-  const items = precomputed ?? collectSelectedListItems(selection);
+  const items = precomputed ?? getContiguousSelectionHeads(selection)?.slab ?? [];
   if (items.length === 0) {
     return [];
   }
