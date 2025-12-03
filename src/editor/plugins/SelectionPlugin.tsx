@@ -1,6 +1,8 @@
 //TODO deserves a major refactor, cleanup and review
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
+import { getContentListItem } from '@/editor/outline/list-structure';
+import { getContiguousSelectionHeads } from '@/editor/outline/structural-selection';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $createParagraphNode,
@@ -234,18 +236,10 @@ export function SelectionPlugin() {
           };
         }
 
-        const noteItems = collectSelectedListItems(selection);
-        if (noteItems.length > 0) {
-          const normalized = normalizeContentRange(noteItems[0]!, noteItems.at(-1)!);
-          if (!noteItems.includes(normalized.start)) {
-            noteItems.unshift(normalized.start);
-          }
-          if (!noteItems.includes(normalized.end)) {
-            noteItems.push(normalized.end);
-          }
-        }
+        const heads = getContiguousSelectionHeads(selection);
+        const noteItems = heads ?? [];
         computedNoteKeys = noteItems.map((item) => getContentListItem(item).getKey());
-        computedStructuralRange = computeStructuralRange(selection);
+        computedStructuralRange = heads ? computeStructuralRangeFromHeads(heads) : null;
 
         const hasMultiNoteRange = noteItems.length > 1;
         const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
@@ -334,7 +328,8 @@ export function SelectionPlugin() {
             setStructuralSelectionActive(true);
             const selection = $getSelection();
             if ($isRangeSelection(selection)) {
-              const range = computeStructuralRange(selection);
+              const currentSlice = getContiguousSelectionHeads(selection);
+              const range = currentSlice ? computeStructuralRangeFromHeads(currentSlice) : null;
               if (range) {
                 structuralSelectionRangeRef.current = range;
                 applyStructuralSelectionMetrics(range);
@@ -433,10 +428,10 @@ export function SelectionPlugin() {
               ?.map((key) => $getNodeByKey<ListItemNode>(key))
               .filter((node): node is ListItemNode => $isListItemNode(node)) ?? [];
 
-          let heads = collectHeadsFromListItems(keyItems).filter((node) => node.isAttached());
+          let heads = keyItems.filter((node) => node.isAttached());
 
           if (heads.length === 0 && selection) {
-            heads = collectSelectionHeads(selection).filter((node) => node.isAttached());
+            heads = getContiguousSelectionHeads(selection) ?? [];
           }
 
           if (heads.length === 0) {
@@ -870,16 +865,30 @@ function $shouldBlockHorizontalArrow(direction: 'left' | 'right'): boolean {
     return false;
   }
 
-  const noteItems = collectSelectedListItems(selection);
-  if (noteItems.length === 0) {
+  const selectionListItems: ListItemNode[] = [];
+  const seen = new Set<string>();
+  for (const node of selection.getNodes()) {
+    const listItem = findNearestListItem(node);
+    if (!listItem) continue;
+    const key = listItem.getKey();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    selectionListItems.push(listItem);
+  }
+
+  const isCollapsed = selection.isCollapsed();
+  if (!isCollapsed && selectionListItems.length > 1) {
+    return true; // already structural, block horizontal expansion
+  }
+
+  const targetItem =
+    selectionListItems[0] ??
+    (isCollapsed ? findNearestListItem(selection.focus.getNode()) : null);
+  if (!targetItem) {
     return false;
   }
 
-  if (noteItems.length > 1) {
-    return true;
-  }
-
-  const contentItem = getContentListItem(noteItems[0]!);
+  const contentItem = getContentListItem(targetItem);
   const focus = selection.focus;
   const boundary = resolveContentBoundaryPoint(contentItem, direction === 'left' ? 'start' : 'end');
 
@@ -1118,7 +1127,7 @@ function $computeDirectionalPlan(
   const anchorKey = anchorContent.getKey();
   const isContinuing = progressionRef.current.locked && progressionRef.current.anchorKey === anchorKey;
   let stage = isContinuing ? progressionRef.current.stage : 0;
-            const heads = collectSelectionHeads(selection);
+          const heads = getContiguousSelectionHeads(selection) ?? [];
 
   const MAX_STAGE = 64;
   while (stage < MAX_STAGE + 1) {
@@ -1572,40 +1581,13 @@ function findContentBoundaryTextNode(listItem: ListItemNode, edge: 'start' | 'en
   return null;
 }
 
-function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
-  const seen = new Set<string>();
-  const items: ListItemNode[] = [];
-
-  for (const node of selection.getNodes()) {
-    const listItem = findNearestListItem(node);
-    if (!listItem) {
-      continue;
-    }
-
-    const key = listItem.getKey();
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    items.push(listItem);
-  }
-
-  if (items.length === 0) {
-    return items;
-  }
-
-  return items.toSorted(compareDocumentOrder);
-}
-
-function computeStructuralRange(selection: RangeSelection): StructuralSelectionRange | null {
-  const noteItems = collectSelectedListItems(selection);
+function computeStructuralRangeFromHeads(heads: ListItemNode[]): StructuralSelectionRange | null {
+  const noteItems = heads;
   if (noteItems.length === 0) {
     return null;
   }
 
-  const heads = collectSelectionHeads(selection, noteItems);
-  const caretItems = (heads.length > 0 ? heads : noteItems).map((item) => getContentListItem(item));
+  const caretItems = noteItems.map((item) => getContentListItem(item));
   const caretStartItem = caretItems[0]!;
   const caretEndItem = caretItems.at(-1)!;
   const visualEndItem = getSubtreeTail(caretEndItem);
@@ -1618,58 +1600,6 @@ function computeStructuralRange(selection: RangeSelection): StructuralSelectionR
   } satisfies StructuralSelectionRange;
 }
 
-function collectHeadsFromListItems(items: ListItemNode[]): ListItemNode[] {
-  const normalized = items.map((item) => getContentListItem(item));
-  if (normalized.length === 0) {
-    return [];
-  }
-
-  const seen = new Set<string>();
-  const unique: ListItemNode[] = [];
-
-  for (const item of normalized) {
-    const key = item.getKey();
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    unique.push(item);
-  }
-
-  const heads: ListItemNode[] = [];
-  for (const item of unique) {
-    let covered = false;
-    for (const head of heads) {
-      if (isDescendantOf(item, head)) {
-        covered = true;
-        break;
-      }
-    }
-    if (covered) {
-      continue;
-    }
-
-    for (let i = heads.length - 1; i >= 0; i -= 1) {
-      if (isDescendantOf(heads[i]!, item)) {
-        heads.splice(i, 1);
-      }
-    }
-
-    heads.push(item);
-  }
-
-  return heads;
-}
-
-function collectSelectionHeads(selection: RangeSelection, precomputed?: ListItemNode[]): ListItemNode[] {
-  const items = precomputed ?? collectSelectedListItems(selection);
-  if (items.length === 0) {
-    return [];
-  }
-
-  return collectHeadsFromListItems(items);
-}
-
 function $inferPointerProgressionState(
   selection: RangeSelection,
   noteItems: ListItemNode[]
@@ -1679,12 +1609,12 @@ function $inferPointerProgressionState(
     return null;
   }
   const anchorContent = getContentListItem(anchorItem);
-  const heads = collectSelectionHeads(selection, noteItems);
+  const heads = noteItems.length > 0 ? noteItems : getContiguousSelectionHeads(selection) ?? [];
   if (heads.length <= 1) {
     return null;
   }
   const firstParent = heads[0]!.getParent();
-  if (!heads.every((head) => head.getParent() === firstParent)) {
+  if (!heads.every((head: ListItemNode) => head.getParent() === firstParent)) {
     return null;
   }
 
@@ -1760,15 +1690,6 @@ function getContentDepth(item: ListItemNode): number {
     current = getParentContentItem(current);
   }
   return depth;
-}
-
-function getContentListItem(item: ListItemNode): ListItemNode {
-  if (!isChildrenWrapper(item)) {
-    return item;
-  }
-
-  const previous = item.getPreviousSibling();
-  return $isListItemNode(previous) ? previous : item;
 }
 
 function getNextContentSibling(item: ListItemNode): ListItemNode | null {
@@ -1987,17 +1908,6 @@ function getLastDescendantListItem(node: LexicalNode | null): ListItemNode | nul
   return null;
 }
 
-function isDescendantOf(node: ListItemNode, ancestor: ListItemNode): boolean {
-  let current: ListItemNode | null = node;
-  while (current) {
-    if (current.getKey() === ancestor.getKey()) {
-      return true;
-    }
-    current = getParentContentItem(current);
-  }
-  return false;
-}
-
 function getWrapperForContent(item: ListItemNode): ListItemNode | null {
   const next = item.getNextSibling();
   if (!$isListItemNode(next) || !isChildrenWrapper(next)) {
@@ -2059,7 +1969,7 @@ export function SelectionInputPlugin() {
     const unregisterArrowUp = editor.registerCommand<KeyboardEvent>(
       KEY_ARROW_UP_COMMAND,
       (event) => {
-        if (!event.shiftKey) {
+        if (!event.shiftKey || event.altKey || event.metaKey || event.ctrlKey) {
           return false;
         }
 
@@ -2073,7 +1983,7 @@ export function SelectionInputPlugin() {
     const unregisterArrowDown = editor.registerCommand<KeyboardEvent>(
       KEY_ARROW_DOWN_COMMAND,
       (event) => {
-        if (!event.shiftKey) {
+        if (!event.shiftKey || event.altKey || event.metaKey || event.ctrlKey) {
           return false;
         }
 

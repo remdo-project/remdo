@@ -1,4 +1,4 @@
-import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
+import type { EditorUpdateOptions, LexicalCommand, LexicalEditor } from 'lexical';
 
 export type EditorStateJSON = ReturnType<ReturnType<LexicalEditor['getEditorState']>['toJSON']>;
 
@@ -10,4 +10,7 @@ export interface LexicalTestHelpers {
   getEditorState: () => EditorStateJSON;
   waitForSynced: () => Promise<void>;
   getCollabDocId: () => string;
+  dispatchCommand: (command: LexicalCommand<unknown>, payload?: unknown) => Promise<void>;
 }
+
+export type LexicalMutate = LexicalTestHelpers['mutate'];

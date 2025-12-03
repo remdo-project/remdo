@@ -109,14 +109,14 @@ function readSelectionSnapshot(lexical: LexicalTestHelpers): SelectionSnapshot {
     const datasetNotes = rootElement?.dataset.structuralSelectionKeys
       ?.split(',')
       .filter(Boolean)
-      .map((key) => {
+      .map((key: string) => {
         const node = $getNodeByKey<ListItemNode>(key);
         if (!node || !node.isAttached()) {
           return null;
         }
         return getListItemLabel(node);
       })
-      .filter((label): label is string => typeof label === 'string' && label.length > 0);
+      .filter((label: string | null): label is string => typeof label === 'string' && label.length > 0);
 
     if (datasetNotes?.length) {
       return { state: 'structural', notes: datasetNotes } satisfies SelectionSnapshot;
@@ -134,7 +134,7 @@ function collectLabelsFromSelection(selection: RangeSelection): string[] {
     if (!item.isSelected(selection)) {
       continue;
     }
-    const label = getListItemLabel(item);
+  const label = getListItemLabel(item);
     if (label) {
       labels.push(label);
     }

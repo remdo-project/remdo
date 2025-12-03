@@ -5,51 +5,8 @@ import type { LexicalNode } from 'lexical';
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
 import { useEffect } from 'react';
 import { $indentNote, $outdentNote } from '../lexical-helpers';
-
-const findNearestListItem = (node: LexicalNode | null) => {
-  let current: LexicalNode | null = node;
-
-  while (current) {
-    if ($isListItemNode(current)) {
-      return current;
-    }
-    current = current.getParent();
-  }
-
-  return null;
-};
-
-const getNodePath = (node: ListItemNode): number[] => {
-  const path: number[] = [];
-  let current: LexicalNode = node;
-
-  for (;;) {
-    const parent = current.getParent();
-    if (!parent) {
-      break;
-    }
-    path.push(current.getIndexWithinParent());
-    current = parent;
-  }
-
-  return path.toReversed();
-};
-
-const sortByDocumentOrder = (items: ListItemNode[]): ListItemNode[] =>
-  items
-    .map((node) => ({ node, path: getNodePath(node) }))
-    .toSorted((a, b) => {
-      const depth = Math.max(a.path.length, b.path.length);
-      for (let i = 0; i < depth; i++) {
-        const left = a.path[i] ?? -1;
-        const right = b.path[i] ?? -1;
-        if (left !== right) {
-          return left - right;
-        }
-      }
-      return 0;
-    })
-    .map(({ node }) => node);
+import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
+import { getContiguousSelectionHeads } from '@/editor/outline/structural-selection';
 
 const hasPreviousContentSibling = (noteItem: ListItemNode): boolean => {
   let sibling: ListItemNode | null = noteItem.getPreviousSibling();
@@ -105,45 +62,18 @@ export function IndentationPlugin() {
           return false;
         }
 
-        const selectionNodes = selection.getNodes();
-        const listItems: ListItemNode[] = [];
-        const seen = new Set<string>();
+        const heads = getContiguousSelectionHeads(selection);
+        let rootItems = heads ?? [];
 
-        for (const node of selectionNodes) {
-          const listItem = findNearestListItem(node);
-          if (!listItem) {
-            continue;
-          }
-
-          const key = listItem.getKey();
-          if (seen.has(key)) {
-            continue;
-          }
-
-          listItems.push(listItem);
-          seen.add(key);
-        }
-
-        if (listItems.length === 0) {
-          return false;
-        }
-
-        const orderedItems: ListItemNode[] = sortByDocumentOrder(listItems);
-        const targetParent = orderedItems[0]?.getParent() ?? null;
-        const contentItems: ListItemNode[] = [];
-        for (const item of orderedItems) {
-          const parent = item.getParent();
-          const children = item.getChildren();
-          const isWrapper = children.length === 1 && children[0] != null && $isListNode(children[0]);
-          if (!isWrapper && parent === targetParent) {
-            contentItems.push(item);
+        if (rootItems.length === 0 && selection.isCollapsed()) {
+          const caretItem = findNearestListItem(selection.anchor.getNode());
+          if (caretItem) {
+            rootItems = [getContentListItem(caretItem)];
           }
         }
-        const rootItems = contentItems.filter(
-          (item, index) => !contentItems.some((other, otherIndex) => otherIndex !== index && other.isParentOf(item))
-        );
+
         if (rootItems.length === 0) {
-          return true;
+          return false;
         }
 
         event.preventDefault();

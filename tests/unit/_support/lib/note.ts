@@ -1,12 +1,8 @@
-import type { EditorUpdateOptions } from 'lexical';
-import {
-  $createRangeSelection,
-  $getRoot,
-  $getSelection,
-  $isRangeSelection,
-  $isTextNode,
-  $setSelection,
-} from 'lexical';
+import type { ListItemNode, ListNode } from '@lexical/list';
+import { $isListNode } from '@lexical/list';
+import type { LexicalMutate } from './types';
+import type { TextNode } from 'lexical';
+import { $createRangeSelection, $getRoot, $getSelection, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
 
 export interface OutlineNode {
   text?: string;
@@ -22,19 +18,13 @@ export type SelectionSnapshot =
   | { state: 'structural'; notes: string[] };
 
 
-function findItemByText(listNode: any, noteText: string): any {
-  const items = listNode?.getChildren?.() ?? [];
+function findItemByText(listNode: ListNode | null, noteText: string): ListItemNode | null {
+  const items = listNode?.getChildren<ListItemNode>() ?? [];
   for (const item of items) {
-    if (!item || typeof item.getChildren !== 'function') {
-      continue;
-    }
-
     const children = item.getChildren();
-    const contentNodes = children.filter(
-      (child: any) => typeof child.getType === 'function' && child.getType() !== 'list'
-    );
+    const contentNodes = children.filter((child) => child.getType() !== 'list');
     const text = contentNodes
-      .map((child: any) => child?.getTextContent?.() ?? '')
+      .map((child) => child.getTextContent())
       .join('')
       .trim();
 
@@ -42,9 +32,7 @@ function findItemByText(listNode: any, noteText: string): any {
       return item;
     }
 
-    const nestedLists = children.filter(
-      (child: any) => typeof child.getType === 'function' && child.getType() === 'list'
-    );
+    const nestedLists = children.filter((child): child is ListNode => child.getType() === 'list');
     for (const nested of nestedLists) {
       const found = findItemByText(nested, noteText);
       if (found) return found;
@@ -63,26 +51,20 @@ function findItemByText(listNode: any, noteText: string): any {
  * - When no textual child is available, the helper falls back to `selectStart`/`selectEnd` on the list item,
  *   in which case the `offset` is ignored unless selecting the end is explicitly requested via a positive value.
  */
-export async function placeCaretAtNote(
-  noteText: string,
-  mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>,
-  offset = 0
-) {
+export async function placeCaretAtNote(noteText: string, mutate: LexicalMutate, offset = 0) {
   await mutate(() => {
     const root = $getRoot();
     const list = root.getFirstChild();
-    if (!list) throw new Error('Expected a list root');
+    if (!list || !$isListNode(list)) throw new Error('Expected a list root');
 
     const item = findItemByText(list, noteText);
     if (!item) throw new Error(`No list item found with text: ${noteText}`);
 
     const children = item.getChildren();
-    const textNode = children.find((child: any) =>
-      typeof child.getType === 'function' && child.getType() === 'text'
-    );
+    const textNode = children.find((child): child is TextNode => child.getType() === 'text');
 
-    if (textNode && typeof textNode.select === 'function') {
-      const length = textNode.getTextContentSize?.() ?? textNode.getTextContent().length;
+    if (textNode) {
+      const length = textNode.getTextContentSize();
       const normalized = offset < 0 ? length + offset : offset;
       const clamped = Math.max(0, Math.min(length, normalized));
       textNode.select(clamped, clamped);
@@ -177,7 +159,7 @@ export function readOutline(validate: <T>(fn: () => T) => T): Outline {
 // proper whole-note selection controls in the editor harness.
 export async function selectEntireNote(
   noteText: string,
-  mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>
+  mutate: LexicalMutate
 ): Promise<void> {
   await placeCaretAtNote(noteText, mutate);
 
@@ -229,14 +211,14 @@ function compareNodeOrder(a: any, b: any): number {
   return 0;
 }
 
-function findContentTextNode(item: any) {
+function findContentTextNode(item: ListItemNode) {
   return item
     .getChildren()
     .find(
-      (child: any) =>
+      (child) =>
         typeof child.getType === 'function' &&
         child.getType() !== 'list' &&
-        typeof child.getTextContent === 'function'
+        typeof (child as { getTextContent?: () => string }).getTextContent === 'function'
     );
 }
 
@@ -244,7 +226,7 @@ function findContentTextNode(item: any) {
 export async function selectNoteRange(
   startNote: string,
   endNote: string,
-  mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>
+  mutate: LexicalMutate
 ): Promise<void> {
   if (startNote === endNote) {
     await selectEntireNote(startNote, mutate);
@@ -254,7 +236,7 @@ export async function selectNoteRange(
   await mutate(() => {
     const root = $getRoot();
     const list = root.getFirstChild();
-    if (!list) {
+    if (!list || !$isListNode(list)) {
       throw new Error('Expected root list');
     }
 

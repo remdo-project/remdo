@@ -1,5 +1,5 @@
 import type { Outline, SelectionSnapshot } from '#tests';
-import type { LexicalTestHelpers as LexicalHelpers } from '../setup/_internal/lexical/types';
+import type { LexicalTestHelpers as LexicalHelpers } from '../lib/types';
 
 declare module 'vitest' {
   interface LexicalTestHelpers extends LexicalHelpers {}

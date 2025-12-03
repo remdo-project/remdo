@@ -18,13 +18,20 @@ decide what matters.
 
 - `docs/contributing.md` (~270 words). Runtime baselines, Git workflow, and
   branch conventions—check before touching tooling or process.
-- `docs/concepts.md` (~550 words). Canonical definition of notes, invariants,
-  and adapters—skim when working on data modeling or serialization.
-- `docs/note-structure-rules.md` (~1.4k words). Detailed outlining rules and
-  validation behaviors—consult when editing tree transforms or note mutations.
-- `docs/selection.md` (~1.4k words). Cursor/selection semantics for the editor
-  runtime—reference for UX or Lexical selection work.
-- `docs/todo.md` (~678 words). Project roadmap plus outstanding design
+- `docs/outliner/index.md` (~180 words). Single entry point for outlining docs
+  with links to model, selection, indent/outdent, and reordering specs.
+- `docs/outliner/concepts.md` (~553 words). Canonical definition of notes,
+  invariants, and adapters—skim when working on data modeling or serialization.
+- `docs/outliner/note-structure-rules.md` (~1.08k words). Structural invariants
+  and indent/outdent semantics—consult when editing tree transforms or note
+  mutations.
+- `docs/outliner/selection.md` (~1.45k words). Cursor/selection semantics for
+  the editor runtime—reference for UX or Lexical selection work.
+- `docs/outliner/reordering.md` (~100 words). Level-preserving reordering behavior and placement
+  invariants.
+- `docs/outliner/drag-and-drop.md` (~81 words). Pointer-based reordering (drag
+  and drop) – not supported yet; future plan lives there.
+- `docs/todo.md` (~700 words). Project roadmap plus outstanding design
   questions—review when planning new features; now includes the Render
   deployment plan.
 - `docs/deployment-single-container.md` (~269 words). How to build and run the
@@ -43,6 +50,19 @@ the map stays trustworthy.
    source of truth.
 3. After modifying documentation, refresh this map and note significant changes
    in AGENTS.md so future sessions have the latest pointers.
+
+### Documentation invariants
+
+1. **Single source per topic.** Define each behavior once in the doc best suited
+   to it; eliminate duplicates and replace any extra copies with pointers.
+2. **Top-down linking.** Prefer links from higher-level docs (index, concepts)
+   into detailed docs (selection, indent/outdent, reordering); same-level links
+   only when they add clear value.
+3. **Self-contained set.** Keep required context inside this doc set; avoid external references.
+4. **Coherence checks.** When editing a doc, ensure the change aligns with
+   existing resolutions and update related docs/maps if needed.
+5. **Intentional gaps.** Stubs/placeholders are acceptable in dev—mark status
+   clearly when a section is partial.
 
 ### Core ideas
 

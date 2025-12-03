@@ -6,7 +6,9 @@ reordering notes preserve a valid tree structure and maintain clarity in the
 outline hierarchy. Review the conceptual model in
 [Concepts](./concepts.md) and its
 [Examples section](./concepts.md#examples) before diving into the behavioral
-details below.
+details below. Selection behavior (whole-note snapping, shortcut ladder, etc.)
+is defined in [Selection](./selection.md); this document assumes those
+guarantees.
 
 ## Design Goals
 
@@ -14,21 +16,10 @@ details below.
   descendants.
 - **Prevent illegal structures:** No cycles, no orphaned descendants; invalid
   operations become no-ops.
-- **Parity of interactions:** Keyboard and drag-and-drop perform equivalent
-  structural operations.
+- **Parity of interactions:** Target parity between keyboard and drag-and-drop
+  structural operations once drag-and-drop ships.
 - **Predictability:** Outdent/indent placement is deterministic, so the same
   command always lands notes in the expected position.
-
-## Shortcut Summary
-
-| Shortcut / Command | Operation | Result |
-| ------------------ | --------- | ------ |
-| `Tab`              | Indent    | Nests the selected note(s) under the previous sibling when allowed. |
-| `Shift+Tab`        | Outdent   | Moves the selected note(s) up one level and inserts them immediately after the former parent. |
-
-All other selection gestures and shortcuts are documented in
-[Selection](./selection.md); the invariants below describe the outcomes those
-gestures must respect.
 
 ## Subtree Atomic Move
 
@@ -153,49 +144,7 @@ note at that depth, the promoted notes naturally become the final entries as
 well. This mirrors the behavior of whole-note outliners and keeps quick
 restructures predictable.
 
-## Whole-Note Selection
-
-Selections that cross note boundaries always snap to entire notes (and their
-subtrees). Structural expansion is driven by `Shift+Up/Down`, which walk through
-contiguous sibling slabs before climbing to parents, while `Shift+Left/Right`
-stay confined to inline text. This keeps every structural command operating on
-complete notes rather than fragments and ensures collaboration semantics stay
-deterministic.
-See [Selection](./selection.md) for the full gesture, shortcut, and progressive
-selection behavior.
-
 ## Reordering Behavior
 
-Reordering respects all the above invariants and is essentially a more free-form
-way to reorder or reparent notes:
-
-- **Sibling Reordering:** Moving a note to a new position among its current
-  siblings will reorder it within the same parent. This doesn’t change its
-  level, just the order. (All children move with it due to **Subtree Atomic
-  Move**.)
-- **Indenting via Placement:** Placing a note **onto** another note (or into the
-  space that indicates it should become a child of that note) will indent the
-  moved note under the target note. This is only allowed if the target note is a
-  valid new parent (following the **Valid Indentation** rule). The moved note
-  (with its subtree) becomes the last child of the target.
-- **Outdenting/Reparenting via Placement:** Moving a note to a position outside
-  its current parent (for example, positioning it right after its parent or at
-  the root level) will outdent it or reparent it to a higher level. This is only
-  allowed if there is a valid place to position it (following **Valid
-  Outdentation** rules). For instance, you can move a sub-note out to the root
-  list to make it a top-level note. You cannot place a note in a position that
-  breaks the outline structure (such placements will be disallowed by the
-  editor).
-- **No Invalid Placements:** The system prevents placements that violate outline
-  invariants. For example, you **cannot** position a note inside one of its own
-  descendants – such an action is invalid because it would create a cycle in the
-  hierarchy. Any attempt to do so will be blocked, preserving the acyclic tree
-  structure.
-
-Overall, reordering operations are just another way to invoke
-indent/outdent/reorder under the hood. They must honor **Subtree Atomic Move**
-(the note and its children move together) and the validity rules for
-indenting/outdenting (only legal parent/child relationships can be created). All
-outline modifications, whether invoked via keyboard shortcuts or other
-reordering affordances, thus follow the same invariant rules to keep the
-document structure consistent and predictable.
+Reordering semantics are defined in [Reordering (keyboard)](./reordering.md).
+This document supplies the structural invariants those commands rely on.
