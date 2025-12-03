@@ -27,7 +27,13 @@ export const getSelectedNotes = (selection: RangeSelection): ListItemNode[] => {
 
   for (const node of candidates) {
     const listItem = findNearestListItem(node);
-    if (!listItem) continue;
+    if (!listItem) {
+      reportInvariant({
+        message: 'Selected node is not within a list item',
+        context: { nodeType: node.getType() },
+      });
+      continue;
+    }
 
     const contentItem = getContentListItem(listItem);
     const key = contentItem.getKey();

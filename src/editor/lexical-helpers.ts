@@ -6,6 +6,7 @@ import {
   $isListItemNode,
   $isListNode,
 } from '@lexical/list';
+import { reportInvariant } from '@/editor/invariant';
 
 const isListItemWrapper = (node: ListItemNode): boolean =>
   node.getChildren().length === 1 && $isListNode(node.getFirstChild());
@@ -32,11 +33,19 @@ function getNodesToMove(noteItem: ListItemNode): ListItemNode[] {
 export function $indentNote(noteItem: ListItemNode): boolean {
   const parentList = noteItem.getParent();
   if (!$isListNode(parentList)) {
+    reportInvariant({
+      message: 'Cannot indent: parent is not a list',
+      context: { noteKey: noteItem.getKey(), parentType: parentList?.getType ? parentList.getType() : undefined },
+    });
     return false;
   }
 
   const previousContent = getPreviousContentItem(noteItem);
   if (!previousContent) {
+    reportInvariant({
+      message: 'Cannot indent: no previous content sibling',
+      context: { noteKey: noteItem.getKey() },
+    });
     return false;
   }
 
@@ -65,16 +74,31 @@ function $getOrCreateChildList(parentContentItem: ListItemNode, parentList: List
 export function $outdentNote(noteItem: ListItemNode): boolean {
   const parentList = noteItem.getParent();
   if (!$isListNode(parentList)) {
+    reportInvariant({
+      message: 'Cannot outdent: parent is not a list',
+      context: { noteKey: noteItem.getKey(), parentType: parentList?.getType ? parentList.getType() : undefined },
+    });
     return false;
   }
 
   const parentWrapper = parentList.getParent();
   if (!isChildrenWrapper(parentWrapper)) {
+    reportInvariant({
+      message: 'Cannot outdent: parent wrapper missing or malformed',
+      context: { noteKey: noteItem.getKey(), parentType: parentWrapper?.getType ? parentWrapper.getType() : undefined },
+    });
     return false;
   }
 
   const grandParentList = parentWrapper.getParent();
   if (!$isListNode(grandParentList)) {
+    reportInvariant({
+      message: 'Cannot outdent: grandparent is not a list',
+      context: {
+        noteKey: noteItem.getKey(),
+        grandParentType: grandParentList?.getType ? grandParentList.getType() : undefined,
+      },
+    });
     return false;
   }
 

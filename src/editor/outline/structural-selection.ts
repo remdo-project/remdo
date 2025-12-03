@@ -119,16 +119,38 @@ function getContentDepth(item: ListItemNode): number {
 function getParentContentItem(item: ListItemNode): ListItemNode | null {
   const parentList = item.getParent();
   if (!$isListNode(parentList)) {
+    reportInvariant({
+      message: 'List item parent is not a list node while resolving parent content',
+      context: { itemKey: item.getKey(), parentType: parentList?.getType ? parentList.getType() : undefined },
+    });
     return null;
   }
 
   const parentWrapper = parentList.getParent();
   if (!$isListItemNode(parentWrapper) || !isChildrenWrapper(parentWrapper)) {
+    // Top-level items have a RootNode parent; treat that as expected and avoid noisy reporting.
+    const parentType = parentWrapper?.getType ? parentWrapper.getType() : undefined;
+    if (parentType !== 'root') {
+      reportInvariant({
+        message: 'List item parent wrapper missing or malformed',
+        context: { itemKey: item.getKey(), parentType },
+      });
+    }
     return null;
   }
 
   const parentContent = parentWrapper.getPreviousSibling();
-  return $isListItemNode(parentContent) ? parentContent : null;
+  if ($isListItemNode(parentContent)) {
+    return parentContent;
+  }
+  reportInvariant({
+    message: 'Parent content sibling is not a list item',
+    context: {
+      itemKey: item.getKey(),
+      parentSiblingType: parentContent?.getType ? parentContent.getType() : undefined,
+    },
+  });
+  return null;
 }
 
 function getContentSiblings(list: ListNode): ListItemNode[] {

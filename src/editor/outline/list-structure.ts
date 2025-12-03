@@ -1,6 +1,7 @@
 // TODO: add unit tests covering every helper in this module.
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
+import { reportInvariant } from '@/editor/invariant';
 import type { LexicalNode } from 'lexical';
 
 type ChildListItemNode = ListItemNode & { getFirstChild: () => ListNode };
@@ -44,9 +45,22 @@ export const getContentListItem = (item: ListItemNode): ListItemNode => {
 
 export const getParentNote = (list: ListNode): ListItemNode | null => {
   const wrapper = list.getParent();
-  if (!$isListItemNode(wrapper)) return null;
+  if (!$isListItemNode(wrapper)) {
+    reportInvariant({
+      message: 'List parent is not a list item wrapper',
+      context: { wrapperType: wrapper?.getType ? wrapper.getType() : undefined },
+    });
+    return null;
+  }
   const parentNote = wrapper.getPreviousSibling();
-  return $isListItemNode(parentNote) && !isChildrenWrapper(parentNote) ? parentNote : null;
+  if ($isListItemNode(parentNote) && !isChildrenWrapper(parentNote)) {
+    return parentNote;
+  }
+  reportInvariant({
+    message: 'Parent note could not be resolved from wrapper sibling',
+    context: { wrapperKey: wrapper.getKey(), parentType: parentNote?.getType ? parentNote.getType() : undefined },
+  });
+  return null;
 };
 
 export const getNodesForNote = (note: ListItemNode): LexicalNode[] => {
