@@ -236,10 +236,10 @@ export function SelectionPlugin() {
           };
         }
 
-        const slice = getContiguousSelectionHeads(selection);
-        const noteItems = slice?.slab ?? [];
+        const heads = getContiguousSelectionHeads(selection);
+        const noteItems = heads ?? [];
         computedNoteKeys = noteItems.map((item) => getContentListItem(item).getKey());
-        computedStructuralRange = computeStructuralRange(selection, noteItems);
+        computedStructuralRange = heads ? computeStructuralRangeFromHeads(heads) : null;
 
         const hasMultiNoteRange = noteItems.length > 1;
         const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
@@ -328,7 +328,8 @@ export function SelectionPlugin() {
             setStructuralSelectionActive(true);
             const selection = $getSelection();
             if ($isRangeSelection(selection)) {
-              const range = computeStructuralRange(selection);
+              const currentSlice = getContiguousSelectionHeads(selection);
+              const range = currentSlice ? computeStructuralRangeFromHeads(currentSlice) : null;
               if (range) {
                 structuralSelectionRangeRef.current = range;
                 applyStructuralSelectionMetrics(range);
@@ -1580,14 +1581,13 @@ function findContentBoundaryTextNode(listItem: ListItemNode, edge: 'start' | 'en
   return null;
 }
 
-function computeStructuralRange(selection: RangeSelection, precomputed?: ListItemNode[]): StructuralSelectionRange | null {
-  const noteItems = precomputed ?? getContiguousSelectionHeads(selection)?.slab ?? [];
+function computeStructuralRangeFromHeads(heads: ListItemNode[]): StructuralSelectionRange | null {
+  const noteItems = heads;
   if (noteItems.length === 0) {
     return null;
   }
 
-  const heads = collectSelectionHeads(selection, noteItems);
-  const caretItems = (heads.length > 0 ? heads : noteItems).map((item) => getContentListItem(item));
+  const caretItems = noteItems.map((item) => getContentListItem(item));
   const caretStartItem = caretItems[0]!;
   const caretEndItem = caretItems.at(-1)!;
   const visualEndItem = getSubtreeTail(caretEndItem);
@@ -1644,7 +1644,7 @@ function collectHeadsFromListItems(items: ListItemNode[]): ListItemNode[] {
 }
 
 function collectSelectionHeads(selection: RangeSelection, precomputed?: ListItemNode[]): ListItemNode[] {
-  const items = precomputed ?? getContiguousSelectionHeads(selection)?.slab ?? [];
+  const items = precomputed ?? getContiguousSelectionHeads(selection) ?? [];
   if (items.length === 0) {
     return [];
   }

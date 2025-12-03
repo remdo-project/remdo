@@ -4,15 +4,10 @@ import type { RangeSelection } from 'lexical';
 
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from './list-structure';
 
-export interface ContiguousSelectionSlice {
-  heads: ListItemNode[];
-  slab: ListItemNode[];
-}
-
-// Returns the contiguous sibling slab that spans the anchor/focus notes and the
+// Returns the contiguous sibling slab that spans anchor/focus as the set of
 // top-most selected heads (dropping descendants when an ancestor is selected).
 // Returns null when the selection cannot be normalized to a single sibling run.
-export function getContiguousSelectionHeads(selection: RangeSelection): ContiguousSelectionSlice | null {
+export function getContiguousSelectionHeads(selection: RangeSelection): ListItemNode[] | null {
   if (selection.isCollapsed()) {
     return null;
   }
@@ -41,16 +36,7 @@ export function getContiguousSelectionHeads(selection: RangeSelection): Contiguo
 
   const first = Math.min(startIndex, endIndex);
   const last = Math.max(startIndex, endIndex);
-  const slab = siblings.slice(first, last + 1);
-
-  // TODO: if slab is never used separately (e.g., SelectionPlugin adopts this
-  // helper for visualization), consider returning only heads to reduce churn.
-  // Collapse to heads: within a sibling slab, no item is a descendant of
-  // another, so heads equal the slab. Kept explicit for clarity and future
-  // mixed-depth handling.
-  const heads = slab;
-
-  return { heads, slab } satisfies ContiguousSelectionSlice;
+  return siblings.slice(first, last + 1);
 }
 
 function normalizeContentRange(start: ListItemNode, end: ListItemNode): { start: ListItemNode; end: ListItemNode } {

@@ -127,8 +127,8 @@ function $getSelectionContext(): SelectionContext | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) return null;
 
-  const slice = getContiguousSelectionHeads(selection);
-  let notes = slice?.heads ?? [];
+  const heads = getContiguousSelectionHeads(selection);
+  let notes = heads ?? [];
 
   if (notes.length === 0 && selection.isCollapsed()) {
     const caretItem = findNearestListItem(selection.anchor.getNode());

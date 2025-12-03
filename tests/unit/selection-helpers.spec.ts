@@ -10,20 +10,14 @@ describe('structural selection helper', () => {
     await lexical.load('tree_complex');
     await selectNoteRange('note2', 'note4', lexical.mutate); // includes child note3 through note2
 
-    const slice = lexical.validate(() => {
+    const heads = lexical.validate(() => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
       const result = getContiguousSelectionHeads(selection as RangeSelection);
-      return result
-        ? {
-            heads: result.heads.map(getListItemLabel),
-            slab: result.slab.map(getListItemLabel),
-          }
-        : null;
+      return result ? result.map(getListItemLabel) : null;
     });
 
-    expect(slice?.slab).toEqual(['note2', 'note4']);
-    expect(slice?.heads).toEqual(['note2', 'note4']);
+    expect(heads).toEqual(['note2', 'note4']);
   });
 
   it('returns null for collapsed selections', async ({ lexical }) => {
@@ -43,18 +37,13 @@ describe('structural selection helper', () => {
     await lexical.load('tree_complex');
     await selectNoteRange('note1', 'note3', lexical.mutate); // crosses root note and nested child
 
-    const slice = lexical.validate(() => {
+    const heads = lexical.validate(() => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
       const result = getContiguousSelectionHeads(selection as RangeSelection);
-      return result
-        ? {
-            heads: result.heads.map(getListItemLabel),
-            slab: result.slab.map(getListItemLabel),
-          }
-        : null;
+      return result ? result.map(getListItemLabel) : null;
     });
 
-    expect(slice).toEqual({ heads: ['note1'], slab: ['note1'] });
+    expect(heads).toEqual(['note1']);
   });
 });
