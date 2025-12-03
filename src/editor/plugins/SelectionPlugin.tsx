@@ -3,6 +3,7 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { getContentListItem } from '@/editor/outline/list-structure';
 import { getContiguousSelectionHeads } from '@/editor/outline/structural-selection';
+import { reportInvariant } from '@/editor/invariant';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $createParagraphNode,
@@ -240,6 +241,12 @@ export function SelectionPlugin() {
         const noteItems = heads;
         computedNoteKeys = noteItems.map((item) => getContentListItem(item).getKey());
         computedStructuralRange = computeStructuralRangeFromHeads(noteItems);
+        if (noteItems.length > 0 && !computedStructuralRange) {
+          reportInvariant({
+            message: 'Structural range missing despite non-empty heads',
+            context: { headCount: noteItems.length },
+          });
+        }
 
         const hasMultiNoteRange = noteItems.length > 1;
         const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
@@ -435,6 +442,10 @@ export function SelectionPlugin() {
           }
 
           if (heads.length === 0) {
+            reportInvariant({
+              message: 'Structural delete invoked with no attached heads',
+              context: { keyCount: structuralSelectionKeysRef.current?.length ?? 0 },
+            });
             return;
           }
 
@@ -1014,6 +1025,9 @@ function $computeProgressivePlan(
   if (!anchorContent) {
     const anchorItem = findNearestListItem(selection.anchor.getNode());
     if (!anchorItem) {
+      reportInvariant({
+        message: 'Directional plan could not find anchor list item',
+      });
       progressionRef.current = INITIAL_PROGRESSIVE_STATE;
       return null;
     }
@@ -1584,6 +1598,9 @@ function findContentBoundaryTextNode(listItem: ListItemNode, edge: 'start' | 'en
 function computeStructuralRangeFromHeads(heads: ListItemNode[]): StructuralSelectionRange | null {
   const noteItems = heads;
   if (noteItems.length === 0) {
+    reportInvariant({
+      message: 'Structural range computed with no heads',
+    });
     return null;
   }
 
