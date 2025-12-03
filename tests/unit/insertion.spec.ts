@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { placeCaretAtNote, pressKey } from '#tests';
 
 describe('insertion semantics (docs/insertion.md)', () => {
-  it.fails('enter at start inserts a previous sibling and keeps children with the original', async ({ lexical }) => {
+  it('enter at start inserts a previous sibling and keeps children with the original', async ({ lexical }) => {
     await lexical.load('basic');
 
     await placeCaretAtNote('note1', lexical.mutate, 0);
