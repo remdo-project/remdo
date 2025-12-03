@@ -428,10 +428,10 @@ export function SelectionPlugin() {
               ?.map((key) => $getNodeByKey<ListItemNode>(key))
               .filter((node): node is ListItemNode => $isListItemNode(node)) ?? [];
 
-          let heads = collectHeadsFromListItems(keyItems).filter((node) => node.isAttached());
+          let heads = keyItems.filter((node) => node.isAttached());
 
           if (heads.length === 0 && selection) {
-            heads = collectSelectionHeads(selection).filter((node) => node.isAttached());
+            heads = getContiguousSelectionHeads(selection) ?? [];
           }
 
           if (heads.length === 0) {
@@ -1127,7 +1127,7 @@ function $computeDirectionalPlan(
   const anchorKey = anchorContent.getKey();
   const isContinuing = progressionRef.current.locked && progressionRef.current.anchorKey === anchorKey;
   let stage = isContinuing ? progressionRef.current.stage : 0;
-            const heads = collectSelectionHeads(selection);
+          const heads = getContiguousSelectionHeads(selection) ?? [];
 
   const MAX_STAGE = 64;
   while (stage < MAX_STAGE + 1) {
@@ -1600,58 +1600,6 @@ function computeStructuralRangeFromHeads(heads: ListItemNode[]): StructuralSelec
   } satisfies StructuralSelectionRange;
 }
 
-function collectHeadsFromListItems(items: ListItemNode[]): ListItemNode[] {
-  const normalized = items.map((item) => getContentListItem(item));
-  if (normalized.length === 0) {
-    return [];
-  }
-
-  const seen = new Set<string>();
-  const unique: ListItemNode[] = [];
-
-  for (const item of normalized) {
-    const key = item.getKey();
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    unique.push(item);
-  }
-
-  const heads: ListItemNode[] = [];
-  for (const item of unique) {
-    let covered = false;
-    for (const head of heads) {
-      if (isDescendantOf(item, head)) {
-        covered = true;
-        break;
-      }
-    }
-    if (covered) {
-      continue;
-    }
-
-    for (let i = heads.length - 1; i >= 0; i -= 1) {
-      if (isDescendantOf(heads[i]!, item)) {
-        heads.splice(i, 1);
-      }
-    }
-
-    heads.push(item);
-  }
-
-  return heads;
-}
-
-function collectSelectionHeads(selection: RangeSelection, precomputed?: ListItemNode[]): ListItemNode[] {
-  const items = precomputed ?? getContiguousSelectionHeads(selection) ?? [];
-  if (items.length === 0) {
-    return [];
-  }
-
-  return collectHeadsFromListItems(items);
-}
-
 function $inferPointerProgressionState(
   selection: RangeSelection,
   noteItems: ListItemNode[]
@@ -1661,12 +1609,12 @@ function $inferPointerProgressionState(
     return null;
   }
   const anchorContent = getContentListItem(anchorItem);
-  const heads = collectSelectionHeads(selection, noteItems);
+  const heads = noteItems.length > 0 ? noteItems : getContiguousSelectionHeads(selection) ?? [];
   if (heads.length <= 1) {
     return null;
   }
   const firstParent = heads[0]!.getParent();
-  if (!heads.every((head) => head.getParent() === firstParent)) {
+  if (!heads.every((head: ListItemNode) => head.getParent() === firstParent)) {
     return null;
   }
 
@@ -1958,17 +1906,6 @@ function getLastDescendantListItem(node: LexicalNode | null): ListItemNode | nul
   }
 
   return null;
-}
-
-function isDescendantOf(node: ListItemNode, ancestor: ListItemNode): boolean {
-  let current: ListItemNode | null = node;
-  while (current) {
-    if (current.getKey() === ancestor.getKey()) {
-      return true;
-    }
-    current = getParentContentItem(current);
-  }
-  return false;
 }
 
 function getWrapperForContent(item: ListItemNode): ListItemNode | null {
