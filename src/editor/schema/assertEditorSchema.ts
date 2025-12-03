@@ -1,5 +1,7 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
+import { reportInvariant } from '@/editor/invariant';
+
 type NodeWithChildren = SerializedLexicalNode & {
   children?: SerializedLexicalNode[];
 };
@@ -49,15 +51,25 @@ function visitList(listNode: NodeWithChildren, entries: FlatOutlineEntry[]): voi
     const nestedLists = childChildren.filter((nested) => nested.type === LIST_TYPE);
     const contentNodes = childChildren.filter((nested) => nested.type !== LIST_TYPE);
 
-    if (nestedLists.length > 0 && contentNodes.length === 0 && (!previousListItem || previousListItem.type !== LIST_ITEM_TYPE)) {
-        throw new Error('Invalid outline structure: wrapper list item without preceding list item sibling');
-      }
+    if (
+      nestedLists.length > 0 &&
+      contentNodes.length === 0 &&
+      (!previousListItem || previousListItem.type !== LIST_ITEM_TYPE)
+    ) {
+      reportInvariant({
+        message: 'Invalid outline structure: wrapper list item without preceding list item sibling',
+        context: { childType: child.type, previousType: previousListItem?.type },
+      });
+    }
 
     if (nestedLists.length > 0) {
       const firstListChildren = getChildren(nestedLists[0]);
       const hasListItem = firstListChildren.some((item) => item.type === LIST_ITEM_TYPE);
       if (!hasListItem) {
-        throw new Error('Invalid outline structure: list wrapper without list item child');
+        reportInvariant({
+          message: 'Invalid outline structure: list wrapper without list item child',
+          context: { nestedCount: nestedLists.length },
+        });
       }
     }
 
@@ -111,9 +123,10 @@ export function assertEditorSchema(state: SerializedEditorState): void {
 
     const parentIndent = stack.at(-1)!.indent;
     if (entry.indent > parentIndent + 1) {
-      throw new Error(
-        `Invalid outline structure: indent jumped from ${parentIndent} to ${entry.indent} for "${entry.text}"`
-      );
+      reportInvariant({
+        message: `Invalid outline structure: indent jumped from ${parentIndent} to ${entry.indent} for "${entry.text}"`,
+        context: { parentIndent, entryIndent: entry.indent, text: entry.text },
+      });
     }
 
     while (stack.length > 0 && stack.at(-1)!.indent >= entry.indent) {

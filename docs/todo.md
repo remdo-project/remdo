@@ -1,15 +1,5 @@
 # TODO
 
-## Centralize environment config access
-
-Introduce a `#config` alias that re-exports a central `config` object (option 1
-from the proposed approaches). The module should encapsulate `import.meta.env`
-usage and expose fields like `env`, `dev`, and future shared flags so features
-can read configuration without touching environment globals directly. This
-change should replace the current `dev` flag sourced from the editor config, and
-allow us to remove the existing `#config/server` alias by routing all
-environment access through the new module.
-
 ## Align note indent/outdent helpers with Lexical
 
 1. `isChildrenWrapper` currently requires the wrapper `ListItemNode` to have
@@ -26,12 +16,6 @@ environment access through the new module.
    `ListNode`/`ListItemNode`, unlike Lexical, so new wrappers lose typography.
 5. The helpers attempt to auto-heal malformed wrappers by removing them instead
    of surfacing invariants like Lexical does.
-
-### Follow-up: In-place Outdent
-
-- Add an optional in-place outdent variant (preserve preorder position) once the
-  helper layer above is solid, and document it alongside the existing outdent
-  behavior.
 
 ## Harden editor schema validator tests
 
@@ -62,6 +46,15 @@ Structural snapping is only covered via keyboard progression today. Add a
 follow-up plan to exercise pointer gestures (dragging between notes and
 `Shift+Click` expansion) so the SelectionPlugin’s snap + blocking logic stays
 consistent once we wire up mouse interactions.
+
+## Normalize structural selection helper return shape
+
+Move `getContiguousSelectionHeads` to a single-path API that always returns an
+array (empty for collapsed/invalid ranges) and emits optional dev-only
+telemetry when invariants fail. Update the helper docstring, Selection/Indent
+plugins, and the existing unit tests to expect empty arrays instead of `null`
+so command paths stay branch-free while still surfacing anomalies during
+development.
 
 ## OutlineSelection + dataset removal
 
@@ -118,14 +111,3 @@ Dockerfile checks) and decide whether to gate CI on its report.
   (contiguity + selected notes) to lock behaviors.
 - Prefer unit tests near the helpers; keep fixtures minimal and mirror current
   tree shapes in `tests/fixtures`.
-
-## Incremental keymap refactor (shortcuts)
-
-1. ✅ Make `isApplePlatform` file-local (export only `IS_APPLE_PLATFORM`);
-   adjust tests/mocks if needed.
-2. Introduce a central KeymapPlugin that maps key chords to commands (starting
-   with move up/down) with platform defaults and override hooks; add unit tests
-   for defaults and overrides.
-3. Refactor `ReorderingPlugin` to rely solely on command handlers (keyboard is
-   handled by KeymapPlugin); keep behavior tests command-driven.
-4. (Optional) Fold shortcut suite into standard test filters / expand coverage.

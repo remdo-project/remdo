@@ -31,7 +31,7 @@ decide what matters.
   invariants.
 - `docs/outliner/drag-and-drop.md` (~81 words). Pointer-based reordering (drag
   and drop) – not supported yet; future plan lives there.
-- `docs/todo.md` (~700 words). Project roadmap plus outstanding design
+- `docs/todo.md` (~808 words). Project roadmap plus outstanding design
   questions—review when planning new features; now includes the Render
   deployment plan.
 - `docs/deployment-single-container.md` (~269 words). How to build and run the
@@ -112,9 +112,10 @@ captures the full model.
 
 ### Local agents
 
-1. Run `pnpm run lint`, `pnpm run test:unit`, or other checks only when the user
-   asks, or when the task obviously requires them (e.g., debugging a failing
-   test). Use your judgment; default to not running checks unless requested.
+1. Run `pnpm run lint`, `pnpm run test:unit`, and other relevant checks after
+   every non-trivial change and whenever it seems useful (e.g., debugging a
+   failing test). Still use judgment to avoid redundant runs, but bias toward
+   keeping these suites green regularly.
 2. If you do run a check and it fails because of your code, either fix the
    regression or clearly report the failure before handing the task back.
 
