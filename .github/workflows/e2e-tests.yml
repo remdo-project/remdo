@@ -1,0 +1,30 @@
+name: E2E Tests
+permissions:
+  contents: read
+
+on: push
+
+jobs:
+  e2e-tests:
+    permissions:
+      contents: read
+      actions: write
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-pnpm
+
+      - name: Cache Playwright browsers (optional)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Workspace init (installs browsers)
+        env:
+          PLAYWRIGHT_INSTALL: "true"
+        run: pnpm run dev:init
+
+      - name: Run Playwright e2e suite
+        run: pnpm run test:e2e

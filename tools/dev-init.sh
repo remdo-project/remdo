@@ -2,10 +2,12 @@
 
 pnpm i --frozen-lockfile
 
-if [[ -n "${PLAYWRIGHT_SKIP_INSTALL:-}" ]]; then
-  echo "Skipping Playwright browser install (PLAYWRIGHT_SKIP_INSTALL=1)"
-else
+PLAYWRIGHT_INSTALL="${PLAYWRIGHT_INSTALL:-false}"
+
+if [[ "${PLAYWRIGHT_INSTALL}" == "true" ]]; then
   pnpm exec playwright install chromium
+else
+  echo "Skipping Playwright browser install (PLAYWRIGHT_INSTALL=${PLAYWRIGHT_INSTALL})"
 fi
 
 TAG="v$(node -p "require('./node_modules/lexical/package.json').version")"
