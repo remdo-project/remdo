@@ -124,6 +124,25 @@ describe('keyboard reordering (command path)', () => {
     expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
   });
 
+  it('moving a mixed-depth contiguous range up hoists it under the previous parent sibling', async ({ lexical }) => {
+    await lexical.load('tree_complex');
+    await selectNoteRange('note2', 'note4', lexical.mutate); // includes descendant note3
+    await lexical.dispatchCommand(MOVE_SELECTION_UP_COMMAND);
+
+    expect(lexical).toMatchOutline([
+      { text: 'note2', children: [{ text: 'note3', children: [] }] },
+      { text: 'note4', children: [] },
+      {
+        text: 'note1',
+        children: [],
+      },
+      { text: 'note5', children: [] },
+      { text: 'note6', children: [{ text: 'note7', children: [] }] },
+    ]);
+
+    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+  });
+
   it('top boundary move up is a no-op', async ({ lexical }) => {
     await lexical.load('flat');
     await placeCaretAtNote('note1', lexical.mutate);
