@@ -9,8 +9,9 @@ import { spawnPnpm } from './lib/process';
 // Vitest stores its transformed modules under os.tmpdir(); when the host cleans
 // /tmp during a long watch session, the cache disappears and watch mode
 // crashes with ENOENT. Point temp vars at a repo-local directory so the cache
-// survives for the lifetime of the process.
-setTmpDir();
+// survives for the lifetime of the process. Use a watch-specific subdir to
+// avoid clashes with other Vitest invocations (e.g., CI or Codex CLI).
+setTmpDir({ subdir: 'vitest-tmp-watch' });
 
 const vitestArgs = [
   'exec',
