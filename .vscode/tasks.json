@@ -29,6 +29,18 @@
       "isBackground": true
     },
     {
+      "label": "test:e2e:watch",
+      "type": "shell",
+      "command": "pnpm test:e2e:watch",
+      "isBackground": true
+    },
+    {
+      "label": "test:e2e:ui",
+      "type": "shell",
+      "command": "pnpm test:e2e:ui",
+      "isBackground": true
+    },
+    {
       "label": "web:dev",
       "type": "shell",
       "command": "pnpm dev || (sleep 10 && false) # wait some time between potentially failing commands, then fail",
@@ -46,6 +58,7 @@
         "typecheck:watch",
         "lint:watch",
         "test:unit:watch",
+        "test:unit:ui",
         "web:dev",
         "preview:server"
       ],

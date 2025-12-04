@@ -25,6 +25,7 @@ test.describe('Editor smoke', () => {
     await page.keyboard.press('Shift+Tab');
     await expect(nestedNote3).toHaveCount(0);
 
+    //await expect(page.locator('li.list-item', { hasText: 'note1' })).not.toBeVisible();
     await expect(page.locator('li.list-item', { hasText: 'note1' })).toBeVisible();
     await expect(page.locator('li.list-item', { hasText: 'note3' })).toBeVisible();
   });

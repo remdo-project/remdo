@@ -16,7 +16,6 @@ export default defineConfig({
     command: 'pnpm run dev:web',
     url: baseURL,
     reuseExistingServer: !config.env.CI,
-    timeout: 6e4,
   },
   projects: [
     {

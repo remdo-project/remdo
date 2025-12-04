@@ -53,6 +53,8 @@
     "test:unit:watch": "COLLAB_ENABLED=false tsx ./tools/test-unit-watch.ts",
     "test:preview": "tsx ./tools/test-preview.ts",
     "test:e2e": "pnpm exec playwright test",
+    "test:e2e:ui": "tsx ./tools/test-e2e-ui.ts",
+    "test:e2e:watch": "PWTEST_WATCH=1 pnpm exec playwright test",
     "save": "tsx ./tools/snapshot.ts save"
   },
   "dependencies": {

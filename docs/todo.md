@@ -117,7 +117,7 @@ Dockerfile checks) and decide whether to gate CI on its report.
 1. Tighten Vitest test globs to `tests/unit/**/*.spec.{ts,tsx}` so e2e specs live
    outside the unit suite.
 2. Add Playwright deps/scripts: `@playwright/test`, `pnpm run test:e2e`
-   (headless default), and `pnpm exec playwright install --with-deps chromium`.
+   (collab enabled by default), and `pnpm exec playwright install --with-deps chromium`.
 3. Create `playwright.config.ts` that pulls `config.env` for `baseURL`, scopes to
    `tests/e2e`, retries on CI, enables trace/video on failure, and uses HTML
    locally + dot/JSON reporters on CI.
