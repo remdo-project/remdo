@@ -1,4 +1,5 @@
 import { expect, test, waitForAppReady } from './_support/fixtures';
+import { loadFixture } from './_support/bridge';
 
 test.describe('Editor smoke', () => {
   test('renders shell and supports indent/outdent', async ({ page }) => {
@@ -25,8 +26,19 @@ test.describe('Editor smoke', () => {
     await page.keyboard.press('Shift+Tab');
     await expect(nestedNote3).toHaveCount(0);
 
-    //await expect(page.locator('li.list-item', { hasText: 'note1' })).not.toBeVisible();
     await expect(page.locator('li.list-item', { hasText: 'note1' })).toBeVisible();
     await expect(page.locator('li.list-item', { hasText: 'note3' })).toBeVisible();
+  });
+
+  test('loads flat fixture and shows expected notes', async ({ page }) => {
+    const docId = `playwright-fixture-${Date.now()}`;
+    await waitForAppReady(page, docId);
+    await loadFixture(page, 'flat');
+
+    const items = page.locator('li.list-item >> span');
+    await expect(items).toHaveCount(3);
+    await expect(items.nth(0)).toHaveText('note1');
+    await expect(items.nth(1)).toHaveText('note2');
+    await expect(items.nth(2)).toHaveText('note3');
   });
 });
