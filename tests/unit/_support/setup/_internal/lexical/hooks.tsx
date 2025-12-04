@@ -47,6 +47,7 @@ beforeEach<TestContext>(async (ctx) => {
   });
 
   await remdoTest.waitForCollaborationReady();
+  await remdoTest.waitForSynced();
 
   ctx.lexical = {
     ...remdoTest,
