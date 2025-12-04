@@ -8,8 +8,6 @@ import type { RemdoTestApi } from '@/editor/plugins/TestBridgePlugin';
 import type { LexicalTestHelpers } from '../../../lib/types';
 import fs from 'node:fs';
 import path from 'node:path';
-import { $getRoot } from 'lexical';
-
 
 function readFixture(name: string): string {
   const abs = path.resolve('tests/fixtures', `${name}.json`);
@@ -49,11 +47,6 @@ beforeEach<TestContext>(async (ctx) => {
   });
 
   await remdoTest.waitForCollaborationReady();
-  // Ensure at least one editor update after hydration for tests that never call `load`.
-  await remdoTest.mutate(() => {
-    // Touch root to mark the editor update cycle as dirty without changing content.
-    $getRoot().getWritable();
-  });
 
   ctx.lexical = {
     ...remdoTest,
