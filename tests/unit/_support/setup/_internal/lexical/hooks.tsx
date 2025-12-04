@@ -1,35 +1,18 @@
 import { config } from '#config';
 import { render, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, expect } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
 import { env } from 'node:process';
 import type { TestContext } from 'vitest';
 import Editor from '@/editor/Editor';
-import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
-import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
-import type { EditorStateJSON, LexicalTestHelpers } from '../../../lib/types';
+import type { RemdoTestApi } from '@/editor/plugins/TestBridgePlugin';
+import type { LexicalTestHelpers } from '../../../lib/types';
 import fs from 'node:fs';
 import path from 'node:path';
 
-interface RemdoTestApi {
-  editor: LexicalEditor;
-  load: (input: string) => Promise<void>;
-  mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>;
-  validate: <T>(fn: () => T) => T;
-  getEditorState: () => EditorStateJSON;
-  waitForSynced: () => Promise<void>;
-  waitForCollaborationReady: (timeoutMs?: number) => Promise<void>;
-  getCollabDocId: () => string;
-  dispatchCommand: (command: unknown, payload?: unknown) => Promise<void>;
-  clear: () => Promise<void>;
-}
 
-function rootIsCanonical(state: EditorStateJSON): boolean {
-  const root = (state as any)?.root;
-  const first = root?.children?.[0];
-  if (!first || first.type !== 'list') return false;
-  if (!root?.children || root.children.length !== 1) return false;
-  if (!Array.isArray(first.children) || first.children.length === 0) return false;
-  return first.children.every((child: any) => child?.type === 'listitem');
+function readFixture(name: string): string {
+  const abs = path.resolve('tests/fixtures', `${name}.json`);
+  return fs.readFileSync(abs, 'utf8');
 }
 
 let collabDocCounter = 0;
@@ -66,32 +49,14 @@ beforeEach<TestContext>(async (ctx) => {
 
   await remdoTest.waitForCollaborationReady();
 
-  const helpers: LexicalTestHelpers = {
-    editor: remdoTest.editor,
-    load: async (fixtureName: string) => {
-      const abs = path.resolve('tests/fixtures', `${fixtureName}.json`);
-      const json = fs.readFileSync(abs, 'utf8');
-      await remdoTest.load(json);
-    },
-    mutate: async (fn, opts) => {
-      await remdoTest.mutate(fn, opts);
-      assertEditorSchema(remdoTest.getEditorState());
-    },
-    validate: remdoTest.validate,
-    getEditorState: remdoTest.getEditorState,
-    waitForSynced: async () => {
-      await remdoTest.waitForSynced();
-      await waitFor(() => expect(rootIsCanonical(remdoTest.getEditorState())).toBe(true));
-    },
-    getCollabDocId: remdoTest.getCollabDocId,
-    dispatchCommand: remdoTest.dispatchCommand,
-  };
-
-  ctx.lexical = helpers;
+  ctx.lexical = {
+    ...remdoTest,
+    load: async (fixtureName: string) => remdoTest.load(readFixture(fixtureName)),
+  } as unknown as LexicalTestHelpers;
 
   if (config.env.COLLAB_ENABLED) {
     await remdoTest.clear();
-    await helpers.waitForSynced();
+    await remdoTest.waitForSynced();
   }
 });
 

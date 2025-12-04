@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { LexicalCommand, LexicalEditor, EditorUpdateOptions, SerializedEditorState } from 'lexical';
+import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
 import { $getRoot } from 'lexical';
 import { useCollaborationStatus } from './collaboration';
 
@@ -14,7 +15,7 @@ async function withTimeout<T>(fnOrPromise: (() => Promise<T>) | Promise<T>, ms: 
 
 type EditorStateJSON = ReturnType<ReturnType<LexicalEditor['getEditorState']>['toJSON']>;
 
-interface RemdoTestApi {
+export interface RemdoTestApi {
   editor: LexicalEditor;
   load: (input: string) => Promise<void>;
   replaceDocument: (input: string) => Promise<void>;
@@ -89,6 +90,7 @@ export function TestBridgePlugin() {
 
       editor.update(fn, { ...opts, tag });
       await updateDone;
+      assertEditorSchema(editor.getEditorState().toJSON());
       await collab.awaitSynced();
     };
 
@@ -108,6 +110,11 @@ export function TestBridgePlugin() {
     const getEditorState = () => editor.getEditorState().toJSON();
     const validate = <T,>(fn: () => T) => editor.getEditorState().read(fn);
 
+    const waitForSynced = async () => {
+      await collab.awaitSynced();
+      assertEditorSchema(getEditorState());
+    };
+
     return {
       editor,
       load,
@@ -115,7 +122,7 @@ export function TestBridgePlugin() {
       mutate,
       validate,
       getEditorState,
-      waitForSynced: collab.awaitSynced,
+      waitForSynced,
       waitForCollaborationReady,
       getCollabDocId: () => collab.docId,
       dispatchCommand,
