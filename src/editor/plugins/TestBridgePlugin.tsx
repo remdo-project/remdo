@@ -71,9 +71,7 @@ export function TestBridgePlugin() {
 
     const load = async (input: string) => {
       await ensureHydrated();
-      const parsed = editor.parseEditorState(
-        JSON.parse(input).editorState as SerializedEditorState
-      );
+      const parsed = editor.parseEditorState(JSON.parse(input) as SerializedEditorState);
       const updateDone = waitForNextUpdate(editor);
       editor.setEditorState(parsed, { tag: 'test-bridge-load' });
       await updateDone;

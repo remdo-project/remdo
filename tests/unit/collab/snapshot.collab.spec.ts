@@ -40,9 +40,9 @@ describe('snapshot CLI', () => {
     }
   }
 
-  function readEditorState(filePath: string): SerializedEditorState {
-    return JSON.parse(readFileSync(filePath, 'utf8')).editorState;
-  }
+function readEditorState(filePath: string): SerializedEditorState {
+  return JSON.parse(readFileSync(filePath, 'utf8'));
+}
 
   afterEach(() => {
     for (const filePath of SNAPSHOT_OUTPUTS) {

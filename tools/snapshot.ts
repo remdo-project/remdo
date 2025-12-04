@@ -207,7 +207,7 @@ async function runSave(
 ): Promise<void> {
   await withSession(docId, collabOrigin, async (editor) => {
     const editorState = editor.getEditorState().toJSON();
-    writeJson(filePath, { editorState });
+    writeJson(filePath, editorState);
 
     if (markdownPath !== null) {
       const inferredPath = (() => {
@@ -228,12 +228,10 @@ async function runSave(
 }
 
 async function runLoad(docId: string, collabOrigin: string, filePath: string): Promise<void> {
-  const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as {
-    editorState?: SerializedEditorState;
-  };
+  const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as SerializedEditorState;
   await withSession(docId, collabOrigin, async (editor, { provider }) => {
     const done = waitForEditorUpdate(editor);
-    editor.setEditorState(editor.parseEditorState(data.editorState ?? editor.getEditorState().toJSON()), { tag: 'snapshot-load' });
+    editor.setEditorState(editor.parseEditorState(data), { tag: 'snapshot-load' });
     await done;
     await waitForSync(provider);
   });
