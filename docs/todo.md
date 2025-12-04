@@ -162,3 +162,6 @@ Dockerfile checks) and decide whether to gate CI on its report.
 8. Do a follow-up cleanup pass on `src/editor/plugins/TestBridgePlugin.tsx`
    once fixtures are flattened to strip remaining helper plumbing and keep the
    API surface minimal.
+9. Still needed: have Vitest and Playwright consume the bridge directly without
+   extra helper remapping, and ensure both suites load the same raw JSON fixture
+   shape so a single API surface covers all editor tests.
