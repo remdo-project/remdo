@@ -4,6 +4,7 @@ import { config } from '#config';
 
 import { SchemaValidationPlugin } from './SchemaValidationPlugin';
 import { TreeViewPlugin } from './TreeViewPlugin';
+import { TestBridgePlugin } from './TestBridgePlugin';
 
 interface DevPluginProps {
   children?: ReactNode;
@@ -14,6 +15,7 @@ export function DevPlugin({ children }: DevPluginProps): ReactElement {
     ? <>
       <SchemaValidationPlugin />
       <TreeViewPlugin />
+      <TestBridgePlugin />
       {children}
     </>
     : <>{children}</>;

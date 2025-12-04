@@ -156,3 +156,9 @@ Dockerfile checks) and decide whether to gate CI on its report.
    synchronization semantics.
 6. Remove any legacy test-only components once the bridge is wired, and note
    the new API location in AGENTS.md.
+7. Flatten fixtures to store the serialized editor state directly (no
+   `editorState` wrapper) so the bridge can parse once and feed it to
+   `parseEditorState` without unwrapping.
+8. Do a follow-up cleanup pass on `src/editor/plugins/TestBridgePlugin.tsx`
+   once fixtures are flattened to strip remaining helper plumbing and keep the
+   API surface minimal.
