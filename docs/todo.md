@@ -134,3 +134,25 @@ Dockerfile checks) and decide whether to gate CI on its report.
    `docs/testing.md`) and reflect the doc change in AGENTS.md. Default lane is
    `pnpm run test:e2e` (collab enabled via env); set `COLLAB_ENABLED=false`
    temporarily when you need a non-collab run.
+
+## Unified Lexical test bridge (window-based)
+
+1. Add a dev-only `TestBridgePlugin` inside `DevPlugin` that registers a
+   `window.remdoTest` API (load/replaceDocument, mutate, validate,
+   getEditorState, dispatchCommand, clear, waitForSynced, getCollabDocId)
+   using the commit-wait + awaitSynced semantics from the unit helpers.
+2. Extract the existing unit `createLexicalTestHelpers` logic to a shared
+   module (e.g., `tests/shared/editor-helpers.ts`) so both Vitest and
+   Playwright reuse identical behaviors and tagging rules.
+3. Refactor `tests/unit/_support/setup/_internal/lexical/hooks.tsx` to consume
+   the shared helpers and drop the ad hoc Bridge component; keep the doc-id
+   per-worker logic but centralize it alongside the helpers.
+4. Introduce a Playwright helper (`tests/e2e/_support/bridge.ts`) that reads
+   fixtures from disk in Node and calls `page.evaluate` to invoke
+   `window.remdoTest.load`/`waitForSynced`, staying window-only on the browser
+   side (no DOM driver element).
+5. Replace bespoke collab test harnesses (e.g., in `tests/unit/collab/*`) with
+   the shared API where feasible so all test suites rely on the same bridge and
+   synchronization semantics.
+6. Remove any legacy test-only components once the bridge is wired, and note
+   the new API location in AGENTS.md.
