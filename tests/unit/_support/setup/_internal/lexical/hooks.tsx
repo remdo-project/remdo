@@ -47,12 +47,12 @@ beforeEach<TestContext>(async (ctx) => {
   });
 
   await remdoTest.waitForCollaborationReady();
-  await remdoTest.waitForSynced();
 
   ctx.lexical = {
     ...remdoTest,
     load: async (fixtureName: string) => remdoTest.load(readFixture(fixtureName)),
   } as unknown as LexicalTestHelpers;
+  await ctx.lexical.load('basic'); //FIXME
 
   if (config.env.COLLAB_ENABLED) {
     await remdoTest.clear();
