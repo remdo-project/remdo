@@ -11,7 +11,9 @@ interface DevPluginProps {
 }
 
 export function DevPlugin({ children }: DevPluginProps): ReactElement {
-  return config.dev
+  const enableDevTools = config.dev || config.mode === 'test';
+
+  return enableDevTools
     ? <>
       <SchemaValidationPlugin />
       <TreeViewPlugin />

@@ -15,6 +15,7 @@ async function withTimeout<T>(fnOrPromise: (() => Promise<T>) | Promise<T>, ms: 
 type EditorStateJSON = ReturnType<ReturnType<LexicalEditor['getEditorState']>['toJSON']>;
 
 interface RemdoTestApi {
+  editor: LexicalEditor;
   load: (input: string) => Promise<void>;
   replaceDocument: (input: string) => Promise<void>;
   mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>;
@@ -108,6 +109,7 @@ export function TestBridgePlugin() {
     const validate = <T,>(fn: () => T) => editor.getEditorState().read(fn);
 
     return {
+      editor,
       load,
       replaceDocument: load,
       mutate,
