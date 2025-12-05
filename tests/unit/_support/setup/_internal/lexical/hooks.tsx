@@ -5,13 +5,7 @@ import { env } from 'node:process';
 import type { TestContext } from 'vitest';
 import Editor from '@/editor/Editor';
 import type { RemdoTestApi } from '@/editor/plugins/TestBridgePlugin';
-import fs from 'node:fs';
-import path from 'node:path';
-
-function readFixture(name: string): string {
-  const abs = path.resolve('tests/fixtures', `${name}.json`);
-  return fs.readFileSync(abs, 'utf8');
-}
+import { readFixture } from '../../../../../_support/fixtures';
 
 let collabDocCounter = 0;
 beforeEach<TestContext>(async (ctx) => {
@@ -49,7 +43,7 @@ beforeEach<TestContext>(async (ctx) => {
 
   ctx.remdo = {
     ...remdoTest,
-    load: async (fixtureName: string) => remdoTest.applySerializedState(readFixture(fixtureName)),
+    load: async (fixtureName: string) => remdoTest.applySerializedState(await readFixture(fixtureName)),
   };
 
   await ctx.remdo.load('basic'); //FIXME

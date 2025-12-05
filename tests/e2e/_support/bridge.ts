@@ -1,21 +1,10 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import type { Page } from '@playwright/test';
-
-function readFixtureJson(fixtureName: string): string {
-  const abs = path.resolve('tests/fixtures', `${fixtureName}.json`);
-  return fs.readFileSync(abs, 'utf8');
-}
+import type { RemdoTestApi } from '@/editor/plugins/TestBridgePlugin';
+import { readFixture } from '../../_support/fixtures';
 
 export async function load(page: Page, fixtureName: string): Promise<void> {
-  const payload = readFixtureJson(fixtureName);
+  const payload = await readFixture(fixtureName);
   await replaceDocument(page, payload);
-}
-
-interface RemdoTestApi {
-  waitForCollaborationReady: () => Promise<void>;
-  clear: () => Promise<void>;
-  applySerializedState: (input: string) => Promise<void>;
 }
 
 type RemdoTestAction =
@@ -39,8 +28,17 @@ async function runWithRemdoTest(page: Page, action: RemdoTestAction): Promise<vo
   }, action);
 }
 
+export async function waitForRemdoTest(page: Page, timeoutMs = 4000): Promise<void> {
+  await page.waitForFunction(
+    () => Boolean((globalThis as typeof globalThis & { remdoTest?: RemdoTestApi }).remdoTest),
+    undefined,
+    { timeout: timeoutMs }
+  );
+}
+
 export async function ensureReady(page: Page, opts: { clear?: boolean } = {}): Promise<void> {
   const { clear = false } = opts;
+  await waitForRemdoTest(page);
   await runWithRemdoTest(page, { kind: 'ensure', clear });
 }
 

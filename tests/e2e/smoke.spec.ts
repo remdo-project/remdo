@@ -1,14 +1,9 @@
-import { expect, test, waitForAppReady } from './_support/fixtures';
-import { load } from './_support/bridge';
+import { expect, test } from './_support/fixtures';
 
 test.describe('Editor smoke', () => {
-  test.beforeEach(async ({ page, testDocId }) => {
-    await waitForAppReady(page, testDocId);
-  });
-
-  test('renders shell and supports indent/outdent', async ({ page }) => {
-    const editor = page.locator('.editor-input');
-    await editor.click();
+  test('renders shell and supports indent/outdent', async ({ page, editor: _editor }) => {
+    const input = page.locator('.editor-input');
+    await input.click();
 
     await page.keyboard.type('note1');
     await page.keyboard.press('Enter');
@@ -31,8 +26,8 @@ test.describe('Editor smoke', () => {
     await expect(page.locator('li.list-item', { hasText: 'note3' })).toBeVisible();
   });
 
-  test('loads flat fixture and shows expected notes', async ({ page }) => {
-    await load(page, 'flat');
+  test('loads flat fixture and shows expected notes', async ({ editor, page }) => {
+    await editor.load('flat');
 
     const items = page.locator('li.list-item >> span');
     await expect(items).toHaveCount(3);

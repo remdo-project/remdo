@@ -137,21 +137,11 @@ Dockerfile checks) and decide whether to gate CI on its report.
 
 ### (NEW) Refactor Playwright e2e support helpers
 
-1. Replace `waitForAppReady`/`ensureReady`/`load` with a single Playwright
-   fixture (e.g., `editor`) that navigates to a unique doc ID derived from
-   `testInfo`, waits for `window.remdoTest`, and exposes helpers like
-   `clear()`, `loadFixture(name)`, `setState(json)`, and `waitForSynced()`.
-2. Import `RemdoTestApi` from `src/editor/plugins/TestBridgePlugin.tsx` in the
-   Playwright helpers (and Vitest helpers) instead of declaring a duplicate
-   interface, keeping the helpers type-safe against plugin changes.
-3. Move fixture IO into a shared module under `tests/_support` that uses async
-   fs and caches per worker; both Playwright and Vitest should consume it so
-   fixture parsing happens in one place.
-4. Convert the console/response guard into a fixture that fails fast on the
+1. Convert the console/response guard into a fixture that fails fast on the
    first unexpected warning/error or 4xx/5xx (with an allowlist for expected
    4xx like favicon), and compose it into the `editor` fixture so every test
    gets it automatically.
-5. Add a short `tests/e2e/README.md` (or top-of-file comment) describing the
+2. Add a short `tests/e2e/README.md` (or top-of-file comment) describing the
    harness API and doc-id strategy so new specs follow the simplified pattern.
 
 ## Unified Lexical test bridge (window-based)
