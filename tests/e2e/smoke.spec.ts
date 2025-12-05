@@ -2,10 +2,11 @@ import { expect, test, waitForAppReady } from './_support/fixtures';
 import { load } from './_support/bridge';
 
 test.describe('Editor smoke', () => {
-  test('renders shell and supports indent/outdent', async ({ page }) => {
-    const docId = `playwright-smoke-${Date.now()}`;
-    await waitForAppReady(page, docId);
+  test.beforeEach(async ({ page, testDocId }) => {
+    await waitForAppReady(page, testDocId);
+  });
 
+  test('renders shell and supports indent/outdent', async ({ page }) => {
     const editor = page.locator('.editor-input');
     await editor.click();
 
@@ -31,8 +32,6 @@ test.describe('Editor smoke', () => {
   });
 
   test('loads flat fixture and shows expected notes', async ({ page }) => {
-    const docId = `playwright-fixture-${Date.now()}`;
-    await waitForAppReady(page, docId);
     await load(page, 'flat');
 
     const items = page.locator('li.list-item >> span');

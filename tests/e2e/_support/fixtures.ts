@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect, test as base } from '@playwright/test';
+import { ensureReady } from './bridge';
 
 function attachGuards(page: Page) {
   const issues: string[] = [];
@@ -25,11 +26,18 @@ function attachGuards(page: Page) {
   };
 }
 
-export const test = base.extend({
+let docCounter = 0;
+
+export const test = base.extend<{ testDocId: string }>({
   page: async ({ page }, apply) => {
     const guard = attachGuards(page);
     await apply(page);
     guard.verify();
+  },
+  // eslint-disable-next-line no-empty-pattern
+  testDocId: async ({}, applyDocId, testInfo) => {
+    const docId = `test-${testInfo.workerIndex}-${docCounter++}`;
+    await applyDocId(docId);
   },
 });
 
@@ -39,4 +47,5 @@ export async function waitForAppReady(page: Page, docId = 'playwright-e2e') {
   await page.goto(`/?doc=${docId}`);
   await page.getByRole('heading', { name: 'RemDo' }).waitFor();
   await page.locator('.editor-input').first().waitFor();
+  await ensureReady(page, { clear: true });
 }
