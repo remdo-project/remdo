@@ -112,29 +112,6 @@ Dockerfile checks) and decide whether to gate CI on its report.
 - Prefer unit tests near the helpers; keep fixtures minimal and mirror current
  tree shapes in `tests/fixtures`.
 
-## Wire Playwright E2E harness
-
-1. Tighten Vitest test globs to `tests/unit/**/*.spec.{ts,tsx}` so e2e specs live
-   outside the unit suite.
-2. Add Playwright deps/scripts: `@playwright/test`, `pnpm run test:e2e`
-   (collab enabled by default), and `pnpm exec playwright install --with-deps chromium`.
-3. Create `playwright.config.ts` that pulls `config.env` for `baseURL`, scopes to
-   `tests/e2e`, retries on CI, enables trace/video on failure, and uses HTML
-   locally + dot/JSON reporters on CI.
-4. Provide a webServer helper (e.g., `tools/e2e-server.ts`) that starts the app
-   and reuses `ensureCollabServer`, suitable for Playwright’s `webServer` hook.
-5. Add shared fixtures to fail on console warn/error and to wait for the app
-   shell to be ready before tests proceed.
-6. Land a smoke spec that renders the editor, creates notes, indents/outdents,
-   and asserts no console errors or 4xx/5xx responses.
-7. Add a CI workflow (`playwright.yml`) that installs browsers, builds the app,
-   runs `pnpm run test:e2e`, and caches `~/.cache/ms-playwright` with explicit
-   HOST/PORT/COLLAB envs.
-8. Document local e2e instructions in `docs/contributing.md` (or a new
-   `docs/testing.md`) and reflect the doc change in AGENTS.md. Default lane is
-   `pnpm run test:e2e` (collab enabled via env); set `COLLAB_ENABLED=false`
-   temporarily when you need a non-collab run.
-
 ## Unified Lexical test bridge (window-based)
 
 1. Replace bespoke collab test harnesses (e.g., in `tests/unit/collab/*`) with
