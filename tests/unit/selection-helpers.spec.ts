@@ -6,11 +6,11 @@ import { getContiguousSelectionHeads } from '@/editor/outline/structural-selecti
 import { getListItemLabel, placeCaretAtNote, selectNoteRange } from '#tests';
 
 describe('structural selection helper', () => {
-  it('returns heads and slab for mixed-depth selection spanning a sibling run', async ({ lexical }) => {
-    await lexical.load('tree_complex');
-    await selectNoteRange('note2', 'note4', lexical.mutate); // includes child note3 through note2
+  it('returns heads and slab for mixed-depth selection spanning a sibling run', async ({ remdo }) => {
+    await remdo.load('tree_complex');
+    await selectNoteRange('note2', 'note4', remdo); // includes child note3 through note2
 
-    const heads = lexical.validate(() => {
+    const heads = remdo.validate(() => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
       const result = getContiguousSelectionHeads(selection as RangeSelection);
@@ -20,11 +20,11 @@ describe('structural selection helper', () => {
     expect(heads).toEqual(['note2', 'note4']);
   });
 
-  it('returns empty array for collapsed selections', async ({ lexical }) => {
-    await lexical.load('tree_complex');
-    await placeCaretAtNote('note2', lexical.mutate);
+  it('returns empty array for collapsed selections', async ({ remdo }) => {
+    await remdo.load('tree_complex');
+    await placeCaretAtNote('', remdo);
 
-    const slice = lexical.validate(() => {
+    const slice = remdo.validate(() => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
       return getContiguousSelectionHeads(selection as RangeSelection);
@@ -33,11 +33,11 @@ describe('structural selection helper', () => {
     expect(slice).toEqual([]);
   });
 
-  it('normalizes parent/child spans to the ancestor slab', async ({ lexical }) => {
-    await lexical.load('tree_complex');
-    await selectNoteRange('note1', 'note3', lexical.mutate); // crosses root note and nested child
+  it('normalizes parent/child spans to the ancestor slab', async ({ remdo }) => {
+    await remdo.load('tree_complex');
+    await selectNoteRange('note1', 'note3', remdo); // crosses root note and nested child
 
-    const heads = lexical.validate(() => {
+    const heads = remdo.validate(() => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
       const result = getContiguousSelectionHeads(selection as RangeSelection);

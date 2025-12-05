@@ -15,6 +15,7 @@ export const envSpec = defineEnvSpec(
     PREVIEW_PORT: { default: 0 },
     VITEST_PORT: { default: 0 },
     VITEST_PREVIEW_PORT: { default: 0 },
+    PLAYWRIGHT_UI_PORT: { default: 0 },
     CI: { default: false },
     VITEST_PREVIEW: { default: false },
   } satisfies EnvSpec,
@@ -27,4 +28,5 @@ export const envDerivedDefaults = defineEnvDerivatives(envSpec, (env) => {
   env.COLLAB_SERVER_PORT ||= env.PORT + 4;
   env.COLLAB_CLIENT_PORT ||= env.COLLAB_SERVER_PORT || env.PORT + 4;
   env.PREVIEW_PORT ||= env.PORT + 5;
+  env.PLAYWRIGHT_UI_PORT ||= env.PORT + 6;
 });

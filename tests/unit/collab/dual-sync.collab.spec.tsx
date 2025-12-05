@@ -40,7 +40,7 @@ function CollaborationPeer({ onReady }: { onReady: (handle: PeerHandle) => void 
 }
 
 describe('collaboration sync', () => {
-  it('syncs edits between editors', async ({ lexical }) => {
+  it('syncs edits between editors', async ({ remdo }) => {
     let secondary!: PeerHandle;
     const { protocol, hostname } = globalThis.location;
     const collabOrigin = `${protocol}//${hostname}:${config.env.COLLAB_CLIENT_PORT}`;
@@ -57,21 +57,21 @@ describe('collaboration sync', () => {
       if (!secondary) throw new Error('Secondary editor not ready');
     });
 
-    await Promise.all([lexical.waitForSynced(), secondary.waitForSynced()]);
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
-    lexical.editor.update(() => {
+    remdo.editor.update(() => {
       $getRoot().clear();
     });
 
-    await Promise.all([lexical.waitForSynced(), secondary.waitForSynced()]);
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     await waitFor(() => {
-      expect(lexical).toMatchOutline([]);
+      expect(remdo).toMatchOutline([]);
       expect(secondary).toMatchOutline([]);
     });
 
-    await Promise.all([lexical.waitForSynced(), secondary.waitForSynced()]);
-    lexical.editor.update(() => {
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+    remdo.editor.update(() => {
       //TODO use a higher level API once we have it
       const root = $getRoot();
       const list = $createListNode('bullet');
@@ -83,13 +83,13 @@ describe('collaboration sync', () => {
       root.append(list);
     });
 
-    await Promise.all([lexical.waitForSynced(), secondary.waitForSynced()]);
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
-    await lexical.waitForSynced();
+    await remdo.waitForSynced();
     await secondary.waitForSynced();
     const sharedOutline = [{ text: 'note1', children: [] }];
     await waitFor(() => {
-      expect(lexical).toMatchOutline(sharedOutline);
+      expect(remdo).toMatchOutline(sharedOutline);
       expect(secondary).toMatchOutline(sharedOutline);
     });
   });

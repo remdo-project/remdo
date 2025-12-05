@@ -110,4 +110,12 @@ Dockerfile checks) and decide whether to gate CI on its report.
   child-list creation, wrapper cleanup) and `selection-utils` helpers
   (contiguity + selected notes) to lock behaviors.
 - Prefer unit tests near the helpers; keep fixtures minimal and mirror current
-  tree shapes in `tests/fixtures`.
+ tree shapes in `tests/fixtures`.
+
+## Unified Lexical test bridge (window-based)
+
+1. Replace bespoke collab test harnesses (e.g., in `tests/unit/collab/*`) with
+   the shared API where feasible so all test suites rely on the same bridge and
+   synchronization semantics.
+2. Remove any legacy test-only components once the bridge is wired, and note
+   the new API location in AGENTS.md.

@@ -9,20 +9,20 @@ import {
 import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
 
-it('clear', async ({ lexical }) => {
-  await lexical.mutate(() => {
+it('clear', async ({ remdo }) => {
+  await remdo.mutate(() => {
     $getRoot().clear();
   });
 
-  lexical.validate(() => {
+  remdo.validate(() => {
     const list = $expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
     expectListItemCount(list, 1); // placeholder paragraph
   });
 });
 
-it('normalizes root after list command dispatch', async ({ lexical }) => {
-  const { mutate, validate } = lexical;
+it('normalizes root after list command dispatch', async ({ remdo }) => {
+  const { mutate, validate } = remdo;
 
   await mutate(() => {
     const root = $getRoot();
@@ -37,7 +37,7 @@ it('normalizes root after list command dispatch', async ({ lexical }) => {
     note1Paragraph.select();
   });
 
-  await lexical.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND);
+  await remdo.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND);
 
   validate(() => {
     const list = $expectSingleListRoot();
@@ -46,8 +46,8 @@ it('normalizes root after list command dispatch', async ({ lexical }) => {
   });
 });
 
-it('allows ordered list as the root list type when present', async ({ lexical }) => {
-  await lexical.mutate(() => {
+it('allows ordered list as the root list type when present', async ({ remdo }) => {
+  await remdo.mutate(() => {
     const root = $getRoot();
     root.clear();
 
@@ -58,15 +58,15 @@ it('allows ordered list as the root list type when present', async ({ lexical })
     root.append(list);
   });
 
-  lexical.validate(() => {
+  remdo.validate(() => {
     const list = $expectSingleListRoot();
     expect(list.getListType()).toBe('number');
     expectListItems(list, ['note1']);
   });
 });
 
-it('wraps non-list root children into list items', async ({ lexical }) => {
-  await lexical.mutate(() => {
+it('wraps non-list root children into list items', async ({ remdo }) => {
+  await remdo.mutate(() => {
     const root = $getRoot();
     root.clear();
 
@@ -78,15 +78,15 @@ it('wraps non-list root children into list items', async ({ lexical }) => {
     root.append(note1Paragraph, note2Paragraph);
   });
 
-  lexical.validate(() => {
+  remdo.validate(() => {
     const list = $expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
     expectListItems(list, ['note1', 'note2']);
   });
 });
 
-it('merges multiple bullet lists under a single root list', async ({ lexical }) => {
-  await lexical.mutate(() => {
+it('merges multiple bullet lists under a single root list', async ({ remdo }) => {
+  await remdo.mutate(() => {
     const root = $getRoot();
     root.clear();
 
@@ -103,18 +103,18 @@ it('merges multiple bullet lists under a single root list', async ({ lexical }) 
     root.append(note1List, note2List);
   });
 
-  lexical.validate(() => {
+  remdo.validate(() => {
     const list = $expectSingleListRoot();
     expect(list.getListType()).toBe('bullet');
     expectListItems(list, ['note1', 'note2']);
   });
 });
 
-it('leaves a canonical single list untouched', async ({ lexical }) => {
+it('leaves a canonical single list untouched', async ({ remdo }) => {
   let originalListKey: string;
   let originalItemKeys: string[] = [];
 
-  await lexical.mutate(() => {
+  await remdo.mutate(() => {
     const root = $getRoot();
     root.clear();
 
@@ -131,7 +131,7 @@ it('leaves a canonical single list untouched', async ({ lexical }) => {
     originalItemKeys = list.getChildren().map((child) => child.getKey());
   });
 
-  lexical.validate(() => {
+  remdo.validate(() => {
     const list = $expectSingleListRoot();
     expect(list.getKey()).toBe(originalListKey);
     const items = list.getChildren().map((child): ListItemNode => {

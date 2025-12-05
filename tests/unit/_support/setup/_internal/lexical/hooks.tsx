@@ -1,53 +1,14 @@
-/* eslint-disable react-refresh/only-export-components */
 import { config } from '#config';
-import { $getRoot } from 'lexical';
-import type { LexicalEditor } from 'lexical';
-import { useEffect } from 'react';
-import type { TestContext } from 'vitest';
-import { env } from 'node:process';
 import { render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { env } from 'node:process';
+import type { TestContext } from 'vitest';
 import Editor from '@/editor/Editor';
-import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
-import { useCollaborationStatus } from '@/editor/plugins/collaboration';
-import { createLexicalTestHelpers } from './state';
-
-interface BridgePayload {
-  editor: LexicalEditor;
-  collab: CollaborationStatusValue;
-}
-
-const Bridge = ({ onReady }: { onReady: (payload: BridgePayload) => void }) => {
-  const [editor] = useLexicalComposerContext();
-  const collab = useCollaborationStatus();
-
-  useEffect(() => {
-    onReady({ editor, collab });
-  }, [collab, editor, onReady]);
-
-  return null;
-};
-
-const LexicalHarness = ({
-  onReady,
-  collabOrigin,
-}: {
-  onReady: (payload: BridgePayload) => void;
-  collabOrigin?: string;
-}) => {
-  return (
-    <Editor collabOrigin={collabOrigin}>
-      <Bridge onReady={onReady} />
-    </Editor>
-  );
-};
+import type { RemdoTestApi } from '@/editor/plugins/TestBridgePlugin';
+import { readFixture } from '../../../../../_support/fixtures';
 
 let collabDocCounter = 0;
 beforeEach<TestContext>(async (ctx) => {
-  let editor!: LexicalEditor;
-  let collab!: CollaborationStatusValue;
-
   const task = ctx.task as TestContext['task'] | undefined;
   const metaRaw = task?.meta as { collabDocId?: string } | undefined;
   const meta = metaRaw ?? {};
@@ -68,32 +29,31 @@ beforeEach<TestContext>(async (ctx) => {
   const { protocol, hostname } = globalThis.location;
   const collabOrigin = `${protocol}//${hostname}:${config.env.COLLAB_CLIENT_PORT}`;
 
-  render(
-    <LexicalHarness
-      collabOrigin={collabOrigin}
-      onReady={({ editor: instance, collab: status }) => {
-        editor = instance;
-        collab = status;
-      }}
-    />
-  );
+  render(<Editor collabOrigin={collabOrigin} />);
 
-  await waitFor(() => {
-    // eslint-disable-next-line ts/no-unnecessary-condition
-    if (!editor || !collab) throw new Error('Lexical editor not initialized in time');
+  const remdoTest = await waitFor(() => {
+    const api = (globalThis as typeof globalThis & { remdoTest?: RemdoTestApi }).remdoTest;
+    if (!api) {
+      throw new Error('remdoTest API not ready');
+    }
+    return api;
   });
 
-  const helpers = createLexicalTestHelpers(editor, () => collab);
-  ctx.lexical = helpers;
+  await remdoTest.waitForCollaborationReady();
 
-  if (collab.enabled) {
-    await helpers.mutate(() => {
-      $getRoot().clear();
-    });
-    await helpers.waitForSynced();
+  ctx.remdo = {
+    ...remdoTest,
+    load: async (fixtureName: string) => remdoTest.applySerializedState(await readFixture(fixtureName)),
+  };
+
+  await ctx.remdo.load('basic'); //FIXME
+
+  if (config.env.COLLAB_ENABLED) {
+    await ctx.remdo.clear();
+    await ctx.remdo.waitForSynced();
   }
 });
 
-afterEach(async ({ lexical }) => {
-  await lexical.waitForSynced();
+afterEach(async ({ remdo }) => {
+  await remdo.waitForSynced();
 });

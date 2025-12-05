@@ -32,6 +32,7 @@ export default function App() {
   const host = resolveHost();
   const previewUrl = host ? buildUrl(host, 3) : '#preview';
   const vitestUrl = host ? buildUrl(host, 2, '/__vitest__/') : '#vitest';
+  const playwrightUrl = host ? buildUrl({ protocol: 'http:', hostname: 'localhost', basePort: host.basePort }, 6, '') : '#playwright';
   const lexicalUrl = host
     ? `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`
     : '#lexical';
@@ -63,6 +64,9 @@ export default function App() {
                   </Anchor>
                   <Anchor className="app-header-link" href={vitestUrl}>
                     Vitest
+                  </Anchor>
+                  <Anchor className="app-header-link" href={playwrightUrl}>
+                    Playwright
                   </Anchor>
                   <Anchor className="app-header-link" href={lexicalUrl}>
                     Lexical
