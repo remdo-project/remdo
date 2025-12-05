@@ -17,7 +17,7 @@ type EditorStateJSON = ReturnType<ReturnType<LexicalEditor['getEditorState']>['t
 
 export interface RemdoTestApi {
   editor: LexicalEditor;
-  load: (input: string) => Promise<void>;
+  applySerializedState: (input: string) => Promise<void>;
   replaceDocument: (input: string) => Promise<void>;
   mutate: (fn: () => void, opts?: EditorUpdateOptions) => Promise<void>;
   validate: <T>(fn: () => T) => T;
@@ -69,7 +69,7 @@ export function TestBridgePlugin() {
       );
     };
 
-    const load = async (input: string) => {
+    const applySerializedState = async (input: string) => {
       await ensureHydrated();
       const parsed = editor.parseEditorState(JSON.parse(input) as SerializedEditorState);
       const updateDone = waitForNextUpdate(editor);
@@ -115,8 +115,8 @@ export function TestBridgePlugin() {
 
     return {
       editor,
-      load,
-      replaceDocument: load,
+      applySerializedState,
+      replaceDocument: applySerializedState,
       mutate,
       validate,
       getEditorState,

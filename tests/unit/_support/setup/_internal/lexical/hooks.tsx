@@ -5,7 +5,6 @@ import { env } from 'node:process';
 import type { TestContext } from 'vitest';
 import Editor from '@/editor/Editor';
 import type { RemdoTestApi } from '@/editor/plugins/TestBridgePlugin';
-import type { LexicalTestHelpers } from '../../../lib/types';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -50,8 +49,8 @@ beforeEach<TestContext>(async (ctx) => {
 
   ctx.lexical = {
     ...remdoTest,
-    load: async (fixtureName: string) => remdoTest.load(readFixture(fixtureName)),
-  } as unknown as LexicalTestHelpers;
+    load: async (fixtureName: string) => remdoTest.applySerializedState(readFixture(fixtureName)),
+  } as unknown as RemdoTestApi & { load: (fixture: string) => Promise<void> };
   await ctx.lexical.load('basic'); //FIXME
 
   if (config.env.COLLAB_ENABLED) {

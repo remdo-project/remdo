@@ -1,5 +1,5 @@
 import { expect, test, waitForAppReady } from './_support/fixtures';
-import { loadFixture } from './_support/bridge';
+import { load } from './_support/bridge';
 
 test.describe('Editor smoke', () => {
   test('renders shell and supports indent/outdent', async ({ page }) => {
@@ -33,7 +33,7 @@ test.describe('Editor smoke', () => {
   test('loads flat fixture and shows expected notes', async ({ page }) => {
     const docId = `playwright-fixture-${Date.now()}`;
     await waitForAppReady(page, docId);
-    await loadFixture(page, 'flat');
+    await load(page, 'flat');
 
     const items = page.locator('li.list-item >> span');
     await expect(items).toHaveCount(3);

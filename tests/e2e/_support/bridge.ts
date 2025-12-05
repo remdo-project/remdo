@@ -7,16 +7,18 @@ function readFixtureJson(fixtureName: string): string {
   return fs.readFileSync(abs, 'utf8');
 }
 
-export async function loadFixture(page: Page, fixtureName: string): Promise<void> {
+export async function load(page: Page, fixtureName: string): Promise<void> {
   const payload = readFixtureJson(fixtureName);
   await replaceDocument(page, payload);
 }
 
 export async function replaceDocument(page: Page, serializedStateJson: string): Promise<void> {
   await page.evaluate(async (stateJson) => {
-    const api = (globalThis as typeof globalThis & { remdoTest?: { waitForCollaborationReady: () => Promise<void>; load: (input: string) => Promise<void> } }).remdoTest;
+    const api = (globalThis as typeof globalThis & {
+      remdoTest?: { waitForCollaborationReady: () => Promise<void>; applySerializedState: (input: string) => Promise<void> };
+    }).remdoTest;
     if (!api) throw new Error('remdoTest is not available');
     await api.waitForCollaborationReady();
-    await api.load(stateJson);
+    await api.applySerializedState(stateJson);
   }, serializedStateJson);
 }
