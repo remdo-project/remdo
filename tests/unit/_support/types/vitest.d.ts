@@ -1,11 +1,15 @@
 import type { Outline, SelectionSnapshot } from '#tests';
-import type { LexicalTestHelpers as LexicalHelpers } from '../lib/types';
+import type { RemdoTestApi } from '@/editor/plugins/TestBridgePlugin';
 
 declare module 'vitest' {
-  interface LexicalTestHelpers extends LexicalHelpers {}
+  interface RemdoTestHelpers extends RemdoTestApi {
+    load: (name: string) => Promise<void>;
+  }
 
   export interface TestContext {
-    lexical: LexicalHelpers;
+    remdo: RemdoTestHelpers;
+    // Legacy alias for migration; remove once specs switch to remdo.
+    lexical: RemdoTestHelpers;
   }
 
   interface TestCollectorOptions {
