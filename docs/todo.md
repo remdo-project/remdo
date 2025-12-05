@@ -135,15 +135,6 @@ Dockerfile checks) and decide whether to gate CI on its report.
    `pnpm run test:e2e` (collab enabled via env); set `COLLAB_ENABLED=false`
    temporarily when you need a non-collab run.
 
-### (NEW) Refactor Playwright e2e support helpers
-
-1. Convert the console/response guard into a fixture that fails fast on the
-   first unexpected warning/error or 4xx/5xx (with an allowlist for expected
-   4xx like favicon), and compose it into the `editor` fixture so every test
-   gets it automatically.
-2. Add a short `tests/e2e/README.md` (or top-of-file comment) describing the
-   harness API and doc-id strategy so new specs follow the simplified pattern.
-
 ## Unified Lexical test bridge (window-based)
 
 1. Replace bespoke collab test harnesses (e.g., in `tests/unit/collab/*`) with

@@ -1,28 +1,35 @@
-import type { Page } from '@playwright/test';
-import { expect, test as base } from '@playwright/test';
+import type { ConsoleMessage, Page, Response } from '@playwright/test';
+import { test as base } from '@playwright/test';
 import { ensureReady, load } from './bridge';
 
 function attachGuards(page: Page) {
-  const issues: string[] = [];
+  const allowResponse = (response: Response) => {
+    const url = response.url();
+    if (url.startsWith('data:')) return true;
+    if (url.includes('favicon') && response.status() === 404) return true;
+    return false;
+  };
 
-  page.on('console', (message) => {
+  const onConsole = (message: ConsoleMessage) => {
     const type = message.type();
     if (type === 'warning' || type === 'error') {
-      issues.push(`console.${type}: ${message.text()}`);
+      throw new Error(`console.${type}: ${message.text()}`);
     }
-  });
+  };
 
-  page.on('response', (response) => {
+  const onResponse = (response: Response) => {
     const status = response.status();
-    if (status >= 400 && !response.url().startsWith('data:')) {
-      issues.push(`response ${status}: ${response.url()}`);
+    if (status >= 400 && !allowResponse(response)) {
+      throw new Error(`response ${status}: ${response.url()}`);
     }
-  });
+  };
 
-  return {
-    verify() {
-      expect(issues).toEqual([]);
-    },
+  page.on('console', onConsole);
+  page.on('response', onResponse);
+
+  return () => {
+    page.off('console', onConsole);
+    page.off('response', onResponse);
   };
 }
 
@@ -54,9 +61,9 @@ async function createEditorHarness(page: Page, docId: string): Promise<EditorHar
 
 export const test = base.extend<{ testDocId: string; editor: EditorHarness }>({
   page: async ({ page }, apply) => {
-    const guard = attachGuards(page);
+    const detach = attachGuards(page);
     await apply(page);
-    guard.verify();
+    detach();
   },
   // eslint-disable-next-line no-empty-pattern
   testDocId: async ({}, applyDocId, testInfo) => {
