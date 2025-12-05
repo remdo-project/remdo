@@ -135,47 +135,29 @@ Dockerfile checks) and decide whether to gate CI on its report.
    `pnpm run test:e2e` (collab enabled via env); set `COLLAB_ENABLED=false`
    temporarily when you need a non-collab run.
 
-### (NEW) Incremental redo plan for unified test bridge
+### (NEW) Refactor Playwright e2e support helpers
 
-1. Vitest setup uses the bridge directly: in unit setup expose `remdo` and set
-   `remdo.load = (name) => remdo.applySerializedState(readFixture(name))`; drop
-   extra helper casting; update Vitest context types. Run `pnpm run test:unit`.
-2. Rename `lexical`→`remdo` in unit specs/helpers, removing the old helper
-   indirection files. Run `pnpm run test:unit`.
-3. Align fixtures per spec (flat/basic/tree/tree_complex) without changing
-   logic; rerun `pnpm run test:unit`.
-4. If outlines differ, adjust only fixture choice or expected outlines (no
-   command logic). Run `pnpm run test:unit` and `pnpm run test:unit:collab`.
-5. Playwright smoke: rename `loadFixture`→`load` to match the bridge; optional
-   `pnpm run test:e2e`.
+1. Replace `waitForAppReady`/`ensureReady`/`load` with a single Playwright
+   fixture (e.g., `editor`) that navigates to a unique doc ID derived from
+   `testInfo`, waits for `window.remdoTest`, and exposes helpers like
+   `clear()`, `loadFixture(name)`, `setState(json)`, and `waitForSynced()`.
+2. Import `RemdoTestApi` from `src/editor/plugins/TestBridgePlugin.tsx` in the
+   Playwright helpers (and Vitest helpers) instead of declaring a duplicate
+   interface, keeping the helpers type-safe against plugin changes.
+3. Move fixture IO into a shared module under `tests/_support` that uses async
+   fs and caches per worker; both Playwright and Vitest should consume it so
+   fixture parsing happens in one place.
+4. Convert the console/response guard into a fixture that fails fast on the
+   first unexpected warning/error or 4xx/5xx (with an allowlist for expected
+   4xx like favicon), and compose it into the `editor` fixture so every test
+   gets it automatically.
+5. Add a short `tests/e2e/README.md` (or top-of-file comment) describing the
+   harness API and doc-id strategy so new specs follow the simplified pattern.
 
 ## Unified Lexical test bridge (window-based)
 
-1. Add a dev-only `TestBridgePlugin` inside `DevPlugin` that registers a
-   `window.remdoTest` API (load/replaceDocument, mutate, validate,
-   getEditorState, dispatchCommand, clear, waitForSynced, getCollabDocId)
-   using the commit-wait + awaitSynced semantics from the unit helpers.
-2. Extract the existing unit `createLexicalTestHelpers` logic to a shared
-   module (e.g., `tests/shared/editor-helpers.ts`) so both Vitest and
-   Playwright reuse identical behaviors and tagging rules.
-3. Refactor `tests/unit/_support/setup/_internal/lexical/hooks.tsx` to consume
-   the shared helpers and drop the ad hoc Bridge component; keep the doc-id
-   per-worker logic but centralize it alongside the helpers.
-4. Introduce a Playwright helper (`tests/e2e/_support/bridge.ts`) that reads
-   fixtures from disk in Node and calls `page.evaluate` to invoke
-   `window.remdoTest.load`/`waitForSynced`, staying window-only on the browser
-   side (no DOM driver element).
-5. Replace bespoke collab test harnesses (e.g., in `tests/unit/collab/*`) with
+1. Replace bespoke collab test harnesses (e.g., in `tests/unit/collab/*`) with
    the shared API where feasible so all test suites rely on the same bridge and
    synchronization semantics.
-6. Remove any legacy test-only components once the bridge is wired, and note
+2. Remove any legacy test-only components once the bridge is wired, and note
    the new API location in AGENTS.md.
-7. Flatten fixtures to store the serialized editor state directly (no
-   `editorState` wrapper) so the bridge can parse once and feed it to
-   `parseEditorState` without unwrapping.
-8. Do a follow-up cleanup pass on `src/editor/plugins/TestBridgePlugin.tsx`
-   once fixtures are flattened to strip remaining helper plumbing and keep the
-   API surface minimal.
-9. Still needed: have Vitest and Playwright consume the bridge directly without
-   extra helper remapping, and ensure both suites load the same raw JSON fixture
-   shape so a single API surface covers all editor tests.
