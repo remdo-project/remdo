@@ -8,8 +8,6 @@ declare module 'vitest' {
 
   export interface TestContext {
     remdo: RemdoTestHelpers;
-    // Legacy alias for migration; remove once specs switch to remdo.
-    lexical: RemdoTestHelpers;
   }
 
   interface TestCollectorOptions {

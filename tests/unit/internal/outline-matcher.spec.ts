@@ -57,18 +57,18 @@ const CASES: OutlineCase[] = [
 
 describe('toMatchOutline smoke coverage', () => {
   for (const { fixture, outline } of CASES) {
-    it(`reads ${fixture}`, async ({ lexical }) => {
-      await lexical.load(fixture);
-      expect(lexical).toMatchOutline(outline);
+    it(`reads ${fixture}`, async ({ remdo }) => {
+      await remdo.load(fixture);
+      expect(remdo).toMatchOutline(outline);
     });
   }
 
-  it('surfaces expected vs received outline when the matcher fails', async ({ lexical }) => {
-    await lexical.load('flat');
+  it('surfaces expected vs received outline when the matcher fails', async ({ remdo }) => {
+    await remdo.load('flat');
 
     let thrown: unknown;
     try {
-      expect(lexical).toMatchOutline([{ text: 'wrong label', children: [] }]);
+      expect(remdo).toMatchOutline([{ text: 'wrong label', children: [] }]);
     } catch (error) {
       thrown = error;
     }
@@ -84,25 +84,25 @@ describe('toMatchOutline smoke coverage', () => {
     expect(thrown.message).toContain('"text": "note3"');
   });
 
-  it('matches selection-only expectations', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('matches selection-only expectations', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
 
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
 
-  it('reports selection mismatches', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('reports selection mismatches', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
 
     expect(() => {
-      expect(lexical).toMatchSelection({ state: 'structural', notes: ['note5'] });
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note5'] });
     }).toThrowError(/Selections differ/);
   });
 });

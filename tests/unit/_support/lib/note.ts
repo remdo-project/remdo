@@ -1,6 +1,6 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
-import type { LexicalMutate } from './types';
+import type { RemdoTestApi } from '@/editor/plugins/TestBridgePlugin';
 import type { TextNode } from 'lexical';
 import { $createRangeSelection, $getRoot, $getSelection, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
 
@@ -51,8 +51,8 @@ function findItemByText(listNode: ListNode | null, noteText: string): ListItemNo
  * - When no textual child is available, the helper falls back to `selectStart`/`selectEnd` on the list item,
  *   in which case the `offset` is ignored unless selecting the end is explicitly requested via a positive value.
  */
-export async function placeCaretAtNote(noteText: string, mutate: LexicalMutate, offset = 0) {
-  await mutate(() => {
+export async function placeCaretAtNote(noteText: string, remdo: RemdoTestApi, offset = 0) {
+  await remdo.mutate(() => {
     const root = $getRoot();
     const list = root.getFirstChild();
     if (!list || !$isListNode(list)) throw new Error('Expected a list root');
@@ -91,8 +91,8 @@ export async function placeCaretAtNote(noteText: string, mutate: LexicalMutate, 
  * note's children. Wrapper items never include inline content. We only want to surface
  * the content-bearing items in outlines so every entry corresponds to exactly one note.
  */
-export function readOutline(validate: <T>(fn: () => T) => T): Outline {
-  return validate(() => {
+export function readOutline(remdo: RemdoTestApi): Outline {
+  return remdo.validate(() => {
     const root = $getRoot();
     const list = root.getFirstChild();
     if (!list) return [] as Outline;
@@ -157,13 +157,10 @@ export function readOutline(validate: <T>(fn: () => T) => T): Outline {
 }
 // TODO: replace this helper with a top-level note selection API once we expose
 // proper whole-note selection controls in the editor harness.
-export async function selectEntireNote(
-  noteText: string,
-  mutate: LexicalMutate
-): Promise<void> {
-  await placeCaretAtNote(noteText, mutate);
+export async function selectEntireNote(noteText: string, remdo: RemdoTestApi): Promise<void> {
+  await placeCaretAtNote(noteText, remdo);
 
-  await mutate(() => {
+  await remdo.mutate(() => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection)) {
       return;
@@ -223,17 +220,13 @@ function findContentTextNode(item: ListItemNode) {
 }
 
 // TODO: replace with a first-class multi-note selection helper when editor UX supports it.
-export async function selectNoteRange(
-  startNote: string,
-  endNote: string,
-  mutate: LexicalMutate
-): Promise<void> {
+export async function selectNoteRange(startNote: string, endNote: string, remdo: RemdoTestApi): Promise<void> {
   if (startNote === endNote) {
-    await selectEntireNote(startNote, mutate);
+    await selectEntireNote(startNote, remdo);
     return;
   }
 
-  await mutate(() => {
+  await remdo.mutate(() => {
     const root = $getRoot();
     const list = root.getFirstChild();
     if (!list || !$isListNode(list)) {

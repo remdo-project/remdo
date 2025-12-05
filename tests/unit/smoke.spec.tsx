@@ -1,15 +1,15 @@
 import { expect, it } from 'vitest';
 
-it('preview helper example (manual use only)', async ({ lexical }) => {
-  await lexical.load('basic');
+it('preview helper example (manual use only)', async ({ remdo }) => {
+  await remdo.load('basic');
   // Uncomment preview() when debugging locally to render the current outline.
   // preview();
 });
 
-it('loads basic outline structure from JSON', async ({ lexical }) => {
-  await lexical.load('basic');
+it('loads basic outline structure from JSON', async ({ remdo }) => {
+  await remdo.load('basic');
 
-  expect(lexical).toMatchOutline([
+  expect(remdo).toMatchOutline([
     {
       text: 'note1',
       children: [

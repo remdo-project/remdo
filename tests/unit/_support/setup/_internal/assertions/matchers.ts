@@ -14,7 +14,7 @@ import type { RangeSelection, LexicalNode } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 
-type LexicalTestHelpers = TestContext['lexical'];
+type RemdoTestHelpers = TestContext['remdo'];
 
 interface MatcherResult {
   pass: boolean;
@@ -85,9 +85,9 @@ function formatSelectionSnapshot(snapshot: SelectionSnapshot): string {
   return JSON.stringify(snapshot, null, 2);
 }
 
-function readSelectionSnapshot(lexical: LexicalTestHelpers): SelectionSnapshot {
-  const rootElement = lexical.editor.getRootElement();
-  return lexical.validate(() => {
+function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
+  const rootElement = remdo.editor.getRootElement();
+  return remdo.validate(() => {
     const docRoot = $getRoot().getFirstChild();
     const selection = $getSelection();
     if (!$isRangeSelection(selection)) {
@@ -155,8 +155,8 @@ function getCaretNoteLabel(selection: RangeSelection): string | null {
 }
 
 expect.extend({
-  toMatchOutline(this: any, lexical: LexicalTestHelpers, expected: Outline) {
-    const outline = attemptRead(this, '.toMatchOutline', () => readOutline(lexical.validate));
+  toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: Outline) {
+    const outline = attemptRead(this, '.toMatchOutline', () => readOutline(remdo));
     if (!outline.ok) return outline.result;
 
     return compareWithExpected(this, outline.value, expected, {
@@ -171,8 +171,8 @@ expect.extend({
     });
   },
 
-  toMatchEditorState(this: any, lexical: LexicalTestHelpers, expected: unknown) {
-    const actual = attemptRead(this, '.toMatchEditorState', () => lexical.getEditorState());
+  toMatchEditorState(this: any, remdo: RemdoTestHelpers, expected: unknown) {
+    const actual = attemptRead(this, '.toMatchEditorState', () => remdo.getEditorState());
     if (!actual.ok) return actual.result;
 
     return compareWithExpected(this, actual.value, expected, {
@@ -182,8 +182,8 @@ expect.extend({
       failMessage: 'Editor state differs.',
     });
   },
-  toMatchSelection(this: any, lexical: LexicalTestHelpers, expected: SelectionSnapshot) {
-    const selection = attemptRead(this, '.toMatchSelection', () => readSelectionSnapshot(lexical));
+  toMatchSelection(this: any, remdo: RemdoTestHelpers, expected: SelectionSnapshot) {
+    const selection = attemptRead(this, '.toMatchSelection', () => readSelectionSnapshot(remdo));
     if (!selection.ok) return selection.result;
 
     return compareWithExpected(this, selection.value, expected, {

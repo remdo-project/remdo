@@ -122,7 +122,7 @@ function getDomSelection(): Selection {
 
 async function mutateDomSelection(mutator: (selection: Selection) => void) {
   await act(async () => {
-    const rootElement = document.querySelector('[data-lexical-editor="true"]');
+    const rootElement = document.querySelector('[data-remdo-editor="true"]');
     if (rootElement instanceof HTMLElement && document.activeElement !== rootElement) {
       rootElement.focus();
     }
@@ -159,10 +159,10 @@ function orderRangePoints(
 }
 
 describe('selection plugin', () => {
-  it('snaps pointer drags across note boundaries to contiguous structural slices', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('snaps pointer drags across note boundaries to contiguous structural slices', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
@@ -172,7 +172,7 @@ describe('selection plugin', () => {
     await dragDomSelectionBetween(note2Text, 1, note5Text, 1);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({
+      expect(remdo).toMatchSelection({
         state: 'structural',
         notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
       });
@@ -183,17 +183,17 @@ describe('selection plugin', () => {
     await dragDomSelectionBetween(note6Text, 0, note7Text, note7Text.length);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({
+      expect(remdo).toMatchSelection({
         state: 'structural',
         notes: ['note6', 'note7'],
       });
     });
   });
 
-  it('preserves selection direction for backward pointer drags', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('preserves selection direction for backward pointer drags', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
@@ -203,13 +203,13 @@ describe('selection plugin', () => {
     await dragDomSelectionBetween(note5Text, note5Text.length, note2Text, 0);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({
+      expect(remdo).toMatchSelection({
         state: 'structural',
         notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
       });
     });
 
-    const isBackward = lexical.validate(() => {
+    const isBackward = remdo.validate(() => {
       const selection = $getSelection();
       if (!$isRangeSelection(selection)) {
         throw new Error('Expected range selection');
@@ -220,10 +220,10 @@ describe('selection plugin', () => {
     expect(isBackward).toBe(true);
   });
 
-  it('snaps drags that cross from a parent into its child to the full subtree', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('snaps drags that cross from a parent into its child to the full subtree', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
@@ -233,17 +233,17 @@ describe('selection plugin', () => {
     await dragDomSelectionBetween(parentText, parentText.length, childText, 1);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({
+      expect(remdo).toMatchSelection({
         state: 'structural',
         notes: ['note2', 'note3'],
       });
     });
   });
 
-  it('snaps drags that exit a child upward into its parent to the full subtree', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('snaps drags that exit a child upward into its parent to the full subtree', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
@@ -253,17 +253,17 @@ describe('selection plugin', () => {
     await dragDomSelectionBetween(childText, childText.length, parentText, 0);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({
+      expect(remdo).toMatchSelection({
         state: 'structural',
         notes: ['note2', 'note3'],
       });
     });
   });
 
-  it('snaps touch-handle drags across note boundaries to contiguous subtrees', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('snaps touch-handle drags across note boundaries to contiguous subtrees', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
@@ -273,17 +273,17 @@ describe('selection plugin', () => {
     await dragDomSelectionWithoutExtendBetween(parentText, parentText.length, childText, childText.length);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({
+      expect(remdo).toMatchSelection({
         state: 'structural',
         notes: ['note6', 'note7'],
       });
     });
   });
 
-  it('extends pointer selections with Shift+Click to produce contiguous note ranges', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('extends pointer selections with Shift+Click to produce contiguous note ranges', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
@@ -293,13 +293,13 @@ describe('selection plugin', () => {
     await collapseDomSelectionAtText(note2Text, 0);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({ state: 'caret', note: 'note2' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
     });
 
     await extendDomSelectionToText(note5Text, note5Text.length);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({
+      expect(remdo).toMatchSelection({
         state: 'structural',
         notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
       });
@@ -308,34 +308,34 @@ describe('selection plugin', () => {
     await collapseDomSelectionAtText(note5Text, note5Text.length);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({ state: 'caret', note: 'note5' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note5' });
     });
 
     const note3Text = getNoteTextNode(rootElement, 'note3');
     await extendDomSelectionToText(note3Text, note3Text.length);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({
+      expect(remdo).toMatchSelection({
         state: 'structural',
         notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
       });
     });
   });
 
-  it('lets Shift+Click extend keyboard-driven structural selections without breaking contiguity', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('lets Shift+Click extend keyboard-driven structural selections without breaking contiguity', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({
+      expect(remdo).toMatchSelection({
         state: 'structural',
         notes: ['note2', 'note3'],
       });
@@ -345,7 +345,7 @@ describe('selection plugin', () => {
     await extendDomSelectionToText(note5Text, note5Text.length);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({
+      expect(remdo).toMatchSelection({
         state: 'structural',
         notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
       });
@@ -355,7 +355,7 @@ describe('selection plugin', () => {
     await extendDomSelectionToText(note6Text, note6Text.length);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({
+      expect(remdo).toMatchSelection({
         state: 'structural',
         notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'],
       });
@@ -366,17 +366,17 @@ describe('selection plugin', () => {
 // TODO: Reimplement in real browser (e.g., Playwright) coverage.
 it.skipIf(config.env.COLLAB_ENABLED)(
   'keeps Shift+Left/Right selections confined to inline content',
-  async ({ lexical }) => {
-    await lexical.load('flat');
+  async ({ remdo }) => {
+    await remdo.load('flat');
 
-    await placeCaretAtNote('note2', lexical.mutate, 0);
-    await pressKey(lexical.editor, { key: 'ArrowLeft', shift: true });
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note2' });
+    await placeCaretAtNote('note2', remdo, 0);
+    await pressKey(remdo.editor, { key: 'ArrowLeft', shift: true });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
 
-    await placeCaretAtNote('note2', lexical.mutate, Number.POSITIVE_INFINITY);
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note2' });
-    await pressKey(lexical.editor, { key: 'ArrowRight', shift: true });
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note2' });
+    await placeCaretAtNote('note2', remdo, Number.POSITIVE_INFINITY);
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+    await pressKey(remdo.editor, { key: 'ArrowRight', shift: true });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   }
 );
 
@@ -384,134 +384,134 @@ it.skipIf(config.env.COLLAB_ENABLED)(
 // TODO: Reimplement in real browser (e.g., Playwright) coverage.
 it.skipIf(config.env.COLLAB_ENABLED)(
   'treats Shift+Left/Right as no-ops once the selection spans whole notes',
-  async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', lexical.mutate);
+    await placeCaretAtNote('note2', remdo);
 
     // Promote selection to stage 2: note + descendants.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    await pressKey(lexical.editor, { key: 'ArrowLeft', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    await pressKey(remdo.editor, { key: 'ArrowLeft', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    await pressKey(lexical.editor, { key: 'ArrowRight', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    await pressKey(remdo.editor, { key: 'ArrowRight', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   }
 );
 
-  it('toggles the structural selection dataset when escalating the ladder', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('toggles the structural selection dataset when escalating the ladder', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', lexical.mutate);
+    await placeCaretAtNote('note2', remdo);
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await placeCaretAtNote('note1', lexical.mutate);
+    await placeCaretAtNote('note1', remdo);
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
   });
 
-  it('collapses structural selection back to the caret when pressing Escape', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('collapses structural selection back to the caret when pressing Escape', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(lexical.editor, { key: 'Escape' });
+    await pressKey(remdo.editor, { key: 'Escape' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
   });
 
-  it('treats Enter as a no-op once structural selection is active', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('treats Enter as a no-op once structural selection is active', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(lexical.editor, { key: 'Enter' });
+    await pressKey(remdo.editor, { key: 'Enter' });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
   });
 
-  it('treats typing as a no-op once structural selection is active', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('treats typing as a no-op once structural selection is active', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    const outlineBefore = readOutline(lexical.validate);
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    const outlineBefore = readOutline(remdo);
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    const stateBefore = lexical.editor.getEditorState();
+    const stateBefore = remdo.editor.getEditorState();
 
-    await pressKey(lexical.editor, { key: 'x' });
+    await pressKey(remdo.editor, { key: 'x' });
     expect(rootElement.dataset.structuralSelection).toBe('true');
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    const stateAfter = lexical.editor.getEditorState();
+    const stateAfter = remdo.editor.getEditorState();
     expect(stateAfter.toJSON()).toEqual(stateBefore.toJSON());
 
-    expect(lexical).toMatchOutline(outlineBefore);
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(remdo).toMatchOutline(outlineBefore);
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
 
-  it('lets Delete remove the entire subtree at stage 2 of the progressive ladder', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('lets Delete remove the entire subtree at stage 2 of the progressive ladder', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
 
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    expect(lexical).toMatchOutline(TREE_COMPLEX_OUTLINE);
+    expect(remdo).toMatchOutline(TREE_COMPLEX_OUTLINE);
 
-    await pressKey(lexical.editor, { key: 'Delete' });
+    await pressKey(remdo.editor, { key: 'Delete' });
 
     await waitFor(() => {
-      expect(lexical).toMatchOutline([
+      expect(remdo).toMatchOutline([
         { text: 'note1', children: [ { text: 'note4', children: [] } ] },
         { text: 'note5', children: [] },
         { text: 'note6', children: [ { text: 'note7', children: [] } ] },
@@ -519,21 +519,21 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     });
   });
 
-  it('lets Backspace remove the entire subtree at stage 2 of the progressive ladder', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('lets Backspace remove the entire subtree at stage 2 of the progressive ladder', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note6', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note6', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
 
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
 
-    expect(lexical).toMatchOutline(TREE_COMPLEX_OUTLINE);
+    expect(remdo).toMatchOutline(TREE_COMPLEX_OUTLINE);
 
-    await pressKey(lexical.editor, { key: 'Backspace' });
+    await pressKey(remdo.editor, { key: 'Backspace' });
 
     await waitFor(() => {
-      expect(lexical).toMatchOutline([
+      expect(remdo).toMatchOutline([
         {
           text: 'note1',
           children: [
@@ -546,216 +546,216 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     });
   });
 
-  it('clears the structural highlight when navigating without modifiers', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('clears the structural highlight when navigating without modifiers', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(lexical.editor, { key: 'ArrowRight' });
+    await pressKey(remdo.editor, { key: 'ArrowRight' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
   });
 
-  it('collapses structural selection when clicking back into a note body', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('collapses structural selection when clicking back into a note body', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
 
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
     const note4Text = getNoteTextNode(rootElement, 'note4');
     await collapseDomSelectionAtText(note4Text, 0);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({ state: 'caret', note: 'note4' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
     });
 
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
   });
 
-  it('restores a single-note caret when navigating with plain arrows from structural mode', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('restores a single-note caret when navigating with plain arrows from structural mode', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(lexical.editor, { key: 'ArrowDown' });
+    await pressKey(remdo.editor, { key: 'ArrowDown' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note4' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
   });
 
-  it('places the caret at the leading edge when pressing ArrowLeft in structural mode', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('places the caret at the leading edge when pressing ArrowLeft in structural mode', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note5', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note5', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(lexical.editor, { key: 'ArrowLeft' });
+    await pressKey(remdo.editor, { key: 'ArrowLeft' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note5' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note5' });
   });
 
-  it('places the caret at the trailing edge when pressing ArrowRight in structural mode', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('places the caret at the trailing edge when pressing ArrowRight in structural mode', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note5', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note5', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(lexical.editor, { key: 'ArrowRight' });
+    await pressKey(remdo.editor, { key: 'ArrowRight' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note6' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note6' });
   });
 
-  it('places the caret at the top edge when pressing ArrowUp in structural mode', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('places the caret at the top edge when pressing ArrowUp in structural mode', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(lexical.editor, { key: 'ArrowUp' });
+    await pressKey(remdo.editor, { key: 'ArrowUp' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note2' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
-  it('lets Home/End collapse structural selections to their respective edges', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('lets Home/End collapse structural selections to their respective edges', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(lexical.editor, { key: 'Home' });
+    await pressKey(remdo.editor, { key: 'Home' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note2' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(lexical.editor, { key: 'End' });
+    await pressKey(remdo.editor, { key: 'End' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note4' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
   });
 
-  it('collapses structural selection when pressing PageUp/PageDown', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('collapses structural selection when pressing PageUp/PageDown', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
-    await pressKey(lexical.editor, { key: 'PageDown' });
+    await pressKey(remdo.editor, { key: 'PageDown' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note4' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(lexical.editor, { key: 'PageUp' });
+    await pressKey(remdo.editor, { key: 'PageUp' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note2' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
-  it('lets Shift+Down walk the progressive selection ladder', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('lets Shift+Down walk the progressive selection ladder', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', lexical.mutate);
+    await placeCaretAtNote('note2', remdo);
 
     // Stage 1: inline body only.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'inline', note: 'note2' });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
 
     // Stage 2: note + descendants.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     // Stage 3: siblings at the same depth.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     // Stage 4: hoist to parent subtree.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Stage 5+: walk root-level siblings one at a time (per docs/outliner/selection.md).
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
-  it('hoists the parent once Shift+Down runs out of siblings in an existing note range', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('hoists the parent once Shift+Down runs out of siblings in an existing note range', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
@@ -765,58 +765,58 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await dragDomSelectionBetween(note2Text, 0, note4Text, note4Text.length);
 
     await waitFor(() => {
-      expect(lexical).toMatchSelection({
+      expect(remdo).toMatchSelection({
         state: 'structural',
         notes: ['note2', 'note3', 'note4'],
       });
     });
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
   });
 
-  it('escalates Shift+Down from a nested leaf until the document is selected', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('escalates Shift+Down from a nested leaf until the document is selected', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note3', lexical.mutate);
+    await placeCaretAtNote('note3', remdo);
 
     // Stage 1 (docs/outliner/selection.md): inline body only.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'inline', note: 'note3' });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note3' });
 
     // Stage 2 promotes the nested leaf structurally.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note3'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note3'] });
 
     // Stage 3 would add siblings, but the ladder skips empty rungs per docs/outliner/selection.md and hoists to the parent subtree (Stage 4).
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     // Stage 5: include the parent's next sibling (note4) while keeping the range contiguous.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     // Stage 6: hoist to the next ancestor (note1) and capture its subtree.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Stage 7+: walk root-level siblings one at a time, per docs/outliner/selection.md.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
 
     // Selecting note6 (a parent) must automatically bring along its child note7.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
-  it('keeps the structural highlight aligned with the selected notes', async ({ lexical }) => {
+  it('keeps the structural highlight aligned with the selected notes', async ({ remdo }) => {
     // TODO: simplify this regression while preserving the coverage described above.
-    await lexical.load('tree_complex');
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', lexical.mutate);
+    await placeCaretAtNote('note2', remdo);
 
     const assertVisualEnvelopeMatchesSelection = (expected: string[]) => {
-      const labels = lexical.validate(() => {
+      const labels = remdo.validate(() => {
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) {
           throw new Error('Expected a range selection');
@@ -838,168 +838,168 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     };
 
     // Stage 2: note2 + descendants.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
     assertVisualEnvelopeMatchesSelection(['note2', 'note3']);
 
     // Stage 4: parent subtree (note1..note4).
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
     assertVisualEnvelopeMatchesSelection(['note1', 'note2', 'note3', 'note4']);
   });
 
-  it('marks structural selection once Shift+Down reaches stage 2 even for leaf notes', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('marks structural selection once Shift+Down reaches stage 2 even for leaf notes', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    const rootElement = lexical.editor.getRootElement();
+    const rootElement = remdo.editor.getRootElement();
     if (!rootElement) {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note4', lexical.mutate);
+    await placeCaretAtNote('note4', remdo);
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
     // Stage 1 should stay unstructured.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
     // Stage 2 should flip the structural dataset for leaf notes so the UI highlights the block.
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
   });
 
-  it('selects nested leaves structurally at Shift+Down stage 2', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('selects nested leaves structurally at Shift+Down stage 2', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note3', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
+    await placeCaretAtNote('note3', remdo);
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
 
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note3'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note3'] });
   });
 
-  it('skips the sibling stage when Shift+Down reaches a siblingless note', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('skips the sibling stage when Shift+Down reaches a siblingless note', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note7', lexical.mutate);
+    await placeCaretAtNote('note7', remdo);
 
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note7' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note7' });
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'inline', note: 'note7' });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note7' });
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note7'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note7'] });
   });
 
-  it('lets Shift+Up walk the progressive selection ladder', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('lets Shift+Up walk the progressive selection ladder', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note4', lexical.mutate, 2);
+    await placeCaretAtNote('note4', remdo, 2);
 
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note4' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
 
     // Stage 1: inline body only.
-    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
-    expect(lexical).toMatchSelection({ state: 'inline', note: 'note4' });
+    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
 
     // Stage 2: grab the leaf structurally.
-    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note4'] });
+    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note4'] });
 
     // Stage 3: include the nearest preceding sibling at this depth.
-    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     // Stage 4: hoist to the parent subtree.
-    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Stage 5+: walk root-level siblings upward one at a time, then finish the ladder.
-    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
+    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
 
-    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
+    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
-  it('selects leaf notes structurally at Shift+Up stage 2', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('selects leaf notes structurally at Shift+Up stage 2', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note4', lexical.mutate, 2);
-    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
-    await pressKey(lexical.editor, { key: 'ArrowUp', shift: true });
+    await placeCaretAtNote('note4', remdo, 2);
+    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
 
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note4'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note4'] });
   });
 
-  it('follows the Cmd/Ctrl+A progressive selection ladder', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('follows the Cmd/Ctrl+A progressive selection ladder', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', lexical.mutate);
+    await placeCaretAtNote('note2', remdo);
 
     // Stage 1: inline text only.
-    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(lexical).toMatchSelection({ state: 'inline', note: 'note2' });
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
 
     // Stage 2: note body plus its descendants.
-    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     // Stage 3 adds the active note's siblings (and their descendants).
-    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     // Stage 4 hoists the selection to the parent note and its subtree.
-    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Stage 5 selects every ancestor level until the root.
-    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
 
     // Moving the caret resets the ladder back to stage 1.
-    await placeCaretAtNote('note4', lexical.mutate);
-    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(lexical).toMatchSelection({ state: 'inline', note: 'note4' });
+    await placeCaretAtNote('note4', remdo);
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
   });
 
-  it('skips the sibling stage when Cmd/Ctrl+A climbs from a siblingless note', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('skips the sibling stage when Cmd/Ctrl+A climbs from a siblingless note', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note7', lexical.mutate);
+    await placeCaretAtNote('note7', remdo);
 
-    expect(lexical).toMatchSelection({ state: 'caret', note: 'note7' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note7' });
 
-    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(lexical).toMatchSelection({ state: 'inline', note: 'note7' });
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note7' });
 
-    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
 
-    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
   });
 
-  it('keeps the progressive ladder in sync when mixing Shift+Arrow and Cmd/Ctrl+A', async ({ lexical }) => {
-    await lexical.load('tree_complex');
+  it('keeps the progressive ladder in sync when mixing Shift+Arrow and Cmd/Ctrl+A', async ({ remdo }) => {
+    await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', lexical.mutate);
+    await placeCaretAtNote('note2', remdo);
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'inline', note: 'note2' });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
-    await pressKey(lexical.editor, { key: 'a', ctrlOrMeta: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
-    await pressKey(lexical.editor, { key: 'ArrowDown', shift: true });
-    expect(lexical).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
   });
 });

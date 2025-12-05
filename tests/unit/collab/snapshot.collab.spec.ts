@@ -66,10 +66,10 @@ function readEditorState(filePath: string): SerializedEditorState {
   it(
     'saves the current editor state via snapshot CLI',
     { meta: { collabDocId: 'snapshot-flat' } } as any,
-    async ({ lexical }) => {
+    async ({ remdo }) => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-flat' };
-      await lexical.load('flat');
-      await lexical.waitForSynced();
+      await remdo.load('flat');
+      await remdo.waitForSynced();
 
       const savePath = SNAPSHOT_OUTPUTS[1]!;
       const expectedState = readEditorState(path.resolve('tests/fixtures/flat.json'));
@@ -84,12 +84,12 @@ function readEditorState(filePath: string): SerializedEditorState {
   it(
     'loads a snapshot fixture into the editor',
     { meta: { collabDocId: 'snapshot-tree' } } as any,
-    async ({ lexical }) => {
+    async ({ remdo }) => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-tree' };
       const loadPath = path.resolve('tests/fixtures/tree.json');
       runSnapshotCommand('load', [loadPath], docEnv);
 
-      await lexical.waitForSynced();
+      await remdo.waitForSynced();
 
       const expectedState = readEditorState(loadPath);
       const savePath = SNAPSHOT_OUTPUTS[2]!;
@@ -103,7 +103,7 @@ function readEditorState(filePath: string): SerializedEditorState {
       const savedState = readEditorState(savePath);
       expect(savedState.root).toEqual(expectedState.root);
 
-      await lexical.waitForSynced();
+      await remdo.waitForSynced();
     }
   );
 
@@ -122,8 +122,8 @@ function readEditorState(filePath: string): SerializedEditorState {
     });
   });
 
-  it('keeps browser doc id aligned with CLI default configuration', async ({ lexical }: TestContext) => {
-    const defaultDoc = lexical.getCollabDocId();
+  it('keeps browser doc id aligned with CLI default configuration', async ({ remdo }: TestContext) => {
+    const defaultDoc = remdo.getCollabDocId();
     const envOverrides = {
       COLLAB_DOCUMENT_ID: defaultDoc,
       VITE_COLLAB_DOCUMENT_ID: defaultDoc,
@@ -131,16 +131,16 @@ function readEditorState(filePath: string): SerializedEditorState {
     const defaultFixture = path.resolve('tests/fixtures/basic.json');
     runSnapshotCommand('load', [defaultFixture], envOverrides);
 
-    await lexical.waitForSynced();
+    await remdo.waitForSynced();
 
-    expect(lexical.getCollabDocId()).toBe(defaultDoc);
+    expect(remdo.getCollabDocId()).toBe(defaultDoc);
   });
 
   it(
     'cross-loads and saves multiple documents without crosstalk',
     { timeout: SNAPSHOT_TIMEOUT_MS },
-    async ({ lexical }: TestContext) => {
-      const defaultDoc = lexical.getCollabDocId();
+    async ({ remdo }: TestContext) => {
+      const defaultDoc = remdo.getCollabDocId();
       const secondaryDoc = `${defaultDoc}-secondary`;
       const envOverrides = {
         COLLAB_DOCUMENT_ID: defaultDoc,
@@ -155,8 +155,8 @@ function readEditorState(filePath: string): SerializedEditorState {
       runSnapshotCommand('load', [defaultFixture], envOverrides);
       runSnapshotCommand('load', ['--doc', secondaryDoc, secondaryFixture]);
 
-      await lexical.waitForSynced();
-      expect(lexical.getCollabDocId()).toBe(defaultDoc);
+      await remdo.waitForSynced();
+      expect(remdo.getCollabDocId()).toBe(defaultDoc);
 
       await waitFor(() => {
         runSnapshotCommand('save', [defaultOutput], envOverrides);

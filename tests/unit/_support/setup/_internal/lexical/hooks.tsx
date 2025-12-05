@@ -47,19 +47,16 @@ beforeEach<TestContext>(async (ctx) => {
 
   await remdoTest.waitForCollaborationReady();
 
-  const remdo = {
+  ctx.remdo = {
     ...remdoTest,
     load: async (fixtureName: string) => remdoTest.applySerializedState(readFixture(fixtureName)),
-  } as RemdoTestApi & { load: (fixture: string) => Promise<void> };
-
-  ctx.remdo = remdo;
-  ctx.lexical = remdo; // legacy alias during migration
+  };
 
   await ctx.remdo.load('basic'); //FIXME
 
   if (config.env.COLLAB_ENABLED) {
-    await remdo.clear();
-    await remdo.waitForSynced();
+    await ctx.remdo.clear();
+    await ctx.remdo.waitForSynced();
   }
 });
 
