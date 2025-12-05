@@ -135,6 +135,24 @@ Dockerfile checks) and decide whether to gate CI on its report.
    `pnpm run test:e2e` (collab enabled via env); set `COLLAB_ENABLED=false`
    temporarily when you need a non-collab run.
 
+### (NEW) Incremental redo plan for unified test bridge
+
+1. Tighten bridge API: rename `load`→`applySerializedState` in
+   `TestBridgePlugin`; update Playwright bridge to call it; keep a short
+   `load(page, name)` helper that reads fixtures on the Node side. Checks:
+   `pnpm run lint`, `pnpm run typecheck`.
+2. Vitest setup uses the bridge directly: in unit setup expose `remdo` and set
+   `remdo.load = (name) => remdo.applySerializedState(readFixture(name))`; drop
+   extra helper casting; update Vitest context types. Run `pnpm run test:unit`.
+3. Rename `lexical`→`remdo` in unit specs/helpers, removing the old helper
+   indirection files. Run `pnpm run test:unit`.
+4. Align fixtures per spec (flat/basic/tree/tree_complex) without changing
+   logic; rerun `pnpm run test:unit`.
+5. If outlines differ, adjust only fixture choice or expected outlines (no
+   command logic). Run `pnpm run test:unit` and `pnpm run test:unit:collab`.
+6. Playwright smoke: rename `loadFixture`→`load` to match the bridge; optional
+   `pnpm run test:e2e`.
+
 ## Unified Lexical test bridge (window-based)
 
 1. Add a dev-only `TestBridgePlugin` inside `DevPlugin` that registers a
