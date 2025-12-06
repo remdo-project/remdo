@@ -1,4 +1,4 @@
-import type { ListItemNode } from '@lexical/list';
+import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
@@ -12,8 +12,8 @@ import {
 import type { TextNode } from 'lexical';
 import { useEffect } from 'react';
 import {
-  $getOrCreateChildList,
   findNearestListItem,
+  isChildrenWrapper,
   getContentListItem,
   insertBefore,
 } from '@/editor/outline/list-structure';
@@ -44,17 +44,25 @@ function $handleEnterInMiddle(contentItem: ListItemNode, textNode: TextNode, off
 }
 
 function $handleEnterAtEnd(contentItem: ListItemNode) {
-  const list = $getOrCreateChildList(contentItem);
-  const newChild = $createNote('');
+  const wrapper = contentItem.getNextSibling();
+  const list = isChildrenWrapper(wrapper) ? wrapper.getFirstChild<ListNode>() : null;
 
-  const firstChild = list.getFirstChild();
-  if (firstChild) {
-    insertBefore(firstChild, [newChild]);
-  } else {
-    list.append(newChild);
+  if (list && list.getChildrenSize() > 0) {
+    const newChild = $createNote('');
+    const firstChild = list.getFirstChild();
+    if (firstChild) {
+      insertBefore(firstChild, [newChild]);
+    } else {
+      list.append(newChild);
+    }
+    const textNode = newChild.getChildren().find($isTextNode);
+    textNode?.select(0, 0);
+    return;
   }
 
-  const textNode = newChild.getChildren().find($isTextNode);
+  const newSibling = $createNote('');
+  contentItem.insertAfter(newSibling);
+  const textNode = newSibling.getChildren().find($isTextNode);
   textNode?.select(0, 0);
 }
 

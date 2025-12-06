@@ -125,7 +125,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'X' });
   });
 
-  it.fails('enter at end on a leaf note inserts a next sibling and focuses it', async ({ remdo }) => {
+  it('enter at end on a leaf note inserts a next sibling and focuses it', async ({ remdo }) => {
     await remdo.load('tree');
 
     await placeCaretAtNote('note1', remdo, Number.POSITIVE_INFINITY);
