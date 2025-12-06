@@ -5,7 +5,7 @@ set -o pipefail 2>/dev/null || true
 PATH="/usr/local/bin:/usr/bin:/bin:${PATH:-}"
 
 NODE_BIN=${NODE_BIN:-/usr/local/bin/node}
-SNAPSHOT_BIN=${SNAPSHOT_BIN:-/usr/local/bin/snapshot.cjs}
+SNAPSHOT_BIN=${SNAPSHOT_BIN:-/usr/local/bin/snapshot.mjs}
 TARGET_ROOT=${TARGET_ROOT:-/data}
 TARGET_DIR="${TARGET_ROOT%/}/backup"
 PORT=${APP_PORT:-${PORT:-8080}}
