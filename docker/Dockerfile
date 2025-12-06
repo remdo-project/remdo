@@ -39,7 +39,6 @@ RUN mkdir -p /app/bin \
     --bundle \
     --target=node22 \
     --tsconfig=tsconfig.json \
-    --banner:js="#!/usr/bin/env node" \
     --outfile=/app/bin/snapshot.mjs
 
 ############################
