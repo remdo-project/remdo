@@ -76,15 +76,16 @@ export function InsertionPlugin() {
         const textNode = selection.anchor.getNode() as TextNode;
         const offset = selection.anchor.offset;
 
-        event?.preventDefault();
-        event?.stopPropagation();
-
         if (offset === 0) {
+          event?.preventDefault();
+          event?.stopPropagation();
           $handleEnterAtStart(contentItem);
           return true;
         }
 
         if (offset === textNode.getTextContentSize()) {
+          event?.preventDefault();
+          event?.stopPropagation();
           $handleEnterAtEnd(contentItem);
           return true;
         }

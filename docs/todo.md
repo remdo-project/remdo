@@ -132,10 +132,3 @@ Dockerfile checks) and decide whether to gate CI on its report.
    textNode.getTextContentSize() even though there is preceding/following text
    in the note. That misclassifies mid- note positions as start/end and triggers
    the wrong insertion path. (src/editor/plugins/InsertionPlugin.tsx:75-90)
-3. [P2] The handler always calls event.preventDefault()/stopPropagation() before
-   deciding whether it will handle Enter. On Safari/iOS Lexical relies on the
-   beforeinput path (it intentionally avoids preventDefault in its own handler);
-   pre-emptively preventing default here can disable platform behaviors like
-   autocap/IME handling and isn’t needed when we return false.
-   (src/editor/plugins/InsertionPlugin.tsx:79-80) the new API location in
-   AGENTS.md.
