@@ -22,6 +22,7 @@ COPY \
 COPY src ./src
 COPY lib ./lib
 COPY config ./config
+COPY tools ./tools
 
 # Production build-time env (same-origin proxy on configurable PUBLIC_PORT)
 ENV NODE_ENV=production \
