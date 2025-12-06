@@ -4,7 +4,7 @@ import { afterEach, beforeEach } from 'vitest';
 import { env } from 'node:process';
 import type { TestContext } from 'vitest';
 import Editor from '@/editor/Editor';
-import type { RemdoTestApi } from '@/editor/plugins/dev/TestBridgePlugin';
+import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { readFixture } from '../../../../../_support/fixtures';
 
 let collabDocCounter = 0;

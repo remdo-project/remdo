@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import type { RemdoTestApi } from '@/editor/plugins/dev/TestBridgePlugin';
+import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { readFixture } from '../../_support/fixtures';
 
 export async function load(page: Page, fixtureName: string): Promise<void> {
