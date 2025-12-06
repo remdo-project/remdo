@@ -31,18 +31,6 @@ function $handleEnterAtStart(contentItem: ListItemNode) {
   textNode?.select(0, 0);
 }
 
-function $handleEnterInMiddle(contentItem: ListItemNode, textNode: TextNode, offset: number) {
-  const text = textNode.getTextContent();
-  const before = text.slice(0, offset);
-  const after = text.slice(offset);
-
-  const newItem = $createNote(before);
-  contentItem.insertBefore(newItem);
-
-  textNode.setTextContent(after);
-  textNode.select(0, 0);
-}
-
 function $handleEnterAtEnd(contentItem: ListItemNode) {
   const wrapper = contentItem.getNextSibling();
   const list = isChildrenWrapper(wrapper) ? wrapper.getFirstChild<ListNode>() : null;
@@ -93,14 +81,15 @@ export function InsertionPlugin() {
 
         if (offset === 0) {
           $handleEnterAtStart(contentItem);
-        } else if (offset === textNode.getTextContentSize()) {
-          $handleEnterAtEnd(contentItem);
-        } else {
-          return false;
-          $handleEnterInMiddle(contentItem, textNode, offset);
+          return true;
         }
 
-        return true;
+        if (offset === textNode.getTextContentSize()) {
+          $handleEnterAtEnd(contentItem);
+          return true;
+        }
+
+        return false;
       },
       COMMAND_PRIORITY_HIGH
     );
