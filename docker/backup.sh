@@ -2,7 +2,9 @@
 set -eu
 # shellcheck disable=SC3040
 set -o pipefail 2>/dev/null || true
+PATH="/usr/local/bin:/usr/bin:/bin:${PATH:-}"
 
+NODE_BIN=${NODE_BIN:-/usr/local/bin/node}
 SNAPSHOT_BIN=${SNAPSHOT_BIN:-/usr/local/bin/snapshot.mjs}
 TARGET_ROOT=${TARGET_ROOT:-/data}
 TARGET_DIR="${TARGET_ROOT%/}/backup"
@@ -19,6 +21,6 @@ fi
 
 mkdir -p "$TARGET_DIR"
 HOST="$HOST" PORT="$PORT" COLLAB_SERVER_PORT="$COLLAB_SERVER_PORT" COLLAB_CLIENT_PORT="$COLLAB_CLIENT_PORT" NODE_ENV="$NODE_ENV" \
-  "$SNAPSHOT_BIN" save "$TARGET_DIR/main" --md
+  "$NODE_BIN" "$SNAPSHOT_BIN" save "$TARGET_DIR/main" --md
 HOST="$HOST" PORT="$PORT" COLLAB_SERVER_PORT="$COLLAB_SERVER_PORT" COLLAB_CLIENT_PORT="$COLLAB_CLIENT_PORT" NODE_ENV="$NODE_ENV" \
-  "$SNAPSHOT_BIN" save "$TARGET_DIR/project" --doc project --md
+  "$NODE_BIN" "$SNAPSHOT_BIN" save "$TARGET_DIR/project" --doc project --md
