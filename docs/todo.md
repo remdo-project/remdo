@@ -50,11 +50,10 @@ consistent once we wire up mouse interactions.
 ## Normalize structural selection helper return shape
 
 Move `getContiguousSelectionHeads` to a single-path API that always returns an
-array (empty for collapsed/invalid ranges) and emits optional dev-only
-telemetry when invariants fail. Update the helper docstring, Selection/Indent
-plugins, and the existing unit tests to expect empty arrays instead of `null`
-so command paths stay branch-free while still surfacing anomalies during
-development.
+array (empty for collapsed/invalid ranges) and emits optional dev-only telemetry
+when invariants fail. Update the helper docstring, Selection/Indent plugins, and
+the existing unit tests to expect empty arrays instead of `null` so command
+paths stay branch-free while still surfacing anomalies during development.
 
 ## OutlineSelection + dataset removal
 
@@ -110,7 +109,7 @@ Dockerfile checks) and decide whether to gate CI on its report.
   child-list creation, wrapper cleanup) and `selection-utils` helpers
   (contiguity + selected notes) to lock behaviors.
 - Prefer unit tests near the helpers; keep fixtures minimal and mirror current
- tree shapes in `tests/fixtures`.
+  tree shapes in `tests/fixtures`.
 
 ## Unified Lexical test bridge (window-based)
 
@@ -118,4 +117,18 @@ Dockerfile checks) and decide whether to gate CI on its report.
    the shared API where feasible so all test suites rely on the same bridge and
    synchronization semantics.
 2. Remove any legacy test-only components once the bridge is wired, and note
-   the new API location in AGENTS.md.
+
+## InsertionPlugin
+
+1. [P1] Mid-note split still violates docs/insertion.md: falling through to
+   Lexical’s default Enter creates a new list item below the current note and
+   moves the caret into it, instead of inserting the prefix as a new sibling
+   above and keeping the caret in the original note. That means the documented
+   middle-of-note behavior (split-above, caret stays on trailing text) is still
+   unimplemented. (src/editor/plugins/InsertionPlugin.tsx:79-92)
+2. [P1] Start/end detection only checks the anchor text node’s offset. With
+   formatted or decorator splits inside a note (multiple text nodes), placing
+   the caret at the boundary of a later span yields offset === 0 or offset ===
+   textNode.getTextContentSize() even though there is preceding/following text
+   in the note. That misclassifies mid- note positions as start/end and triggers
+   the wrong insertion path. (src/editor/plugins/InsertionPlugin.tsx:75-90)

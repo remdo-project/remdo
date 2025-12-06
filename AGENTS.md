@@ -16,22 +16,26 @@ decide what matters.
 
 ## Documentation Map
 
-- `docs/contributing.md` (~270 words). Runtime baselines, Git workflow, and
+- `docs/contributing.md` (~272 words). Runtime baselines, Git workflow, and
   branch conventions—check before touching tooling or process.
-- `docs/outliner/index.md` (~180 words). Single entry point for outlining docs
-  with links to model, selection, indent/outdent, and reordering specs.
-- `docs/outliner/concepts.md` (~553 words). Canonical definition of notes,
+- `docs/outliner/index.md` (~197 words). Single entry point for outlining docs
+  with links to model, selection, indent/outdent, insertion, and reordering specs.
+- `docs/outliner/concepts.md` (~485 words). Canonical definition of notes,
   invariants, and adapters—skim when working on data modeling or serialization.
-- `docs/outliner/note-structure-rules.md` (~1.08k words). Structural invariants
+- `docs/outliner/note-structure-rules.md` (~1.01k words). Structural invariants
   and indent/outdent semantics—consult when editing tree transforms or note
   mutations.
 - `docs/outliner/selection.md` (~1.45k words). Cursor/selection semantics for
   the editor runtime—reference for UX or Lexical selection work.
-- `docs/outliner/reordering.md` (~100 words). Level-preserving reordering behavior and placement
-  invariants.
-- `docs/outliner/drag-and-drop.md` (~81 words). Pointer-based reordering (drag
+- `docs/outliner/reordering.md` (~99 words). Level-preserving reordering
+  behavior and placement invariants.
+- `docs/outliner/drag-and-drop.md` (~100 words). Pointer-based reordering (drag
   and drop) – not supported yet; future plan lives there.
-- `docs/todo.md` (~0.75k words). Project roadmap plus outstanding design
+- `docs/insertion.md` (~251 words). Caret-mode `Enter` behavior
+  (start/middle/end) and focus rules; mid-note splits keep pre-caret text in
+  place and move post-caret text to a sibling below; end-of-note inserts a
+  child only when children already exist, otherwise a sibling.
+- `docs/todo.md` (~0.87k words). Project roadmap plus outstanding design
   questions—review when planning new features; now includes the Render
   deployment plan.
 - `docs/deployment-single-container.md` (~269 words). How to build and run the
@@ -75,10 +79,10 @@ the map stays trustworthy.
 
 ### What is a note?
 
-Refer to `docs/concepts.md` for the canonical definition of a note, including
-its invariants, structure, and adapter contracts. In short, notes are the
-addressable, typed units that form RemDo’s ordered tree; the concepts document
-captures the full model.
+Refer to `docs/outliner/concepts.md` for the canonical definition of a note,
+including its invariants, structure, and adapter contracts. In short, notes are
+the addressable, typed units that form RemDo’s ordered tree; the concepts
+document captures the full model.
 
 ## Safety & Process
 

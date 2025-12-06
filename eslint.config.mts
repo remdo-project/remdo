@@ -21,6 +21,7 @@ export default antfu(
       'unicorn/no-unused-properties': 'error',
       'unicorn/no-useless-undefined': 'error',
       'antfu/no-top-level-await': 'off',
+      'no-unreachable': 'error',
     },
   },
   unicornUnopinionatedConfig,

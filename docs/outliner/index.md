@@ -11,9 +11,10 @@ details.
 1. **Concept & invariants:** `./concepts.md` — canonical note model (structure/content/props) and adapter framing.
 2. **Selection:** `./selection.md` — whole-note, contiguous slab selection model and shortcut ladder.
 3. **Indent/Outdent & structure rules:** `./note-structure-rules.md` — structural invariants and indent/outdent semantics.
-4. **Reordering (keyboard):** `./reordering.md` — Reordering behavior and
+4. **Insertion (Enter):** `../insertion.md` — caret-mode Enter behaviors (start/middle/end) and focus rules.
+5. **Reordering (keyboard):** `./reordering.md` — Reordering behavior and
    placement invariants.
-5. **Reordering (drag & drop):** `./drag-and-drop.md` — not supported yet; future plan lives here.
+6. **Reordering (drag & drop):** `./drag-and-drop.md` — not supported yet; future plan lives here.
 
 ## Glossary (minimal)
 
