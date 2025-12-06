@@ -11,7 +11,9 @@ import { spawnPnpm } from './lib/process';
 // crashes with ENOENT. Point temp vars at a repo-local directory so the cache
 // survives for the lifetime of the process. Use a watch-specific subdir to
 // avoid clashes with other Vitest invocations (e.g., CI or Codex CLI).
-setTmpDir({ subdir: 'vitest-tmp-watch' });
+//TODO
+//setTmpDir({ subdir: 'vitest-tmp-watch' });
+setTmpDir();
 
 const vitestArgs = [
   'exec',

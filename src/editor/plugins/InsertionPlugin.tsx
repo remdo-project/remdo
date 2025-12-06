@@ -65,39 +65,34 @@ export function InsertionPlugin() {
     return editor.registerCommand(
       KEY_ENTER_COMMAND,
       (event: KeyboardEvent | null) => {
-        let handled = false;
+        const selection = $getSelection();
 
-        editor.update(() => {
-          const selection = $getSelection();
+        if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+          return false;
+        }
 
-          if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-            return;
-          }
+        const candidateNote = findNearestListItem(selection.anchor.getNode());
+        if (!candidateNote) {
+          return false;
+        }
 
-          const candidateNote = findNearestListItem(selection.anchor.getNode());
-          if (!candidateNote) {
-            return;
-          }
+        const contentItem = getContentListItem(candidateNote);
+        const textNode = selection.anchor.getNode() as TextNode;
+        const offset = selection.anchor.offset;
 
-          const contentItem = getContentListItem(candidateNote);
-          const textNode = selection.anchor.getNode() as TextNode;
-          const offset = selection.anchor.offset;
+        event?.preventDefault();
+        event?.stopPropagation();
 
-          event?.preventDefault();
-          event?.stopPropagation();
+        if (offset === 0) {
+          $handleEnterAtStart(contentItem);
+        } else if (offset === textNode.getTextContentSize()) {
+          $handleEnterAtEnd(contentItem);
+        } else {
+          return false;
+          $handleEnterInMiddle(contentItem, textNode, offset);
+        }
 
-          if (offset === 0) {
-            $handleEnterAtStart(contentItem);
-          } else if (offset === textNode.getTextContentSize()) {
-            $handleEnterAtEnd(contentItem);
-          } else {
-            $handleEnterInMiddle(contentItem, textNode, offset);
-          }
-
-          handled = true;
-        });
-
-        return handled;
+        return true;
       },
       COMMAND_PRIORITY_HIGH
     );

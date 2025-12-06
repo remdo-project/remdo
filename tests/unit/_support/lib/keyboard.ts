@@ -1,5 +1,6 @@
 import type { LexicalEditor } from 'lexical';
 import { act } from '@testing-library/react';
+import { CONTROLLED_TEXT_INSERTION_COMMAND } from 'lexical';
 
 interface NavigatorWithUAData extends Navigator {
   userAgentData?: { platform?: string };
@@ -54,11 +55,19 @@ export async function pressKey(
 
   await act(async () => {
     const allowed = root.dispatchEvent(event);
+    if (allowed && isPrintableKey(key) && !alt && !nextMeta && !nextCtrl) {
+      editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, key);
+      return;
+    }
     if (allowed && key.length === 1 && !alt && !nextMeta && !nextCtrl) {
       dispatchInputEvents(root, key);
     }
   });
   await waitForEditorUpdate(editor);
+}
+
+function isPrintableKey(key: string): boolean {
+  return key.length === 1 && key >= ' ' && key !== '\u007F';
 }
 
 function waitForEditorUpdate(editor: LexicalEditor) {

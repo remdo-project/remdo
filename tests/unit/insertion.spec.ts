@@ -18,7 +18,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'x' });
   });
 
-  it.fails('enter in the middle splits into an above sibling while trailing text and children stay with the original', async ({ remdo }) => {
+  it('enter in the middle splits into an above sibling while trailing text and children stay with the original', async ({ remdo }) => {
     await remdo.load('tree');
 
     await placeCaretAtNote('note1', remdo, 2);
@@ -34,7 +34,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'Xte1' });
   });
 
-  it.fails('enter at end creates a first child and focuses it', async ({ remdo }) => {
+  it('enter at end creates a first child and focuses it', async ({ remdo }) => {
     await remdo.load('basic');
 
     await placeCaretAtNote('note1', remdo, Number.POSITIVE_INFINITY);
@@ -70,7 +70,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
 
-  it.fails('enter split inside nested note inserts sibling above within same parent', async ({ remdo }) => {
+  it('enter split inside nested note inserts sibling above within same parent', async ({ remdo }) => {
     await remdo.load('tree');
 
     await placeCaretAtNote('note2', remdo, 2);
@@ -85,7 +85,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'Xte2' });
   });
 
-  it.fails('enter at end inserts new first child ahead of existing children', async ({ remdo }) => {
+  it('enter at end inserts new first child ahead of existing children', async ({ remdo }) => {
     await remdo.load('tree');
 
     await placeCaretAtNote('note2', remdo, Number.POSITIVE_INFINITY);
@@ -105,7 +105,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'x' });
   });
 
-  it.fails('enter at start of nested note inserts previous sibling at same depth', async ({ remdo }) => {
+  it('enter at start of nested note inserts previous sibling at same depth', async ({ remdo }) => {
     await remdo.load('tree');
 
     await placeCaretAtNote('note3', remdo, 0);
