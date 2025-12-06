@@ -30,6 +30,16 @@ ENV NODE_ENV=production \
 
 RUN pnpm install --frozen-lockfile && pnpm run build
 
+# Bundle snapshot tool for runtime backups (no pnpm dependency in runner).
+RUN mkdir -p /app/bin \
+  && pnpm exec esbuild tools/snapshot.ts \
+    --platform=node \
+    --format=esm \
+    --bundle \
+    --tsconfig=tsconfig.json \
+    --banner:js="#!/usr/bin/env node" \
+    --outfile=/app/bin/snapshot.mjs
+
 ############################
 # Runner: serve SPA + YJS  #
 ############################
@@ -49,17 +59,19 @@ RUN apk add --no-cache caddy \
   && mkdir -p /data /etc/caddy /srv/remdo /var/log
 
 # Install backup script and cron schedule (runs every minute).
-COPY tools/backup.sh /usr/local/bin/backup.sh
+COPY docker/backup.sh /usr/local/bin/backup.sh
 RUN chmod +x /usr/local/bin/backup.sh \
-  && echo "* * * * * cd /app && /usr/local/bin/backup.sh /data >> /var/log/backup.log 2>&1" > /etc/crontabs/root \
+  && echo "* * * * * cd /app && /usr/local/bin/backup.sh >> /var/log/backup.log 2>&1" > /etc/crontabs/root \
   && chmod 600 /etc/crontabs/root \
   && touch /var/log/backup.log
 
 COPY --from=builder /app/data/dist /srv/remdo
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
+COPY --from=builder /app/bin/snapshot.mjs /usr/local/bin/snapshot.mjs
 
 RUN chmod +x /entrypoint.sh
+RUN chmod +x /usr/local/bin/snapshot.mjs
 
 EXPOSE 8080
 
