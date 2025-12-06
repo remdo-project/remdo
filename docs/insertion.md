@@ -21,9 +21,10 @@ mode definitions.
    the caret becomes a new sibling inserted immediately above the original; the
    original note keeps the text after the caret and all of its children (the
    note after the caret remains the parent of its subtree).
-3. **End of note** – create a new first child of the current note. Focus moves
-   to that child. Use this when the parent is expanded; see the collapsed case
-   below.
+3. **End of note** – when the note already has children **and** the parent is
+   expanded, create a new first child. Otherwise (no children or collapsed
+   parent), insert a next sibling immediately below. Focus always moves to the
+   newly created note.
 
 ## Focus rules
 
@@ -31,5 +32,5 @@ mode definitions.
    continues there.
 2. **Middle of note:** keep the caret in the original note (the one after the
    caret) so the trailing text remains the active line.
-3. **End of note:** place the caret at the start of the new child so typing
-   immediately fills it.
+3. **End of note:** place the caret at the start of the newly created note
+   (child or sibling) so typing immediately fills it.

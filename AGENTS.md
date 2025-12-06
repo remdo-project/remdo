@@ -31,8 +31,9 @@ decide what matters.
   behavior and placement invariants.
 - `docs/outliner/drag-and-drop.md` (~100 words). Pointer-based reordering (drag
   and drop) – not supported yet; future plan lives there.
-- `docs/insertion.md` (~250 words). Caret-mode `Enter` behavior (start/middle/end)
-  and focus rules.
+- `docs/insertion.md` (~264 words). Caret-mode `Enter` behavior (start/middle/end)
+  and focus rules; end-of-note inserts a child only when children already exist,
+  otherwise a sibling.
 - `docs/todo.md` (~0.75k words). Project roadmap plus outstanding design
   questions—review when planning new features; now includes the Render
   deployment plan.
