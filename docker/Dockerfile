@@ -46,7 +46,14 @@ ENV YSWEET_PORT_INTERNAL=8081 \
 # hadolint ignore=DL3018
 RUN apk add --no-cache caddy \
   && npm install -g "y-sweet@${YSWEET_VERSION}" \
-  && mkdir -p /data /etc/caddy /srv/remdo
+  && mkdir -p /data /etc/caddy /srv/remdo /var/log
+
+# Install backup script and cron schedule (runs every minute).
+COPY tools/backup.sh /usr/local/bin/backup.sh
+RUN chmod +x /usr/local/bin/backup.sh \
+  && echo "* * * * * cd /app && /usr/local/bin/backup.sh /data >> /var/log/backup.log 2>&1" > /etc/crontabs/root \
+  && chmod 600 /etc/crontabs/root \
+  && touch /var/log/backup.log
 
 COPY --from=builder /app/data/dist /srv/remdo
 COPY docker/Caddyfile /etc/caddy/Caddyfile

@@ -9,6 +9,9 @@ BASICAUTH_PASSWORD_HASH="$(printf '%s\n' "$BASICAUTH_PASSWORD" | caddy hash-pass
 export BASICAUTH_PASSWORD_HASH
 unset BASICAUTH_PASSWORD
 
+# Start cron for periodic backups.
+crond -l 2 -L /var/log/cron.log
+
 y-sweet serve --host 0.0.0.0 --port "${YSWEET_PORT_INTERNAL}" /data &
 
 exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
