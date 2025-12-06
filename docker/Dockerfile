@@ -35,11 +35,11 @@ RUN pnpm install --frozen-lockfile && pnpm run build
 RUN mkdir -p /app/bin \
   && pnpm dlx esbuild tools/snapshot.ts \
     --platform=node \
-    --format=esm \
+    --format=cjs \
     --bundle \
     --target=node22 \
     --tsconfig=tsconfig.json \
-    --outfile=/app/bin/snapshot.mjs
+    --outfile=/app/bin/snapshot.cjs
 
 ############################
 # Runner: serve SPA + YJS  #
@@ -69,10 +69,10 @@ RUN chmod +x /usr/local/bin/backup.sh \
 COPY --from=builder /app/data/dist /srv/remdo
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
-COPY --from=builder /app/bin/snapshot.mjs /usr/local/bin/snapshot.mjs
+COPY --from=builder /app/bin/snapshot.cjs /usr/local/bin/snapshot.cjs
 
 RUN chmod +x /entrypoint.sh
-RUN chmod +x /usr/local/bin/snapshot.mjs
+RUN chmod +x /usr/local/bin/snapshot.cjs
 
 EXPOSE 8080
 
