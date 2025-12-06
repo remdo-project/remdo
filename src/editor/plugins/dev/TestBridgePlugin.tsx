@@ -1,9 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { LexicalCommand, LexicalEditor, EditorUpdateOptions, SerializedEditorState } from 'lexical';
-import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
 import { $getRoot } from 'lexical';
-import { useCollaborationStatus } from './collaboration';
+import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
+import { useCollaborationStatus } from '../collaboration';
 
 async function withTimeout<T>(fnOrPromise: (() => Promise<T>) | Promise<T>, ms: number, message: string): Promise<T> {
   const promise = typeof fnOrPromise === 'function' ? fnOrPromise() : fnOrPromise;
