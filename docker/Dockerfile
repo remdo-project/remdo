@@ -22,6 +22,7 @@ COPY \
 COPY src ./src
 COPY lib ./lib
 COPY config ./config
+COPY tools ./tools
 
 # Production build-time env (same-origin proxy on configurable PUBLIC_PORT)
 ENV NODE_ENV=production \
@@ -32,11 +33,14 @@ RUN pnpm install --frozen-lockfile && pnpm run build
 
 # Bundle snapshot tool for runtime backups (no pnpm dependency in runner).
 RUN mkdir -p /app/bin \
-  && pnpm exec tsx --bundle tools/snapshot.ts \
-    --format esm \
-    --target node22 \
-    --sourcemap=inline \
-    --outfile /app/bin/snapshot.mjs
+  && pnpm dlx esbuild tools/snapshot.ts \
+    --platform=node \
+    --format=esm \
+    --bundle \
+    --target=node22 \
+    --tsconfig=tsconfig.json \
+    --banner:js="import { createRequire as __createRequire } from 'module'; const require = __createRequire(import.meta.url);" \
+    --outfile=/app/bin/snapshot.mjs
 
 ############################
 # Runner: serve SPA + YJS  #
