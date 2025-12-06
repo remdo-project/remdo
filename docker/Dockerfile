@@ -32,13 +32,11 @@ RUN pnpm install --frozen-lockfile && pnpm run build
 
 # Bundle snapshot tool for runtime backups (no pnpm dependency in runner).
 RUN mkdir -p /app/bin \
-  && pnpm exec esbuild tools/snapshot.ts \
-    --platform=node \
-    --format=esm \
-    --bundle \
-    --tsconfig=tsconfig.json \
-    --banner:js="#!/usr/bin/env node" \
-    --outfile=/app/bin/snapshot.mjs
+  && pnpm exec tsx --bundle tools/snapshot.ts \
+    --format esm \
+    --target node22 \
+    --sourcemap=inline \
+    --outfile /app/bin/snapshot.mjs
 
 ############################
 # Runner: serve SPA + YJS  #
