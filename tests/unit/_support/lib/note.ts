@@ -1,6 +1,6 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
-import type { RemdoTestApi } from '@/editor/plugins/TestBridgePlugin';
+import type { RemdoTestApi } from '@/editor/plugins/dev';
 import type { TextNode } from 'lexical';
 import { $createRangeSelection, $getRoot, $getSelection, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
 

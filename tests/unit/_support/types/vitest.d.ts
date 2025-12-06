@@ -1,5 +1,5 @@
 import type { Outline, SelectionSnapshot } from '#tests';
-import type { RemdoTestApi } from '@/editor/plugins/TestBridgePlugin';
+import type { RemdoTestApi } from '@/editor/plugins/dev';
 
 declare module 'vitest' {
   interface RemdoTestHelpers extends RemdoTestApi {
