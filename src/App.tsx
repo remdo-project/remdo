@@ -1,6 +1,6 @@
 import { Anchor, Container, Group, MantineProvider, Title } from '@mantine/core';
 import Editor from './editor/Editor';
-import { RemDoIcon } from './icons/RemDoIcon';
+import remdoIconUrl from './icons/remdo.svg';
 import headerStyles from './styles/AppHeader.module.css';
 import { theme } from './theme';
 import { config } from '#config';
@@ -44,7 +44,7 @@ export default function App() {
           <Group gap="md">
             <Title order={1} className="app-heading-title">
               <a href="/" className={headerStyles.brandLink}>
-                <RemDoIcon className={headerStyles.brandIcon} />
+                <img src={remdoIconUrl} alt="" className={headerStyles.brandIcon} />
                 RemDo
               </a>
             </Title>
