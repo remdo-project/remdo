@@ -158,4 +158,15 @@ export default antfu(
       '@lexical/rules-of-lexical': 'error',
     },
   },
+  {
+    files: ['tools/**/*.{ts,tsx,js,jsx,mts,cts,cjs,mjs}'],
+    rules: {
+      'no-console': [
+        'error',
+        {
+          allow: ['info', 'warn', 'error'],
+        },
+      ],
+    },
+  },
 );

@@ -120,21 +120,22 @@ if (globalWithOptionalDocument.document === undefined) {
 }
 
 const { command, filePath, docId: cliDocId, markdownPath } = parseCliArguments(process.argv.slice(2));
-if (command !== 'save' && command !== 'load') {
-  throw new Error('Usage: snapshot.ts [--doc <id>] <load|save> [filePath] [--md[=<file>]]');
+if (command !== 'save' && command !== 'load' && command !== 'backup') {
+  throw new Error('Usage: snapshot.ts [--doc <id>] <load|save|backup> [filePath] [--md[=<file>]]');
 }
 
 const docId = cliDocId?.trim() || config.env.COLLAB_DOCUMENT_ID;
 const targetFile = resolveSnapshotPath(command, docId, filePath);
 const collabOrigin = `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
 
-const execute =
-  command === 'save'
-    ? () => runSave(docId, collabOrigin, targetFile, markdownPath)
-    : () => runLoad(docId, collabOrigin, targetFile);
-
 try {
-  await execute();
+  if (command === 'save') {
+    await runSave(docId, collabOrigin, targetFile, markdownPath);
+  } else if (command === 'load') {
+    await runLoad(docId, collabOrigin, targetFile);
+  } else {
+    await runBackup(docId, collabOrigin, targetFile, markdownPath);
+  }
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
@@ -145,58 +146,39 @@ function resolveSnapshotPath(
   docId: string,
   filePath: CliArguments['filePath'],
 ): string {
+  const defaultDir = command === 'backup' ? path.resolve('data/backup') : path.resolve('tests/fixtures');
+
+  const ensureJson = (target: string) => (path.extname(target) ? target : `${target}.json`);
+  const sanitizeName = (name: string) => name.replaceAll(/[\\/]+/g, '_').replace(/^\.+/, '');
+
   if (!filePath) {
-    return path.join('data', `${docId}.json`);
+    const base = sanitizeName(docId || 'main');
+    return path.join(defaultDir, ensureJson(base));
   }
 
   const absolutePath = path.resolve(filePath);
-  if (command === 'load' && !fs.existsSync(absolutePath)) {
-    const fixturesRoot = path.resolve('tests', 'fixtures');
-    const normalizeToPosix = (target: string) =>
-      path.posix.normalize(target.split(path.win32.sep).join(path.posix.sep));
-    const ensureJsonExtension = (target: string) =>
-      target.endsWith('.json') ? target : `${target}.json`;
-    const fixturePrefix = 'tests/fixtures/';
-    const ensureFixturePrefix = (target: string) =>
-      target.startsWith(fixturePrefix) ? target : `${fixturePrefix}${target}`;
-    const normalizedInput = normalizeToPosix(filePath);
-    const candidateInputs = new Set<string>();
+  if (fs.existsSync(absolutePath) && fs.statSync(absolutePath).isDirectory()) {
+    const base = sanitizeName(docId || 'main');
+    return path.join(absolutePath, ensureJson(base));
+  }
 
-    const addCandidate = (candidate: string) => {
-      if (!candidate) {
-        return;
-      }
-      candidateInputs.add(candidate);
-      candidateInputs.add(ensureJsonExtension(candidate));
-    };
+  const withExt = ensureJson(absolutePath);
 
-    const sanitizedInput = normalizedInput.replace(/^(?:\.\/)+/, '');
-    if (sanitizedInput.length > 0 && !sanitizedInput.startsWith('../')) {
-      addCandidate(sanitizedInput);
-      addCandidate(ensureFixturePrefix(sanitizedInput));
-    }
-
-    if (!normalizedInput.startsWith('../')) {
-      addCandidate(normalizedInput);
-      addCandidate(ensureFixturePrefix(normalizedInput));
-    }
-
-    const baseName = ensureJsonExtension(path.posix.basename(normalizedInput));
-    addCandidate(ensureFixturePrefix(baseName));
-
-    for (const candidate of candidateInputs) {
-      const directPath = path.resolve(candidate);
-      if (fs.existsSync(directPath)) {
-        return directPath;
-      }
-      const fixturePath = path.resolve(fixturesRoot, candidate);
-      if (fs.existsSync(fixturePath)) {
-        return fixturePath;
+  if (command === 'load' && !fs.existsSync(withExt)) {
+    const fixturesRoot = path.resolve('tests/fixtures');
+    const posixPath = filePath.split(path.win32.sep).join(path.posix.sep);
+    const candidates = [
+      path.join(fixturesRoot, ensureJson(posixPath)),
+      path.join(fixturesRoot, ensureJson(path.basename(posixPath))),
+    ];
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) {
+        return candidate;
       }
     }
   }
 
-  return absolutePath;
+  return withExt;
 }
 
 async function runSave(
@@ -208,8 +190,10 @@ async function runSave(
   await withSession(docId, collabOrigin, async (editor) => {
     const editorState = editor.getEditorState().toJSON();
     writeJson(filePath, editorState);
+    console.info(`[snapshot] save -> ${filePath}`);
 
-    if (markdownPath !== null) {
+    const shouldWriteMarkdown = markdownPath !== null;
+    if (shouldWriteMarkdown) {
       const inferredPath = (() => {
         if (markdownPath && markdownPath.length > 0) {
           return markdownPath;
@@ -223,8 +207,18 @@ async function runSave(
       const markdown = editor.getEditorState().read(() => $convertToMarkdownString(TRANSFORMERS));
       fs.mkdirSync(path.dirname(absoluteMarkdownPath), { recursive: true });
       fs.writeFileSync(absoluteMarkdownPath, `${markdown}\n`);
+      console.info(`[snapshot] markdown -> ${absoluteMarkdownPath}`);
     }
   });
+}
+
+async function runBackup(
+  docId: string,
+  collabOrigin: string,
+  filePath: string,
+  markdownPath: string | null
+): Promise<void> {
+  await runSave(docId, collabOrigin, filePath, markdownPath);
 }
 
 async function runLoad(docId: string, collabOrigin: string, filePath: string): Promise<void> {
@@ -235,6 +229,7 @@ async function runLoad(docId: string, collabOrigin: string, filePath: string): P
     await done;
     await waitForSync(provider);
   });
+  console.info(`[snapshot] load <- ${filePath}`);
 }
 
 async function withSession(

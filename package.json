@@ -35,7 +35,6 @@
     "dev:init": "./tools/dev-init.sh",
     "build": "vite build",
     "preview": "vite preview",
-    "load": "tsx ./tools/snapshot.ts load",
     "lint": "cross-env CI=1 pnpm run typecheck && pnpm run lint:code && pnpm run lint:md",
     "lint:code": "cross-env CI=1 eslint --max-warnings=0 --cache --cache-location node_modules/.cache/eslint",
     "lint:code:watch": "chokidar \"**/*.{ts,tsx,js,jsx,mts,cts,json}\" --initial -i \"**/{node_modules,data,.git}/**\" -d 150 -c \"pnpm lint && echo LINT_OK || { echo LINT_FAIL; exit 1; }\"",
@@ -55,7 +54,9 @@
     "test:e2e": "pnpm exec playwright test",
     "test:e2e:ui": "tsx ./tools/test-e2e-ui.ts",
     "test:e2e:watch": "PWTEST_WATCH=1 pnpm exec playwright test",
-    "save": "tsx ./tools/snapshot.ts save"
+    "load": "tsx ./tools/snapshot.ts load",
+    "save": "tsx ./tools/snapshot.ts save",
+    "backup": "tsx ./tools/snapshot.ts backup"
   },
   "dependencies": {
     "@lexical/devtools-core": "^0.38.2",

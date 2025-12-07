@@ -6,8 +6,6 @@ PATH="/usr/local/bin:/usr/bin:/bin:${PATH:-}"
 
 NODE_BIN=${NODE_BIN:-/usr/local/bin/node}
 SNAPSHOT_BIN=${SNAPSHOT_BIN:-/usr/local/bin/snapshot.mjs}
-TARGET_ROOT=${TARGET_ROOT:-/data}
-TARGET_DIR="${TARGET_ROOT%/}/backup"
 PORT=${APP_PORT:-${PORT:-8080}}
 HOST=${HOST:-127.0.0.1}
 COLLAB_SERVER_PORT=${COLLAB_SERVER_PORT:-${YSWEET_PORT_INTERNAL:-8081}}
@@ -19,8 +17,9 @@ if [ ! -x "$SNAPSHOT_BIN" ]; then
   exit 1
 fi
 
-mkdir -p "$TARGET_DIR"
+mkdir -p /data/backup
+
 HOST="$HOST" PORT="$PORT" COLLAB_SERVER_PORT="$COLLAB_SERVER_PORT" COLLAB_CLIENT_PORT="$COLLAB_CLIENT_PORT" NODE_ENV="$NODE_ENV" \
-  "$NODE_BIN" "$SNAPSHOT_BIN" save "$TARGET_DIR/main" --md
+  "$NODE_BIN" "$SNAPSHOT_BIN" backup /data/backup --md
 HOST="$HOST" PORT="$PORT" COLLAB_SERVER_PORT="$COLLAB_SERVER_PORT" COLLAB_CLIENT_PORT="$COLLAB_CLIENT_PORT" NODE_ENV="$NODE_ENV" \
-  "$NODE_BIN" "$SNAPSHOT_BIN" save "$TARGET_DIR/project" --doc project --md
+  "$NODE_BIN" "$SNAPSHOT_BIN" backup /data/backup --doc project --md
