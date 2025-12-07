@@ -47,6 +47,20 @@ follow-up plan to exercise pointer gestures (dragging between notes and
 `Shift+Click` expansion) so the SelectionPlugin’s snap + blocking logic stays
 consistent once we wire up mouse interactions.
 
+## Selection regression coverage (new tests)
+
+1. Stage-1 structural commands: add regression specs that start from the first
+   Cmd/Ctrl+A inline highlight and verify `Shift+Tab` outdents and
+   `MOVE_SELECTION_UP_COMMAND` reorders the whole note plus descendants, just
+   like Tab/move-down now do.
+2. Pointer-anchored upward ladder: begin with a mouse drag over siblings, then
+   press `Shift+Up` repeatedly to ensure the selection keeps climbing siblings
+   and hoisting the parent instead of collapsing back to inline.
+3. Mixed keyboard → pointer → keyboard progression: climb to stage 3/4 via
+   keyboard, tweak the slab with `Shift+Click`, and continue with
+   `Shift+Arrow`; assert the ladder state persists and keeps expanding rather
+   than resetting to stage 1.
+
 ## Normalize structural selection helper return shape
 
 Move `getContiguousSelectionHeads` to a single-path API that always returns an
