@@ -881,6 +881,35 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
   });
 
+  it('hoists the parent when Shift+Up continues a pointer selection slab', async ({ remdo }) => {
+    await remdo.load('tree_complex');
+
+    const rootElement = remdo.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const note4Text = getNoteTextNode(rootElement, 'note4');
+    const note2Text = getNoteTextNode(rootElement, 'note2');
+    await dragDomSelectionBetween(note4Text, note4Text.length, note2Text, 0);
+
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({
+        state: 'structural',
+        notes: ['note2', 'note3', 'note4'],
+      });
+    });
+
+    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({
+        state: 'structural',
+        notes: ['note1', 'note2', 'note3', 'note4'],
+      });
+    });
+  });
+
   it('escalates Shift+Down from a nested leaf until the document is selected', async ({ remdo }) => {
     await remdo.load('tree_complex');
 

@@ -42,10 +42,7 @@ Options to consider when implementing:
 
 ## Selection regression coverage (new tests)
 
-1. Pointer-anchored upward ladder: begin with a mouse drag over siblings, then
-   press `Shift+Up` repeatedly to ensure the selection keeps climbing siblings
-   and hoisting the parent instead of collapsing back to inline.
-2. Mixed keyboard → pointer → keyboard progression: climb to stage 3/4 via
+1. Mixed keyboard → pointer → keyboard progression: climb to stage 3/4 via
    keyboard, tweak the slab with `Shift+Click`, and continue with
    `Shift+Arrow`; assert the ladder state persists and keeps expanding rather
    than resetting to stage 1.
