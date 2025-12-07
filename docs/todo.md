@@ -42,10 +42,6 @@ Options to consider when implementing:
 
 ## Selection regression coverage (new tests)
 
-1. Mixed keyboard → pointer → keyboard progression: climb to stage 3/4 via
-   keyboard, tweak the slab with `Shift+Click`, and continue with
-   `Shift+Arrow`; assert the ladder state persists and keeps expanding rather
-   than resetting to stage 1.
 
 ## Normalize structural selection helper return shape
 

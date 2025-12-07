@@ -363,6 +363,54 @@ describe('selection plugin', () => {
     });
   });
 
+  it('keeps the ladder alive after Shift+Click tweaks to continue with Shift+Arrow', async ({ remdo }) => {
+    await remdo.load('tree_complex');
+
+    const rootElement = remdo.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote('note2', remdo);
+
+    // Stage 1: inline
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+
+    // Stage 2: note + descendants
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+    // Stage 3: siblings slab
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+
+    // Stage 4: hoist parent subtree
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+
+    // Pointer tweak: Shift+Click (simulated via DOM extend) to include note5
+    const note5Text = getNoteTextNode(rootElement, 'note5');
+    await extendDomSelectionToText(note5Text, note5Text.length);
+
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({
+        state: 'structural',
+        notes: ['note1', 'note2', 'note3', 'note4', 'note5'],
+      });
+    });
+
+    // Continue ladder with Shift+Arrow after pointer tweak
+    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({
+        state: 'structural',
+        notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'],
+      });
+    });
+  });
+
 // Skip only when collab is enabled to avoid JSDOM selection drift in collab mode.
 // TODO: Reimplement in real browser (e.g., Playwright) coverage.
 it.skipIf(config.env.COLLAB_ENABLED)(
