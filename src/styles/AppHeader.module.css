@@ -7,10 +7,11 @@
 }
 
 .brandIcon {
-  width: 0.9em;
-  height: 0.9em;
+  width: 1em;
+  height: 1em;
+  display: inline-block;
   flex-shrink: 0;
-  color: inherit;
+  vertical-align: middle;
   transition: color 150ms ease;
 }
 
