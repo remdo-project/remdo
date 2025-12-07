@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { config } from '#config';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = config.env.VITEST_PREVIEW;
@@ -57,14 +57,14 @@ export default defineConfig(() => {
       globalSetup: './tests/global/collab-server-setup.ts',
       setupFiles: ['./tests/unit/_support/setup/index.ts'],
       include: [
+        ...configDefaults.include,
         'tests/unit/**/*.spec.{ts,tsx}',
-        ...(config.env.COLLAB_ENABLED ? [] : ['!tests/unit/collab/**']),
       ],
-      watchExclude: [
-        '**/pnpm-lock.yaml',
-        '**/package-lock.json',
-        '**/yarn.lock',
+      exclude: [
+        ...configDefaults.exclude,
         '**/data/**',
+        'tests/e2e/**',
+        ...(config.env.COLLAB_ENABLED ? [] : ['tests/unit/collab/**']),
       ],
       css: true,
       slowTestThreshold: config.env.COLLAB_ENABLED ? 4000 : undefined,
