@@ -7,11 +7,19 @@
 }
 
 .brandIcon {
-  width: 0.9em;
-  height: 0.9em;
+  width: 0.74em;
+  height: 0.74em;
+  display: block;
   flex-shrink: 0;
-  color: inherit;
-  transition: color 150ms ease;
+  background-color: currentColor;
+  mask-image: url('../icons/remdo.svg');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-image: url('../icons/remdo.svg');
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
 }
 
 .brandLink:hover .brandIcon,
