@@ -12,11 +12,11 @@
   display: block;
   flex-shrink: 0;
   background-color: currentColor;
-  mask-image: url('../icons/remdo.svg');
+  mask-image: url('/favicon.svg');
   mask-repeat: no-repeat;
   mask-position: center;
   mask-size: contain;
-  -webkit-mask-image: url('../icons/remdo.svg');
+  -webkit-mask-image: url('/favicon.svg');
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: center;
   -webkit-mask-size: contain;
