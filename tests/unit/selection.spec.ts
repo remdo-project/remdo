@@ -10,7 +10,7 @@ import {
   readOutline,
 } from '#tests';
 import { $getSelection, $isRangeSelection } from 'lexical';
-import { MOVE_SELECTION_DOWN_COMMAND } from '@/editor/commands';
+import { MOVE_SELECTION_DOWN_COMMAND, MOVE_SELECTION_UP_COMMAND } from '@/editor/commands';
 
 const TREE_COMPLEX_OUTLINE: Outline = [
   {
@@ -549,6 +549,56 @@ it.skipIf(config.env.COLLAB_ENABLED)(
         },
         { text: 'note5', children: [] },
         { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+      ]);
+    });
+  });
+
+  it('runs structural outdent from stage-1 inline selection', async ({ remdo }) => {
+    await remdo.load('tree_complex');
+
+    await placeCaretAtNote('note4', remdo);
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
+
+    await pressKey(remdo.editor, { key: 'Tab', shift: true });
+
+    await waitFor(() => {
+      expect(remdo).toMatchOutline([
+        {
+          text: 'note1',
+          children: [
+            { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+          ],
+        },
+        { text: 'note4', children: [] },
+        { text: 'note5', children: [] },
+        { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+      ]);
+    });
+  });
+
+  it('moves a stage-1 inline selection upward with its subtree', async ({ remdo }) => {
+    await remdo.load('tree_complex');
+
+    await placeCaretAtNote('note6', remdo);
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note6' });
+
+    await remdo.dispatchCommand(MOVE_SELECTION_UP_COMMAND);
+
+    await waitFor(() => {
+      expect(remdo).toMatchOutline([
+        {
+          text: 'note1',
+          children: [
+            { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+            { text: 'note4', children: [] },
+          ],
+        },
+        { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+        { text: 'note5', children: [] },
       ]);
     });
   });
