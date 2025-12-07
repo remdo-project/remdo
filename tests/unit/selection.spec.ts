@@ -10,6 +10,7 @@ import {
   readOutline,
 } from '#tests';
 import { $getSelection, $isRangeSelection } from 'lexical';
+import { MOVE_SELECTION_DOWN_COMMAND } from '@/editor/commands';
 
 const TREE_COMPLEX_OUTLINE: Outline = [
   {
@@ -495,6 +496,61 @@ it.skipIf(config.env.COLLAB_ENABLED)(
 
     expect(remdo).toMatchOutline(outlineBefore);
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+  });
+
+  it('runs structural indent from stage-1 inline selection', async ({ remdo }) => {
+    await remdo.load('tree_complex');
+
+    await placeCaretAtNote('note4', remdo);
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
+
+    await pressKey(remdo.editor, { key: 'Tab' });
+
+    await waitFor(() => {
+      expect(remdo).toMatchOutline([
+        {
+          text: 'note1',
+          children: [
+            {
+              text: 'note2',
+              children: [
+                { text: 'note3', children: [] },
+                { text: 'note4', children: [] },
+              ],
+            },
+          ],
+        },
+        { text: 'note5', children: [] },
+        { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+      ]);
+    });
+  });
+
+  it('reorders a stage-1 inline selection together with its subtree', async ({ remdo }) => {
+    await remdo.load('tree_complex');
+
+    await placeCaretAtNote('note2', remdo);
+    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+
+    await remdo.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
+
+    await waitFor(() => {
+      expect(remdo).toMatchOutline([
+        {
+          text: 'note1',
+          children: [
+            { text: 'note4', children: [] },
+            { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+          ],
+        },
+        { text: 'note5', children: [] },
+        { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+      ]);
+    });
   });
 
   it('lets Delete remove the entire subtree at stage 2 of the progressive ladder', async ({ remdo }) => {
