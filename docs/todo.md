@@ -99,6 +99,7 @@ actual structural removal occurs.
 Goal: eliminate opaque timeouts by surfacing editor outcomes explicitly.
 
 Plan:
+
 1. Introduce `awaitEditorOutcome` in TestBridgePlugin that listens for update,
    error, or noop (no update scheduled) and returns a structured status instead
    of relying on a single update event plus a timeout.

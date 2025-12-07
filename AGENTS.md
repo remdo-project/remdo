@@ -16,34 +16,37 @@ decide what matters.
 
 ## Documentation Map
 
-- `docs/contributing.md` (~272 words). Runtime baselines, Git workflow, and
-  branch conventions—check before touching tooling or process.
-- `docs/outliner/index.md` (~197 words). Single entry point for outlining docs
-  with links to model, selection, indent/outdent, insertion, and reordering specs.
-- `docs/outliner/concepts.md` (~485 words). Canonical definition of notes,
+Length buckets: Short (<300 words), Medium (300–800), Long (800–1500), Very long
+(>1500). Update a doc’s bucket only when it crosses a boundary.
+
+- `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch
+  conventions—check before touching tooling or process.
+- `docs/outliner/index.md` (Short). Single entry point for outlining docs with
+  links to model, selection, indent/outdent, insertion, and reordering specs.
+- `docs/outliner/concepts.md` (Medium). Canonical definition of notes,
   invariants, and adapters—skim when working on data modeling or serialization.
-- `docs/outliner/note-structure-rules.md` (~1.01k words). Structural invariants
-  and indent/outdent semantics—consult when editing tree transforms or note
+- `docs/outliner/note-structure-rules.md` (Long). Structural invariants and
+  indent/outdent semantics—consult when editing tree transforms or note
   mutations.
-- `docs/outliner/selection.md` (~1.45k words). Cursor/selection semantics for
-  the editor runtime—reference for UX or Lexical selection work.
-- `docs/outliner/reordering.md` (~99 words). Level-preserving reordering
-  behavior and placement invariants.
-- `docs/outliner/drag-and-drop.md` (~100 words). Pointer-based reordering (drag
-  and drop) – not supported yet; future plan lives there.
-- `docs/insertion.md` (~251 words). Caret-mode `Enter` behavior
-  (start/middle/end) and focus rules; mid-note splits keep pre-caret text in
-  place and move post-caret text to a sibling below; end-of-note inserts a
-  child only when children already exist, otherwise a sibling.
-- `docs/todo.md` (~0.99k words). Project roadmap plus outstanding design
+- `docs/outliner/selection.md` (Long). Cursor/selection semantics for the editor
+  runtime—reference for UX or Lexical selection work.
+- `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior
+  and placement invariants.
+- `docs/outliner/drag-and-drop.md` (Short). Pointer-based reordering (drag and
+  drop) – not supported yet; future plan lives there.
+- `docs/insertion.md` (Short). Caret-mode `Enter` behavior (start/middle/end)
+  and focus rules; mid-note splits keep pre-caret text in place and move
+  post-caret text to a sibling below; end-of-note inserts a child only when
+  children already exist, otherwise a sibling.
+- `docs/todo.md` (Long). Project roadmap plus outstanding design
   questions—review when planning new features; now includes the Render
   deployment plan.
-- `docs/deployment-single-container.md` (~269 words). How to build and run the
+- `docs/deployment-single-container.md` (Short). How to build and run the
   single-container image (Caddy + Y-Sweet) and its env knobs, including basic
   auth requirements.
 
-Whenever you edit any of these docs, update their summaries/word counts here so
-the map stays trustworthy.
+Whenever you edit any of these docs, update their summaries/buckets here so the
+map stays trustworthy.
 
 ## Doc Workflow
 
