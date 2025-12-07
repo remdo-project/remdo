@@ -18,6 +18,7 @@ decide what matters.
 
 Length buckets: Short (<300 words), Medium (300–800), Long (800–1500), Very long
 (>1500). Update a doc’s bucket only when it crosses a boundary.
+Keep the map current—refresh summaries/buckets here when you edit a doc.
 
 - `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch
   conventions—check before touching tooling or process.
@@ -96,7 +97,6 @@ document captures the full model.
     before making changes.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
-  assistant session.
 - The project is in dev phase, do not introduce temporary shims when refactoring
   or fixing bugs; aim for permanent solutions.
 - Always focus on the simplest and shortest possible implementation that meets
@@ -118,8 +118,8 @@ document captures the full model.
   as broken and investigate instead of extending the timeout.
 - Current timings on this machine (rounded with headroom): `pnpm run lint`
   about 5–10s, `pnpm run test:unit` about 10–20s, `pnpm run test:unit:collab`
-  about 12–25s. Timeouts flag a problem to debug; only adjust ranges if healthy
-  runs consistently settle outside them.
+  about 12–25s. If you ever hit the 60s guard, debug the failure (don’t extend);
+  only adjust ranges if healthy runs consistently land outside them.
 
 ### Local agents
 
