@@ -94,6 +94,27 @@ stage 2 is active).
 Both variants should prove that Delete/Backspace is only swallowed when an
 actual structural removal occurs.
 
+## TestBridge robustness
+
+Goal: eliminate opaque timeouts by surfacing editor outcomes explicitly.
+
+Plan:
+1. Introduce `awaitEditorOutcome` in TestBridgePlugin that listens for update,
+   error, or noop (no update scheduled) and returns a structured status instead
+   of relying on a single update event plus a timeout.
+2. Update bridge actions (`mutate`, `dispatchCommand`, `pressKey`) to await the
+   outcome and, when collab is enabled, chain `collab.awaitSynced()` after the
+   outcome settles.
+3. Add optional expectations per action (expect update/noop/error/any); mismatch
+   should fail fast with a descriptive error rather than timing out.
+4. Keep a small per-action timeout only as a final guard, returning status
+   `timeout` instead of throwing; log a warning when callers ignore non-success
+   statuses during the transition period.
+5. Provide a back-compat shim so existing tests still work; progressively
+   migrate suites to assert on outcomes for failure-path coverage (e.g., stale
+   structural selections). Drop the shim once all suites consume the structured
+   outcome API.
+
 ## Container image security lint
 
 Evaluate adding Dockle to scan the built container image (complements Hadolint’s

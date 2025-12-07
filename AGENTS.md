@@ -35,7 +35,7 @@ decide what matters.
   (start/middle/end) and focus rules; mid-note splits keep pre-caret text in
   place and move post-caret text to a sibling below; end-of-note inserts a
   child only when children already exist, otherwise a sibling.
-- `docs/todo.md` (~0.84k words). Project roadmap plus outstanding design
+- `docs/todo.md` (~0.99k words). Project roadmap plus outstanding design
   questions—review when planning new features; now includes the Render
   deployment plan.
 - `docs/deployment-single-container.md` (~269 words). How to build and run the
