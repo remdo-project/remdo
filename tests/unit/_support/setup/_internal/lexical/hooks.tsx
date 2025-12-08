@@ -46,6 +46,8 @@ beforeEach<TestContext>(async (ctx) => {
     load: async (fixtureName: string) => remdoTest.applySerializedState(await readFixture(fixtureName)),
   };
 
+  await ctx.remdo.load('basic'); //FIXME
+
   if (config.env.COLLAB_ENABLED) {
     await ctx.remdo.clear();
     await ctx.remdo.waitForSynced();
