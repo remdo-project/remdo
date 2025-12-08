@@ -192,7 +192,8 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
   };
 }
 
-export type RemdoTestApi = ReturnType<typeof createTestBridgeApi>;
+type RemdoTestApiInternal = ReturnType<typeof createTestBridgeApi>;
+export type RemdoTestApi = Omit<RemdoTestApiInternal, 'awaitOutcome'>;
 
 declare global {
   interface Window {
@@ -204,7 +205,8 @@ export function TestBridgePlugin() {
   const [editor] = useLexicalComposerContext();
   const collab = useCollaborationStatus();
 
-  const api = useMemo<RemdoTestApi>(() => createTestBridgeApi(editor, collab), [collab, editor]);
+  const apiInternal = useMemo(() => createTestBridgeApi(editor, collab), [collab, editor]);
+  const api = apiInternal as RemdoTestApi;
 
   useEffect(() => {
     const previous = globalThis.window.remdoTest;

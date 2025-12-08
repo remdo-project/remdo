@@ -24,10 +24,10 @@ interface PressKeyOptions {
 }
 
 export async function pressKey(
-  editor: LexicalEditor,
+  remdo: RemdoTestApi,
   { key, shift = false, alt = false, meta = false, ctrl = false, ctrlOrMeta, expect }: PressKeyOptions
 ) {
-  const root = editor.getRootElement();
+  const root = remdo.editor.getRootElement();
   if (!root) {
     throw new Error('Lexical root element is not mounted');
   }
@@ -58,7 +58,7 @@ export async function pressKey(
   await act(async () => {
     const allowed = root.dispatchEvent(event);
     if (allowed && isPrintableKey(key) && !alt && !nextMeta && !nextCtrl) {
-      editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, key);
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, key);
       return;
     }
     if (allowed && key.length === 1 && !alt && !nextMeta && !nextCtrl) {
@@ -66,15 +66,15 @@ export async function pressKey(
     }
   });
 
-  const testApi = (globalThis as typeof globalThis & { remdoTest?: RemdoTestApi }).remdoTest;
-  if (testApi) {
-    const outcome = testApi.awaitOutcome(expect ?? 'any');
-    testApi.editor.update(() => {});
+  const awaitOutcome = (remdo as RemdoTestApi & { awaitOutcome?: (expect?: 'update' | 'noop' | 'any') => Promise<void> }).awaitOutcome;
+  if (awaitOutcome) {
+    const outcome = awaitOutcome(expect ?? 'any');
+    remdo.editor.update(() => {});
     await outcome;
     return;
   }
 
-  await waitForEditorUpdate(editor);
+  await waitForEditorUpdate(remdo.editor);
 }
 
 function isPrintableKey(key: string): boolean {

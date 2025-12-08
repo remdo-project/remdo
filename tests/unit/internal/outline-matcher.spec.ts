@@ -88,8 +88,8 @@ describe('toMatchOutline smoke coverage', () => {
     await remdo.load('tree_complex');
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
@@ -98,8 +98,8 @@ describe('toMatchOutline smoke coverage', () => {
     await remdo.load('tree_complex');
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     expect(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note5'] });

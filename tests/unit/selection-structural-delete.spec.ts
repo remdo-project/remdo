@@ -10,8 +10,8 @@ describe('structural selection delete regression (local)', () => {
 
     // Promote to stage 2: note2 + note3 subtree.
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     const expectedAfterRemoteDelete = [
       { text: 'note1', children: [ { text: 'note4', children: [] } ] },
@@ -44,7 +44,7 @@ describe('structural selection delete regression (local)', () => {
     });
 
     // Local Delete should bubble (no changes) and not throw despite stale selection.
-    await pressKey(remdo.editor, { key: 'Delete' });
+    await pressKey(remdo, { key: 'Delete' });
 
     expect(readOutline(remdo)).toEqual(expectedAfterRemoteDelete);
   });

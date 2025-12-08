@@ -6,9 +6,9 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await remdo.load('basic');
 
     await placeCaretAtNote('note1', remdo, 0);
-    await pressKey(remdo.editor, { key: 'Enter' });
+    await pressKey(remdo, { key: 'Enter' });
 
-    await pressKey(remdo.editor, { key: 'X' });
+    await pressKey(remdo, { key: 'X' });
 
     expect(remdo).toMatchOutline([
       { text: 'X', children: [] },
@@ -22,9 +22,9 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await remdo.load('tree');
 
     await placeCaretAtNote('note1', remdo, 2);
-    await pressKey(remdo.editor, { key: 'Enter' });
+    await pressKey(remdo, { key: 'Enter' });
 
-    await pressKey(remdo.editor, { key: 'X' });
+    await pressKey(remdo, { key: 'X' });
 
     expect(remdo).toMatchOutline([
       { text: 'no', children: [] },
@@ -38,9 +38,9 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await remdo.load('basic');
 
     await placeCaretAtNote('note1', remdo, Number.POSITIVE_INFINITY);
-    await pressKey(remdo.editor, { key: 'Enter' });
+    await pressKey(remdo, { key: 'Enter' });
 
-    await pressKey(remdo.editor, { key: 'X' });
+    await pressKey(remdo, { key: 'X' });
 
     expect(remdo).toMatchOutline([
       {
@@ -59,12 +59,12 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await remdo.load('tree');
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     const before = remdo.getEditorState();
-    await pressKey(remdo.editor, { key: 'Enter' });
+    await pressKey(remdo, { key: 'Enter' });
 
     expect(remdo).toMatchEditorState(before);
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
@@ -74,8 +74,8 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await remdo.load('tree');
 
     await placeCaretAtNote('note2', remdo, 2);
-    await pressKey(remdo.editor, { key: 'Enter' });
-    await pressKey(remdo.editor, { key: 'X' });
+    await pressKey(remdo, { key: 'Enter' });
+    await pressKey(remdo, { key: 'X' });
 
     expect(remdo).toMatchOutline([
       { text: 'note1', children: [] },
@@ -89,8 +89,8 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await remdo.load('tree');
 
     await placeCaretAtNote('note2', remdo, Number.POSITIVE_INFINITY);
-    await pressKey(remdo.editor, { key: 'Enter' });
-    await pressKey(remdo.editor, { key: 'X' });
+    await pressKey(remdo, { key: 'Enter' });
+    await pressKey(remdo, { key: 'X' });
 
     expect(remdo).toMatchOutline([
       { text: 'note1', children: [] },
@@ -109,8 +109,8 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await remdo.load('tree');
 
     await placeCaretAtNote('note3', remdo, 0);
-    await pressKey(remdo.editor, { key: 'Enter' });
-    await pressKey(remdo.editor, { key: 'X' });
+    await pressKey(remdo, { key: 'Enter' });
+    await pressKey(remdo, { key: 'X' });
 
     expect(remdo).toMatchOutline([
       { text: 'note1', children: [] },
@@ -129,8 +129,8 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await remdo.load('tree');
 
     await placeCaretAtNote('note1', remdo, Number.POSITIVE_INFINITY);
-    await pressKey(remdo.editor, { key: 'Enter' });
-    await pressKey(remdo.editor, { key: 'X' });
+    await pressKey(remdo, { key: 'Enter' });
+    await pressKey(remdo, { key: 'X' });
 
     expect(remdo).toMatchOutline([
       { text: 'note1', children: [] },
@@ -144,8 +144,8 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await remdo.load('tree_complex');
 
     await placeCaretAtNote('note4', remdo, 0);
-    await pressKey(remdo.editor, { key: 'Enter' });
-    await pressKey(remdo.editor, { key: 'X' });
+    await pressKey(remdo, { key: 'Enter' });
+    await pressKey(remdo, { key: 'X' });
 
     expect(remdo).toMatchOutline([
       {
@@ -169,8 +169,8 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await remdo.load('tree_complex');
 
     await placeCaretAtNote('note2', remdo, 2);
-    await pressKey(remdo.editor, { key: 'Enter' });
-    await pressKey(remdo.editor, { key: 'X' });
+    await pressKey(remdo, { key: 'Enter' });
+    await pressKey(remdo, { key: 'X' });
 
     expect(remdo).toMatchOutline([
       {

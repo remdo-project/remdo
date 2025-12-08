@@ -332,8 +332,8 @@ describe('selection plugin', () => {
     }
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({
@@ -374,19 +374,19 @@ describe('selection plugin', () => {
     await placeCaretAtNote('note2', remdo);
 
     // Stage 1: inline
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
 
     // Stage 2: note + descendants
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     // Stage 3: siblings slab
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     // Stage 4: hoist parent subtree
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Pointer tweak: Shift+Click (simulated via DOM extend) to include note5
@@ -401,7 +401,7 @@ describe('selection plugin', () => {
     });
 
     // Continue ladder with Shift+Arrow after pointer tweak
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({
@@ -419,12 +419,12 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await remdo.load('flat');
 
     await placeCaretAtNote('note2', remdo, 0);
-    await pressKey(remdo.editor, { key: 'ArrowLeft', shift: true });
+    await pressKey(remdo, { key: 'ArrowLeft', shift: true });
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
 
     await placeCaretAtNote('note2', remdo, Number.POSITIVE_INFINITY);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
-    await pressKey(remdo.editor, { key: 'ArrowRight', shift: true });
+    await pressKey(remdo, { key: 'ArrowRight', shift: true });
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   }
 );
@@ -439,14 +439,14 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await placeCaretAtNote('note2', remdo);
 
     // Promote selection to stage 2: note + descendants.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    await pressKey(remdo.editor, { key: 'ArrowLeft', shift: true });
+    await pressKey(remdo, { key: 'ArrowLeft', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    await pressKey(remdo.editor, { key: 'ArrowRight', shift: true });
+    await pressKey(remdo, { key: 'ArrowRight', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   }
 );
@@ -462,10 +462,10 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await placeCaretAtNote('note2', remdo);
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
     await placeCaretAtNote('note1', remdo);
@@ -481,17 +481,17 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     }
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(remdo.editor, { key: 'Escape' });
+    await pressKey(remdo, { key: 'Escape' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
   });
 
@@ -504,16 +504,16 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     }
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(remdo.editor, { key: 'Enter' });
+    await pressKey(remdo, { key: 'Enter' });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
   });
 
@@ -526,8 +526,8 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     }
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
     const outlineBefore = readOutline(remdo);
@@ -535,7 +535,7 @@ it.skipIf(config.env.COLLAB_ENABLED)(
 
     const stateBefore = remdo.editor.getEditorState();
 
-    await pressKey(remdo.editor, { key: 'x' });
+    await pressKey(remdo, { key: 'x' });
     expect(rootElement.dataset.structuralSelection).toBe('true');
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
@@ -550,11 +550,11 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await remdo.load('tree_complex');
 
     await placeCaretAtNote('note4', remdo);
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
 
-    await pressKey(remdo.editor, { key: 'Tab' });
+    await pressKey(remdo, { key: 'Tab' });
 
     await waitFor(() => {
       expect(remdo).toMatchOutline([
@@ -580,7 +580,7 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await remdo.load('tree_complex');
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
 
@@ -605,11 +605,11 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await remdo.load('tree_complex');
 
     await placeCaretAtNote('note4', remdo);
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
 
-    await pressKey(remdo.editor, { key: 'Tab', shift: true });
+    await pressKey(remdo, { key: 'Tab', shift: true });
 
     await waitFor(() => {
       expect(remdo).toMatchOutline([
@@ -630,7 +630,7 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await remdo.load('tree_complex');
 
     await placeCaretAtNote('note6', remdo);
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note6' });
 
@@ -655,14 +655,14 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await remdo.load('tree_complex');
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     expect(remdo).toMatchOutline(TREE_COMPLEX_OUTLINE);
 
-    await pressKey(remdo.editor, { key: 'Delete' });
+    await pressKey(remdo, { key: 'Delete' });
 
     await waitFor(() => {
       expect(remdo).toMatchOutline([
@@ -677,14 +677,14 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await remdo.load('tree_complex');
 
     await placeCaretAtNote('note6', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
 
     expect(remdo).toMatchOutline(TREE_COMPLEX_OUTLINE);
 
-    await pressKey(remdo.editor, { key: 'Backspace' });
+    await pressKey(remdo, { key: 'Backspace' });
 
     await waitFor(() => {
       expect(remdo).toMatchOutline([
@@ -709,11 +709,11 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     }
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(remdo.editor, { key: 'ArrowRight' });
+    await pressKey(remdo, { key: 'ArrowRight' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
   });
 
@@ -726,8 +726,8 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     }
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
     expect(rootElement.dataset.structuralSelection).toBe('true');
@@ -751,12 +751,12 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     }
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(remdo.editor, { key: 'ArrowDown' });
+    await pressKey(remdo, { key: 'ArrowDown' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
@@ -771,12 +771,12 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     }
 
     await placeCaretAtNote('note5', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(remdo.editor, { key: 'ArrowLeft' });
+    await pressKey(remdo, { key: 'ArrowLeft' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note5' });
   });
@@ -790,12 +790,12 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     }
 
     await placeCaretAtNote('note5', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(remdo.editor, { key: 'ArrowRight' });
+    await pressKey(remdo, { key: 'ArrowRight' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note6' });
   });
@@ -809,12 +809,12 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     }
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(remdo.editor, { key: 'ArrowUp' });
+    await pressKey(remdo, { key: 'ArrowUp' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
@@ -829,21 +829,21 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     }
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(remdo.editor, { key: 'Home' });
+    await pressKey(remdo, { key: 'Home' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(remdo.editor, { key: 'End' });
+    await pressKey(remdo, { key: 'End' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
   });
@@ -857,22 +857,22 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     }
 
     await placeCaretAtNote('note2', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
-    await pressKey(remdo.editor, { key: 'PageDown' });
+    await pressKey(remdo, { key: 'PageDown' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await pressKey(remdo.editor, { key: 'PageUp' });
+    await pressKey(remdo, { key: 'PageUp' });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
@@ -883,26 +883,26 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await placeCaretAtNote('note2', remdo);
 
     // Stage 1: inline body only.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
 
     // Stage 2: note + descendants.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     // Stage 3: siblings at the same depth.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     // Stage 4: hoist to parent subtree.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Stage 5+: walk root-level siblings one at a time (per docs/outliner/selection.md).
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
@@ -925,7 +925,7 @@ it.skipIf(config.env.COLLAB_ENABLED)(
       });
     });
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
   });
 
@@ -948,7 +948,7 @@ it.skipIf(config.env.COLLAB_ENABLED)(
       });
     });
 
-    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({
@@ -964,31 +964,31 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await placeCaretAtNote('note3', remdo);
 
     // Stage 1 (docs/outliner/selection.md): inline body only.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note3' });
 
     // Stage 2 promotes the nested leaf structurally.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note3'] });
 
     // Stage 3 would add siblings, but the ladder skips empty rungs per docs/outliner/selection.md and hoists to the parent subtree (Stage 4).
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     // Stage 5: include the parent's next sibling (note4) while keeping the range contiguous.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     // Stage 6: hoist to the next ancestor (note1) and capture its subtree.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Stage 7+: walk root-level siblings one at a time, per docs/outliner/selection.md.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
 
     // Selecting note6 (a parent) must automatically bring along its child note7.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
@@ -1021,14 +1021,14 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     };
 
     // Stage 2: note2 + descendants.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
     assertVisualEnvelopeMatchesSelection(['note2', 'note3']);
 
     // Stage 4: parent subtree (note1..note4).
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
     assertVisualEnvelopeMatchesSelection(['note1', 'note2', 'note3', 'note4']);
   });
@@ -1045,11 +1045,11 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
     // Stage 1 should stay unstructured.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
     // Stage 2 should flip the structural dataset for leaf notes so the UI highlights the block.
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
   });
 
@@ -1057,8 +1057,8 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await remdo.load('tree_complex');
 
     await placeCaretAtNote('note3', remdo);
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note3'] });
   });
@@ -1070,10 +1070,10 @@ it.skipIf(config.env.COLLAB_ENABLED)(
 
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note7' });
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note7' });
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note7'] });
   });
 
@@ -1085,26 +1085,26 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
 
     // Stage 1: inline body only.
-    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
 
     // Stage 2: grab the leaf structurally.
-    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note4'] });
 
     // Stage 3: include the nearest preceding sibling at this depth.
-    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     // Stage 4: hoist to the parent subtree.
-    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Stage 5+: walk root-level siblings upward one at a time, then finish the ladder.
-    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
 
-    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
@@ -1112,8 +1112,8 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await remdo.load('tree_complex');
 
     await placeCaretAtNote('note4', remdo, 2);
-    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
-    await pressKey(remdo.editor, { key: 'ArrowUp', shift: true });
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note4'] });
   });
@@ -1124,28 +1124,28 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     await placeCaretAtNote('note2', remdo);
 
     // Stage 1: inline text only.
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
 
     // Stage 2: note body plus its descendants.
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     // Stage 3 adds the active note's siblings (and their descendants).
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     // Stage 4 hoists the selection to the parent note and its subtree.
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Stage 5 selects every ancestor level until the root.
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
 
     // Moving the caret resets the ladder back to stage 1.
     await placeCaretAtNote('note4', remdo);
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
   });
 
@@ -1156,12 +1156,12 @@ it.skipIf(config.env.COLLAB_ENABLED)(
 
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note7' });
 
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note7' });
 
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
   });
 
@@ -1170,19 +1170,19 @@ it.skipIf(config.env.COLLAB_ENABLED)(
 
     await placeCaretAtNote('note2', remdo);
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
-    await pressKey(remdo.editor, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
-    await pressKey(remdo.editor, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
   });
 });
