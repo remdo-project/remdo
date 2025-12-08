@@ -15,6 +15,11 @@ async function withTimeout<T>(fnOrPromise: (() => Promise<T>) | Promise<T>, ms: 
 
 type EditorStateJSON = ReturnType<ReturnType<LexicalEditor['getEditorState']>['toJSON']>;
 
+type EditorOutcome =
+  | { status: 'update' }
+  | { status: 'noop' }
+  | { status: 'error'; error: unknown };
+
 export interface RemdoTestApi {
   editor: LexicalEditor;
   applySerializedState: (input: string) => Promise<void>;
@@ -35,17 +40,70 @@ declare global {
   }
 }
 
-async function waitForNextUpdate(editor: LexicalEditor): Promise<void> {
-  return withTimeout(
-    new Promise<void>((resolve) => {
-      const off = editor.registerUpdateListener(() => {
-        off();
-        resolve();
-      });
-    }),
-    1000,
-    'TestBridgePlugin: timed out waiting for editor update'
+function hasPendingEditorUpdate(editor: LexicalEditor): boolean {
+  const internal = editor as LexicalEditor & {
+    _pendingEditorState: unknown | null;
+    _updates: Array<unknown>;
+    _updating: boolean;
+  };
+
+  return internal._pendingEditorState != null || internal._updates.length > 0 || internal._updating;
+}
+
+function registerEditorErrorListener(editor: LexicalEditor, listener: (error: unknown) => void): () => void {
+  const internal = editor as LexicalEditor & { _onError: (error: unknown) => void };
+  const previous = internal._onError;
+
+  internal._onError = (error: unknown) => {
+    listener(error);
+    previous(error);
+  };
+
+  return () => {
+    internal._onError = previous;
+  };
+}
+
+function awaitEditorOutcome(editor: LexicalEditor) {
+  let settled = false;
+  let resolveOutcome: (outcome: EditorOutcome) => void = () => {};
+
+  const cleanupFns: Array<() => void> = [];
+
+  const cleanup = () => {
+    while (cleanupFns.length > 0) {
+      const fn = cleanupFns.pop();
+      fn?.();
+    }
+  };
+
+  const settle = (result: EditorOutcome) => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    resolveOutcome(result);
+  };
+
+  const outcome = new Promise<EditorOutcome>((resolve) => {
+    resolveOutcome = resolve;
+  });
+
+  cleanupFns.push(
+    registerEditorErrorListener(editor, (error) => settle({ status: 'error', error })),
+    editor.registerUpdateListener(() => settle({ status: 'update' }))
   );
+
+  const noopGuard = setTimeout(() => {
+    if (!settled && !hasPendingEditorUpdate(editor)) {
+      settle({ status: 'noop' });
+    }
+  }, 0);
+
+  cleanupFns.push(() => clearTimeout(noopGuard));
+
+  const reportNoop = () => settle({ status: 'noop' });
+
+  return { outcome, reportNoop };
 }
 
 export function TestBridgePlugin() {
@@ -72,9 +130,13 @@ export function TestBridgePlugin() {
     const applySerializedState = async (input: string) => {
       await ensureHydrated();
       const parsed = editor.parseEditorState(JSON.parse(input) as SerializedEditorState);
-      const updateDone = waitForNextUpdate(editor);
+      const outcome = awaitEditorOutcome(editor);
       editor.setEditorState(parsed, { tag: 'test-bridge-load' });
-      await updateDone;
+      const result = await outcome.outcome;
+      if (result.status === 'error') throw result.error;
+      if (result.status !== 'update') {
+        throw new Error('TestBridgePlugin: setEditorState did not produce an editor update');
+      }
       await collab.awaitSynced();
     };
 
@@ -84,18 +146,27 @@ export function TestBridgePlugin() {
       }
 
       const tag = ['test-bridge-mutate', ...(Array.isArray(opts?.tag) ? opts.tag : opts?.tag ? [opts.tag] : [])];
-      const updateDone = waitForNextUpdate(editor);
+      const outcome = awaitEditorOutcome(editor);
 
       editor.update(fn, { ...opts, tag });
-      await updateDone;
+      const result = await outcome.outcome;
+      if (result.status === 'error') throw result.error;
+      if (result.status !== 'update') {
+        throw new Error('TestBridgePlugin: mutate did not produce an editor update');
+      }
       assertEditorSchema(editor.getEditorState().toJSON());
       await collab.awaitSynced();
     };
 
     const dispatchCommand = async (command: LexicalCommand<unknown>, payload?: unknown) => {
-      const updateDone = waitForNextUpdate(editor).catch(() => {});
-      editor.dispatchCommand(command, payload as never);
-      await updateDone;
+      const outcome = awaitEditorOutcome(editor);
+      const didDispatch = editor.dispatchCommand(command, payload as never);
+      if (!didDispatch) {
+        outcome.reportNoop();
+      }
+
+      const result = await outcome.outcome;
+      if (result.status === 'error') throw result.error;
       await collab.awaitSynced();
     };
 
