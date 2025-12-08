@@ -16,15 +16,17 @@ async function runWithRemdoTest(page: Page, action: RemdoTestAction): Promise<vo
     const api = (globalThis as typeof globalThis & { remdoTest?: RemdoTestApi }).remdoTest;
     if (!api) throw new Error('remdoTest is not available');
 
+    const bridge = api._bridge;
+
     if (payload.kind === 'ensure') {
-      await api.waitForCollaborationReady();
+      await bridge.waitForCollaborationReady();
       if (payload.clear) {
-        await api.clear();
+        await bridge.clear();
       }
       return;
     }
 
-    await api.applySerializedState(payload.stateJson);
+    await bridge.applySerializedState(payload.stateJson);
   }, action);
 }
 

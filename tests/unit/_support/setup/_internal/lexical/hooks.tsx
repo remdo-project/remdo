@@ -39,17 +39,17 @@ beforeEach<TestContext>(async (ctx) => {
     return api;
   });
 
-  await remdoTest.waitForCollaborationReady();
+  await ctx.remdo._bridge.waitForCollaborationReady();
 
   ctx.remdo = {
     ...remdoTest,
-    load: async (fixtureName: string) => remdoTest.applySerializedState(await readFixture(fixtureName)),
+    load: async (fixtureName: string) => remdoTest._bridge.applySerializedState(await readFixture(fixtureName)),
   };
 
   await ctx.remdo.load('basic'); //FIXME
 
   if (config.env.COLLAB_ENABLED) {
-    await ctx.remdo.clear();
+    await ctx.remdo._bridge.clear();
     await ctx.remdo.waitForSynced();
   }
 });

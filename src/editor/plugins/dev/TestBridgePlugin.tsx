@@ -184,22 +184,29 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     assertEditorSchema(getEditorState());
   };
 
-  return {
-    editor,
+  const getCollabDocId = () => collab.docId;
+
+  const bridge = {
     applySerializedState,
     replaceDocument: applySerializedState,
+    waitForCollaborationReady,
+    clear,
+  };
+
+  return {
+    editor,
     mutate,
     validate,
     getEditorState,
     waitForSynced,
-    waitForCollaborationReady,
-    getCollabDocId: () => collab.docId,
     dispatchCommand,
-    clear,
+    getCollabDocId,
+    _bridge: bridge,
   };
 }
 
 export type RemdoTestApi = ReturnType<typeof createTestBridgeApi>;
+export type RemdoBridgeApi = RemdoTestApi['_bridge'];
 
 declare global {
   interface Window {
