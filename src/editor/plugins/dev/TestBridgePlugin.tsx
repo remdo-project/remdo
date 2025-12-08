@@ -16,7 +16,8 @@ async function withTimeout<T>(fnOrPromise: (() => Promise<T>) | Promise<T>, ms: 
 type EditorOutcome =
   | { status: 'update' }
   | { status: 'noop' }
-  | { status: 'error'; error: unknown };
+  | { status: 'error'; error: unknown }
+  | { status: 'timeout' };
 
 type EditorOutcomeExpectation = 'update' | 'noop' | 'any';
 
@@ -39,6 +40,10 @@ function assertOutcome(result: EditorOutcome, action: string, expect: EditorOutc
     throw result.error;
   }
 
+  if (result.status === 'timeout') {
+    throw new Error(`TestBridgePlugin: ${action} timed out waiting for editor outcome`);
+  }
+
   if (expect !== 'any' && result.status !== expect) {
     throw new Error(`TestBridgePlugin: ${action} expected ${expect}, got ${result.status}`);
   }
@@ -58,7 +63,7 @@ function registerEditorErrorListener(editor: LexicalEditor, listener: (error: un
   };
 }
 
-function awaitEditorOutcome(editor: LexicalEditor) {
+function awaitEditorOutcome(editor: LexicalEditor, timeoutMs = 1000) {
   let settled = false;
   let resolveOutcome: (outcome: EditorOutcome) => void = () => {};
 
@@ -94,6 +99,12 @@ function awaitEditorOutcome(editor: LexicalEditor) {
   }, 0);
 
   cleanupFns.push(() => clearTimeout(noopGuard));
+
+  const timeout = setTimeout(() => {
+    settle({ status: 'timeout' });
+  }, timeoutMs);
+
+  cleanupFns.push(() => clearTimeout(timeout));
 
   const reportNoop = () => settle({ status: 'noop' });
 
