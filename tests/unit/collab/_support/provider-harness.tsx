@@ -1,17 +1,10 @@
 import { render } from '@testing-library/react';
-import type { RenderResult } from '@testing-library/react';
 
 import { CollaborationProvider } from '@/editor/plugins/collaboration';
 import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
 import { CollabConsumer } from './provider-test-helpers';
 
-export interface CollabHarness {
-  getCollab: () => CollaborationStatusValue;
-  waitForReady: () => Promise<CollaborationStatusValue>;
-  renderResult: RenderResult;
-}
-
-export function renderCollabHarness(): CollabHarness {
+export function renderCollabHarness() {
   const latestRef: { current?: CollaborationStatusValue } = { current: undefined };
   let resolveReady: ((value: CollaborationStatusValue) => void) | undefined;
   const readyPromise = new Promise<CollaborationStatusValue>((resolve) => {
@@ -44,3 +37,5 @@ export function renderCollabHarness(): CollabHarness {
     renderResult,
   };
 }
+
+export type CollabHarness = ReturnType<typeof renderCollabHarness>;
