@@ -108,7 +108,7 @@ Plan:
    outcome settles.
 3. ✅ Add optional expectations per action (expect update/noop/error/any); mismatch
    should fail fast with a descriptive error rather than timing out.
-4. Keep a small per-action timeout only as a final guard, returning status
+4. ✅ Keep a small per-action timeout only as a final guard, returning status
    `timeout` instead of throwing; log a warning when callers ignore non-success
    statuses during the transition period.
 5. Provide a back-compat shim so existing tests still work; progressively
