@@ -186,15 +186,6 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     assertEditorSchema(getEditorState());
   };
 
-  const awaitOutcome = async (expect: EditorOutcomeExpectation = 'update') => {
-    const outcome = awaitEditorOutcome(editor);
-    const result = handleOutcome(await outcome.outcome, 'awaitOutcome', expect);
-    if (result.status === 'update') {
-      await collab.awaitSynced();
-    }
-    return result;
-  };
-
   return {
     editor,
     applySerializedState,
@@ -207,12 +198,10 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     getCollabDocId: () => collab.docId,
     dispatchCommand,
     clear,
-    awaitOutcome,
   };
 }
 
-type RemdoTestApiInternal = ReturnType<typeof createTestBridgeApi>;
-export type RemdoTestApi = Omit<RemdoTestApiInternal, 'awaitOutcome'>;
+export type RemdoTestApi = ReturnType<typeof createTestBridgeApi>;
 
 declare global {
   interface Window {
@@ -224,8 +213,7 @@ export function TestBridgePlugin() {
   const [editor] = useLexicalComposerContext();
   const collab = useCollaborationStatus();
 
-  const apiInternal = useMemo(() => createTestBridgeApi(editor, collab), [collab, editor]);
-  const api = apiInternal as RemdoTestApi;
+  const api = useMemo(() => createTestBridgeApi(editor, collab), [collab, editor]);
 
   useEffect(() => {
     const previous = globalThis.window.remdoTest;

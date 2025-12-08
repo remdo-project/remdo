@@ -20,12 +20,11 @@ interface PressKeyOptions {
   meta?: boolean;
   ctrl?: boolean;
   ctrlOrMeta?: boolean;
-  expect?: 'update' | 'noop' | 'any';
 }
 
 export async function pressKey(
   remdo: RemdoTestApi,
-  { key, shift = false, alt = false, meta = false, ctrl = false, ctrlOrMeta, expect }: PressKeyOptions
+  { key, shift = false, alt = false, meta = false, ctrl = false, ctrlOrMeta }: PressKeyOptions
 ) {
   const root = remdo.editor.getRootElement();
   if (!root) {
@@ -66,15 +65,8 @@ export async function pressKey(
     }
   });
 
-  const awaitOutcome = (remdo as RemdoTestApi & { awaitOutcome?: (expect?: 'update' | 'noop' | 'any') => Promise<void> }).awaitOutcome;
-  if (awaitOutcome) {
-    const outcome = awaitOutcome(expect ?? 'any');
-    remdo.editor.update(() => {});
-    await outcome;
-    return;
-  }
-
   await waitForEditorUpdate(remdo.editor);
+  await remdo.waitForSynced();
 }
 
 function isPrintableKey(key: string): boolean {

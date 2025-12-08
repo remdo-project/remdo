@@ -111,14 +111,10 @@ Plan:
 4. ✅ Keep a small per-action timeout only as a final guard, returning status
    `timeout` instead of throwing; log a warning when callers ignore non-success
    statuses during the transition period.
-5. Provide a back-compat shim so existing tests still work; progressively
-   migrate suites to assert on outcomes for failure-path coverage (e.g., stale
-   structural selections). Drop the shim once all suites consume the structured
-   outcome API.
+5. ✅ Migrate callers directly to structured outcomes (single hop); no shim kept.
 6. ✅ Update `pressKey` to accept the shared `remdo` test API directly (drop the
-   `window.remdoTest` lookup once callers are migrated) and keep `awaitOutcome`
-   private to the harness (remove it from the public bridge API once callers
-   no longer depend on it).
+   `window.remdoTest` lookup once callers are migrated) and remove the
+   `awaitOutcome` helper entirely now that callers rely on structured outcomes.
 
 ### Codebase sweep: deduplicate API shapes
 
