@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": ["vitest/globals", "vitest/jsdom", "node", "vite/client"]
+    "types": ["vitest/globals", "vitest/jsdom", "@playwright/test", "node", "vite/client"]
   },
-  "include": ["tests/unit", "vitest.config.ts"]
+  "include": ["tests/**/*", "vitest.config.ts", "playwright.config.ts"]
 }
