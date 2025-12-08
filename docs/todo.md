@@ -116,6 +116,13 @@ Plan:
    structural selections). Drop the shim once all suites consume the structured
    outcome API.
 
+### Codebase sweep: deduplicate API shapes
+
+- Scan for patterns where function-returned APIs are also declared via manual
+  interfaces/types and repeated object literals (e.g., test bridges, helper
+  factories). Refactor to inferred `ReturnType` + single factory to eliminate
+  drift and redundant declarations.
+
 ## Container image security lint
 
 Evaluate adding Dockle to scan the built container image (complements Hadolint’s
