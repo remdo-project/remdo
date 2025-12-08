@@ -1,6 +1,7 @@
 import type { LexicalEditor } from 'lexical';
 import { act } from '@testing-library/react';
 import { CONTROLLED_TEXT_INSERTION_COMMAND } from 'lexical';
+import type { RemdoTestApi } from '@/editor/plugins/dev';
 
 interface NavigatorWithUAData extends Navigator {
   userAgentData?: { platform?: string };
@@ -22,10 +23,10 @@ interface PressKeyOptions {
 }
 
 export async function pressKey(
-  editor: LexicalEditor,
+  remdo: RemdoTestApi,
   { key, shift = false, alt = false, meta = false, ctrl = false, ctrlOrMeta }: PressKeyOptions
 ) {
-  const root = editor.getRootElement();
+  const root = remdo.editor.getRootElement();
   if (!root) {
     throw new Error('Lexical root element is not mounted');
   }
@@ -56,14 +57,16 @@ export async function pressKey(
   await act(async () => {
     const allowed = root.dispatchEvent(event);
     if (allowed && isPrintableKey(key) && !alt && !nextMeta && !nextCtrl) {
-      editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, key);
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, key);
       return;
     }
     if (allowed && key.length === 1 && !alt && !nextMeta && !nextCtrl) {
       dispatchInputEvents(root, key);
     }
   });
-  await waitForEditorUpdate(editor);
+
+  await waitForEditorUpdate(remdo.editor);
+  await remdo.waitForSynced();
 }
 
 function isPrintableKey(key: string): boolean {

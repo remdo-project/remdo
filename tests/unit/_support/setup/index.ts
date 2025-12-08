@@ -3,3 +3,4 @@ import './_internal/assertions';
 import './_internal/env';
 import './_internal/lexical/hooks';
 import './_internal/support-matrix';
+import './_internal/selection-modify-polyfill';

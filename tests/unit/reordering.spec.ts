@@ -29,7 +29,7 @@ describe('keyboard reordering (command path)', () => {
     await remdo.load('basic');
     const outlineBefore = readOutline(remdo);
     await placeCaretAtNote('note3', remdo);
-    await remdo.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
+    await remdo.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND, undefined, { expect: 'noop' });
     expect(remdo).toMatchOutline(outlineBefore);
   });
 
@@ -37,7 +37,7 @@ describe('keyboard reordering (command path)', () => {
     await remdo.load('basic');
     const outlineBefore = readOutline(remdo);
     await placeCaretAtNote('note1', remdo);
-    await remdo.dispatchCommand(MOVE_SELECTION_UP_COMMAND);
+    await remdo.dispatchCommand(MOVE_SELECTION_UP_COMMAND, undefined, { expect: 'noop' });
     expect(remdo).toMatchOutline(outlineBefore);
   });
 
@@ -45,7 +45,7 @@ describe('keyboard reordering (command path)', () => {
     await remdo.load('tree');
     const outlineBefore = readOutline(remdo);
     await placeCaretAtNote('note3', remdo);
-    await remdo.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
+    await remdo.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND, undefined, { expect: 'noop' });
     expect(remdo).toMatchOutline(outlineBefore);
   });
 
@@ -53,7 +53,7 @@ describe('keyboard reordering (command path)', () => {
     await remdo.load('tree');
     const outlineBefore = readOutline(remdo);
     await placeCaretAtNote('note1', remdo);
-    await remdo.dispatchCommand(MOVE_SELECTION_UP_COMMAND);
+    await remdo.dispatchCommand(MOVE_SELECTION_UP_COMMAND, undefined, { expect: 'noop' });
     expect(remdo).toMatchOutline(outlineBefore);
   });
 
@@ -86,7 +86,7 @@ describe('keyboard reordering (command path)', () => {
     await remdo.load('tree_complex');
     const outlineBefore = readOutline(remdo);
     await selectNoteRange('note2', 'note4', remdo); // includes descendant note3
-    await remdo.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
+    await remdo.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND, undefined, { expect: 'noop' });
 
     expect(remdo).toMatchOutline(outlineBefore);
 
@@ -98,7 +98,7 @@ describe('keyboard reordering (command path)', () => {
     // Select nested leaf note3 only; it is the last child of note2
     await selectNoteRange('note3', 'note3', remdo);
     const outlineBefore = readOutline(remdo);
-    await remdo.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
+    await remdo.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND, undefined, { expect: 'noop' });
     expect(remdo).toMatchOutline(outlineBefore);
   });
 
@@ -107,7 +107,7 @@ describe('keyboard reordering (command path)', () => {
     // Select nested leaf note3 only; it is also the first child of note2
     await selectNoteRange('note3', 'note3', remdo);
     const outlineBefore = readOutline(remdo);
-    await remdo.dispatchCommand(MOVE_SELECTION_UP_COMMAND);
+    await remdo.dispatchCommand(MOVE_SELECTION_UP_COMMAND, undefined, { expect: 'noop' });
     expect(remdo).toMatchOutline(outlineBefore);
   });
 
@@ -129,7 +129,7 @@ describe('keyboard reordering (command path)', () => {
     await remdo.load('tree_complex');
     const outlineBefore = readOutline(remdo);
     await selectNoteRange('note2', 'note4', remdo); // includes descendant note3
-    await remdo.dispatchCommand(MOVE_SELECTION_UP_COMMAND);
+    await remdo.dispatchCommand(MOVE_SELECTION_UP_COMMAND, undefined, { expect: 'noop' });
 
     expect(remdo).toMatchOutline(outlineBefore);
 
@@ -139,7 +139,7 @@ describe('keyboard reordering (command path)', () => {
   it('ignores selections spanning different parents', async ({ remdo }) => {
     await remdo.load('tree');
     await selectNoteRange('note1', 'note3', remdo); // crosses root note and nested child
-    await remdo.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
+    await remdo.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND, undefined, { expect: 'noop' });
     expect(remdo).toMatchOutline([
       {
         text: 'note1',
