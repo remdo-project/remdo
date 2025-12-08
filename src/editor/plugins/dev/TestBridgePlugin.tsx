@@ -20,6 +20,12 @@ type EditorOutcome =
   | { status: 'noop' }
   | { status: 'error'; error: unknown };
 
+type EditorOutcomeExpectation = 'update' | 'noop' | 'any';
+
+interface EditorActionOptions {
+  expect?: EditorOutcomeExpectation;
+}
+
 export interface RemdoTestApi {
   editor: LexicalEditor;
   applySerializedState: (input: string) => Promise<void>;
@@ -30,7 +36,7 @@ export interface RemdoTestApi {
   waitForSynced: () => Promise<void>;
   waitForCollaborationReady: (timeoutMs?: number) => Promise<void>;
   getCollabDocId: () => string;
-  dispatchCommand: (command: LexicalCommand<unknown>, payload?: unknown) => Promise<void>;
+  dispatchCommand: (command: LexicalCommand<unknown>, payload?: unknown, opts?: EditorActionOptions) => Promise<void>;
   clear: () => Promise<void>;
 }
 
@@ -48,6 +54,16 @@ function hasPendingEditorUpdate(editor: LexicalEditor): boolean {
   };
 
   return internal._pendingEditorState != null || internal._updates.length > 0 || internal._updating;
+}
+
+function assertOutcome(result: EditorOutcome, action: string, expect: EditorOutcomeExpectation) {
+  if (result.status === 'error') {
+    throw result.error;
+  }
+
+  if (expect !== 'any' && result.status !== expect) {
+    throw new Error(`TestBridgePlugin: ${action} expected ${expect}, got ${result.status}`);
+  }
 }
 
 function registerEditorErrorListener(editor: LexicalEditor, listener: (error: unknown) => void): () => void {
@@ -133,10 +149,7 @@ export function TestBridgePlugin() {
       const outcome = awaitEditorOutcome(editor);
       editor.setEditorState(parsed, { tag: 'test-bridge-load' });
       const result = await outcome.outcome;
-      if (result.status === 'error') throw result.error;
-      if (result.status !== 'update') {
-        throw new Error('TestBridgePlugin: setEditorState did not produce an editor update');
-      }
+      assertOutcome(result, 'setEditorState', 'update');
       await collab.awaitSynced();
     };
 
@@ -150,15 +163,13 @@ export function TestBridgePlugin() {
 
       editor.update(fn, { ...opts, tag });
       const result = await outcome.outcome;
-      if (result.status === 'error') throw result.error;
-      if (result.status !== 'update') {
-        throw new Error('TestBridgePlugin: mutate did not produce an editor update');
-      }
+      assertOutcome(result, 'mutate', 'update');
       assertEditorSchema(editor.getEditorState().toJSON());
       await collab.awaitSynced();
     };
 
-    const dispatchCommand = async (command: LexicalCommand<unknown>, payload?: unknown) => {
+    const dispatchCommand = async (command: LexicalCommand<unknown>, payload?: unknown, opts?: EditorActionOptions) => {
+      const expect = opts?.expect ?? 'update';
       const outcome = awaitEditorOutcome(editor);
       const didDispatch = editor.dispatchCommand(command, payload as never);
       if (!didDispatch) {
@@ -166,7 +177,7 @@ export function TestBridgePlugin() {
       }
 
       const result = await outcome.outcome;
-      if (result.status === 'error') throw result.error;
+      assertOutcome(result, 'dispatchCommand', expect);
       await collab.awaitSynced();
     };
 
