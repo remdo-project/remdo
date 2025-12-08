@@ -116,10 +116,15 @@ Dockerfile checks) and decide whether to gate CI on its report.
 
 ## Unified Lexical test bridge (window-based)
 
-1. Replace bespoke collab test harnesses (e.g., in `tests/unit/collab/*`) with
+1. Consolidate test helpers into the per-test `remdo` object (e.g., `pressKey`,
+   `placeCaretAtNote`, outline readers) so specs stop pulling free helpers; this
+   lets every action naturally await collab sync via the bridge and unlocks
+   removal of `window.remdoTest`.
+2. Replace bespoke collab test harnesses (e.g., in `tests/unit/collab/*`) with
    the shared API where feasible so all test suites rely on the same bridge and
    synchronization semantics.
-2. Remove any legacy test-only components once the bridge is wired, and note
+3. Remove any legacy test-only components once the bridge is wired, and note
+   the transition in docs so the prior harness doesn’t reappear.
 
 ## InsertionPlugin
 
