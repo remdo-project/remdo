@@ -116,9 +116,11 @@ Dockerfile checks) and decide whether to gate CI on its report.
 
 ## Unified Lexical test bridge (window-based)
 
-2. Replace bespoke collab test harnesses (e.g., in `tests/unit/collab/*`) with
-   the shared API where feasible so all test suites rely on the same bridge and
-   synchronization semantics.
+2. Collab specs now share the remdo bridge; keep provider-mock harnesses only
+   for runtime-level tests (awaitSynced/hydration).
+3. Consider letting `Editor` accept a `docId` prop that overrides URL parsing
+   (tests/stories could set it directly; production would keep URL as default),
+   with optional history sync toggle to avoid mutating location in test harnesses.
 3. Remove any legacy test-only components once the bridge is wired, and note
    the transition in docs so the prior harness doesn’t reappear.
 

@@ -186,6 +186,12 @@ export default antfu(
     },
   },
   {
+    files: ['tests/**/_support/**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts}'],
+    rules: {
+      'no-restricted-syntax': 'off',
+    },
+  },
+  {
     plugins: {
       '@lexical': lexicalPlugin,
       compat: compatPlugin,
