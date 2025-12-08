@@ -1,6 +1,5 @@
 import { act, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { config } from '#config';
 import type { Outline } from '#tests';
 import {
   collectSelectedListItems,
@@ -16,12 +15,12 @@ const TREE_COMPLEX_OUTLINE: Outline = [
   {
     text: 'note1',
     children: [
-      { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+      { text: 'note2', children: [{ text: 'note3', children: [] }] },
       { text: 'note4', children: [] },
     ],
   },
   { text: 'note5', children: [] },
-  { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+  { text: 'note6', children: [{ text: 'note7', children: [] }] },
 ];
 
 // Ensures every multi-note selection matches the guarantees from docs/outliner/selection.md:
@@ -411,11 +410,7 @@ describe('selection plugin', () => {
     });
   });
 
-// Skip only when collab is enabled to avoid JSDOM selection drift in collab mode.
-// TODO: Reimplement in real browser (e.g., Playwright) coverage.
-it.skipIf(config.env.COLLAB_ENABLED)(
-  'keeps Shift+Left/Right selections confined to inline content',
-  async ({ remdo }) => {
+  it('keeps Shift+Left/Right selections confined to inline content', async ({ remdo }) => {
     await remdo.load('flat');
 
     await placeCaretAtNote('note2', remdo, 0);
@@ -426,14 +421,9 @@ it.skipIf(config.env.COLLAB_ENABLED)(
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
     await pressKey(remdo, { key: 'ArrowRight', shift: true });
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
-  }
-);
+  });
 
-// Skip only when collab is enabled to avoid JSDOM selection drift in collab mode.
-// TODO: Reimplement in real browser (e.g., Playwright) coverage.
-it.skipIf(config.env.COLLAB_ENABLED)(
-  'treats Shift+Left/Right as no-ops once the selection spans whole notes',
-  async ({ remdo }) => {
+  it('treats Shift+Left/Right as no-ops once the selection spans whole notes', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
     await placeCaretAtNote('note2', remdo);
@@ -448,8 +438,7 @@ it.skipIf(config.env.COLLAB_ENABLED)(
 
     await pressKey(remdo, { key: 'ArrowRight', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
-  }
-);
+  });
 
   it('toggles the structural selection dataset when escalating the ladder', async ({ remdo }) => {
     await remdo.load('tree_complex');
@@ -571,7 +560,7 @@ it.skipIf(config.env.COLLAB_ENABLED)(
           ],
         },
         { text: 'note5', children: [] },
-        { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+        { text: 'note6', children: [{ text: 'note7', children: [] }] },
       ]);
     });
   });
@@ -592,11 +581,11 @@ it.skipIf(config.env.COLLAB_ENABLED)(
           text: 'note1',
           children: [
             { text: 'note4', children: [] },
-            { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+            { text: 'note2', children: [{ text: 'note3', children: [] }] },
           ],
         },
         { text: 'note5', children: [] },
-        { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+        { text: 'note6', children: [{ text: 'note7', children: [] }] },
       ]);
     });
   });
@@ -616,12 +605,12 @@ it.skipIf(config.env.COLLAB_ENABLED)(
         {
           text: 'note1',
           children: [
-            { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+            { text: 'note2', children: [{ text: 'note3', children: [] }] },
           ],
         },
         { text: 'note4', children: [] },
         { text: 'note5', children: [] },
-        { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+        { text: 'note6', children: [{ text: 'note7', children: [] }] },
       ]);
     });
   });
@@ -641,11 +630,11 @@ it.skipIf(config.env.COLLAB_ENABLED)(
         {
           text: 'note1',
           children: [
-            { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+            { text: 'note2', children: [{ text: 'note3', children: [] }] },
             { text: 'note4', children: [] },
           ],
         },
-        { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+        { text: 'note6', children: [{ text: 'note7', children: [] }] },
         { text: 'note5', children: [] },
       ]);
     });
@@ -666,9 +655,9 @@ it.skipIf(config.env.COLLAB_ENABLED)(
 
     await waitFor(() => {
       expect(remdo).toMatchOutline([
-        { text: 'note1', children: [ { text: 'note4', children: [] } ] },
+        { text: 'note1', children: [{ text: 'note4', children: [] }] },
         { text: 'note5', children: [] },
-        { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+        { text: 'note6', children: [{ text: 'note7', children: [] }] },
       ]);
     });
   });
@@ -691,7 +680,7 @@ it.skipIf(config.env.COLLAB_ENABLED)(
         {
           text: 'note1',
           children: [
-            { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+            { text: 'note2', children: [{ text: 'note3', children: [] }] },
             { text: 'note4', children: [] },
           ],
         },
