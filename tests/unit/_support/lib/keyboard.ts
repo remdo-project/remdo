@@ -1,6 +1,7 @@
 import type { LexicalEditor } from 'lexical';
 import { act } from '@testing-library/react';
 import { CONTROLLED_TEXT_INSERTION_COMMAND } from 'lexical';
+import type { RemdoTestApi } from '@/editor/plugins/dev';
 
 interface NavigatorWithUAData extends Navigator {
   userAgentData?: { platform?: string };
@@ -19,11 +20,12 @@ interface PressKeyOptions {
   meta?: boolean;
   ctrl?: boolean;
   ctrlOrMeta?: boolean;
+  expect?: 'update' | 'noop' | 'any';
 }
 
 export async function pressKey(
   editor: LexicalEditor,
-  { key, shift = false, alt = false, meta = false, ctrl = false, ctrlOrMeta }: PressKeyOptions
+  { key, shift = false, alt = false, meta = false, ctrl = false, ctrlOrMeta, expect }: PressKeyOptions
 ) {
   const root = editor.getRootElement();
   if (!root) {
@@ -63,6 +65,15 @@ export async function pressKey(
       dispatchInputEvents(root, key);
     }
   });
+
+  const testApi = (globalThis as typeof globalThis & { remdoTest?: RemdoTestApi }).remdoTest;
+  if (testApi) {
+    const outcome = testApi.awaitOutcome(expect ?? 'any');
+    testApi.editor.update(() => {});
+    await outcome;
+    return;
+  }
+
   await waitForEditorUpdate(editor);
 }
 

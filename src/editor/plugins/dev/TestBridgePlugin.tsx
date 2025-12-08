@@ -169,6 +169,13 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     assertEditorSchema(getEditorState());
   };
 
+  const awaitOutcome = async (expect: EditorOutcomeExpectation = 'update') => {
+    const outcome = awaitEditorOutcome(editor);
+    const result = await outcome.outcome;
+    assertOutcome(result, 'awaitOutcome', expect);
+    await collab.awaitSynced();
+  };
+
   return {
     editor,
     applySerializedState,
@@ -181,6 +188,7 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     getCollabDocId: () => collab.docId,
     dispatchCommand,
     clear,
+    awaitOutcome,
   };
 }
 

@@ -115,6 +115,10 @@ Plan:
    migrate suites to assert on outcomes for failure-path coverage (e.g., stale
    structural selections). Drop the shim once all suites consume the structured
    outcome API.
+6. Update `pressKey` to accept the shared `remdo` test API directly (drop the
+   `window.remdoTest` lookup once callers are migrated) and keep `awaitOutcome`
+   private to the harness (remove it from the public bridge API once callers
+   no longer depend on it).
 
 ### Codebase sweep: deduplicate API shapes
 
