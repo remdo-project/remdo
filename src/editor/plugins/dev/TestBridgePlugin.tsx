@@ -120,6 +120,20 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     await collab.awaitSynced();
   };
 
+  const withOutcome = async (
+    action: string,
+    expect: EditorOutcomeExpectation,
+    run: (reportNoop: () => void) => void
+  ) => {
+    const outcome = awaitEditorOutcome(editor);
+    run(outcome.reportNoop);
+    const result = handleOutcome(await outcome.outcome, action, expect);
+    if (result.status === 'update') {
+      assertEditorSchema(editor.getEditorState().toJSON());
+      await collab.awaitSynced();
+    }
+  };
+
   const waitForCollaborationReady = async (timeoutMs = 2000) => {
     if (!collab.enabled) return;
     if (collab.hydrated && collab.synced) return;
@@ -134,12 +148,7 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
   const applySerializedState = async (input: string) => {
     await ensureHydrated();
     const parsed = editor.parseEditorState(JSON.parse(input) as SerializedEditorState);
-    const outcome = awaitEditorOutcome(editor);
-    editor.setEditorState(parsed, { tag: 'test-bridge-load' });
-    const result = handleOutcome(await outcome.outcome, 'setEditorState', 'update');
-    if (result.status === 'update') {
-      await collab.awaitSynced();
-    }
+    await withOutcome('setEditorState', 'update', () => editor.setEditorState(parsed, { tag: 'test-bridge-load' }));
   };
 
   const mutate = async (fn: () => void, opts?: EditorUpdateOptions) => {
@@ -148,28 +157,17 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     }
 
     const tag = ['test-bridge-mutate', ...(Array.isArray(opts?.tag) ? opts.tag : opts?.tag ? [opts.tag] : [])];
-    const outcome = awaitEditorOutcome(editor);
-
-    editor.update(fn, { ...opts, tag });
-    const result = handleOutcome(await outcome.outcome, 'mutate', 'update');
-    if (result.status === 'update') {
-      assertEditorSchema(editor.getEditorState().toJSON());
-      await collab.awaitSynced();
-    }
+    await withOutcome('mutate', 'update', () => editor.update(fn, { ...opts, tag }));
   };
 
   const dispatchCommand = async (command: LexicalCommand<unknown>, payload?: unknown, opts?: EditorActionOptions) => {
     const expect = opts?.expect ?? 'update';
-    const outcome = awaitEditorOutcome(editor);
-    const didDispatch = editor.dispatchCommand(command, payload as never);
-    if (!didDispatch) {
-      outcome.reportNoop();
-    }
-
-    const result = handleOutcome(await outcome.outcome, 'dispatchCommand', expect);
-    if (result.status === 'update') {
-      await collab.awaitSynced();
-    }
+    await withOutcome('dispatchCommand', expect, (reportNoop) => {
+      const didDispatch = editor.dispatchCommand(command, payload as never);
+      if (!didDispatch) {
+        reportNoop();
+      }
+    });
   };
 
   const clear = async () => {
