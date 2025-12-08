@@ -121,6 +121,7 @@ export default antfu(
     files: ['tests/**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {
+        projectService: false,
         project: './tsconfig.tests.json',
       },
     },

@@ -1,4 +1,67 @@
+catalogMode: prefer
+shellEmulator: true
+trustPolicy: no-downgrade
+overrides:
+  body-parser: 2.2.1
+  express: '>=5.2.0'
+  js-yaml: 4.1.1
+catalog:
+  '@antfu/eslint-config': ^6.4.2
+  '@eslint-react/eslint-plugin': ^2.3.9
+  '@lexical/devtools-core': ^0.38.2
+  '@lexical/eslint-plugin': ^0.38.2
+  '@lexical/history': ^0.38.2
+  '@lexical/list': ^0.38.2
+  '@lexical/markdown': ^0.38.2
+  '@lexical/react': ^0.38.2
+  '@lexical/rich-text': ^0.38.2
+  '@lexical/utils': ^0.38.2
+  '@lexical/yjs': ^0.38.2
+  '@mantine/core': ^8.3.6
+  '@mantine/hooks': ^8.3.6
+  '@playwright/test': ^1.57.0
+  '@testing-library/jest-dom': ^6.9.1
+  '@testing-library/react': ^16.3.0
+  '@testing-library/user-event': ^14.6.1
+  '@types/estree': ^1.0.8
+  '@types/jsdom': ^27.0.0
+  '@types/node': ^24.10.1
+  '@types/react': ^19.2.7
+  '@types/react-dom': ^19.2.3
+  '@types/ws': ^8.5.12
+  '@vitejs/plugin-react-swc': ^4.2.2
+  '@vitest/coverage-v8': ^4.0.6
+  '@vitest/ui': ^4.0.6
+  '@y-sweet/client': ^0.9.1
+  '@y-sweet/react': ^0.9.1
+  '@y-sweet/sdk': ^0.9.1
+  chokidar-cli: ^3.0.0
+  concurrently: ^9.2.1
+  cross-env: ^10.1.0
+  dotenv-flow: 4.1.0
+  eslint: ^9.39.1
+  eslint-plugin-compat: ^6.0.2
+  eslint-plugin-react-hooks: ^7.0.1
+  eslint-plugin-react-refresh: ^0.4.24
+  eslint-plugin-unicorn: ^62.0.0
+  jiti: ^2.6.1
+  jsdom: ^27.2.0
+  lexical: ^0.38.2
+  lib0: ^0.2.114
+  markdownlint-cli2: ^0.19.1
+  react: ^19.2.1
+  react-dom: ^19.2.1
+  tsx: ^4.21.0
+  typescript: ^5.9.3
+  vite: ^7.2.4
+  vitest: ^4.0.6
+  vitest-preview: ^0.0.3
+  ws: 8.18.3
+  y-protocols: ^1.0.6
+  y-sweet: ^0.9.1
+  yjs: ^13.6.27
 onlyBuiltDependencies:
-  - '@swc/core'
-  - esbuild
-  - leveldown
+- '@swc/core'
+- esbuild
+- leveldown
+- y-sweet
