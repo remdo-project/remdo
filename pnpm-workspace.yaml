@@ -1,6 +1,9 @@
 catalogMode: prefer
 shellEmulator: true
 trustPolicy: no-downgrade
+trustPolicyExclude:
+- undici-types@6.21.0
+- semver@6.3.1
 overrides:
   body-parser: 2.2.1
   express: '>=5.2.0'
