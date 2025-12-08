@@ -146,6 +146,52 @@ export default antfu(
     },
   },
   {
+    files: ['tests/unit/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'remdoTest',
+          message: 'Access the bridge via ctx.remdo._bridge instead of the global remdoTest.',
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.type='Identifier'][callee.name='preview']",
+          message: 'preview() is for local debugging only; remove preview() calls before committing.',
+        },
+        {
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.property.name='mutate'] CallExpression[callee.type='Identifier'][callee.name='expect']",
+          message: 'Run expectations outside lexical.mutate(); use lexical.validate() after the mutation completes.',
+        },
+        {
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.property.name='update']:matches([callee.object.property.name='editor'], [callee.object.name='editor']) CallExpression[callee.type='Identifier'][callee.name='expect']",
+          message: 'Run expectations outside editor.update(); validate state after committing.',
+        },
+        {
+          selector: "MemberExpression[property.name='_bridge']",
+          message: 'Use the public remdo test API; _bridge is reserved for test setup helpers.',
+        },
+      ],
+    },
+  },
+  {
+    files: ['tests/unit/_support/setup/_internal/lexical/hooks.tsx'],
+    rules: {
+      'no-restricted-globals': 'off',
+      'no-restricted-syntax': 'off',
+    },
+  },
+  {
+    files: ['tests/**/_support/**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts}'],
+    rules: {
+      'no-restricted-syntax': 'off',
+    },
+  },
+  {
     plugins: {
       '@lexical': lexicalPlugin,
       compat: compatPlugin,

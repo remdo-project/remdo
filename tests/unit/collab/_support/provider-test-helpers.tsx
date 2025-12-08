@@ -5,16 +5,7 @@ import { useCollaborationStatus } from '@/editor/plugins/collaboration';
 
 export type Handler = (payload: unknown) => void;
 
-export interface MockProvider {
-  synced: boolean;
-  hasLocalChanges: boolean;
-  destroy: () => void;
-  on: (event: string, handler: Handler) => void;
-  off: (event: string, handler: Handler) => void;
-  emit: (event: string, payload?: unknown) => void;
-}
-
-export function createMockProvider(): MockProvider {
+export function createMockProvider() {
   const listeners = new Map<string, Set<Handler>>();
 
   return {
@@ -43,6 +34,8 @@ export function createMockProvider(): MockProvider {
     },
   };
 }
+
+export type MockProvider = ReturnType<typeof createMockProvider>;
 
 export function CollabConsumer({ onReady }: { onReady: (value: CollaborationStatusValue) => void }) {
   const value = useCollaborationStatus();

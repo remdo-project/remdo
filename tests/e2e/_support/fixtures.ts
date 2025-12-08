@@ -35,13 +35,7 @@ function attachGuards(page: Page) {
 
 let docCounter = 0;
 
-export interface EditorHarness {
-  docId: string;
-  waitForSynced: () => Promise<void>;
-  load: (name: string) => Promise<void>;
-}
-
-async function createEditorHarness(page: Page, docId: string): Promise<EditorHarness> {
+async function createEditorHarness(page: Page, docId: string) {
   await page.goto(`/?doc=${docId}`);
   await page.getByRole('heading', { name: 'RemDo' }).waitFor();
   await page.locator('.editor-input').first().waitFor();
@@ -58,6 +52,8 @@ async function createEditorHarness(page: Page, docId: string): Promise<EditorHar
     load: (name: string) => load(page, name),
   };
 }
+
+type EditorHarness = Awaited<ReturnType<typeof createEditorHarness>>;
 
 export const test = base.extend<{ testDocId: string; editor: EditorHarness }>({
   page: async ({ page }, apply) => {

@@ -1,61 +1,14 @@
-import { config } from '#config';
-import { render, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
 import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
-import type { LexicalEditor } from 'lexical';
 import { $createListItemNode, $createListNode } from '@lexical/list';
 import { describe, expect, it } from 'vitest';
-import { useEffect, useRef } from 'react';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import Editor from '@/editor/Editor';
-import { useCollaborationStatus } from '@/editor/plugins/collaboration';
-import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
-
-interface PeerHandle {
-  editor: LexicalEditor;
-  waitForSynced: () => Promise<void>;
-  validate: <T>(fn: () => T) => T;
-}
-
-function CollaborationPeer({ onReady }: { onReady: (handle: PeerHandle) => void }) {
-  const [editor] = useLexicalComposerContext();
-  const collab = useCollaborationStatus();
-  const statusRef = useRef<CollaborationStatusValue>(collab);
-
-  useEffect(() => {
-    statusRef.current = collab;
-  }, [collab]);
-
-  useEffect(() => {
-    const waitForSynced: PeerHandle['waitForSynced'] = () => statusRef.current.awaitSynced();
-    const validate: PeerHandle['validate'] = (fn) => editor.getEditorState().read(fn);
-
-    onReady({
-      editor,
-      waitForSynced,
-      validate,
-    });
-  }, [editor, onReady]);
-
-  return null;
-}
+import type { RemdoTestApi } from '@/editor/plugins/dev';
+import { renderCollabEditor } from './_support/remdo-peers';
 
 describe('collaboration sync', () => {
   it('syncs edits between editors', async ({ remdo }) => {
-    let secondary!: PeerHandle;
-    const { protocol, hostname } = globalThis.location;
-    const collabOrigin = `${protocol}//${hostname}:${config.env.COLLAB_CLIENT_PORT}`;
-    // TODO: unify editor construction and collab origin setup with the shared test harness helpers.
-
-    render(
-      <Editor collabOrigin={collabOrigin}>
-        <CollaborationPeer onReady={(handle) => { secondary = handle; }} />
-      </Editor>
-    );
-
-    await waitFor(() => {
-      // eslint-disable-next-line ts/no-unnecessary-condition
-      if (!secondary) throw new Error('Secondary editor not ready');
-    });
+    const docId = remdo.getCollabDocId();
+    const secondary: RemdoTestApi = await renderCollabEditor({ docId });
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -72,7 +25,7 @@ describe('collaboration sync', () => {
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     remdo.editor.update(() => {
-      //TODO use a higher level API once we have it
+      // TODO: use a higher level API once we have it
       const root = $getRoot();
       const list = $createListNode('bullet');
       const item = $createListItemNode();

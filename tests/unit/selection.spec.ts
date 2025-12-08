@@ -330,7 +330,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
@@ -370,7 +370,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
 
     // Stage 1: inline
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -413,11 +413,11 @@ describe('selection plugin', () => {
   it('keeps Shift+Left/Right selections confined to inline content', async ({ remdo }) => {
     await remdo.load('flat');
 
-    await placeCaretAtNote('note2', remdo, 0);
+    await placeCaretAtNote(remdo, 'note2', 0);
     await pressKey(remdo, { key: 'ArrowLeft', shift: true });
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
 
-    await placeCaretAtNote('note2', remdo, Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
     await pressKey(remdo, { key: 'ArrowRight', shift: true });
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
@@ -426,7 +426,7 @@ describe('selection plugin', () => {
   it('treats Shift+Left/Right as no-ops once the selection spans whole notes', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
 
     // Promote selection to stage 2: note + descendants.
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -448,7 +448,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -457,7 +457,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
 
-    await placeCaretAtNote('note1', remdo);
+    await placeCaretAtNote(remdo, 'note1');
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
   });
 
@@ -469,7 +469,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
@@ -492,7 +492,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
@@ -514,7 +514,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
@@ -538,7 +538,7 @@ describe('selection plugin', () => {
   it('runs structural indent from stage-1 inline selection', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note4', remdo);
+    await placeCaretAtNote(remdo, 'note4');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
@@ -568,7 +568,7 @@ describe('selection plugin', () => {
   it('reorders a stage-1 inline selection together with its subtree', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
@@ -593,7 +593,7 @@ describe('selection plugin', () => {
   it('runs structural outdent from stage-1 inline selection', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note4', remdo);
+    await placeCaretAtNote(remdo, 'note4');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
@@ -618,7 +618,7 @@ describe('selection plugin', () => {
   it('moves a stage-1 inline selection upward with its subtree', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note6', remdo);
+    await placeCaretAtNote(remdo, 'note6');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note6' });
@@ -643,7 +643,7 @@ describe('selection plugin', () => {
   it('lets Delete remove the entire subtree at stage 2 of the progressive ladder', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
@@ -665,7 +665,7 @@ describe('selection plugin', () => {
   it('lets Backspace remove the entire subtree at stage 2 of the progressive ladder', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note6', remdo);
+    await placeCaretAtNote(remdo, 'note6');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
@@ -697,7 +697,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(rootElement.dataset.structuralSelection).toBe('true');
@@ -714,7 +714,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
@@ -739,7 +739,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -759,7 +759,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note5', remdo);
+    await placeCaretAtNote(remdo, 'note5');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -778,7 +778,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note5', remdo);
+    await placeCaretAtNote(remdo, 'note5');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -797,7 +797,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -817,7 +817,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -845,7 +845,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -869,7 +869,7 @@ describe('selection plugin', () => {
   it('lets Shift+Down walk the progressive selection ladder', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
 
     // Stage 1: inline body only.
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -950,7 +950,7 @@ describe('selection plugin', () => {
   it('escalates Shift+Down from a nested leaf until the document is selected', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note3', remdo);
+    await placeCaretAtNote(remdo, 'note3');
 
     // Stage 1 (docs/outliner/selection.md): inline body only.
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -985,7 +985,7 @@ describe('selection plugin', () => {
     // TODO: simplify this regression while preserving the coverage described above.
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
 
     const assertVisualEnvelopeMatchesSelection = (expected: string[]) => {
       const labels = remdo.validate(() => {
@@ -1030,7 +1030,7 @@ describe('selection plugin', () => {
       throw new Error('Expected editor root element');
     }
 
-    await placeCaretAtNote('note4', remdo);
+    await placeCaretAtNote(remdo, 'note4');
     expect(rootElement.dataset.structuralSelection).toBeUndefined();
 
     // Stage 1 should stay unstructured.
@@ -1045,7 +1045,7 @@ describe('selection plugin', () => {
   it('selects nested leaves structurally at Shift+Down stage 2', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note3', remdo);
+    await placeCaretAtNote(remdo, 'note3');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
@@ -1055,7 +1055,7 @@ describe('selection plugin', () => {
   it('skips the sibling stage when Shift+Down reaches a siblingless note', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note7', remdo);
+    await placeCaretAtNote(remdo, 'note7');
 
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note7' });
 
@@ -1069,7 +1069,7 @@ describe('selection plugin', () => {
   it('lets Shift+Up walk the progressive selection ladder', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note4', remdo, 2);
+    await placeCaretAtNote(remdo, 'note4', 2);
 
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
 
@@ -1100,7 +1100,7 @@ describe('selection plugin', () => {
   it('selects leaf notes structurally at Shift+Up stage 2', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note4', remdo, 2);
+    await placeCaretAtNote(remdo, 'note4', 2);
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
 
@@ -1110,7 +1110,7 @@ describe('selection plugin', () => {
   it('follows the Cmd/Ctrl+A progressive selection ladder', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
 
     // Stage 1: inline text only.
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
@@ -1133,7 +1133,7 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
 
     // Moving the caret resets the ladder back to stage 1.
-    await placeCaretAtNote('note4', remdo);
+    await placeCaretAtNote(remdo, 'note4');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
   });
@@ -1141,7 +1141,7 @@ describe('selection plugin', () => {
   it('skips the sibling stage when Cmd/Ctrl+A climbs from a siblingless note', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note7', remdo);
+    await placeCaretAtNote(remdo, 'note7');
 
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note7' });
 
@@ -1157,7 +1157,7 @@ describe('selection plugin', () => {
   it('keeps the progressive ladder in sync when mixing Shift+Arrow and Cmd/Ctrl+A', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });

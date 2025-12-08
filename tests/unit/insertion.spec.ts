@@ -5,7 +5,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   it('enter at start inserts a previous sibling and keeps children with the original', async ({ remdo }) => {
     await remdo.load('basic');
 
-    await placeCaretAtNote('note1', remdo, 0);
+    await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter' });
 
     await pressKey(remdo, { key: 'X' });
@@ -21,7 +21,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   it('enter in the middle splits into an above sibling while trailing text and children stay with the original', async ({ remdo }) => {
     await remdo.load('tree');
 
-    await placeCaretAtNote('note1', remdo, 2);
+    await placeCaretAtNote(remdo, 'note1', 2);
     await pressKey(remdo, { key: 'Enter' });
 
     await pressKey(remdo, { key: 'X' });
@@ -37,7 +37,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   it('enter at end creates a first child and focuses it', async ({ remdo }) => {
     await remdo.load('basic');
 
-    await placeCaretAtNote('note1', remdo, Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
 
     await pressKey(remdo, { key: 'X' });
@@ -58,7 +58,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   it('enter is a no-op in structural mode', async ({ remdo }) => {
     await remdo.load('tree');
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
@@ -73,7 +73,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   it('enter split inside nested note inserts sibling above within same parent', async ({ remdo }) => {
     await remdo.load('tree');
 
-    await placeCaretAtNote('note2', remdo, 2);
+    await placeCaretAtNote(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });
     await pressKey(remdo, { key: 'X' });
 
@@ -88,7 +88,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   it('enter at end inserts new first child ahead of existing children', async ({ remdo }) => {
     await remdo.load('tree');
 
-    await placeCaretAtNote('note2', remdo, Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
     await pressKey(remdo, { key: 'X' });
 
@@ -108,7 +108,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   it('enter at start of nested note inserts previous sibling at same depth', async ({ remdo }) => {
     await remdo.load('tree');
 
-    await placeCaretAtNote('note3', remdo, 0);
+    await placeCaretAtNote(remdo, 'note3', 0);
     await pressKey(remdo, { key: 'Enter' });
     await pressKey(remdo, { key: 'X' });
 
@@ -128,7 +128,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   it('enter at end on a leaf note inserts a next sibling and focuses it', async ({ remdo }) => {
     await remdo.load('tree');
 
-    await placeCaretAtNote('note1', remdo, Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
     await pressKey(remdo, { key: 'X' });
 
@@ -143,7 +143,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   it('enter at start when the previous sibling has children inserts a new sibling above and keeps that subtree intact', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note4', remdo, 0);
+    await placeCaretAtNote(remdo, 'note4', 0);
     await pressKey(remdo, { key: 'Enter' });
     await pressKey(remdo, { key: 'X' });
 
@@ -168,7 +168,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   it('enter in the middle of a note with descendants keeps the subtree on the trailing segment', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', remdo, 2);
+    await placeCaretAtNote(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });
     await pressKey(remdo, { key: 'X' });
 

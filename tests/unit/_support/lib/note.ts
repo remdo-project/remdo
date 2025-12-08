@@ -51,7 +51,7 @@ function findItemByText(listNode: ListNode | null, noteText: string): ListItemNo
  * - When no textual child is available, the helper falls back to `selectStart`/`selectEnd` on the list item,
  *   in which case the `offset` is ignored unless selecting the end is explicitly requested via a positive value.
  */
-export async function placeCaretAtNote(noteText: string, remdo: RemdoTestApi, offset = 0) {
+export async function placeCaretAtNote(remdo: RemdoTestApi, noteText: string, offset = 0) {
   await remdo.mutate(() => {
     const root = $getRoot();
     const list = root.getFirstChild();
@@ -157,8 +157,8 @@ export function readOutline(remdo: RemdoTestApi): Outline {
 }
 // TODO: replace this helper with a top-level note selection API once we expose
 // proper whole-note selection controls in the editor harness.
-export async function selectEntireNote(noteText: string, remdo: RemdoTestApi): Promise<void> {
-  await placeCaretAtNote(noteText, remdo);
+export async function selectEntireNote(remdo: RemdoTestApi, noteText: string): Promise<void> {
+  await placeCaretAtNote(remdo, noteText);
 
   await remdo.mutate(() => {
     const selection = $getSelection();
@@ -220,9 +220,9 @@ function findContentTextNode(item: ListItemNode) {
 }
 
 // TODO: replace with a first-class multi-note selection helper when editor UX supports it.
-export async function selectNoteRange(startNote: string, endNote: string, remdo: RemdoTestApi): Promise<void> {
+export async function selectNoteRange(remdo: RemdoTestApi, startNote: string, endNote: string): Promise<void> {
   if (startNote === endNote) {
-    await selectEntireNote(startNote, remdo);
+    await selectEntireNote(remdo, startNote);
     return;
   }
 

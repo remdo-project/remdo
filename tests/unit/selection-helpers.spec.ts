@@ -8,7 +8,7 @@ import { getListItemLabel, placeCaretAtNote, selectNoteRange } from '#tests';
 describe('structural selection helper', () => {
   it('returns heads and slab for mixed-depth selection spanning a sibling run', async ({ remdo }) => {
     await remdo.load('tree_complex');
-    await selectNoteRange('note2', 'note4', remdo); // includes child note3 through note2
+    await selectNoteRange(remdo, 'note2', 'note4'); // includes child note3 through note2
 
     const heads = remdo.validate(() => {
       const selection = $getSelection();
@@ -22,7 +22,7 @@ describe('structural selection helper', () => {
 
   it('returns empty array for collapsed selections', async ({ remdo }) => {
     await remdo.load('tree_complex');
-    await placeCaretAtNote('', remdo);
+    await placeCaretAtNote(remdo, '');
 
     const slice = remdo.validate(() => {
       const selection = $getSelection();
@@ -35,7 +35,7 @@ describe('structural selection helper', () => {
 
   it('normalizes parent/child spans to the ancestor slab', async ({ remdo }) => {
     await remdo.load('tree_complex');
-    await selectNoteRange('note1', 'note3', remdo); // crosses root note and nested child
+    await selectNoteRange(remdo, 'note1', 'note3'); // crosses root note and nested child
 
     const heads = remdo.validate(() => {
       const selection = $getSelection();

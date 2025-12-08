@@ -9,7 +9,7 @@ describe('structural selection delete regression (local)', () => {
     await remdo.load('tree_complex');
 
     // Promote to stage 2: note2 + note3 subtree.
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 

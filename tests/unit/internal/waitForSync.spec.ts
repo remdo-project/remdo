@@ -1,36 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { waitForSync } from '#lib/collaboration/runtime';
-
-type Handler = (payload: unknown) => void;
-
-function createMockProvider() {
-  const listeners = new Map<string, Set<Handler>>();
-  const provider = {
-    synced: false,
-    hasLocalChanges: false,
-    on(event: string, handler: Handler) {
-      const set = listeners.get(event) ?? new Set<Handler>();
-      set.add(handler);
-      listeners.set(event, set);
-    },
-    off(event: string, handler: Handler) {
-      const set = listeners.get(event);
-      set?.delete(handler);
-      if (set && set.size === 0) {
-        listeners.delete(event);
-      }
-    },
-    emit(event: string, payload?: unknown) {
-      const set = listeners.get(event);
-      if (!set) return;
-      for (const handler of Array.from(set)) {
-        handler(payload);
-      }
-    },
-  };
-  return provider;
-}
+import { createMockProvider } from '../collab/_support/provider-test-helpers';
 
 describe('waitForSync', () => {
   it('resolves immediately when already synced with no local changes', async () => {
