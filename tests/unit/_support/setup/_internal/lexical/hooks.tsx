@@ -39,12 +39,12 @@ beforeEach<TestContext>(async (ctx) => {
     return api;
   });
 
-  await ctx.remdo._bridge.waitForCollaborationReady();
-
   ctx.remdo = {
     ...remdoTest,
     load: async (fixtureName: string) => remdoTest._bridge.applySerializedState(await readFixture(fixtureName)),
   };
+
+  await ctx.remdo._bridge.waitForCollaborationReady();
 
   await ctx.remdo.load('basic'); //FIXME
 

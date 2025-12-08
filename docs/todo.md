@@ -116,10 +116,6 @@ Dockerfile checks) and decide whether to gate CI on its report.
 
 ## Unified Lexical test bridge (window-based)
 
-1. Consolidate test helpers into the per-test `remdo` object (e.g., `pressKey`,
-   `placeCaretAtNote`, outline readers) so specs stop pulling free helpers; this
-   lets every action naturally await collab sync via the bridge and unlocks
-   removal of `window.remdoTest`.
 2. Replace bespoke collab test harnesses (e.g., in `tests/unit/collab/*`) with
    the shared API where feasible so all test suites rely on the same bridge and
    synchronization semantics.

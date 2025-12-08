@@ -87,7 +87,7 @@ describe('toMatchOutline smoke coverage', () => {
   it('matches selection-only expectations', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
@@ -97,7 +97,7 @@ describe('toMatchOutline smoke coverage', () => {
   it('reports selection mismatches', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
-    await placeCaretAtNote('note2', remdo);
+    await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
