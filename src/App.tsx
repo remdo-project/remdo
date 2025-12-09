@@ -28,10 +28,8 @@ function buildUrl(host: HostContext, portOffset: number, path = ''): string {
 }
 
 function resolveDocId(): string {
-  const doc = globalThis.location.search
-    ? new URLSearchParams(globalThis.location.search).get('doc')?.trim()
-    : null;
-  return doc?.length ? doc : config.env.COLLAB_DOCUMENT_ID;
+  const doc = new URLSearchParams(globalThis.location.search).get('doc')?.trim();
+  return doc || config.env.COLLAB_DOCUMENT_ID;
 }
 
 export default function App() {

@@ -66,7 +66,7 @@ export class CollabSession {
     };
   }
 
-  setDocId(docId: string): void {
+  setDocId(docId: string) {
     if (docId === this.state.docId) return;
     this.teardown();
     this.state = {
@@ -139,7 +139,7 @@ export class CollabSession {
     return { provider, doc };
   }
 
-  detach(): void {
+  detach() {
     this.teardown();
     if (!this.enabled) return;
     this.state = {
@@ -150,7 +150,7 @@ export class CollabSession {
     this.notify();
   }
 
-  async awaitSynced(): Promise<void> {
+  async awaitSynced() {
     if (!this.enabled) {
       return;
     }
@@ -160,12 +160,12 @@ export class CollabSession {
     return waitForSync(this.provider, { signal: this.awaitController.signal, timeoutMs: null });
   }
 
-  destroy(): void {
+  destroy() {
     this.teardown(true);
     this.listeners.clear();
   }
 
-  private teardown(abortAwait = false): void {
+  private teardown(abortAwait = false) {
     this.cleanup?.();
     this.cleanup = null;
 
@@ -183,7 +183,7 @@ export class CollabSession {
     this.docMap = null;
   }
 
-  private notify(): void {
+  private notify() {
     for (const listener of Array.from(this.listeners)) {
       listener();
     }

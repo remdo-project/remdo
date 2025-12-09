@@ -3,7 +3,7 @@ import * as Y from 'yjs';
 
 import { CollabSession } from '#lib/collaboration/session';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
-import { createMockProvider } from './_support/provider-test-helpers';
+import { createMockProvider } from './_support/mock-provider';
 
 describe('collaboration session hydration persistence', () => {
   it('keeps hydrated true after a transient connection error on the same document', async () => {

@@ -3,8 +3,8 @@ import * as Y from 'yjs';
 
 import { CollabSession } from '#lib/collaboration/session';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
-import { createMockProvider } from './_support/provider-test-helpers';
-import type { MockProvider } from './_support/provider-test-helpers';
+import { createMockProvider } from './_support/mock-provider';
+import type { MockProvider } from './_support/mock-provider';
 
 describe('collaboration session awaitSynced', () => {
   const createSession = () => {
