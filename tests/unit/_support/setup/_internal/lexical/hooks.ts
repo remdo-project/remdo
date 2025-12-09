@@ -1,11 +1,9 @@
 import { config } from '#config';
-import { render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
 import { env } from 'node:process';
 import type { TestContext } from 'vitest';
-import Editor from '@/editor/Editor';
-import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { readFixture } from '../../../../../_support/fixtures';
+import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
 
 let collabDocCounter = 0;
 beforeEach<TestContext>(async (ctx) => {
@@ -19,18 +17,7 @@ beforeEach<TestContext>(async (ctx) => {
     docId = `test-${workerId}-${collabDocCounter++}`;
   }
 
-  const { protocol, hostname } = globalThis.location;
-  const collabOrigin = `${protocol}//${hostname}:${config.env.COLLAB_CLIENT_PORT}`;
-
-  render(<Editor collabOrigin={collabOrigin} docId={docId} />);
-
-  const remdoTest = await waitFor(() => {
-    const api = (globalThis as typeof globalThis & { remdoTest?: RemdoTestApi }).remdoTest;
-    if (!api) {
-      throw new Error('remdoTest API not ready');
-    }
-    return api;
-  });
+  const remdoTest = await renderRemdoEditor({ docId });
 
   ctx.remdo = {
     ...remdoTest,
