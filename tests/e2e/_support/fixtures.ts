@@ -42,8 +42,8 @@ async function createEditorHarness(page: Page, docId: string) {
   await ensureReady(page, { clear: true });
 
   const waitForSynced = () => page.evaluate(() => {
-    const api = (globalThis as typeof globalThis & { remdoTest?: { waitForSynced: () => Promise<void> } }).remdoTest;
-    return api?.waitForSynced();
+    const promise = (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<unknown> }).__remdoBridgePromise;
+    return promise?.then((api) => (api as any)?.waitForSynced());
   });
 
   return {

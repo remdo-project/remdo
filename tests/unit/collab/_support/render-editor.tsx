@@ -17,18 +17,19 @@ export async function renderRemdoEditor({ docId, collabOrigin }: RenderEditorOpt
     collabOrigin
     || `${globalThis.location.protocol}//${globalThis.location.hostname}:${config.env.COLLAB_CLIENT_PORT}`;
 
-  render(<Editor collabOrigin={origin} docId={docId} />);
+  let api: RemdoTestApi | null = null;
 
-  const api = await waitFor(() => {
-    const candidate = (globalThis as typeof globalThis & { remdoTest?: RemdoTestApi }).remdoTest;
-    if (!candidate) {
+  render(<Editor collabOrigin={origin} docId={docId} onTestBridgeReady={(value) => { api = value as RemdoTestApi; }} />);
+
+  const resolved = await waitFor(() => {
+    if (!api) {
       throw new Error('remdoTest API not ready');
     }
-    return candidate;
+    return api;
   });
 
-  await api._bridge.waitForCollaborationReady();
-  return api;
+  await resolved._bridge.waitForCollaborationReady();
+  return resolved;
 }
 
 export type RenderRemdoEditor = typeof renderRemdoEditor;

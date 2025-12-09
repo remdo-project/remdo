@@ -1,5 +1,4 @@
 import type { Page } from '@playwright/test';
-import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { readFixture } from '../../_support/fixtures';
 
 export async function load(page: Page, fixtureName: string): Promise<void> {
@@ -13,8 +12,14 @@ type RemdoTestAction =
 
 async function runWithRemdoTest(page: Page, action: RemdoTestAction): Promise<void> {
   await page.evaluate(async (payload) => {
-    const api = (globalThis as typeof globalThis & { remdoTest?: RemdoTestApi }).remdoTest;
-    if (!api) throw new Error('remdoTest is not available');
+    const readyPromise: Promise<any> =
+      (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<unknown> }).__remdoBridgePromise
+      ?? Promise.reject(new Error('remdo bridge is not available'));
+
+    const api = await readyPromise;
+    if (!api || !api._bridge) {
+      throw new Error('remdo bridge is not available');
+    }
 
     const bridge = api._bridge;
 
@@ -31,11 +36,10 @@ async function runWithRemdoTest(page: Page, action: RemdoTestAction): Promise<vo
 }
 
 export async function waitForRemdoTest(page: Page, timeoutMs = 4000): Promise<void> {
-  await page.waitForFunction(
-    () => Boolean((globalThis as typeof globalThis & { remdoTest?: RemdoTestApi }).remdoTest),
-    undefined,
-    { timeout: timeoutMs }
-  );
+  await page.waitForFunction(() => {
+    const w = globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<unknown> };
+    return Boolean(w.__remdoBridgePromise);
+  }, undefined, { timeout: timeoutMs });
 }
 
 export async function ensureReady(page: Page, opts: { clear?: boolean } = {}): Promise<void> {
