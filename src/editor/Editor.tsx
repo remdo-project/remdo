@@ -18,9 +18,10 @@ import './Editor.css';
 interface EditorProps {
   children?: React.ReactNode;
   collabOrigin?: string;
+  docId?: string;
 }
 
-export default function Editor({ children, collabOrigin }: EditorProps) {
+export default function Editor({ children, collabOrigin, docId }: EditorProps) {
   const editorInitialConfig = createEditorInitialConfig({ isDev: config.dev });
   return (
     <div className="editor-container">
@@ -36,7 +37,7 @@ export default function Editor({ children, collabOrigin }: EditorProps) {
         <InsertionPlugin />
         <SelectionInputPlugin />
         <ListPlugin hasStrictIndent />
-        <CollaborationPlugin collabOrigin={collabOrigin}>
+        <CollaborationPlugin collabOrigin={collabOrigin} docId={docId}>
           <RootSchemaPlugin />
           <DevPlugin>{children}</DevPlugin>
         </CollaborationPlugin>

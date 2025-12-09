@@ -12,15 +12,14 @@ import {
 } from '@lexical/yjs';
 import { createEditor } from 'lexical';
 import WebSocket from 'ws';
-import { Doc, UndoManager } from 'yjs';
-
+import type { Doc, Transaction } from 'yjs';
+import { UndoManager } from 'yjs';
 import type { Provider } from '@lexical/yjs';
 import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lexical';
-import type { Transaction } from 'yjs';
 
 import { config } from '#config';
 import { createEditorInitialConfig } from '#lib/editor/config';
-import { createProviderFactory, waitForSync } from '#lib/collaboration/runtime';
+import { CollabSession } from '#lib/collaboration/session';
 
 type SharedRootObserver = (
   events: Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
@@ -48,6 +47,7 @@ type SnapshotProvider = Provider & {
 
 interface SessionContext {
   provider: SnapshotProvider;
+  session: CollabSession;
 }
 
 function parseCliArguments(argv: string[]): CliArguments {
@@ -210,6 +210,7 @@ async function runSave(
       console.info(`[snapshot] markdown -> ${absoluteMarkdownPath}`);
     }
   });
+  await waitForPersistedData(docId);
 }
 
 async function runBackup(
@@ -223,11 +224,11 @@ async function runBackup(
 
 async function runLoad(docId: string, collabOrigin: string, filePath: string): Promise<void> {
   const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as SerializedEditorState;
-  await withSession(docId, collabOrigin, async (editor, { provider }) => {
+  await withSession(docId, collabOrigin, async (editor, { session }) => {
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data), { tag: 'snapshot-load' });
     await done;
-    await waitForSync(provider);
+    await session.awaitSynced();
   });
   console.info(`[snapshot] load <- ${filePath}`);
 }
@@ -237,11 +238,13 @@ async function withSession(
   collabOrigin: string,
   run: (editor: LexicalEditor, context: SessionContext) => Promise<void> | void
 ): Promise<void> {
-  const doc = new Doc();
-  const docMap = new Map([[docId, doc]]);
-  const providerFactory = createProviderFactory(collabOrigin); // shared with the app; see waitForSync for readiness semantics
-  const lexicalProvider = providerFactory(docId, docMap);
-  const provider = lexicalProvider as unknown as SnapshotProvider;
+  const docMap = new Map<string, Doc>();
+  const session = new CollabSession({ enabled: true, docId, origin: collabOrigin });
+  const attached = session.attach(docMap);
+  if (!attached) {
+    throw new Error('Collaboration disabled');
+  }
+  const provider = attached.provider as unknown as SnapshotProvider;
   (provider as unknown as { _WS?: typeof globalThis.WebSocket })._WS = WebSocket as unknown as typeof globalThis.WebSocket;
   const syncDoc = docMap.get(docId);
   if (!syncDoc) {
@@ -250,7 +253,7 @@ async function withSession(
   const editor = createEditor(
     createEditorInitialConfig({ isDev: config.dev }) as CreateEditorArgs
   );
-  const binding = createBindingV2__EXPERIMENTAL(editor, docId, doc, docMap);
+  const binding = createBindingV2__EXPERIMENTAL(editor, docId, syncDoc, docMap);
   const sharedRoot = binding.root as unknown as SharedRoot;
   const observer: SharedRootObserver = (events, transaction) => {
     if (transaction.origin === binding) {
@@ -258,7 +261,7 @@ async function withSession(
     }
     syncYjsChangesToLexicalV2__EXPERIMENTAL(
       binding,
-      lexicalProvider,
+      provider,
       events,
       transaction,
       transaction.origin instanceof UndoManager
@@ -269,7 +272,7 @@ async function withSession(
     const { prevEditorState, editorState, dirtyElements, normalizedNodes, tags } = payload;
     syncLexicalUpdateToYjsV2__EXPERIMENTAL(
       binding,
-      lexicalProvider,
+      provider,
       prevEditorState,
       editorState,
       dirtyElements,
@@ -281,16 +284,18 @@ async function withSession(
   try {
     const initialUpdate = waitForEditorUpdate(editor);
     void provider.connect();
-    await waitForSync(provider);
-    syncYjsStateToLexicalV2__EXPERIMENTAL(binding, lexicalProvider);
+    await session.awaitSynced();
+    syncYjsStateToLexicalV2__EXPERIMENTAL(binding, provider);
     await initialUpdate;
 
-    return await run(editor, { provider });
+    return await run(editor, { provider, session });
   } finally {
     sharedRoot.unobserveDeep(observer);
     removeUpdateListener();
-    provider.destroy();
-    doc.destroy();
+    session.destroy();
+    for (const doc of docMap.values()) {
+      doc.destroy();
+    }
   }
 }
 
@@ -301,4 +306,16 @@ function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {
       resolve();
     });
   });
+}
+
+async function waitForPersistedData(docId: string, timeoutMs = 5000): Promise<void> {
+  const target = path.resolve('data', 'collab', docId, 'data.ysweet');
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (fs.existsSync(target)) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`Timed out waiting for ${target}`);
 }

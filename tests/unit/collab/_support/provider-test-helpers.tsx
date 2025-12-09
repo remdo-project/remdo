@@ -1,8 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
-import { useEffect } from 'react';
-import type { CollaborationStatusValue } from '@/editor/plugins/collaboration';
-import { useCollaborationStatus } from '@/editor/plugins/collaboration';
-
 export type Handler = (payload: unknown) => void;
 
 export function createMockProvider() {
@@ -36,13 +31,3 @@ export function createMockProvider() {
 }
 
 export type MockProvider = ReturnType<typeof createMockProvider>;
-
-export function CollabConsumer({ onReady }: { onReady: (value: CollaborationStatusValue) => void }) {
-  const value = useCollaborationStatus();
-
-  useEffect(() => {
-    onReady(value);
-  }, [onReady, value]);
-
-  return null;
-}

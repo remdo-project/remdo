@@ -18,18 +18,11 @@ beforeEach<TestContext>(async (ctx) => {
     const workerId = env.VITEST_WORKER_ID ?? '0';
     docId = `test-${workerId}-${collabDocCounter++}`;
   }
-  const href = globalThis.location.href;
-  const url = new URL(href);
-  const params = new URLSearchParams(url.search);
-  params.set('doc', docId);
-  const nextSearch = params.toString();
-  const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`;
-  globalThis.history.replaceState(null, '', nextUrl);
 
   const { protocol, hostname } = globalThis.location;
   const collabOrigin = `${protocol}//${hostname}:${config.env.COLLAB_CLIENT_PORT}`;
 
-  render(<Editor collabOrigin={collabOrigin} />);
+  render(<Editor collabOrigin={collabOrigin} docId={docId} />);
 
   const remdoTest = await waitFor(() => {
     const api = (globalThis as typeof globalThis & { remdoTest?: RemdoTestApi }).remdoTest;
