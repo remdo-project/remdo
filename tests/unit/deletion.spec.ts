@@ -113,15 +113,12 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       await remdo.load('flat');
 
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+      const before = remdo.getEditorState();
       await pressKey(remdo, { key: 'Enter' });
 
       await pressKey(remdo, { key: 'Backspace' });
 
-      expect(remdo).toMatchOutline([
-        { text: 'note1', children: [] },
-        { text: 'note2', children: [] },
-        { text: 'note3', children: [] },
-      ]);
+      expect(remdo).toMatchEditorState(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
