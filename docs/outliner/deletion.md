@@ -18,6 +18,9 @@ and structural mode. Relies on selection states in
    characters. Crossing a note boundary snaps to structural selection, so caret
    deletion never touches partial notes.
 2. Start of note (caret at column 0):
+   *Backspace / Mac Delete only; forward Delete remains a plain inline delete
+   at the start of the note and is covered by the end-of-note rules when the
+   caret is at the final character.*
    1. First note in the document: **no-op**; caret stays put.
    2. Any note with children (expanded or collapsed): **no-op** to avoid
       implicit hoists or subtree loss.

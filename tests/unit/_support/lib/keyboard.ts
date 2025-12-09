@@ -1,6 +1,13 @@
 import type { LexicalEditor } from 'lexical';
 import { act } from '@testing-library/react';
-import { CONTROLLED_TEXT_INSERTION_COMMAND } from 'lexical';
+import {
+  $getSelection,
+  $isRangeSelection,
+  CONTROLLED_TEXT_INSERTION_COMMAND,
+  DELETE_CHARACTER_COMMAND,
+  KEY_BACKSPACE_COMMAND,
+  KEY_DELETE_COMMAND,
+} from 'lexical';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 
 interface NavigatorWithUAData extends Navigator {
@@ -56,12 +63,41 @@ export async function pressKey(
 
   await act(async () => {
     const allowed = root.dispatchEvent(event);
-    if (allowed && isPrintableKey(key) && !alt && !nextMeta && !nextCtrl) {
+
+    const noModifiers = !alt && !nextMeta && !nextCtrl;
+    if (!allowed && key !== 'Delete') {
+      return;
+    }
+
+    if (noModifiers && isPrintableKey(key)) {
       remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, key);
       return;
     }
-    if (allowed && key.length === 1 && !alt && !nextMeta && !nextCtrl) {
+
+    if (noModifiers && key.length === 1) {
       dispatchInputEvents(root, key);
+      return;
+    }
+
+    if (noModifiers && key === 'Backspace') {
+      remdo.editor.dispatchCommand(KEY_BACKSPACE_COMMAND, event);
+      return;
+    }
+
+    if (noModifiers && key === 'Delete') {
+      remdo.editor.dispatchCommand(KEY_DELETE_COMMAND, event);
+      remdo.editor.dispatchCommand(DELETE_CHARACTER_COMMAND, false);
+      remdo.editor.update(() => {
+        const selection = $getSelection();
+        // Fallback for environments where the Delete keydown does not result in
+        // Lexical firing a deleteContentForward beforeinput (e.g. JSDOM). When
+        // we have a collapsed range selection, delete the forward character
+        // directly to mirror native behavior.
+        if ($isRangeSelection(selection) && selection.isCollapsed()) {
+          selection.deleteCharacter(false);
+        }
+      });
+      dispatchInputEvents(root, '', 'deleteContentForward');
     }
   });
 
@@ -81,12 +117,12 @@ function waitForEditorUpdate(editor: LexicalEditor) {
   });
 }
 
-function dispatchInputEvents(root: HTMLElement, text: string) {
+function dispatchInputEvents(root: HTMLElement, text: string, inputType: string = 'insertText') {
   const beforeInput = new InputEvent('beforeinput', {
     bubbles: true,
     cancelable: true,
-    inputType: 'insertText',
-    data: text,
+    inputType,
+    data: text.length > 0 ? text : null,
   });
 
   const allowed = root.dispatchEvent(beforeInput);
@@ -97,8 +133,8 @@ function dispatchInputEvents(root: HTMLElement, text: string) {
   const input = new InputEvent('input', {
     bubbles: true,
     cancelable: false,
-    inputType: 'insertText',
-    data: text,
+    inputType,
+    data: text.length > 0 ? text : null,
   });
   root.dispatchEvent(input);
 }
