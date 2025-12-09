@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { waitForSync } from '#lib/collaboration/runtime';
-import { createMockProvider } from '../collab/_support/provider-test-helpers';
+import { createMockProvider } from '../collab/_support/mock-provider';
 
 describe('waitForSync', () => {
   it('resolves immediately when already synced with no local changes', async () => {

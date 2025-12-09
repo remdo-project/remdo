@@ -27,6 +27,11 @@ function buildUrl(host: HostContext, portOffset: number, path = ''): string {
   return `${host.protocol}//${host.hostname}:${host.basePort + portOffset}${path}`;
 }
 
+function resolveDocId(): string {
+  const doc = new URLSearchParams(globalThis.location.search).get('doc')?.trim();
+  return doc || config.env.COLLAB_DOCUMENT_ID;
+}
+
 export default function App() {
   const host = resolveHost();
   const previewUrl = host ? buildUrl(host, 3) : '#preview';
@@ -73,7 +78,7 @@ export default function App() {
           </nav>
         </header>
 
-        <Editor />
+        <Editor docId={resolveDocId()} />
       </Container>
     </MantineProvider>
   );

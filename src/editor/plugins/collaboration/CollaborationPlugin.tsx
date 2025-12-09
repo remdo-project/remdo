@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useEffect, useReducer } from 'react';
+import { useEffect } from 'react';
 import {
   LexicalCollaboration,
   useCollaborationContext as useLexicalCollaborationContext,
@@ -7,17 +7,18 @@ import {
 import { CollaborationPluginV2__EXPERIMENTAL } from '@lexical/react/LexicalCollaborationPlugin';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { CollaborationProvider, useCollaborationStatus } from './CollaborationProvider';
-import type { ProviderFactory } from '#lib/collaboration/runtime';
 
 export function CollaborationPlugin({
   children,
   collabOrigin,
+  docId,
 }: {
   children?: ReactNode;
   collabOrigin?: string;
+  docId?: string;
 }) {
   return (
-    <CollaborationProvider collabOrigin={collabOrigin}>
+    <CollaborationProvider collabOrigin={collabOrigin} docId={docId}>
       {children}
       <CollaborationRuntimePlugin />
     </CollaborationProvider>
@@ -39,26 +40,26 @@ function CollaborationRuntimePlugin() {
 }
 
 function CollaborationRuntimeBridge() {
-  const { providerFactory, docId } = useCollaborationStatus();
+  const { session, docId, enabled } = useCollaborationStatus();
   const { yjsDocMap } = useLexicalCollaborationContext();
-  const [provider, setProvider] = useReducer(
-    (_: ReturnType<ProviderFactory> | null, next: ReturnType<ProviderFactory> | null) => next,
-    null,
-  );
 
   useEffect(() => {
-    const nextProvider = providerFactory(docId, yjsDocMap);
-    setProvider(nextProvider);
+    if (!enabled) {
+      return;
+    }
+
+    const attached = session.attach(yjsDocMap);
+    if (!attached) return;
 
     return () => {
-      setProvider(null);
-      nextProvider.destroy();
+      session.detach();
     };
-  }, [docId, providerFactory, yjsDocMap]);
+  }, [session, yjsDocMap, docId, enabled]);
 
+  const provider = session.getProvider();
   const doc = yjsDocMap.get(docId);
 
-  if (provider == null || doc == null) {
+  if (!provider || !doc) {
     return null;
   }
 

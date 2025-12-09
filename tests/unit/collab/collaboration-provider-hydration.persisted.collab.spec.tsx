@@ -1,54 +1,36 @@
-import { act, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import * as Y from 'yjs';
 
-import * as runtime from '#lib/collaboration/runtime';
-import { createMockProvider } from './_support/provider-test-helpers';
-import { renderCollabHarness } from './_support/provider-harness';
+import { CollabSession } from '#lib/collaboration/session';
+import type { ProviderFactory } from '#lib/collaboration/runtime';
+import { createMockProvider } from './_support/mock-provider';
 
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-
-describe('collaboration provider hydration persistence', () => {
+describe('collaboration session hydration persistence', () => {
   it('keeps hydrated true after a transient connection error on the same document', async () => {
+    const docId = 'doc-id';
+    const docMap = new Map<string, Y.Doc>([[docId, new Y.Doc()]]);
     const provider = createMockProvider();
+    const factory: ProviderFactory = () => provider as any;
+    const session = new CollabSession({ enabled: true, docId, providerFactory: factory });
 
-    const factory: runtime.ProviderFactory = (_id: string, _docMap: Map<string, unknown>) =>
-      provider as unknown as runtime.CollaborationProviderInstance;
-    vi.spyOn(runtime, 'createProviderFactory').mockReturnValue(factory);
-
-    const { getCollab, waitForReady } = renderCollabHarness();
-
-    await waitForReady();
-
-    await act(async () => {
-      getCollab().providerFactory('doc-id', new Map());
-    });
+    session.attach(docMap);
 
     provider.synced = true;
-    await act(async () => {
-      provider.emit('sync', true);
-    });
+    provider.emit('sync', true);
 
-    await waitFor(() => {
-      expect(getCollab().hydrated).toBe(true);
-    });
-    const epochBefore = getCollab().docEpoch;
+    expect(session.snapshot().hydrated).toBe(true);
+    const epochBefore = session.snapshot().docEpoch;
 
-    await act(async () => {
-      provider.emit('connection-error', new Error('drop'));
-    });
+    provider.emit('connection-error', new Error('drop'));
 
-    expect(getCollab().hydrated).toBe(true); // should not tear down root-schema lifecycle
-    expect(getCollab().synced).toBe(false);
-    expect(getCollab().docEpoch).toBe(epochBefore);
+    expect(session.snapshot().hydrated).toBe(true);
+    expect(session.snapshot().synced).toBe(false);
+    expect(session.snapshot().docEpoch).toBe(epochBefore);
 
     provider.synced = true;
-    await act(async () => {
-      provider.emit('sync', true);
-    });
+    provider.emit('sync', true);
 
-    await getCollab().awaitSynced();
-    expect(getCollab().synced).toBe(true);
+    await session.awaitSynced();
+    expect(session.snapshot().synced).toBe(true);
   });
 });
