@@ -20,8 +20,10 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
-    it.fails('does not delete a parent when caret Backspace is at the start of a note with children', async ({ remdo }) => {
+    it.fails('backspace at start of first note with children should be a no-op (currently hoists child)', async ({ remdo }) => {
       await remdo.load('basic');
+      // Not a duplicate of the flat-case root no-op: this fixture has a child,
+      // so Backspace must preserve the subtree instead of hoisting it.
 
       await placeCaretAtNote(remdo, 'note1', 0);
       const before = remdo.getEditorState();
@@ -30,6 +32,18 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
 
       expect(remdo).toMatchEditorState(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+    });
+
+    it.fails('backspace at start of a middle note with children should be a no-op', async ({ remdo }) => {
+      await remdo.load('tree');
+
+      await placeCaretAtNote(remdo, 'note2', 0);
+      const before = remdo.getEditorState();
+
+      await pressKey(remdo, { key: 'Backspace' });
+
+      expect(remdo).toMatchEditorState(before);
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
     });
 
     it.fails('merges a leaf into its previous sibling when Backspace is pressed at column 0', async ({ remdo }) => {
