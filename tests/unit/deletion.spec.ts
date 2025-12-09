@@ -4,7 +4,7 @@ import type { TextNode } from 'lexical';
 import { $isListNode } from '@lexical/list';
 
 import type { RemdoTestApi } from '@/editor/plugins/dev';
-import { placeCaretAtNote, pressKey, selectNoteRange } from '#tests';
+import { placeCaretAtNote, pressKey, selectNoteRange, typeText } from '#tests';
 
 describe('deletion semantics (docs/outliner/deletion.md)', () => {
   describe('caret mode', () => {
@@ -69,13 +69,13 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       // Make the parent have multiple children while keeping note2 the first child.
       await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Enter' });
-      await pressKey(remdo, { key: 'X' });
+      await typeText(remdo, 'note2.1');
       expect(remdo).toMatchOutline([
         {
           text: 'note1',
           children: [
             { text: 'note2', children: [] },
-            { text: 'X', children: [] },
+            { text: 'note2.1', children: [] },
           ],
         },
         { text: 'note3', children: [] },

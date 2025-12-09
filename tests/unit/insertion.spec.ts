@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { placeCaretAtNote, pressKey } from '#tests';
+import { placeCaretAtNote, pressKey, typeText } from '#tests';
 
 describe('insertion semantics (docs/insertion.md)', () => {
   it('enter at start inserts a previous sibling and keeps children with the original', async ({ remdo }) => {
@@ -8,7 +8,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter' });
 
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
       { text: 'X', children: [] },
@@ -24,7 +24,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await placeCaretAtNote(remdo, 'note1', 2);
     await pressKey(remdo, { key: 'Enter' });
 
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
       { text: 'no', children: [] },
@@ -40,7 +40,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
 
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
       {
@@ -75,7 +75,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNote(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
       { text: 'note1', children: [] },
@@ -90,7 +90,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
       { text: 'note1', children: [] },
@@ -110,7 +110,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNote(remdo, 'note3', 0);
     await pressKey(remdo, { key: 'Enter' });
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
       { text: 'note1', children: [] },
@@ -130,7 +130,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
       { text: 'note1', children: [] },
@@ -145,7 +145,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNote(remdo, 'note4', 0);
     await pressKey(remdo, { key: 'Enter' });
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
       {
@@ -170,7 +170,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNote(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
       {

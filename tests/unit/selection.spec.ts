@@ -7,6 +7,7 @@ import {
   placeCaretAtNote,
   pressKey,
   readOutline,
+  typeText,
 } from '#tests';
 import { $getSelection, $isRangeSelection } from 'lexical';
 import { MOVE_SELECTION_DOWN_COMMAND, MOVE_SELECTION_UP_COMMAND } from '@/editor/commands';
@@ -524,7 +525,7 @@ describe('selection plugin', () => {
 
     const stateBefore = remdo.editor.getEditorState();
 
-    await pressKey(remdo, { key: 'x' });
+    await typeText(remdo, 'x');
     expect(rootElement.dataset.structuralSelection).toBe('true');
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
