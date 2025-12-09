@@ -15,6 +15,7 @@ details.
 5. **Reordering (keyboard):** `./reordering.md` — Reordering behavior and
    placement invariants.
 6. **Reordering (drag & drop):** `./drag-and-drop.md` — not supported yet; future plan lives here.
+7. **Deletion:** `./deletion.md` — caret vs. structural deletion semantics, merge/no-op rules, and spacing contract.
 
 ## Glossary (minimal)
 

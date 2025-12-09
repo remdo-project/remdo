@@ -33,6 +33,8 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   runtime—reference for UX or Lexical selection work.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior
   and placement invariants.
+- `docs/outliner/deletion.md` (Medium). Caret vs. structural deletion semantics,
+  merge/no-op rules at note boundaries, and the spacing contract for joins.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer-based reordering (drag and
   drop) – not supported yet; future plan lives there.
 - `docs/insertion.md` (Short). Caret-mode `Enter` behavior (start/middle/end)
@@ -71,6 +73,9 @@ map stays trustworthy.
    existing resolutions and update related docs/maps if needed.
 5. **Intentional gaps.** Stubs/placeholders are acceptable in dev—mark status
    clearly when a section is partial.
+6. **[Future] markers.** Sections or bullets tagged `[Future]` are exploratory;
+   do not design, code, or test against them until they are promoted into the
+   main spec.
 
 ### Core ideas
 
