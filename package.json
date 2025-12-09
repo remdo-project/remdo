@@ -37,7 +37,7 @@
     "preview": "vite preview",
     "lint": "cross-env CI=1 pnpm run typecheck && pnpm run lint:code && pnpm run lint:md",
     "lint:code": "cross-env CI=1 eslint --max-warnings=0 --cache --cache-location node_modules/.cache/eslint",
-    "lint:code:watch": "chokidar \"**/*.{ts,tsx,js,jsx,mts,cts,json}\" --initial -i \"**/{node_modules,data,.git}/**\" -d 150 -c \"pnpm lint && echo LINT_OK || { echo LINT_FAIL; exit 1; }\"",
+    "lint:code:watch": "chokidar \"**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs,json,md,markdown}\" --initial -i \"**/{node_modules,data,.git}/**\" -d 150 -c \"pnpm lint && echo LINT_OK || { echo LINT_FAIL; exit 1; }\"",
     "lint:fix": "eslint --max-warnings=0 --fix --cache --cache-location node_modules/.cache/eslint",
     "lint:md": "markdownlint-cli2 \"AGENTS.md\" \"docs/**/*.md\"",
     "typecheck": "tsc",

@@ -126,6 +126,22 @@ document captures the full model.
   about 12–25s. If you ever hit the 60s guard, debug the failure (don’t extend);
   only adjust ranges if healthy runs consistently land outside them.
 
+### Scoped check runs (validated 2025-12-09; commands trimmed to tool defaults and pnpm scripts where they behave)
+
+1. Typecheck tests project: `timeout 60s pnpm exec tsc -p tsconfig.tests.json --pretty false` (uses
+   `noEmit`/`incremental` from configs). Script `typecheck` can’t take `-p` without inserting a lone
+   `--` (tsc rejects it), so use `pnpm exec` here. Ran in ~1.7s.
+2. Code lint per path: `timeout 60s pnpm run lint:code -- <path ...>` keeps the scripted `eslint`
+   defaults/caching; validated on `tests/unit/smoke.spec.tsx` in ~2s.
+3. Markdown lint per file: `timeout 60s pnpm exec markdownlint-cli2 --no-globs <file ...>` to avoid
+   the script’s built-in `docs/**` globs; single-file `AGENTS.md` run completed in ~0.6s.
+4. Unit test filter via script: `timeout 60s pnpm run test:unit <file> -t "<full test name>"` (don’t
+   add an extra `--`, or Vitest will ignore the filter). Example: `tests/unit/smoke.spec.tsx -t "loads
+   basic outline structure from JSON"` ran only that file in ~1.3s.
+5. Collab test filter via script: `timeout 60s pnpm run test:unit:collab tests/unit/collab/<file> -t
+   "<full test name>"`; example `smoke.collab.spec.tsx -t "lexical helpers operate in collaboration
+   mode"` passed in ~1.4s with collab server auto-started.
+
 ### Local agents
 
 1. Run `pnpm run lint`, `pnpm run test:unit`, and other relevant checks after
