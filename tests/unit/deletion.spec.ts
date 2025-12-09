@@ -54,17 +54,30 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
 
       expect(remdo).toMatchOutline([
         {
-          text: 'note1 note3',
+          text: 'note1',
           children: [
-            { text: 'note2', children: [] },
+            { text: 'note2 note3', children: [] },
           ],
         },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note3' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note2 note3' });
     });
 
     it.fails('merges a first child leaf into its parent body when Backspace is pressed at the start', async ({ remdo }) => {
       await remdo.load('basic');
+
+      await placeCaretAtNote(remdo, 'note2', 0);
+      await pressKey(remdo, { key: 'Backspace' });
+
+      expect(remdo).toMatchOutline([
+        { text: 'note1 note2', children: [] },
+        { text: 'note3', children: [] },
+      ]);
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2' });
+    });
+
+    it.fails('merges a leaf into its previous leaf sibling when Backspace is pressed at column 0', async ({ remdo }) => {
+      await remdo.load('flat');
 
       await placeCaretAtNote(remdo, 'note2', 0);
       await pressKey(remdo, { key: 'Backspace' });

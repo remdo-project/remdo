@@ -21,9 +21,14 @@ and structural mode. Relies on selection states in
    1. First note in the document: **no-op**; caret stays put.
    2. Any note with children (expanded or collapsed): **no-op** to avoid
       implicit hoists or subtree loss.
-   3. Leaf note with a previous sibling: delete the note and append its text to
-      the end of the previous sibling using the spacing rule below. Caret lands
-      at the join point.
+   3. Leaf note with a previous sibling:
+      - If the previous sibling is a leaf, delete the current note and append
+        its text to the end of that sibling (spacing rule). Caret lands at the
+        join point in the sibling.
+      - If the previous sibling has children, delete the current note and append
+        its text to the end of the previous sibling’s last descendant (spacing
+        rule). Subtrees stay put; caret lands at the join point in that last
+        descendant.
    4. Leaf note that is the first child: delete the note and append its text to
       the end of the parent's body (spacing rule). Caret lands at the join
       point in the parent.
