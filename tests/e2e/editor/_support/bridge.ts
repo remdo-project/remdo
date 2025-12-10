@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { readFixture } from '../../_support/fixtures';
+import { readFixture } from '../../../_support/fixtures';
 
 export async function load(page: Page, fixtureName: string): Promise<void> {
   const payload = await readFixture(fixtureName);
