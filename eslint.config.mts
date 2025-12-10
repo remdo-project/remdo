@@ -202,6 +202,20 @@ export default antfu(
     },
   },
   {
+    files: ['tests/e2e/editor/**/*.spec.{ts,tsx}'],
+    ignores: ['tests/e2e/editor/_support/**/*'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'CallExpression[callee.type="MemberExpression"][callee.object.name="page"][callee.property.name="locator"]',
+          message: 'Use editor-scoped helpers (withinEditor/editorLocator) instead of page.locator in editor specs.',
+        },
+      ],
+    },
+  },
+  {
     files: ['tests/unit/_support/setup/_internal/lexical/hooks.tsx'],
     rules: {
       'no-restricted-globals': 'off',

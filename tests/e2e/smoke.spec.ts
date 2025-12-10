@@ -1,4 +1,4 @@
-import { expect, test } from './_support/fixtures';
+import { expect, test } from './editor/_support/fixtures';
 
 test.describe('Editor smoke', () => {
   test('renders shell and supports indent/outdent', async ({ page, editor: _editor }) => {
