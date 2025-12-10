@@ -1,6 +1,7 @@
 import type { ConsoleMessage, Page, Response } from '@playwright/test';
 import { test as base } from '@playwright/test';
 import { ensureReady, load } from './bridge';
+import { prepareEditorTestSurface } from './editor-focus';
 
 function attachGuards(page: Page) {
   const allowResponse = (response: Response) => {
@@ -37,7 +38,6 @@ let docCounter = 0;
 
 async function createEditorHarness(page: Page, docId: string) {
   await page.goto(`/?doc=${docId}`);
-  await page.getByRole('heading', { name: 'RemDo' }).waitFor();
   await page.locator('.editor-input').first().waitFor();
   await ensureReady(page, { clear: true });
 
@@ -66,8 +66,11 @@ export const test = base.extend<{ testDocId: string; editor: EditorHarness }>({
     const docId = `test-${testInfo.workerIndex}-${docCounter++}`;
     await applyDocId(docId);
   },
-  editor: async ({ page, testDocId }, applyEditor) => {
+  editor: async ({ page, testDocId }, applyEditor, testInfo) => {
     const editor = await createEditorHarness(page, testDocId);
+    if (testInfo.file.includes('/tests/e2e/editor/')) {
+      await prepareEditorTestSurface(page);
+    }
     await applyEditor(editor);
     await editor.waitForSynced();
   },
