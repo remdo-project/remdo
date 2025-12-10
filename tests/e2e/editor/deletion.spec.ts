@@ -1,19 +1,9 @@
 import type { Page } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
-import { editorLocator } from './_support/locators';
+import { editorLocator, setCaretAtText } from './_support/locators';
 
 async function setCaretAtTextStart(page: Page, label: string) {
-  const text = editorLocator(page).locator('[data-lexical-text=\"true\"]').filter({ hasText: label }).first();
-  await text.evaluate((el) => {
-    const target = el.firstChild ?? el;
-    const selection = globalThis.getSelection();
-    if (!selection) throw new Error('No selection available');
-    const range = document.createRange();
-    range.setStart(target, 0);
-    range.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(range);
-  });
+  await setCaretAtText(page, label, 0);
 }
 
 test.describe('deletion (native browser behavior)', () => {
