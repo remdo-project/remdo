@@ -1,5 +1,5 @@
-import type { Page } from './_support/fixtures';
-import { expect, test } from './_support/fixtures';
+import type { Page } from '#editor/fixtures';
+import { expect, test } from '#editor/fixtures';
 import { editorLocator } from './_support/locators';
 
 async function setCaretAtTextStart(page: Page, label: string) {

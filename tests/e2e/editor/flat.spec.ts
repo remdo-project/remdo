@@ -1,4 +1,4 @@
-import { expect, test } from './_support/fixtures';
+import { expect, test } from '#editor/fixtures';
 import { editorLocator } from './_support/locators';
 
 test.describe('Editor fixtures', () => {

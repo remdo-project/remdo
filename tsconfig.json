@@ -16,6 +16,15 @@
       "@/*": [
         "./src/*"
       ],
+      "#e2e/*": [
+        "./tests/e2e/_support/*"
+      ],
+      "#editor/*": [
+        "./tests/e2e/editor/_support/*"
+      ],
+      "#tests-support/*": [
+        "./tests/_support/*"
+      ],
       "#config": [
         "./config/index.ts"
       ],

@@ -1,5 +1,5 @@
-import { expect, test as base } from '../../_support/fixtures';
-import type { Locator, Page } from '../../_support/fixtures';
+import { expect, test as base } from '#e2e/fixtures';
+import type { Locator, Page } from '#e2e/fixtures';
 import { ensureReady, load } from './bridge';
 import { prepareEditorTestSurface } from './focus';
 import { editorLocator } from './locators';
