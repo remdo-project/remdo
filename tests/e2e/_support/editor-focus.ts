@@ -11,9 +11,17 @@ export async function prepareEditorTestSurface(page: Page): Promise<void> {
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
+      //TODO use routes or a similar mechanism to render just editor instead of using CSS tricks
       style.textContent = `
-        body * { visibility: hidden !important; pointer-events: none !important; }
-        .editor-container, .editor-container * { visibility: visible !important; pointer-events: auto !important; }
+      body *:not(.editor-container):not(.editor-container *):not(:has(.editor-container)) {
+        display: none;
+        pointer-events: none;
+      }
+      .editor-container,
+      .editor-container * {
+        display: revert;
+        pointer-events: auto;
+      }
       `;
       document.head.append(style);
     }
