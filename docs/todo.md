@@ -42,7 +42,6 @@ Options to consider when implementing:
 
 ## Selection regression coverage (new tests)
 
-
 ## Normalize structural selection helper return shape
 
 Move `getContiguousSelectionHeads` to a single-path API that always returns an
@@ -113,19 +112,43 @@ Dockerfile checks) and decide whether to gate CI on its report.
    for runtime-level tests (awaitSynced/hydration).
 3. Consider letting `Editor` accept a `docId` prop that overrides URL parsing
    (tests/stories could set it directly; production would keep URL as default),
-   with optional history sync toggle to avoid mutating location in test harnesses.
-3. Remove any legacy test-only components once the bridge is wired, and note
-   the transition in docs so the prior harness doesn’t reappear.
+   with optional history sync toggle to avoid mutating location in test
+   harnesses.
+4. Remove any legacy test-only components once the bridge is wired, and note the
+   transition in docs so the prior harness doesn’t reappear.
 
 ## InsertionPlugin
 
-1. [P1] Mid-note split still violates docs/insertion.md: falling through to
+### Keyboard helper simplification plan
+
+1. Keep `pressKey` a dumb DOM helper: dispatch only `keydown` for a whitelist of
+   non-text keys; no Lexical calls or synthetic `beforeinput`/`input`. Add a
+   brief docstring on the contract.
+2. Defensive throws: if a plain printable character is used, throw “use
+   typeText”; throw on `Delete` **and** `Backspace` to avoid silent inline
+   edits. Allow other non-text keys (Enter, Tab, arrows, Escape, etc.).
+   Modifier combos for selection/navigation (e.g., Ctrl/Cmd+A, Shift+Arrow,
+   plain Arrow/Home/End/PageUp/PageDown) remain supported as DOM keydown only.
+   Add unit coverage for every supported key/chord unless Lexical’s own helpers
+   already guarantee it.
+3. Review `typeText` against Lexical’s own test helpers. If Lexical has a
+   simpler but equivalent pattern, adopt it; otherwise keep current keydown +
+   controlled insertion + synthetic before/input and document the rationale.
+4. For unit cases needing non-native behavior (e.g., forward Delete), use a
+   small explicit inline-delete helper; do not fold that into `pressKey`.
+5. Plan e2e mirrors for such cases using real user actions (Playwright): decide
+   on scope (component harness vs full page), seeding strategy, browser targets
+   (at least Chromium; consider WebKit/Firefox), and focus/caret helpers to
+   reduce flake. Do this as a follow-up task; include forward `Delete` at caret
+   as the first mirror so unit-only helpers don’t mask regressions.
+
+6. [P1] Mid-note split still violates docs/insertion.md: falling through to
    Lexical’s default Enter creates a new list item below the current note and
    moves the caret into it, instead of inserting the prefix as a new sibling
    above and keeping the caret in the original note. That means the documented
    middle-of-note behavior (split-above, caret stays on trailing text) is still
    unimplemented. (src/editor/plugins/InsertionPlugin.tsx:79-92)
-2. [P1] Start/end detection only checks the anchor text node’s offset. With
+7. [P1] Start/end detection only checks the anchor text node’s offset. With
    formatted or decorator splits inside a note (multiple text nodes), placing
    the caret at the boundary of a later span yields offset === 0 or offset ===
    textNode.getTextContentSize() even though there is preceding/following text

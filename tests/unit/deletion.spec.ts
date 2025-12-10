@@ -6,6 +6,11 @@ import { $isListNode } from '@lexical/list';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { placeCaretAtNote, pressKey, selectNoteRange, typeText } from '#tests';
 
+// Coverage gaps (kept out of unit scope):
+// - Forward Delete at caret (inline delete) is not exercised here; jsdom lacks
+//   native beforeinput/input for Delete, and we rely on explicit helpers.
+// TODO: Add these behaviors as Playwright e2e cases using real user actions.
+
 describe('deletion semantics (docs/outliner/deletion.md)', () => {
   describe('caret mode', () => {
     it('treats Backspace at the start of the first note as a no-op', async ({ remdo }) => {
@@ -122,24 +127,6 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
-    //TODO review below
-    it.fails('delete at column 0 acts as inline delete, not structural merge', async ({ remdo }) => {
-      await remdo.load('flat');
-
-      await placeCaretAtNote(remdo, 'note1', 0);
-      // jsdom fails to emit a forward-delete beforeinput sequence, so helper-driven
-      // Delete currently behaves as a no-op in tests even though the browser deletes
-      // the next character.
-      await pressKey(remdo, { key: 'Delete' });
-
-      expect(remdo).toMatchOutline([
-        { text: 'ote1', children: [] },
-        { text: 'note2', children: [] },
-        { text: 'note3', children: [] },
-      ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'ote1' });
-    });
-
     it.fails('merges the next leaf into the current note with Delete at the end of the line', async ({ remdo }) => {
       await remdo.load('flat');
 
@@ -195,16 +182,32 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       await remdo.load('flat');
 
       await setNoteText(remdo, 'note1', 'left');
-      await setNoteText(remdo, 'note2', '  right');
+      await setNoteText(remdo, 'note2', ' right');
 
       await placeCaretAtNote(remdo, 'left', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline([
-        { text: 'left  right', children: [] },
+        { text: 'left right', children: [] },
         { text: 'note3', children: [] },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'left  right' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'left right' });
+    });
+
+    it('avoids adding extra space when the left fragment already ends with whitespace', async ({ remdo }) => {
+      await remdo.load('flat');
+
+      await setNoteText(remdo, 'note1', 'left ');
+      await setNoteText(remdo, 'note2', 'right');
+
+      await placeCaretAtNote(remdo, 'left', Number.POSITIVE_INFINITY);
+      await pressKey(remdo, { key: 'Delete' });
+
+      expect(remdo).toMatchOutline([
+        { text: 'left right', children: [] },
+        { text: 'note3', children: [] },
+      ]);
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'left right' });
     });
   });
 
