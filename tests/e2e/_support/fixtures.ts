@@ -1,7 +1,6 @@
 import type { ConsoleMessage, Page, Response } from '@playwright/test';
 import { test as base } from '@playwright/test';
 import { ensureReady, load } from './bridge';
-import { prepareEditorTestSurface } from './editor-focus';
 
 function attachGuards(page: Page) {
   const allowResponse = (response: Response) => {
@@ -66,14 +65,12 @@ export const test = base.extend<{ testDocId: string; editor: EditorHarness }>({
     const docId = `test-${testInfo.workerIndex}-${docCounter++}`;
     await applyDocId(docId);
   },
-  editor: async ({ page, testDocId }, applyEditor, testInfo) => {
+  editor: async ({ page, testDocId }, applyEditor) => {
     const editor = await createEditorHarness(page, testDocId);
-    if (testInfo.file.includes('/tests/e2e/editor/')) {
-      await prepareEditorTestSurface(page);
-    }
     await applyEditor(editor);
     await editor.waitForSynced();
   },
 });
 
 export { expect } from '@playwright/test';
+export type { Page, Locator } from '@playwright/test';

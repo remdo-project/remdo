@@ -179,6 +179,29 @@ export default antfu(
     },
   },
   {
+    files: ['tests/e2e/editor/**/*.{ts,tsx,js,jsx,mts,cts}'],
+    ignores: ['tests/e2e/editor/_support/**/*'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@playwright/test',
+              message: 'Use the editor-scoped harness from tests/e2e/editor/_support/fixtures instead of importing @playwright/test directly.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['../_support/fixtures', '../../_support/fixtures', 'tests/e2e/_support/fixtures'],
+              message: 'Use the editor-scoped harness from tests/e2e/editor/_support/fixtures.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['tests/unit/_support/setup/_internal/lexical/hooks.tsx'],
     rules: {
       'no-restricted-globals': 'off',
@@ -189,6 +212,7 @@ export default antfu(
     files: ['tests/**/_support/**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts}'],
     rules: {
       'no-restricted-syntax': 'off',
+      'react-hooks/rules-of-hooks': 'off',
     },
   },
   {

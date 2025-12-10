@@ -1,24 +1,19 @@
-import type { Page } from '@playwright/test';
-import { expect, test } from '../_support/fixtures';
+import type { Page } from './_support/fixtures';
+import { expect, test } from './_support/fixtures';
+import { editorLocator } from './_support/locators';
 
 async function setCaretAtTextStart(page: Page, label: string) {
-  await page.locator('.editor-input').first().click(); // ensure focus
-  await page.evaluate((targetLabel: string) => {
-    const textNode = Array.from(
-      document.querySelectorAll<HTMLElement>('[data-lexical-text="true"]')
-    ).map((el) => el.firstChild)
-      .find((node) => node && node.textContent?.trim() === targetLabel);
-    if (!textNode || textNode.nodeType !== Node.TEXT_NODE) {
-      throw new Error(`Text node not found for label: ${targetLabel}`);
-    }
+  const text = editorLocator(page).locator('[data-lexical-text=\"true\"]').filter({ hasText: label }).first();
+  await text.evaluate((el) => {
+    const target = el.firstChild ?? el;
     const selection = globalThis.getSelection();
     if (!selection) throw new Error('No selection available');
     const range = document.createRange();
-    range.setStart(textNode, 0);
+    range.setStart(target, 0);
     range.collapse(true);
     selection.removeAllRanges();
     selection.addRange(range);
-  }, label);
+  });
 }
 
 test.describe('deletion (native browser behavior)', () => {
@@ -28,7 +23,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    const items = page.locator('li.list-item');
+    const items = editorLocator(page).locator('li.list-item');
     await expect(items.nth(0)).toHaveText('ote1');
     await expect(items.nth(1)).toHaveText('note2');
     await expect(items.nth(2)).toHaveText('note3');

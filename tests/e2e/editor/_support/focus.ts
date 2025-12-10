@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { editorLocator } from './locators';
 
 const STYLE_ID = 'remdo-editor-focus-style';
 
@@ -11,7 +12,7 @@ export async function prepareEditorTestSurface(page: Page): Promise<void> {
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
-      //TODO use routes or a similar mechanism to render just editor instead of using CSS tricks
+      // TODO use routes or a similar mechanism to render just editor instead of using CSS tricks
       style.textContent = `
       body *:not(.editor-container):not(.editor-container *):not(:has(.editor-container)) {
         display: none;
@@ -28,4 +29,11 @@ export async function prepareEditorTestSurface(page: Page): Promise<void> {
   }, STYLE_ID);
 
   await page.locator('.editor-container').first().waitFor({ state: 'attached' });
+  await focusEditorInput(page);
+}
+
+async function focusEditorInput(page: Page): Promise<void> {
+  const input = editorLocator(page).locator('.editor-input').first();
+  await input.waitFor({ state: 'visible' });
+  await input.click();
 }

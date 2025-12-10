@@ -1,4 +1,4 @@
-import { expect, test } from '../_support/fixtures';
+import { expect, test } from './_support/fixtures';
 
 test.describe('Editor (focused) visibility', () => {
   test('shows editor content only', async ({ page, editor }) => {
