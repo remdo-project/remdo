@@ -238,9 +238,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
-    it.skip('lands the caret on the parent body when deleting the only child in a subtree', async ({ remdo }) => {
-      // This now passes in JSDOM and the real app, so mark skip instead of fails to
-      // avoid a false failure until we decide whether to harden the spec or retire it.
+    it.fails('lands the caret on the parent body when deleting the only child in a subtree', async ({ remdo }) => {
       await remdo.load('basic');
 
       await placeCaretAtNote(remdo, 'note2');

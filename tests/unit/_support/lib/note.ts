@@ -3,9 +3,10 @@ import { $isListNode } from '@lexical/list';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import type { TextNode } from 'lexical';
 import { $createRangeSelection, $getRoot, $getSelection, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
+import { isChildrenWrapper } from './selection';
 
 export interface OutlineNode {
-  text?: string;
+  text: string | null;
   children: OutlineNode[];
 }
 
@@ -97,12 +98,20 @@ export function readOutline(remdo: RemdoTestApi): Outline {
     const list = root.getFirstChild();
     if (!list) return [] as Outline;
 
-    const flat: Array<{ text?: string; indent: number }> = [];
+    const flat: Array<{ text: string | null; indent: number }> = [];
 
     const collectItems = (listNode: any) => {
       const items = listNode?.getChildren?.() ?? [];
       for (const item of items) {
         if (!item || typeof item.getChildren !== 'function') {
+          continue;
+        }
+
+        if (isChildrenWrapper(item)) {
+          const nested = item.getFirstChild();
+          if ($isListNode(nested)) {
+            collectItems(nested);
+          }
           continue;
         }
 
@@ -114,15 +123,16 @@ export function readOutline(remdo: RemdoTestApi): Outline {
           (child: any) => typeof child.getType === 'function' && child.getType() !== 'list'
         );
 
-        if (contentNodes.length > 0) {
-          const indent = typeof item.getIndent === 'function' ? item.getIndent() : 0;
-          const text = contentNodes
-            .map((child: any) => child?.getTextContent?.() ?? '')
-            .join('')
-            .trim();
+        const indent = typeof item.getIndent === 'function' ? item.getIndent() : 0;
+        const text =
+          contentNodes.length > 0
+            ? contentNodes
+                .map((child: any) => child?.getTextContent?.() ?? '')
+                .join('')
+                .trim()
+            : null;
 
-          flat.push({ text, indent });
-        }
+        flat.push({ text, indent });
 
         for (const nested of nestedLists) {
           collectItems(nested);
@@ -137,12 +147,9 @@ export function readOutline(remdo: RemdoTestApi): Outline {
 
     for (const { text, indent } of flat) {
       const node: OutlineNode = {
+        text,
         children: [],
       };
-
-      if (text !== undefined) {
-        node.text = text;
-      }
 
       while (stack.length > 0 && stack.at(-1)!.indent >= indent) {
         stack.pop();
