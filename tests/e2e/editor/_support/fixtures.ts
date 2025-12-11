@@ -32,8 +32,8 @@ export const test = base.extend<{ testDocId: string; editor: EditorHarness }>({
     await use(docId);
   },
   editor: async ({ page, testDocId }, use) => {
-    await prepareEditorTestSurface(page);
     const editor = await createEditorHarness(page, testDocId);
+    await prepareEditorTestSurface(page);
     await use(editor);
     await editor.waitForSynced();
   },
