@@ -53,7 +53,6 @@ test.describe('deletion (native browser behavior)', () => {
     expect(await captureEditorSnapshot(page)).toEqual(before);
   });
 
-  //TODO review below
   test('Backspace merges a leaf into its previous sibling', async ({ page, editor }) => {
     test.fail();
     await editor.load('flat');
@@ -106,7 +105,6 @@ test.describe('deletion (native browser behavior)', () => {
   });
 
   test('Delete removes structural selection block and focuses next sibling', async ({ page, editor }) => {
-    test.fail();
     await editor.load('flat');
     await setCaretAtText(page, 'note1');
 
@@ -116,7 +114,8 @@ test.describe('deletion (native browser behavior)', () => {
     await page.keyboard.press('Delete');
 
     const items = editorLocator(page).locator('li.list-item');
-    await expect(items).toHaveCount(1);
-    await expect(items.first()).toHaveText('note3');
+    await expect(items).toHaveCount(2);
+    await expect(items.nth(0)).toHaveText('note2');
+    await expect(items.nth(1)).toHaveText('note3');
   });
 });
