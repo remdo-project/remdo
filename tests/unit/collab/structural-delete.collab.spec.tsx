@@ -33,7 +33,9 @@ describe('collab structural delete regression', () => {
     await pressKey(editorB, { key: 'Backspace' });
 
     await Promise.all([editorA.waitForSynced(), editorB.waitForSynced()]);
-    expect(readOutline(editorA)).toEqual(expectedAfterRemoteDelete);
+    await waitFor(() => {
+      expect(readOutline(editorA)).toEqual(expectedAfterRemoteDelete);
+    });
 
     let bubbled = false;
     const bubbleProbe = (event: KeyboardEvent) => {
