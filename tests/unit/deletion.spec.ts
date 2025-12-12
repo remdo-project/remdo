@@ -61,7 +61,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         {
           text: 'note1',
           children: [
-            { text: 'note2 note3', children: [] },
+            { text: 'note2 note3' },
           ],
         },
       ]);
@@ -79,11 +79,11 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         {
           text: 'note1',
           children: [
-            { text: 'note2', children: [] },
-            { text: 'note2.1', children: [] },
+            { text: 'note2' },
+            { text: 'note2.1' },
           ],
         },
-        { text: 'note3', children: [] },
+        { text: 'note3' },
       ]);
 
       await placeCaretAtNote(remdo, 'note2', 0);
@@ -93,10 +93,10 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         {
           text: 'note1 note2',
           children: [
-            { text: 'X', children: [] },
+            { text: 'X' },
           ],
         },
-        { text: 'note3', children: [] },
+        { text: 'note3' },
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2' });
     });
@@ -108,8 +108,8 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Backspace' });
 
       expect(remdo).toMatchOutline([
-        { text: 'note1 note2', children: [] },
-        { text: 'note3', children: [] },
+        { text: 'note1 note2' },
+        { text: 'note3' },
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2' });
     });
@@ -134,8 +134,8 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline([
-        { text: 'note1 note2', children: [] },
-        { text: 'note3', children: [] },
+        { text: 'note1 note2' },
+        { text: 'note3' },
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2' });
     });
@@ -171,9 +171,9 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Backspace' });
 
       expect(remdo).toMatchOutline([
-        { text: 'ote1', children: [] },
-        { text: 'note2', children: [] },
-        { text: 'note3', children: [] },
+        { text: 'ote1' },
+        { text: 'note2' },
+        { text: 'note3' },
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'ote1' });
     });
@@ -188,8 +188,8 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline([
-        { text: 'left right', children: [] },
-        { text: 'note3', children: [] },
+        { text: 'left right' },
+        { text: 'note3' },
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'left right' });
     });
@@ -204,8 +204,8 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline([
-        { text: 'left right', children: [] },
-        { text: 'note3', children: [] },
+        { text: 'left right' },
+        { text: 'note3' },
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'left right' });
     });
@@ -221,7 +221,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
 
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline([{ text: 'note3', children: [] }]);
+      expect(remdo).toMatchOutline([{ text: 'note3' }]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
     });
 
@@ -234,7 +234,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
 
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline([{ text: 'note1', children: [] }]);
+      expect(remdo).toMatchOutline([{ text: 'note1' }]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
@@ -250,8 +250,8 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline([
-        { text: 'note1', children: [] },
-        { text: 'note3', children: [] },
+        { text: 'note1' },
+        { text: 'note3' },
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });

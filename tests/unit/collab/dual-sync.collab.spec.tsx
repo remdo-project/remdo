@@ -19,8 +19,8 @@ describe('collaboration sync', () => {
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     await waitFor(() => {
-      expect(remdo).toMatchOutline([{ text: null, children: [] }]);
-      expect(secondary).toMatchOutline([{ text: null, children: [] }]);
+      expect(remdo).toMatchOutline([{}]);
+      expect(secondary).toMatchOutline([{}]);
     });
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
@@ -41,7 +41,7 @@ describe('collaboration sync', () => {
 
     await remdo.waitForSynced();
     await secondary.waitForSynced();
-    const sharedOutline = [{ text: 'note1', children: [] }];
+    const sharedOutline = [{ text: 'note1' }];
     await waitFor(() => {
       expect(remdo).toMatchOutline(sharedOutline);
       expect(secondary).toMatchOutline(sharedOutline);

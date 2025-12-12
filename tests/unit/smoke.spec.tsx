@@ -15,13 +15,11 @@ it('loads basic outline structure from JSON', async ({ remdo }) => {
       children: [
         {
           text: 'note2',
-          children: [],
         },
       ],
     },
     {
       text: 'note3',
-      children: [],
     },
   ]);
 });

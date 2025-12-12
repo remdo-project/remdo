@@ -22,9 +22,9 @@ describe('collab structural delete regression', () => {
     await pressKey(editorA, { key: 'ArrowDown', shift: true });
 
     const expectedAfterRemoteDelete = [
-      { text: 'note1', children: [ { text: 'note4', children: [] } ] },
-      { text: 'note5', children: [] },
-      { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+      { text: 'note1', children: [ { text: 'note4' } ] },
+      { text: 'note5' },
+      { text: 'note6', children: [ { text: 'note7' } ] },
     ];
 
     await placeCaretAtNote(editorB, 'note2');
@@ -58,7 +58,7 @@ describe('collab structural delete regression', () => {
       const walk = (xs: typeof nodes) => {
         for (const node of xs) {
           if (node.text) out.push(node.text);
-          if (node.children.length > 0) {
+          if (node.children?.length) {
             walk(node.children);
           }
         }

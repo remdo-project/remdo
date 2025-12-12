@@ -6,11 +6,18 @@ import { $createRangeSelection, $getRoot, $getSelection, $isRangeSelection, $isT
 import { isChildrenWrapper } from './selection';
 
 export interface OutlineNode {
-  text: string | null;
-  children: OutlineNode[];
+  text?: string;
+  children?: Outline;
 }
 
 export type Outline = OutlineNode[];
+
+export interface OutlineSnapshotNode {
+  text: string | null;
+  children: OutlineSnapshot;
+}
+
+export type OutlineSnapshot = OutlineSnapshotNode[];
 
 export type SelectionSnapshot =
   | { state: 'none' }
@@ -142,11 +149,11 @@ export function readOutline(remdo: RemdoTestApi): Outline {
 
     collectItems(list);
 
-    const outline: Outline = [];
-    const stack: Array<{ indent: number; children: Outline }> = [{ indent: -1, children: outline }];
+    const rawOutline: OutlineSnapshot = [];
+    const stack: Array<{ indent: number; children: OutlineSnapshot }> = [{ indent: -1, children: rawOutline }];
 
     for (const { text, indent } of flat) {
-      const node: OutlineNode = {
+      const node: OutlineSnapshotNode = {
         text,
         children: [],
       };
@@ -159,7 +166,21 @@ export function readOutline(remdo: RemdoTestApi): Outline {
       stack.push({ indent, children: node.children });
     }
 
-    return outline;
+    return normalizeOutline(rawOutline);
+  });
+}
+
+function normalizeOutline(nodes: OutlineSnapshot): Outline {
+  return nodes.map((node): OutlineNode => {
+    const normalizedChildren = normalizeOutline(node.children);
+    const normalized: OutlineNode = {};
+    if (node.text !== null) {
+      normalized.text = node.text;
+    }
+    if (normalizedChildren.length > 0) {
+      normalized.children = normalizedChildren;
+    }
+    return normalized;
   });
 }
 // TODO: replace this helper with a top-level note selection API once we expose

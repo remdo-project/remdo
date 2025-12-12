@@ -85,6 +85,29 @@ function formatSelectionSnapshot(snapshot: SelectionSnapshot): string {
   return JSON.stringify(snapshot, null, 2);
 }
 
+function assertOutlineExpectation(outline: Outline, path: number[] = []) {
+  for (let index = 0; index < outline.length; index += 1) {
+    const node = outline[index]!;
+    const nodePath = [...path, index];
+
+    const maybeText = (node as { text?: string | null }).text;
+    if (maybeText === null) {
+      throw new Error(`outline[${nodePath.join('>')}].text must be omitted or a string; null is not allowed.`);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(node, 'children')) {
+      const children = node.children;
+      if (!Array.isArray(children)) {
+        throw new TypeError(`outline[${nodePath.join('>')}].children must be an array when provided.`);
+      }
+      if (children.length === 0) {
+        throw new TypeError(`outline[${nodePath.join('>')}].children must be omitted when a note has no children.`);
+      }
+      assertOutlineExpectation(children, nodePath);
+    }
+  }
+}
+
 function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
   const rootElement = remdo.editor.getRootElement();
   return remdo.validate(() => {
@@ -156,6 +179,8 @@ function getCaretNoteLabel(selection: RangeSelection): string | null {
 
 expect.extend({
   toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: Outline) {
+    assertOutlineExpectation(expected);
+
     const outline = attemptRead(this, '.toMatchOutline', () => readOutline(remdo));
     if (!outline.ok) return outline.result;
 
