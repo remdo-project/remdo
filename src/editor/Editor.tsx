@@ -10,6 +10,7 @@ import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { DevPlugin } from './plugins/dev';
 import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin';
 import { InsertionPlugin } from './plugins/InsertionPlugin';
+import { DeletionPlugin } from './plugins/DeletionPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
 import { KeymapPlugin } from './plugins/KeymapPlugin';
@@ -37,6 +38,7 @@ export default function Editor({ children, collabOrigin, docId, onTestBridgeRead
         <ReorderingPlugin />
         <SelectionPlugin />
         <InsertionPlugin />
+        <DeletionPlugin />
         <SelectionInputPlugin />
         <ListPlugin hasStrictIndent />
         <CollaborationPlugin collabOrigin={collabOrigin} docId={docId}>

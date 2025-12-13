@@ -32,7 +32,6 @@ test.describe('deletion (native browser behavior)', () => {
   });
 
   test('Backspace at start of first note is a no-op', async ({ page, editor }) => {
-    test.fail();
     await editor.load('basic');
     await setCaretAtText(page, 'note1');
     const before = await captureEditorSnapshot(page);
@@ -43,7 +42,6 @@ test.describe('deletion (native browser behavior)', () => {
   });
 
   test('Backspace at start of parent with children is a no-op', async ({ page, editor }) => {
-    test.fail();
     await editor.load('tree');
     await setCaretAtText(page, 'note2');
     const before = await captureEditorSnapshot(page);
@@ -54,7 +52,6 @@ test.describe('deletion (native browser behavior)', () => {
   });
 
   test('Backspace merges a leaf into its previous sibling', async ({ page, editor }) => {
-    test.fail();
     await editor.load('flat');
     await setCaretAtText(page, 'note2');
 
@@ -66,7 +63,6 @@ test.describe('deletion (native browser behavior)', () => {
   });
 
   test('Delete at end merges next leaf', async ({ page, editor }) => {
-    test.fail();
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
 
@@ -91,7 +87,6 @@ test.describe('deletion (native browser behavior)', () => {
   });
 
   test('Delete respects spacing when left fragment already ends with space', async ({ page, editor }) => {
-    test.fixme();
     await editor.load('flat');
     await replaceNoteText(page, 'note1', 'left ');
     await replaceNoteText(page, 'note2', 'right');

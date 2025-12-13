@@ -6,10 +6,11 @@ import { $isListNode } from '@lexical/list';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { placeCaretAtNote, pressKey, selectNoteRange, typeText } from '#tests';
 
-// Coverage gaps (kept out of unit scope):
-// - Forward Delete at caret (inline delete) is not exercised here; jsdom lacks
-//   native beforeinput/input for Delete, and we rely on explicit helpers.
-// TODO: Add these behaviors as Playwright e2e cases using real user actions.
+// Coverage gaps (handled in e2e instead of unit tests):
+// - Forward `Delete` at the caret: jsdom doesn’t emulate the browser’s native
+//   `beforeinput`/`input` sequence for `Delete`, so unit tests can’t reliably
+//   validate real user behavior. These cases live in Playwright e2e where the
+//   browser event model is accurate.
 
 describe('deletion semantics (docs/outliner/deletion.md)', () => {
   describe('caret mode', () => {
@@ -25,7 +26,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
-    it.fails('backspace at start of first note with children should be a no-op (currently hoists child)', async ({ remdo }) => {
+    it('backspace at start of first note with children is a no-op', async ({ remdo }) => {
       await remdo.load('basic');
       // Not a duplicate of the flat-case root no-op: this fixture has a child,
       // so Backspace must preserve the subtree instead of hoisting it.
@@ -39,7 +40,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
-    it.fails('backspace at start of a middle note with children should be a no-op', async ({ remdo }) => {
+    it('backspace at start of a middle note with children is a no-op', async ({ remdo }) => {
       await remdo.load('tree');
 
       await placeCaretAtNote(remdo, 'note2', 0);
@@ -51,7 +52,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
     });
 
-    it.fails('merges a leaf into its previous sibling when Backspace is pressed at column 0', async ({ remdo }) => {
+    it('merges a leaf into its previous sibling when Backspace is pressed at column 0', async ({ remdo }) => {
       await remdo.load('basic');
 
       await placeCaretAtNote(remdo, 'note3', 0);
@@ -68,7 +69,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note2 note3' });
     });
 
-    it.fails('merges a first-child leaf into its parent body when siblings exist', async ({ remdo }) => {
+    it('merges a first-child leaf into its parent body when siblings exist', async ({ remdo }) => {
       await remdo.load('basic');
 
       // Make the parent have multiple children while keeping note2 the first child.
@@ -93,7 +94,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         {
           text: 'note1 note2',
           children: [
-            { text: 'X' },
+            { text: 'note2.1' },
           ],
         },
         { text: 'note3' },
@@ -101,7 +102,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2' });
     });
 
-    it.fails('merges a leaf into its previous leaf sibling when Backspace is pressed at column 0', async ({ remdo }) => {
+    it('merges a leaf into its previous leaf sibling when Backspace is pressed at column 0', async ({ remdo }) => {
       await remdo.load('flat');
 
       await placeCaretAtNote(remdo, 'note2', 0);
@@ -127,7 +128,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
-    it.fails('merges the next leaf into the current note with Delete at the end of the line', async ({ remdo }) => {
+    it('merges the next leaf into the current note with Delete at the end of the line', async ({ remdo }) => {
       await remdo.load('flat');
 
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
@@ -140,7 +141,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2' });
     });
 
-    it.fails('ignores Delete at note end when the next sibling has children', async ({ remdo }) => {
+    it('ignores Delete at note end when the next sibling has children', async ({ remdo }) => {
       await remdo.load('tree');
 
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
@@ -152,7 +153,8 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
-    it.fails('ignores Delete at note end when the current note has children', async ({ remdo }) => {
+    it('ignores Delete at note end when the current note has children', async ({ remdo }) => {
+      //TODO review this case and all below
       await remdo.load('basic');
 
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
