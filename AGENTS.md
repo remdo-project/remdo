@@ -23,9 +23,12 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
 - `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch
   conventions—check before touching tooling or process.
 - `docs/outliner/index.md` (Short). Single entry point for outlining docs with
-  links to model, selection, indent/outdent, insertion, and reordering specs.
+  links to model, selection, indent/outdent, insertion, and reordering specs;
+  also states the single-source (no-duplication) rule for invariants.
 - `docs/outliner/concepts.md` (Medium). Canonical definition of notes,
-  invariants, and adapters—skim when working on data modeling or serialization.
+  invariants (including non-empty tree), shared definitions (document order,
+  empty notes), and adapters—skim when working on data modeling or
+  serialization.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and
   indent/outdent semantics—consult when editing tree transforms or note
   mutations.
@@ -34,7 +37,9 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior
   and placement invariants.
 - `docs/outliner/deletion.md` (Medium). Caret vs. structural deletion semantics,
-  merge/no-op rules at note boundaries, and the spacing contract for joins.
+  merge/no-op rules at note boundaries (including parent/child merges and
+  empty-note deletions), document-order adjacency definitions, and the spacing
+  contract for joins.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer-based reordering (drag and
   drop) – not supported yet; future plan lives there.
 - `docs/insertion.md` (Short). Caret-mode `Enter` behavior (start/middle/end)

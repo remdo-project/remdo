@@ -32,10 +32,22 @@ notes:
 - Each note is uniquely addressable inside its tree.
 - Every note has exactly one parent (except the root) and maintains an ordered
   list of children owned by that parent.
+- The note tree is never empty: the document always contains at least one note.
+  If an operation would remove the final note, adapters must replace it with an
+  empty note instead of producing an empty document.
 - Ordering metadata lives with the parent, so sibling order changes do not
   mutate child notes.
 - Content and props never alter the structural contract; a note may be purely
   structural or carry opaque content without affecting its position.
+
+### Definitions
+
+- **Document order:** the depth-first, pre-order traversal of notes in the
+  structural tree.
+- **Previous note / next note:** adjacent notes in document order;
+  folding/collapse is currently out of scope.
+- **Empty note:** a note whose body text is empty after trimming whitespace.
+- **Empty leaf note:** an empty note with no children.
 
 ---
 

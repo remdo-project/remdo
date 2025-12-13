@@ -153,17 +153,17 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
-    it('ignores Delete at note end when the current note has children', async ({ remdo }) => {
-      //TODO review this case and all below
+    it.fails('merges the first child leaf into the parent when Delete is pressed at the parent end', async ({ remdo }) => {
       await remdo.load('basic');
 
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-      const before = remdo.getEditorState();
-
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchEditorState(before);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+      expect(remdo).toMatchOutline([
+        { text: 'note1 note2' },
+        { text: 'note3' },
+      ]);
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2' });
     });
 
     it.fails('treats Backspace in the middle of a note like plain text', async ({ remdo }) => {
