@@ -16,8 +16,8 @@ catalogs:
       specifier: ^0.38.2
       version: 0.38.2
     '@lexical/eslint-plugin':
-      specifier: ^0.38.2
-      version: 0.38.2
+      specifier: ^0.39.0
+      version: 0.39.0
     '@lexical/history':
       specifier: ^0.38.2
       version: 0.38.2
@@ -244,7 +244,7 @@ importers:
         version: 2.3.9(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)
       '@lexical/eslint-plugin':
         specifier: 'catalog:'
-        version: 0.38.2(eslint@9.39.1(jiti@2.6.1))
+        version: 0.39.0(eslint@9.39.1(jiti@2.6.1))
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.57.0
@@ -1155,8 +1155,8 @@ packages:
   '@lexical/dragon@0.38.2':
     resolution: {integrity: sha512-riOhgo+l4oN50RnLGhcqeUokVlMZRc+NDrxRNs2lyKSUdC4vAhAmAVUHDqYPyb4K4ZSw4ebZ3j8hI2zO4O3BbA==}
 
-  '@lexical/eslint-plugin@0.38.2':
-    resolution: {integrity: sha512-T/en3lJBEU1ajLQve21L721hKzAtewEnGwFSmhq4fwGcqsey5UYvyHMIyn0wKcAh6fvWTRzQDLqxr7Ow4lwnrQ==}
+  '@lexical/eslint-plugin@0.39.0':
+    resolution: {integrity: sha512-Bjx3pQwzwIeiPm+d1THfp0WQj6jWCjsScaVhL2oBycHaXBucziu/BtVyQmvCdYtnv9lgBDL3Ip5ozTpzN+KmdQ==}
     peerDependencies:
       eslint: '>=7.31.0 || ^8.0.0'
 
@@ -4811,7 +4811,7 @@ snapshots:
       '@lexical/extension': 0.38.2
       lexical: 0.38.2
 
-  '@lexical/eslint-plugin@0.38.2(eslint@9.39.1(jiti@2.6.1))':
+  '@lexical/eslint-plugin@0.39.0(eslint@9.39.1(jiti@2.6.1))':
     dependencies:
       eslint: 9.39.1(jiti@2.6.1)
 

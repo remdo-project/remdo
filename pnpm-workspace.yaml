@@ -12,7 +12,7 @@ catalog:
   '@antfu/eslint-config': ^6.4.2
   '@eslint-react/eslint-plugin': ^2.3.9
   '@lexical/devtools-core': ^0.38.2
-  '@lexical/eslint-plugin': ^0.38.2
+  '@lexical/eslint-plugin': ^0.39.0
   '@lexical/history': ^0.38.2
   '@lexical/list': ^0.38.2
   '@lexical/markdown': ^0.38.2
