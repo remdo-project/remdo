@@ -13,7 +13,7 @@ catalog:
   '@eslint-react/eslint-plugin': ^2.3.9
   '@lexical/devtools-core': ^0.38.2
   '@lexical/eslint-plugin': ^0.38.2
-  '@lexical/history': ^0.38.2
+  '@lexical/history': ^0.39.0
   '@lexical/list': ^0.38.2
   '@lexical/markdown': ^0.38.2
   '@lexical/react': ^0.38.2
