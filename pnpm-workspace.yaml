@@ -48,7 +48,7 @@ catalog:
   eslint-plugin-react-refresh: ^0.4.24
   eslint-plugin-unicorn: ^62.0.0
   jiti: ^2.6.1
-  jsdom: ^27.2.0
+  jsdom: ^27.3.0
   lexical: ^0.38.2
   lib0: ^0.2.114
   markdownlint-cli2: ^0.19.1
