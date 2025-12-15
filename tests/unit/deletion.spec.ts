@@ -6,10 +6,8 @@ import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { placeCaretAtNote, pressKey, selectNoteRange, typeText } from '#tests';
 
 // Coverage gaps (handled in e2e instead of unit tests):
-// - Forward `Delete` at the caret: jsdom doesn’t emulate the browser’s native
-//   `beforeinput`/`input` sequence for `Delete`, so unit tests can’t reliably
-//   validate real user behavior. These cases live in Playwright e2e where the
-//   browser event model is accurate.
+// - Inline Backspace/Delete inside a note: jsdom doesn’t emulate native deletion
+//   events reliably, so these cases live in Playwright e2e.
 
 describe('deletion semantics (docs/outliner/deletion.md)', () => {
   describe('caret mode', () => {
@@ -163,20 +161,6 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         { text: 'note3' },
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2' });
-    });
-
-    it.fails('treats Backspace in the middle of a note like plain text', async ({ remdo }) => {
-      await remdo.load('flat');
-
-      await placeCaretAtNote(remdo, 'note1', 1);
-      await pressKey(remdo, { key: 'Backspace' });
-
-      expect(remdo).toMatchOutline([
-        { text: 'ote1' },
-        { text: 'note2' },
-        { text: 'note3' },
-      ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'ote1' });
     });
 
     it('avoids adding extra space when the right fragment already starts with whitespace', async ({ remdo }) => {

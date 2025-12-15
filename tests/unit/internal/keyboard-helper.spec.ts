@@ -162,34 +162,4 @@ describe('keyboard helper contract (pure Lexical)', () => {
     expect(getText(harness.editor)).toBe('note1');
     dispose();
   });
-
-  it('inline forward delete helper removes next char at caret', async () => {
-    const { harness, dispose } = await createPlainEditor('note1');
-    await setCaret(harness.editor, 0);
-
-    await inlineDelete(harness);
-
-    expect(getText(harness.editor)).toBe('ote1');
-    const selection = harness.editor.getEditorState().read(() => $getSelection());
-    expect($isRangeSelection(selection) && selection.anchor.offset === 0 && selection.focus.offset === 0).toBe(true);
-    dispose();
-  });
 });
-
-async function inlineDelete(harness: EditorHarness) {
-  await act(async () => {
-    harness.editor.update(() => {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        const anchor = selection.anchor.getNode();
-        const offset = selection.anchor.offset;
-        const target = $isTextNode(anchor) ? anchor : null;
-        if (target && offset < target.getTextContentSize()) {
-          target.spliceText(offset, offset + 1, '');
-          selection.anchor.set(target.getKey(), offset, 'text');
-          selection.focus.set(target.getKey(), offset, 'text');
-        }
-      }
-    });
-  });
-}

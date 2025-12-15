@@ -26,6 +26,27 @@ test.describe('deletion (native browser behavior)', () => {
     await expect(items.nth(2)).toHaveText('note3');
   });
 
+  test('Backspace in the middle of a note deletes the previous character', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', 2);
+
+    await page.keyboard.press('Backspace');
+
+    const items = editorLocator(page).locator('li.list-item');
+    await expect(items.nth(0)).toHaveText('nte1');
+    await expect(items.nth(1)).toHaveText('note2');
+    await expect(items.nth(2)).toHaveText('note3');
+
+    const snapshot = await captureEditorSnapshot(page);
+    expect(snapshot.selection).toMatchObject({
+      anchorText: 'nte1',
+      anchorOffset: 1,
+      focusText: 'nte1',
+      focusOffset: 1,
+      isCollapsed: true,
+    });
+  });
+
   test('Backspace at start of first note is a no-op', async ({ page, editor }) => {
     await editor.load('basic');
     await setCaretAtText(page, 'note1');
