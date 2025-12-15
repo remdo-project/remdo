@@ -11,23 +11,23 @@ const CASES: OutlineCase[] = [
   {
     fixture: 'flat',
     outline: [
-      { text: 'note1', children: [] },
-      { text: 'note2', children: [] },
-      { text: 'note3', children: [] },
+      { text: 'note1' },
+      { text: 'note2' },
+      { text: 'note3' },
     ],
   },
   {
     fixture: 'basic',
     outline: [
-      { text: 'note1', children: [ { text: 'note2', children: [] } ] },
-      { text: 'note3', children: [] },
+      { text: 'note1', children: [ { text: 'note2' } ] },
+      { text: 'note3' },
     ],
   },
   {
     fixture: 'tree',
     outline: [
-      { text: 'note1', children: [] },
-      { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+      { text: 'note1' },
+      { text: 'note2', children: [ { text: 'note3' } ] },
     ],
   },
   {
@@ -36,21 +36,21 @@ const CASES: OutlineCase[] = [
       {
         text: 'note1',
         children: [
-          { text: 'note2', children: [ { text: 'note3', children: [] } ] },
-          { text: 'note4', children: [] },
+          { text: 'note2', children: [ { text: 'note3' } ] },
+          { text: 'note4' },
         ],
       },
-      { text: 'note5', children: [] },
-      { text: 'note6', children: [ { text: 'note7', children: [] } ] },
+      { text: 'note5' },
+      { text: 'note6', children: [ { text: 'note7' } ] },
     ],
   },
   {
     fixture: 'empty-labels',
     outline: [
-      { text: 'alpha', children: [] },
-      { text: '', children: [] },
-      { text: '', children: [] },
-      { text: '', children: [ { text: '', children: [] }, { text: 'child-of-empty', children: [] } ] },
+      { text: 'alpha' },
+      { text: '' },
+      { text: 'beta' },
+      { children: [ {}, { text: 'child-of-empty' } ] },
     ],
   },
 ];
@@ -68,7 +68,7 @@ describe('toMatchOutline smoke coverage', () => {
 
     let thrown: unknown;
     try {
-      expect(remdo).toMatchOutline([{ text: 'wrong label', children: [] }]);
+      expect(remdo).toMatchOutline([{ text: 'wrong label' }]);
     } catch (error) {
       thrown = error;
     }

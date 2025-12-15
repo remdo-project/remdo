@@ -10,6 +10,7 @@ import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { DevPlugin } from './plugins/dev';
 import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin';
 import { InsertionPlugin } from './plugins/InsertionPlugin';
+import { DeletionPlugin } from './plugins/DeletionPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
 import { KeymapPlugin } from './plugins/KeymapPlugin';
@@ -19,9 +20,11 @@ interface EditorProps {
   children?: React.ReactNode;
   collabOrigin?: string;
   docId?: string;
+  onTestBridgeReady?: (api: unknown) => void;
+  onTestBridgeDispose?: () => void;
 }
 
-export default function Editor({ children, collabOrigin, docId }: EditorProps) {
+export default function Editor({ children, collabOrigin, docId, onTestBridgeReady, onTestBridgeDispose }: EditorProps) {
   const editorInitialConfig = createEditorInitialConfig({ isDev: config.dev });
   return (
     <div className="editor-container">
@@ -35,11 +38,12 @@ export default function Editor({ children, collabOrigin, docId }: EditorProps) {
         <ReorderingPlugin />
         <SelectionPlugin />
         <InsertionPlugin />
+        <DeletionPlugin />
         <SelectionInputPlugin />
         <ListPlugin hasStrictIndent />
         <CollaborationPlugin collabOrigin={collabOrigin} docId={docId}>
           <RootSchemaPlugin />
-          <DevPlugin>{children}</DevPlugin>
+          <DevPlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose}>{children}</DevPlugin>
         </CollaborationPlugin>
       </LexicalComposer>
     </div>

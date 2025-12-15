@@ -7,20 +7,21 @@ import {
   placeCaretAtNote,
   pressKey,
   readOutline,
+  typeText,
 } from '#tests';
 import { $getSelection, $isRangeSelection } from 'lexical';
-import { MOVE_SELECTION_DOWN_COMMAND, MOVE_SELECTION_UP_COMMAND } from '@/editor/commands';
+import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
 
 const TREE_COMPLEX_OUTLINE: Outline = [
   {
     text: 'note1',
     children: [
-      { text: 'note2', children: [{ text: 'note3', children: [] }] },
-      { text: 'note4', children: [] },
+      { text: 'note2', children: [{ text: 'note3' }] },
+      { text: 'note4' },
     ],
   },
-  { text: 'note5', children: [] },
-  { text: 'note6', children: [{ text: 'note7', children: [] }] },
+  { text: 'note5' },
+  { text: 'note6', children: [{ text: 'note7' }] },
 ];
 
 // Ensures every multi-note selection matches the guarantees from docs/outliner/selection.md:
@@ -524,7 +525,7 @@ describe('selection plugin', () => {
 
     const stateBefore = remdo.editor.getEditorState();
 
-    await pressKey(remdo, { key: 'x' });
+    await typeText(remdo, 'x');
     expect(rootElement.dataset.structuralSelection).toBe('true');
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
@@ -553,14 +554,14 @@ describe('selection plugin', () => {
             {
               text: 'note2',
               children: [
-                { text: 'note3', children: [] },
-                { text: 'note4', children: [] },
+                { text: 'note3' },
+                { text: 'note4' },
               ],
             },
           ],
         },
-        { text: 'note5', children: [] },
-        { text: 'note6', children: [{ text: 'note7', children: [] }] },
+        { text: 'note5' },
+        { text: 'note6', children: [{ text: 'note7' }] },
       ]);
     });
   });
@@ -573,19 +574,19 @@ describe('selection plugin', () => {
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
 
-    await remdo.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
+    await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND);
 
     await waitFor(() => {
       expect(remdo).toMatchOutline([
         {
           text: 'note1',
           children: [
-            { text: 'note4', children: [] },
-            { text: 'note2', children: [{ text: 'note3', children: [] }] },
+            { text: 'note4' },
+            { text: 'note2', children: [{ text: 'note3' }] },
           ],
         },
-        { text: 'note5', children: [] },
-        { text: 'note6', children: [{ text: 'note7', children: [] }] },
+        { text: 'note5' },
+        { text: 'note6', children: [{ text: 'note7' }] },
       ]);
     });
   });
@@ -605,12 +606,12 @@ describe('selection plugin', () => {
         {
           text: 'note1',
           children: [
-            { text: 'note2', children: [{ text: 'note3', children: [] }] },
+            { text: 'note2', children: [{ text: 'note3' }] },
           ],
         },
-        { text: 'note4', children: [] },
-        { text: 'note5', children: [] },
-        { text: 'note6', children: [{ text: 'note7', children: [] }] },
+        { text: 'note4' },
+        { text: 'note5' },
+        { text: 'note6', children: [{ text: 'note7' }] },
       ]);
     });
   });
@@ -623,19 +624,19 @@ describe('selection plugin', () => {
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note6' });
 
-    await remdo.dispatchCommand(MOVE_SELECTION_UP_COMMAND);
+    await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND);
 
     await waitFor(() => {
       expect(remdo).toMatchOutline([
         {
           text: 'note1',
           children: [
-            { text: 'note2', children: [{ text: 'note3', children: [] }] },
-            { text: 'note4', children: [] },
+            { text: 'note2', children: [{ text: 'note3' }] },
+            { text: 'note4' },
           ],
         },
-        { text: 'note6', children: [{ text: 'note7', children: [] }] },
-        { text: 'note5', children: [] },
+        { text: 'note6', children: [{ text: 'note7' }] },
+        { text: 'note5' },
       ]);
     });
   });
@@ -655,9 +656,9 @@ describe('selection plugin', () => {
 
     await waitFor(() => {
       expect(remdo).toMatchOutline([
-        { text: 'note1', children: [{ text: 'note4', children: [] }] },
-        { text: 'note5', children: [] },
-        { text: 'note6', children: [{ text: 'note7', children: [] }] },
+        { text: 'note1', children: [{ text: 'note4' }] },
+        { text: 'note5' },
+        { text: 'note6', children: [{ text: 'note7' }] },
       ]);
     });
   });
@@ -680,11 +681,11 @@ describe('selection plugin', () => {
         {
           text: 'note1',
           children: [
-            { text: 'note2', children: [{ text: 'note3', children: [] }] },
-            { text: 'note4', children: [] },
+            { text: 'note2', children: [{ text: 'note3' }] },
+            { text: 'note4' },
           ],
         },
-        { text: 'note5', children: [] },
+        { text: 'note5' },
       ]);
     });
   });

@@ -14,7 +14,7 @@
 }
 
 .editor-tree-view-hidden {
-  display: none;
+  display: none !important;
 }
 
 .editor-tree-view-body pre {

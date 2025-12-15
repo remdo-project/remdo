@@ -7,7 +7,7 @@ describe('collaboration smoke', () => {
       $getRoot().clear();
     });
 
-    expect(remdo).toMatchOutline([]);
+    expect(remdo).toMatchOutline([{}]);
     await remdo.waitForSynced();
   });
 });

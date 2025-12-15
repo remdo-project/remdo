@@ -15,6 +15,7 @@ details.
 5. **Reordering (keyboard):** `./reordering.md` — Reordering behavior and
    placement invariants.
 6. **Reordering (drag & drop):** `./drag-and-drop.md` — not supported yet; future plan lives here.
+7. **Deletion:** `./deletion.md` — caret vs. structural deletion semantics, merge/no-op rules, and spacing contract.
 
 ## Glossary (minimal)
 
@@ -24,6 +25,7 @@ details.
 
 ## Usage
 
-1. When editing docs, keep each linked file scoped to its topic and prefer cross-linking over duplication.
-2. Add new topics (e.g., drag-and-drop reordering) as their own entries in the Map instead of folding them into
+1. Global invariants/definitions are single-source; other specs must rely on them and must not duplicate them.
+2. When editing docs, keep each linked file scoped to its topic and prefer cross-linking over duplication.
+3. Add new topics (e.g., drag-and-drop reordering) as their own entries in the Map instead of folding them into
    existing pages.

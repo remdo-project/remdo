@@ -208,30 +208,27 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
 export type RemdoTestApi = ReturnType<typeof createTestBridgeApi>;
 export type RemdoBridgeApi = RemdoTestApi['_bridge'];
 
-declare global {
-  interface Window {
-    remdoTest?: RemdoTestApi;
-  }
-}
-
-export function TestBridgePlugin() {
+export function TestBridgePlugin({
+  onTestBridgeReady,
+  onTestBridgeDispose,
+}: {
+  onTestBridgeReady?: (api: RemdoTestApi) => void;
+  onTestBridgeDispose?: () => void;
+}) {
   const [editor] = useLexicalComposerContext();
   const collab = useCollaborationStatus();
 
   const api = useMemo(() => createTestBridgeApi(editor, collab), [collab, editor]);
 
   useEffect(() => {
-    const previous = globalThis.window.remdoTest;
-    globalThis.window.remdoTest = api;
+    onTestBridgeReady?.(api);
+    (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<RemdoTestApi> }).__remdoBridgePromise = Promise.resolve(api);
 
     return () => {
-      if (globalThis.window.remdoTest === api) {
-        delete globalThis.window.remdoTest;
-      } else {
-        globalThis.window.remdoTest = previous;
-      }
+      onTestBridgeDispose?.();
+      (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<RemdoTestApi> }).__remdoBridgePromise = undefined;
     };
-  }, [api]);
+  }, [api, onTestBridgeReady, onTestBridgeDispose]);
 
   return null;
 }

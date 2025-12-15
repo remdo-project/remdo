@@ -18,19 +18,20 @@ beforeEach<TestContext>(async (ctx) => {
   }
 
   const remdoTest = await renderRemdoEditor({ docId });
-
-  ctx.remdo = {
+  const remdo = {
     ...remdoTest,
     load: async (fixtureName: string) => remdoTest._bridge.applySerializedState(await readFixture(fixtureName)),
   };
 
-  await ctx.remdo._bridge.waitForCollaborationReady();
+  ctx.remdo = remdo;
 
-  await ctx.remdo.load('basic'); //FIXME
+  await remdo._bridge.waitForCollaborationReady();
+
+  await remdo.load('basic'); //FIXME
 
   if (config.env.COLLAB_ENABLED) {
-    await ctx.remdo._bridge.clear();
-    await ctx.remdo.waitForSynced();
+    await remdo._bridge.clear();
+    await remdo.waitForSynced();
   }
 });
 

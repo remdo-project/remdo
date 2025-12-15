@@ -19,20 +19,21 @@ describe('collaboration sync', () => {
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     await waitFor(() => {
-      expect(remdo).toMatchOutline([]);
-      expect(secondary).toMatchOutline([]);
+      expect(remdo).toMatchOutline([{}]);
+      expect(secondary).toMatchOutline([{}]);
     });
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     remdo.editor.update(() => {
       // TODO: use a higher level API once we have it
       const root = $getRoot();
+      root.clear();
       const list = $createListNode('bullet');
-      const item = $createListItemNode();
+      const firstItem = $createListItemNode();
       const paragraph = $createParagraphNode();
       paragraph.append($createTextNode('note1'));
-      item.append(paragraph);
-      list.append(item);
+      firstItem.append(paragraph);
+      list.append(firstItem);
       root.append(list);
     });
 
@@ -40,7 +41,7 @@ describe('collaboration sync', () => {
 
     await remdo.waitForSynced();
     await secondary.waitForSynced();
-    const sharedOutline = [{ text: 'note1', children: [] }];
+    const sharedOutline = [{ text: 'note1' }];
     await waitFor(() => {
       expect(remdo).toMatchOutline(sharedOutline);
       expect(secondary).toMatchOutline(sharedOutline);

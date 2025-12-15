@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { placeCaretAtNote, pressKey } from '#tests';
+import { placeCaretAtNote, pressKey, typeText } from '#tests';
 
 describe('insertion semantics (docs/insertion.md)', () => {
   it('enter at start inserts a previous sibling and keeps children with the original', async ({ remdo }) => {
@@ -8,12 +8,12 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter' });
 
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
-      { text: 'X', children: [] },
-      { text: 'note1', children: [ { text: 'note2', children: [] } ] },
-      { text: 'note3', children: [] },
+      { text: 'X' },
+      { text: 'note1', children: [ { text: 'note2' } ] },
+      { text: 'note3' },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'X' });
   });
@@ -24,12 +24,12 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await placeCaretAtNote(remdo, 'note1', 2);
     await pressKey(remdo, { key: 'Enter' });
 
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
-      { text: 'no', children: [] },
-      { text: 'Xte1', children: [] },
-      { text: 'note2', children: [ { text: 'note3', children: [] } ] },
+      { text: 'no' },
+      { text: 'Xte1' },
+      { text: 'note2', children: [ { text: 'note3' } ] },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'Xte1' });
   });
@@ -40,17 +40,17 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
 
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
       {
         text: 'note1',
         children: [
-          { text: 'X', children: [] },
-          { text: 'note2', children: [] },
+          { text: 'X' },
+          { text: 'note2' },
         ],
       },
-      { text: 'note3', children: [] },
+      { text: 'note3' },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'X' });
   });
@@ -75,12 +75,12 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNote(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
-      { text: 'note1', children: [] },
-      { text: 'no', children: [] },
-      { text: 'Xte2', children: [ { text: 'note3', children: [] } ] },
+      { text: 'note1' },
+      { text: 'no' },
+      { text: 'Xte2', children: [ { text: 'note3' } ] },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'Xte2' });
   });
@@ -90,15 +90,15 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
-      { text: 'note1', children: [] },
+      { text: 'note1' },
       {
         text: 'note2',
         children: [
-          { text: 'X', children: [] },
-          { text: 'note3', children: [] },
+          { text: 'X' },
+          { text: 'note3' },
         ],
       },
     ]);
@@ -110,15 +110,15 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNote(remdo, 'note3', 0);
     await pressKey(remdo, { key: 'Enter' });
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
-      { text: 'note1', children: [] },
+      { text: 'note1' },
       {
         text: 'note2',
         children: [
-          { text: 'X', children: [] },
-          { text: 'note3', children: [] },
+          { text: 'X' },
+          { text: 'note3' },
         ],
       },
     ]);
@@ -130,12 +130,12 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
-      { text: 'note1', children: [] },
-      { text: 'X', children: [] },
-      { text: 'note2', children: [{ text: 'note3', children: [] }] },
+      { text: 'note1' },
+      { text: 'X' },
+      { text: 'note2', children: [{ text: 'note3' }] },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'X' });
   });
@@ -145,7 +145,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNote(remdo, 'note4', 0);
     await pressKey(remdo, { key: 'Enter' });
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
       {
@@ -153,14 +153,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
         children: [
           {
             text: 'note2',
-            children: [{ text: 'note3', children: [] }],
+            children: [{ text: 'note3' }],
           },
-          { text: 'X', children: [] },
-          { text: 'note4', children: [] },
+          { text: 'X' },
+          { text: 'note4' },
         ],
       },
-      { text: 'note5', children: [] },
-      { text: 'note6', children: [{ text: 'note7', children: [] }] },
+      { text: 'note5' },
+      { text: 'note6', children: [{ text: 'note7' }] },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'X' });
   });
@@ -170,7 +170,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNote(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });
-    await pressKey(remdo, { key: 'X' });
+    await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
       {
@@ -178,17 +178,16 @@ describe('insertion semantics (docs/insertion.md)', () => {
         children: [
           {
             text: 'no',
-            children: [],
           },
           {
             text: 'Xte2',
-            children: [{ text: 'note3', children: [] }],
+            children: [{ text: 'note3' }],
           },
-          { text: 'note4', children: [] },
+          { text: 'note4' },
         ],
       },
-      { text: 'note5', children: [] },
-      { text: 'note6', children: [{ text: 'note7', children: [] }] },
+      { text: 'note5' },
+      { text: 'note6', children: [{ text: 'note7' }] },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'Xte2' });
   });

@@ -3,15 +3,15 @@ import { createContext, useMemo, use, useEffect, useSyncExternalStore } from 're
 import { config } from '#config';
 import { CollabSession } from '#lib/collaboration/session';
 
-interface CollaborationStatusValue {
-  hydrated: boolean;
-  synced: boolean;
-  docEpoch: number;
-  enabled: boolean;
-  awaitSynced: () => Promise<void>;
-  docId: string;
-  session: CollabSession;
+function createCollaborationStatusValue(snapshot: ReturnType<CollabSession['snapshot']>, session: CollabSession) {
+  return {
+    ...snapshot,
+    awaitSynced: () => session.awaitSynced(),
+    session,
+  };
 }
+
+type CollaborationStatusValue = ReturnType<typeof createCollaborationStatusValue>;
 
 const missingContextError = new Error('Collaboration context is missing. Wrap the editor in <CollaborationProvider>.');
 
@@ -69,12 +69,8 @@ function useCollaborationRuntimeValue({ collabOrigin, docId }: { collabOrigin?: 
     () => session.snapshot()
   );
 
-  return useMemo<CollaborationStatusValue>(
-    () => ({
-      ...snapshot,
-      awaitSynced: () => session.awaitSynced(),
-      session,
-    }),
+  return useMemo(
+    () => createCollaborationStatusValue(snapshot, session),
     [session, snapshot]
   );
 }

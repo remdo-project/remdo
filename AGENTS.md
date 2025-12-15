@@ -23,9 +23,12 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
 - `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch
   conventions—check before touching tooling or process.
 - `docs/outliner/index.md` (Short). Single entry point for outlining docs with
-  links to model, selection, indent/outdent, insertion, and reordering specs.
+  links to model, selection, indent/outdent, insertion, and reordering specs;
+  also states the single-source (no-duplication) rule for invariants.
 - `docs/outliner/concepts.md` (Medium). Canonical definition of notes,
-  invariants, and adapters—skim when working on data modeling or serialization.
+  invariants (including non-empty tree), shared definitions (document order,
+  empty notes), and adapters—skim when working on data modeling or
+  serialization.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and
   indent/outdent semantics—consult when editing tree transforms or note
   mutations.
@@ -33,6 +36,10 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   runtime—reference for UX or Lexical selection work.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior
   and placement invariants.
+- `docs/outliner/deletion.md` (Medium). Caret vs. structural deletion semantics,
+  merge/no-op rules at note boundaries (including parent/child merges and
+  empty-note deletions), document-order adjacency definitions, and the spacing
+  contract for joins.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer-based reordering (drag and
   drop) – not supported yet; future plan lives there.
 - `docs/insertion.md` (Short). Caret-mode `Enter` behavior (start/middle/end)
@@ -41,7 +48,8 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   children already exist, otherwise a sibling.
 - `docs/todo.md` (Long). Project roadmap plus outstanding design
   questions—review when planning new features; now includes the Render
-  deployment plan.
+  deployment plan, collab undo/redo determinism work, and deletion test coverage
+  gaps.
 - `docs/deployment-single-container.md` (Short). How to build and run the
   single-container image (Caddy + Y-Sweet) and its env knobs, including basic
   auth requirements.
@@ -71,6 +79,9 @@ map stays trustworthy.
    existing resolutions and update related docs/maps if needed.
 5. **Intentional gaps.** Stubs/placeholders are acceptable in dev—mark status
    clearly when a section is partial.
+6. **[Future] markers.** Sections or bullets tagged `[Future]` are exploratory;
+   do not design, code, or test against them until they are promoted into the
+   main spec.
 
 ### Core ideas
 
@@ -106,8 +117,6 @@ document captures the full model.
   first before implementing one.
 - Don't assume that the request is always clear, if in doubt ask before
   proceeding.
-- Whenever you present more than one item (thoughts, plans, recommendations,
-  etc.), format it as an ordered list (1., 2., …) instead of bullets.
 - The shared test harness treats console warnings/errors as failures; if you
   need temporary instrumentation during debugging, prefer `console.log` or
   `console.info` and remove the statements before finishing a task.
@@ -120,6 +129,21 @@ document captures the full model.
   about 5–10s, `pnpm run test:unit` about 10–20s, `pnpm run test:unit:collab`
   about 12–25s. If you ever hit the 60s guard, debug the failure (don’t extend);
   only adjust ranges if healthy runs consistently land outside them.
+
+### Scoped check runs (validated 2025-12-09; commands trimmed to tool defaults and pnpm scripts where they behave)
+
+1. Typecheck tests project: `pnpm run typecheck:tests` (uses `noEmit`/`incremental` from configs).
+   Ran in ~1.7s.
+2. Code lint per path: `pnpm run lint:code -- <path ...>` keeps the scripted `eslint`
+   defaults/caching; validated on `tests/unit/smoke.spec.tsx` in ~2s.
+3. Markdown lint per file: `pnpm run lint:md:file -- <file ...>` to avoid the script’s built-in
+   `docs/**` globs; single-file `AGENTS.md` run completed in ~0.6s.
+4. Unit test filter via script: `pnpm run test:unit <file> -t "<full test name>"` (don’t
+   add an extra `--`, or Vitest will ignore the filter). Example: `tests/unit/smoke.spec.tsx -t "loads
+   basic outline structure from JSON"` ran only that file in ~1.3s.
+5. Collab test filter via script: `pnpm run test:unit:collab tests/unit/collab/<file> -t
+   "<full test name>"`; example `smoke.collab.spec.tsx -t "lexical helpers operate in collaboration
+   mode"` passed in ~1.4s with collab server auto-started.
 
 ### Local agents
 

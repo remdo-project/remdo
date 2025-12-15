@@ -9,7 +9,7 @@ import {
 import type { Outline } from '#tests';
 
 const outlineIsFlat = (outline: Outline): boolean =>
-  outline.every(({ children }) => children.length === 0 && outlineIsFlat(children));
+  outline.every(({ children }) => (children?.length ?? 0) === 0 && outlineIsFlat(children ?? []));
 
 it('tab on note1 at start is a no-op (no structure change)', async ({ remdo }) => {
   await remdo.load('flat');
@@ -31,8 +31,8 @@ it("tab on note2 at start nests it under note1; note3 stays at root", async ({ r
   // Expectation assumes the flat fixture has three items: note1, note2, note3
   // After indenting note2, it should become a child of note1, while note3 remains at root
   expect(remdo).toMatchOutline([
-    { text: 'note1', children: [ { text: 'note2', children: [] } ] },
-    { text: 'note3', children: [] },
+    { text: 'note1', children: [ { text: 'note2' } ] },
+    { text: 'note3' },
   ]);
 });
 
@@ -50,8 +50,8 @@ it("tab on both note2 and note3 nests them both under note1", async ({ remdo }) 
     {
       text: 'note1',
       children: [
-        { text: 'note2', children: [] },
-        { text: 'note3', children: [] },
+        { text: 'note2' },
+        { text: 'note3' },
       ],
     },
   ]);
@@ -65,9 +65,9 @@ it("shift+tab on a child outdents it to root level", async ({ remdo }) => {
 
   // After outdenting the child, it should be at the same level as its former parent and siblings
   expect(remdo).toMatchOutline([
-    { text: 'note1', children: [] },
-    { text: 'note2', children: [] },
-    { text: 'note3', children: [] },
+    { text: 'note1' },
+    { text: 'note2' },
+    { text: 'note3' },
   ]);
 });
 
@@ -79,9 +79,9 @@ it('shift+tab on note2 flattens the outline', async ({ remdo }) => {
 
   const outline = readOutline(remdo);
   expect(remdo).toMatchOutline([
-    { text: 'note1', children: [] },
-    { text: 'note2', children: [] },
-    { text: 'note3', children: [] },
+    { text: 'note1' },
+    { text: 'note2' },
+    { text: 'note3' },
   ]);
   expect(outlineIsFlat(outline)).toBe(true);
 });
@@ -94,8 +94,8 @@ it("tab on note2 at end nests it under note1", async ({ remdo }) => {
 
   // After indenting note2, it should become a child of note1, while note3 remains at root
   expect(remdo).toMatchOutline([
-    { text: 'note1', children: [ { text: 'note2', children: [] } ] },
-    { text: 'note3', children: [] },
+    { text: 'note1', children: [ { text: 'note2' } ] },
+    { text: 'note3' },
   ]);
 });
 
@@ -107,8 +107,8 @@ it("tab on note2 in the middle nests it under note1", async ({ remdo }) => {
 
   // After indenting note2, it should become a child of note1, while note3 remains at root
   expect(remdo).toMatchOutline([
-    { text: 'note1', children: [ { text: 'note2', children: [] } ] },
-    { text: 'note3', children: [] },
+    { text: 'note1', children: [ { text: 'note2' } ] },
+    { text: 'note3' },
   ]);
 });
 
@@ -122,8 +122,8 @@ it('tab indents every note in a multi-note selection', async ({ remdo }) => {
     {
       text: 'note1',
       children: [
-        { text: 'note2', children: [] },
-        { text: 'note3', children: [] },
+        { text: 'note2' },
+        { text: 'note3' },
       ],
     },
   ]);
@@ -136,9 +136,9 @@ it('tab on a multi-note selection starting at the first root note is a no-op', a
   await pressKey(remdo, { key: 'Tab' });
 
   expect(remdo).toMatchOutline([
-    { text: 'note1', children: [] },
-    { text: 'note2', children: [] },
-    { text: 'note3', children: [] },
+    { text: 'note1' },
+    { text: 'note2' },
+    { text: 'note3' },
   ]);
 });
 
@@ -152,8 +152,8 @@ it('tab indents multi-note selection regardless of drag direction', async ({ rem
     {
       text: 'note1',
       children: [
-        { text: 'note2', children: [] },
-        { text: 'note3', children: [] },
+        { text: 'note2' },
+        { text: 'note3' },
       ],
     },
   ]);
@@ -172,8 +172,8 @@ it('tab refuses to indent a selection whose leading child lacks a previous sibli
     {
       text: 'note1',
       children: [
-        { text: 'note2', children: [] },
-        { text: 'note3', children: [] },
+        { text: 'note2' },
+        { text: 'note3' },
       ],
     },
   ]);
@@ -192,7 +192,7 @@ it('tab indents a subtree selection even when a child lacks its own previous sib
         {
           text: 'note2',
           children: [
-            { text: 'note3', children: [] },
+            { text: 'note3' },
           ],
         },
       ],
@@ -207,8 +207,8 @@ it('tab indents when note text selection spans the entire note', async ({ remdo 
   await pressKey(remdo, { key: 'Tab' });
 
   expect(remdo).toMatchOutline([
-    { text: 'note1', children: [ { text: 'note2', children: [] } ] },
-    { text: 'note3', children: [] },
+    { text: 'note1', children: [ { text: 'note2' } ] },
+    { text: 'note3' },
   ]);
 });
 
@@ -219,9 +219,9 @@ it('shift+tab outdents when note selection spans the entire note', async ({ remd
   await pressKey(remdo, { key: 'Tab', shift: true });
 
   expect(remdo).toMatchOutline([
-    { text: 'note1', children: [] },
-    { text: 'note2', children: [] },
-    { text: 'note3', children: [] },
+    { text: 'note1' },
+    { text: 'note2' },
+    { text: 'note3' },
   ]);
 });
 
@@ -235,10 +235,10 @@ it('shift+tab refuses to partially outdent when selection includes a root note',
     {
       text: 'note1',
       children: [
-        { text: 'note2', children: [] },
+        { text: 'note2' },
       ],
     },
-    { text: 'note3', children: [] },
+    { text: 'note3' },
   ]);
 });
 
@@ -256,7 +256,7 @@ it("tab on note2 at start moves it with its child note3 under note1", async ({ r
         {
           text: 'note2',
           children: [
-            { text: 'note3', children: [] },
+            { text: 'note3' },
           ],
         },
       ],
