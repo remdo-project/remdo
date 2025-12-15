@@ -47,7 +47,7 @@
     "format": "pnpm run lint:fix",
     "deps:list": "pnpm list --depth=-1 --silent",
     "test": "pnpm run test:unit",
-    "test:all": "pnpm run lint && pnpm run test:unit && pnpm run test:unit:collab && pnpm run test:e2e",
+    "test:all": "pnpm install --frozen-lockfile --lockfile-only && pnpm run lint && pnpm run test:unit && pnpm run test:unit:collab && pnpm run test:e2e",
     "test:unit": "timeout 60s cross-env COLLAB_ENABLED=false pnpm exec vitest run",
     "test:unit:collab": "timeout 60s pnpm exec vitest run",
     "test:unit:coverage": "timeout 60s cross-env COLLAB_ENABLED=false pnpm exec vitest run --coverage",
