@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { $getRoot, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
+import {
+  $getNodeByKey,
+  $getRoot,
+  $getSelection,
+  $isRangeSelection,
+  REDO_COMMAND,
+  UNDO_COMMAND,
+} from 'lexical';
 import { $isListNode } from '@lexical/list';
+import { config } from '#config';
 
 import type { RemdoTestApi } from '@/editor/plugins/dev';
-import { placeCaretAtNote, pressKey, selectNoteRange, typeText } from '#tests';
+import { findNearestListItem, placeCaretAtNote, pressKey, selectNoteRange, typeText } from '#tests';
 
 // Coverage gaps (handled in e2e instead of unit tests):
 // - Inline Backspace/Delete inside a note: jsdom doesn’t emulate native deletion
@@ -125,6 +133,48 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
+    it.fails('drops an empty leaf when Delete is pressed at its end (instead of deleting the next note)', async ({ remdo }) => {
+      await remdo.load('empty-labels');
+
+      expect(remdo).toMatchOutline([
+        { text: 'alpha' },
+        { text: '' },
+        { text: 'beta' },
+        {},
+        {
+          children: [
+            {},
+            { text: 'child-of-empty' },
+          ],
+        },
+      ]);
+
+      await placeCaretAtNote(remdo, '', Number.POSITIVE_INFINITY);
+
+      const emptyNoteKey = readCaretNoteKey(remdo);
+      const betaKey = readNoteKeyByText(remdo, 'beta');
+
+      await pressKey(remdo, { key: 'Delete' });
+
+      expect(remdo).toMatchOutline([
+        { text: 'alpha' },
+        { text: 'beta' },
+        {},
+        {
+          children: [
+            {},
+            { text: 'child-of-empty' },
+          ],
+        },
+      ]);
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'beta' });
+
+      // This assertion is the core regression check: the empty leaf should be removed,
+      // leaving the following note intact.
+      expect(isNodeAttached(remdo, emptyNoteKey)).toBe(false);
+      expect(isNodeAttached(remdo, betaKey)).toBe(true);
+    });
+
     it('merges the next leaf into the current note with Delete at the end of the line', async ({ remdo }) => {
       await remdo.load('flat');
 
@@ -241,9 +291,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
-    it.skip('restores text and structure via undo/redo after structural deletion', async ({ remdo }) => {
-      // Flaky under single-file runs: undo sometimes replays an extra wrapper list (value reset) even though
-      // the full suite keeps history stable. Skip until undo/redo determinism is fixed in the deletion flow.
+    it.skipIf(config.env.COLLAB_ENABLED)('restores text and structure via undo/redo after structural deletion', async ({ remdo }) => {
       await remdo.load('flat');
       await remdo.waitForSynced();
 
@@ -285,6 +333,13 @@ function readNoteTextRaw(remdo: RemdoTestApi, label: string): string {
   });
 }
 
+function isNodeAttached(remdo: RemdoTestApi, key: string): boolean {
+  return remdo.validate(() => {
+    const node = $getNodeByKey(key);
+    return !!node && node.isAttached();
+  });
+}
+
 function findItemByText(list: any, targetText: string): any {
   const items = list?.getChildren?.() ?? [];
   for (const item of items) {
@@ -307,4 +362,37 @@ function findItemByText(list: any, targetText: string): any {
   }
 
   return null;
+}
+
+function readNoteKeyByText(remdo: RemdoTestApi, label: string): string {
+  return remdo.validate(() => {
+    const root = $getRoot();
+    const list = root.getFirstChild();
+    if (!list || !$isListNode(list)) {
+      throw new Error('Expected root list');
+    }
+
+    const item = findItemByText(list, label);
+    if (!item) {
+      throw new Error(`No note found with text: ${label}`);
+    }
+
+    return item.getKey();
+  });
+}
+
+function readCaretNoteKey(remdo: RemdoTestApi): string {
+  return remdo.validate(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+      throw new Error('Expected collapsed caret selection');
+    }
+
+    const item = findNearestListItem(selection.anchor.getNode()) ?? findNearestListItem(selection.focus.getNode());
+    if (!item) {
+      throw new Error('Expected caret to be inside a list item');
+    }
+
+    return item.getKey();
+  });
 }

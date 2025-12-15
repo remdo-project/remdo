@@ -93,6 +93,23 @@ stage 2 is active).
 Both variants should prove that Delete/Backspace is only swallowed when an
 actual structural removal occurs.
 
+## Collab undo/redo determinism (unit tests)
+
+Make collaboration-mode undo/redo assertions deterministic so unit tests can
+reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
+
+1. Prevent doc reuse across vitest runs: include a per-run nonce in collab test
+   doc IDs (or disable collab-server reuse in unit test mode).
+2. Add a test-only bridge API for seeding fixtures without polluting undo
+   history: apply initial content via a Yjs transaction with a non-tracked
+   origin and clear the UndoManager stacks after seeding.
+3. Ensure fixture load/clear explicitly resets history so subsequent edits
+   produce a single, predictable undo step (unskip the structural delete
+   undo/redo unit test once stable).
+4. Unskip `tests/unit/deletion.spec.ts` “restores text and structure via
+   undo/redo after structural deletion” in collab mode once the above is in
+   place, and keep it as a required regression check.
+
 ## Container image security lint
 
 Evaluate adding Dockle to scan the built container image (complements Hadolint’s
