@@ -48,7 +48,8 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   children already exist, otherwise a sibling.
 - `docs/todo.md` (Long). Project roadmap plus outstanding design
   questions—review when planning new features; now includes the Render
-  deployment plan and collab undo/redo determinism work.
+  deployment plan, collab undo/redo determinism work, and deletion test coverage
+  gaps.
 - `docs/deployment-single-container.md` (Short). How to build and run the
   single-container image (Caddy + Y-Sweet) and its env knobs, including basic
   auth requirements.
