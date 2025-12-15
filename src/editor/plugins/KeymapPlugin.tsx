@@ -3,7 +3,7 @@ import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect } from 'react';
 import { mergeRegister } from '@lexical/utils';
-import { MOVE_SELECTION_DOWN_COMMAND, MOVE_SELECTION_UP_COMMAND } from '@/editor/commands';
+import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
 import { IS_APPLE_PLATFORM } from '@/editor/platform';
 
 export interface KeyChord {
@@ -24,7 +24,7 @@ type KeymapTable = KeymapEntry[];
 function defaultsForPlatform(isApple: boolean): KeymapTable {
   return [
     {
-      command: MOVE_SELECTION_DOWN_COMMAND,
+      command: REORDER_NOTES_DOWN_COMMAND,
       chord: {
         key: 'ArrowDown',
         shift: true,
@@ -33,7 +33,7 @@ function defaultsForPlatform(isApple: boolean): KeymapTable {
       },
     },
     {
-      command: MOVE_SELECTION_UP_COMMAND,
+      command: REORDER_NOTES_UP_COMMAND,
       chord: {
         key: 'ArrowUp',
         shift: true,

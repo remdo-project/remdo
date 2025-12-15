@@ -10,7 +10,7 @@ import {
   typeText,
 } from '#tests';
 import { $getSelection, $isRangeSelection } from 'lexical';
-import { MOVE_SELECTION_DOWN_COMMAND, MOVE_SELECTION_UP_COMMAND } from '@/editor/commands';
+import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
 
 const TREE_COMPLEX_OUTLINE: Outline = [
   {
@@ -574,7 +574,7 @@ describe('selection plugin', () => {
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
 
-    await remdo.dispatchCommand(MOVE_SELECTION_DOWN_COMMAND);
+    await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND);
 
     await waitFor(() => {
       expect(remdo).toMatchOutline([
@@ -624,7 +624,7 @@ describe('selection plugin', () => {
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note6' });
 
-    await remdo.dispatchCommand(MOVE_SELECTION_UP_COMMAND);
+    await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND);
 
     await waitFor(() => {
       expect(remdo).toMatchOutline([

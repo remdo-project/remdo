@@ -2,7 +2,7 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
-import { MOVE_SELECTION_DOWN_COMMAND, MOVE_SELECTION_UP_COMMAND } from '@/editor/commands';
+import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
 import {
   findNearestListItem,
   flattenNoteNodes,
@@ -97,8 +97,8 @@ export function ReorderingPlugin() {
 
   useEffect(() => {
     return mergeRegister(
-      editor.registerCommand(MOVE_SELECTION_UP_COMMAND, $moveSelectionUp, COMMAND_PRIORITY_LOW),
-      editor.registerCommand(MOVE_SELECTION_DOWN_COMMAND, $moveSelectionDown, COMMAND_PRIORITY_LOW)
+      editor.registerCommand(REORDER_NOTES_UP_COMMAND, $moveSelectionUp, COMMAND_PRIORITY_LOW),
+      editor.registerCommand(REORDER_NOTES_DOWN_COMMAND, $moveSelectionDown, COMMAND_PRIORITY_LOW)
     );
   }, [editor]);
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { __testCreateKeyHandler, setKeymapOverrides, clearKeymapOverrides } from '@/editor/plugins/KeymapPlugin';
-import { MOVE_SELECTION_DOWN_COMMAND, MOVE_SELECTION_UP_COMMAND } from '@/editor/commands';
+import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
 
 const altChordDown = { key: 'ArrowDown', alt: true, shift: true } as const;
 const altChordUp = { key: 'ArrowUp', alt: true, shift: true } as const;
@@ -32,8 +32,8 @@ describe('keymapPlugin key handler', () => {
   it('uses alt+shift overrides', () => {
     setKeymapOverrides(
       new Map([
-        [MOVE_SELECTION_DOWN_COMMAND, [altChordDown]],
-        [MOVE_SELECTION_UP_COMMAND, [altChordUp]],
+        [REORDER_NOTES_DOWN_COMMAND, [altChordDown]],
+        [REORDER_NOTES_UP_COMMAND, [altChordUp]],
       ])
     );
     const dispatchCommand = vi.fn().mockReturnValue(true);
@@ -44,18 +44,18 @@ describe('keymapPlugin key handler', () => {
 
     expect(handler(downEvent)).toBe(true);
     expect(downEvent.defaultPrevented).toBe(true);
-    expect(dispatchCommand).toHaveBeenCalledWith(MOVE_SELECTION_DOWN_COMMAND, null);
+    expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_DOWN_COMMAND, null);
 
     expect(handler(upEvent)).toBe(true);
     expect(upEvent.defaultPrevented).toBe(true);
-    expect(dispatchCommand).toHaveBeenCalledWith(MOVE_SELECTION_UP_COMMAND, null);
+    expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_UP_COMMAND, null);
   });
 
   it('uses ctrl+shift overrides', () => {
     setKeymapOverrides(
       new Map([
-        [MOVE_SELECTION_DOWN_COMMAND, [ctrlChordDown]],
-        [MOVE_SELECTION_UP_COMMAND, [ctrlChordUp]],
+        [REORDER_NOTES_DOWN_COMMAND, [ctrlChordDown]],
+        [REORDER_NOTES_UP_COMMAND, [ctrlChordUp]],
       ])
     );
     const dispatchCommand = vi.fn().mockReturnValue(true);
@@ -66,10 +66,10 @@ describe('keymapPlugin key handler', () => {
 
     expect(handler(downEvent)).toBe(true);
     expect(downEvent.defaultPrevented).toBe(true);
-    expect(dispatchCommand).toHaveBeenCalledWith(MOVE_SELECTION_DOWN_COMMAND, null);
+    expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_DOWN_COMMAND, null);
 
     expect(handler(upEvent)).toBe(true);
     expect(upEvent.defaultPrevented).toBe(true);
-    expect(dispatchCommand).toHaveBeenCalledWith(MOVE_SELECTION_UP_COMMAND, null);
+    expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_UP_COMMAND, null);
   });
 });
