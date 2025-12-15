@@ -15,15 +15,15 @@ overrides:
 catalog:
   '@antfu/eslint-config': ^6.7.1
   '@eslint-react/eslint-plugin': ^2.3.13
-  '@lexical/devtools-core': ^0.38.2
-  '@lexical/eslint-plugin': ^0.38.2
-  '@lexical/history': ^0.38.2
-  '@lexical/list': ^0.38.2
-  '@lexical/markdown': ^0.38.2
-  '@lexical/react': ^0.38.2
-  '@lexical/rich-text': ^0.38.2
-  '@lexical/utils': ^0.38.2
-  '@lexical/yjs': ^0.38.2
+  '@lexical/devtools-core': ^0.39.0
+  '@lexical/eslint-plugin': ^0.39.0
+  '@lexical/history': ^0.39.0
+  '@lexical/list': ^0.39.0
+  '@lexical/markdown': ^0.39.0
+  '@lexical/react': ^0.39.0
+  '@lexical/rich-text': ^0.39.0
+  '@lexical/utils': ^0.39.0
+  '@lexical/yjs': ^0.39.0
   '@mantine/core': ^8.3.10
   '@mantine/hooks': ^8.3.10
   '@playwright/test': ^1.57.0
@@ -32,7 +32,7 @@ catalog:
   '@testing-library/user-event': ^14.6.1
   '@types/estree': ^1.0.8
   '@types/jsdom': ^27.0.0
-  '@types/node': ^24.10.4
+  '@types/node': ^25.0.2
   '@types/react': ^19.2.7
   '@types/react-dom': ^19.2.3
   '@types/ws': ^8.18.1
@@ -53,9 +53,9 @@ catalog:
   eslint-plugin-unicorn: ^62.0.0
   jiti: ^2.6.1
   jsdom: ^27.3.0
-  lexical: ^0.38.2
+  lexical: ^0.39.0
   lib0: ^0.2.115
-  markdownlint-cli2: ^0.19.1
+  markdownlint-cli2: ^0.20.0
   react: ^19.2.3
   react-dom: ^19.2.3
   tsx: ^4.21.0
