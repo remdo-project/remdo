@@ -1,21 +1,16 @@
-import type { Page } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from './_support/locators';
 import { captureEditorSnapshot } from './_support/state';
 
-async function replaceNoteText(page: Page, label: string, nextText: string) {
-  await setCaretAtText(page, label);
-  const accel = (await isApplePlatform(page)) ? 'Meta+A' : 'Control+A';
-  await page.keyboard.press(accel);
-  await page.keyboard.type(nextText);
-}
-
-async function isApplePlatform(page: Page): Promise<boolean> {
-  return page.evaluate(() => {
-    const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
-    const platformSource = nav.userAgentData?.platform ?? nav.userAgent;
-    return /Mac(?:intosh)?|iPhone|iPad|iPod/i.test(platformSource);
-  });
+async function getListItemTextsRaw(page: Parameters<typeof editorLocator>[0]): Promise<string[]> {
+  const items = editorLocator(page).locator('li.list-item');
+  const count = await items.count();
+  const result: string[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const text = await items.nth(i).locator('[data-lexical-text="true"]').evaluate((el) => el.textContent);
+    result.push(text);
+  }
+  return result;
 }
 
 test.describe('deletion (native browser behavior)', () => {
@@ -74,29 +69,25 @@ test.describe('deletion (native browser behavior)', () => {
   });
 
   test('Delete respects spacing when right fragment already starts with space', async ({ page, editor }) => {
-    await editor.load('flat');
-    await replaceNoteText(page, 'note1', 'left');
-    await replaceNoteText(page, 'note2', ' right');
-    await setCaretAtText(page, 'left', Number.POSITIVE_INFINITY);
+    await editor.load('edge-spaces');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
 
     await page.keyboard.press('Delete');
 
-    const items = editorLocator(page).locator('li.list-item');
-    await expect(items.nth(0)).toHaveText('left right');
-    await expect(items.nth(1)).toHaveText('note3');
+    await expect
+      .poll(() => getListItemTextsRaw(page))
+      .toEqual(['note1 note2-space-left', 'note3', 'note4-space-right ', 'note5']);
   });
 
   test('Delete respects spacing when left fragment already ends with space', async ({ page, editor }) => {
-    await editor.load('flat');
-    await replaceNoteText(page, 'note1', 'left ');
-    await replaceNoteText(page, 'note2', 'right');
-    await setCaretAtText(page, 'left ', Number.POSITIVE_INFINITY);
+    await editor.load('edge-spaces');
+    await setCaretAtText(page, 'note4-space-right', Number.POSITIVE_INFINITY);
 
     await page.keyboard.press('Delete');
 
-    const items = editorLocator(page).locator('li.list-item');
-    await expect(items.nth(0)).toHaveText('left right');
-    await expect(items.nth(1)).toHaveText('note3');
+    await expect
+      .poll(() => getListItemTextsRaw(page))
+      .toEqual(['note1', ' note2-space-left', 'note3', 'note4-space-right note5']);
   });
 
   test('Delete removes structural selection block and focuses next sibling', async ({ page, editor }) => {

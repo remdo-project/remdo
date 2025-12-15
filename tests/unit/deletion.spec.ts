@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { $getRoot, $isTextNode, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
-import type { TextNode } from 'lexical';
+import { $getRoot, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
 import { $isListNode } from '@lexical/list';
 
 import type { RemdoTestApi } from '@/editor/plugins/dev';
@@ -181,35 +180,35 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     });
 
     it('avoids adding extra space when the right fragment already starts with whitespace', async ({ remdo }) => {
-      await remdo.load('flat');
+      await remdo.load('edge-spaces');
 
-      await setNoteText(remdo, 'note1', 'left');
-      await setNoteText(remdo, 'note2', ' right');
-
-      await placeCaretAtNote(remdo, 'left', Number.POSITIVE_INFINITY);
+      expect(readNoteTextRaw(remdo, 'note2-space-left').startsWith(' ')).toBe(true);
+      await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline([
-        { text: 'left right' },
+        { text: 'note1 note2-space-left' },
         { text: 'note3' },
+        { text: 'note4-space-right' },
+        { text: 'note5' },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'left right' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2-space-left' });
     });
 
     it('avoids adding extra space when the left fragment already ends with whitespace', async ({ remdo }) => {
-      await remdo.load('flat');
+      await remdo.load('edge-spaces');
 
-      await setNoteText(remdo, 'note1', 'left ');
-      await setNoteText(remdo, 'note2', 'right');
-
-      await placeCaretAtNote(remdo, 'left', Number.POSITIVE_INFINITY);
+      expect(readNoteTextRaw(remdo, 'note4-space-right').endsWith(' ')).toBe(true);
+      await placeCaretAtNote(remdo, 'note4-space-right', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline([
-        { text: 'left right' },
+        { text: 'note1' },
+        { text: 'note2-space-left' },
         { text: 'note3' },
+        { text: 'note4-space-right note5' },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'left right' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note4-space-right note5' });
     });
   });
 
@@ -283,33 +282,22 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
   });
 });
 
-async function setNoteText(remdo: RemdoTestApi, label: string, nextText: string) {
-  await remdo.mutate(() => {
+function readNoteTextRaw(remdo: RemdoTestApi, label: string): string {
+  return remdo.validate(() => {
     const root = $getRoot();
     const list = root.getFirstChild();
     if (!list || !$isListNode(list)) {
       throw new Error('Expected root list');
     }
 
-    const target = findItemByText(list, label);
-    if (!target) {
+    const item = findItemByText(list, label);
+    if (!item) {
       throw new Error(`No note found with text: ${label}`);
     }
 
-    const textNode = target
-      .getChildren()
-      .find((child: unknown): child is TextNode => {
-        if (!child || typeof (child as { getType?: () => string }).getType !== 'function') {
-          return false;
-        }
-        return (child as { getType: () => string }).getType() !== 'list';
-      });
-
-    if (!textNode || !$isTextNode(textNode)) {
-      throw new Error('Expected a text node to update');
-    }
-
-    textNode.setTextContent(nextText);
+    const children = item.getChildren?.() ?? [];
+    const contentNodes = children.filter((child: any) => child?.getType?.() !== 'list');
+    return contentNodes.map((child: any) => child?.getTextContent?.() ?? '').join('');
   });
 }
 
