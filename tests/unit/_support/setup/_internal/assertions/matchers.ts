@@ -1,12 +1,12 @@
 import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
+import { extractOutlineFromEditorState } from '#tests-common/outline';
 import {
   collectSelectedListItems,
   findNearestListItem,
   getListItemLabel,
   isChildrenWrapper,
-  readOutline,
   resolveContentListItem,
 } from '#tests';
 import { $getSelection, $isRangeSelection, $getNodeByKey, $getRoot } from 'lexical';
@@ -181,7 +181,7 @@ expect.extend({
   toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: Outline) {
     assertOutlineExpectation(expected);
 
-    const outline = attemptRead(this, '.toMatchOutline', () => readOutline(remdo));
+    const outline = attemptRead(this, '.toMatchOutline', () => extractOutlineFromEditorState(remdo.getEditorState()));
     if (!outline.ok) return outline.result;
 
     return compareWithExpected(this, outline.value, expected, {

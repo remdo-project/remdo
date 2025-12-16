@@ -285,8 +285,15 @@ Dockerfile checks) and decide whether to gate CI on its report.
 ### Follow-ups
 
 - Improve mismatch messages to visualize leading/trailing whitespace clearly (so diffs are readable).
+- Simplify outline extraction implementation: build the tree directly from nested lists/wrappers (avoid the flat
+  `(text, indent)` pass + stack reconstruction).
+- Cleanup naming: consider renaming `extractOutlineFromEditorState` to emphasize it expects serialized state JSON.
 - Reduce duplication between `readOutline`, `getListItemLabel`, and `collectOutlineEntries` by routing them through the
   shared extraction/normalization.
+- Deduplicate serialized-state traversal helpers with `src/editor/schema/assertEditorSchema.ts` (shared “serialized Lexical
+  utils” module), keeping whitespace policy decisions local to each consumer.
+- Cleanup: stop re-exporting outline types/extractors through `#tests` (unit support facade) once call sites can import
+  directly from the shared module (currently `#tests-common/outline`).
 - Tighten wrapper detection/traversal consistency with Lexical where it matters (related to “Align note indent/outdent
   helpers with Lexical”).
 

@@ -46,6 +46,7 @@ export default defineConfig(() => {
       alias: {
         "@": "/src",
         "#tests": path.resolve(__dirname, "./tests/unit/_support/lib/index.ts"),
+        "#tests-common": path.resolve(__dirname, "./tests/_support"),
         "#fixtures": path.resolve(__dirname, "./tests/fixtures"),
         "#config": path.resolve(__dirname, "./config"),
         "#lib": path.resolve(__dirname, "./lib"),
