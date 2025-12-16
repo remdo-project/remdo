@@ -1,17 +1,7 @@
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from './_support/locators';
+import { expectOutline } from './_support/outline';
 import { captureEditorSnapshot } from './_support/state';
-
-async function getListItemTextsRaw(page: Parameters<typeof editorLocator>[0]): Promise<string[]> {
-  const items = editorLocator(page).locator('li.list-item');
-  const count = await items.count();
-  const result: string[] = [];
-  for (let i = 0; i < count; i += 1) {
-    const text = await items.nth(i).locator('[data-lexical-text="true"]').evaluate((el) => el.textContent);
-    result.push(text);
-  }
-  return result;
-}
 
 test.describe('deletion (native browser behavior)', () => {
   test('forward Delete at caret removes leading character of first note', async ({ page, editor }) => {
@@ -95,9 +85,12 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expect
-      .poll(() => getListItemTextsRaw(page))
-      .toEqual(['note1 note2-space-left', 'note3', 'note4-space-right ', 'note5']);
+    await expectOutline(editor, [
+      { text: 'note1 note2-space-left' },
+      { text: 'note3' },
+      { text: 'note4-space-right ' },
+      { text: 'note5' },
+    ]);
   });
 
   test('Delete respects spacing when left fragment already ends with space', async ({ page, editor }) => {
@@ -106,9 +99,12 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expect
-      .poll(() => getListItemTextsRaw(page))
-      .toEqual(['note1', ' note2-space-left', 'note3', 'note4-space-right note5']);
+    await expectOutline(editor, [
+      { text: 'note1' },
+      { text: ' note2-space-left' },
+      { text: 'note3' },
+      { text: 'note4-space-right note5' },
+    ]);
   });
 
   test('Delete removes structural selection block and focuses next sibling', async ({ page, editor }) => {
