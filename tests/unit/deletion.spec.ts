@@ -138,7 +138,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
 
       expect(remdo).toMatchOutline([
         { text: 'alpha' },
-        { text: '' },
+        { text: ' ' },
         { text: 'beta' },
         {},
         {
@@ -223,7 +223,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchOutline([
         { text: 'note1 note2-space-left' },
         { text: 'note3' },
-        { text: 'note4-space-right' },
+        { text: 'note4-space-right ' },
         { text: 'note5' },
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2-space-left' });
@@ -238,7 +238,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
 
       expect(remdo).toMatchOutline([
         { text: 'note1' },
-        { text: 'note2-space-left' },
+        { text: ' note2-space-left' },
         { text: 'note3' },
         { text: 'note4-space-right note5' },
       ]);

@@ -136,7 +136,6 @@ export function readOutline(remdo: RemdoTestApi): Outline {
             ? contentNodes
                 .map((child: any) => child?.getTextContent?.() ?? '')
                 .join('')
-                .trim()
             : null;
 
         flat.push({ text, indent });
