@@ -1,7 +1,8 @@
-import { expect, test } from './editor/_support/fixtures';
+import { test } from './editor/_support/fixtures';
+import { expectOutline } from './editor/_support/outline';
 
 test.describe('Editor smoke', () => {
-  test('renders shell and supports indent/outdent', async ({ page, editor: _editor }) => {
+  test('renders shell and supports indent/outdent', async ({ page, editor }) => {
     const input = page.locator('.editor-input');
     await input.click();
 
@@ -11,19 +12,17 @@ test.describe('Editor smoke', () => {
     await page.keyboard.press('Enter');
     await page.keyboard.type('note3');
 
+    await expectOutline(editor, [{ text: 'note1' }, { text: 'note2' }, { text: 'note3' }]);
+
     const note3 = page.locator('li.list-item', { hasText: 'note3' }).first();
     await note3.click();
     await page.keyboard.press('Tab');
 
-    const nestedNote3 = page.locator('li.list-nested-item', { hasText: 'note3' });
-    await expect(nestedNote3).toBeVisible();
+    await expectOutline(editor, [{ text: 'note1' }, { text: 'note2', children: [{ text: 'note3' }] }]);
 
-    await nestedNote3.click();
+    await page.locator('li.list-item', { hasText: 'note3' }).first().click();
     await page.keyboard.press('Shift+Tab');
-    await expect(nestedNote3).toHaveCount(0);
-
-    await expect(page.locator('li.list-item', { hasText: 'note1' })).toBeVisible();
-    await expect(page.locator('li.list-item', { hasText: 'note3' })).toBeVisible();
+    await expectOutline(editor, [{ text: 'note1' }, { text: 'note2' }, { text: 'note3' }]);
   });
 
   // The flat fixture coverage now lives under tests/e2e/editor/.

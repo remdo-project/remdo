@@ -10,10 +10,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    const items = editorLocator(page).locator('li.list-item');
-    await expect(items.nth(0)).toHaveText('ote1');
-    await expect(items.nth(1)).toHaveText('note2');
-    await expect(items.nth(2)).toHaveText('note3');
+    await expectOutline(editor, [{ text: 'ote1' }, { text: 'note2' }, { text: 'note3' }]);
   });
 
   test('Backspace in the middle of a note deletes the previous character', async ({ page, editor }) => {
@@ -22,10 +19,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Backspace');
 
-    const items = editorLocator(page).locator('li.list-item');
-    await expect(items.nth(0)).toHaveText('nte1');
-    await expect(items.nth(1)).toHaveText('note2');
-    await expect(items.nth(2)).toHaveText('note3');
+    await expectOutline(editor, [{ text: 'nte1' }, { text: 'note2' }, { text: 'note3' }]);
 
     const snapshot = await captureEditorSnapshot(page);
     expect(snapshot.selection).toMatchObject({
@@ -63,9 +57,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Backspace');
 
-    const items = editorLocator(page).locator('li.list-item');
-    await expect(items.nth(0)).toHaveText('note1 note2');
-    await expect(items.nth(1)).toHaveText('note3');
+    await expectOutline(editor, [{ text: 'note1 note2' }, { text: 'note3' }]);
   });
 
   test('Delete at end merges next leaf', async ({ page, editor }) => {
@@ -74,9 +66,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    const items = editorLocator(page).locator('li.list-item');
-    await expect(items.nth(0)).toHaveText('note1 note2');
-    await expect(items.nth(1)).toHaveText('note3');
+    await expectOutline(editor, [{ text: 'note1 note2' }, { text: 'note3' }]);
   });
 
   test('Delete respects spacing when right fragment already starts with space', async ({ page, editor }) => {
@@ -116,9 +106,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    const items = editorLocator(page).locator('li.list-item');
-    await expect(items).toHaveCount(2);
-    await expect(items.nth(0)).toHaveText('note2');
-    await expect(items.nth(1)).toHaveText('note3');
+    await expect(editorLocator(page).locator('li.list-item')).toHaveCount(2);
+    await expectOutline(editor, [{ text: 'note2' }, { text: 'note3' }]);
   });
 });
