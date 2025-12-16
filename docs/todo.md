@@ -292,6 +292,11 @@ Dockerfile checks) and decide whether to gate CI on its report.
   shared extraction/normalization.
 - Deduplicate serialized-state traversal helpers with `src/editor/schema/assertEditorSchema.ts` (shared “serialized Lexical
   utils” module), keeping whitespace policy decisions local to each consumer.
+- E2E ergonomics: add a Playwright `expect.extend` matcher wrapper around the helper once the API shape settles, and
+  migrate any tests that started using the helper to the matcher if we decide the matcher reads better.
+- E2E bridge cleanup: de-duplicate `__remdoBridgePromise` plumbing by routing `getEditorState` through the existing
+  `runWithRemdoTest`/bridge action mechanism (similar promise lookup logic currently lives in
+  `tests/e2e/editor/_support/bridge.ts` and `tests/e2e/editor/_support/fixtures.ts`).
 - Cleanup: stop re-exporting outline types/extractors through `#tests` (unit support facade) once call sites can import
   directly from the shared module (currently `#tests-common/outline`).
 - Tighten wrapper detection/traversal consistency with Lexical where it matters (related to “Align note indent/outdent

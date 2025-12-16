@@ -52,3 +52,19 @@ export async function replaceDocument(page: Page, serializedStateJson: string): 
   await ensureReady(page);
   await runWithRemdoTest(page, { kind: 'load', stateJson: serializedStateJson });
 }
+
+export async function getEditorState(page: Page): Promise<unknown> {
+  await ensureReady(page);
+  return page.evaluate(async () => {
+    const readyPromise: Promise<any> =
+      (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<unknown> }).__remdoBridgePromise
+      ?? Promise.reject(new Error('remdo bridge is not available'));
+
+    const api = await readyPromise;
+    if (!api || typeof api.getEditorState !== 'function') {
+      throw new Error('remdo bridge is not available');
+    }
+
+    return api.getEditorState();
+  });
+}

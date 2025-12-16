@@ -1,6 +1,6 @@
 import { expect, test as base } from '#e2e/fixtures';
 import type { Locator, Page } from '#e2e/fixtures';
-import { ensureReady, load } from './bridge';
+import { ensureReady, getEditorState, load } from './bridge';
 import { prepareEditorTestSurface } from './focus';
 import { editorLocator } from './locators';
 
@@ -19,9 +19,11 @@ async function createEditorHarness(page: Page, docId: string) {
   });
 
   return {
+    page,
     docId,
     waitForSynced,
     load: (name: string) => load(page, name),
+    getEditorState: () => getEditorState(page),
   };
 }
 
