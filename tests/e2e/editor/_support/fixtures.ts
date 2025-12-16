@@ -19,7 +19,6 @@ async function createEditorHarness(page: Page, docId: string) {
   });
 
   return {
-    page,
     docId,
     waitForSynced,
     load: (name: string) => load(page, name),
