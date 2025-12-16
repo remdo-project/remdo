@@ -3,7 +3,6 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { config } from '#config';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollaborationPlugin } from './plugins/collaboration';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
@@ -25,7 +24,7 @@ interface EditorProps {
 }
 
 export default function Editor({ children, collabOrigin, docId, onTestBridgeReady, onTestBridgeDispose }: EditorProps) {
-  const editorInitialConfig = createEditorInitialConfig({ isDev: config.dev });
+  const editorInitialConfig = createEditorInitialConfig();
   return (
     <div className="editor-container">
       <LexicalComposer initialConfig={editorInitialConfig}>

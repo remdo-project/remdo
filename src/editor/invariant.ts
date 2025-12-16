@@ -16,7 +16,7 @@ export function setInvariantReporter(fn: InvariantReporter | null): void {
 }
 
 export function reportInvariant(payload: InvariantPayload): void {
-  const isDevOrTest = config.dev || config.mode === 'test';
+  const isDevOrTest = config.isDevOrTest;
 
   if (isDevOrTest) {
     const error: Error & { context?: Record<string, unknown> } = new Error(payload.message);

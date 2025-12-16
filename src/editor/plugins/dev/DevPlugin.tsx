@@ -5,6 +5,7 @@ import { config } from '#config';
 import { SchemaValidationPlugin } from './SchemaValidationPlugin';
 import { TreeViewPlugin } from './TreeViewPlugin';
 import { TestBridgePlugin } from './TestBridgePlugin';
+import { ProhibitNestedLexicalUpdatesPlugin } from './ProhibitNestedLexicalUpdatesPlugin';
 
 interface DevPluginProps {
   children?: ReactNode;
@@ -13,10 +14,11 @@ interface DevPluginProps {
 }
 
 export function DevPlugin({ children, onTestBridgeReady, onTestBridgeDispose }: DevPluginProps): ReactElement {
-  const enableDevTools = config.dev || config.mode === 'test';
+  const enableDevTools = config.isDevOrTest;
 
   return enableDevTools
     ? <>
+      <ProhibitNestedLexicalUpdatesPlugin />
       <SchemaValidationPlugin />
       <TreeViewPlugin />
       <TestBridgePlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose} />
