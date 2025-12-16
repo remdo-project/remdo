@@ -38,7 +38,7 @@ export function getListItemLabel(item: ListItemNode): string | null {
     }
   }
 
-  const label = pieces.join('').trim();
+  const label = pieces.join('');
   if (label.length > 0) {
     return label;
   }

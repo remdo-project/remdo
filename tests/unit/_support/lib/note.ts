@@ -21,8 +21,7 @@ function findItemByText(listNode: ListNode | null, noteText: string): ListItemNo
     const contentNodes = children.filter((child) => child.getType() !== 'list');
     const text = contentNodes
       .map((child) => child.getTextContent())
-      .join('')
-      .trim();
+      .join('');
 
     if (text === noteText) {
       return item;

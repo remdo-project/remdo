@@ -149,7 +149,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         },
       ]);
 
-      await placeCaretAtNote(remdo, '', Number.POSITIVE_INFINITY);
+      await placeCaretAtNote(remdo, ' ', Number.POSITIVE_INFINITY);
 
       const emptyNoteKey = readCaretNoteKey(remdo);
       const betaKey = readNoteKeyByText(remdo, 'beta');
@@ -245,7 +245,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         { text: 'note4-space-right ' },
         { text: 'note5' },
       ]);
-      await placeCaretAtNote(remdo, 'note4-space-right', Number.POSITIVE_INFINITY);
+      await placeCaretAtNote(remdo, 'note4-space-right ', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline([
