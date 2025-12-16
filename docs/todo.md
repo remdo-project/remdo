@@ -233,3 +233,63 @@ Dockerfile checks) and decide whether to gate CI on its report.
    (testInfo.file.includes('/tests/e2e/editor/')) in the base fixture, (e) add
    the ESLint rule and README. No test behavior should change; it just makes the
    editor intent explicit and enforced.
+
+## toMatchOutline improvements (notes + plan)
+
+### Current behavior / pain points
+
+- `toMatchOutline`’s whitespace trimming happens in outline extraction:
+  - `readOutline()` (`tests/unit/_support/lib/note.ts`) builds note text via `.join('').trim()`.
+  - `getListItemLabel()` (`tests/unit/_support/lib/selection.ts`) also trims (affects selection assertions/labels).
+- Trimming blocks expressing edge-space behavior via the primary matcher. For example, `tests/fixtures/edge-spaces.json`
+  includes a leading-space note (`" note2-space-left"`) and a trailing-space note (`"note4-space-right "`), but unit tests
+  need ad-hoc raw helpers (for example `readNoteTextRaw()` in `tests/unit/deletion.spec.ts`) to assert spacing outcomes.
+- There is drift risk: outline-ish logic exists in multiple places with different goals (`readOutline`, `getListItemLabel`,
+  and the schema validator’s `collectOutlineEntries()` in `src/editor/schema/assertEditorSchema.ts`, which also trims).
+
+### Goals
+
+1. Make outline assertions whitespace-precise (raw; no trimming) so tests can express the deletion spacing contract
+   directly.
+2. Reduce helper proliferation by centralizing outline extraction + normalization policy.
+3. Enable a shared declarative outline schema and consistent matcher behavior across unit + e2e.
+
+### Proposed direction
+
+1. Define a single outline extraction function that operates on serialized editor state JSON (not the DOM).
+2. Unit: have `toMatchOutline` read `remdo.getEditorState()` and compare extracted outline to expected.
+3. E2E: fetch editor state JSON via the existing test bridge (`__remdoBridgePromise`) and run the same extraction +
+   comparison in the Playwright test runner.
+4. Keep HTML assertions only for rendering-specific expectations.
+
+### Confirmed decisions
+
+- Confirmed: `OutlineNode.text` is raw body text (no trims). The matcher does not treat `" "` and `""` as equivalent.
+- Note targeting helpers: use find-by-raw-text with “first match in document order” semantics.
+- Outline extraction preserves the conceptual note tree and ignores Lexical’s wrapper `ListItemNode`s (they must never
+  surface as notes).
+- Implement a shared “extract outline from serialized editor state + compare” core, then build thin Vitest/Playwright
+  matcher wrappers on top. Keep matcher-behavior tests in Vitest only (fixture-based) since it covers the shared core.
+
+### Next decision
+
+- Confirmed: add an e2e `toMatchOutline` matcher based on Lexical editor state via the test bridge; keep HTML assertions
+  as opt-in Playwright expectations when authors want rendering-specific coverage.
+- Flake avoidance: the e2e matcher should retry by polling editor state until it matches (or times out), rather than
+  requiring every test to call `waitForSynced` before asserting.
+
+### Scope limit (for this plan)
+
+- Implement the new e2e matcher only. Do not migrate existing e2e tests yet; update tests incrementally as follow-up work.
+
+### Follow-ups
+
+- Improve mismatch messages to visualize leading/trailing whitespace clearly (so diffs are readable).
+- Reduce duplication between `readOutline`, `getListItemLabel`, and `collectOutlineEntries` by routing them through the
+  shared extraction/normalization.
+- Tighten wrapper detection/traversal consistency with Lexical where it matters (related to “Align note indent/outdent
+  helpers with Lexical”).
+
+### Open questions
+
+- E2E matcher API shape: `expect.extend` matcher vs an `editor.*` helper (defer until implementation time).
