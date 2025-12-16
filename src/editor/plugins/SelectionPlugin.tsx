@@ -105,8 +105,63 @@ export function SelectionPlugin() {
   const structuralSelectionRef = useRef(false);
   const structuralSelectionRangeRef = useRef<StructuralSelectionRange | null>(null);
   const structuralSelectionKeysRef = useRef<string[] | null>(null);
+  const pendingSnapPayloadRef = useRef<SnapPayload | null>(null);
+  const pendingSnapScheduledRef = useRef(false);
 
   useEffect(() => {
+    const disposedRef = { current: false };
+
+    const addUpdateTags = (tags: string | string[]) => {
+      const internal = editor as unknown as { _updateTags?: Set<string> };
+      const tagSet = internal._updateTags;
+      if (!tagSet) return;
+
+      if (Array.isArray(tags)) {
+        for (const tag of tags) tagSet.add(tag);
+      } else {
+        tagSet.add(tags);
+      }
+    };
+
+    const scheduleSnapSelection = (payload: SnapPayload) => {
+      pendingSnapPayloadRef.current = payload;
+      if (pendingSnapScheduledRef.current) return;
+      pendingSnapScheduledRef.current = true;
+
+      queueMicrotask(() => {
+        pendingSnapScheduledRef.current = false;
+        if (disposedRef.current) return;
+
+        const nextPayload = pendingSnapPayloadRef.current;
+        pendingSnapPayloadRef.current = null;
+        if (!nextPayload) return;
+
+        editor.update(
+          () => {
+            const selection = $getSelection();
+            if (!$isRangeSelection(selection)) {
+              return;
+            }
+
+            const anchorItem = $getNodeByKey<ListItemNode>(nextPayload.anchorKey);
+            const focusItem = $getNodeByKey<ListItemNode>(nextPayload.focusKey);
+            if (!anchorItem || !focusItem) {
+              return;
+            }
+
+            const anchorPoint = resolveBoundaryPoint(anchorItem, nextPayload.anchorEdge);
+            const focusPoint = resolveBoundaryPoint(focusItem, nextPayload.focusEdge);
+            if (!anchorPoint || !focusPoint) {
+              return;
+            }
+
+            selection.setTextNodeRange(anchorPoint.node, anchorPoint.offset, focusPoint.node, focusPoint.offset);
+          },
+          { tag: SNAP_SELECTION_TAG }
+        );
+      });
+    };
+
     const clearStructuralSelectionMetrics = () => {
   const rootElement = editor.getRootElement();
       if (!rootElement) {
@@ -297,66 +352,41 @@ export function SelectionPlugin() {
 
       const nextPayload = payload;
 
-      editor.update(
-        () => {
-          const selection = $getSelection();
-          if (!$isRangeSelection(selection)) {
-            return;
-          }
-
-          const anchorItem = $getNodeByKey<ListItemNode>(nextPayload.anchorKey);
-          const focusItem = $getNodeByKey<ListItemNode>(nextPayload.focusKey);
-          if (!anchorItem || !focusItem) {
-            return;
-          }
-
-          const anchorPoint = resolveBoundaryPoint(anchorItem, nextPayload.anchorEdge);
-          const focusPoint = resolveBoundaryPoint(focusItem, nextPayload.focusEdge);
-          if (!anchorPoint || !focusPoint) {
-            return;
-          }
-
-          selection.setTextNodeRange(anchorPoint.node, anchorPoint.offset, focusPoint.node, focusPoint.offset);
-        },
-        { tag: SNAP_SELECTION_TAG }
-      );
+      scheduleSnapSelection(nextPayload);
     });
 
-    const applyPlan = (planResult: ProgressivePlanResult) => {
-      editor.update(
-        () => {
-          const applied = $applyProgressivePlan(planResult);
-          if (!applied) {
-            progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-            return;
-          }
+    const $applyPlan = (planResult: ProgressivePlanResult) => {
+      addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
 
-          if (planResult.stage >= 2) {
-            setStructuralSelectionActive(true);
-            const selection = $getSelection();
-            if ($isRangeSelection(selection)) {
-              const currentSlice = getContiguousSelectionHeads(selection);
-              const range = computeStructuralRangeFromHeads(currentSlice);
-              if (range) {
-                structuralSelectionRangeRef.current = range;
-                applyStructuralSelectionMetrics(range);
-              } else {
-                structuralSelectionRangeRef.current = null;
-              }
-            }
-          }
+      const applied = $applyProgressivePlan(planResult);
+      if (!applied) {
+        progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+        return;
+      }
 
-          progressionRef.current = {
-            anchorKey: planResult.anchorKey,
-            stage: getStoredStage(planResult),
-            locked: true,
-          };
-        },
-        { tag: [SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG] }
-      );
+      if (planResult.stage >= 2) {
+        setStructuralSelectionActive(true);
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          const currentSlice = getContiguousSelectionHeads(selection);
+          const range = computeStructuralRangeFromHeads(currentSlice);
+          if (range) {
+            structuralSelectionRangeRef.current = range;
+            applyStructuralSelectionMetrics(range);
+          } else {
+            structuralSelectionRangeRef.current = null;
+          }
+        }
+      }
+
+      progressionRef.current = {
+        anchorKey: planResult.anchorKey,
+        stage: getStoredStage(planResult),
+        locked: true,
+      };
     };
 
-    const collapseStructuralSelectionToCaretAndReset = (
+    const $collapseStructuralSelectionToCaretAndReset = (
       edge: 'start' | 'end' | 'anchor' = 'anchor'
     ): boolean => {
       const range = structuralSelectionRangeRef.current;
@@ -369,32 +399,26 @@ export function SelectionPlugin() {
         return false;
       }
 
-      editor.update(
-        () => {
-          const selection = $getSelection();
-          if (!$isRangeSelection(selection)) {
-            return;
-          }
+      addUpdateTags(PROGRESSIVE_SELECTION_TAG);
 
-          let handled = false;
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        let handled = false;
 
-          if (edge !== 'anchor' && range) {
-            const targetKey = edge === 'start' ? range.caretStartKey : range.caretEndKey;
-            handled = $applyCaretEdge(targetKey, edge);
-          }
+        if (edge !== 'anchor' && range) {
+          const targetKey = edge === 'start' ? range.caretStartKey : range.caretEndKey;
+          handled = $applyCaretEdge(targetKey, edge);
+        }
 
-          if (!handled) {
-            handled = collapseSelectionToCaret(selection);
-            if (!handled) {
-              return;
-            }
-          }
+        if (!handled) {
+          handled = collapseSelectionToCaret(selection);
+        }
 
+        if (handled) {
           progressionRef.current = INITIAL_PROGRESSIVE_STATE;
           unlockRef.current = { pending: false, reason: 'external' };
-        },
-        { tag: PROGRESSIVE_SELECTION_TAG }
-      );
+        }
+      }
 
       setStructuralSelectionActive(false);
       structuralSelectionRangeRef.current = null;
@@ -403,7 +427,7 @@ export function SelectionPlugin() {
       return true;
     };
 
-    const deleteStructuralSelection = (): boolean => {
+    const $deleteStructuralSelection = (): boolean => {
       if (!structuralSelectionRef.current) {
         return false;
       }
@@ -424,83 +448,80 @@ export function SelectionPlugin() {
         return false;
       }
 
-      editor.update(
-        () => {
-          const structuralRange = structuralSelectionRangeRef.current;
-          const appliedSelection = structuralRange ? $applyStructuralRange(structuralRange) : $getSelection();
-          const selection = $isRangeSelection(appliedSelection) ? appliedSelection : null;
+      addUpdateTags(PROGRESSIVE_SELECTION_TAG);
 
-          const keyItems =
-            structuralSelectionKeysRef.current
-              ?.map((key) => $getNodeByKey<ListItemNode>(key))
-              .filter((node): node is ListItemNode => $isListItemNode(node)) ?? [];
+      const structuralRange = structuralSelectionRangeRef.current;
+      const appliedSelection = structuralRange ? $applyStructuralRange(structuralRange) : $getSelection();
+      const selection = $isRangeSelection(appliedSelection) ? appliedSelection : null;
 
-          let heads = keyItems.filter((node) => node.isAttached());
+      const keyItems =
+        structuralSelectionKeysRef.current
+          ?.map((key) => $getNodeByKey<ListItemNode>(key))
+          .filter((node): node is ListItemNode => $isListItemNode(node)) ?? [];
 
-          if (heads.length === 0 && selection) {
-            heads = getContiguousSelectionHeads(selection);
+      let heads = keyItems.filter((node) => node.isAttached());
+
+      if (heads.length === 0 && selection) {
+        heads = getContiguousSelectionHeads(selection);
+      }
+
+      if (heads.length === 0) {
+        reportInvariant({
+          message: 'Structural delete invoked with no attached heads',
+          context: { keyCount: structuralSelectionKeysRef.current?.length ?? 0 },
+        });
+        return true;
+      }
+
+      const caretPlan = resolveCaretTargetAfterDeletion(heads);
+      const orderedHeads = sortHeadsByDocumentOrder(heads);
+
+      for (const head of orderedHeads.toReversed()) {
+        removeNoteSubtree(head);
+      }
+
+      let caretApplied = false;
+      if (caretPlan) {
+        caretApplied = $applyCaretEdge(caretPlan.key, caretPlan.edge);
+      }
+
+      if (!caretApplied) {
+        const root = $getRoot();
+        let list = root.getFirstChild();
+
+        if (!$isListNode(list)) {
+          const newList = $createListNode('bullet');
+          root.append(newList);
+          list = newList;
+        }
+
+        if ($isListNode(list)) {
+          const first = getFirstDescendantListItem(list);
+          let targetItem: ListItemNode | null = null;
+
+          if (first) {
+            targetItem = getContentListItem(first);
+          } else {
+            const listItem = $createListItemNode();
+            listItem.append($createParagraphNode());
+            list.append(listItem);
+            targetItem = listItem;
           }
 
-          if (heads.length === 0) {
-            reportInvariant({
-              message: 'Structural delete invoked with no attached heads',
-              context: { keyCount: structuralSelectionKeysRef.current?.length ?? 0 },
-            });
-            return;
-          }
+          caretApplied = $applyCaretEdge(targetItem.getKey(), 'start');
+        }
+      }
 
-          const caretPlan = resolveCaretTargetAfterDeletion(heads);
-          const orderedHeads = sortHeadsByDocumentOrder(heads);
+      if (!caretApplied && selection) {
+        collapseSelectionToCaret(selection);
+      }
 
-          for (const head of orderedHeads.toReversed()) {
-            removeNoteSubtree(head);
-          }
-
-          let caretApplied = false;
-          if (caretPlan) {
-            caretApplied = $applyCaretEdge(caretPlan.key, caretPlan.edge);
-          }
-
-          if (!caretApplied) {
-            const root = $getRoot();
-            let list = root.getFirstChild();
-
-            if (!$isListNode(list)) {
-              const newList = $createListNode('bullet');
-              root.append(newList);
-              list = newList;
-            }
-
-            if ($isListNode(list)) {
-              const first = getFirstDescendantListItem(list);
-              let targetItem: ListItemNode | null = null;
-
-              if (first) {
-                targetItem = getContentListItem(first);
-              } else {
-                const listItem = $createListItemNode();
-                listItem.append($createParagraphNode());
-                list.append(listItem);
-                targetItem = listItem;
-              }
-
-              caretApplied = $applyCaretEdge(targetItem.getKey(), 'start');
-            }
-          }
-
-          if (!caretApplied && selection) {
-            collapseSelectionToCaret(selection);
-          }
-
-          structuralSelectionRangeRef.current = null;
-          structuralSelectionKeysRef.current = null;
-          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-          unlockRef.current = { pending: false, reason: 'external' };
-          setStructuralSelectionActive(false);
-          clearStructuralSelectionMetrics();
-        },
-        { tag: PROGRESSIVE_SELECTION_TAG }
-      );
+      structuralSelectionRangeRef.current = null;
+      structuralSelectionKeysRef.current = null;
+      progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+      unlockRef.current = { pending: false, reason: 'external' };
+      setStructuralSelectionActive(false);
+      clearStructuralSelectionMetrics();
 
       return true;
     };
@@ -516,7 +537,7 @@ export function SelectionPlugin() {
 
         event?.preventDefault();
 
-        applyPlan(planResult);
+        $applyPlan(planResult);
 
         return true;
       },
@@ -565,37 +586,34 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
-    const runDirectionalPlan = (direction: 'up' | 'down') => {
+    const $runDirectionalPlan = (direction: 'up' | 'down') => {
       unlockRef.current = { pending: true, reason: 'directional' };
 
-      editor.update(
-        () => {
-          const planResult = $computeDirectionalPlan(progressionRef, direction);
-          if (!planResult) {
-            progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-            return;
-          }
+      addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
 
-          const applied = $applyProgressivePlan(planResult);
-          if (!applied) {
-            progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-            return;
-          }
+      const planResult = $computeDirectionalPlan(progressionRef, direction);
+      if (!planResult) {
+        progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+        return;
+      }
 
-          progressionRef.current = {
-            anchorKey: planResult.anchorKey,
-            stage: getStoredStage(planResult),
-            locked: true,
-          };
-        },
-        { tag: [SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG] }
-      );
+      const applied = $applyProgressivePlan(planResult);
+      if (!applied) {
+        progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+        return;
+      }
+
+      progressionRef.current = {
+        anchorKey: planResult.anchorKey,
+        stage: getStoredStage(planResult),
+        locked: true,
+      };
     };
 
     const unregisterDirectionalCommand = editor.registerCommand(
       PROGRESSIVE_SELECTION_DIRECTION_COMMAND,
       ({ direction }) => {
-        runDirectionalPlan(direction);
+        $runDirectionalPlan(direction);
         return true;
       },
       COMMAND_PRIORITY_CRITICAL
@@ -604,7 +622,7 @@ export function SelectionPlugin() {
     const unregisterEscape = editor.registerCommand(
       KEY_ESCAPE_COMMAND,
       (event: KeyboardEvent | null) => {
-        const handled = collapseStructuralSelectionToCaretAndReset();
+        const handled = $collapseStructuralSelectionToCaretAndReset();
         if (!handled) {
           return false;
         }
@@ -650,7 +668,7 @@ export function SelectionPlugin() {
           return false;
         }
 
-        const handled = collapseStructuralSelectionToCaretAndReset('end');
+        const handled = $collapseStructuralSelectionToCaretAndReset('end');
         if (!handled) {
           return false;
         }
@@ -671,7 +689,7 @@ export function SelectionPlugin() {
           return false;
         }
 
-        const handled = collapseStructuralSelectionToCaretAndReset('start');
+        const handled = $collapseStructuralSelectionToCaretAndReset('start');
         if (!handled) {
           return false;
         }
@@ -692,7 +710,7 @@ export function SelectionPlugin() {
           return false;
         }
 
-        const handled = collapseStructuralSelectionToCaretAndReset('end');
+        const handled = $collapseStructuralSelectionToCaretAndReset('end');
         if (!handled) {
           return false;
         }
@@ -739,7 +757,7 @@ export function SelectionPlugin() {
           return false;
         }
 
-        const handled = collapseStructuralSelectionToCaretAndReset(
+        const handled = $collapseStructuralSelectionToCaretAndReset(
           event.key === 'Home' || event.key === 'PageUp' ? 'start' : 'end'
         );
         if (!handled) {
@@ -760,7 +778,7 @@ export function SelectionPlugin() {
           return false;
         }
 
-        const handled = collapseStructuralSelectionToCaretAndReset('start');
+        const handled = $collapseStructuralSelectionToCaretAndReset('start');
         if (!handled) {
           return false;
         }
@@ -796,7 +814,7 @@ export function SelectionPlugin() {
         if (!structuralSelectionRef.current) {
           return false;
         }
-        const handled = deleteStructuralSelection();
+        const handled = $deleteStructuralSelection();
         if (!handled) {
           return false;
         }
@@ -813,7 +831,7 @@ export function SelectionPlugin() {
         if (!structuralSelectionRef.current) {
           return false;
         }
-        const handled = deleteStructuralSelection();
+        const handled = $deleteStructuralSelection();
         if (!handled) {
           return false;
         }
@@ -825,6 +843,7 @@ export function SelectionPlugin() {
     );
 
     return () => {
+      disposedRef.current = true;
       structuralSelectionRef.current = false;
       const rootElement = editor.getRootElement();
       if (rootElement) {

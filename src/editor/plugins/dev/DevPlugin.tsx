@@ -5,6 +5,7 @@ import { config } from '#config';
 import { SchemaValidationPlugin } from './SchemaValidationPlugin';
 import { TreeViewPlugin } from './TreeViewPlugin';
 import { TestBridgePlugin } from './TestBridgePlugin';
+import { ProhibitNestedLexicalUpdatesPlugin } from './ProhibitNestedLexicalUpdatesPlugin';
 
 interface DevPluginProps {
   children?: ReactNode;
@@ -17,6 +18,7 @@ export function DevPlugin({ children, onTestBridgeReady, onTestBridgeDispose }: 
 
   return enableDevTools
     ? <>
+      <ProhibitNestedLexicalUpdatesPlugin />
       <SchemaValidationPlugin />
       <TreeViewPlugin />
       <TestBridgePlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose} />
