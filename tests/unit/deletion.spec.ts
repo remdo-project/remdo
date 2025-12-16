@@ -216,7 +216,13 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     it('avoids adding extra space when the right fragment already starts with whitespace', async ({ remdo }) => {
       await remdo.load('edge-spaces');
 
-      expect(readNoteTextRaw(remdo, 'note2-space-left').startsWith(' ')).toBe(true);
+      expect(remdo).toMatchOutline([
+        { text: 'note1' },
+        { text: ' note2-space-left' },
+        { text: 'note3' },
+        { text: 'note4-space-right ' },
+        { text: 'note5' },
+      ]);
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });
 
@@ -232,7 +238,13 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     it('avoids adding extra space when the left fragment already ends with whitespace', async ({ remdo }) => {
       await remdo.load('edge-spaces');
 
-      expect(readNoteTextRaw(remdo, 'note4-space-right').endsWith(' ')).toBe(true);
+      expect(remdo).toMatchOutline([
+        { text: 'note1' },
+        { text: ' note2-space-left' },
+        { text: 'note3' },
+        { text: 'note4-space-right ' },
+        { text: 'note5' },
+      ]);
       await placeCaretAtNote(remdo, 'note4-space-right', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });
 
@@ -313,25 +325,6 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     });
   });
 });
-
-function readNoteTextRaw(remdo: RemdoTestApi, label: string): string {
-  return remdo.validate(() => {
-    const root = $getRoot();
-    const list = root.getFirstChild();
-    if (!list || !$isListNode(list)) {
-      throw new Error('Expected root list');
-    }
-
-    const item = findItemByText(list, label);
-    if (!item) {
-      throw new Error(`No note found with text: ${label}`);
-    }
-
-    const children = item.getChildren?.() ?? [];
-    const contentNodes = children.filter((child: any) => child?.getType?.() !== 'list');
-    return contentNodes.map((child: any) => child?.getTextContent?.() ?? '').join('');
-  });
-}
 
 function isNodeAttached(remdo: RemdoTestApi, key: string): boolean {
   return remdo.validate(() => {
