@@ -11,11 +11,6 @@ type NodeWithChildren = SerializedLexicalNode & {
   children?: SerializedLexicalNode[];
 };
 
-interface BuildNode {
-  text: string | null;
-  children: BuildNode[];
-}
-
 function isNodeWithChildren(node: SerializedLexicalNode | null | undefined): node is NodeWithChildren {
   return Boolean(node && (node as NodeWithChildren).children !== undefined);
 }
@@ -47,28 +42,6 @@ function isChildrenWrapperListItem(node: SerializedLexicalNode | null | undefine
   return children.length === 1 && children[0]?.type === 'list';
 }
 
-interface FlatOutlineEntry {
-  text: string | null;
-  indent: number;
-}
-
-function normalizeOutline(nodes: BuildNode[]): Outline {
-  return nodes.map((node): OutlineNode => {
-    const normalizedChildren = normalizeOutline(node.children);
-    const normalized: OutlineNode = {};
-
-    if (node.text !== null) {
-      normalized.text = node.text;
-    }
-
-    if (normalizedChildren.length > 0) {
-      normalized.children = normalizedChildren;
-    }
-
-    return normalized;
-  });
-}
-
 export function extractOutlineFromEditorState(state: unknown): Outline {
   const root = (state as SerializedEditorState | null | undefined)?.root;
   if (!root || root.type !== 'root') {
@@ -80,58 +53,54 @@ export function extractOutlineFromEditorState(state: unknown): Outline {
     return [];
   }
 
-  const flat: FlatOutlineEntry[] = [];
-
-  const collectItems = (list: SerializedLexicalNode) => {
+  const readList = (list: SerializedLexicalNode): Outline => {
     if (!isNodeWithChildren(list) || list.type !== 'list') {
-      return;
+      return [];
     }
 
-    for (const child of getChildren(list)) {
-      if (!isNodeWithChildren(child) || child.type !== 'listitem') {
+    const items = getChildren(list);
+    const outline: Outline = [];
+
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index];
+      if (!isNodeWithChildren(item) || item.type !== 'listitem') {
         continue;
       }
 
-      if (isChildrenWrapperListItem(child)) {
-        const nested = getChildren(child)[0];
-        if (nested) {
-          collectItems(nested);
-        }
+      if (isChildrenWrapperListItem(item)) {
         continue;
       }
 
-      const children = getChildren(child);
-      const nestedLists = children.filter((node) => node.type === 'list');
+      const children = getChildren(item);
       const contentNodes = children.filter((node) => node.type !== 'list');
-
-      const indentValue = (child as { indent?: unknown }).indent;
-      const indent = typeof indentValue === 'number' ? indentValue : 0;
-
       const text = contentNodes.length > 0 ? contentNodes.map(collectTextContent).join('') : null;
 
-      flat.push({ text, indent });
-
-      for (const nested of nestedLists) {
-        collectItems(nested);
+      let nestedList: SerializedLexicalNode | null = null;
+      const nextItem = items[index + 1];
+      if (isChildrenWrapperListItem(nextItem)) {
+        nestedList = getChildren(nextItem)[0] ?? null;
+        index += 1;
+      } else {
+        nestedList = children.find((node) => node.type === 'list') ?? null;
       }
+
+      const node: OutlineNode = {};
+      if (text !== null) {
+        node.text = text;
+      }
+
+      if (nestedList) {
+        const nested = readList(nestedList);
+        if (nested.length > 0) {
+          node.children = nested;
+        }
+      }
+
+      outline.push(node);
     }
+
+    return outline;
   };
 
-  collectItems(listNode);
-
-  const rawOutline: BuildNode[] = [];
-  const stack: Array<{ indent: number; children: BuildNode[] }> = [{ indent: -1, children: rawOutline }];
-
-  for (const { text, indent } of flat) {
-    const node: BuildNode = { text, children: [] };
-
-    while (stack.length > 0 && stack.at(-1)!.indent >= indent) {
-      stack.pop();
-    }
-
-    stack.at(-1)!.children.push(node);
-    stack.push({ indent, children: node.children });
-  }
-
-  return normalizeOutline(rawOutline);
+  return readList(listNode);
 }
