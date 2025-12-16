@@ -14,7 +14,7 @@ interface DevPluginProps {
 }
 
 export function DevPlugin({ children, onTestBridgeReady, onTestBridgeDispose }: DevPluginProps): ReactElement {
-  const enableDevTools = config.dev || config.mode === 'test';
+  const enableDevTools = config.isDevOrTest;
 
   return enableDevTools
     ? <>

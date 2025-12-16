@@ -251,7 +251,7 @@ async function withSession(
     throw new Error('Failed to resolve collaboration document.');
   }
   const editor = createEditor(
-    createEditorInitialConfig({ isDev: config.dev }) as CreateEditorArgs
+    createEditorInitialConfig() as CreateEditorArgs
   );
   const binding = createBindingV2__EXPERIMENTAL(editor, docId, syncDoc, docMap);
   const sharedRoot = binding.root as unknown as SharedRoot;

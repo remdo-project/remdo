@@ -52,4 +52,6 @@ export const config = {
   prod: runtime.isProd,
   isDev: runtime.isDev,
   isProd: runtime.isProd,
+  isTest: runtime.mode === 'test',
+  isDevOrTest: runtime.isDev || runtime.mode === 'test',
 } as const;
