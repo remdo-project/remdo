@@ -1,5 +1,5 @@
 import { expect, test } from '#editor/fixtures';
-import { editorLocator } from './_support/locators';
+import { editorLocator } from '#editor/locators';
 
 test.describe('Editor (focused) visibility', () => {
   test('shows editor content only', async ({ page, editor }) => {

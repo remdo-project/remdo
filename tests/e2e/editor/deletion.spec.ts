@@ -1,6 +1,6 @@
 import { expect, test } from '#editor/fixtures';
-import { editorLocator, setCaretAtText } from './_support/locators';
-import { captureEditorSnapshot } from './_support/state';
+import { editorLocator, setCaretAtText } from '#editor/locators';
+import { captureEditorSnapshot } from '#editor/state';
 
 test.describe('deletion (native browser behavior)', () => {
   test('forward Delete at caret removes leading character of first note', async ({ page, editor }) => {
