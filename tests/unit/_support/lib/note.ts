@@ -80,12 +80,6 @@ export async function placeCaretAtNote(remdo: RemdoTestApi, noteText: string, of
   });
 }
 
-/**
- * Lexical represents each conceptual note with a content list item (holding the inline
- * nodes) optionally followed by a wrapper list item that contains a nested list for the
- * note's children. Wrapper items never include inline content. We only want to surface
- * the content-bearing items in outlines so every entry corresponds to exactly one note.
- */
 export function readOutline(remdo: RemdoTestApi): Outline {
   return extractOutlineFromEditorState(remdo.getEditorState());
 }

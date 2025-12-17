@@ -8,19 +8,20 @@ let docCounter = 0;
 
 type EditorHarness = Awaited<ReturnType<typeof createEditorHarness>>;
 
+async function waitForSynced(page: Page) {
+  return page.evaluate(() => {
+    const promise = (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<unknown> }).__remdoBridgePromise;
+    return promise?.then((api) => (api as any)?.waitForSynced());
+  });
+}
+
 async function createEditorHarness(page: Page, docId: string) {
   await page.goto(`/?doc=${docId}`);
   await editorLocator(page).locator('.editor-input').first().waitFor();
   await ensureReady(page, { clear: true });
 
-  const waitForSynced = () => page.evaluate(() => {
-    const promise = (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<unknown> }).__remdoBridgePromise;
-    return promise?.then((api) => (api as any)?.waitForSynced());
-  });
-
   return {
     docId,
-    waitForSynced,
     load: (name: string) => load(page, name),
     getEditorState: () => getEditorState(page),
   };
@@ -36,7 +37,7 @@ export const test = base.extend<{ testDocId: string; editor: EditorHarness }>({
     const editor = await createEditorHarness(page, testDocId);
     await prepareEditorTestSurface(page);
     await use(editor);
-    await editor.waitForSynced();
+    await waitForSynced(page);
   },
 });
 

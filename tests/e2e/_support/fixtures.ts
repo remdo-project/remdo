@@ -63,10 +63,10 @@ expect.extend({
       };
     }
 
-    const outline = async () => extractOutlineFromEditorState(await target.getEditorState!());
-
     try {
-      await expect.poll(outline).toEqual(expected);
+      await expect
+        .poll(async () => extractOutlineFromEditorState(await target.getEditorState!()))
+        .toEqual(expected);
       return { pass: true, message: () => 'Expected outlines not to match.' };
     } catch (error) {
       return {

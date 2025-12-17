@@ -43,6 +43,12 @@ function isChildrenWrapperListItem(node: SerializedLexicalNode | null | undefine
 }
 
 export function extractOutlineFromEditorState(state: unknown): Outline {
+  /**
+   * Lexical represents each conceptual note with a content list item (holding the inline
+   * nodes) optionally followed by a wrapper list item that contains a nested list for the
+   * note's children. Wrapper items never include inline content. We only want to surface
+   * the content-bearing items in outlines so every entry corresponds to exactly one note.
+   */
   const root = (state as SerializedEditorState | null | undefined)?.root;
   if (!root || root.type !== 'root') {
     throw new TypeError('Expected a Lexical SerializedEditorState with root.type === "root".');

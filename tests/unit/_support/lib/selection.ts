@@ -43,7 +43,7 @@ export function getListItemLabel(item: ListItemNode): string | null {
     return label;
   }
 
-  return contentItem === item ? null : getListItemLabel(contentItem);
+  return null;
 }
 
 export function resolveContentListItem(item: ListItemNode): ListItemNode {
