@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { readFixture } from '#tests-support/fixtures';
+import { readFixture } from '#tests-common/fixtures';
 
 export async function load(page: Page, fixtureName: string): Promise<void> {
   const payload = await readFixture(fixtureName);
@@ -51,4 +51,20 @@ export async function ensureReady(page: Page, opts: { clear?: boolean } = {}): P
 export async function replaceDocument(page: Page, serializedStateJson: string): Promise<void> {
   await ensureReady(page);
   await runWithRemdoTest(page, { kind: 'load', stateJson: serializedStateJson });
+}
+
+export async function getEditorState(page: Page): Promise<unknown> {
+  await ensureReady(page);
+  return page.evaluate(async () => {
+    const readyPromise: Promise<any> =
+      (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<unknown> }).__remdoBridgePromise
+      ?? Promise.reject(new Error('remdo bridge is not available'));
+
+    const api = await readyPromise;
+    if (!api || typeof api.getEditorState !== 'function') {
+      throw new Error('remdo bridge is not available');
+    }
+
+    return api.getEditorState();
+  });
 }

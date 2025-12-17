@@ -1,17 +1,6 @@
 import { expect, test } from '#editor/fixtures';
-import { editorLocator, setCaretAtText } from './_support/locators';
-import { captureEditorSnapshot } from './_support/state';
-
-async function getListItemTextsRaw(page: Parameters<typeof editorLocator>[0]): Promise<string[]> {
-  const items = editorLocator(page).locator('li.list-item');
-  const count = await items.count();
-  const result: string[] = [];
-  for (let i = 0; i < count; i += 1) {
-    const text = await items.nth(i).locator('[data-lexical-text="true"]').evaluate((el) => el.textContent);
-    result.push(text);
-  }
-  return result;
-}
+import { editorLocator, setCaretAtText } from '#editor/locators';
+import { captureEditorSnapshot } from '#editor/state';
 
 test.describe('deletion (native browser behavior)', () => {
   test('forward Delete at caret removes leading character of first note', async ({ page, editor }) => {
@@ -20,10 +9,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    const items = editorLocator(page).locator('li.list-item');
-    await expect(items.nth(0)).toHaveText('ote1');
-    await expect(items.nth(1)).toHaveText('note2');
-    await expect(items.nth(2)).toHaveText('note3');
+    await expect(editor).toMatchOutline([{ text: 'ote1' }, { text: 'note2' }, { text: 'note3' }]);
   });
 
   test('Backspace in the middle of a note deletes the previous character', async ({ page, editor }) => {
@@ -32,10 +18,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Backspace');
 
-    const items = editorLocator(page).locator('li.list-item');
-    await expect(items.nth(0)).toHaveText('nte1');
-    await expect(items.nth(1)).toHaveText('note2');
-    await expect(items.nth(2)).toHaveText('note3');
+    await expect(editor).toMatchOutline([{ text: 'nte1' }, { text: 'note2' }, { text: 'note3' }]);
 
     const snapshot = await captureEditorSnapshot(page);
     expect(snapshot.selection).toMatchObject({
@@ -73,9 +56,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Backspace');
 
-    const items = editorLocator(page).locator('li.list-item');
-    await expect(items.nth(0)).toHaveText('note1 note2');
-    await expect(items.nth(1)).toHaveText('note3');
+    await expect(editor).toMatchOutline([{ text: 'note1 note2' }, { text: 'note3' }]);
   });
 
   test('Delete at end merges next leaf', async ({ page, editor }) => {
@@ -84,9 +65,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    const items = editorLocator(page).locator('li.list-item');
-    await expect(items.nth(0)).toHaveText('note1 note2');
-    await expect(items.nth(1)).toHaveText('note3');
+    await expect(editor).toMatchOutline([{ text: 'note1 note2' }, { text: 'note3' }]);
   });
 
   test('Delete respects spacing when right fragment already starts with space', async ({ page, editor }) => {
@@ -95,9 +74,12 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expect
-      .poll(() => getListItemTextsRaw(page))
-      .toEqual(['note1 note2-space-left', 'note3', 'note4-space-right ', 'note5']);
+    await expect(editor).toMatchOutline([
+      { text: 'note1 note2-space-left' },
+      { text: 'note3' },
+      { text: 'note4-space-right ' },
+      { text: 'note5' },
+    ]);
   });
 
   test('Delete respects spacing when left fragment already ends with space', async ({ page, editor }) => {
@@ -106,9 +88,12 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expect
-      .poll(() => getListItemTextsRaw(page))
-      .toEqual(['note1', ' note2-space-left', 'note3', 'note4-space-right note5']);
+    await expect(editor).toMatchOutline([
+      { text: 'note1' },
+      { text: ' note2-space-left' },
+      { text: 'note3' },
+      { text: 'note4-space-right note5' },
+    ]);
   });
 
   test('Delete removes structural selection block and focuses next sibling', async ({ page, editor }) => {
@@ -120,9 +105,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    const items = editorLocator(page).locator('li.list-item');
-    await expect(items).toHaveCount(2);
-    await expect(items.nth(0)).toHaveText('note2');
-    await expect(items.nth(1)).toHaveText('note3');
+    await expect(editorLocator(page).locator('li.list-item')).toHaveCount(2);
+    await expect(editor).toMatchOutline([{ text: 'note2' }, { text: 'note3' }]);
   });
 });

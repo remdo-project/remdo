@@ -34,7 +34,7 @@ describe('collab structural delete regression', () => {
 
     await Promise.all([editorA.waitForSynced(), editorB.waitForSynced()]);
     await waitFor(() => {
-      expect(readOutline(editorA)).toEqual(expectedAfterRemoteDelete);
+      expect(editorA).toMatchOutline(expectedAfterRemoteDelete);
     });
 
     let bubbled = false;

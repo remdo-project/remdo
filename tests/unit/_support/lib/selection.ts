@@ -38,12 +38,12 @@ export function getListItemLabel(item: ListItemNode): string | null {
     }
   }
 
-  const label = pieces.join('').trim();
+  const label = pieces.join('');
   if (label.length > 0) {
     return label;
   }
 
-  return contentItem === item ? null : getListItemLabel(contentItem);
+  return null;
 }
 
 export function resolveContentListItem(item: ListItemNode): ListItemNode {

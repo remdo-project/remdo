@@ -48,7 +48,7 @@ const CASES: OutlineCase[] = [
     fixture: 'empty-labels',
     outline: [
       { text: 'alpha' },
-      { text: '' },
+      { text: ' ' },
       { text: 'beta' },
       { children: [ {}, { text: 'child-of-empty' } ] },
     ],

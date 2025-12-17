@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { $getRoot } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 
-import { placeCaretAtNote, readOutline, pressKey } from '#tests';
+import { placeCaretAtNote, pressKey } from '#tests';
 
 describe('structural selection delete regression (local)', () => {
   it('bubbles Delete when structural heads were removed remotely', async ({ remdo }) => {
@@ -64,7 +64,7 @@ describe('structural selection delete regression (local)', () => {
     document.body.removeEventListener('keydown', bubbleProbe);
 
     expect(bubbled).toBe(true);
-    expect(readOutline(remdo)).toEqual(expectedAfterRemoteDelete);
+    expect(remdo).toMatchOutline(expectedAfterRemoteDelete);
   });
 
   it('bubbles Backspace when structural heads were removed remotely', async ({ remdo }) => {
@@ -131,6 +131,6 @@ describe('structural selection delete regression (local)', () => {
     document.body.removeEventListener('keydown', bubbleProbe);
 
     expect(bubbled).toBe(true);
-    expect(readOutline(remdo)).toEqual(expectedAfterRemoteDelete);
+    expect(remdo).toMatchOutline(expectedAfterRemoteDelete);
   });
 });

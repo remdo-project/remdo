@@ -22,7 +22,7 @@
       "#editor/*": [
         "./tests/e2e/editor/_support/*"
       ],
-      "#tests-support/*": [
+      "#tests-common/*": [
         "./tests/_support/*"
       ],
       "#config": [
