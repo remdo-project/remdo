@@ -40,46 +40,34 @@ function formatPath(path: number[]): string {
   return path.join('.');
 }
 
-function assertNestedListHasListItem(nestedList: NodeWithChildren): void {
-  const nestedChildren = getChildren(nestedList);
-  const hasListItem = nestedChildren.some((item) => item.type === LIST_ITEM_TYPE);
-  if (!hasListItem) {
-    fail('Invalid outline structure: list wrapper without list item child', { nestedCount: 1 });
-  }
-}
-
 function readWrapperNestedListOrThrow(wrapper: NodeWithChildren, contextPath: number[]): NodeWithChildren {
+  const pathStr = formatPath(contextPath);
   const wrapperChildren = getChildren(wrapper);
   const nestedLists = wrapperChildren.filter((child) => child.type === LIST_TYPE);
   const contentNodes = wrapperChildren.filter((child) => child.type !== LIST_TYPE);
 
   if (nestedLists.length !== 1 || contentNodes.length > 0) {
-    fail(`Invalid outline structure: wrapper list item must contain exactly one list at "${formatPath(contextPath)}"`, {
+    fail(`Invalid outline structure: wrapper list item must contain exactly one list at "${pathStr}"`, {
       nestedCount: nestedLists.length,
       contentCount: contentNodes.length,
-      path: formatPath(contextPath),
+      path: pathStr,
     });
   }
 
   const nested = nestedLists[0];
   if (!nested || !isNodeWithChildren(nested)) {
-    fail(`Invalid outline structure: wrapper list item list is not serializable at "${formatPath(contextPath)}"`, {
-      path: formatPath(contextPath),
+    fail(`Invalid outline structure: wrapper list item list is not serializable at "${pathStr}"`, {
+      path: pathStr,
     });
   }
 
-  assertNestedListHasListItem(nested);
+  const nestedChildren = getChildren(nested);
+  const hasListItem = nestedChildren.some((item) => item.type === LIST_ITEM_TYPE);
+  if (!hasListItem) {
+    fail('Invalid outline structure: list wrapper without list item child', { nestedCount: 1 });
+  }
+
   return nested;
-}
-
-function assertContentItemHasNoEmbeddedLists(contentItem: NodeWithChildren, path: number[]): void {
-  const childLists = getChildren(contentItem).filter((child) => child.type === LIST_TYPE);
-  if (childLists.length > 0) {
-    fail(`Invalid outline structure: embedded nested list in content item at "${formatPath(path)}"`, {
-      nestedCount: childLists.length,
-      path: formatPath(path),
-    });
-  }
 }
 
 function readListOrThrow(listNode: NodeWithChildren, prefix: number[] = []): SerializedOutlineNote[] {
@@ -96,11 +84,11 @@ function readListOrThrow(listNode: NodeWithChildren, prefix: number[] = []): Ser
     const childChildren = getChildren(child);
     const nestedLists = childChildren.filter((nested) => nested.type === LIST_TYPE);
     const contentNodes = childChildren.filter((nested) => nested.type !== LIST_TYPE);
-    const isWrapper = nestedLists.length > 0 && contentNodes.length === 0;
 
-    if (isWrapper) {
-      fail(`Invalid outline structure: wrapper list item without preceding list item sibling at "${formatPath(prefix)}"`, {
-        path: formatPath(prefix),
+    if (nestedLists.length > 0 && contentNodes.length === 0) {
+      const prefixStr = formatPath(prefix);
+      fail(`Invalid outline structure: wrapper list item without preceding list item sibling at "${prefixStr}"`, {
+        path: prefixStr,
       });
     }
 
@@ -109,7 +97,13 @@ function readListOrThrow(listNode: NodeWithChildren, prefix: number[] = []): Ser
     const path = [...prefix, noteIndex];
     noteIndex += 1;
 
-    assertContentItemHasNoEmbeddedLists(child, path);
+    if (nestedLists.length > 0) {
+      const pathStr = formatPath(path);
+      fail(`Invalid outline structure: embedded nested list in content item at "${pathStr}"`, {
+        nestedCount: nestedLists.length,
+        path: pathStr,
+      });
+    }
 
     const note: SerializedOutlineNote = {
       indent,
@@ -127,9 +121,10 @@ function readListOrThrow(listNode: NodeWithChildren, prefix: number[] = []): Ser
 
       if (nextIsWrapper) {
         if (nextNestedLists.length !== 1) {
-          fail(`Invalid outline structure: multiple nested lists for note at "${formatPath(path)}"`, {
+          const pathStr = formatPath(path);
+          fail(`Invalid outline structure: multiple nested lists for note at "${pathStr}"`, {
             nestedCount: nextNestedLists.length,
-            path: formatPath(path),
+            path: pathStr,
           });
         }
 
