@@ -234,74 +234,32 @@ Dockerfile checks) and decide whether to gate CI on its report.
    the ESLint rule and README. No test behavior should change; it just makes the
    editor intent explicit and enforced.
 
-## toMatchOutline improvements (notes + plan)
+## toMatchOutline improvements (done 2025-12-17)
 
-### Current behavior / pain points
+This work started as “drop whitespace trimming + reduce helper proliferation”, and ended up unifying unit + e2e outline
+assertions around serialized Lexical editor state.
 
-- `toMatchOutline`’s whitespace trimming happens in outline extraction:
-  - `readOutline()` (`tests/unit/_support/lib/note.ts`) builds note text via `.join('').trim()`.
-  - `getListItemLabel()` (`tests/unit/_support/lib/selection.ts`) also trims (affects selection assertions/labels).
-- Trimming blocks expressing edge-space behavior via the primary matcher. For example, `tests/fixtures/edge-spaces.json`
-  includes a leading-space note (`" note2-space-left"`) and a trailing-space note (`"note4-space-right "`), but unit tests
-  need ad-hoc raw helpers (for example `readNoteTextRaw()` in `tests/unit/deletion.spec.ts`) to assert spacing outcomes.
-- There is drift risk: outline-ish logic exists in multiple places with different goals (`readOutline`, `getListItemLabel`,
-  and the schema validator’s `collectOutlineEntries()` in `src/editor/schema/assertEditorSchema.ts`, which also trims).
+### Shipped
 
-### Goals
+- `OutlineNode.text` is raw body text (no trims). The matcher does not treat `" "` and `""` as equivalent.
+- Shared extractor: `tests/_support/outline.ts` exposes the outline schema + `extractOutlineFromEditorState(...)`.
+- Unit: `toMatchOutline` compares expected outline against `remdo.getEditorState()` using the shared extractor.
+- Unit helpers now treat note text as raw:
+  - `getListItemLabel()` no longer trims.
+  - note targeting uses “find-by-raw-text” with “first match in document order” semantics.
+- E2E: `expect(editor).toMatchOutline(...)` matcher added (state-based, via bridge; uses polling to avoid flakes).
+- E2E tests migrated to the matcher and the older `expectOutline(...)` helper removed.
 
-1. Make outline assertions whitespace-precise (raw; no trimming) so tests can express the deletion spacing contract
-   directly.
-2. Reduce helper proliferation by centralizing outline extraction + normalization policy.
-3. Enable a shared declarative outline schema and consistent matcher behavior across unit + e2e.
-
-### Proposed direction
-
-1. Define a single outline extraction function that operates on serialized editor state JSON (not the DOM).
-2. Unit: have `toMatchOutline` read `remdo.getEditorState()` and compare extracted outline to expected.
-3. E2E: fetch editor state JSON via the existing test bridge (`__remdoBridgePromise`) and run the same extraction +
-   comparison in the Playwright test runner.
-4. Keep HTML assertions only for rendering-specific expectations.
-
-### Confirmed decisions
-
-- Confirmed: `OutlineNode.text` is raw body text (no trims). The matcher does not treat `" "` and `""` as equivalent.
-- Note targeting helpers: use find-by-raw-text with “first match in document order” semantics.
-- Outline extraction preserves the conceptual note tree and ignores Lexical’s wrapper `ListItemNode`s (they must never
-  surface as notes).
-- Implement a shared “extract outline from serialized editor state + compare” core, then build thin Vitest/Playwright
-  matcher wrappers on top. Keep matcher-behavior tests in Vitest only (fixture-based) since it covers the shared core.
-
-### Next decision
-
-- Confirmed: add an e2e `toMatchOutline` matcher based on Lexical editor state via the test bridge; keep HTML assertions
-  as opt-in Playwright expectations when authors want rendering-specific coverage.
-- Flake avoidance: the e2e matcher should retry by polling editor state until it matches (or times out), rather than
-  requiring every test to call `waitForSynced` before asserting.
-
-### Scope limit (for this plan)
-
-- Implement the new e2e matcher only. Do not migrate existing e2e tests yet; update tests incrementally as follow-up work.
-
-### Follow-ups
+### Outstanding follow-ups
 
 - Improve mismatch messages to visualize leading/trailing whitespace clearly (so diffs are readable).
-- Simplify outline extraction implementation: build the tree directly from nested lists/wrappers (avoid the flat
-  `(text, indent)` pass + stack reconstruction).
 - Cleanup naming: consider renaming `extractOutlineFromEditorState` to emphasize it expects serialized state JSON.
-- Reduce duplication between `readOutline`, `getListItemLabel`, and `collectOutlineEntries` by routing them through the
-  shared extraction/normalization.
-- Deduplicate serialized-state traversal helpers with `src/editor/schema/assertEditorSchema.ts` (shared “serialized Lexical
-  utils” module), keeping whitespace policy decisions local to each consumer.
-- E2E ergonomics: add a Playwright `expect.extend` matcher wrapper around the helper once the API shape settles, and
-  migrate any tests that started using the helper to the matcher if we decide the matcher reads better.
-- E2E bridge cleanup: de-duplicate `__remdoBridgePromise` plumbing by routing `getEditorState` through the existing
-  `runWithRemdoTest`/bridge action mechanism (similar promise lookup logic currently lives in
-  `tests/e2e/editor/_support/bridge.ts` and `tests/e2e/editor/_support/fixtures.ts`).
-- Cleanup: stop re-exporting outline types/extractors through `#tests` (unit support facade) once call sites can import
-  directly from the shared module (currently `#tests-common/outline`).
-- Tighten wrapper detection/traversal consistency with Lexical where it matters (related to “Align note indent/outdent
-  helpers with Lexical”).
+- Bridge cleanup: de-duplicate `__remdoBridgePromise` plumbing by routing `getEditorState` through the existing
+  `runWithRemdoTest`/bridge action mechanism.
+- Consider deduping serialized-state traversal helpers with `src/editor/schema/assertEditorSchema.ts` (without importing
+  test-only code into prod).
 
 ### Open questions
 
-- E2E matcher API shape: `expect.extend` matcher vs an `editor.*` helper (defer until implementation time).
+- Conceptual tree vs Lexical wrapper list items: we currently preserve the conceptual tree and drop wrapper nodes; if we
+  ever expose this beyond tests, what should the “public” outline shape be?

@@ -49,7 +49,7 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
 - `docs/todo.md` (Very long). Project roadmap plus outstanding design
   questions—review when planning new features; includes the Render deployment
   plan, collab undo/redo determinism work, deletion test coverage gaps, and the
-  `toMatchOutline` improvement notes + plan.
+  `toMatchOutline` work log (raw whitespace + shared extractor + e2e matcher).
 - `docs/deployment-single-container.md` (Short). How to build and run the
   single-container image (Caddy + Y-Sweet) and its env knobs, including basic
   auth requirements.

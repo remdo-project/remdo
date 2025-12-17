@@ -48,6 +48,13 @@ export const test = base.extend({
 
 expect.extend({
   async toMatchOutline(received: unknown, expected: Outline) {
+    if (this.isNot) {
+      return {
+        pass: true,
+        message: () => 'expect(...).not.toMatchOutline(...) is not supported; assert a positive outline instead.',
+      };
+    }
+
     const target = received as Partial<EditorLike> | null;
     if (!target || typeof target.getEditorState !== 'function') {
       return {
