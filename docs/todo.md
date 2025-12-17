@@ -233,8 +233,3 @@ Dockerfile checks) and decide whether to gate CI on its report.
    (testInfo.file.includes('/tests/e2e/editor/')) in the base fixture, (e) add
    the ESLint rule and README. No test behavior should change; it just makes the
    editor intent explicit and enforced.
-
-## toMatchOutline improvements (follow-ups)
-
-- Bridge cleanup: de-duplicate `__remdoBridgePromise` plumbing by routing `getEditorState` through the existing
-  `runWithRemdoTest`/bridge action mechanism.
