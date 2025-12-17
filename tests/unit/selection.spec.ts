@@ -96,7 +96,7 @@ function getNoteTextNode(rootElement: HTMLElement, label: string): Text {
       if (!node) {
         return false;
       }
-      return node.textContent.trim() === label;
+      return node.textContent === label;
     },
     { selector: '[data-lexical-text="true"]' }
   );

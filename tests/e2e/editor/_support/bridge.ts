@@ -8,17 +8,21 @@ export async function load(page: Page, fixtureName: string): Promise<void> {
 
 type RemdoTestAction =
   | { kind: 'ensure'; clear: boolean }
-  | { kind: 'load'; stateJson: string };
+  | { kind: 'load'; stateJson: string }
+  | { kind: 'getEditorState' }
+  | { kind: 'waitForSynced' };
 
-async function runWithRemdoTest(page: Page, action: RemdoTestAction): Promise<void> {
-  await page.evaluate(async (payload) => {
-    const readyPromise: Promise<any> =
-      (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<unknown> }).__remdoBridgePromise
-      ?? Promise.reject(new Error('remdo bridge is not available'));
+async function runWithRemdoTest(page: Page, action: RemdoTestAction): Promise<unknown> {
+  return page.evaluate(async (payload) => {
+    const api = await (__remdoBridgePromise ?? Promise.reject(new Error('remdo bridge is not available')));
 
-    const api = await readyPromise;
-    if (!api || !api._bridge) {
-      throw new Error('remdo bridge is not available');
+    if (payload.kind === 'getEditorState') {
+      return api.getEditorState();
+    }
+
+    if (payload.kind === 'waitForSynced') {
+      await api.waitForSynced();
+      return null;
     }
 
     const bridge = api._bridge;
@@ -28,17 +32,17 @@ async function runWithRemdoTest(page: Page, action: RemdoTestAction): Promise<vo
       if (payload.clear) {
         await bridge.clear();
       }
-      return;
+      return null;
     }
 
     await bridge.applySerializedState(payload.stateJson);
+    return null;
   }, action);
 }
 
 export async function waitForRemdoTest(page: Page, timeoutMs = 4000): Promise<void> {
   await page.waitForFunction(() => {
-    const w = globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<unknown> };
-    return Boolean(w.__remdoBridgePromise);
+    return Boolean(__remdoBridgePromise);
   }, undefined, { timeout: timeoutMs });
 }
 
@@ -55,16 +59,10 @@ export async function replaceDocument(page: Page, serializedStateJson: string): 
 
 export async function getEditorState(page: Page): Promise<unknown> {
   await ensureReady(page);
-  return page.evaluate(async () => {
-    const readyPromise: Promise<any> =
-      (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<unknown> }).__remdoBridgePromise
-      ?? Promise.reject(new Error('remdo bridge is not available'));
+  return runWithRemdoTest(page, { kind: 'getEditorState' });
+}
 
-    const api = await readyPromise;
-    if (!api || typeof api.getEditorState !== 'function') {
-      throw new Error('remdo bridge is not available');
-    }
-
-    return api.getEditorState();
-  });
+export async function waitForSynced(page: Page): Promise<void> {
+  await waitForRemdoTest(page);
+  await runWithRemdoTest(page, { kind: 'waitForSynced' });
 }

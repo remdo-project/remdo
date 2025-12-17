@@ -1,5 +1,8 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
+import type { SerializedOutlineNote } from '@/editor/plugins/dev/schema/traverseSerializedOutlineOrThrow';
+import { traverseSerializedOutlineOrThrow } from '@/editor/plugins/dev/schema/traverseSerializedOutlineOrThrow';
+
 export interface OutlineNode {
   text?: string;
   children?: Outline;
@@ -7,20 +10,9 @@ export interface OutlineNode {
 
 export type Outline = OutlineNode[];
 
-type NodeWithChildren = SerializedLexicalNode & {
-  children?: SerializedLexicalNode[];
-};
-
-function isNodeWithChildren(node: SerializedLexicalNode | null | undefined): node is NodeWithChildren {
-  return Boolean(node && (node as NodeWithChildren).children !== undefined);
-}
-
 function getChildren(node: SerializedLexicalNode | null | undefined): SerializedLexicalNode[] {
-  if (!isNodeWithChildren(node)) {
-    return [];
-  }
-  const { children } = node;
-  return Array.isArray(children) ? children : [];
+  const children = (node as { children?: unknown } | null | undefined)?.children;
+  return Array.isArray(children) ? (children as SerializedLexicalNode[]) : [];
 }
 
 function collectTextContent(node: SerializedLexicalNode | null | undefined): string {
@@ -33,80 +25,26 @@ function collectTextContent(node: SerializedLexicalNode | null | undefined): str
   return text + childrenText;
 }
 
-function isChildrenWrapperListItem(node: SerializedLexicalNode | null | undefined): boolean {
-  if (!isNodeWithChildren(node) || node.type !== 'listitem') {
-    return false;
-  }
-
-  const children = getChildren(node);
-  return children.length === 1 && children[0]?.type === 'list';
-}
-
 export function extractOutlineFromEditorState(state: unknown): Outline {
-  /**
-   * Lexical represents each conceptual note with a content list item (holding the inline
-   * nodes) optionally followed by a wrapper list item that contains a nested list for the
-   * note's children. Wrapper items never include inline content. We only want to surface
-   * the content-bearing items in outlines so every entry corresponds to exactly one note.
-   */
   const root = (state as SerializedEditorState | null | undefined)?.root;
   if (!root || root.type !== 'root') {
     throw new TypeError('Expected a Lexical SerializedEditorState with root.type === "root".');
   }
 
-  const listNode = getChildren(root).find((child) => isNodeWithChildren(child) && child.type === 'list');
-  if (!listNode) {
-    return [];
-  }
+  const notes = traverseSerializedOutlineOrThrow(state as SerializedEditorState);
 
-  const readList = (list: SerializedLexicalNode): Outline => {
-    if (!isNodeWithChildren(list) || list.type !== 'list') {
-      return [];
-    }
-
-    const items = getChildren(list);
-    const outline: Outline = [];
-
-    for (let index = 0; index < items.length; index += 1) {
-      const item = items[index];
-      if (!isNodeWithChildren(item) || item.type !== 'listitem') {
-        continue;
-      }
-
-      if (isChildrenWrapperListItem(item)) {
-        continue;
-      }
-
-      const children = getChildren(item);
-      const contentNodes = children.filter((node) => node.type !== 'list');
-      const text = contentNodes.length > 0 ? contentNodes.map(collectTextContent).join('') : null;
-
-      let nestedList: SerializedLexicalNode | null = null;
-      const nextItem = items[index + 1];
-      if (isChildrenWrapperListItem(nextItem)) {
-        nestedList = getChildren(nextItem)[0] ?? null;
-        index += 1;
-      } else {
-        nestedList = children.find((node) => node.type === 'list') ?? null;
-      }
-
+  const readNotes = (items: SerializedOutlineNote[]): Outline =>
+    items.map((note) => {
+      const text = note.contentNodes.length > 0 ? note.contentNodes.map(collectTextContent).join('') : null;
       const node: OutlineNode = {};
       if (text !== null) {
         node.text = text;
       }
-
-      if (nestedList) {
-        const nested = readList(nestedList);
-        if (nested.length > 0) {
-          node.children = nested;
-        }
+      if (note.children.length > 0) {
+        node.children = readNotes(note.children);
       }
+      return node;
+    });
 
-      outline.push(node);
-    }
-
-    return outline;
-  };
-
-  return readList(listNode);
+  return readNotes(notes);
 }

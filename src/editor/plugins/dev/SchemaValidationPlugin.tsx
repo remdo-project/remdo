@@ -1,6 +1,6 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect } from 'react';
-import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
+import { assertEditorSchema } from './schema/assertEditorSchema';
 
 export function SchemaValidationPlugin(): null {
   const [editor] = useLexicalComposerContext();
