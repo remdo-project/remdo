@@ -24,22 +24,57 @@ describe('structural selection delete regression (local)', () => {
       if (!list || !$isListNode(list)) {
         return;
       }
+//TODO simplify all of that
+      const isWrapperItem = (node: unknown) => {
+        if (!$isListItemNode(node)) return false;
+        const children = node.getChildren();
+        return children.length === 1 && $isListNode(children[0] ?? null);
+      };
+
+      const readContentLabel = (item: unknown): string => {
+        if (!$isListItemNode(item)) return '';
+        const children = item.getChildren();
+        const contentNodes = children.filter((child) => !$isListNode(child));
+        return contentNodes.map((child) => child.getTextContent()).join('');
+      };
 
       const removeByText = (node: typeof list, target: string): boolean => {
-        for (const child of node.getChildren()) {
+        const children = node.getChildren();
+
+        for (let index = 0; index < children.length; index += 1) {
+          const child = children[index];
+
           if ($isListItemNode(child)) {
-            if (child.getTextContent().trim() === target) {
+            if (isWrapperItem(child)) {
+              const nested = child.getChildren().find($isListNode);
+              if (nested && removeByText(nested, target)) {
+                return true;
+              }
+              continue;
+            }
+
+            const label = readContentLabel(child);
+            if (label === target) {
               child.remove();
+              const maybeWrapper = children[index + 1];
+              if (isWrapperItem(maybeWrapper)) {
+                maybeWrapper.remove();
+              }
               return true;
             }
-            const nestedList = child.getChildren().find($isListNode);
-            if (nestedList && removeByText(nestedList, target)) {
-              return true;
+
+            const maybeWrapper = children[index + 1];
+            if (isWrapperItem(maybeWrapper)) {
+              const nested = maybeWrapper.getChildren().find($isListNode);
+              if (nested && removeByText(nested, target)) {
+                return true;
+              }
             }
           } else if ($isListNode(child) && removeByText(child, target)) {
             return true;
           }
         }
+
         return false;
       };
 
@@ -92,21 +127,56 @@ describe('structural selection delete regression (local)', () => {
         return;
       }
 
+      const isWrapperItem = (node: unknown) => {
+        if (!$isListItemNode(node)) return false;
+        const children = node.getChildren();
+        return children.length === 1 && $isListNode(children[0] ?? null);
+      };
+
+      const readContentLabel = (item: unknown): string => {
+        if (!$isListItemNode(item)) return '';
+        const children = item.getChildren();
+        const contentNodes = children.filter((child) => !$isListNode(child));
+        return contentNodes.map((child) => child.getTextContent()).join('');
+      };
+
       const removeByText = (node: typeof list, target: string): boolean => {
-        for (const child of node.getChildren()) {
+        const children = node.getChildren();
+
+        for (let index = 0; index < children.length; index += 1) {
+          const child = children[index];
+
           if ($isListItemNode(child)) {
-            if (child.getTextContent().trim() === target) {
+            if (isWrapperItem(child)) {
+              const nested = child.getChildren().find($isListNode);
+              if (nested && removeByText(nested, target)) {
+                return true;
+              }
+              continue;
+            }
+
+            const label = readContentLabel(child);
+            if (label === target) {
               child.remove();
+              const maybeWrapper = children[index + 1];
+              if (isWrapperItem(maybeWrapper)) {
+                maybeWrapper.remove();
+              }
               return true;
             }
-            const nestedList = child.getChildren().find($isListNode);
-            if (nestedList && removeByText(nestedList, target)) {
-              return true;
+
+            const maybeWrapper = children[index + 1];
+            if (isWrapperItem(maybeWrapper)) {
+              const nested = maybeWrapper.getChildren().find($isListNode);
+              if (nested && removeByText(nested, target)) {
+                return true;
+              }
             }
           } else if ($isListNode(child) && removeByText(child, target)) {
             return true;
           }
         }
+
         return false;
       };
 

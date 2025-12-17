@@ -8,7 +8,7 @@ import minimalValid from '#fixtures/editor-schema/minimal-valid.json';
 import wrapperWithoutSibling from '#fixtures/editor-schema/wrapper-without-sibling.json';
 
 describe('assertEditorSchema', () => {
-  const cast = (data: { editorState: unknown }) => data.editorState as SerializedEditorState;
+  const cast = (data: unknown) => data as SerializedEditorState;
 
   it('accepts a minimal valid outline', () => {
     expect(() => assertEditorSchema(cast(minimalValid))).not.toThrow();
@@ -28,7 +28,7 @@ describe('assertEditorSchema', () => {
 
   it('throws on indent jumps greater than one level', () => {
     expect(() => assertEditorSchema(cast(indentJump))).toThrowError(
-      'Invalid outline structure: indent jumped from 0 to 2 for "note2"'
+      'Invalid outline structure: indent jumped from 0 to 2 at "1"'
     );
   });
 

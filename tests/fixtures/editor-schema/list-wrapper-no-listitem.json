@@ -1,65 +1,63 @@
 {
-  "editorState": {
-    "root": {
-      "type": "root",
-      "version": 1,
-      "format": "",
-      "indent": 0,
-      "direction": null,
-      "children": [
-        {
-          "type": "list",
-          "version": 1,
-          "format": "",
-          "indent": 0,
-          "direction": null,
-          "listType": "bullet",
-          "start": 1,
-          "tag": "ul",
-          "children": [
-            {
-              "type": "listitem",
-              "version": 1,
-              "format": "",
-              "indent": 0,
-              "direction": null,
-              "value": 1,
-              "children": [
-                {
-                  "type": "text",
-                  "version": 1,
-                  "detail": 0,
-                  "format": 0,
-                  "mode": "normal",
-                  "style": "",
-                  "text": "note1"
-                },
-                {
-                  "type": "list",
-                  "version": 1,
-                  "format": "",
-                  "indent": 1,
-                  "direction": null,
-                  "listType": "bullet",
-                  "start": 1,
-                  "tag": "ul",
-                  "children": [
-                    {
-                      "type": "text",
-                      "version": 1,
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "note2"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
+  "root": {
+    "type": "root",
+    "version": 1,
+    "format": "",
+    "indent": 0,
+    "direction": null,
+    "children": [
+      {
+        "type": "list",
+        "version": 1,
+        "format": "",
+        "indent": 0,
+        "direction": null,
+        "listType": "bullet",
+        "start": 1,
+        "tag": "ul",
+        "children": [
+          {
+            "type": "listitem",
+            "version": 1,
+            "format": "",
+            "indent": 0,
+            "direction": null,
+            "value": 1,
+            "children": [
+              {
+                "type": "text",
+                "version": 1,
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": "note1"
+              },
+              {
+                "type": "list",
+                "version": 1,
+                "format": "",
+                "indent": 1,
+                "direction": null,
+                "listType": "bullet",
+                "start": 1,
+                "tag": "ul",
+                "children": [
+                  {
+                    "type": "text",
+                    "version": 1,
+                    "detail": 0,
+                    "format": 0,
+                    "mode": "normal",
+                    "style": "",
+                    "text": "note2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

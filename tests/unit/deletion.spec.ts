@@ -340,8 +340,7 @@ function findItemByText(list: any, targetText: string): any {
     const contentNodes = children.filter((child: any) => child?.getType?.() !== 'list');
     const label = contentNodes
       .map((child: any) => child?.getTextContent?.() ?? '')
-      .join('')
-      .trim();
+      .join('');
 
     if (label === targetText) {
       return item;

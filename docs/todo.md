@@ -241,8 +241,3 @@ Dockerfile checks) and decide whether to gate CI on its report.
   `runWithRemdoTest`/bridge action mechanism.
 - Consider deduping serialized-state traversal helpers with `src/editor/schema/assertEditorSchema.ts` (without importing
   test-only code into prod).
-- **To review:** remaining note-text trimming call sites:
-  - `src/editor/schema/assertEditorSchema.ts` trims when collecting outline entries.
-  - `tests/unit/selection.spec.ts` uses `node.textContent.trim()` when locating a note text node.
-  - `tests/unit/selection-structural-delete.spec.ts` uses `child.getTextContent().trim()` when removing notes by label.
-  - `tests/unit/deletion.spec.ts` local `findItemByText()` helper trims before matching.

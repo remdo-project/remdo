@@ -7,8 +7,8 @@ type NodeWithChildren = SerializedLexicalNode & {
 };
 
 export interface FlatOutlineEntry {
-  text: string;
   indent: number;
+  path: string;
 }
 
 const LIST_TYPE = 'list';
@@ -28,19 +28,18 @@ function getChildren(node: SerializedLexicalNode | undefined | null): Serialized
   return Array.isArray(children) ? children : [];
 }
 
-function collectTextContent(node: SerializedLexicalNode | undefined | null): string {
-  if (!node) return '';
-
-  const maybeText: unknown = (node as { text?: unknown }).text;
-  const text = typeof maybeText === 'string' ? maybeText : '';
-  const childrenText = getChildren(node).map(collectTextContent).join('');
-
-  return text + childrenText;
+function isWrapperListItem(contentNodes: SerializedLexicalNode[], nestedLists: SerializedLexicalNode[]): boolean {
+  return nestedLists.length > 0 && contentNodes.length === 0;
 }
 
-function visitList(listNode: NodeWithChildren, entries: FlatOutlineEntry[]): void {
+function formatPath(path: number[]): string {
+  return path.join('.');
+}
+
+function visitList(listNode: NodeWithChildren, entries: FlatOutlineEntry[], prefix: number[] = []): void {
   const children = getChildren(listNode);
-  let previousListItem: SerializedLexicalNode | undefined;
+  let lastNotePath: number[] | null = null;
+  let noteIndex = 0;
 
   for (const child of children) {
     if (!isNodeWithChildren(child) || child.type !== LIST_ITEM_TYPE) {
@@ -51,19 +50,12 @@ function visitList(listNode: NodeWithChildren, entries: FlatOutlineEntry[]): voi
     const nestedLists = childChildren.filter((nested) => nested.type === LIST_TYPE);
     const contentNodes = childChildren.filter((nested) => nested.type !== LIST_TYPE);
 
-    if (
-      nestedLists.length > 0 &&
-      contentNodes.length === 0 &&
-      (!previousListItem || previousListItem.type !== LIST_ITEM_TYPE)
-    ) {
-      reportInvariant({
-        message: 'Invalid outline structure: wrapper list item without preceding list item sibling',
-        context: { childType: child.type, previousType: previousListItem?.type },
-      });
-    }
+    for (const nested of nestedLists) {
+      if (!isNodeWithChildren(nested)) {
+        continue;
+      }
 
-    if (nestedLists.length > 0) {
-      const firstListChildren = getChildren(nestedLists[0]);
+      const firstListChildren = getChildren(nested);
       const hasListItem = firstListChildren.some((item) => item.type === LIST_ITEM_TYPE);
       if (!hasListItem) {
         reportInvariant({
@@ -73,19 +65,38 @@ function visitList(listNode: NodeWithChildren, entries: FlatOutlineEntry[]): voi
       }
     }
 
+    if (isWrapperListItem(contentNodes, nestedLists)) {
+      if (!lastNotePath) {
+        reportInvariant({
+          message: 'Invalid outline structure: wrapper list item without preceding list item sibling',
+          context: { childType: child.type },
+        });
+      }
+
+      for (const nested of nestedLists) {
+        if (!isNodeWithChildren(nested)) {
+          continue;
+        }
+
+        visitList(nested, entries, lastNotePath ?? prefix);
+      }
+
+      continue;
+    }
+
     const indentValue = (child as { indent?: unknown }).indent;
     const indent = typeof indentValue === 'number' ? indentValue : 0;
-    const text = contentNodes.map(collectTextContent).join('').trim();
+    const path = [...prefix, noteIndex];
+    noteIndex += 1;
+    lastNotePath = path;
 
-    entries.push({ text, indent });
+    entries.push({ indent, path: formatPath(path) });
 
     for (const nested of nestedLists) {
       if (isNodeWithChildren(nested)) {
-        visitList(nested, entries);
+        visitList(nested, entries, path);
       }
     }
-
-    previousListItem = child;
   }
 }
 
@@ -117,15 +128,11 @@ export function assertEditorSchema(state: SerializedEditorState): void {
   const stack: Array<{ indent: number }> = [{ indent: -1 }];
 
   for (const entry of entries) {
-    if (!entry.text) {
-      continue;
-    }
-
     const parentIndent = stack.at(-1)!.indent;
     if (entry.indent > parentIndent + 1) {
       reportInvariant({
-        message: `Invalid outline structure: indent jumped from ${parentIndent} to ${entry.indent} for "${entry.text}"`,
-        context: { parentIndent, entryIndent: entry.indent, text: entry.text },
+        message: `Invalid outline structure: indent jumped from ${parentIndent} to ${entry.indent} at "${entry.path}"`,
+        context: { parentIndent, entryIndent: entry.indent, path: entry.path },
       });
     }
 
