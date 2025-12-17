@@ -1,5 +1,11 @@
 import type { ConsoleMessage, Page, Response } from '@playwright/test';
-import { test as base } from '@playwright/test';
+import { expect, test as base } from '@playwright/test';
+import type { Outline } from '#tests-common/outline';
+import { extractOutlineFromEditorState } from '#tests-common/outline';
+
+interface EditorLike {
+  getEditorState: () => Promise<unknown>;
+}
 
 function attachGuards(page: Page) {
   const allowResponse = (response: Response) => {
@@ -40,5 +46,29 @@ export const test = base.extend({
   },
 });
 
-export { expect } from '@playwright/test';
+expect.extend({
+  async toMatchOutline(received: unknown, expected: Outline) {
+    const target = received as Partial<EditorLike> | null;
+    if (!target || typeof target.getEditorState !== 'function') {
+      return {
+        pass: false,
+        message: () => 'Expected a target with getEditorState(): Promise<unknown>.',
+      };
+    }
+
+    const outline = async () => extractOutlineFromEditorState(await target.getEditorState!());
+
+    try {
+      await expect.poll(outline).toEqual(expected);
+      return { pass: true, message: () => 'Expected outlines not to match.' };
+    } catch (error) {
+      return {
+        pass: false,
+        message: () => (error instanceof Error ? error.message : String(error)),
+      };
+    }
+  },
+});
+
+export { expect };
 export type { Page, Locator } from '@playwright/test';

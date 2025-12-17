@@ -1,6 +1,5 @@
 import { expect, test } from '#editor/fixtures';
 import { editorLocator } from './_support/locators';
-import { expectOutline } from './_support/outline';
 
 test.describe('Editor (focused) visibility', () => {
   test('shows editor content only', async ({ page, editor }) => {
@@ -21,6 +20,6 @@ test.describe('Editor (focused) visibility', () => {
     await editor.load('flat');
 
     await expect(editorLocator(page).locator('li.list-item')).toHaveCount(3);
-    await expectOutline(editor, [{ text: 'note1' }, { text: 'note2' }, { text: 'note3' }]);
+    await expect(editor).toMatchOutline([{ text: 'note1' }, { text: 'note2' }, { text: 'note3' }]);
   });
 });

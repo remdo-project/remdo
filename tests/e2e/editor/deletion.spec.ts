@@ -1,6 +1,5 @@
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from './_support/locators';
-import { expectOutline } from './_support/outline';
 import { captureEditorSnapshot } from './_support/state';
 
 test.describe('deletion (native browser behavior)', () => {
@@ -10,7 +9,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expectOutline(editor, [{ text: 'ote1' }, { text: 'note2' }, { text: 'note3' }]);
+    await expect(editor).toMatchOutline([{ text: 'ote1' }, { text: 'note2' }, { text: 'note3' }]);
   });
 
   test('Backspace in the middle of a note deletes the previous character', async ({ page, editor }) => {
@@ -19,7 +18,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Backspace');
 
-    await expectOutline(editor, [{ text: 'nte1' }, { text: 'note2' }, { text: 'note3' }]);
+    await expect(editor).toMatchOutline([{ text: 'nte1' }, { text: 'note2' }, { text: 'note3' }]);
 
     const snapshot = await captureEditorSnapshot(page);
     expect(snapshot.selection).toMatchObject({
@@ -57,7 +56,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Backspace');
 
-    await expectOutline(editor, [{ text: 'note1 note2' }, { text: 'note3' }]);
+    await expect(editor).toMatchOutline([{ text: 'note1 note2' }, { text: 'note3' }]);
   });
 
   test('Delete at end merges next leaf', async ({ page, editor }) => {
@@ -66,7 +65,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expectOutline(editor, [{ text: 'note1 note2' }, { text: 'note3' }]);
+    await expect(editor).toMatchOutline([{ text: 'note1 note2' }, { text: 'note3' }]);
   });
 
   test('Delete respects spacing when right fragment already starts with space', async ({ page, editor }) => {
@@ -75,7 +74,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expectOutline(editor, [
+    await expect(editor).toMatchOutline([
       { text: 'note1 note2-space-left' },
       { text: 'note3' },
       { text: 'note4-space-right ' },
@@ -89,7 +88,7 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expectOutline(editor, [
+    await expect(editor).toMatchOutline([
       { text: 'note1' },
       { text: ' note2-space-left' },
       { text: 'note3' },
@@ -107,6 +106,6 @@ test.describe('deletion (native browser behavior)', () => {
     await page.keyboard.press('Delete');
 
     await expect(editorLocator(page).locator('li.list-item')).toHaveCount(2);
-    await expectOutline(editor, [{ text: 'note2' }, { text: 'note3' }]);
+    await expect(editor).toMatchOutline([{ text: 'note2' }, { text: 'note3' }]);
   });
 });
