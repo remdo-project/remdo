@@ -1,8 +1,16 @@
 import { describe, it, expect } from 'vitest';
+import type { LexicalNode } from 'lexical';
 import { $getRoot } from 'lexical';
+import type { ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 
 import { placeCaretAtNote, pressKey } from '#tests';
+
+function readWrapperChildList(wrapper: LexicalNode | null | undefined): ListNode | null {
+  if (!wrapper || !$isListItemNode(wrapper)) return null;
+  const children = wrapper.getChildren();
+  return children.length === 1 && $isListNode(children[0] ?? null) ? (children[0] as ListNode) : null;
+}
 
 describe('structural selection delete regression (local)', () => {
   it('bubbles Delete when structural heads were removed remotely', async ({ remdo }) => {
@@ -20,72 +28,17 @@ describe('structural selection delete regression (local)', () => {
 
     await remdo.mutate(() => {
       const root = $getRoot();
-      const list = root.getFirstChild();
-      if (!list || !$isListNode(list)) {
-        return;
-      }
-//TODO simplify all of that
-      const isWrapperItem = (node: unknown) => {
-        if (!$isListItemNode(node)) return false;
-        const children = node.getChildren();
-        return children.length === 1 && $isListNode(children[0] ?? null);
-      };
+      const list = root.getFirstChild() as ListNode;
 
-      const readContentLabel = (item: unknown): string => {
-        if (!$isListItemNode(item)) return '';
-        const children = item.getChildren();
-        const contentNodes = children.filter((child) => !$isListNode(child));
-        return contentNodes.map((child) => child.getTextContent()).join('');
-      };
-
-      const removeByText = (node: typeof list, target: string): boolean => {
-        const children = node.getChildren();
-
-        for (let index = 0; index < children.length; index += 1) {
-          const child = children[index];
-
-          if ($isListItemNode(child)) {
-            if (isWrapperItem(child)) {
-              const nested = child.getChildren().find($isListNode);
-              if (nested && removeByText(nested, target)) {
-                return true;
-              }
-              continue;
-            }
-
-            const label = readContentLabel(child);
-            if (label === target) {
-              child.remove();
-              const maybeWrapper = children[index + 1];
-              if (isWrapperItem(maybeWrapper)) {
-                maybeWrapper.remove();
-              }
-              return true;
-            }
-
-            const maybeWrapper = children[index + 1];
-            if (isWrapperItem(maybeWrapper)) {
-              const nested = maybeWrapper.getChildren().find($isListNode);
-              if (nested && removeByText(nested, target)) {
-                return true;
-              }
-            }
-          } else if ($isListNode(child) && removeByText(child, target)) {
-            return true;
-          }
-        }
-
-        return false;
-      };
-
-      removeByText(list, 'note2');
-      removeByText(list, 'note3');
+      const rootItems = list.getChildren();
+      const note1ChildItems = readWrapperChildList(rootItems[1])!.getChildren();
+      const note2Item = note1ChildItems[0];
+      const note2Wrapper = note1ChildItems[1];
+      note2Wrapper?.remove();
+      note2Item?.remove();
     });
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Lexical root element is not mounted');
-    }
+    const rootElement = remdo.editor.getRootElement()!;
 
     let bubbled = false;
     const bubbleProbe = () => {
@@ -122,72 +75,16 @@ describe('structural selection delete regression (local)', () => {
 
     await remdo.mutate(() => {
       const root = $getRoot();
-      const list = root.getFirstChild();
-      if (!list || !$isListNode(list)) {
-        return;
-      }
+      const list = root.getFirstChild() as ListNode;
 
-      const isWrapperItem = (node: unknown) => {
-        if (!$isListItemNode(node)) return false;
-        const children = node.getChildren();
-        return children.length === 1 && $isListNode(children[0] ?? null);
-      };
-
-      const readContentLabel = (item: unknown): string => {
-        if (!$isListItemNode(item)) return '';
-        const children = item.getChildren();
-        const contentNodes = children.filter((child) => !$isListNode(child));
-        return contentNodes.map((child) => child.getTextContent()).join('');
-      };
-
-      const removeByText = (node: typeof list, target: string): boolean => {
-        const children = node.getChildren();
-
-        for (let index = 0; index < children.length; index += 1) {
-          const child = children[index];
-
-          if ($isListItemNode(child)) {
-            if (isWrapperItem(child)) {
-              const nested = child.getChildren().find($isListNode);
-              if (nested && removeByText(nested, target)) {
-                return true;
-              }
-              continue;
-            }
-
-            const label = readContentLabel(child);
-            if (label === target) {
-              child.remove();
-              const maybeWrapper = children[index + 1];
-              if (isWrapperItem(maybeWrapper)) {
-                maybeWrapper.remove();
-              }
-              return true;
-            }
-
-            const maybeWrapper = children[index + 1];
-            if (isWrapperItem(maybeWrapper)) {
-              const nested = maybeWrapper.getChildren().find($isListNode);
-              if (nested && removeByText(nested, target)) {
-                return true;
-              }
-            }
-          } else if ($isListNode(child) && removeByText(child, target)) {
-            return true;
-          }
-        }
-
-        return false;
-      };
-
-      removeByText(list, 'note6');
-      removeByText(list, 'note7');
+      const rootItems = list.getChildren();
+      const note6Item = rootItems[3];
+      const note6Wrapper = rootItems[4];
+      note6Wrapper?.remove();
+      note6Item?.remove();
     });
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Lexical root element is not mounted');
-    }
+    const rootElement = remdo.editor.getRootElement()!;
 
     let bubbled = false;
     const bubbleProbe = () => {
