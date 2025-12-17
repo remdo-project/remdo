@@ -239,5 +239,3 @@ Dockerfile checks) and decide whether to gate CI on its report.
 - Improve mismatch messages to visualize leading/trailing whitespace clearly (so diffs are readable).
 - Bridge cleanup: de-duplicate `__remdoBridgePromise` plumbing by routing `getEditorState` through the existing
   `runWithRemdoTest`/bridge action mechanism.
-- Consider deduping serialized-state traversal helpers with `src/editor/schema/assertEditorSchema.ts` (without importing
-  test-only code into prod).

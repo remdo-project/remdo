@@ -32,7 +32,17 @@
                 "mode": "normal",
                 "style": "",
                 "text": "note1"
-              },
+              }
+            ]
+          },
+          {
+            "type": "listitem",
+            "version": 1,
+            "format": "",
+            "indent": 0,
+            "direction": null,
+            "value": 1,
+            "children": [
               {
                 "type": "list",
                 "version": 1,

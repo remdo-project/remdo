@@ -1,6 +1,6 @@
 import type { SerializedEditorState } from 'lexical';
 import { describe, expect, it } from 'vitest';
-import { assertEditorSchema } from '@/editor/schema/assertEditorSchema';
+import { assertEditorSchema } from '@/editor/plugins/dev/schema/assertEditorSchema';
 import emptyText from '#fixtures/editor-schema/empty-text.json';
 import indentJump from '#fixtures/editor-schema/indent-jump.json';
 import listWrapperNoListitem from '#fixtures/editor-schema/list-wrapper-no-listitem.json';
