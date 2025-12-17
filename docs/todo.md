@@ -234,32 +234,10 @@ Dockerfile checks) and decide whether to gate CI on its report.
    the ESLint rule and README. No test behavior should change; it just makes the
    editor intent explicit and enforced.
 
-## toMatchOutline improvements (done 2025-12-17)
-
-This work started as “drop whitespace trimming + reduce helper proliferation”, and ended up unifying unit + e2e outline
-assertions around serialized Lexical editor state.
-
-### Shipped
-
-- `OutlineNode.text` is raw body text (no trims). The matcher does not treat `" "` and `""` as equivalent.
-- Shared extractor: `tests/_support/outline.ts` exposes the outline schema + `extractOutlineFromEditorState(...)`.
-- Unit: `toMatchOutline` compares expected outline against `remdo.getEditorState()` using the shared extractor.
-- Unit helpers now treat note text as raw:
-  - `getListItemLabel()` no longer trims.
-  - note targeting uses “find-by-raw-text” with “first match in document order” semantics.
-- E2E: `expect(editor).toMatchOutline(...)` matcher added (state-based, via bridge; uses polling to avoid flakes).
-- E2E tests migrated to the matcher and the older `expectOutline(...)` helper removed.
-
-### Outstanding follow-ups
+## toMatchOutline improvements (follow-ups)
 
 - Improve mismatch messages to visualize leading/trailing whitespace clearly (so diffs are readable).
-- Cleanup naming: consider renaming `extractOutlineFromEditorState` to emphasize it expects serialized state JSON.
 - Bridge cleanup: de-duplicate `__remdoBridgePromise` plumbing by routing `getEditorState` through the existing
   `runWithRemdoTest`/bridge action mechanism.
 - Consider deduping serialized-state traversal helpers with `src/editor/schema/assertEditorSchema.ts` (without importing
   test-only code into prod).
-
-### Open questions
-
-- Conceptual tree vs Lexical wrapper list items: we currently preserve the conceptual tree and drop wrapper nodes; if we
-  ever expose this beyond tests, what should the “public” outline shape be?
