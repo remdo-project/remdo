@@ -236,6 +236,5 @@ Dockerfile checks) and decide whether to gate CI on its report.
 
 ## toMatchOutline improvements (follow-ups)
 
-- Improve mismatch messages to visualize leading/trailing whitespace clearly (so diffs are readable).
 - Bridge cleanup: de-duplicate `__remdoBridgePromise` plumbing by routing `getEditorState` through the existing
   `runWithRemdoTest`/bridge action mechanism.

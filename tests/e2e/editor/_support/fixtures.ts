@@ -1,19 +1,12 @@
 import { expect, test as base } from '#e2e/fixtures';
 import type { Locator, Page } from '#e2e/fixtures';
-import { ensureReady, getEditorState, load } from './bridge';
+import { ensureReady, getEditorState, load, waitForSynced } from './bridge';
 import { prepareEditorTestSurface } from './focus';
 import { editorLocator } from './locators';
 
 let docCounter = 0;
 
 type EditorHarness = Awaited<ReturnType<typeof createEditorHarness>>;
-
-async function waitForSynced(page: Page) {
-  return page.evaluate(() => {
-    const promise = (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<unknown> }).__remdoBridgePromise;
-    return promise?.then((api) => (api as any)?.waitForSynced());
-  });
-}
 
 async function createEditorHarness(page: Page, docId: string) {
   await page.goto(`/?doc=${docId}`);
