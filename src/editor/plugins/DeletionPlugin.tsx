@@ -120,6 +120,36 @@ function getLastDescendantListItem(node: ListNode): ListItemNode | null {
   return null;
 }
 
+function isDescendantOf(node: LexicalNode, ancestor: LexicalNode): boolean {
+  let current: LexicalNode | null = node;
+  while (current) {
+    if (current === ancestor) {
+      return true;
+    }
+    current = current.getParent();
+  }
+  return false;
+}
+
+function isCollapsedSelectionAtEdge(
+  selection: ReturnType<typeof $getSelection>,
+  edge: 'start' | 'end',
+  contentItem: ListItemNode
+): boolean {
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+    return false;
+  }
+
+  const anchorNode = selection.anchor.getNode();
+  if ($isTextNode(anchorNode)) {
+    const offset = selection.anchor.offset;
+    const size = anchorNode.getTextContentSize();
+    return edge === 'start' ? offset === 0 : offset === size;
+  }
+
+  return contentItem.getTextContent().length === 0;
+}
+
 function computeMergeText(left: string, right: string): { merged: string; joinOffset: number } {
   const needsSpace =
     left.length > 0 &&
@@ -241,6 +271,17 @@ function getNextNoteInDocumentOrder(item: ListItemNode): ListItemNode | null {
   return null;
 }
 
+function getPreviousNoteInDocumentOrder(item: ListItemNode): ListItemNode | null {
+  const previousSibling = getPreviousContentSibling(item);
+  if (previousSibling) {
+    return getSubtreeTail(previousSibling);
+  }
+
+  const parent = item.getParent();
+  const parentList = $isListNode(parent) ? parent : null;
+  return parentList ? getParentNote(parentList) : null;
+}
+
 function resolveCaretPlanAfterRemoval(item: ListItemNode): { target: ListItemNode; edge: 'start' | 'end' } | null {
   const nextSibling = getNextContentSibling(item);
   if (nextSibling) {
@@ -292,21 +333,17 @@ export function DeletionPlugin() {
         }
 
         const anchorNode = selection.anchor.getNode();
-        if (!$isTextNode(anchorNode)) {
-          return false;
-        }
-
-        if (selection.anchor.offset !== 0 || selection.focus.offset !== 0) {
-          return false;
-        }
-
         const candidate = findNearestListItem(anchorNode);
         if (!candidate) {
           return false;
         }
 
         const contentItem = getContentListItem(candidate);
-        if (anchorNode.getParent() !== contentItem) {
+        if (!isDescendantOf(anchorNode, contentItem)) {
+          return false;
+        }
+
+        if (!isCollapsedSelectionAtEdge(selection, 'start', contentItem)) {
           return false;
         }
 
@@ -349,21 +386,17 @@ export function DeletionPlugin() {
         }
 
         const anchorNode = selection.anchor.getNode();
-        if (!$isTextNode(anchorNode)) {
-          return false;
-        }
-
-        if (selection.anchor.offset !== 0 || selection.focus.offset !== 0) {
-          return false;
-        }
-
         const candidate = findNearestListItem(anchorNode);
         if (!candidate) {
           return false;
         }
 
         const contentItem = getContentListItem(candidate);
-        if (anchorNode.getParent() !== contentItem) {
+        if (!isDescendantOf(anchorNode, contentItem)) {
+          return false;
+        }
+
+        if (!isCollapsedSelectionAtEdge(selection, 'start', contentItem)) {
           return false;
         }
 
@@ -400,9 +433,9 @@ export function DeletionPlugin() {
           const textNode = $setItemText(target, merged);
           textNode.select(joinOffset, joinOffset);
         } else {
-          const leftText = target.getTextContent();
-          const textNode = $setItemText(target, leftText);
-          textNode.select(leftText.length, leftText.length);
+          $removeNote(contentItem);
+          $selectItemEdge(target, 'end');
+          return true;
         }
 
         $removeNote(contentItem);
@@ -421,21 +454,17 @@ export function DeletionPlugin() {
         }
 
         const anchorNode = selection.anchor.getNode();
-        if (!$isTextNode(anchorNode)) {
-          return false;
-        }
-
-        if (selection.anchor.offset !== anchorNode.getTextContentSize()) {
-          return false;
-        }
-
         const candidate = findNearestListItem(anchorNode);
         if (!candidate) {
           return false;
         }
 
         const contentItem = getContentListItem(candidate);
-        if (anchorNode.getParent() !== contentItem) {
+        if (!isDescendantOf(anchorNode, contentItem)) {
+          return false;
+        }
+
+        if (!isCollapsedSelectionAtEdge(selection, 'end', contentItem)) {
           return false;
         }
 
@@ -446,6 +475,13 @@ export function DeletionPlugin() {
         const currentIsEmptyLeaf = !currentHasChildren && isEmptyNote(contentItem);
 
         if (currentIsEmptyLeaf) {
+          const previousNote = getPreviousNoteInDocumentOrder(contentItem);
+          const nextNote = getNextNoteInDocumentOrder(contentItem);
+          if (!previousNote && !nextNote) {
+            $selectItemEdge(contentItem, 'end');
+            return true;
+          }
+
           const caretPlan = resolveCaretPlanAfterRemoval(contentItem);
           $removeNote(contentItem);
           if (caretPlan) {
