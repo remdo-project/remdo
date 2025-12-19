@@ -95,12 +95,16 @@ export default antfu(
   },
   {
     files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
-    ignores: ['tests/unit/_support/setup/**'],
+    ignores: ['tests/unit/_support/setup/**', 'tests/e2e/editor/**'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
+            {
+              group: [String.raw`\#editor/*`],
+              message: 'Editor e2e helpers are editor-internal; import them only from within tests/e2e/editor/.',
+            },
             {
               group: ['**/_support/setup/**'],
               message: 'Test setup helpers are internal; reference them via Vitest configuration instead of importing directly.',
