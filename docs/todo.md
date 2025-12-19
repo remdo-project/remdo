@@ -16,9 +16,9 @@ Rules:
    exactly one child, while Lexical’s `isNestedListNode` only checks the first
    child’s type; the stricter check rejects bullets that mix text and nested
    lists.
-2. Provide explicit helpers for the current **Outdent** behavior (append the
-   subtree directly after the former parent) so editor commands do not need to
-   reimplement the tree juggling.
+2. ✅ Done — Provide explicit helpers for the current **Outdent** behavior
+   (append the subtree directly after the former parent) so editor commands do
+   not need to reimplement the tree juggling.
 3. `$indentNote`/`$outdentNote` return booleans and throw generic `Error`s,
    whereas Lexical silently no-ops or raises formatted dev invariants; the
    reporting style is inconsistent.
