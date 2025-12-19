@@ -127,7 +127,7 @@ function getParentContentItem(item: ListItemNode): ListItemNode | null {
   }
 
   const parentWrapper = parentList.getParent();
-  if (!$isListItemNode(parentWrapper) || !isChildrenWrapper(parentWrapper)) {
+  if (!isChildrenWrapper(parentWrapper)) {
     // Top-level items have a RootNode parent; treat that as expected and avoid noisy reporting.
     const parentType = parentWrapper?.getType ? parentWrapper.getType() : undefined;
     if (parentType !== 'root') {

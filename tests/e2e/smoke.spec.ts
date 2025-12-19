@@ -1,28 +1,16 @@
-import { expect, test } from '#editor/fixtures';
+import { expect, test } from '#e2e/fixtures';
 
-test.describe('Editor smoke', () => {
-  test('renders shell and supports indent/outdent', async ({ page, editor }) => {
-    const input = page.locator('.editor-input');
-    await input.click();
+test.describe('App smoke', () => {
+  test('renders shell', async ({ page }) => {
+    await page.goto('/');
 
-    await page.keyboard.type('note1');
-    await page.keyboard.press('Enter');
-    await page.keyboard.type('note2');
-    await page.keyboard.press('Enter');
-    await page.keyboard.type('note3');
+    await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
 
-    await expect(editor).toMatchOutline([{ text: 'note1' }, { text: 'note2' }, { text: 'note3' }]);
+    const project = page.getByRole('link', { name: 'Project' });
+    await expect(project).toBeVisible();
+    await expect(project).toHaveAttribute('href', '/?doc=project');
 
-    const note3 = page.locator('li.list-item', { hasText: 'note3' }).first();
-    await note3.click();
-    await page.keyboard.press('Tab');
-
-    await expect(editor).toMatchOutline([{ text: 'note1' }, { text: 'note2', children: [{ text: 'note3' }] }]);
-
-    await page.locator('li.list-item', { hasText: 'note3' }).first().click();
-    await page.keyboard.press('Shift+Tab');
-    await expect(editor).toMatchOutline([{ text: 'note1' }, { text: 'note2' }, { text: 'note3' }]);
+    await expect(page.locator('.editor-container').first()).toBeVisible();
+    await expect(page.locator('.editor-input').first()).toBeVisible();
   });
-
-  // The flat fixture coverage now lives under tests/e2e/editor/.
 });

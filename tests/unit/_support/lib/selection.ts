@@ -1,6 +1,9 @@
-import { $isListItemNode, $isListNode } from '@lexical/list';
+import { $isListItemNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection } from 'lexical';
+import { isChildrenWrapper } from '@/editor/outline/list-structure';
+
+export { isChildrenWrapper };
 
 export function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
   const seen = new Set<string>();
@@ -53,14 +56,6 @@ export function resolveContentListItem(item: ListItemNode): ListItemNode {
 
   const previous = item.getPreviousSibling();
   return $isListItemNode(previous) ? previous : item;
-}
-
-export function isChildrenWrapper(node: LexicalNode | null): boolean {
-  if (!$isListItemNode(node)) {
-    return false;
-  }
-  const children = node.getChildren();
-  return children.length === 1 && $isListNode(children[0] ?? null);
 }
 
 export function findNearestListItem(node: LexicalNode | null): ListItemNode | null {

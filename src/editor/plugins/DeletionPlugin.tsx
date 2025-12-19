@@ -9,7 +9,7 @@ import { findNearestListItem, getContentListItem, isChildrenWrapper, maybeRemove
 
 function getNestedList(item: ListItemNode): ListNode | null {
   const next = item.getNextSibling();
-  if ($isListItemNode(next) && isChildrenWrapper(next)) {
+  if (isChildrenWrapper(next)) {
     const nested = next.getFirstChild();
     if ($isListNode(nested)) {
       return nested;
@@ -46,7 +46,7 @@ function noteHasChildren(item: ListItemNode): boolean {
 
 function getPreviousContentSibling(item: ListItemNode): ListItemNode | null {
   let current = item.getPreviousSibling();
-  while ($isListItemNode(current) && isChildrenWrapper(current)) {
+  while (isChildrenWrapper(current)) {
     current = current.getPreviousSibling();
   }
   return $isListItemNode(current) ? current : null;
@@ -54,7 +54,7 @@ function getPreviousContentSibling(item: ListItemNode): ListItemNode | null {
 
 function getNextContentSibling(item: ListItemNode): ListItemNode | null {
   let current = item.getNextSibling();
-  while ($isListItemNode(current) && isChildrenWrapper(current)) {
+  while (isChildrenWrapper(current)) {
     current = current.getNextSibling();
   }
   return $isListItemNode(current) ? current : null;
@@ -115,7 +115,7 @@ function $setItemText(item: ListItemNode, text: string): TextNode {
 
 function $removeNote(contentItem: ListItemNode) {
   const wrapper = contentItem.getNextSibling();
-  if ($isListItemNode(wrapper) && isChildrenWrapper(wrapper)) {
+  if (isChildrenWrapper(wrapper)) {
     wrapper.remove();
   }
 
