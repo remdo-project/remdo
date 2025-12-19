@@ -2,8 +2,18 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $createTextNode, $getSelection, $isRangeSelection, $isTextNode, COMMAND_PRIORITY_CRITICAL, KEY_BACKSPACE_COMMAND, KEY_DELETE_COMMAND } from 'lexical';
-import type { TextNode } from 'lexical';
+import {
+  $createRangeSelection,
+  $createTextNode,
+  $getSelection,
+  $isRangeSelection,
+  $isTextNode,
+  $setSelection,
+  COMMAND_PRIORITY_CRITICAL,
+  KEY_BACKSPACE_COMMAND,
+  KEY_DELETE_COMMAND,
+} from 'lexical';
+import type { LexicalNode, TextNode } from 'lexical';
 import { useEffect, useState } from 'react';
 import { findNearestListItem, getContentListItem, isChildrenWrapper, maybeRemoveEmptyWrapper } from '@/editor/outline/list-structure';
 
@@ -68,6 +78,21 @@ function getSubtreeTail(item: ListItemNode): ListItemNode {
   return getLastDescendantListItem(nested) ?? item;
 }
 
+function getFirstChildContentItem(item: ListItemNode): ListItemNode | null {
+  const nested = getNestedList(item);
+  if (!nested) {
+    return null;
+  }
+
+  for (const child of nested.getChildren()) {
+    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+      return child;
+    }
+  }
+
+  return null;
+}
+
 function getLastDescendantListItem(node: ListNode): ListItemNode | null {
   const children = node.getChildren();
   for (let i = children.length - 1; i >= 0; i -= 1) {
@@ -106,6 +131,65 @@ function computeMergeText(left: string, right: string): { merged: string; joinOf
   return { merged: `${left}${needsSpace ? ' ' : ''}${right}`, joinOffset };
 }
 
+function findBoundaryTextNode(node: LexicalNode, edge: 'start' | 'end'): TextNode | null {
+  if ($isTextNode(node)) {
+    return node;
+  }
+
+  const canTraverse = typeof (node as any).getChildren === 'function';
+  if (!canTraverse) {
+    return null;
+  }
+
+  const children = (node as any).getChildren?.() ?? [];
+  const ordered = edge === 'start' ? children : children.toReversed();
+
+  for (const child of ordered) {
+    if ($isListNode(child)) {
+      continue;
+    }
+
+    const match = findBoundaryTextNode(child, edge);
+    if (match) {
+      return match;
+    }
+  }
+
+  return null;
+}
+
+function resolveBoundaryPoint(listItem: ListItemNode, edge: 'start' | 'end') {
+  const textNode = findBoundaryTextNode(listItem, edge);
+  if (!textNode) {
+    return null;
+  }
+
+  const length = textNode.getTextContentSize();
+  const offset = edge === 'start' ? 0 : length;
+  return { node: textNode, offset } as const;
+}
+
+function $selectItemEdge(item: ListItemNode, edge: 'start' | 'end'): boolean {
+  const contentItem = getContentListItem(item);
+  const selectable = contentItem as ListItemNode & { selectStart?: () => void; selectEnd?: () => void };
+  const selectEdge = edge === 'start' ? selectable.selectStart : selectable.selectEnd;
+
+  if (typeof selectEdge === 'function') {
+    selectEdge.call(selectable);
+    return true;
+  }
+
+  const boundary = resolveBoundaryPoint(contentItem, edge);
+  if (!boundary) {
+    return false;
+  }
+
+  const range = $createRangeSelection();
+  range.setTextNodeRange(boundary.node, boundary.offset, boundary.node, boundary.offset);
+  $setSelection(range);
+  return true;
+}
+
 function $setItemText(item: ListItemNode, text: string): TextNode {
   item.clear();
   const node = $createTextNode(text);
@@ -120,11 +204,61 @@ function $removeNote(contentItem: ListItemNode) {
   }
 
   const parentList = contentItem.getParent();
+  const parentWrapper = $isListNode(parentList) ? parentList.getParent() : null;
   contentItem.remove();
 
   if ($isListNode(parentList)) {
     maybeRemoveEmptyWrapper(parentList);
+    if ($isListItemNode(parentWrapper) && parentWrapper.getChildrenSize() === 0) {
+      parentWrapper.remove();
+    }
   }
+}
+
+function isEmptyNote(item: ListItemNode): boolean {
+  return item.getTextContent().trim().length === 0;
+}
+
+function getNextNoteInDocumentOrder(item: ListItemNode): ListItemNode | null {
+  const firstChild = getFirstChildContentItem(item);
+  if (firstChild) {
+    return firstChild;
+  }
+
+  let current: ListItemNode | null = item;
+  while (current) {
+    const nextSibling = getNextContentSibling(current);
+    if (nextSibling) {
+      return nextSibling;
+    }
+
+    const parent: LexicalNode | null = current.getParent();
+    const parentList: ListNode | null = $isListNode(parent) ? parent : null;
+    const parentNote: ListItemNode | null = parentList ? getParentNote(parentList) : null;
+    current = parentNote;
+  }
+
+  return null;
+}
+
+function resolveCaretPlanAfterRemoval(item: ListItemNode): { target: ListItemNode; edge: 'start' | 'end' } | null {
+  const nextSibling = getNextContentSibling(item);
+  if (nextSibling) {
+    return { target: nextSibling, edge: 'start' };
+  }
+
+  const previousSibling = getPreviousContentSibling(item);
+  if (previousSibling) {
+    return { target: getSubtreeTail(previousSibling), edge: 'end' };
+  }
+
+  const parentList = item.getParent();
+  const parentNote = $isListNode(parentList) ? getParentNote(parentList) : null;
+  if (parentNote) {
+    return { target: parentNote, edge: 'end' };
+  }
+
+  return null;
 }
 
 export function DeletionPlugin() {
@@ -305,30 +439,37 @@ export function DeletionPlugin() {
           return false;
         }
 
-        const nextSibling = getNextContentSibling(contentItem);
-        if (!nextSibling) {
-          return false;
-        }
-
-        const currentHasChildren = noteHasChildren(contentItem);
-        const nextHasChildren = noteHasChildren(nextSibling);
-
-        if (currentHasChildren || nextHasChildren) {
-          event?.preventDefault();
-          event?.stopPropagation();
-          return true;
-        }
-
         event?.preventDefault();
         event?.stopPropagation();
 
+        const currentHasChildren = noteHasChildren(contentItem);
+        const currentIsEmptyLeaf = !currentHasChildren && isEmptyNote(contentItem);
+
+        if (currentIsEmptyLeaf) {
+          const caretPlan = resolveCaretPlanAfterRemoval(contentItem);
+          $removeNote(contentItem);
+          if (caretPlan) {
+            $selectItemEdge(caretPlan.target, caretPlan.edge);
+          }
+          return true;
+        }
+
+        const nextNote = getNextNoteInDocumentOrder(contentItem);
+        if (!nextNote) {
+          return true;
+        }
+
+        if (noteHasChildren(nextNote)) {
+          return true;
+        }
+
         const leftText = contentItem.getTextContent();
-        const rightText = nextSibling.getTextContent();
+        const rightText = nextNote.getTextContent();
         const { merged, joinOffset } = computeMergeText(leftText, rightText);
         const textNode = $setItemText(contentItem, merged);
         textNode.select(joinOffset, joinOffset);
 
-        $removeNote(nextSibling);
+        $removeNote(nextNote);
 
         return true;
       },

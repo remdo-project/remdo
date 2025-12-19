@@ -142,5 +142,10 @@ export const maybeRemoveEmptyWrapper = (list: ListNode) => {
   const wrapper = list.getParent();
   if (isChildrenWrapper(wrapper)) {
     wrapper.remove();
+    return;
+  }
+
+  if ($isListItemNode(wrapper) && wrapper.getChildrenSize() === 0) {
+    wrapper.remove();
   }
 };

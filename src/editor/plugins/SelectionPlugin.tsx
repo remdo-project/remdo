@@ -1,7 +1,7 @@
 //TODO deserves a major refactor, cleanup and review
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
-import { getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { getContentListItem, isChildrenWrapper, maybeRemoveEmptyWrapper } from '@/editor/outline/list-structure';
 import { getContiguousSelectionHeads } from '@/editor/outline/structural-selection';
 import { reportInvariant } from '@/editor/invariant';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -1857,35 +1857,22 @@ function resolveCaretTargetAfterDeletion(heads: ListItemNode[]): CaretEdgePlan |
   }
 
   const orderedHeads = sortHeadsByDocumentOrder(heads);
-  let nextAnchor: ListItemNode | null = getSubtreeTail(orderedHeads.at(-1)!);
-
-  while (nextAnchor) {
-    const nextSibling = getNextContentSibling(nextAnchor);
-    if (nextSibling) {
-      return { key: nextSibling.getKey(), edge: 'start' };
-    }
-    nextAnchor = getParentContentItem(nextAnchor);
+  const lastHead = orderedHeads.at(-1)!;
+  const nextSibling = getNextContentSibling(lastHead);
+  if (nextSibling) {
+    return { key: nextSibling.getKey(), edge: 'start' };
   }
 
-  let anchor: ListItemNode | null = orderedHeads[0]!;
-  let fallbackParent: ListItemNode | null = null;
-
-  while (anchor) {
-    const previousSibling = getPreviousContentSibling(anchor);
-    if (previousSibling) {
-      const caretTarget = getSubtreeTail(previousSibling);
-      return { key: caretTarget.getKey(), edge: 'end' };
-    }
-
-    const parent = getParentContentItem(anchor);
-    if (!fallbackParent && parent) {
-      fallbackParent = parent;
-    }
-    anchor = parent;
+  const firstHead = orderedHeads[0]!;
+  const previousSibling = getPreviousContentSibling(firstHead);
+  if (previousSibling) {
+    const caretTarget = getSubtreeTail(previousSibling);
+    return { key: caretTarget.getKey(), edge: 'end' };
   }
 
-  if (fallbackParent) {
-    return { key: fallbackParent.getKey(), edge: 'start' };
+  const parent = getParentContentItem(firstHead);
+  if (parent) {
+    return { key: parent.getKey(), edge: 'end' };
   }
 
   return null;
@@ -1955,6 +1942,7 @@ function getWrapperForContent(item: ListItemNode): ListItemNode | null {
 function removeNoteSubtree(item: ListItemNode) {
   const contentItem = getContentListItem(item);
   const parentList = contentItem.getParent();
+  const parentWrapper = $isListNode(parentList) ? parentList.getParent() : null;
 
   const wrapper = getWrapperForContent(contentItem);
   if (wrapper) {
@@ -1963,10 +1951,10 @@ function removeNoteSubtree(item: ListItemNode) {
 
   contentItem.remove();
 
-  if ($isListNode(parentList) && parentList.getChildrenSize() === 0) {
-    const wrapper = parentList.getParent();
-    if (isChildrenWrapper(wrapper)) {
-      wrapper.remove();
+  if ($isListNode(parentList)) {
+    maybeRemoveEmptyWrapper(parentList);
+    if ($isListItemNode(parentWrapper) && parentWrapper.getChildrenSize() === 0) {
+      parentWrapper.remove();
     }
   }
 }
