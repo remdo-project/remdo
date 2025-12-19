@@ -46,10 +46,9 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   and focus rules; mid-note splits keep pre-caret text in place and move
   post-caret text to a sibling below; end-of-note inserts a child only when
   children already exist, otherwise a sibling.
-- `docs/todo.md` (Very long). Project roadmap plus outstanding design
-  questions—review when planning new features; includes the Render deployment
-  plan, collab undo/redo determinism work, deletion test coverage gaps, and the
-  `toMatchOutline` follow-ups (shared extractor + e2e matcher + bridge cleanup).
+- `docs/todo.md` (Very long). Scratchpad for in-flight work: mark completed
+  items as done while a section is active, then delete completed sections; move
+  durable specs into the appropriate doc under `docs/`.
 - `docs/deployment-single-container.md` (Short). How to build and run the
   single-container image (Caddy + Y-Sweet) and its env knobs, including basic
   auth requirements.
