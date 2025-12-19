@@ -33,7 +33,8 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   indent/outdent semantics—consult when editing tree transforms or note
   mutations.
 - `docs/outliner/selection.md` (Long). Cursor/selection semantics for the editor
-  runtime—reference for UX or Lexical selection work.
+  runtime—reference for UX or Lexical selection work, including the progressive
+  ladder and the empty-note inline-stage skip.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior
   and placement invariants.
 - `docs/outliner/deletion.md` (Medium). Caret vs. structural deletion semantics,

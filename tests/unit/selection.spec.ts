@@ -1139,6 +1139,37 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
   });
 
+  it('skips the inline stage for whitespace-only notes on Cmd/Ctrl+A', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    await placeCaretAtNote(remdo, ' ');
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+
+    expect(remdo).toMatchSelection({ state: 'structural', notes: [' '] });
+  });
+
+  it('skips the inline stage for empty notes with no text nodes on Shift+Down', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    const rootElement = remdo.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote(remdo, '');
+
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+    const isCollapsed = remdo.validate(() => {
+      const selection = $getSelection();
+      return $isRangeSelection(selection) ? selection.isCollapsed() : true;
+    });
+    expect(isCollapsed).toBe(false);
+  });
+
   it('skips the sibling stage when Cmd/Ctrl+A climbs from a siblingless note', async ({ remdo }) => {
     await remdo.load('tree_complex');
 
