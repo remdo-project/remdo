@@ -6,8 +6,29 @@ import type { LexicalNode } from 'lexical';
 
 type ChildListItemNode = ListItemNode & { getFirstChild: () => ListNode };
 
-export const isChildrenWrapper = (node: LexicalNode | null | undefined): node is ChildListItemNode =>
-  $isListItemNode(node) && node.getChildren().length === 1 && $isListNode(node.getFirstChild());
+// Treat wrapper nodes strictly: a wrapper must contain exactly one list child and nothing else.
+// Lexical's isNestedListNode only checks that the first child is a list, but we avoid that looseness
+// because destructive operations (remove/move/merge) could drop extra content if we misclassify.
+export const isChildrenWrapper = (node: LexicalNode | null | undefined): node is ChildListItemNode => {
+  if (!$isListItemNode(node)) {
+    return false;
+  }
+
+  const children = node.getChildren();
+  if (!$isListNode(children[0] ?? null)) {
+    return false;
+  }
+
+  if (children.length !== 1) {
+    reportInvariant({
+      message: 'List item wrapper has unexpected children',
+      context: { key: node.getKey(), childTypes: children.map((child) => child.getType()) },
+    });
+    return false;
+  }
+
+  return true;
+};
 
 export const findNearestListItem = (node: LexicalNode | null): ListItemNode | null => {
   let current: LexicalNode | null = node;
@@ -119,7 +140,7 @@ export const $getOrCreateChildList = (parentNote: ListItemNode): ListNode => {
 export const maybeRemoveEmptyWrapper = (list: ListNode) => {
   if (list.getChildrenSize() > 0) return;
   const wrapper = list.getParent();
-  if ($isListItemNode(wrapper) && isChildrenWrapper(wrapper)) {
+  if (isChildrenWrapper(wrapper)) {
     wrapper.remove();
   }
 };

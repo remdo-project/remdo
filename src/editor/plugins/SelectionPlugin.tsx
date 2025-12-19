@@ -1,7 +1,7 @@
 //TODO deserves a major refactor, cleanup and review
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
-import { getContentListItem } from '@/editor/outline/list-structure';
+import { getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { getContiguousSelectionHeads } from '@/editor/outline/structural-selection';
 import { reportInvariant } from '@/editor/invariant';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -1814,7 +1814,7 @@ function getParentContentItem(item: ListItemNode): ListItemNode | null {
   }
 
   const parentWrapper = parentList.getParent();
-  if (!$isListItemNode(parentWrapper) || !isChildrenWrapper(parentWrapper)) {
+  if (!isChildrenWrapper(parentWrapper)) {
     return null;
   }
 
@@ -1946,18 +1946,10 @@ function getLastDescendantListItem(node: LexicalNode | null): ListItemNode | nul
 
 function getWrapperForContent(item: ListItemNode): ListItemNode | null {
   const next = item.getNextSibling();
-  if (!$isListItemNode(next) || !isChildrenWrapper(next)) {
+  if (!isChildrenWrapper(next)) {
     return null;
   }
   return next;
-}
-
-function isChildrenWrapper(node: LexicalNode | null | undefined): boolean {
-  return (
-    $isListItemNode(node) &&
-    node.getChildren().length === 1 &&
-    $isListNode(node.getFirstChild())
-  );
 }
 
 function removeNoteSubtree(item: ListItemNode) {
@@ -1973,7 +1965,7 @@ function removeNoteSubtree(item: ListItemNode) {
 
   if ($isListNode(parentList) && parentList.getChildrenSize() === 0) {
     const wrapper = parentList.getParent();
-    if ($isListItemNode(wrapper) && isChildrenWrapper(wrapper)) {
+    if (isChildrenWrapper(wrapper)) {
       wrapper.remove();
     }
   }

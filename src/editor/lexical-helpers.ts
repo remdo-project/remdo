@@ -1,5 +1,4 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
-import type { LexicalNode } from 'lexical';
 import {
   $createListItemNode,
   $createListNode,
@@ -7,17 +6,12 @@ import {
   $isListNode,
 } from '@lexical/list';
 import { reportInvariant } from '@/editor/invariant';
-
-const isListItemWrapper = (node: ListItemNode): boolean =>
-  node.getChildren().length === 1 && $isListNode(node.getFirstChild());
-
-const isChildrenWrapper = (node: LexicalNode | null | undefined): node is ListItemNode =>
-  $isListItemNode(node) && isListItemWrapper(node);
+import { isChildrenWrapper } from '@/editor/outline/list-structure';
 
 function getPreviousContentItem(noteItem: ListItemNode): ListItemNode | null {
   let sibling = noteItem.getPreviousSibling();
   while (sibling) {
-    if ($isListItemNode(sibling) && !isListItemWrapper(sibling)) {
+    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
       return sibling;
     }
     sibling = sibling.getPreviousSibling();

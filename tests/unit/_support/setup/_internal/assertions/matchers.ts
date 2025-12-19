@@ -325,7 +325,7 @@ function traverseListItems(node: LexicalNode | null, callbacks: ListItemTraversa
 
 function getNestedList(item: ListItemNode): LexicalNode | null {
   const wrapper = item.getNextSibling();
-  if ($isListItemNode(wrapper) && isChildrenWrapper(wrapper)) {
+  if (isChildrenWrapper(wrapper)) {
     const nested = wrapper.getFirstChild();
     return $isListNode(nested) ? nested : null;
   }
