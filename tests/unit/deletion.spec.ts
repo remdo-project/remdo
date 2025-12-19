@@ -226,6 +226,45 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
+    it('ignores Delete at a parent end when the next note in document order has children', async ({ remdo }) => {
+      await remdo.load('tree_complex');
+
+      await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+      const before = remdo.getEditorState();
+
+      await pressKey(remdo, { key: 'Delete' });
+
+      expect(remdo).toMatchEditorState(before);
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+    });
+
+    it('drops an empty first child when Delete is pressed at the parent end', async ({ remdo }) => {
+      await remdo.load('basic');
+
+      await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+      await pressKey(remdo, { key: 'Enter' });
+
+      expect(remdo).toMatchOutline([
+        {
+          text: 'note1',
+          children: [
+            {},
+            { text: 'note2' },
+          ],
+        },
+        { text: 'note3' },
+      ]);
+
+      await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+      await pressKey(remdo, { key: 'Delete' });
+
+      expect(remdo).toMatchOutline([
+        { text: 'note1', children: [ { text: 'note2' } ] },
+        { text: 'note3' },
+      ]);
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+    });
+
     it('merges the next leaf into the current note with Delete at the end of the line', async ({ remdo }) => {
       await remdo.load('flat');
 
@@ -261,6 +300,24 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
 
       expect(remdo).toMatchEditorState(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
+    });
+
+    it('keeps a single empty note when Delete is pressed at its end', async ({ remdo }) => {
+      await remdo.load('flat');
+
+      await selectNoteRange(remdo, 'note1', 'note3');
+      await pressKey(remdo, { key: 'Delete' });
+
+      const before = remdo.getEditorState();
+
+      await pressKey(remdo, { key: 'Delete' });
+
+      expect(remdo).toMatchEditorState(before);
+
+      const caretStatus = readCollapsedCaretStatus(remdo);
+      expect(caretStatus.isRangeSelection).toBe(true);
+      expect(caretStatus.isCollapsed).toBe(true);
+      expect(caretStatus.hasListItem).toBe(true);
     });
 
     it('merges the first child leaf into the parent when Delete is pressed at the parent end', async ({ remdo }) => {
