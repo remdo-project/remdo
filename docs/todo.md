@@ -12,20 +12,8 @@ Rules:
 
 ## Align note indent/outdent helpers with Lexical
 
-1. `isChildrenWrapper` currently requires the wrapper `ListItemNode` to have
-   exactly one child, while Lexical’s `isNestedListNode` only checks the first
-   child’s type; the stricter check rejects bullets that mix text and nested
-   lists.
-2. ✅ Done — Provide explicit helpers for the current **Outdent** behavior
-   (append the subtree directly after the former parent) so editor commands do
-   not need to reimplement the tree juggling.
-3. `$indentNote`/`$outdentNote` return booleans and throw generic `Error`s,
-   whereas Lexical silently no-ops or raises formatted dev invariants; the
-   reporting style is inconsistent.
-4. `$getOrCreateChildList` omits copying text format and style from the source
+1. `$getOrCreateChildList` omits copying text format and style from the source
    `ListNode`/`ListItemNode`, unlike Lexical, so new wrappers lose typography.
-5. The helpers attempt to auto-heal malformed wrappers by removing them instead
-   of surfacing invariants like Lexical does.
 
 ## Harden editor schema validator tests
 
