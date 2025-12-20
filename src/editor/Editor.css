@@ -9,6 +9,10 @@
   padding: var(--mantine-spacing-lg) var(--mantine-spacing-xl);
 }
 
+.editor-header {
+  margin-bottom: var(--mantine-spacing-sm);
+}
+
 .app-header {
   display: flex;
   align-items: center;

@@ -1,10 +1,11 @@
+import { Group } from '@mantine/core';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { createEditorInitialConfig } from '#lib/editor/config';
-import { CollaborationPlugin } from './plugins/collaboration';
+import { CollaborationPlugin, CollaborationStatusText } from './plugins/collaboration';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { DevPlugin } from './plugins/dev';
 import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin';
@@ -28,19 +29,22 @@ export default function Editor({ children, collabOrigin, docId, onTestBridgeRead
   return (
     <div className="editor-container">
       <LexicalComposer initialConfig={editorInitialConfig}>
-        <RichTextPlugin
-          contentEditable={<ContentEditable className="editor-input" />}
-          ErrorBoundary={LexicalErrorBoundary}
-        />
-        <KeymapPlugin />
-        <IndentationPlugin />
-        <ReorderingPlugin />
-        <SelectionPlugin />
-        <InsertionPlugin />
-        <DeletionPlugin />
-        <SelectionInputPlugin />
-        <ListPlugin hasStrictIndent />
         <CollaborationPlugin collabOrigin={collabOrigin} docId={docId}>
+          <Group justify="flex-end" className="editor-header">
+            <CollaborationStatusText />
+          </Group>
+          <RichTextPlugin
+            contentEditable={<ContentEditable className="editor-input" />}
+            ErrorBoundary={LexicalErrorBoundary}
+          />
+          <KeymapPlugin />
+          <IndentationPlugin />
+          <ReorderingPlugin />
+          <SelectionPlugin />
+          <InsertionPlugin />
+          <DeletionPlugin />
+          <SelectionInputPlugin />
+          <ListPlugin hasStrictIndent />
           <RootSchemaPlugin />
           <DevPlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose}>{children}</DevPlugin>
         </CollaborationPlugin>
