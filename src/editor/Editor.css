@@ -10,7 +10,26 @@
 }
 
 .editor-header {
-  margin-bottom: var(--mantine-spacing-sm);
+  position: absolute;
+  top: var(--mantine-spacing-sm);
+  right: var(--mantine-spacing-sm);
+  z-index: 1;
+}
+
+.collab-status-text {
+  margin-left: 0;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: opacity 150ms ease, max-width 150ms ease, margin-left 150ms ease;
+  white-space: nowrap;
+}
+
+.collab-status:hover .collab-status-text,
+.collab-status:focus-within .collab-status-text {
+  margin-left: var(--mantine-spacing-xs);
+  max-width: 8rem;
+  opacity: 1;
 }
 
 .app-header {

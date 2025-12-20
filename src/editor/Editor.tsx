@@ -5,7 +5,7 @@ import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { createEditorInitialConfig } from '#lib/editor/config';
-import { CollaborationPlugin, CollaborationStatusText } from './plugins/collaboration';
+import { CollaborationConnectionStatus, CollaborationPlugin } from './plugins/collaboration';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { DevPlugin } from './plugins/dev';
 import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin';
@@ -31,7 +31,7 @@ export default function Editor({ children, collabOrigin, docId, onTestBridgeRead
       <LexicalComposer initialConfig={editorInitialConfig}>
         <CollaborationPlugin collabOrigin={collabOrigin} docId={docId}>
           <Group justify="flex-end" className="editor-header">
-            <CollaborationStatusText />
+            <CollaborationConnectionStatus />
           </Group>
           <RichTextPlugin
             contentEditable={<ContentEditable className="editor-input" />}
