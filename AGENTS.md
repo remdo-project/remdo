@@ -33,7 +33,8 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   indent/outdent semantics—consult when editing tree transforms or note
   mutations.
 - `docs/outliner/selection.md` (Long). Cursor/selection semantics for the editor
-  runtime—reference for UX or Lexical selection work.
+  runtime—reference for UX or Lexical selection work, including the progressive
+  ladder and the empty-note inline-stage skip.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior
   and placement invariants.
 - `docs/outliner/deletion.md` (Medium). Caret vs. structural deletion semantics,
@@ -48,7 +49,7 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   children already exist, otherwise a sibling.
 - `docs/todo.md` (Very long). Scratchpad for in-flight work: keep active tasks
   only (drop completed items), and move durable specs into the appropriate doc
-  under `docs/`.
+  under `docs/`. Includes selection edge-case coverage notes for empty notes.
 - `docs/deployment-single-container.md` (Short). How to build and run the
   single-container image (Caddy + Y-Sweet) and its env knobs, including basic
   auth requirements.

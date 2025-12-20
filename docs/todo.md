@@ -124,35 +124,35 @@ Dockerfile checks) and decide whether to gate CI on its report.
 
 ## InsertionPlugin
 
-### Keyboard helper simplification plan
-
-1. Defensive throws: if a plain printable character is used, throw “use
-   typeText”; throw on `Delete` **and** `Backspace` to avoid silent inline
-   edits. Allow other non-text keys (Enter, Tab, arrows, Escape, etc.). Modifier
-   combos for selection/navigation (e.g., Ctrl/Cmd+A, Shift+Arrow, plain
-   Arrow/Home/End/PageUp/PageDown) remain supported as DOM keydown only. Add
-   unit coverage for every supported key/chord unless Lexical’s own helpers
-   already guarantee it.
-2. Review `typeText` against Lexical’s own test helpers. If Lexical has a
-   simpler but equivalent pattern, adopt it; otherwise keep current keydown +
-   controlled insertion + synthetic before/input and document the rationale.
-3. For unit cases needing non-native behavior (e.g., forward Delete), use a
-   small explicit inline-delete helper; do not fold that into `pressKey`.
-4. Plan e2e mirrors for such cases using real user actions (Playwright): decide
-   on scope (component harness vs full page), seeding strategy, browser targets
-   (at least Chromium; consider WebKit/Firefox), and focus/caret helpers to
-   reduce flake. Do this as a follow-up task; include forward `Delete` at caret
-   as the first mirror so unit-only helpers don’t mask regressions.
-
-5. [P1] Mid-note split still violates docs/insertion.md: falling through to
+1. [P1] Mid-note split still violates docs/insertion.md: falling through to
    Lexical’s default Enter creates a new list item below the current note and
    moves the caret into it, instead of inserting the prefix as a new sibling
    above and keeping the caret in the original note. That means the documented
    middle-of-note behavior (split-above, caret stays on trailing text) is still
    unimplemented. (src/editor/plugins/InsertionPlugin.tsx:79-92)
-6. [P1] Start/end detection only checks the anchor text node’s offset. With
+2. [P1] Start/end detection only checks the anchor text node’s offset. With
    formatted or decorator splits inside a note (multiple text nodes), placing
    the caret at the boundary of a later span yields offset === 0 or offset ===
    textNode.getTextContentSize() even though there is preceding/following text
    in the note. That misclassifies mid- note positions as start/end and triggers
    the wrong insertion path. (src/editor/plugins/InsertionPlugin.tsx:75-90)
+
+## Selection edge-case coverage (empty notes)
+
+1. Cmd/Ctrl+A on a top-level empty note at the end of the list (no next sibling)
+   should select only that note and not collapse.
+2. Shift+Up from the same nested empty note should only select that note (not
+   its previous sibling).
+3. Structural commands (indent/outdent/reorder/delete) after Cmd/Ctrl+A on the
+   empty note should affect only that note (not the sibling).
+4. Multi-press Cmd/Ctrl+A from the empty note: first press selects only that
+   note, second press selects sibling slab, third hoists parent.
+5. Collapse from structural selection on an empty note via Esc or plain arrows
+   should land a caret in that note (high importance, low complexity).
+6. Shift+Up/Shift+Down from an empty parent that has children should select the
+   whole subtree (high importance, medium complexity).
+7. Shift+Left/Right on an empty note should stay a no-op without changing
+   progressive stage (medium importance, low complexity).
+8. Mixed range where one endpoint is an empty note and the other is non-empty
+   should still be contiguous and stable after snapping (medium importance,
+   medium complexity).

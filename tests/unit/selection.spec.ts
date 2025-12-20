@@ -9,7 +9,8 @@ import {
   readOutline,
   typeText,
 } from '#tests';
-import { $getSelection, $isRangeSelection } from 'lexical';
+import type { ListItemNode, ListNode } from '@lexical/list';
+import { $getNodeByKey, $getRoot, $getSelection, $isRangeSelection } from 'lexical';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
 
 const TREE_COMPLEX_OUTLINE: Outline = [
@@ -1137,6 +1138,105 @@ describe('selection plugin', () => {
     await placeCaretAtNote(remdo, 'note4');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
+  });
+
+  it('skips the inline stage for whitespace-only notes on Cmd/Ctrl+A', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    await placeCaretAtNote(remdo, ' ');
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+
+    expect(remdo).toMatchSelection({ state: 'structural', notes: [' '] });
+  });
+
+  it('skips the inline stage for empty notes with no text nodes on Shift+Down', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    const rootElement = remdo.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    await placeCaretAtNote(remdo, '');
+
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+    const isCollapsed = remdo.validate(() => {
+      const selection = $getSelection();
+      return $isRangeSelection(selection) ? selection.isCollapsed() : true;
+    });
+    expect(isCollapsed).toBe(false);
+  });
+
+  it('selects the nested empty note before child-of-empty on Shift+Down', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    const rootElement = remdo.editor.getRootElement()!;
+
+    const { emptyKey } = remdo.validate(() => {
+      const list = $getRoot().getFirstChild() as ListNode;
+      // empty-labels fixture: list item 5 nests [empty, child-of-empty]
+      const nested = list.getChildren<ListItemNode>()[4]!.getChildren<ListNode>()[0]!;
+      const empty = nested.getChildren<ListItemNode>()[0]!;
+      return { emptyKey: empty.getKey() };
+    });
+
+    await remdo.mutate(() => {
+      const node = $getNodeByKey<ListItemNode>(emptyKey)!;
+      node.selectStart();
+    });
+
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+
+    // TODO: extend toMatchSelection to assert structural selection by stable keys.
+    // Today we lean on dataset structuralSelectionKeys (plugin internals) because empty notes
+    // have no labels and are invisible to the matcher, which isn't part of the contract.
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(rootElement.dataset.structuralSelectionKeys?.split(',')).toContain(emptyKey);
+
+    const isCollapsed = remdo.validate(() => {
+      const selection = $getSelection();
+      return $isRangeSelection(selection) ? selection.isCollapsed() : true;
+    });
+    expect(isCollapsed).toBe(false);
+  });
+
+  it('selects only the nested empty note on Cmd/Ctrl+A before child-of-empty', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    const rootElement = remdo.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const { emptyKey, childKey } = remdo.validate(() => {
+      const list = $getRoot().getFirstChild() as ListNode;
+      // empty-labels fixture: list item 5 nests [empty, child-of-empty]
+      const nested = list.getChildren<ListItemNode>()[4]!.getChildren<ListNode>()[0]!;
+      const empty = nested.getChildren<ListItemNode>()[0]!;
+      const child = nested.getChildren<ListItemNode>()[1]!;
+      return { emptyKey: empty.getKey(), childKey: child.getKey() };
+    });
+
+    await remdo.mutate(() => {
+      const node = $getNodeByKey<ListItemNode>(emptyKey) as ListItemNode;
+      node.selectStart();
+    });
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+
+    // TODO: extend toMatchSelection to assert structural selection by stable keys.
+    // Today we lean on dataset structuralSelectionKeys (plugin internals) because empty notes
+    // have no labels and are invisible to the matcher, which isn't part of the contract.
+    expect(rootElement.dataset.structuralSelection).toBe('true');
+    const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+    expect(selectedKeys).toContain(emptyKey);
+    expect(selectedKeys).not.toContain(childKey);
   });
 
   it('skips the sibling stage when Cmd/Ctrl+A climbs from a siblingless note', async ({ remdo }) => {

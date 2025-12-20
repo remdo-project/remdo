@@ -121,7 +121,9 @@ back to the caret state.
 1. **Press 1 – Inline range:** Highlights the current note’s content block only.
    Typing replaces that text, Delete clears it, but structural commands continue
    to move/indent/outdent the note together with its subtree even though only
-   the parent body is visibly selected.
+   the parent body is visibly selected. If the note body is empty (after
+   trimming whitespace), this stage is skipped and the first press jumps to
+   stage 2.
 2. **Press 2 – Note + descendants:** Expands the range to include the entire
    subtree beneath the note so clipboard operations and destructive keys remove
    the whole section. Inline editing is disabled at this stage; you’re strictly

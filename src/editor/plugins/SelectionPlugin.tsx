@@ -1079,6 +1079,10 @@ function $buildPlanForStage(
     if (inlinePlan) {
       return { plan: inlinePlan, stage: 1 };
     }
+    if (isEmptyNoteBody(anchorContent)) {
+      const subtreePlan = $createSubtreePlan(anchorContent);
+      return subtreePlan ? { plan: subtreePlan, stage: 2 } : null;
+    }
     const notePlan = $createNoteBodyPlan(anchorContent);
     return notePlan ? { plan: notePlan, stage: 2 } : null;
   }
@@ -1356,6 +1360,9 @@ function $buildDirectionalAncestorPlan(
 }
 
 function $createInlinePlan(item: ListItemNode): ProgressivePlan | null {
+  if (isEmptyNoteBody(item)) {
+    return null;
+  }
   return $hasInlineBoundary(item) ? { type: 'inline', itemKey: item.getKey() } : null;
 }
 
@@ -1425,6 +1432,23 @@ function $hasInlineBoundary(item: ListItemNode): boolean {
   return Boolean(resolveContentBoundaryPoint(item, 'start') && resolveContentBoundaryPoint(item, 'end'));
 }
 
+function isEmptyNoteBody(item: ListItemNode): boolean {
+  const contentItem = getContentListItem(item);
+  const pieces: string[] = [];
+
+  for (const child of contentItem.getChildren()) {
+    if ($isListNode(child)) {
+      continue;
+    }
+    const getTextContent = (child as { getTextContent?: () => string }).getTextContent;
+    if (typeof getTextContent === 'function') {
+      pieces.push(getTextContent.call(child));
+    }
+  }
+
+  return pieces.join('').trim().length === 0;
+}
+
 function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
@@ -1473,6 +1497,10 @@ function setSelectionBetweenItems(
   startMode: BoundaryMode,
   endMode: BoundaryMode
 ): boolean {
+  if (applyElementRangeBetweenItems(selection, startItem, endItem, startMode, endMode)) {
+    return true;
+  }
+
   const start =
     startMode === 'content'
       ? resolveContentBoundaryPoint(startItem, 'start')
@@ -1484,10 +1512,6 @@ function setSelectionBetweenItems(
 
   if (!start || !end) {
     return false;
-  }
-
-  if (applyElementRangeBetweenItems(selection, startItem, endItem, startMode, endMode)) {
-    return true;
   }
 
   selection.setTextNodeRange(start.node, start.offset, end.node, end.offset);
@@ -1511,6 +1535,24 @@ function applyElementRangeBetweenItems(
   selection.anchor.set(anchorItem.getKey(), 0, 'element');
   selection.focus.set(focusItem.getKey(), focusItem.getChildrenSize(), 'element');
   selection.dirty = true;
+
+  if (!selection.isCollapsed()) {
+    return true;
+  }
+
+  if (anchorItem === focusItem) {
+    const parent = anchorItem.getParent();
+    if ($isListNode(parent)) {
+      const siblings = parent.getChildren();
+      const index = siblings.indexOf(anchorItem);
+      if (index !== -1) {
+        selection.anchor.set(parent.getKey(), index, 'element');
+        selection.focus.set(parent.getKey(), index + 1, 'element');
+        selection.dirty = true;
+      }
+    }
+  }
+
   return true;
 }
 
