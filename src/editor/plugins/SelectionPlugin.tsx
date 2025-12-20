@@ -1535,6 +1535,24 @@ function applyElementRangeBetweenItems(
   selection.anchor.set(anchorItem.getKey(), 0, 'element');
   selection.focus.set(focusItem.getKey(), focusItem.getChildrenSize(), 'element');
   selection.dirty = true;
+
+  if (!selection.isCollapsed()) {
+    return true;
+  }
+
+  if (anchorItem === focusItem) {
+    const parent = anchorItem.getParent();
+    if ($isListNode(parent)) {
+      const siblings = parent.getChildren();
+      const index = siblings.indexOf(anchorItem);
+      if (index !== -1) {
+        selection.anchor.set(parent.getKey(), index, 'element');
+        selection.focus.set(parent.getKey(), index + 1, 'element');
+        selection.dirty = true;
+      }
+    }
+  }
+
   return true;
 }
 

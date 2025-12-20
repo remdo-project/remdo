@@ -13,6 +13,11 @@ export function getContiguousSelectionHeads(selection: RangeSelection): ListItem
     return [];
   }
 
+  const elementSelectionHeads = resolveElementSelectionHeads(selection);
+  if (elementSelectionHeads) {
+    return elementSelectionHeads;
+  }
+
   const anchorItem = findNearestListItem(selection.anchor.getNode());
   const focusItem = findNearestListItem(selection.focus.getNode());
   if (!anchorItem || !focusItem) {
@@ -25,6 +30,19 @@ export function getContiguousSelectionHeads(selection: RangeSelection): ListItem
 
   const anchorContent = getContentListItem(anchorItem);
   const focusContent = getContentListItem(focusItem);
+
+  if (
+    anchorContent !== focusContent &&
+    selection.anchor.type === 'element' &&
+    selection.anchor.offset === 0 &&
+    selection.focus.type === 'text' &&
+    selection.focus.offset === 0 &&
+    anchorContent.getTextContent().trim().length === 0 &&
+    getNextContentSibling(anchorContent) === focusContent
+  ) {
+    return [anchorContent];
+  }
+
   const normalized = normalizeContentRange(anchorContent, focusContent);
 
   const parent = normalized.start.getParent();
@@ -58,6 +76,34 @@ export function getContiguousSelectionHeads(selection: RangeSelection): ListItem
   const first = Math.min(startIndex, endIndex);
   const last = Math.max(startIndex, endIndex);
   return siblings.slice(first, last + 1);
+}
+
+function resolveElementSelectionHeads(selection: RangeSelection): ListItemNode[] | null {
+  if (selection.anchor.type !== 'element' || selection.focus.type !== 'element') {
+    return null;
+  }
+
+  const anchorNode = selection.anchor.getNode();
+  const focusNode = selection.focus.getNode();
+  if (anchorNode !== focusNode || !$isListNode(anchorNode)) {
+    return null;
+  }
+
+  const start = Math.min(selection.anchor.offset, selection.focus.offset);
+  const end = Math.max(selection.anchor.offset, selection.focus.offset);
+  if (start === end) {
+    return null;
+  }
+
+  const slice = anchorNode.getChildren().slice(start, end);
+  const heads: ListItemNode[] = [];
+  for (const child of slice) {
+    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+      heads.push(child);
+    }
+  }
+
+  return heads.length > 0 ? heads : null;
 }
 
 function normalizeContentRange(start: ListItemNode, end: ListItemNode): { start: ListItemNode; end: ListItemNode } {
@@ -161,4 +207,15 @@ function getContentSiblings(list: ListNode): ListItemNode[] {
     }
   }
   return items;
+}
+
+function getNextContentSibling(item: ListItemNode): ListItemNode | null {
+  let sibling = item.getNextSibling();
+  while (sibling) {
+    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
+      return sibling;
+    }
+    sibling = sibling.getNextSibling();
+  }
+  return null;
 }
