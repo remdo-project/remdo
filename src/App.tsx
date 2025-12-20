@@ -1,9 +1,11 @@
 import { Anchor, Container, Group, MantineProvider, Title } from '@mantine/core';
+import { IconBrandVite } from '@tabler/icons-react';
 import Editor from './editor/Editor';
 import headerStyles from './styles/AppHeader.module.css';
 import { theme } from './theme';
 import { config } from '#config';
 import '@mantine/core/styles.css';
+import { Icon } from './ui/Icon';
 
 interface HostContext {
   protocol: string;
@@ -64,6 +66,7 @@ export default function App() {
                     Preview
                   </Anchor>
                   <Anchor className="app-header-link" href={vitestUrl}>
+                    <Icon icon={IconBrandVite} />
                     Vitest
                   </Anchor>
                   <Anchor className="app-header-link" href={playwrightUrl}>

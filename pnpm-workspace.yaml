@@ -27,6 +27,7 @@ catalog:
   '@mantine/core': ^8.3.10
   '@mantine/hooks': ^8.3.10
   '@playwright/test': ^1.57.0
+  '@tabler/icons-react': ^3.21.0
   '@testing-library/jest-dom': ^6.9.1
   '@testing-library/react': ^16.3.1
   '@testing-library/user-event': ^14.6.1
@@ -72,5 +73,4 @@ onlyBuiltDependencies:
   - esbuild
   - leveldown
   - y-sweet
-
 
