@@ -1,3 +1,4 @@
+import { MantineProvider } from '@mantine/core';
 import { render, waitFor } from '@testing-library/react';
 import { config } from '#config';
 import Editor from '@/editor/Editor';
@@ -19,7 +20,11 @@ export async function renderRemdoEditor({ docId, collabOrigin }: RenderEditorOpt
 
   let api: RemdoTestApi | null = null;
 
-  render(<Editor collabOrigin={origin} docId={docId} onTestBridgeReady={(value) => { api = value as RemdoTestApi; }} />);
+  render(
+    <MantineProvider>
+      <Editor collabOrigin={origin} docId={docId} onTestBridgeReady={(value) => { api = value as RemdoTestApi; }} />
+    </MantineProvider>
+  );
 
   const resolved = await waitFor(() => {
     if (!api) {
