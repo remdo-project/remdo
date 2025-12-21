@@ -71,15 +71,15 @@ const CASES: OutlineCase[] = [
       { text: 'note6', children: [ { text: 'note7' } ] },
     ],
   },
-  //{
-  //  fixture: 'empty-labels',
-  //  outline: [
-  //    { text: 'alpha' },
-  //    { text: ' ' },
-  //    { text: 'beta' },
-  //    { children: [ {}, { text: 'child-of-empty' } ] },
-  //  ],
-  //},
+  {
+    fixture: 'empty-labels',
+    outline: [
+      { text: 'alpha' },
+      { text: ' ' },
+      { text: 'beta' },
+      { children: [ {}, { text: 'child-of-empty' } ] },
+    ],
+  },
 ];
 
 describe('toMatchOutline smoke coverage', () => {
