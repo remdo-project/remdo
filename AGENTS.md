@@ -128,6 +128,9 @@ document captures the full model.
   about 5–10s, `pnpm run test:unit` about 10–20s, `pnpm run test:unit:collab`
   about 12–25s. If you ever hit the 60s guard, debug the failure (don’t extend);
   only adjust ranges if healthy runs consistently land outside them.
+- E2E (Playwright): run `pnpm test:e2e`. In sandboxed environments, accessing
+  the local dev server (localhost) may require network escalation; without it,
+  Playwright can’t reach the server and will fail to start.
 
 ### Scoped check runs (validated 2025-12-09; commands trimmed to tool defaults and pnpm scripts where they behave)
 
