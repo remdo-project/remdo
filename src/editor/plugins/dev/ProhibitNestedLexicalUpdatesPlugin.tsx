@@ -6,7 +6,18 @@ const GUARD_KEY = '__remdoProhibitNestedLexicalUpdatesInstalled';
 
 function isAllowedThirdPartyNestedUpdate(stack: string | undefined): boolean {
   if (!stack) return false;
-  return stack.includes('@lexical/yjs') || stack.includes('LexicalYjs') || stack.includes('LexicalCollaborationPlugin');
+
+  const lexicalFramePattern = /node_modules[\\/].*lexical/i;
+
+  for (const line of stack.split('\n')) {
+    if (!line.includes(' at ') || line.includes('ProhibitNestedLexicalUpdatesPlugin')) {
+      continue;
+    }
+
+    return lexicalFramePattern.test(line);
+  }
+
+  return false;
 }
 
 export function ProhibitNestedLexicalUpdatesPlugin(): null {
