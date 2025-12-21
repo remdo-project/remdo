@@ -63,28 +63,6 @@ Options to consider when implementing:
 - Update `readSelectionSnapshot` to rely solely on Lexical’s selection or the
   new outline selection, removing the DOM fallback entirely.
 
-## Deletion regression coverage gaps (tests)
-
-Deletion semantics in `docs/outliner/deletion.md` rely on “previous/next note in
-document order”, but the current unit/e2e suites mostly exercise same-depth
-sibling merges. Add explicit regression cases for these uncovered edges so
-future refactors of `DeletionPlugin` don’t silently diverge from the contract:
-
-1. Backspace at column 0 when the previous note in document order is an empty
-   leaf: delete the empty leaf; keep the non-empty note.
-2. Forward `Delete` on an empty leaf when there is no next note in document
-   order (empty leaf is last): delete the empty leaf.
-3. Forward `Delete` on an empty leaf when the next note exists but is non-leaf
-   (has children): delete the empty leaf.
-4. Forward `Delete` at end-of-note when the next note in document order is not
-   the next same-depth sibling (e.g. end of the last child should consider the
-   parent’s next sibling).
-5. Backspace at column 0 where the previous note in document order is a subtree
-   tail (e.g. first root-level note after a parent-with-children should merge
-   into the last descendant).
-6. Spacing-rule edge cases for Backspace merges (parity with the existing
-   forward-Delete spacing tests).
-
 ## Collab undo/redo determinism (unit tests)
 
 Make collaboration-mode undo/redo assertions deterministic so unit tests can
