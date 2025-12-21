@@ -124,8 +124,6 @@ document captures the full model.
 
 ## Checks
 
-- Guard every test command with a 60s timeout; if it times out, treat the test
-  as broken and investigate instead of extending the timeout.
 - Current timings on this machine (rounded with headroom): `pnpm run lint`
   about 5–10s, `pnpm run test:unit` about 10–20s, `pnpm run test:unit:collab`
   about 12–25s. If you ever hit the 60s guard, debug the failure (don’t extend);
