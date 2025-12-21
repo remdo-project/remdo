@@ -7,15 +7,28 @@ const GUARD_KEY = '__remdoProhibitNestedLexicalUpdatesInstalled';
 function isAllowedThirdPartyNestedUpdate(stack: string | undefined): boolean {
   if (!stack) return false;
 
-  const lexicalFramePattern = /node_modules[\\/].*lexical/i;
+  const lexicalFramePattern = /node_modules[\\/].*lexical|@lexical_[^/\\)]+\.js/i;
+  const viteChunkPattern = /chunk-[^/\\)]+\.js(?:\\?v=[^:)]+)?/i;
+  let firstRelevantLine: string | undefined;
+  let hasLexicalFrame = false;
 
   for (const line of stack.split('\n')) {
     if (!line.includes(' at ') || line.includes('ProhibitNestedLexicalUpdatesPlugin')) {
       continue;
     }
 
-    return lexicalFramePattern.test(line);
+    if (!firstRelevantLine) {
+      firstRelevantLine = line;
+    }
+
+    if (lexicalFramePattern.test(line)) {
+      hasLexicalFrame = true;
+    }
   }
+
+  if (!firstRelevantLine) return false;
+  if (lexicalFramePattern.test(firstRelevantLine)) return true;
+  if (viteChunkPattern.test(firstRelevantLine) && hasLexicalFrame) return true;
 
   return false;
 }
