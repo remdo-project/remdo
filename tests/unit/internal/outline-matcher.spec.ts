@@ -17,7 +17,32 @@ const CASES: OutlineCase[] = [
     ],
   },
   {
+    fixture: 'edge-spaces',
+    outline: [
+      { text: 'note1' },
+      { text: ' note2-space-left' },
+      { text: 'note3' },
+      { text: 'note4-space-right ' },
+      { text: 'note5' },
+    ],
+  },
+  {
     fixture: 'basic',
+    outline: [
+      { text: 'note1', children: [ { text: 'note2' } ] },
+      { text: 'note3' },
+    ],
+  },
+  {
+    fixture: 'formatted',
+    outline: [
+      { text: 'bold', children: [ { text: 'italic' } ] },
+      { text: 'underline' },
+      { text: 'plain bold italic underline plain' },
+    ],
+  },
+  {
+    fixture: 'main',
     outline: [
       { text: 'note1', children: [ { text: 'note2' } ] },
       { text: 'note3' },
