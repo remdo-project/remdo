@@ -83,7 +83,7 @@ describe('keyboard reordering (command path)', () => {
   });
 
   it('moving a mixed-depth contiguous range down is a no-op at a boundary (level-preserving)', async ({ remdo }) => {
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
     const outlineBefore = readOutline(remdo);
     await selectNoteRange(remdo, 'note2', 'note4'); // includes descendant note3
     await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND, undefined, { expect: 'noop' });
@@ -94,7 +94,7 @@ describe('keyboard reordering (command path)', () => {
   });
 
   it('deep nested boundary move down is a no-op (last child at depth)', async ({ remdo }) => {
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
     // Select nested leaf note3 only; it is the last child of note2
     await selectNoteRange(remdo, 'note3', 'note3');
     const outlineBefore = readOutline(remdo);
@@ -103,7 +103,7 @@ describe('keyboard reordering (command path)', () => {
   });
 
   it('deep nested boundary move up is a no-op (first child at depth)', async ({ remdo }) => {
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
     // Select nested leaf note3 only; it is also the first child of note2
     await selectNoteRange(remdo, 'note3', 'note3');
     const outlineBefore = readOutline(remdo);
@@ -112,7 +112,7 @@ describe('keyboard reordering (command path)', () => {
   });
 
   it('ancestor-only selection swaps intact with sibling within parent list', async ({ remdo }) => {
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
     await selectNoteRange(remdo, 'note2', 'note2'); // select ancestor with child note3
     await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND);
 
@@ -126,7 +126,7 @@ describe('keyboard reordering (command path)', () => {
     ]);
   });
   it('moving a mixed-depth contiguous range up is a no-op at a boundary (level-preserving)', async ({ remdo }) => {
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
     const outlineBefore = readOutline(remdo);
     await selectNoteRange(remdo, 'note2', 'note4'); // includes descendant note3
     await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND, undefined, { expect: 'noop' });

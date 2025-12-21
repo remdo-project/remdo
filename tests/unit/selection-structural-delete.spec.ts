@@ -14,7 +14,7 @@ function readWrapperChildList(wrapper: LexicalNode | null | undefined): ListNode
 
 describe('structural selection delete regression (local)', () => {
   it('bubbles Delete when structural heads were removed remotely', async ({ remdo }) => {
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
 
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -56,7 +56,7 @@ describe('structural selection delete regression (local)', () => {
   });
 
   it('bubbles Backspace when structural heads were removed remotely', async ({ remdo }) => {
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
 
     await placeCaretAtNote(remdo, 'note6');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });

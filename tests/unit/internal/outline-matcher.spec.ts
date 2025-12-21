@@ -58,7 +58,7 @@ const CASES: OutlineCase[] = [
     ],
   },
   {
-    fixture: 'tree_complex',
+    fixture: 'tree-complex',
     outline: [
       {
         text: 'note1',
@@ -125,7 +125,7 @@ describe('toMatchOutline smoke coverage', () => {
   });
 
   it('matches selection-only expectations', async ({ remdo }) => {
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
 
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -135,7 +135,7 @@ describe('toMatchOutline smoke coverage', () => {
   });
 
   it('reports selection mismatches', async ({ remdo }) => {
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
 
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });

@@ -90,7 +90,7 @@ resulting note tree.
     - note2
   ```
 
-- **tree_complex.json →**
+- **tree-complex.json →**
 
   ```text
   - note0

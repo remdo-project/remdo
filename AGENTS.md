@@ -27,8 +27,8 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   also states the single-source (no-duplication) rule for invariants.
 - `docs/outliner/concepts.md` (Medium). Canonical definition of notes,
   invariants (including non-empty tree), shared definitions (document order,
-  empty notes), and adapters—skim when working on data modeling or
-  serialization.
+  empty notes), adapters, and fixture examples—skim when working on data
+  modeling or serialization.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and
   indent/outdent semantics—consult when editing tree transforms or note
   mutations.
