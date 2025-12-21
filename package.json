@@ -50,6 +50,7 @@
     "test:all": "pnpm install --frozen-lockfile --lockfile-only && pnpm run lint && pnpm run test:unit && pnpm run test:unit:collab && pnpm run test:e2e",
     "test:unit": "timeout ${TEST_TIMEOUT:-60}s cross-env COLLAB_ENABLED=false pnpm exec vitest run",
     "test:unit:collab": "timeout ${TEST_TIMEOUT:-60}s pnpm exec vitest run",
+    "test:dev": "cross-env REMDO_VALIDATE_MAIN_DOC=1 pnpm exec vitest run tests/unit/collab/main-doc-schema.collab.spec.ts",
     "test:unit:coverage": "timeout ${TEST_TIMEOUT:-60}s cross-env COLLAB_ENABLED=false pnpm exec vitest run --coverage",
     "test:unit:watch": "COLLAB_ENABLED=false tsx ./tools/test-unit-watch.ts",
     "test:preview": "tsx ./tools/test-preview.ts",
