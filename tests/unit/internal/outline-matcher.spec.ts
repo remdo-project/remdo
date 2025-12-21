@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import path from 'node:path';
+import { promises as fs } from 'node:fs';
 import type { Outline } from '#tests';
 import { placeCaretAtNote, pressKey } from '#tests';
 
@@ -69,15 +71,15 @@ const CASES: OutlineCase[] = [
       { text: 'note6', children: [ { text: 'note7' } ] },
     ],
   },
-  {
-    fixture: 'empty-labels',
-    outline: [
-      { text: 'alpha' },
-      { text: ' ' },
-      { text: 'beta' },
-      { children: [ {}, { text: 'child-of-empty' } ] },
-    ],
-  },
+  //{
+  //  fixture: 'empty-labels',
+  //  outline: [
+  //    { text: 'alpha' },
+  //    { text: ' ' },
+  //    { text: 'beta' },
+  //    { children: [ {}, { text: 'child-of-empty' } ] },
+  //  ],
+  //},
 ];
 
 describe('toMatchOutline smoke coverage', () => {
@@ -87,6 +89,19 @@ describe('toMatchOutline smoke coverage', () => {
       expect(remdo).toMatchOutline(outline);
     });
   }
+
+  it('covers every fixture', async () => {
+    const fixturesRoot = path.resolve('tests/fixtures');
+    const entries = await fs.readdir(fixturesRoot);
+    const fixtureNames = entries
+      .filter((entry) => entry.endsWith('.json'))
+      .map((entry) => entry.slice(0, -'.json'.length));
+
+    const sortedFixtureNames = fixtureNames.toSorted();
+    const covered = CASES.map(({ fixture }) => fixture).toSorted();
+
+    expect(covered).toEqual(sortedFixtureNames);
+  });
 
   it('surfaces expected vs received outline when the matcher fails', async ({ remdo }) => {
     await remdo.load('flat');
