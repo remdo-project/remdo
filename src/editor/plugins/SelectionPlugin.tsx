@@ -93,7 +93,6 @@ interface StructuralSelectionRange {
   visualEndKey: string;
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const PROGRESSIVE_SELECTION_DIRECTION_COMMAND = createCommand<{
   direction: 'up' | 'down';
 }>('selection:progressive-direction');
