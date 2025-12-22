@@ -143,7 +143,7 @@ Plan steps (adjust as needed while refactoring):
    - asserts `toMatchOutline` with a fixture-specific outline,
    - calls `assertEditorSchema` explicitly (even though TestBridge already
      checks it).
-3. After load, run `minifyEditorState(remdo.getEditorState())`, serialize
+3. After load, run `stripEditorStateDefaults(remdo.getEditorState())`, serialize
    deterministically, and compare to a committed minified snapshot; keep the
    load-critical fields (`format/indent/direction`, list `listType/start/tag`,
    text `detail/format/mode/style`, and listitem `value`) so fixtures remain
@@ -155,12 +155,12 @@ Plan steps (adjust as needed while refactoring):
 5. Generate or refresh the canonical minified fixtures for all entries, and
    document the regeneration command/flow next to the plan.
 6. Optional sanity check: ensure
-   `minifyEditorState(JSON.parse(originalFixture))` matches the post-load
+   `stripEditorStateDefaults(JSON.parse(originalFixture))` matches the post-load
    minified state to detect parser normalization; drop this if it proves noisy.
 7. Add a guard test that enumerates fixture filenames (excluding
    `tests/fixtures/editor-schema/**`) and fails if any are missing from the
    per-fixture coverage list so new fixtures cannot land without an
    outline/schema check.
-8. Optional: add an `inflateEditorState` helper that rehydrates missing default
-   fields before load to allow more aggressive minification; keep `listitem.value`
-   even with inflation.
+8. Optional: add a `restoreEditorStateDefaults` helper that rehydrates missing
+   default fields before load to allow more aggressive minification; keep
+   `listitem.value` even with inflation.
