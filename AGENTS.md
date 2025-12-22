@@ -49,8 +49,7 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   children already exist, otherwise a sibling.
 - `docs/todo.md` (Very long). Scratchpad for in-flight work: keep active tasks
   only (drop completed items), and move durable specs into the appropriate doc
-  under `docs/`. Includes selection edge-case coverage notes for empty notes
-  plus the Lexical fixture trust/minified snapshot plan.
+  under `docs/`. Includes selection edge-case coverage notes for empty notes.
 - `docs/deployment-single-container.md` (Short). How to build and run the
   single-container image (Caddy + Y-Sweet) and its env knobs, including basic
   auth requirements.

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import type { Outline } from '#tests';
 import { placeCaretAtNote, pressKey } from '#tests';
+import { stripEditorStateDefaults } from '#tests-common/lexical-state';
 
 interface OutlineCase {
   fixture: string;
@@ -87,6 +88,12 @@ describe('toMatchOutline smoke coverage', () => {
     it(`reads ${fixture}`, async ({ remdo }) => {
       await remdo.load(fixture);
       expect(remdo).toMatchOutline(outline);
+
+      const fixturePath = path.resolve('tests/fixtures', `${fixture}.json`);
+      const raw = await fs.readFile(fixturePath, 'utf8');
+      const minified = stripEditorStateDefaults(remdo.getEditorState());
+      const minifiedRaw = `${JSON.stringify(minified, null, 2)}\n`;
+      expect(minifiedRaw).toBe(raw);
     });
   }
 
