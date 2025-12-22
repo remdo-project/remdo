@@ -2,14 +2,14 @@ import { config } from '#config';
 import { afterEach, beforeEach } from 'vitest';
 import { env } from 'node:process';
 import type { TestContext } from 'vitest';
-import { readFixture } from '../../../../../_support/fixtures';
+import { readFixture } from '#tests-common/fixtures';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
 
 let collabDocCounter = 0;
 beforeEach<TestContext>(async (ctx) => {
   const task = ctx.task as TestContext['task'] | undefined;
-  const metaRaw = task?.meta as { collabDocId?: string } | undefined;
-  const meta = metaRaw ?? {};
+  const meta = (task?.meta ?? {}) as { collabDocId?: string; preserveCollabState?: boolean };
+  const preserveCollabState = meta.preserveCollabState === true;
 
   let docId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
   if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {
@@ -27,11 +27,13 @@ beforeEach<TestContext>(async (ctx) => {
 
   await remdo._bridge.waitForCollaborationReady();
 
-  await remdo.load('basic'); //FIXME
+  if (!preserveCollabState) {
+    await remdo.load('basic'); //FIXME
 
-  if (config.env.COLLAB_ENABLED) {
-    await remdo._bridge.clear();
-    await remdo.waitForSynced();
+    if (config.env.COLLAB_ENABLED) {
+      await remdo._bridge.clear();
+      await remdo.waitForSynced();
+    }
   }
 });
 

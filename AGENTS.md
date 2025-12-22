@@ -27,8 +27,8 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   also states the single-source (no-duplication) rule for invariants.
 - `docs/outliner/concepts.md` (Medium). Canonical definition of notes,
   invariants (including non-empty tree), shared definitions (document order,
-  empty notes), and adapters—skim when working on data modeling or
-  serialization.
+  empty notes), adapters, and fixture examples—skim when working on data
+  modeling or serialization.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and
   indent/outdent semantics—consult when editing tree transforms or note
   mutations.
@@ -128,6 +128,9 @@ document captures the full model.
   about 5–10s, `pnpm run test:unit` about 10–20s, `pnpm run test:unit:collab`
   about 12–25s. If you ever hit the 60s guard, debug the failure (don’t extend);
   only adjust ranges if healthy runs consistently land outside them.
+- E2E (Playwright): run `pnpm test:e2e`. In sandboxed environments, accessing
+  the local dev server (localhost) may require network escalation; without it,
+  Playwright can’t reach the server and will fail to start.
 
 ### Scoped check runs (validated 2025-12-09; commands trimmed to tool defaults and pnpm scripts where they behave)
 

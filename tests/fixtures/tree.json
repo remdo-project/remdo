@@ -1,102 +1,54 @@
 {
   "root": {
+    "type": "root",
     "children": [
       {
+        "type": "list",
         "children": [
           {
+            "type": "listitem",
+            "value": 1,
             "children": [
               {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
                 "text": "note1",
-                "type": "text",
-                "version": 1
+                "type": "text"
               }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 1
+            ]
           },
           {
+            "type": "listitem",
+            "value": 2,
             "children": [
               {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
                 "text": "note2",
-                "type": "text",
-                "version": 1
+                "type": "text"
               }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 2
+            ]
           },
           {
+            "type": "listitem",
+            "value": 3,
             "children": [
               {
+                "type": "list",
                 "children": [
                   {
-                    "children": [
-                      {
-                        "detail": 0,
-                        "format": 0,
-                        "mode": "normal",
-                        "style": "",
-                        "text": "note3",
-                        "type": "text",
-                        "version": 1
-                      }
-                    ],
-                    "direction": null,
-                    "format": "",
                     "indent": 1,
                     "type": "listitem",
-                    "version": 1,
-                    "value": 1
+                    "value": 1,
+                    "children": [
+                      {
+                        "text": "note3",
+                        "type": "text"
+                      }
+                    ]
                   }
-                ],
-                "direction": null,
-                "format": "",
-                "indent": 0,
-                "type": "list",
-                "version": 1,
-                "listType": "bullet",
-                "start": 1,
-                "tag": "ul"
+                ]
               }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 3
+            ]
           }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "list",
-        "version": 1,
-        "listType": "bullet",
-        "start": 1,
-        "tag": "ul"
+        ]
       }
-    ],
-    "direction": null,
-    "format": "",
-    "indent": 0,
-    "type": "root",
-    "version": 1
+    ]
   }
 }

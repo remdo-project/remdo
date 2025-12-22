@@ -8,7 +8,8 @@ Rules:
 
 - Mark completed items as `✅ Done` while a section is still active.
 - Delete sections once fully done (no archive here).
-- Move durable decisions/specs into the relevant doc under `docs/`, leaving a link behind.
+- Move durable decisions/specs into the relevant doc under `docs/`, leaving a
+  link behind.
 
 ## Align note indent/outdent helpers with Lexical
 
@@ -22,21 +23,6 @@ Rules:
    siblings.
 3. Add mixed valid/invalid nested list fixture to confirm validator behavior.
 4. Reuse editor schema fixtures across other tests that need serialized states.
-
-## Add minifyEditorState round-trip test coverage
-
-Evaluate adding a test that loops through every JSON fixture, runs
-`minifyEditorState`, loads the result into Lexical, then re-serializes and
-compares to the original data structure.
-
-Options to consider when implementing:
-
-1. Extend the existing `lexicalLoad` harness with a variant that accepts raw
-   JSON (no temp files). Pros: reuses the established editor config. Cons:
-   requires a small refactor of the helper.
-2. Spin up a headless `LexicalEditor` directly inside the test. Pros: minimal
-   setup, fast. Cons: must ensure node registrations/config match the main
-   editor to avoid false diffs.
 
 ## OutlineSelection + dataset removal
 
@@ -86,8 +72,8 @@ Dockerfile checks) and decide whether to gate CI on its report.
 ## Outline helper unit tests
 
 - Add coverage for `list-structure` helpers (content/wrapper detection,
-  child-list creation, wrapper cleanup) and `selection-utils` helpers
-  (selected notes) to lock behaviors.
+  child-list creation, wrapper cleanup) and `selection-utils` helpers (selected
+  notes) to lock behaviors.
 - Prefer unit tests near the helpers; keep fixtures minimal and mirror current
   tree shapes in `tests/fixtures`.
 

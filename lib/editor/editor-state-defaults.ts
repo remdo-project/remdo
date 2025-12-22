@@ -4,9 +4,7 @@ type NodeWithChildren = SerializedLexicalNode & {
   children?: SerializedLexicalNode[];
 };
 
-const ALWAYS_STRIP = Symbol('minifyEditorState.alwaysStrip');
-
-type DefaultEntry = Record<string, unknown> & Partial<Record<string | typeof ALWAYS_STRIP, unknown>>;
+type DefaultEntry = Record<string, unknown>;
 
 const NODE_DEFAULTS = {
   root: {
@@ -29,7 +27,6 @@ const NODE_DEFAULTS = {
     format: '',
     indent: 0,
     direction: null,
-    value: ALWAYS_STRIP,
   },
   text: {
     version: 1,
@@ -40,9 +37,15 @@ const NODE_DEFAULTS = {
   },
 } as const satisfies Record<string, DefaultEntry>;
 
-export function minifyEditorState(editorState: SerializedEditorState): SerializedEditorState {
+export function stripEditorStateDefaults(editorState: SerializedEditorState): SerializedEditorState {
   return {
     root: minifyNode(editorState.root) as SerializedEditorState['root'],
+  };
+}
+
+export function restoreEditorStateDefaults(editorState: SerializedEditorState): SerializedEditorState {
+  return {
+    root: restoreDefaultsForNode(editorState.root) as SerializedEditorState['root'],
   };
 }
 
@@ -55,7 +58,7 @@ function minifyNode(node: NodeWithChildren): NodeWithChildren {
     ? NODE_DEFAULTS[node.type as keyof typeof NODE_DEFAULTS]
     : undefined;
 
-  const defaults = (defaultsEntry ?? {}) as Record<string | typeof ALWAYS_STRIP, unknown>;
+  const defaults = (defaultsEntry ?? {}) as Record<string, unknown>;
   const result: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(node)) {
@@ -69,10 +72,6 @@ function minifyNode(node: NodeWithChildren): NodeWithChildren {
     }
 
     const defaultValue = defaults[key];
-    if (defaultValue === ALWAYS_STRIP) {
-      continue;
-    }
-
     if (defaultValue !== undefined && isEqual(value, defaultValue)) {
       continue;
     }
@@ -81,6 +80,27 @@ function minifyNode(node: NodeWithChildren): NodeWithChildren {
   }
 
   return sortKeys(result) as NodeWithChildren;
+}
+
+function restoreDefaultsForNode(node: NodeWithChildren): NodeWithChildren {
+  const defaultsEntry = Object.prototype.hasOwnProperty.call(NODE_DEFAULTS, node.type)
+    ? NODE_DEFAULTS[node.type as keyof typeof NODE_DEFAULTS]
+    : undefined;
+  const defaults = (defaultsEntry ?? {}) as Record<string, unknown>;
+
+  const result: Record<string, unknown> = { ...node };
+
+  if (Array.isArray(node.children)) {
+    result.children = node.children.map((child) => restoreDefaultsForNode(child));
+  }
+
+  for (const [key, defaultValue] of Object.entries(defaults)) {
+    if (!(key in result)) {
+      result[key] = defaultValue;
+    }
+  }
+
+  return result as NodeWithChildren;
 }
 
 function isEqual(a: unknown, b: unknown): boolean {

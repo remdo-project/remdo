@@ -141,7 +141,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   });
 
   it('enter at start when the previous sibling has children inserts a new sibling above and keeps that subtree intact', async ({ remdo }) => {
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
 
     await placeCaretAtNote(remdo, 'note4', 0);
     await pressKey(remdo, { key: 'Enter' });
@@ -166,7 +166,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   });
 
   it('enter in the middle of a note with descendants keeps the subtree on the trailing segment', async ({ remdo }) => {
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
 
     await placeCaretAtNote(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });

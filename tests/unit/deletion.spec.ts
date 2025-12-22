@@ -134,7 +134,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     });
 
     it('drops an empty grandchild when Backspace is pressed at its start', async ({ remdo }) => {
-      await remdo.load('tree_complex');
+      await remdo.load('tree-complex');
 
       await placeCaretAtNote(remdo, 'note4', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Tab' }); // indent note4 under note2
@@ -170,7 +170,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     });
 
     it('merges with the previous note in document order (across subtrees) on Backspace at column 0', async ({ remdo }) => {
-      await remdo.load('tree_complex');
+      await remdo.load('tree-complex');
 
       await placeCaretAtNote(remdo, 'note5', 0);
       await pressKey(remdo, { key: 'Backspace' });
@@ -273,7 +273,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     });
 
     it('drops an empty child when Delete is pressed at its end even when the next note is a cousin', async ({ remdo }) => {
-      await remdo.load('tree_complex');
+      await remdo.load('tree-complex');
       const before = readOutline(remdo);
 
       await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
@@ -297,7 +297,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     });
 
     it('drops an empty leaf when Delete is pressed at its end and the next note has children', async ({ remdo }) => {
-      await remdo.load('tree_complex');
+      await remdo.load('tree-complex');
       const before = readOutline(remdo);
 
       await placeCaretAtNote(remdo, 'note5', Number.POSITIVE_INFINITY);
@@ -309,7 +309,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     });
 
     it('ignores Delete at a parent end when the next note in document order has children', async ({ remdo }) => {
-      await remdo.load('tree_complex');
+      await remdo.load('tree-complex');
 
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
       const before = remdo.getEditorState();
@@ -359,7 +359,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     });
 
     it('merges with the next note in document order even when it is not a same-depth sibling', async ({ remdo }) => {
-      await remdo.load('tree_complex');
+      await remdo.load('tree-complex');
 
       await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });

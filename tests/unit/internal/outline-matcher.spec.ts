@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import path from 'node:path';
+import { promises as fs } from 'node:fs';
 import type { Outline } from '#tests';
 import { placeCaretAtNote, pressKey } from '#tests';
+import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 
 interface OutlineCase {
   fixture: string;
@@ -17,7 +20,32 @@ const CASES: OutlineCase[] = [
     ],
   },
   {
+    fixture: 'edge-spaces',
+    outline: [
+      { text: 'note1' },
+      { text: ' note2-space-left' },
+      { text: 'note3' },
+      { text: 'note4-space-right ' },
+      { text: 'note5' },
+    ],
+  },
+  {
     fixture: 'basic',
+    outline: [
+      { text: 'note1', children: [ { text: 'note2' } ] },
+      { text: 'note3' },
+    ],
+  },
+  {
+    fixture: 'formatted',
+    outline: [
+      { text: 'bold', children: [ { text: 'italic' } ] },
+      { text: 'underline' },
+      { text: 'plain bold italic underline plain' },
+    ],
+  },
+  {
+    fixture: 'main',
     outline: [
       { text: 'note1', children: [ { text: 'note2' } ] },
       { text: 'note3' },
@@ -31,7 +59,7 @@ const CASES: OutlineCase[] = [
     ],
   },
   {
-    fixture: 'tree_complex',
+    fixture: 'tree-complex',
     outline: [
       {
         text: 'note1',
@@ -60,8 +88,27 @@ describe('toMatchOutline smoke coverage', () => {
     it(`reads ${fixture}`, async ({ remdo }) => {
       await remdo.load(fixture);
       expect(remdo).toMatchOutline(outline);
+
+      const fixturePath = path.resolve('tests/fixtures', `${fixture}.json`);
+      const raw = await fs.readFile(fixturePath, 'utf8');
+      const minified = stripEditorStateDefaults(remdo.getEditorState());
+      const minifiedRaw = `${JSON.stringify(minified, null, 2)}\n`;
+      expect(minifiedRaw).toBe(raw);
     });
   }
+
+  it('covers every fixture', async () => {
+    const fixturesRoot = path.resolve('tests/fixtures');
+    const entries = await fs.readdir(fixturesRoot);
+    const fixtureNames = entries
+      .filter((entry) => entry.endsWith('.json'))
+      .map((entry) => entry.slice(0, -'.json'.length));
+
+    const sortedFixtureNames = fixtureNames.toSorted();
+    const covered = CASES.map(({ fixture }) => fixture).toSorted();
+
+    expect(covered).toEqual(sortedFixtureNames);
+  });
 
   it('surfaces expected vs received outline when the matcher fails', async ({ remdo }) => {
     await remdo.load('flat');
@@ -85,7 +132,7 @@ describe('toMatchOutline smoke coverage', () => {
   });
 
   it('matches selection-only expectations', async ({ remdo }) => {
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
 
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -95,7 +142,7 @@ describe('toMatchOutline smoke coverage', () => {
   });
 
   it('reports selection mismatches', async ({ remdo }) => {
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
 
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });

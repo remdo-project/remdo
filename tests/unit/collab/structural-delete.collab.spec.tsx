@@ -7,7 +7,7 @@ import { renderCollabEditor } from './_support/remdo-peers';
 describe('collab structural delete regression', () => {
   it('bubbles Delete when structural selection was removed by a collaborator', async ({ remdo }) => {
     const docId = remdo.getCollabDocId();
-    await remdo.load('tree_complex');
+    await remdo.load('tree-complex');
     await remdo.waitForSynced();
 
     const editorA = remdo;
