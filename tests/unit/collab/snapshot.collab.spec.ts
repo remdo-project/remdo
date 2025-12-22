@@ -7,6 +7,7 @@ import type { TestContext } from 'vitest';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import type { Buffer } from 'node:buffer';
+import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 
 const SNAPSHOT_TIMEOUT_MS = 15_000;
 
@@ -53,13 +54,14 @@ function readEditorState(filePath: string): SerializedEditorState {
   it('loads data into collaboration doc and writes it back to disk', async () => {
     const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-basic' };
     const loadPath = path.resolve('tests/fixtures/basic.json');
+    const expected = stripEditorStateDefaults(readEditorState(loadPath));
     const savePath = SNAPSHOT_OUTPUTS[0]!;
     runSnapshotCommand('load', [loadPath], docEnv);
 
     await waitFor(() => {
       runSnapshotCommand('save', [savePath], docEnv);
-      const saved = readEditorState(savePath);
-      return JSON.stringify(saved) === JSON.stringify(readEditorState(loadPath));
+      const saved = stripEditorStateDefaults(readEditorState(savePath));
+      return JSON.stringify(saved) === JSON.stringify(expected);
     });
   }, SNAPSHOT_TIMEOUT_MS);
 
@@ -72,10 +74,10 @@ function readEditorState(filePath: string): SerializedEditorState {
       await remdo.waitForSynced();
 
       const savePath = SNAPSHOT_OUTPUTS[1]!;
-      const expectedState = readEditorState(path.resolve('tests/fixtures/flat.json'));
+      const expectedState = stripEditorStateDefaults(readEditorState(path.resolve('tests/fixtures/flat.json')));
       await waitFor(() => {
         runSnapshotCommand('save', [savePath], docEnv);
-        const saved = readEditorState(savePath);
+        const saved = stripEditorStateDefaults(readEditorState(savePath));
         return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
       });
     }
@@ -91,16 +93,16 @@ function readEditorState(filePath: string): SerializedEditorState {
 
       await remdo.waitForSynced();
 
-      const expectedState = readEditorState(loadPath);
+      const expectedState = stripEditorStateDefaults(readEditorState(loadPath));
       const savePath = SNAPSHOT_OUTPUTS[2]!;
 
       await waitFor(() => {
         runSnapshotCommand('save', [savePath], docEnv);
-        const saved = readEditorState(savePath);
+        const saved = stripEditorStateDefaults(readEditorState(savePath));
         return JSON.stringify(saved.root) === JSON.stringify(expectedState.root);
       });
 
-      const savedState = readEditorState(savePath);
+      const savedState = stripEditorStateDefaults(readEditorState(savePath));
       expect(savedState.root).toEqual(expectedState.root);
 
       await remdo.waitForSynced();
@@ -110,14 +112,14 @@ function readEditorState(filePath: string): SerializedEditorState {
   it('resolves the document id from the CLI flag', async () => {
     const docId = 'cli-flag';
     const loadPath = path.resolve('tests/fixtures/basic.json');
+    const expected = stripEditorStateDefaults(readEditorState(loadPath));
     const savePath = path.resolve('data', `${docId}.json`);
 
     runSnapshotCommand('load', ['--doc', docId, loadPath]);
 
     await waitFor(() => {
       runSnapshotCommand('save', ['--doc', docId, savePath]);
-      const saved = readEditorState(savePath);
-      const expected = readEditorState(loadPath);
+      const saved = stripEditorStateDefaults(readEditorState(savePath));
       return JSON.stringify(saved) === JSON.stringify(expected);
     });
   });
@@ -149,6 +151,8 @@ function readEditorState(filePath: string): SerializedEditorState {
 
       const defaultFixture = path.resolve('tests/fixtures/basic.json');
       const secondaryFixture = path.resolve('tests/fixtures/tree.json');
+      const expectedDefault = stripEditorStateDefaults(readEditorState(defaultFixture));
+      const expectedSecondary = stripEditorStateDefaults(readEditorState(secondaryFixture));
       const defaultOutput = path.resolve('data', `${defaultDoc}.json`);
       const secondaryOutput = path.resolve('data', `${secondaryDoc}.json`);
 
@@ -160,14 +164,14 @@ function readEditorState(filePath: string): SerializedEditorState {
 
       await waitFor(() => {
         runSnapshotCommand('save', [defaultOutput], envOverrides);
-        const savedDefault = readEditorState(defaultOutput);
-        expect(savedDefault.root).toEqual(readEditorState(defaultFixture).root);
+        const savedDefault = stripEditorStateDefaults(readEditorState(defaultOutput));
+        expect(savedDefault.root).toEqual(expectedDefault.root);
       });
 
       await waitFor(() => {
         runSnapshotCommand('save', ['--doc', secondaryDoc, secondaryOutput]);
-        const savedSecondary = readEditorState(secondaryOutput);
-        expect(savedSecondary.root).toEqual(readEditorState(secondaryFixture).root);
+        const savedSecondary = stripEditorStateDefaults(readEditorState(secondaryOutput));
+        expect(savedSecondary.root).toEqual(expectedSecondary.root);
       });
     }
   );

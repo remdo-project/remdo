@@ -18,6 +18,7 @@ import type { Provider } from '@lexical/yjs';
 import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lexical';
 
 import { config } from '#config';
+import { restoreEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollabSession } from '#lib/collaboration/session';
 
@@ -223,7 +224,8 @@ async function runBackup(
 }
 
 async function runLoad(docId: string, collabOrigin: string, filePath: string): Promise<void> {
-  const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as SerializedEditorState;
+  const raw = JSON.parse(fs.readFileSync(filePath, 'utf8')) as SerializedEditorState;
+  const data = restoreEditorStateDefaults(raw);
   await withSession(docId, collabOrigin, async (editor, { session }) => {
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data), { tag: 'snapshot-load' });

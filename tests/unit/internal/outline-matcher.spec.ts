@@ -3,7 +3,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import type { Outline } from '#tests';
 import { placeCaretAtNote, pressKey } from '#tests';
-import { stripEditorStateDefaults } from '#tests-common/lexical-state';
+import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 
 interface OutlineCase {
   fixture: string;
