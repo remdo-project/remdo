@@ -11,7 +11,7 @@ import { $isListNode } from '@lexical/list';
 import { config } from '#config';
 
 import type { RemdoTestApi } from '@/editor/plugins/dev';
-import { findNearestListItem, placeCaretAtNote, pressKey, readOutline, selectNoteRange, typeText } from '#tests';
+import { findNearestListItem, placeCaretAtNote, pressKey, readCaretNoteKey, readOutline, selectNoteRange, typeText } from '#tests';
 
 // Coverage gaps (handled in e2e instead of unit tests):
 // - Inline Backspace/Delete inside a note: jsdom doesn’t emulate native deletion
@@ -229,8 +229,10 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
           children: [
             {},
             { text: 'child-of-empty' },
+            {},
           ],
         },
+        {},
       ]);
 
       await placeCaretAtNote(remdo, ' ', Number.POSITIVE_INFINITY);
@@ -247,8 +249,10 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
           children: [
             {},
             { text: 'child-of-empty' },
+            {},
           ],
         },
+        {},
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'beta' });
 
@@ -644,22 +648,6 @@ function readNoteKeyByText(remdo: RemdoTestApi, label: string): string {
     const item = findItemByText(list, label);
     if (!item) {
       throw new Error(`No note found with text: ${label}`);
-    }
-
-    return item.getKey();
-  });
-}
-
-function readCaretNoteKey(remdo: RemdoTestApi): string {
-  return remdo.validate(() => {
-    const selection = $getSelection();
-    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-      throw new Error('Expected collapsed caret selection');
-    }
-
-    const item = findNearestListItem(selection.anchor.getNode()) ?? findNearestListItem(selection.focus.getNode());
-    if (!item) {
-      throw new Error('Expected caret to be inside a list item');
     }
 
     return item.getKey();

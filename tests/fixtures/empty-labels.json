@@ -63,10 +63,21 @@
                         "type": "text"
                       }
                     ]
+                  },
+                  {
+                    "indent": 1,
+                    "type": "listitem",
+                    "value": 3,
+                    "children": []
                   }
                 ]
               }
             ]
+          },
+          {
+            "type": "listitem",
+            "value": 6,
+            "children": []
           }
         ]
       }

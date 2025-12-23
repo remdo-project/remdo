@@ -78,7 +78,8 @@ const CASES: OutlineCase[] = [
       { text: 'alpha' },
       { text: ' ' },
       { text: 'beta' },
-      { children: [ {}, { text: 'child-of-empty' } ] },
+      { children: [ {}, { text: 'child-of-empty' }, {} ] },
+      {},
     ],
   },
 ];

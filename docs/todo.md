@@ -64,11 +64,6 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
    undo/redo after structural deletion” in collab mode once the above is in
    place, and keep it as a required regression check.
 
-## Container image security lint
-
-Evaluate adding Dockle to scan the built container image (complements Hadolint’s
-Dockerfile checks) and decide whether to gate CI on its report.
-
 ## Outline helper unit tests
 
 - Add coverage for `list-structure` helpers (content/wrapper detection,
@@ -76,15 +71,6 @@ Dockerfile checks) and decide whether to gate CI on its report.
   notes) to lock behaviors.
 - Prefer unit tests near the helpers; keep fixtures minimal and mirror current
   tree shapes in `tests/fixtures`.
-
-## Unified Lexical test bridge (window-based)
-
-1. Consider letting `Editor` accept a `docId` prop that overrides URL parsing
-   (tests/stories could set it directly; production would keep URL as default),
-   with optional history sync toggle to avoid mutating location in test
-   harnesses.
-2. Remove any legacy test-only components once the bridge is wired, and note the
-   transition in docs so the prior harness doesn’t reappear.
 
 ## InsertionPlugin
 

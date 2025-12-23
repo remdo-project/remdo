@@ -5,6 +5,7 @@ import type { TextNode } from 'lexical';
 import { $createRangeSelection, $getRoot, $getSelection, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
+import { findNearestListItem } from './selection';
 export type { Outline, OutlineNode } from '#tests-common/outline';
 
 export type SelectionSnapshot =
@@ -101,6 +102,22 @@ export async function selectEntireNote(remdo: RemdoTestApi, noteText: string): P
 
     const length = anchorNode.getTextContentSize();
     selection.setTextNodeRange(anchorNode, 0, anchorNode, length);
+  });
+}
+
+export function readCaretNoteKey(remdo: RemdoTestApi): string {
+  return remdo.validate(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+      throw new Error('Expected collapsed caret selection');
+    }
+
+    const item = findNearestListItem(selection.anchor.getNode()) ?? findNearestListItem(selection.focus.getNode());
+    if (!item) {
+      throw new Error('Expected caret to be inside a list item');
+    }
+
+    return item.getKey();
   });
 }
 
