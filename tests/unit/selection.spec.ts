@@ -5,6 +5,7 @@ import {
   collectSelectedListItems,
   getListItemLabel,
   placeCaretAtNote,
+  placeCaretAtNoteId,
   pressKey,
   readOutline,
   typeText,
@@ -1143,7 +1144,7 @@ describe('selection plugin', () => {
   it('skips the inline stage for whitespace-only notes on Cmd/Ctrl+A', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    await placeCaretAtNote(remdo, ' ');
+    await placeCaretAtNoteId(remdo, 'whitespace');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: [' '] });

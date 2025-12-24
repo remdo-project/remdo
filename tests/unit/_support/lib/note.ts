@@ -2,9 +2,10 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import type { TextNode } from 'lexical';
-import { $createRangeSelection, $getRoot, $getSelection, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
+import { $createRangeSelection, $getRoot, $getSelection, $getState, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
+import { noteIdState } from '@/editor/nodes/NoteListItemNode';
 export type { Outline, OutlineNode } from '#tests-common/outline';
 
 export type SelectionSnapshot =
@@ -14,26 +15,38 @@ export type SelectionSnapshot =
   | { state: 'structural'; notes: string[] };
 
 
-function findItemByText(listNode: ListNode | null, noteText: string): ListItemNode | null {
+type ItemMatcher = (item: ListItemNode) => boolean;
+
+function findItem(listNode: ListNode | null, matcher: ItemMatcher): ListItemNode | null {
   const items = listNode?.getChildren<ListItemNode>() ?? [];
   for (const item of items) {
-    const children = item.getChildren();
-    const contentNodes = children.filter((child) => child.getType() !== 'list');
-    const text = contentNodes
-      .map((child) => child.getTextContent())
-      .join('');
-
-    if (text === noteText) {
+    if (matcher(item)) {
       return item;
     }
 
-    const nestedLists = children.filter((child): child is ListNode => child.getType() === 'list');
+    const nestedLists = item.getChildren().filter((child): child is ListNode => child.getType() === 'list');
     for (const nested of nestedLists) {
-      const found = findItemByText(nested, noteText);
+      const found = findItem(nested, matcher);
       if (found) return found;
     }
   }
   return null;
+}
+
+function findItemByText(listNode: ListNode | null, noteText: string): ListItemNode | null {
+  return findItem(listNode, (item) => {
+    const text = item
+      .getChildren()
+      .filter((child) => child.getType() !== 'list')
+      .map((child) => child.getTextContent())
+      .join('');
+
+    return text === noteText;
+  });
+}
+
+function findItemByNoteId(listNode: ListNode | null, noteId: string): ListItemNode | null {
+  return findItem(listNode, (item) => $getState(item, noteIdState) === noteId);
 }
 
 /**
@@ -46,6 +59,31 @@ function findItemByText(listNode: ListNode | null, noteText: string): ListItemNo
  * - When no textual child is available, the helper falls back to `selectStart`/`selectEnd` on the list item,
  *   in which case the `offset` is ignored unless selecting the end is explicitly requested via a positive value.
  */
+function placeCaretInsideItem(item: ListItemNode, offset: number) {
+  const children = item.getChildren();
+  const textNode = children.find((child): child is TextNode => child.getType() === 'text');
+
+  if (textNode) {
+    const length = textNode.getTextContentSize();
+    const normalized = offset < 0 ? length + offset : offset;
+    const clamped = Math.max(0, Math.min(length, normalized));
+    textNode.select(clamped, clamped);
+    return;
+  }
+
+  if (offset <= 0 && typeof item.selectStart === 'function') {
+    item.selectStart();
+    return;
+  }
+
+  if (typeof item.selectEnd === 'function') {
+    item.selectEnd();
+    return;
+  }
+
+  throw new TypeError('Expected note to expose caret selection controls');
+}
+
 export async function placeCaretAtNote(remdo: RemdoTestApi, noteText: string, offset = 0) {
   await remdo.mutate(() => {
     const root = $getRoot();
@@ -55,28 +93,20 @@ export async function placeCaretAtNote(remdo: RemdoTestApi, noteText: string, of
     const item = findItemByText(list, noteText);
     if (!item) throw new Error(`No list item found with text: ${noteText}`);
 
-    const children = item.getChildren();
-    const textNode = children.find((child): child is TextNode => child.getType() === 'text');
+    placeCaretInsideItem(item, offset);
+  });
+}
 
-    if (textNode) {
-      const length = textNode.getTextContentSize();
-      const normalized = offset < 0 ? length + offset : offset;
-      const clamped = Math.max(0, Math.min(length, normalized));
-      textNode.select(clamped, clamped);
-      return;
-    }
+export async function placeCaretAtNoteId(remdo: RemdoTestApi, noteId: string, offset = 0) {
+  await remdo.mutate(() => {
+    const root = $getRoot();
+    const list = root.getFirstChild();
+    if (!list || !$isListNode(list)) throw new Error('Expected a list root');
 
-    if (offset <= 0 && typeof item.selectStart === 'function') {
-      item.selectStart();
-      return;
-    }
+    const item = findItemByNoteId(list, noteId);
+    if (!item) throw new Error(`No list item found with noteId: ${noteId}`);
 
-    if (typeof item.selectEnd === 'function') {
-      item.selectEnd();
-      return;
-    }
-
-    throw new TypeError('Expected note to expose caret selection controls');
+    placeCaretInsideItem(item, offset);
   });
 }
 
