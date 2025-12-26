@@ -24,30 +24,66 @@ Rules:
 3. Add mixed valid/invalid nested list fixture to confirm validator behavior.
 4. Reuse editor schema fixtures across other tests that need serialized states.
 
-## OutlineSelection + dataset removal
+## OutlineSelection + dataset removal (refactor plan)
 
-### Motivation
+### Goals
 
-- Stage-2 selection currently lives only in SelectionPlugin state; Lexical’s
-  `RangeSelection` still reports inline anchors because ListItemNodes cannot be
-  empty. Tests rely on `rootElement.dataset.structuralSelectionKeys` to observe
-  structural mode, which is brittle and DOM-specific.
+- Replace brittle DOM dataset reads with a programmatic `OutlineSelection` API.
+- Keep the selection contract aligned with `docs/outliner/selection.md`.
+- Reduce SelectionPlugin complexity by consolidating helpers and state.
 
-### OutlineSelection concept
+### Plan (incremental refactor)
 
-1. Introduce a custom `OutlineSelection` wrapper that tracks note keys and
-   mirrors the progressive ladder stages.
-2. Expose helpers (e.g., `editor.getOutlineSelection()`) so tests and other
-   plugins can read structural selection data without touching the DOM.
-3. Propagate this selection through commands like `Shift+Arrow`, Home/End, and
-   structural actions so caret collapse remains accurate.
+1. **Introduce OutlineSelection model + store**
+   - New module `src/editor/outline/outline-selection.ts` with a single source-of-truth type:
+     - `kind: 'caret' | 'inline' | 'structural'`
+     - `stage` (progressive ladder stage)
+     - `anchorKey` / `focusKey` (content list item keys)
+     - `headKeys` (structural heads, document order)
+     - `range` (`caretStartKey`, `caretEndKey`, `visualStartKey`, `visualEndKey`)
+     - `isBackward`
+   - Store with `WeakMap<LexicalEditor, OutlineSelection>`.
+   - Expose per-instance helpers `editor.getOutlineSelection()` /
+     `editor.setOutlineSelection(next)` that read/write the WeakMap (no
+     EditorState coupling, no prototype patching).
 
-### Dataset removal
+2. **Consolidate selection/tree helpers**
+   - Move duplicated helpers from `SelectionPlugin.tsx` and
+     `structural-selection.ts` into a shared module (either reuse
+     `selection-utils.ts` or create `selection-helpers.ts`).
+   - Consolidate: `normalizeContentRange`, `getContentDepth`,
+     `getParentContentItem`, `getContentSiblings`, `getNext/PreviousContentSibling`,
+     `getSubtreeTail`, `compareDocumentOrder`, `sortHeadsByDocumentOrder`.
+   - Keep `getContiguousSelectionHeads` as a pure helper with no DOM access.
 
-- Once `OutlineSelection` exists, drop `data-structural-selection-keys` writes
-  from SelectionPlugin and have tests consume the programmatic API instead.
-- Update `readSelectionSnapshot` to rely solely on Lexical’s selection or the
-  new outline selection, removing the DOM fallback entirely.
+3. **Refactor SelectionPlugin to use OutlineSelection**
+   - Derive `OutlineSelection` from Lexical selection in the update listener,
+     then store it (no more `structuralSelectionKeysRef`).
+   - Keep CSS-only `data-structural-selection` and structural highlight metrics,
+     but **stop writing** `data-structural-selection-keys`.
+   - Progressive ladder + directional logic should update OutlineSelection,
+     then apply Lexical selection from it.
+
+4. **Update test utilities**
+   - In `tests/unit/_support/setup/_internal/assertions/matchers.ts`, replace
+     dataset fallback with `remdo.editor.getOutlineSelection()` and map
+     `headKeys` to labels.
+   - Update selection tests that read `rootElement.dataset.structuralSelectionKeys`
+     to use `getOutlineSelection()` directly.
+   - Address currently `it.fails` cases in `tests/unit/selection.spec.ts` and the
+     failing structural delete case in `tests/unit/deletion.spec.ts` by fixing
+     selection/structural delete behavior as part of the refactor (empty notes,
+     ladder progression, and caret collapse should match the contract).
+
+### Optional clean-slate redesign (if we want to rewrite)
+
+- Add a `SelectionStateMachine` module that owns the ladder transitions and
+  returns `OutlineSelection` for actions (`selectAll`, `extendUp`, `extendDown`,
+  `collapseToCaret`, `pointerSnap`).
+- Make Lexical selections derived from `OutlineSelection` (except pointer
+  changes), allowing element-based selection for empty notes.
+- Keep SelectionPlugin as an orchestrator: translate events → state machine →
+  apply selection → store OutlineSelection.
 
 ## Collab undo/redo determinism (unit tests)
 
