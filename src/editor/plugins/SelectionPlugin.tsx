@@ -4,6 +4,7 @@ import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } fr
 import { getContentListItem, isChildrenWrapper, maybeRemoveEmptyWrapper } from '@/editor/outline/list-structure';
 import { getContiguousSelectionHeads } from '@/editor/outline/structural-selection';
 import { reportInvariant } from '@/editor/invariant';
+import { installOutlineSelectionHelpers } from '@/editor/outline/outline-selection';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $createParagraphNode,
@@ -110,6 +111,7 @@ export function SelectionPlugin() {
 
   useEffect(() => {
     const disposedRef = { current: false };
+    installOutlineSelectionHelpers(editor);
 
     const addUpdateTags = (tags: string | string[]) => {
       const internal = editor as unknown as { _updateTags?: Set<string> };

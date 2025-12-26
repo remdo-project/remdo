@@ -1,4 +1,5 @@
 import type { CommandPayloadType, LexicalCommand } from 'lexical';
+import type { OutlineSelection } from '@/editor/outline/outline-selection';
 
 declare module 'lexical' {
   interface LexicalEditor {
@@ -7,5 +8,9 @@ declare module 'lexical' {
       type: TCommand,
       ...payload: [CommandPayloadType<TCommand>] extends [void] ? [] : [CommandPayloadType<TCommand>]
     ): boolean;
+    getOutlineSelection?: () => OutlineSelection | null;
+    setOutlineSelection?: (
+      selection: OutlineSelection | null
+    ) => void;
   }
 }
