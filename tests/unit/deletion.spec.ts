@@ -1,17 +1,20 @@
+import { waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import {
-  $getNodeByKey,
-  $getRoot,
-  $getSelection,
-  $isRangeSelection,
-  REDO_COMMAND,
-  UNDO_COMMAND,
-} from 'lexical';
-import { $isListNode } from '@lexical/list';
+import { $getNodeByKey, $getSelection, $isRangeSelection, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
 import { config } from '#config';
 
 import type { RemdoTestApi } from '@/editor/plugins/dev';
-import { findNearestListItem, placeCaretAtNote, pressKey, readOutline, selectNoteRange, typeText } from '#tests';
+import {
+  findNearestListItem,
+  getNoteKeyById,
+  placeCaretAtNote,
+  placeCaretAtNoteId,
+  pressKey,
+  readCaretNoteKey,
+  readOutline,
+  selectNoteRange,
+  typeText,
+} from '#tests';
 
 // Coverage gaps (handled in e2e instead of unit tests):
 // - Inline Backspace/Delete inside a note: jsdom doesn’t emulate native deletion
@@ -229,14 +232,16 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
           children: [
             {},
             { text: 'child-of-empty' },
+            {},
           ],
         },
+        {},
       ]);
 
-      await placeCaretAtNote(remdo, ' ', Number.POSITIVE_INFINITY);
+      await placeCaretAtNoteId(remdo, 'space', Number.POSITIVE_INFINITY);
 
       const emptyNoteKey = readCaretNoteKey(remdo);
-      const betaKey = readNoteKeyByText(remdo, 'beta');
+      const betaKey = getNoteKeyById(remdo, 'beta');
 
       await pressKey(remdo, { key: 'Delete' });
 
@@ -247,8 +252,10 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
           children: [
             {},
             { text: 'child-of-empty' },
+            {},
           ],
         },
+        {},
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'beta' });
 
@@ -535,6 +542,39 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
     });
 
+    it.fails('deletes only the selected empty note after Cmd/Ctrl+A', async ({ remdo }) => {
+      await remdo.load('empty-labels');
+
+      const rootElement = remdo.editor.getRootElement();
+      if (!rootElement) {
+        throw new Error('Expected editor root element');
+      }
+
+      await placeCaretAtNoteId(remdo, 'trailing');
+
+      await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+
+      await waitFor(() => {
+        expect(rootElement.dataset.structuralSelection).toBe('true');
+      });
+
+      await pressKey(remdo, { key: 'Delete' });
+
+      expect(remdo).toMatchOutline([
+        { noteId: 'alpha', text: 'alpha' },
+        { noteId: 'space', text: ' ' },
+        { noteId: 'beta', text: 'beta' },
+        {
+          noteId: 'parent',
+          children: [
+            { noteId: 'nested-empty' },
+            { noteId: 'child', text: 'child-of-empty' },
+            { noteId: 'nested-after-child' },
+          ],
+        },
+      ]);
+    });
+
     it('focuses the previous sibling when no next sibling survives the structural delete', async ({ remdo }) => {
       await remdo.load('flat');
 
@@ -607,62 +647,6 @@ function isNodeAttached(remdo: RemdoTestApi, key: string): boolean {
   return remdo.validate(() => {
     const node = $getNodeByKey(key);
     return !!node && node.isAttached();
-  });
-}
-
-function findItemByText(list: any, targetText: string): any {
-  const items = list?.getChildren?.() ?? [];
-  for (const item of items) {
-    const children = item?.getChildren?.() ?? [];
-    const contentNodes = children.filter((child: any) => child?.getType?.() !== 'list');
-    const label = contentNodes
-      .map((child: any) => child?.getTextContent?.() ?? '')
-      .join('');
-
-    if (label === targetText) {
-      return item;
-    }
-
-    const nestedLists = children.filter((child: any) => child?.getType?.() === 'list');
-    for (const nested of nestedLists) {
-      const found = findItemByText(nested, targetText);
-      if (found) return found;
-    }
-  }
-
-  return null;
-}
-
-function readNoteKeyByText(remdo: RemdoTestApi, label: string): string {
-  return remdo.validate(() => {
-    const root = $getRoot();
-    const list = root.getFirstChild();
-    if (!list || !$isListNode(list)) {
-      throw new Error('Expected root list');
-    }
-
-    const item = findItemByText(list, label);
-    if (!item) {
-      throw new Error(`No note found with text: ${label}`);
-    }
-
-    return item.getKey();
-  });
-}
-
-function readCaretNoteKey(remdo: RemdoTestApi): string {
-  return remdo.validate(() => {
-    const selection = $getSelection();
-    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-      throw new Error('Expected collapsed caret selection');
-    }
-
-    const item = findNearestListItem(selection.anchor.getNode()) ?? findNearestListItem(selection.focus.getNode());
-    if (!item) {
-      throw new Error('Expected caret to be inside a list item');
-    }
-
-    return item.getKey();
   });
 }
 

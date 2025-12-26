@@ -9,6 +9,7 @@ type NodeWithChildren = SerializedLexicalNode & {
 export interface SerializedOutlineNote {
   indent: number;
   path: number[];
+  noteId?: string;
   contentNodes: SerializedLexicalNode[];
   children: SerializedOutlineNote[];
 }
@@ -105,9 +106,11 @@ function readListOrThrow(listNode: NodeWithChildren, prefix: number[] = []): Ser
       });
     }
 
+    const noteId = (child as { noteId?: string }).noteId;
     const note: SerializedOutlineNote = {
       indent,
       path,
+      ...(noteId ? { noteId } : {}),
       contentNodes,
       children: [],
     };

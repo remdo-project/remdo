@@ -64,11 +64,6 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
    undo/redo after structural deletion” in collab mode once the above is in
    place, and keep it as a required regression check.
 
-## Container image security lint
-
-Evaluate adding Dockle to scan the built container image (complements Hadolint’s
-Dockerfile checks) and decide whether to gate CI on its report.
-
 ## Outline helper unit tests
 
 - Add coverage for `list-structure` helpers (content/wrapper detection,
@@ -76,15 +71,6 @@ Dockerfile checks) and decide whether to gate CI on its report.
   notes) to lock behaviors.
 - Prefer unit tests near the helpers; keep fixtures minimal and mirror current
   tree shapes in `tests/fixtures`.
-
-## Unified Lexical test bridge (window-based)
-
-1. Consider letting `Editor` accept a `docId` prop that overrides URL parsing
-   (tests/stories could set it directly; production would keep URL as default),
-   with optional history sync toggle to avoid mutating location in test
-   harnesses.
-2. Remove any legacy test-only components once the bridge is wired, and note the
-   transition in docs so the prior harness doesn’t reappear.
 
 ## InsertionPlugin
 
@@ -100,23 +86,3 @@ Dockerfile checks) and decide whether to gate CI on its report.
    textNode.getTextContentSize() even though there is preceding/following text
    in the note. That misclassifies mid- note positions as start/end and triggers
    the wrong insertion path. (src/editor/plugins/InsertionPlugin.tsx:75-90)
-
-## Selection edge-case coverage (empty notes)
-
-1. Cmd/Ctrl+A on a top-level empty note at the end of the list (no next sibling)
-   should select only that note and not collapse.
-2. Shift+Up from the same nested empty note should only select that note (not
-   its previous sibling).
-3. Structural commands (indent/outdent/reorder/delete) after Cmd/Ctrl+A on the
-   empty note should affect only that note (not the sibling).
-4. Multi-press Cmd/Ctrl+A from the empty note: first press selects only that
-   note, second press selects sibling slab, third hoists parent.
-5. Collapse from structural selection on an empty note via Esc or plain arrows
-   should land a caret in that note (high importance, low complexity).
-6. Shift+Up/Shift+Down from an empty parent that has children should select the
-   whole subtree (high importance, medium complexity).
-7. Shift+Left/Right on an empty note should stay a no-op without changing
-   progressive stage (medium importance, low complexity).
-8. Mixed range where one endpoint is an empty note and the other is non-empty
-   should still be contiguous and stable after snapping (medium importance,
-   medium complexity).
