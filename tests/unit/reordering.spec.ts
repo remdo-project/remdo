@@ -68,9 +68,6 @@ describe('keyboard reordering (command path)', () => {
     ]);
   });
 
-  // Expected: With a structural selection on an empty note (via Cmd/Ctrl+A), move up swaps only that note with its previous sibling, preserving depth.
-  it.todo('reorders only the selected empty note after Cmd/Ctrl+A');
-
   it('moving a note carries its subtree intact', async ({ remdo }) => {
     await remdo.load('tree');
     await placeCaretAtNote(remdo, 'note1'); // note1 has no children, note3 is nested under note2
