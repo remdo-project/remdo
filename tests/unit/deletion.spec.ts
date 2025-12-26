@@ -1,3 +1,4 @@
+import { waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { $getNodeByKey, $getSelection, $isRangeSelection, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
 import { config } from '#config';
@@ -541,8 +542,35 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
     });
 
-    // Expected: With a structural selection on an empty note (via Cmd/Ctrl+A), Delete removes only that note (and its subtree, if any).
-    it.todo('deletes only the selected empty note after Cmd/Ctrl+A');
+    it.fails('deletes only the selected empty note after Cmd/Ctrl+A', async ({ remdo }) => {
+      await remdo.load('empty-labels');
+
+      const rootElement = remdo.editor.getRootElement();
+      if (!rootElement) {
+        throw new Error('Expected editor root element');
+      }
+
+      await placeCaretAtNoteId(remdo, 'trailing');
+
+      const trailingKey = getNoteKeyById(remdo, 'trailing');
+
+      await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+
+      await waitFor(() => {
+        expect(rootElement.dataset.structuralSelection).toBe('true');
+        const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+        expect(selectedKeys).toEqual([trailingKey]);
+      });
+
+      await pressKey(remdo, { key: 'Delete' });
+
+      expect(remdo).toMatchOutline([
+        { text: 'alpha' },
+        { text: ' ' },
+        { text: 'beta' },
+        { children: [ {}, { text: 'child-of-empty' }, {} ] },
+      ]);
+    });
 
     it('focuses the previous sibling when no next sibling survives the structural delete', async ({ remdo }) => {
       await remdo.load('flat');
