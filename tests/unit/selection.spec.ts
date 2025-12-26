@@ -6,6 +6,7 @@ import {
   collectSelectedListItems,
   getListItemLabel,
   placeCaretAtNote,
+  getNoteKeyById,
   pressKey,
   readCaretNoteKey,
   readOutline,
@@ -1227,13 +1228,7 @@ describe('selection plugin', () => {
 
     const rootElement = remdo.editor.getRootElement()!;
 
-    const { emptyKey } = remdo.validate(() => {
-      const list = $getRoot().getFirstChild() as ListNode;
-      // empty-labels fixture: list item 5 nests [empty, child-of-empty, empty]
-      const nested = list.getChildren<ListItemNode>()[4]!.getChildren<ListNode>()[0]!;
-      const empty = nested.getChildren<ListItemNode>()[0]!;
-      return { emptyKey: empty.getKey() };
-    });
+    const emptyKey = getNoteKeyById(remdo, 'nested-empty');
 
     await remdo.mutate(() => {
       const node = $getNodeByKey<ListItemNode>(emptyKey)!;

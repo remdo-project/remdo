@@ -6,6 +6,7 @@
         "type": "list",
         "children": [
           {
+            "noteId": "alpha",
             "type": "listitem",
             "value": 1,
             "children": [
@@ -16,6 +17,7 @@
             ]
           },
           {
+            "noteId": "space",
             "type": "listitem",
             "value": 2,
             "children": [
@@ -26,6 +28,7 @@
             ]
           },
           {
+            "noteId": "beta",
             "type": "listitem",
             "value": 3,
             "children": [
@@ -36,6 +39,7 @@
             ]
           },
           {
+            "noteId": "parent",
             "type": "listitem",
             "value": 4,
             "children": []
@@ -49,12 +53,14 @@
                 "children": [
                   {
                     "indent": 1,
+                    "noteId": "nested-empty",
                     "type": "listitem",
                     "value": 1,
                     "children": []
                   },
                   {
                     "indent": 1,
+                    "noteId": "child",
                     "type": "listitem",
                     "value": 2,
                     "children": [
@@ -66,6 +72,7 @@
                   },
                   {
                     "indent": 1,
+                    "noteId": "nested-after-child",
                     "type": "listitem",
                     "value": 3,
                     "children": []
@@ -75,6 +82,7 @@
             ]
           },
           {
+            "noteId": "trailing",
             "type": "listitem",
             "value": 6,
             "children": []

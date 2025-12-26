@@ -2,10 +2,11 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import type { TextNode } from 'lexical';
-import { $createRangeSelection, $getRoot, $getSelection, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
+import { $createRangeSelection, $getRoot, $getSelection, $getState, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
 import { findNearestListItem } from './selection';
+import { noteIdState } from '#lib/editor/note-id-state';
 export type { Outline, OutlineNode } from '#tests-common/outline';
 
 export type SelectionSnapshot =
@@ -15,26 +16,74 @@ export type SelectionSnapshot =
   | { state: 'structural'; notes: string[] };
 
 
-function findItemByText(listNode: ListNode | null, noteText: string): ListItemNode | null {
-  const items = listNode?.getChildren<ListItemNode>() ?? [];
-  for (const item of items) {
-    const children = item.getChildren();
-    const contentNodes = children.filter((child) => child.getType() !== 'list');
-    const text = contentNodes
-      .map((child) => child.getTextContent())
-      .join('');
+function $findItemByText(noteText: string): ListItemNode | null {
+  const root = $getRoot();
+  const list = root.getFirstChild();
+  if (!list || !$isListNode(list)) return null;
+  const $search = (listNode: ListNode): ListItemNode | null => {
+    const items = listNode.getChildren<ListItemNode>();
+    for (const item of items) {
+      const children = item.getChildren();
+      const contentNodes = children.filter((child) => child.getType() !== 'list');
+      const text = contentNodes.map((child) => child.getTextContent()).join('');
 
-    if (text === noteText) {
-      return item;
-    }
+      if (text === noteText) {
+        return item;
+      }
 
-    const nestedLists = children.filter((child): child is ListNode => child.getType() === 'list');
-    for (const nested of nestedLists) {
-      const found = findItemByText(nested, noteText);
-      if (found) return found;
+      const nestedLists = children.filter((child): child is ListNode => child.getType() === 'list');
+      for (const nested of nestedLists) {
+        const found = $search(nested);
+        if (found) return found;
+      }
     }
+    return null;
+  };
+
+  return $search(list);
+}
+
+function $findItemByNoteId(noteId: string): ListItemNode | null {
+  const root = $getRoot();
+  const list = root.getFirstChild();
+  if (!list || !$isListNode(list)) return null;
+  const $search = (listNode: ListNode): ListItemNode | null => {
+    const items = listNode.getChildren<ListItemNode>();
+    for (const item of items) {
+      if ($getState(item, noteIdState) === noteId) {
+        return item;
+      }
+
+      const nestedLists = item.getChildren().filter((child): child is ListNode => child.getType() === 'list');
+      for (const nested of nestedLists) {
+        const found = $search(nested);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  return $search(list);
+}
+
+function placeCaretAtListItem(item: ListItemNode, offset: number) {
+  const children = item.getChildren();
+  const textNode = children.find((child): child is TextNode => child.getType() === 'text');
+
+  if (textNode) {
+    const length = textNode.getTextContentSize();
+    const normalized = offset < 0 ? length + offset : offset;
+    const clamped = Math.max(0, Math.min(length, normalized));
+    textNode.select(clamped, clamped);
+    return;
   }
-  return null;
+
+  if (offset <= 0) {
+    item.selectStart();
+    return;
+  }
+
+  item.selectEnd();
 }
 
 /**
@@ -49,35 +98,25 @@ function findItemByText(listNode: ListNode | null, noteText: string): ListItemNo
  */
 export async function placeCaretAtNote(remdo: RemdoTestApi, noteText: string, offset = 0) {
   await remdo.mutate(() => {
-    const root = $getRoot();
-    const list = root.getFirstChild();
-    if (!list || !$isListNode(list)) throw new Error('Expected a list root');
-
-    const item = findItemByText(list, noteText);
+    const item = $findItemByText(noteText);
     if (!item) throw new Error(`No list item found with text: ${noteText}`);
+    placeCaretAtListItem(item, offset);
+  });
+}
 
-    const children = item.getChildren();
-    const textNode = children.find((child): child is TextNode => child.getType() === 'text');
+export async function placeCaretAtNoteId(remdo: RemdoTestApi, noteId: string, offset = 0) {
+  await remdo.mutate(() => {
+    const item = $findItemByNoteId(noteId);
+    if (!item) throw new Error(`No list item found with noteId: ${noteId}`);
+    placeCaretAtListItem(item, offset);
+  });
+}
 
-    if (textNode) {
-      const length = textNode.getTextContentSize();
-      const normalized = offset < 0 ? length + offset : offset;
-      const clamped = Math.max(0, Math.min(length, normalized));
-      textNode.select(clamped, clamped);
-      return;
-    }
-
-    if (offset <= 0 && typeof item.selectStart === 'function') {
-      item.selectStart();
-      return;
-    }
-
-    if (typeof item.selectEnd === 'function') {
-      item.selectEnd();
-      return;
-    }
-
-    throw new TypeError('Expected note to expose caret selection controls');
+export function getNoteKeyById(remdo: RemdoTestApi, noteId: string): string {
+  return remdo.validate(() => {
+    const item = $findItemByNoteId(noteId);
+    if (!item) throw new Error(`No list item found with noteId: ${noteId}`);
+    return item.getKey();
   });
 }
 
@@ -172,18 +211,12 @@ export async function selectNoteRange(remdo: RemdoTestApi, startNote: string, en
   }
 
   await remdo.mutate(() => {
-    const root = $getRoot();
-    const list = root.getFirstChild();
-    if (!list || !$isListNode(list)) {
-      throw new Error('Expected root list');
-    }
-
-    const startItem = findItemByText(list, startNote);
+    const startItem = $findItemByText(startNote);
     if (!startItem) {
       throw new Error(`No list item found with text: ${startNote}`);
     }
 
-    const endItem = findItemByText(list, endNote);
+    const endItem = $findItemByText(endNote);
     if (!endItem) {
       throw new Error(`No list item found with text: ${endNote}`);
     }
