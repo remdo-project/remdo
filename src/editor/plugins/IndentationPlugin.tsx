@@ -5,7 +5,7 @@ import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND
 import { useEffect } from 'react';
 import { $indentNote, $outdentNote } from '../lexical-helpers';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
-import { getContiguousSelectionHeads } from '@/editor/outline/structural-selection';
+import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 
 const hasPreviousContentSibling = (noteItem: ListItemNode): boolean => {
   let sibling: ListItemNode | null = noteItem.getPreviousSibling();

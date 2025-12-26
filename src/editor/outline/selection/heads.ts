@@ -1,9 +1,10 @@
-import type { ListItemNode, ListNode } from '@lexical/list';
+import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { RangeSelection } from 'lexical';
 
 import { reportInvariant } from '@/editor/invariant';
-import { findNearestListItem, getContentListItem, isChildrenWrapper } from './list-structure';
+import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from '../list-structure';
+import { getNextContentSibling, normalizeContentRange } from './tree';
 
 // Returns the contiguous sibling slab that spans anchor/focus as the set of
 // top-most selected heads (dropping descendants when an ancestor is selected).
@@ -104,118 +105,4 @@ function resolveElementSelectionHeads(selection: RangeSelection): ListItemNode[]
   }
 
   return heads.length > 0 ? heads : null;
-}
-
-function normalizeContentRange(start: ListItemNode, end: ListItemNode): { start: ListItemNode; end: ListItemNode } {
-  let first = start;
-  let last = end;
-
-  if (first !== last && !first.isBefore(last)) {
-    [first, last] = [last, first];
-  }
-
-  let firstDepth = getContentDepth(first);
-  let lastDepth = getContentDepth(last);
-
-  while (firstDepth > lastDepth) {
-    const parent = getParentContentItem(first);
-    if (!parent) {
-      break;
-    }
-    first = parent;
-    firstDepth -= 1;
-  }
-
-  while (lastDepth > firstDepth) {
-    const parent = getParentContentItem(last);
-    if (!parent) {
-      break;
-    }
-    last = parent;
-    lastDepth -= 1;
-  }
-
-  let firstParent = first.getParent();
-  let lastParent = last.getParent();
-  while (firstParent && lastParent && firstParent !== lastParent) {
-    const nextFirst = getParentContentItem(first);
-    const nextLast = getParentContentItem(last);
-    if (!nextFirst || !nextLast) {
-      break;
-    }
-    first = nextFirst;
-    last = nextLast;
-    firstParent = first.getParent();
-    lastParent = last.getParent();
-  }
-
-  return { start: first, end: last } as const;
-}
-
-function getContentDepth(item: ListItemNode): number {
-  let depth = 0;
-  let current: ListItemNode | null = getParentContentItem(item);
-  while (current) {
-    depth += 1;
-    current = getParentContentItem(current);
-  }
-  return depth;
-}
-
-function getParentContentItem(item: ListItemNode): ListItemNode | null {
-  const parentList = item.getParent();
-  if (!$isListNode(parentList)) {
-    reportInvariant({
-      message: 'List item parent is not a list node while resolving parent content',
-      context: { itemKey: item.getKey(), parentType: parentList?.getType ? parentList.getType() : undefined },
-    });
-    return null;
-  }
-
-  const parentWrapper = parentList.getParent();
-  if (!isChildrenWrapper(parentWrapper)) {
-    // Top-level items have a RootNode parent; treat that as expected and avoid noisy reporting.
-    const parentType = parentWrapper?.getType ? parentWrapper.getType() : undefined;
-    if (parentType !== 'root') {
-      reportInvariant({
-        message: 'List item parent wrapper missing or malformed',
-        context: { itemKey: item.getKey(), parentType },
-      });
-    }
-    return null;
-  }
-
-  const parentContent = parentWrapper.getPreviousSibling();
-  if ($isListItemNode(parentContent)) {
-    return parentContent;
-  }
-  reportInvariant({
-    message: 'Parent content sibling is not a list item',
-    context: {
-      itemKey: item.getKey(),
-      parentSiblingType: parentContent?.getType ? parentContent.getType() : undefined,
-    },
-  });
-  return null;
-}
-
-function getContentSiblings(list: ListNode): ListItemNode[] {
-  const items: ListItemNode[] = [];
-  for (const child of list.getChildren()) {
-    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
-      items.push(child);
-    }
-  }
-  return items;
-}
-
-function getNextContentSibling(item: ListItemNode): ListItemNode | null {
-  let sibling = item.getNextSibling();
-  while (sibling) {
-    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
-      return sibling;
-    }
-    sibling = sibling.getNextSibling();
-  }
-  return null;
 }

@@ -1,0 +1,208 @@
+import type { ListItemNode, ListNode } from '@lexical/list';
+import { $isListItemNode, $isListNode } from '@lexical/list';
+import type { LexicalNode } from 'lexical';
+
+import { reportInvariant } from '@/editor/invariant';
+import { getContentSiblings, isChildrenWrapper } from '../list-structure';
+
+export function normalizeContentRange(
+  start: ListItemNode,
+  end: ListItemNode
+): { start: ListItemNode; end: ListItemNode } {
+  let first = start;
+  let last = end;
+
+  if (first !== last && !first.isBefore(last)) {
+    [first, last] = [last, first];
+  }
+
+  let firstDepth = getContentDepth(first);
+  let lastDepth = getContentDepth(last);
+
+  while (firstDepth > lastDepth) {
+    const parent = getParentContentItem(first);
+    if (!parent) {
+      break;
+    }
+    first = parent;
+    firstDepth -= 1;
+  }
+
+  while (lastDepth > firstDepth) {
+    const parent = getParentContentItem(last);
+    if (!parent) {
+      break;
+    }
+    last = parent;
+    lastDepth -= 1;
+  }
+
+  let firstParent = first.getParent();
+  let lastParent = last.getParent();
+  while (firstParent && lastParent && firstParent !== lastParent) {
+    const nextFirst = getParentContentItem(first);
+    const nextLast = getParentContentItem(last);
+    if (!nextFirst || !nextLast) {
+      break;
+    }
+    first = nextFirst;
+    last = nextLast;
+    firstParent = first.getParent();
+    lastParent = last.getParent();
+  }
+
+  return { start: first, end: last } as const;
+}
+
+export function getParentContentItem(item: ListItemNode): ListItemNode | null {
+  const parentList = item.getParent();
+  if (!$isListNode(parentList)) {
+    reportInvariant({
+      message: 'List item parent is not a list node while resolving parent content',
+      context: { itemKey: item.getKey(), parentType: parentList?.getType ? parentList.getType() : undefined },
+    });
+    return null;
+  }
+
+  const parentWrapper = parentList.getParent();
+  if (!isChildrenWrapper(parentWrapper)) {
+    const parentType = parentWrapper?.getType ? parentWrapper.getType() : undefined;
+    if (parentType !== 'root') {
+      reportInvariant({
+        message: 'List item parent wrapper missing or malformed',
+        context: { itemKey: item.getKey(), parentType },
+      });
+    }
+    return null;
+  }
+
+  const parentContent = parentWrapper.getPreviousSibling();
+  if ($isListItemNode(parentContent)) {
+    return parentContent;
+  }
+
+  reportInvariant({
+    message: 'Parent content sibling is not a list item',
+    context: {
+      itemKey: item.getKey(),
+      parentSiblingType: parentContent?.getType ? parentContent.getType() : undefined,
+    },
+  });
+  return null;
+}
+
+export function getContentSiblingsForItem(item: ListItemNode): ListItemNode[] {
+  const parentList = item.getParent();
+  if (!$isListNode(parentList)) {
+    return [item];
+  }
+
+  const siblings = getContentSiblings(parentList);
+  return siblings.length === 0 ? [item] : siblings;
+}
+
+export function getNextContentSibling(item: ListItemNode): ListItemNode | null {
+  let sibling: LexicalNode | null = item.getNextSibling();
+  while (sibling) {
+    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
+      return sibling;
+    }
+    sibling = sibling.getNextSibling();
+  }
+  return null;
+}
+
+export function getPreviousContentSibling(item: ListItemNode): ListItemNode | null {
+  let sibling: LexicalNode | null = item.getPreviousSibling();
+  while (sibling) {
+    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
+      return sibling;
+    }
+    sibling = sibling.getPreviousSibling();
+  }
+  return null;
+}
+
+export function getSubtreeTail(item: ListItemNode): ListItemNode {
+  const nestedList = getNestedList(item);
+  if (!nestedList) {
+    return item;
+  }
+
+  const lastChild = nestedList.getLastChild();
+  if (!$isListItemNode(lastChild)) {
+    return item;
+  }
+
+  return getSubtreeTail(lastChild);
+}
+
+export function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
+  const aPath = getNodePath(a);
+  const bPath = getNodePath(b);
+  const depth = Math.max(aPath.length, bPath.length);
+
+  for (let i = 0; i < depth; i += 1) {
+    const left = aPath[i] ?? -1;
+    const right = bPath[i] ?? -1;
+    if (left !== right) {
+      return left - right;
+    }
+  }
+
+  return 0;
+}
+
+export function sortHeadsByDocumentOrder(heads: ListItemNode[]): ListItemNode[] {
+  return heads.toSorted(compareDocumentOrder);
+}
+
+function getContentDepth(item: ListItemNode): number {
+  let depth = 0;
+  let current: ListItemNode | null = getParentContentItem(item);
+  while (current) {
+    depth += 1;
+    current = getParentContentItem(current);
+  }
+  return depth;
+}
+
+function getNodePath(node: ListItemNode): number[] {
+  const path: number[] = [];
+  let child: LexicalNode = node;
+  let parent: LexicalNode | null = child.getParent();
+
+  while (parent) {
+    path.push(child.getIndexWithinParent());
+    child = parent;
+    parent = child.getParent();
+  }
+
+  return path.toReversed();
+}
+
+function getNestedList(item: ListItemNode): ListNode | null {
+  const wrapper = getWrapperForContent(item);
+  if (wrapper) {
+    const nested = wrapper.getFirstChild();
+    if ($isListNode(nested)) {
+      return nested;
+    }
+  }
+
+  for (const child of item.getChildren()) {
+    if ($isListNode(child)) {
+      return child;
+    }
+  }
+
+  return null;
+}
+
+function getWrapperForContent(item: ListItemNode): ListItemNode | null {
+  const next = item.getNextSibling();
+  if (!isChildrenWrapper(next)) {
+    return null;
+  }
+  return next;
+}

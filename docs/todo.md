@@ -48,6 +48,16 @@ Rules:
      EditorState coupling, no prototype patching).
 
 2. **Consolidate selection/tree helpers**
+   - Reorganize selection code into clear layers (new folder), with minimal APIs:
+     - `src/editor/outline/selection/model.ts`: `OutlineSelection` types only.
+     - `src/editor/outline/selection/store.ts`: WeakMap store + `installOutlineSelectionHelpers`.
+     - `src/editor/outline/selection/tree.ts`: structure-only helpers (parents, siblings, subtree tails, ordering).
+     - `src/editor/outline/selection/resolve.ts`: derive `OutlineSelection` from Lexical `RangeSelection`.
+     - `src/editor/outline/selection/apply.ts`: apply `OutlineSelection` → Lexical selection.
+     - `src/editor/outline/selection/heads.ts`: `getContiguousSelectionHeads` (selection semantics).
+     - `src/editor/outline/selection/index.ts`: minimal exports for consumers.
+   - Keep exports narrow (the rest of the app should only need
+     `editor.getOutlineSelection()` + `getContiguousSelectionHeads`).
    - Move duplicated helpers from `SelectionPlugin.tsx` and
      `structural-selection.ts` into a shared module (either reuse
      `selection-utils.ts` or create `selection-helpers.ts`).
@@ -63,6 +73,11 @@ Rules:
      but **stop writing** `data-structural-selection-keys`.
    - Progressive ladder + directional logic should update OutlineSelection,
      then apply Lexical selection from it.
+   - Strip non-selection responsibilities out of SelectionPlugin (structural
+     delete behavior, caret resolution after deletion, and action-specific key
+     handling). Deletion/indent/reorder plugins should consume
+     `editor.getOutlineSelection()` instead of re-deriving selection or touching
+     DOM internals.
 
 4. **Update test utilities**
    - In `tests/unit/_support/setup/_internal/assertions/matchers.ts`, replace

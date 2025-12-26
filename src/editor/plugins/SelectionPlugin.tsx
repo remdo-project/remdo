@@ -1,10 +1,19 @@
 //TODO deserves a major refactor, cleanup and review
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
-import { getContentListItem, isChildrenWrapper, maybeRemoveEmptyWrapper } from '@/editor/outline/list-structure';
-import { getContiguousSelectionHeads } from '@/editor/outline/structural-selection';
+import { findNearestListItem, getContentListItem, isChildrenWrapper, maybeRemoveEmptyWrapper } from '@/editor/outline/list-structure';
+import {
+  getContentSiblingsForItem,
+  getNextContentSibling,
+  getParentContentItem,
+  getPreviousContentSibling,
+  getSubtreeTail,
+  normalizeContentRange,
+  sortHeadsByDocumentOrder,
+} from '@/editor/outline/selection/tree';
+import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import { reportInvariant } from '@/editor/invariant';
-import { installOutlineSelectionHelpers } from '@/editor/outline/outline-selection';
+import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $createParagraphNode,
@@ -1391,7 +1400,7 @@ function $createSubtreePlan(item: ListItemNode): ProgressivePlan | null {
 }
 
 function $createSiblingRangePlan(item: ListItemNode): ProgressivePlan | null {
-  const siblings = getContentSiblings(item);
+  const siblings = getContentSiblingsForItem(item);
   if (siblings.length <= 1) {
     return null;
   }
@@ -1705,139 +1714,6 @@ function $inferPointerProgressionState(
   };
 }
 
-function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
-  let current: LexicalNode | null = node;
-  while (current !== null) {
-    if ($isListItemNode(current)) {
-      return current;
-    }
-    current = current.getParent();
-  }
-  return null;
-}
-
-function normalizeContentRange(start: ListItemNode, end: ListItemNode): { start: ListItemNode; end: ListItemNode } {
-  let first = start;
-  let last = end;
-
-  if (first !== last && !first.isBefore(last)) {
-    [first, last] = [last, first];
-  }
-
-  let firstDepth = getContentDepth(first);
-  let lastDepth = getContentDepth(last);
-
-  while (firstDepth > lastDepth) {
-    const parent = getParentContentItem(first);
-    if (!parent) {
-      break;
-    }
-    first = parent;
-    firstDepth -= 1;
-  }
-
-  while (lastDepth > firstDepth) {
-    const parent = getParentContentItem(last);
-    if (!parent) {
-      break;
-    }
-    last = parent;
-    lastDepth -= 1;
-  }
-
-  let firstParent = first.getParent();
-  let lastParent = last.getParent();
-  while (firstParent && lastParent && firstParent !== lastParent) {
-    const nextFirst = getParentContentItem(first);
-    const nextLast = getParentContentItem(last);
-    if (!nextFirst || !nextLast) {
-      break;
-    }
-    first = nextFirst;
-    last = nextLast;
-    firstParent = first.getParent();
-    lastParent = last.getParent();
-  }
-
-  return { start: first, end: last } as const;
-}
-
-function getContentDepth(item: ListItemNode): number {
-  let depth = 0;
-  let current: ListItemNode | null = getParentContentItem(item);
-  while (current) {
-    depth += 1;
-    current = getParentContentItem(current);
-  }
-  return depth;
-}
-
-function getNextContentSibling(item: ListItemNode): ListItemNode | null {
-  let sibling: LexicalNode | null = item.getNextSibling();
-  while (sibling) {
-    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
-      return sibling;
-    }
-    sibling = sibling.getNextSibling();
-  }
-  return null;
-}
-
-function getPreviousContentSibling(item: ListItemNode): ListItemNode | null {
-  let sibling: LexicalNode | null = item.getPreviousSibling();
-  while (sibling) {
-    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
-      return sibling;
-    }
-    sibling = sibling.getPreviousSibling();
-  }
-  return null;
-}
-
-function getSubtreeTail(item: ListItemNode): ListItemNode {
-  const nestedList = getNestedList(item);
-  if (!nestedList) {
-    return item;
-  }
-
-  const lastChild = nestedList.getLastChild();
-  if (!$isListItemNode(lastChild)) {
-    return item;
-  }
-
-  return getSubtreeTail(lastChild);
-}
-
-function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
-  const aPath = getNodePath(a);
-  const bPath = getNodePath(b);
-  const depth = Math.max(aPath.length, bPath.length);
-
-  for (let i = 0; i < depth; i += 1) {
-    const left = aPath[i] ?? -1;
-    const right = bPath[i] ?? -1;
-    if (left !== right) {
-      return left - right;
-    }
-  }
-
-  return 0;
-}
-
-function getNodePath(node: ListItemNode): number[] {
-  const path: number[] = [];
-  let child: LexicalNode = node;
-  let parent: LexicalNode | null = child.getParent();
-
-  while (parent) {
-    path.push(child.getIndexWithinParent());
-    child = parent;
-    parent = child.getParent();
-  }
-
-  return path.toReversed();
-}
-
 function ascendContentItem(item: ListItemNode, levels: number): ListItemNode | null {
   let current: ListItemNode | null = item;
 
@@ -1851,43 +1727,8 @@ function ascendContentItem(item: ListItemNode, levels: number): ListItemNode | n
   return current;
 }
 
-function getParentContentItem(item: ListItemNode): ListItemNode | null {
-  const parentList = item.getParent();
-  if (!$isListNode(parentList)) {
-    return null;
-  }
-
-  const parentWrapper = parentList.getParent();
-  if (!isChildrenWrapper(parentWrapper)) {
-    return null;
-  }
-
-  const parentContent = parentWrapper.getPreviousSibling();
-  return $isListItemNode(parentContent) ? parentContent : null;
-}
-
-function getContentSiblings(item: ListItemNode): ListItemNode[] {
-  const parentList = item.getParent();
-  if (!$isListNode(parentList)) {
-    return [item];
-  }
-
-  const siblings: ListItemNode[] = [];
-  for (const child of parentList.getChildren()) {
-    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
-      siblings.push(child);
-    }
-  }
-
-  return siblings.length === 0 ? [item] : siblings;
-}
-
 function getHeadsSharingParent(heads: ListItemNode[], parentList: ListNode): ListItemNode[] {
   return heads.filter((head) => head.getParent() === parentList);
-}
-
-function sortHeadsByDocumentOrder(heads: ListItemNode[]): ListItemNode[] {
-  return heads.toSorted(compareDocumentOrder);
 }
 
 interface CaretEdgePlan {
