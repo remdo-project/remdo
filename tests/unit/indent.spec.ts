@@ -212,6 +212,9 @@ it('tab indents when note text selection spans the entire note', async ({ remdo 
   ]);
 });
 
+// Expected: With a structural selection on an empty note (via Cmd/Ctrl+A), Tab indents only that note under its previous sibling.
+it.todo('indents only the selected empty note after Cmd/Ctrl+A');
+
 it('shift+tab outdents when note selection spans the entire note', async ({ remdo }) => {
   await remdo.load('basic');
 
@@ -224,6 +227,9 @@ it('shift+tab outdents when note selection spans the entire note', async ({ remd
     { text: 'note3' },
   ]);
 });
+
+// Expected: With a structural selection on an empty note (via Cmd/Ctrl+A), Shift+Tab outdents only that note to be a sibling after its parent.
+it.todo('outdents only the selected nested empty note after Cmd/Ctrl+A');
 
 it('shift+tab refuses to partially outdent when selection includes a root note', async ({ remdo }) => {
   await remdo.load('basic');

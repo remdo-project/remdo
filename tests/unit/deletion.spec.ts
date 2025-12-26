@@ -541,6 +541,9 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
     });
 
+    // Expected: With a structural selection on an empty note (via Cmd/Ctrl+A), Delete removes only that note (and its subtree, if any).
+    it.todo('deletes only the selected empty note after Cmd/Ctrl+A');
+
     it('focuses the previous sibling when no next sibling survives the structural delete', async ({ remdo }) => {
       await remdo.load('flat');
 

@@ -1229,18 +1229,6 @@ describe('selection plugin', () => {
   // Expected: Shift+Up from an empty note skips inline stage and selects only that note before the previous sibling.
   it.todo('selects the nested empty note on Shift+Up before the previous sibling');
 
-  // Expected: With a structural selection on an empty note, Tab indents only that selected note under its previous sibling.
-  it.todo('indents only the selected empty note after Cmd/Ctrl+A');
-
-  // Expected: With a structural selection on an empty note, Shift+Tab outdents only that selected note to be a sibling after its parent.
-  it.todo('outdents only the selected nested empty note after Cmd/Ctrl+A');
-
-  // Expected: With a structural selection on an empty note, reorder-up swaps only that note with its previous sibling, preserving depth.
-  it.todo('reorders only the selected empty note after Cmd/Ctrl+A');
-
-  // Expected: With a structural selection on an empty note, Delete removes only that note (and its subtree, if any).
-  it.todo('deletes only the selected empty note after Cmd/Ctrl+A');
-
   // Expected: Cmd/Ctrl+A on an empty note skips inline selection, then advances to sibling slab, then hoists to parent per the progressive ladder.
   it.todo('advances Cmd/Ctrl+A through the empty note ladder stages');
 
