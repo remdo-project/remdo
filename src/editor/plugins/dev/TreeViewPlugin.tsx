@@ -1,7 +1,20 @@
+import { $isListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { TreeView } from '@lexical/react/LexicalTreeView';
+import type { LexicalNode } from 'lexical';
+import { $getState } from 'lexical';
 
 import './TreeViewPlugin.css';
+import { noteIdState } from '#lib/editor/note-id-state';
+
+const $printNoteId = (node: LexicalNode): string | undefined => {
+  if (!$isListItemNode(node)) {
+    return undefined;
+  }
+
+  const noteId = $getState(node, noteIdState);
+  return noteId ? `noteId:${noteId}` : undefined;
+};
 
 export function TreeViewPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -17,6 +30,7 @@ export function TreeViewPlugin() {
         timeTravelPanelButtonClassName={hiddenClassName}
         timeTravelPanelClassName={hiddenClassName}
         timeTravelPanelSliderClassName={hiddenClassName}
+        customPrintNode={$printNoteId}
       />
     </section>
   );
