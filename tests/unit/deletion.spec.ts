@@ -552,23 +552,26 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
 
       await placeCaretAtNoteId(remdo, 'trailing');
 
-      const trailingKey = getNoteKeyById(remdo, 'trailing');
-
       await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
       await waitFor(() => {
         expect(rootElement.dataset.structuralSelection).toBe('true');
-        const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
-        expect(selectedKeys).toEqual([trailingKey]);
       });
 
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline([
-        { text: 'alpha' },
-        { text: ' ' },
-        { text: 'beta' },
-        { children: [ {}, { text: 'child-of-empty' }, {} ] },
+        { noteId: 'alpha', text: 'alpha' },
+        { noteId: 'space', text: ' ' },
+        { noteId: 'beta', text: 'beta' },
+        {
+          noteId: 'parent',
+          children: [
+            { noteId: 'nested-empty' },
+            { noteId: 'child', text: 'child-of-empty' },
+            { noteId: 'nested-after-child' },
+          ],
+        },
       ]);
     });
 

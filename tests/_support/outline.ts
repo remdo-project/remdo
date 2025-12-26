@@ -5,6 +5,7 @@ import { traverseSerializedOutlineOrThrow } from '@/editor/plugins/dev/schema/tr
 
 export interface OutlineNode {
   text?: string;
+  noteId?: string;
   children?: Outline;
 }
 
@@ -40,6 +41,9 @@ export function extractOutlineFromEditorState(state: unknown): Outline {
       if (text !== null) {
         node.text = text;
       }
+      if (note.noteId) {
+        node.noteId = note.noteId;
+      }
       if (note.children.length > 0) {
         node.children = readNotes(note.children);
       }
@@ -47,4 +51,24 @@ export function extractOutlineFromEditorState(state: unknown): Outline {
     });
 
   return readNotes(notes);
+}
+
+export function extractOutlineForExpectedMatch(state: unknown, expected: Outline): Outline {
+  const actual = extractOutlineFromEditorState(state);
+  const strip = (actualNodes: Outline, expectedNodes: Outline) => {
+    for (let index = 0; index < actualNodes.length; index += 1) {
+      const actualNode = actualNodes[index]!;
+      const expectedNode = expectedNodes[index];
+      if (expectedNode?.noteId === undefined) {
+        delete actualNode.noteId;
+      }
+
+      if (actualNode.children) {
+        strip(actualNode.children, expectedNode?.children ?? []);
+      }
+    }
+  };
+
+  strip(actual, expected);
+  return actual;
 }
