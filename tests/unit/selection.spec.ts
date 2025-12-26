@@ -4,8 +4,10 @@ import type { Outline } from '#tests';
 import {
   collectSelectedListItems,
   getListItemLabel,
+  placeCaretAtNoteId,
   placeCaretAtNote,
   getNoteKeyById,
+  readCaretNoteKey,
   pressKey,
   readOutline,
   typeText,
@@ -1223,24 +1225,163 @@ describe('selection plugin', () => {
     expect(selectedKeys).not.toContain(childKey);
   });
 
-  // Expected: Cmd/Ctrl+A on an empty note skips inline stage and selects that note's subtree (only itself here).
-  it.todo('selects the trailing empty note on Cmd/Ctrl+A');
+  it.fails('selects the trailing empty note on Cmd/Ctrl+A', async ({ remdo }) => {
+    await remdo.load('empty-labels');
 
-  // Expected: Shift+Up from an empty note skips inline stage and selects only that note before the previous sibling.
-  it.todo('selects the nested empty note on Shift+Up before the previous sibling');
+    const rootElement = remdo.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
 
-  // Expected: Cmd/Ctrl+A on an empty note skips inline selection, then advances to sibling slab, then hoists to parent per the progressive ladder.
-  it.todo('advances Cmd/Ctrl+A through the empty note ladder stages');
+    const trailingKey = getNoteKeyById(remdo, 'trailing');
 
-  // Expected: Esc collapses any structural selection back to a caret, including on whitespace-only (trimmed-empty) notes.
-  it.todo('collapses structural selection on a whitespace-only note back to a caret');
+    await placeCaretAtNoteId(remdo, 'trailing');
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+
+    await waitFor(() => {
+      expect(rootElement.dataset.structuralSelection).toBe('true');
+      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      expect(selectedKeys).toEqual([trailingKey]);
+    });
+  });
+
+  it.fails('selects the nested empty note on Shift+Up before the previous sibling', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    const rootElement = remdo.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const nestedAfterChildKey = getNoteKeyById(remdo, 'nested-after-child');
+
+    await placeCaretAtNoteId(remdo, 'nested-after-child');
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+
+    await waitFor(() => {
+      expect(rootElement.dataset.structuralSelection).toBe('true');
+      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      expect(selectedKeys).toEqual([nestedAfterChildKey]);
+    });
+  });
+
+  it.fails('advances Cmd/Ctrl+A through the empty note ladder stages', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    const rootElement = remdo.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const nestedEmptyKey = getNoteKeyById(remdo, 'nested-empty');
+    const childKey = getNoteKeyById(remdo, 'child');
+    const nestedAfterChildKey = getNoteKeyById(remdo, 'nested-after-child');
+    const parentKey = getNoteKeyById(remdo, 'parent');
+
+    await placeCaretAtNoteId(remdo, 'nested-empty');
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+
+    await waitFor(() => {
+      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      expect(selectedKeys).toEqual([nestedEmptyKey]);
+    });
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+
+    await waitFor(() => {
+      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      expect(selectedKeys).toEqual([nestedEmptyKey, childKey, nestedAfterChildKey]);
+    });
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+
+    await waitFor(() => {
+      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      expect(selectedKeys).toEqual([parentKey, nestedEmptyKey, childKey, nestedAfterChildKey]);
+    });
+  });
+
+  it.fails('collapses structural selection on an empty note back to a caret', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    const rootElement = remdo.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const trailingKey = getNoteKeyById(remdo, 'trailing');
+
+    await placeCaretAtNoteId(remdo, 'trailing');
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+
+    await waitFor(() => {
+      expect(rootElement.dataset.structuralSelection).toBe('true');
+      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      expect(selectedKeys).toEqual([trailingKey]);
+    });
+
+    await pressKey(remdo, { key: 'Escape' });
+
+    await waitFor(() => {
+      expect(readCaretNoteKey(remdo)).toBe(trailingKey);
+    });
+  });
 
   // Expected: Shift+Down/Up starting on an empty parent note selects the full parent subtree.
-  it.todo('selects the full subtree when Shift+Down/Up starts on an empty parent note');
+  it.fails('selects the full subtree when Shift+Down/Up starts on an empty parent note', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    const rootElement = remdo.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const parentKey = getNoteKeyById(remdo, 'parent');
+    const nestedEmptyKey = getNoteKeyById(remdo, 'nested-empty');
+    const childKey = getNoteKeyById(remdo, 'child');
+    const nestedAfterChildKey = getNoteKeyById(remdo, 'nested-after-child');
+
+    await placeCaretAtNoteId(remdo, 'parent');
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+
+    await waitFor(() => {
+      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      expect(selectedKeys).toEqual([parentKey, nestedEmptyKey, childKey, nestedAfterChildKey]);
+    });
+
+    await placeCaretAtNoteId(remdo, 'parent');
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+
+    await waitFor(() => {
+      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      expect(selectedKeys).toEqual([parentKey, nestedEmptyKey, childKey, nestedAfterChildKey]);
+    });
+  });
 
   // Expected: Shift+Left/Right are inline-only and remain no-ops on empty notes (no structural selection).
-  it.todo('keeps Shift+Left/Right as no-ops on an empty note');
+  it('keeps Shift+Left/Right as no-ops on an empty note', async ({ remdo }) => {
+    await remdo.load('empty-labels');
 
+    const rootElement = remdo.editor.getRootElement();
+    if (!rootElement) {
+      throw new Error('Expected editor root element');
+    }
+
+    const parentKey = getNoteKeyById(remdo, 'parent');
+
+    await placeCaretAtNoteId(remdo, 'parent');
+    expect(readCaretNoteKey(remdo)).toBe(parentKey);
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+
+    await pressKey(remdo, { key: 'ArrowRight', shift: true });
+    await pressKey(remdo, { key: 'ArrowLeft', shift: true });
+
+    expect(readCaretNoteKey(remdo)).toBe(parentKey);
+    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+  });
+
+  //TODO work on it once dragDomSelectionWithoutExtendBetween supports ids
   // Expected: Dragging across note boundaries snaps to a contiguous whole-note selection, including mixed empty and non-empty notes.
   it.todo('snaps mixed empty/non-empty ranges into a contiguous structural selection');
 
