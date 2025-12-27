@@ -4,6 +4,7 @@ import type { Outline } from '#tests';
 import {
   collectSelectedListItems,
   getListItemLabel,
+  getRootElementOrThrow,
   placeCaretAtNoteId,
   placeCaretAtNote,
   getNoteKeyById,
@@ -167,10 +168,7 @@ describe('selection plugin', () => {
   it('snaps pointer drags across note boundaries to contiguous structural slices', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
+    const rootElement = getRootElementOrThrow(remdo.editor);
 
     const note2Text = getNoteTextNode(rootElement, 'note2');
     const note5Text = getNoteTextNode(rootElement, 'note5');
@@ -198,10 +196,7 @@ describe('selection plugin', () => {
   it('preserves selection direction for backward pointer drags', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
+    const rootElement = getRootElementOrThrow(remdo.editor);
 
     const note5Text = getNoteTextNode(rootElement, 'note5');
     const note2Text = getNoteTextNode(rootElement, 'note2');
@@ -228,10 +223,7 @@ describe('selection plugin', () => {
   it('snaps drags that cross from a parent into its child to the full subtree', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
+    const rootElement = getRootElementOrThrow(remdo.editor);
 
     const parentText = getNoteTextNode(rootElement, 'note2');
     const childText = getNoteTextNode(rootElement, 'note3');
@@ -248,10 +240,7 @@ describe('selection plugin', () => {
   it('snaps drags that exit a child upward into its parent to the full subtree', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
+    const rootElement = getRootElementOrThrow(remdo.editor);
 
     const childText = getNoteTextNode(rootElement, 'note3');
     const parentText = getNoteTextNode(rootElement, 'note2');
@@ -268,10 +257,7 @@ describe('selection plugin', () => {
   it('snaps touch-handle drags across note boundaries to contiguous subtrees', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
+    const rootElement = getRootElementOrThrow(remdo.editor);
 
     const parentText = getNoteTextNode(rootElement, 'note6');
     const childText = getNoteTextNode(rootElement, 'note7');
@@ -288,10 +274,7 @@ describe('selection plugin', () => {
   it('extends pointer selections with Shift+Click to produce contiguous note ranges', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
+    const rootElement = getRootElementOrThrow(remdo.editor);
 
     const note2Text = getNoteTextNode(rootElement, 'note2');
     const note5Text = getNoteTextNode(rootElement, 'note5');
@@ -330,10 +313,7 @@ describe('selection plugin', () => {
   it('lets Shift+Click extend keyboard-driven structural selections without breaking contiguity', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
+    const rootElement = getRootElementOrThrow(remdo.editor);
 
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -370,10 +350,7 @@ describe('selection plugin', () => {
   it('keeps the ladder alive after Shift+Click tweaks to continue with Shift+Arrow', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
+    const rootElement = getRootElementOrThrow(remdo.editor);
 
     await placeCaretAtNote(remdo, 'note2');
 
@@ -428,6 +405,24 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
+
+  it('toggles the structural selection class when entering and exiting structural mode', async ({ remdo }) => {
+    await remdo.load('tree-complex');
+
+    const rootElement = getRootElementOrThrow(remdo.editor);
+
+    await placeCaretAtNote(remdo, 'note2');
+    expect(rootElement.classList.contains('editor-input--structural')).toBe(false);
+
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    expect(rootElement.classList.contains('editor-input--structural')).toBe(true);
+
+    await pressKey(remdo, { key: 'Escape' });
+    expect(rootElement.classList.contains('editor-input--structural')).toBe(false);
+  });
+
+
   it('treats Shift+Left/Right as no-ops once the selection spans whole notes', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
@@ -445,7 +440,7 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
 
-  it('toggles the structural selection dataset when escalating the ladder', async ({ remdo }) => {
+  it('toggles the structural selection state when escalating the ladder', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
     await placeCaretAtNote(remdo, 'note2');
@@ -689,10 +684,7 @@ describe('selection plugin', () => {
   it('collapses structural selection when clicking back into a note body', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
+    const rootElement = getRootElementOrThrow(remdo.editor);
 
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -848,10 +840,7 @@ describe('selection plugin', () => {
   it('hoists the parent once Shift+Down runs out of siblings in an existing note range', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
+    const rootElement = getRootElementOrThrow(remdo.editor);
 
     const note2Text = getNoteTextNode(rootElement, 'note2');
     const note4Text = getNoteTextNode(rootElement, 'note4');
@@ -871,10 +860,7 @@ describe('selection plugin', () => {
   it('hoists the parent when Shift+Up continues a pointer selection slab', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
+    const rootElement = getRootElementOrThrow(remdo.editor);
 
     const note4Text = getNoteTextNode(rootElement, 'note4');
     const note2Text = getNoteTextNode(rootElement, 'note2');
