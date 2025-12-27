@@ -9,6 +9,7 @@ import { CollaborationConnectionStatus, CollaborationPlugin } from './plugins/co
 import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { DevPlugin } from './plugins/dev';
 import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin';
+import { SelectionCollapsePlugin } from './plugins/SelectionCollapsePlugin';
 import { InsertionPlugin } from './plugins/InsertionPlugin';
 import { DeletionPlugin } from './plugins/DeletionPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
@@ -41,6 +42,7 @@ export default function Editor({ children, collabOrigin, docId, onTestBridgeRead
           <IndentationPlugin />
           <ReorderingPlugin />
           <SelectionPlugin />
+          <SelectionCollapsePlugin />
           <InsertionPlugin />
           <DeletionPlugin />
           <SelectionInputPlugin />

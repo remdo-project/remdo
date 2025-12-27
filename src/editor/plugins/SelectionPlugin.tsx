@@ -26,6 +26,7 @@ import {
 } from '@/editor/outline/selection/tree';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import { reportInvariant } from '@/editor/invariant';
+import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
@@ -34,7 +35,6 @@ import {
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_CRITICAL,
-  KEY_DOWN_COMMAND,
   KEY_ESCAPE_COMMAND,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
@@ -549,140 +549,9 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
-    const shouldHandlePlainVerticalArrow = (event: KeyboardEvent | null): boolean => {
-      if (!editor.selection.isStructural()) {
-        return false;
-      }
-
-      if (!event) {
-        return true;
-      }
-
-      return !(event.shiftKey || event.altKey || event.metaKey || event.ctrlKey);
-    };
-
-    const shouldHandlePlainHorizontalArrow = (event: KeyboardEvent | null): boolean => {
-      if (!editor.selection.isStructural()) {
-        return false;
-      }
-
-      if (!event) {
-        return true;
-      }
-
-      return !(event.shiftKey || event.altKey || event.metaKey || event.ctrlKey);
-    };
-
-    const unregisterPlainArrowDown = editor.registerCommand(
-      KEY_ARROW_DOWN_COMMAND,
-      (event: KeyboardEvent | null) => {
-        if (!shouldHandlePlainVerticalArrow(event)) {
-          return false;
-        }
-
-        const handled = $collapseStructuralSelectionToCaretAndReset('end');
-        if (!handled) {
-          return false;
-        }
-
-        if (event) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-        return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-
-    const unregisterPlainArrowLeft = editor.registerCommand(
-      KEY_ARROW_LEFT_COMMAND,
-      (event: KeyboardEvent | null) => {
-        if (!shouldHandlePlainHorizontalArrow(event)) {
-          return false;
-        }
-
-        const handled = $collapseStructuralSelectionToCaretAndReset('start');
-        if (!handled) {
-          return false;
-        }
-
-        if (event) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-        return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-
-    const unregisterPlainArrowRight = editor.registerCommand(
-      KEY_ARROW_RIGHT_COMMAND,
-      (event: KeyboardEvent | null) => {
-        if (!shouldHandlePlainHorizontalArrow(event)) {
-          return false;
-        }
-
-        const handled = $collapseStructuralSelectionToCaretAndReset('end');
-        if (!handled) {
-          return false;
-        }
-
-        if (event) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-        return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-
-    const unregisterHomeEnd = editor.registerCommand(
-      KEY_DOWN_COMMAND,
-      (event: KeyboardEvent | null) => {
-        if (!event || !editor.selection.isStructural()) {
-          return false;
-        }
-
-        if (event.shiftKey || event.altKey || event.metaKey || event.ctrlKey) {
-          return false;
-        }
-
-        if (event.key !== 'Home' && event.key !== 'End' && event.key !== 'PageUp' && event.key !== 'PageDown') {
-          return false;
-        }
-
-        const handled = $collapseStructuralSelectionToCaretAndReset(
-          event.key === 'Home' || event.key === 'PageUp' ? 'start' : 'end'
-        );
-        if (!handled) {
-          return false;
-        }
-
-        event.preventDefault();
-        event.stopPropagation();
-        return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-
-    const unregisterPlainArrowUp = editor.registerCommand(
-      KEY_ARROW_UP_COMMAND,
-      (event: KeyboardEvent | null) => {
-        if (!shouldHandlePlainVerticalArrow(event)) {
-          return false;
-        }
-
-        const handled = $collapseStructuralSelectionToCaretAndReset('start');
-        if (!handled) {
-          return false;
-        }
-
-        if (event) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-        return true;
-      },
+    const unregisterCollapseCommand = editor.registerCommand(
+      COLLAPSE_STRUCTURAL_SELECTION_COMMAND,
+      ({ edge }) => $collapseStructuralSelectionToCaretAndReset(edge ?? 'anchor'),
       COMMAND_PRIORITY_CRITICAL
     );
 
@@ -697,12 +566,8 @@ export function SelectionPlugin() {
       unregisterSelectAll();
       unregisterArrowLeft();
       unregisterArrowRight();
-      unregisterPlainArrowLeft();
-      unregisterPlainArrowRight();
       unregisterDirectionalCommand();
-      unregisterPlainArrowDown();
-      unregisterPlainArrowUp();
-      unregisterHomeEnd();
+      unregisterCollapseCommand();
       unregisterEscape();
       unregisterRootListener();
     };
