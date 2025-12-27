@@ -1,11 +1,14 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
-import { findNearestListItem, getContentListItem, isChildrenWrapper, maybeRemoveEmptyWrapper } from '@/editor/outline/list-structure';
+import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
 import {
   getContentSiblingsForItem,
+  getFirstDescendantListItem,
+  getLastDescendantListItem,
   getNextContentSibling,
   getParentContentItem,
   getPreviousContentSibling,
+  removeNoteSubtree,
   getSubtreeTail,
   normalizeContentRange,
   sortHeadsByDocumentOrder,
@@ -1783,87 +1786,6 @@ function resolveCaretTargetAfterDeletion(heads: ListItemNode[]): CaretEdgePlan |
   }
 
   return null;
-}
-
-function getNestedList(item: ListItemNode): ListNode | null {
-  const wrapper = getWrapperForContent(item);
-  if (wrapper) {
-    const nested = wrapper.getFirstChild();
-    if ($isListNode(nested)) {
-      return nested;
-    }
-  }
-
-  for (const child of item.getChildren()) {
-    if ($isListNode(child)) {
-      return child;
-    }
-  }
-
-  return null;
-}
-
-function getFirstDescendantListItem(node: LexicalNode | null): ListItemNode | null {
-  if (!$isListNode(node)) {
-    return null;
-  }
-
-  for (const child of node.getChildren()) {
-    if ($isListItemNode(child)) {
-      return getContentListItem(child);
-    }
-  }
-
-  return null;
-}
-
-function getLastDescendantListItem(node: LexicalNode | null): ListItemNode | null {
-  if (!$isListNode(node)) {
-    return null;
-  }
-
-  const children = node.getChildren();
-  for (let i = children.length - 1; i >= 0; i -= 1) {
-    const child = children[i];
-    if ($isListItemNode(child)) {
-      const nested = getNestedList(child);
-      const match = getLastDescendantListItem(nested);
-      if (match) {
-        return match;
-      }
-      return getContentListItem(child);
-    }
-  }
-
-  return null;
-}
-
-function getWrapperForContent(item: ListItemNode): ListItemNode | null {
-  const next = item.getNextSibling();
-  if (!isChildrenWrapper(next)) {
-    return null;
-  }
-  return next;
-}
-
-function removeNoteSubtree(item: ListItemNode) {
-  const contentItem = getContentListItem(item);
-  const parentList = contentItem.getParent();
-  const parentWrapper = $isListNode(parentList) ? parentList.getParent() : null;
-
-  const wrapper = getWrapperForContent(contentItem);
-  if (wrapper) {
-    wrapper.remove();
-  }
-
-  contentItem.remove();
-
-  if ($isListNode(parentList)) {
-    maybeRemoveEmptyWrapper(parentList);
-    if ($isListItemNode(parentWrapper) && parentWrapper.getChildrenSize() === 0) {
-      parentWrapper.remove();
-    }
-  }
 }
 
 function $applyStructuralRange(range: StructuralSelectionRange): RangeSelection | null {

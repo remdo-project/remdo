@@ -3,7 +3,7 @@ import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
 
 import { reportInvariant } from '@/editor/invariant';
-import { getContentSiblings, isChildrenWrapper } from '../list-structure';
+import { getContentListItem, getContentSiblings, isChildrenWrapper, maybeRemoveEmptyWrapper } from '../list-structure';
 
 export function normalizeContentRange(
   start: ListItemNode,
@@ -137,6 +137,86 @@ export function getSubtreeTail(item: ListItemNode): ListItemNode {
   return getSubtreeTail(lastChild);
 }
 
+export function getNestedList(item: ListItemNode): ListNode | null {
+  const wrapper = getWrapperForContent(item);
+  if (wrapper) {
+    const nested = wrapper.getFirstChild();
+    if ($isListNode(nested)) {
+      return nested;
+    }
+  }
+
+  for (const child of item.getChildren()) {
+    if ($isListNode(child)) {
+      return child;
+    }
+  }
+
+  return null;
+}
+
+export function getFirstDescendantListItem(node: LexicalNode | null): ListItemNode | null {
+  if (!$isListNode(node)) {
+    return null;
+  }
+
+  for (const child of node.getChildren()) {
+    if ($isListItemNode(child)) {
+      return getContentListItem(child);
+    }
+  }
+
+  return null;
+}
+
+export function getLastDescendantListItem(node: LexicalNode | null): ListItemNode | null {
+  if (!$isListNode(node)) {
+    return null;
+  }
+
+  const children = node.getChildren();
+  for (let i = children.length - 1; i >= 0; i -= 1) {
+    const child = children[i];
+    if ($isListItemNode(child)) {
+      const nested = getNestedList(child);
+      const match = getLastDescendantListItem(nested);
+      if (match) {
+        return match;
+      }
+      return getContentListItem(child);
+    }
+  }
+
+  return null;
+}
+
+export function getWrapperForContent(item: ListItemNode): ListItemNode | null {
+  const next = item.getNextSibling();
+  if (!isChildrenWrapper(next)) {
+    return null;
+  }
+  return next;
+}
+
+export function removeNoteSubtree(item: ListItemNode) {
+  const parentList = item.getParent();
+  const parentWrapper = $isListNode(parentList) ? parentList.getParent() : null;
+
+  const wrapper = getWrapperForContent(item);
+  if (wrapper) {
+    wrapper.remove();
+  }
+
+  item.remove();
+
+  if ($isListNode(parentList)) {
+    maybeRemoveEmptyWrapper(parentList);
+    if ($isListItemNode(parentWrapper) && parentWrapper.getChildrenSize() === 0) {
+      parentWrapper.remove();
+    }
+  }
+}
+
 export function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
   const aPath = getNodePath(a);
   const bPath = getNodePath(b);
@@ -181,28 +261,4 @@ function getNodePath(node: ListItemNode): number[] {
   return path.toReversed();
 }
 
-function getNestedList(item: ListItemNode): ListNode | null {
-  const wrapper = getWrapperForContent(item);
-  if (wrapper) {
-    const nested = wrapper.getFirstChild();
-    if ($isListNode(nested)) {
-      return nested;
-    }
-  }
-
-  for (const child of item.getChildren()) {
-    if ($isListNode(child)) {
-      return child;
-    }
-  }
-
-  return null;
-}
-
-function getWrapperForContent(item: ListItemNode): ListItemNode | null {
-  const next = item.getNextSibling();
-  if (!isChildrenWrapper(next)) {
-    return null;
-  }
-  return next;
-}
+// getNestedList + getWrapperForContent exported above
