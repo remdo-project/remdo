@@ -105,14 +105,14 @@
   height: 0;
 }
 
-.editor-input[data-structural-selection='true']::before {
+.editor-input.editor-input--structural::before {
   opacity: 1;
   top: var(--structural-selection-top, 0px);
   height: var(--structural-selection-height, 0px);
 }
 
-.editor-input[data-structural-selection='true']::selection,
-.editor-input[data-structural-selection='true'] *::selection {
+.editor-input.editor-input--structural::selection,
+.editor-input.editor-input--structural *::selection {
   background: transparent;
 }
 

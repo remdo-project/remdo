@@ -212,17 +212,13 @@ export function SelectionPlugin() {
       rootElement.style.setProperty('--structural-selection-height', `${height}px`);
     };
 
-    const applyStructuralSelectionAttribute = () => {
+    const applyStructuralSelectionClass = () => {
       const rootElement = editor.getRootElement();
       if (!rootElement) {
         return;
       }
 
-      if (structuralSelectionRef.current) {
-        rootElement.dataset.structuralSelection = 'true';
-      } else {
-        delete rootElement.dataset.structuralSelection;
-      }
+      rootElement.classList.toggle('editor-input--structural', structuralSelectionRef.current);
     };
 
     const setStructuralSelectionActive = (isActive: boolean) => {
@@ -231,7 +227,7 @@ export function SelectionPlugin() {
       }
 
       structuralSelectionRef.current = isActive;
-      applyStructuralSelectionAttribute();
+      applyStructuralSelectionClass();
 
       if (!isActive) {
         structuralSelectionRangeRef.current = null;
@@ -241,16 +237,14 @@ export function SelectionPlugin() {
 
     const unregisterRootListener = editor.registerRootListener((rootElement, previousRootElement) => {
       if (previousRootElement) {
-        delete previousRootElement.dataset.structuralSelection;
+        previousRootElement.classList.toggle('editor-input--structural', false);
       }
 
       if (!rootElement) {
         return;
       }
 
-      if (structuralSelectionRef.current) {
-        rootElement.dataset.structuralSelection = 'true';
-      }
+      rootElement.classList.toggle('editor-input--structural', structuralSelectionRef.current);
     });
 
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
@@ -887,7 +881,7 @@ export function SelectionPlugin() {
       structuralSelectionRef.current = false;
       const rootElement = editor.getRootElement();
       if (rootElement) {
-        delete rootElement.dataset.structuralSelection;
+        rootElement.classList.toggle('editor-input--structural', false);
       }
       clearStructuralSelectionMetrics();
       unregisterProgressionListener();

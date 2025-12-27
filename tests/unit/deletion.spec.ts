@@ -555,7 +555,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
       await waitFor(() => {
-        expect(rootElement.dataset.structuralSelection).toBe('true');
+        expect(remdo.editor.selection.isStructural()).toBe(true);
       });
 
       await pressKey(remdo, { key: 'Delete' });

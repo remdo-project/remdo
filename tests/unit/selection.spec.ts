@@ -454,16 +454,16 @@ describe('selection plugin', () => {
     }
 
     await placeCaretAtNote(remdo, 'note2');
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     await placeCaretAtNote(remdo, 'note1');
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
   });
 
   it('collapses structural selection back to the caret when pressing Escape', async ({ remdo }) => {
@@ -477,16 +477,16 @@ describe('selection plugin', () => {
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     await pressKey(remdo, { key: 'Escape' });
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
   });
 
   it('treats Enter as a no-op once structural selection is active', async ({ remdo }) => {
@@ -500,10 +500,10 @@ describe('selection plugin', () => {
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     await pressKey(remdo, { key: 'Enter' });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
@@ -522,7 +522,7 @@ describe('selection plugin', () => {
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     const outlineBefore = readOutline(remdo);
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
@@ -530,7 +530,7 @@ describe('selection plugin', () => {
     const stateBefore = remdo.editor.getEditorState();
 
     await typeText(remdo, 'x');
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     const stateAfter = remdo.editor.getEditorState();
@@ -705,10 +705,10 @@ describe('selection plugin', () => {
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     await pressKey(remdo, { key: 'ArrowRight' });
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
   });
 
   it('collapses structural selection when clicking back into a note body', async ({ remdo }) => {
@@ -724,7 +724,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     const note4Text = getNoteTextNode(rootElement, 'note4');
     await collapseDomSelectionAtText(note4Text, 0);
@@ -733,7 +733,7 @@ describe('selection plugin', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
     });
 
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
   });
 
   it('restores a single-note caret when navigating with plain arrows from structural mode', async ({ remdo }) => {
@@ -748,10 +748,10 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     await pressKey(remdo, { key: 'ArrowDown' });
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
 
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
   });
@@ -768,10 +768,10 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     await pressKey(remdo, { key: 'ArrowLeft' });
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note5' });
   });
 
@@ -787,10 +787,10 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     await pressKey(remdo, { key: 'ArrowRight' });
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note6' });
   });
 
@@ -806,10 +806,10 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     await pressKey(remdo, { key: 'ArrowUp' });
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
 
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
@@ -826,19 +826,19 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     await pressKey(remdo, { key: 'Home' });
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     await pressKey(remdo, { key: 'End' });
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
   });
 
@@ -854,20 +854,20 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
     await pressKey(remdo, { key: 'PageDown' });
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
 
     await pressKey(remdo, { key: 'PageUp' });
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
@@ -1036,15 +1036,15 @@ describe('selection plugin', () => {
     }
 
     await placeCaretAtNote(remdo, 'note4');
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
 
     // Stage 1 should stay unstructured.
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
 
     // Stage 2 should flip the structural dataset for leaf notes so the UI highlights the block.
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
   });
 
   it('selects nested leaves structurally at Shift+Down stage 2', async ({ remdo }) => {
@@ -1162,17 +1162,15 @@ describe('selection plugin', () => {
 
     await placeCaretAtNote(remdo, '');
 
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
   });
 
   it('selects the nested empty note before child-of-empty on Shift+Down', async ({ remdo }) => {
     await remdo.load('empty-labels');
-
-    const rootElement = remdo.editor.getRootElement()!;
 
     const emptyKey = getNoteKeyById(remdo, 'nested-empty');
 
@@ -1181,11 +1179,11 @@ describe('selection plugin', () => {
       node.selectStart();
     });
 
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
     expect(remdo.editor.selection.heads()).toContain(emptyKey);
   });
 
@@ -1213,7 +1211,7 @@ describe('selection plugin', () => {
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
-    expect(rootElement.dataset.structuralSelection).toBe('true');
+    expect(remdo.editor.selection.isStructural()).toBe(true);
     const selectedKeys = remdo.editor.selection.heads();
     expect(selectedKeys).toContain(emptyKey);
     expect(selectedKeys).not.toContain(childKey);
@@ -1233,7 +1231,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      expect(rootElement.dataset.structuralSelection).toBe('true');
+      expect(remdo.editor.selection.isStructural()).toBe(true);
       const selectedKeys = remdo.editor.selection.heads();
       expect(selectedKeys).toEqual([trailingKey]);
     });
@@ -1253,7 +1251,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
 
     await waitFor(() => {
-      expect(rootElement.dataset.structuralSelection).toBe('true');
+      expect(remdo.editor.selection.isStructural()).toBe(true);
       const selectedKeys = remdo.editor.selection.heads();
       expect(selectedKeys).toEqual([nestedAfterChildKey]);
     });
@@ -1310,7 +1308,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      expect(rootElement.dataset.structuralSelection).toBe('true');
+      expect(remdo.editor.selection.isStructural()).toBe(true);
       const selectedKeys = remdo.editor.selection.heads();
       expect(selectedKeys).toEqual([trailingKey]);
     });
@@ -1366,13 +1364,13 @@ describe('selection plugin', () => {
 
     await placeCaretAtNoteId(remdo, 'parent');
     expect(readCaretNoteKey(remdo)).toBe(parentKey);
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
 
     await pressKey(remdo, { key: 'ArrowRight', shift: true });
     await pressKey(remdo, { key: 'ArrowLeft', shift: true });
 
     expect(readCaretNoteKey(remdo)).toBe(parentKey);
-    expect(rootElement.dataset.structuralSelection).toBeUndefined();
+    expect(remdo.editor.selection.isStructural()).toBe(false);
   });
 
   //TODO work on it once dragDomSelectionWithoutExtendBetween supports ids
