@@ -127,23 +127,30 @@ function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
       return caretNote ? ({ state: 'caret', note: caretNote } satisfies SelectionSnapshot) : ({ state: 'none' } satisfies SelectionSnapshot);
     }
 
+    const outlineSelection = remdo.editor.selection.get();
     const structuralNotes = collectLabelsFromSelection(selection);
-    if (structuralNotes.length > 0) {
+    if (outlineSelection?.kind === 'structural') {
+      if (structuralNotes.length > 0) {
+        return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
+      }
+
+      const outlineNotes = outlineSelection.headKeys
+        .map((key) => {
+          const node = $getNodeByKey<ListItemNode>(key);
+          if (!node || !node.isAttached()) {
+            return null;
+          }
+          return getListItemLabel(node);
+        })
+        .filter((label: string | null): label is string => typeof label === 'string' && label.length > 0);
+
+      if (outlineNotes.length > 0) {
+        return { state: 'structural', notes: outlineNotes } satisfies SelectionSnapshot;
+      }
+    } else if (!outlineSelection && structuralNotes.length > 0) {
       return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
-    }
-
-    const outlineNotes = remdo.editor.selection.heads()
-      .map((key) => {
-        const node = $getNodeByKey<ListItemNode>(key);
-        if (!node || !node.isAttached()) {
-          return null;
-        }
-        return getListItemLabel(node);
-      })
-      .filter((label: string | null): label is string => typeof label === 'string' && label.length > 0);
-
-    if (outlineNotes.length > 0) {
-      return { state: 'structural', notes: outlineNotes } satisfies SelectionSnapshot;
+    } else if (structuralNotes.length > 1) {
+      return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
     }
 
     const inlineNote = getCaretNoteLabel(selection);
