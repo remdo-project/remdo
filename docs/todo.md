@@ -92,6 +92,11 @@ Rules:
      failing structural delete case in `tests/unit/deletion.spec.ts` by fixing
      selection/structural delete behavior as part of the refactor (empty notes,
      ladder progression, and caret collapse should match the contract).
+   - Add a focused unit test that toggles structural selection on/off and
+     asserts the CSS class is applied/removed (caret → structural → caret),
+     keeping DOM coverage minimal.
+   - Optional: add a small Playwright E2E check that verifies the visual
+     structural highlight appears when structural selection is active.
    - Decision: use a single `editor.selection` namespace (`get`/`set`/`heads`/
      `isStructural`) instead of adding more top-level editor helpers.
 
