@@ -1,37 +1,20 @@
-import type { ListItemNode, ListNode } from '@lexical/list';
-import { $isListNode } from '@lexical/list';
-import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
-import {
-  collapseSelectionToCaret,
-  resolveBoundaryPoint,
-  resolveContentBoundaryPoint,
-  shouldBlockHorizontalExpansion,
-} from '@/editor/outline/selection/caret';
-import type { BoundaryMode } from '@/editor/outline/selection/apply';
-import {
-  $applyCaretEdge,
-  selectInlineContent,
-  selectNoteBody,
-  setSelectionBetweenItems,
-} from '@/editor/outline/selection/apply';
-import {
-  getContentSiblingsForItem,
-  getFirstDescendantListItem,
-  getLastDescendantListItem,
-  getNextContentSibling,
-  getParentContentItem,
-  getPreviousContentSibling,
-  getSubtreeTail,
-  sortHeadsByDocumentOrder,
-} from '@/editor/outline/selection/tree';
+import type { ListItemNode } from '@lexical/list';
+import { collapseSelectionToCaret, resolveBoundaryPoint } from '@/editor/outline/selection/caret';
+import { $applyCaretEdge } from '@/editor/outline/selection/apply';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
-import { reportInvariant } from '@/editor/invariant';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
+import { $shouldBlockHorizontalArrow } from '@/editor/outline/selection/navigation';
+import {
+  $applyProgressivePlan,
+  $computeDirectionalPlan,
+  $computeProgressivePlan,
+  INITIAL_PROGRESSIVE_STATE,
+} from '@/editor/outline/selection/progressive';
+import type { ProgressivePlanResult } from '@/editor/outline/selection/progressive';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $getNodeByKey,
-  $getRoot,
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_CRITICAL,
@@ -42,49 +25,15 @@ import {
   SELECT_ALL_COMMAND,
   createCommand,
 } from 'lexical';
-import type { OutlineSelection, OutlineSelectionRange } from '@/editor/outline/selection/model';
+import type { OutlineSelectionRange } from '@/editor/outline/selection/model';
 import type { ProgressiveSelectionState, SnapPayload } from '@/editor/outline/selection/resolve';
-import {
-  computeStructuralRangeFromHeads,
-  $createSnapPayload,
-  inferPointerProgressionState,
-  selectionMatchesPayload,
-} from '@/editor/outline/selection/resolve';
+import { computeStructuralRangeFromHeads } from '@/editor/outline/selection/resolve';
+import { $computeOutlineSelectionSnapshot } from '@/editor/outline/selection/snapshot';
+import type { ProgressiveUnlockState } from '@/editor/outline/selection/snapshot';
 import { useEffect, useRef } from 'react';
 
 const PROGRESSIVE_SELECTION_TAG = 'selection:progressive-range';
 const SNAP_SELECTION_TAG = 'selection:snap-range';
-
-interface ProgressiveUnlockState {
-  pending: boolean;
-  reason: 'directional' | 'external';
-}
-
-const INITIAL_PROGRESSIVE_STATE: ProgressiveSelectionState = {
-  anchorKey: null,
-  stage: 0,
-  locked: false,
-};
-
-type ProgressivePlan =
-  | {
-      type: 'inline';
-      itemKey: string;
-    }
-  | {
-      type: 'range';
-      startKey: string;
-      endKey: string;
-      startMode: BoundaryMode;
-      endMode: BoundaryMode;
-    };
-
-interface ProgressivePlanResult {
-  anchorKey: string;
-  stage: number;
-  plan: ProgressivePlan;
-  repeatStage?: boolean;
-}
 
 function getStoredStage(result: ProgressivePlanResult): number {
   if (result.repeatStage && result.stage > 0) {
@@ -233,121 +182,20 @@ export function SelectionPlugin() {
     });
 
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
-      const { payload, hasStructuralSelection, structuralRange, outlineSelection } = editorState.read(() => {
-        let computedPayload: SnapPayload | null = null;
-        let computedStructuralRange: OutlineSelectionRange | null = null;
-        let computedNoteKeys: string[] = [];
-        let hasStructuralSelection = false;
-        let computedOutlineSelection: OutlineSelection | null = null;
+      const { payload, hasStructuralSelection, structuralRange, outlineSelection, progression, unlock } =
+        editorState.read(() =>
+          $computeOutlineSelectionSnapshot({
+            selection: $getSelection(),
+            isProgressiveTagged: tags.has(PROGRESSIVE_SELECTION_TAG),
+            isSnapTagged: tags.has(SNAP_SELECTION_TAG),
+            progression: progressionRef.current,
+            unlock: unlockRef.current,
+            initialProgression: INITIAL_PROGRESSIVE_STATE,
+          })
+        );
 
-        const selection = $getSelection();
-
-        if (tags.has(PROGRESSIVE_SELECTION_TAG)) {
-          const isLocked = $isRangeSelection(selection) && !selection.isCollapsed();
-          progressionRef.current = { ...progressionRef.current, locked: isLocked };
-          unlockRef.current.pending = false;
-        } else if ($isRangeSelection(selection)) {
-          const anchorItem = findNearestListItem(selection.anchor.getNode());
-          const anchorKey = anchorItem ? getContentListItem(anchorItem).getKey() : null;
-          if (!anchorKey || selection.isCollapsed() || progressionRef.current.anchorKey !== anchorKey) {
-            if (!unlockRef.current.pending || unlockRef.current.reason !== 'directional') {
-              progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-            }
-            unlockRef.current = { pending: false, reason: 'external' };
-          }
-        } else {
-          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-          unlockRef.current = { pending: false, reason: 'external' };
-        }
-
-        if (!$isRangeSelection(selection)) {
-          return {
-            payload: computedPayload,
-            hasStructuralSelection,
-            structuralRange: computedStructuralRange,
-            outlineSelection: computedOutlineSelection,
-          };
-        }
-
-        const anchorItem = findNearestListItem(selection.anchor.getNode());
-        const focusItem = findNearestListItem(selection.focus.getNode());
-        const anchorKey = anchorItem ? getContentListItem(anchorItem).getKey() : null;
-        const focusKey = focusItem ? getContentListItem(focusItem).getKey() : null;
-        const isBackward = selection.isBackward();
-
-        if (selection.isCollapsed()) {
-          computedOutlineSelection = {
-            kind: 'caret',
-            stage: 0,
-            anchorKey,
-            focusKey,
-            headKeys: [],
-            range: null,
-            isBackward,
-          };
-          return {
-            payload: computedPayload,
-            hasStructuralSelection,
-            structuralRange: computedStructuralRange,
-            outlineSelection: computedOutlineSelection,
-          };
-        }
-
-        const heads = getContiguousSelectionHeads(selection);
-        const noteItems = heads;
-        computedNoteKeys = noteItems.map((item) => getContentListItem(item).getKey());
-        computedStructuralRange = computeStructuralRangeFromHeads(noteItems);
-        if (noteItems.length > 0 && !computedStructuralRange) {
-          reportInvariant({
-            message: 'Structural range missing despite non-empty heads',
-            context: { headCount: noteItems.length },
-          });
-        }
-
-        const hasMultiNoteRange = noteItems.length > 1;
-        const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
-        hasStructuralSelection = isProgressiveStructural || hasMultiNoteRange;
-        if (!progressionRef.current.locked && hasMultiNoteRange) {
-          const inferredProgression = inferPointerProgressionState(selection, noteItems);
-          if (inferredProgression) {
-            progressionRef.current = inferredProgression;
-          }
-        }
-        const overrideAnchorKey =
-          progressionRef.current.locked && progressionRef.current.stage >= 2
-            ? progressionRef.current.anchorKey
-            : null;
-
-        if (!tags.has(SNAP_SELECTION_TAG) && noteItems.length >= 2) {
-          const candidate = $createSnapPayload(selection, noteItems, overrideAnchorKey);
-          if (candidate && !selectionMatchesPayload(selection, candidate)) {
-            computedPayload = candidate;
-          }
-        }
-
-        const stage = progressionRef.current.locked
-          ? progressionRef.current.stage
-          : hasStructuralSelection
-            ? 2
-            : 1;
-
-        computedOutlineSelection = {
-          kind: hasStructuralSelection ? 'structural' : 'inline',
-          stage,
-          anchorKey,
-          focusKey,
-          headKeys: hasStructuralSelection ? computedNoteKeys : [],
-          range: hasStructuralSelection ? computedStructuralRange : null,
-          isBackward,
-        };
-
-        return {
-          payload: computedPayload,
-          hasStructuralSelection,
-          structuralRange: computedStructuralRange,
-          outlineSelection: computedOutlineSelection,
-        };
-      });
+      progressionRef.current = progression;
+      unlockRef.current = unlock;
 
       if (hasStructuralSelection && structuralRange) {
         applyStructuralSelectionMetrics(structuralRange);
@@ -440,7 +288,9 @@ export function SelectionPlugin() {
     const unregisterSelectAll = editor.registerCommand(
       SELECT_ALL_COMMAND,
       (event: KeyboardEvent | null) => {
-        const planResult = editor.getEditorState().read(() => $computeProgressivePlan(progressionRef));
+        const planResult = editor
+          .getEditorState()
+          .read(() => $computeProgressivePlan(progressionRef, INITIAL_PROGRESSIVE_STATE));
 
         if (!planResult) {
           return false;
@@ -502,7 +352,7 @@ export function SelectionPlugin() {
 
       addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
 
-      const planResult = $computeDirectionalPlan(progressionRef, direction);
+      const planResult = $computeDirectionalPlan(progressionRef, direction, INITIAL_PROGRESSIVE_STATE);
       if (!planResult) {
         progressionRef.current = INITIAL_PROGRESSIVE_STATE;
         return;
@@ -554,513 +404,6 @@ export function SelectionPlugin() {
   }, [editor]);
 
   return null;
-}
-
-function $shouldBlockHorizontalArrow(direction: 'left' | 'right'): boolean {
-  const selection = $getSelection();
-  if (!$isRangeSelection(selection)) {
-    return false;
-  }
-
-  const selectionListItems: ListItemNode[] = [];
-  const seen = new Set<string>();
-  for (const node of selection.getNodes()) {
-    const listItem = findNearestListItem(node);
-    if (!listItem) continue;
-    const key = listItem.getKey();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    selectionListItems.push(listItem);
-  }
-
-  const isCollapsed = selection.isCollapsed();
-  if (!isCollapsed && selectionListItems.length > 1) {
-    return true; // already structural, block horizontal expansion
-  }
-
-  const targetItem =
-    selectionListItems[0] ??
-    (isCollapsed ? findNearestListItem(selection.focus.getNode()) : null);
-  if (!targetItem) {
-    return false;
-  }
-
-  const contentItem = getContentListItem(targetItem);
-  const focus = selection.focus;
-  const edge = direction === 'left' ? 'start' : 'end';
-  return shouldBlockHorizontalExpansion(focus, contentItem, edge);
-}
-
-function $computeProgressivePlan(
-	progressionRef: React.RefObject<ProgressiveSelectionState>
-): ProgressivePlanResult | null {
-  const selection = $getSelection();
-  if (!$isRangeSelection(selection)) {
-    progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-    return null;
-  }
-
-  if (selection.isCollapsed()) {
-    progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-  }
-
-  let anchorContent: ListItemNode | null = null;
-  if (progressionRef.current.anchorKey) {
-    const storedAnchor = $getNodeByKey<ListItemNode>(progressionRef.current.anchorKey);
-    if (storedAnchor) {
-      anchorContent = getContentListItem(storedAnchor);
-    }
-  }
-
-  if (!anchorContent) {
-    const anchorItem = findNearestListItem(selection.anchor.getNode());
-    if (!anchorItem) {
-      reportInvariant({
-        message: 'Directional plan could not find anchor list item',
-      });
-      progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-      return null;
-    }
-    anchorContent = getContentListItem(anchorItem);
-  }
-
-  const anchorKey = anchorContent.getKey();
-  const isContinuing = progressionRef.current.anchorKey === anchorKey;
-  const nextStage = isContinuing ? progressionRef.current.stage + 1 : 1;
-
-  const planEntry = $buildPlanForStage(anchorContent, nextStage);
-  if (!planEntry) {
-    progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-    return null;
-  }
-
-  return {
-    anchorKey,
-    stage: planEntry.stage,
-    plan: planEntry.plan,
-  };
-}
-
-function $buildPlanForStage(
-  anchorContent: ListItemNode,
-  stage: number
-): { plan: ProgressivePlan; stage: number } | null {
-  if (stage <= 1) {
-    const inlinePlan = $createInlinePlan(anchorContent);
-    if (inlinePlan) {
-      return { plan: inlinePlan, stage: 1 };
-    }
-    if (isEmptyNoteBody(anchorContent)) {
-      const subtreePlan = $createSubtreePlan(anchorContent);
-      return subtreePlan ? { plan: subtreePlan, stage: 2 } : null;
-    }
-    const notePlan = $createNoteBodyPlan(anchorContent);
-    return notePlan ? { plan: notePlan, stage: 2 } : null;
-  }
-
-  if (stage === 2) {
-    const subtreePlan = $createSubtreePlan(anchorContent);
-    return subtreePlan ? { plan: subtreePlan, stage: 2 } : null;
-  }
-
-  const relative = stage - 3;
-  const levelsUp = Math.floor((relative + 1) / 2);
-  const includeSiblings = relative % 2 === 0;
-
-  const targetContent = ascendContentItem(anchorContent, levelsUp);
-  if (!targetContent) {
-    const docPlan = $createDocumentPlan();
-    return docPlan ? { plan: docPlan, stage } : null;
-  }
-
-  if (includeSiblings) {
-    const parentList = targetContent.getParent();
-    if ($isListNode(parentList)) {
-      const parentParent = parentList.getParent();
-      if (parentParent && parentParent === $getRoot()) {
-        const docPlan = $createDocumentPlan();
-        if (docPlan) {
-          return { plan: docPlan, stage };
-        }
-      }
-    }
-
-    const siblingPlan = $createSiblingRangePlan(targetContent);
-    if (siblingPlan) {
-      return { plan: siblingPlan, stage };
-    }
-
-    return $buildPlanForStage(anchorContent, stage + 1);
-  }
-
-  const subtreePlan = $createSubtreePlan(targetContent);
-  if (subtreePlan) {
-    return { plan: subtreePlan, stage };
-  }
-
-  return $buildPlanForStage(anchorContent, stage + 1);
-}
-
-function $computeDirectionalPlan(
-	progressionRef: React.RefObject<ProgressiveSelectionState>,
-	direction: 'up' | 'down'
-): ProgressivePlanResult | null {
-  const selection = $getSelection();
-  if (!$isRangeSelection(selection)) {
-    progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-    return null;
-  }
-
-  if (selection.isCollapsed()) {
-    progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-  }
-
-  let anchorContent: ListItemNode | null = null;
-  if (progressionRef.current.anchorKey) {
-    const storedAnchor = $getNodeByKey<ListItemNode>(progressionRef.current.anchorKey);
-    if (storedAnchor) {
-      anchorContent = getContentListItem(storedAnchor);
-    }
-  }
-
-  if (!anchorContent) {
-    const anchorItem = findNearestListItem(selection.anchor.getNode());
-    if (!anchorItem) {
-      progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-      return null;
-    }
-    anchorContent = getContentListItem(anchorItem);
-  }
-
-  const anchorKey = anchorContent.getKey();
-  const isContinuing = progressionRef.current.locked && progressionRef.current.anchorKey === anchorKey;
-  let stage = isContinuing ? progressionRef.current.stage : 0;
-  const heads = getContiguousSelectionHeads(selection);
-
-  const MAX_STAGE = 64;
-  while (stage < MAX_STAGE + 1) {
-    stage += 1;
-    const planResult = $buildDirectionalStagePlan(anchorContent, heads, stage, direction);
-    if (planResult) {
-      return planResult;
-    }
-
-    if (stage >= MAX_STAGE) {
-      break;
-    }
-  }
-
-  return null;
-}
-
-function $buildDirectionalStagePlan(
-  anchorContent: ListItemNode,
-  heads: ListItemNode[],
-  stage: number,
-  direction: 'up' | 'down'
-): ProgressivePlanResult | null {
-  const anchorKey = anchorContent.getKey();
-  const resolvedHeads = heads.length > 0 ? heads : [anchorContent];
-
-  if (stage === 1) {
-    const inlinePlan = $createInlinePlan(anchorContent);
-    return inlinePlan ? { anchorKey, stage: 1, plan: inlinePlan } : null;
-  }
-
-  if (stage === 2) {
-    const subtreePlan = $createSubtreePlan(anchorContent);
-    return subtreePlan ? { anchorKey, stage: 2, plan: subtreePlan } : null;
-  }
-
-  const relative = stage - 3;
-  if (relative < 0) {
-    return null;
-  }
-
-  const levelsUp = Math.floor((relative + 1) / 2);
-  const isSiblingStage = relative % 2 === 0;
-  const target = levelsUp === 0 ? anchorContent : ascendContentItem(anchorContent, levelsUp);
-
-  if (!target) {
-    const docPlan = $createDocumentPlan();
-    if (!docPlan) {
-      return null;
-    }
-    return { anchorKey, stage, plan: docPlan };
-  }
-
-  const allHeads = resolvedHeads.length > 0 ? resolvedHeads : [anchorContent];
-  const sortedHeads = sortHeadsByDocumentOrder(allHeads);
-
-  if (isSiblingStage) {
-    return $buildDirectionalSiblingPlan(target, resolvedHeads, sortedHeads, direction, anchorKey, stage);
-  }
-
-  return $buildDirectionalAncestorPlan(target, resolvedHeads, anchorKey, stage);
-}
-
-function $buildDirectionalSiblingPlan(
-  target: ListItemNode,
-  resolvedHeads: ListItemNode[],
-  sortedHeads: ListItemNode[],
-  direction: 'up' | 'down',
-  anchorKey: string,
-  stage: number
-): ProgressivePlanResult | null {
-  const siblingList = target.getParent();
-  if (!$isListNode(siblingList)) {
-    return null;
-  }
-
-  const headsAtLevel = getHeadsSharingParent(resolvedHeads, siblingList);
-  if (headsAtLevel.length === 0) {
-    headsAtLevel.push(target);
-  }
-  const sortedLevelHeads = sortHeadsByDocumentOrder(headsAtLevel);
-
-  if (direction === 'down') {
-    const forwardBoundary = sortedLevelHeads.at(-1)!;
-    let sibling = getNextContentSibling(forwardBoundary);
-    let extendDirection: 'forward' | 'backward' = 'forward';
-
-    if (!sibling) {
-      const backwardBoundary = sortedLevelHeads[0]!;
-      sibling = getPreviousContentSibling(backwardBoundary);
-      extendDirection = 'backward';
-    }
-
-    if (!sibling) {
-      return null;
-    }
-
-    const plan: ProgressivePlan =
-      extendDirection === 'forward'
-        ? {
-            type: 'range',
-            startKey: sortedHeads[0]!.getKey(),
-            endKey: getSubtreeTail(sibling).getKey(),
-            startMode: 'content',
-            endMode: 'subtree',
-          }
-        : {
-            type: 'range',
-            startKey: sibling.getKey(),
-            endKey: getSubtreeTail(sortedHeads.at(-1)!).getKey(),
-            startMode: 'content',
-            endMode: 'subtree',
-          };
-
-    const repeatStage =
-      extendDirection === 'forward'
-        ? Boolean(getNextContentSibling(sibling))
-        : Boolean(getPreviousContentSibling(sibling));
-
-    return {
-      anchorKey,
-      stage,
-      plan,
-      repeatStage,
-    };
-  }
-
-  const backwardBoundary = sortedLevelHeads[0]!;
-  let sibling = getPreviousContentSibling(backwardBoundary);
-  let extendDirection: 'forward' | 'backward' = 'backward';
-
-  if (!sibling) {
-    const forwardBoundary = sortedLevelHeads.at(-1)!;
-    sibling = getNextContentSibling(forwardBoundary);
-    extendDirection = 'forward';
-  }
-
-  if (!sibling) {
-    return null;
-  }
-
-  const plan: ProgressivePlan =
-    extendDirection === 'backward'
-      ? {
-          type: 'range',
-          startKey: sibling.getKey(),
-          endKey: getSubtreeTail(sortedHeads.at(-1)!).getKey(),
-          startMode: 'content',
-          endMode: 'subtree',
-        }
-      : {
-          type: 'range',
-          startKey: sortedHeads[0]!.getKey(),
-          endKey: getSubtreeTail(sibling).getKey(),
-          startMode: 'content',
-          endMode: 'subtree',
-        };
-
-  const repeatStage =
-    extendDirection === 'backward'
-      ? Boolean(getPreviousContentSibling(sibling))
-      : Boolean(getNextContentSibling(sibling));
-
-  return {
-    anchorKey,
-    stage,
-    plan,
-    repeatStage,
-  };
-}
-
-function $buildDirectionalAncestorPlan(
-  target: ListItemNode,
-  resolvedHeads: ListItemNode[],
-  anchorKey: string,
-  stage: number
-): ProgressivePlanResult | null {
-  const alreadySelected = resolvedHeads.some((head) => head.getKey() === target.getKey());
-  if (alreadySelected) {
-    return null;
-  }
-
-  const plan = $createSubtreePlan(target);
-  if (!plan) {
-    return null;
-  }
-
-  return {
-    anchorKey,
-    stage,
-    plan,
-  };
-}
-
-function $createInlinePlan(item: ListItemNode): ProgressivePlan | null {
-  if (isEmptyNoteBody(item)) {
-    return null;
-  }
-  return $hasInlineBoundary(item) ? { type: 'inline', itemKey: item.getKey() } : null;
-}
-
-function $createNoteBodyPlan(item: ListItemNode): ProgressivePlan | null {
-  return {
-    type: 'range',
-    startKey: item.getKey(),
-    endKey: item.getKey(),
-    startMode: 'content',
-    endMode: 'content',
-  };
-}
-
-function $createSubtreePlan(item: ListItemNode): ProgressivePlan | null {
-  const tail = getSubtreeTail(item);
-  const isLeaf = tail.getKey() === item.getKey();
-  return {
-    type: 'range',
-    startKey: item.getKey(),
-    endKey: tail.getKey(),
-    startMode: 'content',
-    endMode: isLeaf ? 'content' : 'subtree',
-  };
-}
-
-function $createSiblingRangePlan(item: ListItemNode): ProgressivePlan | null {
-  const siblings = getContentSiblingsForItem(item);
-  if (siblings.length <= 1) {
-    return null;
-  }
-
-  const lastSibling = siblings.at(-1)!;
-  const tail = getSubtreeTail(lastSibling);
-  return {
-    type: 'range',
-    startKey: siblings[0]!.getKey(),
-    endKey: tail.getKey(),
-    startMode: 'content',
-    endMode: 'subtree',
-  };
-}
-
-function $createDocumentPlan(): ProgressivePlan | null {
-  const root = $getRoot();
-  const list = root.getFirstChild();
-  if (!$isListNode(list)) {
-    return null;
-  }
-
-  const firstItem = getFirstDescendantListItem(list);
-  const lastItem = getLastDescendantListItem(list);
-  if (!firstItem || !lastItem) {
-    return null;
-  }
-
-  const tail = getSubtreeTail(lastItem);
-  return {
-    type: 'range',
-    startKey: firstItem.getKey(),
-    endKey: tail.getKey(),
-    startMode: 'content',
-    endMode: 'subtree',
-  };
-}
-
-function $hasInlineBoundary(item: ListItemNode): boolean {
-  return Boolean(resolveContentBoundaryPoint(item, 'start') && resolveContentBoundaryPoint(item, 'end'));
-}
-
-function isEmptyNoteBody(item: ListItemNode): boolean {
-  const contentItem = getContentListItem(item);
-  const pieces: string[] = [];
-
-  for (const child of contentItem.getChildren()) {
-    if ($isListNode(child)) {
-      continue;
-    }
-    const getTextContent = (child as { getTextContent?: () => string }).getTextContent;
-    if (typeof getTextContent === 'function') {
-      pieces.push(getTextContent.call(child));
-    }
-  }
-
-  return pieces.join('').trim().length === 0;
-}
-
-function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
-  const selection = $getSelection();
-  if (!$isRangeSelection(selection)) {
-    return false;
-  }
-
-  if (result.plan.type === 'inline') {
-    const item = $getNodeByKey<ListItemNode>(result.plan.itemKey);
-    if (!item) {
-      return false;
-    }
-    if (!selectInlineContent(selection, item)) {
-      return selectNoteBody(selection, item);
-    }
-    return true;
-  }
-
-  const startItem = $getNodeByKey<ListItemNode>(result.plan.startKey);
-  const endItem = $getNodeByKey<ListItemNode>(result.plan.endKey);
-  if (!startItem || !endItem) {
-    return false;
-  }
-
-  return setSelectionBetweenItems(selection, startItem, endItem, result.plan.startMode, result.plan.endMode);
-}
-
-function ascendContentItem(item: ListItemNode, levels: number): ListItemNode | null {
-  let current: ListItemNode | null = item;
-
-  for (let i = 0; i < levels; i += 1) {
-    current = getParentContentItem(current);
-    if (!current) {
-      return null;
-    }
-  }
-
-  return current;
-}
-
-function getHeadsSharingParent(heads: ListItemNode[], parentList: ListNode): ListItemNode[] {
-  return heads.filter((head) => head.getParent() === parentList);
 }
 
 export function SelectionInputPlugin() {
