@@ -1,10 +1,13 @@
 //TODO review, refactor, simplify, extract common helpers
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $isListItemNode, $isListNode } from '@lexical/list';
+import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
+  $createParagraphNode,
   $createRangeSelection,
   $createTextNode,
+  $getNodeByKey,
+  $getRoot,
   $getSelection,
   $isRangeSelection,
   $isTextNode,
@@ -16,6 +19,8 @@ import {
 import type { LexicalNode, TextNode } from 'lexical';
 import { useEffect, useState } from 'react';
 import { findNearestListItem, getContentListItem, isChildrenWrapper, maybeRemoveEmptyWrapper } from '@/editor/outline/list-structure';
+import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
+import { getFirstDescendantListItem, removeNoteSubtree, sortHeadsByDocumentOrder } from '@/editor/outline/selection/tree';
 
 function getNestedList(item: ListItemNode): ListNode | null {
   const next = item.getNextSibling();
@@ -282,7 +287,12 @@ function getPreviousNoteInDocumentOrder(item: ListItemNode): ListItemNode | null
   return parentList ? getParentNote(parentList) : null;
 }
 
-function resolveCaretPlanAfterRemoval(item: ListItemNode): { target: ListItemNode; edge: 'start' | 'end' } | null {
+interface CaretPlan {
+  target: ListItemNode;
+  edge: 'start' | 'end';
+}
+
+function resolveCaretPlanAfterRemoval(item: ListItemNode): CaretPlan | null {
   const nextSibling = getNextContentSibling(item);
   if (nextSibling) {
     return { target: nextSibling, edge: 'start' };
@@ -294,6 +304,33 @@ function resolveCaretPlanAfterRemoval(item: ListItemNode): { target: ListItemNod
   }
 
   const parentList = item.getParent();
+  const parentNote = $isListNode(parentList) ? getParentNote(parentList) : null;
+  if (parentNote) {
+    return { target: parentNote, edge: 'end' };
+  }
+
+  return null;
+}
+
+function resolveCaretPlanAfterStructuralDeletion(heads: ListItemNode[]): CaretPlan | null {
+  if (heads.length === 0) {
+    return null;
+  }
+
+  const orderedHeads = sortHeadsByDocumentOrder(heads);
+  const lastHead = orderedHeads.at(-1)!;
+  const nextSibling = getNextContentSibling(lastHead);
+  if (nextSibling) {
+    return { target: nextSibling, edge: 'start' };
+  }
+
+  const firstHead = orderedHeads[0]!;
+  const previousSibling = getPreviousContentSibling(firstHead);
+  if (previousSibling) {
+    return { target: getSubtreeTail(previousSibling), edge: 'end' };
+  }
+
+  const parentList = firstHead.getParent();
   const parentNote = $isListNode(parentList) ? getParentNote(parentList) : null;
   if (parentNote) {
     return { target: parentNote, edge: 'end' };
@@ -377,9 +414,94 @@ export function DeletionPlugin() {
   }, [editor, rootElement]);
 
   useEffect(() => {
+    const $deleteStructuralSelection = (event: KeyboardEvent | null): boolean => {
+      if (!editor.selection.isStructural()) {
+        return false;
+      }
+
+      const outlineSelection = editor.selection.get();
+      const structuralKeys = outlineSelection?.headKeys ?? [];
+      if (structuralKeys.length === 0) {
+        return false;
+      }
+
+      const selection = $getSelection();
+      const attachedHeads = structuralKeys
+        .map((key) => $getNodeByKey<ListItemNode>(key))
+        .filter((node): node is ListItemNode => $isListItemNode(node) && node.isAttached());
+
+      let heads = attachedHeads;
+      if (heads.length === 0 && $isRangeSelection(selection)) {
+        heads = getContiguousSelectionHeads(selection);
+      }
+
+      if (heads.length === 0) {
+        return false;
+      }
+
+      event?.preventDefault();
+      event?.stopPropagation();
+
+      const caretPlan = resolveCaretPlanAfterStructuralDeletion(heads);
+      const orderedHeads = sortHeadsByDocumentOrder(heads);
+
+      for (const head of orderedHeads.toReversed()) {
+        removeNoteSubtree(head);
+      }
+
+      let caretApplied = false;
+      if (caretPlan) {
+        caretApplied = $selectItemEdge(caretPlan.target, caretPlan.edge);
+      }
+
+      if (!caretApplied) {
+        const root = $getRoot();
+        let list = root.getFirstChild();
+        if (!$isListNode(list)) {
+          const newList = $createListNode('bullet');
+          root.append(newList);
+          list = newList;
+        }
+
+        if ($isListNode(list)) {
+          const firstItem = getFirstDescendantListItem(list);
+          let targetItem: ListItemNode;
+
+          if (firstItem) {
+            targetItem = getContentListItem(firstItem);
+          } else {
+            const listItem = $createListItemNode();
+            listItem.append($createParagraphNode());
+            list.append(listItem);
+            targetItem = listItem;
+          }
+
+          caretApplied = $selectItemEdge(targetItem, 'start');
+        }
+      }
+
+      if (!caretApplied && $isRangeSelection(selection)) {
+        const anchorNode = selection.anchor.getNode();
+        if ($isTextNode(anchorNode)) {
+          selection.setTextNodeRange(anchorNode, selection.anchor.offset, anchorNode, selection.anchor.offset);
+        } else {
+          const anchorItem = findNearestListItem(anchorNode);
+          if (anchorItem) {
+            $selectItemEdge(anchorItem, 'start');
+          }
+        }
+      }
+
+      return true;
+    };
+
     const unregisterBackspace = editor.registerCommand(
       KEY_BACKSPACE_COMMAND,
       (event: KeyboardEvent | null) => {
+        if ($deleteStructuralSelection(event)) {
+          return true;
+        }
+
         const selection = $getSelection();
         if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
           return false;
@@ -448,6 +570,10 @@ export function DeletionPlugin() {
     const unregisterDelete = editor.registerCommand(
       KEY_DELETE_COMMAND,
       (event: KeyboardEvent | null) => {
+        if ($deleteStructuralSelection(event)) {
+          return true;
+        }
+
         const selection = $getSelection();
         if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
           return false;

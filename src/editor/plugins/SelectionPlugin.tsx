@@ -1,5 +1,5 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
+import { $isListNode } from '@lexical/list';
 import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
 import {
   getContentSiblingsForItem,
@@ -8,7 +8,6 @@ import {
   getNextContentSibling,
   getParentContentItem,
   getPreviousContentSibling,
-  removeNoteSubtree,
   getSubtreeTail,
   normalizeContentRange,
   sortHeadsByDocumentOrder,
@@ -18,7 +17,6 @@ import { reportInvariant } from '@/editor/invariant';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
-  $createParagraphNode,
   $createRangeSelection,
   $getNodeByKey,
   $getRoot,
@@ -33,8 +31,6 @@ import {
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_ARROW_DOWN_COMMAND,
-  KEY_BACKSPACE_COMMAND,
-  KEY_DELETE_COMMAND,
   KEY_ENTER_COMMAND,
   SELECT_ALL_COMMAND,
   createCommand,
@@ -450,103 +446,6 @@ export function SelectionPlugin() {
       return true;
     };
 
-    const $deleteStructuralSelection = (): boolean => {
-      if (!editor.selection.isStructural()) {
-        return false;
-      }
-
-      const outlineSelection = editor.selection.get();
-      const structuralKeys = outlineSelection?.headKeys ?? [];
-      if (structuralKeys.length === 0) {
-        return false;
-      }
-
-      const hasAttachedSelection = editor.getEditorState().read(() => {
-        return structuralKeys.some((key) => {
-          const node = $getNodeByKey<ListItemNode>(key);
-          return $isListItemNode(node) && node.isAttached();
-        });
-      });
-
-      if (!hasAttachedSelection) {
-        return false;
-      }
-
-      addUpdateTags(PROGRESSIVE_SELECTION_TAG);
-
-      const structuralRange = outlineSelection?.range ?? null;
-      const appliedSelection = structuralRange ? $applyStructuralRange(structuralRange) : $getSelection();
-      const selection = $isRangeSelection(appliedSelection) ? appliedSelection : null;
-
-      const keyItems = structuralKeys
-        .map((key) => $getNodeByKey<ListItemNode>(key))
-        .filter((node): node is ListItemNode => $isListItemNode(node));
-
-      let heads = keyItems.filter((node) => node.isAttached());
-
-      if (heads.length === 0 && selection) {
-        heads = getContiguousSelectionHeads(selection);
-      }
-
-      if (heads.length === 0) {
-        reportInvariant({
-          message: 'Structural delete invoked with no attached heads',
-          context: { keyCount: structuralKeys.length },
-        });
-        return true;
-      }
-
-      const caretPlan = resolveCaretTargetAfterDeletion(heads);
-      const orderedHeads = sortHeadsByDocumentOrder(heads);
-
-      for (const head of orderedHeads.toReversed()) {
-        removeNoteSubtree(head);
-      }
-
-      let caretApplied = false;
-      if (caretPlan) {
-        caretApplied = $applyCaretEdge(caretPlan.key, caretPlan.edge);
-      }
-
-      if (!caretApplied) {
-        const root = $getRoot();
-        let list = root.getFirstChild();
-
-        if (!$isListNode(list)) {
-          const newList = $createListNode('bullet');
-          root.append(newList);
-          list = newList;
-        }
-
-        if ($isListNode(list)) {
-          const first = getFirstDescendantListItem(list);
-          let targetItem: ListItemNode | null = null;
-
-          if (first) {
-            targetItem = getContentListItem(first);
-          } else {
-            const listItem = $createListItemNode();
-            listItem.append($createParagraphNode());
-            list.append(listItem);
-            targetItem = listItem;
-          }
-
-          caretApplied = $applyCaretEdge(targetItem.getKey(), 'start');
-        }
-      }
-
-      if (!caretApplied && selection) {
-        collapseSelectionToCaret(selection);
-      }
-
-      progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-      unlockRef.current = { pending: false, reason: 'external' };
-      setStructuralSelectionActive(false);
-      clearStructuralSelectionMetrics();
-
-      return true;
-    };
-
     const unregisterSelectAll = editor.registerCommand(
       SELECT_ALL_COMMAND,
       (event: KeyboardEvent | null) => {
@@ -829,40 +728,6 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
-    const unregisterDelete = editor.registerCommand(
-      KEY_DELETE_COMMAND,
-      (event: KeyboardEvent | null) => {
-        if (!editor.selection.isStructural()) {
-          return false;
-        }
-        const handled = $deleteStructuralSelection();
-        if (!handled) {
-          return false;
-        }
-        event?.preventDefault();
-        event?.stopPropagation();
-        return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-
-    const unregisterBackspace = editor.registerCommand(
-      KEY_BACKSPACE_COMMAND,
-      (event: KeyboardEvent | null) => {
-        if (!editor.selection.isStructural()) {
-          return false;
-        }
-        const handled = $deleteStructuralSelection();
-        if (!handled) {
-          return false;
-        }
-        event?.preventDefault();
-        event?.stopPropagation();
-        return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-
     return () => {
       disposedRef.current = true;
       const rootElement = editor.getRootElement();
@@ -881,8 +746,6 @@ export function SelectionPlugin() {
       unregisterPlainArrowUp();
       unregisterHomeEnd();
       unregisterEnter();
-      unregisterDelete();
-      unregisterBackspace();
       unregisterEscape();
       unregisterRootListener();
     };
@@ -1737,57 +1600,6 @@ function ascendContentItem(item: ListItemNode, levels: number): ListItemNode | n
 
 function getHeadsSharingParent(heads: ListItemNode[], parentList: ListNode): ListItemNode[] {
   return heads.filter((head) => head.getParent() === parentList);
-}
-
-interface CaretEdgePlan {
-  key: string;
-  edge: 'start' | 'end';
-}
-
-function resolveCaretTargetAfterDeletion(heads: ListItemNode[]): CaretEdgePlan | null {
-  if (heads.length === 0) {
-    return null;
-  }
-
-  const orderedHeads = sortHeadsByDocumentOrder(heads);
-  const lastHead = orderedHeads.at(-1)!;
-  const nextSibling = getNextContentSibling(lastHead);
-  if (nextSibling) {
-    return { key: nextSibling.getKey(), edge: 'start' };
-  }
-
-  const firstHead = orderedHeads[0]!;
-  const previousSibling = getPreviousContentSibling(firstHead);
-  if (previousSibling) {
-    const caretTarget = getSubtreeTail(previousSibling);
-    return { key: caretTarget.getKey(), edge: 'end' };
-  }
-
-  const parent = getParentContentItem(firstHead);
-  if (parent) {
-    return { key: parent.getKey(), edge: 'end' };
-  }
-
-  return null;
-}
-
-function $applyStructuralRange(range: StructuralSelectionRange): RangeSelection | null {
-  const selection = $createRangeSelection();
-  const startNode = $getNodeByKey<ListItemNode>(range.visualStartKey);
-  const endNode = $getNodeByKey<ListItemNode>(range.visualEndKey);
-  if (!startNode || !endNode) {
-    return null;
-  }
-
-  const startPoint = resolveBoundaryPoint(startNode, 'start');
-  const endPoint = resolveBoundaryPoint(endNode, 'end');
-  if (!startPoint || !endPoint) {
-    return null;
-  }
-
-  selection.setTextNodeRange(startPoint.node, startPoint.offset, endPoint.node, endPoint.offset);
-  $setSelection(selection);
-  return selection;
 }
 
 export function SelectionInputPlugin() {
