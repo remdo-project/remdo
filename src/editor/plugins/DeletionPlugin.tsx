@@ -18,27 +18,17 @@ import {
 } from 'lexical';
 import type { LexicalNode, TextNode } from 'lexical';
 import { useEffect, useState } from 'react';
-import { findNearestListItem, getContentListItem, isChildrenWrapper, maybeRemoveEmptyWrapper } from '@/editor/outline/list-structure';
+import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
-import { getFirstDescendantListItem, removeNoteSubtree, sortHeadsByDocumentOrder } from '@/editor/outline/selection/tree';
-
-function getNestedList(item: ListItemNode): ListNode | null {
-  const next = item.getNextSibling();
-  if (isChildrenWrapper(next)) {
-    const nested = next.getFirstChild();
-    if ($isListNode(nested)) {
-      return nested;
-    }
-  }
-
-  for (const child of item.getChildren()) {
-    if ($isListNode(child)) {
-      return child;
-    }
-  }
-
-  return null;
-}
+import {
+  getFirstDescendantListItem,
+  getNestedList,
+  getNextContentSibling,
+  getPreviousContentSibling,
+  getSubtreeTail,
+  removeNoteSubtree,
+  sortHeadsByDocumentOrder,
+} from '@/editor/outline/selection/tree';
 
 function getParentNote(list: ListNode): ListItemNode | null {
   const wrapper = list.getParent();
@@ -59,70 +49,13 @@ function noteHasChildren(item: ListItemNode): boolean {
   return Boolean(nested && nested.getChildrenSize() > 0);
 }
 
-function getPreviousContentSibling(item: ListItemNode): ListItemNode | null {
-  let current = item.getPreviousSibling();
-  while (isChildrenWrapper(current)) {
-    current = current.getPreviousSibling();
-  }
-  return $isListItemNode(current) ? current : null;
-}
-
-function getNextContentSibling(item: ListItemNode): ListItemNode | null {
-  let current = item.getNextSibling();
-  while (isChildrenWrapper(current)) {
-    current = current.getNextSibling();
-  }
-  return $isListItemNode(current) ? current : null;
-}
-
-function getSubtreeTail(item: ListItemNode): ListItemNode {
-  const nested = getNestedList(item);
-  if (!nested) {
-    return item;
-  }
-  return getLastDescendantListItem(nested) ?? item;
-}
-
 function getFirstChildContentItem(item: ListItemNode): ListItemNode | null {
   const nested = getNestedList(item);
   if (!nested) {
     return null;
   }
 
-  for (const child of nested.getChildren()) {
-    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
-      return child;
-    }
-  }
-
-  return null;
-}
-
-function getLastDescendantListItem(node: ListNode): ListItemNode | null {
-  const children = node.getChildren();
-  for (let i = children.length - 1; i >= 0; i -= 1) {
-    const child = children[i];
-    if (!$isListItemNode(child)) {
-      continue;
-    }
-
-    if (isChildrenWrapper(child)) {
-      const nested = child.getFirstChild();
-      if ($isListNode(nested) && nested.getChildrenSize() > 0) {
-        return getLastDescendantListItem(nested);
-      }
-      continue;
-    }
-
-    const nested = getNestedList(child);
-    if (nested && nested.getChildrenSize() > 0) {
-      return getLastDescendantListItem(nested) ?? getContentListItem(child);
-    }
-
-    return getContentListItem(child);
-  }
-
-  return null;
+  return getFirstDescendantListItem(nested);
 }
 
 function isDescendantOf(node: LexicalNode, ancestor: LexicalNode): boolean {
@@ -230,24 +163,6 @@ function $setItemText(item: ListItemNode, text: string): TextNode {
   const node = $createTextNode(text);
   item.append(node);
   return node;
-}
-
-function $removeNote(contentItem: ListItemNode) {
-  const wrapper = contentItem.getNextSibling();
-  if (isChildrenWrapper(wrapper)) {
-    wrapper.remove();
-  }
-
-  const parentList = contentItem.getParent();
-  const parentWrapper = $isListNode(parentList) ? parentList.getParent() : null;
-  contentItem.remove();
-
-  if ($isListNode(parentList)) {
-    maybeRemoveEmptyWrapper(parentList);
-    if ($isListItemNode(parentWrapper) && parentWrapper.getChildrenSize() === 0) {
-      parentWrapper.remove();
-    }
-  }
 }
 
 function isEmptyNote(item: ListItemNode): boolean {
@@ -555,12 +470,12 @@ export function DeletionPlugin() {
           const textNode = $setItemText(target, merged);
           textNode.select(joinOffset, joinOffset);
         } else {
-          $removeNote(contentItem);
+          removeNoteSubtree(contentItem);
           $selectItemEdge(target, 'end');
           return true;
         }
 
-        $removeNote(contentItem);
+        removeNoteSubtree(contentItem);
 
         return true;
       },
@@ -609,7 +524,7 @@ export function DeletionPlugin() {
           }
 
           const caretPlan = resolveCaretPlanAfterRemoval(contentItem);
-          $removeNote(contentItem);
+          removeNoteSubtree(contentItem);
           if (caretPlan) {
             $selectItemEdge(caretPlan.target, caretPlan.edge);
           }
@@ -631,7 +546,7 @@ export function DeletionPlugin() {
         const textNode = $setItemText(contentItem, merged);
         textNode.select(joinOffset, joinOffset);
 
-        $removeNote(nextNote);
+        removeNoteSubtree(nextNote);
 
         return true;
       },
