@@ -1,7 +1,7 @@
 import type { ListItemNode } from '@lexical/list';
 import { collapseSelectionToCaret, resolveBoundaryPoint } from '@/editor/outline/selection/caret';
 import { $applyCaretEdge } from '@/editor/outline/selection/apply';
-import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
+import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND, PROGRESSIVE_SELECTION_DIRECTION_COMMAND } from '@/editor/commands';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { $shouldBlockHorizontalArrow } from '@/editor/outline/selection/navigation';
 import {
@@ -22,7 +22,6 @@ import {
   KEY_ARROW_UP_COMMAND,
   KEY_ARROW_DOWN_COMMAND,
   SELECT_ALL_COMMAND,
-  createCommand,
 } from 'lexical';
 import type { OutlineSelectionRange } from '@/editor/outline/selection/model';
 import type { ProgressiveSelectionState, SnapPayload } from '@/editor/outline/selection/resolve';
@@ -39,11 +38,6 @@ function getStoredStage(result: ProgressivePlanResult): number {
   }
   return result.stage;
 }
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const PROGRESSIVE_SELECTION_DIRECTION_COMMAND = createCommand<{
-  direction: 'up' | 'down';
-}>('selection:progressive-direction');
 
 export function SelectionPlugin() {
   const [editor] = useLexicalComposerContext();
