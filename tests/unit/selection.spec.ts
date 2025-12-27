@@ -968,7 +968,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
-    // Stage 2 should flip the structural dataset for leaf notes so the UI highlights the block.
+    // Stage 2 should flip structural selection for leaf notes so the UI highlights the block.
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo.editor.selection.isStructural()).toBe(true);
   });

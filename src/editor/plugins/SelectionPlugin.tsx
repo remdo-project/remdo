@@ -40,7 +40,6 @@ import {
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_ARROW_DOWN_COMMAND,
-  KEY_ENTER_COMMAND,
   SELECT_ALL_COMMAND,
   createCommand,
 } from 'lexical';
@@ -687,22 +686,6 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
-    const unregisterEnter = editor.registerCommand(
-      KEY_ENTER_COMMAND,
-      (event: KeyboardEvent | null) => {
-        if (!editor.selection.isStructural()) {
-          return false;
-        }
-
-        if (event) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-        return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-
     return () => {
       disposedRef.current = true;
       const rootElement = editor.getRootElement();
@@ -720,7 +703,6 @@ export function SelectionPlugin() {
       unregisterPlainArrowDown();
       unregisterPlainArrowUp();
       unregisterHomeEnd();
-      unregisterEnter();
       unregisterEscape();
       unregisterRootListener();
     };
