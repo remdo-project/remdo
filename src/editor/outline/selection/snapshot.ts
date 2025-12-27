@@ -6,7 +6,7 @@ import { reportInvariant } from '@/editor/invariant';
 import { getContentListItem } from '@/editor/outline/list-structure';
 
 import type { OutlineSelection, OutlineSelectionRange } from './model';
-import { getContiguousSelectionHeads } from './heads';
+import { getContiguousSelectionHeads, getSelectedNotes } from './heads';
 import type { ProgressiveSelectionState, SnapPayload } from './resolve';
 import {
   $createSnapPayload,
@@ -142,8 +142,9 @@ export function $computeOutlineSelectionSnapshot({
   }
 
   const hasMultiNoteRange = headItems.length > 1;
+  const hasMultiNoteSelection = getSelectedNotes(selection).length > 1;
   const isProgressiveStructural = nextProgression.locked && nextProgression.stage >= 2;
-  hasStructuralSelection = isProgressiveStructural || hasMultiNoteRange;
+  hasStructuralSelection = isProgressiveStructural || hasMultiNoteRange || hasMultiNoteSelection;
   if (!nextProgression.locked && hasMultiNoteRange) {
     const inferredProgression = inferPointerProgressionState(selection, headItems);
     if (inferredProgression) {

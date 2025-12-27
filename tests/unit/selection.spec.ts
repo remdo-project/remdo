@@ -1199,7 +1199,7 @@ describe('selection plugin', () => {
     });
   });
 
-  it.fails('extends Shift+Click from a nested empty note to its parent', async ({ remdo }) => {
+  it('extends Shift+Click from a nested empty note to its parent', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
     const nestedElement = getNoteElementById(remdo, 'nested-after-child');
