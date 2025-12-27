@@ -1133,7 +1133,7 @@ describe('selection plugin', () => {
     expect(selectedKeys).not.toContain(childKey);
   });
 
-  it.fails('selects the trailing empty note on Cmd/Ctrl+A', async ({ remdo }) => {
+  it('selects the trailing empty note on Cmd/Ctrl+A', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
     const trailingKey = getNoteKeyById(remdo, 'trailing');
@@ -1148,7 +1148,7 @@ describe('selection plugin', () => {
     });
   });
 
-  it.fails('selects the nested empty note on Shift+Up before the previous sibling', async ({ remdo }) => {
+  it('selects the nested empty note on Shift+Up before the previous sibling', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
     const nestedAfterChildKey = getNoteKeyById(remdo, 'nested-after-child');
@@ -1163,7 +1163,7 @@ describe('selection plugin', () => {
     });
   });
 
-  it.fails('advances Cmd/Ctrl+A through the empty note ladder stages', async ({ remdo }) => {
+  it('advances Cmd/Ctrl+A through the empty note ladder stages', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
     const nestedEmptyKey = getNoteKeyById(remdo, 'nested-empty');
@@ -1195,7 +1195,7 @@ describe('selection plugin', () => {
     });
   });
 
-  it.fails('collapses structural selection on an empty note back to a caret', async ({ remdo }) => {
+  it('collapses structural selection on an empty note back to a caret', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
     const trailingKey = getNoteKeyById(remdo, 'trailing');
@@ -1217,7 +1217,7 @@ describe('selection plugin', () => {
   });
 
   // Expected: Shift+Down/Up starting on an empty parent note selects the full parent subtree.
-  it.fails('selects the full subtree when Shift+Down/Up starts on an empty parent note', async ({ remdo }) => {
+  it('selects the full subtree when Shift+Down/Up starts on an empty parent note', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
     const parentKey = getNoteKeyById(remdo, 'parent');

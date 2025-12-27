@@ -155,6 +155,23 @@ export function getNestedList(item: ListItemNode): ListNode | null {
   return null;
 }
 
+export function getSubtreeItems(item: ListItemNode): ListItemNode[] {
+  const content = getContentListItem(item);
+  const items: ListItemNode[] = [content];
+  const nested = getNestedList(content);
+  if (!nested) {
+    return items;
+  }
+
+  for (const child of nested.getChildren()) {
+    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+      items.push(...getSubtreeItems(child));
+    }
+  }
+
+  return items;
+}
+
 export function getFirstDescendantListItem(node: LexicalNode | null): ListItemNode | null {
   if (!$isListNode(node)) {
     return null;

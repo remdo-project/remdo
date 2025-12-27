@@ -23,6 +23,7 @@ import {
   getFirstDescendantListItem,
   getNestedList,
   getNextContentSibling,
+  getParentContentItem,
   getPreviousContentSibling,
   getSubtreeTail,
   removeNoteSubtree,
@@ -194,6 +195,41 @@ function resolveCaretPlanAfterStructuralDeletion(heads: ListItemNode[]): CaretPl
   return null;
 }
 
+function $resolveStructuralHeadsFromKeys(keys: string[]): ListItemNode[] {
+  if (keys.length === 0) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const items: ListItemNode[] = [];
+
+  for (const key of keys) {
+    const node = $getNodeByKey<ListItemNode>(key);
+    if (!$isListItemNode(node) || !node.isAttached()) {
+      continue;
+    }
+
+    const content = getContentListItem(node);
+    const contentKey = content.getKey();
+    if (seen.has(contentKey)) {
+      continue;
+    }
+
+    seen.add(contentKey);
+    items.push(content);
+  }
+
+  if (items.length === 0) {
+    return [];
+  }
+
+  const selectedKeys = new Set(items.map((item) => item.getKey()));
+  return items.filter((item) => {
+    const parent = getParentContentItem(item);
+    return !parent || !selectedKeys.has(parent.getKey());
+  });
+}
+
 export function DeletionPlugin() {
   const [editor] = useLexicalComposerContext();
   const [rootElement, setRootElement] = useState<HTMLElement | null>(null);
@@ -281,11 +317,7 @@ export function DeletionPlugin() {
       }
 
       const selection = $getSelection();
-      const attachedHeads = structuralKeys
-        .map((key) => $getNodeByKey<ListItemNode>(key))
-        .filter((node): node is ListItemNode => $isListItemNode(node) && node.isAttached());
-
-      let heads = attachedHeads;
+      let heads = $resolveStructuralHeadsFromKeys(structuralKeys);
       if (heads.length === 0 && $isRangeSelection(selection)) {
         heads = getContiguousSelectionHeads(selection);
       }

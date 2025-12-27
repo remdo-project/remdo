@@ -30,7 +30,12 @@ export function $applyCaretEdge(itemKey: string, edge: 'start' | 'end'): boolean
 
   const boundary = resolveContentBoundaryPoint(contentItem, edge) ?? resolveBoundaryPoint(contentItem, edge);
   if (!boundary) {
-    return false;
+    const selection = $createRangeSelection();
+    selection.anchor.set(contentItem.getKey(), 0, 'element');
+    selection.focus.set(contentItem.getKey(), 0, 'element');
+    selection.dirty = true;
+    $setSelection(selection);
+    return true;
   }
 
   const selectable = boundary.node as TextNode & { select?: (anchor: number, focus: number) => void };
@@ -114,8 +119,7 @@ function applyElementRangeBetweenItems(
   if (anchorItem === focusItem) {
     const parent = anchorItem.getParent();
     if ($isListNode(parent)) {
-      const siblings = parent.getChildren();
-      const index = siblings.indexOf(anchorItem);
+      const index = anchorItem.getIndexWithinParent();
       if (index !== -1) {
         selection.anchor.set(parent.getKey(), index, 'element');
         selection.focus.set(parent.getKey(), index + 1, 'element');

@@ -1,8 +1,9 @@
 import type { BaseSelection } from 'lexical';
 import { $isRangeSelection } from 'lexical';
+import type { ListItemNode } from '@lexical/list';
 
 import { reportInvariant } from '@/editor/invariant';
-import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
+import { getContentListItem } from '@/editor/outline/list-structure';
 
 import type { OutlineSelection, OutlineSelectionRange } from './model';
 import { getContiguousSelectionHeads } from './heads';
@@ -11,8 +12,10 @@ import {
   $createSnapPayload,
   computeStructuralRangeFromHeads,
   inferPointerProgressionState,
+  resolveSelectionPointItem,
   selectionMatchesPayload,
 } from './resolve';
+import { getSubtreeItems } from './tree';
 
 export interface ProgressiveUnlockState {
   pending: boolean;
@@ -47,7 +50,7 @@ export function $computeOutlineSelectionSnapshot({
 }: OutlineSelectionSnapshotInput): OutlineSelectionSnapshot {
   let payload: SnapPayload | null = null;
   let structuralRange: OutlineSelectionRange | null = null;
-  let noteKeys: string[] = [];
+  let selectedKeys: string[] = [];
   let hasStructuralSelection = false;
   let outlineSelection: OutlineSelection | null = null;
 
@@ -58,14 +61,27 @@ export function $computeOutlineSelectionSnapshot({
     nextProgression = initialProgression;
   };
 
+  const anchorSelectionItem = $isRangeSelection(selection)
+    ? resolveSelectionPointItem(selection, selection.anchor)
+    : null;
+  const anchorSelectionKey = anchorSelectionItem ? getContentListItem(anchorSelectionItem).getKey() : null;
+  const isCollapsedStructuralIntent =
+    $isRangeSelection(selection) &&
+    selection.isCollapsed() &&
+    anchorSelectionKey !== null &&
+    nextProgression.stage >= 2 &&
+    nextProgression.anchorKey === anchorSelectionKey;
+
   if (isProgressiveTagged) {
-    const isLocked = $isRangeSelection(selection) && !selection.isCollapsed();
+    const isLocked = $isRangeSelection(selection) && (!selection.isCollapsed() || isCollapsedStructuralIntent);
     nextProgression = { ...nextProgression, locked: isLocked };
     nextUnlock = { ...nextUnlock, pending: false };
   } else if ($isRangeSelection(selection)) {
-    const anchorItem = findNearestListItem(selection.anchor.getNode());
-    const anchorKey = anchorItem ? getContentListItem(anchorItem).getKey() : null;
-    if (!anchorKey || selection.isCollapsed() || nextProgression.anchorKey !== anchorKey) {
+    if (
+      !anchorSelectionKey ||
+      (selection.isCollapsed() && !isCollapsedStructuralIntent) ||
+      nextProgression.anchorKey !== anchorSelectionKey
+    ) {
       if (!nextUnlock.pending || nextUnlock.reason !== 'directional') {
         resetProgression();
       }
@@ -87,13 +103,13 @@ export function $computeOutlineSelectionSnapshot({
     };
   }
 
-  const anchorItem = findNearestListItem(selection.anchor.getNode());
-  const focusItem = findNearestListItem(selection.focus.getNode());
+  const anchorItem = anchorSelectionItem ?? resolveSelectionPointItem(selection, selection.anchor);
+  const focusItem = resolveSelectionPointItem(selection, selection.focus);
   const anchorKey = anchorItem ? getContentListItem(anchorItem).getKey() : null;
   const focusKey = focusItem ? getContentListItem(focusItem).getKey() : null;
   const isBackward = selection.isBackward();
 
-  if (selection.isCollapsed()) {
+  if (selection.isCollapsed() && !isCollapsedStructuralIntent) {
     outlineSelection = {
       kind: 'caret',
       stage: 0,
@@ -114,22 +130,21 @@ export function $computeOutlineSelectionSnapshot({
     };
   }
 
-  const heads = getContiguousSelectionHeads(selection);
-  const noteItems = heads;
-  noteKeys = noteItems.map((item) => getContentListItem(item).getKey());
-  structuralRange = computeStructuralRangeFromHeads(noteItems);
-  if (noteItems.length > 0 && !structuralRange) {
+  const headItems = selection.isCollapsed() ? (anchorItem ? [anchorItem] : []) : getContiguousSelectionHeads(selection);
+  const headKeys = headItems.map((item) => getContentListItem(item).getKey());
+  structuralRange = computeStructuralRangeFromHeads(headItems);
+  if (headItems.length > 0 && !structuralRange) {
     reportInvariant({
       message: 'Structural range missing despite non-empty heads',
-      context: { headCount: noteItems.length },
+      context: { headCount: headItems.length },
     });
   }
 
-  const hasMultiNoteRange = noteItems.length > 1;
+  const hasMultiNoteRange = headItems.length > 1;
   const isProgressiveStructural = nextProgression.locked && nextProgression.stage >= 2;
   hasStructuralSelection = isProgressiveStructural || hasMultiNoteRange;
   if (!nextProgression.locked && hasMultiNoteRange) {
-    const inferredProgression = inferPointerProgressionState(selection, noteItems);
+    const inferredProgression = inferPointerProgressionState(selection, headItems);
     if (inferredProgression) {
       nextProgression = inferredProgression;
     }
@@ -138,21 +153,24 @@ export function $computeOutlineSelectionSnapshot({
   const overrideAnchorKey =
     nextProgression.locked && nextProgression.stage >= 2 ? nextProgression.anchorKey : null;
 
-  if (!isSnapTagged && noteItems.length >= 2) {
-    const candidate = $createSnapPayload(selection, noteItems, overrideAnchorKey);
+  if (!isSnapTagged && headItems.length >= 2) {
+    const candidate = $createSnapPayload(selection, headItems, overrideAnchorKey);
     if (candidate && !selectionMatchesPayload(selection, candidate)) {
       payload = candidate;
     }
   }
 
   const stage = nextProgression.locked ? nextProgression.stage : hasStructuralSelection ? 2 : 1;
+  if (hasStructuralSelection) {
+    selectedKeys = expandStructuralSelectionKeys(headKeys, headItems);
+  }
 
   outlineSelection = {
     kind: hasStructuralSelection ? 'structural' : 'inline',
     stage,
     anchorKey,
     focusKey,
-    headKeys: hasStructuralSelection ? noteKeys : [],
+    headKeys: hasStructuralSelection ? selectedKeys : [],
     range: hasStructuralSelection ? structuralRange : null,
     isBackward,
   };
@@ -166,3 +184,27 @@ export function $computeOutlineSelectionSnapshot({
     unlock: nextUnlock,
   };
 }
+
+function expandStructuralSelectionKeys(headKeys: string[], heads: ListItemNode[]): string[] {
+  if (heads.length === 0) {
+    return [];
+  }
+
+  const expanded: string[] = [];
+  const seen = new Set<string>();
+
+  for (const head of heads) {
+    for (const item of getSubtreeItems(head)) {
+      const key = item.getKey();
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      expanded.push(key);
+    }
+  }
+
+  return expanded.length > 0 ? expanded : headKeys;
+}
+
+// resolveSelectionPointItem moved to selection/resolve.ts

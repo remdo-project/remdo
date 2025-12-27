@@ -144,11 +144,15 @@ export function collapseSelectionToCaret(selection: RangeSelection): boolean {
     return false;
   }
 
-  const caretPoint = resolveContentBoundaryPoint(getContentListItem(anchorItem), 'start');
-  if (!caretPoint) {
-    return false;
+  const contentItem = getContentListItem(anchorItem);
+  const caretPoint = resolveContentBoundaryPoint(contentItem, 'start');
+  if (caretPoint) {
+    selection.setTextNodeRange(caretPoint.node, caretPoint.offset, caretPoint.node, caretPoint.offset);
+    return true;
   }
 
-  selection.setTextNodeRange(caretPoint.node, caretPoint.offset, caretPoint.node, caretPoint.offset);
+  selection.anchor.set(contentItem.getKey(), 0, 'element');
+  selection.focus.set(contentItem.getKey(), 0, 'element');
+  selection.dirty = true;
   return true;
 }

@@ -1,14 +1,15 @@
 import type { ListItemNode } from '@lexical/list';
+import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { RangeSelection } from 'lexical';
 import { $getNodeByKey } from 'lexical';
 
 import { reportInvariant } from '@/editor/invariant';
-import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
+import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
 
 import { isPointAtBoundary } from './caret';
 import { getContiguousSelectionHeads } from './heads';
 import type { OutlineSelectionRange } from './model';
-import { getSubtreeTail, normalizeContentRange } from './tree';
+import { getNextContentSibling, getSubtreeTail, normalizeContentRange } from './tree';
 
 export interface SnapPayload {
   anchorKey: string;
@@ -21,6 +22,122 @@ export interface ProgressiveSelectionState {
   anchorKey: string | null;
   stage: number;
   locked: boolean;
+}
+
+export function resolveSelectionPointItem(
+  selection: RangeSelection,
+  point: RangeSelection['anchor']
+): ListItemNode | null {
+  const direct = findNearestListItem(point.getNode());
+  if (direct) {
+    const content = getContentListItem(direct);
+    const nextEmptySibling = resolveEmptySiblingFromBoundary(selection, point, direct, content);
+    if (nextEmptySibling) {
+      return nextEmptySibling;
+    }
+
+    return content;
+  }
+
+  if (point.type !== 'element') {
+    return null;
+  }
+
+  const node = point.getNode();
+  if (!$isListNode(node)) {
+    return null;
+  }
+
+  const children = node.getChildren();
+  if (children.length === 0) {
+    return null;
+  }
+
+  const clampedIndex = Math.max(0, Math.min(point.offset, children.length - 1));
+  const child = children[clampedIndex];
+  if (!$isListItemNode(child)) {
+    return null;
+  }
+
+  return getContentListItem(child);
+}
+
+function resolveEmptySiblingFromBoundary(
+  selection: RangeSelection,
+  point: RangeSelection['anchor'],
+  directItem: ListItemNode,
+  contentItem: ListItemNode
+): ListItemNode | null {
+  const nextSibling = getNextContentSibling(contentItem);
+  if (!nextSibling || !isEmptyNoteBody(nextSibling)) {
+    return null;
+  }
+  const contentIsEmpty = isEmptyNoteBody(contentItem);
+
+  if (selection.isCollapsed()) {
+    if (point.type === 'text' && isPointAtBoundary(point, contentItem, 'end')) {
+      return nextSibling;
+    }
+
+    if (!contentIsEmpty && point.type === 'element' && point.getNode() === contentItem) {
+      const maxOffset = contentItem.getChildrenSize();
+      if (point.offset >= maxOffset) {
+        return nextSibling;
+      }
+      if (point.offset === 0) {
+        return nextSibling;
+      }
+    }
+
+    if (isChildrenWrapper(directItem)) {
+      return nextSibling;
+    }
+  }
+
+  if (
+    !selection.isCollapsed() &&
+    point.type === 'element'
+  ) {
+    const anchorPoint = selection.anchor;
+    const focusPoint = selection.focus;
+    if (isChildrenWrapper(directItem) && point.getNode() === directItem) {
+      return nextSibling;
+    }
+
+    if (
+      !contentIsEmpty &&
+      anchorPoint.type === 'element' &&
+      focusPoint.type === 'element' &&
+      anchorPoint.getNode() === contentItem &&
+      focusPoint.getNode() === contentItem
+    ) {
+      const maxOffset = contentItem.getChildrenSize();
+      const coversForward = anchorPoint.offset === 0 && focusPoint.offset >= maxOffset;
+      const coversBackward = focusPoint.offset === 0 && anchorPoint.offset >= maxOffset;
+      if (coversForward || coversBackward) {
+        return nextSibling;
+      }
+    }
+  }
+
+  return null;
+}
+
+function isEmptyNoteBody(item: ListItemNode): boolean {
+  const contentItem = getContentListItem(item);
+  const pieces: string[] = [];
+
+  for (const child of contentItem.getChildren()) {
+    if ($isListNode(child)) {
+      continue;
+    }
+    const getTextContent = (child as { getTextContent?: () => string }).getTextContent;
+    if (typeof getTextContent === 'function') {
+      pieces.push(getTextContent.call(child));
+    }
+  }
+
+  return pieces.join('').trim().length === 0;
 }
 
 export function selectionMatchesPayload(selection: RangeSelection, payload: SnapPayload): boolean {

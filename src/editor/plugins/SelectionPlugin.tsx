@@ -110,7 +110,7 @@ export function SelectionPlugin() {
     };
 
     const clearStructuralSelectionMetrics = () => {
-  const rootElement = editor.getRootElement();
+      const rootElement = editor.getRootElement();
       if (!rootElement) {
         return;
       }
@@ -248,10 +248,12 @@ export function SelectionPlugin() {
     const $collapseStructuralSelectionToCaretAndReset = (
       edge: 'start' | 'end' | 'anchor' = 'anchor'
     ): boolean => {
-      const range = editor.selection.get()?.range ?? null;
+      const outlineSelection = editor.selection.get();
+      const range = outlineSelection?.range ?? null;
+      const hasStructuralSelection = outlineSelection?.kind === 'structural';
       const hasCollapsibleSelection = editor.getEditorState().read(() => {
         const selection = $getSelection();
-        return $isRangeSelection(selection) && !selection.isCollapsed();
+        return $isRangeSelection(selection) && (!selection.isCollapsed() || hasStructuralSelection);
       });
 
       if (!hasCollapsibleSelection) {

@@ -3,13 +3,14 @@ import { $isListNode } from '@lexical/list';
 import { $getNodeByKey, $getRoot, $getSelection, $isRangeSelection } from 'lexical';
 
 import { reportInvariant } from '@/editor/invariant';
-import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
+import { getContentListItem } from '@/editor/outline/list-structure';
 
 import type { BoundaryMode } from './apply';
 import { selectInlineContent, selectNoteBody, setSelectionBetweenItems } from './apply';
 import { resolveContentBoundaryPoint } from './caret';
 import { getContiguousSelectionHeads } from './heads';
 import type { ProgressiveSelectionState } from './resolve';
+import { resolveSelectionPointItem } from './resolve';
 import {
   getContentSiblingsForItem,
   getFirstDescendantListItem,
@@ -74,7 +75,7 @@ export function $computeProgressivePlan(
   }
 
   if (!anchorContent) {
-    const anchorItem = findNearestListItem(selection.anchor.getNode());
+    const anchorItem = resolveSelectionPointItem(selection, selection.anchor);
     if (!anchorItem) {
       reportInvariant({
         message: 'Directional plan could not find anchor list item',
@@ -126,7 +127,7 @@ export function $computeDirectionalPlan(
   }
 
   if (!anchorContent) {
-    const anchorItem = findNearestListItem(selection.anchor.getNode());
+    const anchorItem = resolveSelectionPointItem(selection, selection.anchor);
     if (!anchorItem) {
       progressionRef.current = initialProgression;
       return null;
