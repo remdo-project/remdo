@@ -8,6 +8,7 @@ import {
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_DOWN_COMMAND,
+  KEY_ESCAPE_COMMAND,
 } from 'lexical';
 import { useEffect } from 'react';
 
@@ -101,6 +102,20 @@ export function SelectionCollapsePlugin() {
 
           const edge = event.key === 'Home' || event.key === 'PageUp' ? 'start' : 'end';
           return dispatchCollapse(editor, edge, event);
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_ESCAPE_COMMAND,
+        (event: KeyboardEvent | null) => {
+          const handled = editor.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'anchor' });
+          if (!handled) {
+            return false;
+          }
+
+          event?.preventDefault();
+          event?.stopPropagation();
+          return true;
         },
         COMMAND_PRIORITY_CRITICAL
       )

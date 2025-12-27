@@ -35,7 +35,6 @@ import {
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_CRITICAL,
-  KEY_ESCAPE_COMMAND,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
@@ -531,24 +530,6 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
-    const unregisterEscape = editor.registerCommand(
-      KEY_ESCAPE_COMMAND,
-      (event: KeyboardEvent | null) => {
-        const handled = $collapseStructuralSelectionToCaretAndReset();
-        if (!handled) {
-          return false;
-        }
-
-        if (event) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-
-        return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-
     const unregisterCollapseCommand = editor.registerCommand(
       COLLAPSE_STRUCTURAL_SELECTION_COMMAND,
       ({ edge }) => $collapseStructuralSelectionToCaretAndReset(edge ?? 'anchor'),
@@ -568,7 +549,6 @@ export function SelectionPlugin() {
       unregisterArrowRight();
       unregisterDirectionalCommand();
       unregisterCollapseCommand();
-      unregisterEscape();
       unregisterRootListener();
     };
   }, [editor]);
