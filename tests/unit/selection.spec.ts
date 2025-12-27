@@ -448,11 +448,6 @@ describe('selection plugin', () => {
   it('toggles the structural selection dataset when escalating the ladder', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
-
     await placeCaretAtNote(remdo, 'note2');
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
@@ -468,11 +463,6 @@ describe('selection plugin', () => {
 
   it('collapses structural selection back to the caret when pressing Escape', async ({ remdo }) => {
     await remdo.load('tree-complex');
-
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
 
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -492,11 +482,6 @@ describe('selection plugin', () => {
   it('treats Enter as a no-op once structural selection is active', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
-
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -513,11 +498,6 @@ describe('selection plugin', () => {
 
   it('treats typing as a no-op once structural selection is active', async ({ remdo }) => {
     await remdo.load('tree-complex');
-
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
 
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -697,11 +677,6 @@ describe('selection plugin', () => {
   it('clears the structural highlight when navigating without modifiers', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
-
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -739,11 +714,6 @@ describe('selection plugin', () => {
   it('restores a single-note caret when navigating with plain arrows from structural mode', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
-
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -759,11 +729,6 @@ describe('selection plugin', () => {
   it('places the caret at the leading edge when pressing ArrowLeft in structural mode', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
-
     await placeCaretAtNote(remdo, 'note5');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -777,11 +742,6 @@ describe('selection plugin', () => {
 
   it('places the caret at the trailing edge when pressing ArrowRight in structural mode', async ({ remdo }) => {
     await remdo.load('tree-complex');
-
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
 
     await placeCaretAtNote(remdo, 'note5');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -797,11 +757,6 @@ describe('selection plugin', () => {
   it('places the caret at the top edge when pressing ArrowUp in structural mode', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
-
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -816,11 +771,6 @@ describe('selection plugin', () => {
 
   it('lets Home/End collapse structural selections to their respective edges', async ({ remdo }) => {
     await remdo.load('tree-complex');
-
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
 
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -844,11 +794,6 @@ describe('selection plugin', () => {
 
   it('collapses structural selection when pressing PageUp/PageDown', async ({ remdo }) => {
     await remdo.load('tree-complex');
-
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
 
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -1030,11 +975,6 @@ describe('selection plugin', () => {
   it('marks structural selection once Shift+Down reaches stage 2 even for leaf notes', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
-
     await placeCaretAtNote(remdo, 'note4');
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
@@ -1155,11 +1095,6 @@ describe('selection plugin', () => {
   it('skips the inline stage for empty notes with no text nodes on Shift+Down', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
-
     await placeCaretAtNote(remdo, '');
 
     expect(remdo.editor.selection.isStructural()).toBe(false);
@@ -1190,11 +1125,6 @@ describe('selection plugin', () => {
   it('selects only the nested empty note on Cmd/Ctrl+A before child-of-empty', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
-
     const { emptyKey, childKey } = remdo.validate(() => {
       const list = $getRoot().getFirstChild() as ListNode;
       // empty-labels fixture: list item 5 nests [empty, child-of-empty, empty]
@@ -1220,11 +1150,6 @@ describe('selection plugin', () => {
   it.fails('selects the trailing empty note on Cmd/Ctrl+A', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
-
     const trailingKey = getNoteKeyById(remdo, 'trailing');
 
     await placeCaretAtNoteId(remdo, 'trailing');
@@ -1240,11 +1165,6 @@ describe('selection plugin', () => {
   it.fails('selects the nested empty note on Shift+Up before the previous sibling', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
-
     const nestedAfterChildKey = getNoteKeyById(remdo, 'nested-after-child');
 
     await placeCaretAtNoteId(remdo, 'nested-after-child');
@@ -1259,11 +1179,6 @@ describe('selection plugin', () => {
 
   it.fails('advances Cmd/Ctrl+A through the empty note ladder stages', async ({ remdo }) => {
     await remdo.load('empty-labels');
-
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
 
     const nestedEmptyKey = getNoteKeyById(remdo, 'nested-empty');
     const childKey = getNoteKeyById(remdo, 'child');
@@ -1297,11 +1212,6 @@ describe('selection plugin', () => {
   it.fails('collapses structural selection on an empty note back to a caret', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
-
     const trailingKey = getNoteKeyById(remdo, 'trailing');
 
     await placeCaretAtNoteId(remdo, 'trailing');
@@ -1323,11 +1233,6 @@ describe('selection plugin', () => {
   // Expected: Shift+Down/Up starting on an empty parent note selects the full parent subtree.
   it.fails('selects the full subtree when Shift+Down/Up starts on an empty parent note', async ({ remdo }) => {
     await remdo.load('empty-labels');
-
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
 
     const parentKey = getNoteKeyById(remdo, 'parent');
     const nestedEmptyKey = getNoteKeyById(remdo, 'nested-empty');
@@ -1354,11 +1259,6 @@ describe('selection plugin', () => {
   // Expected: Shift+Left/Right are inline-only and remain no-ops on empty notes (no structural selection).
   it('keeps Shift+Left/Right as no-ops on an empty note', async ({ remdo }) => {
     await remdo.load('empty-labels');
-
-    const rootElement = remdo.editor.getRootElement();
-    if (!rootElement) {
-      throw new Error('Expected editor root element');
-    }
 
     const parentKey = getNoteKeyById(remdo, 'parent');
 
