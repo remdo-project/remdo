@@ -95,9 +95,9 @@ Rules:
    - Add a focused unit test that toggles structural selection on/off and
      asserts the CSS class is applied/removed (caret → structural → caret),
      keeping DOM coverage minimal.
-   - Optional: add a small Playwright E2E check that verifies the visual
-     structural highlight appears when structural selection is active.
-   - Decision: use a single `editor.selection` namespace (`get`/`set`/`heads`/
+   - Added: Playwright E2E check that verifies the structural highlight appears
+     when structural selection is active (`tests/e2e/editor/selection.spec.ts`).
+   - Resolved: use a single `editor.selection` namespace (`get`/`set`/`heads`/
      `isStructural`) instead of adding more top-level editor helpers.
 
 ### Optional clean-slate redesign (if we want to rewrite)
