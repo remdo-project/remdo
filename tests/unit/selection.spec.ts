@@ -1185,11 +1185,8 @@ describe('selection plugin', () => {
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
-    // TODO: extend toMatchSelection to assert structural selection by stable keys.
-    // Today we lean on dataset structuralSelectionKeys (plugin internals) because empty notes
-    // have no labels and are invisible to the matcher, which isn't part of the contract.
     expect(rootElement.dataset.structuralSelection).toBe('true');
-    expect(rootElement.dataset.structuralSelectionKeys?.split(',')).toContain(emptyKey);
+    expect(remdo.editor.selection.heads()).toContain(emptyKey);
   });
 
   it('selects only the nested empty note on Cmd/Ctrl+A before child-of-empty', async ({ remdo }) => {
@@ -1216,11 +1213,8 @@ describe('selection plugin', () => {
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
-    // TODO: extend toMatchSelection to assert structural selection by stable keys.
-    // Today we lean on dataset structuralSelectionKeys (plugin internals) because empty notes
-    // have no labels and are invisible to the matcher, which isn't part of the contract.
     expect(rootElement.dataset.structuralSelection).toBe('true');
-    const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+    const selectedKeys = remdo.editor.selection.heads();
     expect(selectedKeys).toContain(emptyKey);
     expect(selectedKeys).not.toContain(childKey);
   });
@@ -1240,7 +1234,7 @@ describe('selection plugin', () => {
 
     await waitFor(() => {
       expect(rootElement.dataset.structuralSelection).toBe('true');
-      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      const selectedKeys = remdo.editor.selection.heads();
       expect(selectedKeys).toEqual([trailingKey]);
     });
   });
@@ -1260,7 +1254,7 @@ describe('selection plugin', () => {
 
     await waitFor(() => {
       expect(rootElement.dataset.structuralSelection).toBe('true');
-      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      const selectedKeys = remdo.editor.selection.heads();
       expect(selectedKeys).toEqual([nestedAfterChildKey]);
     });
   });
@@ -1283,21 +1277,21 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      const selectedKeys = remdo.editor.selection.heads();
       expect(selectedKeys).toEqual([nestedEmptyKey]);
     });
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      const selectedKeys = remdo.editor.selection.heads();
       expect(selectedKeys).toEqual([nestedEmptyKey, childKey, nestedAfterChildKey]);
     });
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      const selectedKeys = remdo.editor.selection.heads();
       expect(selectedKeys).toEqual([parentKey, nestedEmptyKey, childKey, nestedAfterChildKey]);
     });
   });
@@ -1317,7 +1311,7 @@ describe('selection plugin', () => {
 
     await waitFor(() => {
       expect(rootElement.dataset.structuralSelection).toBe('true');
-      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      const selectedKeys = remdo.editor.selection.heads();
       expect(selectedKeys).toEqual([trailingKey]);
     });
 
@@ -1346,7 +1340,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     await waitFor(() => {
-      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      const selectedKeys = remdo.editor.selection.heads();
       expect(selectedKeys).toEqual([parentKey, nestedEmptyKey, childKey, nestedAfterChildKey]);
     });
 
@@ -1354,7 +1348,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
 
     await waitFor(() => {
-      const selectedKeys = rootElement.dataset.structuralSelectionKeys?.split(',') ?? [];
+      const selectedKeys = remdo.editor.selection.heads();
       expect(selectedKeys).toEqual([parentKey, nestedEmptyKey, childKey, nestedAfterChildKey]);
     });
   });

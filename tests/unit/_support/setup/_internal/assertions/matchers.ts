@@ -113,7 +113,6 @@ function assertOutlineExpectation(outline: Outline, path: number[] = []) {
 }
 
 function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
-  const rootElement = remdo.editor.getRootElement();
   return remdo.validate(() => {
     const docRoot = $getRoot().getFirstChild();
     const selection = $getSelection();
@@ -133,10 +132,8 @@ function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
       return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
     }
 
-    const datasetNotes = rootElement?.dataset.structuralSelectionKeys
-      ?.split(',')
-      .filter(Boolean)
-      .map((key: string) => {
+    const outlineNotes = remdo.editor.selection.heads()
+      .map((key) => {
         const node = $getNodeByKey<ListItemNode>(key);
         if (!node || !node.isAttached()) {
           return null;
@@ -145,8 +142,8 @@ function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
       })
       .filter((label: string | null): label is string => typeof label === 'string' && label.length > 0);
 
-    if (datasetNotes?.length) {
-      return { state: 'structural', notes: datasetNotes } satisfies SelectionSnapshot;
+    if (outlineNotes.length > 0) {
+      return { state: 'structural', notes: outlineNotes } satisfies SelectionSnapshot;
     }
 
     const inlineNote = getCaretNoteLabel(selection);

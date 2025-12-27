@@ -69,8 +69,11 @@ Rules:
 3. **Refactor SelectionPlugin to use OutlineSelection**
    - Derive `OutlineSelection` from Lexical selection in the update listener,
      then store it (no more `structuralSelectionKeysRef`).
-   - Keep CSS-only `data-structural-selection` and structural highlight metrics,
-     but **stop writing** `data-structural-selection-keys`.
+   - Swap the structural highlight toggle from `data-structural-selection` to a
+     CSS class (e.g. `.editor-input--structural`) so DOM is styling-only and
+     logic stays in the OutlineSelection store.
+   - Keep structural highlight metrics (CSS variables), but **stop writing**
+     `data-structural-selection-keys`.
    - Progressive ladder + directional logic should update OutlineSelection,
      then apply Lexical selection from it.
    - Strip non-selection responsibilities out of SelectionPlugin (structural
@@ -89,6 +92,8 @@ Rules:
      failing structural delete case in `tests/unit/deletion.spec.ts` by fixing
      selection/structural delete behavior as part of the refactor (empty notes,
      ladder progression, and caret collapse should match the contract).
+   - Decision: use a single `editor.selection` namespace (`get`/`set`/`heads`/
+     `isStructural`) instead of adding more top-level editor helpers.
 
 ### Optional clean-slate redesign (if we want to rewrite)
 

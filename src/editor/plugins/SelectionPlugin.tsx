@@ -1,4 +1,3 @@
-//TODO deserves a major refactor, cleanup and review
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { findNearestListItem, getContentListItem, isChildrenWrapper, maybeRemoveEmptyWrapper } from '@/editor/outline/list-structure';
@@ -38,6 +37,7 @@ import {
   createCommand,
 } from 'lexical';
 import type { LexicalNode, RangeSelection, TextNode } from 'lexical';
+import type { OutlineSelection } from '@/editor/outline/selection/model';
 import { useEffect, useRef } from 'react';
 
 const PROGRESSIVE_SELECTION_TAG = 'selection:progressive-range';
@@ -225,19 +225,6 @@ export function SelectionPlugin() {
       }
     };
 
-    const setStructuralSelectionSummary = (keys: string[] | null) => {
-      const rootElement = editor.getRootElement();
-      if (!rootElement) {
-        return;
-      }
-
-      if (keys && keys.length > 0) {
-        rootElement.dataset.structuralSelectionKeys = keys.join(',');
-      } else {
-        delete rootElement.dataset.structuralSelectionKeys;
-      }
-    };
-
     const setStructuralSelectionActive = (isActive: boolean) => {
       if (structuralSelectionRef.current === isActive) {
         return;
@@ -249,7 +236,6 @@ export function SelectionPlugin() {
       if (!isActive) {
         structuralSelectionRangeRef.current = null;
         structuralSelectionKeysRef.current = null;
-        setStructuralSelectionSummary(null);
       }
     };
 
@@ -268,11 +254,12 @@ export function SelectionPlugin() {
     });
 
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
-      const { payload, hasStructuralSelection, structuralRange, noteKeys } = editorState.read(() => {
+      const { payload, hasStructuralSelection, structuralRange, noteKeys, outlineSelection } = editorState.read(() => {
         let computedPayload: SnapPayload | null = null;
         let computedStructuralRange: StructuralSelectionRange | null = null;
         let computedNoteKeys: string[] = [];
         let hasStructuralSelection = false;
+        let computedOutlineSelection: OutlineSelection | null = null;
 
         const selection = $getSelection();
 
@@ -294,12 +281,38 @@ export function SelectionPlugin() {
           unlockRef.current = { pending: false, reason: 'external' };
         }
 
-        if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+        if (!$isRangeSelection(selection)) {
           return {
             payload: computedPayload,
             hasStructuralSelection,
             structuralRange: computedStructuralRange,
             noteKeys: computedNoteKeys,
+            outlineSelection: computedOutlineSelection,
+          };
+        }
+
+        const anchorItem = findNearestListItem(selection.anchor.getNode());
+        const focusItem = findNearestListItem(selection.focus.getNode());
+        const anchorKey = anchorItem ? getContentListItem(anchorItem).getKey() : null;
+        const focusKey = focusItem ? getContentListItem(focusItem).getKey() : null;
+        const isBackward = selection.isBackward();
+
+        if (selection.isCollapsed()) {
+          computedOutlineSelection = {
+            kind: 'caret',
+            stage: 0,
+            anchorKey,
+            focusKey,
+            headKeys: [],
+            range: null,
+            isBackward,
+          };
+          return {
+            payload: computedPayload,
+            hasStructuralSelection,
+            structuralRange: computedStructuralRange,
+            noteKeys: computedNoteKeys,
+            outlineSelection: computedOutlineSelection,
           };
         }
 
@@ -335,27 +348,43 @@ export function SelectionPlugin() {
           }
         }
 
+        const stage = progressionRef.current.locked
+          ? progressionRef.current.stage
+          : hasStructuralSelection
+            ? 2
+            : 1;
+
+        computedOutlineSelection = {
+          kind: hasStructuralSelection ? 'structural' : 'inline',
+          stage,
+          anchorKey,
+          focusKey,
+          headKeys: hasStructuralSelection ? computedNoteKeys : [],
+          range: hasStructuralSelection ? computedStructuralRange : null,
+          isBackward,
+        };
+
         return {
           payload: computedPayload,
           hasStructuralSelection,
           structuralRange: computedStructuralRange,
           noteKeys: computedNoteKeys,
+          outlineSelection: computedOutlineSelection,
         };
       });
 
       if (hasStructuralSelection && structuralRange) {
         structuralSelectionRangeRef.current = structuralRange;
         applyStructuralSelectionMetrics(structuralRange);
-        setStructuralSelectionSummary(noteKeys);
         structuralSelectionKeysRef.current = noteKeys;
       } else {
         structuralSelectionRangeRef.current = null;
         clearStructuralSelectionMetrics();
-        setStructuralSelectionSummary(null);
         structuralSelectionKeysRef.current = null;
       }
 
       setStructuralSelectionActive(hasStructuralSelection && structuralRange !== null);
+      editor.selection.set(outlineSelection);
 
       if (!payload) {
         return;
@@ -859,7 +888,6 @@ export function SelectionPlugin() {
       const rootElement = editor.getRootElement();
       if (rootElement) {
         delete rootElement.dataset.structuralSelection;
-        delete rootElement.dataset.structuralSelectionKeys;
       }
       clearStructuralSelectionMetrics();
       unregisterProgressionListener();
