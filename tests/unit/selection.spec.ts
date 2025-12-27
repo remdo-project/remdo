@@ -1137,6 +1137,18 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelectionIds(['nested-empty']);
   });
 
+  it('keeps Cmd/Ctrl+A anchored to child-of-empty when caret is at the end', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    await placeCaretAtNoteId(remdo, 'child', Number.POSITIVE_INFINITY);
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'inline', note: 'child-of-empty' });
+    });
+  });
+
   it('selects the trailing empty note on Cmd/Ctrl+A', async ({ remdo }) => {
     await remdo.load('empty-labels');
 

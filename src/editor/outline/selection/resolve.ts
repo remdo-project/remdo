@@ -75,10 +75,6 @@ function resolveEmptySiblingFromBoundary(
   const contentIsEmpty = isEmptyNoteBody(contentItem);
 
   if (selection.isCollapsed()) {
-    if (point.type === 'text' && isPointAtBoundary(point, contentItem, 'end')) {
-      return nextSibling;
-    }
-
     if (!contentIsEmpty && point.type === 'element' && point.getNode() === contentItem) {
       const maxOffset = contentItem.getChildrenSize();
       if (point.offset >= maxOffset) {
