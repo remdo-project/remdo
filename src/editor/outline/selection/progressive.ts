@@ -62,8 +62,18 @@ export function $computeProgressivePlan(
     return null;
   }
 
+  let resolvedAnchorItem: ListItemNode | null = null;
   if (selection.isCollapsed()) {
-    progressionRef.current = initialProgression;
+    resolvedAnchorItem = resolveSelectionPointItem(selection, selection.anchor);
+    const resolvedAnchorKey = resolvedAnchorItem ? getContentListItem(resolvedAnchorItem).getKey() : null;
+    const shouldReset =
+      !progressionRef.current.anchorKey ||
+      progressionRef.current.stage < 2 ||
+      !resolvedAnchorKey ||
+      progressionRef.current.anchorKey !== resolvedAnchorKey;
+    if (shouldReset) {
+      progressionRef.current = initialProgression;
+    }
   }
 
   let anchorContent: ListItemNode | null = null;
@@ -75,7 +85,7 @@ export function $computeProgressivePlan(
   }
 
   if (!anchorContent) {
-    const anchorItem = resolveSelectionPointItem(selection, selection.anchor);
+    const anchorItem = resolvedAnchorItem ?? resolveSelectionPointItem(selection, selection.anchor);
     if (!anchorItem) {
       reportInvariant({
         message: 'Directional plan could not find anchor list item',
@@ -114,8 +124,18 @@ export function $computeDirectionalPlan(
     return null;
   }
 
+  let resolvedAnchorItem: ListItemNode | null = null;
   if (selection.isCollapsed()) {
-    progressionRef.current = initialProgression;
+    resolvedAnchorItem = resolveSelectionPointItem(selection, selection.anchor);
+    const resolvedAnchorKey = resolvedAnchorItem ? getContentListItem(resolvedAnchorItem).getKey() : null;
+    const shouldReset =
+      !progressionRef.current.anchorKey ||
+      progressionRef.current.stage < 2 ||
+      !resolvedAnchorKey ||
+      progressionRef.current.anchorKey !== resolvedAnchorKey;
+    if (shouldReset) {
+      progressionRef.current = initialProgression;
+    }
   }
 
   let anchorContent: ListItemNode | null = null;
@@ -127,7 +147,7 @@ export function $computeDirectionalPlan(
   }
 
   if (!anchorContent) {
-    const anchorItem = resolveSelectionPointItem(selection, selection.anchor);
+    const anchorItem = resolvedAnchorItem ?? resolveSelectionPointItem(selection, selection.anchor);
     if (!anchorItem) {
       progressionRef.current = initialProgression;
       return null;

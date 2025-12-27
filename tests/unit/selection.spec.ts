@@ -1161,7 +1161,7 @@ describe('selection plugin', () => {
     });
   });
 
-  it.fails('expands Cmd/Ctrl+A from a trailing empty note to its siblings', async ({ remdo }) => {
+  it('expands Cmd/Ctrl+A from a trailing empty note to its siblings', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
     await placeCaretAtNoteId(remdo, 'trailing');

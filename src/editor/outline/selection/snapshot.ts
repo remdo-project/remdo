@@ -66,6 +66,7 @@ export function $computeOutlineSelectionSnapshot({
     : null;
   const anchorSelectionKey = anchorSelectionItem ? getContentListItem(anchorSelectionItem).getKey() : null;
   const isCollapsedStructuralIntent =
+    isProgressiveTagged &&
     $isRangeSelection(selection) &&
     selection.isCollapsed() &&
     anchorSelectionKey !== null &&
