@@ -115,7 +115,6 @@ export function SelectionPlugin() {
   const [editor] = useLexicalComposerContext();
   const progressionRef = useRef<ProgressiveSelectionState>(INITIAL_PROGRESSIVE_STATE);
   const unlockRef = useRef<ProgressiveUnlockState>({ pending: false, reason: 'external' });
-  const structuralSelectionRef = useRef(false);
   const pendingSnapPayloadRef = useRef<SnapPayload | null>(null);
   const pendingSnapScheduledRef = useRef(false);
 
@@ -213,22 +212,21 @@ export function SelectionPlugin() {
       rootElement.style.setProperty('--structural-selection-height', `${height}px`);
     };
 
-    const applyStructuralSelectionClass = () => {
+    const applyStructuralSelectionClass = (isActive: boolean) => {
       const rootElement = editor.getRootElement();
       if (!rootElement) {
         return;
       }
 
-      rootElement.classList.toggle('editor-input--structural', structuralSelectionRef.current);
+      rootElement.classList.toggle('editor-input--structural', isActive);
     };
 
     const setStructuralSelectionActive = (isActive: boolean) => {
-      if (structuralSelectionRef.current === isActive) {
+      if (editor.selection.isStructural() === isActive) {
         return;
       }
 
-      structuralSelectionRef.current = isActive;
-      applyStructuralSelectionClass();
+      applyStructuralSelectionClass(isActive);
 
       if (!isActive) {
         clearStructuralSelectionMetrics();
@@ -244,7 +242,7 @@ export function SelectionPlugin() {
         return;
       }
 
-      rootElement.classList.toggle('editor-input--structural', structuralSelectionRef.current);
+      rootElement.classList.toggle('editor-input--structural', editor.selection.isStructural());
     });
 
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
@@ -453,7 +451,7 @@ export function SelectionPlugin() {
     };
 
     const $deleteStructuralSelection = (): boolean => {
-      if (!structuralSelectionRef.current) {
+      if (!editor.selection.isStructural()) {
         return false;
       }
 
@@ -661,7 +659,7 @@ export function SelectionPlugin() {
     );
 
     const shouldHandlePlainVerticalArrow = (event: KeyboardEvent | null): boolean => {
-      if (!structuralSelectionRef.current) {
+      if (!editor.selection.isStructural()) {
         return false;
       }
 
@@ -673,7 +671,7 @@ export function SelectionPlugin() {
     };
 
     const shouldHandlePlainHorizontalArrow = (event: KeyboardEvent | null): boolean => {
-      if (!structuralSelectionRef.current) {
+      if (!editor.selection.isStructural()) {
         return false;
       }
 
@@ -748,7 +746,7 @@ export function SelectionPlugin() {
     );
 
     const shouldBlockTypingInStructuralMode = (event: KeyboardEvent | null): boolean => {
-      if (!event || !structuralSelectionRef.current) {
+      if (!event || !editor.selection.isStructural()) {
         return false;
       }
       if (event.altKey || event.metaKey || event.ctrlKey) {
@@ -768,7 +766,7 @@ export function SelectionPlugin() {
           return true;
         }
 
-        if (!event || !structuralSelectionRef.current) {
+        if (!event || !editor.selection.isStructural()) {
           return false;
         }
 
@@ -818,7 +816,7 @@ export function SelectionPlugin() {
     const unregisterEnter = editor.registerCommand(
       KEY_ENTER_COMMAND,
       (event: KeyboardEvent | null) => {
-        if (!structuralSelectionRef.current) {
+        if (!editor.selection.isStructural()) {
           return false;
         }
 
@@ -834,7 +832,7 @@ export function SelectionPlugin() {
     const unregisterDelete = editor.registerCommand(
       KEY_DELETE_COMMAND,
       (event: KeyboardEvent | null) => {
-        if (!structuralSelectionRef.current) {
+        if (!editor.selection.isStructural()) {
           return false;
         }
         const handled = $deleteStructuralSelection();
@@ -851,7 +849,7 @@ export function SelectionPlugin() {
     const unregisterBackspace = editor.registerCommand(
       KEY_BACKSPACE_COMMAND,
       (event: KeyboardEvent | null) => {
-        if (!structuralSelectionRef.current) {
+        if (!editor.selection.isStructural()) {
           return false;
         }
         const handled = $deleteStructuralSelection();
@@ -867,7 +865,6 @@ export function SelectionPlugin() {
 
     return () => {
       disposedRef.current = true;
-      structuralSelectionRef.current = false;
       const rootElement = editor.getRootElement();
       if (rootElement) {
         rootElement.classList.toggle('editor-input--structural', false);
