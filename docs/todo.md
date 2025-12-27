@@ -24,91 +24,40 @@ Rules:
 3. Add mixed valid/invalid nested list fixture to confirm validator behavior.
 4. Reuse editor schema fixtures across other tests that need serialized states.
 
-## OutlineSelection + dataset removal (refactor plan)
+## Selection follow-ups (post-refactor)
 
-### Goals
+### Simplify
 
-- Replace brittle DOM dataset reads with a programmatic `OutlineSelection` API.
-- Keep the selection contract aligned with `docs/outliner/selection.md`.
-- Reduce SelectionPlugin complexity by consolidating helpers and state.
+1. Collapse repetitive command registration in
+   `src/editor/plugins/SelectionCollapsePlugin.tsx` into a small map-based
+   helper to cut boilerplate.
+2. Merge structural highlight helpers in
+   `src/editor/plugins/SelectionPlugin.tsx` (class + metrics + clear) into a
+   single renderer to avoid scattered side effects.
+3. Unify DOM selection helpers in `tests/unit/selection.spec.ts` into
+   node-based helpers (`collapse/extend`) now that we accept `Text | Element`.
+4. In `src/editor/outline/selection/store.ts`, reduce repeated `WeakMap` reads
+   per accessor (cache once per call).
 
-### Plan (incremental refactor)
+### Robustness
 
-1. **Introduce OutlineSelection model + store**
-   - New module `src/editor/outline/outline-selection.ts` with a single source-of-truth type:
-     - `kind: 'caret' | 'inline' | 'structural'`
-     - `stage` (progressive ladder stage)
-     - `anchorKey` / `focusKey` (content list item keys)
-     - `headKeys` (structural heads, document order)
-     - `range` (`caretStartKey`, `caretEndKey`, `visualStartKey`, `visualEndKey`)
-     - `isBackward`
-   - Store with `WeakMap<LexicalEditor, OutlineSelection>`.
-   - Expose per-instance helpers `editor.getOutlineSelection()` /
-     `editor.setOutlineSelection(next)` that read/write the WeakMap (no
-     EditorState coupling, no prototype patching).
+1. Guard `installOutlineSelectionHelpers` against future Lexical API collisions:
+   prefer a `defineProperty` or `('selection' in editor)` check instead of only
+   `hasOwnProperty`.
+2. Prevent accidental mutation of stored selection arrays by returning copies
+   (or freezing at creation time) for `heads()` / `selectedKeys()`.
+3. Recompute structural highlight metrics on scroll/resize while structural
+   selection is active, not just on selection updates.
+4. In `selection/resolve.ts`, fall back to element-based ranges when boundary
+   text nodes are missing (empty notes) so snap payloads still apply.
+5. Centralize “empty note” detection (shared helper) to keep runtime/test
+   semantics aligned.
+6. Consider deriving `headKeys` + `selectedKeys` in one pass to avoid divergent
+   interpretations from `getContiguousSelectionHeads` vs `getSelectedNotes`.
 
-2. **Consolidate selection/tree helpers**
-   - Reorganize selection code into clear layers (new folder), with minimal APIs:
-     - `src/editor/outline/selection/model.ts`: `OutlineSelection` types only.
-     - `src/editor/outline/selection/store.ts`: WeakMap store + `installOutlineSelectionHelpers`.
-     - `src/editor/outline/selection/tree.ts`: structure-only helpers (parents, siblings, subtree tails, ordering).
-     - `src/editor/outline/selection/resolve.ts`: derive `OutlineSelection` from Lexical `RangeSelection`.
-     - `src/editor/outline/selection/apply.ts`: apply `OutlineSelection` → Lexical selection.
-     - `src/editor/outline/selection/heads.ts`: `getContiguousSelectionHeads` (selection semantics).
-     - `src/editor/outline/selection/index.ts`: minimal exports for consumers.
-   - Keep exports narrow (the rest of the app should only need
-     `editor.getOutlineSelection()` + `getContiguousSelectionHeads`).
-   - Move duplicated helpers from `SelectionPlugin.tsx` and
-     `structural-selection.ts` into a shared module (either reuse
-     `selection-utils.ts` or create `selection-helpers.ts`).
-   - Consolidate: `normalizeContentRange`, `getContentDepth`,
-     `getParentContentItem`, `getContentSiblings`, `getNext/PreviousContentSibling`,
-     `getSubtreeTail`, `compareDocumentOrder`, `sortHeadsByDocumentOrder`.
-   - Keep `getContiguousSelectionHeads` as a pure helper with no DOM access.
+### Cleanup
 
-3. **Refactor SelectionPlugin to use OutlineSelection**
-   - Derive `OutlineSelection` from Lexical selection in the update listener,
-     then store it (no more `structuralSelectionKeysRef`).
-   - Swap the structural highlight toggle from `data-structural-selection` to a
-     CSS class (e.g. `.editor-input--structural`) so DOM is styling-only and
-     logic stays in the OutlineSelection store.
-   - Keep structural highlight metrics (CSS variables), but **stop writing**
-     `data-structural-selection-keys`.
-   - Progressive ladder + directional logic should update OutlineSelection,
-     then apply Lexical selection from it.
-   - Strip non-selection responsibilities out of SelectionPlugin (structural
-     delete behavior, caret resolution after deletion, and action-specific key
-     handling). Deletion/indent/reorder plugins should consume
-     `editor.getOutlineSelection()` instead of re-deriving selection or touching
-     DOM internals.
-
-4. **Update test utilities**
-   - In `tests/unit/_support/setup/_internal/assertions/matchers.ts`, replace
-     dataset fallback with `remdo.editor.getOutlineSelection()` and map
-     `headKeys` to labels.
-   - Update selection tests that read `rootElement.dataset.structuralSelectionKeys`
-     to use `getOutlineSelection()` directly.
-   - Address currently `it.fails` cases in `tests/unit/selection.spec.ts` and the
-     failing structural delete case in `tests/unit/deletion.spec.ts` by fixing
-     selection/structural delete behavior as part of the refactor (empty notes,
-     ladder progression, and caret collapse should match the contract).
-   - Add a focused unit test that toggles structural selection on/off and
-     asserts the CSS class is applied/removed (caret → structural → caret),
-     keeping DOM coverage minimal.
-   - Added: Playwright E2E check that verifies the structural highlight appears
-     when structural selection is active (`tests/e2e/editor/selection.spec.ts`).
-   - Resolved: use a single `editor.selection` namespace (`get`/`set`/`heads`/
-     `isStructural`) instead of adding more top-level editor helpers.
-
-### Optional clean-slate redesign (if we want to rewrite)
-
-- Add a `SelectionStateMachine` module that owns the ladder transitions and
-  returns `OutlineSelection` for actions (`selectAll`, `extendUp`, `extendDown`,
-  `collapseToCaret`, `pointerSnap`).
-- Make Lexical selections derived from `OutlineSelection` (except pointer
-  changes), allowing element-based selection for empty notes.
-- Keep SelectionPlugin as an orchestrator: translate events → state machine →
-  apply selection → store OutlineSelection.
+1. Remove or justify `selectionIsContiguous` if it has no clear consumer.
 
 ## Collab undo/redo determinism (unit tests)
 

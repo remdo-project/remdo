@@ -49,10 +49,8 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   children already exist, otherwise a sibling.
 - `docs/todo.md` (Very long). Scratchpad for in-flight work: keep active tasks
   only (drop completed items), and move durable specs into the appropriate doc
-  under `docs/`. Includes the OutlineSelection + dataset-removal refactor plan
-  (with layered selection file structure, the resolved editor.selection API,
-  and the structural highlight E2E check), plus selection edge-case coverage
-  notes for empty notes.
+  under `docs/`. Includes selection post-refactor follow-ups (simplify/robustness
+  cleanup list), plus selection edge-case coverage notes for empty notes.
 - `docs/deployment-single-container.md` (Short). How to build and run the
   single-container image (Caddy + Y-Sweet) and its env knobs, including basic
   auth requirements.
