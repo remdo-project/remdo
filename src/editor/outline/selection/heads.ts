@@ -79,22 +79,6 @@ export function getContiguousSelectionHeads(selection: RangeSelection): ListItem
   return siblings.slice(first, last + 1);
 }
 
-// TODO: review usage; feels artificial but leave behavior unchanged for now.
-export function selectionIsContiguous(notes: ListItemNode[], siblings: ListItemNode[]): boolean {
-  if (notes.length === 0) return false;
-  const indexes = notes.map((note) => siblings.indexOf(note));
-  if (indexes.includes(-1)) {
-    reportInvariant({
-      message: 'Notes are not all present in sibling list for contiguity check',
-      context: { noteCount: notes.length, siblingCount: siblings.length },
-    });
-    return false;
-  }
-  const first = Math.min(...indexes);
-  const last = Math.max(...indexes);
-  return last - first + 1 === notes.length;
-}
-
 export function getSelectedNotes(selection: RangeSelection): ListItemNode[] {
   const ordered: ListItemNode[] = [];
   const seen = new Set<string>();
