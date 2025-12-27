@@ -24,41 +24,6 @@ Rules:
 3. Add mixed valid/invalid nested list fixture to confirm validator behavior.
 4. Reuse editor schema fixtures across other tests that need serialized states.
 
-## Selection follow-ups (post-refactor)
-
-### Simplify
-
-1. Collapse repetitive command registration in
-   `src/editor/plugins/SelectionCollapsePlugin.tsx` into a small map-based
-   helper to cut boilerplate.
-2. Merge structural highlight helpers in
-   `src/editor/plugins/SelectionPlugin.tsx` (class + metrics + clear) into a
-   single renderer to avoid scattered side effects.
-3. Unify DOM selection helpers in `tests/unit/selection.spec.ts` into
-   node-based helpers (`collapse/extend`) now that we accept `Text | Element`.
-4. In `src/editor/outline/selection/store.ts`, reduce repeated `WeakMap` reads
-   per accessor (cache once per call).
-
-### Robustness
-
-1. Guard `installOutlineSelectionHelpers` against future Lexical API collisions:
-   prefer a `defineProperty` or `('selection' in editor)` check instead of only
-   `hasOwnProperty`.
-2. Prevent accidental mutation of stored selection arrays by returning copies
-   (or freezing at creation time) for `heads()` / `selectedKeys()`.
-3. Recompute structural highlight metrics on scroll/resize while structural
-   selection is active, not just on selection updates.
-4. In `selection/resolve.ts`, fall back to element-based ranges when boundary
-   text nodes are missing (empty notes) so snap payloads still apply.
-5. Centralize “empty note” detection (shared helper) to keep runtime/test
-   semantics aligned.
-6. Consider deriving `headKeys` + `selectedKeys` in one pass to avoid divergent
-   interpretations from `getContiguousSelectionHeads` vs `getSelectedNotes`.
-
-### Cleanup
-
-1. Remove or justify `selectionIsContiguous` if it has no clear consumer.
-
 ## Collab undo/redo determinism (unit tests)
 
 Make collaboration-mode undo/redo assertions deterministic so unit tests can
