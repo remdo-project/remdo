@@ -1,7 +1,13 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
-import { collapseSelectionToCaret, resolveBoundaryPoint, resolveContentBoundaryPoint } from '@/editor/outline/selection/caret';
+import {
+  collapseSelectionToCaret,
+  isPointAtBoundary,
+  resolveBoundaryPoint,
+  resolveContentBoundaryPoint,
+  shouldBlockHorizontalExpansion,
+} from '@/editor/outline/selection/caret';
 import {
   getContentSiblingsForItem,
   getFirstDescendantListItem,
@@ -23,7 +29,6 @@ import {
   $getRoot,
   $getSelection,
   $isRangeSelection,
-  $isTextNode,
   $setSelection,
   COMMAND_PRIORITY_CRITICAL,
   KEY_DOWN_COMMAND,
@@ -767,8 +772,8 @@ function selectionMatchesPayload(selection: RangeSelection, payload: SnapPayload
   }
 
   return (
-    pointMatchesEdge(selection.anchor, payload.anchorEdge, anchorItem) &&
-    pointMatchesEdge(selection.focus, payload.focusEdge, focusItem)
+    isPointAtBoundary(selection.anchor, anchorItem, payload.anchorEdge) &&
+    isPointAtBoundary(selection.focus, focusItem, payload.focusEdge)
   );
 }
 
@@ -803,36 +808,8 @@ function $shouldBlockHorizontalArrow(direction: 'left' | 'right'): boolean {
 
   const contentItem = getContentListItem(targetItem);
   const focus = selection.focus;
-  const boundary = resolveContentBoundaryPoint(contentItem, direction === 'left' ? 'start' : 'end');
-
-  if (!boundary) {
-    return true;
-  }
-
-  const node = focus.getNode();
-  if (!$isTextNode(node)) {
-    return true;
-  }
-
-  return node.getKey() === boundary.node.getKey() && focus.offset === boundary.offset;
-}
-
-function pointMatchesEdge(
-  point: RangeSelection['anchor'],
-  edge: 'start' | 'end',
-  listItem: ListItemNode
-): boolean {
-  const boundary = resolveBoundaryPoint(listItem, edge);
-  if (!boundary) {
-    return false;
-  }
-
-  const node = point.getNode();
-  if (!$isTextNode(node)) {
-    return false;
-  }
-
-  return node.getKey() === boundary.node.getKey() && point.offset === boundary.offset;
+  const edge = direction === 'left' ? 'start' : 'end';
+  return shouldBlockHorizontalExpansion(focus, contentItem, edge);
 }
 
 function $createSnapPayload(

@@ -74,6 +74,42 @@ export function resolveContentBoundaryPoint(listItem: ListItemNode, edge: Edge) 
   return { node: textNode, offset } as const;
 }
 
+export function isPointAtBoundary(
+  point: RangeSelection['anchor'],
+  listItem: ListItemNode,
+  edge: Edge
+): boolean {
+  const boundary = resolveBoundaryPoint(listItem, edge);
+  if (!boundary) {
+    return false;
+  }
+
+  const node = point.getNode();
+  if (!$isTextNode(node)) {
+    return false;
+  }
+
+  return node.getKey() === boundary.node.getKey() && point.offset === boundary.offset;
+}
+
+export function shouldBlockHorizontalExpansion(
+  point: RangeSelection['anchor'],
+  listItem: ListItemNode,
+  edge: Edge
+): boolean {
+  const boundary = resolveContentBoundaryPoint(listItem, edge);
+  if (!boundary) {
+    return true;
+  }
+
+  const node = point.getNode();
+  if (!$isTextNode(node)) {
+    return true;
+  }
+
+  return node.getKey() === boundary.node.getKey() && point.offset === boundary.offset;
+}
+
 export function $selectItemEdge(item: ListItemNode, edge: Edge): boolean {
   const contentItem = getContentListItem(item);
   const selectable = contentItem as ListItemNode & { selectStart?: () => void; selectEnd?: () => void };
