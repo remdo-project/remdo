@@ -20,8 +20,7 @@ Length buckets: Short (<300 words), Medium (300–800), Long (800–1500), Very 
 (>1500). Update a doc’s bucket only when it crosses a boundary.
 Map format: maintain alphabetical order and wrap entries at ~100 characters per
 line (align continuation lines by two spaces).
-Keep the map current—refresh summaries/buckets only when they are materially
-outdated or a doc’s role materially changes.
+Keep the map current—refresh summaries/buckets here when you edit a doc.
 
 - `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch conventions—check
   before touching tooling or process.
@@ -56,12 +55,15 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/selection.md` (Long). Cursor/selection semantics for the editor runtime—reference
   for UX or Lexical selection work, including the progressive ladder and the empty-note
   inline-stage skip.
-- `docs/todo.md` (Medium). Scratchpad for in-flight work: keep active tasks only (drop completed
-  items), and move durable specs into the appropriate doc under `docs/` (includes cut-as-move
-  follow-ups).
+- `docs/todo.md` (Long). Scratchpad for in-flight work: keep active tasks only (drop completed
+  items), and move durable specs into the appropriate doc under `docs/`. Includes the
+  OutlineSelection + dataset-removal refactor plan, selection edge-case coverage notes, the collab
+  schema normalization plan for wrapper/list races, and cut-as-move follow-ups.
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.
 
+Recent doc changes (2026-01-08): Merged collab schema normalization planning and cut-as-move follow-
+ups in `docs/todo.md`, and marked it as Long.
 Recent doc changes (2026-01-07): Documented optional `.env` overrides for Docker
 workflows in `docs/deployment-single-container.md` and `docs/environment.md`.
 Recent doc changes (2026-01-06): Added cut-as-move follow-ups in `docs/todo.md`
