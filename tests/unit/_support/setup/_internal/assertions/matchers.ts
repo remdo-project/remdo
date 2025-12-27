@@ -9,10 +9,11 @@ import {
   isChildrenWrapper,
   resolveContentListItem,
 } from '#tests';
-import { $getSelection, $isRangeSelection, $getNodeByKey, $getRoot } from 'lexical';
+import { $getSelection, $isRangeSelection, $getNodeByKey, $getRoot, $getState } from 'lexical';
 import type { RangeSelection, LexicalNode } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
+import { noteIdState } from '#lib/editor/note-id-state';
 
 type RemdoTestHelpers = TestContext['remdo'];
 
@@ -158,6 +159,30 @@ function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
   });
 }
 
+function readSelectionIds(remdo: RemdoTestHelpers): string[] {
+  return remdo.validate(() => {
+    const outlineSelection = remdo.editor.selection.get();
+    if (!outlineSelection || outlineSelection.kind !== 'structural') {
+      throw new TypeError('Expected a structural selection.');
+    }
+
+    const ids: string[] = [];
+    for (const key of outlineSelection.selectedKeys) {
+      const node = $getNodeByKey<ListItemNode>(key);
+      if (!node || !node.isAttached()) {
+        throw new TypeError(`Selection key ${key} does not resolve to an attached list item.`);
+      }
+      const noteId = $getState(node, noteIdState);
+      if (typeof noteId !== 'string') {
+        throw new TypeError(`Selection item ${key} is missing a noteId.`);
+      }
+      ids.push(noteId);
+    }
+
+    return ids;
+  });
+}
+
 function collectLabelsFromSelection(selection: RangeSelection): string[] {
   const items = collectSelectedListItems(selection);
   const labels: string[] = [];
@@ -226,6 +251,21 @@ expect.extend({
       failMessage: 'Selections differ.',
       formatDiff: (actual, expectedSnapshot) =>
         ['Expected selection:', formatSelectionSnapshot(expectedSnapshot), '', 'Received selection:', formatSelectionSnapshot(actual)].join('\n'),
+    });
+  },
+  toMatchSelectionIds(this: any, remdo: RemdoTestHelpers, expected: string[]) {
+    const selection = attemptRead(this, '.toMatchSelectionIds', () => readSelectionIds(remdo));
+    if (!selection.ok) return selection.result;
+
+    return compareWithExpected(this, selection.value, expected, {
+      matcher: 'toMatchSelectionIds',
+      args: ['lexical', 'expectedIds'],
+      passMessage: 'Expected selection ids not to match, but they were identical.',
+      failMessage: 'Selection ids differ.',
+      formatDiff: (actual, expectedIds) =>
+        ['Expected selection ids:', JSON.stringify(expectedIds), '', 'Received selection ids:', JSON.stringify(actual)].join(
+          '\n'
+        ),
     });
   },
 });
