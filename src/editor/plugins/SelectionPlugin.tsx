@@ -1,7 +1,6 @@
 import type { ListItemNode } from '@lexical/list';
 import { collapseSelectionToCaret, resolveBoundaryPoint } from '@/editor/outline/selection/caret';
 import { $applyCaretEdge } from '@/editor/outline/selection/apply';
-import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { $shouldBlockHorizontalArrow } from '@/editor/outline/selection/navigation';
@@ -27,7 +26,6 @@ import {
 } from 'lexical';
 import type { OutlineSelectionRange } from '@/editor/outline/selection/model';
 import type { ProgressiveSelectionState, SnapPayload } from '@/editor/outline/selection/resolve';
-import { computeStructuralRangeFromHeads } from '@/editor/outline/selection/resolve';
 import { $computeOutlineSelectionSnapshot } from '@/editor/outline/selection/snapshot';
 import type { ProgressiveUnlockState } from '@/editor/outline/selection/snapshot';
 import { useEffect, useRef } from 'react';
@@ -109,30 +107,28 @@ export function SelectionPlugin() {
       });
     };
 
-    const clearStructuralSelectionMetrics = () => {
-      const rootElement = editor.getRootElement();
+    const renderStructuralHighlight = (
+      range: OutlineSelectionRange | null,
+      isActive: boolean,
+      rootElement = editor.getRootElement()
+    ) => {
       if (!rootElement) {
         return;
       }
-      rootElement.style.removeProperty('--structural-selection-top');
-      rootElement.style.removeProperty('--structural-selection-height');
-    };
 
-    const applyStructuralSelectionMetrics = (range: OutlineSelectionRange | null) => {
-      if (!range) {
-        clearStructuralSelectionMetrics();
-        return;
-      }
+      rootElement.classList.toggle('editor-input--structural', isActive);
 
-      const rootElement = editor.getRootElement();
-      if (!rootElement) {
+      if (!isActive || !range) {
+        rootElement.style.removeProperty('--structural-selection-top');
+        rootElement.style.removeProperty('--structural-selection-height');
         return;
       }
 
       const startElement = editor.getElementByKey(range.visualStartKey);
       const endElement = editor.getElementByKey(range.visualEndKey);
       if (!startElement || !endElement) {
-        clearStructuralSelectionMetrics();
+        rootElement.style.removeProperty('--structural-selection-top');
+        rootElement.style.removeProperty('--structural-selection-height');
         return;
       }
 
@@ -148,37 +144,9 @@ export function SelectionPlugin() {
       rootElement.style.setProperty('--structural-selection-height', `${height}px`);
     };
 
-    const applyStructuralSelectionClass = (isActive: boolean) => {
-      const rootElement = editor.getRootElement();
-      if (!rootElement) {
-        return;
-      }
-
-      rootElement.classList.toggle('editor-input--structural', isActive);
-    };
-
-    const setStructuralSelectionActive = (isActive: boolean) => {
-      if (editor.selection.isStructural() === isActive) {
-        return;
-      }
-
-      applyStructuralSelectionClass(isActive);
-
-      if (!isActive) {
-        clearStructuralSelectionMetrics();
-      }
-    };
-
     const unregisterRootListener = editor.registerRootListener((rootElement, previousRootElement) => {
-      if (previousRootElement) {
-        previousRootElement.classList.toggle('editor-input--structural', false);
-      }
-
-      if (!rootElement) {
-        return;
-      }
-
-      rootElement.classList.toggle('editor-input--structural', editor.selection.isStructural());
+      renderStructuralHighlight(null, false, previousRootElement ?? undefined);
+      renderStructuralHighlight(null, editor.selection.isStructural(), rootElement ?? undefined);
     });
 
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
@@ -197,13 +165,8 @@ export function SelectionPlugin() {
       progressionRef.current = progression;
       unlockRef.current = unlock;
 
-      if (hasStructuralSelection && structuralRange) {
-        applyStructuralSelectionMetrics(structuralRange);
-      } else {
-        clearStructuralSelectionMetrics();
-      }
-
-      setStructuralSelectionActive(hasStructuralSelection && structuralRange !== null);
+      const hasHighlight = hasStructuralSelection && structuralRange !== null;
+      renderStructuralHighlight(structuralRange, hasHighlight);
       editor.selection.set(outlineSelection);
 
       if (!payload) {
@@ -222,20 +185,6 @@ export function SelectionPlugin() {
       if (!applied) {
         progressionRef.current = INITIAL_PROGRESSIVE_STATE;
         return;
-      }
-
-      if (planResult.stage >= 2) {
-        setStructuralSelectionActive(true);
-        const selection = $getSelection();
-        if ($isRangeSelection(selection)) {
-          const currentSlice = getContiguousSelectionHeads(selection);
-          const range = computeStructuralRangeFromHeads(currentSlice);
-          if (range) {
-            applyStructuralSelectionMetrics(range);
-          } else {
-            clearStructuralSelectionMetrics();
-          }
-        }
       }
 
       progressionRef.current = {
@@ -280,9 +229,6 @@ export function SelectionPlugin() {
           unlockRef.current = { pending: false, reason: 'external' };
         }
       }
-
-      setStructuralSelectionActive(false);
-      clearStructuralSelectionMetrics();
 
       return true;
     };
@@ -390,11 +336,7 @@ export function SelectionPlugin() {
 
     return () => {
       disposedRef.current = true;
-      const rootElement = editor.getRootElement();
-      if (rootElement) {
-        rootElement.classList.toggle('editor-input--structural', false);
-      }
-      clearStructuralSelectionMetrics();
+      renderStructuralHighlight(null, false);
       unregisterProgressionListener();
       unregisterSelectAll();
       unregisterArrowLeft();
