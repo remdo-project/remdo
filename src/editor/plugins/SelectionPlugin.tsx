@@ -3,11 +3,17 @@ import { $isListNode } from '@lexical/list';
 import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
 import {
   collapseSelectionToCaret,
-  isPointAtBoundary,
   resolveBoundaryPoint,
   resolveContentBoundaryPoint,
   shouldBlockHorizontalExpansion,
 } from '@/editor/outline/selection/caret';
+import type { BoundaryMode } from '@/editor/outline/selection/apply';
+import {
+  $applyCaretEdge,
+  selectInlineContent,
+  selectNoteBody,
+  setSelectionBetweenItems,
+} from '@/editor/outline/selection/apply';
 import {
   getContentSiblingsForItem,
   getFirstDescendantListItem,
@@ -16,7 +22,6 @@ import {
   getParentContentItem,
   getPreviousContentSibling,
   getSubtreeTail,
-  normalizeContentRange,
   sortHeadsByDocumentOrder,
 } from '@/editor/outline/selection/tree';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
@@ -24,12 +29,10 @@ import { reportInvariant } from '@/editor/invariant';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
-  $createRangeSelection,
   $getNodeByKey,
   $getRoot,
   $getSelection,
   $isRangeSelection,
-  $setSelection,
   COMMAND_PRIORITY_CRITICAL,
   KEY_DOWN_COMMAND,
   KEY_ESCAPE_COMMAND,
@@ -41,25 +44,18 @@ import {
   SELECT_ALL_COMMAND,
   createCommand,
 } from 'lexical';
-import type { RangeSelection, TextNode } from 'lexical';
-import type { OutlineSelection } from '@/editor/outline/selection/model';
+import type { OutlineSelection, OutlineSelectionRange } from '@/editor/outline/selection/model';
+import type { ProgressiveSelectionState, SnapPayload } from '@/editor/outline/selection/resolve';
+import {
+  computeStructuralRangeFromHeads,
+  $createSnapPayload,
+  inferPointerProgressionState,
+  selectionMatchesPayload,
+} from '@/editor/outline/selection/resolve';
 import { useEffect, useRef } from 'react';
 
 const PROGRESSIVE_SELECTION_TAG = 'selection:progressive-range';
 const SNAP_SELECTION_TAG = 'selection:snap-range';
-
-interface SnapPayload {
-  anchorKey: string;
-  focusKey: string;
-  anchorEdge: 'start' | 'end';
-  focusEdge: 'start' | 'end';
-}
-
-interface ProgressiveSelectionState {
-  anchorKey: string | null;
-  stage: number;
-  locked: boolean;
-}
 
 interface ProgressiveUnlockState {
   pending: boolean;
@@ -71,8 +67,6 @@ const INITIAL_PROGRESSIVE_STATE: ProgressiveSelectionState = {
   stage: 0,
   locked: false,
 };
-
-type BoundaryMode = 'content' | 'subtree';
 
 type ProgressivePlan =
   | {
@@ -99,13 +93,6 @@ function getStoredStage(result: ProgressivePlanResult): number {
     return result.stage - 1;
   }
   return result.stage;
-}
-
-interface StructuralSelectionRange {
-  caretStartKey: string;
-  caretEndKey: string;
-  visualStartKey: string;
-  visualEndKey: string;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -184,7 +171,7 @@ export function SelectionPlugin() {
       rootElement.style.removeProperty('--structural-selection-height');
     };
 
-    const applyStructuralSelectionMetrics = (range: StructuralSelectionRange | null) => {
+    const applyStructuralSelectionMetrics = (range: OutlineSelectionRange | null) => {
       if (!range) {
         clearStructuralSelectionMetrics();
         return;
@@ -250,7 +237,7 @@ export function SelectionPlugin() {
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
       const { payload, hasStructuralSelection, structuralRange, outlineSelection } = editorState.read(() => {
         let computedPayload: SnapPayload | null = null;
-        let computedStructuralRange: StructuralSelectionRange | null = null;
+        let computedStructuralRange: OutlineSelectionRange | null = null;
         let computedNoteKeys: string[] = [];
         let hasStructuralSelection = false;
         let computedOutlineSelection: OutlineSelection | null = null;
@@ -323,7 +310,7 @@ export function SelectionPlugin() {
         const isProgressiveStructural = progressionRef.current.locked && progressionRef.current.stage >= 2;
         hasStructuralSelection = isProgressiveStructural || hasMultiNoteRange;
         if (!progressionRef.current.locked && hasMultiNoteRange) {
-          const inferredProgression = $inferPointerProgressionState(selection, noteItems);
+          const inferredProgression = inferPointerProgressionState(selection, noteItems);
           if (inferredProgression) {
             progressionRef.current = inferredProgression;
           }
@@ -742,23 +729,6 @@ export function SelectionPlugin() {
   return null;
 }
 
-function selectionMatchesPayload(selection: RangeSelection, payload: SnapPayload): boolean {
-  const anchorItem = findNearestListItem(selection.anchor.getNode());
-  const focusItem = findNearestListItem(selection.focus.getNode());
-  if (!anchorItem || !focusItem) {
-    return false;
-  }
-
-  if (anchorItem.getKey() !== payload.anchorKey || focusItem.getKey() !== payload.focusKey) {
-    return false;
-  }
-
-  return (
-    isPointAtBoundary(selection.anchor, anchorItem, payload.anchorEdge) &&
-    isPointAtBoundary(selection.focus, focusItem, payload.focusEdge)
-  );
-}
-
 function $shouldBlockHorizontalArrow(direction: 'left' | 'right'): boolean {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
@@ -792,40 +762,6 @@ function $shouldBlockHorizontalArrow(direction: 'left' | 'right'): boolean {
   const focus = selection.focus;
   const edge = direction === 'left' ? 'start' : 'end';
   return shouldBlockHorizontalExpansion(focus, contentItem, edge);
-}
-
-function $createSnapPayload(
-  selection: RangeSelection,
-  items: ListItemNode[],
-  overrideAnchorKey?: string | null
-): SnapPayload | null {
-  if (items.length === 0) {
-    return null;
-  }
-
-  const anchorNode = overrideAnchorKey ? $getNodeByKey<ListItemNode>(overrideAnchorKey) : findNearestListItem(selection.anchor.getNode());
-  const focusNode = findNearestListItem(selection.focus.getNode());
-  if (!anchorNode || !focusNode) {
-    return null;
-  }
-
-  const anchorContent = getContentListItem(anchorNode);
-  const focusContent = getContentListItem(focusNode);
-  const normalizedRange = normalizeContentRange(anchorContent, focusContent);
-  const startContent = normalizedRange.start;
-  const endContent = normalizedRange.end;
-  const isBackward = selection.isBackward();
-  const structuralStart = startContent;
-  const structuralEnd = getSubtreeTail(endContent);
-  const anchorBoundary = isBackward ? structuralEnd : structuralStart;
-  const focusBoundary = isBackward ? structuralStart : structuralEnd;
-
-  return {
-    anchorKey: anchorBoundary.getKey(),
-    focusKey: focusBoundary.getKey(),
-    anchorEdge: isBackward ? 'end' : 'start',
-    focusEdge: isBackward ? 'start' : 'end',
-  } satisfies SnapPayload;
 }
 
 function $computeProgressivePlan(
@@ -1281,183 +1217,6 @@ function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
   }
 
   return setSelectionBetweenItems(selection, startItem, endItem, result.plan.startMode, result.plan.endMode);
-}
-
-function selectInlineContent(selection: RangeSelection, item: ListItemNode): boolean {
-  const start = resolveContentBoundaryPoint(item, 'start');
-  const end = resolveContentBoundaryPoint(item, 'end') ?? start;
-  if (!start || !end) {
-    return selectNoteBody(selection, item);
-  }
-
-  selection.setTextNodeRange(start.node, start.offset, end.node, end.offset);
-  return true;
-}
-
-function selectNoteBody(selection: RangeSelection, item: ListItemNode): boolean {
-  return setSelectionBetweenItems(selection, item, item, 'content', 'content');
-}
-
-function setSelectionBetweenItems(
-  selection: RangeSelection,
-  startItem: ListItemNode,
-  endItem: ListItemNode,
-  startMode: BoundaryMode,
-  endMode: BoundaryMode
-): boolean {
-  if (applyElementRangeBetweenItems(selection, startItem, endItem, startMode, endMode)) {
-    return true;
-  }
-
-  const start =
-    startMode === 'content'
-      ? resolveContentBoundaryPoint(startItem, 'start')
-      : resolveBoundaryPoint(startItem, 'start');
-  const end =
-    endMode === 'content'
-      ? resolveContentBoundaryPoint(endItem, 'end')
-      : resolveBoundaryPoint(endItem, 'end');
-
-  if (!start || !end) {
-    return false;
-  }
-
-  selection.setTextNodeRange(start.node, start.offset, end.node, end.offset);
-  return true;
-}
-
-function applyElementRangeBetweenItems(
-  selection: RangeSelection,
-  startItem: ListItemNode,
-  endItem: ListItemNode,
-  startMode: BoundaryMode,
-  endMode: BoundaryMode
-): boolean {
-  const anchorItem = resolveElementBoundaryItem(startItem, startMode, 'start');
-  const focusItem = resolveElementBoundaryItem(endItem, endMode, 'end');
-
-  if (!anchorItem || !focusItem) {
-    return false;
-  }
-
-  selection.anchor.set(anchorItem.getKey(), 0, 'element');
-  selection.focus.set(focusItem.getKey(), focusItem.getChildrenSize(), 'element');
-  selection.dirty = true;
-
-  if (!selection.isCollapsed()) {
-    return true;
-  }
-
-  if (anchorItem === focusItem) {
-    const parent = anchorItem.getParent();
-    if ($isListNode(parent)) {
-      const siblings = parent.getChildren();
-      const index = siblings.indexOf(anchorItem);
-      if (index !== -1) {
-        selection.anchor.set(parent.getKey(), index, 'element');
-        selection.focus.set(parent.getKey(), index + 1, 'element');
-        selection.dirty = true;
-      }
-    }
-  }
-
-  return true;
-}
-
-function resolveElementBoundaryItem(
-  item: ListItemNode,
-  mode: BoundaryMode,
-  edge: 'start' | 'end'
-): ListItemNode | null {
-  if (mode === 'subtree' && edge === 'end') {
-    const tail = getSubtreeTail(item);
-    return getContentListItem(tail);
-  }
-
-  return getContentListItem(item);
-}
-
-function $applyCaretEdge(itemKey: string, edge: 'start' | 'end'): boolean {
-  const targetItem = $getNodeByKey<ListItemNode>(itemKey);
-  if (!targetItem) {
-    return false;
-  }
-
-  const contentItem = getContentListItem(targetItem);
-  const selectableContent = contentItem as ListItemNode & {
-    selectStart?: () => RangeSelection;
-    selectEnd?: () => RangeSelection;
-  };
-  const selectEdge = edge === 'start' ? selectableContent.selectStart : selectableContent.selectEnd;
-
-  if (typeof selectEdge === 'function') {
-    selectEdge.call(selectableContent);
-    return true;
-  }
-
-  const boundary = resolveContentBoundaryPoint(contentItem, edge) ?? resolveBoundaryPoint(contentItem, edge);
-  if (!boundary) {
-    return false;
-  }
-
-  const selectable = boundary.node as TextNode & { select?: (anchor: number, focus: number) => void };
-  if (typeof selectable.select === 'function') {
-    const offset = boundary.offset;
-    selectable.select(offset, offset);
-    return true;
-  }
-
-  const selection = $createRangeSelection();
-  selection.setTextNodeRange(boundary.node, boundary.offset, boundary.node, boundary.offset);
-  $setSelection(selection);
-  return true;
-}
-
-function computeStructuralRangeFromHeads(heads: ListItemNode[]): StructuralSelectionRange | null {
-  const noteItems = heads;
-  if (noteItems.length === 0) {
-    reportInvariant({
-      message: 'Structural range computed with no heads',
-    });
-    return null;
-  }
-
-  const caretItems = noteItems.map((item) => getContentListItem(item));
-  const caretStartItem = caretItems[0]!;
-  const caretEndItem = caretItems.at(-1)!;
-  const visualEndItem = getSubtreeTail(caretEndItem);
-
-  return {
-    caretStartKey: caretStartItem.getKey(),
-    caretEndKey: caretEndItem.getKey(),
-    visualStartKey: caretStartItem.getKey(),
-    visualEndKey: visualEndItem.getKey(),
-  } satisfies StructuralSelectionRange;
-}
-
-function $inferPointerProgressionState(
-  selection: RangeSelection,
-  noteItems: ListItemNode[]
-): ProgressiveSelectionState | null {
-  const anchorItem = findNearestListItem(selection.anchor.getNode());
-  if (!anchorItem) {
-    return null;
-  }
-  const anchorContent = getContentListItem(anchorItem);
-  const heads = noteItems.length > 0 ? noteItems : getContiguousSelectionHeads(selection);
-  if (heads.length <= 1) {
-    return null;
-  }
-  const firstParent = heads[0]!.getParent();
-  if (!heads.every((head: ListItemNode) => head.getParent() === firstParent)) {
-    return null;
-  }
-
-  return {
-    anchorKey: anchorContent.getKey(),
-    stage: 3,
-    locked: true,
-  };
 }
 
 function ascendContentItem(item: ListItemNode, levels: number): ListItemNode | null {
