@@ -116,8 +116,6 @@ export function SelectionPlugin() {
   const progressionRef = useRef<ProgressiveSelectionState>(INITIAL_PROGRESSIVE_STATE);
   const unlockRef = useRef<ProgressiveUnlockState>({ pending: false, reason: 'external' });
   const structuralSelectionRef = useRef(false);
-  const structuralSelectionRangeRef = useRef<StructuralSelectionRange | null>(null);
-  const structuralSelectionKeysRef = useRef<string[] | null>(null);
   const pendingSnapPayloadRef = useRef<SnapPayload | null>(null);
   const pendingSnapScheduledRef = useRef(false);
 
@@ -233,8 +231,7 @@ export function SelectionPlugin() {
       applyStructuralSelectionClass();
 
       if (!isActive) {
-        structuralSelectionRangeRef.current = null;
-        structuralSelectionKeysRef.current = null;
+        clearStructuralSelectionMetrics();
       }
     };
 
@@ -251,7 +248,7 @@ export function SelectionPlugin() {
     });
 
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
-      const { payload, hasStructuralSelection, structuralRange, noteKeys, outlineSelection } = editorState.read(() => {
+      const { payload, hasStructuralSelection, structuralRange, outlineSelection } = editorState.read(() => {
         let computedPayload: SnapPayload | null = null;
         let computedStructuralRange: StructuralSelectionRange | null = null;
         let computedNoteKeys: string[] = [];
@@ -283,7 +280,6 @@ export function SelectionPlugin() {
             payload: computedPayload,
             hasStructuralSelection,
             structuralRange: computedStructuralRange,
-            noteKeys: computedNoteKeys,
             outlineSelection: computedOutlineSelection,
           };
         }
@@ -308,7 +304,6 @@ export function SelectionPlugin() {
             payload: computedPayload,
             hasStructuralSelection,
             structuralRange: computedStructuralRange,
-            noteKeys: computedNoteKeys,
             outlineSelection: computedOutlineSelection,
           };
         }
@@ -365,19 +360,14 @@ export function SelectionPlugin() {
           payload: computedPayload,
           hasStructuralSelection,
           structuralRange: computedStructuralRange,
-          noteKeys: computedNoteKeys,
           outlineSelection: computedOutlineSelection,
         };
       });
 
       if (hasStructuralSelection && structuralRange) {
-        structuralSelectionRangeRef.current = structuralRange;
         applyStructuralSelectionMetrics(structuralRange);
-        structuralSelectionKeysRef.current = noteKeys;
       } else {
-        structuralSelectionRangeRef.current = null;
         clearStructuralSelectionMetrics();
-        structuralSelectionKeysRef.current = null;
       }
 
       setStructuralSelectionActive(hasStructuralSelection && structuralRange !== null);
@@ -408,10 +398,9 @@ export function SelectionPlugin() {
           const currentSlice = getContiguousSelectionHeads(selection);
           const range = computeStructuralRangeFromHeads(currentSlice);
           if (range) {
-            structuralSelectionRangeRef.current = range;
             applyStructuralSelectionMetrics(range);
           } else {
-            structuralSelectionRangeRef.current = null;
+            clearStructuralSelectionMetrics();
           }
         }
       }
@@ -426,7 +415,7 @@ export function SelectionPlugin() {
     const $collapseStructuralSelectionToCaretAndReset = (
       edge: 'start' | 'end' | 'anchor' = 'anchor'
     ): boolean => {
-      const range = structuralSelectionRangeRef.current;
+      const range = editor.selection.get()?.range ?? null;
       const hasCollapsibleSelection = editor.getEditorState().read(() => {
         const selection = $getSelection();
         return $isRangeSelection(selection) && !selection.isCollapsed();
@@ -458,7 +447,6 @@ export function SelectionPlugin() {
       }
 
       setStructuralSelectionActive(false);
-      structuralSelectionRangeRef.current = null;
       clearStructuralSelectionMetrics();
 
       return true;
@@ -469,8 +457,9 @@ export function SelectionPlugin() {
         return false;
       }
 
-      const structuralKeys = structuralSelectionKeysRef.current;
-      if (!structuralKeys || structuralKeys.length === 0) {
+      const outlineSelection = editor.selection.get();
+      const structuralKeys = outlineSelection?.headKeys ?? [];
+      if (structuralKeys.length === 0) {
         return false;
       }
 
@@ -487,14 +476,13 @@ export function SelectionPlugin() {
 
       addUpdateTags(PROGRESSIVE_SELECTION_TAG);
 
-      const structuralRange = structuralSelectionRangeRef.current;
+      const structuralRange = outlineSelection?.range ?? null;
       const appliedSelection = structuralRange ? $applyStructuralRange(structuralRange) : $getSelection();
       const selection = $isRangeSelection(appliedSelection) ? appliedSelection : null;
 
-      const keyItems =
-        structuralSelectionKeysRef.current
-          ?.map((key) => $getNodeByKey<ListItemNode>(key))
-          .filter((node): node is ListItemNode => $isListItemNode(node)) ?? [];
+      const keyItems = structuralKeys
+        .map((key) => $getNodeByKey<ListItemNode>(key))
+        .filter((node): node is ListItemNode => $isListItemNode(node));
 
       let heads = keyItems.filter((node) => node.isAttached());
 
@@ -505,7 +493,7 @@ export function SelectionPlugin() {
       if (heads.length === 0) {
         reportInvariant({
           message: 'Structural delete invoked with no attached heads',
-          context: { keyCount: structuralSelectionKeysRef.current?.length ?? 0 },
+          context: { keyCount: structuralKeys.length },
         });
         return true;
       }
@@ -553,8 +541,6 @@ export function SelectionPlugin() {
         collapseSelectionToCaret(selection);
       }
 
-      structuralSelectionRangeRef.current = null;
-      structuralSelectionKeysRef.current = null;
       progressionRef.current = INITIAL_PROGRESSIVE_STATE;
       unlockRef.current = { pending: false, reason: 'external' };
       setStructuralSelectionActive(false);
