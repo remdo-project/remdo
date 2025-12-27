@@ -72,10 +72,10 @@ async function dragDomSelectionWithoutExtendBetween(start: Node, startOffset: nu
   });
 }
 
-async function collapseDomSelectionAtText(target: Text, offset: number) {
+async function collapseDomSelectionAtNode(target: Node, offset: number) {
   await mutateDomSelection((selection) => {
     const caretRange = document.createRange();
-    const clamped = clampOffset(target, offset);
+    const clamped = clampDomOffset(target, offset);
     caretRange.setStart(target, clamped);
     caretRange.collapse(true);
     selection.removeAllRanges();
@@ -83,35 +83,13 @@ async function collapseDomSelectionAtText(target: Text, offset: number) {
   });
 }
 
-async function extendDomSelectionToText(target: Text, offset: number) {
+async function extendDomSelectionToNode(target: Node, offset: number) {
   await mutateDomSelection((selection) => {
     if (selection.rangeCount === 0) {
       throw new Error('Cannot extend selection without an existing anchor');
     }
 
-    const clamped = clampOffset(target, offset);
-    selection.extend(target, clamped);
-  });
-}
-
-async function collapseDomSelectionAtElement(target: HTMLElement, offset: number) {
-  await mutateDomSelection((selection) => {
-    const caretRange = document.createRange();
-    const clamped = clampElementOffset(target, offset);
-    caretRange.setStart(target, clamped);
-    caretRange.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(caretRange);
-  });
-}
-
-async function extendDomSelectionToElement(target: HTMLElement, offset: number) {
-  await mutateDomSelection((selection) => {
-    if (selection.rangeCount === 0) {
-      throw new Error('Cannot extend selection without an existing anchor');
-    }
-
-    const clamped = clampElementOffset(target, offset);
+    const clamped = clampDomOffset(target, offset);
     selection.extend(target, clamped);
   });
 }
@@ -323,13 +301,13 @@ describe('selection plugin', () => {
 
     const note2Text = getNoteTextNode(rootElement, 'note2');
     const note5Text = getNoteTextNode(rootElement, 'note5');
-    await collapseDomSelectionAtText(note2Text, 0);
+    await collapseDomSelectionAtNode(note2Text, 0);
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
     });
 
-    await extendDomSelectionToText(note5Text, note5Text.length);
+    await extendDomSelectionToNode(note5Text, note5Text.length);
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({
@@ -338,14 +316,14 @@ describe('selection plugin', () => {
       });
     });
 
-    await collapseDomSelectionAtText(note5Text, note5Text.length);
+    await collapseDomSelectionAtNode(note5Text, note5Text.length);
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note5' });
     });
 
     const note3Text = getNoteTextNode(rootElement, 'note3');
-    await extendDomSelectionToText(note3Text, note3Text.length);
+    await extendDomSelectionToNode(note3Text, note3Text.length);
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({
@@ -372,7 +350,7 @@ describe('selection plugin', () => {
     });
 
     const note5Text = getNoteTextNode(rootElement, 'note5');
-    await extendDomSelectionToText(note5Text, note5Text.length);
+    await extendDomSelectionToNode(note5Text, note5Text.length);
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({
@@ -382,7 +360,7 @@ describe('selection plugin', () => {
     });
 
     const note6Text = getNoteTextNode(rootElement, 'note6');
-    await extendDomSelectionToText(note6Text, note6Text.length);
+    await extendDomSelectionToNode(note6Text, note6Text.length);
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({
@@ -417,7 +395,7 @@ describe('selection plugin', () => {
 
     // Pointer tweak: Shift+Click (simulated via DOM extend) to include note5
     const note5Text = getNoteTextNode(rootElement, 'note5');
-    await extendDomSelectionToText(note5Text, note5Text.length);
+    await extendDomSelectionToNode(note5Text, note5Text.length);
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({
@@ -739,7 +717,7 @@ describe('selection plugin', () => {
     expect(remdo.editor.selection.isStructural()).toBe(true);
 
     const note4Text = getNoteTextNode(rootElement, 'note4');
-    await collapseDomSelectionAtText(note4Text, 0);
+    await collapseDomSelectionAtNode(note4Text, 0);
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
@@ -1215,13 +1193,13 @@ describe('selection plugin', () => {
     const nestedElement = getNoteElementById(remdo, 'nested-after-child');
     const parentElement = getNoteElementById(remdo, 'parent');
 
-    await collapseDomSelectionAtElement(nestedElement, nestedElement.childNodes.length);
+    await collapseDomSelectionAtNode(nestedElement, nestedElement.childNodes.length);
 
     await waitFor(() => {
       expect(readCaretNoteKey(remdo)).toBe(getNoteKeyById(remdo, 'nested-after-child'));
     });
 
-    await extendDomSelectionToElement(parentElement, parentElement.childNodes.length);
+    await extendDomSelectionToNode(parentElement, parentElement.childNodes.length);
 
     await waitFor(() => {
       expect(remdo).toMatchSelectionIds(['parent', 'nested-empty', 'child', 'nested-after-child']);
