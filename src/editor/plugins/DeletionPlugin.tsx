@@ -4,14 +4,12 @@ import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } fr
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $createParagraphNode,
-  $createRangeSelection,
   $createTextNode,
   $getNodeByKey,
   $getRoot,
   $getSelection,
   $isRangeSelection,
   $isTextNode,
-  $setSelection,
   COMMAND_PRIORITY_CRITICAL,
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
@@ -19,6 +17,7 @@ import {
 import type { LexicalNode, TextNode } from 'lexical';
 import { useEffect, useState } from 'react';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import {
   getFirstDescendantListItem,
@@ -97,65 +96,6 @@ function computeMergeText(left: string, right: string): { merged: string; joinOf
 
   const joinOffset = left.length + (needsSpace ? 1 : 0);
   return { merged: `${left}${needsSpace ? ' ' : ''}${right}`, joinOffset };
-}
-
-function findBoundaryTextNode(node: LexicalNode, edge: 'start' | 'end'): TextNode | null {
-  if ($isTextNode(node)) {
-    return node;
-  }
-
-  const canTraverse = typeof (node as any).getChildren === 'function';
-  if (!canTraverse) {
-    return null;
-  }
-
-  const children = (node as any).getChildren?.() ?? [];
-  const ordered = edge === 'start' ? children : children.toReversed();
-
-  for (const child of ordered) {
-    if ($isListNode(child)) {
-      continue;
-    }
-
-    const match = findBoundaryTextNode(child, edge);
-    if (match) {
-      return match;
-    }
-  }
-
-  return null;
-}
-
-function resolveBoundaryPoint(listItem: ListItemNode, edge: 'start' | 'end') {
-  const textNode = findBoundaryTextNode(listItem, edge);
-  if (!textNode) {
-    return null;
-  }
-
-  const length = textNode.getTextContentSize();
-  const offset = edge === 'start' ? 0 : length;
-  return { node: textNode, offset } as const;
-}
-
-function $selectItemEdge(item: ListItemNode, edge: 'start' | 'end'): boolean {
-  const contentItem = getContentListItem(item);
-  const selectable = contentItem as ListItemNode & { selectStart?: () => void; selectEnd?: () => void };
-  const selectEdge = edge === 'start' ? selectable.selectStart : selectable.selectEnd;
-
-  if (typeof selectEdge === 'function') {
-    selectEdge.call(selectable);
-    return true;
-  }
-
-  const boundary = resolveBoundaryPoint(contentItem, edge);
-  if (!boundary) {
-    return false;
-  }
-
-  const range = $createRangeSelection();
-  range.setTextNodeRange(boundary.node, boundary.offset, boundary.node, boundary.offset);
-  $setSelection(range);
-  return true;
 }
 
 function $setItemText(item: ListItemNode, text: string): TextNode {

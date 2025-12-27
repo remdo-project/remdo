@@ -1,6 +1,7 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
+import { collapseSelectionToCaret, resolveBoundaryPoint, resolveContentBoundaryPoint } from '@/editor/outline/selection/caret';
 import {
   getContentSiblingsForItem,
   getFirstDescendantListItem,
@@ -35,7 +36,7 @@ import {
   SELECT_ALL_COMMAND,
   createCommand,
 } from 'lexical';
-import type { LexicalNode, RangeSelection, TextNode } from 'lexical';
+import type { RangeSelection, TextNode } from 'lexical';
 import type { OutlineSelection } from '@/editor/outline/selection/model';
 import { useEffect, useRef } from 'react';
 
@@ -868,40 +869,6 @@ function $createSnapPayload(
   } satisfies SnapPayload;
 }
 
-function resolveBoundaryPoint(listItem: ListItemNode, edge: 'start' | 'end') {
-  const textNode = findBoundaryTextNode(listItem, edge);
-  if (!textNode) {
-    return null;
-  }
-
-  const length = textNode.getTextContentSize();
-  const offset = edge === 'start' ? 0 : length;
-  return { node: textNode, offset } as const;
-}
-
-function findBoundaryTextNode(node: LexicalNode, edge: 'start' | 'end'): TextNode | null {
-  if ($isTextNode(node)) {
-    return node;
-  }
-
-  const canTraverse = typeof (node as any).getChildren === 'function';
-  if (!canTraverse) {
-    return null;
-  }
-
-  const children = (node as any).getChildren?.() ?? [];
-  const ordered = edge === 'start' ? children : children.toReversed();
-
-  for (const child of ordered) {
-    const match = findBoundaryTextNode(child, edge);
-    if (match) {
-      return match;
-    }
-  }
-
-  return null;
-}
-
 function $computeProgressivePlan(
 	progressionRef: React.RefObject<ProgressiveSelectionState>
 ): ProgressivePlanResult | null {
@@ -1451,28 +1418,6 @@ function resolveElementBoundaryItem(
   return getContentListItem(item);
 }
 
-function collapseSelectionToCaret(selection: RangeSelection): boolean {
-  const anchorNode = selection.anchor.getNode();
-
-  if ($isTextNode(anchorNode)) {
-    selection.setTextNodeRange(anchorNode, selection.anchor.offset, anchorNode, selection.anchor.offset);
-    return true;
-  }
-
-  const anchorItem = findNearestListItem(anchorNode);
-  if (!anchorItem) {
-    return false;
-  }
-
-  const caretPoint = resolveContentBoundaryPoint(getContentListItem(anchorItem), 'start');
-  if (!caretPoint) {
-    return false;
-  }
-
-  selection.setTextNodeRange(caretPoint.node, caretPoint.offset, caretPoint.node, caretPoint.offset);
-  return true;
-}
-
 function $applyCaretEdge(itemKey: string, edge: 'start' | 'end'): boolean {
   const targetItem = $getNodeByKey<ListItemNode>(itemKey);
   if (!targetItem) {
@@ -1507,35 +1452,6 @@ function $applyCaretEdge(itemKey: string, edge: 'start' | 'end'): boolean {
   selection.setTextNodeRange(boundary.node, boundary.offset, boundary.node, boundary.offset);
   $setSelection(selection);
   return true;
-}
-
-function resolveContentBoundaryPoint(listItem: ListItemNode, edge: 'start' | 'end') {
-  const textNode = findContentBoundaryTextNode(listItem, edge);
-  if (!textNode) {
-    return null;
-  }
-
-  const length = textNode.getTextContentSize();
-  const offset = edge === 'start' ? 0 : length;
-  return { node: textNode, offset } as const;
-}
-
-function findContentBoundaryTextNode(listItem: ListItemNode, edge: 'start' | 'end'): TextNode | null {
-  const children = listItem.getChildren();
-  const ordered = edge === 'start' ? children : children.toReversed();
-
-  for (const child of ordered) {
-    if ($isListNode(child)) {
-      continue;
-    }
-
-    const match = findBoundaryTextNode(child, edge);
-    if (match) {
-      return match;
-    }
-  }
-
-  return null;
 }
 
 function computeStructuralRangeFromHeads(heads: ListItemNode[]): StructuralSelectionRange | null {
