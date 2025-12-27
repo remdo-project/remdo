@@ -13,8 +13,7 @@ import {
   readOutline,
   typeText,
 } from '#tests';
-import type { ListItemNode, ListNode } from '@lexical/list';
-import { $getNodeByKey, $getRoot, $getSelection, $isRangeSelection } from 'lexical';
+import { $getSelection, $isRangeSelection } from 'lexical';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
 
 const TREE_COMPLEX_OUTLINE: Outline = [
@@ -1093,58 +1092,36 @@ describe('selection plugin', () => {
   it('selects the nested empty note before child-of-empty on Shift+Down', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    const emptyKey = getNoteKeyById(remdo, 'nested-empty');
-
-    await remdo.mutate(() => {
-      const node = $getNodeByKey<ListItemNode>(emptyKey)!;
-      node.selectStart();
-    });
+    await placeCaretAtNoteId(remdo, 'nested-empty');
 
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     expect(remdo.editor.selection.isStructural()).toBe(true);
-    expect(remdo.editor.selection.selectedKeys()).toContain(emptyKey);
+    expect(remdo).toMatchSelectionIds(['nested-empty']);
   });
 
   it('selects only the nested empty note on Cmd/Ctrl+A before child-of-empty', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    const { emptyKey, childKey } = remdo.validate(() => {
-      const list = $getRoot().getFirstChild() as ListNode;
-      // empty-labels fixture: list item 5 nests [empty, child-of-empty, empty]
-      const nested = list.getChildren<ListItemNode>()[4]!.getChildren<ListNode>()[0]!;
-      const empty = nested.getChildren<ListItemNode>()[0]!;
-      const child = nested.getChildren<ListItemNode>()[1]!;
-      return { emptyKey: empty.getKey(), childKey: child.getKey() };
-    });
-
-    await remdo.mutate(() => {
-      const node = $getNodeByKey<ListItemNode>(emptyKey) as ListItemNode;
-      node.selectStart();
-    });
+    await placeCaretAtNoteId(remdo, 'nested-empty');
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo.editor.selection.isStructural()).toBe(true);
-    const selectedKeys = remdo.editor.selection.selectedKeys();
-    expect(selectedKeys).toContain(emptyKey);
-    expect(selectedKeys).not.toContain(childKey);
+    expect(remdo).toMatchSelectionIds(['nested-empty']);
   });
 
   it('selects the trailing empty note on Cmd/Ctrl+A', async ({ remdo }) => {
     await remdo.load('empty-labels');
-
-    const trailingKey = getNoteKeyById(remdo, 'trailing');
 
     await placeCaretAtNoteId(remdo, 'trailing');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(true);
-      const selectedKeys = remdo.editor.selection.selectedKeys();
-      expect(selectedKeys).toEqual([trailingKey]);
+      expect(remdo).toMatchSelectionIds(['trailing']);
     });
   });
 
@@ -1177,68 +1154,54 @@ describe('selection plugin', () => {
   it('selects the nested empty note on Shift+Up before the previous sibling', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    const nestedAfterChildKey = getNoteKeyById(remdo, 'nested-after-child');
-
     await placeCaretAtNoteId(remdo, 'nested-after-child');
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
 
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(true);
-      const selectedKeys = remdo.editor.selection.selectedKeys();
-      expect(selectedKeys).toEqual([nestedAfterChildKey]);
+      expect(remdo).toMatchSelectionIds(['nested-after-child']);
     });
   });
 
   it('advances Cmd/Ctrl+A through the empty note ladder stages', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    const nestedEmptyKey = getNoteKeyById(remdo, 'nested-empty');
-    const childKey = getNoteKeyById(remdo, 'child');
-    const nestedAfterChildKey = getNoteKeyById(remdo, 'nested-after-child');
-    const parentKey = getNoteKeyById(remdo, 'parent');
-
     await placeCaretAtNoteId(remdo, 'nested-empty');
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      const selectedKeys = remdo.editor.selection.selectedKeys();
-      expect(selectedKeys).toEqual([nestedEmptyKey]);
+      expect(remdo).toMatchSelectionIds(['nested-empty']);
     });
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      const selectedKeys = remdo.editor.selection.selectedKeys();
-      expect(selectedKeys).toEqual([nestedEmptyKey, childKey, nestedAfterChildKey]);
+      expect(remdo).toMatchSelectionIds(['nested-empty', 'child', 'nested-after-child']);
     });
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      const selectedKeys = remdo.editor.selection.selectedKeys();
-      expect(selectedKeys).toEqual([parentKey, nestedEmptyKey, childKey, nestedAfterChildKey]);
+      expect(remdo).toMatchSelectionIds(['parent', 'nested-empty', 'child', 'nested-after-child']);
     });
   });
 
   it('collapses structural selection on an empty note back to a caret', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    const trailingKey = getNoteKeyById(remdo, 'trailing');
-
     await placeCaretAtNoteId(remdo, 'trailing');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(true);
-      const selectedKeys = remdo.editor.selection.selectedKeys();
-      expect(selectedKeys).toEqual([trailingKey]);
+      expect(remdo).toMatchSelectionIds(['trailing']);
     });
 
     await pressKey(remdo, { key: 'Escape' });
 
     await waitFor(() => {
-      expect(readCaretNoteKey(remdo)).toBe(trailingKey);
+      expect(readCaretNoteKey(remdo)).toBe(getNoteKeyById(remdo, 'trailing'));
     });
   });
 
@@ -1246,25 +1209,18 @@ describe('selection plugin', () => {
   it('selects the full subtree when Shift+Down/Up starts on an empty parent note', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    const parentKey = getNoteKeyById(remdo, 'parent');
-    const nestedEmptyKey = getNoteKeyById(remdo, 'nested-empty');
-    const childKey = getNoteKeyById(remdo, 'child');
-    const nestedAfterChildKey = getNoteKeyById(remdo, 'nested-after-child');
-
     await placeCaretAtNoteId(remdo, 'parent');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     await waitFor(() => {
-      const selectedKeys = remdo.editor.selection.selectedKeys();
-      expect(selectedKeys).toEqual([parentKey, nestedEmptyKey, childKey, nestedAfterChildKey]);
+      expect(remdo).toMatchSelectionIds(['parent', 'nested-empty', 'child', 'nested-after-child']);
     });
 
     await placeCaretAtNoteId(remdo, 'parent');
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
 
     await waitFor(() => {
-      const selectedKeys = remdo.editor.selection.selectedKeys();
-      expect(selectedKeys).toEqual([parentKey, nestedEmptyKey, childKey, nestedAfterChildKey]);
+      expect(remdo).toMatchSelectionIds(['parent', 'nested-empty', 'child', 'nested-after-child']);
     });
   });
 
@@ -1272,16 +1228,14 @@ describe('selection plugin', () => {
   it('keeps Shift+Left/Right as no-ops on an empty note', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    const parentKey = getNoteKeyById(remdo, 'parent');
-
     await placeCaretAtNoteId(remdo, 'parent');
-    expect(readCaretNoteKey(remdo)).toBe(parentKey);
+    expect(readCaretNoteKey(remdo)).toBe(getNoteKeyById(remdo, 'parent'));
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
     await pressKey(remdo, { key: 'ArrowRight', shift: true });
     await pressKey(remdo, { key: 'ArrowLeft', shift: true });
 
-    expect(readCaretNoteKey(remdo)).toBe(parentKey);
+    expect(readCaretNoteKey(remdo)).toBe(getNoteKeyById(remdo, 'parent'));
     expect(remdo.editor.selection.isStructural()).toBe(false);
   });
 
