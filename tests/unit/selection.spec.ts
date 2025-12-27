@@ -94,6 +94,28 @@ async function extendDomSelectionToText(target: Text, offset: number) {
   });
 }
 
+async function collapseDomSelectionAtElement(target: HTMLElement, offset: number) {
+  await mutateDomSelection((selection) => {
+    const caretRange = document.createRange();
+    const clamped = clampElementOffset(target, offset);
+    caretRange.setStart(target, clamped);
+    caretRange.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(caretRange);
+  });
+}
+
+async function extendDomSelectionToElement(target: HTMLElement, offset: number) {
+  await mutateDomSelection((selection) => {
+    if (selection.rangeCount === 0) {
+      throw new Error('Cannot extend selection without an existing anchor');
+    }
+
+    const clamped = clampElementOffset(target, offset);
+    selection.extend(target, clamped);
+  });
+}
+
 function getNoteTextNode(rootElement: HTMLElement, label: string): Text {
   const noteElement = within(rootElement).getByText(
     (_, node) => {
@@ -115,6 +137,20 @@ function getNoteTextNode(rootElement: HTMLElement, label: string): Text {
 function clampOffset(node: Text, offset: number): number {
   const length = node.length;
   return Math.max(0, Math.min(offset, length));
+}
+
+function clampElementOffset(node: HTMLElement, offset: number): number {
+  const length = node.childNodes.length;
+  return Math.max(0, Math.min(offset, length));
+}
+
+function getNoteElementById(remdo: Parameters<typeof getNoteKeyById>[0], noteId: string) {
+  const key = getNoteKeyById(remdo, noteId);
+  const element = remdo.editor.getElementByKey(key);
+  if (!element) {
+    throw new TypeError(`Expected element for noteId: ${noteId}`);
+  }
+  return element;
 }
 
 function getDomSelection(): Selection {
@@ -1160,6 +1196,25 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(true);
       expect(remdo).toMatchSelectionIds(['nested-after-child']);
+    });
+  });
+
+  it.fails('extends Shift+Click from a nested empty note to its parent', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    const nestedElement = getNoteElementById(remdo, 'nested-after-child');
+    const parentElement = getNoteElementById(remdo, 'parent');
+
+    await collapseDomSelectionAtElement(nestedElement, nestedElement.childNodes.length);
+
+    await waitFor(() => {
+      expect(readCaretNoteKey(remdo)).toBe(getNoteKeyById(remdo, 'nested-after-child'));
+    });
+
+    await extendDomSelectionToElement(parentElement, parentElement.childNodes.length);
+
+    await waitFor(() => {
+      expect(remdo).toMatchSelectionIds(['parent', 'nested-empty', 'child', 'nested-after-child']);
     });
   });
 
