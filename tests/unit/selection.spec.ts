@@ -31,11 +31,11 @@ const TREE_COMPLEX_OUTLINE: Outline = [
 // Ensures every multi-note selection matches the guarantees from docs/outliner/selection.md:
 // once a selection crosses a note boundary it must cover a contiguous block of
 // whole notes plus their subtrees, with no gaps or orphaned descendants.
-async function dragDomSelectionBetween(start: Text, startOffset: number, end: Text, endOffset: number) {
+async function dragDomSelectionBetween(start: Node, startOffset: number, end: Node, endOffset: number) {
   await mutateDomSelection((selection) => {
     const range = document.createRange();
-    const normalizedStart = clampOffset(start, startOffset);
-    const normalizedEnd = clampOffset(end, endOffset);
+    const normalizedStart = clampDomOffset(start, startOffset);
+    const normalizedEnd = clampDomOffset(end, endOffset);
 
     range.setStart(start, normalizedStart);
     range.collapse(true);
@@ -55,13 +55,13 @@ async function dragDomSelectionBetween(start: Text, startOffset: number, end: Te
   });
 }
 
-async function dragDomSelectionWithoutExtendBetween(start: Text, startOffset: number, end: Text, endOffset: number) {
+async function dragDomSelectionWithoutExtendBetween(start: Node, startOffset: number, end: Node, endOffset: number) {
   await mutateDomSelection(() => {
     const { startNode, startOffset: normalizedStart, endNode, endOffset: normalizedEnd } = orderRangePoints(
       start,
-      clampOffset(start, startOffset),
+      clampDomOffset(start, startOffset),
       end,
-      clampOffset(end, endOffset)
+      clampDomOffset(end, endOffset)
     );
     const range = document.createRange();
     range.setStart(startNode, normalizedStart);
@@ -142,6 +142,16 @@ function clampOffset(node: Text, offset: number): number {
 function clampElementOffset(node: HTMLElement, offset: number): number {
   const length = node.childNodes.length;
   return Math.max(0, Math.min(offset, length));
+}
+
+function clampDomOffset(node: Node, offset: number): number {
+  if (node instanceof Text) {
+    return clampOffset(node, offset);
+  }
+  if (node instanceof HTMLElement) {
+    return clampElementOffset(node, offset);
+  }
+  throw new TypeError('Expected text or element node for selection offsets');
 }
 
 function getNoteElementById(remdo: Parameters<typeof getNoteKeyById>[0], noteId: string) {
@@ -1294,9 +1304,19 @@ describe('selection plugin', () => {
     expect(remdo.editor.selection.isStructural()).toBe(false);
   });
 
-  //TODO work on it once dragDomSelectionWithoutExtendBetween supports ids
-  // Expected: Dragging across note boundaries snaps to a contiguous whole-note selection, including mixed empty and non-empty notes.
-  it.todo('snaps mixed empty/non-empty ranges into a contiguous structural selection');
+  it('snaps mixed empty/non-empty ranges into a contiguous structural selection', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    const rootElement = getRootElementOrThrow(remdo.editor);
+    const betaText = getNoteTextNode(rootElement, 'beta');
+    const emptyTail = getNoteElementById(remdo, 'nested-after-child');
+
+    await dragDomSelectionBetween(betaText, 1, emptyTail, emptyTail.childNodes.length);
+
+    await waitFor(() => {
+      expect(remdo).toMatchSelectionIds(['beta', 'parent', 'nested-empty', 'child', 'nested-after-child']);
+    });
+  });
 
   it('skips the sibling stage when Cmd/Ctrl+A climbs from a siblingless note', async ({ remdo }) => {
     await remdo.load('tree-complex');
