@@ -1,6 +1,6 @@
 import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
-import type { RangeSelection } from 'lexical';
+import type { LexicalNode, RangeSelection } from 'lexical';
 
 import { reportInvariant } from '@/editor/invariant';
 import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from '../list-structure';
@@ -77,6 +77,48 @@ export function getContiguousSelectionHeads(selection: RangeSelection): ListItem
   const first = Math.min(startIndex, endIndex);
   const last = Math.max(startIndex, endIndex);
   return siblings.slice(first, last + 1);
+}
+
+// TODO: review usage; feels artificial but leave behavior unchanged for now.
+export function selectionIsContiguous(notes: ListItemNode[], siblings: ListItemNode[]): boolean {
+  if (notes.length === 0) return false;
+  const indexes = notes.map((note) => siblings.indexOf(note));
+  if (indexes.includes(-1)) {
+    reportInvariant({
+      message: 'Notes are not all present in sibling list for contiguity check',
+      context: { noteCount: notes.length, siblingCount: siblings.length },
+    });
+    return false;
+  }
+  const first = Math.min(...indexes);
+  const last = Math.max(...indexes);
+  return last - first + 1 === notes.length;
+}
+
+export function getSelectedNotes(selection: RangeSelection): ListItemNode[] {
+  const ordered: ListItemNode[] = [];
+  const seen = new Set<string>();
+
+  const candidates: LexicalNode[] = selection.getNodes();
+
+  for (const node of candidates) {
+    const listItem = findNearestListItem(node);
+    if (!listItem) {
+      reportInvariant({
+        message: 'Selected node is not within a list item',
+        context: { nodeType: node.getType() },
+      });
+      continue;
+    }
+
+    const contentItem = getContentListItem(listItem);
+    const key = contentItem.getKey();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    ordered.push(contentItem);
+  }
+
+  return ordered;
 }
 
 function resolveElementSelectionHeads(selection: RangeSelection): ListItemNode[] | null {
