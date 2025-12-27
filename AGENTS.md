@@ -22,6 +22,7 @@ Map format: maintain alphabetical order and wrap entries at ~100 characters per
 line (align continuation lines by two spaces).
 Keep the map current—refresh summaries/buckets here when you edit a doc.
 
+<<<<<<< HEAD
 - `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch conventions—check
   before touching tooling or process.
 - `docs/deployment-single-container.md` (Short). Build/run steps for the single-container image
@@ -59,6 +60,46 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   items), and move durable specs into the appropriate doc under `docs/`. Includes the
   OutlineSelection + dataset-removal refactor plan, selection edge-case coverage notes, the collab
   schema normalization plan for wrapper/list races, and cut-as-move follow-ups.
+=======
+- `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch
+  conventions—check before touching tooling or process.
+- `docs/outliner/index.md` (Short). Single entry point for outlining docs with
+  links to model, selection, indent/outdent, insertion, and reordering specs;
+  also states the single-source (no-duplication) rule for invariants.
+- `docs/outliner/concepts.md` (Medium). Canonical definition of notes,
+  invariants (including non-empty tree), shared definitions (document order,
+  empty notes), adapters, and fixture examples—skim when working on data
+  modeling or serialization.
+- `docs/outliner/note-structure-rules.md` (Long). Structural invariants and
+  indent/outdent semantics—consult when editing tree transforms or note
+  mutations.
+- `docs/outliner/selection.md` (Long). Cursor/selection semantics for the editor
+  runtime—reference for UX or Lexical selection work, including the progressive
+  ladder and the empty-note inline-stage skip.
+- `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior
+  and placement invariants.
+- `docs/outliner/deletion.md` (Medium). Caret vs. structural deletion semantics,
+  merge/no-op rules at note boundaries (including parent/child merges and
+  empty-note deletions), document-order adjacency definitions, and the spacing
+  contract for joins.
+- `docs/outliner/drag-and-drop.md` (Short). Pointer-based reordering (drag and
+  drop) – not supported yet; future plan lives there.
+- `docs/insertion.md` (Short). Caret-mode `Enter` behavior (start/middle/end)
+  and focus rules; mid-note splits keep pre-caret text in place and move
+  post-caret text to a sibling below; end-of-note inserts a child only when
+  children already exist, otherwise a sibling.
+- `docs/todo.md` (Very long). Scratchpad for in-flight work: keep active tasks
+  only (drop completed items), and move durable specs into the appropriate doc
+  under `docs/`. Includes the OutlineSelection + dataset-removal refactor plan
+  (with layered selection file structure, the resolved editor.selection API,
+  and the structural highlight E2E check), plus selection edge-case coverage
+  notes for empty notes and the collab schema normalization plan for wrapper
+  and list races (including the `data/_scratch/` temp-artifact note).
+- `docs/deployment-single-container.md` (Short). How to build and run the
+  single-container image (Caddy + Y-Sweet) and its env knobs, including basic
+  auth requirements.
+
+>>>>>>> 2902918 (docs: note temp artifacts location)
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.
 

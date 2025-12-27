@@ -197,3 +197,5 @@ reorder) by normalizing wrapper list items before schema validation.
    replays failing seeds and asserts normalization + invariants.
 7. Log/track normalization hits so we can detect frequency in prod and decide
    if upstream fixes or tighter guards are needed.
+8. Use `data/_scratch/` for temporary investigation artifacts (snapshots,
+   repro JSON, etc.); promote anything durable out of `data/` before shipping.
