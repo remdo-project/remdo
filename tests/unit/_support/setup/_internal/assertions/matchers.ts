@@ -134,7 +134,7 @@ function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
         return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
       }
 
-      const outlineNotes = outlineSelection.headKeys
+      const outlineNotes = outlineSelection.selectedKeys
         .map((key) => {
           const node = $getNodeByKey<ListItemNode>(key);
           if (!node || !node.isAttached()) {

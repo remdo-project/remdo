@@ -13,6 +13,7 @@ export interface OutlineSelection {
   anchorKey: string | null;
   focusKey: string | null;
   headKeys: string[];
+  selectedKeys: string[];
   range: OutlineSelectionRange | null;
   isBackward: boolean;
 }

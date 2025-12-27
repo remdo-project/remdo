@@ -1105,7 +1105,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     expect(remdo.editor.selection.isStructural()).toBe(true);
-    expect(remdo.editor.selection.heads()).toContain(emptyKey);
+    expect(remdo.editor.selection.selectedKeys()).toContain(emptyKey);
   });
 
   it('selects only the nested empty note on Cmd/Ctrl+A before child-of-empty', async ({ remdo }) => {
@@ -1128,7 +1128,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo.editor.selection.isStructural()).toBe(true);
-    const selectedKeys = remdo.editor.selection.heads();
+    const selectedKeys = remdo.editor.selection.selectedKeys();
     expect(selectedKeys).toContain(emptyKey);
     expect(selectedKeys).not.toContain(childKey);
   });
@@ -1143,7 +1143,7 @@ describe('selection plugin', () => {
 
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(true);
-      const selectedKeys = remdo.editor.selection.heads();
+      const selectedKeys = remdo.editor.selection.selectedKeys();
       expect(selectedKeys).toEqual([trailingKey]);
     });
   });
@@ -1158,7 +1158,7 @@ describe('selection plugin', () => {
 
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(true);
-      const selectedKeys = remdo.editor.selection.heads();
+      const selectedKeys = remdo.editor.selection.selectedKeys();
       expect(selectedKeys).toEqual([nestedAfterChildKey]);
     });
   });
@@ -1176,21 +1176,21 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      const selectedKeys = remdo.editor.selection.heads();
+      const selectedKeys = remdo.editor.selection.selectedKeys();
       expect(selectedKeys).toEqual([nestedEmptyKey]);
     });
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      const selectedKeys = remdo.editor.selection.heads();
+      const selectedKeys = remdo.editor.selection.selectedKeys();
       expect(selectedKeys).toEqual([nestedEmptyKey, childKey, nestedAfterChildKey]);
     });
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      const selectedKeys = remdo.editor.selection.heads();
+      const selectedKeys = remdo.editor.selection.selectedKeys();
       expect(selectedKeys).toEqual([parentKey, nestedEmptyKey, childKey, nestedAfterChildKey]);
     });
   });
@@ -1205,7 +1205,7 @@ describe('selection plugin', () => {
 
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(true);
-      const selectedKeys = remdo.editor.selection.heads();
+      const selectedKeys = remdo.editor.selection.selectedKeys();
       expect(selectedKeys).toEqual([trailingKey]);
     });
 
@@ -1229,7 +1229,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     await waitFor(() => {
-      const selectedKeys = remdo.editor.selection.heads();
+      const selectedKeys = remdo.editor.selection.selectedKeys();
       expect(selectedKeys).toEqual([parentKey, nestedEmptyKey, childKey, nestedAfterChildKey]);
     });
 
@@ -1237,7 +1237,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
 
     await waitFor(() => {
-      const selectedKeys = remdo.editor.selection.heads();
+      const selectedKeys = remdo.editor.selection.selectedKeys();
       expect(selectedKeys).toEqual([parentKey, nestedEmptyKey, childKey, nestedAfterChildKey]);
     });
   });

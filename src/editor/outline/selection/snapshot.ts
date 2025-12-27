@@ -116,6 +116,7 @@ export function $computeOutlineSelectionSnapshot({
       anchorKey,
       focusKey,
       headKeys: [],
+      selectedKeys: [],
       range: null,
       isBackward,
     };
@@ -170,7 +171,8 @@ export function $computeOutlineSelectionSnapshot({
     stage,
     anchorKey,
     focusKey,
-    headKeys: hasStructuralSelection ? selectedKeys : [],
+    headKeys: hasStructuralSelection ? headKeys : [],
+    selectedKeys: hasStructuralSelection ? selectedKeys : [],
     range: hasStructuralSelection ? structuralRange : null,
     isBackward,
   };
