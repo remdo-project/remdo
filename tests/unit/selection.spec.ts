@@ -1148,6 +1148,43 @@ describe('selection plugin', () => {
     });
   });
 
+  it.fails('expands Cmd/Ctrl+A from a trailing empty note to its siblings', async ({ remdo }) => {
+    await remdo.load('empty-labels');
+
+    const alphaKey = getNoteKeyById(remdo, 'alpha');
+    const spaceKey = getNoteKeyById(remdo, 'space');
+    const betaKey = getNoteKeyById(remdo, 'beta');
+    const parentKey = getNoteKeyById(remdo, 'parent');
+    const nestedEmptyKey = getNoteKeyById(remdo, 'nested-empty');
+    const childKey = getNoteKeyById(remdo, 'child');
+    const nestedAfterChildKey = getNoteKeyById(remdo, 'nested-after-child');
+    const trailingKey = getNoteKeyById(remdo, 'trailing');
+
+    await placeCaretAtNoteId(remdo, 'trailing');
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+
+    await waitFor(() => {
+      const selectedKeys = remdo.editor.selection.selectedKeys();
+      expect(selectedKeys).toEqual([trailingKey]);
+    });
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+
+    await waitFor(() => {
+      const selectedKeys = remdo.editor.selection.selectedKeys();
+      expect(selectedKeys).toEqual([
+        alphaKey,
+        spaceKey,
+        betaKey,
+        parentKey,
+        nestedEmptyKey,
+        childKey,
+        nestedAfterChildKey,
+        trailingKey,
+      ]);
+    });
+  });
+
   it('selects the nested empty note on Shift+Up before the previous sibling', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
