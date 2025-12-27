@@ -24,31 +24,6 @@ Rules:
 3. Add mixed valid/invalid nested list fixture to confirm validator behavior.
 4. Reuse editor schema fixtures across other tests that need serialized states.
 
-## OutlineSelection + dataset removal
-
-### Motivation
-
-- Stage-2 selection currently lives only in SelectionPlugin state; Lexical’s
-  `RangeSelection` still reports inline anchors because ListItemNodes cannot be
-  empty. Tests rely on `rootElement.dataset.structuralSelectionKeys` to observe
-  structural mode, which is brittle and DOM-specific.
-
-### OutlineSelection concept
-
-1. Introduce a custom `OutlineSelection` wrapper that tracks note keys and
-   mirrors the progressive ladder stages.
-2. Expose helpers (e.g., `editor.getOutlineSelection()`) so tests and other
-   plugins can read structural selection data without touching the DOM.
-3. Propagate this selection through commands like `Shift+Arrow`, Home/End, and
-   structural actions so caret collapse remains accurate.
-
-### Dataset removal
-
-- Once `OutlineSelection` exists, drop `data-structural-selection-keys` writes
-  from SelectionPlugin and have tests consume the programmatic API instead.
-- Update `readSelectionSnapshot` to rely solely on Lexical’s selection or the
-  new outline selection, removing the DOM fallback entirely.
-
 ## Collab undo/redo determinism (unit tests)
 
 Make collaboration-mode undo/redo assertions deterministic so unit tests can

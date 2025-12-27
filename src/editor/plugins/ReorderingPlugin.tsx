@@ -12,7 +12,7 @@ import {
   insertAfter,
   insertBefore,
 } from '@/editor/outline/list-structure';
-import { getContiguousSelectionHeads } from '@/editor/outline/structural-selection';
+import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import { useEffect } from 'react';
 import { mergeRegister } from '@lexical/utils';
 

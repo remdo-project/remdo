@@ -68,3 +68,11 @@ export function findNearestListItem(node: LexicalNode | null): ListItemNode | nu
   }
   return null;
 }
+
+export function getRootElementOrThrow(editor: { getRootElement: () => HTMLElement | null }): HTMLElement {
+  const rootElement = editor.getRootElement();
+  if (!rootElement) {
+    throw new TypeError('Expected editor root element');
+  }
+  return rootElement;
+}

@@ -1,39 +1,33 @@
 //TODO review, refactor, simplify, extract common helpers
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $isListItemNode, $isListNode } from '@lexical/list';
+import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
-  $createRangeSelection,
+  $createParagraphNode,
   $createTextNode,
+  $getNodeByKey,
+  $getRoot,
   $getSelection,
   $isRangeSelection,
   $isTextNode,
-  $setSelection,
   COMMAND_PRIORITY_CRITICAL,
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
 } from 'lexical';
 import type { LexicalNode, TextNode } from 'lexical';
 import { useEffect, useState } from 'react';
-import { findNearestListItem, getContentListItem, isChildrenWrapper, maybeRemoveEmptyWrapper } from '@/editor/outline/list-structure';
-
-function getNestedList(item: ListItemNode): ListNode | null {
-  const next = item.getNextSibling();
-  if (isChildrenWrapper(next)) {
-    const nested = next.getFirstChild();
-    if ($isListNode(nested)) {
-      return nested;
-    }
-  }
-
-  for (const child of item.getChildren()) {
-    if ($isListNode(child)) {
-      return child;
-    }
-  }
-
-  return null;
-}
+import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { $selectItemEdge } from '@/editor/outline/selection/caret';
+import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
+import {
+  getFirstDescendantListItem,
+  getNestedList,
+  getNextContentSibling,
+  getPreviousContentSibling,
+  getSubtreeTail,
+  removeNoteSubtree,
+  sortHeadsByDocumentOrder,
+} from '@/editor/outline/selection/tree';
 
 function getParentNote(list: ListNode): ListItemNode | null {
   const wrapper = list.getParent();
@@ -54,70 +48,13 @@ function noteHasChildren(item: ListItemNode): boolean {
   return Boolean(nested && nested.getChildrenSize() > 0);
 }
 
-function getPreviousContentSibling(item: ListItemNode): ListItemNode | null {
-  let current = item.getPreviousSibling();
-  while (isChildrenWrapper(current)) {
-    current = current.getPreviousSibling();
-  }
-  return $isListItemNode(current) ? current : null;
-}
-
-function getNextContentSibling(item: ListItemNode): ListItemNode | null {
-  let current = item.getNextSibling();
-  while (isChildrenWrapper(current)) {
-    current = current.getNextSibling();
-  }
-  return $isListItemNode(current) ? current : null;
-}
-
-function getSubtreeTail(item: ListItemNode): ListItemNode {
-  const nested = getNestedList(item);
-  if (!nested) {
-    return item;
-  }
-  return getLastDescendantListItem(nested) ?? item;
-}
-
 function getFirstChildContentItem(item: ListItemNode): ListItemNode | null {
   const nested = getNestedList(item);
   if (!nested) {
     return null;
   }
 
-  for (const child of nested.getChildren()) {
-    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
-      return child;
-    }
-  }
-
-  return null;
-}
-
-function getLastDescendantListItem(node: ListNode): ListItemNode | null {
-  const children = node.getChildren();
-  for (let i = children.length - 1; i >= 0; i -= 1) {
-    const child = children[i];
-    if (!$isListItemNode(child)) {
-      continue;
-    }
-
-    if (isChildrenWrapper(child)) {
-      const nested = child.getFirstChild();
-      if ($isListNode(nested) && nested.getChildrenSize() > 0) {
-        return getLastDescendantListItem(nested);
-      }
-      continue;
-    }
-
-    const nested = getNestedList(child);
-    if (nested && nested.getChildrenSize() > 0) {
-      return getLastDescendantListItem(nested) ?? getContentListItem(child);
-    }
-
-    return getContentListItem(child);
-  }
-
-  return null;
+  return getFirstDescendantListItem(nested);
 }
 
 function isDescendantOf(node: LexicalNode, ancestor: LexicalNode): boolean {
@@ -161,88 +98,11 @@ function computeMergeText(left: string, right: string): { merged: string; joinOf
   return { merged: `${left}${needsSpace ? ' ' : ''}${right}`, joinOffset };
 }
 
-function findBoundaryTextNode(node: LexicalNode, edge: 'start' | 'end'): TextNode | null {
-  if ($isTextNode(node)) {
-    return node;
-  }
-
-  const canTraverse = typeof (node as any).getChildren === 'function';
-  if (!canTraverse) {
-    return null;
-  }
-
-  const children = (node as any).getChildren?.() ?? [];
-  const ordered = edge === 'start' ? children : children.toReversed();
-
-  for (const child of ordered) {
-    if ($isListNode(child)) {
-      continue;
-    }
-
-    const match = findBoundaryTextNode(child, edge);
-    if (match) {
-      return match;
-    }
-  }
-
-  return null;
-}
-
-function resolveBoundaryPoint(listItem: ListItemNode, edge: 'start' | 'end') {
-  const textNode = findBoundaryTextNode(listItem, edge);
-  if (!textNode) {
-    return null;
-  }
-
-  const length = textNode.getTextContentSize();
-  const offset = edge === 'start' ? 0 : length;
-  return { node: textNode, offset } as const;
-}
-
-function $selectItemEdge(item: ListItemNode, edge: 'start' | 'end'): boolean {
-  const contentItem = getContentListItem(item);
-  const selectable = contentItem as ListItemNode & { selectStart?: () => void; selectEnd?: () => void };
-  const selectEdge = edge === 'start' ? selectable.selectStart : selectable.selectEnd;
-
-  if (typeof selectEdge === 'function') {
-    selectEdge.call(selectable);
-    return true;
-  }
-
-  const boundary = resolveBoundaryPoint(contentItem, edge);
-  if (!boundary) {
-    return false;
-  }
-
-  const range = $createRangeSelection();
-  range.setTextNodeRange(boundary.node, boundary.offset, boundary.node, boundary.offset);
-  $setSelection(range);
-  return true;
-}
-
 function $setItemText(item: ListItemNode, text: string): TextNode {
   item.clear();
   const node = $createTextNode(text);
   item.append(node);
   return node;
-}
-
-function $removeNote(contentItem: ListItemNode) {
-  const wrapper = contentItem.getNextSibling();
-  if (isChildrenWrapper(wrapper)) {
-    wrapper.remove();
-  }
-
-  const parentList = contentItem.getParent();
-  const parentWrapper = $isListNode(parentList) ? parentList.getParent() : null;
-  contentItem.remove();
-
-  if ($isListNode(parentList)) {
-    maybeRemoveEmptyWrapper(parentList);
-    if ($isListItemNode(parentWrapper) && parentWrapper.getChildrenSize() === 0) {
-      parentWrapper.remove();
-    }
-  }
 }
 
 function isEmptyNote(item: ListItemNode): boolean {
@@ -282,7 +142,12 @@ function getPreviousNoteInDocumentOrder(item: ListItemNode): ListItemNode | null
   return parentList ? getParentNote(parentList) : null;
 }
 
-function resolveCaretPlanAfterRemoval(item: ListItemNode): { target: ListItemNode; edge: 'start' | 'end' } | null {
+interface CaretPlan {
+  target: ListItemNode;
+  edge: 'start' | 'end';
+}
+
+function resolveCaretPlanAfterRemoval(item: ListItemNode): CaretPlan | null {
   const nextSibling = getNextContentSibling(item);
   if (nextSibling) {
     return { target: nextSibling, edge: 'start' };
@@ -300,6 +165,39 @@ function resolveCaretPlanAfterRemoval(item: ListItemNode): { target: ListItemNod
   }
 
   return null;
+}
+
+function resolveCaretPlanAfterStructuralDeletion(heads: ListItemNode[]): CaretPlan | null {
+  if (heads.length === 0) {
+    return null;
+  }
+
+  const orderedHeads = sortHeadsByDocumentOrder(heads);
+  const lastHead = orderedHeads.at(-1)!;
+  const nextSibling = getNextContentSibling(lastHead);
+  if (nextSibling) {
+    return { target: nextSibling, edge: 'start' };
+  }
+
+  const firstHead = orderedHeads[0]!;
+  const previousSibling = getPreviousContentSibling(firstHead);
+  if (previousSibling) {
+    return { target: getSubtreeTail(previousSibling), edge: 'end' };
+  }
+
+  const parentList = firstHead.getParent();
+  const parentNote = $isListNode(parentList) ? getParentNote(parentList) : null;
+  if (parentNote) {
+    return { target: parentNote, edge: 'end' };
+  }
+
+  return null;
+}
+
+function $resolveStructuralHeadsFromKeys(keys: string[]): ListItemNode[] {
+  return keys
+    .map((key) => $getNodeByKey<ListItemNode>(key))
+    .filter((node): node is ListItemNode => $isListItemNode(node) && node.isAttached());
 }
 
 export function DeletionPlugin() {
@@ -377,9 +275,90 @@ export function DeletionPlugin() {
   }, [editor, rootElement]);
 
   useEffect(() => {
+    const $deleteStructuralSelection = (event: KeyboardEvent | null): boolean => {
+      if (!editor.selection.isStructural()) {
+        return false;
+      }
+
+      const outlineSelection = editor.selection.get();
+      const structuralKeys = outlineSelection?.headKeys ?? [];
+      if (structuralKeys.length === 0) {
+        return false;
+      }
+
+      const selection = $getSelection();
+      let heads = $resolveStructuralHeadsFromKeys(structuralKeys);
+      if (heads.length === 0 && $isRangeSelection(selection)) {
+        heads = getContiguousSelectionHeads(selection);
+      }
+
+      if (heads.length === 0) {
+        return false;
+      }
+
+      event?.preventDefault();
+      event?.stopPropagation();
+
+      const caretPlan = resolveCaretPlanAfterStructuralDeletion(heads);
+      const orderedHeads = sortHeadsByDocumentOrder(heads);
+
+      for (const head of orderedHeads.toReversed()) {
+        removeNoteSubtree(head);
+      }
+
+      let caretApplied = false;
+      if (caretPlan) {
+        caretApplied = $selectItemEdge(caretPlan.target, caretPlan.edge);
+      }
+
+      if (!caretApplied) {
+        const root = $getRoot();
+        let list = root.getFirstChild();
+        if (!$isListNode(list)) {
+          const newList = $createListNode('bullet');
+          root.append(newList);
+          list = newList;
+        }
+
+        if ($isListNode(list)) {
+          const firstItem = getFirstDescendantListItem(list);
+          let targetItem: ListItemNode;
+
+          if (firstItem) {
+            targetItem = getContentListItem(firstItem);
+          } else {
+            const listItem = $createListItemNode();
+            listItem.append($createParagraphNode());
+            list.append(listItem);
+            targetItem = listItem;
+          }
+
+          caretApplied = $selectItemEdge(targetItem, 'start');
+        }
+      }
+
+      if (!caretApplied && $isRangeSelection(selection)) {
+        const anchorNode = selection.anchor.getNode();
+        if ($isTextNode(anchorNode)) {
+          selection.setTextNodeRange(anchorNode, selection.anchor.offset, anchorNode, selection.anchor.offset);
+        } else {
+          const anchorItem = findNearestListItem(anchorNode);
+          if (anchorItem) {
+            $selectItemEdge(anchorItem, 'start');
+          }
+        }
+      }
+
+      return true;
+    };
+
     const unregisterBackspace = editor.registerCommand(
       KEY_BACKSPACE_COMMAND,
       (event: KeyboardEvent | null) => {
+        if ($deleteStructuralSelection(event)) {
+          return true;
+        }
+
         const selection = $getSelection();
         if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
           return false;
@@ -433,12 +412,12 @@ export function DeletionPlugin() {
           const textNode = $setItemText(target, merged);
           textNode.select(joinOffset, joinOffset);
         } else {
-          $removeNote(contentItem);
+          removeNoteSubtree(contentItem);
           $selectItemEdge(target, 'end');
           return true;
         }
 
-        $removeNote(contentItem);
+        removeNoteSubtree(contentItem);
 
         return true;
       },
@@ -448,6 +427,10 @@ export function DeletionPlugin() {
     const unregisterDelete = editor.registerCommand(
       KEY_DELETE_COMMAND,
       (event: KeyboardEvent | null) => {
+        if ($deleteStructuralSelection(event)) {
+          return true;
+        }
+
         const selection = $getSelection();
         if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
           return false;
@@ -483,7 +466,7 @@ export function DeletionPlugin() {
           }
 
           const caretPlan = resolveCaretPlanAfterRemoval(contentItem);
-          $removeNote(contentItem);
+          removeNoteSubtree(contentItem);
           if (caretPlan) {
             $selectItemEdge(caretPlan.target, caretPlan.edge);
           }
@@ -505,7 +488,7 @@ export function DeletionPlugin() {
         const textNode = $setItemText(contentItem, merged);
         textNode.select(joinOffset, joinOffset);
 
-        $removeNote(nextNote);
+        removeNoteSubtree(nextNote);
 
         return true;
       },

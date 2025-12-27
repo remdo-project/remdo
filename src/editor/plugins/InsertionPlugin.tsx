@@ -1,12 +1,15 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { mergeRegister } from '@lexical/utils';
 import {
   $createTextNode,
   $getSelection,
   $isRangeSelection,
   $isTextNode,
+  COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_HIGH,
+  KEY_DOWN_COMMAND,
   KEY_ENTER_COMMAND,
 } from 'lexical';
 import type { TextNode } from 'lexical';
@@ -58,41 +61,75 @@ export function InsertionPlugin() {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    return editor.registerCommand(
-      KEY_ENTER_COMMAND,
-      (event: KeyboardEvent | null) => {
-        const selection = $getSelection();
+    return mergeRegister(
+      editor.registerCommand(
+        KEY_ENTER_COMMAND,
+        (event: KeyboardEvent | null) => {
+          if (!editor.selection.isStructural()) {
+            return false;
+          }
 
-        if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-          return false;
-        }
-
-        const candidateNote = findNearestListItem(selection.anchor.getNode());
-        if (!candidateNote) {
-          return false;
-        }
-
-        const contentItem = getContentListItem(candidateNote);
-        const textNode = selection.anchor.getNode() as TextNode;
-        const offset = selection.anchor.offset;
-
-        if (offset === 0) {
           event?.preventDefault();
           event?.stopPropagation();
-          $handleEnterAtStart(contentItem);
           return true;
-        }
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_DOWN_COMMAND,
+        (event: KeyboardEvent | null) => {
+          if (!event || !editor.selection.isStructural()) {
+            return false;
+          }
+          if (event.altKey || event.metaKey || event.ctrlKey) {
+            return false;
+          }
+          if (event.key.length !== 1) {
+            return false;
+          }
 
-        if (offset === textNode.getTextContentSize()) {
-          event?.preventDefault();
-          event?.stopPropagation();
-          $handleEnterAtEnd(contentItem);
+          event.preventDefault();
+          event.stopPropagation();
           return true;
-        }
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_ENTER_COMMAND,
+        (event: KeyboardEvent | null) => {
+          const selection = $getSelection();
 
-        return false;
-      },
-      COMMAND_PRIORITY_HIGH
+          if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+            return false;
+          }
+
+          const candidateNote = findNearestListItem(selection.anchor.getNode());
+          if (!candidateNote) {
+            return false;
+          }
+
+          const contentItem = getContentListItem(candidateNote);
+          const textNode = selection.anchor.getNode() as TextNode;
+          const offset = selection.anchor.offset;
+
+          if (offset === 0) {
+            event?.preventDefault();
+            event?.stopPropagation();
+            $handleEnterAtStart(contentItem);
+            return true;
+          }
+
+          if (offset === textNode.getTextContentSize()) {
+            event?.preventDefault();
+            event?.stopPropagation();
+            $handleEnterAtEnd(contentItem);
+            return true;
+          }
+
+          return false;
+        },
+        COMMAND_PRIORITY_HIGH
+      )
     );
   }, [editor]);
 

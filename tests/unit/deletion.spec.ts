@@ -542,7 +542,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
     });
 
-    it.fails('deletes only the selected empty note after Cmd/Ctrl+A', async ({ remdo }) => {
+    it('deletes only the selected empty note after Cmd/Ctrl+A', async ({ remdo }) => {
       await remdo.load('empty-labels');
 
       const rootElement = remdo.editor.getRootElement();
@@ -555,7 +555,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
       await waitFor(() => {
-        expect(rootElement.dataset.structuralSelection).toBe('true');
+        expect(remdo.editor.selection.isStructural()).toBe(true);
       });
 
       await pressKey(remdo, { key: 'Delete' });
