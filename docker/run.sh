@@ -10,20 +10,13 @@ set -a
 . "${ENV_FILE}"
 set +a
 
-if [[ -z "${BASICAUTH_USER:-}" ]]; then
-  if [[ -n "${USER:-}" ]]; then
-    BASICAUTH_USER="${USER}"
-  else
-    BASICAUTH_USER="$(id -un)"
-  fi
-  export BASICAUTH_USER
-fi
+export REMDO_ROOT="${REMDO_ROOT:-${SCRIPT_DIR}}"
+# shellcheck disable=SC1091 # shared defaults live in the repo.
+. "${SCRIPT_DIR}/tools/env.defaults.sh"
 
 : "${BASICAUTH_USER:?Set BASICAUTH_USER in ${ENV_FILE} or ensure USER is set}"
 : "${BASICAUTH_PASSWORD:?Set BASICAUTH_PASSWORD in ${ENV_FILE}}"
 : "${PORT:?Set PORT in ${ENV_FILE}}"
-: "${COLLAB_SERVER_PORT:?Set COLLAB_SERVER_PORT in ${ENV_FILE}}"
-: "${DATA_DIR:?Set DATA_DIR in ${ENV_FILE}}"
 
 if (( ${#BASICAUTH_PASSWORD} < 10 )); then
   echo "Password must be at least 10 characters." >&2

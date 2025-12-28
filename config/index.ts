@@ -6,24 +6,6 @@ const isNodeRuntime = Boolean(globalThis.process?.versions?.node);
 
 const loaded = (() => {
   if (isNodeRuntime) {
-    const nodeEnv = process.env.NODE_ENV ?? 'development';
-    const envFiles = [
-      `.env.${nodeEnv}.local`,
-      `.env.${nodeEnv}`,
-      '.env.local',
-      '.env',
-    ];
-
-    for (const file of envFiles) {
-      try {
-        process.loadEnvFile(file);
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException | undefined)?.code !== 'ENOENT') {
-          throw error;
-        }
-      }
-    }
-
     return loadEnv((key) => process.env[key]);
   }
 
@@ -39,9 +21,6 @@ const loaded = (() => {
 
 const runtime = loaded.runtime;
 const serverEnv = loaded.server;
-if (isNodeRuntime && !serverEnv.COLLAB_ORIGIN) {
-  serverEnv.COLLAB_ORIGIN = `http://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
-}
 const browserEnv = loaded.client;
 const env = (isNodeRuntime ? serverEnv : browserEnv) as typeof serverEnv;
 

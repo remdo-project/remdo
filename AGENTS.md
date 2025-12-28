@@ -23,8 +23,8 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
 - `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch
   conventions—check before touching tooling or process.
 - `docs/environment.md` (Short). Canonical environment setup for dev, tests,
-  prod (host + Docker), backup machines, and CI; defaults in `tools/env.sh` and
-  `.env` overrides.
+  prod (host + Docker), backup machines, and CI; defaults in
+  `tools/env.defaults.sh` via `tools/env.sh`, with `.env` overrides.
 - `docs/outliner/index.md` (Short). Single entry point for outlining docs with
   links to model, selection, indent/outdent, insertion, and reordering specs;
   also states the single-source (no-duplication) rule for invariants.
@@ -62,7 +62,14 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
 Recent doc updates:
 
 - 2025-12-28: `docs/environment.md` added for env setup across dev/tests/prod,
-  backup machines, CI, and hosted (Render) prod; defaults are in `tools/env.sh`.
+  backup machines, CI, and hosted (Render) prod; defaults are in
+  `tools/env.defaults.sh`.
+- 2025-12-28: `docs/environment.md` updated with derived prod defaults and a
+  TODO note for hosted backup coverage, plus test-mode collab origin defaults.
+- 2025-12-28: `docs/environment.md` clarified that relative `DATA_DIR` resolves
+  against the repo root.
+- 2025-12-28: `docs/environment.md` clarified `BASICAUTH_USER` as an optional
+  host-derived default.
 - 2025-12-28: `docs/deployment-single-container.md` updated for `.env` overrides
   (defaults in env tooling), host `DATA_DIR` → `/data` mapping, auto
   `BASICAUTH_USER`, and image-level `PATH` for bundled tools.

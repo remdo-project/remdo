@@ -3,10 +3,8 @@ set -eu
 # shellcheck disable=SC3040 # allow POSIX sh + bash pipefail fallback usage
 set -o pipefail 2>/dev/null || true
 
-# Required runtime config (from .env).
-: "${PORT:?Set PORT in the env file}"
-: "${COLLAB_SERVER_PORT:?Set COLLAB_SERVER_PORT in the env file}"
-: "${DATA_DIR:?Set DATA_DIR in the env file}"
+# shellcheck disable=SC1091 # provided by the image build.
+. /usr/local/share/remdo/env.defaults.sh
 
 # Local derived paths (script-specific).
 BACKUP_DIR="${DATA_DIR%/}/backup"

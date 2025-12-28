@@ -1,6 +1,9 @@
 #!/usr/bin/env sh
 set -euo pipefail
 
+# shellcheck disable=SC1091 # provided by the image build.
+. /usr/local/share/remdo/env.defaults.sh
+
 : "${BASICAUTH_USER:?Set BASICAUTH_USER to the username for HTTP basic auth}"
 : "${BASICAUTH_PASSWORD:?Set BASICAUTH_PASSWORD to the password for HTTP basic auth}"
 
@@ -8,9 +11,6 @@ set -euo pipefail
 BASICAUTH_PASSWORD_HASH="$(printf '%s\n' "$BASICAUTH_PASSWORD" | caddy hash-password --algorithm bcrypt)"
 export BASICAUTH_PASSWORD_HASH
 unset BASICAUTH_PASSWORD
-
-: "${DATA_DIR:?Set DATA_DIR for persistent storage}"
-: "${COLLAB_SERVER_PORT:?Set COLLAB_SERVER_PORT for the collab server}"
 
 # Start cron for periodic backups.
 crond -l 2 -L /var/log/cron.log

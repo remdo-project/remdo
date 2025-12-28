@@ -27,8 +27,7 @@ COPY tools ./tools
 
 # Production build-time env (same-origin proxy on configurable PORT)
 ENV NODE_ENV=production \
-  PORT=${PORT} \
-  COLLAB_CLIENT_PORT=${PORT}
+  PORT=${PORT}
 
 RUN pnpm install --frozen-lockfile && pnpm run build
 
@@ -53,12 +52,13 @@ ENV YSWEET_VERSION=^0.9.1
 
 WORKDIR /app
 
-ENV PATH=/usr/local/bin:/usr/bin:/bin
+ENV PATH=/usr/local/bin:/usr/bin:/bin \
+  DATA_DIR=/data
 
 # hadolint ignore=DL3018
 RUN apk add --no-cache caddy \
   && npm install -g "y-sweet@${YSWEET_VERSION}" \
-  && mkdir -p /data /etc/caddy /srv/remdo /var/log
+  && mkdir -p /data /etc/caddy /srv/remdo /var/log /usr/local/share/remdo
 
 # Install backup script and cron schedule (runs every minute).
 COPY docker/backup.sh /usr/local/bin/backup.sh
@@ -70,6 +70,7 @@ RUN chmod +x /usr/local/bin/backup.sh \
 COPY --from=builder /app/data/dist /srv/remdo
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
+COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh
 COPY --from=builder /usr/local/bin/snapshot.mjs /usr/local/bin/snapshot.mjs
 
 RUN chmod +x /entrypoint.sh

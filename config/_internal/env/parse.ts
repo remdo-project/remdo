@@ -99,19 +99,3 @@ export function pickClientEnv<T extends EnvSpec>(
 export const defineEnvSpec = <
   const T extends Record<string, EnvSpecEntry<Primitive>>,
 >(spec: T): T => spec;
-
-export type EnvDerivatives<T extends EnvSpec> = (env: ParsedEnv<T>) => void;
-
-export const defineEnvDerivatives = <
-  const Spec extends EnvSpec,
-  const Derivatives extends EnvDerivatives<Spec>,
->(_spec: Spec, derivatives: Derivatives): Derivatives => derivatives;
-
-export const applyEnvDerivatives = <T extends EnvSpec>(
-  env: ParsedEnv<T>,
-  apply: EnvDerivatives<T>,
-): ParsedEnv<T> => {
-  const copy = { ...env };
-  apply(copy);
-  return copy;
-};

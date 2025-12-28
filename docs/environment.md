@@ -2,24 +2,30 @@
 
 This document is the single source of truth for RemDo environment setup across
 dev, tests, prod (host + Docker), backup machines, and CI. All runtime defaults
-are derived in `tools/env.sh`. Use `.env` only for overrides.
+are derived in `tools/env.defaults.sh` (via `tools/env.sh`). Use `.env` only
+for overrides.
 
 ## Dev (local)
 
 - Copy `.env.example` to `.env`.
 - Prefer defaults; set `PORT` to avoid conflicts between workdirs on the same host.
+- When `DATA_DIR` is relative, it resolves against the repo root.
 
 ## Tests
 
 - Tests run through `tools/env.sh`, so derived ports follow `PORT + N` defaults.
 - Override `COLLAB_ENABLED`, `PORT`, or `COLLAB_SERVER_PORT` only when needed.
+- When `NODE_ENV=test`, `COLLAB_ORIGIN` defaults to `http://${HOST}:${COLLAB_SERVER_PORT}`.
 
 ## Prod
 
 ### Host OS
 
 - `.env` lives in the repo root on the host.
-- Required: `BASICAUTH_PASSWORD`, `PORT`, `COLLAB_SERVER_PORT`, `DATA_DIR`.
+- Required: `BASICAUTH_PASSWORD`, `PORT`.
+- Optional: `BASICAUTH_USER` (defaults to the current host username).
+- Optional: `COLLAB_SERVER_PORT` (defaults to `PORT + 4`).
+- Optional: `DATA_DIR` (defaults to `data/` under the repo root).
 - `DATA_DIR` is the host path for persistent data.
 
 ### Docker
