@@ -30,14 +30,12 @@ export function useCollaborationStatus(): CollaborationStatusValue {
 
 export function CollaborationProvider({
   children,
-  collabOrigin,
   docId,
 }: {
   children: ReactNode;
-  collabOrigin?: string;
   docId?: string;
 }) {
-  const value = useCollaborationRuntimeValue({ collabOrigin, docId });
+  const value = useCollaborationRuntimeValue({ docId });
 
   return <CollaborationStatusContext value={value}>{children}</CollaborationStatusContext>;
 }
@@ -48,11 +46,8 @@ function resolveDocId(explicit?: string) {
   return doc?.length ? doc : config.env.COLLAB_DOCUMENT_ID;
 }
 
-function useCollaborationRuntimeValue({ collabOrigin, docId }: { collabOrigin?: string; docId?: string }): CollaborationStatusValue {
-  const resolvedCollabOrigin =
-    collabOrigin
-    || config.env.COLLAB_ORIGIN
-    || location.origin;
+function useCollaborationRuntimeValue({ docId }: { docId?: string }): CollaborationStatusValue {
+  const resolvedCollabOrigin = config.env.COLLAB_ORIGIN || location.origin;
   const enabled = config.env.COLLAB_ENABLED;
   const resolvedDocId = useMemo(() => resolveDocId(docId), [docId]);
 

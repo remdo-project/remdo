@@ -19,18 +19,17 @@ import './Editor.css';
 
 interface EditorProps {
   children?: React.ReactNode;
-  collabOrigin?: string;
   docId?: string;
   onTestBridgeReady?: (api: unknown) => void;
   onTestBridgeDispose?: () => void;
 }
 
-export default function Editor({ children, collabOrigin, docId, onTestBridgeReady, onTestBridgeDispose }: EditorProps) {
+export default function Editor({ children, docId, onTestBridgeReady, onTestBridgeDispose }: EditorProps) {
   const editorInitialConfig = createEditorInitialConfig();
   return (
     <div className="editor-container">
       <LexicalComposer initialConfig={editorInitialConfig}>
-        <CollaborationPlugin collabOrigin={collabOrigin} docId={docId}>
+        <CollaborationPlugin docId={docId}>
           <Group justify="flex-end" className="editor-header">
             <CollaborationConnectionStatus />
           </Group>

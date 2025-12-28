@@ -10,15 +10,13 @@ import { CollaborationProvider, useCollaborationStatus } from './CollaborationPr
 
 export function CollaborationPlugin({
   children,
-  collabOrigin,
   docId,
 }: {
   children?: ReactNode;
-  collabOrigin?: string;
   docId?: string;
 }) {
   return (
-    <CollaborationProvider collabOrigin={collabOrigin} docId={docId}>
+    <CollaborationProvider docId={docId}>
       {children}
       <CollaborationRuntimePlugin />
     </CollaborationProvider>

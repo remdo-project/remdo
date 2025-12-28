@@ -39,6 +39,9 @@ const loaded = (() => {
 
 const runtime = loaded.runtime;
 const serverEnv = loaded.server;
+if (isNodeRuntime && !serverEnv.COLLAB_ORIGIN) {
+  serverEnv.COLLAB_ORIGIN = `http://${serverEnv.HOST}:${serverEnv.COLLAB_SERVER_PORT}`;
+}
 const browserEnv = loaded.client;
 const env = (isNodeRuntime ? serverEnv : browserEnv) as typeof serverEnv;
 

@@ -2,46 +2,42 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PACKAGE_JSON="${SCRIPT_DIR}/package.json"
-
-BASICAUTH_USER="$(id -un)"
-PASSWORD_FILE="${PASSWORD_FILE:-${HOME}/.password}"
+ENV_FILE="${SCRIPT_DIR}/.env"
 IMAGE_NAME="${IMAGE_NAME:-remdo}"
-PUBLIC_PORT="${PUBLIC_PORT:-8080}"
-DATA_DIR="${DATA_DIR:-data}"
-DATA_DIR="$(cd -- "$DATA_DIR" && pwd)"
 
-# Cross-platform permission check (GNU/BSD stat)
-perm="$(stat -c '%a' "${PASSWORD_FILE}" 2>/dev/null || stat -f '%OLp' "${PASSWORD_FILE}" 2>/dev/null || echo '')"
-if [[ "${perm}" != "600" ]]; then
-  echo "Password file permissions must be 600 (current: ${perm:-unknown}). Fix with: chmod 600 ${PASSWORD_FILE}" >&2
-  exit 1
+set -a
+# shellcheck disable=SC1090
+. "${ENV_FILE}"
+set +a
+
+if [[ -z "${BASICAUTH_USER:-}" ]]; then
+  if [[ -n "${USER:-}" ]]; then
+    BASICAUTH_USER="${USER}"
+  else
+    BASICAUTH_USER="$(id -un)"
+  fi
+  export BASICAUTH_USER
 fi
 
-BASICAUTH_PASSWORD="$(tr -d '\r\n' < "${PASSWORD_FILE}")"
-
-if [[ -z "${BASICAUTH_PASSWORD}" ]]; then
-  echo "Password is required." >&2
-  exit 1
-fi
+: "${BASICAUTH_USER:?Set BASICAUTH_USER in ${ENV_FILE} or ensure USER is set}"
+: "${BASICAUTH_PASSWORD:?Set BASICAUTH_PASSWORD in ${ENV_FILE}}"
+: "${PORT:?Set PORT in ${ENV_FILE}}"
+: "${COLLAB_SERVER_PORT:?Set COLLAB_SERVER_PORT in ${ENV_FILE}}"
+: "${DATA_DIR:?Set DATA_DIR in ${ENV_FILE}}"
 
 if (( ${#BASICAUTH_PASSWORD} < 10 )); then
   echo "Password must be at least 10 characters." >&2
   exit 1
 fi
 
-export BASICAUTH_USER BASICAUTH_PASSWORD
-
 docker build -f "${SCRIPT_DIR}/docker/Dockerfile" \
-  --build-arg PUBLIC_PORT="${PUBLIC_PORT}" \
+  --build-arg PORT="${PORT}" \
   -t "${IMAGE_NAME}" \
   "${SCRIPT_DIR}"
 
 docker run --rm \
-  -e APP_PORT=8080 \
-  -e YSWEET_PORT_INTERNAL=8081 \
-  -e BASICAUTH_USER \
-  -e BASICAUTH_PASSWORD \
+  --env-file "${ENV_FILE}" \
+  -e DATA_DIR="/data" \
   -v "${DATA_DIR}:/data" \
-  -p 8080:8080 \
+  -p "${PORT}:${PORT}" \
   "${IMAGE_NAME}"

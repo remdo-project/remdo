@@ -2,7 +2,7 @@
   admin off
 }
 
-:{$APP_PORT} {
+:{$PORT} {
   basicauth {
     {$BASICAUTH_USER} {$BASICAUTH_PASSWORD_HASH}
   }
@@ -17,11 +17,11 @@
   }
 
   handle /doc* {
-    reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL}
+    reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
   }
 
   handle /d/* {
-    reverse_proxy 127.0.0.1:{env.YSWEET_PORT_INTERNAL}
+    reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
   }
 
   handle {

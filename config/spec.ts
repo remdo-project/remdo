@@ -4,6 +4,7 @@ import { defineEnvDerivatives, defineEnvSpec } from './_internal/env/parse';
 export const envSpec = defineEnvSpec(
   {
     NODE_ENV: { default: 'development' },
+    DATA_DIR: { default: 'data' },
     HOST: { default: '127.0.0.1' },
     PORT: { default: 4000 },
     HMR_PORT: { default: 0 },

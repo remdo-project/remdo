@@ -51,9 +51,16 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   only (drop completed items), and move durable specs into the appropriate doc
   under `docs/`. Includes selection post-refactor follow-ups (simplify/robustness
   cleanup list), plus selection edge-case coverage notes for empty notes.
-- `docs/deployment-single-container.md` (Short). How to build and run the
-  single-container image (Caddy + Y-Sweet) and its env knobs, including basic
-  auth requirements.
+- `docs/deployment-single-container.md` (Short). Build/run steps for the
+  single-container image (Caddy + Y-Sweet) using `.env` overrides (defaults in
+  `config/spec.ts`), standardized `PORT`/`COLLAB_SERVER_PORT`, `COLLAB_ORIGIN`
+  overrides, basic auth requirements, and the host `DATA_DIR` → `/data` layout.
+
+Recent doc updates:
+
+- 2025-12-28: `docs/deployment-single-container.md` updated for `.env` overrides
+  (defaults in config), `COLLAB_ORIGIN` overrides, host `DATA_DIR` → `/data`
+  mapping, auto `BASICAUTH_USER`, and image-level `PATH` for bundled tools.
 
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.

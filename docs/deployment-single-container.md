@@ -6,30 +6,35 @@ single external port.
 
 ## Build & Run
 
-- One-step: `./docker/run.sh` builds (respecting `PUBLIC_PORT`, default 8080)
-  and then runs the image (tag `remdo` by default).
+- One-step: `./docker/run.sh` builds and runs the image using `.env` in the repo
+  root (copy `.env.example` and override what you need). The image tag defaults
+  to `remdo` but can be set via `IMAGE_NAME`.
 - Manual equivalent (override port if needed):\
-  `docker build -f docker/Dockerfile --build-arg PUBLIC_PORT=443 -t remdo .`
-  `docker run --rm -e APP_PORT=8080 -e YSWEET_PORT_INTERNAL=8081 -e BASICAUTH_USER -e BASICAUTH_PASSWORD -p 8080:8080 remdo`
+  `docker build -f docker/Dockerfile --build-arg PORT=443 -t remdo .`\
+  `docker run --rm --env-file .env -e DATA_DIR=/data -p 8080:8080 -v /host/data:/data remdo`
 
 Basic auth covers both the SPA and Y-Sweet. The script:
 
-1. Sets `BASICAUTH_USER` to the current shell user.
-2. Reads the password from `~/.password` (override with `PASSWORD_FILE`).
-3. Verifies the file is mode `600`; otherwise exits and suggests
-   `chmod 600 ~/.password`.
-4. Requires the password to be non-empty and ≥10 chars.
-5. Exports both for the container.
+1. Reads `BASICAUTH_USER` and `BASICAUTH_PASSWORD` from the env file (if
+   `BASICAUTH_USER` is unset, it defaults to the current host username).
+2. Requires the password to be non-empty and ≥10 chars.
 
-The container exposes only `8080`; `/doc/*` and `/d*` are proxied to Y-Sweet
-inside the container. WebSockets are forwarded automatically by Caddy. Health
-check: `GET /health` returns 200 when called with the same basic auth header.
+The container exposes `PORT`; `/doc/*` and `/d*` are proxied to the collab
+server on `COLLAB_SERVER_PORT`. WebSockets are forwarded automatically by
+Caddy. Health check: `GET /health` returns 200 when called with the same basic
+auth header.
 
 ## Data
 
-- Y-Sweet stores docs in `/data` inside the container. With no volume attached,
-  collaboration data is ephemeral. Mount a host volume to `/data` later if
-  persistence is needed.
+- `DATA_DIR` in `.env` is a host path (absolute only) that `docker/run.sh` mounts
+  to `/data` inside the container.
+- Defaults are defined in `config/spec.ts`; `.env` is for overrides.
+- `COLLAB_ORIGIN` can override the origin clients use to reach the app (for
+  single-container deployments this usually matches `http(s)://HOST:PORT`).
+- Y-Sweet stores docs under `/data/collab` (host: `${DATA_DIR}/collab`).
+- Snapshot backups go under `/data/backup` (host: `${DATA_DIR}/backup`).
+- The image sets `PATH` to include `/usr/local/bin`, so bundled tools like
+  `snapshot.mjs` are available without per-script overrides.
 
 ## Notes
 
