@@ -22,6 +22,9 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
 
 - `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch
   conventions—check before touching tooling or process.
+- `docs/environment.md` (Short). Canonical environment setup for dev, tests,
+  prod (host + Docker), backup machines, and CI; defaults in `tools/env.sh` and
+  `.env` overrides.
 - `docs/outliner/index.md` (Short). Single entry point for outlining docs with
   links to model, selection, indent/outdent, insertion, and reordering specs;
   also states the single-source (no-duplication) rule for invariants.
@@ -53,14 +56,16 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   cleanup list), plus selection edge-case coverage notes for empty notes.
 - `docs/deployment-single-container.md` (Short). Build/run steps for the
   single-container image (Caddy + Y-Sweet) using `.env` overrides (defaults in
-  `config/spec.ts`), standardized `PORT`/`COLLAB_SERVER_PORT`, `COLLAB_ORIGIN`
-  overrides, basic auth requirements, and the host `DATA_DIR` → `/data` layout.
+  `tools/env.sh` for local tooling), standardized `PORT`/`COLLAB_SERVER_PORT`,
+  basic auth behavior, and the host `DATA_DIR` → `/data` layout.
 
 Recent doc updates:
 
+- 2025-12-28: `docs/environment.md` added for env setup across dev/tests/prod,
+  backup machines, CI, and hosted (Render) prod; defaults are in `tools/env.sh`.
 - 2025-12-28: `docs/deployment-single-container.md` updated for `.env` overrides
-  (defaults in config), `COLLAB_ORIGIN` overrides, host `DATA_DIR` → `/data`
-  mapping, auto `BASICAUTH_USER`, and image-level `PATH` for bundled tools.
+  (defaults in env tooling), host `DATA_DIR` → `/data` mapping, auto
+  `BASICAUTH_USER`, and image-level `PATH` for bundled tools.
 
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.

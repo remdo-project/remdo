@@ -13,11 +13,13 @@ single external port.
   `docker build -f docker/Dockerfile --build-arg PORT=443 -t remdo .`\
   `docker run --rm --env-file .env -e DATA_DIR=/data -p 8080:8080 -v /host/data:/data remdo`
 
-Basic auth covers both the SPA and Y-Sweet. The script:
+Environment variables and defaults are documented in `docs/environment.md`.
 
-1. Reads `BASICAUTH_USER` and `BASICAUTH_PASSWORD` from the env file (if
-   `BASICAUTH_USER` is unset, it defaults to the current host username).
-2. Requires the password to be non-empty and ≥10 chars.
+Basic auth covers both the SPA and Y-Sweet. The entrypoint hashes the basic
+auth password at runtime; the plaintext password never touches the image or
+disk. For production, feed these env vars via your secret store (e.g.,
+Docker/Podman secrets, Render/Heroku config vars, or a sealed Kubernetes
+secret) instead of committing them to the repo.
 
 The container exposes `PORT`; `/doc/*` and `/d*` are proxied to the collab
 server on `COLLAB_SERVER_PORT`. WebSockets are forwarded automatically by
@@ -26,11 +28,8 @@ auth header.
 
 ## Data
 
-- `DATA_DIR` in `.env` is a host path (absolute only) that `docker/run.sh` mounts
-  to `/data` inside the container.
-- Defaults are defined in `config/spec.ts`; `.env` is for overrides.
-- `COLLAB_ORIGIN` can override the origin clients use to reach the app (for
-  single-container deployments this usually matches `http(s)://HOST:PORT`).
+- `docker/run.sh` mounts the host data directory to `/data` inside the
+  container.
 - Y-Sweet stores docs under `/data/collab` (host: `${DATA_DIR}/collab`).
 - Snapshot backups go under `/data/backup` (host: `${DATA_DIR}/backup`).
 - The image sets `PATH` to include `/usr/local/bin`, so bundled tools like
@@ -40,7 +39,3 @@ auth header.
 
 - The Dockerfile lives at `docker/Dockerfile`; run builds from repo root so
   `data/.vendor/lexical` is available.
-- The entrypoint hashes `BASICAUTH_PASSWORD` at runtime; the plaintext password
-  never touches the image or disk. For production, feed these env vars via your
-  secret store (e.g., Docker/Podman secrets, Render/Heroku config vars, or a
-  sealed Kubernetes secret) instead of committing them to the repo.

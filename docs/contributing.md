@@ -44,3 +44,8 @@ RemDo only targets the runtimes declared in `package.json`:
 Refer to this section whenever compatibility concerns come up; if you need to
 support a new platform, update `package.json` first so the baseline stays
 authoritative.
+
+## Environment
+
+See `docs/environment.md` for the canonical environment setup across dev, tests,
+prod, backup machines, and CI.
