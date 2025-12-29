@@ -24,8 +24,8 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   conventions—check before touching tooling or process.
 - `docs/environment.md` (Short). Canonical environment setup for dev, tests,
   prod (host + Docker), backup machines, and CI; defaults in
-  `tools/env.defaults.sh` via `tools/env.sh`, with `.env` overrides and a
-  Chromium blocked-port guard for `PORT` + derived ports.
+  `tools/env.defaults.sh` via `tools/env.sh`, `.env` overrides, and CI runs on
+  defaults only, plus a Chromium blocked-port guard for `PORT` + derived ports.
 - `docs/outliner/index.md` (Short). Single entry point for outlining docs with
   links to model, selection, indent/outdent, insertion, and reordering specs;
   also states the single-source (no-duplication) rule for invariants.

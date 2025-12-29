@@ -54,8 +54,7 @@ for overrides.
 
 ## CI
 
-- CI runs on defaults from `tools/env.sh`, with the collaboration test job
-  loading `.github/env/collab-tests.env` as its only override.
+- CI runs on defaults from `tools/env.sh` with no overrides.
 
 ## Local tools
 
