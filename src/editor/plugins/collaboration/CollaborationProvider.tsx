@@ -30,14 +30,12 @@ export function useCollaborationStatus(): CollaborationStatusValue {
 
 export function CollaborationProvider({
   children,
-  collabOrigin,
   docId,
 }: {
   children: ReactNode;
-  collabOrigin?: string;
   docId?: string;
 }) {
-  const value = useCollaborationRuntimeValue({ collabOrigin, docId });
+  const value = useCollaborationRuntimeValue({ docId });
 
   return <CollaborationStatusContext value={value}>{children}</CollaborationStatusContext>;
 }
@@ -48,17 +46,23 @@ function resolveDocId(explicit?: string) {
   return doc?.length ? doc : config.env.COLLAB_DOCUMENT_ID;
 }
 
-function useCollaborationRuntimeValue({ collabOrigin, docId }: { collabOrigin?: string; docId?: string }): CollaborationStatusValue {
-  const resolvedCollabOrigin =
-    collabOrigin
-    || config.env.COLLAB_ORIGIN
-    || location.origin;
+function useCollaborationRuntimeValue({ docId }: { docId?: string }): CollaborationStatusValue {
   const enabled = config.env.COLLAB_ENABLED;
   const resolvedDocId = useMemo(() => resolveDocId(docId), [docId]);
+  const resolvedOrigin = useMemo(() => {
+    // Tests run in jsdom without a proxy; target the collab server directly.
+    if (config.env.NODE_ENV === 'test') {
+      return `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
+    }
+    if (location.origin && location.origin !== 'null') {
+      return location.origin;
+    }
+    return `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
+  }, []);
 
   const session = useMemo(
-    () => new CollabSession({ origin: resolvedCollabOrigin, enabled, docId: resolvedDocId }),
-    [resolvedCollabOrigin, enabled, resolvedDocId]
+    () => new CollabSession({ origin: resolvedOrigin, enabled, docId: resolvedDocId }),
+    [resolvedOrigin, enabled, resolvedDocId]
   );
 
   useEffect(() => () => session.destroy(), [session]);

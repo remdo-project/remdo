@@ -8,8 +8,6 @@ WORKDIR /app
 # Enable the pinned package manager and install dependencies
 RUN corepack enable
 
-ARG PUBLIC_PORT=8080
-
 COPY \
   package.json \
   pnpm-lock.yaml \
@@ -25,23 +23,18 @@ COPY config ./config
 COPY public ./public
 COPY tools ./tools
 
-# Production build-time env (same-origin proxy on configurable PUBLIC_PORT)
-ENV NODE_ENV=production \
-  PORT=${PUBLIC_PORT} \
-  COLLAB_CLIENT_PORT=${PUBLIC_PORT}
-
-RUN pnpm install --frozen-lockfile && pnpm run build
+RUN pnpm install --frozen-lockfile && NODE_ENV=production pnpm run build
 
 # Bundle snapshot tool for runtime backups (no pnpm dependency in runner).
-RUN mkdir -p /app/bin \
+RUN mkdir -p /usr/local/bin \
   && pnpm dlx esbuild tools/snapshot.ts \
     --platform=node \
     --format=esm \
     --bundle \
     --target=node22 \
     --tsconfig=tsconfig.json \
-    --banner:js="import { createRequire as __createRequire } from 'module'; const require = __createRequire(import.meta.url);" \
-    --outfile=/app/bin/snapshot.mjs
+    --banner:js="#!/usr/bin/env node\nimport { createRequire as __createRequire } from 'module'; const require = __createRequire(import.meta.url);" \
+    --outfile=/usr/local/bin/snapshot.mjs
 
 ############################
 # Runner: serve SPA + YJS  #
@@ -53,13 +46,13 @@ ENV YSWEET_VERSION=^0.9.1
 
 WORKDIR /app
 
-ENV YSWEET_PORT_INTERNAL=8081 \
-  APP_PORT=8080
+ENV PATH=/usr/local/bin:/usr/bin:/bin \
+  DATA_DIR=/data
 
 # hadolint ignore=DL3018
 RUN apk add --no-cache caddy \
   && npm install -g "y-sweet@${YSWEET_VERSION}" \
-  && mkdir -p /data /etc/caddy /srv/remdo /var/log
+  && mkdir -p /data /etc/caddy /srv/remdo /var/log /usr/local/share/remdo
 
 # Install backup script and cron schedule (runs every minute).
 COPY docker/backup.sh /usr/local/bin/backup.sh
@@ -71,7 +64,8 @@ RUN chmod +x /usr/local/bin/backup.sh \
 COPY --from=builder /app/data/dist /srv/remdo
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
-COPY --from=builder /app/bin/snapshot.mjs /usr/local/bin/snapshot.mjs
+COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh
+COPY --from=builder /usr/local/bin/snapshot.mjs /usr/local/bin/snapshot.mjs
 
 RUN chmod +x /entrypoint.sh
 RUN chmod +x /usr/local/bin/snapshot.mjs

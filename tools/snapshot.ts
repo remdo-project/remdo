@@ -147,7 +147,9 @@ function resolveSnapshotPath(
   docId: string,
   filePath: CliArguments['filePath'],
 ): string {
-  const defaultDir = command === 'backup' ? path.resolve('data/backup') : path.resolve('tests/fixtures');
+  const fixturesRoot = path.resolve('tests/fixtures');
+  const backupDir = path.join(config.env.DATA_DIR, 'backup');
+  const defaultDir = command === 'backup' ? backupDir : fixturesRoot;
 
   const ensureJson = (target: string) => (path.extname(target) ? target : `${target}.json`);
   const sanitizeName = (name: string) => name.replaceAll(/[\\/]+/g, '_').replace(/^\.+/, '');
@@ -166,7 +168,6 @@ function resolveSnapshotPath(
   const withExt = ensureJson(absolutePath);
 
   if (command === 'load' && !fs.existsSync(withExt)) {
-    const fixturesRoot = path.resolve('tests/fixtures');
     const posixPath = filePath.split(path.win32.sep).join(path.posix.sep);
     const candidates = [
       path.join(fixturesRoot, ensureJson(posixPath)),
@@ -311,7 +312,7 @@ function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {
 }
 
 async function waitForPersistedData(docId: string, timeoutMs = 5000): Promise<void> {
-  const target = path.resolve('data', 'collab', docId, 'data.ysweet');
+  const target = path.join(config.env.DATA_DIR, 'collab', docId, 'data.ysweet');
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (fs.existsSync(target)) {

@@ -6,36 +6,36 @@ single external port.
 
 ## Build & Run
 
-- One-step: `./docker/run.sh` builds (respecting `PUBLIC_PORT`, default 8080)
-  and then runs the image (tag `remdo` by default).
-- Manual equivalent (override port if needed):\
-  `docker build -f docker/Dockerfile --build-arg PUBLIC_PORT=443 -t remdo .`
-  `docker run --rm -e APP_PORT=8080 -e YSWEET_PORT_INTERNAL=8081 -e BASICAUTH_USER -e BASICAUTH_PASSWORD -p 8080:8080 remdo`
+- One-step: `./docker/run.sh` builds and runs the image using `.env` in the repo
+  root (copy `.env.example` and override what you need). The image tag defaults
+  to `remdo` but can be set via `IMAGE_NAME`.
+- Manual equivalent:\
+  `docker build -f docker/Dockerfile -t remdo .`\
+  `docker run --rm --env-file .env -e DATA_DIR=/data -p 8080:8080 -v /host/data:/data remdo`
 
-Basic auth covers both the SPA and Y-Sweet. The script:
+Environment variables and defaults are documented in `docs/environment.md`.
 
-1. Sets `BASICAUTH_USER` to the current shell user.
-2. Reads the password from `~/.password` (override with `PASSWORD_FILE`).
-3. Verifies the file is mode `600`; otherwise exits and suggests
-   `chmod 600 ~/.password`.
-4. Requires the password to be non-empty and ≥10 chars.
-5. Exports both for the container.
+Basic auth covers both the SPA and Y-Sweet. The entrypoint hashes the basic
+auth password at runtime; the plaintext password never touches the image or
+disk. For production, feed these env vars via your secret store (e.g.,
+Docker/Podman secrets, Render/Heroku config vars, or a sealed Kubernetes
+secret) instead of committing them to the repo.
 
-The container exposes only `8080`; `/doc/*` and `/d*` are proxied to Y-Sweet
-inside the container. WebSockets are forwarded automatically by Caddy. Health
-check: `GET /health` returns 200 when called with the same basic auth header.
+The container exposes `PORT`; `/doc/*` and `/d*` are proxied to the collab
+server on `COLLAB_SERVER_PORT`. WebSockets are forwarded automatically by
+Caddy. Health check: `GET /health` returns 200 when called with the same basic
+auth header.
 
 ## Data
 
-- Y-Sweet stores docs in `/data` inside the container. With no volume attached,
-  collaboration data is ephemeral. Mount a host volume to `/data` later if
-  persistence is needed.
+- `docker/run.sh` mounts the host data directory to `/data` inside the
+  container.
+- Y-Sweet stores docs under `/data/collab` (host: `${DATA_DIR}/collab`).
+- Snapshot backups go under `/data/backup` (host: `${DATA_DIR}/backup`).
+- The image sets `PATH` to include `/usr/local/bin`, so bundled tools like
+  `snapshot.mjs` are available without per-script overrides.
 
 ## Notes
 
 - The Dockerfile lives at `docker/Dockerfile`; run builds from repo root so
   `data/.vendor/lexical` is available.
-- The entrypoint hashes `BASICAUTH_PASSWORD` at runtime; the plaintext password
-  never touches the image or disk. For production, feed these env vars via your
-  secret store (e.g., Docker/Podman secrets, Render/Heroku config vars, or a
-  sealed Kubernetes secret) instead of committing them to the repo.

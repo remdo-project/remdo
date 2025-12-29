@@ -1,6 +1,9 @@
 #!/usr/bin/env sh
 set -euo pipefail
 
+# shellcheck disable=SC1091 # provided by the image build.
+. /usr/local/share/remdo/env.defaults.sh
+
 : "${BASICAUTH_USER:?Set BASICAUTH_USER to the username for HTTP basic auth}"
 : "${BASICAUTH_PASSWORD:?Set BASICAUTH_PASSWORD to the password for HTTP basic auth}"
 
@@ -12,6 +15,8 @@ unset BASICAUTH_PASSWORD
 # Start cron for periodic backups.
 crond -l 2 -L /var/log/cron.log
 
-y-sweet serve --host 0.0.0.0 --port "${YSWEET_PORT_INTERNAL}" /data &
+COLLAB_DATA_DIR="${DATA_DIR%/}/collab"
+mkdir -p "$COLLAB_DATA_DIR"
+y-sweet serve --host 0.0.0.0 --port "${COLLAB_SERVER_PORT}" "$COLLAB_DATA_DIR" &
 
 exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile

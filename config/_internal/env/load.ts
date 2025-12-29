@@ -1,16 +1,19 @@
-import { applyEnvDerivatives, parseEnv, pickClientEnv } from './parse';
-import { envDerivedDefaults, envSpec } from '../../spec';
+import { parseEnv, pickClientEnv } from './parse';
+import { envSpec } from '../../spec';
 
 type EnvGetter = (key: keyof typeof envSpec & string) => string | boolean | undefined;
 
 export function loadEnv(getValue: EnvGetter) {
   const parsed = parseEnv(envSpec, getValue);
-  const server = applyEnvDerivatives(parsed, envDerivedDefaults);
-  const client = pickClientEnv(envSpec, server);
-  const mode = typeof server.NODE_ENV === 'string' ? server.NODE_ENV : 'development';
+  const client = pickClientEnv(envSpec, parsed);
+  if (typeof parsed.NODE_ENV !== 'string' || !parsed.NODE_ENV) {
+    throw new Error('NODE_ENV is required; run via tools/env.sh.');
+  }
+
+  const mode = parsed.NODE_ENV;
 
   return {
-    server,
+    server: parsed,
     client,
     runtime: {
       mode,

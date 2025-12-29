@@ -1,25 +1,15 @@
 #!/usr/bin/env sh
 set -eu
-# shellcheck disable=SC3040
+# shellcheck disable=SC3040 # allow POSIX sh + bash pipefail fallback usage
 set -o pipefail 2>/dev/null || true
-PATH="/usr/local/bin:/usr/bin:/bin:${PATH:-}"
 
-NODE_BIN=${NODE_BIN:-/usr/local/bin/node}
-SNAPSHOT_BIN=${SNAPSHOT_BIN:-/usr/local/bin/snapshot.mjs}
-PORT=${APP_PORT:-${PORT:-8080}}
-HOST=${HOST:-127.0.0.1}
-COLLAB_SERVER_PORT=${COLLAB_SERVER_PORT:-${YSWEET_PORT_INTERNAL:-8081}}
-COLLAB_CLIENT_PORT=${COLLAB_CLIENT_PORT:-$PORT}
-NODE_ENV=${NODE_ENV:-production}
+# shellcheck disable=SC1091 # provided by the image build.
+. /usr/local/share/remdo/env.defaults.sh
 
-if [ ! -x "$SNAPSHOT_BIN" ]; then
-  echo "snapshot binary not found at $SNAPSHOT_BIN" >&2
-  exit 1
-fi
+# Local derived paths (script-specific).
+BACKUP_DIR="${DATA_DIR%/}/backup"
 
-mkdir -p /data/backup
+mkdir -p "$BACKUP_DIR"
 
-HOST="$HOST" PORT="$PORT" COLLAB_SERVER_PORT="$COLLAB_SERVER_PORT" COLLAB_CLIENT_PORT="$COLLAB_CLIENT_PORT" NODE_ENV="$NODE_ENV" \
-  "$NODE_BIN" "$SNAPSHOT_BIN" backup /data/backup --md
-HOST="$HOST" PORT="$PORT" COLLAB_SERVER_PORT="$COLLAB_SERVER_PORT" COLLAB_CLIENT_PORT="$COLLAB_CLIENT_PORT" NODE_ENV="$NODE_ENV" \
-  "$NODE_BIN" "$SNAPSHOT_BIN" backup /data/backup --doc project --md
+snapshot.mjs backup "$BACKUP_DIR" --md
+snapshot.mjs backup "$BACKUP_DIR" --doc project --md

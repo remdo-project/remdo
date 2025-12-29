@@ -22,6 +22,10 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
 
 - `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch
   conventions—check before touching tooling or process.
+- `docs/environment.md` (Short). Canonical environment setup for dev, tests,
+  prod (host + Docker), backup machines, and CI; defaults in
+  `tools/env.defaults.sh` via `tools/env.sh`, `.env` overrides, and CI runs on
+  defaults only, plus a Chromium blocked-port guard for `PORT` + derived ports.
 - `docs/outliner/index.md` (Short). Single entry point for outlining docs with
   links to model, selection, indent/outdent, insertion, and reordering specs;
   also states the single-source (no-duplication) rule for invariants.
@@ -51,9 +55,11 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   only (drop completed items), and move durable specs into the appropriate doc
   under `docs/`. Includes selection post-refactor follow-ups (simplify/robustness
   cleanup list), plus selection edge-case coverage notes for empty notes.
-- `docs/deployment-single-container.md` (Short). How to build and run the
-  single-container image (Caddy + Y-Sweet) and its env knobs, including basic
-  auth requirements.
+- `docs/deployment-single-container.md` (Short). Build/run steps for the
+  single-container image (Caddy + Y-Sweet) using `.env` overrides (defaults in
+  `tools/env.sh` for local tooling), standardized `PORT`/`COLLAB_SERVER_PORT`,
+  basic auth behavior, and the host `DATA_DIR` → `/data` layout.
+
 
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.

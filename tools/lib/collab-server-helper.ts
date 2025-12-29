@@ -6,14 +6,13 @@ import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
 import { resolveLoopbackHost } from '#lib/net/loopback';
-import { DATA_DIR } from './data-paths';
 import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
 
 const MAX_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
-const LOG_PATH = path.join(DATA_DIR, 'logs/collab-server.log');
-const DATA_PATH = path.join(DATA_DIR, 'collab');
+const LOG_PATH = path.join(config.env.DATA_DIR, 'logs/collab-server.log');
+const COLLAB_DATA_DIR = path.join(config.env.DATA_DIR, 'collab');
 
 function ensureLogStream(): fs.WriteStream {
   fs.mkdirSync(path.dirname(LOG_PATH), { recursive: true });
@@ -42,7 +41,7 @@ export async function ensureCollabServer(allowReuse = true): Promise<StopCollabS
   }
 
   const logStream = ensureLogStream();
-  fs.mkdirSync(DATA_PATH, { recursive: true });
+  fs.mkdirSync(COLLAB_DATA_DIR, { recursive: true });
   const child = spawnPnpm(
     [
       'exec',
@@ -52,7 +51,7 @@ export async function ensureCollabServer(allowReuse = true): Promise<StopCollabS
       resolvedHost,
       '--port',
       String(resolvedPort),
-      DATA_PATH,
+      COLLAB_DATA_DIR,
     ],
     {
       env: {
