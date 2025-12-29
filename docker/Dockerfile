@@ -46,7 +46,7 @@ ENV YSWEET_VERSION=^0.9.1
 
 WORKDIR /app
 
-ENV PATH=/usr/local/bin:/usr/bin:/bin \
+ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin \
   DATA_DIR=/data
 
 # hadolint ignore=DL3018
