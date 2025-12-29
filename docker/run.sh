@@ -15,7 +15,6 @@ export REMDO_ROOT="${REMDO_ROOT:-${SCRIPT_DIR}}"
 . "${SCRIPT_DIR}/tools/env.defaults.sh"
 
 : "${BASICAUTH_PASSWORD:?Set BASICAUTH_PASSWORD in ${ENV_FILE}}"
-: "${PORT:?Set PORT in ${ENV_FILE}}"
 
 if (( ${#BASICAUTH_PASSWORD} < 10 )); then
   echo "Password must be at least 10 characters." >&2

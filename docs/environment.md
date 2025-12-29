@@ -26,8 +26,9 @@ for overrides.
 ### Host OS
 
 - `.env` lives in the repo root on the host.
-- Required: `BASICAUTH_PASSWORD`, `PORT`.
+- Required: `BASICAUTH_PASSWORD`.
 - Optional: `BASICAUTH_USER` (defaults to the current host username).
+- Optional: `PORT` (defaults to 4000).
 - Optional: `COLLAB_SERVER_PORT` (defaults to `PORT + 4`).
 - Optional: `DATA_DIR` (defaults to `data/` under the repo root).
 - `DATA_DIR` is the host path for persistent data.
