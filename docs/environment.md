@@ -19,7 +19,7 @@ for overrides.
 
 - Tests run through `tools/env.sh`, so derived ports follow `PORT + N` defaults.
 - Override `COLLAB_ENABLED`, `PORT`, or `COLLAB_SERVER_PORT` only when needed.
-- When `NODE_ENV=test`, `COLLAB_ORIGIN` defaults to `http://${HOST}:${COLLAB_SERVER_PORT}`.
+- CLI tools derive collab origin from `HOST` + `COLLAB_SERVER_PORT` (browser uses `location.origin`).
 
 ## Prod
 

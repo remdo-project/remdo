@@ -12,7 +12,6 @@ export const envSpec = defineEnvSpec(
     COLLAB_SERVER_PORT: { default: 0 },
     COLLAB_CLIENT_PORT: { default: 0, client: true },
     COLLAB_DOCUMENT_ID: { default: '', client: true },
-    COLLAB_ORIGIN: { default: '', client: true },
     PREVIEW_PORT: { default: 0 },
     VITEST_PORT: { default: 0 },
     VITEST_PREVIEW_PORT: { default: 0 },

@@ -127,7 +127,7 @@ if (command !== 'save' && command !== 'load' && command !== 'backup') {
 
 const docId = cliDocId?.trim() || config.env.COLLAB_DOCUMENT_ID;
 const targetFile = resolveSnapshotPath(command, docId, filePath);
-const collabOrigin = config.env.COLLAB_ORIGIN;
+const collabOrigin = `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
 
 try {
   if (command === 'save') {
