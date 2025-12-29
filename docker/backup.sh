@@ -11,7 +11,5 @@ BACKUP_DIR="${DATA_DIR%/}/backup"
 
 mkdir -p "$BACKUP_DIR"
 
-PORT="$PORT" COLLAB_SERVER_PORT="$COLLAB_SERVER_PORT" DATA_DIR="$DATA_DIR" \
-  snapshot.mjs backup "$BACKUP_DIR" --md
-PORT="$PORT" COLLAB_SERVER_PORT="$COLLAB_SERVER_PORT" DATA_DIR="$DATA_DIR" \
-  snapshot.mjs backup "$BACKUP_DIR" --doc project --md
+snapshot.mjs backup "$BACKUP_DIR" --md
+snapshot.mjs backup "$BACKUP_DIR" --doc project --md
