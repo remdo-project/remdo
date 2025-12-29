@@ -6,7 +6,11 @@ type EnvGetter = (key: keyof typeof envSpec & string) => string | boolean | unde
 export function loadEnv(getValue: EnvGetter) {
   const parsed = parseEnv(envSpec, getValue);
   const client = pickClientEnv(envSpec, parsed);
-  const mode = typeof parsed.NODE_ENV === 'string' ? parsed.NODE_ENV : 'development';
+  if (typeof parsed.NODE_ENV !== 'string' || !parsed.NODE_ENV) {
+    throw new Error('NODE_ENV is required; run via tools/env.sh.');
+  }
+
+  const mode = parsed.NODE_ENV;
 
   return {
     server: parsed,

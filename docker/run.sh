@@ -14,7 +14,6 @@ export REMDO_ROOT="${REMDO_ROOT:-${SCRIPT_DIR}}"
 # shellcheck disable=SC1091 # shared defaults live in the repo.
 . "${SCRIPT_DIR}/tools/env.defaults.sh"
 
-: "${BASICAUTH_USER:?Set BASICAUTH_USER in ${ENV_FILE} or ensure USER is set}"
 : "${BASICAUTH_PASSWORD:?Set BASICAUTH_PASSWORD in ${ENV_FILE}}"
 : "${PORT:?Set PORT in ${ENV_FILE}}"
 
