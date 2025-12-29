@@ -24,7 +24,6 @@ if (( ${#BASICAUTH_PASSWORD} < 10 )); then
 fi
 
 docker build -f "${SCRIPT_DIR}/docker/Dockerfile" \
-  --build-arg PORT="${PORT}" \
   -t "${IMAGE_NAME}" \
   "${SCRIPT_DIR}"
 

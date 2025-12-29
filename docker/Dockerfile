@@ -8,8 +8,6 @@ WORKDIR /app
 # Enable the pinned package manager and install dependencies
 RUN corepack enable
 
-ARG PORT=8080
-
 COPY \
   package.json \
   pnpm-lock.yaml \
@@ -24,10 +22,6 @@ COPY lib ./lib
 COPY config ./config
 COPY public ./public
 COPY tools ./tools
-
-# Production build-time env (same-origin proxy on configurable PORT)
-ENV NODE_ENV=production \
-  PORT=${PORT}
 
 RUN pnpm install --frozen-lockfile && pnpm run build
 

@@ -9,8 +9,8 @@ single external port.
 - One-step: `./docker/run.sh` builds and runs the image using `.env` in the repo
   root (copy `.env.example` and override what you need). The image tag defaults
   to `remdo` but can be set via `IMAGE_NAME`.
-- Manual equivalent (override port if needed):\
-  `docker build -f docker/Dockerfile --build-arg PORT=443 -t remdo .`\
+- Manual equivalent:\
+  `docker build -f docker/Dockerfile -t remdo .`\
   `docker run --rm --env-file .env -e DATA_DIR=/data -p 8080:8080 -v /host/data:/data remdo`
 
 Environment variables and defaults are documented in `docs/environment.md`.

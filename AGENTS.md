@@ -59,20 +59,6 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   `tools/env.sh` for local tooling), standardized `PORT`/`COLLAB_SERVER_PORT`,
   basic auth behavior, and the host `DATA_DIR` → `/data` layout.
 
-Recent doc updates:
-
-- 2025-12-28: `docs/environment.md` added for env setup across dev/tests/prod,
-  backup machines, CI, and hosted (Render) prod; defaults are in
-  `tools/env.defaults.sh`.
-- 2025-12-28: `docs/environment.md` updated with derived prod defaults and a
-  TODO note for hosted backup coverage, plus test-mode collab origin defaults.
-- 2025-12-28: `docs/environment.md` clarified that relative `DATA_DIR` resolves
-  against the repo root.
-- 2025-12-28: `docs/environment.md` clarified `BASICAUTH_USER` as an optional
-  host-derived default.
-- 2025-12-28: `docs/deployment-single-container.md` updated for `.env` overrides
-  (defaults in env tooling), host `DATA_DIR` → `/data` mapping, auto
-  `BASICAUTH_USER`, and image-level `PATH` for bundled tools.
 
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.
