@@ -33,7 +33,7 @@ RUN mkdir -p /usr/local/bin \
     --bundle \
     --target=node22 \
     --tsconfig=tsconfig.json \
-    --banner:js="#!/usr/bin/env node\nimport { createRequire as __createRequire } from 'module'; const require = __createRequire(import.meta.url);" \
+    --banner:js="import { createRequire as __createRequire } from 'module'; const require = __createRequire(import.meta.url);" \
     --outfile=/usr/local/bin/snapshot.mjs
 
 ############################

@@ -36,6 +36,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
+docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
 remdo_docker_run "${IMAGE_NAME}" -d --name "${CONTAINER_NAME}" --env-file "${ENV_FILE}" \
@@ -73,3 +75,26 @@ if ! E2E_DOCKER=true \
 fi
 
 echo "Docker smoke e2e OK: ${HEALTH_URL}"
+echo "Running Docker backup..."
+
+if ! docker exec -e HOST="127.0.0.1" "${CONTAINER_NAME}" /usr/local/bin/backup.sh; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Backup failed: ${HEALTH_URL}" >&2
+  exit 1
+fi
+
+BACKUP_DIR="${DATA_DIR%/}/backup"
+MAIN_JSON="${BACKUP_DIR}/main.json"
+MAIN_MD="${BACKUP_DIR}/main.md"
+PROJECT_JSON="${BACKUP_DIR}/project.json"
+PROJECT_MD="${BACKUP_DIR}/project.md"
+
+for backup_file in "${MAIN_JSON}" "${MAIN_MD}" "${PROJECT_JSON}" "${PROJECT_MD}"; do
+  if [[ ! -s "${backup_file}" ]]; then
+    docker logs "${CONTAINER_NAME}" || true
+    echo "Backup output missing or empty: ${backup_file}" >&2
+    exit 1
+  fi
+done
+
+echo "Docker backup OK: ${BACKUP_DIR}"
