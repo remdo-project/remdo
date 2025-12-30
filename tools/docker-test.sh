@@ -43,14 +43,33 @@ remdo_docker_run "${IMAGE_NAME}" -d --name "${CONTAINER_NAME}" --env-file "${ENV
   -e BASICAUTH_PASSWORD="${BASICAUTH_PASSWORD}" \
   -e PORT="${PORT}"
 
+health_ready="false"
 for _ in {1..20}; do
   if curl -fsS -u "${BASICAUTH_USER}:${BASICAUTH_PASSWORD}" "${HEALTH_URL}" >/dev/null; then
-    echo "Docker smoke test OK: ${HEALTH_URL}"
-    exit 0
+    health_ready="true"
+    break
   fi
   sleep 0.5
 done
 
-docker logs "${CONTAINER_NAME}" || true
-echo "Smoke test failed: ${HEALTH_URL}" >&2
-exit 1
+if [[ "${health_ready}" != "true" ]]; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Smoke test failed: ${HEALTH_URL}" >&2
+  exit 1
+fi
+
+echo "Docker health check OK: ${HEALTH_URL}"
+echo "Running Playwright smoke against Docker server..."
+
+if ! E2E_DOCKER=true \
+  HOST="127.0.0.1" \
+  PORT="${PORT}" \
+  BASICAUTH_USER="${BASICAUTH_USER}" \
+  BASICAUTH_PASSWORD="${BASICAUTH_PASSWORD}" \
+  pnpm run test:e2e -- tests/e2e/smoke.spec.ts; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Smoke e2e failed: ${HEALTH_URL}" >&2
+  exit 1
+fi
+
+echo "Docker smoke e2e OK: ${HEALTH_URL}"
