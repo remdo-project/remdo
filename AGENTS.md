@@ -51,10 +51,12 @@ Keep the map current—refresh summaries/buckets here when you edit a doc.
   and focus rules; mid-note splits keep pre-caret text in place and move
   post-caret text to a sibling below; end-of-note inserts a child only when
   children already exist, otherwise a sibling.
-- `docs/todo.md` (Very long). Scratchpad for in-flight work: keep active tasks
-  only (drop completed items), and move durable specs into the appropriate doc
-  under `docs/`. Includes selection post-refactor follow-ups (simplify/robustness
-  cleanup list), plus selection edge-case coverage notes for empty notes.
+- `docs/todo.md` (Medium). Scratchpad for in-flight work: keep active tasks only
+  (drop completed items), and move durable specs into the appropriate doc under
+  `docs/`. Includes selection post-refactor follow-ups (simplify/robustness
+  cleanup list), selection edge-case coverage notes for empty notes, a rootless
+  Docker smoke-test plan (local + CI), and env-loading simplification with
+  layered `.env` files (including Docker smoke tests).
 - `docs/deployment-single-container.md` (Short). Build/run steps for the
   single-container image (Caddy + Y-Sweet) using `.env` overrides (defaults in
   `tools/env.sh` for local tooling), standardized `PORT`/`COLLAB_SERVER_PORT`,
