@@ -23,7 +23,8 @@ COPY config ./config
 COPY public ./public
 COPY tools ./tools
 
-RUN pnpm install --frozen-lockfile && NODE_ENV=production pnpm run build
+RUN pnpm install --frozen-lockfile \
+  && NODE_ENV=production ./tools/env.sh pnpm run build
 
 # Bundle snapshot tool for runtime backups (no pnpm dependency in runner).
 RUN mkdir -p /usr/local/bin \
