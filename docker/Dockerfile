@@ -23,7 +23,8 @@ COPY config ./config
 COPY public ./public
 COPY tools ./tools
 
-RUN pnpm install --frozen-lockfile && NODE_ENV=production pnpm run build
+RUN pnpm install --frozen-lockfile \
+  && NODE_ENV=production ./tools/env.sh pnpm run build
 
 # Bundle snapshot tool for runtime backups (no pnpm dependency in runner).
 RUN mkdir -p /usr/local/bin \
@@ -33,7 +34,7 @@ RUN mkdir -p /usr/local/bin \
     --bundle \
     --target=node22 \
     --tsconfig=tsconfig.json \
-    --banner:js="#!/usr/bin/env node\nimport { createRequire as __createRequire } from 'module'; const require = __createRequire(import.meta.url);" \
+    --banner:js="import { createRequire as __createRequire } from 'module'; const require = __createRequire(import.meta.url);" \
     --outfile=/usr/local/bin/snapshot.mjs
 
 ############################

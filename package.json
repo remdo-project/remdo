@@ -57,6 +57,7 @@
     "test:e2e": "./tools/env.sh timeout ${TEST_TIMEOUT:-60}s pnpm exec playwright test",
     "test:e2e:ui": "./tools/env.sh pnpm exec playwright test --ui --ui-host ${HOST} --ui-port ${PLAYWRIGHT_UI_PORT}",
     "test:e2e:watch": "./tools/env.sh cross-env PWTEST_WATCH=1 pnpm exec playwright test",
+    "test:docker": "./tools/docker-test.sh",
     "load": "./tools/env.sh tsx ./tools/snapshot.ts load",
     "save": "./tools/env.sh tsx ./tools/snapshot.ts save",
     "backup": "./tools/env.sh tsx ./tools/snapshot.ts backup"

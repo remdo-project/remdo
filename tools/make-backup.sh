@@ -3,6 +3,7 @@ set -euo pipefail
 
 
 # Assumptions:
+# - DATA_DIR lives under the local home dir; the remote home may differ.
 # - Prod repo path matches the local repo path, so DATA_DIR resolves identically.
 # - scp merges into existing backup/; delete it manually if you want a clean sync.
 
@@ -19,13 +20,18 @@ REMDO_ROOT="${ROOT_DIR}" . "${ROOT_DIR}/tools/env.defaults.sh"
 
 : "${PROD_HOST:?Set PROD_HOST in .env (ssh target)}"
 LOCAL_DATA_DIR="${LOCAL_DATA_DIR:-${ROOT_DIR}/data/backup-repo}"
+if [[ "${DATA_DIR}" == "${HOME}/"* ]]; then
+  # shellcheck disable=SC2088 # Keep literal ~ for remote expansion in scp path.
+  REMOTE_DATA_DIR="~/${DATA_DIR#${HOME}/}"
+else
 REMOTE_DATA_DIR="${DATA_DIR}"
+fi
 STAMP="$(date +%y-%m-%d)"
 
 # Ensure backups land in a separate git backup repo (not the app repo).
 BACKUP_REPO_ROOT="$(git -C "${LOCAL_DATA_DIR}" rev-parse --show-toplevel 2>/dev/null || true)"
 if [[ -z "${BACKUP_REPO_ROOT}" ]]; then
-  echo "LOCAL_DATA_DIR is not a git repo. Init one before running this script." >&2
+  echo "${LOCAL_DATA_DIR} is not a git repo. Init one before running this script." >&2
   exit 1
 fi
 if [[ "${BACKUP_REPO_ROOT}" == "${ROOT_DIR}" ]]; then

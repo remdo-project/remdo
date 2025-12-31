@@ -1,33 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="${SCRIPT_DIR}/.env"
+ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IMAGE_NAME="${IMAGE_NAME:-remdo}"
 
-set -a
-# shellcheck disable=SC1090
-. "${ENV_FILE}"
-set +a
+# shellcheck disable=SC1091 # shared helper lives in the repo.
+. "${ROOT_DIR}/tools/lib/docker.sh"
+remdo_load_dotenv "${ROOT_DIR}"
+remdo_load_env_defaults "${ROOT_DIR}"
 
-export REMDO_ROOT="${REMDO_ROOT:-${SCRIPT_DIR}}"
-# shellcheck disable=SC1091 # shared defaults live in the repo.
-. "${SCRIPT_DIR}/tools/env.defaults.sh"
-
-: "${BASICAUTH_PASSWORD:?Set BASICAUTH_PASSWORD in ${ENV_FILE}}"
+: "${BASICAUTH_PASSWORD:?Set BASICAUTH_PASSWORD in ${ROOT_DIR}/.env}"
 
 if (( ${#BASICAUTH_PASSWORD} < 10 )); then
   echo "Password must be at least 10 characters." >&2
   exit 1
 fi
 
-docker build -f "${SCRIPT_DIR}/docker/Dockerfile" \
-  -t "${IMAGE_NAME}" \
-  "${SCRIPT_DIR}"
+remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
-docker run --rm \
-  --env-file "${ENV_FILE}" \
-  -e DATA_DIR="/data" \
-  -v "${DATA_DIR}:/data" \
-  -p "${PORT}:${PORT}" \
-  "${IMAGE_NAME}"
+remdo_docker_run "${IMAGE_NAME}" --rm --env-file "${ROOT_DIR}/.env"

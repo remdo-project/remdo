@@ -8,7 +8,24 @@ const port = config.env.PORT;
 const baseURL = `http://${host}:${port}`;
 
 // eslint-disable-next-line node/no-process-env
-const workers = process.env.PLAYWRIGHT_WORKERS ?? Math.max(2, os.cpus().length - 1);
+const { PLAYWRIGHT_WORKERS, E2E_DOCKER, BASICAUTH_USER, BASICAUTH_PASSWORD } = process.env;
+const workers = PLAYWRIGHT_WORKERS ?? Math.max(2, os.cpus().length - 1);
+const useDocker = E2E_DOCKER === 'true';
+const httpCredentials =
+  BASICAUTH_USER && BASICAUTH_PASSWORD
+    ? {
+        username: BASICAUTH_USER,
+        password: BASICAUTH_PASSWORD,
+      }
+    : undefined;
+
+const webServer = useDocker
+  ? undefined
+  : {
+      command: 'pnpm run dev:web',
+      url: baseURL,
+      reuseExistingServer: !config.env.CI,
+    };
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -18,12 +35,9 @@ export default defineConfig({
   fullyParallel: true,
   use: {
     baseURL,
+    ...(httpCredentials ? { httpCredentials } : {}),
   },
-  webServer: {
-    command: 'pnpm run dev:web',
-    url: baseURL,
-    reuseExistingServer: !config.env.CI,
-  },
+  ...(webServer ? { webServer } : {}),
   projects: [
     {
       name: 'chromium',
