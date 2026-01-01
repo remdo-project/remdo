@@ -21,6 +21,13 @@ for overrides.
 - Override `COLLAB_ENABLED`, `PORT`, or `COLLAB_SERVER_PORT` only when needed.
 - CLI tools derive collab origin from `HOST` + `COLLAB_SERVER_PORT` (browser uses `location.origin`).
 
+### Docker E2E (test:docker)
+
+- Runs E2E tests against a Dockerized production build of the current repo.
+- Requires a local Docker daemon (or rootless Docker) to be running.
+- Uses `tools/env.sh` defaults with `.env` overrides; see `tools/docker-test.sh` for the full var list.
+- Common overrides: `DATA_DIR`, `PORT` (drives `DOCKER_TEST_PORT`), `BASICAUTH_USER`, `BASICAUTH_PASSWORD`.
+
 ## Prod
 
 ### Host OS

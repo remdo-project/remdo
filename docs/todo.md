@@ -61,32 +61,3 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
    textNode.getTextContentSize() even though there is preceding/following text
    in the note. That misclassifies mid- note positions as start/end and triggers
    the wrong insertion path. (src/editor/plugins/InsertionPlugin.tsx:75-90)
-
-## Rootless Docker smoke test pipeline
-
-1. Document local rootless Docker setup (dockerd-rootless-setuptool, DOCKER_HOST,
-   user service), plus a local build/run flow using `docker/run.sh` or equivalent
-   env settings.
-2. Define a minimal smoke test (auth-required `GET /health` returning 200) and
-   note where to add future integration tests.
-3. Add a dedicated GitHub Actions workflow that:
-   1. Installs rootless Docker dependencies.
-   2. Starts the rootless daemon and validates `docker info`.
-   3. Builds the image and runs the container with CI-safe env + data dir.
-   4. Runs the smoke test with retries, collecting logs on failure.
-   5. Cleans up the container at the end.
-4. Note: simplify env tooling across the stack (align `tools/env.sh`, `.env`
-   usage, and Docker scripts).
-
-## Env loading simplification
-
-1. Add layered env files for local/dev/test (e.g. `.env.dev`) so Docker test
-   runs can share a base `.env` while overriding ports and auth without inline
-   flags; replace the temporary TODOs in scripts once supported.
-2. Add a prod-side guard that refuses to start if the default/basic auth
-   password is still in use.
-3. Simplify docker helper setup by centralizing root dir detection inside
-   `tools/lib/docker.sh` instead of passing it around.
-2. Ensure Docker smoke tests don’t hard-fail when `.env` is missing; solve via
-   layered `.env` files so scripts can rely on defaults plus overrides without
-   requiring a local private file.
