@@ -35,6 +35,7 @@
                 "tag": "ul",
                 "children": [
                   {
+                    "noteId": "note1",
                     "type": "listitem",
                     "version": 1,
                     "format": "",

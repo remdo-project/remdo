@@ -17,6 +17,7 @@
         "tag": "ul",
         "children": [
           {
+            "noteId": "empty",
             "type": "listitem",
             "version": 1,
             "format": "",
