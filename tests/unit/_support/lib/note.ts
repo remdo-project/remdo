@@ -131,12 +131,12 @@ export async function selectEntireNote(remdo: RemdoTestApi, noteText: string): P
   await remdo.mutate(() => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection)) {
-      return;
+      throw new Error('Expected range selection');
     }
 
     const anchorNode = selection.anchor.getNode();
     if (!$isTextNode(anchorNode)) {
-      return;
+      throw new Error('Expected text node selection anchor');
     }
 
     const length = anchorNode.getTextContentSize();
@@ -144,6 +144,24 @@ export async function selectEntireNote(remdo: RemdoTestApi, noteText: string): P
   });
 }
 
+export async function selectEntireNoteById(remdo: RemdoTestApi, noteId: string): Promise<void> {
+  await placeCaretAtNoteId(remdo, noteId);
+
+  await remdo.mutate(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection)) {
+      throw new Error('Expected range selection');
+    }
+
+    const anchorNode = selection.anchor.getNode();
+    if (!$isTextNode(anchorNode)) {
+      throw new Error('Expected text node selection anchor');
+    }
+
+    const length = anchorNode.getTextContentSize();
+    selection.setTextNodeRange(anchorNode, 0, anchorNode, length);
+  });
+}
 export function readCaretNoteKey(remdo: RemdoTestApi): string {
   return remdo.validate(() => {
     const selection = $getSelection();
@@ -237,7 +255,56 @@ export async function selectNoteRange(remdo: RemdoTestApi, startNote: string, en
       $setSelection(selection);
     }
     if (!$isRangeSelection(selection)) {
-      return;
+      throw new Error('Expected range selection');
+    }
+
+    const rangeSelection = selection;
+    const startLength = startTextNode.getTextContentSize();
+    const endLength = endTextNode.getTextContentSize();
+
+    const order = compareNodeOrder(startItem, endItem);
+    if (order <= 0) {
+      rangeSelection.setTextNodeRange(startTextNode, 0, endTextNode, endLength);
+    } else {
+      rangeSelection.setTextNodeRange(startTextNode, startLength, endTextNode, 0);
+    }
+  });
+}
+
+export async function selectNoteRangeById(remdo: RemdoTestApi, startNoteId: string, endNoteId: string): Promise<void> {
+  if (startNoteId === endNoteId) {
+    await selectEntireNoteById(remdo, startNoteId);
+    return;
+  }
+
+  await remdo.mutate(() => {
+    const startItem = $findItemByNoteId(startNoteId);
+    if (!startItem) {
+      throw new Error(`No list item found with noteId: ${startNoteId}`);
+    }
+
+    const endItem = $findItemByNoteId(endNoteId);
+    if (!endItem) {
+      throw new Error(`No list item found with noteId: ${endNoteId}`);
+    }
+
+    const startTextNode = findContentTextNode(startItem);
+    const endTextNode = findContentTextNode(endItem);
+
+    if (!startTextNode || !$isTextNode(startTextNode)) {
+      throw new Error('Expected start text node with select capability');
+    }
+    if (!endTextNode || !$isTextNode(endTextNode)) {
+      throw new Error('Expected end text node with select capability');
+    }
+
+    let selection = $getSelection();
+    if (!$isRangeSelection(selection)) {
+      selection = $createRangeSelection();
+      $setSelection(selection);
+    }
+    if (!$isRangeSelection(selection)) {
+      throw new Error('Expected range selection');
     }
 
     const rangeSelection = selection;
