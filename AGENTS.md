@@ -18,51 +18,46 @@ decide what matters.
 
 Length buckets: Short (<300 words), Medium (300–800), Long (800–1500), Very long
 (>1500). Update a doc’s bucket only when it crosses a boundary.
-Keep the map current—refresh summaries/buckets here when you edit a doc.
+Map format: maintain alphabetical order and wrap entries at ~100 characters per
+line (align continuation lines by two spaces).
+Keep the map current—refresh summaries/buckets only when they are materially
+outdated or a doc’s role materially changes.
 
-- `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch
-  conventions—check before touching tooling or process.
-- `docs/environment.md` (Short). Canonical environment setup for dev, tests,
-  prod (host + Docker), backup machines, and CI; defaults in
-  `tools/env.defaults.sh` via `tools/env.sh`, `.env` overrides, and CI runs on
-  defaults only, plus a Chromium blocked-port guard for `PORT` + derived ports.
-- `docs/outliner/index.md` (Short). Single entry point for outlining docs with
-  links to model, selection, indent/outdent, insertion, and reordering specs;
-  also states the single-source (no-duplication) rule for invariants.
-- `docs/outliner/concepts.md` (Medium). Canonical definition of notes,
-  invariants (including non-empty tree), shared definitions (document order,
-  empty notes), adapters, and fixture examples—skim when working on data
-  modeling or serialization.
-- `docs/outliner/note-structure-rules.md` (Long). Structural invariants and
-  indent/outdent semantics—consult when editing tree transforms or note
-  mutations.
-- `docs/outliner/selection.md` (Long). Cursor/selection semantics for the editor
-  runtime—reference for UX or Lexical selection work, including the progressive
-  ladder and the empty-note inline-stage skip.
-- `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior
-  and placement invariants.
-- `docs/outliner/deletion.md` (Medium). Caret vs. structural deletion semantics,
-  merge/no-op rules at note boundaries (including parent/child merges and
-  empty-note deletions), document-order adjacency definitions, and the spacing
-  contract for joins.
-- `docs/outliner/drag-and-drop.md` (Short). Pointer-based reordering (drag and
-  drop) – not supported yet; future plan lives there.
-- `docs/insertion.md` (Short). Caret-mode `Enter` behavior (start/middle/end)
-  and focus rules; mid-note splits keep pre-caret text in place and move
-  post-caret text to a sibling below; end-of-note inserts a child only when
-  children already exist, otherwise a sibling.
-- `docs/todo.md` (Medium). Scratchpad for in-flight work: keep active tasks only
-  (drop completed items), and move durable specs into the appropriate doc under
-  `docs/`. Includes selection post-refactor follow-ups (simplify/robustness
-  cleanup list), selection edge-case coverage notes for empty notes, a rootless
-  Docker smoke-test plan (local + CI), and env-loading simplification with
-  layered `.env` files (including Docker smoke tests).
-- `docs/deployment-single-container.md` (Short). Build/run steps for the
-  single-container image (Caddy + Y-Sweet) using `.env` overrides (defaults in
-  `tools/env.sh` for local tooling), standardized `PORT`/`COLLAB_SERVER_PORT`,
-  basic auth behavior, and the host `DATA_DIR` → `/data` layout.
-
-
+- `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch conventions—check
+  before touching tooling or process.
+- `docs/deployment-single-container.md` (Short). Build/run steps for the single-container image
+  (Caddy + Y-Sweet) using `.env` overrides (defaults in `tools/env.sh` for local tooling),
+  standardized `PORT`/`COLLAB_SERVER_PORT`, basic auth behavior, and the host
+  `DATA_DIR` → `/data` layout.
+- `docs/environment.md` (Short). Canonical environment setup for dev, tests (including Docker E2E
+  via `test:docker`), prod (host + Docker), backup machines, and CI; defaults in
+  `tools/env.defaults.sh` via `tools/env.sh`, `.env` overrides, and CI runs on defaults only, plus a
+  Chromium blocked-port guard for `PORT` + derived ports.
+- `docs/insertion.md` (Short). Caret-mode `Enter` behavior (start/middle/end) and focus rules; mid-
+  note splits keep pre-caret text in place and move post-caret text to a sibling below; end-of-note
+  inserts a child only when children already exist, otherwise a sibling.
+- `docs/outliner/concepts.md` (Medium). Canonical definition of notes, invariants (including non-
+  empty tree), shared definitions (document order, empty notes), adapters, and fixture examples—skim
+  when working on data modeling or serialization.
+- `docs/outliner/deletion.md` (Medium). Caret vs. structural deletion semantics, merge/no-op rules
+  at note boundaries (including parent/child merges and empty-note deletions), document-order
+  adjacency definitions, and the spacing contract for joins.
+- `docs/outliner/drag-and-drop.md` (Short). Pointer-based reordering (drag and drop) – not supported
+  yet; future plan lives there.
+- `docs/outliner/index.md` (Short). Single entry point for outlining docs with links to model,
+  selection, indent/outdent, insertion, and reordering specs; also states the single-source (no-
+  duplication) rule for invariants.
+- `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indent/outdent
+  semantics—consult when editing tree transforms or note mutations.
+- `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and
+  placement invariants.
+- `docs/outliner/selection.md` (Long). Cursor/selection semantics for the editor runtime—reference
+  for UX or Lexical selection work, including the progressive ladder and the empty-note
+  inline-stage skip.
+- `docs/todo.md` (Medium). Scratchpad for in-flight work: keep active tasks only (drop completed
+  items), and move durable specs into the appropriate doc under `docs/`. Current focus areas include
+  indent/outdent helpers, editor schema validator tests, collab undo/redo determinism, outline
+  helper unit tests, and InsertionPlugin edge cases.
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.
 
@@ -83,7 +78,8 @@ map stays trustworthy.
 2. **Top-down linking.** Prefer links from higher-level docs (index, concepts)
    into detailed docs (selection, indent/outdent, reordering); same-level links
    only when they add clear value.
-3. **Self-contained set.** Keep required context inside this doc set; avoid external references.
+3. **Self-contained set.** Keep required context inside this doc set; avoid
+   external references.
 4. **Coherence checks.** When editing a doc, ensure the change aligns with
    existing resolutions and update related docs/maps if needed.
 5. **Intentional gaps.** Stubs/placeholders are acceptable in dev—mark status
@@ -132,28 +128,33 @@ document captures the full model.
 
 ## Checks
 
-- Current timings on this machine (rounded with headroom): `pnpm run lint`
-  about 5–10s, `pnpm run test:unit` about 10–20s, `pnpm run test:unit:collab`
-  about 12–25s. If you ever hit the 60s guard, debug the failure (don’t extend);
-  only adjust ranges if healthy runs consistently land outside them.
+- Current timings on this machine (rounded with headroom): `pnpm run lint` about
+  5–10s, `pnpm run test:unit` about 10–20s, `pnpm run test:unit:collab` about
+  12–25s. If you ever hit the 60s guard, debug the failure (don’t extend); only
+  adjust ranges if healthy runs consistently land outside them.
 - E2E (Playwright): run `pnpm test:e2e`. In sandboxed environments, accessing
   the local dev server (localhost) may require network escalation; without it,
   Playwright can’t reach the server and will fail to start.
 
 ### Scoped check runs (validated 2025-12-09; commands trimmed to tool defaults and pnpm scripts where they behave)
 
-1. Typecheck tests project: `pnpm run typecheck:tests` (uses `noEmit`/`incremental` from configs).
-   Ran in ~1.7s.
-2. Code lint per path: `pnpm run lint:code -- <path ...>` keeps the scripted `eslint`
-   defaults/caching; validated on `tests/unit/smoke.spec.tsx` in ~2s.
-3. Markdown lint per file: `pnpm run lint:md:file -- <file ...>` to avoid the script’s built-in
-   `docs/**` globs; single-file `AGENTS.md` run completed in ~0.6s.
-4. Unit test filter via script: `pnpm run test:unit <file> -t "<full test name>"` (don’t
-   add an extra `--`, or Vitest will ignore the filter). Example: `tests/unit/smoke.spec.tsx -t "loads
-   basic outline structure from JSON"` ran only that file in ~1.3s.
-5. Collab test filter via script: `pnpm run test:unit:collab tests/unit/collab/<file> -t
-   "<full test name>"`; example `smoke.collab.spec.tsx -t "lexical helpers operate in collaboration
-   mode"` passed in ~1.4s with collab server auto-started.
+1. Typecheck tests project: `pnpm run typecheck:tests` (uses
+   `noEmit`/`incremental` from configs). Ran in ~1.7s.
+2. Code lint per path: `pnpm run lint:code -- <path ...>` keeps the scripted
+   `eslint` defaults/caching; validated on `tests/unit/smoke.spec.tsx` in ~2s.
+3. Markdown lint per file: `pnpm run lint:md:file -- <file ...>` to avoid the
+   script’s built-in `docs/**` globs; single-file `AGENTS.md` run completed in
+   ~0.6s.
+4. Unit test filter via script:
+   `pnpm run test:unit <file> -t "<full test name>"` (don’t add an extra `--`,
+   or Vitest will ignore the filter). Example:
+   `tests/unit/smoke.spec.tsx -t "loads basic outline structure from JSON"` ran
+   only that file in ~1.3s.
+5. Collab test filter via script:
+   `pnpm run test:unit:collab tests/unit/collab/<file> -t "<full test name>"`;
+   example
+   `smoke.collab.spec.tsx -t "lexical helpers operate in collaboration mode"`
+   passed in ~1.4s with collab server auto-started.
 
 ### Local agents
 
