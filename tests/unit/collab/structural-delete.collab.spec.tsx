@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 
-import { placeCaretAtNote, pressKey, readOutline } from '#tests';
+import { placeCaretAtNoteId, pressKey, readOutline } from '#tests';
 import { renderCollabEditor } from './_support/remdo-peers';
 
 describe('collab structural delete regression', () => {
@@ -17,7 +17,7 @@ describe('collab structural delete regression', () => {
       expect(readOutline(editorB)).toEqual(readOutline(editorA));
     });
 
-    await placeCaretAtNote(editorA, 'note2');
+    await placeCaretAtNoteId(editorA, 'note2');
     await pressKey(editorA, { key: 'ArrowDown', shift: true });
     await pressKey(editorA, { key: 'ArrowDown', shift: true });
 
@@ -27,7 +27,7 @@ describe('collab structural delete regression', () => {
       { text: 'note6', children: [ { text: 'note7' } ] },
     ];
 
-    await placeCaretAtNote(editorB, 'note2');
+    await placeCaretAtNoteId(editorB, 'note2');
     await pressKey(editorB, { key: 'ArrowDown', shift: true });
     await pressKey(editorB, { key: 'ArrowDown', shift: true });
     await pressKey(editorB, { key: 'Backspace' });

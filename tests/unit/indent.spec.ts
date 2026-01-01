@@ -1,8 +1,8 @@
 import { expect, it } from 'vitest';
 import {
-  placeCaretAtNote,
-  selectEntireNote,
-  selectNoteRange,
+  placeCaretAtNoteId,
+  selectEntireNoteById,
+  selectNoteRangeById,
   pressKey,
   readOutline,
 } from '#tests';
@@ -16,7 +16,7 @@ it('tab on note1 at start is a no-op (no structure change)', async ({ remdo }) =
 
   const before = remdo.getEditorState();
 
-  await placeCaretAtNote(remdo, 'note1');
+  await placeCaretAtNoteId(remdo, 'note1');
   await pressKey(remdo, { key: 'Tab' }); // indent attempt on first root item
 
   expect(remdo).toMatchEditorState(before);
@@ -25,7 +25,7 @@ it('tab on note1 at start is a no-op (no structure change)', async ({ remdo }) =
 it("tab on note2 at start nests it under note1; note3 stays at root", async ({ remdo }) => {
   await remdo.load('flat');
 
-  await placeCaretAtNote(remdo, 'note2');
+  await placeCaretAtNoteId(remdo, 'note2');
   await pressKey(remdo, { key: 'Tab' }); // indent note2 under note1
 
   // Expectation assumes the flat fixture has three items: note1, note2, note3
@@ -39,10 +39,10 @@ it("tab on note2 at start nests it under note1; note3 stays at root", async ({ r
 it("tab on both note2 and note3 nests them both under note1", async ({ remdo }) => {
   await remdo.load('flat');
 
-  await placeCaretAtNote(remdo, 'note2');
+  await placeCaretAtNoteId(remdo, 'note2');
   await pressKey(remdo, { key: 'Tab' }); // indent note2 under note1
 
-  await placeCaretAtNote(remdo, 'note3');
+  await placeCaretAtNoteId(remdo, 'note3');
   await pressKey(remdo, { key: 'Tab' }); // indent note3 under note1
 
   // After indenting both note2 and note3, they should both be children of note1
@@ -60,7 +60,7 @@ it("tab on both note2 and note3 nests them both under note1", async ({ remdo }) 
 it("shift+tab on a child outdents it to root level", async ({ remdo }) => {
   await remdo.load('basic');
 
-  await placeCaretAtNote(remdo, 'note2');
+  await placeCaretAtNoteId(remdo, 'note2');
   await pressKey(remdo, { key: 'Tab', shift: true }); // outdent child
 
   // After outdenting the child, it should be at the same level as its former parent and siblings
@@ -74,7 +74,7 @@ it("shift+tab on a child outdents it to root level", async ({ remdo }) => {
 it('shift+tab on note2 flattens the outline', async ({ remdo }) => {
   await remdo.load('basic');
 
-  await placeCaretAtNote(remdo, 'note2');
+  await placeCaretAtNoteId(remdo, 'note2');
   await pressKey(remdo, { key: 'Tab', shift: true });
 
   const outline = readOutline(remdo);
@@ -89,7 +89,7 @@ it('shift+tab on note2 flattens the outline', async ({ remdo }) => {
 it("tab on note2 at end nests it under note1", async ({ remdo }) => {
   await remdo.load('flat');
 
-  await placeCaretAtNote(remdo, 'note2', -1);
+  await placeCaretAtNoteId(remdo, 'note2', -1);
   await pressKey(remdo, { key: 'Tab' }); // indent note2 under note1
 
   // After indenting note2, it should become a child of note1, while note3 remains at root
@@ -102,7 +102,7 @@ it("tab on note2 at end nests it under note1", async ({ remdo }) => {
 it("tab on note2 in the middle nests it under note1", async ({ remdo }) => {
   await remdo.load('flat');
 
-  await placeCaretAtNote(remdo, 'note2', 2); // place caret at offset 2
+  await placeCaretAtNoteId(remdo, 'note2', 2); // place caret at offset 2
   await pressKey(remdo, { key: 'Tab' }); // indent note2 under note1
 
   // After indenting note2, it should become a child of note1, while note3 remains at root
@@ -115,7 +115,7 @@ it("tab on note2 in the middle nests it under note1", async ({ remdo }) => {
 it('tab indents every note in a multi-note selection', async ({ remdo }) => {
   await remdo.load('flat');
 
-  await selectNoteRange(remdo, 'note2', 'note3');
+  await selectNoteRangeById(remdo, 'note2', 'note3');
   await pressKey(remdo, { key: 'Tab' });
 
   expect(remdo).toMatchOutline([
@@ -132,7 +132,7 @@ it('tab indents every note in a multi-note selection', async ({ remdo }) => {
 it('tab on a multi-note selection starting at the first root note is a no-op', async ({ remdo }) => {
   await remdo.load('flat');
 
-  await selectNoteRange(remdo, 'note1', 'note2');
+  await selectNoteRangeById(remdo, 'note1', 'note2');
   await pressKey(remdo, { key: 'Tab' });
 
   expect(remdo).toMatchOutline([
@@ -145,7 +145,7 @@ it('tab on a multi-note selection starting at the first root note is a no-op', a
 it('tab indents multi-note selection regardless of drag direction', async ({ remdo }) => {
   await remdo.load('flat');
 
-  await selectNoteRange(remdo, 'note3', 'note2');
+  await selectNoteRangeById(remdo, 'note3', 'note2');
   await pressKey(remdo, { key: 'Tab' });
 
   expect(remdo).toMatchOutline([
@@ -162,10 +162,10 @@ it('tab indents multi-note selection regardless of drag direction', async ({ rem
 it('tab refuses to indent a selection whose leading child lacks a previous sibling', async ({ remdo }) => {
   await remdo.load('basic');
 
-  await placeCaretAtNote(remdo, 'note3');
+  await placeCaretAtNoteId(remdo, 'note3');
   await pressKey(remdo, { key: 'Tab' });
 
-  await selectNoteRange(remdo, 'note2', 'note3');
+  await selectNoteRangeById(remdo, 'note2', 'note3');
   await pressKey(remdo, { key: 'Tab' });
 
   expect(remdo).toMatchOutline([
@@ -182,7 +182,7 @@ it('tab refuses to indent a selection whose leading child lacks a previous sibli
 it('tab indents a subtree selection even when a child lacks its own previous sibling', async ({ remdo }) => {
   await remdo.load('tree');
 
-  await selectNoteRange(remdo, 'note2', 'note3');
+  await selectNoteRangeById(remdo, 'note2', 'note3');
   await pressKey(remdo, { key: 'Tab' });
 
   expect(remdo).toMatchOutline([
@@ -203,7 +203,7 @@ it('tab indents a subtree selection even when a child lacks its own previous sib
 it('tab indents when note text selection spans the entire note', async ({ remdo }) => {
   await remdo.load('flat');
 
-  await selectEntireNote(remdo, 'note2');
+  await selectEntireNoteById(remdo, 'note2');
   await pressKey(remdo, { key: 'Tab' });
 
   expect(remdo).toMatchOutline([
@@ -215,7 +215,7 @@ it('tab indents when note text selection spans the entire note', async ({ remdo 
 it('shift+tab outdents when note selection spans the entire note', async ({ remdo }) => {
   await remdo.load('basic');
 
-  await selectEntireNote(remdo, 'note2');
+  await selectEntireNoteById(remdo, 'note2');
   await pressKey(remdo, { key: 'Tab', shift: true });
 
   expect(remdo).toMatchOutline([
@@ -228,7 +228,7 @@ it('shift+tab outdents when note selection spans the entire note', async ({ remd
 it('shift+tab refuses to partially outdent when selection includes a root note', async ({ remdo }) => {
   await remdo.load('basic');
 
-  await selectNoteRange(remdo, 'note1', 'note2');
+  await selectNoteRangeById(remdo, 'note1', 'note2');
   await pressKey(remdo, { key: 'Tab', shift: true });
 
   expect(remdo).toMatchOutline([
@@ -245,7 +245,7 @@ it('shift+tab refuses to partially outdent when selection includes a root note',
 it("tab on note2 at start moves it with its child note3 under note1", async ({ remdo }) => {
   await remdo.load('tree');
 
-  await placeCaretAtNote(remdo, 'note2');
+  await placeCaretAtNoteId(remdo, 'note2');
   await pressKey(remdo, { key: 'Tab' }); // indent note2 (with its child note3) under note1
 
   // After indenting note2, it should become a child of note1, and note3 should remain a child of note2
@@ -269,7 +269,7 @@ it('tab then shift+tab on note2 keeps the tree outline intact', async ({ remdo }
 
   const beforeState = remdo.getEditorState();
 
-  await placeCaretAtNote(remdo, 'note2');
+  await placeCaretAtNoteId(remdo, 'note2');
   await pressKey(remdo, { key: 'Tab' }); // temporarily indent under note1
   await pressKey(remdo, { key: 'Tab', shift: true }); // outdent back to original spot
 
