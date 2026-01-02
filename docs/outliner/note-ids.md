@@ -32,9 +32,7 @@ document ID. This spec does not define the format or storage of document IDs.
    documents may reuse the same `noteId` values.
 4. `noteId` values are stable for the lifetime of a note and do not change on
    edits, reorders, indent/outdent, or moves.
-5. Deleted `noteId` values are retired and must not be reused (best-effort; the
-   generator must not intentionally reuse identifiers).
-6. `noteId` values round-trip through adapters and serialization unchanged.
+5. `noteId` values round-trip through adapters and serialization unchanged.
 
 ## Lifecycle
 
@@ -59,7 +57,8 @@ document ID. This spec does not define the format or storage of document IDs.
 
 - When two notes merge, the surviving note retains its `noteId`; the merged
   note’s `noteId` is retired.
-- When a note is deleted, its `noteId` is retired and must not be reused.
+- When a note is deleted, its `noteId` is no longer in use. Reuse is not
+  intentionally enforced.
 
 ## Serialization and normalization
 

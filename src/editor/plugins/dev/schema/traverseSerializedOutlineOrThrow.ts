@@ -71,7 +71,11 @@ function readWrapperNestedListOrThrow(wrapper: NodeWithChildren, contextPath: nu
   return nested;
 }
 
-function readListOrThrow(listNode: NodeWithChildren, prefix: number[] = []): SerializedOutlineNote[] {
+function readListOrThrow(
+  listNode: NodeWithChildren,
+  usedNoteIds: Set<string>,
+  prefix: number[] = []
+): SerializedOutlineNote[] {
   const children = getChildren(listNode);
   const notes: SerializedOutlineNote[] = [];
   let noteIndex = 0;
@@ -116,6 +120,14 @@ function readListOrThrow(listNode: NodeWithChildren, prefix: number[] = []): Ser
     }
 
     const noteId = noteIdValue;
+    if (usedNoteIds.has(noteId)) {
+      const pathStr = formatPath(path);
+      fail(`Invalid outline structure: duplicate noteId "${noteId}" at "${pathStr}"`, {
+        path: pathStr,
+        noteId,
+      });
+    }
+    usedNoteIds.add(noteId);
     const note: SerializedOutlineNote = {
       indent,
       path,
@@ -141,7 +153,7 @@ function readListOrThrow(listNode: NodeWithChildren, prefix: number[] = []): Ser
         }
 
         const nested = readWrapperNestedListOrThrow(nextSibling, path);
-        note.children = readListOrThrow(nested, path);
+        note.children = readListOrThrow(nested, usedNoteIds, path);
         index += 1;
       }
     }
@@ -164,5 +176,6 @@ export function traverseSerializedOutlineOrThrow(state: SerializedEditorState): 
     return [];
   }
 
-  return readListOrThrow(listNode);
+  const usedNoteIds = new Set<string>();
+  return readListOrThrow(listNode, usedNoteIds);
 }

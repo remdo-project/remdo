@@ -47,8 +47,8 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/index.md` (Short). Single entry point for outlining docs with links to model,
   selection, indent/outdent, insertion, and reordering specs; also states the single-source (no-
   duplication) rule for invariants.
-- `docs/outliner/note-ids.md` (Medium). Note identity spec: `noteId` invariants, lifecycle,
-  normalization, collaboration expectations, and `noteRef` composition.
+- `docs/outliner/note-ids.md` (Medium). Note identity spec: `noteId` invariants, load-time
+  normalization, collaboration expectations, reuse notes, and `noteRef` composition.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indent/outdent
   semantics—consult when editing tree transforms or note mutations.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and

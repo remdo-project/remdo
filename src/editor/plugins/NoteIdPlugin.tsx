@@ -5,56 +5,37 @@ import { $getRoot, $getState, $setState } from 'lexical';
 import { useEffect, useRef } from 'react';
 import { createNoteId } from '#lib/editor/note-ids';
 import { noteIdState } from '#lib/editor/note-id-state';
-import { reportInvariant } from '@/editor/invariant';
 import { isChildrenWrapper } from '@/editor/outline/list-structure';
 import { useCollaborationStatus } from './collaboration';
 
-function $ensureNoteId(
+function $ensureNoteId(item: ListItemNode, docId: string) {
+  if (isChildrenWrapper(item)) {
+    return;
+  }
+  const noteId = $getState(item, noteIdState);
+
+  let normalized: string;
+  if (typeof noteId === 'string' && noteId.length > 0 && noteId !== docId) {
+    normalized = noteId;
+  } else {
+    const reserved = new Set<string>();
+    if (docId.length > 0) {
+      reserved.add(docId);
+    }
+    normalized = createNoteId(docId, reserved);
+    $setState(item, noteIdState, normalized);
+  }
+}
+
+function $normalizeNoteIdOnLoad(
   item: ListItemNode,
   docId: string,
-  usedIds: Set<string>,
-  seenIds: Map<string, string>
+  usedIds: Set<string>
 ) {
   if (isChildrenWrapper(item)) {
     return;
   }
-
-  const key = item.getKey();
-  const seen = seenIds.get(key);
   const noteId = $getState(item, noteIdState);
-
-  if (seen) {
-    const reasons: string[] = [];
-    if (noteId !== seen) {
-      reasons.push('noteId changed after initialization');
-    }
-    if (typeof noteId !== 'string' || noteId.length === 0) {
-      reasons.push('noteId missing or empty');
-    }
-    if (noteId === docId) {
-      reasons.push('noteId matches documentId');
-    }
-    if (typeof noteId === 'string' && noteId.length > 0 && noteId !== seen && usedIds.has(noteId)) {
-      reasons.push('noteId duplicates existing/retired id');
-    }
-
-    if (reasons.length > 0) {
-      reportInvariant({
-        message: 'Invalid noteId detected for existing note',
-        context: {
-          docId,
-          noteKey: key,
-          previousNoteId: seen,
-          currentNoteId: noteId,
-          reasons,
-        },
-      });
-    }
-  }
-
-  if (seen && noteId === seen) {
-    return;
-  }
 
   let normalized: string;
   if (typeof noteId === 'string' && noteId.length > 0 && noteId !== docId && !usedIds.has(noteId)) {
@@ -65,14 +46,12 @@ function $ensureNoteId(
   }
 
   usedIds.add(normalized);
-  seenIds.set(key, normalized);
 }
 
 function $normalizeListNoteIds(
   list: ListNode,
   docId: string,
-  usedIds: Set<string>,
-  seenIds: Map<string, string>
+  usedIds: Set<string>
 ) {
   for (const child of list.getChildren()) {
     if (!$isListItemNode(child)) {
@@ -82,19 +61,18 @@ function $normalizeListNoteIds(
     if (isChildrenWrapper(child)) {
       const nested = child.getFirstChild();
       if ($isListNode(nested)) {
-        $normalizeListNoteIds(nested, docId, usedIds, seenIds);
+        $normalizeListNoteIds(nested, docId, usedIds);
       }
       continue;
     }
-    $ensureNoteId(child, docId, usedIds, seenIds);
+    $normalizeNoteIdOnLoad(child, docId, usedIds);
   }
 }
 
 function $normalizeNoteIds(
   root: ReturnType<typeof $getRoot>,
   docId: string,
-  usedIds: Set<string>,
-  seenIds: Map<string, string>
+  usedIds: Set<string>
 ) {
   const rootChildren = root.getChildren();
   const list = rootChildren.find($isListNode);
@@ -102,43 +80,32 @@ function $normalizeNoteIds(
     return;
   }
 
-  $normalizeListNoteIds(list, docId, usedIds, seenIds);
+  $normalizeListNoteIds(list, docId, usedIds);
 }
 
 export function NoteIdPlugin() {
   const [editor] = useLexicalComposerContext();
   const { hydrated, docEpoch, docId } = useCollaborationStatus();
-  const usedIdsRef = useRef<Set<string> | null>(null);
-  const seenIdsRef = useRef<Map<string, string> | null>(null);
   const readyRef = useRef(false);
 
   useEffect(() => {
-    if (!hydrated) {
-      return;
-    }
-
-    const usedIds = new Set<string>();
-    if (docId.length > 0) {
-      usedIds.add(docId);
-    }
-    const seenIds = new Map<string, string>();
-    usedIdsRef.current = usedIds;
-    seenIdsRef.current = seenIds;
-    readyRef.current = false;
-
-    editor.update(() => {
-      $normalizeNoteIds($getRoot(), docId, usedIds, seenIds);
-    });
-
     readyRef.current = true;
 
+    if (hydrated) {
+      editor.update(() => {
+        const used = new Set<string>();
+        if (docId.length > 0) {
+          used.add(docId);
+        }
+        $normalizeNoteIds($getRoot(), docId, used);
+      });
+    }
+
     const unregister = editor.registerNodeTransform(ListItemNode, (node) => {
-      const used = usedIdsRef.current;
-      const seen = seenIdsRef.current;
-      if (!readyRef.current || !used || !seen) {
+      if (!readyRef.current) {
         return;
       }
-      $ensureNoteId(node, docId, used, seen);
+      $ensureNoteId(node, docId);
     });
 
     return () => {
@@ -148,5 +115,3 @@ export function NoteIdPlugin() {
 
   return null;
 }
-
-export default NoteIdPlugin;

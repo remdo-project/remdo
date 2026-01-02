@@ -28,19 +28,21 @@ created notes and collab insertions.
 3. Audit all note-creation paths (Enter insertions, paste/clipboard import,
    duplication, structural splits/merges, collab insertions, full-document
    duplication) and ensure each creates or preserves `noteId` per the spec.
-4. Add a normalization pass on load that backfills missing `noteId` values and
+4. Add unit tests that paste/duplicate notes and assert fresh `noteId` values
+   before implementing any clipboard-specific handling.
+5. Add a normalization pass on load that backfills missing `noteId` values and
    resolves duplicates (preserve first in document order, reassign the rest).
-5. Persist normalized IDs on the next save and update schema validation to
+6. Persist normalized IDs on the next save and update schema validation to
    require `noteId` on every content list item.
-6. Add collaboration tests to verify deterministic ID preservation across
+7. Add collaboration tests to verify deterministic ID preservation across
    clients, including concurrent inserts and copy/paste.
-7. Update fixtures and test helpers to require `noteId` for all notes; remove
+8. Update fixtures and test helpers to require `noteId` for all notes; remove
    label/text-based fallbacks in matchers and selection helpers.
-8. Once the above is stable, simplify selection/assertion helpers to use
+9. Once the above is stable, simplify selection/assertion helpers to use
    `noteId` only and drop any “find by text” helpers.
-9. Consolidate test-only “get noteId or throw” logic into a shared helper to
-   avoid duplication across selection utilities and matchers.
-10. Re-evaluate `toMatchSelection` after the refactor and drop it if it is no
+10. Consolidate test-only “get noteId or throw” logic into a shared helper to
+    avoid duplication across selection utilities and matchers.
+11. Re-evaluate `toMatchSelection` after the refactor and drop it if it is no
     longer used (or replace call sites with `toMatchSelectionIds`).
 
 ## Harden editor schema validator tests
