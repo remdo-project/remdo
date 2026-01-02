@@ -138,6 +138,9 @@ catalogs:
     markdownlint-cli2:
       specifier: ^0.20.0
       version: 0.20.0
+    nanoid:
+      specifier: ^3.3.11
+      version: 3.3.11
     react:
       specifier: ^19.2.3
       version: 19.2.3
@@ -229,6 +232,9 @@ importers:
       lib0:
         specifier: 'catalog:'
         version: 0.2.116
+      nanoid:
+        specifier: 'catalog:'
+        version: 3.3.11
       react:
         specifier: 'catalog:'
         version: 19.2.3

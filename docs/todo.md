@@ -23,8 +23,8 @@ created notes and collab insertions.
 
 1. ✅ Done — Document behavior in `docs/outliner/note-ids.md` and link it from
    `docs/outliner/index.md` + `docs/outliner/concepts.md`.
-2. Decide the single source of truth for `noteId` generation (shared utility or
-   adapter helper) and thread it through every note-creation path.
+2. Single source of truth: add a small editor-layer utility for `noteId`
+   generation (shared helper) and thread it through every note-creation path.
 3. Audit all note-creation paths (Enter insertions, paste/clipboard import,
    duplication, structural splits/merges, collab insertions, full-document
    duplication) and ensure each creates or preserves `noteId` per the spec.

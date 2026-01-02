@@ -79,6 +79,7 @@
     "@y-sweet/sdk": "catalog:",
     "lexical": "catalog:",
     "lib0": "catalog:",
+    "nanoid": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "y-protocols": "catalog:",
