@@ -9,7 +9,7 @@ type NodeWithChildren = SerializedLexicalNode & {
 export interface SerializedOutlineNote {
   indent: number;
   path: number[];
-  noteId?: string;
+  noteId: string;
   contentNodes: SerializedLexicalNode[];
   children: SerializedOutlineNote[];
 }
@@ -106,11 +106,20 @@ function readListOrThrow(listNode: NodeWithChildren, prefix: number[] = []): Ser
       });
     }
 
-    const noteId = (child as { noteId?: string }).noteId;
+    const noteIdValue = (child as { noteId?: unknown }).noteId;
+    if (typeof noteIdValue !== 'string' || noteIdValue.length === 0) {
+      const pathStr = formatPath(path);
+      fail(`Invalid outline structure: missing noteId on content item at "${pathStr}"`, {
+        path: pathStr,
+        noteId: noteIdValue,
+      });
+    }
+
+    const noteId = noteIdValue;
     const note: SerializedOutlineNote = {
       indent,
       path,
-      ...(noteId ? { noteId } : {}),
+      noteId,
       contentNodes,
       children: [],
     };

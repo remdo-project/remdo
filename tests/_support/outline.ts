@@ -37,13 +37,14 @@ export function extractOutlineFromEditorState(state: unknown): Outline {
   const readNotes = (items: SerializedOutlineNote[]): Outline =>
     items.map((note) => {
       const text = note.contentNodes.length > 0 ? note.contentNodes.map(collectTextContent).join('') : null;
+      if (typeof note.noteId !== 'string' || note.noteId.length === 0) {
+        throw new TypeError(`Expected noteId to be a non-empty string at "${note.path.join('.')}".`);
+      }
       const node: OutlineNode = {};
       if (text !== null) {
         node.text = text;
       }
-      if (note.noteId) {
-        node.noteId = note.noteId;
-      }
+      node.noteId = note.noteId;
       if (note.children.length > 0) {
         node.children = readNotes(note.children);
       }
