@@ -406,6 +406,24 @@ export function DeletionPlugin() {
           return true;
         }
 
+        const currentIsEmptyLeaf = isEmptyNote(contentItem);
+        const targetHasChildren = noteHasChildren(target);
+        const targetIsEmptyLeaf = !targetHasChildren && isEmptyNote(target);
+
+        if (currentIsEmptyLeaf || targetIsEmptyLeaf) {
+          if (targetIsEmptyLeaf) {
+            removeNoteSubtree(target);
+            selection.anchor.set(contentItem.getKey(), 0, 'element');
+            selection.focus.set(contentItem.getKey(), 0, 'element');
+            selection.dirty = true;
+            return true;
+          }
+
+          removeNoteSubtree(contentItem);
+          $selectItemEdge(target, 'end');
+          return true;
+        }
+
         if (currentText.length > 0) {
           const leftText = target.getTextContent();
           const { merged, joinOffset } = computeMergeText(leftText, currentText);

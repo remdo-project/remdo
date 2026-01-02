@@ -15,7 +15,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
       { text: 'note1', children: [ { text: 'note2' } ] },
       { text: 'note3' },
     ]);
-    expect(remdo).toMatchSelectionIds([newNoteId]);
+    expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
   it('enter in the middle splits into an above sibling while trailing text and children stay with the original', async ({ remdo }) => {
@@ -23,6 +23,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNoteId(remdo, 'note1', 2);
     await pressKey(remdo, { key: 'Enter' });
+    const newNoteId = readCaretNoteId(remdo);
 
     await typeText(remdo, 'X');
 
@@ -31,7 +32,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
       { text: 'Xte1' },
       { text: 'note2', children: [ { text: 'note3' } ] },
     ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'Xte1' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
   it('enter at end creates a first child and focuses it', async ({ remdo }) => {
@@ -39,6 +40,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
+    const newNoteId = readCaretNoteId(remdo);
 
     await typeText(remdo, 'X');
 
@@ -52,7 +54,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
       },
       { text: 'note3' },
     ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'X' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
   it('enter is a no-op in structural mode', async ({ remdo }) => {
@@ -75,6 +77,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNoteId(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });
+    const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
@@ -82,7 +85,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
       { text: 'no' },
       { text: 'Xte2', children: [ { text: 'note3' } ] },
     ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'Xte2' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
   it('enter at end inserts new first child ahead of existing children', async ({ remdo }) => {
@@ -90,6 +93,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNoteId(remdo, 'note2', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
+    const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
@@ -102,7 +106,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
         ],
       },
     ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'X' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
   it('enter at start of nested note inserts previous sibling at same depth', async ({ remdo }) => {
@@ -110,6 +114,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNoteId(remdo, 'note3', 0);
     await pressKey(remdo, { key: 'Enter' });
+    const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
@@ -122,7 +127,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
         ],
       },
     ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'X' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
   it('enter at end on a leaf note inserts a next sibling and focuses it', async ({ remdo }) => {
@@ -130,6 +135,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
+    const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
@@ -137,7 +143,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
       { text: 'X' },
       { text: 'note2', children: [{ text: 'note3' }] },
     ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'X' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
   it('enter at start when the previous sibling has children inserts a new sibling above and keeps that subtree intact', async ({ remdo }) => {
@@ -145,6 +151,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNoteId(remdo, 'note4', 0);
     await pressKey(remdo, { key: 'Enter' });
+    const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
@@ -162,7 +169,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
       { text: 'note5' },
       { text: 'note6', children: [{ text: 'note7' }] },
     ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'X' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
   it('enter in the middle of a note with descendants keeps the subtree on the trailing segment', async ({ remdo }) => {
@@ -170,6 +177,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNoteId(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });
+    const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
@@ -189,6 +197,6 @@ describe('insertion semantics (docs/insertion.md)', () => {
       { text: 'note5' },
       { text: 'note6', children: [{ text: 'note7' }] },
     ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'Xte2' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 });

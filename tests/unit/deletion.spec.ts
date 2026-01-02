@@ -73,7 +73,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
           ],
         },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note2 note3' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
     });
 
     it('merges a first-child leaf into its parent body when siblings exist', async ({ remdo }) => {
@@ -106,7 +106,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         },
         { text: 'note3' },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('drops an empty child leaf when Backspace is pressed at its start', async ({ remdo }) => {
@@ -168,7 +168,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         { text: 'note1 note2' },
         { text: 'note3' },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('merges with the previous note in document order (across subtrees) on Backspace at column 0', async ({ remdo }) => {
@@ -187,7 +187,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         },
         { text: 'note6', children: [ { text: 'note7' } ] },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note4 note5' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
     });
 
     it('drops a previous empty leaf and keeps the caret on the current note when Backspace is pressed at column 0', async ({ remdo }) => {
@@ -361,7 +361,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         { text: 'note1 note2' },
         { text: 'note3' },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('merges with the next note in document order even when it is not a same-depth sibling', async ({ remdo }) => {
@@ -380,7 +380,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         { text: 'note5' },
         { text: 'note6', children: [ { text: 'note7' } ] },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note3 note4' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
     });
 
     it('ignores Delete at note end when the next sibling has children', async ({ remdo }) => {
@@ -435,7 +435,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         { text: 'note1 note2' },
         { text: 'note3' },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('avoids adding extra space on Backspace when the right fragment already starts with whitespace', async ({ remdo }) => {
@@ -457,7 +457,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         { text: 'note4-space-right ' },
         { text: 'note5' },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2-space-left' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('avoids adding extra space on Backspace when the left fragment already ends with whitespace', async ({ remdo }) => {
@@ -479,7 +479,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         { text: 'note3' },
         { text: 'note4-space-right note5' },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note4-space-right note5' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note4-space-right' });
     });
 
     it('avoids adding extra space when the right fragment already starts with whitespace', async ({ remdo }) => {
@@ -501,7 +501,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         { text: 'note4-space-right ' },
         { text: 'note5' },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1 note2-space-left' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('avoids adding extra space when the left fragment already ends with whitespace', async ({ remdo }) => {
@@ -523,7 +523,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
         { text: 'note3' },
         { text: 'note4-space-right note5' },
       ]);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note4-space-right note5' });
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note4-space-right' });
     });
   });
 

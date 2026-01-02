@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import type { Outline } from '#tests';
 import {
   collectSelectedListItems,
-  getListItemLabel,
   getRootElementOrThrow,
   placeCaretAtNoteId,
   getNoteKeyById,
@@ -12,8 +11,9 @@ import {
   readOutline,
   typeText,
 } from '#tests';
-import { $getSelection, $isRangeSelection } from 'lexical';
+import { $getSelection, $getState, $isRangeSelection } from 'lexical';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
+import { noteIdState } from '#lib/editor/note-id-state';
 
 const TREE_COMPLEX_OUTLINE: Outline = [
   {
@@ -946,7 +946,7 @@ describe('selection plugin', () => {
     await placeCaretAtNoteId(remdo, 'note2');
 
     const assertVisualEnvelopeMatchesSelection = (expected: string[]) => {
-      const labels = remdo.validate(() => {
+      const ids = remdo.validate(() => {
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) {
           throw new Error('Expected a range selection');
@@ -955,16 +955,16 @@ describe('selection plugin', () => {
         if (items.length === 0) {
           throw new Error('Expected structural selection');
         }
-        const startLabel = getListItemLabel(items[0]!);
-        const endLabel = getListItemLabel(items.at(-1)!);
-        if (!startLabel || !endLabel) {
-          throw new Error('Expected structural selection labels');
+        const startId = $getState(items[0]!, noteIdState);
+        const endId = $getState(items.at(-1)!, noteIdState);
+        if (typeof startId !== 'string' || typeof endId !== 'string') {
+          throw new TypeError('Expected structural selection noteIds');
         }
-        return { startLabel, endLabel } as const;
+        return { startId, endId } as const;
       });
 
-      expect(labels.startLabel).toBe(expected[0]);
-      expect(labels.endLabel).toBe(expected.at(-1));
+      expect(ids.startId).toBe(expected[0]);
+      expect(ids.endId).toBe(expected.at(-1));
     };
 
     // Stage 2: note2 + descendants.
@@ -1097,7 +1097,7 @@ describe('selection plugin', () => {
     await placeCaretAtNoteId(remdo, 'space');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
-    expect(remdo).toMatchSelection({ state: 'structural', notes: [' '] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['space'] });
   });
 
   it('skips the inline stage for empty notes with no text nodes on Shift+Down', async ({ remdo }) => {
@@ -1144,7 +1144,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      expect(remdo).toMatchSelection({ state: 'inline', note: 'child-of-empty' });
+      expect(remdo).toMatchSelection({ state: 'inline', note: 'child' });
     });
   });
 

@@ -5,7 +5,6 @@ import { extractOutlineForExpectedMatch } from '#tests-common/outline';
 import {
   collectSelectedListItems,
   findNearestListItem,
-  getListItemLabel,
   isChildrenWrapper,
   resolveContentListItem,
 } from '#tests';
@@ -121,15 +120,15 @@ function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
       return { state: 'none' } satisfies SelectionSnapshot;
     }
 
-    assertSelectionRespectsOutline(selection, docRoot);
+    $assertSelectionRespectsOutline(selection, docRoot);
 
     if (selection.isCollapsed()) {
-      const caretNote = getCaretNoteLabel(selection);
+      const caretNote = $getCaretNoteId(selection);
       return caretNote ? ({ state: 'caret', note: caretNote } satisfies SelectionSnapshot) : ({ state: 'none' } satisfies SelectionSnapshot);
     }
 
     const outlineSelection = remdo.editor.selection.get();
-    const structuralNotes = collectLabelsFromSelection(selection);
+    const structuralNotes = $collectNoteIdsFromSelection(selection);
     if (outlineSelection?.kind === 'structural') {
       if (structuralNotes.length > 0) {
         return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
@@ -141,9 +140,9 @@ function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
           if (!node || !node.isAttached()) {
             return null;
           }
-          return getListItemLabel(node);
+          return $getNoteId(node);
         })
-        .filter((label: string | null): label is string => typeof label === 'string' && label.length > 0);
+        .filter((noteId: string | null): noteId is string => typeof noteId === 'string' && noteId.length > 0);
 
       if (outlineNotes.length > 0) {
         return { state: 'structural', notes: outlineNotes } satisfies SelectionSnapshot;
@@ -154,7 +153,7 @@ function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
       return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
     }
 
-    const inlineNote = getCaretNoteLabel(selection);
+    const inlineNote = $getCaretNoteId(selection);
     return inlineNote ? ({ state: 'inline', note: inlineNote } satisfies SelectionSnapshot) : ({ state: 'none' } satisfies SelectionSnapshot);
   });
 }
@@ -183,31 +182,36 @@ function readSelectionIds(remdo: RemdoTestHelpers): string[] {
   });
 }
 
-function collectLabelsFromSelection(selection: RangeSelection): string[] {
+function $collectNoteIdsFromSelection(selection: RangeSelection): string[] {
   const items = collectSelectedListItems(selection);
-  const labels: string[] = [];
+  const ids: string[] = [];
   for (const item of items) {
     if (!item.isSelected(selection)) {
       continue;
     }
-  const label = getListItemLabel(item);
-    if (label) {
-      labels.push(label);
+    const noteId = $getNoteId(item);
+    if (noteId) {
+      ids.push(noteId);
     }
   }
-  return labels;
+  return ids;
 }
 
-function getCaretNoteLabel(selection: RangeSelection): string | null {
-  const resolveLabel = (point: RangeSelection['anchor']): string | null => {
+function $getCaretNoteId(selection: RangeSelection): string | null {
+  const $resolveId = (point: RangeSelection['anchor']): string | null => {
     const item = findNearestListItem(point.getNode());
     if (!item || !item.isAttached()) {
       return null;
     }
-    return getListItemLabel(item);
+    return $getNoteId(item);
   };
 
-  return resolveLabel(selection.focus) ?? resolveLabel(selection.anchor);
+  return $resolveId(selection.focus) ?? $resolveId(selection.anchor);
+}
+
+function $getNoteId(item: ListItemNode): string | null {
+  const noteId = $getState(item, noteIdState);
+  return typeof noteId === 'string' && noteId.length > 0 ? noteId : null;
 }
 
 expect.extend({
@@ -269,7 +273,7 @@ expect.extend({
     });
   },
 });
-function assertSelectionRespectsOutline(selection: RangeSelection, root: LexicalNode | null) {
+function $assertSelectionRespectsOutline(selection: RangeSelection, root: LexicalNode | null) {
   const selectedItems = collectSelectedListItems(selection);
   if (selectedItems.length <= 1) {
     return;
@@ -307,8 +311,8 @@ function assertSelectionRespectsOutline(selection: RangeSelection, root: Lexical
       continue;
     }
     if (!selectedKeys.has(item.getKey())) {
-      const missingLabel = getListItemLabel(item) ?? item.getKey();
-      throw new Error(`Selection must cover a contiguous block of notes and subtrees; missing ${missingLabel}`);
+      const missingId = $getNoteId(item) ?? item.getKey();
+      throw new Error(`Selection must cover a contiguous block of notes and subtrees; missing ${missingId}`);
     }
   }
 }
