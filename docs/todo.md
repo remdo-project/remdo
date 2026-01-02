@@ -16,6 +16,23 @@ Rules:
 1. `$getOrCreateChildList` omits copying text format and style from the source
    `ListNode`/`ListItemNode`, unlike Lexical, so new wrappers lose typography.
 
+## Note ids in production (plan stub)
+
+Goal: every note (content list item) always has a `noteId`, including newly
+created notes and collab insertions.
+
+1. Ensure note creation assigns a fresh `noteId` (editor command or node
+   factory hook); define the single source of truth for id generation.
+2. On load, backfill missing `noteId` in serialized states (migration or
+   normalization pass) and persist them on next save.
+3. Validate that collab operations preserve/generate ids deterministically
+   across clients.
+4. Update tests/fixtures to require ids for all notes; delete label-based
+   fallbacks in matchers/helpers.
+
+Once assumed: simplify selection/assertion helpers to use `noteId` only,
+remove label-based selection snapshots, and drop any “find by text” helpers.
+
 ## Harden editor schema validator tests
 
 1. Extract shared builders for editor schema fixtures to cut duplication.

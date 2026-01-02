@@ -55,9 +55,7 @@ outdated or a doc’s role materially changes.
   for UX or Lexical selection work, including the progressive ladder and the empty-note
   inline-stage skip.
 - `docs/todo.md` (Medium). Scratchpad for in-flight work: keep active tasks only (drop completed
-  items), and move durable specs into the appropriate doc under `docs/`. Current focus areas include
-  indent/outdent helpers, editor schema validator tests, collab undo/redo determinism, outline
-  helper unit tests, and InsertionPlugin edge cases.
+  items), and move durable specs into the appropriate doc under `docs/`.
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.
 

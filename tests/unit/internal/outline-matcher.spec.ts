@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import type { Outline } from '#tests';
-import { placeCaretAtNote, pressKey } from '#tests';
+import { placeCaretAtNoteId, pressKey } from '#tests';
 import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 
 interface OutlineCase {
@@ -135,7 +135,7 @@ describe('toMatchOutline smoke coverage', () => {
   it('matches selection-only expectations', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    await placeCaretAtNote(remdo, 'note2');
+    await placeCaretAtNoteId(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
@@ -145,7 +145,7 @@ describe('toMatchOutline smoke coverage', () => {
   it('reports selection mismatches', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    await placeCaretAtNote(remdo, 'note2');
+    await placeCaretAtNoteId(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 

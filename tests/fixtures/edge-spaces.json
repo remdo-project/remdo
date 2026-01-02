@@ -6,6 +6,7 @@
         "type": "list",
         "children": [
           {
+            "noteId": "note1",
             "type": "listitem",
             "value": 1,
             "children": [
@@ -16,6 +17,7 @@
             ]
           },
           {
+            "noteId": "note2-space-left",
             "type": "listitem",
             "value": 2,
             "children": [
@@ -26,6 +28,7 @@
             ]
           },
           {
+            "noteId": "note3",
             "type": "listitem",
             "value": 3,
             "children": [
@@ -36,6 +39,7 @@
             ]
           },
           {
+            "noteId": "note4-space-right",
             "type": "listitem",
             "value": 4,
             "children": [
@@ -46,6 +50,7 @@
             ]
           },
           {
+            "noteId": "note5",
             "type": "listitem",
             "value": 5,
             "children": [
