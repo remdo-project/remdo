@@ -4,10 +4,11 @@ import type { RemdoTestApi } from '@/editor/plugins/dev';
 import type { TextNode } from 'lexical';
 import { $createRangeSelection, $getRoot, $getSelection, $getState, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
 import type { Outline } from '#tests-common/outline';
-import { extractOutlineFromEditorState } from '#tests-common/outline';
+import { extractOutlineFromEditorState, getNoteIdAtPath, getNoteAtPath } from '#tests-common/outline';
 import { findNearestListItem } from './selection';
 import { noteIdState } from '#lib/editor/note-id-state';
 export type { Outline, OutlineNode } from '#tests-common/outline';
+export { getNoteAtPath, getNoteIdAtPath };
 
 export type SelectionSnapshot =
   | { state: 'none' }
@@ -175,6 +176,27 @@ export function readCaretNoteKey(remdo: RemdoTestApi): string {
     }
 
     return item.getKey();
+  });
+}
+
+export function readCaretNoteId(remdo: RemdoTestApi): string {
+  return remdo.validate(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+      throw new Error('Expected collapsed caret selection');
+    }
+
+    const item = findNearestListItem(selection.anchor.getNode()) ?? findNearestListItem(selection.focus.getNode());
+    if (!item) {
+      throw new Error('Expected caret to be inside a list item');
+    }
+
+    const noteId = $getState(item, noteIdState);
+    if (typeof noteId !== 'string' || noteId.length === 0) {
+      throw new Error('Expected caret note to have a noteId');
+    }
+
+    return noteId;
   });
 }
 

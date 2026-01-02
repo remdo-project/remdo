@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { placeCaretAtNoteId, pressKey, typeText } from '#tests';
+import { placeCaretAtNoteId, pressKey, readCaretNoteId, typeText } from '#tests';
 
 describe('insertion semantics (docs/insertion.md)', () => {
   it('enter at start inserts a previous sibling and keeps children with the original', async ({ remdo }) => {
@@ -7,7 +7,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await placeCaretAtNoteId(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter' });
-
+    const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
@@ -15,7 +15,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
       { text: 'note1', children: [ { text: 'note2' } ] },
       { text: 'note3' },
     ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'X' });
+    expect(remdo).toMatchSelectionIds([newNoteId]);
   });
 
   it('enter in the middle splits into an above sibling while trailing text and children stay with the original', async ({ remdo }) => {
@@ -61,13 +61,13 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await placeCaretAtNoteId(remdo, 'note2');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(remdo).toMatchSelectionIds(['note2', 'note3']);
 
     const before = remdo.getEditorState();
     await pressKey(remdo, { key: 'Enter' });
 
     expect(remdo).toMatchEditorState(before);
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(remdo).toMatchSelectionIds(['note2', 'note3']);
   });
 
   it('enter split inside nested note inserts sibling above within same parent', async ({ remdo }) => {

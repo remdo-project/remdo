@@ -38,6 +38,10 @@ created notes and collab insertions.
    label/text-based fallbacks in matchers and selection helpers.
 8. Once the above is stable, simplify selection/assertion helpers to use
    `noteId` only and drop any “find by text” helpers.
+9. Consolidate test-only “get noteId or throw” logic into a shared helper to
+   avoid duplication across selection utilities and matchers.
+10. Re-evaluate `toMatchSelection` after the refactor and drop it if it is no
+    longer used (or replace call sites with `toMatchSelectionIds`).
 
 ## Harden editor schema validator tests
 
