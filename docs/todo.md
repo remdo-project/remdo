@@ -16,22 +16,28 @@ Rules:
 1. `$getOrCreateChildList` omits copying text format and style from the source
    `ListNode`/`ListItemNode`, unlike Lexical, so new wrappers lose typography.
 
-## Note ids in production (plan stub)
+## Note ids in production
 
 Goal: every note (content list item) always has a `noteId`, including newly
 created notes and collab insertions.
 
-1. Ensure note creation assigns a fresh `noteId` (editor command or node
-   factory hook); define the single source of truth for id generation.
-2. On load, backfill missing `noteId` in serialized states (migration or
-   normalization pass) and persist them on next save.
-3. Validate that collab operations preserve/generate ids deterministically
-   across clients.
-4. Update tests/fixtures to require ids for all notes; delete label-based
-   fallbacks in matchers/helpers.
-
-Once assumed: simplify selection/assertion helpers to use `noteId` only,
-remove label-based selection snapshots, and drop any “find by text” helpers.
+1. ✅ Done — Document behavior in `docs/outliner/note-ids.md` and link it from
+   `docs/outliner/index.md` + `docs/outliner/concepts.md`.
+2. Decide the single source of truth for `noteId` generation (shared utility or
+   adapter helper) and thread it through every note-creation path.
+3. Audit all note-creation paths (Enter insertions, paste/clipboard import,
+   duplication, structural splits/merges, collab insertions, full-document
+   duplication) and ensure each creates or preserves `noteId` per the spec.
+4. Add a normalization pass on load that backfills missing `noteId` values and
+   resolves duplicates (preserve first in document order, reassign the rest).
+5. Persist normalized IDs on the next save and update schema validation to
+   require `noteId` on every content list item.
+6. Add collaboration tests to verify deterministic ID preservation across
+   clients, including concurrent inserts and copy/paste.
+7. Update fixtures and test helpers to require `noteId` for all notes; remove
+   label/text-based fallbacks in matchers and selection helpers.
+8. Once the above is stable, simplify selection/assertion helpers to use
+   `noteId` only and drop any “find by text” helpers.
 
 ## Harden editor schema validator tests
 
