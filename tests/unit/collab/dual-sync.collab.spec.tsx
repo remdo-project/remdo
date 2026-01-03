@@ -3,7 +3,7 @@ import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
 import { $createListItemNode, $createListNode } from '@lexical/list';
 import { describe, expect, it } from 'vitest';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
-import { getNoteIdAtPath, readOutline } from '#tests';
+import { readOutline } from '#tests';
 import { renderCollabEditor } from './_support/remdo-peers';
 
 describe('collaboration sync', () => {
@@ -21,9 +21,7 @@ describe('collaboration sync', () => {
 
     await waitFor(() => {
       const outlineA = readOutline(remdo);
-      const noteId = getNoteIdAtPath(outlineA, [0]);
-      expect(remdo).toMatchOutline([{ noteId }]);
-      expect(secondary).toMatchOutline([{ noteId }]);
+      expect(secondary).toMatchOutline(outlineA);
     });
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);

@@ -30,14 +30,6 @@ export function getNoteAtPath(outline: Outline, path: number[]): OutlineNode {
   return node;
 }
 
-export function getNoteIdAtPath(outline: Outline, path: number[]): string {
-  const node = getNoteAtPath(outline, path);
-  if (!node.noteId) {
-    throw new Error(`Expected noteId at outline path "${path.join('.')}".`);
-  }
-  return node.noteId;
-}
-
 function getChildren(node: SerializedLexicalNode | null | undefined): SerializedLexicalNode[] {
   const children = (node as { children?: unknown } | null | undefined)?.children;
   return Array.isArray(children) ? (children as SerializedLexicalNode[]) : [];

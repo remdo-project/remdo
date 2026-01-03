@@ -4,11 +4,11 @@ import type { RemdoTestApi } from '@/editor/plugins/dev';
 import type { TextNode } from 'lexical';
 import { $createRangeSelection, $getRoot, $getSelection, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
 import type { Outline } from '#tests-common/outline';
-import { extractOutlineFromEditorState, getNoteIdAtPath, getNoteAtPath } from '#tests-common/outline';
+import { extractOutlineFromEditorState, getNoteAtPath } from '#tests-common/outline';
 import { findNearestListItem } from './selection';
 import { $getNoteId } from '#lib/editor/note-id-state';
 export type { Outline, OutlineNode } from '#tests-common/outline';
-export { getNoteAtPath, getNoteIdAtPath };
+export { getNoteAtPath };
 
 export type SelectionSnapshot =
   | { state: 'none' }
