@@ -1,7 +1,7 @@
 import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
-import { extractOutlineForExpectedMatch } from '#tests-common/outline';
+import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
 import {
   collectSelectedListItems,
   findNearestListItem,
@@ -95,8 +95,8 @@ function assertOutlineExpectation(outline: Outline, path: number[] = []) {
       throw new Error(`outline[${nodePath.join('>')}].text must be omitted or a string; null is not allowed.`);
     }
 
-    if (node.noteId !== undefined && typeof node.noteId !== 'string') {
-      throw new TypeError(`outline[${nodePath.join('>')}].noteId must be omitted or a string.`);
+    if (node.noteId !== null && (typeof node.noteId !== 'string' || node.noteId.length === 0)) {
+      throw new TypeError(`outline[${nodePath.join('>')}].noteId must be a non-empty string or null.`);
     }
 
     if (Object.prototype.hasOwnProperty.call(node, 'children')) {
@@ -218,7 +218,11 @@ expect.extend({
   toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: Outline) {
     assertOutlineExpectation(expected);
 
-    const outline = attemptRead(this, '.toMatchOutline', () => extractOutlineForExpectedMatch(remdo.getEditorState(), expected));
+    const outline = attemptRead(this, '.toMatchOutline', () => {
+      const actual = extractOutlineFromEditorState(remdo.getEditorState());
+      mutateOutlineNoteIdWildcards(actual, expected);
+      return actual;
+    });
     if (!outline.ok) return outline.result;
 
     return compareWithExpected(this, outline.value, expected, {

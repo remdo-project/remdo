@@ -22,9 +22,9 @@ describe('collab structural delete regression', () => {
     await pressKey(editorA, { key: 'ArrowDown', shift: true });
 
     const expectedAfterRemoteDelete = [
-      { text: 'note1', children: [ { text: 'note4' } ] },
-      { text: 'note5' },
-      { text: 'note6', children: [ { text: 'note7' } ] },
+      { noteId: 'note1', text: 'note1', children: [ { noteId: 'note4', text: 'note4' } ] },
+      { noteId: 'note5', text: 'note5' },
+      { noteId: 'note6', text: 'note6', children: [ { noteId: 'note7', text: 'note7' } ] },
     ];
 
     await placeCaretAtNoteId(editorB, 'note2');

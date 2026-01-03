@@ -11,9 +11,9 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
-      { text: 'X' },
-      { text: 'note1', children: [ { text: 'note2' } ] },
-      { text: 'note3' },
+      { noteId: newNoteId, text: 'X' },
+      { noteId: 'note1', text: 'note1', children: [ { noteId: 'note2', text: 'note2' } ] },
+      { noteId: 'note3', text: 'note3' },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
@@ -28,9 +28,9 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
-      { text: 'no' },
-      { text: 'Xte1' },
-      { text: 'note2', children: [ { text: 'note3' } ] },
+      { noteId: 'note1', text: 'no' },
+      { noteId: newNoteId, text: 'Xte1' },
+      { noteId: 'note2', text: 'note2', children: [ { noteId: 'note3', text: 'note3' } ] },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
@@ -46,13 +46,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     expect(remdo).toMatchOutline([
       {
+        noteId: 'note1',
         text: 'note1',
         children: [
-          { text: 'X' },
-          { text: 'note2' },
+          { noteId: newNoteId, text: 'X' },
+          { noteId: 'note2', text: 'note2' },
         ],
       },
-      { text: 'note3' },
+      { noteId: 'note3', text: 'note3' },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
@@ -81,9 +82,9 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
-      { text: 'note1' },
-      { text: 'no' },
-      { text: 'Xte2', children: [ { text: 'note3' } ] },
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'no' },
+      { noteId: newNoteId, text: 'Xte2', children: [ { noteId: 'note3', text: 'note3' } ] },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
@@ -97,12 +98,13 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
-      { text: 'note1' },
+      { noteId: 'note1', text: 'note1' },
       {
+        noteId: 'note2',
         text: 'note2',
         children: [
-          { text: 'X' },
-          { text: 'note3' },
+          { noteId: newNoteId, text: 'X' },
+          { noteId: 'note3', text: 'note3' },
         ],
       },
     ]);
@@ -118,12 +120,13 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
-      { text: 'note1' },
+      { noteId: 'note1', text: 'note1' },
       {
+        noteId: 'note2',
         text: 'note2',
         children: [
-          { text: 'X' },
-          { text: 'note3' },
+          { noteId: newNoteId, text: 'X' },
+          { noteId: 'note3', text: 'note3' },
         ],
       },
     ]);
@@ -139,9 +142,9 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await typeText(remdo, 'X');
 
     expect(remdo).toMatchOutline([
-      { text: 'note1' },
-      { text: 'X' },
-      { text: 'note2', children: [{ text: 'note3' }] },
+      { noteId: 'note1', text: 'note1' },
+      { noteId: newNoteId, text: 'X' },
+      { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
@@ -156,18 +159,20 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     expect(remdo).toMatchOutline([
       {
+        noteId: 'note1',
         text: 'note1',
         children: [
           {
+            noteId: 'note2',
             text: 'note2',
-            children: [{ text: 'note3' }],
+            children: [{ noteId: 'note3', text: 'note3' }],
           },
-          { text: 'X' },
-          { text: 'note4' },
+          { noteId: newNoteId, text: 'X' },
+          { noteId: 'note4', text: 'note4' },
         ],
       },
-      { text: 'note5' },
-      { text: 'note6', children: [{ text: 'note7' }] },
+      { noteId: 'note5', text: 'note5' },
+      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
@@ -182,20 +187,23 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     expect(remdo).toMatchOutline([
       {
+        noteId: 'note1',
         text: 'note1',
         children: [
           {
+            noteId: 'note2',
             text: 'no',
           },
           {
+            noteId: newNoteId,
             text: 'Xte2',
-            children: [{ text: 'note3' }],
+            children: [{ noteId: 'note3', text: 'note3' }],
           },
-          { text: 'note4' },
+          { noteId: 'note4', text: 'note4' },
         ],
       },
-      { text: 'note5' },
-      { text: 'note6', children: [{ text: 'note7' }] },
+      { noteId: 'note5', text: 'note5' },
+      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });

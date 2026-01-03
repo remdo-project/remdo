@@ -1,7 +1,7 @@
 import type { ConsoleMessage, Page, Response } from '@playwright/test';
 import { expect, test as base } from '@playwright/test';
 import type { Outline } from '#tests-common/outline';
-import { extractOutlineForExpectedMatch } from '#tests-common/outline';
+import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
 
 interface EditorLike {
   getEditorState: () => Promise<unknown>;
@@ -65,7 +65,11 @@ expect.extend({
 
     try {
       await expect
-        .poll(async () => extractOutlineForExpectedMatch(await target.getEditorState!(), expected))
+        .poll(async () => {
+          const actual = extractOutlineFromEditorState(await target.getEditorState!());
+          mutateOutlineNoteIdWildcards(actual, expected);
+          return actual;
+        })
         .toEqual(expected);
       return { pass: true, message: () => 'Expected outlines not to match.' };
     } catch (error) {

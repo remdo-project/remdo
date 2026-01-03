@@ -4,8 +4,8 @@ import type { SerializedOutlineNote } from '@/editor/plugins/dev/schema/traverse
 import { traverseSerializedOutlineOrThrow } from '@/editor/plugins/dev/schema/traverseSerializedOutlineOrThrow';
 
 export interface OutlineNode {
+  noteId: string | null;
   text?: string;
-  noteId?: string;
   children?: Outline;
 }
 
@@ -67,11 +67,10 @@ export function extractOutlineFromEditorState(state: unknown): Outline {
       if (typeof note.noteId !== 'string' || note.noteId.length === 0) {
         throw new TypeError(`Expected noteId to be a non-empty string at "${note.path.join('.')}".`);
       }
-      const node: OutlineNode = {};
+      const node: OutlineNode = { noteId: note.noteId };
       if (text !== null) {
         node.text = text;
       }
-      node.noteId = note.noteId;
       if (note.children.length > 0) {
         node.children = readNotes(note.children);
       }
@@ -81,22 +80,22 @@ export function extractOutlineFromEditorState(state: unknown): Outline {
   return readNotes(notes);
 }
 
-export function extractOutlineForExpectedMatch(state: unknown, expected: Outline): Outline {
-  const actual = extractOutlineFromEditorState(state);
-  const strip = (actualNodes: Outline, expectedNodes: Outline) => {
+export function mutateOutlineNoteIdWildcards(actual: Outline, expected: Outline): void {
+  // Normalize actuals before comparison so we keep vitest's diff output while still allowing
+  // `noteId: null` in expected outlines to mean "present but don't care about the value", and so
+  // the same helper works for vitest and playwright expectations.
+  const walk = (actualNodes: Outline, expectedNodes: Outline) => {
     for (let index = 0; index < actualNodes.length; index += 1) {
       const actualNode = actualNodes[index]!;
       const expectedNode = expectedNodes[index];
-      if (expectedNode?.noteId === undefined) {
-        delete actualNode.noteId;
+      if (expectedNode?.noteId === null) {
+        actualNode.noteId = null;
       }
-
       if (actualNode.children) {
-        strip(actualNode.children, expectedNode?.children ?? []);
+        walk(actualNode.children, expectedNode?.children ?? []);
       }
     }
   };
 
-  strip(actual, expected);
-  return actual;
+  walk(actual, expected);
 }

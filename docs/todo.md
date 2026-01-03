@@ -23,27 +23,33 @@ created notes and collab insertions.
 
 1. ✅ Done — Document behavior in `docs/outliner/note-ids.md` and link it from
    `docs/outliner/index.md` + `docs/outliner/concepts.md`.
-2. Single source of truth: add a small editor-layer utility for `noteId`
-   generation (shared helper) and thread it through every note-creation path.
+2. ✅ Done — Single source of truth: add a small editor-layer utility for
+   `noteId` generation (shared helper). Threading it through every
+   note-creation path is tracked in item 3.
 3. Audit all note-creation paths (Enter insertions, paste/clipboard import,
    duplication, structural splits/merges, collab insertions, full-document
    duplication) and ensure each creates or preserves `noteId` per the spec.
 4. Add unit tests that paste/duplicate notes and assert fresh `noteId` values
    before implementing any clipboard-specific handling.
-5. Add a normalization pass on load that backfills missing `noteId` values and
-   resolves duplicates (preserve first in document order, reassign the rest).
-6. Persist normalized IDs on the next save and update schema validation to
-   require `noteId` on every content list item.
+5. ✅ Done — Add a normalization pass on load that backfills missing `noteId`
+   values and resolves duplicates (preserve first in document order, reassign
+   the rest).
+6. ✅ Done — Persist normalized IDs on the next save and update schema
+   validation to require `noteId` on every content list item.
 7. Add collaboration tests to verify deterministic ID preservation across
    clients, including concurrent inserts and copy/paste.
-8. Update fixtures and test helpers to require `noteId` for all notes; remove
-   label/text-based fallbacks in matchers and selection helpers.
-9. Once the above is stable, simplify selection/assertion helpers to use
-   `noteId` only and drop any “find by text” helpers.
+8. ✅ Done — Updated fixtures and matchers to require `noteId` on all notes.
+9. ✅ Done — Removed text/label-based selection helpers; tests now use `noteId`.
 10. Consolidate test-only “get noteId or throw” logic into a shared helper to
     avoid duplication across selection utilities and matchers.
 11. Re-evaluate `toMatchSelection` after the refactor and drop it if it is no
     longer used (or replace call sites with `toMatchSelectionIds`).
+12. ✅ Done — Added a `toMatchOutline` escape hatch (`noteId: null`) to assert
+    presence of a noteId without pinning its exact value in tests.
+13. Consider a clearer noteId path helper in tests (id-based, not text-based):
+    options discussed were a variadic index helper (`noteIdAt(outline, 0, 1)`),
+    explicit naming (`getNoteIdAtIndexPath`), or an id-path helper that accepts
+    a sequence of noteIds (e.g., `getNoteAtIdPath(outline, id1, id2)`).
 
 ## Harden editor schema validator tests
 
