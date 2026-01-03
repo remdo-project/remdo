@@ -53,6 +53,15 @@ document ID. This spec does not define the format or storage of document IDs.
 - When duplicating an entire document, preserve all `noteId` values so that
   `noteRef` remains unique via the new `documentId`.
 
+### Clipboard semantics
+
+- Copy → paste within the same document is treated as duplication **unless** the
+  paste target is the exact same contiguous note range in the same position, in
+  which case the operation is a no-op and `noteId` values are preserved.
+- Cut → paste within the same document is treated as a move, preserving
+  `noteId` values; pasting back into the original position is a no-op.
+- Pasting into a different document always generates new `noteId` values.
+
 ### Merge and deletion
 
 - When two notes merge, the surviving note retains its `noteId`; the merged
