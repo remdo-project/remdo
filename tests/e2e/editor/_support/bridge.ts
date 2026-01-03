@@ -40,7 +40,7 @@ async function runWithRemdoTest(page: Page, action: RemdoTestAction): Promise<un
   }, action);
 }
 
-export async function waitForRemdoTest(page: Page, timeoutMs = 4000): Promise<void> {
+async function waitForRemdoTest(page: Page, timeoutMs = 4000): Promise<void> {
   await page.waitForFunction(() => {
     return Boolean(__remdoBridgePromise);
   }, undefined, { timeout: timeoutMs });
@@ -52,7 +52,7 @@ export async function ensureReady(page: Page, opts: { clear?: boolean } = {}): P
   await runWithRemdoTest(page, { kind: 'ensure', clear });
 }
 
-export async function replaceDocument(page: Page, serializedStateJson: string): Promise<void> {
+async function replaceDocument(page: Page, serializedStateJson: string): Promise<void> {
   await ensureReady(page);
   await runWithRemdoTest(page, { kind: 'load', stateJson: serializedStateJson });
 }

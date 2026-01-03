@@ -11,25 +11,6 @@ export interface OutlineNode {
 
 export type Outline = OutlineNode[];
 
-export function getNoteAtPath(outline: Outline, path: number[]): OutlineNode {
-  let current: Outline = outline;
-  let node: OutlineNode | undefined;
-
-  for (const index of path) {
-    node = current[index];
-    if (!node) {
-      throw new Error(`Outline path "${path.join('.')}" does not exist.`);
-    }
-    current = node.children ?? [];
-  }
-
-  if (!node) {
-    throw new Error(`Outline path "${path.join('.')}" does not exist.`);
-  }
-
-  return node;
-}
-
 function getChildren(node: SerializedLexicalNode | null | undefined): SerializedLexicalNode[] {
   const children = (node as { children?: unknown } | null | undefined)?.children;
   return Array.isArray(children) ? (children as SerializedLexicalNode[]) : [];
