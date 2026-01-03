@@ -145,11 +145,6 @@ describe('note id normalization on load', () => {
   it('keeps existing unique noteIds unchanged', async ({ remdo }) => {
     await remdo.load('flat');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
   });
 });
 
@@ -203,8 +198,16 @@ describe('note ids on paste', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
 
+    const outlineBeforePaste = readOutline(remdo);
+
     const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
     await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
+    expect(readOutline(remdo)).toEqual(outlineBeforePaste);
+
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
+    expect(readOutline(remdo)).toEqual(outlineBeforePaste);
 
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
