@@ -40,8 +40,8 @@ created notes and collab insertions.
    clients, including concurrent inserts and copy/paste.
 8. ✅ Done — Updated fixtures and matchers to require `noteId` on all notes.
 9. ✅ Done — Removed text/label-based selection helpers; tests now use `noteId`.
-10. Consolidate test-only “get noteId or throw” logic into a shared helper to
-    avoid duplication across selection utilities and matchers.
+10. ✅ Done — Consolidated test-only “get noteId or throw” logic into a shared
+    helper to avoid duplication across selection utilities and matchers.
 11. Re-evaluate `toMatchSelection` after the refactor and drop it if it is no
     longer used (or replace call sites with `toMatchSelectionIds`).
 12. ✅ Done — Added a `toMatchOutline` escape hatch (`noteId: null`) to assert

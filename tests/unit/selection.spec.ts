@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Outline } from '#tests';
 import {
   collectSelectedListItems,
+  $getNoteIdOrThrow,
   getRootElementOrThrow,
   placeCaretAtNoteId,
   getNoteKeyById,
@@ -11,9 +12,8 @@ import {
   readOutline,
   typeText,
 } from '#tests';
-import { $getSelection, $getState, $isRangeSelection } from 'lexical';
+import { $getSelection, $isRangeSelection } from 'lexical';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
-import { noteIdState } from '#lib/editor/note-id-state';
 
 const TREE_COMPLEX_OUTLINE: Outline = [
   {
@@ -947,11 +947,8 @@ describe('selection plugin', () => {
         if (items.length === 0) {
           throw new Error('Expected structural selection');
         }
-        const startId = $getState(items[0]!, noteIdState);
-        const endId = $getState(items.at(-1)!, noteIdState);
-        if (typeof startId !== 'string' || typeof endId !== 'string') {
-          throw new TypeError('Expected structural selection noteIds');
-        }
+        const startId = $getNoteIdOrThrow(items[0]!, 'Expected structural selection noteIds');
+        const endId = $getNoteIdOrThrow(items.at(-1)!, 'Expected structural selection noteIds');
         return { startId, endId } as const;
       });
 

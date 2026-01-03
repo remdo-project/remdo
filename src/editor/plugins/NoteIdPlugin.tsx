@@ -1,58 +1,39 @@
 import type { ListNode } from '@lexical/list';
 import { ListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getRoot, $getState, $setState } from 'lexical';
+import { $getRoot, $setState } from 'lexical';
 import { useEffect, useRef } from 'react';
-import { createNoteId } from '#lib/editor/note-ids';
-import { noteIdState } from '#lib/editor/note-id-state';
+import { createNoteId, createNoteIdWithUsedIds } from '#lib/editor/note-ids';
+import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import { isChildrenWrapper } from '@/editor/outline/list-structure';
 import { useCollaborationStatus } from './collaboration';
 
-function $ensureNoteId(item: ListItemNode, docId: string) {
-  if (isChildrenWrapper(item)) {
+function $ensureNoteId(item: ListItemNode) {
+  if (isChildrenWrapper(item) || $getNoteId(item)) {
     return;
   }
-  const noteId = $getState(item, noteIdState);
 
-  let normalized: string;
-  if (typeof noteId === 'string' && noteId.length > 0 && noteId !== docId) {
-    normalized = noteId;
-  } else {
-    const reserved = new Set<string>();
-    if (docId.length > 0) {
-      reserved.add(docId);
-    }
-    normalized = createNoteId(docId, reserved);
-    $setState(item, noteIdState, normalized);
-  }
+  $setState(item, noteIdState, createNoteId());
 }
 
-function $normalizeNoteIdOnLoad(
-  item: ListItemNode,
-  docId: string,
-  usedIds: Set<string>
-) {
+function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>) {
   if (isChildrenWrapper(item)) {
     return;
   }
-  const noteId = $getState(item, noteIdState);
+  const noteId = $getNoteId(item);
 
   let normalized: string;
-  if (typeof noteId === 'string' && noteId.length > 0 && noteId !== docId && !usedIds.has(noteId)) {
+  if (noteId && !usedIds.has(noteId)) {
     normalized = noteId;
   } else {
-    normalized = createNoteId(docId, usedIds);
+    normalized = createNoteIdWithUsedIds(usedIds);
     $setState(item, noteIdState, normalized);
   }
 
   usedIds.add(normalized);
 }
 
-function $normalizeListNoteIds(
-  list: ListNode,
-  docId: string,
-  usedIds: Set<string>
-) {
+function $normalizeListNoteIds(list: ListNode, usedIds: Set<string>) {
   for (const child of list.getChildren()) {
     if (!$isListItemNode(child)) {
       continue;
@@ -61,26 +42,22 @@ function $normalizeListNoteIds(
     if (isChildrenWrapper(child)) {
       const nested = child.getFirstChild();
       if ($isListNode(nested)) {
-        $normalizeListNoteIds(nested, docId, usedIds);
+        $normalizeListNoteIds(nested, usedIds);
       }
       continue;
     }
-    $normalizeNoteIdOnLoad(child, docId, usedIds);
+    $normalizeNoteIdOnLoad(child, usedIds);
   }
 }
 
-function $normalizeNoteIds(
-  root: ReturnType<typeof $getRoot>,
-  docId: string,
-  usedIds: Set<string>
-) {
+function $normalizeNoteIds(root: ReturnType<typeof $getRoot>, usedIds: Set<string>) {
   const rootChildren = root.getChildren();
   const list = rootChildren.find($isListNode);
   if (!$isListNode(list)) {
     return;
   }
 
-  $normalizeListNoteIds(list, docId, usedIds);
+  $normalizeListNoteIds(list, usedIds);
 }
 
 export function NoteIdPlugin() {
@@ -97,7 +74,7 @@ export function NoteIdPlugin() {
         if (docId.length > 0) {
           used.add(docId);
         }
-        $normalizeNoteIds($getRoot(), docId, used);
+        $normalizeNoteIds($getRoot(), used);
       });
     }
 
@@ -105,7 +82,7 @@ export function NoteIdPlugin() {
       if (!readyRef.current) {
         return;
       }
-      $ensureNoteId(node, docId);
+      $ensureNoteId(node);
     });
 
     return () => {

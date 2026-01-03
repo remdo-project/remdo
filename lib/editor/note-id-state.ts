@@ -1,9 +1,14 @@
 import { ListItemNode } from '@lexical/list';
-import { $setState, createState } from 'lexical';
+import { $getState, $setState, createState } from 'lexical';
 
 export const noteIdState = createState('noteId', {
   parse: (value) => (typeof value === 'string' ? value : undefined),
 });
+
+export function $getNoteId(node: ListItemNode): string | null {
+  const noteId = $getState(node, noteIdState);
+  return typeof noteId === 'string' && noteId.length > 0 ? noteId : null;
+}
 
 let didPatch = false;
 

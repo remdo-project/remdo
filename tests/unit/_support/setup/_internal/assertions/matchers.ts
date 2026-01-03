@@ -5,14 +5,15 @@ import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#te
 import {
   collectSelectedListItems,
   findNearestListItem,
+  $getNoteIdOrThrow,
   isChildrenWrapper,
   resolveContentListItem,
 } from '#tests';
-import { $getSelection, $isRangeSelection, $getNodeByKey, $getRoot, $getState } from 'lexical';
+import { $getSelection, $isRangeSelection, $getNodeByKey, $getRoot } from 'lexical';
 import type { RangeSelection, LexicalNode } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
-import { noteIdState } from '#lib/editor/note-id-state';
+import { $getNoteId } from '#lib/editor/note-id-state';
 
 type RemdoTestHelpers = TestContext['remdo'];
 
@@ -171,10 +172,7 @@ function readSelectionIds(remdo: RemdoTestHelpers): string[] {
       if (!node || !node.isAttached()) {
         throw new TypeError(`Selection key ${key} does not resolve to an attached list item.`);
       }
-      const noteId = $getState(node, noteIdState);
-      if (typeof noteId !== 'string') {
-        throw new TypeError(`Selection item ${key} is missing a noteId.`);
-      }
+      const noteId = $getNoteIdOrThrow(node, `Selection item ${key} is missing a noteId.`);
       ids.push(noteId);
     }
 
@@ -207,11 +205,6 @@ function $getCaretNoteId(selection: RangeSelection): string | null {
   };
 
   return $resolveId(selection.focus) ?? $resolveId(selection.anchor);
-}
-
-function $getNoteId(item: ListItemNode): string | null {
-  const noteId = $getState(item, noteIdState);
-  return typeof noteId === 'string' && noteId.length > 0 ? noteId : null;
 }
 
 expect.extend({

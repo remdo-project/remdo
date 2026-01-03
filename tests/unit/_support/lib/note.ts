@@ -2,11 +2,11 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import type { TextNode } from 'lexical';
-import { $createRangeSelection, $getRoot, $getSelection, $getState, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
+import { $createRangeSelection, $getRoot, $getSelection, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState, getNoteIdAtPath, getNoteAtPath } from '#tests-common/outline';
 import { findNearestListItem } from './selection';
-import { noteIdState } from '#lib/editor/note-id-state';
+import { $getNoteId } from '#lib/editor/note-id-state';
 export type { Outline, OutlineNode } from '#tests-common/outline';
 export { getNoteAtPath, getNoteIdAtPath };
 
@@ -16,6 +16,13 @@ export type SelectionSnapshot =
   | { state: 'inline'; note: string }
   | { state: 'structural'; notes: string[] };
 
+export function $getNoteIdOrThrow(item: ListItemNode, message = 'Expected list item to have a noteId'): string {
+  const noteId = $getNoteId(item);
+  if (!noteId) {
+    throw new Error(message);
+  }
+  return noteId;
+}
 
 function $findItemByNoteId(noteId: string): ListItemNode | null {
   const root = $getRoot();
@@ -24,7 +31,7 @@ function $findItemByNoteId(noteId: string): ListItemNode | null {
   const $search = (listNode: ListNode): ListItemNode | null => {
     const items = listNode.getChildren<ListItemNode>();
     for (const item of items) {
-      if ($getState(item, noteIdState) === noteId) {
+      if ($getNoteId(item) === noteId) {
         return item;
       }
 
@@ -125,12 +132,7 @@ export function readCaretNoteId(remdo: RemdoTestApi): string {
       throw new Error('Expected caret to be inside a list item');
     }
 
-    const noteId = $getState(item, noteIdState);
-    if (typeof noteId !== 'string' || noteId.length === 0) {
-      throw new Error('Expected caret note to have a noteId');
-    }
-
-    return noteId;
+    return $getNoteIdOrThrow(item, 'Expected caret note to have a noteId');
   });
 }
 
