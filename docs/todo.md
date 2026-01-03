@@ -46,10 +46,13 @@ created notes and collab insertions.
     sites now use explicit structural snapshots).
 12. ✅ Done — Added a `toMatchOutline` escape hatch (`noteId: null`) to assert
     presence of a noteId without pinning its exact value in tests.
-13. Consider a clearer noteId path helper in tests (id-based, not text-based):
+13. ✅ Done — dropped unused path helpers; revisit only if a new id-based helper is needed:
     options discussed were a variadic index helper (`noteIdAt(outline, 0, 1)`),
     explicit naming (`getNoteIdAtIndexPath`), or an id-path helper that accepts
     a sequence of noteIds (e.g., `getNoteAtIdPath(outline, id1, id2)`).
+14. Add a test harness (or bypass) that allows loading invalid serialized states
+    without `assertEditorSchema` throwing, so we can test NoteIdPlugin load
+    normalization for missing/duplicate noteIds.
 
 ## Harden editor schema validator tests
 

@@ -6,10 +6,10 @@ const NOTE_ID_ALPHABET = [...urlAlphabet].filter((char) => !NOTE_ID_EXCLUDED.has
 const NOTE_ID_LENGTH = 10;
 const createNoteId = customAlphabet(NOTE_ID_ALPHABET, NOTE_ID_LENGTH);
 
-export function createNoteIdAvoiding(usedIds: Set<string>): string {
-  let id = createNoteId();
+export function createNoteIdAvoiding(usedIds: Set<string>, testOnlyGenerator: () => string = createNoteId): string {
+  let id = testOnlyGenerator();
   while (usedIds.has(id)) {
-    id = createNoteId();
+    id = testOnlyGenerator();
   }
   return id;
 }

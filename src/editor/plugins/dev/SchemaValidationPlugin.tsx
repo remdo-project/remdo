@@ -1,11 +1,17 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect } from 'react';
+import { useCollaborationStatus } from '../collaboration';
 import { assertEditorSchema } from './schema/assertEditorSchema';
 
 export function SchemaValidationPlugin(): null {
   const [editor] = useLexicalComposerContext();
+  const { hydrated, docEpoch } = useCollaborationStatus();
 
   useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
     return editor.registerUpdateListener(() => {
       try {
         const state = editor.getEditorState().toJSON();
@@ -14,7 +20,7 @@ export function SchemaValidationPlugin(): null {
         console.error('[RemDo] Editor schema validation failed.', error);
       }
     });
-  }, [editor]);
+  }, [editor, hydrated, docEpoch]);
 
   return null;
 }
