@@ -40,9 +40,14 @@ function createClipboardEvent(payload: unknown, type: 'paste' | 'cut' | 'copy' =
 }
 
 async function selectStructuralNote(remdo: RemdoTestApi, noteId: string): Promise<void> {
+  const noteText = readOutline(remdo).find((note) => note.noteId === noteId)?.text ?? '';
+  const needsInlineStage = noteText.trim().length > 0;
   await placeCaretAtNoteId(remdo, noteId, 0);
   await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-  await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+  // Empty note bodies skip the inline stage, so only press again when inline exists.
+  if (needsInlineStage) {
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+  }
   expect(remdo).toMatchSelection({ state: 'structural', notes: [noteId] });
 }
 
@@ -50,11 +55,9 @@ async function selectStructuralNote(remdo: RemdoTestApi, noteId: string): Promis
 // This helper simulates a real "cut" by issuing CUT_COMMAND and then deleting the selection.
 async function cutAndDeleteStructuralNote(remdo: RemdoTestApi, noteId: string) {
   await selectStructuralNote(remdo, noteId);
-  expect(remdo).toMatchSelection({ state: 'structural', notes: [noteId] });
   const clipboardPayload = buildClipboardPayload(remdo, [noteId]);
   await remdo.dispatchCommand(CUT_COMMAND, createClipboardEvent(clipboardPayload, 'cut'));
   await selectStructuralNote(remdo, noteId);
-  expect(remdo).toMatchSelection({ state: 'structural', notes: [noteId] });
   await pressKey(remdo, { key: 'Delete' });
   return clipboardPayload;
 }

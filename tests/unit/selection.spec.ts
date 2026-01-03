@@ -1080,6 +1080,22 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
   });
 
+  it('resets the Cmd/Ctrl+A ladder after placing the caret within the same note', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    await placeCaretAtNoteId(remdo, 'note2');
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
+
+    await placeCaretAtNoteId(remdo, 'note2');
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
+  });
+
   it('skips the inline stage for whitespace-only notes on Cmd/Ctrl+A', async ({ remdo }) => {
     await remdo.load('empty-labels');
 

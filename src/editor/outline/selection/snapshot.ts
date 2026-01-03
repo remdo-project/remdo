@@ -83,9 +83,7 @@ export function $computeOutlineSelectionSnapshot({
       (selection.isCollapsed() && !isCollapsedStructuralIntent) ||
       nextProgression.anchorKey !== anchorSelectionKey
     ) {
-      if (!nextUnlock.pending || nextUnlock.reason !== 'directional') {
-        resetProgression();
-      }
+      resetProgression();
       nextUnlock = { pending: false, reason: 'external' };
     }
   } else {
