@@ -10,7 +10,7 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 
 import type { RemdoTestApi } from '@/editor/plugins/dev';
-import { placeCaretAtNoteId, pressKey, readOutline } from '#tests';
+import { placeCaretAtNoteId, pressKey, readOutline, typeText } from '#tests';
 import { createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { noteIdState } from '#lib/editor/note-id-state';
 
@@ -258,6 +258,31 @@ describe('note ids on paste', () => {
     expect(pastedNoteId).not.toBe('note2');
     const noteIds = outlineAfterPaste.map((note) => note.noteId);
     expect(new Set(noteIds).size).toBe(outlineAfterPaste.length);
+  });
+
+  it.fails('restores copied content when pasting over an edited note with the same id', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    await selectStructuralNote(remdo, 'note2');
+    const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
+
+    await placeCaretAtNoteId(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' edited');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2 edited' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    await selectStructuralNote(remdo, 'note2');
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
   });
 
   it('preserves noteIds when cutting and pasting a note back in place', async ({ remdo }) => {

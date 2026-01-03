@@ -59,6 +59,9 @@ created notes and collab insertions.
     is a no-op; cut → paste elsewhere preserves `noteId`).
 17. Clear clipboard move-tracking state on doc changes so cross-doc pastes
     regenerate `noteId` values.
+18. Clarify copy/edit/paste semantics when clipboard noteIds match a structural
+    selection (single vs. multi-note, reorder cases, and whether paste should
+    replace content or remain a no-op).
 
 ## Harden editor schema validator tests
 
