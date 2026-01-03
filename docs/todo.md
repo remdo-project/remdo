@@ -42,8 +42,8 @@ created notes and collab insertions.
 9. ✅ Done — Removed text/label-based selection helpers; tests now use `noteId`.
 10. ✅ Done — Consolidated test-only “get noteId or throw” logic into a shared
     helper to avoid duplication across selection utilities and matchers.
-11. Re-evaluate `toMatchSelection` after the refactor and drop it if it is no
-    longer used (or replace call sites with `toMatchSelectionIds`).
+11. ✅ Done — kept `toMatchSelection` and removed `toMatchSelectionIds` (call
+    sites now use explicit structural snapshots).
 12. ✅ Done — Added a `toMatchOutline` escape hatch (`noteId: null`) to assert
     presence of a noteId without pinning its exact value in tests.
 13. Consider a clearer noteId path helper in tests (id-based, not text-based):

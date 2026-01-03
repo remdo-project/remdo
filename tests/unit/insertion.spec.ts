@@ -64,13 +64,13 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await placeCaretAtNoteId(remdo, 'note2');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-    expect(remdo).toMatchSelectionIds(['note2', 'note3']);
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     const before = remdo.getEditorState();
     await pressKey(remdo, { key: 'Enter' });
 
     expect(remdo).toMatchEditorState(before);
-    expect(remdo).toMatchSelectionIds(['note2', 'note3']);
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
 
   it('enter split inside nested note inserts sibling above within same parent', async ({ remdo }) => {
