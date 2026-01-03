@@ -21,6 +21,8 @@ beforeEach<TestContext>(async (ctx) => {
   const remdo = {
     ...remdoTest,
     load: async (fixtureName: string) => remdoTest._bridge.applySerializedState(await readFixture(fixtureName)),
+    loadWithSchemaBypass: async (fixtureName: string) =>
+      remdoTest._bridge.applySerializedState(await readFixture(fixtureName), { skipSchemaValidationOnce: true }),
   };
 
   ctx.remdo = remdo;

@@ -2,6 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useEffect } from 'react';
 import { useCollaborationStatus } from '../collaboration';
 import { assertEditorSchema } from './schema/assertEditorSchema';
+import { consumeSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
 
 export function SchemaValidationPlugin(): null {
   const [editor] = useLexicalComposerContext();
@@ -14,6 +15,9 @@ export function SchemaValidationPlugin(): null {
 
     return editor.registerUpdateListener(() => {
       try {
+        if (consumeSchemaValidationSkipOnce(editor)) {
+          return;
+        }
         const state = editor.getEditorState().toJSON();
         assertEditorSchema(state);
       } catch (error) {

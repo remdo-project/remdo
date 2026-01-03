@@ -50,9 +50,11 @@ created notes and collab insertions.
     options discussed were a variadic index helper (`noteIdAt(outline, 0, 1)`),
     explicit naming (`getNoteIdAtIndexPath`), or an id-path helper that accepts
     a sequence of noteIds (e.g., `getNoteAtIdPath(outline, id1, id2)`).
-14. Add a test harness (or bypass) that allows loading invalid serialized states
-    without `assertEditorSchema` throwing, so we can test NoteIdPlugin load
-    normalization for missing/duplicate noteIds.
+14. ✅ Done — Added a test-only, single-load bypass so invalid serialized states
+    can be loaded without `assertEditorSchema` throwing, enabling NoteIdPlugin
+    load-normalization tests.
+15. ✅ Done — Added load-normalization unit tests for missing and duplicate
+    `noteId` values.
 
 ## Harden editor schema validator tests
 

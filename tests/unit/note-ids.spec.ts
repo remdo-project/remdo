@@ -59,3 +59,36 @@ describe('note ids', () => {
     expect(testOnlyGenerator).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('note id normalization on load', () => {
+  it('backfills missing noteIds while preserving content order', async ({ remdo }) => {
+    await remdo.loadWithSchemaBypass('editor-schema/missing-note-id');
+
+    const outline = readOutline(remdo);
+    expect(outline).toHaveLength(1);
+    expect(outline[0]?.text).toBe('note1');
+    expect(outline[0]?.noteId).toEqual(expect.any(String));
+  });
+
+  it('resolves duplicate noteIds while preserving the first occurrence', async ({ remdo }) => {
+    await remdo.loadWithSchemaBypass('editor-schema/duplicate-note-id');
+
+    const outline = readOutline(remdo);
+    expect(outline.map((note) => note.text)).toEqual(['note1', 'note2']);
+
+    const [first, second] = outline;
+    expect(first?.noteId).toBe('duplicated');
+    expect(second?.noteId).toEqual(expect.any(String));
+    expect(second?.noteId).not.toBe('duplicated');
+  });
+
+  it('keeps existing unique noteIds unchanged', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+});
