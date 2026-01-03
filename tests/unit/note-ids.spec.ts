@@ -39,6 +39,26 @@ function createClipboardEvent(payload: unknown, type: 'paste' | 'cut' | 'copy' =
   });
 }
 
+async function selectStructuralNote(remdo: RemdoTestApi, noteId: string): Promise<void> {
+  await placeCaretAtNoteId(remdo, noteId, 0);
+  await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+  await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+  expect(remdo).toMatchSelection({ state: 'structural', notes: [noteId] });
+}
+
+// In tests, CUT_COMMAND only affects the clipboard payload; it doesn't remove the note.
+// This helper simulates a real "cut" by issuing CUT_COMMAND and then deleting the selection.
+async function cutAndDeleteStructuralNote(remdo: RemdoTestApi, noteId: string) {
+  await selectStructuralNote(remdo, noteId);
+  expect(remdo).toMatchSelection({ state: 'structural', notes: [noteId] });
+  const clipboardPayload = buildClipboardPayload(remdo, [noteId]);
+  await remdo.dispatchCommand(CUT_COMMAND, createClipboardEvent(clipboardPayload, 'cut'));
+  await selectStructuralNote(remdo, noteId);
+  expect(remdo).toMatchSelection({ state: 'structural', notes: [noteId] });
+  await pressKey(remdo, { key: 'Delete' });
+  return clipboardPayload;
+}
+
 function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
   const state = remdo.getEditorState();
   const root = (state as { root?: { children?: Array<{ type?: string; children?: unknown[] }> } }).root;
@@ -193,10 +213,7 @@ describe('note ids on paste', () => {
   it('treats paste-in-place for a structural selection as a no-op', async ({ remdo }) => {
     await remdo.load('flat');
 
-    await placeCaretAtNoteId(remdo, 'note2', 0);
-    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
+    await selectStructuralNote(remdo, 'note2');
 
     const outlineBeforePaste = readOutline(remdo);
 
@@ -208,35 +225,42 @@ describe('note ids on paste', () => {
     await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
     expect(readOutline(remdo)).toEqual(outlineBeforePaste);
+  });
+
+  it('keeps the original noteId when a copy is pasted in place and elsewhere later', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    await selectStructuralNote(remdo, 'note2');
+
+    const outlineBeforePaste = readOutline(remdo);
+
+    const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
+    expect(readOutline(remdo)).toEqual(outlineBeforePaste);
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
 
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
+      { noteId: null, text: 'note2' },
     ]);
+
+    const outlineAfterPaste = readOutline(remdo);
+    const pastedNoteId = outlineAfterPaste[3]?.noteId;
+    expect(pastedNoteId).toEqual(expect.any(String));
+    expect(pastedNoteId).not.toBe('note2');
+    const noteIds = outlineAfterPaste.map((note) => note.noteId);
+    expect(new Set(noteIds).size).toBe(outlineAfterPaste.length);
   });
 
   it('preserves noteIds when cutting and pasting a note back in place', async ({ remdo }) => {
     await remdo.load('flat');
 
-    await placeCaretAtNoteId(remdo, 'note2', 0);
-    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
-
-    const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
-    await remdo.dispatchCommand(CUT_COMMAND, createClipboardEvent(clipboardPayload, 'cut'));
-
-    await placeCaretAtNoteId(remdo, 'note2', 0);
-    const outlineAfterCut = readOutline(remdo);
-    const note2Text = outlineAfterCut.find((note) => note.noteId === 'note2')?.text ?? '';
-    const needsInlineStage = note2Text.trim().length > 0;
-    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-    if (needsInlineStage) {
-      await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-    }
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
-    await pressKey(remdo, { key: 'Delete' });
+    const clipboardPayload = await cutAndDeleteStructuralNote(remdo, 'note2');
 
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
@@ -250,6 +274,26 @@ describe('note ids on paste', () => {
       { noteId: 'note1', text: 'note1' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('preserves noteIds when cutting and pasting a note elsewhere', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    const clipboardPayload = await cutAndDeleteStructuralNote(remdo, 'note2');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2' },
     ]);
   });
 });
