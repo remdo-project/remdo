@@ -29,8 +29,8 @@ created notes and collab insertions.
 3. Audit all note-creation paths (Enter insertions, paste/clipboard import,
    duplication, structural splits/merges, collab insertions, full-document
    duplication) and ensure each creates or preserves `noteId` per the spec.
-4. Add unit tests that paste/duplicate notes and assert fresh `noteId` values
-   before implementing any clipboard-specific handling.
+4. ✅ Done — Added unit tests that paste/duplicate notes and assert fresh
+   `noteId` values before implementing any clipboard-specific handling.
 5. ✅ Done — Add a normalization pass on load that backfills missing `noteId`
    values and resolves duplicates (preserve first in document order, reassign
    the rest).
