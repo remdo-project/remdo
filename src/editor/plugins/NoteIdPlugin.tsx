@@ -3,7 +3,7 @@ import { ListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getRoot, $setState } from 'lexical';
 import { useEffect, useRef } from 'react';
-import { createNoteId, createNoteIdWithUsedIds } from '#lib/editor/note-ids';
+import { createNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import { isChildrenWrapper } from '@/editor/outline/list-structure';
 import { useCollaborationStatus } from './collaboration';
@@ -26,7 +26,7 @@ function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>) {
   if (noteId && !usedIds.has(noteId)) {
     normalized = noteId;
   } else {
-    normalized = createNoteIdWithUsedIds(usedIds);
+    normalized = createNoteIdAvoiding(usedIds);
     $setState(item, noteIdState, normalized);
   }
 
