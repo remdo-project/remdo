@@ -45,8 +45,8 @@ created notes and collab insertions.
    - ✅ Done — Copy/paste coverage across clients (non-conflicting ids preserved).
    - ✅ Done — Conflict coverage for pasted ids colliding with existing notes
      outside the replaced selection (regen and sync deterministically).
-   - Add a multi-note structural paste case (nested subtree ids preserved and
-     conflicts regenerated consistently across clients).
+   - ✅ Done — Multi-note structural paste case (nested subtree ids preserved
+     and conflicts regenerated consistently across clients).
 8. ✅ Done — Updated fixtures and matchers to require `noteId` on all notes.
 9. ✅ Done — Removed text/label-based selection helpers; tests now use `noteId`.
 10. ✅ Done — Consolidated test-only “get noteId or throw” logic into a shared

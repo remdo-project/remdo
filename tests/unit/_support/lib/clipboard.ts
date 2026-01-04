@@ -47,21 +47,41 @@ export function createClipboardEvent(
   });
 }
 
-export function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
-  const state = remdo.getEditorState();
-  const listNode = getListNode(state);
-  const listChildren = listNode.children as SerializedNoteListItemNode[];
-  const selectedItems = listChildren.filter((child) => {
-    return typeof child.noteId === 'string' && noteIds.includes(child.noteId);
-  });
+function findSerializedListItem(node: SerializedLexicalNode, noteId: string): SerializedNoteListItemNode | null {
+  if (node.type === 'listitem') {
+    const listItem = node as SerializedNoteListItemNode;
+    if (listItem.noteId === noteId) {
+      return listItem;
+    }
+  }
 
-  if (selectedItems.length !== noteIds.length) {
-    throw new Error(`Expected to find ${noteIds.length} list items for clipboard payload.`);
+  if ('children' in node && Array.isArray((node as { children?: SerializedLexicalNode[] }).children)) {
+    for (const child of (node as { children: SerializedLexicalNode[] }).children) {
+      const found = findSerializedListItem(child, noteId);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
+  return null;
+}
+
+export function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
+  const listNode = getListNode(remdo.getEditorState()) as SerializedLexicalNode;
+  const selectedItems: SerializedNoteListItemNode[] = [];
+
+  for (const noteId of noteIds) {
+    const match = findSerializedListItem(listNode, noteId);
+    if (!match) {
+      throw new Error(`Expected to find list item for noteId "${noteId}" in clipboard payload.`);
+    }
+    selectedItems.push(match);
   }
 
   return {
     namespace: (remdo.editor as { _config?: { namespace?: string } })._config?.namespace ?? 'remdo',
-    nodes: [{ ...listNode, children: selectedItems }],
+    nodes: [{ ...(listNode as SerializedListNode), children: selectedItems }],
   };
 }
 

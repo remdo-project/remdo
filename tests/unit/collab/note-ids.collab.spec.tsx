@@ -8,6 +8,7 @@ import {
   pressKey,
   readOutline,
   selectStructuralNoteByDom,
+  selectNoteRangeById,
 } from '#tests';
 import { renderCollabEditor } from './_support/remdo-peers';
 
@@ -159,6 +160,39 @@ describe('collaboration note ids', () => {
       expect(outlineA[1]?.noteId).toBe('note2');
       expect(noteIds.filter((noteId) => noteId === 'note2')).toHaveLength(1);
       expect(new Set(noteIds).size).toBe(noteIds.length);
+      expect(secondary).toMatchOutline(outlineA);
+    });
+  });
+
+  it('preserves subtree ids for multi-note structural paste across clients', async ({ remdo }) => {
+    const docId = remdo.getCollabDocId();
+    await remdo.load('tree-complex');
+    await remdo.waitForSynced();
+
+    const secondary = await renderCollabEditor({ docId });
+    await secondary.waitForSynced();
+
+    const clipboardPayload = buildClipboardPayload(remdo, ['note2', 'note4']);
+
+    await selectNoteRangeById(remdo, 'note2', 'note4');
+    await pressKey(remdo, { key: 'Delete' });
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+    await waitFor(() => {
+      expect(secondary).toMatchOutline(readOutline(remdo));
+    });
+
+    await placeCaretAtNoteId(remdo, 'note5', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    await waitFor(() => {
+      const outlineA = readOutline(remdo);
+      const noteIds = outlineA
+        .map((note) => note.noteId)
+        .filter((noteId): noteId is string => typeof noteId === 'string');
+
+      expect(noteIds.filter((noteId) => noteId === 'note2')).toHaveLength(1);
+      expect(noteIds.filter((noteId) => noteId === 'note4')).toHaveLength(1);
       expect(secondary).toMatchOutline(outlineA);
     });
   });

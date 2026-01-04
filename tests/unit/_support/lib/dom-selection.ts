@@ -65,11 +65,12 @@ export async function selectStructuralNoteByDom(remdo: RemdoTestApi, noteId: str
   const noteText = readOutline(remdo).find((note) => note.noteId === noteId)?.text ?? '';
   const needsInlineStage = noteText.trim().length > 0;
   await placeCaretAtNoteId(remdo, noteId, 0);
-  await pressKey(remdo, { key: 'ArrowDown', shift: true });
-  if (needsInlineStage) {
+
+  await waitFor(async () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-  }
-  await waitFor(() => {
+    if (needsInlineStage) {
+      await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    }
     expect(remdo).toMatchSelection({ state: 'structural', notes: [noteId] });
   });
 }
