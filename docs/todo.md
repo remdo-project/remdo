@@ -38,6 +38,15 @@ created notes and collab insertions.
    validation to require `noteId` on every content list item.
 7. Add collaboration tests to verify deterministic ID preservation across
    clients, including concurrent inserts and copy/paste.
+   - ✅ Done — New note ids created locally are preserved on remote clients.
+   - ✅ Done — Multiple client inserts yield unique ids and identical outlines.
+   - Add a concurrent same-location insert test (both clients insert at the
+     same caret position) and assert ids remain unique/stable across clients.
+   - Add copy/paste coverage across clients (non-conflicting ids preserved).
+   - Add conflict coverage for pasted ids that collide with existing notes
+     outside the replaced selection (regen and sync deterministically).
+   - Add a multi-note structural paste case (nested subtree ids preserved and
+     conflicts regenerated consistently across clients).
 8. ✅ Done — Updated fixtures and matchers to require `noteId` on all notes.
 9. ✅ Done — Removed text/label-based selection helpers; tests now use `noteId`.
 10. ✅ Done — Consolidated test-only “get noteId or throw” logic into a shared
@@ -55,10 +64,14 @@ created notes and collab insertions.
     load-normalization tests.
 15. ✅ Done — Added load-normalization unit tests for missing and duplicate
     `noteId` values.
-16. Add an E2E test for clipboard move semantics (structural cut/paste preserves
+16. Add E2E tests for clipboard move semantics (structural cut/paste preserves
     `noteId`, including replace-in-place and paste-elsewhere flows).
-17. Revisit cross-document paste policy if we ever need to force `noteId`
-    regeneration instead of preserving ids by default.
+    - Blocked: native `Cut` does not act on structural selection in E2E, so the
+      tests are misleading until we fix structural cut behavior (or expose a
+      test bridge command that exercises it).
+17. ✅ Done — Cross-document paste follows the same preserve-unless-conflict
+    rule as any clipboard payload; current clipboard tests cover this, so no
+    doc-switch-specific tests are planned for now.
 18. ✅ Done — Clarified copy/edit/paste semantics when clipboard noteIds match a
     structural selection (single vs. multi-note, reorder cases, and conflict
     handling).
