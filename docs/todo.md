@@ -40,8 +40,8 @@ created notes and collab insertions.
    clients, including concurrent inserts and copy/paste.
    - ✅ Done — New note ids created locally are preserved on remote clients.
    - ✅ Done — Multiple client inserts yield unique ids and identical outlines.
-   - Add a concurrent same-location insert test (both clients insert at the
-     same caret position) and assert ids remain unique/stable across clients.
+   - ✅ Done — Concurrent same-location insert (both clients insert at the same
+     caret position) keeps ids unique/stable across clients.
    - Add copy/paste coverage across clients (non-conflicting ids preserved).
    - Add conflict coverage for pasted ids that collide with existing notes
      outside the replaced selection (regen and sync deterministically).
