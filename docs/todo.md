@@ -55,13 +55,13 @@ created notes and collab insertions.
     load-normalization tests.
 15. ✅ Done — Added load-normalization unit tests for missing and duplicate
     `noteId` values.
-16. Add an E2E test for clipboard move semantics (structural cut/paste in place
-    is a no-op; cut → paste elsewhere preserves `noteId`).
-17. Clear clipboard move-tracking state on doc changes so cross-doc pastes
-    regenerate `noteId` values.
-18. Clarify copy/edit/paste semantics when clipboard noteIds match a structural
-    selection (single vs. multi-note, reorder cases, and whether paste should
-    replace content or remain a no-op).
+16. Add an E2E test for clipboard move semantics (structural cut/paste preserves
+    `noteId`, including replace-in-place and paste-elsewhere flows).
+17. Revisit cross-document paste policy if we ever need to force `noteId`
+    regeneration instead of preserving ids by default.
+18. ✅ Done — Clarified copy/edit/paste semantics when clipboard noteIds match a
+    structural selection (single vs. multi-note, reorder cases, and conflict
+    handling).
 
 ## Harden editor schema validator tests
 

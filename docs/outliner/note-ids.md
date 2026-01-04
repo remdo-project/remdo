@@ -55,12 +55,14 @@ document ID. This spec does not define the format or storage of document IDs.
 
 ### Clipboard semantics
 
-- Copy → paste within the same document is treated as duplication **unless** the
-  paste target is the exact same contiguous note range in the same position, in
-  which case the operation is a no-op and `noteId` values are preserved.
-- Cut → paste within the same document is treated as a move, preserving
-  `noteId` values; pasting back into the original position is a no-op.
-- Pasting into a different document always generates new `noteId` values.
+- When pasting, preserve each pasted `noteId` unless it conflicts with an
+  existing `noteId` in the target document.
+- The `noteId` values of any structurally selected notes being replaced are
+  excluded from conflict checks, so cut/move/paste-in-place preserves ids.
+- If the clipboard payload contains duplicate `noteId` values, preserve the
+  first occurrence and regenerate the rest to keep the document unique.
+- If a pasted `noteId` conflicts with an existing `noteId` outside the replaced
+  selection, regenerate that `noteId` (and only that one) before insertion.
 
 ### Merge and deletion
 
