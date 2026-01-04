@@ -11,11 +11,14 @@ import { waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { SerializedElementNode, SerializedLexicalNode, SerializedTextNode } from 'lexical';
-import type { SerializedListNode } from '@lexical/list';
 import type { SerializedNoteListItemNode } from '#lib/editor/serialized-note-types';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import {
+  buildClipboardPayload,
+  buildCustomClipboardPayload,
+  createClipboardEvent,
   dragDomSelectionBetweenNotes,
+  getSerializedRootListNode,
   placeCaretAtNoteId,
   pressKey,
   readOutline,
@@ -25,31 +28,6 @@ import {
 } from '#tests';
 import { createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { noteIdState } from '#lib/editor/note-id-state';
-
-function createDataTransfer(payload: unknown): DataTransfer {
-  const data = new Map<string, string>();
-  const transfer = {
-    getData(type: string) {
-      return data.get(type) ?? '';
-    },
-    setData(type: string, value: string) {
-      data.set(type, value);
-    },
-    files: [] as File[],
-    get types() {
-      return Array.from(data.keys());
-    },
-  } as unknown as DataTransfer;
-
-  transfer.setData('application/x-lexical-editor', JSON.stringify(payload));
-  return transfer;
-}
-
-function createClipboardEvent(payload: unknown, type: 'paste' | 'cut' | 'copy' = 'paste'): ClipboardEvent {
-  return new ClipboardEvent(type, {
-    clipboardData: createDataTransfer(payload),
-  });
-}
 
 // In tests, CUT_COMMAND only affects the clipboard payload; it doesn't remove the note.
 // This helper simulates a real "cut" by issuing CUT_COMMAND and then deleting the selection.
@@ -62,65 +40,6 @@ async function cutAndDeleteStructuralNote(remdo: RemdoTestApi, noteId: string) {
   return clipboardPayload;
 }
 
-function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
-  const state = remdo.getEditorState();
-  const root = state.root;
-  const children = root.children;
-  const listNode = children.find(
-    (child): child is SerializedListNode => child.type === 'list' && isSerializedElementNode(child)
-  );
-  if (!listNode) {
-    throw new Error('Expected a list node with children for clipboard payload.');
-  }
-
-  const listChildren = listNode.children as SerializedNoteListItemNode[];
-  const selectedItems = listChildren.filter((child) => {
-    return typeof child.noteId === 'string' && noteIds.includes(child.noteId);
-  });
-
-  if (selectedItems.length !== noteIds.length) {
-    throw new Error(`Expected to find ${noteIds.length} list items for clipboard payload.`);
-  }
-
-  return {
-    namespace: (remdo.editor as { _config?: { namespace?: string } })._config?.namespace ?? 'remdo',
-    nodes: [{ ...listNode, children: selectedItems }],
-  };
-}
-
-function getSerializedRootListNode(remdo: RemdoTestApi): SerializedListNode {
-  const state = remdo.getEditorState();
-  const root = state.root;
-  const children = root.children;
-  const listNode = children.find(
-    (child): child is SerializedListNode => child.type === 'list' && isSerializedElementNode(child)
-  );
-  if (!listNode) {
-    throw new Error('Expected a list node with children for clipboard payload.');
-  }
-  return listNode;
-}
-
-function buildCustomClipboardPayload(remdo: RemdoTestApi, children: SerializedNoteListItemNode[]) {
-  const normalizeIndent = (node: SerializedLexicalNode): void => {
-    if ('indent' in node && typeof node.indent === 'number') {
-      node.indent = 0;
-    }
-    const childNodes = getSerializedChildren(node);
-    for (const child of childNodes) {
-      normalizeIndent(child);
-    }
-  };
-
-  for (const child of children) {
-    normalizeIndent(child);
-  }
-  const listNode = getSerializedRootListNode(remdo);
-  return {
-    namespace: (remdo.editor as { _config?: { namespace?: string } })._config?.namespace ?? 'remdo',
-    nodes: [{ ...listNode, children }],
-  };
-}
 
 function findSerializedListItem(node: SerializedLexicalNode, noteId: string): SerializedNoteListItemNode | null {
   if (node.type === 'listitem') {

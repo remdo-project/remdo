@@ -1,5 +1,14 @@
+import { waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { placeCaretAtNoteId, pressKey, readOutline } from '#tests';
+import { PASTE_COMMAND } from 'lexical';
+import {
+  buildClipboardPayload,
+  createClipboardEvent,
+  placeCaretAtNoteId,
+  pressKey,
+  readOutline,
+  selectStructuralNoteByDom,
+} from '#tests';
 import { renderCollabEditor } from './_support/remdo-peers';
 
 describe('collaboration note ids', () => {
@@ -15,6 +24,11 @@ describe('collaboration note ids', () => {
     await pressKey(remdo, { key: 'Enter' });
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    await waitFor(() => {
+      const outlineA = readOutline(remdo);
+      expect(secondary).toMatchOutline(outlineA);
+    });
 
     const outlineA = readOutline(remdo);
     const baseline = new Set(['note1', 'note2', 'note3']);
@@ -84,5 +98,36 @@ describe('collaboration note ids', () => {
     expect(newIds).toHaveLength(2);
     expect(new Set(noteIds).size).toBe(noteIds.length);
     expect(secondary).toMatchOutline(outlineA);
+  });
+
+  it('preserves ids for non-conflicting paste across clients', async ({ remdo }) => {
+    const docId = remdo.getCollabDocId();
+    await remdo.load('flat');
+    await remdo.waitForSynced();
+
+    const secondary = await renderCollabEditor({ docId });
+    await secondary.waitForSynced();
+
+    const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
+
+    await selectStructuralNoteByDom(remdo, 'note2');
+    await pressKey(remdo, { key: 'Delete' });
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+    await waitFor(() => {
+      expect(secondary).toMatchOutline(readOutline(remdo));
+    });
+
+    await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    const expected = [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ];
+
+    expect(remdo).toMatchOutline(expected);
+    expect(secondary).toMatchOutline(expected);
   });
 });
