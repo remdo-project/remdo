@@ -57,6 +57,8 @@ document ID. This spec does not define the format or storage of document IDs.
 
 - When pasting, preserve each pasted `noteId` unless it conflicts with an
   existing `noteId` in the target document.
+- The source of the clipboard payload does not matter; the same rules apply to
+  paste-from-self, paste-from-another document, or any other import source.
 - The `noteId` values of any structurally selected notes being replaced are
   excluded from conflict checks, so cut/move/paste-in-place preserves ids.
 - If the clipboard payload contains duplicate `noteId` values, preserve the

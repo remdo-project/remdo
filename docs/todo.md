@@ -62,6 +62,18 @@ created notes and collab insertions.
 18. ✅ Done — Clarified copy/edit/paste semantics when clipboard noteIds match a
     structural selection (single vs. multi-note, reorder cases, and conflict
     handling).
+19. ✅ Done — Add clipboard tests for missing `noteId` payloads (assign fresh
+    ids, include nested notes).
+20. ✅ Done — Add clipboard tests for multi-note structural selections
+    (including nested children) to ensure replaced subtree ids are excluded
+    from conflicts and new ids remain unique.
+21. ✅ Done — Add clipboard tests for inline range selections spanning multiple
+    notes (non-structural) to confirm we derive heads correctly and preserve
+    ids for replaced notes only.
+22. ✅ Done — Add clipboard tests for duplicate noteIds across parent/child
+    nodes to confirm the first occurrence wins across the entire subtree.
+23. ✅ Done — Add clipboard tests for payloads containing `noteId === docId` to
+    ensure they regenerate.
 
 ## Harden editor schema validator tests
 

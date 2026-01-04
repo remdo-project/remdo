@@ -164,9 +164,6 @@ function $replaceStructuralSelectionWithClipboardNodes(headKeys: string[], nodes
   }
 
   const nextSibling = getNextContentSibling(lastHead);
-  for (const head of orderedHeads.toReversed()) {
-    removeNoteSubtree(head);
-  }
 
   if (nextSibling) {
     insertBefore(nextSibling, insertNodes);
@@ -177,6 +174,10 @@ function $replaceStructuralSelectionWithClipboardNodes(headKeys: string[], nodes
   const firstInserted = insertNodes.find((node) => $isListItemNode(node) && !isChildrenWrapper(node));
   if ($isListItemNode(firstInserted)) {
     $selectItemEdge(getContentListItem(firstInserted), 'start');
+  }
+
+  for (const head of orderedHeads.toReversed()) {
+    removeNoteSubtree(head);
   }
 
   return true;

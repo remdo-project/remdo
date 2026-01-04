@@ -1,9 +1,15 @@
-import { act, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { Outline } from '#tests';
 import {
   collectSelectedListItems,
+  collapseDomSelectionAtNode,
+  dragDomSelectionBetween,
+  dragDomSelectionBetweenRange,
+  extendDomSelectionToNode,
   $getNoteIdOrThrow,
+  getNoteElementById,
+  getNoteTextNodeById,
   getRootElementOrThrow,
   placeCaretAtNoteId,
   getNoteKeyById,
@@ -28,160 +34,6 @@ const TREE_COMPLEX_OUTLINE: Outline = [
   { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
 ];
 
-// Ensures every multi-note selection matches the guarantees from docs/outliner/selection.md:
-// once a selection crosses a note boundary it must cover a contiguous block of
-// whole notes plus their subtrees, with no gaps or orphaned descendants.
-async function dragDomSelectionBetween(start: Node, startOffset: number, end: Node, endOffset: number) {
-  await mutateDomSelection((selection) => {
-    const range = document.createRange();
-    const normalizedStart = clampDomOffset(start, startOffset);
-    const normalizedEnd = clampDomOffset(end, endOffset);
-
-    range.setStart(start, normalizedStart);
-    range.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(range);
-
-    if (typeof selection.extend === 'function') {
-      selection.extend(end, normalizedEnd);
-    } else {
-      const ordered = orderRangePoints(start, normalizedStart, end, normalizedEnd);
-      const dragRange = document.createRange();
-      dragRange.setStart(ordered.startNode, ordered.startOffset);
-      dragRange.setEnd(ordered.endNode, ordered.endOffset);
-      selection.removeAllRanges();
-      selection.addRange(dragRange);
-    }
-  });
-}
-
-async function dragDomSelectionWithoutExtendBetween(start: Node, startOffset: number, end: Node, endOffset: number) {
-  await mutateDomSelection(() => {
-    const { startNode, startOffset: normalizedStart, endNode, endOffset: normalizedEnd } = orderRangePoints(
-      start,
-      clampDomOffset(start, startOffset),
-      end,
-      clampDomOffset(end, endOffset)
-    );
-    const range = document.createRange();
-    range.setStart(startNode, normalizedStart);
-    range.setEnd(endNode, normalizedEnd);
-    const selection = getDomSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-  });
-}
-
-async function collapseDomSelectionAtNode(target: Node, offset: number) {
-  await mutateDomSelection((selection) => {
-    const caretRange = document.createRange();
-    const clamped = clampDomOffset(target, offset);
-    caretRange.setStart(target, clamped);
-    caretRange.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(caretRange);
-  });
-}
-
-async function extendDomSelectionToNode(target: Node, offset: number) {
-  await mutateDomSelection((selection) => {
-    if (selection.rangeCount === 0) {
-      throw new Error('Cannot extend selection without an existing anchor');
-    }
-
-    const clamped = clampDomOffset(target, offset);
-    selection.extend(target, clamped);
-  });
-}
-
-function clampOffset(node: Text, offset: number): number {
-  const length = node.length;
-  return Math.max(0, Math.min(offset, length));
-}
-
-function clampElementOffset(node: HTMLElement, offset: number): number {
-  const length = node.childNodes.length;
-  return Math.max(0, Math.min(offset, length));
-}
-
-function clampDomOffset(node: Node, offset: number): number {
-  if (node instanceof Text) {
-    return clampOffset(node, offset);
-  }
-  if (node instanceof HTMLElement) {
-    return clampElementOffset(node, offset);
-  }
-  throw new TypeError('Expected text or element node for selection offsets');
-}
-
-function getNoteElementById(remdo: Parameters<typeof getNoteKeyById>[0], noteId: string) {
-  const key = getNoteKeyById(remdo, noteId);
-  const element = remdo.editor.getElementByKey(key);
-  if (!element) {
-    throw new TypeError(`Expected element for noteId: ${noteId}`);
-  }
-  return element;
-}
-
-function getNoteTextNodeById(remdo: Parameters<typeof getNoteKeyById>[0], noteId: string): Text {
-  const noteElement = getNoteElementById(remdo, noteId);
-  const textElement = noteElement.querySelector('[data-lexical-text="true"]');
-  if (!textElement) {
-    throw new TypeError(`Expected text element for noteId: ${noteId}`);
-  }
-  const walker = document.createTreeWalker(textElement, NodeFilter.SHOW_TEXT);
-  const textNode = walker.nextNode();
-  if (!(textNode instanceof Text)) {
-    throw new TypeError(`Expected text node for noteId: ${noteId}`);
-  }
-  return textNode;
-}
-
-function getDomSelection(): Selection {
-  const selection = globalThis.getSelection();
-  if (!selection) {
-    throw new Error('DOM selection is unavailable');
-  }
-  return selection;
-}
-
-async function mutateDomSelection(mutator: (selection: Selection) => void) {
-  await act(async () => {
-    const rootElement = document.querySelector('[data-remdo-editor="true"]');
-    if (rootElement instanceof HTMLElement && document.activeElement !== rootElement) {
-      rootElement.focus();
-    }
-    mutator(getDomSelection());
-    document.dispatchEvent(new Event('selectionchange'));
-  });
-}
-
-function orderRangePoints(
-  anchorNode: Node,
-  anchorOffset: number,
-  focusNode: Node,
-  focusOffset: number
-): { startNode: Node; startOffset: number; endNode: Node; endOffset: number } {
-  if (anchorNode === focusNode) {
-    return anchorOffset <= focusOffset
-      ? { startNode: anchorNode, startOffset: anchorOffset, endNode: focusNode, endOffset: focusOffset }
-      : { startNode: focusNode, startOffset: focusOffset, endNode: anchorNode, endOffset: anchorOffset };
-  }
-
-  const position = anchorNode.compareDocumentPosition(focusNode);
-  const isAnchorBeforeFocus =
-    position & Node.DOCUMENT_POSITION_PRECEDING
-      ? false
-      : position & Node.DOCUMENT_POSITION_FOLLOWING
-        ? true
-        : anchorOffset <= focusOffset;
-
-  if (isAnchorBeforeFocus) {
-    return { startNode: anchorNode, startOffset: anchorOffset, endNode: focusNode, endOffset: focusOffset };
-  }
-
-  return { startNode: focusNode, startOffset: focusOffset, endNode: anchorNode, endOffset: anchorOffset };
-}
 
 describe('selection plugin', () => {
   it('snaps pointer drags across note boundaries to contiguous structural slices', async ({ remdo }) => {
@@ -275,7 +127,7 @@ describe('selection plugin', () => {
 
     const parentText = getNoteTextNodeById(remdo, 'note6');
     const childText = getNoteTextNodeById(remdo, 'note7');
-    await dragDomSelectionWithoutExtendBetween(parentText, parentText.length, childText, childText.length);
+    await dragDomSelectionBetweenRange(parentText, parentText.length, childText, childText.length);
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({

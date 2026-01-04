@@ -7,10 +7,22 @@ import {
   CUT_COMMAND,
   PASTE_COMMAND,
 } from 'lexical';
+import { waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { SerializedElementNode, SerializedLexicalNode, SerializedTextNode } from 'lexical';
+import type { SerializedListNode } from '@lexical/list';
+import type { SerializedNoteListItemNode } from '#lib/editor/serialized-note-types';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
-import { placeCaretAtNoteId, pressKey, readOutline, typeText } from '#tests';
+import {
+  dragDomSelectionBetweenNotes,
+  placeCaretAtNoteId,
+  pressKey,
+  readOutline,
+  selectStructuralNoteByDom,
+  selectNoteRangeById,
+  typeText,
+} from '#tests';
 import { createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { noteIdState } from '#lib/editor/note-id-state';
 
@@ -39,44 +51,31 @@ function createClipboardEvent(payload: unknown, type: 'paste' | 'cut' | 'copy' =
   });
 }
 
-async function selectStructuralNote(remdo: RemdoTestApi, noteId: string): Promise<void> {
-  const noteText = readOutline(remdo).find((note) => note.noteId === noteId)?.text ?? '';
-  const needsInlineStage = noteText.trim().length > 0;
-  await placeCaretAtNoteId(remdo, noteId, 0);
-  await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-  // Empty note bodies skip the inline stage, so only press again when inline exists.
-  if (needsInlineStage) {
-    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-  }
-  expect(remdo).toMatchSelection({ state: 'structural', notes: [noteId] });
-}
-
 // In tests, CUT_COMMAND only affects the clipboard payload; it doesn't remove the note.
 // This helper simulates a real "cut" by issuing CUT_COMMAND and then deleting the selection.
 async function cutAndDeleteStructuralNote(remdo: RemdoTestApi, noteId: string) {
-  await selectStructuralNote(remdo, noteId);
+  await selectStructuralNoteByDom(remdo, noteId);
   const clipboardPayload = buildClipboardPayload(remdo, [noteId]);
   await remdo.dispatchCommand(CUT_COMMAND, createClipboardEvent(clipboardPayload, 'cut'));
-  await selectStructuralNote(remdo, noteId);
+  await selectStructuralNoteByDom(remdo, noteId);
   await pressKey(remdo, { key: 'Delete' });
   return clipboardPayload;
 }
 
 function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
   const state = remdo.getEditorState();
-  const root = (state as { root?: { children?: Array<{ type?: string; children?: unknown[] }> } }).root;
-  if (!root || !Array.isArray(root.children)) {
-    throw new Error('Expected editor state root with children for clipboard payload.');
-  }
-
-  const listNode = root.children.find((child) => child.type === 'list');
-  if (!listNode || !Array.isArray(listNode.children)) {
+  const root = state.root;
+  const children = root.children;
+  const listNode = children.find(
+    (child): child is SerializedListNode => child.type === 'list' && isSerializedElementNode(child)
+  );
+  if (!listNode) {
     throw new Error('Expected a list node with children for clipboard payload.');
   }
 
-  const selectedItems = listNode.children.filter((child) => {
-    const noteId = (child as { noteId?: unknown }).noteId;
-    return typeof noteId === 'string' && noteIds.includes(noteId);
+  const listChildren = listNode.children as SerializedNoteListItemNode[];
+  const selectedItems = listChildren.filter((child) => {
+    return typeof child.noteId === 'string' && noteIds.includes(child.noteId);
   });
 
   if (selectedItems.length !== noteIds.length) {
@@ -87,6 +86,136 @@ function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
     namespace: (remdo.editor as { _config?: { namespace?: string } })._config?.namespace ?? 'remdo',
     nodes: [{ ...listNode, children: selectedItems }],
   };
+}
+
+function getSerializedRootListNode(remdo: RemdoTestApi): SerializedListNode {
+  const state = remdo.getEditorState();
+  const root = state.root;
+  const children = root.children;
+  const listNode = children.find(
+    (child): child is SerializedListNode => child.type === 'list' && isSerializedElementNode(child)
+  );
+  if (!listNode) {
+    throw new Error('Expected a list node with children for clipboard payload.');
+  }
+  return listNode;
+}
+
+function buildCustomClipboardPayload(remdo: RemdoTestApi, children: SerializedNoteListItemNode[]) {
+  const normalizeIndent = (node: SerializedLexicalNode): void => {
+    if ('indent' in node && typeof node.indent === 'number') {
+      node.indent = 0;
+    }
+    const childNodes = getSerializedChildren(node);
+    for (const child of childNodes) {
+      normalizeIndent(child);
+    }
+  };
+
+  for (const child of children) {
+    normalizeIndent(child);
+  }
+  const listNode = getSerializedRootListNode(remdo);
+  return {
+    namespace: (remdo.editor as { _config?: { namespace?: string } })._config?.namespace ?? 'remdo',
+    nodes: [{ ...listNode, children }],
+  };
+}
+
+function findSerializedListItem(node: SerializedLexicalNode, noteId: string): SerializedNoteListItemNode | null {
+  if (node.type === 'listitem') {
+    const listItem = node as SerializedNoteListItemNode;
+    if (listItem.noteId === noteId) {
+      return listItem;
+    }
+  }
+
+  const children = getSerializedChildren(node);
+  for (const child of children) {
+    const found = findSerializedListItem(child, noteId);
+    if (found) {
+      return found;
+    }
+  }
+
+  return null;
+}
+
+function cloneSerializedListItemByNoteId(remdo: RemdoTestApi, noteId: string): SerializedNoteListItemNode {
+  const listNode = getSerializedRootListNode(remdo) as SerializedLexicalNode;
+  const match = findSerializedListItem(listNode, noteId);
+  if (!match) {
+    throw new Error(`Expected serialized list item with noteId ${noteId}`);
+  }
+  return structuredClone(match);
+}
+
+function cloneWrapperAfterNoteId(remdo: RemdoTestApi, noteId: string): SerializedNoteListItemNode {
+  const listNode = getSerializedRootListNode(remdo);
+  const children = listNode.children as SerializedNoteListItemNode[];
+  const index = children.findIndex((child) => child.type === 'listitem' && child.noteId === noteId);
+  if (index === -1) {
+    throw new Error(`Expected wrapper list item after noteId ${noteId}`);
+  }
+  const wrapper = children[index + 1];
+  if (wrapper && wrapper.type === 'listitem') {
+    return structuredClone(wrapper);
+  }
+  throw new Error(`Expected wrapper list item after noteId ${noteId}`);
+}
+
+function setSerializedText(node: SerializedLexicalNode, text: string): void {
+  if (node.type === 'text') {
+    (node as SerializedTextNode).text = text;
+    return;
+  }
+
+  const children = getSerializedChildren(node);
+  for (const child of children) {
+    if (child.type === 'text') {
+      (child as SerializedTextNode).text = text;
+      return;
+    }
+  }
+}
+
+function getSerializedChildren(node: SerializedLexicalNode): SerializedLexicalNode[] {
+  return isSerializedElementNode(node) ? node.children : [];
+}
+
+function isSerializedElementNode(node: SerializedLexicalNode): node is SerializedElementNode {
+  return 'children' in node && Array.isArray((node as SerializedElementNode).children);
+}
+
+function collectOutlineNoteIds(outline: ReturnType<typeof readOutline>): string[] {
+  const ids: string[] = [];
+  const stack = [...outline];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) continue;
+    if (node.noteId) {
+      ids.push(node.noteId);
+    }
+    if (node.children) {
+      stack.push(...node.children);
+    }
+  }
+  return ids;
+}
+
+function findOutlineNodeByText(outline: ReturnType<typeof readOutline>, text: string) {
+  const stack = [...outline];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) continue;
+    if (node.text === text) {
+      return node;
+    }
+    if (node.children) {
+      stack.push(...node.children);
+    }
+  }
+  return null;
 }
 
 describe('note ids', () => {
@@ -221,7 +350,7 @@ describe('note ids on paste', () => {
   it('treats paste-in-place for a structural selection as a no-op', async ({ remdo }) => {
     await remdo.load('flat');
 
-    await selectStructuralNote(remdo, 'note2');
+    await selectStructuralNoteByDom(remdo, 'note2');
 
     const outlineBeforePaste = readOutline(remdo);
 
@@ -229,7 +358,7 @@ describe('note ids on paste', () => {
     await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
     expect(readOutline(remdo)).toEqual(outlineBeforePaste);
 
-    await selectStructuralNote(remdo, 'note2');
+    await selectStructuralNoteByDom(remdo, 'note2');
     await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
     expect(readOutline(remdo)).toEqual(outlineBeforePaste);
   });
@@ -237,14 +366,18 @@ describe('note ids on paste', () => {
   it('regenerates duplicate noteIds inside clipboard payload while preserving the first', async ({ remdo }) => {
     await remdo.load('flat');
 
-    await selectStructuralNote(remdo, 'note2');
+    await selectStructuralNoteByDom(remdo, 'note2');
 
     const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
     const listNode = clipboardPayload.nodes[0];
     if (!listNode || !Array.isArray(listNode.children) || listNode.children.length === 0) {
       throw new Error('Expected clipboard list node with children for duplication test.');
     }
-    const duplicate = structuredClone(listNode.children[0]);
+    const firstChild = listNode.children[0];
+    if (!firstChild) {
+      throw new Error('Expected clipboard list node with children for duplication test.');
+    }
+    const duplicate = structuredClone(firstChild);
     listNode.children.push(duplicate);
 
     await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
@@ -261,10 +394,135 @@ describe('note ids on paste', () => {
     expect(new Set(noteIds).size).toBe(outline.length);
   });
 
+  it('assigns fresh noteIds when clipboard payload omits them (including nested)', async ({ remdo }) => {
+    await remdo.load('tree-complex');
+
+    const parent = cloneSerializedListItemByNoteId(remdo, 'note1');
+    const wrapper = cloneWrapperAfterNoteId(remdo, 'note1');
+    delete parent.noteId;
+    setSerializedText(parent, 'pasted parent');
+
+    const nested = findSerializedListItem(wrapper, 'note2');
+    if (!nested) {
+      throw new Error('Expected nested note2 in wrapper payload.');
+    }
+    delete nested.noteId;
+    setSerializedText(nested, 'pasted child');
+
+    const clipboardPayload = buildCustomClipboardPayload(remdo, [parent, wrapper]);
+    await placeCaretAtNoteId(remdo, 'note6', Number.POSITIVE_INFINITY);
+
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    const outline = readOutline(remdo);
+    const pastedParent = findOutlineNodeByText(outline, 'pasted parent');
+    const pastedChild = findOutlineNodeByText(outline, 'pasted child');
+    expect(pastedParent?.noteId).toEqual(expect.any(String));
+    expect(pastedChild?.noteId).toEqual(expect.any(String));
+
+    const noteIds = collectOutlineNoteIds(outline);
+    expect(new Set(noteIds).size).toBe(noteIds.length);
+  });
+
+  it('preserves ids from replaced subtrees in multi-note structural selections', async ({ remdo }) => {
+    await remdo.load('tree-complex');
+
+    await dragDomSelectionBetweenNotes(remdo, 'note1', 'note6');
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({
+        state: 'structural',
+        notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'],
+      });
+    });
+
+    const note2 = cloneSerializedListItemByNoteId(remdo, 'note2');
+    const note7 = cloneSerializedListItemByNoteId(remdo, 'note7');
+    const clipboardPayload = buildCustomClipboardPayload(remdo, [note2, note7]);
+
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note7', text: 'note7' },
+    ]);
+  });
+
+  it('preserves ids for range selections that span notes (snaps to structural)', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    await selectNoteRangeById(remdo, 'note1', 'note2');
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+
+    const note2 = cloneSerializedListItemByNoteId(remdo, 'note2');
+    const clipboardPayload = buildCustomClipboardPayload(remdo, [note2]);
+
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('regenerates duplicate noteIds across parent/child clipboard nodes', async ({ remdo }) => {
+    await remdo.load('tree-complex');
+
+    const parent = cloneSerializedListItemByNoteId(remdo, 'note1');
+    const wrapper = cloneWrapperAfterNoteId(remdo, 'note1');
+    parent.noteId = 'dup';
+    setSerializedText(parent, 'dup parent');
+
+    const nested = findSerializedListItem(wrapper, 'note2');
+    if (!nested) {
+      throw new Error('Expected nested note2 in wrapper payload.');
+    }
+    nested.noteId = 'dup';
+    setSerializedText(nested, 'dup child');
+
+    const clipboardPayload = buildCustomClipboardPayload(remdo, [parent, wrapper]);
+
+    await placeCaretAtNoteId(remdo, 'note6', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    const outline = readOutline(remdo);
+    const dupParent = findOutlineNodeByText(outline, 'dup parent');
+    const dupChild = findOutlineNodeByText(outline, 'dup child');
+    expect(dupParent?.noteId).toBe('dup');
+    expect(dupChild?.noteId).toEqual(expect.any(String));
+    expect(dupChild?.noteId).not.toBe('dup');
+
+    const noteIds = collectOutlineNoteIds(outline);
+    expect(new Set(noteIds).size).toBe(noteIds.length);
+  });
+
+  it('regenerates noteIds that equal the document id', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    const docId = remdo.getCollabDocId();
+    const docNote = cloneSerializedListItemByNoteId(remdo, 'note2');
+    docNote.noteId = docId;
+    setSerializedText(docNote, 'doc-id');
+    const clipboardPayload = buildCustomClipboardPayload(remdo, [docNote]);
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: null, text: 'doc-id' },
+    ]);
+
+    const insertedId = findOutlineNodeByText(readOutline(remdo), 'doc-id')?.noteId;
+    expect(insertedId).toBeTruthy();
+    expect(insertedId).not.toBe(docId);
+  });
+
   it('keeps the original noteId when a copy is pasted in place and elsewhere later', async ({ remdo }) => {
     await remdo.load('flat');
 
-    await selectStructuralNote(remdo, 'note2');
+    await selectStructuralNoteByDom(remdo, 'note2');
 
     const outlineBeforePaste = readOutline(remdo);
 
@@ -293,7 +551,7 @@ describe('note ids on paste', () => {
   it('restores copied content when pasting over an edited note with the same id', async ({ remdo }) => {
     await remdo.load('flat');
 
-    await selectStructuralNote(remdo, 'note2');
+    await selectStructuralNoteByDom(remdo, 'note2');
     const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
 
     await placeCaretAtNoteId(remdo, 'note2', Number.POSITIVE_INFINITY);
@@ -305,7 +563,7 @@ describe('note ids on paste', () => {
       { noteId: 'note3', text: 'note3' },
     ]);
 
-    await selectStructuralNote(remdo, 'note2');
+    await selectStructuralNoteByDom(remdo, 'note2');
     await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
 
     expect(remdo).toMatchOutline([
