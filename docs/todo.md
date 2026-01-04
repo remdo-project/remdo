@@ -43,7 +43,7 @@ created notes and collab insertions.
    - ✅ Done — Concurrent same-location insert (both clients insert at the same
      caret position) keeps ids unique/stable across clients.
    - ✅ Done — Copy/paste coverage across clients (non-conflicting ids preserved).
-   - Add conflict coverage for pasted ids that collide with existing notes
+   - ✅ Done — Conflict coverage for pasted ids colliding with existing notes
      outside the replaced selection (regen and sync deterministically).
    - Add a multi-note structural paste case (nested subtree ids preserved and
      conflicts regenerated consistently across clients).

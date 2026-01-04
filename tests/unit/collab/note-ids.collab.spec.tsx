@@ -57,6 +57,10 @@ describe('collaboration note ids', () => {
     await pressKey(secondary, { key: 'Enter' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
+    await waitFor(() => {
+      expect(secondary).toMatchOutline(readOutline(remdo));
+    });
+
     const outlineA = readOutline(remdo);
     const noteIds = outlineA
       .map((note) => note.noteId)
@@ -129,5 +133,33 @@ describe('collaboration note ids', () => {
 
     expect(remdo).toMatchOutline(expected);
     expect(secondary).toMatchOutline(expected);
+  });
+
+  it('regenerates conflicting pasted ids across clients', async ({ remdo }) => {
+    const docId = remdo.getCollabDocId();
+    await remdo.load('flat');
+    await remdo.waitForSynced();
+
+    const secondary = await renderCollabEditor({ docId });
+    await secondary.waitForSynced();
+
+    const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    await waitFor(() => {
+      const outlineA = readOutline(remdo);
+      const noteIds = outlineA
+        .map((note) => note.noteId)
+        .filter((noteId): noteId is string => typeof noteId === 'string');
+
+      expect(outlineA).toHaveLength(4);
+      expect(outlineA[1]?.noteId).toBe('note2');
+      expect(noteIds.filter((noteId) => noteId === 'note2')).toHaveLength(1);
+      expect(new Set(noteIds).size).toBe(noteIds.length);
+      expect(secondary).toMatchOutline(outlineA);
+    });
   });
 });
