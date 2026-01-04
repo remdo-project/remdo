@@ -1,9 +1,9 @@
-import { act } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
 import { expect } from 'vitest';
 
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { pressKey } from './keyboard';
-import { placeCaretAtNoteId, readOutline } from './note';
+import { readOutline, placeCaretAtNoteId } from './note';
 import { getNoteElementById } from './dom-note';
 
 // Low-level drag helper for precise text-node selection ranges.
@@ -60,17 +60,18 @@ export async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNot
   });
 }
 
-// DOM-driven selection ladder to land on a single structural note selection.
+// DOM-driven selection that targets a single structural note selection.
 export async function selectStructuralNoteByDom(remdo: RemdoTestApi, noteId: string): Promise<void> {
   const noteText = readOutline(remdo).find((note) => note.noteId === noteId)?.text ?? '';
   const needsInlineStage = noteText.trim().length > 0;
   await placeCaretAtNoteId(remdo, noteId, 0);
-  await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-  // Empty note bodies skip the inline stage, so only press again when inline exists.
+  await pressKey(remdo, { key: 'ArrowDown', shift: true });
   if (needsInlineStage) {
-    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
   }
-  expect(remdo).toMatchSelection({ state: 'structural', notes: [noteId] });
+  await waitFor(() => {
+    expect(remdo).toMatchSelection({ state: 'structural', notes: [noteId] });
+  });
 }
 
 // Range-only selection for paths that don't use Selection.extend (e.g. touch-handle drags).

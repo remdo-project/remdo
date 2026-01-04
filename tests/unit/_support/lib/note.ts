@@ -1,12 +1,15 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
+import { waitFor } from '@testing-library/react';
 import type { TextNode } from 'lexical';
 import { $createRangeSelection, $getRoot, $getSelection, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
-import { findNearestListItem } from './selection';
+import { findNearestListItem, getRootElementOrThrow } from './selection';
 import { $getNoteId } from '#lib/editor/note-id-state';
+import { expect } from 'vitest';
+import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
 export type { Outline, OutlineNode } from '#tests-common/outline';
 export type SelectionSnapshot =
   | { state: 'none' }
@@ -66,10 +69,23 @@ function placeCaretAtListItem(item: ListItemNode, offset: number) {
 }
 
 export async function placeCaretAtNoteId(remdo: RemdoTestApi, noteId: string, offset = 0) {
+  const rootElement = getRootElementOrThrow(remdo.editor);
+  if (document.activeElement !== rootElement) {
+    rootElement.focus();
+  }
+
+  await remdo.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'anchor' }, { expect: 'any' });
+
   await remdo.mutate(() => {
     const item = $findItemByNoteId(noteId);
     if (!item) throw new Error(`No list item found with noteId: ${noteId}`);
     placeCaretAtListItem(item, offset);
+  });
+
+  await waitFor(() => {
+    // Wait for both lexical and outline selection state to settle, so the progressive ladder resets.
+    expect(readCaretNoteId(remdo)).toBe(noteId);
+    expect(remdo.editor.selection.get()?.kind).toBe('caret');
   });
 }
 
