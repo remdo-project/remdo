@@ -1,21 +1,29 @@
-import { $isListItemNode, ListItemNode } from '@lexical/list';
+import { $isListItemNode, $isListNode, ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import type { LexicalEditor, LexicalNode } from 'lexical';
+import type { LexicalNode } from 'lexical';
 import {
   $getNodeByKey,
   $getRoot,
   $isElementNode,
+  $isRangeSelection,
   $setState,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_LOW,
-  COPY_COMMAND,
-  CUT_COMMAND,
+  PASTE_COMMAND,
   SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
 } from 'lexical';
 import { useEffect, useRef } from 'react';
-import { createNoteId } from '#lib/editor/note-ids';
+import { createNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
-import { isChildrenWrapper } from '@/editor/outline/list-structure';
+import { getContentListItem, insertBefore, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { $selectItemEdge } from '@/editor/outline/selection/caret';
+import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
+import {
+  getNextContentSibling,
+  getSubtreeItems,
+  removeNoteSubtree,
+  sortHeadsByDocumentOrder,
+} from '@/editor/outline/selection/tree';
 import { useCollaborationStatus } from './collaboration';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
 
@@ -27,31 +35,10 @@ function $ensureNoteId(item: ListItemNode) {
   $setState(item, noteIdState, createNoteId());
 }
 
-function $stripNoteIdsFromClipboardNodes(nodes: LexicalNode[]) {
-  const stack = [...nodes];
-  while (stack.length > 0) {
-    const node = stack.pop();
-    if (!node) {
-      continue;
-    }
-
-    if ($isListItemNode(node) && !isChildrenWrapper(node)) {
-      $setState(node, noteIdState, noteIdState.parse(null));
-    }
-
-    if ($isElementNode(node)) {
-      stack.push(...node.getChildren());
-    }
-  }
-}
-
-function $collectClipboardNoteIds(nodes: LexicalNode[]): string[] {
-  if (nodes.length === 0) {
-    return [];
-  }
-
-  const ordered: string[] = [];
-  const stack = nodes.toReversed();
+function $collectDocumentNoteIds(docId: string, excludedKeys?: Set<string>): Set<string> {
+  const root = $getRoot();
+  const reserved = new Set<string>();
+  const stack = root.getChildren().toReversed();
 
   while (stack.length > 0) {
     const node = stack.pop();
@@ -59,10 +46,14 @@ function $collectClipboardNoteIds(nodes: LexicalNode[]): string[] {
       continue;
     }
 
-    if ($isListItemNode(node) && !isChildrenWrapper(node)) {
+    if (
+      $isListItemNode(node) &&
+      !isChildrenWrapper(node) &&
+      (!excludedKeys || !excludedKeys.has(node.getKey()))
+    ) {
       const noteId = $getNoteId(node);
       if (noteId) {
-        ordered.push(noteId);
+        reserved.add(noteId);
       }
     }
 
@@ -77,38 +68,115 @@ function $collectClipboardNoteIds(nodes: LexicalNode[]): string[] {
     }
   }
 
-  return ordered;
+  if (docId.length > 0) {
+    reserved.add(docId);
+  }
+  return reserved;
 }
 
-function $getStructuralSelectionNoteIds(editor: LexicalEditor): string[] {
-  const outlineSelection = editor.selection.get();
-  if (!outlineSelection || outlineSelection.kind !== 'structural') {
-    return [];
+function $collectExcludedKeysFromHeadKeys(headKeys: string[]): Set<string> {
+  const excluded = new Set<string>();
+  if (headKeys.length === 0) {
+    return excluded;
   }
 
-  const ordered: string[] = [];
-  for (const key of outlineSelection.selectedKeys) {
-    const node = $getNodeByKey(key);
+  for (const key of headKeys) {
+    const node = $getNodeByKey<ListItemNode>(key);
+    if (!$isListItemNode(node) || isChildrenWrapper(node) || !node.isAttached()) {
+      continue;
+    }
+
+    for (const item of getSubtreeItems(node)) {
+      excluded.add(item.getKey());
+    }
+  }
+
+  return excluded;
+}
+
+function $preserveClipboardNoteIds(nodes: LexicalNode[], reservedIds: Set<string>) {
+  const stack = nodes.toReversed();
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) {
+      continue;
+    }
+
     if ($isListItemNode(node) && !isChildrenWrapper(node)) {
-      const noteId = $getNoteId(node);
-      if (noteId) {
-        ordered.push(noteId);
+      const existing = $getNoteId(node);
+      if (!existing || reservedIds.has(existing)) {
+        const next = createNoteIdAvoiding(reservedIds);
+        $setState(node, noteIdState, next);
+        reservedIds.add(next);
+      } else {
+        reservedIds.add(existing);
+      }
+    }
+
+    if ($isElementNode(node)) {
+      const children = node.getChildren();
+      for (let i = children.length - 1; i >= 0; i -= 1) {
+        const child = children[i];
+        if (child) {
+          stack.push(child);
+        }
       }
     }
   }
-
-  return ordered;
 }
 
-function noteIdListsMatch(left: string[], right: string[]): boolean {
-  if (left.length !== right.length) {
+function $extractClipboardListChildren(nodes: LexicalNode[]): LexicalNode[] {
+  const extracted: LexicalNode[] = [];
+
+  for (const node of nodes) {
+    if ($isListNode(node)) {
+      extracted.push(...node.getChildren());
+    } else if ($isListItemNode(node)) {
+      extracted.push(node);
+    }
+  }
+
+  return extracted;
+}
+
+function $replaceStructuralSelectionWithClipboardNodes(headKeys: string[], nodes: LexicalNode[]): boolean {
+  if (headKeys.length === 0) {
     return false;
   }
 
-  for (let i = 0; i < left.length; i += 1) {
-    if (left[i] !== right[i]) {
-      return false;
-    }
+  const heads = headKeys
+    .map((key) => $getNodeByKey<ListItemNode>(key))
+    .filter((node): node is ListItemNode => $isListItemNode(node) && node.isAttached() && !isChildrenWrapper(node));
+  if (heads.length === 0) {
+    return false;
+  }
+
+  const insertNodes = $extractClipboardListChildren(nodes);
+  if (insertNodes.length === 0) {
+    return false;
+  }
+
+  const orderedHeads = sortHeadsByDocumentOrder(heads);
+  const lastHead = orderedHeads.at(-1)!;
+  const parentList = lastHead.getParent();
+  if (!$isListNode(parentList)) {
+    return false;
+  }
+
+  const nextSibling = getNextContentSibling(lastHead);
+  for (const head of orderedHeads.toReversed()) {
+    removeNoteSubtree(head);
+  }
+
+  if (nextSibling) {
+    insertBefore(nextSibling, insertNodes);
+  } else {
+    parentList.append(...insertNodes);
+  }
+
+  const firstInserted = insertNodes.find((node) => $isListItemNode(node) && !isChildrenWrapper(node));
+  if ($isListItemNode(firstInserted)) {
+    $selectItemEdge(getContentListItem(firstInserted), 'start');
   }
 
   return true;
@@ -118,7 +186,7 @@ export function NoteIdPlugin() {
   const [editor] = useLexicalComposerContext();
   const { hydrated, docEpoch, docId } = useCollaborationStatus();
   const readyRef = useRef(false);
-  const lastCutNoteIdsRef = useRef<string[] | null>(null);
+  const lastPasteSelectionHeadKeysRef = useRef<string[] | null>(null);
 
   useEffect(() => {
     readyRef.current = true;
@@ -143,45 +211,40 @@ export function NoteIdPlugin() {
           return false;
         }
 
-        const clipboardNoteIds = $collectClipboardNoteIds(payload.nodes);
-        if (clipboardNoteIds.length === 0) {
-          lastCutNoteIdsRef.current = null;
-          return false;
+        let selectionHeadKeys = lastPasteSelectionHeadKeysRef.current ?? [];
+        if (selectionHeadKeys.length === 0) {
+          const outlineSelection = editor.selection.get();
+          if (outlineSelection?.kind === 'structural') {
+            selectionHeadKeys =
+              outlineSelection.headKeys.length > 0 ? outlineSelection.headKeys : outlineSelection.selectedKeys;
+          }
         }
-
-        const selectionNoteIds = $getStructuralSelectionNoteIds(editor);
-        if (selectionNoteIds.length > 0 && noteIdListsMatch(selectionNoteIds, clipboardNoteIds)) {
-          lastCutNoteIdsRef.current = null;
-          return true;
+        if (selectionHeadKeys.length === 0 && $isRangeSelection(payload.selection)) {
+          const selection = payload.selection;
+          if (!selection.isCollapsed()) {
+            const heads = getContiguousSelectionHeads(selection);
+            selectionHeadKeys = heads.map((item) => getContentListItem(item).getKey());
+          }
         }
-
-        const cutNoteIds = lastCutNoteIdsRef.current;
-        if (cutNoteIds && noteIdListsMatch(cutNoteIds, clipboardNoteIds)) {
-          lastCutNoteIdsRef.current = null;
-          return false;
-        }
-
-        $stripNoteIdsFromClipboardNodes(payload.nodes);
-        lastCutNoteIdsRef.current = null;
-        return false;
+        const excludedKeys = $collectExcludedKeysFromHeadKeys(selectionHeadKeys);
+        const reservedIds = $collectDocumentNoteIds(docId, excludedKeys);
+        $preserveClipboardNoteIds(payload.nodes, reservedIds);
+        lastPasteSelectionHeadKeysRef.current = null;
+        return $replaceStructuralSelectionWithClipboardNodes(selectionHeadKeys, payload.nodes);
       },
       COMMAND_PRIORITY_LOW
     );
 
-    const unregisterCut = editor.registerCommand(
-      CUT_COMMAND,
+    const unregisterPaste = editor.registerCommand(
+      PASTE_COMMAND,
       () => {
-        const selectionNoteIds = $getStructuralSelectionNoteIds(editor);
-        lastCutNoteIdsRef.current = selectionNoteIds.length > 0 ? selectionNoteIds : null;
-        return false;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-
-    const unregisterCopy = editor.registerCommand(
-      COPY_COMMAND,
-      () => {
-        lastCutNoteIdsRef.current = null;
+        const outlineSelection = editor.selection.get();
+        lastPasteSelectionHeadKeysRef.current =
+          outlineSelection?.kind === 'structural' && outlineSelection.headKeys.length > 0
+            ? [...outlineSelection.headKeys]
+            : outlineSelection?.kind === 'structural' && outlineSelection.selectedKeys.length > 0
+              ? [...outlineSelection.selectedKeys]
+            : null;
         return false;
       },
       COMMAND_PRIORITY_CRITICAL
@@ -190,8 +253,7 @@ export function NoteIdPlugin() {
     return () => {
       unregisterTransform();
       unregisterClipboard();
-      unregisterCut();
-      unregisterCopy();
+      unregisterPaste();
     };
   }, [editor, hydrated, docEpoch, docId]);
 

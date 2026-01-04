@@ -168,6 +168,11 @@ describe('note id normalization on load', () => {
   it('keeps existing unique noteIds unchanged', async ({ remdo }) => {
     await remdo.load('flat');
 
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
   });
 });
 
@@ -222,12 +227,38 @@ describe('note ids on paste', () => {
 
     const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
     await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
     expect(readOutline(remdo)).toEqual(outlineBeforePaste);
 
+    await selectStructuralNote(remdo, 'note2');
     await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
     expect(readOutline(remdo)).toEqual(outlineBeforePaste);
+  });
+
+  it('regenerates duplicate noteIds inside clipboard payload while preserving the first', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    await selectStructuralNote(remdo, 'note2');
+
+    const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
+    const listNode = clipboardPayload.nodes[0];
+    if (!listNode || !Array.isArray(listNode.children) || listNode.children.length === 0) {
+      throw new Error('Expected clipboard list node with children for duplication test.');
+    }
+    const duplicate = structuredClone(listNode.children[0]);
+    listNode.children.push(duplicate);
+
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: null, text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    const outline = readOutline(remdo);
+    const noteIds = outline.map((note) => note.noteId);
+    expect(new Set(noteIds).size).toBe(outline.length);
   });
 
   it('keeps the original noteId when a copy is pasted in place and elsewhere later', async ({ remdo }) => {
@@ -239,7 +270,6 @@ describe('note ids on paste', () => {
 
     const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
     await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
     expect(readOutline(remdo)).toEqual(outlineBeforePaste);
 
     await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
@@ -260,7 +290,7 @@ describe('note ids on paste', () => {
     expect(new Set(noteIds).size).toBe(outlineAfterPaste.length);
   });
 
-  it.fails('restores copied content when pasting over an edited note with the same id', async ({ remdo }) => {
+  it('restores copied content when pasting over an edited note with the same id', async ({ remdo }) => {
     await remdo.load('flat');
 
     await selectStructuralNote(remdo, 'note2');
