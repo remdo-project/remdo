@@ -62,9 +62,15 @@ document ID. This spec does not define the format or storage of document IDs.
 - The `noteId` values of any structurally selected notes being replaced are
   excluded from conflict checks, so cut/move/paste-in-place preserves ids.
 - If the clipboard payload contains duplicate `noteId` values, preserve the
-  first occurrence and regenerate the rest to keep the document unique.
+  first occurrence within the pasted payload and regenerate the rest to keep
+  the document unique. Existing document notes always win over pasted ids; the
+  order rule applies only within the pasted payload.
 - If a pasted `noteId` conflicts with an existing `noteId` outside the replaced
   selection, regenerate that `noteId` (and only that one) before insertion.
+- Practical paste algorithm: build `reservedIds = allIdsInDoc - idsInReplacedSubtree`,
+  then walk the pasted subtree in document order. For each node, assign a new
+  id if it is missing/empty, already used earlier in the pasted payload, or
+  collides with `reservedIds`, and add each assigned id to the running used set.
 
 ### Merge and deletion
 
@@ -86,7 +92,10 @@ document ID. This spec does not define the format or storage of document IDs.
 
 - `noteId` generation must be collision-resistant across clients; IDs are
   created locally and synced as part of the note content.
-- Remote operations must never regenerate or overwrite existing `noteId` values.
+- Remote operations must not overwrite existing `noteId` values during normal
+  application, but normalization is allowed to resolve duplicates.
+- After sync (and on load), resolve duplicate ids using the same clipboard
+  conflict rules.
 
 ## Global references
 

@@ -87,6 +87,20 @@ created notes and collab insertions.
     nodes to confirm the first occurrence wins across the entire subtree.
 23. ✅ Done — Add clipboard tests for payloads containing `noteId === docId` to
     ensure they regenerate.
+24. Paste conflict resolution plan (copy/paste):
+    - Preserve pasted `noteId` unless it conflicts with existing ids outside
+      the replaced subtree.
+    - Treat missing/empty ids as "generate new" and resolve duplicate ids
+      within the pasted payload by keeping the first in document order.
+    - Build `reservedIds = allIdsInDoc - idsInReplacedSubtree`, then walk the
+      pasted subtree in document order, assigning new ids where needed and
+      adding each assigned id to a running used set.
+    - After sync/load, resolve duplicates using the same preserve-unless-
+      conflict rules as paste (existing ids win; regenerate conflicting
+      incoming ids).
+25. Revisit the post-sync/load duplicate resolution approach if preserving ids
+    without a full-document scan proves too complex; update the spec to reflect
+    the simplest workable normalization.
 
 ## Harden editor schema validator tests
 
