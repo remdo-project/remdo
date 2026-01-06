@@ -69,6 +69,18 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
   heads, so an empty structural selection skips removal and leaves the cut
   subtree in place. Ensure caret pastes still remove the marked notes so cut
   behaves like a move.
+- [P2] Structural cut currently returns true without touching the clipboard.
+  That blocks the RichTextPlugin cut handler, so cross-app cut/paste never
+  updates the system clipboard. Confirm whether cut should serialize to the
+  clipboard; if yes, wire in Lexical’s normal cut flow.
+- [P2] Non-collapsed text selection inside a single note is treated as a
+  structural cut (contiguous selection heads). This hijacks normal text cut
+  behavior and removes whole notes instead of the selected text. Decide if
+  partial-text cuts should be handled by Lexical and guard accordingly.
+- [P2] Caret paste can move cut nodes into their own subtree: the intersection
+  guard only checks structural selection heads, so collapsed caret pastes skip
+  the self-move check. Validate the caret’s nearest list item against the cut
+  marker.
 - Revisit test helpers once cut-as-move is fully implemented; `cutStructuralNoteById`
   in `tests/unit/_support/lib/clipboard.ts` is a stopgap that should be replaced
   by the real cut flow.
