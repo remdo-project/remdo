@@ -2,6 +2,7 @@ import antfu from '@antfu/eslint-config';
 import compatPlugin from 'eslint-plugin-compat';
 import lexicalPlugin from '@lexical/eslint-plugin';
 import unicornPlugin from 'eslint-plugin-unicorn';
+import { commandsInCommandsFileRule } from './config/eslint/commandsInCommandsFile';
 import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
 
 const { plugins: _unusedUnicornPlugins, ...unicornUnopinionatedConfig } = unicornPlugin.configs.unopinionated;
@@ -91,6 +92,7 @@ export default antfu(
     ],
     rules: {
       'compat/compat': 'error',
+      'remdo/commands-in-commands-file': 'error',
     },
   },
   {
@@ -239,6 +241,7 @@ export default antfu(
       compat: compatPlugin,
       remdo: {
         rules: {
+          'commands-in-commands-file': commandsInCommandsFileRule,
           'no-legacy-fallbacks': noLegacyFallbacksRule,
         },
       },
