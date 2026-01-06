@@ -39,7 +39,7 @@ const CASES: OutlineCase[] = [
   {
     fixture: 'formatted',
     outline: [
-      { noteId: 'bold', text: 'bold', children: [ { noteId: 'italic', text: 'italic' } ] },
+      { noteId: 'bold', text: 'bold', children: [ { noteId: 'italic', text: 'italic', children: [ { noteId: 'target', text: 'target' } ] } ] },
       { noteId: 'underline', text: 'underline' },
       { noteId: 'mixed-formatting', text: 'plain bold italic underline plain' },
     ],

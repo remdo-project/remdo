@@ -3,6 +3,7 @@
     "type": "root",
     "children": [
       {
+        "textFormat": 2,
         "type": "list",
         "children": [
           {
@@ -36,6 +37,31 @@
                         "format": 2,
                         "text": "italic",
                         "type": "text"
+                      }
+                    ]
+                  },
+                  {
+                    "indent": 1,
+                    "type": "listitem",
+                    "value": 2,
+                    "children": [
+                      {
+                        "type": "list",
+                        "children": [
+                          {
+                            "indent": 2,
+                            "noteId": "target",
+                            "type": "listitem",
+                            "value": 1,
+                            "children": [
+                              {
+                                "format": 2,
+                                "text": "target",
+                                "type": "text"
+                              }
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
