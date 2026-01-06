@@ -77,3 +77,8 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
   without invalidation and update the spec accordingly.
 - Implementation note: move logic uses stored head keys (not clipboard payload)
   to identify the cut subtree; keep tests/helpers aligned with this contract.
+- Follow-up: refactor test helpers to split selection from cut (selection helper
+  first, then a generic cut helper that validates clipboard payload) so the
+  collab subtree move test (`tests/unit/collab/note-ids.collab.spec.tsx`) can
+  use a shared cut path instead of inline parsing. Make sure to unify and
+  improve selection helpers first.
