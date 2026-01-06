@@ -155,3 +155,14 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
    textNode.getTextContentSize() even though there is preceding/following text
    in the note. That misclassifies mid- note positions as start/end and triggers
    the wrong insertion path. (src/editor/plugins/InsertionPlugin.tsx:75-90)
+
+## Cut-as-move
+
+- Implement cut-as-move behavior in prod (cut marks notes; paste moves them).
+- [P1] Cut paste at a caret duplicates notes: move path uses target selection
+  heads, so an empty structural selection skips removal and leaves the cut
+  subtree in place. Ensure caret pastes still remove the marked notes so cut
+  behaves like a move.
+- Revisit test helpers once cut-as-move is fully implemented; `cutStructuralNoteById`
+  in `tests/unit/_support/lib/clipboard.ts` is a stopgap that should be replaced
+  by the real cut flow.

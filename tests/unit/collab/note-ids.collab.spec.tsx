@@ -105,7 +105,7 @@ describe('collaboration note ids', () => {
     expect(secondary).toMatchOutline(outlineA);
   });
 
-  it('preserves ids for non-conflicting paste across clients', async ({ remdo }) => {
+  it('regenerates ids for paste across clients', async ({ remdo }) => {
     const docId = remdo.getCollabDocId();
     await remdo.load('flat');
     await remdo.waitForSynced();
@@ -128,15 +128,18 @@ describe('collaboration note ids', () => {
 
     const expected = [
       { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
+      { noteId: null, text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ];
 
     expect(remdo).toMatchOutline(expected);
     expect(secondary).toMatchOutline(expected);
+    const pastedId = readOutline(remdo).find((note) => note.text === 'note2')?.noteId;
+    expect(pastedId).toEqual(expect.any(String));
+    expect(pastedId).not.toBe('note2');
   });
 
-  it('regenerates conflicting pasted ids across clients', async ({ remdo }) => {
+  it('regenerates ids when pasting over existing content across clients', async ({ remdo }) => {
     const docId = remdo.getCollabDocId();
     await remdo.load('flat');
     await remdo.waitForSynced();
@@ -164,7 +167,7 @@ describe('collaboration note ids', () => {
     });
   });
 
-  it('preserves subtree ids for multi-note structural paste across clients', async ({ remdo }) => {
+  it('regenerates ids for multi-note structural paste across clients', async ({ remdo }) => {
     const docId = remdo.getCollabDocId();
     await remdo.load('tree-complex');
     await remdo.waitForSynced();
@@ -191,8 +194,9 @@ describe('collaboration note ids', () => {
         .map((note) => note.noteId)
         .filter((noteId): noteId is string => typeof noteId === 'string');
 
-      expect(noteIds.filter((noteId) => noteId === 'note2')).toHaveLength(1);
-      expect(noteIds.filter((noteId) => noteId === 'note4')).toHaveLength(1);
+      expect(noteIds.filter((noteId) => noteId === 'note2')).toHaveLength(0);
+      expect(noteIds.filter((noteId) => noteId === 'note4')).toHaveLength(0);
+      expect(new Set(noteIds).size).toBe(noteIds.length);
       expect(secondary).toMatchOutline(outlineA);
     });
   });
