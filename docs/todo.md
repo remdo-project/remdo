@@ -82,3 +82,8 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
   collab subtree move test (`tests/unit/collab/note-ids.collab.spec.tsx`) can
   use a shared cut path instead of inline parsing. Make sure to unify and
   improve selection helpers first.
+- Follow-up: paste placement at end-of-note with children currently inserts
+  after the entire subtree (next content sibling), which feels unintuitive when
+  the caret sits visually above the first child. Align paste insertion with
+  `docs/insertion.md` end-of-note semantics so pastes land as the first child,
+  and add a focused test to lock this behavior.
