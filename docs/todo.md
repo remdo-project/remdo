@@ -65,22 +65,20 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
 ## Cut-as-move
 
 - Implement cut-as-move behavior in prod (cut marks notes; paste moves them).
-- [P1] Cut paste at a caret duplicates notes: move path uses target selection
-  heads, so an empty structural selection skips removal and leaves the cut
-  subtree in place. Ensure caret pastes still remove the marked notes so cut
-  behaves like a move.
-- [P2] Structural cut currently returns true without touching the clipboard.
-  That blocks the RichTextPlugin cut handler, so cross-app cut/paste never
-  updates the system clipboard. Confirm whether cut should serialize to the
-  clipboard; if yes, wire in Lexical’s normal cut flow.
-- [P2] Non-collapsed text selection inside a single note is treated as a
-  structural cut (contiguous selection heads). This hijacks normal text cut
-  behavior and removes whole notes instead of the selected text. Decide if
-  partial-text cuts should be handled by Lexical and guard accordingly.
-- [P2] Caret paste can move cut nodes into their own subtree: the intersection
-  guard only checks structural selection heads, so collapsed caret pastes skip
-  the self-move check. Validate the caret’s nearest list item against the cut
-  marker.
+- [P1] Structural cut should also populate the system clipboard (copy payload)
+  while leaving content in place; the cut marker is the source of truth for
+  the move. Clear the marker after a successful move, but do not clear the
+  system clipboard.
+- [P1] Non-collapsed text selection inside a single note should be handled by
+  Lexical (normal text cut). Treat a cut as structural only when the selection
+  is structural or spans multiple notes.
+- [P1] Marker invalidation rule (simplicity-first): any local or remote mutation
+  touching a marked note (including text edits) drops the marker. Keep the spec
+  simple for now; if implementation proves easy, revisit allowing text edits
+  without invalidation and update the spec accordingly.
+- [P1] Caret paste can duplicate notes or self-move into a marked subtree.
+  Ensure caret pastes still remove marked notes (move), and validate the caret’s
+  nearest list item against the marked subtree to prevent self-moves.
 - Revisit test helpers once cut-as-move is fully implemented; `cutStructuralNoteById`
   in `tests/unit/_support/lib/clipboard.ts` is a stopgap that should be replaced
   by the real cut flow.

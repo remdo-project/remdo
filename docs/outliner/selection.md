@@ -167,3 +167,7 @@ Progressive Selection is simply a shortcut for creating larger note ranges, so
 it inherits the same command surface. These guarantees ensure upcoming tests
 and implementations can reason about the selection state without peeking into
 UI-specific details.
+
+Clipboard behavior for structural selections (cut-as-move, paste moves when a
+marker is active) is defined in `./note-ids.md`. Inline text ranges continue to
+use normal text cut/copy/paste behavior.
