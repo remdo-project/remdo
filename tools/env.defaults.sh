@@ -9,6 +9,7 @@
 : "${COLLAB_DOCUMENT_ID:=main}"
 : "${CI:=false}"
 : "${VITEST_PREVIEW:=false}"
+: "${TMPDIR:=${REMDO_ROOT%/}/node_modules/.cache/vitest-tmp}" # Keep Vitest temp files out of repo root and shared with vitest-preview.
 
 if [ -z "${BASICAUTH_USER:-}" ]; then
   if [ -n "${USER:-}" ]; then
@@ -56,5 +57,5 @@ do
   done
 done
 
-export NODE_ENV HOST PORT DATA_DIR COLLAB_ENABLED COLLAB_DOCUMENT_ID CI VITEST_PREVIEW BASICAUTH_USER
+export NODE_ENV HOST PORT DATA_DIR COLLAB_ENABLED COLLAB_DOCUMENT_ID CI VITEST_PREVIEW BASICAUTH_USER TMPDIR
 export HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT COLLAB_CLIENT_PORT PREVIEW_PORT PLAYWRIGHT_UI_PORT DOCKER_TEST_PORT
