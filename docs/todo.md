@@ -11,11 +11,6 @@ Rules:
 - Move durable decisions/specs into the relevant doc under `docs/`, leaving a
   link behind.
 
-## Align note indent/outdent helpers with Lexical
-
-1. `$getOrCreateChildList` omits copying text format and style from the source
-   `ListNode`/`ListItemNode`, unlike Lexical, so new wrappers lose typography.
-
 ## Harden editor schema validator tests
 
 1. Extract shared builders for editor schema fixtures to cut duplication.
