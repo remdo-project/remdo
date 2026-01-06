@@ -53,7 +53,7 @@
     "test:dev": "cross-env NODE_ENV=test REMDO_VALIDATE_MAIN_DOC=1 ./tools/env.sh pnpm exec vitest run tests/unit/collab/main-doc-schema.collab.spec.ts",
     "test:unit:coverage": "cross-env NODE_ENV=test COLLAB_ENABLED=false ./tools/env.sh timeout ${TEST_TIMEOUT:-60}s pnpm exec vitest run --coverage",
     "test:unit:watch": "cross-env NODE_ENV=test COLLAB_ENABLED=false ./tools/env.sh tsx ./tools/test-unit-watch.ts",
-    "test:preview": "./tools/env.sh tsx ./tools/test-preview.ts",
+    "test:preview": "./tools/env.sh sh -c 'PORT=\"$VITEST_PREVIEW_PORT\" VITEST_PREVIEW=true pnpm exec vitest-preview'",
     "test:e2e": "./tools/env.sh timeout ${TEST_TIMEOUT:-60}s pnpm exec playwright test",
     "test:e2e:ui": "./tools/env.sh pnpm exec playwright test --ui --ui-host ${HOST} --ui-port ${PLAYWRIGHT_UI_PORT}",
     "test:e2e:watch": "./tools/env.sh cross-env PWTEST_WATCH=1 pnpm exec playwright test",
