@@ -18,7 +18,7 @@ import type { Provider } from '@lexical/yjs';
 import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lexical';
 
 import { config } from '#config';
-import { restoreEditorStateDefaults } from '#lib/editor/editor-state-defaults';
+import { restoreEditorStateDefaults, stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollabSession } from '#lib/collaboration/session';
 
@@ -37,6 +37,7 @@ interface CliArguments {
   filePath?: string;
   docId?: string;
   markdownPath: string | null;
+  minify: boolean;
 }
 
 type SnapshotProvider = Provider & {
@@ -52,7 +53,7 @@ interface SessionContext {
 }
 
 function parseCliArguments(argv: string[]): CliArguments {
-  const result: CliArguments = { markdownPath: null };
+  const result: CliArguments = { markdownPath: null, minify: false };
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]!;
@@ -66,6 +67,11 @@ function parseCliArguments(argv: string[]): CliArguments {
       if (arg === '--doc') {
         i += 1;
       }
+      continue;
+    }
+
+    if (arg === '--minify') {
+      result.minify = true;
       continue;
     }
 
@@ -120,9 +126,11 @@ if (globalWithOptionalDocument.document === undefined) {
   } as unknown as Document;
 }
 
-const { command, filePath, docId: cliDocId, markdownPath } = parseCliArguments(process.argv.slice(2));
+const { command, filePath, docId: cliDocId, markdownPath, minify } = parseCliArguments(process.argv.slice(2));
 if (command !== 'save' && command !== 'load' && command !== 'backup') {
-  throw new Error('Usage: snapshot.ts [--doc <id>] <load|save|backup> [filePath] [--md[=<file>]]');
+  throw new Error(
+    'Usage: snapshot.ts [--doc <id>] <load|save|backup> [filePath] [--minify] [--md[=<file>]]'
+  );
 }
 
 const docId = cliDocId?.trim() || config.env.COLLAB_DOCUMENT_ID;
@@ -131,11 +139,11 @@ const collabOrigin = `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}
 
 try {
   if (command === 'save') {
-    await runSave(docId, collabOrigin, targetFile, markdownPath);
+    await runSave(docId, collabOrigin, targetFile, markdownPath, minify);
   } else if (command === 'load') {
     await runLoad(docId, collabOrigin, targetFile);
   } else {
-    await runBackup(docId, collabOrigin, targetFile, markdownPath);
+    await runBackup(docId, collabOrigin, targetFile, markdownPath, minify);
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
@@ -187,11 +195,13 @@ async function runSave(
   docId: string,
   collabOrigin: string,
   filePath: string,
-  markdownPath: string | null
+  markdownPath: string | null,
+  minify: boolean
 ): Promise<void> {
   await withSession(docId, collabOrigin, async (editor) => {
     const editorState = editor.getEditorState().toJSON();
-    writeJson(filePath, editorState);
+    const payload = minify ? stripEditorStateDefaults(editorState) : editorState;
+    writeJson(filePath, payload);
     console.info(`[snapshot] save -> ${filePath}`);
 
     const shouldWriteMarkdown = markdownPath !== null;
@@ -219,9 +229,10 @@ async function runBackup(
   docId: string,
   collabOrigin: string,
   filePath: string,
-  markdownPath: string | null
+  markdownPath: string | null,
+  minify: boolean
 ): Promise<void> {
-  await runSave(docId, collabOrigin, filePath, markdownPath);
+  await runSave(docId, collabOrigin, filePath, markdownPath, minify);
 }
 
 async function runLoad(docId: string, collabOrigin: string, filePath: string): Promise<void> {
