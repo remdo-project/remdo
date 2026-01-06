@@ -101,6 +101,14 @@ created notes and collab insertions.
 25. Revisit the post-sync/load duplicate resolution approach if preserving ids
     without a full-document scan proves too complex; update the spec to reflect
     the simplest workable normalization.
+26. Evaluate simpler clipboard identity policy:
+    - Paste always regenerates `noteId` values (copy = duplicate new ids).
+    - Cut behaves like a move: cut payload ids are preserved on paste when the
+      paste uses the most recent cut payload; otherwise regenerate.
+    - If preserved cut ids conflict with existing ids, regenerate the
+      conflicting ones.
+    - Update `docs/outliner/note-ids.md` clipboard semantics accordingly and
+      adjust unit/collab tests to match.
 
 ## Harden editor schema validator tests
 

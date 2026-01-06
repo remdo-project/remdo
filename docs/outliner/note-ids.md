@@ -55,22 +55,14 @@ document ID. This spec does not define the format or storage of document IDs.
 
 ### Clipboard semantics
 
-- When pasting, preserve each pasted `noteId` unless it conflicts with an
-  existing `noteId` in the target document.
-- The source of the clipboard payload does not matter; the same rules apply to
-  paste-from-self, paste-from-another document, or any other import source.
-- The `noteId` values of any structurally selected notes being replaced are
-  excluded from conflict checks, so cut/move/paste-in-place preserves ids.
-- If the clipboard payload contains duplicate `noteId` values, preserve the
-  first occurrence within the pasted payload and regenerate the rest to keep
-  the document unique. Existing document notes always win over pasted ids; the
-  order rule applies only within the pasted payload.
-- If a pasted `noteId` conflicts with an existing `noteId` outside the replaced
-  selection, regenerate that `noteId` (and only that one) before insertion.
-- Practical paste algorithm: build `reservedIds = allIdsInDoc - idsInReplacedSubtree`,
-  then walk the pasted subtree in document order. For each node, assign a new
-  id if it is missing/empty, already used earlier in the pasted payload, or
-  collides with `reservedIds`, and add each assigned id to the running used set.
+- Paste always regenerates `noteId` values (copy = duplicate with new ids).
+- Cut is a pending move within the current document: the selected notes are
+  marked for move and keep their ids until paste.
+- Paste applies the pending move when a cut marker is active; otherwise it
+  inserts the clipboard payload as a copy with new ids.
+- Any new copy or cut clears the existing cut marker.
+- If a marked note is edited, moved, or deleted before paste (local or remote),
+  the cut marker is canceled.
 
 ### Merge and deletion
 
@@ -93,9 +85,9 @@ document ID. This spec does not define the format or storage of document IDs.
 - `noteId` generation must be collision-resistant across clients; IDs are
   created locally and synced as part of the note content.
 - Remote operations must not overwrite existing `noteId` values during normal
-  application, but normalization is allowed to resolve duplicates.
-- After sync (and on load), resolve duplicate ids using the same clipboard
-  conflict rules.
+  application.
+- If a cut marker exists, any remote edit that touches a marked note cancels
+  the marker to avoid ambiguous moves.
 
 ## Global references
 
