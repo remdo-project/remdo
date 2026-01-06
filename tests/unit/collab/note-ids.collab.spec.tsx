@@ -4,11 +4,13 @@ import { PASTE_COMMAND } from 'lexical';
 import {
   buildClipboardPayload,
   createClipboardEvent,
+  cutStructuralNoteById,
   placeCaretAtNoteId,
   pressKey,
   readOutline,
   selectStructuralNoteByDom,
   selectNoteRangeById,
+  typeText,
 } from '#tests';
 import { renderCollabEditor } from './_support/remdo-peers';
 
@@ -198,6 +200,36 @@ describe('collaboration note ids', () => {
       expect(noteIds.filter((noteId) => noteId === 'note4')).toHaveLength(0);
       expect(new Set(noteIds).size).toBe(noteIds.length);
       expect(secondary).toMatchOutline(outlineA);
+    });
+  });
+
+  it('drops cut markers after remote edits', async ({ remdo }) => {
+    const docId = remdo.getCollabDocId();
+    await remdo.load('flat');
+    await remdo.waitForSynced();
+
+    const secondary = await renderCollabEditor({ docId });
+    await secondary.waitForSynced();
+
+    const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
+
+    await placeCaretAtNoteId(secondary, 'note2', Number.POSITIVE_INFINITY);
+    await typeText(secondary, ' remote');
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    // Paste is a no-op because the cut marker was invalidated by the remote edit.
+    const expectedOutline = [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2 remote' },
+      { noteId: 'note3', text: 'note3' },
+    ];
+    expect(remdo).toMatchOutline(expectedOutline);
+    await waitFor(() => {
+      expect(secondary).toMatchOutline(expectedOutline);
     });
   });
 });

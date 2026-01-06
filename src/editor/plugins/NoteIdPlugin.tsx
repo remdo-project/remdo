@@ -1,6 +1,6 @@
 import { $isListItemNode, $isListNode, ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import type { BaseSelection, LexicalNode } from 'lexical';
+import type { BaseSelection, EditorState, LexicalNode, SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import {
   $getNodeByKey,
   $getRoot,
@@ -8,6 +8,7 @@ import {
   $isElementNode,
   $isRangeSelection,
   $setState,
+  TextNode,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_LOW,
   COPY_COMMAND,
@@ -40,6 +41,64 @@ import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
 interface CutMarker {
   headKeys: string[];
   markedKeys: Set<string>;
+}
+
+interface ClipboardPayload {
+  namespace: string;
+  nodes: SerializedLexicalNode[];
+  remdoCut?: boolean;
+}
+
+function getClipboardNamespace(editor: { _config?: { namespace?: string } }): string {
+  return editor._config?.namespace ?? 'remdo';
+}
+
+function isClipboardEvent(event: ClipboardEvent | KeyboardEvent | InputEvent | null): event is ClipboardEvent {
+  return !!event && 'clipboardData' in event;
+}
+
+function getClipboardPayload(event: ClipboardEvent | KeyboardEvent | InputEvent | null): ClipboardPayload | null {
+  if (!isClipboardEvent(event) || !event.clipboardData) {
+    return null;
+  }
+  const raw = event.clipboardData.getData('application/x-lexical-editor');
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw) as ClipboardPayload;
+  } catch {
+    return null;
+  }
+}
+
+function $getContentKeyFromNode(node: LexicalNode | null): string | null {
+  if (!node) {
+    return null;
+  }
+  const listItem = findNearestListItem(node);
+  if (!listItem) {
+    return null;
+  }
+  return getContentListItem(listItem).getKey();
+}
+
+function $getContentKeyFromNodeKey(key: string): string | null {
+  return $getContentKeyFromNode($getNodeByKey(key));
+}
+
+function isCaretWithinMarkedSelection(marker: CutMarker, selection: BaseSelection | null): boolean {
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+    return false;
+  }
+
+  const caretItem = findNearestListItem(selection.anchor.getNode());
+  if (!caretItem) {
+    return false;
+  }
+
+  const contentItem = getContentListItem(caretItem);
+  return marker.markedKeys.has(contentItem.getKey());
 }
 
 function $ensureNoteId(item: ListItemNode) {
@@ -110,48 +169,115 @@ function $extractClipboardListChildren(nodes: LexicalNode[]): LexicalNode[] {
   return extracted;
 }
 
-function $replaceStructuralSelectionWithClipboardNodes(headKeys: string[], nodes: LexicalNode[]): boolean {
-  if (headKeys.length === 0) {
-    return false;
-  }
-
-  const heads = headKeys
-    .map((key) => $getNodeByKey<ListItemNode>(key))
-    .filter((node): node is ListItemNode => $isListItemNode(node) && node.isAttached() && !isChildrenWrapper(node));
+function $serializeClipboardNodesFromHeads(heads: ListItemNode[]): SerializedLexicalNode[] {
   if (heads.length === 0) {
-    return false;
-  }
-
-  const insertNodes = $extractClipboardListChildren(nodes);
-  if (insertNodes.length === 0) {
-    return false;
+    return [];
   }
 
   const orderedHeads = sortHeadsByDocumentOrder(heads);
-  const lastHead = orderedHeads.at(-1)!;
-  const parentList = lastHead.getParent();
-  if (!$isListNode(parentList)) {
-    return false;
+  const flattened = flattenNoteNodes(orderedHeads);
+  const serialized = flattened.map((node) => node.exportJSON());
+
+  const parentList = orderedHeads[0]?.getParent();
+  if ($isListNode(parentList) && orderedHeads.every((head) => head.getParent() === parentList)) {
+    const listNode = parentList.exportJSON();
+    listNode.children = serialized;
+    return [listNode];
   }
 
-  const nextSibling = getNextContentSibling(lastHead);
+  return serialized;
+}
 
-  if (nextSibling) {
-    insertBefore(nextSibling, insertNodes);
-  } else {
-    parentList.append(...insertNodes);
+function getSerializedChildren(node: SerializedLexicalNode): SerializedLexicalNode[] {
+  const children = (node as { children?: SerializedLexicalNode[] }).children;
+  return Array.isArray(children) ? children : [];
+}
+
+function findSerializedListItem(root: SerializedLexicalNode, noteId: string): SerializedLexicalNode | null {
+  if (root.type === 'listitem' && (root as { noteId?: unknown }).noteId === noteId) {
+    return root;
   }
 
-  const firstInserted = insertNodes.find((node) => $isListItemNode(node) && !isChildrenWrapper(node));
-  if ($isListItemNode(firstInserted)) {
-    $selectItemEdge(getContentListItem(firstInserted), 'start');
+  for (const child of getSerializedChildren(root)) {
+    const found = findSerializedListItem(child, noteId);
+    if (found) {
+      return found;
+    }
   }
 
-  for (const head of orderedHeads.toReversed()) {
-    removeNoteSubtree(head);
+  return null;
+}
+
+function $hydrateClipboardContentNodes(nodes: SerializedLexicalNode[], state: SerializedEditorState): void {
+  const root = state.root;
+
+  const walk = (node: SerializedLexicalNode) => {
+    if (node.type === 'listitem') {
+      const noteId = (node as { noteId?: unknown }).noteId;
+      const children = getSerializedChildren(node);
+      if (typeof noteId === 'string' && children.length === 0) {
+        const source = findSerializedListItem(root, noteId);
+        if (source) {
+          const sourceChildren = getSerializedChildren(source);
+          if (sourceChildren.length > 0) {
+            (node as { children?: SerializedLexicalNode[] }).children = sourceChildren;
+          }
+        }
+      }
+    }
+
+    for (const child of getSerializedChildren(node)) {
+      walk(child);
+    }
+  };
+
+  for (const node of nodes) {
+    walk(node);
+  }
+}
+
+function $buildPlainTextFromHeads(heads: ListItemNode[]): string {
+  if (heads.length === 0) {
+    return '';
   }
 
-  return true;
+  const orderedHeads = sortHeadsByDocumentOrder(heads);
+  const lines: string[] = [];
+
+  for (const head of orderedHeads) {
+    for (const item of getSubtreeItems(head)) {
+      lines.push(item.getTextContent());
+    }
+  }
+
+  return lines.join('\n');
+}
+
+function $populateClipboardFromHeads(
+  editor: { _config?: { namespace?: string }; getEditorState: () => EditorState },
+  heads: ListItemNode[],
+  event: ClipboardEvent | KeyboardEvent | null
+): void {
+  if (heads.length === 0 || !isClipboardEvent(event) || !event.clipboardData) {
+    return;
+  }
+
+  const nodes = $serializeClipboardNodesFromHeads(heads);
+  if (nodes.length === 0) {
+    return;
+  }
+
+  $hydrateClipboardContentNodes(nodes, editor.getEditorState().toJSON());
+
+  const payload: ClipboardPayload = {
+    namespace: getClipboardNamespace(editor),
+    nodes,
+    remdoCut: true,
+  };
+
+  event.preventDefault();
+  event.clipboardData.setData('application/x-lexical-editor', JSON.stringify(payload));
+  event.clipboardData.setData('text/plain', $buildPlainTextFromHeads(heads));
 }
 
 function $insertNodesAtSelection(
@@ -223,6 +349,7 @@ export function NoteIdPlugin() {
   const readyRef = useRef(false);
   const lastPasteSelectionHeadKeysRef = useRef<string[] | null>(null);
   const cutMarkerRef = useRef<CutMarker | null>(null);
+  const lastPasteWasCutRef = useRef(false);
 
   useEffect(() => {
     readyRef.current = true;
@@ -234,12 +361,55 @@ export function NoteIdPlugin() {
     }
 
     return mergeRegister(
+      editor.registerMutationListener(
+        ListItemNode,
+        (mutations, payload) => {
+          const marker = cutMarkerRef.current;
+          if (!marker) {
+            return;
+          }
+
+          for (const key of mutations.keys()) {
+            const currentKey = editor.getEditorState().read(() => $getContentKeyFromNodeKey(key));
+            if (currentKey && marker.markedKeys.has(currentKey)) {
+              cutMarkerRef.current = null;
+              return;
+            }
+            const prevKey = payload.prevEditorState.read(() => $getContentKeyFromNodeKey(key));
+            if (prevKey && marker.markedKeys.has(prevKey)) {
+              cutMarkerRef.current = null;
+              return;
+            }
+          }
+        },
+        { skipInitialization: true }
+      ),
+      editor.registerMutationListener(
+        TextNode,
+        (mutations, payload) => {
+          const marker = cutMarkerRef.current;
+          if (!marker) {
+            return;
+          }
+
+          for (const key of mutations.keys()) {
+            const currentKey = editor.getEditorState().read(() => $getContentKeyFromNodeKey(key));
+            if (currentKey && marker.markedKeys.has(currentKey)) {
+              cutMarkerRef.current = null;
+              return;
+            }
+            const prevKey = payload.prevEditorState.read(() => $getContentKeyFromNodeKey(key));
+            if (prevKey && marker.markedKeys.has(prevKey)) {
+              cutMarkerRef.current = null;
+              return;
+            }
+          }
+        },
+        { skipInitialization: true }
+      ),
       editor.registerNodeTransform(ListItemNode, (node) => {
         if (!readyRef.current) {
           return;
-        }
-        if (cutMarkerRef.current?.markedKeys.has(node.getKey())) {
-          cutMarkerRef.current = null;
         }
         $ensureNoteId(node);
       }),
@@ -249,30 +419,45 @@ export function NoteIdPlugin() {
           cutMarkerRef.current = null;
           return false;
         },
-        COMMAND_PRIORITY_LOW
+        COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         CUT_COMMAND,
-        () => {
+        (event) => {
           let handled = false;
           editor.getEditorState().read(() => {
+            cutMarkerRef.current = null;
+
             let selectionHeadKeys: string[] = [];
+            let isStructuralCut = false;
+
             const outlineSelection = editor.selection.get();
             if (outlineSelection?.kind === 'structural') {
               selectionHeadKeys =
                 outlineSelection.headKeys.length > 0 ? outlineSelection.headKeys : outlineSelection.selectedKeys;
-            }
-
-            if (selectionHeadKeys.length === 0) {
+              isStructuralCut = selectionHeadKeys.length > 0;
+            } else {
               const selection = $getSelection();
               if ($isRangeSelection(selection) && !selection.isCollapsed()) {
                 const heads = getContiguousSelectionHeads(selection);
-                selectionHeadKeys = heads.map((item) => getContentListItem(item).getKey());
+                if (heads.length > 1) {
+                  selectionHeadKeys = heads.map((item) => getContentListItem(item).getKey());
+                  isStructuralCut = true;
+                }
               }
             }
 
-            if (selectionHeadKeys.length === 0) {
-              cutMarkerRef.current = null;
+            if (!isStructuralCut || selectionHeadKeys.length === 0) {
+              return;
+            }
+
+            const heads = selectionHeadKeys
+              .map((key) => $getNodeByKey<ListItemNode>(key))
+              .filter(
+                (node): node is ListItemNode =>
+                  $isListItemNode(node) && node.isAttached() && !isChildrenWrapper(node)
+              );
+            if (heads.length === 0) {
               return;
             }
 
@@ -280,11 +465,12 @@ export function NoteIdPlugin() {
               headKeys: selectionHeadKeys,
               markedKeys: $collectMarkedKeysFromHeadKeys(selectionHeadKeys),
             };
+            $populateClipboardFromHeads(editor, heads, event);
             handled = true;
           });
           return handled;
         },
-        COMMAND_PRIORITY_LOW
+        COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
@@ -293,6 +479,8 @@ export function NoteIdPlugin() {
             return false;
           }
 
+          const wasCutPaste = lastPasteWasCutRef.current;
+          lastPasteWasCutRef.current = false;
           const marker = cutMarkerRef.current;
           let selectionHeadKeys = lastPasteSelectionHeadKeysRef.current ?? [];
           if (selectionHeadKeys.length === 0) {
@@ -310,26 +498,39 @@ export function NoteIdPlugin() {
             }
           }
 
-          if (marker) {
-            const intersection = selectionHeadKeys.some((key) => marker.markedKeys.has(key));
-            if (!intersection) {
-              const heads = marker.headKeys
-                .map((key) => $getNodeByKey<ListItemNode>(key))
-                .filter(
-                  (node): node is ListItemNode =>
-                    $isListItemNode(node) && node.isAttached() && !isChildrenWrapper(node)
-                );
-              if (heads.length === marker.headKeys.length) {
-                const ordered = sortHeadsByDocumentOrder(heads);
-                const nodesToMove = flattenNoteNodes(ordered);
-                cutMarkerRef.current = null;
-                lastPasteSelectionHeadKeysRef.current = null;
-                if ($insertNodesAtSelection(selectionHeadKeys, payload.selection, nodesToMove)) {
-                  return true;
-                }
+          if (wasCutPaste) {
+            if (!marker) {
+              lastPasteSelectionHeadKeysRef.current = null;
+              return true;
+            }
+
+            const caretInMarked =
+              selectionHeadKeys.length === 0 && isCaretWithinMarkedSelection(marker, payload.selection);
+            const intersection = caretInMarked || selectionHeadKeys.some((key) => marker.markedKeys.has(key));
+            if (intersection) {
+              lastPasteSelectionHeadKeysRef.current = null;
+              return true;
+            }
+
+            const heads = marker.headKeys
+              .map((key) => $getNodeByKey<ListItemNode>(key))
+              .filter(
+                (node): node is ListItemNode =>
+                  $isListItemNode(node) && node.isAttached() && !isChildrenWrapper(node)
+              );
+            if (heads.length === marker.headKeys.length) {
+              const ordered = sortHeadsByDocumentOrder(heads);
+              const nodesToMove = flattenNoteNodes(ordered);
+              cutMarkerRef.current = null;
+              lastPasteSelectionHeadKeysRef.current = null;
+              if ($insertNodesAtSelection(selectionHeadKeys, payload.selection, nodesToMove)) {
+                return true;
               }
             }
+
             cutMarkerRef.current = null;
+            lastPasteSelectionHeadKeysRef.current = null;
+            return true;
           }
 
           const reservedIds = new Set<string>();
@@ -337,14 +538,15 @@ export function NoteIdPlugin() {
             reservedIds.add(docId);
           }
           $regenerateClipboardNoteIds(payload.nodes, reservedIds);
+          const insertNodes = $extractClipboardListChildren(payload.nodes);
           lastPasteSelectionHeadKeysRef.current = null;
-          return $replaceStructuralSelectionWithClipboardNodes(selectionHeadKeys, payload.nodes);
+          return $insertNodesAtSelection(selectionHeadKeys, payload.selection, insertNodes);
         },
         COMMAND_PRIORITY_LOW
       ),
       editor.registerCommand(
         PASTE_COMMAND,
-        () => {
+        (event) => {
           const outlineSelection = editor.selection.get();
           lastPasteSelectionHeadKeysRef.current =
             outlineSelection?.kind === 'structural' && outlineSelection.headKeys.length > 0
@@ -352,6 +554,11 @@ export function NoteIdPlugin() {
               : outlineSelection?.kind === 'structural' && outlineSelection.selectedKeys.length > 0
                 ? [...outlineSelection.selectedKeys]
                 : null;
+          const clipboardPayload = getClipboardPayload(event);
+          lastPasteWasCutRef.current = clipboardPayload?.remdoCut === true;
+          if (!lastPasteWasCutRef.current) {
+            cutMarkerRef.current = null;
+          }
           return false;
         },
         COMMAND_PRIORITY_CRITICAL

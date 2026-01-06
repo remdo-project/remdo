@@ -64,24 +64,16 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
 
 ## Cut-as-move
 
-- Implement cut-as-move behavior in prod (cut marks notes; paste moves them).
-- [P1] Structural cut should also populate the system clipboard (copy payload)
-  while leaving content in place; the cut marker is the source of truth for
-  the move. Clear the marker after a successful move, but do not clear the
-  system clipboard.
-- [P1] Non-collapsed text selection inside a single note should be handled by
-  Lexical (normal text cut). Treat a cut as structural only when the selection
-  is structural or spans multiple notes.
-- [P1] Marker invalidation rule (simplicity-first): any local or remote mutation
+- Structural cut: marks notes for move and populates the system clipboard with
+  Lexical payload + a cut marker (`remdoCut`); content stays in place.
+- Paste: moves notes only if the cut marker is still valid. If the marker is
+  missing/invalid (local edit, remote edit, caret inside marked subtree, or
+  clipboard changed), paste is a no-op and clears the marker. Clipboard remains.
+- Inline cut (single-note text selection) is handled by Lexical; structural cut
+  only applies to structural selection or multi-note range selection.
+- Marker invalidation rule (simplicity-first): any local or remote mutation
   touching a marked note (including text edits) drops the marker. Keep the spec
   simple for now; if implementation proves easy, revisit allowing text edits
   without invalidation and update the spec accordingly.
-- [P1] Caret paste can duplicate notes or self-move into a marked subtree.
-  Ensure caret pastes still remove marked notes (move), and validate the caret’s
-  nearest list item against the marked subtree to prevent self-moves.
-- Revisit test helpers once cut-as-move is fully implemented; `cutStructuralNoteById`
-  in `tests/unit/_support/lib/clipboard.ts` is a stopgap that should be replaced
-  by the real cut flow.
-- Note: current move logic uses stored head keys (not clipboard payload) to
-  identify the cut subtree; if the cut implementation changes, update tests and
-  helper assumptions accordingly.
+- Implementation note: move logic uses stored head keys (not clipboard payload)
+  to identify the cut subtree; keep tests/helpers aligned with this contract.

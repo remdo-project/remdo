@@ -534,6 +534,48 @@ describe('note ids on paste', () => {
       { noteId: 'note2', text: 'note2' },
     ]);
   });
+
+  it('drops cut markers after local edits', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
+
+    await placeCaretAtNoteId(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' edited');
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2 edited' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('treats caret paste inside a cut subtree as a no-op', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
+
+    await placeCaretAtNoteId(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2' },
+    ]);
+  });
 });
 
 describe('note ids on split', () => {

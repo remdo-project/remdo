@@ -21,7 +21,7 @@ function getListNode(state: RemdoTestApi['getEditorState'] extends () => infer R
   return listNode;
 }
 
-export function createDataTransfer(payload: unknown): DataTransfer {
+export function createDataTransfer(payload?: unknown): DataTransfer {
   const data = new Map<string, string>();
   const transfer = {
     getData(type: string) {
@@ -36,12 +36,14 @@ export function createDataTransfer(payload: unknown): DataTransfer {
     },
   } as unknown as DataTransfer;
 
-  transfer.setData('application/x-lexical-editor', JSON.stringify(payload));
+  if (payload !== undefined) {
+    transfer.setData('application/x-lexical-editor', JSON.stringify(payload));
+  }
   return transfer;
 }
 
 export function createClipboardEvent(
-  payload: unknown,
+  payload?: unknown,
   type: 'paste' | 'cut' | 'copy' = 'paste'
 ): ClipboardEvent {
   return new ClipboardEvent(type, {
@@ -87,13 +89,18 @@ export function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
   };
 }
 
-// CUT_COMMAND only marks a structural selection for move; this helper builds
-// the payload and keeps the marker active for paste.
+// CUT_COMMAND only marks a structural selection for move; this helper reads
+// the payload the cut handler writes to the clipboard so paste stays realistic.
 export async function cutStructuralNoteById(remdo: RemdoTestApi, noteId: string) {
   await selectStructuralNoteByDom(remdo, noteId);
-  const clipboardPayload = buildClipboardPayload(remdo, [noteId]);
-  await remdo.dispatchCommand(CUT_COMMAND, createClipboardEvent(clipboardPayload, 'cut'), { expect: 'noop' });
-  return clipboardPayload;
+  const clipboardEvent = createClipboardEvent(undefined, 'cut');
+  await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent, { expect: 'noop' });
+
+  const rawPayload = clipboardEvent.clipboardData?.getData('application/x-lexical-editor') ?? '';
+  if (!rawPayload) {
+    throw new Error('Expected cut to populate clipboard payload.');
+  }
+  return JSON.parse(rawPayload) as { namespace?: string; nodes?: unknown[] };
 }
 
 function normalizeIndent(node: SerializedLexicalNode): void {

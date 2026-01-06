@@ -55,16 +55,20 @@ document ID. This spec does not define the format or storage of document IDs.
 
 ### Clipboard semantics
 
-- Paste always regenerates `noteId` values when inserting clipboard payloads
+- Paste regenerates `noteId` values when inserting non-cut clipboard payloads
   (copy = duplicate with new ids).
 - Cut is split by selection type:
   - Inline text ranges within a single note perform a normal text cut.
   - Structural selections mark the selected notes for move (content stays in
     place) and also populate the system clipboard with the same payload as copy.
 - Paste applies the pending move when a cut marker is active, moving the live
-  nodes with their existing ids; otherwise it inserts the clipboard payload as
-  a copy with new ids.
-- Any new copy or cut clears the existing cut marker.
+  nodes with their existing ids. If the clipboard payload is marked as cut but
+  the marker is missing or invalidated, paste is a no-op. If the payload is not
+  a cut payload, paste inserts a copy with new ids.
+- Paste attempts that would move into the marked subtree are no-ops and do not
+  clear the marker.
+- Any new copy or cut clears the existing cut marker. Pasting a non-cut payload
+  also clears the marker.
 - If a marked note is touched by any mutation (text or structural, local or
   remote) before paste, the cut marker is canceled.
 
