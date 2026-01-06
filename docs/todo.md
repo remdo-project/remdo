@@ -16,100 +16,6 @@ Rules:
 1. `$getOrCreateChildList` omits copying text format and style from the source
    `ListNode`/`ListItemNode`, unlike Lexical, so new wrappers lose typography.
 
-## Note ids in production
-
-Goal: every note (content list item) always has a `noteId`, including newly
-created notes and collab insertions.
-
-1. ✅ Done — Document behavior in `docs/outliner/note-ids.md` and link it from
-   `docs/outliner/index.md` + `docs/outliner/concepts.md`.
-2. ✅ Done — Single source of truth: add a small editor-layer utility for
-   `noteId` generation (shared helper). Threading it through every
-   note-creation path is tracked in item 3.
-3. Audit all note-creation paths (Enter insertions, paste/clipboard import,
-   duplication, structural splits/merges, collab insertions, full-document
-   duplication) and ensure each creates or preserves `noteId` per the spec.
-4. ✅ Done — Added unit tests that paste/duplicate notes and assert fresh
-   `noteId` values before implementing any clipboard-specific handling.
-5. ✅ Done — Add a normalization pass on load that backfills missing `noteId`
-   values and resolves duplicates (preserve first in document order, reassign
-   the rest).
-6. ✅ Done — Persist normalized IDs on the next save and update schema
-   validation to require `noteId` on every content list item.
-7. Add collaboration tests to verify deterministic ID preservation across
-   clients, including concurrent inserts and copy/paste.
-   - ✅ Done — New note ids created locally are preserved on remote clients.
-   - ✅ Done — Multiple client inserts yield unique ids and identical outlines.
-   - ✅ Done — Concurrent same-location insert (both clients insert at the same
-     caret position) keeps ids unique/stable across clients.
-   - ✅ Done — Copy/paste coverage across clients (non-conflicting ids preserved).
-   - ✅ Done — Conflict coverage for pasted ids colliding with existing notes
-     outside the replaced selection (regen and sync deterministically).
-   - ✅ Done — Multi-note structural paste case (nested subtree ids preserved
-     and conflicts regenerated consistently across clients).
-8. ✅ Done — Updated fixtures and matchers to require `noteId` on all notes.
-9. ✅ Done — Removed text/label-based selection helpers; tests now use `noteId`.
-10. ✅ Done — Consolidated test-only “get noteId or throw” logic into a shared
-    helper to avoid duplication across selection utilities and matchers.
-11. ✅ Done — kept `toMatchSelection` and removed `toMatchSelectionIds` (call
-    sites now use explicit structural snapshots).
-12. ✅ Done — Added a `toMatchOutline` escape hatch (`noteId: null`) to assert
-    presence of a noteId without pinning its exact value in tests.
-13. ✅ Done — dropped unused path helpers; revisit only if a new id-based helper is needed:
-    options discussed were a variadic index helper (`noteIdAt(outline, 0, 1)`),
-    explicit naming (`getNoteIdAtIndexPath`), or an id-path helper that accepts
-    a sequence of noteIds (e.g., `getNoteAtIdPath(outline, id1, id2)`).
-14. ✅ Done — Added a test-only, single-load bypass so invalid serialized states
-    can be loaded without `assertEditorSchema` throwing, enabling NoteIdPlugin
-    load-normalization tests.
-15. ✅ Done — Added load-normalization unit tests for missing and duplicate
-    `noteId` values.
-16. Add E2E tests for clipboard move semantics (structural cut/paste preserves
-    `noteId`, including replace-in-place and paste-elsewhere flows).
-    - Blocked: native `Cut` does not act on structural selection in E2E, so the
-      tests are misleading until we fix structural cut behavior (or expose a
-      test bridge command that exercises it).
-17. ✅ Done — Cross-document paste follows the same preserve-unless-conflict
-    rule as any clipboard payload; current clipboard tests cover this, so no
-    doc-switch-specific tests are planned for now.
-18. ✅ Done — Clarified copy/edit/paste semantics when clipboard noteIds match a
-    structural selection (single vs. multi-note, reorder cases, and conflict
-    handling).
-19. ✅ Done — Add clipboard tests for missing `noteId` payloads (assign fresh
-    ids, include nested notes).
-20. ✅ Done — Add clipboard tests for multi-note structural selections
-    (including nested children) to ensure replaced subtree ids are excluded
-    from conflicts and new ids remain unique.
-21. ✅ Done — Add clipboard tests for inline range selections spanning multiple
-    notes (non-structural) to confirm we derive heads correctly and preserve
-    ids for replaced notes only.
-22. ✅ Done — Add clipboard tests for duplicate noteIds across parent/child
-    nodes to confirm the first occurrence wins across the entire subtree.
-23. ✅ Done — Add clipboard tests for payloads containing `noteId === docId` to
-    ensure they regenerate.
-24. Paste conflict resolution plan (copy/paste):
-    - Preserve pasted `noteId` unless it conflicts with existing ids outside
-      the replaced subtree.
-    - Treat missing/empty ids as "generate new" and resolve duplicate ids
-      within the pasted payload by keeping the first in document order.
-    - Build `reservedIds = allIdsInDoc - idsInReplacedSubtree`, then walk the
-      pasted subtree in document order, assigning new ids where needed and
-      adding each assigned id to a running used set.
-    - After sync/load, resolve duplicates using the same preserve-unless-
-      conflict rules as paste (existing ids win; regenerate conflicting
-      incoming ids).
-25. Revisit the post-sync/load duplicate resolution approach if preserving ids
-    without a full-document scan proves too complex; update the spec to reflect
-    the simplest workable normalization.
-26. Evaluate simpler clipboard identity policy:
-    - Paste always regenerates `noteId` values (copy = duplicate new ids).
-    - Cut behaves like a move: cut payload ids are preserved on paste when the
-      paste uses the most recent cut payload; otherwise regenerate.
-    - If preserved cut ids conflict with existing ids, regenerate the
-      conflicting ones.
-    - Update `docs/outliner/note-ids.md` clipboard semantics accordingly and
-      adjust unit/collab tests to match.
-
 ## Harden editor schema validator tests
 
 1. Extract shared builders for editor schema fixtures to cut duplication.
@@ -166,3 +72,6 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
 - Revisit test helpers once cut-as-move is fully implemented; `cutStructuralNoteById`
   in `tests/unit/_support/lib/clipboard.ts` is a stopgap that should be replaced
   by the real cut flow.
+- Note: current move logic uses stored head keys (not clipboard payload) to
+  identify the cut subtree; if the cut implementation changes, update tests and
+  helper assumptions accordingly.
