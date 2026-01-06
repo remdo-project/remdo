@@ -9,7 +9,7 @@ type NodeWithChildren = SerializedLexicalNode & {
 export interface SerializedOutlineNote {
   indent: number;
   path: number[];
-  noteId?: string;
+  noteId: string;
   contentNodes: SerializedLexicalNode[];
   children: SerializedOutlineNote[];
 }
@@ -71,7 +71,11 @@ function readWrapperNestedListOrThrow(wrapper: NodeWithChildren, contextPath: nu
   return nested;
 }
 
-function readListOrThrow(listNode: NodeWithChildren, prefix: number[] = []): SerializedOutlineNote[] {
+function readListOrThrow(
+  listNode: NodeWithChildren,
+  usedNoteIds: Set<string>,
+  prefix: number[] = []
+): SerializedOutlineNote[] {
   const children = getChildren(listNode);
   const notes: SerializedOutlineNote[] = [];
   let noteIndex = 0;
@@ -106,11 +110,28 @@ function readListOrThrow(listNode: NodeWithChildren, prefix: number[] = []): Ser
       });
     }
 
-    const noteId = (child as { noteId?: string }).noteId;
+    const noteIdValue = (child as { noteId?: unknown }).noteId;
+    if (typeof noteIdValue !== 'string' || noteIdValue.length === 0) {
+      const pathStr = formatPath(path);
+      fail(`Invalid outline structure: missing noteId on content item at "${pathStr}"`, {
+        path: pathStr,
+        noteId: noteIdValue,
+      });
+    }
+
+    const noteId = noteIdValue;
+    if (usedNoteIds.has(noteId)) {
+      const pathStr = formatPath(path);
+      fail(`Invalid outline structure: duplicate noteId "${noteId}" at "${pathStr}"`, {
+        path: pathStr,
+        noteId,
+      });
+    }
+    usedNoteIds.add(noteId);
     const note: SerializedOutlineNote = {
       indent,
       path,
-      ...(noteId ? { noteId } : {}),
+      noteId,
       contentNodes,
       children: [],
     };
@@ -132,7 +153,7 @@ function readListOrThrow(listNode: NodeWithChildren, prefix: number[] = []): Ser
         }
 
         const nested = readWrapperNestedListOrThrow(nextSibling, path);
-        note.children = readListOrThrow(nested, path);
+        note.children = readListOrThrow(nested, usedNoteIds, path);
         index += 1;
       }
     }
@@ -155,5 +176,6 @@ export function traverseSerializedOutlineOrThrow(state: SerializedEditorState): 
     return [];
   }
 
-  return readListOrThrow(listNode);
+  const usedNoteIds = new Set<string>();
+  return readListOrThrow(listNode, usedNoteIds);
 }

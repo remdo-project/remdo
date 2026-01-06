@@ -27,28 +27,6 @@ export function collectSelectedListItems(selection: RangeSelection): ListItemNod
   return items.toSorted((a, b) => (a === b ? 0 : a.isBefore(b) ? -1 : 1));
 }
 
-export function getListItemLabel(item: ListItemNode): string | null {
-  const contentItem = resolveContentListItem(item);
-  const pieces: string[] = [];
-  for (const child of contentItem.getChildren()) {
-    if (typeof child.getType === 'function' && child.getType() === 'list') {
-      continue;
-    }
-
-    const getTextContent = (child as { getTextContent?: () => string }).getTextContent;
-    if (typeof getTextContent === 'function') {
-      pieces.push(getTextContent.call(child));
-    }
-  }
-
-  const label = pieces.join('');
-  if (label.length > 0) {
-    return label;
-  }
-
-  return null;
-}
-
 export function resolveContentListItem(item: ListItemNode): ListItemNode {
   if (!isChildrenWrapper(item)) {
     return item;

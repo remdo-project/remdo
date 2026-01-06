@@ -9,7 +9,11 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expect(editor).toMatchOutline([{ text: 'ote1' }, { text: 'note2' }, { text: 'note3' }]);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'ote1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
   });
 
   test('Backspace in the middle of a note deletes the previous character', async ({ page, editor }) => {
@@ -18,7 +22,11 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Backspace');
 
-    await expect(editor).toMatchOutline([{ text: 'nte1' }, { text: 'note2' }, { text: 'note3' }]);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'nte1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
 
     const snapshot = await captureEditorSnapshot(page);
     expect(snapshot.selection).toMatchObject({
@@ -56,7 +64,10 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Backspace');
 
-    await expect(editor).toMatchOutline([{ text: 'note1 note2' }, { text: 'note3' }]);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'note1 note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
   });
 
   test('Delete at end merges next leaf', async ({ page, editor }) => {
@@ -65,7 +76,10 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expect(editor).toMatchOutline([{ text: 'note1 note2' }, { text: 'note3' }]);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'note1 note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
   });
 
   test('Delete respects spacing when right fragment already starts with space', async ({ page, editor }) => {
@@ -75,10 +89,10 @@ test.describe('deletion (native browser behavior)', () => {
     await page.keyboard.press('Delete');
 
     await expect(editor).toMatchOutline([
-      { text: 'note1 note2-space-left' },
-      { text: 'note3' },
-      { text: 'note4-space-right ' },
-      { text: 'note5' },
+      { noteId: 'note1', text: 'note1 note2-space-left' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note4-space-right', text: 'note4-space-right ' },
+      { noteId: 'note5', text: 'note5' },
     ]);
   });
 
@@ -89,10 +103,10 @@ test.describe('deletion (native browser behavior)', () => {
     await page.keyboard.press('Delete');
 
     await expect(editor).toMatchOutline([
-      { text: 'note1' },
-      { text: ' note2-space-left' },
-      { text: 'note3' },
-      { text: 'note4-space-right note5' },
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2-space-left', text: ' note2-space-left' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note4-space-right', text: 'note4-space-right note5' },
     ]);
   });
 
@@ -106,6 +120,9 @@ test.describe('deletion (native browser behavior)', () => {
     await page.keyboard.press('Delete');
 
     await expect(editorLocator(page).locator('li.list-item')).toHaveCount(2);
-    await expect(editor).toMatchOutline([{ text: 'note2' }, { text: 'note3' }]);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
   });
 });

@@ -8,9 +8,9 @@ describe('keyboard reordering (command path)', () => {
     await placeCaretAtNoteId(remdo, 'note2');
     await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND);
     expect(remdo).toMatchOutline([
-      { text: 'note1' },
-      { text: 'note3' },
-      { text: 'note2' },
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2' },
     ]);
   });
 
@@ -19,9 +19,9 @@ describe('keyboard reordering (command path)', () => {
     await placeCaretAtNoteId(remdo, 'note3');
     await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND);
     expect(remdo).toMatchOutline([
-      { text: 'note1' },
-      { text: 'note3' },
-      { text: 'note2' },
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2' },
     ]);
   });
 
@@ -62,9 +62,9 @@ describe('keyboard reordering (command path)', () => {
     await selectNoteRangeById(remdo, 'note1', 'note2');
     await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND);
     expect(remdo).toMatchOutline([
-      { text: 'note3' },
-      { text: 'note1' },
-      { text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
     ]);
   });
 
@@ -75,10 +75,10 @@ describe('keyboard reordering (command path)', () => {
     await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND);
     expect(remdo).toMatchOutline([
       {
-        text: 'note2',
-        children: [{ text: 'note3' }],
+        noteId: 'note2', text: 'note2',
+        children: [{ noteId: 'note3', text: 'note3' }],
       },
-      { text: 'note1' },
+      { noteId: 'note1', text: 'note1' },
     ]);
   });
 
@@ -118,11 +118,11 @@ describe('keyboard reordering (command path)', () => {
 
     expect(remdo).toMatchOutline([
       {
-        text: 'note1',
-        children: [{ text: 'note4' }, { text: 'note2', children: [{ text: 'note3' }] }],
+        noteId: 'note1', text: 'note1',
+        children: [{ noteId: 'note4', text: 'note4' }, { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] }],
       },
-      { text: 'note5' },
-      { text: 'note6', children: [{ text: 'note7' }] },
+      { noteId: 'note5', text: 'note5' },
+      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
     ]);
   });
   it('moving a mixed-depth contiguous range up is a no-op at a boundary (level-preserving)', async ({ remdo }) => {
@@ -142,11 +142,11 @@ describe('keyboard reordering (command path)', () => {
     await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND, undefined, { expect: 'noop' });
     expect(remdo).toMatchOutline([
       {
-        text: 'note1',
+        noteId: 'note1', text: 'note1',
       },
       {
-        text: 'note2',
-        children: [{ text: 'note3' }],
+        noteId: 'note2', text: 'note2',
+        children: [{ noteId: 'note3', text: 'note3' }],
       },
     ]);
   });

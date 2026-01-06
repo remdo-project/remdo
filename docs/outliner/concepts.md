@@ -29,7 +29,7 @@ Notes carry three kinds of information: structure, content, and props.
 Adapters must preserve these guarantees whenever they create, import, or export
 notes:
 
-- Each note is uniquely addressable inside its tree.
+- Each note is uniquely addressable inside its tree (see `./note-ids.md`).
 - Every note has exactly one parent (except the root) and maintains an ordered
   list of children owned by that parent.
 - The note tree is never empty: the document always contains at least one note.

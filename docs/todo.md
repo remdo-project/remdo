@@ -16,23 +16,6 @@ Rules:
 1. `$getOrCreateChildList` omits copying text format and style from the source
    `ListNode`/`ListItemNode`, unlike Lexical, so new wrappers lose typography.
 
-## Note ids in production (plan stub)
-
-Goal: every note (content list item) always has a `noteId`, including newly
-created notes and collab insertions.
-
-1. Ensure note creation assigns a fresh `noteId` (editor command or node
-   factory hook); define the single source of truth for id generation.
-2. On load, backfill missing `noteId` in serialized states (migration or
-   normalization pass) and persist them on next save.
-3. Validate that collab operations preserve/generate ids deterministically
-   across clients.
-4. Update tests/fixtures to require ids for all notes; delete label-based
-   fallbacks in matchers/helpers.
-
-Once assumed: simplify selection/assertion helpers to use `noteId` only,
-remove label-based selection snapshots, and drop any “find by text” helpers.
-
 ## Harden editor schema validator tests
 
 1. Extract shared builders for editor schema fixtures to cut duplication.
@@ -78,3 +61,29 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
    textNode.getTextContentSize() even though there is preceding/following text
    in the note. That misclassifies mid- note positions as start/end and triggers
    the wrong insertion path. (src/editor/plugins/InsertionPlugin.tsx:75-90)
+
+## Cut-as-move
+
+- Implement cut-as-move behavior in prod (cut marks notes; paste moves them).
+- [P1] Cut paste at a caret duplicates notes: move path uses target selection
+  heads, so an empty structural selection skips removal and leaves the cut
+  subtree in place. Ensure caret pastes still remove the marked notes so cut
+  behaves like a move.
+- [P2] Structural cut currently returns true without touching the clipboard.
+  That blocks the RichTextPlugin cut handler, so cross-app cut/paste never
+  updates the system clipboard. Confirm whether cut should serialize to the
+  clipboard; if yes, wire in Lexical’s normal cut flow.
+- [P2] Non-collapsed text selection inside a single note is treated as a
+  structural cut (contiguous selection heads). This hijacks normal text cut
+  behavior and removes whole notes instead of the selected text. Decide if
+  partial-text cuts should be handled by Lexical and guard accordingly.
+- [P2] Caret paste can move cut nodes into their own subtree: the intersection
+  guard only checks structural selection heads, so collapsed caret pastes skip
+  the self-move check. Validate the caret’s nearest list item against the cut
+  marker.
+- Revisit test helpers once cut-as-move is fully implemented; `cutStructuralNoteById`
+  in `tests/unit/_support/lib/clipboard.ts` is a stopgap that should be replaced
+  by the real cut flow.
+- Note: current move logic uses stored head keys (not clipboard payload) to
+  identify the cut subtree; if the cut implementation changes, update tests and
+  helper assumptions accordingly.

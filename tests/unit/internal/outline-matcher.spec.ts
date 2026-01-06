@@ -14,72 +14,73 @@ const CASES: OutlineCase[] = [
   {
     fixture: 'flat',
     outline: [
-      { text: 'note1' },
-      { text: 'note2' },
-      { text: 'note3' },
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
     ],
   },
   {
     fixture: 'edge-spaces',
     outline: [
-      { text: 'note1' },
-      { text: ' note2-space-left' },
-      { text: 'note3' },
-      { text: 'note4-space-right ' },
-      { text: 'note5' },
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2-space-left', text: ' note2-space-left' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note4-space-right', text: 'note4-space-right ' },
+      { noteId: 'note5', text: 'note5' },
     ],
   },
   {
     fixture: 'basic',
     outline: [
-      { text: 'note1', children: [ { text: 'note2' } ] },
-      { text: 'note3' },
+      { noteId: 'note1', text: 'note1', children: [ { noteId: 'note2', text: 'note2' } ] },
+      { noteId: 'note3', text: 'note3' },
     ],
   },
   {
     fixture: 'formatted',
     outline: [
-      { text: 'bold', children: [ { text: 'italic' } ] },
-      { text: 'underline' },
-      { text: 'plain bold italic underline plain' },
+      { noteId: 'bold', text: 'bold', children: [ { noteId: 'italic', text: 'italic' } ] },
+      { noteId: 'underline', text: 'underline' },
+      { noteId: 'mixed-formatting', text: 'plain bold italic underline plain' },
     ],
   },
   {
     fixture: 'main',
     outline: [
-      { text: 'note1', children: [ { text: 'note2' } ] },
-      { text: 'note3' },
+      { noteId: 'note1', text: 'note1', children: [ { noteId: 'note2', text: 'note2' } ] },
+      { noteId: 'note3', text: 'note3' },
     ],
   },
   {
     fixture: 'tree',
     outline: [
-      { text: 'note1' },
-      { text: 'note2', children: [ { text: 'note3' } ] },
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', children: [ { noteId: 'note3', text: 'note3' } ] },
     ],
   },
   {
     fixture: 'tree-complex',
     outline: [
       {
+        noteId: 'note1',
         text: 'note1',
         children: [
-          { text: 'note2', children: [ { text: 'note3' } ] },
-          { text: 'note4' },
+          { noteId: 'note2', text: 'note2', children: [ { noteId: 'note3', text: 'note3' } ] },
+          { noteId: 'note4', text: 'note4' },
         ],
       },
-      { text: 'note5' },
-      { text: 'note6', children: [ { text: 'note7' } ] },
+      { noteId: 'note5', text: 'note5' },
+      { noteId: 'note6', text: 'note6', children: [ { noteId: 'note7', text: 'note7' } ] },
     ],
   },
   {
     fixture: 'empty-labels',
     outline: [
-      { text: 'alpha' },
-      { text: ' ' },
-      { text: 'beta' },
-      { children: [ {}, { text: 'child-of-empty' }, {} ] },
-      {},
+      { noteId: 'alpha', text: 'alpha' },
+      { noteId: 'space', text: ' ' },
+      { noteId: 'beta', text: 'beta' },
+      { noteId: 'parent', children: [ { noteId: 'nested-empty' }, { noteId: 'child', text: 'child-of-empty' }, { noteId: 'nested-after-child' } ] },
+      { noteId: 'trailing' },
     ],
   },
 ];
@@ -116,7 +117,7 @@ describe('toMatchOutline smoke coverage', () => {
 
     let thrown: unknown;
     try {
-      expect(remdo).toMatchOutline([{ text: 'wrong label' }]);
+      expect(remdo).toMatchOutline([{ noteId: 'wrong', text: 'wrong label' }]);
     } catch (error) {
       thrown = error;
     }

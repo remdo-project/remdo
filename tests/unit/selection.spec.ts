@@ -1,9 +1,15 @@
-import { act, waitFor, within } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { Outline } from '#tests';
 import {
   collectSelectedListItems,
-  getListItemLabel,
+  collapseDomSelectionAtNode,
+  dragDomSelectionBetween,
+  dragDomSelectionBetweenRange,
+  extendDomSelectionToNode,
+  $getNoteIdOrThrow,
+  getNoteElementById,
+  getNoteTextNodeById,
   getRootElementOrThrow,
   placeCaretAtNoteId,
   getNoteKeyById,
@@ -17,183 +23,25 @@ import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/c
 
 const TREE_COMPLEX_OUTLINE: Outline = [
   {
+    noteId: 'note1',
     text: 'note1',
     children: [
-      { text: 'note2', children: [{ text: 'note3' }] },
-      { text: 'note4' },
+      { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
+      { noteId: 'note4', text: 'note4' },
     ],
   },
-  { text: 'note5' },
-  { text: 'note6', children: [{ text: 'note7' }] },
+  { noteId: 'note5', text: 'note5' },
+  { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
 ];
 
-// Ensures every multi-note selection matches the guarantees from docs/outliner/selection.md:
-// once a selection crosses a note boundary it must cover a contiguous block of
-// whole notes plus their subtrees, with no gaps or orphaned descendants.
-async function dragDomSelectionBetween(start: Node, startOffset: number, end: Node, endOffset: number) {
-  await mutateDomSelection((selection) => {
-    const range = document.createRange();
-    const normalizedStart = clampDomOffset(start, startOffset);
-    const normalizedEnd = clampDomOffset(end, endOffset);
-
-    range.setStart(start, normalizedStart);
-    range.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(range);
-
-    if (typeof selection.extend === 'function') {
-      selection.extend(end, normalizedEnd);
-    } else {
-      const ordered = orderRangePoints(start, normalizedStart, end, normalizedEnd);
-      const dragRange = document.createRange();
-      dragRange.setStart(ordered.startNode, ordered.startOffset);
-      dragRange.setEnd(ordered.endNode, ordered.endOffset);
-      selection.removeAllRanges();
-      selection.addRange(dragRange);
-    }
-  });
-}
-
-async function dragDomSelectionWithoutExtendBetween(start: Node, startOffset: number, end: Node, endOffset: number) {
-  await mutateDomSelection(() => {
-    const { startNode, startOffset: normalizedStart, endNode, endOffset: normalizedEnd } = orderRangePoints(
-      start,
-      clampDomOffset(start, startOffset),
-      end,
-      clampDomOffset(end, endOffset)
-    );
-    const range = document.createRange();
-    range.setStart(startNode, normalizedStart);
-    range.setEnd(endNode, normalizedEnd);
-    const selection = getDomSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-  });
-}
-
-async function collapseDomSelectionAtNode(target: Node, offset: number) {
-  await mutateDomSelection((selection) => {
-    const caretRange = document.createRange();
-    const clamped = clampDomOffset(target, offset);
-    caretRange.setStart(target, clamped);
-    caretRange.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(caretRange);
-  });
-}
-
-async function extendDomSelectionToNode(target: Node, offset: number) {
-  await mutateDomSelection((selection) => {
-    if (selection.rangeCount === 0) {
-      throw new Error('Cannot extend selection without an existing anchor');
-    }
-
-    const clamped = clampDomOffset(target, offset);
-    selection.extend(target, clamped);
-  });
-}
-
-function getNoteTextNode(rootElement: HTMLElement, label: string): Text {
-  const noteElement = within(rootElement).getByText(
-    (_, node) => {
-      if (!node) {
-        return false;
-      }
-      return node.textContent === label;
-    },
-    { selector: '[data-lexical-text="true"]' }
-  );
-  const walker = document.createTreeWalker(noteElement, NodeFilter.SHOW_TEXT);
-  const textNode = walker.nextNode();
-  if (!(textNode instanceof Text)) {
-    throw new TypeError(`Expected text node for note: ${label}`);
-  }
-  return textNode;
-}
-
-function clampOffset(node: Text, offset: number): number {
-  const length = node.length;
-  return Math.max(0, Math.min(offset, length));
-}
-
-function clampElementOffset(node: HTMLElement, offset: number): number {
-  const length = node.childNodes.length;
-  return Math.max(0, Math.min(offset, length));
-}
-
-function clampDomOffset(node: Node, offset: number): number {
-  if (node instanceof Text) {
-    return clampOffset(node, offset);
-  }
-  if (node instanceof HTMLElement) {
-    return clampElementOffset(node, offset);
-  }
-  throw new TypeError('Expected text or element node for selection offsets');
-}
-
-function getNoteElementById(remdo: Parameters<typeof getNoteKeyById>[0], noteId: string) {
-  const key = getNoteKeyById(remdo, noteId);
-  const element = remdo.editor.getElementByKey(key);
-  if (!element) {
-    throw new TypeError(`Expected element for noteId: ${noteId}`);
-  }
-  return element;
-}
-
-function getDomSelection(): Selection {
-  const selection = globalThis.getSelection();
-  if (!selection) {
-    throw new Error('DOM selection is unavailable');
-  }
-  return selection;
-}
-
-async function mutateDomSelection(mutator: (selection: Selection) => void) {
-  await act(async () => {
-    const rootElement = document.querySelector('[data-remdo-editor="true"]');
-    if (rootElement instanceof HTMLElement && document.activeElement !== rootElement) {
-      rootElement.focus();
-    }
-    mutator(getDomSelection());
-    document.dispatchEvent(new Event('selectionchange'));
-  });
-}
-
-function orderRangePoints(
-  anchorNode: Node,
-  anchorOffset: number,
-  focusNode: Node,
-  focusOffset: number
-): { startNode: Node; startOffset: number; endNode: Node; endOffset: number } {
-  if (anchorNode === focusNode) {
-    return anchorOffset <= focusOffset
-      ? { startNode: anchorNode, startOffset: anchorOffset, endNode: focusNode, endOffset: focusOffset }
-      : { startNode: focusNode, startOffset: focusOffset, endNode: anchorNode, endOffset: anchorOffset };
-  }
-
-  const position = anchorNode.compareDocumentPosition(focusNode);
-  const isAnchorBeforeFocus =
-    position & Node.DOCUMENT_POSITION_PRECEDING
-      ? false
-      : position & Node.DOCUMENT_POSITION_FOLLOWING
-        ? true
-        : anchorOffset <= focusOffset;
-
-  if (isAnchorBeforeFocus) {
-    return { startNode: anchorNode, startOffset: anchorOffset, endNode: focusNode, endOffset: focusOffset };
-  }
-
-  return { startNode: focusNode, startOffset: focusOffset, endNode: anchorNode, endOffset: anchorOffset };
-}
 
 describe('selection plugin', () => {
   it('snaps pointer drags across note boundaries to contiguous structural slices', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = getRootElementOrThrow(remdo.editor);
 
-    const note2Text = getNoteTextNode(rootElement, 'note2');
-    const note5Text = getNoteTextNode(rootElement, 'note5');
+    const note2Text = getNoteTextNodeById(remdo, 'note2');
+    const note5Text = getNoteTextNodeById(remdo, 'note5');
     await dragDomSelectionBetween(note2Text, 1, note5Text, 1);
 
     await waitFor(() => {
@@ -203,8 +51,8 @@ describe('selection plugin', () => {
       });
     });
 
-    const note6Text = getNoteTextNode(rootElement, 'note6');
-    const note7Text = getNoteTextNode(rootElement, 'note7');
+    const note6Text = getNoteTextNodeById(remdo, 'note6');
+    const note7Text = getNoteTextNodeById(remdo, 'note7');
     await dragDomSelectionBetween(note6Text, 0, note7Text, note7Text.length);
 
     await waitFor(() => {
@@ -218,10 +66,9 @@ describe('selection plugin', () => {
   it('preserves selection direction for backward pointer drags', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = getRootElementOrThrow(remdo.editor);
 
-    const note5Text = getNoteTextNode(rootElement, 'note5');
-    const note2Text = getNoteTextNode(rootElement, 'note2');
+    const note5Text = getNoteTextNodeById(remdo, 'note5');
+    const note2Text = getNoteTextNodeById(remdo, 'note2');
     await dragDomSelectionBetween(note5Text, note5Text.length, note2Text, 0);
 
     await waitFor(() => {
@@ -245,10 +92,9 @@ describe('selection plugin', () => {
   it('snaps drags that cross from a parent into its child to the full subtree', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = getRootElementOrThrow(remdo.editor);
 
-    const parentText = getNoteTextNode(rootElement, 'note2');
-    const childText = getNoteTextNode(rootElement, 'note3');
+    const parentText = getNoteTextNodeById(remdo, 'note2');
+    const childText = getNoteTextNodeById(remdo, 'note3');
     await dragDomSelectionBetween(parentText, parentText.length, childText, 1);
 
     await waitFor(() => {
@@ -262,10 +108,9 @@ describe('selection plugin', () => {
   it('snaps drags that exit a child upward into its parent to the full subtree', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = getRootElementOrThrow(remdo.editor);
 
-    const childText = getNoteTextNode(rootElement, 'note3');
-    const parentText = getNoteTextNode(rootElement, 'note2');
+    const childText = getNoteTextNodeById(remdo, 'note3');
+    const parentText = getNoteTextNodeById(remdo, 'note2');
     await dragDomSelectionBetween(childText, childText.length, parentText, 0);
 
     await waitFor(() => {
@@ -279,11 +124,10 @@ describe('selection plugin', () => {
   it('snaps touch-handle drags across note boundaries to contiguous subtrees', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = getRootElementOrThrow(remdo.editor);
 
-    const parentText = getNoteTextNode(rootElement, 'note6');
-    const childText = getNoteTextNode(rootElement, 'note7');
-    await dragDomSelectionWithoutExtendBetween(parentText, parentText.length, childText, childText.length);
+    const parentText = getNoteTextNodeById(remdo, 'note6');
+    const childText = getNoteTextNodeById(remdo, 'note7');
+    await dragDomSelectionBetweenRange(parentText, parentText.length, childText, childText.length);
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({
@@ -296,10 +140,9 @@ describe('selection plugin', () => {
   it('extends pointer selections with Shift+Click to produce contiguous note ranges', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = getRootElementOrThrow(remdo.editor);
 
-    const note2Text = getNoteTextNode(rootElement, 'note2');
-    const note5Text = getNoteTextNode(rootElement, 'note5');
+    const note2Text = getNoteTextNodeById(remdo, 'note2');
+    const note5Text = getNoteTextNodeById(remdo, 'note5');
     await collapseDomSelectionAtNode(note2Text, 0);
 
     await waitFor(() => {
@@ -321,7 +164,7 @@ describe('selection plugin', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note5' });
     });
 
-    const note3Text = getNoteTextNode(rootElement, 'note3');
+    const note3Text = getNoteTextNodeById(remdo, 'note3');
     await extendDomSelectionToNode(note3Text, note3Text.length);
 
     await waitFor(() => {
@@ -335,7 +178,6 @@ describe('selection plugin', () => {
   it('lets Shift+Click extend keyboard-driven structural selections without breaking contiguity', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = getRootElementOrThrow(remdo.editor);
 
     await placeCaretAtNoteId(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -348,7 +190,7 @@ describe('selection plugin', () => {
       });
     });
 
-    const note5Text = getNoteTextNode(rootElement, 'note5');
+    const note5Text = getNoteTextNodeById(remdo, 'note5');
     await extendDomSelectionToNode(note5Text, note5Text.length);
 
     await waitFor(() => {
@@ -358,7 +200,7 @@ describe('selection plugin', () => {
       });
     });
 
-    const note6Text = getNoteTextNode(rootElement, 'note6');
+    const note6Text = getNoteTextNodeById(remdo, 'note6');
     await extendDomSelectionToNode(note6Text, note6Text.length);
 
     await waitFor(() => {
@@ -372,7 +214,6 @@ describe('selection plugin', () => {
   it('keeps the ladder alive after Shift+Click tweaks to continue with Shift+Arrow', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = getRootElementOrThrow(remdo.editor);
 
     await placeCaretAtNoteId(remdo, 'note2');
 
@@ -393,7 +234,7 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
     // Pointer tweak: Shift+Click (simulated via DOM extend) to include note5
-    const note5Text = getNoteTextNode(rootElement, 'note5');
+    const note5Text = getNoteTextNodeById(remdo, 'note5');
     await extendDomSelectionToNode(note5Text, note5Text.length);
 
     await waitFor(() => {
@@ -550,19 +391,21 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(remdo).toMatchOutline([
         {
+          noteId: 'note1',
           text: 'note1',
           children: [
             {
+              noteId: 'note2',
               text: 'note2',
               children: [
-                { text: 'note3' },
-                { text: 'note4' },
+                { noteId: 'note3', text: 'note3' },
+                { noteId: 'note4', text: 'note4' },
               ],
             },
           ],
         },
-        { text: 'note5' },
-        { text: 'note6', children: [{ text: 'note7' }] },
+        { noteId: 'note5', text: 'note5' },
+        { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
       ]);
     });
   });
@@ -580,14 +423,15 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(remdo).toMatchOutline([
         {
+          noteId: 'note1',
           text: 'note1',
           children: [
-            { text: 'note4' },
-            { text: 'note2', children: [{ text: 'note3' }] },
+            { noteId: 'note4', text: 'note4' },
+            { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
           ],
         },
-        { text: 'note5' },
-        { text: 'note6', children: [{ text: 'note7' }] },
+        { noteId: 'note5', text: 'note5' },
+        { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
       ]);
     });
   });
@@ -605,14 +449,15 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(remdo).toMatchOutline([
         {
+          noteId: 'note1',
           text: 'note1',
           children: [
-            { text: 'note2', children: [{ text: 'note3' }] },
+            { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
           ],
         },
-        { text: 'note4' },
-        { text: 'note5' },
-        { text: 'note6', children: [{ text: 'note7' }] },
+        { noteId: 'note4', text: 'note4' },
+        { noteId: 'note5', text: 'note5' },
+        { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
       ]);
     });
   });
@@ -630,14 +475,15 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(remdo).toMatchOutline([
         {
+          noteId: 'note1',
           text: 'note1',
           children: [
-            { text: 'note2', children: [{ text: 'note3' }] },
-            { text: 'note4' },
+            { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
+            { noteId: 'note4', text: 'note4' },
           ],
         },
-        { text: 'note6', children: [{ text: 'note7' }] },
-        { text: 'note5' },
+        { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
+        { noteId: 'note5', text: 'note5' },
       ]);
     });
   });
@@ -657,9 +503,9 @@ describe('selection plugin', () => {
 
     await waitFor(() => {
       expect(remdo).toMatchOutline([
-        { text: 'note1', children: [{ text: 'note4' }] },
-        { text: 'note5' },
-        { text: 'note6', children: [{ text: 'note7' }] },
+        { noteId: 'note1', text: 'note1', children: [{ noteId: 'note4', text: 'note4' }] },
+        { noteId: 'note5', text: 'note5' },
+        { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
       ]);
     });
   });
@@ -680,13 +526,14 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(remdo).toMatchOutline([
         {
+          noteId: 'note1',
           text: 'note1',
           children: [
-            { text: 'note2', children: [{ text: 'note3' }] },
-            { text: 'note4' },
+            { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
+            { noteId: 'note4', text: 'note4' },
           ],
         },
-        { text: 'note5' },
+        { noteId: 'note5', text: 'note5' },
       ]);
     });
   });
@@ -706,7 +553,6 @@ describe('selection plugin', () => {
   it('collapses structural selection when clicking back into a note body', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = getRootElementOrThrow(remdo.editor);
 
     await placeCaretAtNoteId(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -715,7 +561,7 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
     expect(remdo.editor.selection.isStructural()).toBe(true);
 
-    const note4Text = getNoteTextNode(rootElement, 'note4');
+    const note4Text = getNoteTextNodeById(remdo, 'note4');
     await collapseDomSelectionAtNode(note4Text, 0);
 
     await waitFor(() => {
@@ -862,10 +708,9 @@ describe('selection plugin', () => {
   it('hoists the parent once Shift+Down runs out of siblings in an existing note range', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = getRootElementOrThrow(remdo.editor);
 
-    const note2Text = getNoteTextNode(rootElement, 'note2');
-    const note4Text = getNoteTextNode(rootElement, 'note4');
+    const note2Text = getNoteTextNodeById(remdo, 'note2');
+    const note4Text = getNoteTextNodeById(remdo, 'note4');
     await dragDomSelectionBetween(note2Text, 0, note4Text, note4Text.length);
 
     await waitFor(() => {
@@ -882,10 +727,9 @@ describe('selection plugin', () => {
   it('hoists the parent when Shift+Up continues a pointer selection slab', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    const rootElement = getRootElementOrThrow(remdo.editor);
 
-    const note4Text = getNoteTextNode(rootElement, 'note4');
-    const note2Text = getNoteTextNode(rootElement, 'note2');
+    const note4Text = getNoteTextNodeById(remdo, 'note4');
+    const note2Text = getNoteTextNodeById(remdo, 'note2');
     await dragDomSelectionBetween(note4Text, note4Text.length, note2Text, 0);
 
     await waitFor(() => {
@@ -946,7 +790,7 @@ describe('selection plugin', () => {
     await placeCaretAtNoteId(remdo, 'note2');
 
     const assertVisualEnvelopeMatchesSelection = (expected: string[]) => {
-      const labels = remdo.validate(() => {
+      const ids = remdo.validate(() => {
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) {
           throw new Error('Expected a range selection');
@@ -955,16 +799,13 @@ describe('selection plugin', () => {
         if (items.length === 0) {
           throw new Error('Expected structural selection');
         }
-        const startLabel = getListItemLabel(items[0]!);
-        const endLabel = getListItemLabel(items.at(-1)!);
-        if (!startLabel || !endLabel) {
-          throw new Error('Expected structural selection labels');
-        }
-        return { startLabel, endLabel } as const;
+        const startId = $getNoteIdOrThrow(items[0]!, 'Expected structural selection noteIds');
+        const endId = $getNoteIdOrThrow(items.at(-1)!, 'Expected structural selection noteIds');
+        return { startId, endId } as const;
       });
 
-      expect(labels.startLabel).toBe(expected[0]);
-      expect(labels.endLabel).toBe(expected.at(-1));
+      expect(ids.startId).toBe(expected[0]);
+      expect(ids.endId).toBe(expected.at(-1));
     };
 
     // Stage 2: note2 + descendants.
@@ -1091,13 +932,29 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
   });
 
+  it('resets the Cmd/Ctrl+A ladder after placing the caret within the same note', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    await placeCaretAtNoteId(remdo, 'note2');
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
+
+    await placeCaretAtNoteId(remdo, 'note2');
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
+  });
+
   it('skips the inline stage for whitespace-only notes on Cmd/Ctrl+A', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
     await placeCaretAtNoteId(remdo, 'space');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
-    expect(remdo).toMatchSelection({ state: 'structural', notes: [' '] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['space'] });
   });
 
   it('skips the inline stage for empty notes with no text nodes on Shift+Down', async ({ remdo }) => {
@@ -1122,7 +979,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     expect(remdo.editor.selection.isStructural()).toBe(true);
-    expect(remdo).toMatchSelectionIds(['nested-empty']);
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['nested-empty'] });
   });
 
   it('selects only the nested empty note on Cmd/Ctrl+A before child-of-empty', async ({ remdo }) => {
@@ -1133,7 +990,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo.editor.selection.isStructural()).toBe(true);
-    expect(remdo).toMatchSelectionIds(['nested-empty']);
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['nested-empty'] });
   });
 
   it('keeps Cmd/Ctrl+A anchored to child-of-empty when caret is at the end', async ({ remdo }) => {
@@ -1144,7 +1001,7 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      expect(remdo).toMatchSelection({ state: 'inline', note: 'child-of-empty' });
+      expect(remdo).toMatchSelection({ state: 'inline', note: 'child' });
     });
   });
 
@@ -1156,7 +1013,7 @@ describe('selection plugin', () => {
 
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(true);
-      expect(remdo).toMatchSelectionIds(['trailing']);
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['trailing'] });
     });
   });
 
@@ -1167,22 +1024,16 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      expect(remdo).toMatchSelectionIds(['trailing']);
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['trailing'] });
     });
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      expect(remdo).toMatchSelectionIds([
-        'alpha',
-        'space',
-        'beta',
-        'parent',
-        'nested-empty',
-        'child',
-        'nested-after-child',
-        'trailing',
-      ]);
+      expect(remdo).toMatchSelection({
+        state: 'structural',
+        notes: ['alpha', 'space', 'beta', 'parent', 'nested-empty', 'child', 'nested-after-child', 'trailing'],
+      });
     });
   });
 
@@ -1194,7 +1045,7 @@ describe('selection plugin', () => {
 
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(true);
-      expect(remdo).toMatchSelectionIds(['nested-after-child']);
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['nested-after-child'] });
     });
   });
 
@@ -1213,7 +1064,10 @@ describe('selection plugin', () => {
     await extendDomSelectionToNode(parentElement, parentElement.childNodes.length);
 
     await waitFor(() => {
-      expect(remdo).toMatchSelectionIds(['parent', 'nested-empty', 'child', 'nested-after-child']);
+      expect(remdo).toMatchSelection({
+        state: 'structural',
+        notes: ['parent', 'nested-empty', 'child', 'nested-after-child'],
+      });
     });
   });
 
@@ -1225,19 +1079,22 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      expect(remdo).toMatchSelectionIds(['nested-empty']);
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['nested-empty'] });
     });
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      expect(remdo).toMatchSelectionIds(['nested-empty', 'child', 'nested-after-child']);
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['nested-empty', 'child', 'nested-after-child'] });
     });
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      expect(remdo).toMatchSelectionIds(['parent', 'nested-empty', 'child', 'nested-after-child']);
+      expect(remdo).toMatchSelection({
+        state: 'structural',
+        notes: ['parent', 'nested-empty', 'child', 'nested-after-child'],
+      });
     });
   });
 
@@ -1249,7 +1106,7 @@ describe('selection plugin', () => {
 
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(true);
-      expect(remdo).toMatchSelectionIds(['trailing']);
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['trailing'] });
     });
 
     await pressKey(remdo, { key: 'Escape' });
@@ -1267,14 +1124,20 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     await waitFor(() => {
-      expect(remdo).toMatchSelectionIds(['parent', 'nested-empty', 'child', 'nested-after-child']);
+      expect(remdo).toMatchSelection({
+        state: 'structural',
+        notes: ['parent', 'nested-empty', 'child', 'nested-after-child'],
+      });
     });
 
     await placeCaretAtNoteId(remdo, 'parent');
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
 
     await waitFor(() => {
-      expect(remdo).toMatchSelectionIds(['parent', 'nested-empty', 'child', 'nested-after-child']);
+      expect(remdo).toMatchSelection({
+        state: 'structural',
+        notes: ['parent', 'nested-empty', 'child', 'nested-after-child'],
+      });
     });
   });
 
@@ -1296,14 +1159,16 @@ describe('selection plugin', () => {
   it('snaps mixed empty/non-empty ranges into a contiguous structural selection', async ({ remdo }) => {
     await remdo.load('empty-labels');
 
-    const rootElement = getRootElementOrThrow(remdo.editor);
-    const betaText = getNoteTextNode(rootElement, 'beta');
+    const betaText = getNoteTextNodeById(remdo, 'beta');
     const emptyTail = getNoteElementById(remdo, 'nested-after-child');
 
     await dragDomSelectionBetween(betaText, 1, emptyTail, emptyTail.childNodes.length);
 
     await waitFor(() => {
-      expect(remdo).toMatchSelectionIds(['beta', 'parent', 'nested-empty', 'child', 'nested-after-child']);
+      expect(remdo).toMatchSelection({
+        state: 'structural',
+        notes: ['beta', 'parent', 'nested-empty', 'child', 'nested-after-child'],
+      });
     });
   });
 

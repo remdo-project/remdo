@@ -21,9 +21,9 @@ describe('structural selection delete regression (local)', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     const expectedAfterRemoteDelete = [
-      { text: 'note1', children: [{ text: 'note4' }] },
-      { text: 'note5' },
-      { text: 'note6', children: [{ text: 'note7' }] },
+      { noteId: 'note1', text: 'note1', children: [{ noteId: 'note4', text: 'note4' }] },
+      { noteId: 'note5', text: 'note5' },
+      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
     ];
 
     await remdo.mutate(() => {
@@ -64,13 +64,13 @@ describe('structural selection delete regression (local)', () => {
 
     const expectedAfterRemoteDelete = [
       {
-        text: 'note1',
+        noteId: 'note1', text: 'note1',
         children: [
-          { text: 'note2', children: [{ text: 'note3' }] },
-          { text: 'note4' },
+          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
+          { noteId: 'note4', text: 'note4' },
         ],
       },
-      { text: 'note5' },
+      { noteId: 'note5', text: 'note5' },
     ];
 
     await remdo.mutate(() => {

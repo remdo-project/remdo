@@ -1,19 +1,18 @@
 import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
-import { extractOutlineForExpectedMatch } from '#tests-common/outline';
+import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
 import {
   collectSelectedListItems,
   findNearestListItem,
-  getListItemLabel,
   isChildrenWrapper,
   resolveContentListItem,
 } from '#tests';
-import { $getSelection, $isRangeSelection, $getNodeByKey, $getRoot, $getState } from 'lexical';
+import { $getSelection, $isRangeSelection, $getNodeByKey, $getRoot } from 'lexical';
 import type { RangeSelection, LexicalNode } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
-import { noteIdState } from '#lib/editor/note-id-state';
+import { $getNoteId } from '#lib/editor/note-id-state';
 
 type RemdoTestHelpers = TestContext['remdo'];
 
@@ -96,8 +95,8 @@ function assertOutlineExpectation(outline: Outline, path: number[] = []) {
       throw new Error(`outline[${nodePath.join('>')}].text must be omitted or a string; null is not allowed.`);
     }
 
-    if (node.noteId !== undefined && typeof node.noteId !== 'string') {
-      throw new TypeError(`outline[${nodePath.join('>')}].noteId must be omitted or a string.`);
+    if (node.noteId !== null && (typeof node.noteId !== 'string' || node.noteId.length === 0)) {
+      throw new TypeError(`outline[${nodePath.join('>')}].noteId must be a non-empty string or null.`);
     }
 
     if (Object.prototype.hasOwnProperty.call(node, 'children')) {
@@ -116,37 +115,41 @@ function assertOutlineExpectation(outline: Outline, path: number[] = []) {
 function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
   return remdo.validate(() => {
     const docRoot = $getRoot().getFirstChild();
-    const selection = $getSelection();
-    if (!$isRangeSelection(selection)) {
-      return { state: 'none' } satisfies SelectionSnapshot;
-    }
-
-    assertSelectionRespectsOutline(selection, docRoot);
-
-    if (selection.isCollapsed()) {
-      const caretNote = getCaretNoteLabel(selection);
-      return caretNote ? ({ state: 'caret', note: caretNote } satisfies SelectionSnapshot) : ({ state: 'none' } satisfies SelectionSnapshot);
-    }
-
     const outlineSelection = remdo.editor.selection.get();
-    const structuralNotes = collectLabelsFromSelection(selection);
-    if (outlineSelection?.kind === 'structural') {
-      if (structuralNotes.length > 0) {
-        return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
+    const selection = $getSelection();
+    const readOutlineSelectionNotes = (): string[] => {
+      if (outlineSelection?.kind !== 'structural') {
+        return [];
       }
-
-      const outlineNotes = outlineSelection.selectedKeys
+      return outlineSelection.selectedKeys
         .map((key) => {
           const node = $getNodeByKey<ListItemNode>(key);
           if (!node || !node.isAttached()) {
             return null;
           }
-          return getListItemLabel(node);
+          return $getNoteId(node);
         })
-        .filter((label: string | null): label is string => typeof label === 'string' && label.length > 0);
+        .filter((noteId: string | null): noteId is string => typeof noteId === 'string' && noteId.length > 0);
+    };
 
+    const outlineNotes = outlineSelection?.kind === 'structural' ? readOutlineSelectionNotes() : [];
+
+    if (!$isRangeSelection(selection)) {
+      return outlineNotes.length > 0
+        ? ({ state: 'structural', notes: outlineNotes } satisfies SelectionSnapshot)
+        : ({ state: 'none' } satisfies SelectionSnapshot);
+    }
+
+    const structuralNotes = $collectNoteIdsFromSelection(selection);
+    if (!outlineSelection || outlineSelection.kind !== 'structural' || structuralNotes.length > 0) {
+      $assertSelectionRespectsOutline(selection, docRoot);
+    }
+    if (outlineSelection?.kind === 'structural') {
       if (outlineNotes.length > 0) {
         return { state: 'structural', notes: outlineNotes } satisfies SelectionSnapshot;
+      }
+      if (structuralNotes.length > 0) {
+        return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
       }
     } else if (!outlineSelection && structuralNotes.length > 0) {
       return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
@@ -154,67 +157,52 @@ function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
       return { state: 'structural', notes: structuralNotes } satisfies SelectionSnapshot;
     }
 
-    const inlineNote = getCaretNoteLabel(selection);
+    if (selection.isCollapsed()) {
+      const caretNote = $getCaretNoteId(selection);
+      return caretNote ? ({ state: 'caret', note: caretNote } satisfies SelectionSnapshot) : ({ state: 'none' } satisfies SelectionSnapshot);
+    }
+
+    const inlineNote = $getCaretNoteId(selection);
     return inlineNote ? ({ state: 'inline', note: inlineNote } satisfies SelectionSnapshot) : ({ state: 'none' } satisfies SelectionSnapshot);
   });
 }
 
-function readSelectionIds(remdo: RemdoTestHelpers): string[] {
-  return remdo.validate(() => {
-    const outlineSelection = remdo.editor.selection.get();
-    if (!outlineSelection || outlineSelection.kind !== 'structural') {
-      throw new TypeError('Expected a structural selection.');
-    }
-
-    const ids: string[] = [];
-    for (const key of outlineSelection.selectedKeys) {
-      const node = $getNodeByKey<ListItemNode>(key);
-      if (!node || !node.isAttached()) {
-        throw new TypeError(`Selection key ${key} does not resolve to an attached list item.`);
-      }
-      const noteId = $getState(node, noteIdState);
-      if (typeof noteId !== 'string') {
-        throw new TypeError(`Selection item ${key} is missing a noteId.`);
-      }
-      ids.push(noteId);
-    }
-
-    return ids;
-  });
-}
-
-function collectLabelsFromSelection(selection: RangeSelection): string[] {
+function $collectNoteIdsFromSelection(selection: RangeSelection): string[] {
   const items = collectSelectedListItems(selection);
-  const labels: string[] = [];
+  const ids: string[] = [];
   for (const item of items) {
     if (!item.isSelected(selection)) {
       continue;
     }
-  const label = getListItemLabel(item);
-    if (label) {
-      labels.push(label);
+    const noteId = $getNoteId(item);
+    if (noteId) {
+      ids.push(noteId);
     }
   }
-  return labels;
+  return ids;
 }
 
-function getCaretNoteLabel(selection: RangeSelection): string | null {
-  const resolveLabel = (point: RangeSelection['anchor']): string | null => {
+function $getCaretNoteId(selection: RangeSelection): string | null {
+  const $resolveId = (point: RangeSelection['anchor']): string | null => {
     const item = findNearestListItem(point.getNode());
     if (!item || !item.isAttached()) {
       return null;
     }
-    return getListItemLabel(item);
+    return $getNoteId(item);
   };
 
-  return resolveLabel(selection.focus) ?? resolveLabel(selection.anchor);
+  return $resolveId(selection.focus) ?? $resolveId(selection.anchor);
 }
 
 expect.extend({
   toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: Outline) {
     assertOutlineExpectation(expected);
 
-    const outline = attemptRead(this, '.toMatchOutline', () => extractOutlineForExpectedMatch(remdo.getEditorState(), expected));
+    const outline = attemptRead(this, '.toMatchOutline', () => {
+      const actual = extractOutlineFromEditorState(remdo.getEditorState());
+      mutateOutlineNoteIdWildcards(actual, expected);
+      return actual;
+    });
     if (!outline.ok) return outline.result;
 
     return compareWithExpected(this, outline.value, expected, {
@@ -253,23 +241,8 @@ expect.extend({
         ['Expected selection:', formatSelectionSnapshot(expectedSnapshot), '', 'Received selection:', formatSelectionSnapshot(actual)].join('\n'),
     });
   },
-  toMatchSelectionIds(this: any, remdo: RemdoTestHelpers, expected: string[]) {
-    const selection = attemptRead(this, '.toMatchSelectionIds', () => readSelectionIds(remdo));
-    if (!selection.ok) return selection.result;
-
-    return compareWithExpected(this, selection.value, expected, {
-      matcher: 'toMatchSelectionIds',
-      args: ['lexical', 'expectedIds'],
-      passMessage: 'Expected selection ids not to match, but they were identical.',
-      failMessage: 'Selection ids differ.',
-      formatDiff: (actual, expectedIds) =>
-        ['Expected selection ids:', JSON.stringify(expectedIds), '', 'Received selection ids:', JSON.stringify(actual)].join(
-          '\n'
-        ),
-    });
-  },
 });
-function assertSelectionRespectsOutline(selection: RangeSelection, root: LexicalNode | null) {
+function $assertSelectionRespectsOutline(selection: RangeSelection, root: LexicalNode | null) {
   const selectedItems = collectSelectedListItems(selection);
   if (selectedItems.length <= 1) {
     return;
@@ -307,8 +280,8 @@ function assertSelectionRespectsOutline(selection: RangeSelection, root: Lexical
       continue;
     }
     if (!selectedKeys.has(item.getKey())) {
-      const missingLabel = getListItemLabel(item) ?? item.getKey();
-      throw new Error(`Selection must cover a contiguous block of notes and subtrees; missing ${missingLabel}`);
+      const missingId = $getNoteId(item) ?? item.getKey();
+      throw new Error(`Selection must cover a contiguous block of notes and subtrees; missing ${missingId}`);
     }
   }
 }

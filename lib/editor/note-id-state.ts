@@ -1,9 +1,14 @@
 import { ListItemNode } from '@lexical/list';
-import { createState } from 'lexical';
+import { $getState, $setState, createState } from 'lexical';
 
 export const noteIdState = createState('noteId', {
   parse: (value) => (typeof value === 'string' ? value : undefined),
 });
+
+export function $getNoteId(node: ListItemNode): string | null {
+  const noteId = $getState(node, noteIdState);
+  return typeof noteId === 'string' && noteId.length > 0 ? noteId : null;
+}
 
 let didPatch = false;
 
@@ -37,5 +42,18 @@ export function ensureNoteIdStateConfig(): void {
     }
 
     return record;
+  };
+
+  const originalInsertNewAfter = ListItemNode.prototype.insertNewAfter;
+  ListItemNode.prototype.insertNewAfter = function $patchedInsertNewAfter(
+    this: ListItemNode,
+    selection: Parameters<ListItemNode['insertNewAfter']>[0],
+    restoreSelection?: Parameters<ListItemNode['insertNewAfter']>[1]
+  ) {
+    const node = originalInsertNewAfter.call(this, selection, restoreSelection);
+    if (node instanceof ListItemNode) {
+      $setState(node, noteIdState, noteIdState.parse(null));
+    }
+    return node;
   };
 }

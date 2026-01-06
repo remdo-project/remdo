@@ -3,7 +3,7 @@ import { $getSelection, $isRangeSelection } from 'lexical';
 import type { RangeSelection } from 'lexical';
 
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
-import { getListItemLabel, placeCaretAtNoteId, selectNoteRangeById } from '#tests';
+import { $getNoteIdOrThrow, placeCaretAtNoteId, selectNoteRangeById } from '#tests';
 
 describe('structural selection helper', () => {
   it('returns heads and slab for mixed-depth selection spanning a sibling run', async ({ remdo }) => {
@@ -14,7 +14,7 @@ describe('structural selection helper', () => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
       const result = getContiguousSelectionHeads(selection as RangeSelection);
-      return result.map(getListItemLabel);
+      return result.map((item) => $getNoteIdOrThrow(item));
     });
 
     expect(heads).toEqual(['note2', 'note4']);
@@ -41,7 +41,7 @@ describe('structural selection helper', () => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
       const result = getContiguousSelectionHeads(selection as RangeSelection);
-      return result.map(getListItemLabel);
+      return result.map((item) => $getNoteIdOrThrow(item));
     });
 
     expect(heads).toEqual(['note1']);

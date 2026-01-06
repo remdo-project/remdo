@@ -20,6 +20,10 @@ test.describe('Editor (focused) visibility', () => {
     await editor.load('flat');
 
     await expect(editorLocator(page).locator('li.list-item')).toHaveCount(3);
-    await expect(editor).toMatchOutline([{ text: 'note1' }, { text: 'note2' }, { text: 'note3' }]);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
   });
 });

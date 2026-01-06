@@ -4,6 +4,8 @@ import type { LexicalCommand, LexicalEditor, EditorUpdateOptions, SerializedEdit
 import { $getRoot } from 'lexical';
 import { assertEditorSchema } from './schema/assertEditorSchema';
 import { useCollaborationStatus } from '../collaboration';
+import { markSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
+import { $normalizeNoteIdsOnLoad } from '../note-id-normalization';
 
 async function withTimeout<T>(fnOrPromise: (() => Promise<T>) | Promise<T>, ms: number, message: string): Promise<T> {
   const promise = typeof fnOrPromise === 'function' ? fnOrPromise() : fnOrPromise;
@@ -23,6 +25,10 @@ type EditorOutcomeExpectation = 'update' | 'noop' | 'any';
 
 interface EditorActionOptions {
   expect?: EditorOutcomeExpectation;
+}
+
+interface ApplySerializedStateOptions {
+  skipSchemaValidationOnce?: boolean;
 }
 
 function hasPendingEditorUpdate(editor: LexicalEditor): boolean {
@@ -123,13 +129,16 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
   const withOutcome = async (
     action: string,
     expect: EditorOutcomeExpectation,
-    run: (reportNoop: () => void) => void
+    run: (reportNoop: () => void) => void,
+    options?: { skipSchemaValidation?: boolean }
   ) => {
     const outcome = awaitEditorOutcome(editor);
     run(outcome.reportNoop);
     const result = handleOutcome(await outcome.outcome, action, expect);
     if (result.status === 'update') {
-      assertEditorSchema(editor.getEditorState().toJSON());
+      if (!options?.skipSchemaValidation) {
+        assertEditorSchema(editor.getEditorState().toJSON());
+      }
       await collab.awaitSynced();
     }
   };
@@ -145,10 +154,23 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     );
   };
 
-  const applySerializedState = async (input: string) => {
+  const applySerializedState = async (input: string, options?: ApplySerializedStateOptions) => {
     await ensureHydrated();
     const parsed = editor.parseEditorState(JSON.parse(input) as SerializedEditorState);
-    await withOutcome('setEditorState', 'update', () => editor.setEditorState(parsed, { tag: 'test-bridge-load' }));
+    await withOutcome('setEditorState', 'update', () => {
+      if (options?.skipSchemaValidationOnce) {
+        markSchemaValidationSkipOnce(editor);
+      }
+      editor.setEditorState(parsed, { tag: 'test-bridge-load' });
+    }, { skipSchemaValidation: options?.skipSchemaValidationOnce });
+
+    if (options?.skipSchemaValidationOnce) {
+      await withOutcome('normalizeNoteIds', 'update', () => {
+        editor.update(() => {
+          $normalizeNoteIdsOnLoad($getRoot(), collab.docId);
+        });
+      });
+    }
   };
 
   const mutate = async (fn: () => void, opts?: EditorUpdateOptions) => {

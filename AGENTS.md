@@ -47,6 +47,8 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/index.md` (Short). Single entry point for outlining docs with links to model,
   selection, indent/outdent, insertion, and reordering specs; also states the single-source (no-
   duplication) rule for invariants.
+- `docs/outliner/note-ids.md` (Medium). Note identity spec: `noteId` invariants, load-time
+  normalization, collaboration expectations, reuse notes, and `noteRef` composition.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indent/outdent
   semantics—consult when editing tree transforms or note mutations.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and
@@ -55,9 +57,13 @@ outdated or a doc’s role materially changes.
   for UX or Lexical selection work, including the progressive ladder and the empty-note
   inline-stage skip.
 - `docs/todo.md` (Medium). Scratchpad for in-flight work: keep active tasks only (drop completed
-  items), and move durable specs into the appropriate doc under `docs/`.
+  items), and move durable specs into the appropriate doc under `docs/` (includes cut-as-move
+  follow-ups).
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.
+
+Recent doc changes (2026-01-06): Added cut-as-move follow-ups in `docs/todo.md`
+for clipboard handling, text-range cuts, and caret self-move checks.
 
 ## Doc Workflow
 

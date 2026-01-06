@@ -28,3 +28,24 @@ if (typeof Range !== 'undefined' && !Range.prototype.getBoundingClientRect) {
     toJSON: () => ({}),
   });
 }
+
+// Lexical's clipboard helpers reference DragEvent for instance checks; jsdom doesn't provide it.
+if (typeof DragEvent === 'undefined') {
+  const MockDragEvent = class MockDragEvent extends Event {};
+  (globalThis as typeof globalThis & { DragEvent: typeof DragEvent }).DragEvent =
+    MockDragEvent as unknown as typeof DragEvent;
+}
+
+if (typeof ClipboardEvent === 'undefined') {
+  const MockClipboardEvent = class MockClipboardEvent extends Event {
+    readonly clipboardData: DataTransfer | null;
+
+    constructor(type: string, init?: ClipboardEventInit) {
+      super(type, init);
+      this.clipboardData = init?.clipboardData ?? null;
+    }
+  };
+
+  (globalThis as typeof globalThis & { ClipboardEvent: typeof ClipboardEvent }).ClipboardEvent =
+    MockClipboardEvent as unknown as typeof ClipboardEvent;
+}

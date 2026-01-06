@@ -13,6 +13,7 @@ import { SelectionCollapsePlugin } from './plugins/SelectionCollapsePlugin';
 import { InsertionPlugin } from './plugins/InsertionPlugin';
 import { DeletionPlugin } from './plugins/DeletionPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
+import { NoteIdPlugin } from './plugins/NoteIdPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
 import { KeymapPlugin } from './plugins/KeymapPlugin';
 import './Editor.css';
@@ -47,6 +48,7 @@ export default function Editor({ children, docId, onTestBridgeReady, onTestBridg
           <SelectionInputPlugin />
           <ListPlugin hasStrictIndent />
           <RootSchemaPlugin />
+          <NoteIdPlugin />
           <DevPlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose}>{children}</DevPlugin>
         </CollaborationPlugin>
       </LexicalComposer>
