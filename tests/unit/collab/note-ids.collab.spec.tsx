@@ -233,6 +233,32 @@ describe('collaboration note ids', () => {
     });
   });
 
+  it('drops cut markers after remote structural edits', async ({ remdo }) => {
+    const docId = remdo.getCollabDocId();
+    await remdo.load('flat');
+    await remdo.waitForSynced();
+
+    const secondary = await renderCollabEditor({ docId });
+    await secondary.waitForSynced();
+
+    const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
+
+    await placeCaretAtNoteId(secondary, 'note2', 0);
+    await pressKey(secondary, { key: 'Tab' });
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    const expectedOutline = readOutline(remdo);
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+    await waitFor(() => {
+      expect(secondary).toMatchOutline(expectedOutline);
+    });
+  });
+
   it('merges cut moves with concurrent edits on the moved note', async ({ remdo }) => {
     const docId = remdo.getCollabDocId();
     await remdo.load('flat');
