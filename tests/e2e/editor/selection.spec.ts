@@ -1,6 +1,7 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
+import { extractOutlineFromEditorState } from '#tests-common/outline';
 
 test.describe('selection (structural highlight)', () => {
   test('toggles the structural highlight class', async ({ page, editor }) => {
@@ -53,11 +54,15 @@ test.describe('selection (cut marker)', () => {
     await editor.load('flat');
     await setCaretAtText(page, 'note2');
 
+    const input = editorLocator(page).locator('.editor-input').first();
+
     await page.keyboard.press('Shift+ArrowDown');
     await page.keyboard.press('Shift+ArrowDown');
 
     const cutCombo = process.platform === 'darwin' ? 'Meta+X' : 'Control+X';
     await page.keyboard.press(cutCombo);
+
+    await expect(input).toHaveClass(/editor-input--cut-marker/);
 
     await setCaretAtText(page, 'note3');
     const pasteCombo = process.platform === 'darwin' ? 'Meta+V' : 'Control+V';
@@ -68,6 +73,30 @@ test.describe('selection (cut marker)', () => {
       { noteId: 'note3', text: 'note3' },
       { noteId: 'note2', text: 'note2' },
     ]);
+    await expect(input).not.toHaveClass(/editor-input--cut-marker/);
+  });
+
+  test('keeps the cut marker when pasting inside the marked subtree', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note2');
+
+    const input = editorLocator(page).locator('.editor-input').first();
+
+    await page.keyboard.press('Shift+ArrowDown');
+    await page.keyboard.press('Shift+ArrowDown');
+
+    const cutCombo = process.platform === 'darwin' ? 'Meta+X' : 'Control+X';
+    await page.keyboard.press(cutCombo);
+
+    await expect(input).toHaveClass(/editor-input--cut-marker/);
+
+    const expectedOutline = extractOutlineFromEditorState(await editor.getEditorState());
+
+    const pasteCombo = process.platform === 'darwin' ? 'Meta+V' : 'Control+V';
+    await page.keyboard.press(pasteCombo);
+
+    await expect(editor).toMatchOutline(expectedOutline);
+    await expect(input).toHaveClass(/editor-input--cut-marker/);
   });
 });
 
