@@ -59,23 +59,7 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
 
 ## Cut-as-move
 
-- Structural cut: marks notes for move and populates the system clipboard with
-  Lexical payload + a cut marker (`remdoCut`); content stays in place.
-- Paste: moves notes only if the cut marker is still valid. If the marker is
-  missing/invalid (local edit, remote edit, or clipboard changed), paste is a
-  no-op and clears the marker. Clipboard remains.
-- Paste attempts that would move into the marked subtree are no-ops and do not
-  clear the marker.
-- Inline cut (single-note text selection) is handled by Lexical; structural cut
-  only applies to structural selection or multi-note range selection.
-- Structural cut collapses the structural selection to the visual start so only
-  the cut marker remains visible.
-- Marker invalidation rule (simplicity-first): any local or remote mutation
-  touching a marked note (including text edits) drops the marker. Keep the spec
-  simple for now; if implementation proves easy, revisit allowing text edits
-  without invalidation and update the spec accordingly.
-- Implementation note: move logic uses stored head keys (not clipboard payload)
-  to identify the cut subtree; keep tests/helpers aligned with this contract.
+- Spec: `docs/outliner/note-ids.md#clipboard-semantics`.
 - Follow-up: review the cut/copy prep in `tests/unit/note-ids.spec.ts` around
   the structural paste no-op tests (e.g. line ~577) for readability; make sure
   cut and copy operations are set up in a similarly clear, shared way for
@@ -85,6 +69,15 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
   the caret sits visually above the first child. Align paste insertion with
   `docs/insertion.md` end-of-note semantics so pastes land as the first child,
   and add a focused test to lock this behavior.
+- Add unit test: local delete/backspace on a marked note invalidates the cut
+  marker, and a subsequent paste of the cut payload is a no-op.
+- Add collab test: remote deletion of a marked note invalidates the cut marker
+  and keeps paste as a no-op.
+- Add E2E test: inline single-note cut removes text and never shows the cut
+  marker overlay (stays in normal text-cut path).
+- Open question: cut-marker invalidation listens to ListItemNode/TextNode
+  mutations only; if note bodies gain non-text inline nodes, should we broaden
+  the invalidation to cover those node types too?
 
 ## Test infra
 
