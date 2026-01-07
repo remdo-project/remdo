@@ -27,10 +27,17 @@ import type { OutlineSelectionRange } from '@/editor/outline/selection/model';
 import type { ProgressiveSelectionState, SnapPayload } from '@/editor/outline/selection/resolve';
 import { $computeOutlineSelectionSnapshot } from '@/editor/outline/selection/snapshot';
 import type { ProgressiveUnlockState } from '@/editor/outline/selection/snapshot';
+import type { StructuralOverlayConfig } from '@/editor/outline/selection/overlay';
+import { clearStructuralOverlay, updateStructuralOverlay } from '@/editor/outline/selection/overlay';
 import { useEffect, useRef } from 'react';
 
 const PROGRESSIVE_SELECTION_TAG = 'selection:progressive-range';
 const SNAP_SELECTION_TAG = 'selection:snap-range';
+const STRUCTURAL_OVERLAY: StructuralOverlayConfig = {
+  className: 'editor-input--structural',
+  topVar: '--structural-selection-top',
+  heightVar: '--structural-selection-height',
+};
 
 function getStoredStage(result: ProgressivePlanResult): number {
   if (result.repeatStage && result.stage > 0) {
@@ -106,40 +113,11 @@ export function SelectionPlugin() {
       isActive: boolean,
       rootElement = editor.getRootElement()
     ) => {
-      if (!rootElement) {
-        return;
-      }
-
-      rootElement.classList.toggle('editor-input--structural', isActive);
-
-      if (!isActive || !range) {
-        rootElement.style.removeProperty('--structural-selection-top');
-        rootElement.style.removeProperty('--structural-selection-height');
-        return;
-      }
-
-      const startElement = editor.getElementByKey(range.visualStartKey);
-      const endElement = editor.getElementByKey(range.visualEndKey);
-      if (!startElement || !endElement) {
-        rootElement.style.removeProperty('--structural-selection-top');
-        rootElement.style.removeProperty('--structural-selection-height');
-        return;
-      }
-
-      const rootRect = rootElement.getBoundingClientRect();
-      const startRect = startElement.getBoundingClientRect();
-      const endRect = endElement.getBoundingClientRect();
-      const scrollTop = rootElement.scrollTop;
-      const top = startRect.top - rootRect.top + scrollTop;
-      const bottom = endRect.bottom - rootRect.top + scrollTop;
-      const height = Math.max(0, bottom - top);
-
-      rootElement.style.setProperty('--structural-selection-top', `${top}px`);
-      rootElement.style.setProperty('--structural-selection-height', `${height}px`);
+      updateStructuralOverlay(editor, range, isActive, STRUCTURAL_OVERLAY, rootElement);
     };
 
     const unregisterRootListener = editor.registerRootListener((rootElement, previousRootElement) => {
-      renderStructuralHighlight(null, false, previousRootElement ?? undefined);
+      clearStructuralOverlay(previousRootElement ?? null, STRUCTURAL_OVERLAY);
       renderStructuralHighlight(null, editor.selection.isStructural(), rootElement ?? undefined);
     });
 

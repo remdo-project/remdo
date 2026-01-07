@@ -4,6 +4,7 @@ import {
   $createTextNode,
   $getRoot,
   $setState,
+  CUT_COMMAND,
   PASTE_COMMAND,
 } from 'lexical';
 import { waitFor } from '@testing-library/react';
@@ -497,6 +498,7 @@ describe('note ids on paste', () => {
     await remdo.load('flat');
 
     const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
 
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
@@ -533,6 +535,34 @@ describe('note ids on paste', () => {
       { noteId: 'note3', text: 'note3' },
       { noteId: 'note2', text: 'note2' },
     ]);
+  });
+
+  it('collapses structural selection after cutting multiple notes', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    await dragDomSelectionBetweenNotes(remdo, 'note2', 'note3');
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    });
+
+    const clipboardEvent = createClipboardEvent(undefined, 'cut');
+    await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent);
+
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+  });
+
+  it('collapses multi-note inline selection after cut to the visual start', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    await selectNoteRangeById(remdo, 'note3', 'note2');
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    });
+
+    const clipboardEvent = createClipboardEvent(undefined, 'cut');
+    await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent);
+
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
   it('drops cut markers after local edits', async ({ remdo }) => {

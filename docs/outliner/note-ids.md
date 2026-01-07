@@ -61,6 +61,8 @@ document ID. This spec does not define the format or storage of document IDs.
   - Inline text ranges within a single note perform a normal text cut.
   - Structural selections mark the selected notes for move (content stays in
     place) and also populate the system clipboard with the same payload as copy.
+  - After a structural cut, the structural selection collapses to the visual
+    start so the cut marker is the only highlight left in the editor.
 - Paste applies the pending move when a cut marker is active, moving the live
   nodes with their existing ids. If the clipboard payload is marked as cut but
   the marker is missing or invalidated, paste is a no-op. If the payload is not

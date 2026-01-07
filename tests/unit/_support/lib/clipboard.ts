@@ -94,7 +94,7 @@ export function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
 export async function cutStructuralNoteById(remdo: RemdoTestApi, noteId: string) {
   await selectStructuralNoteByDom(remdo, noteId);
   const clipboardEvent = createClipboardEvent(undefined, 'cut');
-  await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent, { expect: 'noop' });
+  await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent, { expect: 'update' });
 
   const rawPayload = clipboardEvent.clipboardData?.getData('application/x-lexical-editor') ?? '';
   if (!rawPayload) {

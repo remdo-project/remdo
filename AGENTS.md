@@ -48,7 +48,8 @@ outdated or a doc’s role materially changes.
   selection, indent/outdent, insertion, and reordering specs; also states the single-source (no-
   duplication) rule for invariants.
 - `docs/outliner/note-ids.md` (Medium). Note identity spec: `noteId` invariants, normalization,
-  clipboard cut-as-move, collaboration expectations, and `noteRef` composition.
+  clipboard cut-as-move (including selection collapse), collaboration expectations, and `noteRef`
+  composition.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indent/outdent
   semantics—consult when editing tree transforms or note mutations.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and
@@ -58,7 +59,7 @@ outdated or a doc’s role materially changes.
   clipboard behavior pointer.
 - `docs/todo.md` (Medium). Scratchpad for in-flight work: keep active tasks only (drop completed
   items), and move durable specs into the appropriate doc under `docs/` (includes cut-as-move
-  follow-ups).
+  follow-ups and test-infra notes).
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.
 

@@ -292,7 +292,7 @@ describe('collaboration note ids', () => {
     });
 
     const clipboardEvent = createClipboardEvent(undefined, 'cut');
-    await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent, { expect: 'noop' });
+    await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent, { expect: 'update' });
     const rawPayload = clipboardEvent.clipboardData?.getData('application/x-lexical-editor') ?? '';
     if (!rawPayload) {
       throw new Error('Expected cut to populate clipboard payload.');

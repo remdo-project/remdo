@@ -29,18 +29,24 @@ import {
 } from '@/editor/outline/list-structure';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
+import type { OutlineSelectionRange } from '@/editor/outline/selection/model';
+import { computeStructuralRangeFromHeads } from '@/editor/outline/selection/resolve';
+import type { StructuralOverlayConfig } from '@/editor/outline/selection/overlay';
+import { updateStructuralOverlay } from '@/editor/outline/selection/overlay';
 import {
   getNextContentSibling,
   getSubtreeItems,
   removeNoteSubtree,
   sortHeadsByDocumentOrder,
 } from '@/editor/outline/selection/tree';
+import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
 import { useCollaborationStatus } from './collaboration';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
 
 interface CutMarker {
   headKeys: string[];
   markedKeys: Set<string>;
+  range: OutlineSelectionRange;
 }
 
 interface ClipboardPayload {
@@ -48,6 +54,12 @@ interface ClipboardPayload {
   nodes: SerializedLexicalNode[];
   remdoCut?: boolean;
 }
+
+const CUT_MARKER_OVERLAY: StructuralOverlayConfig = {
+  className: 'editor-input--cut-marker',
+  topVar: '--cut-marker-top',
+  heightVar: '--cut-marker-height',
+};
 
 function getClipboardNamespace(editor: { _config?: { namespace?: string } }): string {
   return editor._config?.namespace ?? 'remdo';
@@ -127,6 +139,15 @@ function $collectMarkedKeysFromHeadKeys(headKeys: string[]): Set<string> {
   }
 
   return marked;
+}
+
+function getCutMarkerRange(heads: ListItemNode[]): OutlineSelectionRange | null {
+  if (heads.length === 0) {
+    return null;
+  }
+
+  const ordered = sortHeadsByDocumentOrder(heads);
+  return computeStructuralRangeFromHeads(ordered);
 }
 
 function $regenerateClipboardNoteIds(nodes: LexicalNode[], reservedIds: Set<string>) {
@@ -354,6 +375,11 @@ export function NoteIdPlugin() {
   useEffect(() => {
     readyRef.current = true;
 
+    const setCutMarker = (next: CutMarker | null) => {
+      cutMarkerRef.current = next;
+      updateStructuralOverlay(editor, next?.range ?? null, next !== null, CUT_MARKER_OVERLAY);
+    };
+
     if (hydrated) {
       editor.update(() => {
         $normalizeNoteIdsOnLoad($getRoot(), docId);
@@ -372,12 +398,12 @@ export function NoteIdPlugin() {
           for (const key of mutations.keys()) {
             const currentKey = editor.getEditorState().read(() => $getContentKeyFromNodeKey(key));
             if (currentKey && marker.markedKeys.has(currentKey)) {
-              cutMarkerRef.current = null;
+              setCutMarker(null);
               return;
             }
             const prevKey = payload.prevEditorState.read(() => $getContentKeyFromNodeKey(key));
             if (prevKey && marker.markedKeys.has(prevKey)) {
-              cutMarkerRef.current = null;
+              setCutMarker(null);
               return;
             }
           }
@@ -395,18 +421,24 @@ export function NoteIdPlugin() {
           for (const key of mutations.keys()) {
             const currentKey = editor.getEditorState().read(() => $getContentKeyFromNodeKey(key));
             if (currentKey && marker.markedKeys.has(currentKey)) {
-              cutMarkerRef.current = null;
+              setCutMarker(null);
               return;
             }
             const prevKey = payload.prevEditorState.read(() => $getContentKeyFromNodeKey(key));
             if (prevKey && marker.markedKeys.has(prevKey)) {
-              cutMarkerRef.current = null;
+              setCutMarker(null);
               return;
             }
           }
         },
         { skipInitialization: true }
       ),
+      editor.registerUpdateListener(() => {
+        const marker = cutMarkerRef.current;
+        if (marker) {
+          updateStructuralOverlay(editor, marker.range, true, CUT_MARKER_OVERLAY);
+        }
+      }),
       editor.registerNodeTransform(ListItemNode, (node) => {
         if (!readyRef.current) {
           return;
@@ -416,7 +448,7 @@ export function NoteIdPlugin() {
       editor.registerCommand(
         COPY_COMMAND,
         () => {
-          cutMarkerRef.current = null;
+          setCutMarker(null);
           return false;
         },
         COMMAND_PRIORITY_CRITICAL
@@ -424,10 +456,7 @@ export function NoteIdPlugin() {
       editor.registerCommand(
         CUT_COMMAND,
         (event) => {
-          let handled = false;
-          editor.getEditorState().read(() => {
-            cutMarkerRef.current = null;
-
+          const result = editor.getEditorState().read(() => {
             let selectionHeadKeys: string[] = [];
             let isStructuralCut = false;
 
@@ -448,7 +477,7 @@ export function NoteIdPlugin() {
             }
 
             if (!isStructuralCut || selectionHeadKeys.length === 0) {
-              return;
+              return { handled: false, marker: null };
             }
 
             const heads = selectionHeadKeys
@@ -458,17 +487,27 @@ export function NoteIdPlugin() {
                   $isListItemNode(node) && node.isAttached() && !isChildrenWrapper(node)
               );
             if (heads.length === 0) {
-              return;
+              return { handled: false, marker: null };
             }
 
-            cutMarkerRef.current = {
+            const range = getCutMarkerRange(heads);
+            if (!range) {
+              return { handled: false, marker: null };
+            }
+
+            const marker: CutMarker = {
               headKeys: selectionHeadKeys,
               markedKeys: $collectMarkedKeysFromHeadKeys(selectionHeadKeys),
+              range,
             };
             $populateClipboardFromHeads(editor, heads, event);
-            handled = true;
+            return { handled: true, marker };
           });
-          return handled;
+          setCutMarker(result.marker);
+          if (result.marker) {
+            editor.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'start' });
+          }
+          return result.handled;
         },
         COMMAND_PRIORITY_CRITICAL
       ),
@@ -521,14 +560,14 @@ export function NoteIdPlugin() {
             if (heads.length === marker.headKeys.length) {
               const ordered = sortHeadsByDocumentOrder(heads);
               const nodesToMove = flattenNoteNodes(ordered);
-              cutMarkerRef.current = null;
+              setCutMarker(null);
               lastPasteSelectionHeadKeysRef.current = null;
               if ($insertNodesAtSelection(selectionHeadKeys, payload.selection, nodesToMove)) {
                 return true;
               }
             }
 
-            cutMarkerRef.current = null;
+            setCutMarker(null);
             lastPasteSelectionHeadKeysRef.current = null;
             return true;
           }
@@ -557,7 +596,7 @@ export function NoteIdPlugin() {
           const clipboardPayload = getClipboardPayload(event);
           lastPasteWasCutRef.current = clipboardPayload?.remdoCut === true;
           if (!lastPasteWasCutRef.current) {
-            cutMarkerRef.current = null;
+            setCutMarker(null);
           }
           return false;
         },
