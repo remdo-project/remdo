@@ -48,6 +48,27 @@ test.describe('selection (cut marker)', () => {
     expect(cutVars.top).toBe(selectionVars.top);
     expect(cutVars.height).toBe(selectionVars.height);
   });
+
+  test('moves a structural selection on cut and paste', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note2');
+
+    await page.keyboard.press('Shift+ArrowDown');
+    await page.keyboard.press('Shift+ArrowDown');
+
+    const cutCombo = process.platform === 'darwin' ? 'Meta+X' : 'Control+X';
+    await page.keyboard.press(cutCombo);
+
+    await setCaretAtText(page, 'note3');
+    const pasteCombo = process.platform === 'darwin' ? 'Meta+V' : 'Control+V';
+    await page.keyboard.press(pasteCombo);
+
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2' },
+    ]);
+  });
 });
 
 async function readOverlayVars(input: Locator, topVar: string, heightVar: string) {
