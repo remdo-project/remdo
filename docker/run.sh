@@ -22,4 +22,6 @@ ENV_FILE="${ROOT_DIR}/.env"
 DOCKER_ENV_ARGS=()
 [[ -f "${ENV_FILE}" ]] && DOCKER_ENV_ARGS=(--env-file "${ENV_FILE}")
 
-remdo_docker_run "${IMAGE_NAME}" --rm "${DOCKER_ENV_ARGS[@]}"
+remdo_docker_run "${IMAGE_NAME}" --rm "${DOCKER_ENV_ARGS[@]}" \
+  -e BASICAUTH_USER="${BASICAUTH_USER}" \
+  -e BASICAUTH_PASSWORD="${BASICAUTH_PASSWORD}"
