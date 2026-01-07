@@ -3,11 +3,11 @@
 This document is the single source of truth for RemDo environment setup across
 dev, tests, prod (host + Docker), backup machines, and CI. All runtime defaults
 are derived in `tools/env.defaults.sh` (via `tools/env.sh`). Use `.env` only
-for overrides.
+for overrides (it is optional).
 
 ## Dev (local)
 
-- Copy `.env.example` to `.env`.
+- If you need overrides, copy `.env.example` to `.env`.
 - Prefer defaults; set `PORT` to avoid conflicts between workdirs on the same host.
 - Avoid Chromium-restricted ports (like 6000); `tools/env.defaults.sh` errors if
   `PORT` or any derived port hits the blocked list. Chromium's list is the
@@ -25,7 +25,8 @@ for overrides.
 
 - Runs E2E tests against a Dockerized production build of the current repo.
 - Requires a local Docker daemon (or rootless Docker) to be running.
-- Uses `tools/env.sh` defaults with `.env` overrides; see `tools/docker-test.sh` for the full var list.
+- Uses `tools/env.sh` defaults with optional `.env` overrides; see
+  `tools/docker-test.sh` for the full var list.
 - Common overrides: `DATA_DIR`, `PORT` (drives `DOCKER_TEST_PORT`), `BASICAUTH_USER`, `BASICAUTH_PASSWORD`.
 
 ## Prod
