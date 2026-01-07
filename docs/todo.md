@@ -76,11 +76,10 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
   without invalidation and update the spec accordingly.
 - Implementation note: move logic uses stored head keys (not clipboard payload)
   to identify the cut subtree; keep tests/helpers aligned with this contract.
-- Follow-up: refactor test helpers to split selection from cut (selection helper
-  first, then a generic cut helper that validates clipboard payload) so the
-  collab subtree move test (`tests/unit/collab/note-ids.collab.spec.tsx`) can
-  use a shared cut path instead of inline parsing. Make sure to unify and
-  improve selection helpers first.
+- Follow-up: review the cut/copy prep in `tests/unit/note-ids.spec.ts` around
+  the structural paste no-op tests (e.g. line ~577) for readability; make sure
+  cut and copy operations are set up in a similarly clear, shared way for
+  test authors.
 - Follow-up: paste placement at end-of-note with children currently inserts
   after the entire subtree (next content sibling), which feels unintuitive when
   the caret sits visually above the first child. Align paste insertion with

@@ -4,6 +4,7 @@ import {
   $createTextNode,
   $getRoot,
   $setState,
+  COPY_COMMAND,
   CUT_COMMAND,
   PASTE_COMMAND,
 } from 'lexical';
@@ -573,6 +574,60 @@ describe('note ids on paste', () => {
     ]);
   });
 
+  it('clears cut markers after a copy', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    const cutPayload = await cutStructuralNoteById(remdo, 'note2');
+
+    await selectStructuralNoteByDom(remdo, 'note1');
+    await remdo.dispatchCommand(COPY_COMMAND, createClipboardEvent(undefined, 'copy'), { expect: 'any' });
+
+    const expectedOutline = readOutline(remdo);
+
+    // Paste uses the old cut payload instead of the new paste on purpose; with the marker cleared, it should be a no-op.
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(cutPayload));
+
+    expect(remdo).toMatchOutline(expectedOutline);
+  });
+
+  it('replaces the cut marker with the most recent cut', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    //cut 1
+    await cutStructuralNoteById(remdo, 'note2');
+    //cut 2
+    const cutPayload = await cutStructuralNoteById(remdo, 'note1');
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+
+    //paste cut 2
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(cutPayload));
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note1', text: 'note1' },
+    ]);
+  });
+
+  it('clears cut markers after pasting a non-cut payload', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    const cutPayload = await cutStructuralNoteById(remdo, 'note2');
+    const copyPayload = buildClipboardPayload(remdo, ['note1']);
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(copyPayload));
+
+    const expectedOutline = readOutline(remdo);
+
+    await placeCaretAtNoteId(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(cutPayload));
+
+    expect(remdo).toMatchOutline(expectedOutline);
+  });
+
   it('collapses structural selection after cutting multiple notes', async ({ remdo }) => {
     await remdo.load('flat');
 
@@ -708,7 +763,7 @@ describe('note ids on split', () => {
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
       { noteId: 'note2', text: 'no' },
-      { noteId: null, text: 'te2', children: [ { noteId: 'note3', text: 'note3' } ] },
+      { noteId: null, text: 'te2', children: [{ noteId: 'note3', text: 'note3' }] },
     ]);
 
     const outline = readOutline(remdo);
