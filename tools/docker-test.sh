@@ -30,12 +30,28 @@ HEALTH_URL="http://127.0.0.1:${PORT}/health"
 ENV_FILE="${ROOT_DIR}/.env"
 DOCKER_ENV_ARGS=()
 [[ -f "${ENV_FILE}" ]] && DOCKER_ENV_ARGS=(--env-file "${ENV_FILE}")
+DATA_CLEANED="false"
+
+cleanup_data_dir() {
+  if [[ "${CLEAN_DATA_DIR}" != "true" || "${DATA_CLEANED}" == "true" ]]; then
+    return
+  fi
+
+  if ! docker exec "${CONTAINER_NAME}" sh -c 'rm -rf /data/* /data/.[!.]* /data/..?*' \
+    >/dev/null 2>&1; then
+    if docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
+      docker run --rm -v "${DATA_DIR}:/data" "${IMAGE_NAME}" \
+        sh -c 'rm -rf /data/* /data/.[!.]* /data/..?*' >/dev/null 2>&1 || true
+    fi
+  fi
+
+  rm -rf "${DATA_DIR}" >/dev/null 2>&1 || true
+  DATA_CLEANED="true"
+}
 
 cleanup() {
+  cleanup_data_dir
   docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
-  if [[ "${CLEAN_DATA_DIR}" == "true" ]]; then
-    rm -rf "${DATA_DIR}"
-  fi
 }
 trap cleanup EXIT
 
@@ -119,17 +135,35 @@ for backup_file in "${MAIN_JSON}" "${MAIN_MD}" "${PROJECT_JSON}" "${PROJECT_MD}"
   fi
 done
 
+check_backup_contains() {
+  local expected="$1"
+  local target_file="$2"
+  local label="$3"
+
+  if grep -Fq -- "${expected}" "${target_file}"; then
+    return 0
+  fi
+
+  local status=$?
+  if [[ "${status}" -eq 1 ]]; then
+    echo "Backup ${label} missing expected content (${expected}): ${target_file}" >&2
+    return 1
+  fi
+
+  echo "grep failed (${status}) while checking ${target_file}" >&2
+  return "${status}"
+}
+
 for expected in "note1" "note2" "note3"; do
-  if ! rg -q "${expected}" "${MAIN_JSON}"; then
+  if ! check_backup_contains "${expected}" "${MAIN_JSON}" "JSON"; then
     docker logs "${CONTAINER_NAME}" || true
-    echo "Backup JSON missing expected content (${expected}): ${MAIN_JSON}" >&2
     exit 1
   fi
-  if ! rg -q "${expected}" "${MAIN_MD}"; then
+  if ! check_backup_contains "${expected}" "${MAIN_MD}" "markdown"; then
     docker logs "${CONTAINER_NAME}" || true
-    echo "Backup markdown missing expected content (${expected}): ${MAIN_MD}" >&2
     exit 1
   fi
 done
 
 echo "Docker backup OK: ${BACKUP_DIR}"
+cleanup_data_dir
