@@ -1,10 +1,12 @@
 import path from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { config } from '#config';
 import { configDefaults, defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = config.env.VITEST_PREVIEW;
+const isVitestUi = process.argv.includes('--ui');
 
 export default defineConfig(() => {
   return {
@@ -69,6 +71,11 @@ export default defineConfig(() => {
       ],
       css: true,
       slowTestThreshold: config.env.COLLAB_ENABLED ? 4000 : undefined,
+      api: isVitestUi ? {
+        host: config.env.HOST,
+        port: config.env.VITEST_PORT,
+        strictPort: true,
+      } : undefined,
       threads: true,
       testTimeout: 5000,
       hookTimeout: 5000,

@@ -14,6 +14,8 @@ export REMDO_ROOT="${REMDO_ROOT:-${ROOT_DIR}}"
 # shellcheck disable=SC1091 # shared defaults live in the repo.
 . "${ROOT_DIR}/tools/env.defaults.sh"
 
+mkdir -p "${TMPDIR}"
+
 if [ "$#" -eq 0 ]; then
   echo "Usage: env.sh <command>" >&2
   exit 1
