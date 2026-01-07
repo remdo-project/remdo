@@ -26,13 +26,13 @@ outdated or a doc’s role materially changes.
 - `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch conventions—check
   before touching tooling or process.
 - `docs/deployment-single-container.md` (Short). Build/run steps for the single-container image
-  (Caddy + Y-Sweet) using `.env` overrides (defaults in `tools/env.sh` for local tooling),
+  (Caddy + Y-Sweet) using optional `.env` overrides (defaults in `tools/env.sh` for local tooling),
   standardized `PORT`/`COLLAB_SERVER_PORT`, basic auth behavior, and the host
   `DATA_DIR` → `/data` layout.
 - `docs/environment.md` (Short). Canonical environment setup for dev, tests (including Docker E2E
   via `test:docker`), prod (host + Docker), backup machines, and CI; defaults in
-  `tools/env.defaults.sh` via `tools/env.sh`, `.env` overrides, and CI runs on defaults only, plus a
-  Chromium blocked-port guard for `PORT` + derived ports.
+  `tools/env.defaults.sh` via `tools/env.sh`, optional `.env` overrides, and CI runs on defaults
+  only, plus a Chromium blocked-port guard for `PORT` + derived ports.
 - `docs/insertion.md` (Short). Caret-mode `Enter` behavior (start/middle/end) and focus rules; mid-
   note splits keep pre-caret text in place and move post-caret text to a sibling below; end-of-note
   inserts a child only when children already exist, otherwise a sibling.
@@ -62,6 +62,8 @@ outdated or a doc’s role materially changes.
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.
 
+Recent doc changes (2026-01-07): Documented optional `.env` overrides for Docker
+workflows in `docs/deployment-single-container.md` and `docs/environment.md`.
 Recent doc changes (2026-01-06): Added cut-as-move follow-ups in `docs/todo.md`
 for clipboard handling, text-range cuts, and caret self-move checks.
 

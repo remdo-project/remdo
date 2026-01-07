@@ -6,12 +6,9 @@ single external port.
 
 ## Build & Run
 
-- One-step: `./docker/run.sh` builds and runs the image using `.env` in the repo
-  root (copy `.env.example` and override what you need). The image tag defaults
-  to `remdo` but can be set via `IMAGE_NAME`.
-- Manual equivalent:\
-  `docker build -f docker/Dockerfile -t remdo .`\
-  `docker run --rm --env-file .env -e DATA_DIR=/data -p 8080:8080 -v /host/data:/data remdo`
+- One-step: `./docker/run.sh` builds and runs the image using `.env` overrides
+  when present (copy `.env.example` and override what you need). The image tag
+  defaults to `remdo` but can be set via `IMAGE_NAME`.
 
 Environment variables and defaults are documented in `docs/environment.md`.
 

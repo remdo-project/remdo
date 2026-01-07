@@ -18,4 +18,8 @@ fi
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
-remdo_docker_run "${IMAGE_NAME}" --rm --env-file "${ROOT_DIR}/.env"
+ENV_FILE="${ROOT_DIR}/.env"
+DOCKER_ENV_ARGS=()
+[[ -f "${ENV_FILE}" ]] && DOCKER_ENV_ARGS=(--env-file "${ENV_FILE}")
+
+remdo_docker_run "${IMAGE_NAME}" --rm "${DOCKER_ENV_ARGS[@]}"

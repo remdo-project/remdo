@@ -28,6 +28,8 @@ CONTAINER_NAME="${IMAGE_NAME}-${PORT}"
 HEALTH_URL="http://127.0.0.1:${PORT}/health"
 # TODO: use layered env files (e.g. .env.dev) once supported.
 ENV_FILE="${ROOT_DIR}/.env"
+DOCKER_ENV_ARGS=()
+[[ -f "${ENV_FILE}" ]] && DOCKER_ENV_ARGS=(--env-file "${ENV_FILE}")
 
 cleanup() {
   docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
@@ -41,7 +43,7 @@ docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
-remdo_docker_run "${IMAGE_NAME}" -d --name "${CONTAINER_NAME}" --env-file "${ENV_FILE}" \
+remdo_docker_run "${IMAGE_NAME}" -d --name "${CONTAINER_NAME}" "${DOCKER_ENV_ARGS[@]}" \
   -e BASICAUTH_USER="${BASICAUTH_USER}" \
   -e BASICAUTH_PASSWORD="${BASICAUTH_PASSWORD}" \
   -e PORT="${PORT}"
