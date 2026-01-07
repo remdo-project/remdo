@@ -1,6 +1,10 @@
 #!/usr/bin/env sh
 set -euo pipefail
 
+# Default to the bundled SPA path inside the container.
+: "${REMDO_ROOT:=/srv/remdo}"
+export REMDO_ROOT
+
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/env.defaults.sh
 

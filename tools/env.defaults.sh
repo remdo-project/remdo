@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 # Shared env defaults/derivations. Source from scripts; do not exec directly.
 
+: "${REMDO_ROOT:?Set REMDO_ROOT to the repo root before sourcing env.defaults.sh}"
+
 : "${NODE_ENV:=development}"
 : "${HOST:=127.0.0.1}"
 : "${PORT:=4000}"
