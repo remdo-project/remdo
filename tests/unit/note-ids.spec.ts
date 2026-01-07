@@ -583,6 +583,23 @@ describe('note ids on paste', () => {
     ]);
   });
 
+  it('drops cut markers after structural edits', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
+
+    await placeCaretAtNoteId(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Tab' });
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+
+    const expectedOutline = readOutline(remdo);
+
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    expect(remdo).toMatchOutline(expectedOutline);
+  });
+
   it('treats caret paste inside a cut subtree as a no-op', async ({ remdo }) => {
     await remdo.load('flat');
 
@@ -605,6 +622,23 @@ describe('note ids on paste', () => {
       { noteId: 'note3', text: 'note3' },
       { noteId: 'note2', text: 'note2' },
     ]);
+  });
+
+  it('treats a second paste after cut as a no-op', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    const expectedOutline = readOutline(remdo);
+
+    await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
+
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    expect(remdo).toMatchOutline(expectedOutline);
   });
 });
 

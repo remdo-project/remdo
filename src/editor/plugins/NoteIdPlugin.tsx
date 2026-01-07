@@ -1,6 +1,8 @@
 import { $isListItemNode, $isListNode, ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import type { BaseSelection, EditorState, LexicalNode, SerializedEditorState, SerializedLexicalNode } from 'lexical';
+import type { BaseSelection, LexicalEditor, LexicalNode, SerializedLexicalNode } from 'lexical';
+import { $getHtmlContent, $getLexicalContent, setLexicalClipboardDataTransfer } from '@lexical/clipboard';
+import type { LexicalClipboardData } from '@lexical/clipboard';
 import {
   $getNodeByKey,
   $getRoot,
@@ -60,10 +62,6 @@ const CUT_MARKER_OVERLAY: StructuralOverlayConfig = {
   topVar: '--cut-marker-top',
   heightVar: '--cut-marker-height',
 };
-
-function getClipboardNamespace(editor: { _config?: { namespace?: string } }): string {
-  return editor._config?.namespace ?? 'remdo';
-}
 
 function isClipboardEvent(event: ClipboardEvent | KeyboardEvent | InputEvent | null): event is ClipboardEvent {
   return !!event && 'clipboardData' in event;
@@ -190,115 +188,42 @@ function $extractClipboardListChildren(nodes: LexicalNode[]): LexicalNode[] {
   return extracted;
 }
 
-function $serializeClipboardNodesFromHeads(heads: ListItemNode[]): SerializedLexicalNode[] {
-  if (heads.length === 0) {
-    return [];
-  }
-
-  const orderedHeads = sortHeadsByDocumentOrder(heads);
-  const flattened = flattenNoteNodes(orderedHeads);
-  const serialized = flattened.map((node) => node.exportJSON());
-
-  const parentList = orderedHeads[0]?.getParent();
-  if ($isListNode(parentList) && orderedHeads.every((head) => head.getParent() === parentList)) {
-    const listNode = parentList.exportJSON();
-    listNode.children = serialized;
-    return [listNode];
-  }
-
-  return serialized;
-}
-
-function getSerializedChildren(node: SerializedLexicalNode): SerializedLexicalNode[] {
-  const children = (node as { children?: SerializedLexicalNode[] }).children;
-  return Array.isArray(children) ? children : [];
-}
-
-function findSerializedListItem(root: SerializedLexicalNode, noteId: string): SerializedLexicalNode | null {
-  if (root.type === 'listitem' && (root as { noteId?: unknown }).noteId === noteId) {
-    return root;
-  }
-
-  for (const child of getSerializedChildren(root)) {
-    const found = findSerializedListItem(child, noteId);
-    if (found) {
-      return found;
-    }
-  }
-
-  return null;
-}
-
-function $hydrateClipboardContentNodes(nodes: SerializedLexicalNode[], state: SerializedEditorState): void {
-  const root = state.root;
-
-  const walk = (node: SerializedLexicalNode) => {
-    if (node.type === 'listitem') {
-      const noteId = (node as { noteId?: unknown }).noteId;
-      const children = getSerializedChildren(node);
-      if (typeof noteId === 'string' && children.length === 0) {
-        const source = findSerializedListItem(root, noteId);
-        if (source) {
-          const sourceChildren = getSerializedChildren(source);
-          if (sourceChildren.length > 0) {
-            (node as { children?: SerializedLexicalNode[] }).children = sourceChildren;
-          }
-        }
-      }
-    }
-
-    for (const child of getSerializedChildren(node)) {
-      walk(child);
-    }
-  };
-
-  for (const node of nodes) {
-    walk(node);
-  }
-}
-
-function $buildPlainTextFromHeads(heads: ListItemNode[]): string {
-  if (heads.length === 0) {
-    return '';
-  }
-
-  const orderedHeads = sortHeadsByDocumentOrder(heads);
-  const lines: string[] = [];
-
-  for (const head of orderedHeads) {
-    for (const item of getSubtreeItems(head)) {
-      lines.push(item.getTextContent());
-    }
-  }
-
-  return lines.join('\n');
-}
-
-function $populateClipboardFromHeads(
-  editor: { _config?: { namespace?: string }; getEditorState: () => EditorState },
-  heads: ListItemNode[],
+function $populateClipboardFromSelection(
+  editor: LexicalEditor,
+  selection: BaseSelection | null,
   event: ClipboardEvent | KeyboardEvent | null
-): void {
-  if (heads.length === 0 || !isClipboardEvent(event) || !event.clipboardData) {
-    return;
+): boolean {
+  if (!isClipboardEvent(event) || !event.clipboardData) {
+    return false;
   }
 
-  const nodes = $serializeClipboardNodesFromHeads(heads);
-  if (nodes.length === 0) {
-    return;
+  if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+    return false;
   }
 
-  $hydrateClipboardContentNodes(nodes, editor.getEditorState().toJSON());
-
-  const payload: ClipboardPayload = {
-    namespace: getClipboardNamespace(editor),
-    nodes,
-    remdoCut: true,
+  const data: LexicalClipboardData = {
+    'text/plain': selection.getTextContent(),
   };
+  const html = $getHtmlContent(editor, selection);
+  if (html) {
+    data['text/html'] = html;
+  }
+  const lexical = $getLexicalContent(editor, selection);
+  if (!lexical) {
+    return false;
+  }
+
+  try {
+    const payload = JSON.parse(lexical) as ClipboardPayload;
+    payload.remdoCut = true;
+    data['application/x-lexical-editor'] = JSON.stringify(payload);
+  } catch {
+    return false;
+  }
 
   event.preventDefault();
-  event.clipboardData.setData('application/x-lexical-editor', JSON.stringify(payload));
-  event.clipboardData.setData('text/plain', $buildPlainTextFromHeads(heads));
+  setLexicalClipboardDataTransfer(event.clipboardData, data);
+  return true;
 }
 
 function $insertNodesAtSelection(
@@ -500,7 +425,8 @@ export function NoteIdPlugin() {
               markedKeys: $collectMarkedKeysFromHeadKeys(selectionHeadKeys),
               range,
             };
-            $populateClipboardFromHeads(editor, heads, event);
+            const selection = $getSelection();
+            $populateClipboardFromSelection(editor, selection, event);
             return { handled: true, marker };
           });
           setCutMarker(result.marker);

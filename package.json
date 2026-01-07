@@ -63,6 +63,7 @@
     "backup": "./tools/env.sh tsx ./tools/snapshot.ts backup"
   },
   "dependencies": {
+    "@lexical/clipboard": "catalog:",
     "@lexical/devtools-core": "catalog:",
     "@lexical/history": "catalog:",
     "@lexical/list": "catalog:",
