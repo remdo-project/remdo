@@ -9,8 +9,8 @@ import {
   placeCaretAtNoteId,
   pressKey,
   readOutline,
-  selectStructuralNoteByDom,
-  selectNoteRangeById,
+  selectStructuralNotesById,
+  selectRangeSelectionById,
 } from '#tests';
 import { renderCollabEditor } from './_support/remdo-peers';
 
@@ -117,7 +117,7 @@ describe('collaboration note ids', () => {
 
     const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
 
-    await selectStructuralNoteByDom(remdo, 'note2');
+    await selectStructuralNotesById(remdo, 'note2');
     await pressKey(remdo, { key: 'Delete' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     await waitFor(() => {
@@ -179,7 +179,7 @@ describe('collaboration note ids', () => {
 
     const clipboardPayload = buildClipboardPayload(remdo, ['note2', 'note4']);
 
-    await selectNoteRangeById(remdo, 'note2', 'note4');
+    await selectRangeSelectionById(remdo, 'note2', 'note4');
     await pressKey(remdo, { key: 'Delete' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     await waitFor(() => {
@@ -250,7 +250,7 @@ describe('collaboration note ids', () => {
 
     const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
 
-    await selectStructuralNoteByDom(secondary, 'note2');
+    await selectStructuralNotesById(secondary, 'note2');
     await pressKey(secondary, { key: 'Delete' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 

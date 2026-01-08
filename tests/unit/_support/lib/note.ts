@@ -224,7 +224,11 @@ function findContentTextNode(item: ListItemNode) {
     );
 }
 
-export async function selectNoteRangeById(remdo: RemdoTestApi, startNoteId: string, endNoteId: string): Promise<void> {
+export async function selectRangeSelectionById(
+  remdo: RemdoTestApi,
+  startNoteId: string,
+  endNoteId: string
+): Promise<void> {
   if (startNoteId === endNoteId) {
     await selectEntireNoteById(remdo, startNoteId);
     return;

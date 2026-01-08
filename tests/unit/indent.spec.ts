@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import {
   placeCaretAtNoteId,
   selectEntireNoteById,
-  selectNoteRangeById,
+  selectRangeSelectionById,
   pressKey,
   readOutline,
 } from '#tests';
@@ -115,7 +115,7 @@ it("tab on note2 in the middle nests it under note1", async ({ remdo }) => {
 it('tab indents every note in a multi-note selection', async ({ remdo }) => {
   await remdo.load('flat');
 
-  await selectNoteRangeById(remdo, 'note2', 'note3');
+  await selectRangeSelectionById(remdo, 'note2', 'note3');
   await pressKey(remdo, { key: 'Tab' });
 
   expect(remdo).toMatchOutline([
@@ -132,7 +132,7 @@ it('tab indents every note in a multi-note selection', async ({ remdo }) => {
 it('tab on a multi-note selection starting at the first root note is a no-op', async ({ remdo }) => {
   await remdo.load('flat');
 
-  await selectNoteRangeById(remdo, 'note1', 'note2');
+  await selectRangeSelectionById(remdo, 'note1', 'note2');
   await pressKey(remdo, { key: 'Tab' });
 
   expect(remdo).toMatchOutline([
@@ -145,7 +145,7 @@ it('tab on a multi-note selection starting at the first root note is a no-op', a
 it('tab indents multi-note selection regardless of drag direction', async ({ remdo }) => {
   await remdo.load('flat');
 
-  await selectNoteRangeById(remdo, 'note3', 'note2');
+  await selectRangeSelectionById(remdo, 'note3', 'note2');
   await pressKey(remdo, { key: 'Tab' });
 
   expect(remdo).toMatchOutline([
@@ -165,7 +165,7 @@ it('tab refuses to indent a selection whose leading child lacks a previous sibli
   await placeCaretAtNoteId(remdo, 'note3');
   await pressKey(remdo, { key: 'Tab' });
 
-  await selectNoteRangeById(remdo, 'note2', 'note3');
+  await selectRangeSelectionById(remdo, 'note2', 'note3');
   await pressKey(remdo, { key: 'Tab' });
 
   expect(remdo).toMatchOutline([
@@ -182,7 +182,7 @@ it('tab refuses to indent a selection whose leading child lacks a previous sibli
 it('tab indents a subtree selection even when a child lacks its own previous sibling', async ({ remdo }) => {
   await remdo.load('tree');
 
-  await selectNoteRangeById(remdo, 'note2', 'note3');
+  await selectRangeSelectionById(remdo, 'note2', 'note3');
   await pressKey(remdo, { key: 'Tab' });
 
   expect(remdo).toMatchOutline([
@@ -228,7 +228,7 @@ it('shift+tab outdents when note selection spans the entire note', async ({ remd
 it('shift+tab refuses to partially outdent when selection includes a root note', async ({ remdo }) => {
   await remdo.load('basic');
 
-  await selectNoteRangeById(remdo, 'note1', 'note2');
+  await selectRangeSelectionById(remdo, 'note1', 'note2');
   await pressKey(remdo, { key: 'Tab', shift: true });
 
   expect(remdo).toMatchOutline([

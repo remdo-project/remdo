@@ -3,7 +3,7 @@ import type { SerializedNoteListItemNode } from '#lib/editor/serialized-note-typ
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import type { SerializedLexicalNode } from 'lexical';
 import { CUT_COMMAND } from 'lexical';
-import { selectStructuralNoteByDom } from './dom-selection';
+import { selectStructuralNotesById } from './dom-selection';
 
 function getListNode(state: RemdoTestApi['getEditorState'] extends () => infer R ? R : never): SerializedListNode {
   const root = (state as { root?: { children?: unknown } }).root;
@@ -92,7 +92,7 @@ export function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
 // CUT_COMMAND only marks a structural selection for move; this helper reads
 // the payload the cut handler writes to the clipboard so paste stays realistic.
 export async function cutStructuralNoteById(remdo: RemdoTestApi, noteId: string) {
-  await selectStructuralNoteByDom(remdo, noteId);
+  await selectStructuralNotesById(remdo, noteId);
   const clipboardEvent = createClipboardEvent(undefined, 'cut');
   await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent, { expect: 'update' });
 
