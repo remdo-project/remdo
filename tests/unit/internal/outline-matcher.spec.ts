@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import type { Outline } from '#tests';
-import { placeCaretAtNoteId, pressKey } from '#tests';
+import { selectStructuralNotesById } from '#tests';
 import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 
 interface OutlineCase {
@@ -136,9 +136,7 @@ describe('toMatchOutline smoke coverage', () => {
   it('matches selection-only expectations', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    await placeCaretAtNoteId(remdo, 'note2');
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await selectStructuralNotesById(remdo, 'note2', 'note3');
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
@@ -146,9 +144,7 @@ describe('toMatchOutline smoke coverage', () => {
   it('reports selection mismatches', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    await placeCaretAtNoteId(remdo, 'note2');
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await selectStructuralNotesById(remdo, 'note2', 'note3');
 
     expect(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note5'] });

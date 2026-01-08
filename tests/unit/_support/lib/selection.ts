@@ -6,6 +6,8 @@ import { isChildrenWrapper } from '@/editor/outline/list-structure';
 export { isChildrenWrapper };
 
 export function collectSelectedListItems(selection: RangeSelection): ListItemNode[] {
+  // Collects unique list items touched by a RangeSelection for structural logic.
+  // Limitations: only inspects nodes in the current selection; callers must pass a RangeSelection.
   const seen = new Set<string>();
   const items: ListItemNode[] = [];
 
@@ -28,6 +30,8 @@ export function collectSelectedListItems(selection: RangeSelection): ListItemNod
 }
 
 export function resolveContentListItem(item: ListItemNode): ListItemNode {
+  // Resolves a list item to the content-bearing item when selection lands on a children wrapper.
+  // Limitations: returns the wrapper itself if no previous sibling exists.
   if (!isChildrenWrapper(item)) {
     return item;
   }
@@ -37,6 +41,7 @@ export function resolveContentListItem(item: ListItemNode): ListItemNode {
 }
 
 export function findNearestListItem(node: LexicalNode | null): ListItemNode | null {
+  // Walks up the tree to find the nearest list item for a node.
   let current: LexicalNode | null = node;
   while (current) {
     if ($isListItemNode(current)) {
@@ -48,6 +53,7 @@ export function findNearestListItem(node: LexicalNode | null): ListItemNode | nu
 }
 
 export function getRootElementOrThrow(editor: { getRootElement: () => HTMLElement | null }): HTMLElement {
+  // Returns the editor root element for focus-sensitive helpers.
   const rootElement = editor.getRootElement();
   if (!rootElement) {
     throw new TypeError('Expected editor root element');

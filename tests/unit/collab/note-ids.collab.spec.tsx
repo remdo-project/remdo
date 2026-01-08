@@ -1,16 +1,14 @@
 import { waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { CUT_COMMAND, PASTE_COMMAND } from 'lexical';
 import {
   appendTextByNoteId,
-  buildClipboardPayload,
-  createClipboardEvent,
-  cutStructuralNoteById,
+  copySelection,
+  cutSelection,
+  pastePayload,
   placeCaretAtNoteId,
   pressKey,
   readOutline,
   selectStructuralNotesById,
-  selectRangeSelectionById,
 } from '#tests';
 import { renderCollabEditor } from './_support/remdo-peers';
 
@@ -115,9 +113,8 @@ describe('collaboration note ids', () => {
     const secondary = await renderCollabEditor({ docId });
     await secondary.waitForSynced();
 
-    const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
-
     await selectStructuralNotesById(remdo, 'note2');
+    const clipboardPayload = await copySelection(remdo);
     await pressKey(remdo, { key: 'Delete' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     await waitFor(() => {
@@ -125,7 +122,7 @@ describe('collaboration note ids', () => {
     });
 
     await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     const expected = [
@@ -149,10 +146,10 @@ describe('collaboration note ids', () => {
     const secondary = await renderCollabEditor({ docId });
     await secondary.waitForSynced();
 
-    const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
-
+    await selectStructuralNotesById(remdo, 'note2');
+    const clipboardPayload = await copySelection(remdo);
     await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
-    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     await waitFor(() => {
@@ -177,9 +174,11 @@ describe('collaboration note ids', () => {
     const secondary = await renderCollabEditor({ docId });
     await secondary.waitForSynced();
 
-    const clipboardPayload = buildClipboardPayload(remdo, ['note2', 'note4']);
-
-    await selectRangeSelectionById(remdo, 'note2', 'note4');
+    await selectStructuralNotesById(remdo, 'note2', 'note4');
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    });
+    const clipboardPayload = await copySelection(remdo);
     await pressKey(remdo, { key: 'Delete' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     await waitFor(() => {
@@ -187,7 +186,7 @@ describe('collaboration note ids', () => {
     });
 
     await placeCaretAtNoteId(remdo, 'note5', Number.POSITIVE_INFINITY);
-    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     await waitFor(() => {
@@ -211,7 +210,8 @@ describe('collaboration note ids', () => {
     const secondary = await renderCollabEditor({ docId });
     await secondary.waitForSynced();
 
-    const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
+    await selectStructuralNotesById(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
 
     await placeCaretAtNoteId(secondary, 'note2', Number.POSITIVE_INFINITY);
     await appendTextByNoteId(secondary, 'note2', ' remote');
@@ -225,7 +225,7 @@ describe('collaboration note ids', () => {
     });
 
     await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
-    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     // Paste is a no-op because the cut marker was invalidated by the remote edit.
@@ -248,7 +248,8 @@ describe('collaboration note ids', () => {
     const secondary = await renderCollabEditor({ docId });
     await secondary.waitForSynced();
 
-    const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
+    await selectStructuralNotesById(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
 
     await selectStructuralNotesById(secondary, 'note2');
     await pressKey(secondary, { key: 'Delete' });
@@ -264,7 +265,7 @@ describe('collaboration note ids', () => {
     });
 
     await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
-    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     expect(remdo).toMatchOutline(expectedOutline);
@@ -281,7 +282,8 @@ describe('collaboration note ids', () => {
     const secondary = await renderCollabEditor({ docId });
     await secondary.waitForSynced();
 
-    const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
+    await selectStructuralNotesById(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
 
     await placeCaretAtNoteId(secondary, 'note2', 0);
     await pressKey(secondary, { key: 'Tab' });
@@ -296,7 +298,7 @@ describe('collaboration note ids', () => {
     });
 
     await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
-    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     expect(remdo).toMatchOutline(expectedOutline);
@@ -313,10 +315,11 @@ describe('collaboration note ids', () => {
     const secondary = await renderCollabEditor({ docId });
     await secondary.waitForSynced();
 
-    const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
+    await selectStructuralNotesById(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
 
     await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
-    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await pastePayload(remdo, clipboardPayload);
 
     await placeCaretAtNoteId(secondary, 'note2', Number.POSITIVE_INFINITY);
     await appendTextByNoteId(secondary, 'note2', ' remote');
@@ -356,23 +359,15 @@ describe('collaboration note ids', () => {
     const secondary = await renderCollabEditor({ docId });
     await secondary.waitForSynced();
 
-    await placeCaretAtNoteId(remdo, 'note6', 0);
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await selectStructuralNotesById(remdo, 'note6', 'note7');
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
     });
 
-    const clipboardEvent = createClipboardEvent(undefined, 'cut');
-    await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent, { expect: 'update' });
-    const rawPayload = clipboardEvent.clipboardData?.getData('application/x-lexical-editor') ?? '';
-    if (!rawPayload) {
-      throw new Error('Expected cut to populate clipboard payload.');
-    }
-    const clipboardPayload = JSON.parse(rawPayload) as { namespace?: string; nodes?: unknown[] };
+    const clipboardPayload = await cutSelection(remdo);
 
     await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await pastePayload(remdo, clipboardPayload);
 
     await placeCaretAtNoteId(secondary, 'note7', Number.POSITIVE_INFINITY);
     await appendTextByNoteId(secondary, 'note7', ' remote');

@@ -4,7 +4,7 @@ import { $getRoot } from 'lexical';
 import type { ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 
-import { getRootElementOrThrow, placeCaretAtNoteId, pressKey } from '#tests';
+import { getRootElementOrThrow, selectStructuralNotesById } from '#tests';
 
 function readWrapperChildList(wrapper: LexicalNode | null | undefined): ListNode | null {
   if (!wrapper || !$isListItemNode(wrapper)) return null;
@@ -16,9 +16,7 @@ describe('structural selection delete regression (local)', () => {
   it('bubbles Delete when structural heads were removed remotely', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    await placeCaretAtNoteId(remdo, 'note2');
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await selectStructuralNotesById(remdo, 'note2', 'note3');
 
     const expectedAfterRemoteDelete = [
       { noteId: 'note1', text: 'note1', children: [{ noteId: 'note4', text: 'note4' }] },
@@ -58,9 +56,7 @@ describe('structural selection delete regression (local)', () => {
   it('bubbles Backspace when structural heads were removed remotely', async ({ remdo }) => {
     await remdo.load('tree-complex');
 
-    await placeCaretAtNoteId(remdo, 'note6');
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await selectStructuralNotesById(remdo, 'note6', 'note7');
 
     const expectedAfterRemoteDelete = [
       {

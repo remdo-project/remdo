@@ -83,6 +83,8 @@ function placeCaretAtListItem(item: ListItemNode, offset: number) {
 }
 
 export async function placeCaretAtNoteId(remdo: RemdoTestApi, noteId: string, offset = 0) {
+  // Places a collapsed caret in the note, using text content when available.
+  // Limitations: if the note has no text node, selection snaps to list item boundaries; selection may be promoted later by the app.
   const rootElement = getRootElementOrThrow(remdo.editor);
   if (document.activeElement !== rootElement) {
     rootElement.focus();
@@ -132,6 +134,8 @@ export function readOutline(remdo: RemdoTestApi): Outline {
   return extractOutlineFromEditorState(remdo.getEditorState());
 }
 export async function selectEntireNoteById(remdo: RemdoTestApi, noteId: string): Promise<void> {
+  // Selects the full text range of a single note.
+  // Limitations: requires a text node in the note; does not simulate pointer selection.
   await placeCaretAtNoteId(remdo, noteId);
 
   await remdo.mutate(() => {
@@ -150,6 +154,7 @@ export async function selectEntireNoteById(remdo: RemdoTestApi, noteId: string):
   });
 }
 export function readCaretNoteKey(remdo: RemdoTestApi): string {
+  // Reads the note key from a collapsed caret selection.
   return remdo.validate(() => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
@@ -166,6 +171,7 @@ export function readCaretNoteKey(remdo: RemdoTestApi): string {
 }
 
 export function readCaretNoteId(remdo: RemdoTestApi): string {
+  // Reads the note id from a collapsed caret selection.
   return remdo.validate(() => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
@@ -229,6 +235,8 @@ export async function selectRangeSelectionById(
   startNoteId: string,
   endNoteId: string
 ): Promise<void> {
+  // Creates a Lexical RangeSelection spanning note text (snaps to structural selection when it crosses notes).
+  // Limitations: requires text nodes in both notes and does not simulate DOM pointer selection.
   if (startNoteId === endNoteId) {
     await selectEntireNoteById(remdo, startNoteId);
     return;

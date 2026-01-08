@@ -2,11 +2,12 @@ import { act, waitFor } from '@testing-library/react';
 import { expect } from 'vitest';
 
 import type { RemdoTestApi } from '@/editor/plugins/dev';
-import { readOutline, placeCaretAtNoteId } from './note';
+import { readOutline, placeCaretAtNoteId, selectRangeSelectionById } from './note';
 import { pressKey } from './keyboard';
 import { getNoteElementById } from './dom-note';
 
-// Low-level drag helper for precise text-node selection ranges.
+// Low-level DOM drag helper for precise text-node range selection.
+// Limitations: bypasses Lexical selection APIs and only works with live DOM nodes.
 export async function dragDomSelectionBetween(start: Node, startOffset: number, end: Node, endOffset: number) {
   await mutateDomSelection((selection) => {
     const range = document.createRange();
@@ -31,7 +32,9 @@ export async function dragDomSelectionBetween(start: Node, startOffset: number, 
   });
 }
 
-// Note-level selection by list-item boundaries (no text-node offsets).
+// DOM list-item boundary selection for pointer-style multi-note selection.
+// Limitations: requires sibling notes under the same list parent and can over-select
+// in nested lists due to DOM range semantics (use only when testing pointer paths).
 export async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNoteId: string, endNoteId: string) {
   const startElement = getNoteElementById(remdo, startNoteId);
   const endElement = getNoteElementById(remdo, endNoteId);
@@ -60,7 +63,10 @@ export async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNot
   });
 }
 
-// DOM-driven selection that targets structural note selection(s) by list-item range.
+// Structural selection helper: single-note uses Shift+Arrow to climb to structural,
+// multi-note uses a Lexical range selection to trigger structural snapping.
+// Limitations: multi-note path requires text nodes in both notes and does not
+// simulate DOM pointer selection; use selectStructuralNotesByDomRange for that path.
 export async function selectStructuralNotesById(
   remdo: RemdoTestApi,
   startNoteId: string,
@@ -81,10 +87,30 @@ export async function selectStructuralNotesById(
     return;
   }
 
+  await selectRangeSelectionById(remdo, startNoteId, endNoteId);
+  await waitFor(() => {
+    expect(remdo.editor.selection.isStructural()).toBe(true);
+  });
+}
+
+// DOM-range structural selection for pointer-driven paths only.
+// Limitations: only works for sibling notes sharing a list parent and can include
+// extra siblings in nested lists; assert the resulting selection explicitly.
+export async function selectStructuralNotesByDomRange(
+  remdo: RemdoTestApi,
+  startNoteId: string,
+  endNoteId: string = startNoteId
+): Promise<void> {
+  if (startNoteId === endNoteId) {
+    await selectStructuralNotesById(remdo, startNoteId);
+    return;
+  }
+
   await dragDomSelectionBetweenNotes(remdo, startNoteId, endNoteId);
 }
 
-// Range-only selection for paths that don't use Selection.extend (e.g. touch-handle drags).
+// DOM range selection that avoids Selection.extend (e.g. touch-handle drags).
+// Limitations: does not produce Lexical selection events unless selectionchange is handled.
 export async function dragDomSelectionBetweenRange(
   start: Node,
   startOffset: number,
@@ -107,6 +133,8 @@ export async function dragDomSelectionBetweenRange(
   });
 }
 
+// Collapse the DOM selection to a caret at a specific node/offset.
+// Limitations: DOM-only; does not guarantee Lexical selection state without selectionchange.
 export async function collapseDomSelectionAtNode(target: Node, offset: number) {
   await mutateDomSelection((selection) => {
     const caretRange = document.createRange();
@@ -118,6 +146,8 @@ export async function collapseDomSelectionAtNode(target: Node, offset: number) {
   });
 }
 
+// Extend an existing DOM selection to a node/offset using Selection.extend.
+// Limitations: throws if there is no existing DOM selection.
 export async function extendDomSelectionToNode(target: Node, offset: number) {
   await mutateDomSelection((selection) => {
     if (selection.rangeCount === 0) {

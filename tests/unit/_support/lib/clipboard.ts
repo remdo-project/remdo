@@ -2,8 +2,7 @@ import type { SerializedListNode } from '@lexical/list';
 import type { SerializedNoteListItemNode } from '#lib/editor/serialized-note-types';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import type { SerializedLexicalNode } from 'lexical';
-import { CUT_COMMAND } from 'lexical';
-import { selectStructuralNotesById } from './dom-selection';
+import { COPY_COMMAND, CUT_COMMAND, PASTE_COMMAND } from 'lexical';
 
 function getListNode(state: RemdoTestApi['getEditorState'] extends () => infer R ? R : never): SerializedListNode {
   const root = (state as { root?: { children?: unknown } }).root;
@@ -89,18 +88,30 @@ export function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
   };
 }
 
-// CUT_COMMAND only marks a structural selection for move; this helper reads
-// the payload the cut handler writes to the clipboard so paste stays realistic.
-export async function cutStructuralNoteById(remdo: RemdoTestApi, noteId: string) {
-  await selectStructuralNotesById(remdo, noteId);
-  const clipboardEvent = createClipboardEvent(undefined, 'cut');
-  await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent, { expect: 'update' });
-
+function readClipboardPayload(clipboardEvent: ClipboardEvent, label: string) {
   const rawPayload = clipboardEvent.clipboardData?.getData('application/x-lexical-editor') ?? '';
   if (!rawPayload) {
-    throw new Error('Expected cut to populate clipboard payload.');
+    throw new Error(`Expected ${label} to populate clipboard payload.`);
   }
   return JSON.parse(rawPayload) as { namespace?: string; nodes?: unknown[] };
+}
+
+// CUT_COMMAND only marks a structural selection for move; this helper reads
+// the payload the cut handler writes to the clipboard so paste stays realistic.
+export async function cutSelection(remdo: RemdoTestApi) {
+  const clipboardEvent = createClipboardEvent(undefined, 'cut');
+  await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent, { expect: 'update' });
+  return readClipboardPayload(clipboardEvent, 'cut');
+}
+
+export async function copySelection(remdo: RemdoTestApi) {
+  const clipboardEvent = createClipboardEvent(undefined, 'copy');
+  await remdo.dispatchCommand(COPY_COMMAND, clipboardEvent, { expect: 'any' });
+  return readClipboardPayload(clipboardEvent, 'copy');
+}
+
+export async function pastePayload(remdo: RemdoTestApi, payload: unknown) {
+  await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(payload));
 }
 
 function normalizeIndent(node: SerializedLexicalNode): void {
