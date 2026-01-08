@@ -23,43 +23,22 @@ line (align continuation lines by two spaces).
 Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
-- `docs/contributing.md` (Short). Runtime baselines, Git workflow, and branch conventions—check
-  before touching tooling or process.
-- `docs/deployment-single-container.md` (Short). Build/run steps for the single-container image
-  (Caddy + Y-Sweet) using `.env` overrides (defaults in `tools/env.sh` for local tooling),
-  standardized `PORT`/`COLLAB_SERVER_PORT`, basic auth behavior, and the host
-  `DATA_DIR` → `/data` layout.
-- `docs/environment.md` (Short). Canonical environment setup for dev, tests (including Docker E2E
-  via `test:docker`), prod (host + Docker), backup machines, and CI; defaults in
-  `tools/env.defaults.sh` via `tools/env.sh`, `.env` overrides, and CI runs on defaults only, plus a
-  Chromium blocked-port guard for `PORT` + derived ports.
-- `docs/insertion.md` (Short). Caret-mode `Enter` behavior (start/middle/end) and focus rules; mid-
-  note splits keep pre-caret text in place and move post-caret text to a sibling below; end-of-note
-  inserts a child only when children already exist, otherwise a sibling.
-- `docs/outliner/concepts.md` (Medium). Canonical definition of notes, invariants (including non-
-  empty tree), shared definitions (document order, empty notes), adapters, and fixture examples—skim
-  when working on data modeling or serialization.
-- `docs/outliner/deletion.md` (Medium). Caret vs. structural deletion semantics, merge/no-op rules
-  at note boundaries (including parent/child merges and empty-note deletions), document-order
-  adjacency definitions, and the spacing contract for joins.
-- `docs/outliner/drag-and-drop.md` (Short). Pointer-based reordering (drag and drop) – not supported
-  yet; future plan lives there.
-- `docs/outliner/index.md` (Short). Single entry point for outlining docs with links to model,
-  selection, indent/outdent, insertion, and reordering specs; also states the single-source (no-
-  duplication) rule for invariants.
-- `docs/outliner/note-ids.md` (Medium). Note identity spec: `noteId` invariants, normalization,
-  clipboard cut-as-move (including selection collapse), collaboration expectations, and `noteRef`
-  composition.
-- `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indent/outdent
-  semantics—consult when editing tree transforms or note mutations.
-- `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and
-  placement invariants.
-- `docs/outliner/selection.md` (Long). Cursor/selection semantics for the editor runtime—reference
-  for UX or Lexical selection work, including the progressive ladder, inline-stage skip, and
-  clipboard behavior pointer.
-- `docs/todo.md` (Medium). Scratchpad for in-flight work: keep active tasks only (drop completed
-  items), and move durable specs into the appropriate doc under `docs/` (includes cut-as-move
-  follow-ups and test-infra notes).
+- `docs/contributing.md` (Short). Runtime baselines and Git workflow/branch conventions.
+- `docs/deployment-single-container.md` (Short). Single-container build/run (Caddy + Y-Sweet),
+  `.env` overrides, `PORT`/`COLLAB_SERVER_PORT`, auth, and `DATA_DIR` mapping.
+- `docs/environment.md` (Short). Env setup for dev/test/prod/CI, defaults/overrides, and blocked
+  port guard.
+- `docs/insertion.md` (Short). Caret-mode `Enter` behavior and focus rules.
+- `docs/outliner/concepts.md` (Medium). Note model, invariants, core terms, adapters, fixtures.
+- `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge rules, spacing.
+- `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).
+- `docs/outliner/index.md` (Short). Entry point with links; single-source invariants rule.
+- `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization, cut-as-move, collab,
+  `noteRef`.
+- `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indent/outdent rules.
+- `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and constraints.
+- `docs/outliner/selection.md` (Long). Cursor/selection ladder and inline/structural rules.
+- `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs.
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.
 
@@ -71,7 +50,7 @@ map stays trustworthy.
    `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
    source of truth.
 3. After modifying documentation, refresh this map so the pointers stay current.
-   Do not add a “Recent doc changes” section to AGENTS.md.
+   Do not add update-tracking sections to AGENTS.md.
 
 ### Documentation invariants
 
