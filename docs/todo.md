@@ -57,27 +57,6 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
    in the note. That misclassifies mid- note positions as start/end and triggers
    the wrong insertion path. (src/editor/plugins/InsertionPlugin.tsx:75-90)
 
-## Cut-as-move
-
-- Spec: `docs/outliner/note-ids.md#clipboard-semantics`.
-- Follow-up: review the cut/copy prep in `tests/unit/note-ids.spec.ts` around
-  the structural paste no-op tests (e.g. line ~577) for readability; make sure
-  cut and copy operations are set up in a similarly clear, shared way for
-  test authors.
-- Follow-up: paste placement at end-of-note with children currently inserts
-  after the entire subtree (next content sibling), which feels unintuitive when
-  the caret sits visually above the first child. Align paste insertion with
-  `docs/insertion.md` end-of-note semantics so pastes land as the first child,
-  and add a focused test to lock this behavior.
-- ✅ Done: add unit test for local delete/backspace invalidating the cut marker
-  and keeping paste as a no-op.
-- ✅ Done: add collab test for remote deletion invalidating the cut marker and
-  keeping paste as a no-op.
-- Add E2E test: inline single-note cut removes text and never shows the cut
-  marker overlay (stays in normal text-cut path).
-- ✅ Done: cut-marker invalidation now checks dirty keys so non-text inline node
-  changes cancel the marker too.
-
 ## Test infra
 
 - E2E runs reuse persisted collab docs (e.g., `data/collab/project/data.ysweet`),
@@ -98,3 +77,11 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
   client next to `remdo`? If so, should the multi-client tests live under a
   dedicated folder (or similar grouping) where `remdo2` is pre-baked, or should
   it remain opt-in per test to avoid overhead?
+
+## Other
+
+- Follow-up: paste placement at end-of-note with children currently inserts
+  after the entire subtree (next content sibling), which feels unintuitive when
+  the caret sits visually above the first child. Align paste insertion with
+  `docs/insertion.md` end-of-note semantics so pastes land as the first child,
+  and add a focused test to lock this behavior.

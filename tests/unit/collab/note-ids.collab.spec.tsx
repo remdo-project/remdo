@@ -360,9 +360,7 @@ describe('collaboration note ids', () => {
     await secondary.waitForSynced();
 
     await selectStructuralNotesById(remdo, 'note6', 'note7');
-    await waitFor(() => {
-      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
-    });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
 
     const clipboardPayload = await cutSelection(remdo);
 
