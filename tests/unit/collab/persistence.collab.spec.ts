@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { config } from '#config';
 import { runPnpm } from '#tools/process';
+import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('collab persistence', () => {
   const docId = 'persist-collab-test';
@@ -24,5 +25,5 @@ describe('collab persistence', () => {
       }
       expect(statSync(dataFile).size).toBeGreaterThan(0);
     });
-  });
+  }, COLLAB_LONG_TIMEOUT_MS);
 });

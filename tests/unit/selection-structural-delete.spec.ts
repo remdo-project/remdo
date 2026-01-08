@@ -4,7 +4,7 @@ import { $getRoot } from 'lexical';
 import type { ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 
-import { placeCaretAtNoteId, pressKey } from '#tests';
+import { getRootElementOrThrow, placeCaretAtNoteId, pressKey } from '#tests';
 
 function readWrapperChildList(wrapper: LexicalNode | null | undefined): ListNode | null {
   if (!wrapper || !$isListItemNode(wrapper)) return null;
@@ -38,7 +38,7 @@ describe('structural selection delete regression (local)', () => {
       note2Item?.remove();
     });
 
-    const rootElement = remdo.editor.getRootElement()!;
+    const rootElement = getRootElementOrThrow(remdo.editor);
 
     let bubbled = false;
     const bubbleProbe = () => {
@@ -84,7 +84,7 @@ describe('structural selection delete regression (local)', () => {
       note6Item?.remove();
     });
 
-    const rootElement = remdo.editor.getRootElement()!;
+    const rootElement = getRootElementOrThrow(remdo.editor);
 
     let bubbled = false;
     const bubbleProbe = () => {

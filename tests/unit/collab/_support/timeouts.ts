@@ -1,0 +1,1 @@
+export const COLLAB_LONG_TIMEOUT_MS = 15_000;

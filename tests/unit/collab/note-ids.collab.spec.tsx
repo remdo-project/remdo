@@ -2,6 +2,7 @@ import { waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { CUT_COMMAND, PASTE_COMMAND } from 'lexical';
 import {
+  appendTextByNoteId,
   buildClipboardPayload,
   createClipboardEvent,
   cutStructuralNoteById,
@@ -10,7 +11,6 @@ import {
   readOutline,
   selectStructuralNoteByDom,
   selectNoteRangeById,
-  typeText,
 } from '#tests';
 import { renderCollabEditor } from './_support/remdo-peers';
 
@@ -214,8 +214,15 @@ describe('collaboration note ids', () => {
     const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
 
     await placeCaretAtNoteId(secondary, 'note2', Number.POSITIVE_INFINITY);
-    await typeText(secondary, ' remote');
+    await appendTextByNoteId(secondary, 'note2', ' remote');
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+    await waitFor(() => {
+      expect(remdo).toMatchOutline([
+        { noteId: 'note1', text: 'note1' },
+        { noteId: 'note2', text: 'note2 remote' },
+        { noteId: 'note3', text: 'note3' },
+      ]);
+    });
 
     await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
     await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
@@ -247,7 +254,13 @@ describe('collaboration note ids', () => {
     await pressKey(secondary, { key: 'Tab' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
-    const expectedOutline = readOutline(remdo);
+    const expectedOutline = [
+      { noteId: 'note1', text: 'note1', children: [{ noteId: 'note2', text: 'note2' }] },
+      { noteId: 'note3', text: 'note3' },
+    ];
+    await waitFor(() => {
+      expect(remdo).toMatchOutline(expectedOutline);
+    });
 
     await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
     await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
@@ -273,7 +286,7 @@ describe('collaboration note ids', () => {
     await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
 
     await placeCaretAtNoteId(secondary, 'note2', Number.POSITIVE_INFINITY);
-    await typeText(secondary, ' remote');
+    await appendTextByNoteId(secondary, 'note2', ' remote');
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -329,7 +342,7 @@ describe('collaboration note ids', () => {
     await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
 
     await placeCaretAtNoteId(secondary, 'note7', Number.POSITIVE_INFINITY);
-    await typeText(secondary, ' remote');
+    await appendTextByNoteId(secondary, 'note7', ' remote');
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 

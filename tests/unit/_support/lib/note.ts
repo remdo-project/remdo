@@ -3,7 +3,15 @@ import { $isListNode } from '@lexical/list';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { waitFor } from '@testing-library/react';
 import type { TextNode } from 'lexical';
-import { $createRangeSelection, $getRoot, $getSelection, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
+import {
+  $createRangeSelection,
+  $createTextNode,
+  $getRoot,
+  $getSelection,
+  $isRangeSelection,
+  $isTextNode,
+  $setSelection,
+} from 'lexical';
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
 import { findNearestListItem, getRootElementOrThrow } from './selection';
@@ -86,6 +94,28 @@ export async function placeCaretAtNoteId(remdo: RemdoTestApi, noteId: string, of
     // Wait for both lexical and outline selection state to settle, so the progressive ladder resets.
     expect(readCaretNoteId(remdo)).toBe(noteId);
     expect(remdo.editor.selection.get()?.kind).toBe('caret');
+  });
+}
+
+/**
+ * Appends text to the note with the given id without going through input events.
+ * Use for deterministic model-only edits (e.g., remote collab changes).
+ * For user-typing behavior, prefer {@link typeText} from keyboard helpers.
+ */
+export async function appendTextByNoteId(remdo: RemdoTestApi, noteId: string, text: string) {
+  await remdo.mutate(() => {
+    const item = $findItemByNoteId(noteId);
+    if (!item) {
+      throw new Error(`No list item found with noteId: ${noteId}`);
+    }
+
+    const textNode = item.getChildren().find((child): child is TextNode => child.getType() === 'text');
+    if (textNode) {
+      textNode.setTextContent(`${textNode.getTextContent()}${text}`);
+      return;
+    }
+
+    item.append($createTextNode(text));
   });
 }
 

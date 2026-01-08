@@ -8,8 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import type { Buffer } from 'node:buffer';
 import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
-
-const SNAPSHOT_TIMEOUT_MS = 15_000;
+import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('snapshot CLI', () => {
   const SNAPSHOT_OUTPUTS = [
@@ -63,7 +62,7 @@ function readEditorState(filePath: string): SerializedEditorState {
       const saved = stripEditorStateDefaults(readEditorState(savePath));
       return JSON.stringify(saved) === JSON.stringify(expected);
     });
-  }, SNAPSHOT_TIMEOUT_MS);
+  }, COLLAB_LONG_TIMEOUT_MS);
 
   it(
     'saves the current editor state via snapshot CLI',
@@ -140,7 +139,7 @@ function readEditorState(filePath: string): SerializedEditorState {
 
   it(
     'cross-loads and saves multiple documents without crosstalk',
-    { timeout: SNAPSHOT_TIMEOUT_MS },
+    { timeout: COLLAB_LONG_TIMEOUT_MS },
     async ({ remdo }: TestContext) => {
       const defaultDoc = remdo.getCollabDocId();
       const secondaryDoc = `${defaultDoc}-secondary`;

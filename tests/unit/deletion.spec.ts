@@ -558,10 +558,6 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     it('deletes only the selected empty note after Cmd/Ctrl+A', async ({ remdo }) => {
       await remdo.load('empty-labels');
 
-      const rootElement = remdo.editor.getRootElement();
-      if (!rootElement) {
-        throw new Error('Expected editor root element');
-      }
 
       await placeCaretAtNoteId(remdo, 'trailing');
 

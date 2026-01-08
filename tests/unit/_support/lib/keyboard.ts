@@ -2,6 +2,7 @@ import type { LexicalEditor } from 'lexical';
 import { act } from '@testing-library/react';
 import { CONTROLLED_TEXT_INSERTION_COMMAND } from 'lexical';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
+import { getRootElementOrThrow } from './selection';
 
 interface NavigatorWithUAData extends Navigator {
   userAgentData?: { platform?: string };
@@ -95,12 +96,10 @@ export async function pressKey(
 /**
  * Inserts plain text characters using Lexical's controlled insertion path.
  * If the keydown is prevented by the editor (e.g., structural mode), no text is inserted.
+ * For deterministic model-only edits, prefer {@link appendTextByNoteId} in note helpers.
  */
 export async function typeText(remdo: RemdoTestApi, text: string): Promise<void> {
-  const root = remdo.editor.getRootElement();
-  if (!root) {
-    throw new Error('Lexical root element is not mounted');
-  }
+  const root = getRootElementOrThrow(remdo.editor);
 
   await act(async () => {
     for (const ch of text) {
