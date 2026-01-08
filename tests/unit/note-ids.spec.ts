@@ -674,6 +674,28 @@ describe('note ids on paste', () => {
     ]);
   });
 
+  it('drops cut markers after local deletions', async ({ remdo }) => {
+    await remdo.load('flat');
+
+    const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
+
+    await placeCaretAtNoteId(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Backspace' });
+
+    const expectedOutline = [
+      { noteId: 'note1', text: 'note1 note2' },
+      { noteId: 'note3', text: 'note3' },
+    ];
+    await waitFor(() => {
+      expect(remdo).toMatchOutline(expectedOutline);
+    });
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+
+    expect(remdo).toMatchOutline(expectedOutline);
+  });
+
   it('drops cut markers after structural edits', async ({ remdo }) => {
     await remdo.load('flat');
 

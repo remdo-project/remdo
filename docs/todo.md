@@ -69,8 +69,8 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
   the caret sits visually above the first child. Align paste insertion with
   `docs/insertion.md` end-of-note semantics so pastes land as the first child,
   and add a focused test to lock this behavior.
-- Add unit test: local delete/backspace on a marked note invalidates the cut
-  marker, and a subsequent paste of the cut payload is a no-op.
+- ✅ Done: add unit test for local delete/backspace invalidating the cut marker
+  and keeping paste as a no-op.
 - ✅ Done: add collab test for remote deletion invalidating the cut marker and
   keeping paste as a no-op.
 - Add E2E test: inline single-note cut removes text and never shows the cut
