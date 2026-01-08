@@ -33,10 +33,12 @@ export function $getNoteIdOrThrow(item: ListItemNode, message = 'Expected list i
   return noteId;
 }
 
-function $findItemByNoteId(noteId: string): ListItemNode | null {
+function $findItemByNoteId(noteId: string): ListItemNode {
   const root = $getRoot();
   const list = root.getFirstChild();
-  if (!list || !$isListNode(list)) return null;
+  if (!list || !$isListNode(list)) {
+    throw new Error(`No list item found with noteId: ${noteId}`);
+  }
   const $search = (listNode: ListNode): ListItemNode | null => {
     const items = listNode.getChildren<ListItemNode>();
     for (const item of items) {
@@ -53,7 +55,11 @@ function $findItemByNoteId(noteId: string): ListItemNode | null {
     return null;
   };
 
-  return $search(list);
+  const match = $search(list);
+  if (!match) {
+    throw new Error(`No list item found with noteId: ${noteId}`);
+  }
+  return match;
 }
 
 function placeCaretAtListItem(item: ListItemNode, offset: number) {
@@ -86,7 +92,6 @@ export async function placeCaretAtNoteId(remdo: RemdoTestApi, noteId: string, of
 
   await remdo.mutate(() => {
     const item = $findItemByNoteId(noteId);
-    if (!item) throw new Error(`No list item found with noteId: ${noteId}`);
     placeCaretAtListItem(item, offset);
   });
 
@@ -105,9 +110,6 @@ export async function placeCaretAtNoteId(remdo: RemdoTestApi, noteId: string, of
 export async function appendTextByNoteId(remdo: RemdoTestApi, noteId: string, text: string) {
   await remdo.mutate(() => {
     const item = $findItemByNoteId(noteId);
-    if (!item) {
-      throw new Error(`No list item found with noteId: ${noteId}`);
-    }
 
     const textNode = item.getChildren().find((child): child is TextNode => child.getType() === 'text');
     if (textNode) {
@@ -122,7 +124,6 @@ export async function appendTextByNoteId(remdo: RemdoTestApi, noteId: string, te
 export function getNoteKeyById(remdo: RemdoTestApi, noteId: string): string {
   return remdo.validate(() => {
     const item = $findItemByNoteId(noteId);
-    if (!item) throw new Error(`No list item found with noteId: ${noteId}`);
     return item.getKey();
   });
 }
@@ -231,15 +232,7 @@ export async function selectNoteRangeById(remdo: RemdoTestApi, startNoteId: stri
 
   await remdo.mutate(() => {
     const startItem = $findItemByNoteId(startNoteId);
-    if (!startItem) {
-      throw new Error(`No list item found with noteId: ${startNoteId}`);
-    }
-
     const endItem = $findItemByNoteId(endNoteId);
-    if (!endItem) {
-      throw new Error(`No list item found with noteId: ${endNoteId}`);
-    }
-
     const startTextNode = findContentTextNode(startItem);
     const endTextNode = findContentTextNode(endItem);
 

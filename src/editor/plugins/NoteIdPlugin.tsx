@@ -1,6 +1,6 @@
 import { $isListItemNode, $isListNode, ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import type { BaseSelection, LexicalEditor, LexicalNode, SerializedLexicalNode } from 'lexical';
+import type { BaseSelection, EditorState, LexicalEditor, LexicalNode, NodeKey, SerializedLexicalNode } from 'lexical';
 import { $getHtmlContent, $getLexicalContent, setLexicalClipboardDataTransfer } from '@lexical/clipboard';
 import type { LexicalClipboardData } from '@lexical/clipboard';
 import {
@@ -10,7 +10,6 @@ import {
   $isElementNode,
   $isRangeSelection,
   $setState,
-  TextNode,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_LOW,
   COPY_COMMAND,
@@ -95,6 +94,23 @@ function $getContentKeyFromNode(node: LexicalNode | null): string | null {
 
 function $getContentKeyFromNodeKey(key: string): string | null {
   return $getContentKeyFromNode($getNodeByKey(key));
+}
+
+function hasMarkedDirtyKey(marker: CutMarker, keys: NodeKey[], state: EditorState): boolean {
+  if (keys.length === 0) {
+    return false;
+  }
+
+  return state.read(() => {
+    for (const key of keys) {
+      const contentKey = $getContentKeyFromNodeKey(key);
+      if (contentKey && marker.markedKeys.has(contentKey)) {
+        return true;
+      }
+    }
+
+    return false;
+  });
 }
 
 function isCaretWithinMarkedSelection(marker: CutMarker, selection: BaseSelection | null): boolean {
@@ -312,57 +328,30 @@ export function NoteIdPlugin() {
     }
 
     return mergeRegister(
-      editor.registerMutationListener(
-        ListItemNode,
-        (mutations, payload) => {
-          const marker = cutMarkerRef.current;
-          if (!marker) {
-            return;
-          }
-
-          for (const key of mutations.keys()) {
-            const currentKey = editor.getEditorState().read(() => $getContentKeyFromNodeKey(key));
-            if (currentKey && marker.markedKeys.has(currentKey)) {
-              setCutMarker(null);
-              return;
-            }
-            const prevKey = payload.prevEditorState.read(() => $getContentKeyFromNodeKey(key));
-            if (prevKey && marker.markedKeys.has(prevKey)) {
-              setCutMarker(null);
-              return;
-            }
-          }
-        },
-        { skipInitialization: true }
-      ),
-      editor.registerMutationListener(
-        TextNode,
-        (mutations, payload) => {
-          const marker = cutMarkerRef.current;
-          if (!marker) {
-            return;
-          }
-
-          for (const key of mutations.keys()) {
-            const currentKey = editor.getEditorState().read(() => $getContentKeyFromNodeKey(key));
-            if (currentKey && marker.markedKeys.has(currentKey)) {
-              setCutMarker(null);
-              return;
-            }
-            const prevKey = payload.prevEditorState.read(() => $getContentKeyFromNodeKey(key));
-            if (prevKey && marker.markedKeys.has(prevKey)) {
-              setCutMarker(null);
-              return;
-            }
-          }
-        },
-        { skipInitialization: true }
-      ),
-      editor.registerUpdateListener(() => {
+      editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, editorState, prevEditorState }) => {
         const marker = cutMarkerRef.current;
-        if (marker) {
-          updateStructuralOverlay(editor, marker.range, true, CUT_MARKER_OVERLAY);
+        if (!marker) {
+          return;
         }
+
+        const dirtyKeys: NodeKey[] = [];
+        for (const key of dirtyElements.keys()) {
+          dirtyKeys.push(key);
+        }
+        for (const key of dirtyLeaves) {
+          dirtyKeys.push(key);
+        }
+
+        // dirty keys are empty for selection-only updates with no content changes.
+        if (
+          dirtyKeys.length > 0 &&
+          (hasMarkedDirtyKey(marker, dirtyKeys, editorState) || hasMarkedDirtyKey(marker, dirtyKeys, prevEditorState))
+        ) {
+          setCutMarker(null);
+          return;
+        }
+
+        updateStructuralOverlay(editor, marker.range, true, CUT_MARKER_OVERLAY);
       }),
       editor.registerNodeTransform(ListItemNode, (node) => {
         if (!readyRef.current) {
