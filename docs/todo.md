@@ -199,3 +199,42 @@ reorder) by normalizing wrapper list items before schema validation.
    if upstream fixes or tighter guards are needed.
 8. Use `data/_scratch/` for temporary investigation artifacts (snapshots,
    repro JSON, etc.); promote anything durable out of `data/` before shipping.
+
+## Collab schema normalization (deferred implementation notes)
+
+Problem to solve: in dev/test, schema validation throws on real collab data
+that contains wrapper list items without the required preceding content item
+(and occasionally multiple nested lists under a wrapper). Production does not
+assert, so corrupted structures can persist and resurface. We need a safe,
+repeatable normalization path that heals those states while preserving user
+order, without introducing nested Lexical updates or breaking collaboration.
+
+Proposed change (to implement after upcoming refactors):
+1. Normalize serialized editor state at the adapter boundary before schema
+   validation when the update originates from collaboration, plus on explicit
+   imports/fixture loads (test bridge, snapshot load, clipboard/import).
+2. Use a deterministic wrapper normalizer that merges multiple nested lists and
+   lifts orphan wrappers into the parent list (adjusting indent by -1) while
+   preserving document order.
+3. Apply the normalized state via a scheduled `setEditorState` (microtask) to
+   avoid nested update errors; tag the update so it does not recurse.
+4. Validate the normalized state and log if normalization fails, but avoid
+   throwing in production (telemetry instead).
+
+Concerns / risks:
+- Normalization changes are structural and can reorder or reindent nodes; we
+  must prove this does not drop content or corrupt selection/undo history.
+- Collab updates are frequent; normalization must avoid creating sync loops or
+  unnecessary extra updates (idempotence + tag checks).
+- RootSchemaPlugin already mutates the tree; ensure the two normalization paths
+  do not conflict or oscillate.
+- Applying normalization in production without telemetry could mask upstream
+  bugs; we need signal before deciding whether to harden or upstream a fix.
+
+Open questions:
+- What is the best normalization boundary: immediately on collab update tags,
+  during paste/import, or only when validation fails?
+- Should normalized state be written back to Yjs immediately (so all clients
+  converge) or kept local until the next user edit?
+- Do we want a hard failure mode in dev/test when normalization fails, or a
+  soft failure with a persisted snapshot for later analysis?
