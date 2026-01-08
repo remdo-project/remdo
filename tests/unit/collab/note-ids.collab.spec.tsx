@@ -93,15 +93,18 @@ describe('collaboration note ids', () => {
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
-    const outlineA = readOutline(remdo);
-    const baseline = new Set(['note1', 'note2', 'note3']);
-    const noteIds = outlineA
-      .map((note) => note.noteId)
-      .filter((noteId): noteId is string => typeof noteId === 'string');
-    const newIds = noteIds.filter((noteId) => !baseline.has(noteId));
+    let outlineA = readOutline(remdo);
+    await waitFor(() => {
+      outlineA = readOutline(remdo);
+      const baseline = new Set(['note1', 'note2', 'note3']);
+      const noteIds = outlineA
+        .map((note) => note.noteId)
+        .filter((noteId): noteId is string => typeof noteId === 'string');
+      const newIds = noteIds.filter((noteId) => !baseline.has(noteId));
 
-    expect(newIds).toHaveLength(2);
-    expect(new Set(noteIds).size).toBe(noteIds.length);
+      expect(newIds).toHaveLength(2);
+      expect(new Set(noteIds).size).toBe(noteIds.length);
+    });
     expect(secondary).toMatchOutline(outlineA);
   });
 
