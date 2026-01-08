@@ -28,13 +28,16 @@ RUN pnpm install --frozen-lockfile \
 
 # Bundle snapshot tool for runtime backups (no pnpm dependency in runner).
 RUN mkdir -p /usr/local/bin \
+  && SNAPSHOT_BANNER=$(printf '%s\n%s' \
+    '#!/usr/bin/env node' \
+    'import { createRequire as __createRequire } from "module"; const require = __createRequire(import.meta.url);') \
   && pnpm dlx esbuild tools/snapshot.ts \
     --platform=node \
     --format=esm \
     --bundle \
     --target=node22 \
     --tsconfig=tsconfig.json \
-    --banner:js="import { createRequire as __createRequire } from 'module'; const require = __createRequire(import.meta.url);" \
+    --banner:js="$SNAPSHOT_BANNER" \
     --outfile=/usr/local/bin/snapshot.mjs
 
 ############################
