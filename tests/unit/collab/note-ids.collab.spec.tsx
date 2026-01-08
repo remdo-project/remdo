@@ -240,6 +240,39 @@ describe('collaboration note ids', () => {
     });
   });
 
+  it('drops cut markers after remote deletions', async ({ remdo }) => {
+    const docId = remdo.getCollabDocId();
+    await remdo.load('flat');
+    await remdo.waitForSynced();
+
+    const secondary = await renderCollabEditor({ docId });
+    await secondary.waitForSynced();
+
+    const clipboardPayload = await cutStructuralNoteById(remdo, 'note2');
+
+    await selectStructuralNoteByDom(secondary, 'note2');
+    await pressKey(secondary, { key: 'Delete' });
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    const expectedOutline = [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+    ];
+
+    await waitFor(() => {
+      expect(remdo).toMatchOutline(expectedOutline);
+    });
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+    await waitFor(() => {
+      expect(secondary).toMatchOutline(expectedOutline);
+    });
+  });
+
   it('drops cut markers after remote structural edits', async ({ remdo }) => {
     const docId = remdo.getCollabDocId();
     await remdo.load('flat');

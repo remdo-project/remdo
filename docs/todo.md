@@ -71,13 +71,12 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
   and add a focused test to lock this behavior.
 - Add unit test: local delete/backspace on a marked note invalidates the cut
   marker, and a subsequent paste of the cut payload is a no-op.
-- Add collab test: remote deletion of a marked note invalidates the cut marker
-  and keeps paste as a no-op.
+- ✅ Done: add collab test for remote deletion invalidating the cut marker and
+  keeping paste as a no-op.
 - Add E2E test: inline single-note cut removes text and never shows the cut
   marker overlay (stays in normal text-cut path).
-- Open question: cut-marker invalidation listens to ListItemNode/TextNode
-  mutations only; if note bodies gain non-text inline nodes, should we broaden
-  the invalidation to cover those node types too?
+- ✅ Done: cut-marker invalidation now checks dirty keys so non-text inline node
+  changes cancel the marker too.
 
 ## Test infra
 
