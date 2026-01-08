@@ -134,8 +134,11 @@ describe('collaboration note ids', () => {
       { noteId: 'note3', text: 'note3' },
     ];
 
-    expect(remdo).toMatchOutline(expected);
-    expect(secondary).toMatchOutline(expected);
+    await waitFor(() => {
+      expect(remdo).toMatchOutline(expected);
+      expect(secondary).toMatchOutline(expected);
+    });
+
     const pastedId = readOutline(remdo).find((note) => note.text === 'note2')?.noteId;
     expect(pastedId).toEqual(expect.any(String));
     expect(pastedId).not.toBe('note2');
