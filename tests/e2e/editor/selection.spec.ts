@@ -98,6 +98,31 @@ test.describe('selection (cut marker)', () => {
     await expect(editor).toMatchOutline(expectedOutline);
     await expect(input).toHaveClass(/editor-input--cut-marker/);
   });
+
+  test('clears the cut marker after pasting a non-cut payload', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note2');
+
+    const input = editorLocator(page).locator('.editor-input').first();
+
+    await page.keyboard.press('Shift+ArrowDown');
+    await page.keyboard.press('Shift+ArrowDown');
+
+    const cutCombo = process.platform === 'darwin' ? 'Meta+X' : 'Control+X';
+    await page.keyboard.press(cutCombo);
+
+    await expect(input).toHaveClass(/editor-input--cut-marker/);
+
+    await setCaretAtText(page, 'note3');
+    await input.evaluate((element) => {
+      const data = new DataTransfer();
+      data.setData('text/plain', 'paste');
+      const event = new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true });
+      element.dispatchEvent(event);
+    });
+
+    await expect(input).not.toHaveClass(/editor-input--cut-marker/);
+  });
 });
 
 async function readOverlayVars(input: Locator, topVar: string, heightVar: string) {

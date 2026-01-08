@@ -25,7 +25,7 @@ export const commandsInCommandsFileRule: Rule.RuleModule = {
   },
   create(context) {
     const lexicalCreateAliases = new Set<string>();
-    const filename = context.filename;
+    const filename = context.physicalFilename;
     const allowHere = isAllowedFilename(filename);
 
     return {
