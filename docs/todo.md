@@ -72,11 +72,6 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
   wrapper is removed so the resulting outline is schema-valid and stable. The
   test should also ensure the remaining notes keep their note ids and order
   intact after the cleanup.
-- Collab test refactor (open questions): should we standardize on `remdo` +
-  `remdo2` naming and provide a helper/fixture that returns a pre-synced second
-  client next to `remdo`? If so, should the multi-client tests live under a
-  dedicated folder (or similar grouping) where `remdo2` is pre-baked, or should
-  it remain opt-in per test to avoid overhead?
 
 ## Other
 

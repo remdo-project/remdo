@@ -2,23 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 
 import { pressKey, readOutline, selectStructuralNotesById } from '#tests';
-import { renderCollabEditor } from './_support/remdo-peers';
+import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('bubbles Delete when structural selection was removed by a collaborator', async ({ remdo }) => {
-    const docId = remdo.getCollabDocId();
     await remdo.load('tree-complex');
     await remdo.waitForSynced();
 
-    const editorA = remdo;
-    const editorB = await renderCollabEditor({ docId });
-    await editorB.waitForSynced();
+    const secondary = await createCollabPeer(remdo);
     await waitFor(() => {
-      expect(readOutline(editorB)).toEqual(readOutline(editorA));
+      expect(readOutline(secondary)).toEqual(readOutline(remdo));
     });
 
-    await selectStructuralNotesById(editorA, 'note2', 'note3');
+    await selectStructuralNotesById(remdo, 'note2', 'note3');
 
     const expectedAfterRemoteDelete = [
       { noteId: 'note1', text: 'note1', children: [ { noteId: 'note4', text: 'note4' } ] },
@@ -26,12 +23,12 @@ describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_M
       { noteId: 'note6', text: 'note6', children: [ { noteId: 'note7', text: 'note7' } ] },
     ];
 
-    await selectStructuralNotesById(editorB, 'note2', 'note3');
-    await pressKey(editorB, { key: 'Backspace' });
+    await selectStructuralNotesById(secondary, 'note2', 'note3');
+    await pressKey(secondary, { key: 'Backspace' });
 
-    await Promise.all([editorA.waitForSynced(), editorB.waitForSynced()]);
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     await waitFor(() => {
-      expect(editorA).toMatchOutline(expectedAfterRemoteDelete);
+      expect(remdo).toMatchOutline(expectedAfterRemoteDelete);
     });
 
     let bubbled = false;
@@ -42,13 +39,13 @@ describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_M
     };
     document.body.addEventListener('keydown', bubbleProbe);
 
-    await pressKey(editorA, { key: 'Delete' });
+    await pressKey(remdo, { key: 'Delete' });
 
     document.body.removeEventListener('keydown', bubbleProbe);
 
     expect(bubbled).toBe(true);
 
-    await Promise.all([editorA.waitForSynced(), editorB.waitForSynced()]);
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     const flattenText = (nodes: ReturnType<typeof readOutline>): string[] => {
       const out: string[] = [];
@@ -64,11 +61,11 @@ describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_M
       return out;
     };
 
-    const afterA = readOutline(editorA);
-    const afterB = readOutline(editorB);
+    const afterPrimary = readOutline(remdo);
+    const afterSecondary = readOutline(secondary);
 
-    const textsA = flattenText(afterA);
-    const textsB = flattenText(afterB);
+    const textsA = flattenText(afterPrimary);
+    const textsB = flattenText(afterSecondary);
 
     expect(textsA).not.toContain('note2');
     expect(textsA).not.toContain('note3');
