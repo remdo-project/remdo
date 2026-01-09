@@ -57,28 +57,31 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
    in the note. That misclassifies mid- note positions as start/end and triggers
    the wrong insertion path. (src/editor/plugins/InsertionPlugin.tsx:75-90)
 
-## Cut-as-move
+## Test infra
 
-- Implement cut-as-move behavior in prod (cut marks notes; paste moves them).
-- [P1] Cut paste at a caret duplicates notes: move path uses target selection
-  heads, so an empty structural selection skips removal and leaves the cut
-  subtree in place. Ensure caret pastes still remove the marked notes so cut
-  behaves like a move.
-- [P2] Structural cut currently returns true without touching the clipboard.
-  That blocks the RichTextPlugin cut handler, so cross-app cut/paste never
-  updates the system clipboard. Confirm whether cut should serialize to the
-  clipboard; if yes, wire in Lexical’s normal cut flow.
-- [P2] Non-collapsed text selection inside a single note is treated as a
-  structural cut (contiguous selection heads). This hijacks normal text cut
-  behavior and removes whole notes instead of the selected text. Decide if
-  partial-text cuts should be handled by Lexical and guard accordingly.
-- [P2] Caret paste can move cut nodes into their own subtree: the intersection
-  guard only checks structural selection heads, so collapsed caret pastes skip
-  the self-move check. Validate the caret’s nearest list item against the cut
-  marker.
-- Revisit test helpers once cut-as-move is fully implemented; `cutStructuralNoteById`
-  in `tests/unit/_support/lib/clipboard.ts` is a stopgap that should be replaced
-  by the real cut flow.
-- Note: current move logic uses stored head keys (not clipboard payload) to
-  identify the cut subtree; if the cut implementation changes, update tests and
-  helper assumptions accordingly.
+- E2E runs reuse persisted collab docs (e.g., `data/collab/project/data.ysweet`),
+  so failures can disappear after a run normalizes data. Add a cleanup or
+  per-run `DATA_DIR`/doc-id strategy so Playwright runs are isolated and
+  deterministic.
+- E2E helper: add a small `readOutline(editor)` wrapper around
+  `extractOutlineFromEditorState(await editor.getEditorState())` so tests don't
+  call the lower-level helper directly; keep `toMatchOutline` as-is.
+- Missing coverage: add a normalization test that loads a document containing
+  a wrapper list item whose nested list has no list-item children (an empty
+  child list), runs the load-time normalization pass, and asserts the invalid
+  wrapper is removed so the resulting outline is schema-valid and stable. The
+  test should also ensure the remaining notes keep their note ids and order
+  intact after the cleanup.
+- Collab test refactor (open questions): should we standardize on `remdo` +
+  `remdo2` naming and provide a helper/fixture that returns a pre-synced second
+  client next to `remdo`? If so, should the multi-client tests live under a
+  dedicated folder (or similar grouping) where `remdo2` is pre-baked, or should
+  it remain opt-in per test to avoid overhead?
+
+## Other
+
+- Follow-up: paste placement at end-of-note with children currently inserts
+  after the entire subtree (next content sibling), which feels unintuitive when
+  the caret sits visually above the first child. Align paste insertion with
+  `docs/insertion.md` end-of-note semantics so pastes land as the first child,
+  and add a focused test to lock this behavior.

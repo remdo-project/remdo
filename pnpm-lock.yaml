@@ -12,6 +12,9 @@ catalogs:
     '@eslint-react/eslint-plugin':
       specifier: ^2.5.1
       version: 2.5.1
+    '@lexical/clipboard':
+      specifier: ^0.39.0
+      version: 0.39.0
     '@lexical/devtools-core':
       specifier: ^0.39.0
       version: 0.39.0
@@ -185,6 +188,9 @@ importers:
 
   .:
     dependencies:
+      '@lexical/clipboard':
+        specifier: 'catalog:'
+        version: 0.39.0
       '@lexical/devtools-core':
         specifier: 'catalog:'
         version: 0.39.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)

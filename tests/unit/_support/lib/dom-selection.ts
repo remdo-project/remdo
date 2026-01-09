@@ -2,11 +2,12 @@ import { act, waitFor } from '@testing-library/react';
 import { expect } from 'vitest';
 
 import type { RemdoTestApi } from '@/editor/plugins/dev';
+import { readOutline, placeCaretAtNoteId, selectRangeSelectionById } from './note';
 import { pressKey } from './keyboard';
-import { readOutline, placeCaretAtNoteId } from './note';
 import { getNoteElementById } from './dom-note';
 
-// Low-level drag helper for precise text-node selection ranges.
+// Low-level DOM drag helper for precise text-node range selection.
+// Limitations: bypasses Lexical selection APIs and only works with live DOM nodes.
 export async function dragDomSelectionBetween(start: Node, startOffset: number, end: Node, endOffset: number) {
   await mutateDomSelection((selection) => {
     const range = document.createRange();
@@ -31,7 +32,9 @@ export async function dragDomSelectionBetween(start: Node, startOffset: number, 
   });
 }
 
-// Note-level selection by list-item boundaries (no text-node offsets).
+// DOM list-item boundary selection for pointer-style multi-note selection.
+// Limitations: requires sibling notes under the same list parent and can over-select
+// in nested lists due to DOM range semantics (use only when testing pointer paths).
 export async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNoteId: string, endNoteId: string) {
   const startElement = getNoteElementById(remdo, startNoteId);
   const endElement = getNoteElementById(remdo, endNoteId);
@@ -60,22 +63,54 @@ export async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNot
   });
 }
 
-// DOM-driven selection that targets a single structural note selection.
-export async function selectStructuralNoteByDom(remdo: RemdoTestApi, noteId: string): Promise<void> {
-  const noteText = readOutline(remdo).find((note) => note.noteId === noteId)?.text ?? '';
-  const needsInlineStage = noteText.trim().length > 0;
-  await placeCaretAtNoteId(remdo, noteId, 0);
+// Structural selection helper: single-note uses Shift+Arrow to climb to structural,
+// multi-note uses a Lexical range selection to trigger structural snapping.
+// Limitations: multi-note path requires text nodes in both notes and does not
+// simulate DOM pointer selection; use selectStructuralNotesByDomRange for that path.
+export async function selectStructuralNotesById(
+  remdo: RemdoTestApi,
+  startNoteId: string,
+  endNoteId: string = startNoteId
+): Promise<void> {
+  if (startNoteId === endNoteId) {
+    const noteText = readOutline(remdo).find((note) => note.noteId === startNoteId)?.text ?? '';
+    const needsInlineStage = noteText.trim().length > 0;
+    await placeCaretAtNoteId(remdo, startNoteId, 0);
 
-  await waitFor(async () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     if (needsInlineStage) {
       await pressKey(remdo, { key: 'ArrowDown', shift: true });
     }
-    expect(remdo).toMatchSelection({ state: 'structural', notes: [noteId] });
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: [startNoteId] });
+    });
+    return;
+  }
+
+  await selectRangeSelectionById(remdo, startNoteId, endNoteId);
+  await waitFor(() => {
+    expect(remdo.editor.selection.isStructural()).toBe(true);
   });
 }
 
-// Range-only selection for paths that don't use Selection.extend (e.g. touch-handle drags).
+// DOM-range structural selection for pointer-driven paths only.
+// Limitations: only works for sibling notes sharing a list parent and can include
+// extra siblings in nested lists; assert the resulting selection explicitly.
+export async function selectStructuralNotesByDomRange(
+  remdo: RemdoTestApi,
+  startNoteId: string,
+  endNoteId: string = startNoteId
+): Promise<void> {
+  if (startNoteId === endNoteId) {
+    await selectStructuralNotesById(remdo, startNoteId);
+    return;
+  }
+
+  await dragDomSelectionBetweenNotes(remdo, startNoteId, endNoteId);
+}
+
+// DOM range selection that avoids Selection.extend (e.g. touch-handle drags).
+// Limitations: does not produce Lexical selection events unless selectionchange is handled.
 export async function dragDomSelectionBetweenRange(
   start: Node,
   startOffset: number,
@@ -98,6 +133,8 @@ export async function dragDomSelectionBetweenRange(
   });
 }
 
+// Collapse the DOM selection to a caret at a specific node/offset.
+// Limitations: DOM-only; does not guarantee Lexical selection state without selectionchange.
 export async function collapseDomSelectionAtNode(target: Node, offset: number) {
   await mutateDomSelection((selection) => {
     const caretRange = document.createRange();
@@ -109,6 +146,7 @@ export async function collapseDomSelectionAtNode(target: Node, offset: number) {
   });
 }
 
+// Extend an existing DOM selection to a node/offset using Selection.extend.
 export async function extendDomSelectionToNode(target: Node, offset: number) {
   await mutateDomSelection((selection) => {
     if (selection.rangeCount === 0) {

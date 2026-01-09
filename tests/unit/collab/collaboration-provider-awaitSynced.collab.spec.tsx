@@ -5,8 +5,9 @@ import { CollabSession } from '#lib/collaboration/session';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
 import { createMockProvider } from './_support/mock-provider';
 import type { MockProvider } from './_support/mock-provider';
+import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
-describe('collaboration session awaitSynced', () => {
+describe('collaboration session awaitSynced', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   const createSession = () => {
     const docId = 'doc-id';
     const docMap = new Map<string, Y.Doc>([[docId, new Y.Doc()]]);

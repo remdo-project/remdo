@@ -3,7 +3,15 @@ import { $isListNode } from '@lexical/list';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { waitFor } from '@testing-library/react';
 import type { TextNode } from 'lexical';
-import { $createRangeSelection, $getRoot, $getSelection, $isRangeSelection, $isTextNode, $setSelection } from 'lexical';
+import {
+  $createRangeSelection,
+  $createTextNode,
+  $getRoot,
+  $getSelection,
+  $isRangeSelection,
+  $isTextNode,
+  $setSelection,
+} from 'lexical';
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
 import { findNearestListItem, getRootElementOrThrow } from './selection';
@@ -25,10 +33,12 @@ export function $getNoteIdOrThrow(item: ListItemNode, message = 'Expected list i
   return noteId;
 }
 
-function $findItemByNoteId(noteId: string): ListItemNode | null {
+function $findItemByNoteId(noteId: string): ListItemNode {
   const root = $getRoot();
   const list = root.getFirstChild();
-  if (!list || !$isListNode(list)) return null;
+  if (!list || !$isListNode(list)) {
+    throw new Error(`No list item found with noteId: ${noteId}`);
+  }
   const $search = (listNode: ListNode): ListItemNode | null => {
     const items = listNode.getChildren<ListItemNode>();
     for (const item of items) {
@@ -45,7 +55,11 @@ function $findItemByNoteId(noteId: string): ListItemNode | null {
     return null;
   };
 
-  return $search(list);
+  const match = $search(list);
+  if (!match) {
+    throw new Error(`No list item found with noteId: ${noteId}`);
+  }
+  return match;
 }
 
 function placeCaretAtListItem(item: ListItemNode, offset: number) {
@@ -69,6 +83,8 @@ function placeCaretAtListItem(item: ListItemNode, offset: number) {
 }
 
 export async function placeCaretAtNoteId(remdo: RemdoTestApi, noteId: string, offset = 0) {
+  // Places a collapsed caret in the note, using text content when available.
+  // Limitations: if the note has no text node, selection snaps to list item boundaries; selection may be promoted later by the app.
   const rootElement = getRootElementOrThrow(remdo.editor);
   if (document.activeElement !== rootElement) {
     rootElement.focus();
@@ -78,7 +94,6 @@ export async function placeCaretAtNoteId(remdo: RemdoTestApi, noteId: string, of
 
   await remdo.mutate(() => {
     const item = $findItemByNoteId(noteId);
-    if (!item) throw new Error(`No list item found with noteId: ${noteId}`);
     placeCaretAtListItem(item, offset);
   });
 
@@ -89,10 +104,28 @@ export async function placeCaretAtNoteId(remdo: RemdoTestApi, noteId: string, of
   });
 }
 
+/**
+ * Appends text to the note with the given id without going through input events.
+ * Use for deterministic model-only edits (e.g., remote collab changes).
+ * For user-typing behavior, prefer {@link typeText} from keyboard helpers.
+ */
+export async function appendTextByNoteId(remdo: RemdoTestApi, noteId: string, text: string) {
+  await remdo.mutate(() => {
+    const item = $findItemByNoteId(noteId);
+
+    const textNode = item.getChildren().find((child): child is TextNode => child.getType() === 'text');
+    if (textNode) {
+      textNode.setTextContent(`${textNode.getTextContent()}${text}`);
+      return;
+    }
+
+    item.append($createTextNode(text));
+  });
+}
+
 export function getNoteKeyById(remdo: RemdoTestApi, noteId: string): string {
   return remdo.validate(() => {
     const item = $findItemByNoteId(noteId);
-    if (!item) throw new Error(`No list item found with noteId: ${noteId}`);
     return item.getKey();
   });
 }
@@ -101,6 +134,8 @@ export function readOutline(remdo: RemdoTestApi): Outline {
   return extractOutlineFromEditorState(remdo.getEditorState());
 }
 export async function selectEntireNoteById(remdo: RemdoTestApi, noteId: string): Promise<void> {
+  // Selects the full text range of a single note.
+  // Limitations: requires a text node in the note; does not simulate pointer selection.
   await placeCaretAtNoteId(remdo, noteId);
 
   await remdo.mutate(() => {
@@ -119,6 +154,7 @@ export async function selectEntireNoteById(remdo: RemdoTestApi, noteId: string):
   });
 }
 export function readCaretNoteKey(remdo: RemdoTestApi): string {
+  // Reads the note key from a collapsed caret selection.
   return remdo.validate(() => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
@@ -135,6 +171,7 @@ export function readCaretNoteKey(remdo: RemdoTestApi): string {
 }
 
 export function readCaretNoteId(remdo: RemdoTestApi): string {
+  // Reads the note id from a collapsed caret selection.
   return remdo.validate(() => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
@@ -193,7 +230,13 @@ function findContentTextNode(item: ListItemNode) {
     );
 }
 
-export async function selectNoteRangeById(remdo: RemdoTestApi, startNoteId: string, endNoteId: string): Promise<void> {
+export async function selectRangeSelectionById(
+  remdo: RemdoTestApi,
+  startNoteId: string,
+  endNoteId: string
+): Promise<void> {
+  // Creates a Lexical RangeSelection spanning note text (snaps to structural selection when it crosses notes).
+  // Limitations: requires text nodes in both notes and does not simulate DOM pointer selection.
   if (startNoteId === endNoteId) {
     await selectEntireNoteById(remdo, startNoteId);
     return;
@@ -201,15 +244,7 @@ export async function selectNoteRangeById(remdo: RemdoTestApi, startNoteId: stri
 
   await remdo.mutate(() => {
     const startItem = $findItemByNoteId(startNoteId);
-    if (!startItem) {
-      throw new Error(`No list item found with noteId: ${startNoteId}`);
-    }
-
     const endItem = $findItemByNoteId(endNoteId);
-    if (!endItem) {
-      throw new Error(`No list item found with noteId: ${endNoteId}`);
-    }
-
     const startTextNode = findContentTextNode(startItem);
     const endTextNode = findContentTextNode(endItem);
 

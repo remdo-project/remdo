@@ -12,7 +12,7 @@ import {
   readCaretNoteId,
   readCaretNoteKey,
   readOutline,
-  selectNoteRangeById,
+  selectRangeSelectionById,
   typeText,
 } from '#tests';
 
@@ -424,7 +424,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     it('keeps a single empty note when Delete is pressed at its end', async ({ remdo }) => {
       await remdo.load('flat');
 
-      await selectNoteRangeById(remdo, 'note1', 'note3');
+      await selectRangeSelectionById(remdo, 'note1', 'note3');
       await pressKey(remdo, { key: 'Delete' });
 
       const before = remdo.getEditorState();
@@ -545,7 +545,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     it('removes the selected notes and focuses the next sibling at the same depth', async ({ remdo }) => {
       await remdo.load('flat');
 
-      await selectNoteRangeById(remdo, 'note1', 'note2');
+      await selectRangeSelectionById(remdo, 'note1', 'note2');
 
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
 
@@ -558,10 +558,6 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     it('deletes only the selected empty note after Cmd/Ctrl+A', async ({ remdo }) => {
       await remdo.load('empty-labels');
 
-      const rootElement = remdo.editor.getRootElement();
-      if (!rootElement) {
-        throw new Error('Expected editor root element');
-      }
 
       await placeCaretAtNoteId(remdo, 'trailing');
 
@@ -591,7 +587,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     it('focuses the previous sibling when no next sibling survives the structural delete', async ({ remdo }) => {
       await remdo.load('flat');
 
-      await selectNoteRangeById(remdo, 'note2', 'note3');
+      await selectRangeSelectionById(remdo, 'note2', 'note3');
 
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
@@ -604,7 +600,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
     it('keeps the document non-empty when structural deletion removes every note', async ({ remdo }) => {
       await remdo.load('flat');
 
-      await selectNoteRangeById(remdo, 'note1', 'note3');
+      await selectRangeSelectionById(remdo, 'note1', 'note3');
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline([{ noteId: null }]);
@@ -639,7 +635,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
 
       const original = remdo.getEditorState();
 
-      await selectNoteRangeById(remdo, 'note1', 'note2');
+      await selectRangeSelectionById(remdo, 'note1', 'note2');
       await pressKey(remdo, { key: 'Delete' });
 
       await remdo.waitForSynced();

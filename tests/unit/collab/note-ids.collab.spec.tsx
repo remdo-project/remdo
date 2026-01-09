@@ -1,18 +1,19 @@
 import { waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { PASTE_COMMAND } from 'lexical';
 import {
-  buildClipboardPayload,
-  createClipboardEvent,
+  appendTextByNoteId,
+  copySelection,
+  cutSelection,
+  pastePayload,
   placeCaretAtNoteId,
   pressKey,
   readOutline,
-  selectStructuralNoteByDom,
-  selectNoteRangeById,
+  selectStructuralNotesById,
 } from '#tests';
 import { renderCollabEditor } from './_support/remdo-peers';
+import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
-describe('collaboration note ids', () => {
+describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('preserves new note ids across clients', async ({ remdo }) => {
     const docId = remdo.getCollabDocId();
     await remdo.load('flat');
@@ -93,15 +94,18 @@ describe('collaboration note ids', () => {
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
-    const outlineA = readOutline(remdo);
-    const baseline = new Set(['note1', 'note2', 'note3']);
-    const noteIds = outlineA
-      .map((note) => note.noteId)
-      .filter((noteId): noteId is string => typeof noteId === 'string');
-    const newIds = noteIds.filter((noteId) => !baseline.has(noteId));
+    let outlineA = readOutline(remdo);
+    await waitFor(() => {
+      outlineA = readOutline(remdo);
+      const baseline = new Set(['note1', 'note2', 'note3']);
+      const noteIds = outlineA
+        .map((note) => note.noteId)
+        .filter((noteId): noteId is string => typeof noteId === 'string');
+      const newIds = noteIds.filter((noteId) => !baseline.has(noteId));
 
-    expect(newIds).toHaveLength(2);
-    expect(new Set(noteIds).size).toBe(noteIds.length);
+      expect(newIds).toHaveLength(2);
+      expect(new Set(noteIds).size).toBe(noteIds.length);
+    });
     expect(secondary).toMatchOutline(outlineA);
   });
 
@@ -113,9 +117,8 @@ describe('collaboration note ids', () => {
     const secondary = await renderCollabEditor({ docId });
     await secondary.waitForSynced();
 
-    const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
-
-    await selectStructuralNoteByDom(remdo, 'note2');
+    await selectStructuralNotesById(remdo, 'note2');
+    const clipboardPayload = await copySelection(remdo);
     await pressKey(remdo, { key: 'Delete' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     await waitFor(() => {
@@ -123,7 +126,7 @@ describe('collaboration note ids', () => {
     });
 
     await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     const expected = [
@@ -132,8 +135,11 @@ describe('collaboration note ids', () => {
       { noteId: 'note3', text: 'note3' },
     ];
 
-    expect(remdo).toMatchOutline(expected);
-    expect(secondary).toMatchOutline(expected);
+    await waitFor(() => {
+      expect(remdo).toMatchOutline(expected);
+      expect(secondary).toMatchOutline(expected);
+    });
+
     const pastedId = readOutline(remdo).find((note) => note.text === 'note2')?.noteId;
     expect(pastedId).toEqual(expect.any(String));
     expect(pastedId).not.toBe('note2');
@@ -147,10 +153,10 @@ describe('collaboration note ids', () => {
     const secondary = await renderCollabEditor({ docId });
     await secondary.waitForSynced();
 
-    const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
-
+    await selectStructuralNotesById(remdo, 'note2');
+    const clipboardPayload = await copySelection(remdo);
     await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
-    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     await waitFor(() => {
@@ -175,9 +181,11 @@ describe('collaboration note ids', () => {
     const secondary = await renderCollabEditor({ docId });
     await secondary.waitForSynced();
 
-    const clipboardPayload = buildClipboardPayload(remdo, ['note2', 'note4']);
-
-    await selectNoteRangeById(remdo, 'note2', 'note4');
+    await selectStructuralNotesById(remdo, 'note2', 'note4');
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    });
+    const clipboardPayload = await copySelection(remdo);
     await pressKey(remdo, { key: 'Delete' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     await waitFor(() => {
@@ -185,7 +193,7 @@ describe('collaboration note ids', () => {
     });
 
     await placeCaretAtNoteId(remdo, 'note5', Number.POSITIVE_INFINITY);
-    await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(clipboardPayload));
+    await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     await waitFor(() => {
@@ -198,6 +206,196 @@ describe('collaboration note ids', () => {
       expect(noteIds.filter((noteId) => noteId === 'note4')).toHaveLength(0);
       expect(new Set(noteIds).size).toBe(noteIds.length);
       expect(secondary).toMatchOutline(outlineA);
+    });
+  });
+
+  it('drops cut markers after remote edits', async ({ remdo }) => {
+    const docId = remdo.getCollabDocId();
+    await remdo.load('flat');
+    await remdo.waitForSynced();
+
+    const secondary = await renderCollabEditor({ docId });
+    await secondary.waitForSynced();
+
+    await selectStructuralNotesById(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    await placeCaretAtNoteId(secondary, 'note2', Number.POSITIVE_INFINITY);
+    await appendTextByNoteId(secondary, 'note2', ' remote');
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+    await waitFor(() => {
+      expect(remdo).toMatchOutline([
+        { noteId: 'note1', text: 'note1' },
+        { noteId: 'note2', text: 'note2 remote' },
+        { noteId: 'note3', text: 'note3' },
+      ]);
+    });
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    // Paste is a no-op because the cut marker was invalidated by the remote edit.
+    const expectedOutline = [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2 remote' },
+      { noteId: 'note3', text: 'note3' },
+    ];
+    expect(remdo).toMatchOutline(expectedOutline);
+    await waitFor(() => {
+      expect(secondary).toMatchOutline(expectedOutline);
+    });
+  });
+
+  it('drops cut markers after remote deletions', async ({ remdo }) => {
+    const docId = remdo.getCollabDocId();
+    await remdo.load('flat');
+    await remdo.waitForSynced();
+
+    const secondary = await renderCollabEditor({ docId });
+    await secondary.waitForSynced();
+
+    await selectStructuralNotesById(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+    await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
+
+    await selectStructuralNotesById(secondary, 'note2');
+    await pressKey(secondary, { key: 'Delete' });
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    const expectedOutline = [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+    ];
+
+    await waitFor(() => {
+      expect(remdo).toMatchOutline(expectedOutline);
+    });
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+    await waitFor(() => {
+      expect(secondary).toMatchOutline(expectedOutline);
+    });
+  });
+
+  it('drops cut markers after remote structural edits', async ({ remdo }) => {
+    const docId = remdo.getCollabDocId();
+    await remdo.load('flat');
+    await remdo.waitForSynced();
+
+    const secondary = await renderCollabEditor({ docId });
+    await secondary.waitForSynced();
+
+    await selectStructuralNotesById(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    await placeCaretAtNoteId(secondary, 'note2', 0);
+    await pressKey(secondary, { key: 'Tab' });
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    const expectedOutline = [
+      { noteId: 'note1', text: 'note1', children: [{ noteId: 'note2', text: 'note2' }] },
+      { noteId: 'note3', text: 'note3' },
+    ];
+    await waitFor(() => {
+      expect(remdo).toMatchOutline(expectedOutline);
+    });
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+    await waitFor(() => {
+      expect(secondary).toMatchOutline(expectedOutline);
+    });
+  });
+
+  it('merges cut moves with concurrent edits on the moved note', async ({ remdo }) => {
+    const docId = remdo.getCollabDocId();
+    await remdo.load('flat');
+    await remdo.waitForSynced();
+
+    const secondary = await renderCollabEditor({ docId });
+    await secondary.waitForSynced();
+
+    await selectStructuralNotesById(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    await placeCaretAtNoteId(secondary, 'note2', Number.POSITIVE_INFINITY);
+    await appendTextByNoteId(secondary, 'note2', ' remote');
+
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    const expectedOutline = [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2 remote' },
+    ];
+
+    await waitFor(() => {
+      expect(remdo).toMatchOutline(expectedOutline);
+      expect(secondary).toMatchOutline(expectedOutline);
+    });
+  });
+
+  it('merges cut moves with concurrent edits on a moved subtree', async ({ remdo }) => {
+    const docId = remdo.getCollabDocId();
+    await remdo.load('tree-complex');
+    await remdo.waitForSynced();
+
+    expect(remdo).toMatchOutline([
+      {
+        noteId: 'note1',
+        text: 'note1',
+        children: [
+          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
+          { noteId: 'note4', text: 'note4' },
+        ],
+      },
+      { noteId: 'note5', text: 'note5' },
+      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
+    ]);
+
+    const secondary = await renderCollabEditor({ docId });
+    await secondary.waitForSynced();
+
+    await selectStructuralNotesById(remdo, 'note6', 'note7');
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
+
+    const clipboardPayload = await cutSelection(remdo);
+
+    await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    await placeCaretAtNoteId(secondary, 'note7', Number.POSITIVE_INFINITY);
+    await appendTextByNoteId(secondary, 'note7', ' remote');
+
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+
+    const expectedOutline = [
+      {
+        noteId: 'note1',
+        text: 'note1',
+        children: [
+          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
+          { noteId: 'note4', text: 'note4' },
+        ],
+      },
+      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7 remote' }] },
+      { noteId: 'note5', text: 'note5' },
+    ];
+
+    await waitFor(() => {
+      expect(remdo).toMatchOutline(expectedOutline);
+      expect(secondary).toMatchOutline(expectedOutline);
     });
   });
 });

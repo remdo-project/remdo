@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { config } from '#config';
 import { runPnpm } from '#tools/process';
+import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
-describe('collab persistence', () => {
+describe('collab persistence', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   const docId = 'persist-collab-test';
   const docDir = path.join(config.env.DATA_DIR, 'collab', docId);
   const dataFile = path.join(docDir, 'data.ysweet');

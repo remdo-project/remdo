@@ -79,6 +79,7 @@
 .editor-input {
   --remdo-structural-highlight-inset: var(--mantine-spacing-sm);
   --remdo-selection-color: rgba(97, 140, 255, 0.35);
+  --remdo-cut-marker-color: var(--mantine-color-dark-3);
   outline: none;
   white-space: pre-wrap;
   word-break: break-word;
@@ -109,6 +110,25 @@
   opacity: 1;
   top: var(--structural-selection-top, 0px);
   height: var(--structural-selection-height, 0px);
+}
+
+.editor-input::after {
+  content: '';
+  position: absolute;
+  left: calc(0px - var(--remdo-structural-highlight-inset));
+  right: calc(0px - var(--remdo-structural-highlight-inset));
+  border-radius: var(--mantine-radius-sm);
+  border: 1px dashed var(--remdo-cut-marker-color);
+  pointer-events: none;
+  opacity: 0;
+  top: 0;
+  height: 0;
+}
+
+.editor-input.editor-input--cut-marker::after {
+  opacity: 1;
+  top: var(--cut-marker-top, 0px);
+  height: var(--cut-marker-height, 0px);
 }
 
 .editor-input.editor-input--structural::selection,

@@ -16,6 +16,7 @@ overrides:
 catalog:
   '@antfu/eslint-config': ^6.7.3
   '@eslint-react/eslint-plugin': ^2.5.1
+  '@lexical/clipboard': ^0.39.0
   '@lexical/devtools-core': ^0.39.0
   '@lexical/eslint-plugin': ^0.39.0
   '@lexical/history': ^0.39.0

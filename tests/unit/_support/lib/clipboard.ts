@@ -2,8 +2,7 @@ import type { SerializedListNode } from '@lexical/list';
 import type { SerializedNoteListItemNode } from '#lib/editor/serialized-note-types';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import type { SerializedLexicalNode } from 'lexical';
-import { CUT_COMMAND } from 'lexical';
-import { selectStructuralNoteByDom } from './dom-selection';
+import { COPY_COMMAND, CUT_COMMAND, PASTE_COMMAND } from 'lexical';
 
 function getListNode(state: RemdoTestApi['getEditorState'] extends () => infer R ? R : never): SerializedListNode {
   const root = (state as { root?: { children?: unknown } }).root;
@@ -21,7 +20,7 @@ function getListNode(state: RemdoTestApi['getEditorState'] extends () => infer R
   return listNode;
 }
 
-export function createDataTransfer(payload: unknown): DataTransfer {
+export function createDataTransfer(payload?: unknown): DataTransfer {
   const data = new Map<string, string>();
   const transfer = {
     getData(type: string) {
@@ -36,12 +35,14 @@ export function createDataTransfer(payload: unknown): DataTransfer {
     },
   } as unknown as DataTransfer;
 
-  transfer.setData('application/x-lexical-editor', JSON.stringify(payload));
+  if (payload !== undefined) {
+    transfer.setData('application/x-lexical-editor', JSON.stringify(payload));
+  }
   return transfer;
 }
 
 export function createClipboardEvent(
-  payload: unknown,
+  payload?: unknown,
   type: 'paste' | 'cut' | 'copy' = 'paste'
 ): ClipboardEvent {
   return new ClipboardEvent(type, {
@@ -87,13 +88,33 @@ export function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
   };
 }
 
-// CUT_COMMAND only marks a structural selection for move; this helper builds
-// the payload and keeps the marker active for paste.
-export async function cutStructuralNoteById(remdo: RemdoTestApi, noteId: string) {
-  await selectStructuralNoteByDom(remdo, noteId);
-  const clipboardPayload = buildClipboardPayload(remdo, [noteId]);
-  await remdo.dispatchCommand(CUT_COMMAND, createClipboardEvent(clipboardPayload, 'cut'), { expect: 'noop' });
-  return clipboardPayload;
+function readClipboardPayload(clipboardEvent: ClipboardEvent, label: string) {
+  const rawPayload = clipboardEvent.clipboardData?.getData('application/x-lexical-editor') ?? '';
+  if (!rawPayload) {
+    throw new Error(`Expected ${label} to populate clipboard payload.`);
+  }
+  return JSON.parse(rawPayload) as { namespace?: string; nodes?: unknown[] };
+}
+
+// CUT_COMMAND only marks a structural selection for move; this helper reads
+// the payload the cut handler writes to the clipboard so paste stays realistic.
+// Limitation: structural cut collapses the selection onto the cut note; in
+// collab tests, relocate the caret before a remote delete of that note to
+// avoid Lexical/Yjs "node does not exist" errors.
+export async function cutSelection(remdo: RemdoTestApi) {
+  const clipboardEvent = createClipboardEvent(undefined, 'cut');
+  await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent, { expect: 'update' });
+  return readClipboardPayload(clipboardEvent, 'cut');
+}
+
+export async function copySelection(remdo: RemdoTestApi) {
+  const clipboardEvent = createClipboardEvent(undefined, 'copy');
+  await remdo.dispatchCommand(COPY_COMMAND, clipboardEvent, { expect: 'any' });
+  return readClipboardPayload(clipboardEvent, 'copy');
+}
+
+export async function pastePayload(remdo: RemdoTestApi, payload: unknown) {
+  await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(payload));
 }
 
 function normalizeIndent(node: SerializedLexicalNode): void {

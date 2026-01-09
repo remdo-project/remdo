@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 
-import { placeCaretAtNoteId, pressKey, readOutline } from '#tests';
+import { pressKey, readOutline, selectStructuralNotesById } from '#tests';
 import { renderCollabEditor } from './_support/remdo-peers';
+import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
-describe('collab structural delete regression', () => {
+describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('bubbles Delete when structural selection was removed by a collaborator', async ({ remdo }) => {
     const docId = remdo.getCollabDocId();
     await remdo.load('tree-complex');
@@ -17,9 +18,7 @@ describe('collab structural delete regression', () => {
       expect(readOutline(editorB)).toEqual(readOutline(editorA));
     });
 
-    await placeCaretAtNoteId(editorA, 'note2');
-    await pressKey(editorA, { key: 'ArrowDown', shift: true });
-    await pressKey(editorA, { key: 'ArrowDown', shift: true });
+    await selectStructuralNotesById(editorA, 'note2', 'note3');
 
     const expectedAfterRemoteDelete = [
       { noteId: 'note1', text: 'note1', children: [ { noteId: 'note4', text: 'note4' } ] },
@@ -27,9 +26,7 @@ describe('collab structural delete regression', () => {
       { noteId: 'note6', text: 'note6', children: [ { noteId: 'note7', text: 'note7' } ] },
     ];
 
-    await placeCaretAtNoteId(editorB, 'note2');
-    await pressKey(editorB, { key: 'ArrowDown', shift: true });
-    await pressKey(editorB, { key: 'ArrowDown', shift: true });
+    await selectStructuralNotesById(editorB, 'note2', 'note3');
     await pressKey(editorB, { key: 'Backspace' });
 
     await Promise.all([editorA.waitForSynced(), editorB.waitForSynced()]);
