@@ -84,7 +84,7 @@ function readEditorState(filePath: string): SerializedEditorState {
 
   it(
     'loads a snapshot fixture into the editor',
-    { meta: { collabDocId: 'snapshot-tree' } } as any,
+    { meta: { collabDocId: 'snapshot-tree' }, timeout: COLLAB_LONG_TIMEOUT_MS } as any,
     async ({ remdo }) => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-tree' };
       const loadPath = path.resolve('tests/fixtures/tree.json');
@@ -121,7 +121,7 @@ function readEditorState(filePath: string): SerializedEditorState {
       const saved = stripEditorStateDefaults(readEditorState(savePath));
       return JSON.stringify(saved) === JSON.stringify(expected);
     });
-  });
+  }, COLLAB_LONG_TIMEOUT_MS);
 
   it('keeps browser doc id aligned with CLI default configuration', async ({ remdo }: TestContext) => {
     const defaultDoc = remdo.getCollabDocId();

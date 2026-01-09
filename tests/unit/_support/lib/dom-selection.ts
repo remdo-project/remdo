@@ -147,7 +147,6 @@ export async function collapseDomSelectionAtNode(target: Node, offset: number) {
 }
 
 // Extend an existing DOM selection to a node/offset using Selection.extend.
-// Limitations: throws if there is no existing DOM selection.
 export async function extendDomSelectionToNode(target: Node, offset: number) {
   await mutateDomSelection((selection) => {
     if (selection.rangeCount === 0) {

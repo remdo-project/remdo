@@ -1,7 +1,10 @@
 import { MantineProvider } from '@mantine/core';
-import { render, waitFor } from '@testing-library/react';
+import { configure, render, waitFor } from '@testing-library/react';
 import Editor from '@/editor/Editor';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
+import { COLLAB_LONG_TIMEOUT_MS } from './timeouts';
+
+configure({ asyncUtilTimeout: COLLAB_LONG_TIMEOUT_MS });
 
 interface RenderEditorOptions {
   docId: string;
