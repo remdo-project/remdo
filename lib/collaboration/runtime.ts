@@ -69,6 +69,16 @@ function createEndpointResolver(origin?: string) {
   };
 }
 
+const RETRYABLE_HTTP_STATUSES = new Set([429]);
+
+function isRetriableStatus(status: number): boolean {
+  return status >= 500 || RETRYABLE_HTTP_STATUSES.has(status);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function ensureDocInitialized(docId: string, createEndpoint: string): Promise<void> {
   const existing = docInitPromises.get(docId);
   if (existing) {
@@ -76,20 +86,27 @@ function ensureDocInitialized(docId: string, createEndpoint: string): Promise<vo
   }
 
   // TODO: Remove client-side doc creation once the auth endpoint performs getOrCreate server-side.
-  const promise = fetch(createEndpoint, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ docId }),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`Failed to create doc ${docId}: ${response.status} ${response.statusText}`);
+  const promise = (async () => {
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const response = await fetch(createEndpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ docId }),
+      });
+      if (response.ok) {
+        return;
       }
-    })
-    .catch((error) => {
-      docInitPromises.delete(docId);
-      throw error;
-    });
+      const error = new Error(`Failed to create doc ${docId}: ${response.status} ${response.statusText}`);
+      if (!isRetriableStatus(response.status) || attempt === maxAttempts) {
+        throw error;
+      }
+      await sleep(100 * attempt);
+    }
+  })().catch((error) => {
+    docInitPromises.delete(docId);
+    throw error;
+  });
 
   docInitPromises.set(docId, promise);
   return promise;
