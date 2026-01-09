@@ -1,4 +1,4 @@
-import { expect, test as base } from '#e2e/fixtures';
+import { expect, readOutline, test as base } from '#e2e/fixtures';
 import type { Locator, Page } from '#e2e/fixtures';
 import { ensureReady, getEditorState, load, waitForSynced } from './bridge';
 import { prepareEditorTestSurface } from './focus';
@@ -34,5 +34,5 @@ export const test = base.extend<{ testDocId: string; editor: EditorHarness }>({
   },
 });
 
-export { expect };
+export { expect, readOutline };
 export type { Page, Locator, EditorHarness };

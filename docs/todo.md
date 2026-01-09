@@ -63,9 +63,6 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
   so failures can disappear after a run normalizes data. Add a cleanup or
   per-run `DATA_DIR`/doc-id strategy so Playwright runs are isolated and
   deterministic.
-- E2E helper: add a small `readOutline(editor)` wrapper around
-  `extractOutlineFromEditorState(await editor.getEditorState())` so tests don't
-  call the lower-level helper directly; keep `toMatchOutline` as-is.
 - Missing coverage: add a normalization test that loads a document containing
   a wrapper list item whose nested list has no list-item children (an empty
   child list), runs the load-time normalization pass, and asserts the invalid
