@@ -82,7 +82,7 @@ function placeCaretAtListItem(item: ListItemNode, offset: number) {
   item.selectEnd();
 }
 
-export async function placeCaretAtNoteId(remdo: RemdoTestApi, noteId: string, offset = 0) {
+export async function placeCaretAtNote(remdo: RemdoTestApi, noteId: string, offset = 0) {
   // Places a collapsed caret in the note, using text content when available.
   // Limitations: if the note has no text node, selection snaps to list item boundaries; selection may be promoted later by the app.
   const rootElement = getRootElementOrThrow(remdo.editor);
@@ -109,7 +109,7 @@ export async function placeCaretAtNoteId(remdo: RemdoTestApi, noteId: string, of
  * Use for deterministic model-only edits (e.g., remote collab changes).
  * For user-typing behavior, prefer {@link typeText} from keyboard helpers.
  */
-export async function appendTextByNoteId(remdo: RemdoTestApi, noteId: string, text: string) {
+export async function appendTextToNote(remdo: RemdoTestApi, noteId: string, text: string) {
   await remdo.mutate(() => {
     const item = $findItemByNoteId(noteId);
 
@@ -123,7 +123,7 @@ export async function appendTextByNoteId(remdo: RemdoTestApi, noteId: string, te
   });
 }
 
-export function getNoteKeyById(remdo: RemdoTestApi, noteId: string): string {
+export function getNoteKey(remdo: RemdoTestApi, noteId: string): string {
   return remdo.validate(() => {
     const item = $findItemByNoteId(noteId);
     return item.getKey();
@@ -133,10 +133,10 @@ export function getNoteKeyById(remdo: RemdoTestApi, noteId: string): string {
 export function readOutline(remdo: RemdoTestApi): Outline {
   return extractOutlineFromEditorState(remdo.getEditorState());
 }
-export async function selectEntireNoteById(remdo: RemdoTestApi, noteId: string): Promise<void> {
+export async function selectEntireNote(remdo: RemdoTestApi, noteId: string): Promise<void> {
   // Selects the full text range of a single note.
   // Limitations: requires a text node in the note; does not simulate pointer selection.
-  await placeCaretAtNoteId(remdo, noteId);
+  await placeCaretAtNote(remdo, noteId);
 
   await remdo.mutate(() => {
     const selection = $getSelection();
@@ -230,7 +230,7 @@ function findContentTextNode(item: ListItemNode) {
     );
 }
 
-export async function selectRangeSelectionById(
+export async function selectNoteRange(
   remdo: RemdoTestApi,
   startNoteId: string,
   endNoteId: string
@@ -238,7 +238,7 @@ export async function selectRangeSelectionById(
   // Creates a Lexical RangeSelection spanning note text (snaps to structural selection when it crosses notes).
   // Limitations: requires text nodes in both notes and does not simulate DOM pointer selection.
   if (startNoteId === endNoteId) {
-    await selectEntireNoteById(remdo, startNoteId);
+    await selectEntireNote(remdo, startNoteId);
     return;
   }
 

@@ -1,14 +1,14 @@
 import { waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import {
-  appendTextByNoteId,
+  appendTextToNote,
   copySelection,
   cutSelection,
   pastePayload,
-  placeCaretAtNoteId,
+  placeCaretAtNote,
   pressKey,
   readOutline,
-  selectStructuralNotesById,
+  selectStructuralNotes,
 } from '#tests';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
@@ -20,7 +20,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     const secondary = await createCollabPeer(remdo);
 
-    await placeCaretAtNoteId(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
@@ -47,11 +47,11 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     const secondary = await createCollabPeer(remdo);
 
-    await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
-    await placeCaretAtNoteId(secondary, 'note3', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(secondary, 'note3', Number.POSITIVE_INFINITY);
     await pressKey(secondary, { key: 'Enter' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -77,11 +77,11 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     await Promise.all([
       (async () => {
-        await placeCaretAtNoteId(remdo, 'note2', Number.POSITIVE_INFINITY);
+        await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
         await pressKey(remdo, { key: 'Enter' });
       })(),
       (async () => {
-        await placeCaretAtNoteId(secondary, 'note2', Number.POSITIVE_INFINITY);
+        await placeCaretAtNote(secondary, 'note2', Number.POSITIVE_INFINITY);
         await pressKey(secondary, { key: 'Enter' });
       })(),
     ]);
@@ -109,7 +109,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2');
+    await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await copySelection(remdo);
     await pressKey(remdo, { key: 'Delete' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
@@ -117,7 +117,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       expect(secondary).toMatchOutline(readOutline(remdo));
     });
 
-    await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -143,9 +143,9 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2');
+    await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await copySelection(remdo);
-    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -169,7 +169,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2', 'note4');
+    await selectStructuralNotes(remdo, 'note2', 'note4');
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
     });
@@ -180,7 +180,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       expect(secondary).toMatchOutline(readOutline(remdo));
     });
 
-    await placeCaretAtNoteId(remdo, 'note5', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note5', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -203,11 +203,11 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2');
+    await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
 
-    await placeCaretAtNoteId(secondary, 'note2', Number.POSITIVE_INFINITY);
-    await appendTextByNoteId(secondary, 'note2', ' remote');
+    await placeCaretAtNote(secondary, 'note2', Number.POSITIVE_INFINITY);
+    await appendTextToNote(secondary, 'note2', ' remote');
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     await waitFor(() => {
       expect(remdo).toMatchOutline([
@@ -217,7 +217,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       ]);
     });
 
-    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -239,11 +239,11 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2');
+    await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
-    await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
 
-    await selectStructuralNotesById(secondary, 'note2');
+    await selectStructuralNotes(secondary, 'note2');
     await pressKey(secondary, { key: 'Delete' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -256,7 +256,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       expect(remdo).toMatchOutline(expectedOutline);
     });
 
-    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -272,10 +272,10 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2');
+    await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
 
-    await placeCaretAtNoteId(secondary, 'note2', 0);
+    await placeCaretAtNote(secondary, 'note2', 0);
     await pressKey(secondary, { key: 'Tab' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -287,7 +287,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       expect(remdo).toMatchOutline(expectedOutline);
     });
 
-    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -303,14 +303,14 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2');
+    await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
 
-    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
 
-    await placeCaretAtNoteId(secondary, 'note2', Number.POSITIVE_INFINITY);
-    await appendTextByNoteId(secondary, 'note2', ' remote');
+    await placeCaretAtNote(secondary, 'note2', Number.POSITIVE_INFINITY);
+    await appendTextToNote(secondary, 'note2', ' remote');
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -345,16 +345,16 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note6', 'note7');
+    await selectStructuralNotes(remdo, 'note6', 'note7');
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
 
     const clipboardPayload = await cutSelection(remdo);
 
-    await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
 
-    await placeCaretAtNoteId(secondary, 'note7', Number.POSITIVE_INFINITY);
-    await appendTextByNoteId(secondary, 'note7', ' remote');
+    await placeCaretAtNote(secondary, 'note7', Number.POSITIVE_INFINITY);
+    await appendTextToNote(secondary, 'note7', ' remote');
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 

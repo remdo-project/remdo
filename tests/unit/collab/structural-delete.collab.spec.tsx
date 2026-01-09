@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 
-import { pressKey, readOutline, selectStructuralNotesById } from '#tests';
+import { pressKey, readOutline, selectStructuralNotes } from '#tests';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
@@ -15,7 +15,7 @@ describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_M
       expect(readOutline(secondary)).toEqual(readOutline(remdo));
     });
 
-    await selectStructuralNotesById(remdo, 'note2', 'note3');
+    await selectStructuralNotes(remdo, 'note2', 'note3');
 
     const expectedAfterRemoteDelete = [
       { noteId: 'note1', text: 'note1', children: [ { noteId: 'note4', text: 'note4' } ] },
@@ -23,7 +23,7 @@ describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_M
       { noteId: 'note6', text: 'note6', children: [ { noteId: 'note7', text: 'note7' } ] },
     ];
 
-    await selectStructuralNotesById(secondary, 'note2', 'note3');
+    await selectStructuralNotes(secondary, 'note2', 'note3');
     await pressKey(secondary, { key: 'Backspace' });
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);

@@ -96,7 +96,7 @@ export async function pressKey(
 /**
  * Inserts plain text characters using Lexical's controlled insertion path.
  * If the keydown is prevented by the editor (e.g., structural mode), no text is inserted.
- * For deterministic model-only edits, prefer {@link appendTextByNoteId} in note helpers.
+ * For deterministic model-only edits, prefer {@link appendTextToNote} in note helpers.
  */
 export async function typeText(remdo: RemdoTestApi, text: string): Promise<void> {
   const root = getRootElementOrThrow(remdo.editor);

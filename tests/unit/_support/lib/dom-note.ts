@@ -1,8 +1,8 @@
 import type { RemdoTestApi } from '@/editor/plugins/dev';
-import { getNoteKeyById } from './note';
+import { getNoteKey } from './note';
 
-export function getNoteElementById(remdo: RemdoTestApi, noteId: string) {
-  const key = getNoteKeyById(remdo, noteId);
+export function getNoteElement(remdo: RemdoTestApi, noteId: string) {
+  const key = getNoteKey(remdo, noteId);
   const element = remdo.editor.getElementByKey(key);
   if (!element) {
     throw new TypeError(`Expected element for noteId: ${noteId}`);
@@ -10,8 +10,8 @@ export function getNoteElementById(remdo: RemdoTestApi, noteId: string) {
   return element;
 }
 
-export function getNoteTextNodeById(remdo: RemdoTestApi, noteId: string): Text {
-  const noteElement = getNoteElementById(remdo, noteId);
+export function getNoteTextNode(remdo: RemdoTestApi, noteId: string): Text {
+  const noteElement = getNoteElement(remdo, noteId);
   const textElement = noteElement.querySelector('[data-lexical-text="true"]');
   if (!textElement) {
     throw new TypeError(`Expected text element for noteId: ${noteId}`);
