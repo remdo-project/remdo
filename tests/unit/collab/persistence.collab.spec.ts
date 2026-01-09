@@ -6,7 +6,7 @@ import { config } from '#config';
 import { runPnpm } from '#tools/process';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
-describe('collab persistence', () => {
+describe('collab persistence', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   const docId = 'persist-collab-test';
   const docDir = path.join(config.env.DATA_DIR, 'collab', docId);
   const dataFile = path.join(docDir, 'data.ysweet');
@@ -25,5 +25,5 @@ describe('collab persistence', () => {
       }
       expect(statSync(dataFile).size).toBeGreaterThan(0);
     });
-  }, COLLAB_LONG_TIMEOUT_MS);
+  });
 });

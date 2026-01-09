@@ -10,7 +10,7 @@ import type { Buffer } from 'node:buffer';
 import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
-describe('snapshot CLI', () => {
+describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   const SNAPSHOT_OUTPUTS = [
     path.resolve('data', 'snapshot.cli.json'),
     path.resolve('data', 'snapshot.cli.flat.json'),
@@ -62,7 +62,7 @@ function readEditorState(filePath: string): SerializedEditorState {
       const saved = stripEditorStateDefaults(readEditorState(savePath));
       return JSON.stringify(saved) === JSON.stringify(expected);
     });
-  }, COLLAB_LONG_TIMEOUT_MS);
+  });
 
   it(
     'saves the current editor state via snapshot CLI',
@@ -84,7 +84,7 @@ function readEditorState(filePath: string): SerializedEditorState {
 
   it(
     'loads a snapshot fixture into the editor',
-    { meta: { collabDocId: 'snapshot-tree' }, timeout: COLLAB_LONG_TIMEOUT_MS } as any,
+    { meta: { collabDocId: 'snapshot-tree' } } as any,
     async ({ remdo }) => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-tree' };
       const loadPath = path.resolve('tests/fixtures/tree.json');
@@ -121,7 +121,7 @@ function readEditorState(filePath: string): SerializedEditorState {
       const saved = stripEditorStateDefaults(readEditorState(savePath));
       return JSON.stringify(saved) === JSON.stringify(expected);
     });
-  }, COLLAB_LONG_TIMEOUT_MS);
+  });
 
   it('keeps browser doc id aligned with CLI default configuration', async ({ remdo }: TestContext) => {
     const defaultDoc = remdo.getCollabDocId();
@@ -139,7 +139,6 @@ function readEditorState(filePath: string): SerializedEditorState {
 
   it(
     'cross-loads and saves multiple documents without crosstalk',
-    { timeout: COLLAB_LONG_TIMEOUT_MS },
     async ({ remdo }: TestContext) => {
       const defaultDoc = remdo.getCollabDocId();
       const secondaryDoc = `${defaultDoc}-secondary`;

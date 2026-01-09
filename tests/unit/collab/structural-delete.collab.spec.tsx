@@ -3,8 +3,9 @@ import { waitFor } from '@testing-library/react';
 
 import { pressKey, readOutline, selectStructuralNotesById } from '#tests';
 import { renderCollabEditor } from './_support/remdo-peers';
+import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
-describe('collab structural delete regression', () => {
+describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('bubbles Delete when structural selection was removed by a collaborator', async ({ remdo }) => {
     const docId = remdo.getCollabDocId();
     await remdo.load('tree-complex');

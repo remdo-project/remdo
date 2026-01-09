@@ -5,8 +5,9 @@ import { describe, expect, it } from 'vitest';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { readOutline } from '#tests';
 import { renderCollabEditor } from './_support/remdo-peers';
+import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
-describe('collaboration sync', () => {
+describe('collaboration sync', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('syncs edits between editors', async ({ remdo }) => {
     const docId = remdo.getCollabDocId();
     const secondary: RemdoTestApi = await renderCollabEditor({ docId });

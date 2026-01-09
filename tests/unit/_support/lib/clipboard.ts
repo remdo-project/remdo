@@ -98,6 +98,9 @@ function readClipboardPayload(clipboardEvent: ClipboardEvent, label: string) {
 
 // CUT_COMMAND only marks a structural selection for move; this helper reads
 // the payload the cut handler writes to the clipboard so paste stays realistic.
+// Limitation: structural cut collapses the selection onto the cut note; in
+// collab tests, relocate the caret before a remote delete of that note to
+// avoid Lexical/Yjs "node does not exist" errors.
 export async function cutSelection(remdo: RemdoTestApi) {
   const clipboardEvent = createClipboardEvent(undefined, 'cut');
   await remdo.dispatchCommand(CUT_COMMAND, clipboardEvent, { expect: 'update' });

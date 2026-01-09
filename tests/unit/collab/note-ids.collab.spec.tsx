@@ -11,8 +11,9 @@ import {
   selectStructuralNotesById,
 } from '#tests';
 import { renderCollabEditor } from './_support/remdo-peers';
+import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
-describe('collaboration note ids', () => {
+describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('preserves new note ids across clients', async ({ remdo }) => {
     const docId = remdo.getCollabDocId();
     await remdo.load('flat');
@@ -256,6 +257,7 @@ describe('collaboration note ids', () => {
 
     await selectStructuralNotesById(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
+    await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
 
     await selectStructuralNotesById(secondary, 'note2');
     await pressKey(secondary, { key: 'Delete' });

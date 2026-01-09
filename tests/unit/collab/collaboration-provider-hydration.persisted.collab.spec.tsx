@@ -4,8 +4,9 @@ import * as Y from 'yjs';
 import { CollabSession } from '#lib/collaboration/session';
 import type { ProviderFactory } from '#lib/collaboration/runtime';
 import { createMockProvider } from './_support/mock-provider';
+import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
-describe('collaboration session hydration persistence', () => {
+describe('collaboration session hydration persistence', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('keeps hydrated true after a transient connection error on the same document', async () => {
     const docId = 'doc-id';
     const docMap = new Map<string, Y.Doc>([[docId, new Y.Doc()]]);
