@@ -27,11 +27,12 @@ overrides (it is optional).
   (including `COLLAB_SERVER_PORT`) follow from the base.
 - Suggested convention: worktree `PORT = BASE_PORT + 100`, `+200`, etc., staying
   clear of Chromium’s blocked port list.
-- Set a distinct `DATA_DIR` per worktree for extra isolation to keep artifacts
-  inside that worktree.
-- Collab reuse is port-based only: `ensureCollabServer` reuses any server
-  already listening on `COLLAB_SERVER_PORT` and does not verify `DATA_DIR`.
-  Sharing ports across worktrees will point tests at the wrong data directory.
+- Set a distinct `DATA_DIR` per worktree to keep artifacts inside that worktree.
+- Collab reuse is guarded by a metadata file in `DATA_DIR/logs`.
+  `ensureCollabServer` only reuses a running server when the metadata matches
+  the current `DATA_DIR` and `COLLAB_SERVER_PORT`. If the port is already in
+  use but the metadata is missing or mismatched, tests will fail with an
+  actionable error—pick a new `PORT` or stop the conflicting server.
 
 Example `.env` for a worktree:
 
