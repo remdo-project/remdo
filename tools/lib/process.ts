@@ -23,6 +23,7 @@ interface SpawnPnpmOptions {
   env?: NodeJS.ProcessEnv;
   forwardExit?: boolean;
   stdio?: 'inherit' | 'ignore' | Array<null | undefined | 'pipe' | 'ignore' | 'inherit' | number | NodeJS.ReadStream | NodeJS.WriteStream>;
+  detached?: boolean;
 }
 
 export function spawnPnpm(
@@ -34,6 +35,7 @@ export function spawnPnpm(
     // eslint-disable-next-line node/no-process-env -- merge current env with overrides for the child process
     env: { ...process.env, ...envOverrides },
     stdio: options?.stdio ?? 'inherit',
+    detached: options?.detached ?? false,
     shell: false,
   });
 

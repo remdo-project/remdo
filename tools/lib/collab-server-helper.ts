@@ -1,3 +1,4 @@
+import type { ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -13,6 +14,23 @@ const MAX_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
 const LOG_PATH = path.join(config.env.DATA_DIR, 'logs/collab-server.log');
 const COLLAB_DATA_DIR = path.join(config.env.DATA_DIR, 'collab');
+
+function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
+  if (child.killed) {
+    return;
+  }
+
+  if (child.pid && process.platform !== 'win32') {
+    try {
+      process.kill(-child.pid, signal);
+      return;
+    } catch {
+      // Fallback to direct child kill when group signaling fails.
+    }
+  }
+
+  child.kill(signal);
+}
 
 function ensureLogStream(): fs.WriteStream {
   fs.mkdirSync(path.dirname(LOG_PATH), { recursive: true });
@@ -59,6 +77,7 @@ export async function ensureCollabServer(allowReuse = true): Promise<StopCollabS
         COLLAB_SERVER_PORT: String(resolvedPort),
         COLLAB_ENABLED: 'true',
       },
+      detached: true,
       forwardExit: false,
       stdio: ['ignore', 'pipe', 'pipe'],
     },
@@ -73,9 +92,7 @@ export async function ensureCollabServer(allowReuse = true): Promise<StopCollabS
 
   const teardownSignals = ['exit', 'SIGINT', 'SIGTERM'] as const;
   const onSignal = () => {
-    if (!child.killed) {
-      child.kill('SIGTERM');
-    }
+    terminateProcessGroup(child, 'SIGTERM');
   };
   for (const event of teardownSignals) {
     process.on(event, onSignal);
@@ -91,14 +108,14 @@ export async function ensureCollabServer(allowReuse = true): Promise<StopCollabS
   try {
     await waitForPort(probeHost, resolvedPort);
   } catch (error) {
-    child.kill('SIGTERM');
+    terminateProcessGroup(child, 'SIGTERM');
     await once(child, 'exit');
     await cleanup();
     throw error;
   }
 
   return async () => {
-    child.kill('SIGTERM');
+    terminateProcessGroup(child, 'SIGTERM');
     await once(child, 'exit');
     await cleanup();
   };

@@ -26,8 +26,8 @@ outdated or a doc’s role materially changes.
 - `docs/contributing.md` (Short). Runtime baselines and Git workflow/branch conventions.
 - `docs/deployment-single-container.md` (Short). Single-container build/run (Caddy + Y-Sweet),
   `.env` overrides, `PORT`/`COLLAB_SERVER_PORT`, auth, and `DATA_DIR` mapping.
-- `docs/environment.md` (Short). Env setup for dev/test/prod/CI, defaults/overrides, and blocked
-  port guard.
+- `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, defaults/overrides, worktrees,
+  and blocked port guard.
 - `docs/insertion.md` (Short). Caret-mode `Enter` behavior and focus rules.
 - `docs/outliner/concepts.md` (Medium). Note model, invariants, core terms, adapters, fixtures.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge rules, spacing.
@@ -92,6 +92,10 @@ document captures the full model.
     solution, but do not change any code.
   - If asked to propose code, provide the snippet and wait for explicit approval
     before making changes.
+- Background processes started from the root workdir are controlled by the
+  developer; do not start or kill them.
+- Background processes started from worktrees (by their unique ports) can be
+  started or stopped by coding agents as needed without asking.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
 - The project is in dev phase, do not introduce temporary shims when refactoring

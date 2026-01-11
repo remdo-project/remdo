@@ -2,24 +2,53 @@
 
 This document is the single source of truth for RemDo environment setup across
 dev, tests, prod (host + Docker), backup machines, and CI. All runtime defaults
-are derived in `tools/env.defaults.sh` (via `tools/env.sh`). Use `.env` only
-for overrides (it is optional).
+are derived in `tools/env.defaults.sh` (via `tools/env.sh`). Use `.env` only for
+overrides (it is optional).
 
 ## Dev (local)
 
 - If you need overrides, copy `.env.example` to `.env`.
-- Prefer defaults; set `PORT` to avoid conflicts between workdirs on the same host.
+- Prefer defaults; set `PORT` to avoid conflicts between workdirs on the same
+  host.
 - Avoid Chromium-restricted ports (like 6000); `tools/env.defaults.sh` errors if
   `PORT` or any derived port hits the blocked list. Chromium's list is the
   strictest in Playwright, so treating it as the baseline avoids surprises in
   other browsers.
 - When `DATA_DIR` is relative, it resolves against the repo root.
 
+### Worktrees (recommended for parallel option exploration)
+
+- Name the root workdir as `remdo-BASE_PORT` (where `BASE_PORT` is the root
+  `PORT` value). Example: `~/projects/remdo-7000`.
+- Create worktrees as sibling directories (for example
+  `~/projects/remdo-7000-wt-optA`), not nested inside the main repo. This avoids
+  glob/watcher noise and accidental `git status` clutter.
+- Give each worktree a unique base `PORT` in its own `.env`. All derived ports
+  (including `COLLAB_SERVER_PORT`) follow from the base.
+- Suggested convention: worktree `PORT = BASE_PORT + 100`, `+200`, etc., staying
+  clear of Chromium’s blocked port list.
+- Set a distinct `DATA_DIR` per worktree for extra isolation to keep artifacts
+  inside that worktree.
+- Collab reuse is port-based only: `ensureCollabServer` reuses any server
+  already listening on `COLLAB_SERVER_PORT` and does not verify `DATA_DIR`.
+  Sharing ports across worktrees will point tests at the wrong data directory.
+
+Example `.env` for a worktree:
+
+```
+HOST=127.0.0.1
+PORT=7100
+DATA_DIR=data-optA
+```
+
 ## Tests
 
 - Tests run through `tools/env.sh`, so derived ports follow `PORT + N` defaults.
 - Override `COLLAB_ENABLED`, `PORT`, or `COLLAB_SERVER_PORT` only when needed.
-- CLI tools derive collab origin from `HOST` + `COLLAB_SERVER_PORT` (browser uses `location.origin`).
+- CLI tools derive collab origin from `HOST` + `COLLAB_SERVER_PORT` (browser
+  uses `location.origin`).
+- When running tests across multiple worktrees, keep `PORT` unique per worktree
+  so collab servers and filesystem paths do not collide.
 
 ### Docker E2E (test:docker)
 
@@ -27,7 +56,8 @@ for overrides (it is optional).
 - Requires a local Docker daemon (or rootless Docker) to be running.
 - Uses `tools/env.sh` defaults with optional `.env` overrides; see
   `tools/docker-test.sh` for the full var list.
-- Common overrides: `DATA_DIR`, `PORT` (drives `DOCKER_TEST_PORT`), `BASICAUTH_USER`, `BASICAUTH_PASSWORD`.
+- Common overrides: `DATA_DIR`, `PORT` (drives `DOCKER_TEST_PORT`),
+  `BASICAUTH_USER`, `BASICAUTH_PASSWORD`.
 
 ## Prod
 
@@ -46,7 +76,8 @@ for overrides (it is optional).
 - `docker/run.sh` mounts host `DATA_DIR` to `/data` inside the container.
 - Inside the container, the app uses `DATA_DIR=/data`.
 - Y-Sweet data: `/data/collab`, backups: `/data/backup`.
-- Self-hosted setups assume no external services; everything runs in the container.
+- Self-hosted setups assume no external services; everything runs in the
+  container.
 
 ### Cloud (Render)
 
