@@ -7,6 +7,10 @@ interface EditorLike {
   getEditorState: () => Promise<unknown>;
 }
 
+export async function readOutline(editor: EditorLike): Promise<Outline> {
+  return extractOutlineFromEditorState(await editor.getEditorState());
+}
+
 function attachGuards(page: Page) {
   const allowResponse = (response: Response) => {
     const url = response.url();

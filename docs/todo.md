@@ -63,20 +63,12 @@ reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
   so failures can disappear after a run normalizes data. Add a cleanup or
   per-run `DATA_DIR`/doc-id strategy so Playwright runs are isolated and
   deterministic.
-- E2E helper: add a small `readOutline(editor)` wrapper around
-  `extractOutlineFromEditorState(await editor.getEditorState())` so tests don't
-  call the lower-level helper directly; keep `toMatchOutline` as-is.
 - Missing coverage: add a normalization test that loads a document containing
   a wrapper list item whose nested list has no list-item children (an empty
   child list), runs the load-time normalization pass, and asserts the invalid
   wrapper is removed so the resulting outline is schema-valid and stable. The
   test should also ensure the remaining notes keep their note ids and order
   intact after the cleanup.
-- Collab test refactor (open questions): should we standardize on `remdo` +
-  `remdo2` naming and provide a helper/fixture that returns a pre-synced second
-  client next to `remdo`? If so, should the multi-client tests live under a
-  dedicated folder (or similar grouping) where `remdo2` is pre-baked, or should
-  it remain opt-in per test to avoid overhead?
 
 ## Other
 

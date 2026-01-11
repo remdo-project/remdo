@@ -2,17 +2,13 @@ import { waitFor } from '@testing-library/react';
 import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
 import { $createListItemNode, $createListNode } from '@lexical/list';
 import { describe, expect, it } from 'vitest';
-import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { readOutline } from '#tests';
-import { renderCollabEditor } from './_support/remdo-peers';
+import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('collaboration sync', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('syncs edits between editors', async ({ remdo }) => {
-    const docId = remdo.getCollabDocId();
-    const secondary: RemdoTestApi = await renderCollabEditor({ docId });
-
-    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+    const secondary = await createCollabPeer(remdo);
 
     remdo.editor.update(() => {
       $getRoot().clear();
@@ -41,8 +37,7 @@ describe('collaboration sync', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
-    await remdo.waitForSynced();
-    await secondary.waitForSynced();
+    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     const sharedOutline = [{ noteId: null, text: 'note1' }];
     await waitFor(() => {
       expect(remdo).toMatchOutline(sharedOutline);

@@ -1,28 +1,26 @@
 import { waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import {
-  appendTextByNoteId,
+  appendTextToNote,
   copySelection,
   cutSelection,
   pastePayload,
-  placeCaretAtNoteId,
+  placeCaretAtNote,
   pressKey,
   readOutline,
-  selectStructuralNotesById,
+  selectStructuralNotes,
 } from '#tests';
-import { renderCollabEditor } from './_support/remdo-peers';
+import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('preserves new note ids across clients', async ({ remdo }) => {
-    const docId = remdo.getCollabDocId();
     await remdo.load('flat');
     await remdo.waitForSynced();
 
-    const secondary = await renderCollabEditor({ docId });
-    await secondary.waitForSynced();
+    const secondary = await createCollabPeer(remdo);
 
-    await placeCaretAtNoteId(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
@@ -44,18 +42,16 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('keeps ids unique after inserts from multiple clients', async ({ remdo }) => {
-    const docId = remdo.getCollabDocId();
     await remdo.load('flat');
     await remdo.waitForSynced();
 
-    const secondary = await renderCollabEditor({ docId });
-    await secondary.waitForSynced();
+    const secondary = await createCollabPeer(remdo);
 
-    await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
-    await placeCaretAtNoteId(secondary, 'note3', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(secondary, 'note3', Number.POSITIVE_INFINITY);
     await pressKey(secondary, { key: 'Enter' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -74,20 +70,18 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('keeps ids unique after concurrent inserts at the same location', async ({ remdo }) => {
-    const docId = remdo.getCollabDocId();
     await remdo.load('flat');
     await remdo.waitForSynced();
 
-    const secondary = await renderCollabEditor({ docId });
-    await secondary.waitForSynced();
+    const secondary = await createCollabPeer(remdo);
 
     await Promise.all([
       (async () => {
-        await placeCaretAtNoteId(remdo, 'note2', Number.POSITIVE_INFINITY);
+        await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
         await pressKey(remdo, { key: 'Enter' });
       })(),
       (async () => {
-        await placeCaretAtNoteId(secondary, 'note2', Number.POSITIVE_INFINITY);
+        await placeCaretAtNote(secondary, 'note2', Number.POSITIVE_INFINITY);
         await pressKey(secondary, { key: 'Enter' });
       })(),
     ]);
@@ -110,14 +104,12 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('regenerates ids for paste across clients', async ({ remdo }) => {
-    const docId = remdo.getCollabDocId();
     await remdo.load('flat');
     await remdo.waitForSynced();
 
-    const secondary = await renderCollabEditor({ docId });
-    await secondary.waitForSynced();
+    const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2');
+    await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await copySelection(remdo);
     await pressKey(remdo, { key: 'Delete' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
@@ -125,7 +117,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       expect(secondary).toMatchOutline(readOutline(remdo));
     });
 
-    await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -146,16 +138,14 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('regenerates ids when pasting over existing content across clients', async ({ remdo }) => {
-    const docId = remdo.getCollabDocId();
     await remdo.load('flat');
     await remdo.waitForSynced();
 
-    const secondary = await renderCollabEditor({ docId });
-    await secondary.waitForSynced();
+    const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2');
+    await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await copySelection(remdo);
-    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -174,14 +164,12 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('regenerates ids for multi-note structural paste across clients', async ({ remdo }) => {
-    const docId = remdo.getCollabDocId();
     await remdo.load('tree-complex');
     await remdo.waitForSynced();
 
-    const secondary = await renderCollabEditor({ docId });
-    await secondary.waitForSynced();
+    const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2', 'note4');
+    await selectStructuralNotes(remdo, 'note2', 'note4');
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
     });
@@ -192,7 +180,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       expect(secondary).toMatchOutline(readOutline(remdo));
     });
 
-    await placeCaretAtNoteId(remdo, 'note5', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note5', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -210,18 +198,16 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('drops cut markers after remote edits', async ({ remdo }) => {
-    const docId = remdo.getCollabDocId();
     await remdo.load('flat');
     await remdo.waitForSynced();
 
-    const secondary = await renderCollabEditor({ docId });
-    await secondary.waitForSynced();
+    const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2');
+    await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
 
-    await placeCaretAtNoteId(secondary, 'note2', Number.POSITIVE_INFINITY);
-    await appendTextByNoteId(secondary, 'note2', ' remote');
+    await placeCaretAtNote(secondary, 'note2', Number.POSITIVE_INFINITY);
+    await appendTextToNote(secondary, 'note2', ' remote');
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     await waitFor(() => {
       expect(remdo).toMatchOutline([
@@ -231,7 +217,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       ]);
     });
 
-    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -248,18 +234,16 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('drops cut markers after remote deletions', async ({ remdo }) => {
-    const docId = remdo.getCollabDocId();
     await remdo.load('flat');
     await remdo.waitForSynced();
 
-    const secondary = await renderCollabEditor({ docId });
-    await secondary.waitForSynced();
+    const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2');
+    await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
-    await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
 
-    await selectStructuralNotesById(secondary, 'note2');
+    await selectStructuralNotes(secondary, 'note2');
     await pressKey(secondary, { key: 'Delete' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -272,7 +256,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       expect(remdo).toMatchOutline(expectedOutline);
     });
 
-    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -283,17 +267,15 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('drops cut markers after remote structural edits', async ({ remdo }) => {
-    const docId = remdo.getCollabDocId();
     await remdo.load('flat');
     await remdo.waitForSynced();
 
-    const secondary = await renderCollabEditor({ docId });
-    await secondary.waitForSynced();
+    const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2');
+    await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
 
-    await placeCaretAtNoteId(secondary, 'note2', 0);
+    await placeCaretAtNote(secondary, 'note2', 0);
     await pressKey(secondary, { key: 'Tab' });
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -305,7 +287,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       expect(remdo).toMatchOutline(expectedOutline);
     });
 
-    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -316,21 +298,19 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('merges cut moves with concurrent edits on the moved note', async ({ remdo }) => {
-    const docId = remdo.getCollabDocId();
     await remdo.load('flat');
     await remdo.waitForSynced();
 
-    const secondary = await renderCollabEditor({ docId });
-    await secondary.waitForSynced();
+    const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note2');
+    await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
 
-    await placeCaretAtNoteId(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
 
-    await placeCaretAtNoteId(secondary, 'note2', Number.POSITIVE_INFINITY);
-    await appendTextByNoteId(secondary, 'note2', ' remote');
+    await placeCaretAtNote(secondary, 'note2', Number.POSITIVE_INFINITY);
+    await appendTextToNote(secondary, 'note2', ' remote');
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
@@ -347,7 +327,6 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('merges cut moves with concurrent edits on a moved subtree', async ({ remdo }) => {
-    const docId = remdo.getCollabDocId();
     await remdo.load('tree-complex');
     await remdo.waitForSynced();
 
@@ -364,19 +343,18 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
     ]);
 
-    const secondary = await renderCollabEditor({ docId });
-    await secondary.waitForSynced();
+    const secondary = await createCollabPeer(remdo);
 
-    await selectStructuralNotesById(remdo, 'note6', 'note7');
+    await selectStructuralNotes(remdo, 'note6', 'note7');
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
 
     const clipboardPayload = await cutSelection(remdo);
 
-    await placeCaretAtNoteId(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
 
-    await placeCaretAtNoteId(secondary, 'note7', Number.POSITIVE_INFINITY);
-    await appendTextByNoteId(secondary, 'note7', ' remote');
+    await placeCaretAtNote(secondary, 'note7', Number.POSITIVE_INFINITY);
+    await appendTextToNote(secondary, 'note7', ' remote');
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 

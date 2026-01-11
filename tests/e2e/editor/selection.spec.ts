@@ -1,7 +1,6 @@
 import type { Locator } from '#editor/fixtures';
-import { expect, test } from '#editor/fixtures';
+import { expect, readOutline, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
-import { extractOutlineFromEditorState } from '#tests-common/outline';
 
 test.describe('selection (structural highlight)', () => {
   test('toggles the structural highlight class', async ({ page, editor }) => {
@@ -90,7 +89,7 @@ test.describe('selection (cut marker)', () => {
 
     await expect(input).toHaveClass(/editor-input--cut-marker/);
 
-    const expectedOutline = extractOutlineFromEditorState(await editor.getEditorState());
+    const expectedOutline = await readOutline(editor);
 
     const pasteCombo = process.platform === 'darwin' ? 'Meta+V' : 'Control+V';
     await page.keyboard.press(pasteCombo);
