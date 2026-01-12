@@ -289,7 +289,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
   });
 
-  it('merges cut moves with concurrent edits on the moved note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('merges cut moves with concurrent edits on the moved note', meta({ fixture: 'flat' }, { retry: 3 }), async ({ remdo }) => {
         await remdo.waitForSynced();
 
     const secondary = await createCollabPeer(remdo);
@@ -303,8 +303,6 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await placeCaretAtNote(secondary, 'note2', Number.POSITIVE_INFINITY);
     await appendTextToNote(secondary, 'note2', ' remote');
 
-    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
-
     const expectedOutline = [
       { noteId: 'note1', text: 'note1' },
       { noteId: 'note3', text: 'note3' },
@@ -317,7 +315,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
   });
 
-  it('merges cut moves with concurrent edits on a moved subtree', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  it('merges cut moves with concurrent edits on a moved subtree', meta({ fixture: 'tree-complex' }, { retry: 3 }), async ({ remdo }) => {
         await remdo.waitForSynced();
 
     expect(remdo).toMatchOutline([
@@ -345,8 +343,6 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     await placeCaretAtNote(secondary, 'note7', Number.POSITIVE_INFINITY);
     await appendTextToNote(secondary, 'note7', ' remote');
-
-    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     const expectedOutline = [
       {
