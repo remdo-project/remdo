@@ -1,5 +1,6 @@
 import { COMMAND_PRIORITY_CRITICAL, createCommand, $getRoot } from 'lexical';
 import { describe, expect, it } from 'vitest';
+import { meta } from '#tests';
 
 const NESTED_UPDATE_COMMAND = createCommand('tests:nested-lexical-update');
 
@@ -13,9 +14,8 @@ function $mutateFirstNoteLabel(suffix: string) {
 }
 
 describe('nested Lexical update guard', () => {
-  it('throws when a command listener calls editor.update()', async ({ remdo }) => {
-    await remdo.load('basic');
-    const { editor } = remdo;
+  it('throws when a command listener calls editor.update()', meta({ fixture: 'basic' }), async ({ remdo }) => {
+        const { editor } = remdo;
     let caught: unknown = null;
     const unregister = editor.registerCommand(
       NESTED_UPDATE_COMMAND,
@@ -44,9 +44,8 @@ describe('nested Lexical update guard', () => {
     }
   });
 
-  it('throws when an update listener calls editor.update()', async ({ remdo }) => {
-    await remdo.load('basic');
-    const { editor } = remdo;
+  it('throws when an update listener calls editor.update()', meta({ fixture: 'basic' }), async ({ remdo }) => {
+        const { editor } = remdo;
     let caught: unknown = null;
     const unregister = editor.registerUpdateListener(() => {
       if (caught) return;

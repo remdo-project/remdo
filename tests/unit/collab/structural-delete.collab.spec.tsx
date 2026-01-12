@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 
-import { pressKey, readOutline, selectStructuralNotes } from '#tests';
+import { pressKey, readOutline, selectStructuralNotes, meta } from '#tests';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
-  it('bubbles Delete when structural selection was removed by a collaborator', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-    await remdo.waitForSynced();
+  it('bubbles Delete when structural selection was removed by a collaborator', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await remdo.waitForSynced();
 
     const secondary = await createCollabPeer(remdo);
     await waitFor(() => {

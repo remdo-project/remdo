@@ -17,6 +17,7 @@ import {
   pressKey,
   readOutline,
   typeText,
+  meta,
 } from '#tests';
 import { $getSelection, $isRangeSelection } from 'lexical';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
@@ -36,11 +37,8 @@ const TREE_COMPLEX_OUTLINE: Outline = [
 
 
 describe('selection plugin', () => {
-  it('snaps pointer drags across note boundaries to contiguous structural slices', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-
-    const note2Text = getNoteTextNode(remdo, 'note2');
+  it('snaps pointer drags across note boundaries to contiguous structural slices', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        const note2Text = getNoteTextNode(remdo, 'note2');
     const note5Text = getNoteTextNode(remdo, 'note5');
     await dragDomSelectionBetween(note2Text, 1, note5Text, 1);
 
@@ -63,11 +61,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('preserves selection direction for backward pointer drags', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-
-    const note5Text = getNoteTextNode(remdo, 'note5');
+  it('preserves selection direction for backward pointer drags', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        const note5Text = getNoteTextNode(remdo, 'note5');
     const note2Text = getNoteTextNode(remdo, 'note2');
     await dragDomSelectionBetween(note5Text, note5Text.length, note2Text, 0);
 
@@ -89,11 +84,8 @@ describe('selection plugin', () => {
     expect(isBackward).toBe(true);
   });
 
-  it('snaps drags that cross from a parent into its child to the full subtree', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-
-    const parentText = getNoteTextNode(remdo, 'note2');
+  it('snaps drags that cross from a parent into its child to the full subtree', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        const parentText = getNoteTextNode(remdo, 'note2');
     const childText = getNoteTextNode(remdo, 'note3');
     await dragDomSelectionBetween(parentText, parentText.length, childText, 1);
 
@@ -105,11 +97,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('snaps drags that exit a child upward into its parent to the full subtree', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-
-    const childText = getNoteTextNode(remdo, 'note3');
+  it('snaps drags that exit a child upward into its parent to the full subtree', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        const childText = getNoteTextNode(remdo, 'note3');
     const parentText = getNoteTextNode(remdo, 'note2');
     await dragDomSelectionBetween(childText, childText.length, parentText, 0);
 
@@ -121,11 +110,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('snaps touch-handle drags across note boundaries to contiguous subtrees', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-
-    const parentText = getNoteTextNode(remdo, 'note6');
+  it('snaps touch-handle drags across note boundaries to contiguous subtrees', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        const parentText = getNoteTextNode(remdo, 'note6');
     const childText = getNoteTextNode(remdo, 'note7');
     await dragDomSelectionBetweenRange(parentText, parentText.length, childText, childText.length);
 
@@ -137,11 +123,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('extends pointer selections with Shift+Click to produce contiguous note ranges', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-
-    const note2Text = getNoteTextNode(remdo, 'note2');
+  it('extends pointer selections with Shift+Click to produce contiguous note ranges', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        const note2Text = getNoteTextNode(remdo, 'note2');
     const note5Text = getNoteTextNode(remdo, 'note5');
     await collapseDomSelectionAtNode(note2Text, 0);
 
@@ -175,11 +158,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('lets Shift+Click extend keyboard-driven structural selections without breaking contiguity', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('lets Shift+Click extend keyboard-driven structural selections without breaking contiguity', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
@@ -211,11 +191,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('keeps the ladder alive after Shift+Click tweaks to continue with Shift+Arrow', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('keeps the ladder alive after Shift+Click tweaks to continue with Shift+Arrow', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
 
     // Stage 1: inline
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -255,10 +232,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('keeps Shift+Left/Right selections confined to inline content', async ({ remdo }) => {
-    await remdo.load('flat');
-
-    await placeCaretAtNote(remdo, 'note2', 0);
+  it('keeps Shift+Left/Right selections confined to inline content', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2', 0);
     await pressKey(remdo, { key: 'ArrowLeft', shift: true });
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
 
@@ -269,10 +244,8 @@ describe('selection plugin', () => {
   });
 
 
-  it('toggles the structural selection class when entering and exiting structural mode', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    const rootElement = getRootElementOrThrow(remdo.editor);
+  it('toggles the structural selection class when entering and exiting structural mode', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        const rootElement = getRootElementOrThrow(remdo.editor);
 
     await placeCaretAtNote(remdo, 'note2');
     expect(rootElement.classList.contains('editor-input--structural')).toBe(false);
@@ -286,10 +259,8 @@ describe('selection plugin', () => {
   });
 
 
-  it('treats Shift+Left/Right as no-ops once the selection spans whole notes', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('treats Shift+Left/Right as no-ops once the selection spans whole notes', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
 
     // Promote selection to stage 2: note + descendants.
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -303,10 +274,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
 
-  it('toggles the structural selection state when escalating the ladder', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('toggles the structural selection state when escalating the ladder', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -319,10 +288,8 @@ describe('selection plugin', () => {
     expect(remdo.editor.selection.isStructural()).toBe(false);
   });
 
-  it('collapses structural selection back to the caret when pressing Escape', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('collapses structural selection back to the caret when pressing Escape', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo.editor.selection.isStructural()).toBe(true);
@@ -337,10 +304,8 @@ describe('selection plugin', () => {
     expect(remdo.editor.selection.isStructural()).toBe(true);
   });
 
-  it('treats Enter as a no-op once structural selection is active', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('treats Enter as a no-op once structural selection is active', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo.editor.selection.isStructural()).toBe(true);
@@ -354,10 +319,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
   });
 
-  it('treats typing as a no-op once structural selection is active', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('treats typing as a no-op once structural selection is active', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo.editor.selection.isStructural()).toBe(true);
@@ -378,10 +341,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
 
-  it('runs structural indent from stage-1 inline selection', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note4');
+  it('runs structural indent from stage-1 inline selection', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note4');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
@@ -410,10 +371,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('reorders a stage-1 inline selection together with its subtree', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('reorders a stage-1 inline selection together with its subtree', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
@@ -436,10 +395,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('runs structural outdent from stage-1 inline selection', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note4');
+  it('runs structural outdent from stage-1 inline selection', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note4');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
@@ -462,10 +419,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('moves a stage-1 inline selection upward with its subtree', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note6');
+  it('moves a stage-1 inline selection upward with its subtree', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note6');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note6' });
@@ -488,10 +443,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('lets Delete remove the entire subtree at stage 2 of the progressive ladder', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('lets Delete remove the entire subtree at stage 2 of the progressive ladder', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
@@ -510,10 +463,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('lets Backspace remove the entire subtree at stage 2 of the progressive ladder', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note6');
+  it('lets Backspace remove the entire subtree at stage 2 of the progressive ladder', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note6');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
@@ -538,10 +489,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('clears the structural highlight when navigating without modifiers', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('clears the structural highlight when navigating without modifiers', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo.editor.selection.isStructural()).toBe(true);
@@ -550,11 +499,8 @@ describe('selection plugin', () => {
     expect(remdo.editor.selection.isStructural()).toBe(false);
   });
 
-  it('collapses structural selection when clicking back into a note body', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('collapses structural selection when clicking back into a note body', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
@@ -571,10 +517,8 @@ describe('selection plugin', () => {
     expect(remdo.editor.selection.isStructural()).toBe(false);
   });
 
-  it('restores a single-note caret when navigating with plain arrows from structural mode', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('restores a single-note caret when navigating with plain arrows from structural mode', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -586,10 +530,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
   });
 
-  it('places the caret at the leading edge when pressing ArrowLeft in structural mode', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note5');
+  it('places the caret at the leading edge when pressing ArrowLeft in structural mode', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note5');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -600,10 +542,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note5' });
   });
 
-  it('places the caret at the trailing edge when pressing ArrowRight in structural mode', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note5');
+  it('places the caret at the trailing edge when pressing ArrowRight in structural mode', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note5');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -614,10 +554,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note6' });
   });
 
-  it('places the caret at the top edge when pressing ArrowUp in structural mode', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('places the caret at the top edge when pressing ArrowUp in structural mode', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -629,10 +567,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
-  it('lets Home/End collapse structural selections to their respective edges', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('lets Home/End collapse structural selections to their respective edges', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -652,10 +588,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
   });
 
-  it('collapses structural selection when pressing PageUp/PageDown', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('collapses structural selection when pressing PageUp/PageDown', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -676,10 +610,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
-  it('lets Shift+Down walk the progressive selection ladder', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('lets Shift+Down walk the progressive selection ladder', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
 
     // Stage 1: inline body only.
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -705,11 +637,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
-  it('hoists the parent once Shift+Down runs out of siblings in an existing note range', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-
-    const note2Text = getNoteTextNode(remdo, 'note2');
+  it('hoists the parent once Shift+Down runs out of siblings in an existing note range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        const note2Text = getNoteTextNode(remdo, 'note2');
     const note4Text = getNoteTextNode(remdo, 'note4');
     await dragDomSelectionBetween(note2Text, 0, note4Text, note4Text.length);
 
@@ -724,11 +653,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
   });
 
-  it('hoists the parent when Shift+Up continues a pointer selection slab', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-
-    const note4Text = getNoteTextNode(remdo, 'note4');
+  it('hoists the parent when Shift+Up continues a pointer selection slab', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        const note4Text = getNoteTextNode(remdo, 'note4');
     const note2Text = getNoteTextNode(remdo, 'note2');
     await dragDomSelectionBetween(note4Text, note4Text.length, note2Text, 0);
 
@@ -749,10 +675,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('escalates Shift+Down from a nested leaf until the document is selected', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note3');
+  it('escalates Shift+Down from a nested leaf until the document is selected', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note3');
 
     // Stage 1 (docs/outliner/selection.md): inline body only.
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
@@ -783,9 +707,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
-  it('keeps the structural highlight aligned with the selected notes', async ({ remdo }) => {
+  it('keeps the structural highlight aligned with the selected notes', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     // TODO: simplify this regression while preserving the coverage described above.
-    await remdo.load('tree-complex');
 
     await placeCaretAtNote(remdo, 'note2');
 
@@ -821,9 +744,7 @@ describe('selection plugin', () => {
     assertVisualEnvelopeMatchesSelection(['note1', 'note2', 'note3', 'note4']);
   });
 
-  it('marks structural selection once Shift+Down reaches stage 2 even for leaf notes', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
+  it('marks structural selection once Shift+Down reaches stage 2 even for leaf notes', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note4');
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
@@ -836,20 +757,16 @@ describe('selection plugin', () => {
     expect(remdo.editor.selection.isStructural()).toBe(true);
   });
 
-  it('selects nested leaves structurally at Shift+Down stage 2', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note3');
+  it('selects nested leaves structurally at Shift+Down stage 2', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note3');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note3'] });
   });
 
-  it('skips the sibling stage when Shift+Down reaches a siblingless note', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note7');
+  it('skips the sibling stage when Shift+Down reaches a siblingless note', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note7');
 
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note7' });
 
@@ -860,10 +777,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note7'] });
   });
 
-  it('lets Shift+Up walk the progressive selection ladder', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note4', 2);
+  it('lets Shift+Up walk the progressive selection ladder', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note4', 2);
 
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
 
@@ -891,20 +806,16 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
   });
 
-  it('selects leaf notes structurally at Shift+Up stage 2', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note4', 2);
+  it('selects leaf notes structurally at Shift+Up stage 2', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note4', 2);
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note4'] });
   });
 
-  it('follows the Cmd/Ctrl+A progressive selection ladder', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('follows the Cmd/Ctrl+A progressive selection ladder', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
 
     // Stage 1: inline text only.
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
@@ -932,10 +843,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
   });
 
-  it('resets the Cmd/Ctrl+A ladder after placing the caret within the same note', async ({ remdo }) => {
-    await remdo.load('flat');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('resets the Cmd/Ctrl+A ladder after placing the caret within the same note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
@@ -948,19 +857,15 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
   });
 
-  it('skips the inline stage for whitespace-only notes on Cmd/Ctrl+A', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    await placeCaretAtNote(remdo, 'space');
+  it('skips the inline stage for whitespace-only notes on Cmd/Ctrl+A', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'space');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['space'] });
   });
 
-  it('skips the inline stage for empty notes with no text nodes on Shift+Down', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    await placeCaretAtNote(remdo, 'nested-empty');
+  it('skips the inline stage for empty notes with no text nodes on Shift+Down', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'nested-empty');
 
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
@@ -969,10 +874,8 @@ describe('selection plugin', () => {
     expect(remdo.editor.selection.isStructural()).toBe(true);
   });
 
-  it('selects the nested empty note before child-of-empty on Shift+Down', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    await placeCaretAtNote(remdo, 'nested-empty');
+  it('selects the nested empty note before child-of-empty on Shift+Down', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'nested-empty');
 
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
@@ -982,10 +885,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['nested-empty'] });
   });
 
-  it('selects only the nested empty note on Cmd/Ctrl+A before child-of-empty', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    await placeCaretAtNote(remdo, 'nested-empty');
+  it('selects only the nested empty note on Cmd/Ctrl+A before child-of-empty', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'nested-empty');
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
@@ -993,10 +894,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['nested-empty'] });
   });
 
-  it('keeps Cmd/Ctrl+A anchored to child-of-empty when caret is at the end', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    await placeCaretAtNote(remdo, 'child', Number.POSITIVE_INFINITY);
+  it('keeps Cmd/Ctrl+A anchored to child-of-empty when caret is at the end', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'child', Number.POSITIVE_INFINITY);
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
@@ -1005,10 +904,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('selects the trailing empty note on Cmd/Ctrl+A', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    await placeCaretAtNote(remdo, 'trailing');
+  it('selects the trailing empty note on Cmd/Ctrl+A', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'trailing');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
@@ -1017,10 +914,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('expands Cmd/Ctrl+A from a trailing empty note to its siblings', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    await placeCaretAtNote(remdo, 'trailing');
+  it('expands Cmd/Ctrl+A from a trailing empty note to its siblings', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'trailing');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
@@ -1037,10 +932,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('selects the nested empty note on Shift+Up before the previous sibling', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    await placeCaretAtNote(remdo, 'nested-after-child');
+  it('selects the nested empty note on Shift+Up before the previous sibling', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'nested-after-child');
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
 
     await waitFor(() => {
@@ -1049,10 +942,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('extends Shift+Click from a nested empty note to its parent', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    const nestedElement = getNoteElement(remdo, 'nested-after-child');
+  it('extends Shift+Click from a nested empty note to its parent', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        const nestedElement = getNoteElement(remdo, 'nested-after-child');
     const parentElement = getNoteElement(remdo, 'parent');
 
     await collapseDomSelectionAtNode(nestedElement, nestedElement.childNodes.length);
@@ -1071,10 +962,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('advances Cmd/Ctrl+A through the empty note ladder stages', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    await placeCaretAtNote(remdo, 'nested-empty');
+  it('advances Cmd/Ctrl+A through the empty note ladder stages', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'nested-empty');
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
@@ -1098,10 +987,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('collapses structural selection on an empty note back to a caret', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    await placeCaretAtNote(remdo, 'trailing');
+  it('collapses structural selection on an empty note back to a caret', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'trailing');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
@@ -1117,10 +1004,8 @@ describe('selection plugin', () => {
   });
 
   // Expected: Shift+Down/Up starting on an empty parent note selects the full parent subtree.
-  it('selects the full subtree when Shift+Down/Up starts on an empty parent note', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    await placeCaretAtNote(remdo, 'parent');
+  it('selects the full subtree when Shift+Down/Up starts on an empty parent note', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'parent');
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     await waitFor(() => {
@@ -1142,10 +1027,8 @@ describe('selection plugin', () => {
   });
 
   // Expected: Shift+Left/Right are inline-only and remain no-ops on empty notes (no structural selection).
-  it('keeps Shift+Left/Right as no-ops on an empty note', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    await placeCaretAtNote(remdo, 'parent');
+  it('keeps Shift+Left/Right as no-ops on an empty note', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'parent');
     expect(readCaretNoteKey(remdo)).toBe(getNoteKey(remdo, 'parent'));
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
@@ -1156,10 +1039,8 @@ describe('selection plugin', () => {
     expect(remdo.editor.selection.isStructural()).toBe(false);
   });
 
-  it('snaps mixed empty/non-empty ranges into a contiguous structural selection', async ({ remdo }) => {
-    await remdo.load('empty-labels');
-
-    const betaText = getNoteTextNode(remdo, 'beta');
+  it('snaps mixed empty/non-empty ranges into a contiguous structural selection', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+        const betaText = getNoteTextNode(remdo, 'beta');
     const emptyTail = getNoteElement(remdo, 'nested-after-child');
 
     await dragDomSelectionBetween(betaText, 1, emptyTail, emptyTail.childNodes.length);
@@ -1172,10 +1053,8 @@ describe('selection plugin', () => {
     });
   });
 
-  it('skips the sibling stage when Cmd/Ctrl+A climbs from a siblingless note', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note7');
+  it('skips the sibling stage when Cmd/Ctrl+A climbs from a siblingless note', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note7');
 
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note7' });
 
@@ -1188,10 +1067,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note6', 'note7'] });
   });
 
-  it('keeps the progressive ladder in sync when mixing Shift+Arrow and Cmd/Ctrl+A', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await placeCaretAtNote(remdo, 'note2');
+  it('keeps the progressive ladder in sync when mixing Shift+Arrow and Cmd/Ctrl+A', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
