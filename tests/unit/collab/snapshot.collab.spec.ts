@@ -4,6 +4,7 @@ import { readFileSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import type { SerializedEditorState } from 'lexical';
 import type { TestContext } from 'vitest';
+import { meta } from '#tests';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import type { Buffer } from 'node:buffer';
@@ -66,10 +67,9 @@ function readEditorState(filePath: string): SerializedEditorState {
 
   it(
     'saves the current editor state via snapshot CLI',
-    { meta: { collabDocId: 'snapshot-flat' } } as any,
+    meta({ collabDocId: 'snapshot-flat', fixture: 'flat' }),
     async ({ remdo }) => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-flat' };
-      await remdo.load('flat');
       await remdo.waitForSynced();
 
       const savePath = SNAPSHOT_OUTPUTS[1]!;
@@ -84,7 +84,7 @@ function readEditorState(filePath: string): SerializedEditorState {
 
   it(
     'loads a snapshot fixture into the editor',
-    { meta: { collabDocId: 'snapshot-tree' } } as any,
+    meta({ collabDocId: 'snapshot-tree' }),
     async ({ remdo }) => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-tree' };
       const loadPath = path.resolve('tests/fixtures/tree.json');

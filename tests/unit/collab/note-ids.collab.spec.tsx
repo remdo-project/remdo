@@ -9,14 +9,14 @@ import {
   pressKey,
   readOutline,
   selectStructuralNotes,
+  meta,
 } from '#tests';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
-  it('preserves new note ids across clients', async ({ remdo }) => {
-    await remdo.load('flat');
-    await remdo.waitForSynced();
+  it('preserves new note ids across clients', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await remdo.waitForSynced();
 
     const secondary = await createCollabPeer(remdo);
 
@@ -41,9 +41,8 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(secondary).toMatchOutline(outlineA);
   });
 
-  it('keeps ids unique after inserts from multiple clients', async ({ remdo }) => {
-    await remdo.load('flat');
-    await remdo.waitForSynced();
+  it('keeps ids unique after inserts from multiple clients', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await remdo.waitForSynced();
 
     const secondary = await createCollabPeer(remdo);
 
@@ -69,9 +68,8 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(secondary).toMatchOutline(outlineA);
   });
 
-  it('keeps ids unique after concurrent inserts at the same location', async ({ remdo }) => {
-    await remdo.load('flat');
-    await remdo.waitForSynced();
+  it('keeps ids unique after concurrent inserts at the same location', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await remdo.waitForSynced();
 
     const secondary = await createCollabPeer(remdo);
 
@@ -103,9 +101,8 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(secondary).toMatchOutline(outlineA);
   });
 
-  it('regenerates ids for paste across clients', async ({ remdo }) => {
-    await remdo.load('flat');
-    await remdo.waitForSynced();
+  it('regenerates ids for paste across clients', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await remdo.waitForSynced();
 
     const secondary = await createCollabPeer(remdo);
 
@@ -137,9 +134,8 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(pastedId).not.toBe('note2');
   });
 
-  it('regenerates ids when pasting over existing content across clients', async ({ remdo }) => {
-    await remdo.load('flat');
-    await remdo.waitForSynced();
+  it('regenerates ids when pasting over existing content across clients', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await remdo.waitForSynced();
 
     const secondary = await createCollabPeer(remdo);
 
@@ -163,9 +159,8 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
   });
 
-  it('regenerates ids for multi-note structural paste across clients', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-    await remdo.waitForSynced();
+  it('regenerates ids for multi-note structural paste across clients', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await remdo.waitForSynced();
 
     const secondary = await createCollabPeer(remdo);
 
@@ -197,9 +192,8 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
   });
 
-  it('drops cut markers after remote edits', async ({ remdo }) => {
-    await remdo.load('flat');
-    await remdo.waitForSynced();
+  it('drops cut markers after remote edits', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await remdo.waitForSynced();
 
     const secondary = await createCollabPeer(remdo);
 
@@ -233,9 +227,8 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
   });
 
-  it('drops cut markers after remote deletions', async ({ remdo }) => {
-    await remdo.load('flat');
-    await remdo.waitForSynced();
+  it('drops cut markers after remote deletions', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await remdo.waitForSynced();
 
     const secondary = await createCollabPeer(remdo);
 
@@ -266,9 +259,8 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
   });
 
-  it('drops cut markers after remote structural edits', async ({ remdo }) => {
-    await remdo.load('flat');
-    await remdo.waitForSynced();
+  it('drops cut markers after remote structural edits', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await remdo.waitForSynced();
 
     const secondary = await createCollabPeer(remdo);
 
@@ -297,9 +289,8 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
   });
 
-  it('merges cut moves with concurrent edits on the moved note', async ({ remdo }) => {
-    await remdo.load('flat');
-    await remdo.waitForSynced();
+  it('merges cut moves with concurrent edits on the moved note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await remdo.waitForSynced();
 
     const secondary = await createCollabPeer(remdo);
 
@@ -326,9 +317,8 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
   });
 
-  it('merges cut moves with concurrent edits on a moved subtree', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-    await remdo.waitForSynced();
+  it('merges cut moves with concurrent edits on a moved subtree', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await remdo.waitForSynced();
 
     expect(remdo).toMatchOutline([
       {

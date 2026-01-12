@@ -4,7 +4,7 @@ import { $getRoot } from 'lexical';
 import type { ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 
-import { getRootElementOrThrow, selectStructuralNotes } from '#tests';
+import { getRootElementOrThrow, selectStructuralNotes, meta } from '#tests';
 
 function readWrapperChildList(wrapper: LexicalNode | null | undefined): ListNode | null {
   if (!wrapper || !$isListItemNode(wrapper)) return null;
@@ -13,10 +13,8 @@ function readWrapperChildList(wrapper: LexicalNode | null | undefined): ListNode
 }
 
 describe('structural selection delete regression (local)', () => {
-  it('bubbles Delete when structural heads were removed remotely', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await selectStructuralNotes(remdo, 'note2', 'note3');
+  it('bubbles Delete when structural heads were removed remotely', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await selectStructuralNotes(remdo, 'note2', 'note3');
 
     const expectedAfterRemoteDelete = [
       { noteId: 'note1', text: 'note1', children: [{ noteId: 'note4', text: 'note4' }] },
@@ -53,10 +51,8 @@ describe('structural selection delete regression (local)', () => {
     expect(remdo).toMatchOutline(expectedAfterRemoteDelete);
   });
 
-  it('bubbles Backspace when structural heads were removed remotely', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
-    await selectStructuralNotes(remdo, 'note6', 'note7');
+  it('bubbles Backspace when structural heads were removed remotely', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await selectStructuralNotes(remdo, 'note6', 'note7');
 
     const expectedAfterRemoteDelete = [
       {

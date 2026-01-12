@@ -14,10 +14,13 @@ interface RenderEditorOptions {
  * Renders the RemDo editor for tests and resolves the window remdoTest API.
  * Centralizes collab origin resolution and waiting for bridge readiness.
  */
-export async function renderRemdoEditor({ docId }: RenderEditorOptions): Promise<RemdoTestApi> {
+export async function renderRemdoEditor({ docId }: RenderEditorOptions): Promise<{
+  api: RemdoTestApi;
+  unmount: () => void;
+}> {
   let api: RemdoTestApi | null = null;
 
-  render(
+  const { unmount } = render(
     <MantineProvider>
       <Editor docId={docId} onTestBridgeReady={(value) => { api = value as RemdoTestApi; }} />
     </MantineProvider>
@@ -31,7 +34,7 @@ export async function renderRemdoEditor({ docId }: RenderEditorOptions): Promise
   });
 
   await resolved._bridge.waitForCollaborationReady();
-  return resolved;
+  return { api: resolved, unmount };
 }
 
 export type RenderRemdoEditor = typeof renderRemdoEditor;

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import type { Outline } from '#tests';
-import { selectStructuralNotes } from '#tests';
+import { selectStructuralNotes, meta } from '#tests';
 import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 
 interface OutlineCase {
@@ -87,8 +87,7 @@ const CASES: OutlineCase[] = [
 
 describe('toMatchOutline smoke coverage', () => {
   for (const { fixture, outline } of CASES) {
-    it(`reads ${fixture}`, async ({ remdo }) => {
-      await remdo.load(fixture);
+    it(`reads ${fixture}`, meta({ fixture }), async ({ remdo }) => {
       expect(remdo).toMatchOutline(outline);
 
       const fixturePath = path.resolve('tests/fixtures', `${fixture}.json`);
@@ -112,9 +111,7 @@ describe('toMatchOutline smoke coverage', () => {
     expect(covered).toEqual(sortedFixtureNames);
   });
 
-  it('surfaces expected vs received outline when the matcher fails', async ({ remdo }) => {
-    await remdo.load('flat');
-
+  it('surfaces expected vs received outline when the matcher fails', meta({ fixture: 'flat' }), async ({ remdo }) => {
     let thrown: unknown;
     try {
       expect(remdo).toMatchOutline([{ noteId: 'wrong', text: 'wrong label' }]);
@@ -133,17 +130,13 @@ describe('toMatchOutline smoke coverage', () => {
     expect(thrown.message).toContain('"text": "note3"');
   });
 
-  it('matches selection-only expectations', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
+  it('matches selection-only expectations', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note2', 'note3');
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
 
-  it('reports selection mismatches', async ({ remdo }) => {
-    await remdo.load('tree-complex');
-
+  it('reports selection mismatches', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note2', 'note3');
 
     expect(() => {

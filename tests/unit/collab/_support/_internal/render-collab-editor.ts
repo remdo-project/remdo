@@ -12,5 +12,6 @@ export async function renderCollabEditor(options?: { docId?: string }): Promise<
     config.env.COLLAB_DOCUMENT_ID ||
     `collab-peer-${workerId}-${peerCounter++}`;
 
-  return renderRemdoEditor({ docId });
+  const { api } = await renderRemdoEditor({ docId });
+  return api;
 }

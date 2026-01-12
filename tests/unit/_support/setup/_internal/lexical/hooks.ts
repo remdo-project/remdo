@@ -8,8 +8,14 @@ import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
 let collabDocCounter = 0;
 beforeEach<TestContext>(async (ctx) => {
   const task = ctx.task as TestContext['task'] | undefined;
-  const meta = (task?.meta ?? {}) as { collabDocId?: string; preserveCollabState?: boolean };
-  const preserveCollabState = meta.preserveCollabState === true;
+  const meta = (task?.meta ?? {}) as {
+    collabDocId?: string;
+    preserveCollabState?: boolean;
+    fixture?: string;
+    fixtureSchemaBypass?: boolean;
+  };
+  const fixtureName = typeof meta.fixture === 'string' ? meta.fixture : undefined;
+  const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
 
   let docId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
   if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {
@@ -17,25 +23,30 @@ beforeEach<TestContext>(async (ctx) => {
     docId = `test-${workerId}-${collabDocCounter++}`;
   }
 
-  const remdoTest = await renderRemdoEditor({ docId });
-  const remdo = {
-    ...remdoTest,
-    load: async (fixtureName: string) => remdoTest._bridge.applySerializedState(await readFixture(fixtureName)),
-    loadWithSchemaBypass: async (fixtureName: string) =>
-      remdoTest._bridge.applySerializedState(await readFixture(fixtureName), { skipSchemaValidationOnce: true }),
-  };
-
-  ctx.remdo = remdo;
-
-  await remdo._bridge.waitForCollaborationReady();
-
-  if (!preserveCollabState) {
-    await remdo.load('basic'); //FIXME
-
-    if (config.env.COLLAB_ENABLED) {
-      await remdo._bridge.clear();
-      await remdo.waitForSynced();
+  // Seed fixtures via a loader before the main editor mounts.
+  if (config.env.COLLAB_ENABLED && fixtureName) {
+    const { api: loader, unmount } = await renderRemdoEditor({ docId });
+    try {
+      const stateJson = await readFixture(fixtureName);
+      await loader._bridge.applySerializedState(stateJson, fixtureOptions);
+      await loader.waitForSynced();
+    } finally {
+      unmount();
     }
+  }
+
+  const { api: remdoTest } = await renderRemdoEditor({ docId });
+
+  if (!config.env.COLLAB_ENABLED && fixtureName) {
+    const stateJson = await readFixture(fixtureName);
+    await remdoTest._bridge.applySerializedState(stateJson, fixtureOptions);
+  }
+
+  ctx.remdo = remdoTest;
+
+  await remdoTest._bridge.waitForCollaborationReady();
+  if (fixtureName) {
+    await remdoTest.waitForSynced();
   }
 });
 
