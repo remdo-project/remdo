@@ -19,21 +19,6 @@ Rules:
 3. Add mixed valid/invalid nested list fixture to confirm validator behavior.
 4. Reuse editor schema fixtures across other tests that need serialized states.
 
-## Collab undo/redo determinism (unit tests)
-
-Make collaboration-mode undo/redo assertions deterministic so unit tests can
-reliably validate `UNDO_COMMAND`/`REDO_COMMAND` after structural edits.
-
-1. Add a test-only bridge API for seeding fixtures without polluting undo
-   history: apply initial content via a Yjs transaction with a non-tracked
-   origin and clear the UndoManager stacks after seeding.
-2. Ensure fixture load/clear explicitly resets history so subsequent edits
-   produce a single, predictable undo step (unskip the structural delete
-   undo/redo unit test once stable).
-3. Unskip `tests/unit/deletion.spec.ts` “restores text and structure via
-   undo/redo after structural deletion” in collab mode once the above is in
-   place, and keep it as a required regression check.
-
 ## Outline helper unit tests
 
 - Add coverage for `list-structure` helpers (content/wrapper detection,
