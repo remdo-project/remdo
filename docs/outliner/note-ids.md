@@ -41,6 +41,8 @@ document ID. This spec does not define the format or storage of document IDs.
 - Any operation that creates a new note must assign a fresh `noteId` at the
   moment of creation (keyboard insertion, paste, import, collaboration insert,
   etc.).
+- `noteId` generation is a local operation using randomness; we assume it is
+  effectively unique and do not require a document-wide scan at creation time.
 - When a note is split into two notes, the note that remains at the original
   position retains its `noteId`, and the newly created note receives a fresh
   `noteId`.
