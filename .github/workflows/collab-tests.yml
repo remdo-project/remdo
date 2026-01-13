@@ -16,4 +16,4 @@ jobs:
       - uses: ./.github/actions/setup-pnpm
 
       - name: Run collaboration unit tests
-        run: pnpm run test:unit:collab
+        run: pnpm run test:collab
