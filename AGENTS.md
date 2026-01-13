@@ -115,7 +115,7 @@ document captures the full model.
 ## Checks
 
 - Current timings on this machine (rounded with headroom): `pnpm run lint` about
-  5–10s, `pnpm run test:unit` about 10–20s, `pnpm run test:unit:collab` about
+  5–10s, `pnpm run test:unit` about 10–20s, `pnpm run test:collab` about
   12–25s. If you ever hit the 60s guard, debug the failure (don’t extend); only
   adjust ranges if healthy runs consistently land outside them.
 - E2E (Playwright): run `pnpm test:e2e`. In sandboxed environments, accessing
@@ -137,7 +137,7 @@ document captures the full model.
    `tests/unit/smoke.spec.tsx -t "loads basic outline structure from JSON"` ran
    only that file in ~1.3s.
 5. Collab test filter via script:
-   `pnpm run test:unit:collab tests/unit/collab/<file> -t "<full test name>"`;
+   `pnpm run test:collab tests/unit/collab/<file> -t "<full test name>"`;
    example
    `smoke.collab.spec.tsx -t "lexical helpers operate in collaboration mode"`
    passed in ~1.4s with collab server auto-started.
@@ -156,7 +156,7 @@ document captures the full model.
 1. Always run these checks before declaring a task done:
    1. `pnpm run lint`
    2. `pnpm run test:unit`
-   3. `pnpm run test:unit:collab`
+   3. `pnpm run test:collab`
 
    These suites must pass at the end of every cloud-task unless the user
    explicitly asks to skip a specific suite.
