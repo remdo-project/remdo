@@ -77,9 +77,9 @@ Context from prod data snapshot (`data/project.json`):
 Plan (proposed, Lexical-style healing; for discussion before implementation):
 
 1. Document-level model alignment (define the model first):
-   - Treat the document root as a special note; update docs to state that every
-     note has a parent except the document root.
-   - Clarify indentation semantics in the spec:
+   - ✅ Done: Treat the document root as a special note; update docs to state
+     that every note has a parent except the document root.
+   - ✅ Done: Clarify indentation semantics in the spec:
      - RemDo allows exactly one indentation level between a parent note and its
        children.
      - Lexical adapter uses two mechanisms: wrapper adjacency + `indent` field.
@@ -89,29 +89,30 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
      `OutlineNormalizationPlugin`.
    - Use a `ListNode` transform (Lexical-style) so repairs only run on dirty
      list subtrees.
-   - Keep root-list enforcement (single root list) inside this plugin so there
-     is one normalization surface.
+   - Keep root-list enforcement (single root list) in the same plugin, but do
+     it via a `RootNode` transform or explicit root pass so the root list is
+     still created even when no lists exist yet.
 3. Localized normalization via node transforms:
    - For each dirty list subtree, normalize siblings in a single pass:
      - Repair orphan wrappers (policy decision below).
      - Ensure wrapper list items contain exactly one list child and no content.
+     - If a wrapper's nested list has no list-item children, drop the wrapper
+       and list (invalid wrapper shape).
      - Ensure content list items have at least one TextNode (insert empty text
        node if missing) and treat this as the canonical empty note shape.
-     - If any list nodes are embedded inside content list items, lift them into
-       wrapper siblings (aligns with Lexical’s DOM-import `$normalizeChildren`
-       shape expectations).
 4. One-time load repair (explicit post-load update):
    - After collab hydration or snapshot load, run a single update that:
-     - Calls `$normalizeNoteIdsOnLoad` (see decision below).
-     - Optionally runs a root-list normalization helper (same code path as the
+     - Calls the existing `$normalizeNoteIdsOnLoad` (see decision below).
+     - Runs the root-list normalization helper (same code path as the
        transform) so a newly loaded doc is repaired immediately.
-   - Use `markSchemaValidationSkipOnce` for this repair update, then persist the
+   - Use `markSchemaValidationSkipOnce` for the repair update, then persist the
      repaired state on next save.
 5. Decision point: `noteId` normalization scope:
    - `noteId` generation is local/random and assumed unique; missing ids can be
      fixed without any global scan.
-   - Duplicates may still appear due to merges/corruption; detect and report
-     them on load as invariant violations (no automatic repair yet).
+   - Duplicates may still appear due to merges/corruption; repair them on load
+     (preserve the first occurrence, assign fresh ids to the rest) and also
+     emit an invariant report so we can track the issue.
 6. Decision point: orphan wrapper repair policy (root vs non-root cases):
    - Root-level orphan (no preceding content sibling): drop the wrapper and
      hoist its children to the root list (single indent level).
@@ -121,9 +122,11 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
    - Add a note to brainstorm other invalid shapes and define deterministic
      normalization outcomes + fixtures for each.
 7. Tests and fixtures:
-   - Use `editor-schema/wrapper-orphan.json` (wrapper at list start) and
+   - ✅ Done: Add `editor-schema/wrapper-orphan.json` (wrapper at list start) and
      `editor-schema/wrapper-orphan-after-wrapper.json` (prod-like orphan after a
      valid wrapper) as focused normalization fixtures.
+   - Reuse `editor-schema/list-wrapper-no-listitem.json` to cover empty child
+     list normalization.
    - Add a test that runs normalization and verifies schema validity plus
      correct move-up behavior.
    - Reuse existing missing/duplicate `noteId` fixtures for note-id repairs.
@@ -142,6 +145,9 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
      - log to console on every normalization repair
      - show a small yellow warning icon next to the collab status indicator
        (tooltip: "Data repaired; check console").
+     - only show the warning once per session/doc until cleared, to avoid
+       spamming the UI for repeated repairs.
+     - keep a rolling counter of repairs in memory so tests can assert on it.
 9. Root-cause investigation:
    - Add dev-only logging to capture the first update that introduces a wrapper
      without a preceding sibling (command name + serialized outline snapshot).
