@@ -48,12 +48,6 @@ Rules:
   `data/collab/project/data.ysweet`), so failures can disappear after a run
   normalizes data. Add a cleanup or per-run `DATA_DIR`/doc-id strategy so
   Playwright runs are isolated and deterministic.
-- Missing coverage: add a normalization test that loads a document containing a
-  wrapper list item whose nested list has no list-item children (an empty child
-  list), runs the load-time normalization pass, and asserts the invalid wrapper
-  is removed so the resulting outline is schema-valid and stable. The test
-  should also ensure the remaining notes keep their note ids and order intact
-  after the cleanup.
 
 ## Other
 
@@ -96,8 +90,6 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
    - For each dirty list subtree, normalize siblings in a single pass:
      - Repair orphan wrappers (policy decision below).
      - Ensure wrapper list items contain exactly one list child and no content.
-     - If a wrapper's nested list has no list-item children, drop the wrapper
-       and list (invalid wrapper shape).
      - Ensure content list items have at least one TextNode (insert empty text
        node if missing) and treat this as the canonical empty note shape.
 4. One-time load repair (explicit post-load update):
@@ -125,8 +117,6 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
    - ✅ Done: Add `editor-schema/wrapper-orphan.json` (wrapper at list start) and
      `editor-schema/wrapper-orphan-after-wrapper.json` (prod-like orphan after a
      valid wrapper) as focused normalization fixtures.
-   - Reuse `editor-schema/list-wrapper-no-listitem.json` to cover empty child
-     list normalization.
    - Add a test that runs normalization and verifies schema validity plus
      correct move-up behavior.
    - Reuse existing missing/duplicate `noteId` fixtures for note-id repairs.
