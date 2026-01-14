@@ -7,6 +7,8 @@ import indentJump from '#fixtures/editor-schema/indent-jump.json';
 import listWrapperNoListitem from '#fixtures/editor-schema/list-wrapper-no-listitem.json';
 import missingNoteId from '#fixtures/editor-schema/missing-note-id.json';
 import minimalValid from '#fixtures/editor-schema/minimal-valid.json';
+import wrapperOrphan from '#fixtures/editor-schema/wrapper-orphan.json';
+import wrapperOrphanAfterWrapper from '#fixtures/editor-schema/wrapper-orphan-after-wrapper.json';
 import wrapperWithoutSibling from '#fixtures/editor-schema/wrapper-without-sibling.json';
 
 describe('assertEditorSchema', () => {
@@ -30,6 +32,18 @@ describe('assertEditorSchema', () => {
 
   it('throws for wrapper list item without preceding sibling', () => {
     expect(() => assertEditorSchema(cast(wrapperWithoutSibling))).toThrowError(
+      'Invalid outline structure: wrapper list item without preceding list item sibling'
+    );
+  });
+
+  it('throws for wrapper list item at list start', () => {
+    expect(() => assertEditorSchema(cast(wrapperOrphan))).toThrowError(
+      'Invalid outline structure: wrapper list item without preceding list item sibling'
+    );
+  });
+
+  it('throws for wrapper list item after another wrapper', () => {
+    expect(() => assertEditorSchema(cast(wrapperOrphanAfterWrapper))).toThrowError(
       'Invalid outline structure: wrapper list item without preceding list item sibling'
     );
   });
