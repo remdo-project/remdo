@@ -1,13 +1,11 @@
-import type { LexicalEditor } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getRoot, RootNode } from 'lexical';
+import { $getNodeByKey, $getRoot, RootNode } from 'lexical';
+import type { EditorState, LexicalEditor, NodeKey } from 'lexical';
+import { $isListNode } from '@lexical/list';
 import { useLayoutEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { useCollaborationStatus } from './collaboration';
-import {
-  $normalizeOutlineRoot,
-  $shouldNormalizeOutlineRoot,
-} from '@/editor/outline/normalization';
+import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '@/editor/outline/normalization';
 import { markSchemaValidationSkipOnce } from './dev/schema/schemaValidationSkipOnce';
 
 export function RootSchemaPlugin() {
@@ -34,17 +32,8 @@ export function RootSchemaPlugin() {
       return;
     }
 
-    const unregisterNormalization = editor.registerNodeTransform(RootNode, (node) => {
-      $normalizeOutlineRoot(node, { skipOrphanWrappers: true });
-    });
-    const unregisterRepair = editor.registerUpdateListener(({ editorState }) => {
-      if (repairingRef.current) return;
-
-      const needsRepair = editorState.read(() => $shouldNormalizeOutlineRoot($getRoot()));
-      if (!needsRepair) return;
-
+    const scheduleRepair = () => {
       if (repairScheduledRef.current) return;
-
       repairScheduledRef.current = true;
       markSchemaValidationSkipOnce(editor);
       queueMicrotask(() => {
@@ -55,6 +44,31 @@ export function RootSchemaPlugin() {
         repairingRef.current = false;
         repairScheduledRef.current = false;
       });
+    };
+
+    const unregisterNormalization = editor.registerNodeTransform(RootNode, (node) => {
+      $normalizeOutlineRoot(node, { skipOrphanWrappers: true });
+    });
+    const unregisterRepair = editor.registerUpdateListener(({ dirtyElements, editorState, prevEditorState }) => {
+      if (repairingRef.current) return;
+
+      const isFullReconcile = dirtyElements.size === 1 && dirtyElements.has('root');
+      if (isFullReconcile) {
+        const needsRepair = editorState.read(() => $shouldNormalizeOutlineRoot($getRoot()));
+        if (!needsRepair) return;
+        scheduleRepair();
+        return;
+      }
+
+      const dirtyListKeys = collectDirtyListKeys(dirtyElements, editorState, prevEditorState);
+      if (dirtyListKeys.size === 0) {
+        return;
+      }
+
+      const needsRepair = editorState.read(() => $shouldNormalizeOutlineRoot($getRoot(), dirtyListKeys));
+      if (!needsRepair) return;
+
+      scheduleRepair();
     });
     normalizeRootOnce(editor);
 
@@ -69,4 +83,45 @@ function normalizeRootOnce(editor: LexicalEditor) {
   editor.update(() => {
     $normalizeOutlineRoot($getRoot());
   });
+}
+
+function collectDirtyListKeys(
+  dirtyElements: ReadonlyMap<NodeKey, boolean>,
+  editorState: EditorState,
+  prevEditorState: EditorState
+): Set<NodeKey> {
+  if (dirtyElements.size === 0) {
+    return new Set();
+  }
+
+  const listKeys = new Set<NodeKey>();
+
+  const addListKeys = (state: typeof editorState) => {
+    state.read(() => {
+      for (const [key, intentionallyDirty] of dirtyElements) {
+        if (!intentionallyDirty) continue;
+        const node = $getNodeByKey(key);
+        if (!node) continue;
+
+        if ($isListNode(node)) {
+          listKeys.add(node.getKey());
+          continue;
+        }
+
+        let current = node.getParent();
+        while (current && !$isListNode(current)) {
+          current = current.getParent();
+        }
+
+        if ($isListNode(current)) {
+          listKeys.add(current.getKey());
+        }
+      }
+    });
+  };
+
+  addListKeys(editorState);
+  addListKeys(prevEditorState);
+
+  return listKeys;
 }
