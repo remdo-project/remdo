@@ -1,7 +1,6 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getNodeByKey, $getRoot, RootNode } from 'lexical';
-import type { EditorState, LexicalEditor, NodeKey } from 'lexical';
-import { $isListNode } from '@lexical/list';
+import { $getRoot, RootNode } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 import { useLayoutEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { useCollaborationStatus } from './collaboration';
@@ -52,20 +51,11 @@ export function RootSchemaPlugin() {
     const unregisterRepair = editor.registerUpdateListener(({ dirtyElements, editorState }) => {
       if (repairingRef.current) return;
 
-      const isFullReconcile = dirtyElements.size === 1 && dirtyElements.has('root');
-      if (isFullReconcile) {
-        const needsRepair = editorState.read(() => $shouldNormalizeOutlineRoot($getRoot()));
-        if (!needsRepair) return;
-        scheduleRepair();
+      if (dirtyElements.size === 0) {
         return;
       }
 
-      const dirtyListKeys = collectDirtyListKeys(dirtyElements, editorState);
-      if (dirtyListKeys.size === 0) {
-        return;
-      }
-
-      const needsRepair = editorState.read(() => $shouldNormalizeOutlineRoot($getRoot(), dirtyListKeys));
+      const needsRepair = editorState.read(() => $shouldNormalizeOutlineRoot($getRoot()));
       if (!needsRepair) return;
 
       scheduleRepair();
@@ -83,39 +73,4 @@ function normalizeRootOnce(editor: LexicalEditor) {
   editor.update(() => {
     $normalizeOutlineRoot($getRoot());
   });
-}
-
-function collectDirtyListKeys(dirtyElements: ReadonlyMap<NodeKey, boolean>, editorState: EditorState): Set<NodeKey> {
-  if (dirtyElements.size === 0) {
-    return new Set();
-  }
-
-  const listKeys = new Set<NodeKey>();
-
-  const addListKeys = (state: typeof editorState) => {
-    state.read(() => {
-      for (const [key] of dirtyElements) {
-        const node = $getNodeByKey(key);
-        if (!node) continue;
-
-        if ($isListNode(node)) {
-          listKeys.add(node.getKey());
-          continue;
-        }
-
-        let current = node.getParent();
-        while (current && !$isListNode(current)) {
-          current = current.getParent();
-        }
-
-        if ($isListNode(current)) {
-          listKeys.add(current.getKey());
-        }
-      }
-    });
-  };
-
-  addListKeys(editorState);
-
-  return listKeys;
 }

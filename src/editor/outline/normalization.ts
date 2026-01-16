@@ -1,7 +1,7 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
-import type { NodeKey, RootNode } from 'lexical';
-import { $createParagraphNode, $getNodeByKey } from 'lexical';
+import type { RootNode } from 'lexical';
+import { $createParagraphNode } from 'lexical';
 
 import { insertBefore, isChildrenWrapper } from '@/editor/outline/list-structure';
 
@@ -12,7 +12,7 @@ export function $normalizeOutlineRoot(
   $ensureSingleListRoot(root, options);
 }
 
-export function $shouldNormalizeOutlineRoot(root: RootNode, listKeys?: Iterable<NodeKey>): boolean {
+export function $shouldNormalizeOutlineRoot(root: RootNode): boolean {
   if ($needsListNormalization(root)) {
     return true;
   }
@@ -22,18 +22,7 @@ export function $shouldNormalizeOutlineRoot(root: RootNode, listKeys?: Iterable<
     return true;
   }
 
-  if (!listKeys) {
-    return hasOrphanWrapper(list);
-  }
-
-  for (const key of listKeys) {
-    const node = $getNodeByKey(key);
-    if ($isListNode(node) && hasOrphanWrapper(node)) {
-      return true;
-    }
-  }
-
-  return false;
+  return hasOrphanWrapper(list);
 }
 
 function $ensureSingleListRoot(root: RootNode, options?: { skipOrphanWrappers?: boolean }) {
