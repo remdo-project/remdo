@@ -1,13 +1,10 @@
 import type { LexicalEditor } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getRoot, RootNode } from 'lexical';
-import { ListItemNode, ListNode } from '@lexical/list';
 import { useLayoutEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { useCollaborationStatus } from './collaboration';
 import {
-  $normalizeOutlineList,
-  $normalizeOutlineListItem,
   $normalizeOutlineRoot,
   $shouldNormalizeOutlineRoot,
 } from '@/editor/outline/normalization';
@@ -38,13 +35,7 @@ export function RootSchemaPlugin() {
     }
 
     const unregisterNormalization = editor.registerNodeTransform(RootNode, (node) => {
-      $normalizeOutlineRoot(node);
-    });
-    const unregisterListItemNormalization = editor.registerNodeTransform(ListItemNode, (node) => {
-      $normalizeOutlineListItem(node);
-    });
-    const unregisterListNormalization = editor.registerNodeTransform(ListNode, (node) => {
-      $normalizeOutlineList(node);
+      $normalizeOutlineRoot(node, { skipOrphanWrappers: true });
     });
     const unregisterRepair = editor.registerUpdateListener(({ editorState }) => {
       if (repairingRef.current) return;
@@ -67,12 +58,7 @@ export function RootSchemaPlugin() {
     });
     normalizeRootOnce(editor);
 
-    return mergeRegister(
-      unregisterNormalization,
-      unregisterListItemNormalization,
-      unregisterListNormalization,
-      unregisterRepair
-    );
+    return mergeRegister(unregisterNormalization, unregisterRepair);
   }, [editor, hydrated, docEpoch]);
 
   return null;

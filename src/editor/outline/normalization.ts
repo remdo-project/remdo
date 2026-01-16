@@ -5,22 +5,11 @@ import { $createParagraphNode } from 'lexical';
 
 import { insertBefore, isChildrenWrapper } from '@/editor/outline/list-structure';
 
-export function $normalizeOutlineRoot(root: RootNode): void {
-  $ensureSingleListRoot(root);
-}
-
-export function $normalizeOutlineList(list: ListNode): void {
-  normalizeOrphanWrappers(list);
-}
-
-export function $normalizeOutlineListItem(item: ListItemNode): void {
-  if (!isChildrenWrapper(item) || !item.isAttached()) {
-    return;
-  }
-  const parent = item.getParent();
-  if ($isListNode(parent)) {
-    normalizeOrphanWrappers(parent);
-  }
+export function $normalizeOutlineRoot(
+  root: RootNode,
+  options?: { skipOrphanWrappers?: boolean }
+): void {
+  $ensureSingleListRoot(root, options);
 }
 
 export function $shouldNormalizeOutlineRoot(root: RootNode): boolean {
@@ -36,10 +25,10 @@ export function $shouldNormalizeOutlineRoot(root: RootNode): boolean {
   return hasOrphanWrapper(list);
 }
 
-function $ensureSingleListRoot(root: RootNode) {
+function $ensureSingleListRoot(root: RootNode, options?: { skipOrphanWrappers?: boolean }) {
   if (!$needsListNormalization(root)) {
     const existing = root.getFirstChild();
-    if ($isListNode(existing)) {
+    if ($isListNode(existing) && !options?.skipOrphanWrappers) {
       normalizeOrphanWrappers(existing);
     }
     return;
@@ -89,7 +78,9 @@ function $ensureSingleListRoot(root: RootNode) {
     canonicalList.append(li);
   }
 
-  normalizeOrphanWrappers(canonicalList);
+  if (!options?.skipOrphanWrappers) {
+    normalizeOrphanWrappers(canonicalList);
+  }
 }
 
 /**
@@ -125,13 +116,22 @@ function hasOrphanWrapper(list: ListNode): boolean {
       continue;
     }
 
-    if (!isChildrenWrapper(child)) {
-      continue;
-    }
+    if (isChildrenWrapper(child)) {
+      const previousContent = findPreviousContentSibling(child);
+      if (!previousContent) {
+        return true;
+      }
 
-    const previous = child.getPreviousSibling();
-    if (!$isListItemNode(previous) || isChildrenWrapper(previous)) {
-      return true;
+      if (child.getPreviousSibling() !== previousContent) {
+        return true;
+      }
+
+      const nested = child.getFirstChild();
+      if ($isListNode(nested) && hasOrphanWrapper(nested)) {
+        return true;
+      }
+
+      continue;
     }
 
     const nested = child.getFirstChild();
@@ -139,6 +139,7 @@ function hasOrphanWrapper(list: ListNode): boolean {
       return true;
     }
   }
+
   return false;
 }
 
