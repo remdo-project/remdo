@@ -49,7 +49,7 @@ export function RootSchemaPlugin() {
     const unregisterNormalization = editor.registerNodeTransform(RootNode, (node) => {
       $normalizeOutlineRoot(node, { skipOrphanWrappers: true });
     });
-    const unregisterRepair = editor.registerUpdateListener(({ dirtyElements, editorState, prevEditorState }) => {
+    const unregisterRepair = editor.registerUpdateListener(({ dirtyElements, editorState }) => {
       if (repairingRef.current) return;
 
       const isFullReconcile = dirtyElements.size === 1 && dirtyElements.has('root');
@@ -60,7 +60,7 @@ export function RootSchemaPlugin() {
         return;
       }
 
-      const dirtyListKeys = collectDirtyListKeys(dirtyElements, editorState, prevEditorState);
+      const dirtyListKeys = collectDirtyListKeys(dirtyElements, editorState);
       if (dirtyListKeys.size === 0) {
         return;
       }
@@ -85,11 +85,7 @@ function normalizeRootOnce(editor: LexicalEditor) {
   });
 }
 
-function collectDirtyListKeys(
-  dirtyElements: ReadonlyMap<NodeKey, boolean>,
-  editorState: EditorState,
-  prevEditorState: EditorState
-): Set<NodeKey> {
+function collectDirtyListKeys(dirtyElements: ReadonlyMap<NodeKey, boolean>, editorState: EditorState): Set<NodeKey> {
   if (dirtyElements.size === 0) {
     return new Set();
   }
@@ -98,8 +94,7 @@ function collectDirtyListKeys(
 
   const addListKeys = (state: typeof editorState) => {
     state.read(() => {
-      for (const [key, intentionallyDirty] of dirtyElements) {
-        if (!intentionallyDirty) continue;
+      for (const [key] of dirtyElements) {
         const node = $getNodeByKey(key);
         if (!node) continue;
 
@@ -121,7 +116,6 @@ function collectDirtyListKeys(
   };
 
   addListKeys(editorState);
-  addListKeys(prevEditorState);
 
   return listKeys;
 }
