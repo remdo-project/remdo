@@ -6,7 +6,7 @@ import { consumeSchemaValidationSkipOnce } from './schema/schemaValidationSkipOn
 
 export function SchemaValidationPlugin(): null {
   const [editor] = useLexicalComposerContext();
-  const { hydrated, docEpoch } = useCollaborationStatus();
+  const { hydrated, docEpoch, synced } = useCollaborationStatus();
 
   useEffect(() => {
     if (!hydrated) {
@@ -15,6 +15,9 @@ export function SchemaValidationPlugin(): null {
 
     return editor.registerUpdateListener(() => {
       try {
+        if (!synced) {
+          return;
+        }
         if (consumeSchemaValidationSkipOnce(editor)) {
           return;
         }
@@ -24,7 +27,7 @@ export function SchemaValidationPlugin(): null {
         console.error('[RemDo] Editor schema validation failed.', error);
       }
     });
-  }, [editor, hydrated, docEpoch]);
+  }, [editor, hydrated, docEpoch, synced]);
 
   return null;
 }

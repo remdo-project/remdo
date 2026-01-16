@@ -9,6 +9,20 @@ export function $normalizeOutlineRoot(root: RootNode): void {
   $ensureSingleListRoot(root);
 }
 
+export function $normalizeOutlineList(list: ListNode): void {
+  normalizeOrphanWrappers(list);
+}
+
+export function $normalizeOutlineListItem(item: ListItemNode): void {
+  if (!isChildrenWrapper(item) || !item.isAttached()) {
+    return;
+  }
+  const parent = item.getParent();
+  if ($isListNode(parent)) {
+    normalizeOrphanWrappers(parent);
+  }
+}
+
 export function $shouldNormalizeOutlineRoot(root: RootNode): boolean {
   if ($needsListNormalization(root)) {
     return true;
@@ -107,11 +121,21 @@ function $needsListNormalization(root: RootNode): boolean {
 
 function hasOrphanWrapper(list: ListNode): boolean {
   for (const child of list.getChildren()) {
-    if (!$isListItemNode(child) || !isChildrenWrapper(child)) {
+    if (!$isListItemNode(child)) {
       continue;
     }
+
+    if (!isChildrenWrapper(child)) {
+      continue;
+    }
+
     const previous = child.getPreviousSibling();
     if (!$isListItemNode(previous) || isChildrenWrapper(previous)) {
+      return true;
+    }
+
+    const nested = child.getFirstChild();
+    if ($isListNode(nested) && hasOrphanWrapper(nested)) {
       return true;
     }
   }

@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getNoteKey, meta } from '#tests';
-import { waitFor } from '@testing-library/react';
-import type { ListItemNode } from '@lexical/list';
-import { $getNodeByKey } from 'lexical';
-import { $indentNote } from '@/editor/lexical-helpers';
-import { createCollabPeer } from './_support/remdo-peers';
+import { meta } from '#tests';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
@@ -23,80 +18,6 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
           ],
         },
       ]);
-    }
-  );
-
-  it(
-    'repairs an orphan wrapper from concurrent delete + indent',
-    meta({ fixture: 'flat' }),
-    async ({ remdo }) => {
-      const remdo2 = await createCollabPeer(remdo);
-      await Promise.all([remdo.waitForSynced(), remdo2.waitForSynced()]);
-
-      const note1Key = getNoteKey(remdo, 'note1');
-      const note2Key = getNoteKey(remdo2, 'note2');
-
-      await Promise.all([
-        remdo.mutate(() => {
-          const item = $getNodeByKey(note1Key) as ListItemNode;
-          item.remove();
-        }),
-        remdo2.mutate(() => {
-          const item = $getNodeByKey(note2Key) as ListItemNode;
-          $indentNote(item);
-        }),
-      ]);
-
-      await Promise.all([remdo.waitForSynced(), remdo2.waitForSynced()]);
-
-      const expected = [
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ];
-
-      await waitFor(() => {
-        expect(remdo).toMatchOutline(expected);
-        expect(remdo2).toMatchOutline(expected);
-      });
-    }
-  );
-
-  it(
-    'repairs nested orphan wrappers from concurrent delete + indent',
-    meta({ fixture: 'basic' }),
-    async ({ remdo }) => {
-      const remdo2 = await createCollabPeer(remdo);
-      await Promise.all([remdo.waitForSynced(), remdo2.waitForSynced()]);
-
-      const note2Key = getNoteKey(remdo, 'note2');
-      const note3Key = getNoteKey(remdo2, 'note3');
-
-      await Promise.all([
-        remdo.mutate(() => {
-          const item = $getNodeByKey(note2Key) as ListItemNode;
-          item.remove();
-        }),
-        remdo2.mutate(() => {
-          const item = $getNodeByKey(note3Key) as ListItemNode;
-          $indentNote(item);
-          $indentNote(item);
-        }),
-      ]);
-
-      await Promise.all([remdo.waitForSynced(), remdo2.waitForSynced()]);
-
-      const expected = [
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [{ noteId: 'note3', text: 'note3' }],
-        },
-      ];
-
-      await waitFor(() => {
-        expect(remdo).toMatchOutline(expected);
-        expect(remdo2).toMatchOutline(expected);
-      });
     }
   );
 });

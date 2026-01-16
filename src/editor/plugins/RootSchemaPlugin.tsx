@@ -1,10 +1,17 @@
 import type { LexicalEditor } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getRoot, RootNode } from 'lexical';
+import { ListItemNode, ListNode } from '@lexical/list';
 import { useLayoutEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { useCollaborationStatus } from './collaboration';
-import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '@/editor/outline/normalization';
+import {
+  $normalizeOutlineList,
+  $normalizeOutlineListItem,
+  $normalizeOutlineRoot,
+  $shouldNormalizeOutlineRoot,
+} from '@/editor/outline/normalization';
+import { markSchemaValidationSkipOnce } from './dev/schema/schemaValidationSkipOnce';
 
 export function RootSchemaPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -30,7 +37,15 @@ export function RootSchemaPlugin() {
       return;
     }
 
-    const unregisterNormalization = editor.registerNodeTransform(RootNode, $normalizeOutlineRoot);
+    const unregisterNormalization = editor.registerNodeTransform(RootNode, (node) => {
+      $normalizeOutlineRoot(node);
+    });
+    const unregisterListItemNormalization = editor.registerNodeTransform(ListItemNode, (node) => {
+      $normalizeOutlineListItem(node);
+    });
+    const unregisterListNormalization = editor.registerNodeTransform(ListNode, (node) => {
+      $normalizeOutlineList(node);
+    });
     const unregisterRepair = editor.registerUpdateListener(({ editorState }) => {
       if (repairingRef.current) return;
 
@@ -40,6 +55,7 @@ export function RootSchemaPlugin() {
       if (repairScheduledRef.current) return;
 
       repairScheduledRef.current = true;
+      markSchemaValidationSkipOnce(editor);
       queueMicrotask(() => {
         repairingRef.current = true;
         editor.update(() => {
@@ -51,7 +67,12 @@ export function RootSchemaPlugin() {
     });
     normalizeRootOnce(editor);
 
-    return mergeRegister(unregisterNormalization, unregisterRepair);
+    return mergeRegister(
+      unregisterNormalization,
+      unregisterListItemNormalization,
+      unregisterListNormalization,
+      unregisterRepair
+    );
   }, [editor, hydrated, docEpoch]);
 
   return null;

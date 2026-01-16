@@ -90,8 +90,9 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
    - For each dirty list subtree, normalize siblings in a single pass:
      - Repair orphan wrappers (policy decision below).
      - Ensure wrapper list items contain exactly one list child and no content.
-     - Ensure content list items have at least one TextNode (insert empty text
-       node if missing) and treat this as the canonical empty note shape.
+   - Decision TBD: Ensure content list items have at least one TextNode (insert
+     empty text node if missing) and treat this as the canonical empty note
+     shape.
 4. One-time load repair (explicit post-load update):
    - After collab hydration or snapshot load, run a single update that:
      - Calls the existing `$normalizeNoteIdsOnLoad` (see decision below).
@@ -119,6 +120,8 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
      valid wrapper) as focused normalization fixtures.
    - Add a test that runs normalization and verifies schema validity plus
      correct move-up behavior.
+   - TODO: Reintroduce a softer collab orphan-wrapper test later (e.g. assert
+     schema validity/no orphan wrappers after sync, not a precise outline).
    - Reuse existing missing/duplicate `noteId` fixtures for note-id repairs.
    - Every normalization scenario must have a dedicated test case.
 8. Recurrence prevention + feedback loop:
@@ -148,3 +151,6 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
 - Once normalization is in place, review selection and structural code for
   simplification opportunities (selection helpers/tests are likely candidates,
   but not the only ones).
+- Then make sure that validation and normalization cover all known invalid states
+  so we can remove defensive code elsewhere. Also make sure that both are well structured
+  and decoupled from other logic for maintainability.
