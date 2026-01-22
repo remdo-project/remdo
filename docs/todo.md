@@ -115,8 +115,8 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
      valid wrapper) as focused normalization fixtures.
    - ✅ Done: Add a test that runs normalization and verifies correct move-up
      behavior.
-   - TODO: Reintroduce a softer collab orphan-wrapper test later (e.g. assert
-     schema validity/no orphan wrappers after sync, not a precise outline).
+   - ✅ Done: Reintroduce a softer collab orphan-wrapper check (asserts schema
+     validity after sync without pinning a precise outline).
    - Reuse existing missing/duplicate `noteId` fixtures for note-id repairs.
    - Every normalization scenario must have a dedicated test case.
 8. Unified issue reporting (simplest + robust; no backward-compat constraints):
@@ -133,8 +133,8 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
 9. Root-cause investigation:
    - ✅ Done: Add dev-only logging to capture the first update that introduces
      a wrapper without a preceding sibling (tags + serialized outline snapshot).
-   - Reproduce with multi-client collab tests to see if Yjs merges can leave
-     wrappers orphaned.
+   - ✅ Done: Reproduce with multi-client collab tests (see
+     `tests/unit/collab/outline-normalization.collab.spec.tsx`).
 10. Post-normalization simplification review:
 
 - Once normalization is in place, review selection and structural code for

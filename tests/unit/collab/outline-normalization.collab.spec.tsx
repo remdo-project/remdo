@@ -5,6 +5,7 @@ import type { ListItemNode } from '@lexical/list';
 import { $getNodeByKey } from 'lexical';
 import { $indentNote } from '@/editor/lexical-helpers';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
+import { assertEditorSchema } from '@/editor/plugins/dev/schema/assertEditorSchema';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
@@ -31,7 +32,6 @@ const expectOutlineToMatchAny = (remdoA: any, remdoB: any, candidates: unknown[]
   }
   throw new Error('Outlines differ from all expected variants.');
 };
-
 
 describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it(
@@ -87,6 +87,9 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
       await waitFor(() => {
         expectOutlineToMatchAny(remdo, remdo2, [expected, fallback]);
       });
+
+      assertEditorSchema(remdo.getEditorState());
+      assertEditorSchema(remdo2.getEditorState());
     }
   );
 
@@ -194,4 +197,5 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
       });
     }
   );
+
 });
