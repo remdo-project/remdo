@@ -6,6 +6,7 @@ import { mergeRegister } from '@lexical/utils';
 import { useCollaborationStatus } from './collaboration';
 import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '@/editor/outline/normalization';
 import { markSchemaValidationSkipOnce } from './dev/schema/schemaValidationSkipOnce';
+import { assertEditorSchema } from './dev/schema/assertEditorSchema';
 
 export function RootSchemaPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -31,6 +32,13 @@ export function RootSchemaPlugin() {
       return;
     }
 
+    const runLoadSchemaScan = () => {
+      const editorState = editor.getEditorState();
+      editorState.read(() => {
+        assertEditorSchema(editorState.toJSON());
+      });
+    };
+
     const scheduleRepair = () => {
       if (repairScheduledRef.current) return;
       repairScheduledRef.current = true;
@@ -44,6 +52,8 @@ export function RootSchemaPlugin() {
         repairScheduledRef.current = false;
       });
     };
+
+    runLoadSchemaScan();
 
     const unregisterNormalization = editor.registerNodeTransform(RootNode, (node) => {
       $normalizeOutlineRoot(node, { skipOrphanWrappers: true });

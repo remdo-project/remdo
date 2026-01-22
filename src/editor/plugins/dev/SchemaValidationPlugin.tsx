@@ -24,14 +24,10 @@ export function SchemaValidationPlugin(): null {
     }
 
     return editor.registerUpdateListener(() => {
-      try {
-        if (!synced) {
-          return;
-        }
-        validateSchema();
-      } catch (error) {
-        console.error('[RemDo] Editor schema validation failed.', error);
+      if (!synced) {
+        return;
       }
+      validateSchema();
     });
   }, [editor, hydrated, docEpoch, synced, validateSchema]);
 

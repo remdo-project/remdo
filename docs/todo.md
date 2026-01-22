@@ -128,20 +128,6 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
      don't fix yet (e.g. duplicate noteId detected on load).
    - Run a load-time schema scan in report mode for all envs; rely on test
      harnesses (not thrown exceptions) to flag unexpected issues.
-   - Reporting vs logging split (design note):
-     - Proposal: keep reporting (telemetry) independent from console logging.
-     - Pros: clearer intent; can keep telemetry in e2e/prod while muting console
-       noise; fewer unintended test failures.
-     - Cons: another decision point; must document default logging policy.
-     - Alternative: keep a single `shouldLogIssue` helper that gates console
-       output (current approach), accepting the coupling for simplicity.
-   - E2E allowlist plumbing (design note):
-     - Option A: query param allowlist (`?issueAllowlist=code1,code2`).
-       - Pros: explicit per test; no globals; easy to see in URLs.
-       - Cons: every e2e URL must be updated; more boilerplate in tests.
-     - Option B: init script sets a global allowlist and app reads it at boot.
-       - Pros: minimal test changes; simple to apply in fixtures.
-       - Cons: relies on global state; hidden coupling between tests and app.
    - UI indicator is optional; decide later if we want a warning badge near the
      collab status or just telemetry/logs.
 9. Root-cause investigation:
