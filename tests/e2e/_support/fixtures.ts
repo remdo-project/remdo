@@ -11,6 +11,12 @@ export async function readOutline(editor: EditorLike): Promise<Outline> {
   return extractOutlineFromEditorState(await editor.getEditorState());
 }
 
+const issueExpectationsByPage = new WeakMap<Page, Set<string>>();
+
+export function setExpectedConsoleIssues(page: Page, messages: string[]): void {
+  issueExpectationsByPage.set(page, new Set(messages));
+}
+
 function attachGuards(page: Page) {
   const allowResponse = (response: Response) => {
     const url = response.url();
@@ -21,9 +27,16 @@ function attachGuards(page: Page) {
 
   const onConsole = (message: ConsoleMessage) => {
     const type = message.type();
-    if (type === 'warning' || type === 'error') {
-      throw new Error(`console.${type}: ${message.text()}`);
+    if (type !== 'warning' && type !== 'error') return;
+
+    const issueMessage = message.text();
+    const expected = issueExpectationsByPage.get(page);
+    if (expected?.has(issueMessage)) {
+      expected.delete(issueMessage);
+      return;
     }
+
+    throw new Error(`console.${type}: ${message.text()}`);
   };
 
   const onResponse = (response: Response) => {
@@ -37,6 +50,11 @@ function attachGuards(page: Page) {
   page.on('response', onResponse);
 
   return () => {
+    const expected = issueExpectationsByPage.get(page);
+    if (expected && expected.size > 0) {
+      throw new Error(`Expected console issues not reported: ${[...expected].join(', ')}`);
+    }
+    issueExpectationsByPage.delete(page);
     page.off('console', onConsole);
     page.off('response', onResponse);
   };

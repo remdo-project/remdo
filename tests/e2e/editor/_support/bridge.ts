@@ -54,7 +54,10 @@ export async function ensureReady(page: Page, opts: { clear?: boolean } = {}): P
 
 async function replaceDocument(page: Page, serializedStateJson: string): Promise<void> {
   await ensureReady(page);
-  await runWithRemdoTest(page, { kind: 'load', stateJson: serializedStateJson });
+  await runWithRemdoTest(page, {
+    kind: 'load',
+    stateJson: serializedStateJson,
+  });
 }
 
 export async function getEditorState(page: Page): Promise<unknown> {

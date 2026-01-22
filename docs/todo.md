@@ -81,18 +81,13 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
 2. Unify normalization into a single plugin:
    - Replace/merge RootSchemaPlugin + future wrapper repair into an
      `OutlineNormalizationPlugin`.
-   - Use a `ListNode` transform (Lexical-style) so repairs only run on dirty
-     list subtrees.
-   - Keep root-list enforcement (single root list) in the same plugin, but do
-     it via a `RootNode` transform or explicit root pass so the root list is
-     still created even when no lists exist yet.
+   - Superseded: we simplified to a root-only normalization check in
+     `RootSchemaPlugin` (no list/listitem transforms). This keeps behavior
+     predictable and avoids transform re-entrancy; revisit only if we need
+     better perf on huge docs.
 3. Localized normalization via node transforms:
-   - For each dirty list subtree, normalize siblings in a single pass:
-     - Repair orphan wrappers (policy decision below).
-     - Ensure wrapper list items contain exactly one list child and no content.
-   - Decision TBD: Ensure content list items have at least one TextNode (insert
-     empty text node if missing) and treat this as the canonical empty note
-     shape.
+   - Superseded by root-only normalization (see item 2). No localized list
+     transforms in the current approach.
 4. One-time load repair (explicit post-load update):
    - After collab hydration or snapshot load, run a single update that:
      - Calls the existing `$normalizeNoteIdsOnLoad` (see decision below).
@@ -124,23 +119,31 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
      schema validity/no orphan wrappers after sync, not a precise outline).
    - Reuse existing missing/duplicate `noteId` fixtures for note-id repairs.
    - Every normalization scenario must have a dedicated test case.
-8. Recurrence prevention + feedback loop:
-   - Keep the transform-based normalization always on (repairs local changes).
-   - Align prod/dev/test invariant behavior:
-     - Make `reportInvariant` environment-agnostic (always log + report, never
-       throw).
-     - Tests enforce strictness by asserting reported invariants; add a way to
-       mark expected invariants for tests that cover known bad inputs (similar
-       to `schemaValidationSkipOnce`).
-     - Update schema/unit tests that currently expect throws to use the
-       reporter-based assertions (or add a test-only helper that throws).
-   - Unified feedback (all envs):
-     - log to console on every normalization repair
-     - show a small yellow warning icon next to the collab status indicator
-       (tooltip: "Data repaired; check console").
-     - only show the warning once per session/doc until cleared, to avoid
-       spamming the UI for repeated repairs.
-     - keep a rolling counter of repairs in memory so tests can assert on it.
+8. Unified issue reporting (simplest + robust; no backward-compat constraints):
+   - Keep a single reporting entry point (currently `reportInvariant`) and
+     remove env-based throwing; all environments log/report issues only.
+   - Tests enforce strictness via console expectations (unit/e2e/collab
+     harnesses fail on unexpected console errors).
+   - Schema validation uses one non-throwing flow that can report issues we
+     don't fix yet (e.g. duplicate noteId detected on load).
+   - Run a load-time schema scan in report mode for all envs; rely on test
+     harnesses (not thrown exceptions) to flag unexpected issues.
+   - Reporting vs logging split (design note):
+     - Proposal: keep reporting (telemetry) independent from console logging.
+     - Pros: clearer intent; can keep telemetry in e2e/prod while muting console
+       noise; fewer unintended test failures.
+     - Cons: another decision point; must document default logging policy.
+     - Alternative: keep a single `shouldLogIssue` helper that gates console
+       output (current approach), accepting the coupling for simplicity.
+   - E2E allowlist plumbing (design note):
+     - Option A: query param allowlist (`?issueAllowlist=code1,code2`).
+       - Pros: explicit per test; no globals; easy to see in URLs.
+       - Cons: every e2e URL must be updated; more boilerplate in tests.
+     - Option B: init script sets a global allowlist and app reads it at boot.
+       - Pros: minimal test changes; simple to apply in fixtures.
+       - Cons: relies on global state; hidden coupling between tests and app.
+   - UI indicator is optional; decide later if we want a warning badge near the
+     collab status or just telemetry/logs.
 9. Root-cause investigation:
    - Add dev-only logging to capture the first update that introduces a wrapper
      without a preceding sibling (command name + serialized outline snapshot).
@@ -154,3 +157,8 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
 - Then make sure that validation and normalization cover all known invalid states
   so we can remove defensive code elsewhere. Also make sure that both are well structured
   and decoupled from other logic for maintainability.
+- TODO: Drop the defensive `root.type !== "root"` early return in
+  `traverseSerializedOutline` once we confirm all call sites always pass a real
+  `SerializedEditorState`. Re-check the exact use cases and decide whether this
+  traversal should be unified with another validation/normalization flow so the
+  guard is unnecessary.

@@ -1,4 +1,4 @@
-import { expect, readOutline, test as base } from '#e2e/fixtures';
+import { setExpectedConsoleIssues, expect, readOutline, test as base } from '#e2e/fixtures';
 import type { Locator, Page } from '#e2e/fixtures';
 import { ensureReady, getEditorState, load, waitForSynced } from './bridge';
 import { prepareEditorTestSurface } from './focus';
@@ -7,6 +7,9 @@ import { editorLocator } from './locators';
 let docCounter = 0;
 
 type EditorHarness = Awaited<ReturnType<typeof createEditorHarness>>;
+interface EditorLoadOptions {
+  expectedConsoleIssues?: string[];
+}
 
 async function createEditorHarness(page: Page, docId: string) {
   await page.goto(`/?doc=${docId}`);
@@ -15,7 +18,13 @@ async function createEditorHarness(page: Page, docId: string) {
 
   return {
     docId,
-    load: (name: string) => load(page, name),
+    load: (name: string, options?: EditorLoadOptions) => {
+      const expectedCodes = options?.expectedConsoleIssues;
+      if (expectedCodes?.length) {
+        setExpectedConsoleIssues(page, expectedCodes);
+      }
+      return load(page, name);
+    },
     getEditorState: () => getEditorState(page),
   };
 }

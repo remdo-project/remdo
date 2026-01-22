@@ -1,7 +1,7 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
-import type { SerializedOutlineNote } from '@/editor/plugins/dev/schema/traverseSerializedOutlineOrThrow';
-import { traverseSerializedOutlineOrThrow } from '@/editor/plugins/dev/schema/traverseSerializedOutlineOrThrow';
+import type { SerializedOutlineNote } from '@/editor/plugins/dev/schema/traverseSerializedOutline';
+import { traverseSerializedOutline } from '@/editor/plugins/dev/schema/traverseSerializedOutline';
 
 export interface OutlineNode {
   noteId: string | null;
@@ -32,7 +32,10 @@ export function extractOutlineFromEditorState(state: unknown): Outline {
     throw new TypeError('Expected a Lexical SerializedEditorState with root.type === "root".');
   }
 
-  const notes = traverseSerializedOutlineOrThrow(state as SerializedEditorState);
+  const { notes, valid } = traverseSerializedOutline(state as SerializedEditorState);
+  if (!valid) {
+    throw new Error('Expected outline to be valid.');
+  }
 
   const readNotes = (items: SerializedOutlineNote[]): Outline =>
     items.map((note) => {
