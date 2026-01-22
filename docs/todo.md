@@ -113,8 +113,8 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
    - ✅ Done: Add `editor-schema/wrapper-orphan.json` (wrapper at list start) and
      `editor-schema/wrapper-orphan-after-wrapper.json` (prod-like orphan after a
      valid wrapper) as focused normalization fixtures.
-   - Add a test that runs normalization and verifies schema validity plus
-     correct move-up behavior.
+   - ✅ Done: Add a test that runs normalization and verifies correct move-up
+     behavior.
    - TODO: Reintroduce a softer collab orphan-wrapper test later (e.g. assert
      schema validity/no orphan wrappers after sync, not a precise outline).
    - Reuse existing missing/duplicate `noteId` fixtures for note-id repairs.
@@ -131,8 +131,8 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
    - UI indicator is optional; decide later if we want a warning badge near the
      collab status or just telemetry/logs.
 9. Root-cause investigation:
-   - Add dev-only logging to capture the first update that introduces a wrapper
-     without a preceding sibling (command name + serialized outline snapshot).
+   - ✅ Done: Add dev-only logging to capture the first update that introduces
+     a wrapper without a preceding sibling (tags + serialized outline snapshot).
    - Reproduce with multi-client collab tests to see if Yjs merges can leave
      wrappers orphaned.
 10. Post-normalization simplification review:
