@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { meta } from '#tests';
+import { meta, placeCaretAtNote } from '#tests';
+import { REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
 
 describe('outline normalization on load', () => {
   it(
@@ -32,6 +33,22 @@ describe('outline normalization on load', () => {
             { noteId: 'note3', text: 'note3-child-of-orphaned-wrapper' },
           ],
         },
+      ]);
+    }
+  );
+
+  it(
+    'enables move-up after repairing an orphan wrapper',
+    meta({
+      fixture: 'editor-schema/wrapper-orphan',
+      fixtureSchemaBypass: true,
+    }),
+    async ({ remdo }) => {
+      await placeCaretAtNote(remdo, 'note3');
+      await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND);
+      expect(remdo).toMatchOutline([
+        { noteId: 'note3', text: 'note3-root-2nd-child' },
+        { noteId: 'note1', text: 'note1-child-of-orphaned-wrapper' },
       ]);
     }
   );
