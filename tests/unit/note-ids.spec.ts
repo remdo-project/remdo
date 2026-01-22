@@ -184,22 +184,38 @@ describe('note ids', () => {
 });
 
 describe('note id normalization on load', () => {
-  it('backfills missing noteIds while preserving content order', meta({ fixture: 'editor-schema/missing-note-id', fixtureSchemaBypass: true }), async ({ remdo }) => {
-        const outline = readOutline(remdo);
+  it(
+    'backfills missing noteIds while preserving content order',
+    meta({
+      fixture: 'editor-schema/missing-note-id',
+      fixtureSchemaBypass: true,
+      expectedConsoleIssues: ['runtime.invariant note-id-normalized missing-note-id path=0 text="note1"'],
+    }),
+    async ({ remdo }) => {
+      const outline = readOutline(remdo);
     expect(outline).toHaveLength(1);
     expect(outline[0]?.text).toBe('note1');
     expect(outline[0]?.noteId).toEqual(expect.any(String));
-  });
+    }
+  );
 
-  it('resolves duplicate noteIds while preserving the first occurrence', meta({ fixture: 'editor-schema/duplicate-note-id', fixtureSchemaBypass: true }), async ({ remdo }) => {
-        const outline = readOutline(remdo);
+  it(
+    'resolves duplicate noteIds while preserving the first occurrence',
+    meta({
+      fixture: 'editor-schema/duplicate-note-id',
+      fixtureSchemaBypass: true,
+      expectedConsoleIssues: ['runtime.invariant note-id-normalized duplicate-note-id noteId=duplicated path=1 text="note2"'],
+    }),
+    async ({ remdo }) => {
+      const outline = readOutline(remdo);
     expect(outline.map((note) => note.text)).toEqual(['note1', 'note2']);
 
     const [first, second] = outline;
     expect(first?.noteId).toBe('duplicated');
     expect(second?.noteId).toEqual(expect.any(String));
     expect(second?.noteId).not.toBe('duplicated');
-  });
+    }
+  );
 
   it('keeps existing unique noteIds unchanged', meta({ fixture: 'flat' }), async ({ remdo }) => {
         expect(remdo).toMatchOutline([

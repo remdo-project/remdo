@@ -6,8 +6,22 @@ import { $setState } from 'lexical';
 import { createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import { isChildrenWrapper } from '@/editor/outline/list-structure';
+import { reportInvariant } from '@/editor/invariant';
 
-function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>) {
+function formatPath(path: number[]): string {
+  return path.length === 0 ? 'root' : path.join('.');
+}
+
+function formatTextSnippet(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length === 0) {
+    return '';
+  }
+  const snippet = trimmed.length > 40 ? `${trimmed.slice(0, 37)}...` : trimmed;
+  return JSON.stringify(snippet);
+}
+
+function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, path: number[]) {
   if (isChildrenWrapper(item)) {
     return;
   }
@@ -19,13 +33,21 @@ function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>) {
   } else {
     normalized = createNoteIdAvoiding(usedIds);
     $setState(item, noteIdState, normalized);
+    const reason = noteId ? `duplicate-note-id noteId=${noteId}` : 'missing-note-id';
+    const pathLabel = `path=${formatPath(path)}`;
+    const textLabel = formatTextSnippet(item.getTextContent());
+    const textSuffix = textLabel ? ` text=${textLabel}` : '';
+    reportInvariant({ message: `note-id-normalized ${reason} ${pathLabel}${textSuffix}` });
   }
 
   usedIds.add(normalized);
 }
 
-function $normalizeListNoteIds(list: ListNode, usedIds: Set<string>) {
-  for (const child of list.getChildren()) {
+function $normalizeListNoteIds(list: ListNode, usedIds: Set<string>, prefix: number[] = []) {
+  const children = list.getChildren();
+  let noteIndex = 0;
+
+  for (const child of children) {
     if (!$isListItemNode(child)) {
       continue;
     }
@@ -33,11 +55,14 @@ function $normalizeListNoteIds(list: ListNode, usedIds: Set<string>) {
     if (isChildrenWrapper(child)) {
       const nested = child.getFirstChild();
       if ($isListNode(nested)) {
-        $normalizeListNoteIds(nested, usedIds);
+        const wrapperIndex = Math.max(noteIndex - 1, 0);
+        $normalizeListNoteIds(nested, usedIds, [...prefix, wrapperIndex]);
       }
       continue;
     }
-    $normalizeNoteIdOnLoad(child, usedIds);
+    const path = [...prefix, noteIndex];
+    noteIndex += 1;
+    $normalizeNoteIdOnLoad(child, usedIds, path);
   }
 }
 
