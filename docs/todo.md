@@ -78,6 +78,16 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
        children.
      - Lexical adapter uses two mechanisms: wrapper adjacency + `indent` field.
      - Define how these relate and which one is authoritative.
+   - Alternatives (needs decision before deeper refactors):
+     - Option A (keep wrapper adjacency as authoritative): disable Lexical
+       `hasStrictIndent` and keep using our wrapper-based indent/outdent +
+       schema validation. Pros: minimal change, matches current schema. Cons:
+       no Lexical strict-indent auto-fixes.
+     - Option B (align fully with Lexical canonical lists): drop wrapper
+       adjacency and allow nested lists as children of content list items.
+       Pros: strict-indent + list transforms become native Lexical flows.
+       Cons: large refactor (selection/indent/delete/normalization/note-id
+       traversal/fixtures).
 2. Unify normalization into a single plugin:
    - Replace/merge RootSchemaPlugin + future wrapper repair into an
      `OutlineNormalizationPlugin`.
