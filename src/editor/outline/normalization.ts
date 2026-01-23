@@ -3,7 +3,7 @@ import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } fr
 import type { RootNode } from 'lexical';
 import { $createParagraphNode, $setState } from 'lexical';
 
-import { insertBefore, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { getPreviousContentSibling, insertBefore, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { createNoteId } from '#lib/editor/note-ids';
 import { noteIdState } from '#lib/editor/note-id-state';
 
@@ -121,7 +121,7 @@ function hasOrphanWrapper(list: ListNode): boolean {
     }
 
     if (isChildrenWrapper(child)) {
-      const previousContent = findPreviousContentSibling(child);
+      const previousContent = getPreviousContentSibling(child);
       if (!previousContent) {
         return true;
       }
@@ -137,11 +137,6 @@ function hasOrphanWrapper(list: ListNode): boolean {
 
       continue;
     }
-
-    const nested = child.getFirstChild();
-    if ($isListNode(nested) && hasOrphanWrapper(nested)) {
-      return true;
-    }
   }
 
   return false;
@@ -151,11 +146,11 @@ function normalizeOrphanWrappers(list: ListNode): void {
   const children = list.getChildren();
 
   for (const child of children) {
-    if (!$isListItemNode(child) || !isChildrenWrapper(child) || !child.isAttached()) {
+    if (!isChildrenWrapper(child) || !child.isAttached()) {
       continue;
     }
 
-    const previousContent = findPreviousContentSibling(child);
+    const previousContent = getPreviousContentSibling(child);
     if (!previousContent) {
       hoistWrapperChildren(child);
       continue;
@@ -185,17 +180,6 @@ function normalizeOrphanWrappers(list: ListNode): void {
 
     hoistWrapperChildren(child);
   }
-}
-
-function findPreviousContentSibling(node: ListItemNode): ListItemNode | null {
-  let sibling = node.getPreviousSibling();
-  while (sibling) {
-    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
-      return sibling;
-    }
-    sibling = sibling.getPreviousSibling();
-  }
-  return null;
 }
 
 function hoistWrapperChildren(wrapper: ListItemNode): void {

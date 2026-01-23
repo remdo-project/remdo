@@ -1,23 +1,10 @@
-import type { ListItemNode, ListNode } from '@lexical/list';
+import type { ListItemNode } from '@lexical/list';
 import {
-  $createListItemNode,
-  $createListNode,
   $isListItemNode,
   $isListNode,
 } from '@lexical/list';
 import { reportInvariant } from '@/editor/invariant';
-import { isChildrenWrapper } from '@/editor/outline/list-structure';
-
-function getPreviousContentItem(noteItem: ListItemNode): ListItemNode | null {
-  let sibling = noteItem.getPreviousSibling();
-  while (sibling) {
-    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
-      return sibling;
-    }
-    sibling = sibling.getPreviousSibling();
-  }
-  return null;
-}
+import { $getOrCreateChildList, getPreviousContentSibling, isChildrenWrapper } from '@/editor/outline/list-structure';
 
 function getNodesToMove(noteItem: ListItemNode): ListItemNode[] {
   const childWrapper = noteItem.getNextSibling();
@@ -34,7 +21,7 @@ export function $indentNote(noteItem: ListItemNode) {
     return;
   }
 
-  const previousContent = getPreviousContentItem(noteItem);
+  const previousContent = getPreviousContentSibling(noteItem);
   if (!previousContent) {
     reportInvariant({
       message: 'Cannot indent: no previous content sibling',
@@ -43,25 +30,8 @@ export function $indentNote(noteItem: ListItemNode) {
     return;
   }
 
-  const targetList = $getOrCreateChildList(previousContent, parentList);
+  const targetList = $getOrCreateChildList(previousContent);
   targetList.append(...getNodesToMove(noteItem));
-}
-
-function $getOrCreateChildList(parentContentItem: ListItemNode, parentList: ListNode): ListNode {
-  const existingWrapper = parentContentItem.getNextSibling();
-  if (isChildrenWrapper(existingWrapper)) {
-    const childList = existingWrapper.getFirstChild();
-    if ($isListNode(childList)) {
-      return childList;
-    }
-    existingWrapper.remove();
-  }
-
-  const wrapper = $createListItemNode();
-  const nestedList = $createListNode(parentList.getListType());
-  wrapper.append(nestedList);
-  parentContentItem.insertAfter(wrapper);
-  return nestedList;
 }
 
 export function $outdentNote(noteItem: ListItemNode) {
