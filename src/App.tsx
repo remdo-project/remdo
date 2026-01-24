@@ -43,7 +43,7 @@ export default function App() {
   const lexicalUrl = host
     ? `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`
     : '#lexical';
-  const showVanillaLexical = config.isDev && new URLSearchParams(globalThis.location.search).has('lexicalDemo');
+  const showVanillaLexical = config.isDevOrTest && new URLSearchParams(globalThis.location.search).has('lexicalDemo');
 
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">

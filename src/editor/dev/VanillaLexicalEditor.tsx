@@ -5,14 +5,27 @@ import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
+import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin';
 import { TreeView } from '@lexical/react/LexicalTreeView';
-import { ListItemNode, ListNode } from '@lexical/list';
+import { $createListItemNode, $createListNode, ListItemNode, ListNode } from '@lexical/list';
+import { $createTextNode, $getRoot } from 'lexical';
 import './VanillaLexicalEditor.css';
 
 const initialConfig: InitialConfigType = {
   namespace: 'remdo-vanilla-lexical',
   theme: {},
   nodes: [ListNode, ListItemNode],
+  editorState(editor) {
+    editor.update(() => {
+      const root = $getRoot();
+      root.clear();
+      const list = $createListNode('bullet');
+      const item = $createListItemNode();
+      item.append($createTextNode(''));
+      list.append(item);
+      root.append(list);
+    });
+  },
   onError(error) {
     throw error;
   },
@@ -29,6 +42,7 @@ export default function VanillaLexicalEditor() {
             ErrorBoundary={LexicalErrorBoundary}
           />
           <ListPlugin />
+          <TabIndentationPlugin />
           <VanillaTreeView />
         </LexicalComposer>
       </div>
