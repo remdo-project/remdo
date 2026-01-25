@@ -99,24 +99,19 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
    - Superseded by root-only normalization (see item 2). No localized list
      transforms in the current approach.
 4. One-time load repair (explicit post-load update):
-   - After collab hydration or snapshot load, run a single update that:
-     - Calls the existing `$normalizeNoteIdsOnLoad` (see decision below).
-     - Runs the root-list normalization helper (same code path as the
-       transform) so a newly loaded doc is repaired immediately.
-   - Use `markSchemaValidationSkipOnce` for the repair update, then persist the
-     repaired state on next save.
+   - ✅ Done: After collab hydration or snapshot load, run a repair update that:
+     - Calls the existing `$normalizeNoteIdsOnLoad` (NoteIdPlugin/TestBridge).
+     - Runs root-list normalization (RootSchemaPlugin/normalizeRootOnce).
+   - Uses `markSchemaValidationSkipOnce` for repair updates before persisting.
 5. Decision point: `noteId` normalization scope:
-   - `noteId` generation is local/random and assumed unique; missing ids can be
-     fixed without any global scan.
-   - Duplicates may still appear due to merges/corruption; repair them on load
-     (preserve the first occurrence, assign fresh ids to the rest) and also
-     emit an invariant report so we can track the issue.
+   - ✅ Done: missing ids are fixed on load without global scans.
+   - ✅ Done: duplicates are repaired on load (preserve first, regen rest) and
+     report invariants.
 6. Decision point: orphan wrapper repair policy (root vs non-root cases):
-   - Root-level orphan (no preceding content sibling): drop the wrapper and
-     hoist its children to the root list (single indent level).
-   - Orphan after a valid wrapper: merge the orphan’s nested list into the
-     previous content item’s wrapper to preserve intended depth (prod-like
-     case).
+   - ✅ Done: Root-level orphan (no preceding content sibling) hoists children
+     into the root list.
+   - ✅ Done: Orphan after a valid wrapper merges into the previous wrapper to
+     preserve depth.
    - Add a note to brainstorm other invalid shapes and define deterministic
      normalization outcomes + fixtures for each.
 7. Tests and fixtures:
@@ -127,7 +122,8 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
      behavior.
    - ✅ Done: Reintroduce a softer collab orphan-wrapper check (asserts schema
      validity after sync without pinning a precise outline).
-   - Reuse existing missing/duplicate `noteId` fixtures for note-id repairs.
+   - ✅ Done: Reuse existing missing/duplicate `noteId` fixtures for note-id
+     repairs.
    - Every normalization scenario must have a dedicated test case.
 8. Unified issue reporting (simplest + robust; no backward-compat constraints):
    - Keep a single reporting entry point (currently `reportInvariant`) and
