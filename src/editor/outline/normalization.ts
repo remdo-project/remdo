@@ -3,6 +3,7 @@ import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } fr
 import type { RootNode } from 'lexical';
 import { $createParagraphNode, $setState } from 'lexical';
 
+import { reportInvariant } from '@/editor/invariant';
 import { getPreviousContentSibling, insertBefore, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { createNoteId } from '#lib/editor/note-ids';
 import { noteIdState } from '#lib/editor/note-id-state';
@@ -152,6 +153,10 @@ function normalizeOrphanWrappers(list: ListNode): void {
 
     const previousContent = getPreviousContentSibling(child);
     if (!previousContent) {
+      reportInvariant({
+        message: 'orphan-wrapper-without-previous-content',
+        context: { wrapperKey: child.getKey() },
+      });
       hoistWrapperChildren(child);
       continue;
     }
@@ -166,6 +171,10 @@ function normalizeOrphanWrappers(list: ListNode): void {
 
     const previousWrapper = previousContent.getNextSibling();
     if (isChildrenWrapper(previousWrapper)) {
+      reportInvariant({
+        message: 'orphan-wrapper-merged-into-previous',
+        context: { wrapperKey: child.getKey(), targetWrapperKey: previousWrapper.getKey() },
+      });
       const targetList = previousWrapper.getFirstChild();
       const nestedList = child.getFirstChild();
       if ($isListNode(targetList) && $isListNode(nestedList)) {
@@ -178,6 +187,10 @@ function normalizeOrphanWrappers(list: ListNode): void {
       continue;
     }
 
+    reportInvariant({
+      message: 'orphan-wrapper-hoisted',
+      context: { wrapperKey: child.getKey() },
+    });
     hoistWrapperChildren(child);
   }
 }

@@ -8,6 +8,7 @@ describe('outline normalization on load', () => {
     meta({
       fixture: 'editor-schema/wrapper-orphan',
       fixtureSchemaBypass: true,
+      expectedConsoleIssues: ['runtime.invariant orphan-wrapper-without-previous-content'],
     }),
     async ({ remdo }) => {
       expect(remdo).toMatchOutline([
@@ -22,6 +23,7 @@ describe('outline normalization on load', () => {
     meta({
       fixture: 'editor-schema/wrapper-orphan-after-wrapper',
       fixtureSchemaBypass: true,
+      expectedConsoleIssues: ['runtime.invariant orphan-wrapper-merged-into-previous'],
     }),
     async ({ remdo }) => {
       expect(remdo).toMatchOutline([
@@ -42,6 +44,7 @@ describe('outline normalization on load', () => {
     meta({
       fixture: 'editor-schema/wrapper-orphan',
       fixtureSchemaBypass: true,
+      expectedConsoleIssues: ['runtime.invariant orphan-wrapper-without-previous-content'],
     }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note3');
