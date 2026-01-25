@@ -29,5 +29,5 @@ test('user can enter notes and see them rendered', async ({ page }) => {
   await expect(listItems.filter({ hasText: /note2/ })).toHaveCount(1);
   await expect(listItems.filter({ hasText: /note3/ })).toHaveCount(1);
 
-  await expect(editorLocator(page).locator('.collab-status-text')).toHaveText('Live');
+  await expect(editorLocator(page).locator('.collab-status')).toHaveAttribute('aria-label', 'Live');
 });

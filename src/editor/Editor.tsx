@@ -1,11 +1,10 @@
-import { Group } from '@mantine/core';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { createEditorInitialConfig } from '#lib/editor/config';
-import { CollaborationConnectionStatus, CollaborationPlugin } from './plugins/collaboration';
+import { CollaborationPlugin } from './plugins/collaboration';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { DevPlugin } from './plugins/dev';
 import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin';
@@ -16,6 +15,7 @@ import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import { NoteIdPlugin } from './plugins/NoteIdPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
 import { KeymapPlugin } from './plugins/KeymapPlugin';
+import { StatusIndicators } from './StatusIndicators';
 import './Editor.css';
 
 interface EditorProps {
@@ -31,9 +31,7 @@ export default function Editor({ children, docId, onTestBridgeReady, onTestBridg
     <div className="editor-container">
       <LexicalComposer initialConfig={editorInitialConfig}>
         <CollaborationPlugin docId={docId}>
-          <Group justify="flex-end" className="editor-header">
-            <CollaborationConnectionStatus />
-          </Group>
+          <StatusIndicators />
           <RichTextPlugin
             contentEditable={<ContentEditable className="editor-input" />}
             ErrorBoundary={LexicalErrorBoundary}
