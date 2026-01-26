@@ -3,8 +3,7 @@ import { $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
 import { useEffect } from 'react';
-import { $indentNote, $outdentNote } from '../lexical-helpers';
-import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { findNearestListItem, getContentListItem, isChildrenWrapper, moveNoteWithWrapper } from '@/editor/outline/list-structure';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 
 const hasPreviousContentSibling = (noteItem: ListItemNode): boolean => {
@@ -74,7 +73,9 @@ export function IndentationPlugin() {
           }
 
           for (const listItem of rootItems.toReversed()) {
-            $outdentNote(listItem);
+            moveNoteWithWrapper(listItem, () => {
+              listItem.setIndent(listItem.getIndent() - 1);
+            });
           }
         } else {
           // Check if all notes can be indented before attempting to indent any
@@ -85,7 +86,9 @@ export function IndentationPlugin() {
           }
 
           for (const listItem of rootItems) {
-            $indentNote(listItem);
+            moveNoteWithWrapper(listItem, () => {
+              listItem.setIndent(listItem.getIndent() + 1);
+            });
           }
         }
 
