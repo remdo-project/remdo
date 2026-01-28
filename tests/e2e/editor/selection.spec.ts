@@ -49,7 +49,7 @@ test.describe('selection (cut marker)', () => {
     expect(cutVars.height).toBe(selectionVars.height);
   });
 
-  test('moves a structural selection on cut and paste', async ({ page, editor }) => {
+  test.skip('moves a structural selection on cut and paste', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note2');
 

@@ -55,7 +55,9 @@ Rules:
   after the entire subtree (next content sibling), which feels unintuitive when
   the caret sits visually above the first child. Align paste insertion with
   `docs/insertion.md` end-of-note semantics so pastes land as the first child,
-  and add a focused test to lock this behavior.
+  and add a focused test to lock this behavior. Unskip
+  `tests/e2e/editor/selection.spec.ts` "moves a structural selection on cut and
+  paste" once the behavior is fixed and update the expected outline.
 
 ## Prod doc corruption: schema recovery plan (discussion)
 

@@ -39,7 +39,8 @@ outdated or a doc’s role materially changes.
   semantics; indent/outdent rules.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and constraints.
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder and inline/structural rules.
-- `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs.
+- `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs;
+  tracks the paste-placement e2e follow-up.
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.
 
