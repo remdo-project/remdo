@@ -106,20 +106,6 @@ export const getNodesForNote = (note: ListItemNode): LexicalNode[] => {
 
 export const flattenNoteNodes = (notes: ListItemNode[]): LexicalNode[] => notes.flatMap(getNodesForNote);
 
-export const moveNoteWithWrapper = (note: ListItemNode, move: () => void) => {
-  const wrapper = note.getNextSibling();
-  const detached = isChildrenWrapper(wrapper) ? wrapper : null;
-  if (detached) {
-    detached.remove();
-  }
-
-  move();
-
-  if (detached && note.isAttached()) {
-    note.insertAfter(detached);
-  }
-};
-
 export const insertAfter = (reference: LexicalNode, nodes: LexicalNode[]) => {
   if (nodes.length === 0) return;
   let ref = reference;
