@@ -39,6 +39,11 @@ function attachGuards(page: Page) {
     throw new Error(`console.${type}: ${message.text()}`);
   };
 
+  const onPageError = (error: Error) => {
+    const details = error.stack || error.message || String(error);
+    throw new Error(`pageerror: ${details}`);
+  };
+
   const onResponse = (response: Response) => {
     const status = response.status();
     if (status >= 400 && !allowResponse(response)) {
@@ -47,6 +52,7 @@ function attachGuards(page: Page) {
   };
 
   page.on('console', onConsole);
+  page.on('pageerror', onPageError);
   page.on('response', onResponse);
 
   return () => {
@@ -56,6 +62,7 @@ function attachGuards(page: Page) {
     }
     issueExpectationsByPage.delete(page);
     page.off('console', onConsole);
+    page.off('pageerror', onPageError);
     page.off('response', onResponse);
   };
 }
