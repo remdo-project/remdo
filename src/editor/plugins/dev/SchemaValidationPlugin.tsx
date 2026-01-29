@@ -1,12 +1,22 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useCollaborationStatus } from '../collaboration';
 import { assertEditorSchema } from './schema/assertEditorSchema';
 import { consumeSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
 
 export function SchemaValidationPlugin(): null {
   const [editor] = useLexicalComposerContext();
-  const { hydrated, docEpoch } = useCollaborationStatus();
+  const { hydrated, docEpoch, synced } = useCollaborationStatus();
+  const wasSyncedRef = useRef(synced);
+
+  const validateSchema = useCallback((): boolean => {
+    if (consumeSchemaValidationSkipOnce(editor)) {
+      return false;
+    }
+    const state = editor.getEditorState().toJSON();
+    assertEditorSchema(state);
+    return true;
+  }, [editor]);
 
   useEffect(() => {
     if (!hydrated) {
@@ -14,17 +24,26 @@ export function SchemaValidationPlugin(): null {
     }
 
     return editor.registerUpdateListener(() => {
-      try {
-        if (consumeSchemaValidationSkipOnce(editor)) {
-          return;
-        }
-        const state = editor.getEditorState().toJSON();
-        assertEditorSchema(state);
-      } catch (error) {
-        console.error('[RemDo] Editor schema validation failed.', error);
+      if (!synced) {
+        return;
       }
+      validateSchema();
     });
-  }, [editor, hydrated, docEpoch]);
+  }, [editor, hydrated, docEpoch, synced, validateSchema]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      wasSyncedRef.current = synced;
+      return;
+    }
+
+    if (synced && !wasSyncedRef.current) {
+      // Trigger a no-op update so the update listener validates within Lexical's cycle.
+      editor.update(() => {}, { tag: 'schema-validate-sync' });
+    }
+
+    wasSyncedRef.current = synced;
+  }, [editor, hydrated, docEpoch, synced, validateSchema]);
 
   return null;
 }

@@ -3,7 +3,7 @@ import { $isListNode } from '@lexical/list';
 import { $getNodeByKey, $getRoot, $getSelection, $isRangeSelection } from 'lexical';
 
 import { reportInvariant } from '@/editor/invariant';
-import { getContentListItem } from '@/editor/outline/list-structure';
+import { getContentListItem, getPreviousContentSibling } from '@/editor/outline/list-structure';
 
 import type { BoundaryMode } from './apply';
 import { selectInlineContent, selectNoteBody, setSelectionBetweenItems } from './apply';
@@ -17,7 +17,6 @@ import {
   getLastDescendantListItem,
   getNextContentSibling,
   getParentContentItem,
-  getPreviousContentSibling,
   getSubtreeTail,
   sortHeadsByDocumentOrder,
 } from './tree';

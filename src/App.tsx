@@ -1,6 +1,7 @@
 import { Anchor, Container, Group, MantineProvider, Title } from '@mantine/core';
 import { IconBrandVite } from '@tabler/icons-react';
 import Editor from './editor/Editor';
+import VanillaLexicalEditor from './editor/dev/VanillaLexicalEditor';
 import headerStyles from './styles/AppHeader.module.css';
 import { theme } from './theme';
 import { config } from '#config';
@@ -42,6 +43,7 @@ export default function App() {
   const lexicalUrl = host
     ? `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`
     : '#lexical';
+  const showVanillaLexical = config.isDevOrTest && new URLSearchParams(globalThis.location.search).has('lexicalDemo');
 
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
@@ -75,12 +77,16 @@ export default function App() {
                   <Anchor className="app-header-link" href={lexicalUrl}>
                     Lexical
                   </Anchor>
+                  <Anchor className="app-header-link" href="/?lexicalDemo">
+                    Lexical Demo
+                  </Anchor>
                 </>
               )}
             </Group>
           </nav>
         </header>
 
+        {showVanillaLexical && <VanillaLexicalEditor />}
         <Editor docId={resolveDocId()} />
       </Container>
     </MantineProvider>

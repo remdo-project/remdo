@@ -29,16 +29,18 @@ outdated or a doc’s role materially changes.
 - `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, defaults/overrides, worktrees,
   and blocked port guard.
 - `docs/insertion.md` (Short). Caret-mode `Enter` behavior and focus rules.
-- `docs/outliner/concepts.md` (Medium). Note model, invariants, core terms, adapters, fixtures.
+- `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge rules, spacing.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).
 - `docs/outliner/index.md` (Short). Entry point with links; single-source invariants rule.
 - `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization, cut-as-move, collab,
   `noteRef`.
-- `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indent/outdent rules.
+- `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indentation
+  semantics; indent/outdent rules.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and constraints.
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder and inline/structural rules.
-- `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs.
+- `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs;
+  tracks paste-placement e2e follow-up and prod schema recovery decisions.
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.
 
@@ -103,6 +105,11 @@ document captures the full model.
 - Always focus on the simplest and shortest possible implementation that meets
   the request. Propose any additional guards, optimisations, checks, etc. as
   follow ups instead of adding them by default.
+- The `docs/todo.md` summary in the documentation map should remain as-is and
+  should not be automatically updated like other doc entries.
+- When writing tests against known fixtures, assume the fixture shape; avoid
+  defensive assertions about expected structure unless the test is explicitly
+  about validation.
 - If you spot any tradeoffs or pros and cons of alternative solutions always ask
   first before implementing one.
 - Don't assume that the request is always clear, if in doubt ask before
@@ -114,7 +121,7 @@ document captures the full model.
 ## Checks
 
 - Current timings on this machine (rounded with headroom): `pnpm run lint` about
-  5–10s, `pnpm run test:unit` about 10–20s, `pnpm run test:unit:collab` about
+  5–10s, `pnpm run test:unit` about 10–20s, `pnpm run test:collab` about
   12–25s. If you ever hit the 60s guard, debug the failure (don’t extend); only
   adjust ranges if healthy runs consistently land outside them.
 - E2E (Playwright): run `pnpm test:e2e`. In sandboxed environments, accessing
@@ -136,7 +143,7 @@ document captures the full model.
    `tests/unit/smoke.spec.tsx -t "loads basic outline structure from JSON"` ran
    only that file in ~1.3s.
 5. Collab test filter via script:
-   `pnpm run test:unit:collab tests/unit/collab/<file> -t "<full test name>"`;
+   `pnpm run test:collab tests/unit/collab/<file> -t "<full test name>"`;
    example
    `smoke.collab.spec.tsx -t "lexical helpers operate in collaboration mode"`
    passed in ~1.4s with collab server auto-started.
@@ -155,7 +162,7 @@ document captures the full model.
 1. Always run these checks before declaring a task done:
    1. `pnpm run lint`
    2. `pnpm run test:unit`
-   3. `pnpm run test:unit:collab`
+   3. `pnpm run test:collab`
 
    These suites must pass at the end of every cloud-task unless the user
    explicitly asks to skip a specific suite.

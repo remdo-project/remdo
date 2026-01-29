@@ -16,14 +16,18 @@ import {
 } from 'lexical';
 import type { LexicalNode, TextNode } from 'lexical';
 import { useEffect, useState } from 'react';
-import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
+import {
+  findNearestListItem,
+  getContentListItem,
+  getPreviousContentSibling,
+  isChildrenWrapper,
+} from '@/editor/outline/list-structure';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import {
   getFirstDescendantListItem,
   getNestedList,
   getNextContentSibling,
-  getPreviousContentSibling,
   getSubtreeTail,
   removeNoteSubtree,
   sortHeadsByDocumentOrder,

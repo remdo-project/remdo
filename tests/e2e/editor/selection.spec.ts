@@ -51,7 +51,7 @@ test.describe('selection (cut marker)', () => {
 
   test('moves a structural selection on cut and paste', async ({ page, editor }) => {
     await editor.load('flat');
-    await setCaretAtText(page, 'note2');
+    await setCaretAtText(page, 'note1');
 
     const input = editorLocator(page).locator('.editor-input').first();
 
@@ -63,14 +63,14 @@ test.describe('selection (cut marker)', () => {
 
     await expect(input).toHaveClass(/editor-input--cut-marker/);
 
-    await setCaretAtText(page, 'note3');
+    await setCaretAtText(page, 'note3', Number.POSITIVE_INFINITY);
     const pasteCombo = process.platform === 'darwin' ? 'Meta+V' : 'Control+V';
     await page.keyboard.press(pasteCombo);
 
     await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note3', text: 'note3' },
       { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note1', text: 'note1' },
     ]);
     await expect(input).not.toHaveClass(/editor-input--cut-marker/);
   });

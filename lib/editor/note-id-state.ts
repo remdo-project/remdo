@@ -57,3 +57,5 @@ export function ensureNoteIdStateConfig(): void {
     return node;
   };
 }
+
+ensureNoteIdStateConfig();

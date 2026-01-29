@@ -4,6 +4,7 @@ import { env } from 'node:process';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tests-common/fixtures';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
+import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
 
 let collabDocCounter = 0;
 beforeEach<TestContext>(async (ctx) => {
@@ -13,9 +14,11 @@ beforeEach<TestContext>(async (ctx) => {
     preserveCollabState?: boolean;
     fixture?: string;
     fixtureSchemaBypass?: boolean;
+    expectedConsoleIssues?: string[];
   };
   const fixtureName = typeof meta.fixture === 'string' ? meta.fixture : undefined;
   const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
+  setExpectedConsoleIssues(meta.expectedConsoleIssues ?? null);
 
   let docId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
   if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {

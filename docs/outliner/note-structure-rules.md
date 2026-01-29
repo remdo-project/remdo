@@ -21,6 +21,16 @@ guarantees.
 - **Predictability:** Outdent/indent placement is deterministic, so the same
   command always lands notes in the expected position.
 
+## Indentation Semantics (concept vs. adapter)
+
+- Conceptual model: every note has exactly one parent (except the document
+  root), so a child is always exactly one level deeper than its parent. There
+  is no notion of “skipping” multiple levels at once.
+- Lexical adapter: structural depth is represented by the wrapper + nested list
+  shape. The `indent` field is metadata that must align with the wrapper-based
+  structure. When deciding parent/child relationships, wrapper adjacency is the
+  source of truth; `indent` is validated against it.
+
 ## Subtree Atomic Move
 
 Any structural move operation (indent, outdent, reorder) applied to a note

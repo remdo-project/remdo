@@ -16,7 +16,7 @@
   z-index: 1;
 }
 
-.collab-status-text {
+.status-icon-text {
   margin-left: 0;
   max-width: 0;
   opacity: 0;
@@ -25,8 +25,8 @@
   white-space: nowrap;
 }
 
-.collab-status:hover .collab-status-text,
-.collab-status:focus-within .collab-status-text {
+.status-icon:hover .status-icon-text,
+.status-icon:focus-within .status-icon-text {
   margin-left: var(--mantine-spacing-xs);
   max-width: 8rem;
   opacity: 1;

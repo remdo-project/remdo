@@ -1,0 +1,55 @@
+.vanilla-lexical {
+  margin: var(--mantine-spacing-xl) 0 0 0;
+}
+
+.vanilla-lexical-shell {
+  position: relative;
+  padding: var(--mantine-spacing-lg) var(--mantine-spacing-xl);
+  border: 1px dashed var(--mantine-color-dark-4);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-dark-7);
+}
+
+.vanilla-lexical-input {
+  min-height: 220px;
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--mantine-color-dark-0);
+}
+
+.vanilla-lexical-placeholder {
+  position: absolute;
+  top: var(--mantine-spacing-lg);
+  left: var(--mantine-spacing-xl);
+  color: var(--mantine-color-dark-3);
+  pointer-events: none;
+  user-select: none;
+}
+
+.vanilla-lexical-tree {
+  margin-top: var(--mantine-spacing-lg);
+  border-top: 1px solid var(--mantine-color-dark-4);
+  padding-top: var(--mantine-spacing-md);
+}
+
+.vanilla-lexical-tree-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-sm);
+  font-family: var(--mantine-font-family-monospace);
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-1);
+}
+
+.vanilla-lexical-tree-hidden {
+  display: none !important;
+}
+
+.vanilla-lexical-tree-body pre {
+  margin: 0;
+  background-color: var(--mantine-color-dark-7);
+  border-radius: var(--mantine-radius-sm);
+  padding: var(--mantine-spacing-md);
+  overflow: visible;
+}

@@ -2,8 +2,8 @@ import type { SerializedEditorState } from 'lexical';
 
 import { reportInvariant } from '@/editor/invariant';
 
-import type { SerializedOutlineNote } from './traverseSerializedOutlineOrThrow';
-import { traverseSerializedOutlineOrThrow } from './traverseSerializedOutlineOrThrow';
+import type { SerializedOutlineNote } from './traverseSerializedOutline';
+import { traverseSerializedOutline } from './traverseSerializedOutline';
 
 export interface FlatOutlineEntry {
   indent: number;
@@ -23,15 +23,21 @@ function flattenNotes(notes: SerializedOutlineNote[], entries: FlatOutlineEntry[
   }
 }
 
-export function collectOutlineEntries(state: SerializedEditorState): FlatOutlineEntry[] {
+export function collectOutlineEntries(state: SerializedEditorState): FlatOutlineEntry[] | null {
+  const { notes, valid } = traverseSerializedOutline(state);
+  if (!valid) {
+    return null;
+  }
   const entries: FlatOutlineEntry[] = [];
-  const notes = traverseSerializedOutlineOrThrow(state);
   flattenNotes(notes, entries);
   return entries;
 }
 
 export function assertEditorSchema(state: SerializedEditorState): void {
   const entries = collectOutlineEntries(state);
+  if (!entries) {
+    return;
+  }
 
   const stack: Array<{ indent: number }> = [{ indent: -1 }];
 
@@ -39,8 +45,7 @@ export function assertEditorSchema(state: SerializedEditorState): void {
     const parentIndent = stack.at(-1)!.indent;
     if (entry.indent > parentIndent + 1) {
       reportInvariant({
-        message: `Invalid outline structure: indent jumped from ${parentIndent} to ${entry.indent} at "${entry.path}"`,
-        context: { parentIndent, entryIndent: entry.indent, path: entry.path },
+        message: `indent-jump path=${entry.path} parentIndent=${parentIndent} entryIndent=${entry.indent}`,
       });
     }
 
@@ -51,4 +56,3 @@ export function assertEditorSchema(state: SerializedEditorState): void {
     stack.push({ indent: entry.indent });
   }
 }
-

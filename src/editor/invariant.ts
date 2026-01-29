@@ -1,39 +1,63 @@
-import { config } from '#config';
+import { useSyncExternalStore } from 'react';
+import { IconAlertTriangle } from '@tabler/icons-react';
+import type { StatusDescriptor } from './StatusIndicators';
 
 export interface InvariantPayload {
   message: string;
   context?: Record<string, unknown>;
 }
 
-interface InvariantReporter {
-  (payload: InvariantPayload): void;
+interface InvariantStatusSnapshot {
+  hasWarning: boolean;
 }
 
-let reporter: InvariantReporter | null = null;
+const invariantListeners = new Set<() => void>();
+let invariantStatus: InvariantStatusSnapshot = { hasWarning: false };
 
-export function setInvariantReporter(fn: InvariantReporter | null): void {
-  reporter = fn;
+function notifyInvariantListeners() {
+  for (const listener of invariantListeners) {
+    listener();
+  }
+}
+
+function subscribeInvariantStatus(listener: () => void) {
+  invariantListeners.add(listener);
+  return () => invariantListeners.delete(listener);
+}
+
+function getInvariantStatusSnapshot(): InvariantStatusSnapshot {
+  return invariantStatus;
+}
+
+export function useInvariantStatus(): InvariantStatusSnapshot {
+  return useSyncExternalStore(
+    subscribeInvariantStatus,
+    getInvariantStatusSnapshot,
+    getInvariantStatusSnapshot
+  );
 }
 
 export function reportInvariant(payload: InvariantPayload): void {
-  const isDevOrTest = config.isDevOrTest;
+  const label = `runtime.invariant ${payload.message}`.trim();
+  console.error(label);
 
-  if (isDevOrTest) {
-    const error: Error & { context?: Record<string, unknown> } = new Error(payload.message);
-    error.context = payload.context;
-    throw error;
+  if (!invariantStatus.hasWarning) {
+    invariantStatus = { hasWarning: true };
+    notifyInvariantListeners();
   }
+}
 
-  console.error(`[invariant] ${payload.message}`.trim(), payload.context);
+const WARNING_COLOR = 'var(--mantine-color-yellow-6)';
 
-  if (!reporter) {
-    console.error('[invariant:reporter-missing]', payload);
-    return;
-  }
+export function useInvariantIndicator(): StatusDescriptor {
+  const { hasWarning } = useInvariantStatus();
 
-  try {
-    reporter(payload);
-  } catch (err) {
-    console.error('[invariant:reporter-error]', err);
-  }
+  return {
+    key: 'invariant',
+    visible: hasWarning,
+    icon: IconAlertTriangle,
+    color: WARNING_COLOR,
+    ariaLabel: 'Invariant warning',
+    text: 'Invariant',
+  };
 }

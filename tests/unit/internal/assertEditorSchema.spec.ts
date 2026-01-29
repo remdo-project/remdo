@@ -1,5 +1,6 @@
 import type { SerializedEditorState } from 'lexical';
 import { describe, expect, it } from 'vitest';
+import { meta } from '#tests';
 import { assertEditorSchema } from '@/editor/plugins/dev/schema/assertEditorSchema';
 import duplicateNoteId from '#fixtures/editor-schema/duplicate-note-id.json';
 import emptyText from '#fixtures/editor-schema/empty-text.json';
@@ -7,6 +8,8 @@ import indentJump from '#fixtures/editor-schema/indent-jump.json';
 import listWrapperNoListitem from '#fixtures/editor-schema/list-wrapper-no-listitem.json';
 import missingNoteId from '#fixtures/editor-schema/missing-note-id.json';
 import minimalValid from '#fixtures/editor-schema/minimal-valid.json';
+import wrapperOrphan from '#fixtures/editor-schema/wrapper-orphan.json';
+import wrapperOrphanAfterWrapper from '#fixtures/editor-schema/wrapper-orphan-after-wrapper.json';
 import wrapperWithoutSibling from '#fixtures/editor-schema/wrapper-without-sibling.json';
 
 describe('assertEditorSchema', () => {
@@ -16,35 +19,61 @@ describe('assertEditorSchema', () => {
     expect(() => assertEditorSchema(cast(minimalValid))).not.toThrow();
   });
 
-  it('throws when a content item is missing a noteId', () => {
-    expect(() => assertEditorSchema(cast(missingNoteId))).toThrowError(
-      'Invalid outline structure: missing noteId on content item'
-    );
-  });
+  it(
+    'reports when a content item is missing a noteId',
+    meta({ expectedConsoleIssues: ['runtime.invariant missing-note-id path=0 noteId=undefined'] }),
+    () => {
+      assertEditorSchema(cast(missingNoteId));
+    }
+  );
 
-  it('throws when noteIds are duplicated', () => {
-    expect(() => assertEditorSchema(cast(duplicateNoteId))).toThrowError(
-      'Invalid outline structure: duplicate noteId'
-    );
-  });
+  it(
+    'reports when noteIds are duplicated',
+    meta({ expectedConsoleIssues: ['runtime.invariant duplicate-note-id path=1 noteId=duplicated'] }),
+    () => {
+      assertEditorSchema(cast(duplicateNoteId));
+    }
+  );
 
-  it('throws for wrapper list item without preceding sibling', () => {
-    expect(() => assertEditorSchema(cast(wrapperWithoutSibling))).toThrowError(
-      'Invalid outline structure: wrapper list item without preceding list item sibling'
-    );
-  });
+  it(
+    'reports for wrapper list item without preceding sibling',
+    meta({ expectedConsoleIssues: ['runtime.invariant wrapper-without-sibling path=root'] }),
+    () => {
+      assertEditorSchema(cast(wrapperWithoutSibling));
+    }
+  );
 
-  it('throws when a nested list lacks list item children', () => {
-    expect(() => assertEditorSchema(cast(listWrapperNoListitem))).toThrowError(
-      'Invalid outline structure: list wrapper without list item child'
-    );
-  });
+  it(
+    'reports for wrapper list item at list start',
+    meta({ expectedConsoleIssues: ['runtime.invariant wrapper-without-sibling path=root'] }),
+    () => {
+      assertEditorSchema(cast(wrapperOrphan));
+    }
+  );
 
-  it('throws on indent jumps greater than one level', () => {
-    expect(() => assertEditorSchema(cast(indentJump))).toThrowError(
-      'Invalid outline structure: indent jumped from 0 to 2 at "1"'
-    );
-  });
+  it(
+    'reports for wrapper list item after another wrapper',
+    meta({ expectedConsoleIssues: ['runtime.invariant wrapper-without-sibling path=root'] }),
+    () => {
+      assertEditorSchema(cast(wrapperOrphanAfterWrapper));
+    }
+  );
+
+  it(
+    'reports when a nested list lacks list item children',
+    meta({ expectedConsoleIssues: ['runtime.invariant list-wrapper-no-listitem path=0'] }),
+    () => {
+      assertEditorSchema(cast(listWrapperNoListitem));
+    }
+  );
+
+  it(
+    'reports on indent jumps greater than one level',
+    meta({ expectedConsoleIssues: ['runtime.invariant indent-jump path=1 parentIndent=0 entryIndent=2'] }),
+    () => {
+      assertEditorSchema(cast(indentJump));
+    }
+  );
 
   it('ignores list items with empty text content', () => {
     expect(() => assertEditorSchema(cast(emptyText))).not.toThrow();

@@ -112,17 +112,6 @@ export function getNextContentSibling(item: ListItemNode): ListItemNode | null {
   return null;
 }
 
-export function getPreviousContentSibling(item: ListItemNode): ListItemNode | null {
-  let sibling: LexicalNode | null = item.getPreviousSibling();
-  while (sibling) {
-    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
-      return sibling;
-    }
-    sibling = sibling.getPreviousSibling();
-  }
-  return null;
-}
-
 export function getSubtreeTail(item: ListItemNode): ListItemNode {
   const nestedList = getNestedList(item);
   if (!nestedList) {
@@ -145,13 +134,6 @@ export function getNestedList(item: ListItemNode): ListNode | null {
       return nested;
     }
   }
-
-  for (const child of item.getChildren()) {
-    if ($isListNode(child)) {
-      return child;
-    }
-  }
-
   return null;
 }
 

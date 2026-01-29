@@ -165,11 +165,11 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     }, { skipSchemaValidation: options?.skipSchemaValidationOnce });
 
     if (options?.skipSchemaValidationOnce) {
-      await withOutcome('normalizeNoteIds', 'update', () => {
+      await withOutcome('normalizeNoteIds', 'any', () => {
         editor.update(() => {
           $normalizeNoteIdsOnLoad($getRoot(), collab.docId);
         });
-      });
+      }, { skipSchemaValidation: true });
     }
   };
 

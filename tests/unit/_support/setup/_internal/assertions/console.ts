@@ -1,7 +1,11 @@
 import { afterAll, afterEach, expect, vi } from 'vitest';
+import {
+  clearExpectedConsoleIssues,
+  consumeExpectedConsoleIssue,
+  getExpectedConsoleIssues,
+} from './console-allowlist';
 
 const LEVELS = ['error', 'warn'] as const;
-
 const consoleSpies = LEVELS.map((level) => {
   // swallow console noise while recording calls
   const spy = vi.spyOn(console, level).mockImplementation(() => { });
@@ -9,8 +13,14 @@ const consoleSpies = LEVELS.map((level) => {
 });
 
 afterEach(() => {
+  const expectedIssues = getExpectedConsoleIssues();
   for (const { level, spy } of consoleSpies) {
-    const relevantCalls = spy.mock.calls;
+    const relevantCalls = expectedIssues
+      ? spy.mock.calls.filter((args) => {
+          const message = typeof args[0] === 'string' ? args[0] : '';
+          return !consumeExpectedConsoleIssue(message);
+        })
+      : spy.mock.calls;
 
     if (relevantCalls.length > 0) {
       const argsPreview = relevantCalls
@@ -31,6 +41,11 @@ afterEach(() => {
 
     spy.mockClear();
   }
+  if (expectedIssues && expectedIssues.size > 0) {
+    clearExpectedConsoleIssues();
+    expect.fail(`Expected console issues not reported: ${[...expectedIssues].join(', ')}`);
+  }
+  clearExpectedConsoleIssues();
 });
 
 afterAll(() => {

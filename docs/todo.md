@@ -44,16 +44,10 @@ Rules:
 
 ## Test infra
 
-- E2E runs reuse persisted collab docs (e.g., `data/collab/project/data.ysweet`),
-  so failures can disappear after a run normalizes data. Add a cleanup or
-  per-run `DATA_DIR`/doc-id strategy so Playwright runs are isolated and
-  deterministic.
-- Missing coverage: add a normalization test that loads a document containing
-  a wrapper list item whose nested list has no list-item children (an empty
-  child list), runs the load-time normalization pass, and asserts the invalid
-  wrapper is removed so the resulting outline is schema-valid and stable. The
-  test should also ensure the remaining notes keep their note ids and order
-  intact after the cleanup.
+- E2E runs reuse persisted collab docs (e.g.,
+  `data/collab/project/data.ysweet`), so failures can disappear after a run
+  normalizes data. Add a cleanup or per-run `DATA_DIR`/doc-id strategy so
+  Playwright runs are isolated and deterministic.
 
 ## Other
 
@@ -61,4 +55,101 @@ Rules:
   after the entire subtree (next content sibling), which feels unintuitive when
   the caret sits visually above the first child. Align paste insertion with
   `docs/insertion.md` end-of-note semantics so pastes land as the first child,
-  and add a focused test to lock this behavior.
+  and add a focused test to lock this behavior. Unskip
+  `tests/e2e/editor/selection.spec.ts` "moves a structural selection on cut and
+  paste" once the behavior is fixed and update the expected outline.
+
+## Clipboard caret-position semantics
+
+- Define cut/copy/paste insertion behavior when the selection is collapsed:
+  caret at start, middle, and end of a note (before/after/inside rules).
+- Update `docs/outliner/note-ids.md` (and `docs/outliner/selection.md` if
+  needed) to document the chosen behavior.
+- Add unit coverage in `tests/unit/note-ids.spec.ts` plus e2e coverage in
+  `tests/e2e/editor/selection.spec.ts` for the supported caret positions.
+
+  ### Notes
+
+  3. What can be simplified (and what can replace our helpers)
+
+  Below are concrete simplifications and replacements that do not require
+  changing your data model:
+
+  ### A) Indentation logic
+
+  Current:
+  - src/editor/plugins/IndentationPlugin.tsx handles Tab and calls $indentNote /
+    $outdentNote in src/editor/lexical-helpers.ts.
+
+  Potential simplification:
+  - Replace $indentNote / $outdentNote with Lexical’s $handleIndent /
+    $handleOutdent (from lexical-list/src/formatList.ts).
+  - This would give you the same wrapper adjacency model but with Lexical’s
+    battle‑tested list mutations, including wrapper merge/creation logic.
+
+  Why this is safe: The vanilla snapshot shows Lexical’s default indent creates
+  the same wrapper‑list structure RemDo expects.
+
+  ### B) List structure helpers
+
+  We maintain a set of helpers in src/editor/outline/list-structure.ts. Some can
+  be replaced:
+
+  Replaceable by Lexical utils:
+  - findNearestListItem → Lexical $findNearestListItemNode.
+  - isChildrenWrapper not directly replaceable because Lexical’s
+    isNestedListNode is looser (only checks first child is a list). You likely
+    want to keep your strict wrapper check to avoid content‑loss in destructive
+    operations.
+
+  Potential replacements (if desired):
+  - getParentNote or ancestor traversal could use $getTopListNode /
+    $getListDepth for robustness.
+
+  ### C) Schema validation using indent
+
+  Right now you validate indent jumps using the serialized indent field:
+  - src/editor/plugins/dev/schema/assertEditorSchema.ts
+  - src/editor/plugins/dev/schema/traverseSerializedOutline.ts
+
+  Potential simplification:
+  - If you rely on Lexical’s registerListStrictIndentTransform (already enabled
+    via <ListPlugin hasStrictIndent />), the indent field should already be
+    aligned with list depth. That means your custom indent‑jump check is mostly
+    redundant, unless you want additional guardrails for corrupted data.
+
+  ———
+  4. What can be more robust
+
+  ### A) Use Lexical’s indent/outdent for correctness
+
+  The Lexical list code handles a lot of edge cases (merging wrapper siblings,
+  splitting during outdent). It’s likely more robust than our custom $indentNote
+  / $outdentNote, and it’s aligned with the shape demonstrated by the vanilla
+  snapshot.
+
+  ### B) Keep strict wrapper validation, but use Lexical for traversal
+
+  - Keep isChildrenWrapper strict to avoid silent data loss.
+  - Use Lexical utilities where you don’t need strictness, to reduce
+    maintenance.
+
+  ### C) Decide whether indent is authoritative or derived
+
+  Right now, indent is read for validation only. Lexical already sets it (see
+  snapshots). If you treat it as derived, you can simplify validation to use
+  list depth and ignore indent except as a debug hint.
+
+  ———
+  5. Recommendation for the Option A vs B decision
+
+  Given the vanilla snapshot and Lexical internals, Option A (wrapper adjacency)
+  is already aligned with Lexical’s canonical list shape. That makes Option A
+  the low‑risk path:
+  - You can replace our indent/outdent logic with Lexical’s.
+  - You can rely on Lexical strict‑indent for consistency.
+  - You keep your schema invariants and noteId system intact.
+
+  Option B (nested list directly inside content items without wrappers) is still
+  a major refactor and doesn’t buy you much, because Lexical already uses the
+  wrapper pattern in practice.

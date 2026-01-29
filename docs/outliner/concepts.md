@@ -48,6 +48,9 @@ notes:
   folding/collapse is currently out of scope.
 - **Empty note:** a note whose body text is empty after trimming whitespace.
 - **Empty leaf note:** an empty note with no children.
+- **Document root note:** the special root note that represents the document
+  itself. It has no parent and is not directly selectable; all top-level notes
+  are its children.
 
 ---
 
@@ -108,15 +111,24 @@ The Lexical adapter serializes the conceptual note tree into a deterministic
 Lexical node shape:
 
 - The conceptual root note is mapped to Lexical's `RootNode`. A dedicated schema
-  plugin (`src/editor/plugins/RootSchemaPlugin.tsx`) keeps this root constrained
-  to a single child `ListNode`; the `ListItemNode` children of that list are the
-  root note's direct descendants.
+  plugin keeps this root constrained to a single child `ListNode`; the
+  `ListItemNode` children of that list are the root note's direct descendants.
 - Every non-root note is serialized as a `ListItemNode` whose children hold the
   note's payload (for example a `ParagraphNode` with `TextNode`s).
 - When a note has children, the adapter inserts a second `ListItemNode`
   immediately after the content `ListItemNode`. This wrapper `ListItemNode`
   contains a nested `ListNode`, and the `ListItemNode`s inside that nested list
   represent the note's conceptual descendants.
+
+### Indentation (concept vs. adapter)
+
+- Conceptually, RemDo models a tree: every note has exactly one parent, so a
+  child is always exactly one level deeper than its parent (no multi-level
+  jumps).
+- In the Lexical adapter, nesting is represented by a wrapper list item plus a
+  nested list. The `indent` field is treated as metadata and must agree with the
+  structural wrapper shape; wrapper adjacency is authoritative when resolving
+  parent/child relationships.
 
 ### Operations
 

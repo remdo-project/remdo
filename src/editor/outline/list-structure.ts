@@ -51,6 +51,17 @@ export const getContentSiblings = (list: ListNode): ListItemNode[] => {
   return items;
 };
 
+export const getPreviousContentSibling = (item: ListItemNode): ListItemNode | null => {
+  let sibling = item.getPreviousSibling();
+  while (sibling) {
+    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
+      return sibling;
+    }
+    sibling = sibling.getPreviousSibling();
+  }
+  return null;
+};
+
 export const getContentListItem = (item: ListItemNode): ListItemNode => {
   if (!isChildrenWrapper(item)) {
     return item;
