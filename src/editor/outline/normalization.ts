@@ -144,54 +144,63 @@ function hasOrphanWrapper(list: ListNode): boolean {
 }
 
 function normalizeOrphanWrappers(list: ListNode): void {
-  const children = list.getChildren();
+  let needsRescan = true;
 
-  for (const child of children) {
-    if (!isChildrenWrapper(child) || !child.isAttached()) {
-      continue;
-    }
+  while (needsRescan) {
+    needsRescan = false;
+    const children = list.getChildren();
 
-    const previousContent = getPreviousContentSibling(child);
-    if (!previousContent) {
+    for (const child of children) {
+      if (!isChildrenWrapper(child) || !child.isAttached()) {
+        continue;
+      }
+
+      const previousContent = getPreviousContentSibling(child);
+      if (!previousContent) {
+        reportInvariant({
+          message: 'orphan-wrapper-without-previous-content',
+          context: { wrapperKey: child.getKey() },
+        });
+        hoistWrapperChildren(child);
+        needsRescan = true;
+        break;
+      }
+
+      if (child.getPreviousSibling() === previousContent) {
+        const nested = child.getFirstChild();
+        if ($isListNode(nested)) {
+          normalizeOrphanWrappers(nested);
+        }
+        continue;
+      }
+
+      const previousWrapper = previousContent.getNextSibling();
+      if (isChildrenWrapper(previousWrapper)) {
+        reportInvariant({
+          message: 'orphan-wrapper-merged-into-previous',
+          context: { wrapperKey: child.getKey(), targetWrapperKey: previousWrapper.getKey() },
+        });
+        const targetList = previousWrapper.getFirstChild();
+        const nestedList = child.getFirstChild();
+        if ($isListNode(targetList) && $isListNode(nestedList)) {
+          targetList.append(...nestedList.getChildren());
+        }
+        child.remove();
+        if ($isListNode(targetList)) {
+          normalizeOrphanWrappers(targetList);
+        }
+        needsRescan = true;
+        break;
+      }
+
       reportInvariant({
-        message: 'orphan-wrapper-without-previous-content',
+        message: 'orphan-wrapper-hoisted',
         context: { wrapperKey: child.getKey() },
       });
       hoistWrapperChildren(child);
-      continue;
+      needsRescan = true;
+      break;
     }
-
-    if (child.getPreviousSibling() === previousContent) {
-      const nested = child.getFirstChild();
-      if ($isListNode(nested)) {
-        normalizeOrphanWrappers(nested);
-      }
-      continue;
-    }
-
-    const previousWrapper = previousContent.getNextSibling();
-    if (isChildrenWrapper(previousWrapper)) {
-      reportInvariant({
-        message: 'orphan-wrapper-merged-into-previous',
-        context: { wrapperKey: child.getKey(), targetWrapperKey: previousWrapper.getKey() },
-      });
-      const targetList = previousWrapper.getFirstChild();
-      const nestedList = child.getFirstChild();
-      if ($isListNode(targetList) && $isListNode(nestedList)) {
-        targetList.append(...nestedList.getChildren());
-      }
-      child.remove();
-      if ($isListNode(targetList)) {
-        normalizeOrphanWrappers(targetList);
-      }
-      continue;
-    }
-
-    reportInvariant({
-      message: 'orphan-wrapper-hoisted',
-      context: { wrapperKey: child.getKey() },
-    });
-    hoistWrapperChildren(child);
   }
 }
 

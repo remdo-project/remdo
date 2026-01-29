@@ -1,6 +1,11 @@
+import { act } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { ListItemNode, ListNode } from '@lexical/list';
+import { $getRoot, ParagraphNode, TextNode, createEditor } from 'lexical';
+import { readFixture } from '#tests-common/fixtures';
 import { meta, placeCaretAtNote } from '#tests';
 import { REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
+import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '@/editor/outline/normalization';
 
 describe('outline normalization on load', () => {
   it(
@@ -56,4 +61,43 @@ describe('outline normalization on load', () => {
     }
   );
 
+});
+
+describe('outline normalization (single pass)', () => {
+  it(
+    'resolves orphan wrappers created by hoisting in one normalization pass',
+    meta({
+      expectedConsoleIssues: [
+        'runtime.invariant orphan-wrapper-without-previous-content',
+        'runtime.invariant orphan-wrapper-merged-into-previous',
+      ],
+    }),
+    async () => {
+    const fixture = await readFixture('editor-schema/wrapper-orphan-nested-wrapper');
+    const root = document.createElement('div');
+    document.body.append(root);
+
+    const editor = createEditor({
+      namespace: 'outline-normalization-single-pass',
+      nodes: [ListNode, ListItemNode, ParagraphNode, TextNode],
+    });
+    editor.setRootElement(root);
+
+    await act(async () => {
+      const parsed = editor.parseEditorState(JSON.parse(fixture));
+      editor.setEditorState(parsed);
+    });
+
+    await act(async () => {
+      editor.update(() => {
+        $normalizeOutlineRoot($getRoot());
+      });
+    });
+
+    const needsRepair = editor.getEditorState().read(() => $shouldNormalizeOutlineRoot($getRoot()));
+    root.remove();
+
+      expect(needsRepair).toBe(false);
+    }
+  );
 });

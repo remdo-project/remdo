@@ -1,0 +1,92 @@
+{
+  "root": {
+    "type": "root",
+    "children": [
+      {
+        "type": "list",
+        "children": [
+          {
+            "type": "listitem",
+            "value": 1,
+            "children": [
+              {
+                "type": "list",
+                "children": [
+                  {
+                    "noteId": "note1",
+                    "type": "listitem",
+                    "value": 1,
+                    "indent": 1,
+                    "children": [
+                      {
+                        "text": "note1",
+                        "type": "text"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "listitem",
+                    "value": 2,
+                    "children": [
+                      {
+                        "type": "list",
+                        "children": [
+                          {
+                            "noteId": "note2",
+                            "type": "listitem",
+                            "value": 1,
+                            "indent": 2,
+                            "children": [
+                              {
+                                "text": "note2",
+                                "type": "text"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "listitem",
+                    "value": 3,
+                    "children": [
+                      {
+                        "type": "list",
+                        "children": [
+                          {
+                            "noteId": "note3",
+                            "type": "listitem",
+                            "value": 1,
+                            "indent": 2,
+                            "children": [
+                              {
+                                "text": "note3",
+                                "type": "text"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "noteId": "note4",
+            "type": "listitem",
+            "value": 2,
+            "children": [
+              {
+                "text": "note4",
+                "type": "text"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
