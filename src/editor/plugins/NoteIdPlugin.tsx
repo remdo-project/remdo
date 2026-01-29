@@ -154,6 +154,17 @@ function buildListItemsFromPlainText(text: string): ListItemNode[] {
   return lines.map((line) => $createNoteItemWithText(line));
 }
 
+function $getPlainTextFromClipboardNodes(nodes: LexicalNode[]): string {
+  const items = $extractClipboardListChildren(nodes);
+  const lines: string[] = [];
+  for (const item of items) {
+    if ($isListItemNode(item) && !isChildrenWrapper(item)) {
+      lines.push(item.getTextContent());
+    }
+  }
+  return lines.join('\n');
+}
+
 function resolvePasteSelectionHeadKeys(
   editor: LexicalEditor,
   selection: BaseSelection | null,
@@ -172,6 +183,20 @@ function resolvePasteSelectionHeadKeys(
     selectionHeadKeys = heads.map((item) => getContentListItem(item).getKey());
   }
   return selectionHeadKeys;
+}
+
+function isInlineSelectionWithinSingleNote(selection: BaseSelection | null): boolean {
+  if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+    return false;
+  }
+
+  const anchorItem = findNearestListItem(selection.anchor.getNode());
+  const focusItem = findNearestListItem(selection.focus.getNode());
+  if (!anchorItem || !focusItem) {
+    return false;
+  }
+
+  return getContentListItem(anchorItem) === getContentListItem(focusItem);
 }
 
 function resolveCaretPlacement(selection: BaseSelection | null, contentItem: ListItemNode): CaretPlacement | null {
@@ -552,6 +577,9 @@ export function NoteIdPlugin() {
           const wasCutPaste = lastPasteWasCutRef.current;
           lastPasteWasCutRef.current = false;
           const marker = cutMarkerRef.current;
+          const outlineSelection = editor.selection.get();
+          const isInlineSelection =
+            outlineSelection?.kind !== 'structural' && isInlineSelectionWithinSingleNote(payload.selection);
           const selectionHeadKeys = resolvePasteSelectionHeadKeys(
             editor,
             payload.selection,
@@ -589,6 +617,13 @@ export function NoteIdPlugin() {
             }
 
             setCutMarker(null);
+            lastPasteSelectionHeadKeysRef.current = null;
+            return true;
+          }
+
+          if (isInlineSelection && $isRangeSelection(payload.selection)) {
+            const text = $getPlainTextFromClipboardNodes(payload.nodes);
+            payload.selection.insertText(text);
             lastPasteSelectionHeadKeysRef.current = null;
             return true;
           }

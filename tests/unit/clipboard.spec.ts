@@ -174,7 +174,7 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     ]);
   });
 
-  it.fails('preserves note ids when pasting a note payload over an inline selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('preserves note ids when pasting a note payload over an inline selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note2');
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
 
