@@ -92,11 +92,6 @@ document captures the full model.
 
 ## Safety & Process
 
-- Do not change any code before explicitly asked for it.
-  - If asked how something can be solved, answer the question and suggest a
-    solution, but do not change any code.
-  - If asked to propose code, provide the snippet and wait for explicit approval
-    before making changes.
 - Background processes started from the root workdir are controlled by the
   developer; do not start or kill them.
 - Background processes started from worktrees (by their unique ports) can be

@@ -124,6 +124,35 @@ test.describe('selection (cut marker)', () => {
   });
 });
 
+test.describe('clipboard (caret paste placement)', () => {
+  test('pastes multi-line plain text as first children when caret is at end of a note with children', async ({ page, editor }) => {
+    test.fail();
+    await editor.load('tree');
+    await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
+
+    const input = editorLocator(page).locator('.editor-input').first();
+    await input.evaluate((element) => {
+      const data = new DataTransfer();
+      data.setData('text/plain', 'A\nB');
+      const event = new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true });
+      element.dispatchEvent(event);
+    });
+
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      {
+        noteId: 'note2',
+        text: 'note2',
+        children: [
+          { noteId: null, text: 'A' },
+          { noteId: null, text: 'B' },
+          { noteId: 'note3', text: 'note3' },
+        ],
+      },
+    ]);
+  });
+});
+
 async function readOverlayVars(input: Locator, topVar: string, heightVar: string) {
   return input.evaluate(
     (element, vars) => {
