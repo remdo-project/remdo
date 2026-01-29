@@ -40,7 +40,7 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and constraints.
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder and inline/structural rules.
 - `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs;
-  tracks the paste-placement e2e follow-up.
+  tracks paste-placement e2e follow-up and prod schema recovery decisions.
 Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.
 
@@ -105,6 +105,9 @@ document captures the full model.
 - Always focus on the simplest and shortest possible implementation that meets
   the request. Propose any additional guards, optimisations, checks, etc. as
   follow ups instead of adding them by default.
+- When writing tests against known fixtures, assume the fixture shape; avoid
+  defensive assertions about expected structure unless the test is explicitly
+  about validation.
 - If you spot any tradeoffs or pros and cons of alternative solutions always ask
   first before implementing one.
 - Don't assume that the request is always clear, if in doubt ask before
