@@ -42,31 +42,24 @@ Rules:
    in the note. That misclassifies mid- note positions as start/end and triggers
    the wrong insertion path. (src/editor/plugins/InsertionPlugin.tsx:75-90)
 
+## Clipboard / paste behavior plan
+
+1. Align caret-position paste placement with `docs/outliner/clipboard.md`
+   (start/middle/end placement matches Enter, end-of-note inserts as first child
+   when expanded).
+2. Treat multi-line plain text as multi-note payloads (one line per note) when
+   the selection is collapsed; keep single-line payloads inline.
+3. Update focus to land at the end of the last inserted note after a multi-note
+   paste.
+4. Add coverage: unit tests for clipboard placement rules, plus e2e updates for
+   selection/paste behavior (unskip and update the expected outline).
+
 ## Test infra
 
 - E2E runs reuse persisted collab docs (e.g.,
   `data/collab/project/data.ysweet`), so failures can disappear after a run
   normalizes data. Add a cleanup or per-run `DATA_DIR`/doc-id strategy so
   Playwright runs are isolated and deterministic.
-
-## Other
-
-- Follow-up: paste placement at end-of-note with children currently inserts
-  after the entire subtree (next content sibling), which feels unintuitive when
-  the caret sits visually above the first child. Align paste insertion with
-  `docs/insertion.md` end-of-note semantics so pastes land as the first child,
-  and add a focused test to lock this behavior. Unskip
-  `tests/e2e/editor/selection.spec.ts` "moves a structural selection on cut and
-  paste" once the behavior is fixed and update the expected outline.
-
-## Clipboard caret-position semantics
-
-- Define cut/copy/paste insertion behavior when the selection is collapsed:
-  caret at start, middle, and end of a note (before/after/inside rules).
-- Update `docs/outliner/note-ids.md` (and `docs/outliner/selection.md` if
-  needed) to document the chosen behavior.
-- Add unit coverage in `tests/unit/note-ids.spec.ts` plus e2e coverage in
-  `tests/e2e/editor/selection.spec.ts` for the supported caret positions.
 
   ### Notes
 

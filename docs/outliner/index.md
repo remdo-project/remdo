@@ -11,12 +11,13 @@ details.
 1. **Concept & invariants:** `./concepts.md` — canonical note model (structure/content/props) and adapter framing.
 2. **Note identity:** `./note-ids.md` — `noteId` invariants, lifecycle, and global reference rules.
 3. **Selection:** `./selection.md` — whole-note, contiguous slab selection model and shortcut ladder.
-4. **Indent/Outdent & structure rules:** `./note-structure-rules.md` — structural invariants and indent/outdent semantics.
-5. **Insertion (Enter):** `../insertion.md` — caret-mode Enter behaviors (start/middle/end) and focus rules.
-6. **Reordering (keyboard):** `./reordering.md` — Reordering behavior and
+4. **Clipboard:** `./clipboard.md` — cut/copy/paste behavior, caret placement, and move rules.
+5. **Indent/Outdent & structure rules:** `./note-structure-rules.md` — structural invariants and indent/outdent semantics.
+6. **Insertion (Enter):** `../insertion.md` — caret-mode Enter behaviors (start/middle/end) and focus rules.
+7. **Reordering (keyboard):** `./reordering.md` — Reordering behavior and
    placement invariants.
-7. **Reordering (drag & drop):** `./drag-and-drop.md` — not supported yet; future plan lives here.
-8. **Deletion:** `./deletion.md` — caret vs. structural deletion semantics, merge/no-op rules, and spacing contract.
+8. **Reordering (drag & drop):** `./drag-and-drop.md` — not supported yet; future plan lives here.
+9. **Deletion:** `./deletion.md` — caret vs. structural deletion semantics, merge/no-op rules, and spacing contract.
 
 ## Glossary (minimal)
 

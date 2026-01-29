@@ -170,5 +170,5 @@ UI-specific details.
 
 Clipboard behavior for structural selections (cut-as-move, paste moves when a
 marker is active and no-ops for invalid/self-move cases) is defined in
-`./note-ids.md`. Inline text ranges continue to use normal text cut/copy/paste
+`./clipboard.md`. Inline text ranges continue to use normal text cut/copy/paste
 behavior.

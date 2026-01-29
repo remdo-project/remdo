@@ -1,0 +1,45 @@
+# Clipboard
+
+## Purpose
+
+Define user-visible cut/copy/paste behavior for RemDo notes, including how
+paste placement depends on caret position. Identity implications live in
+[Note IDs](./note-ids.md).
+
+## Structural selections (note range)
+
+- Copy duplicates the selected notes (including their subtrees) and leaves the
+  document unchanged.
+- Cut prepares the selected notes to be moved; they stay in place until you
+  paste them elsewhere.
+- After a structural cut, the selection collapses to the visual start so you
+  can keep editing with a clear caret position.
+- Pasting after a cut moves the cut notes to the new location. If the cut is no
+  longer valid (for example, the cut notes were edited), paste does nothing.
+- If you try to paste into the cut notes or their descendants, nothing happens
+  and the cut remains pending.
+- Starting a new copy/cut, or pasting unrelated content, cancels the pending
+  cut.
+- If any cut note is edited (text or structure, local or remote) before paste,
+  the cut is canceled.
+
+## Caret-position placement (collapsed selection)
+
+- Single-line plain text pastes into the note's text at the caret, replacing
+  any inline selection as normal.
+- Pasting notes or multi-line plain text inserts multiple notes (one line per
+  note for plain text).
+- Placement follows the caret-position rules from [Insertion](../insertion.md),
+  mirroring `Enter`:
+  - Start of note: insert pasted notes as previous siblings (above).
+  - Middle of note: split the note at the caret (prefix becomes a new sibling
+    above; suffix stays in the original note) and insert pasted notes between
+    the split notes.
+  - End of note: if the note has children and the parent is expanded, insert
+    pasted notes as the first child; otherwise insert as next siblings below.
+- After a multi-note paste, focus lands at the end of the last inserted note.
+
+## Identity
+
+Identity implications (regen vs. preserve `noteId` values) are defined in
+[Note IDs](./note-ids.md).
