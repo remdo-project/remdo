@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { createDataTransfer, meta, placeCaretAtNote, readCaretNoteId, readOutline, typeText } from '#tests';
+import {
+  collapseDomSelectionAtNode,
+  createDataTransfer,
+  buildClipboardPayload,
+  getNoteTextNodes,
+  meta,
+  pastePayload,
+  placeCaretAtNote,
+  pressKey,
+  readCaretNoteId,
+  readOutline,
+  selectEntireNote,
+  selectStructuralNotes,
+  typeText,
+} from '#tests';
 import type { Outline, OutlineNode } from '#tests';
 import { PASTE_COMMAND } from 'lexical';
 
@@ -90,6 +104,89 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     expect(focusNote?.noteId).toBeTruthy();
     expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
   });
+
+  it.fails('pastes multi-line plain text in the middle of a formatted note with multiple text nodes', meta({ fixture: 'formatted' }), async ({ remdo }) => {
+    await setCaretAtNoteText(remdo, 'mixed-formatting', 2, 2);
+    await pastePlainText(remdo, 'A\nB');
+
+    const texts = flattenOutline(readOutline(remdo)).map((node) => node.text ?? '');
+    expect(texts).toEqual(['bold', 'italic', 'target', 'underline', 'plain bold it', 'A', 'B', 'alic underline plain']);
+
+    const original = findOutlineNodeByText(readOutline(remdo), 'alic underline plain');
+    expect(original?.noteId).toBe('mixed-formatting');
+
+    const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
+    expect(focusNote?.noteId).toBeTruthy();
+    expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
+  });
+
+  it('treats empty notes as start placement for multi-line pastes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note2');
+    await pressKey(remdo, { key: 'Backspace' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pastePlainText(remdo, 'A\nB');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: null, text: 'A' },
+      { noteId: null, text: 'B' },
+      { noteId: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
+    expect(focusNote?.noteId).toBeTruthy();
+    expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
+  });
+
+  it('replaces structural selections when pasting multi-line plain text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2');
+    await pastePlainText(remdo, 'A\nB');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: null, text: 'A' },
+      { noteId: null, text: 'B' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
+    expect(focusNote?.noteId).toBeTruthy();
+    expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
+  });
+
+  it('treats inline range multi-line pastes as structural replacements', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note2');
+    await pastePlainText(remdo, 'A\nB');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: null, text: 'A' },
+      { noteId: null, text: 'B' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it.fails('preserves note ids when pasting a note payload over an inline selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note2');
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+
+    const payload = buildClipboardPayload(remdo, ['note2']);
+    await pastePayload(remdo, payload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
 });
 
 async function pastePlainText(remdo: Parameters<typeof placeCaretAtNote>[0], text: string) {
@@ -112,4 +209,32 @@ function findOutlineNodeByText(outline: Outline, text: string): OutlineNode | nu
     }
   }
   return null;
+}
+
+function flattenOutline(outline: Outline): OutlineNode[] {
+  const flattened: OutlineNode[] = [];
+  const walk = (nodes: Outline) => {
+    for (const node of nodes) {
+      flattened.push(node);
+      if (node.children) {
+        walk(node.children);
+      }
+    }
+  };
+  walk(outline);
+  return flattened;
+}
+
+async function setCaretAtNoteText(
+  remdo: Parameters<typeof placeCaretAtNote>[0],
+  noteId: string,
+  textNodeIndex: number,
+  offset: number
+) {
+  const textNodes = getNoteTextNodes(remdo, noteId);
+  const target = textNodes[textNodeIndex];
+  if (!target) {
+    throw new Error(`Expected text node ${textNodeIndex} on "${noteId}".`);
+  }
+  await collapseDomSelectionAtNode(target, offset);
 }

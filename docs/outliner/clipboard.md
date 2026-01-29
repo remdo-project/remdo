@@ -14,6 +14,8 @@ paste placement depends on caret position. Identity implications live in
   originals do not change what gets pasted.
 - Cut prepares the selected notes to be moved; they stay in place until you
   paste them elsewhere.
+- Multi-line plain text always inserts notes, even when you have a text
+  selection inside a single note.
 - If you edit cut notes before pasting, the pending cut is canceled so the
   edits stay where you made them. This keeps copy and cut predictable instead
   of pasting a different version than the one you can see.
