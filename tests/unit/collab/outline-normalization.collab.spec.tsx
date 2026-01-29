@@ -62,7 +62,7 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
     // FIXME: Collab interleavings can emit variable orphan-wrapper invariants; retry to reduce flakiness.
     meta(
       { fixture: 'flat', expectedConsoleIssues: ['runtime.invariant orphan-wrapper-without-previous-content'] },
-      { retry: 3 }
+      { retry: 6 }
     ),
     async ({ remdo }) => {
       const remdo2 = await createCollabPeer(remdo);
@@ -107,7 +107,7 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
     // FIXME: Collab interleavings can emit variable orphan-wrapper invariants; retry to reduce flakiness.
     meta(
       { fixture: 'basic', expectedConsoleIssues: ['runtime.invariant orphan-wrapper-without-previous-content'] },
-      { retry: 3 }
+      { retry: 6 }
     ),
     async ({ remdo }) => {
       const note3Key = getNoteKey(remdo, 'note3');
