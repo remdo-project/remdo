@@ -15,7 +15,7 @@ overrides:
 
 catalog:
   '@antfu/eslint-config': ^7.2.0
-  '@eslint-react/eslint-plugin': ^2.7.4
+  '@eslint-react/eslint-plugin': ^2.8.1
   '@lexical/clipboard': ^0.39.0
   '@lexical/devtools-core': ^0.39.0
   '@lexical/eslint-plugin': ^0.39.0
@@ -35,8 +35,8 @@ catalog:
   '@testing-library/user-event': ^14.6.1
   '@types/estree': ^1.0.8
   '@types/jsdom': ^27.0.0
-  '@types/node': ^25.0.10
-  '@types/react': ^19.2.9
+  '@types/node': ^25.1.0
+  '@types/react': ^19.2.10
   '@types/react-dom': ^19.2.3
   '@types/ws': ^8.18.1
   '@vitejs/plugin-react-swc': ^4.2.2
@@ -60,8 +60,8 @@ catalog:
   lib0: ^0.2.117
   markdownlint-cli2: ^0.20.0
   nanoid: ^5.1.6
-  react: ^19.2.3
-  react-dom: ^19.2.3
+  react: ^19.2.4
+  react-dom: ^19.2.4
   tsx: ^4.21.0
   typescript: ^5.9.3
   vite: ^7.3.1
