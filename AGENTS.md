@@ -105,6 +105,8 @@ document captures the full model.
 - Always focus on the simplest and shortest possible implementation that meets
   the request. Propose any additional guards, optimisations, checks, etc. as
   follow ups instead of adding them by default.
+- The `docs/todo.md` summary in the documentation map should remain as-is and
+  should not be automatically updated like other doc entries.
 - When writing tests against known fixtures, assume the fixture shape; avoid
   defensive assertions about expected structure unless the test is explicitly
   about validation.

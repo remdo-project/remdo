@@ -68,7 +68,8 @@ Context from prod data snapshot (`data/project.json`):
 - There is an orphan wrapper list item (a wrapper list item whose nested list
   has no preceding content sibling), which makes the "selection" note the first
   child in its list and causes move-up to be a no-op.
-- One content list item has no children at all (no text node).
+- One content list item has no children at all (no text node); treat this as
+  allowed (not a schema issue).
 
 Plan (proposed, Lexical-style healing; for discussion before implementation):
 
@@ -81,15 +82,15 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
      - Lexical adapter uses two mechanisms: wrapper adjacency + `indent` field.
      - Define how these relate and which one is authoritative.
    - Alternatives (needs decision before deeper refactors):
-     - Option A (keep wrapper adjacency as authoritative): disable Lexical
-       `hasStrictIndent` and keep using our wrapper-based indent/outdent +
-       schema validation. Pros: minimal change, matches current schema. Cons: no
-       Lexical strict-indent auto-fixes.
-     - Option B (align fully with Lexical canonical lists): drop wrapper
-       adjacency and allow nested lists as children of content list items. Pros:
-       strict-indent + list transforms become native Lexical flows. Cons: large
-       refactor (selection/indent/delete/normalization/note-id
-       traversal/fixtures).
+     - Option A (keep wrapper adjacency as authoritative): keep Lexical
+       `hasStrictIndent` enabled; vanilla Lexical still emits the same wrapper
+       adjacency shape (see the `vanilla-lexical-editor/state-compare` e2e
+       snapshots). Pros: minimal change, matches current schema and Lexical
+       defaults.
+     - Option B (drop wrapper adjacency and allow nested lists inside content
+       list items): superseded; this diverges from vanilla Lexical output and
+       would require a large refactor (selection/indent/delete/normalization/
+       note-id traversal/fixtures).
 2. Unify normalization into a single plugin:
    - Replace/merge RootSchemaPlugin + future wrapper repair into an
      `OutlineNormalizationPlugin`.
@@ -114,8 +115,8 @@ Plan (proposed, Lexical-style healing; for discussion before implementation):
      into the root list.
    - ✅ Done: Orphan after a valid wrapper merges into the previous wrapper to
      preserve depth.
-   - Add a note to brainstorm other invalid shapes and define deterministic
-     normalization outcomes + fixtures for each.
+   - ✅ Done: Brainstormed remaining invalid shapes; no additional
+     user-observable issues identified beyond the current fixes.
 7. Tests and fixtures:
    - ✅ Done: Add `editor-schema/wrapper-orphan.json` (wrapper at list start)
      and `editor-schema/wrapper-orphan-after-wrapper.json` (prod-like orphan
