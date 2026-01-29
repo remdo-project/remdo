@@ -15,7 +15,7 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     ]);
   });
 
-  it.fails('pastes multi-line plain text at start as previous siblings and focuses the last note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('pastes multi-line plain text at start as previous siblings and focuses the last note', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 0);
     await pastePlainText(remdo, 'A\nB');
     await typeText(remdo, 'Z');
@@ -33,7 +33,7 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
   });
 
-  it.fails('pastes multi-line plain text in the middle by splitting and inserting between', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('pastes multi-line plain text in the middle by splitting and inserting between', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 2);
     await pastePlainText(remdo, 'A\nB');
 
@@ -47,7 +47,7 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     ]);
   });
 
-  it.fails('pastes multi-line plain text at end as first children when the note has children', meta({ fixture: 'tree' }), async ({ remdo }) => {
+  it('pastes multi-line plain text at end as first children when the note has children', meta({ fixture: 'tree' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     await pastePlainText(remdo, 'A\nB');
 
@@ -69,7 +69,7 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
   });
 
-  it.fails('pastes multi-line plain text at the start of a nested note as previous siblings', meta({ fixture: 'tree' }), async ({ remdo }) => {
+  it('pastes multi-line plain text at the start of a nested note as previous siblings', meta({ fixture: 'tree' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note3', 0);
     await pastePlainText(remdo, 'A\nB');
 

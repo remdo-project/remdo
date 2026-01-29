@@ -1,14 +1,17 @@
-import { $isListItemNode, $isListNode, ListItemNode } from '@lexical/list';
+import { $createListItemNode, $isListItemNode, $isListNode, ListItemNode } from '@lexical/list';
+import type { ListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { BaseSelection, EditorState, LexicalEditor, LexicalNode, NodeKey, SerializedLexicalNode } from 'lexical';
 import { $getHtmlContent, $getLexicalContent, setLexicalClipboardDataTransfer } from '@lexical/clipboard';
 import type { LexicalClipboardData } from '@lexical/clipboard';
 import {
+  $createTextNode,
   $getNodeByKey,
   $getRoot,
   $getSelection,
   $isElementNode,
   $isRangeSelection,
+  $isTextNode,
   $setState,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_LOW,
@@ -28,13 +31,15 @@ import {
   isChildrenWrapper,
   flattenNoteNodes,
 } from '@/editor/outline/list-structure';
-import { $selectItemEdge } from '@/editor/outline/selection/caret';
+import { $selectItemEdge, isPointAtBoundary } from '@/editor/outline/selection/caret';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import type { OutlineSelectionRange } from '@/editor/outline/selection/model';
 import { computeStructuralRangeFromHeads } from '@/editor/outline/selection/resolve';
 import type { StructuralOverlayConfig } from '@/editor/outline/selection/overlay';
 import { updateStructuralOverlay } from '@/editor/outline/selection/overlay';
 import {
+  getFirstDescendantListItem,
+  getNestedList,
   getNextContentSibling,
   getSubtreeItems,
   removeNoteSubtree,
@@ -55,6 +60,8 @@ interface ClipboardPayload {
   nodes: SerializedLexicalNode[];
   remdoCut?: boolean;
 }
+
+type CaretPlacement = 'start' | 'middle' | 'end';
 
 const CUT_MARKER_OVERLAY: StructuralOverlayConfig = {
   className: 'editor-input--cut-marker',
@@ -133,6 +140,89 @@ function $ensureNoteId(item: ListItemNode) {
   }
 
   $setState(item, noteIdState, createNoteId());
+}
+
+function $createNoteItemWithText(text: string): ListItemNode {
+  const item = $createListItemNode();
+  item.append($createTextNode(text));
+  $setState(item, noteIdState, createNoteId());
+  return item;
+}
+
+function buildListItemsFromPlainText(text: string): ListItemNode[] {
+  const lines = text.split(/\r?\n/);
+  return lines.map((line) => $createNoteItemWithText(line));
+}
+
+function resolvePasteSelectionHeadKeys(
+  editor: LexicalEditor,
+  selection: BaseSelection | null,
+  cachedKeys: string[] | null
+): string[] {
+  let selectionHeadKeys = cachedKeys ?? [];
+  if (selectionHeadKeys.length === 0) {
+    const outlineSelection = editor.selection.get();
+    if (outlineSelection?.kind === 'structural') {
+      selectionHeadKeys =
+        outlineSelection.headKeys.length > 0 ? outlineSelection.headKeys : outlineSelection.selectedKeys;
+    }
+  }
+  if (selectionHeadKeys.length === 0 && $isRangeSelection(selection) && !selection.isCollapsed()) {
+    const heads = getContiguousSelectionHeads(selection);
+    selectionHeadKeys = heads.map((item) => getContentListItem(item).getKey());
+  }
+  return selectionHeadKeys;
+}
+
+function resolveCaretPlacement(selection: BaseSelection | null, contentItem: ListItemNode): CaretPlacement | null {
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+    return null;
+  }
+
+  if (contentItem.getTextContent().length === 0) {
+    return 'start';
+  }
+
+  if (isPointAtBoundary(selection.anchor, contentItem, 'start')) {
+    return 'start';
+  }
+
+  if (isPointAtBoundary(selection.anchor, contentItem, 'end')) {
+    return 'end';
+  }
+
+  return 'middle';
+}
+
+function $splitContentItemAtSelection(contentItem: ListItemNode, selection: BaseSelection | null): ListItemNode | null {
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+    return null;
+  }
+
+  const anchorNode = selection.anchor.getNode();
+  if (!$isTextNode(anchorNode) || anchorNode.getParent() !== contentItem) {
+    return null;
+  }
+
+  const offset = selection.anchor.offset;
+  const size = anchorNode.getTextContentSize();
+  if (offset <= 0 || offset >= size) {
+    return null;
+  }
+
+  const [, rightNode] = anchorNode.splitText(offset);
+  const newItem = $createListItemNode();
+  $setState(newItem, noteIdState, createNoteId());
+
+  let child = contentItem.getFirstChild();
+  while (child && child !== rightNode) {
+    const next = child.getNextSibling();
+    newItem.append(child);
+    child = next;
+  }
+
+  contentItem.insertBefore(newItem);
+  return newItem;
 }
 
 function $collectMarkedKeysFromHeadKeys(headKeys: string[]): Set<string> {
@@ -252,8 +342,8 @@ function $insertNodesAtSelection(
   }
 
   let orderedHeads: ListItemNode[] = [];
-  let parentList: LexicalNode | null = null;
-  let nextSibling: ListItemNode | null = null;
+  let parentList: ListNode | null = null;
+  let nextSibling: LexicalNode | null = null;
 
   if (headKeys.length > 0) {
     const heads = headKeys
@@ -280,7 +370,25 @@ function $insertNodesAtSelection(
     if (!$isListNode(parentList)) {
       return false;
     }
-    nextSibling = getNextContentSibling(contentItem);
+    const placement = resolveCaretPlacement(selection, contentItem);
+    if (!placement) {
+      return false;
+    }
+
+    if (placement === 'start') {
+      nextSibling = contentItem;
+    } else if (placement === 'middle') {
+      const split = $splitContentItemAtSelection(contentItem, selection);
+      nextSibling = split ? contentItem : getNextContentSibling(contentItem);
+    } else {
+      const nested = getNestedList(contentItem);
+      if (nested && nested.getChildrenSize() > 0) {
+        parentList = nested;
+        nextSibling = getFirstDescendantListItem(nested);
+      } else {
+        nextSibling = getNextContentSibling(contentItem);
+      }
+    }
   } else {
     return false;
   }
@@ -291,15 +399,23 @@ function $insertNodesAtSelection(
     parentList.append(...nodes);
   }
 
-  const firstInserted = nodes.find((node) => $isListItemNode(node) && !isChildrenWrapper(node));
-  if ($isListItemNode(firstInserted)) {
-    $selectItemEdge(getContentListItem(firstInserted), 'start');
+  let lastInserted: ListItemNode | null = null;
+  for (let i = nodes.length - 1; i >= 0; i -= 1) {
+    const node = nodes[i];
+    if ($isListItemNode(node) && !isChildrenWrapper(node)) {
+      lastInserted = node;
+      break;
+    }
   }
 
   if (orderedHeads.length > 0) {
     for (const head of orderedHeads.toReversed()) {
       removeNoteSubtree(head);
     }
+  }
+
+  if (lastInserted) {
+    $selectItemEdge(getContentListItem(lastInserted), 'end');
   }
 
   return true;
@@ -436,21 +552,11 @@ export function NoteIdPlugin() {
           const wasCutPaste = lastPasteWasCutRef.current;
           lastPasteWasCutRef.current = false;
           const marker = cutMarkerRef.current;
-          let selectionHeadKeys = lastPasteSelectionHeadKeysRef.current ?? [];
-          if (selectionHeadKeys.length === 0) {
-            const outlineSelection = editor.selection.get();
-            if (outlineSelection?.kind === 'structural') {
-              selectionHeadKeys =
-                outlineSelection.headKeys.length > 0 ? outlineSelection.headKeys : outlineSelection.selectedKeys;
-            }
-          }
-          if (selectionHeadKeys.length === 0 && $isRangeSelection(payload.selection)) {
-            const selection = payload.selection;
-            if (!selection.isCollapsed()) {
-              const heads = getContiguousSelectionHeads(selection);
-              selectionHeadKeys = heads.map((item) => getContentListItem(item).getKey());
-            }
-          }
+          const selectionHeadKeys = resolvePasteSelectionHeadKeys(
+            editor,
+            payload.selection,
+            lastPasteSelectionHeadKeysRef.current
+          );
 
           if (wasCutPaste) {
             if (!marker) {
@@ -512,6 +618,45 @@ export function NoteIdPlugin() {
           lastPasteWasCutRef.current = clipboardPayload?.remdoCut === true;
           if (!lastPasteWasCutRef.current) {
             setCutMarker(null);
+          }
+          if (clipboardPayload) {
+            return false;
+          }
+
+          if (!isClipboardEvent(event) || !event.clipboardData) {
+            return false;
+          }
+
+          const plainText = event.clipboardData.getData('text/plain');
+          if (!plainText) {
+            return false;
+          }
+
+          const lines = plainText.split(/\r?\n/);
+          if (lines.length <= 1) {
+            return false;
+          }
+
+          const selection = $getSelection();
+          const selectionHeadKeys = resolvePasteSelectionHeadKeys(
+            editor,
+            selection,
+            lastPasteSelectionHeadKeysRef.current
+          );
+          const isCaret = $isRangeSelection(selection) && selection.isCollapsed();
+          if (selectionHeadKeys.length === 0 && !isCaret) {
+            return false;
+          }
+
+          const nodes = buildListItemsFromPlainText(plainText);
+          const handled = $insertNodesAtSelection(selectionHeadKeys, selection, nodes);
+          if (handled) {
+            lastPasteSelectionHeadKeysRef.current = null;
+          }
+
+          if (handled) {
+            event.preventDefault();
+            return true;
           }
           return false;
         },

@@ -126,7 +126,6 @@ test.describe('selection (cut marker)', () => {
 
 test.describe('clipboard (caret paste placement)', () => {
   test('pastes multi-line plain text as first children when caret is at end of a note with children', async ({ page, editor }) => {
-    test.fail();
     await editor.load('tree');
     await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
 
