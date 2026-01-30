@@ -642,9 +642,16 @@ export function NoteIdPlugin() {
             if (heads.length === marker.headKeys.length) {
               const ordered = sortHeadsByDocumentOrder(heads);
               const nodesToMove = flattenNoteNodes(ordered);
+              let insertionKeys = selectionHeadKeys;
+              let insertionSelection: BaseSelection | null = payload.selection;
+              if (isInlineSelection && $isRangeSelection(insertionSelection) && !insertionSelection.isCollapsed()) {
+                insertionSelection.insertText('');
+                insertionSelection = $getSelection();
+                insertionKeys = [];
+              }
               setCutMarker(null);
               lastPasteSelectionHeadKeysRef.current = null;
-              if ($insertNodesAtSelection(selectionHeadKeys, payload.selection, nodesToMove)) {
+              if ($insertNodesAtSelection(insertionKeys, insertionSelection, nodesToMove)) {
                 return true;
               }
             }
