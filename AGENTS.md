@@ -30,8 +30,8 @@ outdated or a doc’s role materially changes.
   and blocked port guard.
 - `docs/insertion.md` (Short). Caret-mode `Enter` behavior, focus rules, and
   paste placement pointer.
-- `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, caret placement, and move marker
-  behavior.
+- `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
+  handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge rules, spacing.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).

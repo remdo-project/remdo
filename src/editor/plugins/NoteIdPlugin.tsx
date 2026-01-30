@@ -27,6 +27,7 @@ import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import {
   findNearestListItem,
   getContentListItem,
+  $getOrCreateChildList,
   insertBefore,
   isChildrenWrapper,
   flattenNoteNodes,
@@ -266,6 +267,20 @@ function $splitContentItemAtSelection(contentItem: ListItemNode, selection: Base
 
   contentItem.insertBefore(newItem);
   return newItem;
+}
+
+function $insertFirstChildNotes(contentItem: ListItemNode | null, lines: string[]): void {
+  if (!contentItem || lines.length === 0) {
+    return;
+  }
+  const childList = $getOrCreateChildList(contentItem);
+  const nodes = buildListItemsFromPlainText(lines.join('\n'));
+  const firstChild = childList.getFirstChild();
+  if (firstChild) {
+    insertBefore(firstChild, nodes);
+  } else {
+    childList.append(...nodes);
+  }
 }
 
 function $collectMarkedKeysFromHeadKeys(headKeys: string[]): Set<string> {
@@ -640,7 +655,20 @@ export function NoteIdPlugin() {
           }
 
           if (isInlineSelection && $isRangeSelection(payload.selection)) {
+            const inlineAnchor = findNearestListItem(payload.selection.anchor.getNode());
+            const inlineContentItem = inlineAnchor ? getContentListItem(inlineAnchor) : null;
             const text = $getPlainTextFromClipboardNodes(payload.nodes);
+            const lines = text.split(/\r?\n/);
+            const shouldInsertNotes = lines.length > 1;
+
+            if (shouldInsertNotes) {
+              const [firstLine, ...restLines] = lines;
+              payload.selection.insertText(firstLine ?? '');
+              $insertFirstChildNotes(inlineContentItem, restLines);
+              lastPasteSelectionHeadKeysRef.current = null;
+              return true;
+            }
+
             payload.selection.insertText(text);
             lastPasteSelectionHeadKeysRef.current = null;
             return true;
@@ -691,6 +719,8 @@ export function NoteIdPlugin() {
           }
 
           const selection = $getSelection();
+          const isInlineSelection =
+            outlineSelection?.kind !== 'structural' && isInlineSelectionWithinSingleNote(selection);
           const selectionHeadKeys = resolvePasteSelectionHeadKeys(
             editor,
             selection,
@@ -701,8 +731,18 @@ export function NoteIdPlugin() {
             return false;
           }
 
-          const nodes = buildListItemsFromPlainText(plainText);
-          const handled = $insertNodesAtSelection(selectionHeadKeys, selection, nodes);
+          let handled = false;
+          if ($isRangeSelection(selection) && !selection.isCollapsed() && isInlineSelection) {
+            const inlineAnchor = findNearestListItem(selection.anchor.getNode());
+            const inlineContentItem = inlineAnchor ? getContentListItem(inlineAnchor) : null;
+            const [firstLine, ...restLines] = lines;
+            selection.insertText(firstLine ?? '');
+            $insertFirstChildNotes(inlineContentItem, restLines);
+            handled = true;
+          } else {
+            const nodes = buildListItemsFromPlainText(plainText);
+            handled = $insertNodesAtSelection(selectionHeadKeys, selection, nodes);
+          }
           if (handled) {
             lastPasteSelectionHeadKeysRef.current = null;
           }

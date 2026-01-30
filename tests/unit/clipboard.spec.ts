@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createDataTransfer,
   buildClipboardPayload,
+  getNoteKey,
   meta,
   pastePayload,
   placeCaretAtNote,
@@ -15,7 +16,16 @@ import {
 } from '#tests';
 import type { Outline, OutlineNode } from '#tests';
 import { flattenOutline } from '#tests-common/outline';
-import { $createParagraphNode, $createTextNode, PASTE_COMMAND } from 'lexical';
+import type { ListItemNode } from '@lexical/list';
+import {
+  $createParagraphNode,
+  $createRangeSelection,
+  $createTextNode,
+  $getNodeByKey,
+  $isTextNode,
+  $setSelection,
+  PASTE_COMMAND,
+} from 'lexical';
 import type { SerializedLexicalNode } from 'lexical';
 
 describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
@@ -178,17 +188,51 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
   });
 
-  it('treats inline range multi-line pastes as structural replacements', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('replaces selected inline text while inserting notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note2');
     await pastePlainText(remdo, 'A\nB');
 
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'A' },
-      { noteId: null, text: 'B' },
+      { noteId: 'note2', text: 'A', children: [{ noteId: null, text: 'B' }] },
       { noteId: 'note3', text: 'note3' },
     ]);
   });
+
+  it(
+    'preserves unselected inline text and children when pasting multi-line plain text',
+    meta({ fixture: 'tree' }),
+    async ({ remdo }) => {
+      await placeCaretAtNote(remdo, 'note2');
+      const noteKey = getNoteKey(remdo, 'note2');
+
+      await remdo.mutate(() => {
+        const item = $getNodeByKey(noteKey) as ListItemNode;
+        const textNode = item.getChildren().find($isTextNode)!;
+        const selection = $createRangeSelection();
+        selection.setTextNodeRange(textNode, 1, textNode, 3);
+        $setSelection(selection);
+      });
+
+      expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+
+      await pastePlainText(remdo, 'A\nB');
+
+      // NOTE: Pragmatic for now — we keep children intact and insert extra lines as first children,
+      // even though the ordering is debatable. This may change as paste UX is refined.
+      expect(remdo).toMatchOutline([
+        { noteId: 'note1', text: 'note1' },
+        {
+          noteId: 'note2',
+          text: 'nAe2',
+          children: [
+            { noteId: null, text: 'B' },
+            { noteId: 'note3', text: 'note3' },
+          ],
+        },
+      ]);
+    }
+  );
 
   it.fails('pastes inline non-list clipboard payloads as text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note2');
