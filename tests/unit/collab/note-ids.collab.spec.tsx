@@ -349,11 +349,11 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
         noteId: 'note1',
         text: 'note1',
         children: [
+          { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7 remote' }] },
           { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
           { noteId: 'note4', text: 'note4' },
         ],
       },
-      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7 remote' }] },
       { noteId: 'note5', text: 'note5' },
     ];
 
