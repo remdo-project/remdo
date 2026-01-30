@@ -506,6 +506,26 @@ describe('note ids on paste', () => {
     ]);
   });
 
+  it('inserts multi-note cuts at caret without replacing inline-selected notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2', 'note3');
+    const clipboardPayload = await cutSelection(remdo);
+
+    const note1Text = getNoteTextNode(remdo, 'note1');
+    await dragDomSelectionBetween(note1Text, 1, note1Text, 3);
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note1' });
+
+    await pastePayload(remdo, clipboardPayload);
+
+    // Expected: treat the inline range as a caret placement (start of selection),
+    // so the note is split and the cut note is inserted between prefix/suffix.
+    expect(remdo).toMatchOutline([
+      { noteId: null, text: 'n' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note1', text: 'e1' },
+    ]);
+  });
+
   it('preserves noteIds when cutting and pasting a note elsewhere', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
