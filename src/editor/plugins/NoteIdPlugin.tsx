@@ -157,12 +157,17 @@ function buildListItemsFromPlainText(text: string): ListItemNode[] {
 function $getPlainTextFromClipboardNodes(nodes: LexicalNode[]): string {
   const items = $extractClipboardListChildren(nodes);
   const lines: string[] = [];
+  let hasListItems = false;
   for (const item of items) {
     if ($isListItemNode(item) && !isChildrenWrapper(item)) {
+      hasListItems = true;
       lines.push(item.getTextContent());
     }
   }
-  return lines.join('\n');
+  if (hasListItems) {
+    return lines.join('\n');
+  }
+  return nodes.map((node) => node.getTextContent()).join('\n');
 }
 
 function resolvePasteSelectionHeadKeys(

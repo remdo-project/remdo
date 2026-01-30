@@ -15,7 +15,8 @@ import {
 } from '#tests';
 import type { Outline, OutlineNode } from '#tests';
 import { flattenOutline } from '#tests-common/outline';
-import { PASTE_COMMAND } from 'lexical';
+import { $createParagraphNode, $createTextNode, PASTE_COMMAND } from 'lexical';
+import type { SerializedLexicalNode } from 'lexical';
 
 describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
   it('pastes single-line plain text inline', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -185,6 +186,32 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
       { noteId: 'note1', text: 'note1' },
       { noteId: null, text: 'A' },
       { noteId: null, text: 'B' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it.fails('pastes inline non-list clipboard payloads as text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note2');
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+
+    // Use a non-list payload to mirror external Lexical clipboard data (no list items).
+    // Plain-text pastes (no lexical payload) already work; this guards the edge case
+    // where a Lexical payload arrives with non-list nodes, which used to become a no-op.
+    let payload!: { namespace: string; nodes: SerializedLexicalNode[] };
+    await remdo.mutate(() => {
+      const paragraph = $createParagraphNode();
+      paragraph.append($createTextNode('pasted'));
+      payload = {
+        namespace: (remdo.editor as { _config?: { namespace?: string } })._config?.namespace ?? 'remdo',
+        nodes: [paragraph.exportJSON()],
+      };
+    });
+
+    await pastePayload(remdo, payload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'pasted' },
       { noteId: 'note3', text: 'note3' },
     ]);
   });
