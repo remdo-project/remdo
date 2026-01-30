@@ -1,6 +1,6 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, readOutline, test } from '#editor/fixtures';
-import { editorLocator, setCaretAtText } from '#editor/locators';
+import { editorLocator, selectInlineRange, setCaretAtNoteTextNode, setCaretAtText } from '#editor/locators';
 
 test.describe('selection (structural highlight)', () => {
   test('toggles the structural highlight class', async ({ page, editor }) => {
@@ -73,6 +73,7 @@ test.describe('selection (cut marker)', () => {
       { noteId: 'note1', text: 'note1' },
     ]);
     await expect(input).not.toHaveClass(/editor-input--cut-marker/);
+    await expect(input).not.toHaveClass(/editor-input--structural/);
   });
 
   test('keeps the cut marker when pasting inside the marked subtree', async ({ page, editor }) => {
@@ -122,6 +123,27 @@ test.describe('selection (cut marker)', () => {
 
     await expect(input).not.toHaveClass(/editor-input--cut-marker/);
   });
+
+  test('clears the cut marker after pasting moved notes', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note2');
+
+    const input = editorLocator(page).locator('.editor-input').first();
+
+    await page.keyboard.press('Shift+ArrowDown');
+    await page.keyboard.press('Shift+ArrowDown');
+
+    const cutCombo = process.platform === 'darwin' ? 'Meta+X' : 'Control+X';
+    await page.keyboard.press(cutCombo);
+
+    await expect(input).toHaveClass(/editor-input--cut-marker/);
+
+    await setCaretAtText(page, 'note3', Number.POSITIVE_INFINITY);
+    const pasteCombo = process.platform === 'darwin' ? 'Meta+V' : 'Control+V';
+    await page.keyboard.press(pasteCombo);
+
+    await expect(input).not.toHaveClass(/editor-input--cut-marker/);
+  });
 });
 
 test.describe('clipboard (caret paste placement)', () => {
@@ -129,13 +151,8 @@ test.describe('clipboard (caret paste placement)', () => {
     await editor.load('tree');
     await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
 
-    const input = editorLocator(page).locator('.editor-input').first();
-    await input.evaluate((element) => {
-      const data = new DataTransfer();
-      data.setData('text/plain', 'A\nB');
-      const event = new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true });
-      element.dispatchEvent(event);
-    });
+    await pastePlainText(page, 'A\nB');
+    await page.keyboard.type('Z');
 
     await expect(editor).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
@@ -144,10 +161,51 @@ test.describe('clipboard (caret paste placement)', () => {
         text: 'note2',
         children: [
           { noteId: null, text: 'A' },
-          { noteId: null, text: 'B' },
+          { noteId: null, text: 'BZ' },
           { noteId: 'note3', text: 'note3' },
         ],
       },
+    ]);
+  });
+
+  test('pastes multi-line plain text in the middle of a formatted note', async ({ page, editor }) => {
+    await editor.load('formatted');
+    await setCaretAtNoteTextNode(page, 'plain bold italic underline plain', 2, 2);
+
+    await pastePlainText(page, 'A\nB');
+    await page.keyboard.type('Z');
+
+    await expect(editor).toMatchOutline([
+      {
+        noteId: 'bold',
+        text: 'bold',
+        children: [
+          {
+            noteId: 'italic',
+            text: 'italic',
+            children: [{ noteId: 'target', text: 'target' }],
+          },
+        ],
+      },
+      { noteId: 'underline', text: 'underline' },
+      { noteId: null, text: 'plain bold it' },
+      { noteId: null, text: 'A' },
+      { noteId: null, text: 'BZ' },
+      { noteId: 'mixed-formatting', text: 'alic underline plain' },
+    ]);
+  });
+
+  test('treats multi-line plain text as multi-note paste for inline selections', async ({ page, editor }) => {
+    await editor.load('flat');
+    await selectInlineRange(page, 'note2', 1, 4);
+
+    await pastePlainText(page, 'A\nB');
+
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: null, text: 'A' },
+      { noteId: null, text: 'B' },
+      { noteId: 'note3', text: 'note3' },
     ]);
   });
 });
@@ -163,4 +221,14 @@ async function readOverlayVars(input: Locator, topVar: string, heightVar: string
     },
     { topVar, heightVar }
   );
+}
+
+async function pastePlainText(page: Parameters<typeof editorLocator>[0], text: string) {
+  const input = editorLocator(page).locator('.editor-input').first();
+  await input.evaluate((element, payload) => {
+    const data = new DataTransfer();
+    data.setData('text/plain', payload);
+    const event = new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true });
+    element.dispatchEvent(event);
+  }, text);
 }
