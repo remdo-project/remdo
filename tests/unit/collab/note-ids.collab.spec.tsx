@@ -289,7 +289,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
   });
 
-  it('merges cut moves with concurrent edits on the moved note', meta({ fixture: 'flat' }, { retry: 3 }), async ({ remdo }) => {
+  it('merges cut moves with concurrent edits on the moved note', meta({ fixture: 'flat' }), async ({ remdo }) => {
         await remdo.waitForSynced();
 
     const secondary = await createCollabPeer(remdo);
@@ -315,7 +315,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
   });
 
-  it('merges cut moves with concurrent edits on a moved subtree', meta({ fixture: 'tree-complex' }, { retry: 3 }), async ({ remdo }) => {
+  it('merges cut moves with concurrent edits on a moved subtree', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
         await remdo.waitForSynced();
 
     expect(remdo).toMatchOutline([

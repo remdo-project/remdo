@@ -36,12 +36,11 @@ const expectOutlineToMatchAny = (remdoA: any, remdoB: any, candidates: unknown[]
 describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it(
     'repairs orphan wrappers after hydration',
-    // FIXME: Collab interleavings can emit variable orphan-wrapper invariants; retry to reduce flakiness.
     meta({
       fixture: 'editor-schema/wrapper-orphan-after-wrapper',
       fixtureSchemaBypass: true,
       expectedConsoleIssues: ['runtime.invariant orphan-wrapper-merged-into-previous'],
-    }, { retry: 3 }),
+    }),
     async ({ remdo }) => {
       await remdo.waitForSynced();
       expect(remdo).toMatchOutline([
@@ -59,10 +58,8 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
 
   it(
     'repairs an orphan wrapper from concurrent delete + indent',
-    // FIXME: Collab interleavings can emit variable orphan-wrapper invariants; retry to reduce flakiness.
     meta(
       { fixture: 'flat', expectedConsoleIssues: ['runtime.invariant orphan-wrapper-without-previous-content'] },
-      { retry: 6 }
     ),
     async ({ remdo }) => {
       const remdo2 = await createCollabPeer(remdo);
@@ -104,10 +101,8 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
 
   it(
     'repairs nested orphan wrappers from concurrent delete + indent',
-    // FIXME: Collab interleavings can emit variable orphan-wrapper invariants; retry to reduce flakiness.
     meta(
       { fixture: 'basic', expectedConsoleIssues: ['runtime.invariant orphan-wrapper-without-previous-content'] },
-      { retry: 6 }
     ),
     async ({ remdo }) => {
       const note3Key = getNoteKey(remdo, 'note3');
