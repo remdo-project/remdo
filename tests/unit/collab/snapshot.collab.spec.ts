@@ -68,7 +68,7 @@ function readEditorState(filePath: string): SerializedEditorState {
   it(
     'saves the current editor state via snapshot CLI',
     meta({ collabDocId: 'snapshot-flat', fixture: 'flat' }),
-    async ({ remdo }) => {
+    async () => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-flat' };
 
       const savePath = SNAPSHOT_OUTPUTS[1]!;
