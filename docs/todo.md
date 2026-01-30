@@ -42,18 +42,6 @@ Rules:
    in the note. That misclassifies mid- note positions as start/end and triggers
    the wrong insertion path. (src/editor/plugins/InsertionPlugin.tsx:75-90)
 
-## Clipboard / paste behavior plan
-
-1. Align caret-position paste placement with `docs/outliner/clipboard.md`
-   (start/middle/end placement matches Enter, end-of-note inserts as first child
-   when expanded).
-2. Treat multi-line plain text as multi-note payloads (one line per note) when
-   the selection is collapsed; keep single-line payloads inline.
-3. Update focus to land at the end of the last inserted note after a multi-note
-   paste.
-4. Add coverage: unit tests for clipboard placement rules, plus e2e updates for
-   selection/paste behavior (unskip and update the expected outline).
-
 ## Test infra
 
 - E2E runs reuse persisted collab docs (e.g.,
