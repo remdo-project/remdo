@@ -740,8 +740,8 @@ describe('note ids on split', () => {
 
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'no' },
-      { noteId: null, text: 'te2', children: [{ noteId: 'note3', text: 'note3' }] },
+      { noteId: null, text: 'no' },
+      { noteId: 'note2', text: 'te2', children: [{ noteId: 'note3', text: 'note3' }] },
     ]);
 
     const outline = readOutline(remdo);
