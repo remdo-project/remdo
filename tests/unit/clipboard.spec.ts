@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  collapseDomSelectionAtNode,
   createDataTransfer,
   buildClipboardPayload,
-  getNoteTextNodes,
   meta,
   pastePayload,
   placeCaretAtNote,
+  placeCaretAtNoteTextNode,
   pressKey,
   readCaretNoteId,
   readOutline,
@@ -105,8 +104,8 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
   });
 
-  it.fails('pastes multi-line plain text in the middle of a formatted note with multiple text nodes', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-    await setCaretAtNoteText(remdo, 'mixed-formatting', 2, 2);
+  it('pastes multi-line plain text in the middle of a formatted note with multiple text nodes', meta({ fixture: 'formatted' }), async ({ remdo }) => {
+    await placeCaretAtNoteTextNode(remdo, 'mixed-formatting', 2, 2);
     await pastePlainText(remdo, 'A\nB');
 
     const texts = flattenOutline(readOutline(remdo)).map((node) => node.text ?? '');
@@ -223,18 +222,4 @@ function flattenOutline(outline: Outline): OutlineNode[] {
   };
   walk(outline);
   return flattened;
-}
-
-async function setCaretAtNoteText(
-  remdo: Parameters<typeof placeCaretAtNote>[0],
-  noteId: string,
-  textNodeIndex: number,
-  offset: number
-) {
-  const textNodes = getNoteTextNodes(remdo, noteId);
-  const target = textNodes[textNodeIndex];
-  if (!target) {
-    throw new Error(`Expected text node ${textNodeIndex} on "${noteId}".`);
-  }
-  await collapseDomSelectionAtNode(target, offset);
 }

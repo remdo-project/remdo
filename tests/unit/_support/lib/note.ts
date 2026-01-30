@@ -104,6 +104,43 @@ export async function placeCaretAtNote(remdo: RemdoTestApi, noteId: string, offs
   });
 }
 
+export async function placeCaretAtNoteTextNode(
+  remdo: RemdoTestApi,
+  noteId: string,
+  textNodeIndex: number,
+  offset: number
+) {
+  // Places a collapsed caret inside a specific text node (for multi-format notes).
+  const rootElement = getRootElementOrThrow(remdo.editor);
+  if (document.activeElement !== rootElement) {
+    rootElement.focus();
+  }
+
+  await remdo.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'anchor' }, { expect: 'any' });
+
+  await remdo.mutate(() => {
+    const item = $findItemByNoteId(noteId);
+    const textNodes = item.getChildren().filter($isTextNode);
+    const target = textNodes[textNodeIndex];
+    if (!target) {
+      throw new Error(`Expected text node ${textNodeIndex} on "${noteId}".`);
+    }
+
+    const length = target.getTextContentSize();
+    const normalized = offset < 0 ? length + offset : offset;
+    const clamped = Math.max(0, Math.min(length, normalized));
+
+    const selection = $createRangeSelection();
+    selection.setTextNodeRange(target, clamped, target, clamped);
+    $setSelection(selection);
+  });
+
+  await waitFor(() => {
+    expect(readCaretNoteId(remdo)).toBe(noteId);
+    expect(remdo.editor.selection.get()?.kind).toBe('caret');
+  });
+}
+
 /**
  * Appends text to the note with the given id without going through input events.
  * Use for deterministic model-only edits (e.g., remote collab changes).

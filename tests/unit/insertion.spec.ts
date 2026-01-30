@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { placeCaretAtNote, pressKey, readCaretNoteId, typeText, meta } from '#tests';
-import { $createRangeSelection, $getRoot, $isTextNode, $setSelection } from 'lexical';
-import type { TextNode } from 'lexical';
-import type { ListItemNode, ListNode } from '@lexical/list';
+import { placeCaretAtNote, placeCaretAtNoteTextNode, pressKey, readCaretNoteId, typeText, meta } from '#tests';
 
 describe('insertion semantics (docs/insertion.md)', () => {
   it('enter at start inserts a previous sibling and keeps children with the original', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -35,17 +32,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   });
 
   it.skip('enter at the start of a later text node splits the note (multi-text)', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-    await remdo.mutate(() => {
-      //TODO consider using placeCaretAtNote
-      const root = $getRoot();
-      const list = root.getFirstChild() as ListNode;
-      const item = list.getChildren()[3] as ListItemNode;
-      const textNodes = item.getChildren().filter($isTextNode);
-      const target = textNodes[1] as TextNode;
-      const selection = $createRangeSelection();
-      selection.setTextNodeRange(target, 0, target, 0);
-      $setSelection(selection);
-    });
+    await placeCaretAtNoteTextNode(remdo, 'mixed-formatting', 1, 0);
 
     await pressKey(remdo, { key: 'Enter' });
 
