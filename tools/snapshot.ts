@@ -221,9 +221,7 @@ async function runSave(
       console.info(`[snapshot] markdown -> ${absoluteMarkdownPath}`);
     }
   });
-  if (process.env.NODE_ENV !== 'test') {
-    await waitForPersistedData(docId);
-  }
+  await waitForPersistedData(docId);
 }
 
 async function runBackup(
@@ -245,6 +243,7 @@ async function runLoad(docId: string, collabOrigin: string, filePath: string): P
     await done;
     await session.awaitSynced();
   });
+  await waitForPersistedData(docId);
   console.info(`[snapshot] load <- ${filePath}`);
 }
 
