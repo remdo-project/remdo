@@ -119,6 +119,21 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
   });
 
+  it('splits a formatted note when pasting at the start of a later text node', meta({ fixture: 'formatted' }), async ({ remdo }) => {
+    await placeCaretAtNoteTextNode(remdo, 'mixed-formatting', 1, 0);
+    await pastePlainText(remdo, 'A\nB');
+
+    const texts = flattenOutline(readOutline(remdo)).map((node) => node.text ?? '');
+    expect(texts).toEqual(['bold', 'italic', 'target', 'underline', 'plain ', 'A', 'B', 'bold italic underline plain']);
+
+    const original = findOutlineNodeByText(readOutline(remdo), 'bold italic underline plain');
+    expect(original?.noteId).toBe('mixed-formatting');
+
+    const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
+    expect(focusNote?.noteId).toBeTruthy();
+    expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
+  });
+
   it('treats empty notes as start placement for multi-line pastes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note2');
     await pressKey(remdo, { key: 'Backspace' });

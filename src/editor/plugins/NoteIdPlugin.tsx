@@ -231,19 +231,32 @@ function $splitContentItemAtSelection(contentItem: ListItemNode, selection: Base
 
   const offset = selection.anchor.offset;
   const size = anchorNode.getTextContentSize();
-  if (offset <= 0 || offset >= size) {
+  let splitStart: LexicalNode | null = null;
+  if (offset <= 0) {
+    splitStart = anchorNode;
+  } else if (offset >= size) {
+    splitStart = anchorNode.getNextSibling() ?? null;
+  } else {
+    const [, rightNode] = anchorNode.splitText(offset);
+    splitStart = rightNode ?? null;
+  }
+
+  if (!splitStart) {
     return null;
   }
 
-  const [, rightNode] = anchorNode.splitText(offset);
   const newItem = $createListItemNode();
   $setState(newItem, noteIdState, createNoteId());
 
   let child = contentItem.getFirstChild();
-  while (child && child !== rightNode) {
+  while (child && child !== splitStart) {
     const next = child.getNextSibling();
     newItem.append(child);
     child = next;
+  }
+
+  if (newItem.getChildrenSize() === 0) {
+    return null;
   }
 
   contentItem.insertBefore(newItem);
