@@ -203,8 +203,7 @@ test.describe('clipboard (caret paste placement)', () => {
 
     await expect(editor).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'A' },
-      { noteId: null, text: 'B' },
+      { noteId: null, text: 'nA2', children: [{ noteId: null, text: 'B' }] },
       { noteId: 'note3', text: 'note3' },
     ]);
   });
