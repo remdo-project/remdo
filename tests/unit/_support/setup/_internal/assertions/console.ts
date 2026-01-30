@@ -3,6 +3,7 @@ import {
   clearExpectedConsoleIssues,
   consumeExpectedConsoleIssue,
   getExpectedConsoleIssues,
+  getUnreportedExpectedConsoleIssues,
 } from './console-allowlist';
 
 const LEVELS = ['error', 'warn'] as const;
@@ -41,9 +42,10 @@ afterEach(() => {
 
     spy.mockClear();
   }
-  if (expectedIssues && expectedIssues.size > 0) {
+  const missingExpectedIssues = getUnreportedExpectedConsoleIssues();
+  if (missingExpectedIssues.length > 0) {
     clearExpectedConsoleIssues();
-    expect.fail(`Expected console issues not reported: ${[...expectedIssues].join(', ')}`);
+    expect.fail(`Expected console issues not reported: ${missingExpectedIssues.join(', ')}`);
   }
   clearExpectedConsoleIssues();
 });

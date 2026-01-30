@@ -28,13 +28,16 @@ outdated or a doc’s role materially changes.
   `.env` overrides, `PORT`/`COLLAB_SERVER_PORT`, auth, and `DATA_DIR` mapping.
 - `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, defaults/overrides, worktrees,
   and blocked port guard.
-- `docs/insertion.md` (Short). Caret-mode `Enter` behavior and focus rules.
+- `docs/insertion.md` (Short). Caret-mode `Enter` behavior, focus rules, and
+  paste placement pointer.
+- `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
+  handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge rules, spacing.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).
 - `docs/outliner/index.md` (Short). Entry point with links; single-source invariants rule.
-- `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization, cut-as-move, collab,
-  `noteRef`.
+- `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization, clipboard identity
+  rules, collab, `noteRef`.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indentation
   semantics; indent/outdent rules.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and constraints.
@@ -89,11 +92,6 @@ document captures the full model.
 
 ## Safety & Process
 
-- Do not change any code before explicitly asked for it.
-  - If asked how something can be solved, answer the question and suggest a
-    solution, but do not change any code.
-  - If asked to propose code, provide the snippet and wait for explicit approval
-    before making changes.
 - Background processes started from the root workdir are controlled by the
   developer; do not start or kill them.
 - Background processes started from worktrees (by their unique ports) can be

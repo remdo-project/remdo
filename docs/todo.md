@@ -49,25 +49,6 @@ Rules:
   normalizes data. Add a cleanup or per-run `DATA_DIR`/doc-id strategy so
   Playwright runs are isolated and deterministic.
 
-## Other
-
-- Follow-up: paste placement at end-of-note with children currently inserts
-  after the entire subtree (next content sibling), which feels unintuitive when
-  the caret sits visually above the first child. Align paste insertion with
-  `docs/insertion.md` end-of-note semantics so pastes land as the first child,
-  and add a focused test to lock this behavior. Unskip
-  `tests/e2e/editor/selection.spec.ts` "moves a structural selection on cut and
-  paste" once the behavior is fixed and update the expected outline.
-
-## Clipboard caret-position semantics
-
-- Define cut/copy/paste insertion behavior when the selection is collapsed:
-  caret at start, middle, and end of a note (before/after/inside rules).
-- Update `docs/outliner/note-ids.md` (and `docs/outliner/selection.md` if
-  needed) to document the chosen behavior.
-- Add unit coverage in `tests/unit/note-ids.spec.ts` plus e2e coverage in
-  `tests/e2e/editor/selection.spec.ts` for the supported caret positions.
-
   ### Notes
 
   3. What can be simplified (and what can replace our helpers)

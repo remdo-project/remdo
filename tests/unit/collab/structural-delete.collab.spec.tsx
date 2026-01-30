@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 
 import { pressKey, readOutline, selectStructuralNotes, meta } from '#tests';
+import { flattenOutline } from '#tests-common/outline';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
@@ -46,25 +47,8 @@ describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_M
 
     await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
-    const flattenText = (nodes: ReturnType<typeof readOutline>): string[] => {
-      const out: string[] = [];
-      const walk = (xs: typeof nodes) => {
-        for (const node of xs) {
-          if (node.text) out.push(node.text);
-          if (node.children?.length) {
-            walk(node.children);
-          }
-        }
-      };
-      walk(nodes);
-      return out;
-    };
-
-    const afterPrimary = readOutline(remdo);
-    const afterSecondary = readOutline(secondary);
-
-    const textsA = flattenText(afterPrimary);
-    const textsB = flattenText(afterSecondary);
+    const textsA = flattenOutline(readOutline(remdo)).flatMap((node) => (node.text ? [node.text] : []));
+    const textsB = flattenOutline(readOutline(secondary)).flatMap((node) => (node.text ? [node.text] : []));
 
     expect(textsA).not.toContain('note2');
     expect(textsA).not.toContain('note3');

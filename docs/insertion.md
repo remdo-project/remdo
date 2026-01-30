@@ -34,3 +34,10 @@ mode definitions.
    caret) so the trailing text remains the active line.
 3. **End of note:** place the caret at the start of the newly created note
    (child or sibling) so typing immediately fills it.
+
+## Paste placement (caret mode)
+
+When a paste inserts multiple notes, its placement follows the same
+start/middle/end rules as `Enter`. Clipboard details (including how multi-line
+plain text is interpreted and focus after paste) live in
+[Clipboard](./outliner/clipboard.md).
