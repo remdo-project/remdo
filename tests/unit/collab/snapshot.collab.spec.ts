@@ -70,7 +70,6 @@ function readEditorState(filePath: string): SerializedEditorState {
     meta({ collabDocId: 'snapshot-flat', fixture: 'flat' }),
     async ({ remdo }) => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-flat' };
-      await remdo.waitForSynced();
 
       const savePath = SNAPSHOT_OUTPUTS[1]!;
       const expectedState = stripEditorStateDefaults(readEditorState(path.resolve('tests/fixtures/flat.json')));
@@ -103,8 +102,6 @@ function readEditorState(filePath: string): SerializedEditorState {
 
       const savedState = stripEditorStateDefaults(readEditorState(savePath));
       expect(savedState.root).toEqual(expectedState.root);
-
-      await remdo.waitForSynced();
     }
   );
 

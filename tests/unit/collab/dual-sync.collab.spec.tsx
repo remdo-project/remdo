@@ -14,14 +14,11 @@ describe('collaboration sync', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       $getRoot().clear();
     });
 
-    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
-
     await waitFor(() => {
       const outlineA = readOutline(remdo);
       expect(secondary).toMatchOutline(outlineA);
     });
 
-    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     remdo.editor.update(() => {
       // TODO: use a higher level API once we have it
       const root = $getRoot();
@@ -35,9 +32,6 @@ describe('collaboration sync', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       root.append(list);
     });
 
-    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
-
-    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     const sharedOutline = [{ noteId: null, text: 'note1' }];
     await waitFor(() => {
       expect(remdo).toMatchOutline(sharedOutline);

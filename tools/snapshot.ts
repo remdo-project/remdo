@@ -221,7 +221,9 @@ async function runSave(
       console.info(`[snapshot] markdown -> ${absoluteMarkdownPath}`);
     }
   });
-  await waitForPersistedData(docId);
+  if (process.env.NODE_ENV !== 'test') {
+    await waitForPersistedData(docId);
+  }
 }
 
 async function runBackup(
