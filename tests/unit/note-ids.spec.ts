@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { SerializedElementNode, SerializedLexicalNode, SerializedTextNode } from 'lexical';
 import type { SerializedNoteListItemNode } from '#lib/editor/serialized-note-types';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
+import { flattenOutline } from '#tests-common/outline';
 import {
   buildClipboardPayload,
   buildCustomClipboardPayload,
@@ -31,7 +32,6 @@ import {
 } from '#tests';
 import { createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { noteIdState } from '#lib/editor/note-id-state';
-
 
 function findSerializedListItem(node: SerializedLexicalNode, noteId: string): SerializedNoteListItemNode | null {
   if (node.type === 'listitem') {
@@ -99,34 +99,13 @@ function isSerializedElementNode(node: SerializedLexicalNode): node is Serialize
 }
 
 function collectOutlineNoteIds(outline: ReturnType<typeof readOutline>): string[] {
-  const ids: string[] = [];
-  const stack = [...outline];
-  while (stack.length > 0) {
-    const node = stack.pop();
-    if (!node) continue;
-    if (node.noteId) {
-      ids.push(node.noteId);
-    }
-    if (node.children) {
-      stack.push(...node.children);
-    }
-  }
-  return ids;
+  return flattenOutline(outline)
+    .map((node) => node.noteId)
+    .filter((noteId): noteId is string => typeof noteId === 'string');
 }
 
 function findOutlineNodeByText(outline: ReturnType<typeof readOutline>, text: string) {
-  const stack = [...outline];
-  while (stack.length > 0) {
-    const node = stack.pop();
-    if (!node) continue;
-    if (node.text === text) {
-      return node;
-    }
-    if (node.children) {
-      stack.push(...node.children);
-    }
-  }
-  return null;
+  return flattenOutline(outline).find((node) => node.text === text) ?? null;
 }
 
 describe('note ids', () => {

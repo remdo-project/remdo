@@ -14,6 +14,7 @@ import {
   typeText,
 } from '#tests';
 import type { Outline, OutlineNode } from '#tests';
+import { flattenOutline } from '#tests-common/outline';
 import { PASTE_COMMAND } from 'lexical';
 
 describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
@@ -211,30 +212,5 @@ async function pastePlainText(remdo: Parameters<typeof placeCaretAtNote>[0], tex
 }
 
 function findOutlineNodeByText(outline: Outline, text: string): OutlineNode | null {
-  for (const node of outline) {
-    if (node.text === text) {
-      return node;
-    }
-    if (node.children) {
-      const match: OutlineNode | null = findOutlineNodeByText(node.children, text);
-      if (match) {
-        return match;
-      }
-    }
-  }
-  return null;
-}
-
-function flattenOutline(outline: Outline): OutlineNode[] {
-  const flattened: OutlineNode[] = [];
-  const walk = (nodes: Outline) => {
-    for (const node of nodes) {
-      flattened.push(node);
-      if (node.children) {
-        walk(node.children);
-      }
-    }
-  };
-  walk(outline);
-  return flattened;
+  return flattenOutline(outline).find((node) => node.text === text) ?? null;
 }

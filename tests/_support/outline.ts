@@ -56,6 +56,20 @@ export function extractOutlineFromEditorState(state: unknown): Outline {
   return readNotes(notes);
 }
 
+export function flattenOutline(outline: Outline): OutlineNode[] {
+  const flattened: OutlineNode[] = [];
+  const walk = (nodes: Outline) => {
+    for (const node of nodes) {
+      flattened.push(node);
+      if (node.children) {
+        walk(node.children);
+      }
+    }
+  };
+  walk(outline);
+  return flattened;
+}
+
 export function mutateOutlineNoteIdWildcards(actual: Outline, expected: Outline): void {
   // Normalize actuals before comparison so we keep vitest's diff output while still allowing
   // `noteId: null` in expected outlines to mean "present but don't care about the value", and so
