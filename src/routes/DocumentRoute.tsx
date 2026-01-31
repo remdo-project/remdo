@@ -1,9 +1,10 @@
 import { Stack } from '@mantine/core';
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Editor from '@/editor/Editor';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
+import { DEFAULT_DOC_ID } from '@/routing';
 
 const normalizeZoomNoteId = (value: unknown): string | null => {
   if (typeof value !== 'string') {
@@ -15,20 +16,28 @@ const normalizeZoomNoteId = (value: unknown): string | null => {
 };
 
 export default function DocumentRoute() {
-  const { docId } = useParams({ from: '/n/$docId' });
-  const search = useSearch({ from: '/n/$docId' });
-  const navigate = useNavigate({ from: '/n/$docId' });
+  const { docId: rawDocId } = useParams();
+  const docId = rawDocId ?? DEFAULT_DOC_ID;
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [zoomPath, setZoomPath] = useState<NotePathItem[]>([]);
-  const zoomNoteId = useMemo(() => normalizeZoomNoteId(search.zoom), [search.zoom]);
+  const zoomParam = searchParams.get('zoom');
+  const zoomNoteId = useMemo(() => normalizeZoomNoteId(zoomParam), [zoomParam]);
 
   const setZoomNoteId = (noteId: string | null) => {
-    void navigate({
-      search: (prev) => ({
-        ...prev,
-        zoom: noteId ?? undefined,
-      }),
-      replace: true,
-    });
+    const nextParams = new URLSearchParams(searchParams);
+    if (noteId) {
+      nextParams.set('zoom', noteId);
+    } else {
+      nextParams.delete('zoom');
+    }
+    const nextSearch = nextParams.toString();
+    navigate(
+      {
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true }
+    );
   };
 
   return (

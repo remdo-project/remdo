@@ -1,6 +1,6 @@
 import { Anchor, Container, Group, MantineProvider, Title } from '@mantine/core';
 import { IconBrandVite } from '@tabler/icons-react';
-import { Link, Outlet, useMatch } from '@tanstack/react-router';
+import { Link, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import headerStyles from './styles/AppHeader.module.css';
 import { theme } from './theme';
 import { config } from '#config';
@@ -31,6 +31,18 @@ function buildUrl(host: HostContext, portOffset: number, path = ''): string {
   return `${host.protocol}//${host.hostname}:${host.basePort + portOffset}${path}`;
 }
 
+function buildSearch(params: { zoom?: string; lexicalDemo?: boolean }): string {
+  const searchParams = new URLSearchParams();
+  if (params.zoom) {
+    searchParams.set('zoom', params.zoom);
+  }
+  if (params.lexicalDemo) {
+    searchParams.set('lexicalDemo', 'true');
+  }
+  const search = searchParams.toString();
+  return search ? `?${search}` : '';
+}
+
 export default function App() {
   const host = resolveHost();
   const previewUrl = host ? buildUrl(host, 3) : '#preview';
@@ -39,9 +51,10 @@ export default function App() {
   const lexicalUrl = host
     ? `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`
     : '#lexical';
-  const showVanillaLexical = config.isDevOrTest && new URLSearchParams(globalThis.location.search).has('lexicalDemo');
-  const docMatch = useMatch({ from: '/n/$docId', shouldThrow: false });
-  const currentDocId = docMatch?.params.docId ?? DEFAULT_DOC_ID;
+  const [searchParams] = useSearchParams();
+  const { docId } = useParams();
+  const showVanillaLexical = config.isDevOrTest && searchParams.has('lexicalDemo');
+  const currentDocId = docId ?? DEFAULT_DOC_ID;
 
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
@@ -50,9 +63,7 @@ export default function App() {
           <Group gap="md">
             <Title order={1} className="app-heading-title">
               <Link
-                to="/n/$docId"
-                params={{ docId: currentDocId }}
-                search={{ zoom: undefined, lexicalDemo: undefined }}
+                to={`/n/${currentDocId}${buildSearch({})}`}
                 className={headerStyles.brandLink}
               >
                 <span aria-hidden="true" className={headerStyles.brandIcon} />
@@ -63,9 +74,7 @@ export default function App() {
           <nav>
             <Group gap="md" className="app-header-links">
               <Link
-                to="/n/$docId"
-                params={{ docId: DEFAULT_DOC_ID }}
-                search={{ zoom: undefined, lexicalDemo: undefined }}
+                to={`/n/${DEFAULT_DOC_ID}${buildSearch({})}`}
                 className="app-header-link"
               >
                 Project
@@ -86,9 +95,7 @@ export default function App() {
                     Lexical
                   </Anchor>
                   <Link
-                    to="/n/$docId"
-                    params={{ docId: currentDocId }}
-                    search={{ zoom: undefined, lexicalDemo: true }}
+                    to={`/n/${currentDocId}${buildSearch({ lexicalDemo: true })}`}
                     className="app-header-link"
                   >
                     Lexical Demo
