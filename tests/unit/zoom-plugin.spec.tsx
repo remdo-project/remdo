@@ -50,6 +50,7 @@ describe('zoom plugin', () => {
     meta({ fixture: 'basic', editorPropsKey: zoomNoteKey }),
     async ({ remdo }) => {
       const noteElement = getNoteElement(remdo, 'note1');
+      noteElement.style.paddingLeft = '16px';
 
       const event =
         typeof PointerEvent === 'undefined'

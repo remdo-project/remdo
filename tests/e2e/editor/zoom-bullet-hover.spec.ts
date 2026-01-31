@@ -9,50 +9,37 @@ test.describe('Zoom bullet hover', () => {
     await expect(listItem).toBeVisible();
 
     const metrics = await listItem.evaluate((element) => {
-      const style = globalThis.getComputedStyle(element, '::before');
+      const beforeStyle = globalThis.getComputedStyle(element, '::before');
       const rect = element.getBoundingClientRect();
-      const rawContent = style.content;
-      const content =
-        rawContent === 'none' || rawContent === 'normal'
-          ? ''
-          : rawContent.replaceAll('"', '').replaceAll("'", '');
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx || !content) {
+      const width = Number.parseFloat(beforeStyle.width);
+      const height = Number.parseFloat(beforeStyle.height);
+      if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
         return null;
       }
-      const font =
-        style.font && style.font !== 'normal'
-          ? style.font
-          : `${style.fontStyle} ${style.fontVariant} ${style.fontWeight} ${style.fontSize} / ${style.lineHeight} ${style.fontFamily}`;
-      ctx.font = font;
-      const metrics = ctx.measureText(content);
-      const glyphWidth = metrics.width;
-      if (!Number.isFinite(glyphWidth) || glyphWidth <= 0) {
-        return null;
-      }
-      const boxLeft = Number.isFinite(metrics.actualBoundingBoxLeft) ? metrics.actualBoundingBoxLeft : 0;
-      const boxRight = Number.isFinite(metrics.actualBoundingBoxRight)
-        ? metrics.actualBoundingBoxRight
-        : glyphWidth;
-      const containerWidth = Number.parseFloat(style.width);
-      const left = Number.parseFloat(style.left);
-      let offset = 0;
-      if (Number.isFinite(containerWidth) && containerWidth > glyphWidth) {
-        if (style.textAlign === 'center') {
-          offset = (containerWidth - glyphWidth) / 2;
-        } else if (style.textAlign === 'right' || style.textAlign === 'end') {
-          offset = containerWidth - glyphWidth;
-        }
-      }
+      const left = Number.parseFloat(beforeStyle.left);
+      const top = Number.parseFloat(beforeStyle.top);
       const baseLeft = rect.left + (Number.isFinite(left) ? left : 0);
-      const start = baseLeft + offset - boxLeft;
-      return { start, end: baseLeft + offset + boxRight, y: rect.top + rect.height / 2 };
+      const baseTop = rect.top + (Number.isFinite(top) ? top : 0);
+      const textNode = element.querySelector('[data-lexical-text="true"]');
+      const textRect = textNode ? textNode.getBoundingClientRect() : null;
+      return {
+        start: baseLeft,
+        end: baseLeft + width,
+        y: baseTop + height / 2,
+        width,
+        height,
+        textCenterY: textRect ? textRect.top + textRect.height / 2 : null,
+      };
     });
 
     expect(metrics).not.toBeNull();
     if (!metrics) {
       return;
+    }
+
+    expect(Math.abs(metrics.width - metrics.height)).toBeLessThanOrEqual(1);
+    if (metrics.textCenterY !== null) {
+      expect(Math.abs(metrics.textCenterY - metrics.y)).toBeLessThanOrEqual(4);
     }
 
     await page.mouse.move(metrics.end + 10, metrics.y);
