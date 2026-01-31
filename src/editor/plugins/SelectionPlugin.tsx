@@ -1,4 +1,5 @@
 import type { ListItemNode } from '@lexical/list';
+import { $isListNode } from '@lexical/list';
 import { collapseSelectionToCaret, resolveBoundaryPoint } from '@/editor/outline/selection/caret';
 import { $applyCaretEdge } from '@/editor/outline/selection/apply';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND, PROGRESSIVE_SELECTION_DIRECTION_COMMAND } from '@/editor/commands';
@@ -30,6 +31,9 @@ import type { ProgressiveUnlockState } from '@/editor/outline/selection/snapshot
 import type { StructuralOverlayConfig } from '@/editor/outline/selection/overlay';
 import { clearStructuralOverlay, updateStructuralOverlay } from '@/editor/outline/selection/overlay';
 import { useEffect, useRef } from 'react';
+import { getContentListItem } from '@/editor/outline/list-structure';
+import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
+import { getParentContentItem } from '@/editor/outline/selection/tree';
 
 const PROGRESSIVE_SELECTION_TAG = 'selection:progressive-range';
 const SNAP_SELECTION_TAG = 'selection:snap-range';
@@ -108,6 +112,56 @@ export function SelectionPlugin() {
       });
     };
 
+    const $inferSelectionDirection = (
+      anchorKey: string,
+      fallback: ProgressiveSelectionState['lastDirection']
+    ): ProgressiveSelectionState['lastDirection'] => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) {
+        return fallback ?? null;
+      }
+
+      const heads = getContiguousSelectionHeads(selection);
+      if (heads.length <= 1) {
+        return fallback ?? null;
+      }
+
+      const anchorNode = $getNodeByKey<ListItemNode>(anchorKey);
+      if (!anchorNode) {
+        return fallback ?? null;
+      }
+
+      const anchorContent = getContentListItem(anchorNode);
+      const parentList = heads[0]!.getParent();
+      if (!$isListNode(parentList)) {
+        return fallback ?? null;
+      }
+
+      let current: ListItemNode | null = anchorContent;
+      while (current && current.getParent() !== parentList) {
+        current = getParentContentItem(current);
+      }
+
+      if (!current) {
+        return fallback ?? null;
+      }
+
+      const index = heads.findIndex((head) => head.getKey() === current.getKey());
+      if (index === -1) {
+        return fallback ?? 'down';
+      }
+
+      if (index === 0) {
+        return 'down';
+      }
+
+      if (index === heads.length - 1) {
+        return 'up';
+      }
+
+      return fallback ?? 'down';
+    };
+
     const renderStructuralHighlight = (
       range: OutlineSelectionRange | null,
       isActive: boolean,
@@ -159,10 +213,16 @@ export function SelectionPlugin() {
         return;
       }
 
+      const nextDirection =
+        planResult.stage >= 3
+          ? $inferSelectionDirection(planResult.anchorKey, progressionRef.current.lastDirection)
+          : null;
+
       progressionRef.current = {
         anchorKey: planResult.anchorKey,
         stage: getStoredStage(planResult),
         locked: true,
+        lastDirection: nextDirection,
       };
     };
 
@@ -284,10 +344,13 @@ export function SelectionPlugin() {
         return;
       }
 
+      const lastDirection = planResult.isShrink ? progressionRef.current.lastDirection : direction;
+
       progressionRef.current = {
         anchorKey: planResult.anchorKey,
         stage: getStoredStage(planResult),
         locked: true,
+        lastDirection,
       };
     };
 

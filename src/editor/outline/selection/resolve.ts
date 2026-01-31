@@ -22,6 +22,7 @@ export interface ProgressiveSelectionState {
   anchorKey: string | null;
   stage: number;
   locked: boolean;
+  lastDirection: 'up' | 'down' | null;
 }
 
 export function resolveSelectionPointItem(
@@ -233,5 +234,6 @@ export function inferPointerProgressionState(
     anchorKey: anchorContent.getKey(),
     stage: 3,
     locked: true,
+    lastDirection: null,
   };
 }
