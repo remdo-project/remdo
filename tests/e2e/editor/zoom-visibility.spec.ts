@@ -1,6 +1,6 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
-import { editorLocator } from '#editor/locators';
+import { editorLocator, setCaretAtText } from '#editor/locators';
 
 const getBulletMetrics = async (listItem: Locator) => {
   return listItem.evaluate((element: HTMLElement) => {
@@ -71,6 +71,21 @@ test.describe('Zoom visibility', () => {
 
     await page.getByRole('button', { name: editor.docId }).click();
     await expect(note3).toBeVisible();
+  });
+
+  test('enter at zoom root end creates a visible child', async ({ page, editor }) => {
+    await editor.load('flat');
+
+    const editorRoot = editorLocator(page);
+    const note2 = editorRoot.locator('li.list-item', { hasText: 'note2' }).first();
+    const metrics = await getBulletMetrics(note2);
+
+    await page.mouse.click(metrics.x, metrics.y);
+    await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('Enter');
+
+    await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeHidden();
+    await expect(editorRoot.locator('li.list-item:not(.list-nested-item):not(.zoom-hidden)')).toHaveCount(2);
   });
 
   test('zoomed child aligns to root indentation', async ({ page, editor }) => {

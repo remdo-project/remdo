@@ -14,16 +14,21 @@ import {
   KEY_DOWN_COMMAND,
   KEY_ENTER_COMMAND,
 } from 'lexical';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import {
+  $getOrCreateChildList,
   findNearestListItem,
   isChildrenWrapper,
   getContentListItem,
   insertBefore,
 } from '@/editor/outline/list-structure';
 import { isPointAtBoundary, resolveBoundaryPoint } from '@/editor/outline/selection/caret';
+import { $getNoteId } from '#lib/editor/note-id-state';
 
 type CaretPlacement = 'start' | 'middle' | 'end';
+interface InsertionPluginProps {
+  zoomNoteId?: string | null;
+}
 
 function $createNote(text: string): ListItemNode {
   const item = $createListItemNode();
@@ -38,9 +43,33 @@ function $handleEnterAtStart(contentItem: ListItemNode) {
   textNode?.select(0, 0);
 }
 
-function $handleEnterAtEnd(contentItem: ListItemNode) {
+const resolveZoomNoteId = (value: string | null | undefined) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+function $handleEnterAtEnd(contentItem: ListItemNode, forceChild: boolean) {
   const wrapper = contentItem.getNextSibling();
-  const list = isChildrenWrapper(wrapper) ? wrapper.getFirstChild<ListNode>() : null;
+  let list = isChildrenWrapper(wrapper) ? wrapper.getFirstChild<ListNode>() : null;
+
+  if (forceChild) {
+    if (!list) {
+      list = $getOrCreateChildList(contentItem);
+    }
+    const newChild = $createNote('');
+    const firstChild = list.getFirstChild();
+    if (firstChild) {
+      insertBefore(firstChild, [newChild]);
+    } else {
+      list.append(newChild);
+    }
+    const textNode = newChild.getChildren().find($isTextNode);
+    textNode?.select(0, 0);
+    return;
+  }
 
   if (list && list.getChildrenSize() > 0) {
     const newChild = $createNote('');
@@ -132,8 +161,13 @@ function $splitContentItemAtSelection(contentItem: ListItemNode, selection: Retu
   return true;
 }
 
-export function InsertionPlugin() {
+export function InsertionPlugin({ zoomNoteId }: InsertionPluginProps) {
   const [editor] = useLexicalComposerContext();
+  const zoomNoteIdRef = useRef<string | null>(resolveZoomNoteId(zoomNoteId));
+
+  useEffect(() => {
+    zoomNoteIdRef.current = resolveZoomNoteId(zoomNoteId);
+  }, [zoomNoteId]);
 
   useEffect(() => {
     return mergeRegister(
@@ -193,9 +227,11 @@ export function InsertionPlugin() {
           }
 
           if (placement === 'end') {
+            const zoomRootId = zoomNoteIdRef.current;
+            const forceChild = Boolean(zoomRootId && $getNoteId(contentItem) === zoomRootId);
             event?.preventDefault();
             event?.stopPropagation();
-            $handleEnterAtEnd(contentItem);
+            $handleEnterAtEnd(contentItem, forceChild);
             return true;
           }
 
