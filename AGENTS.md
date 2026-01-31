@@ -35,6 +35,7 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge rules, spacing.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).
+- `docs/outliner/zoom.md` (Medium). Subtree zoom view, breadcrumbs, routing, and zoom state rules.
 - `docs/outliner/index.md` (Short). Entry point with links; single-source invariants rule.
 - `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization, clipboard identity
   rules, collab, `noteRef`.
