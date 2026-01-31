@@ -42,64 +42,33 @@ const getBulletMetrics = async (listItem: Locator) => {
   });
 };
 
-test.describe('Zoom visibility', () => {
-  test('hides non-descendants when zoomed', async ({ page, editor }) => {
+test.describe('Zoom routing', () => {
+  test('adds zoom param on bullet click', async ({ page, editor }) => {
     await editor.load('basic');
 
     const editorRoot = editorLocator(page);
     const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
-    const note3 = editorRoot.locator('li.list-item', { hasText: 'note3' }).first();
 
     const metrics = await getBulletMetrics(note1);
     await page.mouse.click(metrics.x, metrics.y);
-
-    await expect(note1).toBeVisible();
-    await expect(editorRoot.locator('li.list-item', { hasText: 'note2' }).first()).toBeVisible();
-    await expect(note3).toBeHidden();
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
   });
 
-  test('breadcrumb clears zoom', async ({ page, editor }) => {
-    await editor.load('basic');
-
-    const editorRoot = editorLocator(page);
-    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
-    const note3 = editorRoot.locator('li.list-item', { hasText: 'note3' }).first();
-
-    const metrics = await getBulletMetrics(note1);
-    await page.mouse.click(metrics.x, metrics.y);
-    await expect(note3).toBeHidden();
-
-    await page.getByRole('button', { name: editor.docId }).click();
-    await expect(note3).toBeVisible();
-  });
-
-  test('zoomed child aligns to root indentation', async ({ page, editor }) => {
-    await editor.load('basic');
-
-    const editorRoot = editorLocator(page);
-    const note2Text = editorRoot.locator('[data-lexical-text="true"]', { hasText: 'note2' }).first();
-
-    await page.goto(`/n/${editor.docId}?zoom=note2`);
+  test('clears zoom param when clicking document breadcrumb', async ({ page, editor }) => {
+    await page.goto(`/n/${editor.docId}?zoom=note1`);
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await editor.load('basic');
 
-    await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeHidden();
+    await page.getByRole('button', { name: editor.docId }).click();
+    await expect(page).toHaveURL(`/n/${editor.docId}`);
+  });
 
-    const { listPaddingLeft, listMarginLeft, wrapperPaddingLeft } = await note2Text.evaluate((element) => {
-      const item = element.closest('li.list-item');
-      const list = item?.closest('ul') ?? null;
-      const wrapper = list?.parentElement ?? null;
-      const listStyle = list ? globalThis.getComputedStyle(list) : null;
-      const wrapperStyle = wrapper ? globalThis.getComputedStyle(wrapper) : null;
-      return {
-        listPaddingLeft: Number.parseFloat(listStyle?.paddingLeft ?? '0') || 0,
-        listMarginLeft: Number.parseFloat(listStyle?.marginLeft ?? '0') || 0,
-        wrapperPaddingLeft: Number.parseFloat(wrapperStyle?.paddingLeft ?? '0') || 0,
-      };
-    });
+  test('invalid zoom param resets to document URL', async ({ page, editor }) => {
+    await page.goto(`/n/${editor.docId}?zoom=missing-note`);
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await editor.load('basic');
 
-    expect(listPaddingLeft).toBe(0);
-    expect(listMarginLeft).toBe(0);
-    expect(wrapperPaddingLeft).toBe(0);
+    await expect(page).toHaveURL(`/n/${editor.docId}`);
+    await expect(editorLocator(page).locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
   });
 });
