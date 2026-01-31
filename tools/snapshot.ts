@@ -243,6 +243,7 @@ async function runLoad(docId: string, collabOrigin: string, filePath: string): P
     await done;
     await session.awaitSynced();
   });
+  await waitForPersistedData(docId);
   console.info(`[snapshot] load <- ${filePath}`);
 }
 

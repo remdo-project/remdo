@@ -9,6 +9,5 @@ describe('collaboration smoke', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
 
     expect(remdo).toMatchOutline([{ noteId: null }]);
-    await remdo.waitForSynced();
   });
 });
