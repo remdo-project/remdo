@@ -32,7 +32,6 @@ beforeEach<TestContext>(async (ctx) => {
     try {
       const stateJson = await readFixture(fixtureName);
       await loader._bridge.applySerializedState(stateJson, fixtureOptions);
-      await loader.waitForSynced();
     } finally {
       unmount();
     }
@@ -47,7 +46,6 @@ beforeEach<TestContext>(async (ctx) => {
 
   ctx.remdo = remdoTest;
 
-  await remdoTest._bridge.waitForCollaborationReady();
   if (fixtureName) {
     await remdoTest.waitForSynced();
   }

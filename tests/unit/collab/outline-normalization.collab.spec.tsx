@@ -42,7 +42,6 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
       expectedConsoleIssues: ['runtime.invariant orphan-wrapper-merged-into-previous'],
     }),
     async ({ remdo }) => {
-      await remdo.waitForSynced();
       expect(remdo).toMatchOutline([
         {
           noteId: 'note1',
@@ -63,7 +62,6 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
     ),
     async ({ remdo }) => {
       const remdo2 = await createCollabPeer(remdo);
-      await Promise.all([remdo.waitForSynced(), remdo2.waitForSynced()]);
 
       const note1Key = getNoteKey(remdo, 'note1');
       const note2Key = getNoteKey(remdo2, 'note2');
@@ -78,8 +76,6 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
           $indentNote(item);
         }),
       ]);
-
-      await Promise.all([remdo.waitForSynced(), remdo2.waitForSynced()]);
 
       const expected = [
         { noteId: 'note2', text: 'note2' },
@@ -122,7 +118,6 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
       ]);
 
       const remdo2 = await createCollabPeer(remdo);
-      await remdo2.waitForSynced();
 
       const note2Key = getNoteKey(remdo, 'note2');
       const note3KeyOnRemdo2 = getNoteKey(remdo2, 'note3');
@@ -137,8 +132,6 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
           $indentNote(item);
         }),
       ]);
-
-      await Promise.all([remdo.waitForSynced(), remdo2.waitForSynced()]);
 
       const expected = [
         {
@@ -164,7 +157,6 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
     meta({ fixture: 'tree-complex' }),
     async ({ remdo }) => {
       const remdo2 = await createCollabPeer(remdo);
-      await Promise.all([remdo.waitForSynced(), remdo2.waitForSynced()]);
 
       const note2Key = getNoteKey(remdo, 'note2');
       const note4Key = getNoteKey(remdo2, 'note4');
@@ -179,8 +171,6 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
           $indentNote(item);
         }),
       ]);
-
-      await Promise.all([remdo.waitForSynced(), remdo2.waitForSynced()]);
 
       const expected = [
         {

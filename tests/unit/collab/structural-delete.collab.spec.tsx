@@ -8,12 +8,8 @@ import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('bubbles Delete when structural selection was removed by a collaborator', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-        await remdo.waitForSynced();
-
     const secondary = await createCollabPeer(remdo);
-    await waitFor(() => {
-      expect(readOutline(secondary)).toEqual(readOutline(remdo));
-    });
+    expect(readOutline(secondary)).toEqual(readOutline(remdo));
 
     await selectStructuralNotes(remdo, 'note2', 'note3');
 
@@ -26,7 +22,6 @@ describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_M
     await selectStructuralNotes(secondary, 'note2', 'note3');
     await pressKey(secondary, { key: 'Backspace' });
 
-    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
     await waitFor(() => {
       expect(remdo).toMatchOutline(expectedAfterRemoteDelete);
     });
@@ -44,8 +39,6 @@ describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_M
     document.body.removeEventListener('keydown', bubbleProbe);
 
     expect(bubbled).toBe(true);
-
-    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
 
     const textsA = flattenOutline(readOutline(remdo)).flatMap((node) => (node.text ? [node.text] : []));
     const textsB = flattenOutline(readOutline(secondary)).flatMap((node) => (node.text ? [node.text] : []));
