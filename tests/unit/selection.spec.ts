@@ -607,7 +607,7 @@ describe('selection plugin', () => {
 
     await pressKey(remdo, { key: 'PageUp' });
     expect(remdo.editor.selection.isStructural()).toBe(false);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
   });
 
   it('lets Shift+Down walk the progressive selection ladder', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -635,6 +635,120 @@ describe('selection plugin', () => {
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
+  });
+
+  it('treats Shift+Down as a no-op at the document boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
+
+    await pressKey(remdo, { key: 'ArrowDown', shift: true }); // inline
+    await pressKey(remdo, { key: 'ArrowDown', shift: true }); // structural
+    await pressKey(remdo, { key: 'ArrowDown', shift: true }); // extend to note3
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+  });
+
+  it('treats Shift+Up as a no-op at the document boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
+
+    await pressKey(remdo, { key: 'ArrowUp', shift: true }); // inline
+    await pressKey(remdo, { key: 'ArrowUp', shift: true }); // structural
+    await pressKey(remdo, { key: 'ArrowUp', shift: true }); // extend to note1
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+  });
+
+  it('shrinks toward the anchor when reversing Shift+Arrow direction', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
+
+    // Stage 1: inline body only.
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    // Stage 2: note-only structural selection (anchor).
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    // Stage 3: extend toward note3.
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+    // Reverse direction shrinks back to the anchor range.
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
+
+    // Once at the anchor, continue in the new direction.
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+  });
+
+  it('shrinks toward the anchor when reversing Shift+Arrow from the opposite direction', meta({ fixture: 'flat' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
+
+    // Stage 1: inline body only.
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    // Stage 2: note-only structural selection (anchor).
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    // Stage 3: extend toward note1.
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+
+    // Reverse direction shrinks back to the anchor range.
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
+
+    // Once at the anchor, continue in the new direction.
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+  });
+
+  it('shrinks back to the anchor subtree when reversing after sibling expansion', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
+
+    // Stage 1: inline body only.
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    // Stage 2: anchor subtree.
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+    // Stage 3: extend to the next sibling slab.
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+
+    // Reverse direction shrinks back to the anchor subtree.
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+    // Once at the anchor, continue in the new direction (hoists to the parent subtree).
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+  });
+
+  it('keeps the anchor when reversing Shift+Arrow after Cmd/Ctrl+A expansion', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+        await placeCaretAtNote(remdo, 'note2');
+
+    // Stage 1: inline text only.
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    // Stage 2: anchor subtree.
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+    // Stage 3: add sibling slab via Cmd/Ctrl+A.
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+
+    // Reverse direction shrinks back to the anchor subtree.
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+    // Once at the anchor, continue in the new direction (hoists to the parent subtree).
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
   });
 
   it('hoists the parent once Shift+Down runs out of siblings in an existing note range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -798,12 +912,9 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
 
-    // Stage 5+: walk root-level siblings upward one at a time, then finish the ladder.
+    // Further Shift+Up is a no-op at the document boundary.
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
-
-    await pressKey(remdo, { key: 'ArrowUp', shift: true });
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
   });
 
   it('selects leaf notes structurally at Shift+Up stage 2', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {

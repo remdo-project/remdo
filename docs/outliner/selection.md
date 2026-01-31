@@ -66,14 +66,21 @@ inline editing.
    horizontal arrows.
 2. `Shift+Up/Down` drive the structural ladder. Pressing either key while a
    note is highlighted extends the selection by exactly **one** contiguous note
-   in that direction. As long as there are more siblings, each press adds the
-   next sibling (together with its descendants). Once the sibling run is
-   exhausted, the following press hoists the parent into the selection, and the
-   same “gather siblings one at a time, then climb” rhythm repeats at every
-   ancestor level. `Cmd/Ctrl+A` still advances one full rung per press (adding
-   the entire sibling slab in one go), so arrow keys may require several taps to
-   reach the scope that `Cmd/Ctrl+A` hits immediately.
-2. `Esc` (or clicking back into text) collapses any note-range selection to the
+   in that direction, moving the active edge forward or backward in document
+   order. As long as there are more siblings, each press adds the next sibling
+   (together with its descendants). When advancing requires hoisting to a
+   parent to keep the selection contiguous, the ladder does so **only** if the
+   active edge still moves in the requested direction (never wraps backward).
+   If the active edge is already at the document boundary for that direction,
+   the key is a no-op. Structural selection uses a fixed anchor at the note
+   where the structural range began (that note and its descendants) and a
+   moving active end. Reversing direction shrinks toward the anchor; once the
+   anchor range is the only selection, the next press extends in the new
+   direction.
+   `Cmd/Ctrl+A` still advances one full rung per press (adding the entire sibling
+   slab in one go), so arrow keys may require several taps to reach the scope
+   that `Cmd/Ctrl+A` hits immediately.
+3. `Esc` (or clicking back into text) collapses any note-range selection to the
    caret state without changing the document; unmodified cursor keys (Arrow
    Left/Right/Up/Down, Home/End, Page Up/Down) do the same but place the caret
    at the corresponding edge of the former range (start/end or top/bottom), so
@@ -102,7 +109,7 @@ inline editing.
 | `Tab`              | Structural | Indents the selected note range under the preceding sibling (see [Note Structure Rules](./note-structure-rules.md)). |
 | `Shift+Tab`        | Structural | Performs Structural Outdent, inserting the selection immediately after its former parent. |
 | `Shift+Left/Right` | Keyboard | Inline-only expansion inside the active note; reaching a boundary is a no-op. |
-| `Shift+Up/Down`    | Keyboard | Structural expansion along the Progressive Selection ladder (siblings in direction of travel, then parents). |
+| `Shift+Up/Down`    | Keyboard | Structural expansion along the Progressive Selection ladder; extends the active edge in direction and stops at the document boundary. |
 | `Shift+Click`      | Pointer  | Extends from the anchor to the clicked note, yielding a contiguous note range. |
 | `Esc`              | Keyboard | Collapses any note range back to a caret without changing content. |
 | `Home/End/Page`+Arrow | Keyboard | When structural mode is active, pressing an unmodified navigation key collapses the selection and drops the caret at the respective edge (start/end/top/bottom). |
@@ -152,8 +159,10 @@ back to the caret state.
    the root.
 
 Stopping at any stage leaves the selection in that scope so you can immediately
-run structural commands or copy/paste entire sections. `Shift+Up/Down` reuse
-this progression for keyboard-driven structural selection, while
+ run structural commands or copy/paste entire sections. `Shift+Up/Down` reuse
+this progression for keyboard-driven structural selection, with the anchor
+fixed to the note where structural selection began and the active edge moving
+only in the pressed direction (no wrap at the document boundary), while
 `Shift+Left/Right` remain inline-only.
 
 ## Command Compatibility
