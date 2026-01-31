@@ -10,7 +10,7 @@ interface ZoomBreadcrumbsProps {
 
 export function ZoomBreadcrumbs({ docLabel, path, onSelectNoteId }: ZoomBreadcrumbsProps) {
   return (
-    <Breadcrumbs className={styles.breadcrumbs}>
+    <Breadcrumbs className={styles.breadcrumbs} data-zoom-breadcrumbs>
       <button
         type="button"
         className={styles.crumbButton}

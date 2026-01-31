@@ -18,6 +18,7 @@ import { KeymapPlugin } from './plugins/KeymapPlugin';
 import { StatusIndicators } from './StatusIndicators';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { ZoomPlugin } from './zoom/ZoomPlugin';
+import { ZoomVisibilityPlugin } from './zoom/ZoomVisibilityPlugin';
 import './Editor.css';
 
 interface EditorProps {
@@ -58,6 +59,7 @@ export default function Editor({
           <DeletionPlugin />
           <SelectionInputPlugin />
           <ZoomPlugin zoomNoteId={zoomNoteId} onZoomNoteIdChange={onZoomNoteIdChange} onZoomPathChange={onZoomPathChange} />
+          <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
           <ListPlugin hasStrictIndent />
           <RootSchemaPlugin />
           <NoteIdPlugin />

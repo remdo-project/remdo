@@ -202,3 +202,7 @@
 .editor-root li.list-item[data-zoom-bullet-hover='true'] {
   cursor: pointer;
 }
+
+.editor-root li.list-item.zoom-hidden {
+  display: none;
+}
