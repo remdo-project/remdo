@@ -2,6 +2,7 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $getRoot } from 'lexical';
 import { useCallback, useEffect, useRef } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { $isListNode } from '@lexical/list';
 import { isChildrenWrapper } from '@/editor/outline/list-structure';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { getParentContentItem, getSubtreeItems, getWrapperForContent } from '@/editor/outline/selection/tree';
@@ -59,6 +60,7 @@ const buildVisibleKeys = (root: ListItemNode) => {
 export function ZoomVisibilityPlugin({ zoomNoteId }: ZoomVisibilityPluginProps) {
   const [editor] = useLexicalComposerContext();
   const zoomNoteIdRef = useRef<string | null>(resolveZoomNoteId(zoomNoteId));
+  const flattenedWrapperKeysRef = useRef<Set<string>>(new Set());
 
   const applyVisibility = useCallback((editorState = editor.getEditorState()) => {
     const result = editorState.read(() => {
@@ -66,17 +68,38 @@ export function ZoomVisibilityPlugin({ zoomNoteId }: ZoomVisibilityPluginProps) 
       const allKeys = new Set<string>();
       collectAllListItemKeys(list, allKeys);
 
+      const flattenedWrapperKeys = new Set<string>();
       const noteId = zoomNoteIdRef.current;
       if (!noteId) {
-        return { visibleKeys: null as Set<string> | null, allKeys };
+        return { visibleKeys: null as Set<string> | null, allKeys, flattenedWrapperKeys };
       }
 
       const root = $findNoteById(noteId);
       if (!root) {
-        return { visibleKeys: null as Set<string> | null, allKeys };
+        return { visibleKeys: null as Set<string> | null, allKeys, flattenedWrapperKeys };
       }
 
-      return { visibleKeys: buildVisibleKeys(root), allKeys };
+      let current: ListItemNode | null = root;
+      while (current) {
+        const parentList = current.getParent();
+        if (!$isListNode(parentList)) {
+          break;
+        }
+
+        const parentWrapper = parentList.getParent();
+        if (!isChildrenWrapper(parentWrapper)) {
+          break;
+        }
+
+        flattenedWrapperKeys.add(parentWrapper.getKey());
+        current = getParentContentItem(current);
+      }
+
+      return {
+        visibleKeys: buildVisibleKeys(root),
+        allKeys,
+        flattenedWrapperKeys,
+      };
     });
 
     for (const key of result.allKeys) {
@@ -90,6 +113,27 @@ export function ZoomVisibilityPlugin({ zoomNoteId }: ZoomVisibilityPluginProps) 
         element.classList.remove(HIDDEN_CLASS);
       }
     }
+
+    const previousWrappers = flattenedWrapperKeysRef.current;
+    const nextWrappers = result.flattenedWrapperKeys;
+
+    for (const key of previousWrappers) {
+      if (!nextWrappers.has(key)) {
+        const wrapper = editor.getElementByKey(key);
+        if (wrapper instanceof HTMLElement) {
+          delete wrapper.dataset.zoomFlatten;
+        }
+      }
+    }
+
+    for (const key of nextWrappers) {
+      const wrapper = editor.getElementByKey(key);
+      if (wrapper instanceof HTMLElement) {
+        wrapper.dataset.zoomFlatten = 'true';
+      }
+    }
+
+    flattenedWrapperKeysRef.current = nextWrappers;
   }, [editor]);
 
   useEffect(() => {

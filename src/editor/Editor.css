@@ -199,6 +199,19 @@
   cursor: default;
 }
 
+.editor-root li[data-zoom-flatten='true'] {
+  padding-left: 0;
+  padding-inline-start: 0;
+}
+
+.editor-root li[data-zoom-flatten='true'] > ul,
+.editor-root li[data-zoom-flatten='true'] > ol {
+  margin-left: 0;
+  margin-inline-start: 0;
+  padding-left: 0;
+  padding-inline-start: 0;
+}
+
 .editor-root li.list-item[data-zoom-bullet-hover='true'] {
   cursor: pointer;
 }

@@ -81,4 +81,34 @@ test.describe('Zoom visibility', () => {
     await page.getByRole('button', { name: editor.docId }).click();
     await expect(note3).toBeVisible();
   });
+
+  test('zoomed child aligns to root indentation', async ({ page, editor }) => {
+    await editor.load('basic');
+
+    const editorRoot = editorLocator(page);
+    const note2Text = editorRoot.locator('[data-lexical-text="true"]', { hasText: 'note2' }).first();
+
+    await page.goto(`/n/${editor.docId}?zoom=note2`);
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await editor.load('basic');
+
+    await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeHidden();
+
+    const { listPaddingLeft, listMarginLeft, wrapperPaddingLeft } = await note2Text.evaluate((element) => {
+      const item = element.closest('li.list-item');
+      const list = item?.closest('ul') ?? null;
+      const wrapper = list?.parentElement ?? null;
+      const listStyle = list ? globalThis.getComputedStyle(list) : null;
+      const wrapperStyle = wrapper ? globalThis.getComputedStyle(wrapper) : null;
+      return {
+        listPaddingLeft: Number.parseFloat(listStyle?.paddingLeft ?? '0') || 0,
+        listMarginLeft: Number.parseFloat(listStyle?.marginLeft ?? '0') || 0,
+        wrapperPaddingLeft: Number.parseFloat(wrapperStyle?.paddingLeft ?? '0') || 0,
+      };
+    });
+
+    expect(listPaddingLeft).toBe(0);
+    expect(listMarginLeft).toBe(0);
+    expect(wrapperPaddingLeft).toBe(0);
+  });
 });
