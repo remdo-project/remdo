@@ -1,126 +1,13 @@
 import { $getNearestNodeFromDOMNode } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useCallback, useEffect, useRef } from 'react';
-import { config } from '#config';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
+import { isBulletHit } from '@/editor/outline/bullet-hit-test';
 import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
 import { $getNoteId } from '#lib/editor/note-id-state';
-
-let measureContext: CanvasRenderingContext2D | null | undefined;
-
-const getMeasureContext = () => {
-  if (measureContext !== undefined) {
-    return measureContext;
-  }
-  if (typeof document === 'undefined') {
-    measureContext = null;
-    return measureContext;
-  }
-  try {
-    const canvas = globalThis.document.createElement('canvas');
-    measureContext = canvas.getContext('2d');
-  } catch {
-    measureContext = null;
-  }
-  return measureContext;
-};
-
-const parsePseudoContent = (content: string): string | null => {
-  if (content === 'none' || content === 'normal') {
-    return null;
-  }
-  if ((content.startsWith('"') && content.endsWith('"')) || (content.startsWith("'") && content.endsWith("'"))) {
-    return content.slice(1, -1);
-  }
-  return content;
-};
-
-const resolvePseudoFont = (style: CSSStyleDeclaration) => {
-  if (style.font && style.font !== 'normal') {
-    return style.font;
-  }
-  return `${style.fontStyle} ${style.fontVariant} ${style.fontWeight} ${style.fontSize} / ${style.lineHeight} ${style.fontFamily}`;
-};
-
-const measureGlyphWidth = (style: CSSStyleDeclaration) => {
-  const content = parsePseudoContent(style.content);
-  const ctx = getMeasureContext();
-  if (!content || !ctx) {
-    return null;
-  }
-  ctx.font = resolvePseudoFont(style);
-  const metrics = ctx.measureText(content);
-  const width = metrics.width;
-  if (!Number.isFinite(width) || width <= 0) {
-    return null;
-  }
-  const left = metrics.actualBoundingBoxLeft;
-  const right = metrics.actualBoundingBoxRight;
-  if (Number.isFinite(left) && Number.isFinite(right) && left >= 0 && right >= 0) {
-    return {
-      width,
-      boxLeft: left,
-      boxRight: right,
-    };
-  }
-  return {
-    width,
-    boxLeft: 0,
-    boxRight: width,
-  };
-};
-
-const isBeforeEvent = (element: HTMLElement, event: PointerEvent) => {
-  let beforeStyle: CSSStyleDeclaration | null = null;
-  const baseStyle = globalThis.getComputedStyle(element);
-  if (!config.isTest) {
-    try {
-      beforeStyle = globalThis.getComputedStyle(element, '::before');
-    } catch {
-      beforeStyle = null;
-    }
-  }
-
-  const liRect = element.getBoundingClientRect();
-  if (!beforeStyle) {
-    const fallbackWidth = Number.parseFloat(baseStyle.paddingLeft);
-    if (!Number.isFinite(fallbackWidth) || fallbackWidth <= 0) {
-      return false;
-    }
-    const start = liRect.left;
-    const end = start + fallbackWidth;
-    return event.clientX >= start && event.clientX <= end;
-  }
-
-  const containerWidth = Number.parseFloat(beforeStyle.width);
-  const left = Number.parseFloat(beforeStyle.left);
-  if (!Number.isFinite(containerWidth) || containerWidth <= 0) {
-    return false;
-  }
-  const glyphMetrics = measureGlyphWidth(beforeStyle);
-  const baseLeft = liRect.left + (Number.isFinite(left) ? left : 0);
-  if (!glyphMetrics) {
-    const start = baseLeft;
-    const end = start + containerWidth;
-    return event.clientX >= start && event.clientX <= end;
-  }
-
-  let offset = 0;
-  if (containerWidth > glyphMetrics.width) {
-    const align = beforeStyle.textAlign;
-    if (align === 'center') {
-      offset = (containerWidth - glyphMetrics.width) / 2;
-    } else if (align === 'right' || align === 'end') {
-      offset = containerWidth - glyphMetrics.width;
-    }
-  }
-  const start = baseLeft + offset - glyphMetrics.boxLeft;
-  const end = baseLeft + offset + glyphMetrics.boxRight;
-  return event.clientX >= start && event.clientX <= end;
-};
 
 interface ZoomPluginProps {
   zoomNoteId?: string | null;
@@ -176,7 +63,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
         return;
       }
 
-      if (!isBeforeEvent(listItem, event)) {
+      if (!isBulletHit(listItem, event)) {
         return;
       }
 
@@ -234,7 +121,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       return;
     }
 
-    if (isBeforeEvent(listItem, event)) {
+    if (isBulletHit(listItem, event)) {
       if (lastHoverRef.current !== listItem) {
         if (lastHoverRef.current) {
           delete lastHoverRef.current.dataset.zoomBulletHover;

@@ -37,6 +37,8 @@ Rules:
      subtree while preserving relative indentation.
    - Wire bullet click to set zoom target; wire breadcrumb clicks to zoom
      target changes (document root + ancestor notes).
+   - Clear breadcrumb path immediately when zoom resets so UI stays in sync
+     even without an editor update.
 3. **Review & cleanup:**
    - Remove any temporary helpers or debug code; confirm no redundant state or
      duplicate calculations remain.

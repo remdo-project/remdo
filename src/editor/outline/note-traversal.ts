@@ -39,6 +39,7 @@ export function $findNoteById(noteId: string): ListItemNode | null {
   return visit(list);
 }
 
+// Returns the ancestor chain from the document root to the current note (inclusive).
 export function $getNoteAncestorPath(target: ListItemNode): NotePathItem[] {
   const path: NotePathItem[] = [];
   let current: ListItemNode | null = target;
