@@ -16,6 +16,8 @@ import { NoteIdPlugin } from './plugins/NoteIdPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
 import { KeymapPlugin } from './plugins/KeymapPlugin';
 import { StatusIndicators } from './StatusIndicators';
+import type { NotePathItem } from '@/editor/outline/note-traversal';
+import { ZoomPlugin } from './zoom/ZoomPlugin';
 import './Editor.css';
 
 interface EditorProps {
@@ -23,9 +25,20 @@ interface EditorProps {
   docId?: string;
   onTestBridgeReady?: (api: unknown) => void;
   onTestBridgeDispose?: () => void;
+  zoomNoteId?: string | null;
+  onZoomNoteIdChange?: (noteId: string | null) => void;
+  onZoomPathChange?: (path: NotePathItem[]) => void;
 }
 
-export default function Editor({ children, docId, onTestBridgeReady, onTestBridgeDispose }: EditorProps) {
+export default function Editor({
+  children,
+  docId,
+  onTestBridgeReady,
+  onTestBridgeDispose,
+  zoomNoteId,
+  onZoomNoteIdChange,
+  onZoomPathChange,
+}: EditorProps) {
   const editorInitialConfig = createEditorInitialConfig();
   return (
     <div className="editor-container">
@@ -44,6 +57,7 @@ export default function Editor({ children, docId, onTestBridgeReady, onTestBridg
           <InsertionPlugin />
           <DeletionPlugin />
           <SelectionInputPlugin />
+          <ZoomPlugin zoomNoteId={zoomNoteId} onZoomNoteIdChange={onZoomNoteIdChange} onZoomPathChange={onZoomPathChange} />
           <ListPlugin hasStrictIndent />
           <RootSchemaPlugin />
           <NoteIdPlugin />

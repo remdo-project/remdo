@@ -169,3 +169,36 @@
 .editor-root li.list-nested-item {
   list-style-type: none;
 }
+
+.editor-root li.list-item {
+  --bullet-left: 0rem;
+  --bullet-width: 1rem;
+  list-style-type: none;
+  position: relative;
+  padding-left: 1.25rem;
+  cursor: text;
+}
+
+.editor-root li.list-item::before {
+  content: '•';
+  position: absolute;
+  left: var(--bullet-left);
+  top: 0.1rem;
+  width: var(--bullet-width);
+  color: var(--mantine-color-dark-2);
+  user-select: none;
+  pointer-events: none;
+}
+
+.editor-root li.list-item.list-nested-item::before {
+  content: '';
+  display: none;
+}
+
+.editor-root li.list-item.list-nested-item {
+  cursor: default;
+}
+
+.editor-root li.list-item[data-zoom-bullet-hover='true'] {
+  cursor: pointer;
+}

@@ -53,6 +53,13 @@ Rules:
 - Prefer unit tests near the helpers; keep fixtures minimal and mirror current
   tree shapes in `tests/fixtures`.
 
+## Test-only editor props cleanup (proposal)
+
+- Consider moving `Editor` test bridge wiring (`onTestBridgeReady`,
+  `onTestBridgeDispose`) into the `editor-props-registry` used by unit tests so
+  the app-level `Editor`/`DevPlugin` surface drops test-only props. This would
+  keep production props minimal while preserving the test harness hook.
+
 ## InsertionPlugin
 
 1. [P1] Mid-note split still violates docs/insertion.md: falling through to

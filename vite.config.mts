@@ -45,6 +45,7 @@ export default defineConfig(() => {
       ])
     ),
     resolve: {
+      dedupe: ["react", "react-dom"],
       alias: {
         "@": "/src",
         "#tests": path.resolve(__dirname, "./tests/unit/_support/lib/index.ts"),

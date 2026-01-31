@@ -77,6 +77,7 @@
     "@mantine/core": "catalog:",
     "@mantine/hooks": "catalog:",
     "@tabler/icons-react": "catalog:",
+    "@tanstack/react-router": "catalog:",
     "@y-sweet/client": "catalog:",
     "@y-sweet/react": "catalog:",
     "@y-sweet/sdk": "catalog:",

@@ -9,7 +9,7 @@ test('user can enter notes and see them rendered', async ({ page }) => {
   // Docker smoke runs against the prod build where the dev TestBridge is absent,
   // so we seed content via real typing instead of fixture loads. In dev/test runs
   // clear the shared doc first to avoid duplicate notes.
-  await page.goto(`/?doc=${DOCKER_SMOKE_DOC_ID}`);
+  await page.goto(`/n/${DOCKER_SMOKE_DOC_ID}`);
   if (config.isDevOrTest) {
     await ensureReady(page, { clear: true });
   }

@@ -1,7 +1,8 @@
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import { RouterProvider } from '@tanstack/react-router';
+import { router } from './router';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   // TODO: Re-enable React.StrictMode when double-render side effects are fixed.
-  <App />,
+  <RouterProvider router={router} />
 );

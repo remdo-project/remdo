@@ -1,12 +1,13 @@
 import { Anchor, Container, Group, MantineProvider, Title } from '@mantine/core';
 import { IconBrandVite } from '@tabler/icons-react';
-import Editor from './editor/Editor';
-import VanillaLexicalEditor from './editor/dev/VanillaLexicalEditor';
+import { Link, Outlet, useMatch } from '@tanstack/react-router';
 import headerStyles from './styles/AppHeader.module.css';
 import { theme } from './theme';
 import { config } from '#config';
 import '@mantine/core/styles.css';
 import { Icon } from './ui/Icon';
+import { DEFAULT_DOC_ID } from './routing';
+import VanillaLexicalEditor from './editor/dev/VanillaLexicalEditor';
 
 interface HostContext {
   protocol: string;
@@ -30,11 +31,6 @@ function buildUrl(host: HostContext, portOffset: number, path = ''): string {
   return `${host.protocol}//${host.hostname}:${host.basePort + portOffset}${path}`;
 }
 
-function resolveDocId(): string {
-  const doc = new URLSearchParams(globalThis.location.search).get('doc')?.trim();
-  return doc || config.env.COLLAB_DOCUMENT_ID;
-}
-
 export default function App() {
   const host = resolveHost();
   const previewUrl = host ? buildUrl(host, 3) : '#preview';
@@ -44,6 +40,8 @@ export default function App() {
     ? `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`
     : '#lexical';
   const showVanillaLexical = config.isDevOrTest && new URLSearchParams(globalThis.location.search).has('lexicalDemo');
+  const docMatch = useMatch({ from: '/n/$docId', shouldThrow: false });
+  const currentDocId = docMatch?.params.docId ?? DEFAULT_DOC_ID;
 
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
@@ -51,17 +49,27 @@ export default function App() {
         <header className="app-header">
           <Group gap="md">
             <Title order={1} className="app-heading-title">
-              <a href="/" className={headerStyles.brandLink}>
+              <Link
+                to="/n/$docId"
+                params={{ docId: currentDocId }}
+                search={{ zoom: undefined, lexicalDemo: undefined }}
+                className={headerStyles.brandLink}
+              >
                 <span aria-hidden="true" className={headerStyles.brandIcon} />
                 RemDo
-              </a>
+              </Link>
             </Title>
           </Group>
           <nav>
             <Group gap="md" className="app-header-links">
-              <Anchor className="app-header-link" href="/?doc=project">
+              <Link
+                to="/n/$docId"
+                params={{ docId: DEFAULT_DOC_ID }}
+                search={{ zoom: undefined, lexicalDemo: undefined }}
+                className="app-header-link"
+              >
                 Project
-              </Anchor>
+              </Link>
               {config.isDev && (
                 <>
                   <Anchor className="app-header-link" href={previewUrl}>
@@ -77,9 +85,14 @@ export default function App() {
                   <Anchor className="app-header-link" href={lexicalUrl}>
                     Lexical
                   </Anchor>
-                  <Anchor className="app-header-link" href="/?lexicalDemo">
+                  <Link
+                    to="/n/$docId"
+                    params={{ docId: currentDocId }}
+                    search={{ zoom: undefined, lexicalDemo: true }}
+                    className="app-header-link"
+                  >
                     Lexical Demo
-                  </Anchor>
+                  </Link>
                 </>
               )}
             </Group>
@@ -87,7 +100,7 @@ export default function App() {
         </header>
 
         {showVanillaLexical && <VanillaLexicalEditor />}
-        <Editor docId={resolveDocId()} />
+        <Outlet />
       </Container>
     </MantineProvider>
   );
