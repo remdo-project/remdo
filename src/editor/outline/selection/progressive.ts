@@ -417,40 +417,20 @@ function $buildDirectionalSiblingPlan(
 
   if (direction === 'down') {
     const forwardBoundary = sortedLevelHeads.at(-1)!;
-    let sibling = getNextContentSibling(forwardBoundary);
-    let extendDirection: 'forward' | 'backward' = 'forward';
-
-    if (!sibling) {
-      const backwardBoundary = sortedLevelHeads[0]!;
-      sibling = getPreviousContentSibling(backwardBoundary);
-      extendDirection = 'backward';
-    }
-
+    const sibling = getNextContentSibling(forwardBoundary);
     if (!sibling) {
       return null;
     }
 
-    const plan: ProgressivePlan =
-      extendDirection === 'forward'
-        ? {
-            type: 'range',
-            startKey: sortedHeads[0]!.getKey(),
-            endKey: getSubtreeTail(sibling).getKey(),
-            startMode: 'content',
-            endMode: 'subtree',
-          }
-        : {
-            type: 'range',
-            startKey: sibling.getKey(),
-            endKey: getSubtreeTail(sortedHeads.at(-1)!).getKey(),
-            startMode: 'content',
-            endMode: 'subtree',
-          };
+    const plan: ProgressivePlan = {
+      type: 'range',
+      startKey: sortedHeads[0]!.getKey(),
+      endKey: getSubtreeTail(sibling).getKey(),
+      startMode: 'content',
+      endMode: 'subtree',
+    };
 
-    const repeatStage =
-      extendDirection === 'forward'
-        ? Boolean(getNextContentSibling(sibling))
-        : Boolean(getPreviousContentSibling(sibling));
+    const repeatStage = Boolean(getNextContentSibling(sibling));
 
     return {
       anchorKey,
@@ -461,40 +441,20 @@ function $buildDirectionalSiblingPlan(
   }
 
   const backwardBoundary = sortedLevelHeads[0]!;
-  let sibling = getPreviousContentSibling(backwardBoundary);
-  let extendDirection: 'forward' | 'backward' = 'backward';
-
-  if (!sibling) {
-    const forwardBoundary = sortedLevelHeads.at(-1)!;
-    sibling = getNextContentSibling(forwardBoundary);
-    extendDirection = 'forward';
-  }
-
+  const sibling = getPreviousContentSibling(backwardBoundary);
   if (!sibling) {
     return null;
   }
 
-  const plan: ProgressivePlan =
-    extendDirection === 'backward'
-      ? {
-          type: 'range',
-          startKey: sibling.getKey(),
-          endKey: getSubtreeTail(sortedHeads.at(-1)!).getKey(),
-          startMode: 'content',
-          endMode: 'subtree',
-        }
-      : {
-          type: 'range',
-          startKey: sortedHeads[0]!.getKey(),
-          endKey: getSubtreeTail(sibling).getKey(),
-          startMode: 'content',
-          endMode: 'subtree',
-        };
+  const plan: ProgressivePlan = {
+    type: 'range',
+    startKey: sibling.getKey(),
+    endKey: getSubtreeTail(sortedHeads.at(-1)!).getKey(),
+    startMode: 'content',
+    endMode: 'subtree',
+  };
 
-  const repeatStage =
-    extendDirection === 'backward'
-      ? Boolean(getPreviousContentSibling(sibling))
-      : Boolean(getNextContentSibling(sibling));
+  const repeatStage = Boolean(getPreviousContentSibling(sibling));
 
   return {
     anchorKey,
@@ -632,6 +592,43 @@ function ascendContentItem(item: ListItemNode, levels: number): ListItemNode | n
 
 function getHeadsSharingParent(heads: ListItemNode[], parentList: ListNode): ListItemNode[] {
   return heads.filter((head) => head.getParent() === parentList);
+}
+
+function $getDocumentBoundaryItems(): { start: ListItemNode; end: ListItemNode } | null {
+  const root = $getRoot();
+  const list = root.getFirstChild();
+  if (!$isListNode(list)) {
+    return null;
+  }
+
+  const firstItem = getFirstDescendantListItem(list);
+  const lastItem = getLastDescendantListItem(list);
+  if (!firstItem || !lastItem) {
+    return null;
+  }
+
+  return { start: firstItem, end: getSubtreeTail(lastItem) };
+}
+
+export function $isDirectionalBoundary(selection: RangeSelection, direction: 'up' | 'down'): boolean {
+  const heads = getContiguousSelectionHeads(selection);
+  if (heads.length === 0) {
+    return false;
+  }
+
+  const boundary = $getDocumentBoundaryItems();
+  if (!boundary) {
+    return false;
+  }
+
+  const sortedHeads = sortHeadsByDocumentOrder(heads);
+  if (direction === 'down') {
+    const visualEnd = getSubtreeTail(sortedHeads.at(-1)!);
+    return visualEnd.getKey() === boundary.end.getKey();
+  }
+
+  const visualStart = sortedHeads[0]!;
+  return visualStart.getKey() === boundary.start.getKey();
 }
 
 function buildRangePlanFromHeads(heads: ListItemNode[]): ProgressivePlan {

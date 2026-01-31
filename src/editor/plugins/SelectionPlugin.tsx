@@ -9,6 +9,7 @@ import {
   $applyProgressivePlan,
   $computeDirectionalPlan,
   $computeProgressivePlan,
+  $isDirectionalBoundary,
   INITIAL_PROGRESSIVE_STATE,
 } from '@/editor/outline/selection/progressive';
 import type { ProgressivePlanResult } from '@/editor/outline/selection/progressive';
@@ -328,6 +329,21 @@ export function SelectionPlugin() {
     );
 
     const $runDirectionalPlan = (direction: 'up' | 'down') => {
+      const isBoundary = editor.getEditorState().read(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) {
+          return false;
+        }
+        if (!editor.selection.isStructural()) {
+          return false;
+        }
+        return $isDirectionalBoundary(selection, direction);
+      });
+
+      if (isBoundary) {
+        return;
+      }
+
       unlockRef.current = { pending: true, reason: 'directional' };
 
       addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
