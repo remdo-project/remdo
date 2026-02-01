@@ -1,4 +1,4 @@
-import { $getNearestNodeFromDOMNode, $getNodeByKey, COLLABORATION_TAG } from 'lexical';
+import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelection, COLLABORATION_TAG } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useCallback, useEffect, useRef } from 'react';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
@@ -147,6 +147,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
   const lastHoverRef = useRef<HTMLElement | null>(null);
   const zoomParentTrackedRef = useRef(false);
   const zoomParentKeyRef = useRef<string | null>(null);
+  const skipZoomSelectionRef = useRef(false);
 
   useEffect(() => {
     zoomNoteIdRef.current = resolveZoomNoteId(zoomNoteId);
@@ -322,6 +323,12 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       const parentWasTracked = zoomParentTrackedRef.current;
 
       const resolved = editorState.read(() => {
+        const selection = $getSelection();
+        const selectionItem =
+          $isRangeSelection(selection) && selection.isCollapsed()
+            ? resolveContentItem(selection.anchor.getNode())
+            : null;
+        const selectionKey = selectionItem?.getKey() ?? null;
         if (!noteId) {
           return {
             root: null,
@@ -356,6 +363,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
           if (parentChanged) {
             const parentId = parent ? $getNoteId(parent) : null;
             nextZoomNoteId = parentId ?? null;
+            scrollTargetKey = selectionKey;
           } else {
             const dirtyItems = $collectDirtyContentItems(dirtyElements, dirtyLeaves);
             const outsideItems = dirtyItems.filter(
@@ -364,6 +372,12 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
 
             if (outsideItems.length > 0) {
               scrollTargetKey = outsideItems[0]?.getKey() ?? null;
+              if (selectionKey) {
+                const selectionDirty = dirtyItems.some((item) => item.getKey() === selectionKey);
+                if (selectionDirty) {
+                  scrollTargetKey = selectionKey;
+                }
+              }
               const ancestor = resolveZoomAncestor(root, outsideItems);
               const ancestorId = ancestor ? $getNoteId(ancestor) : null;
               nextZoomNoteId = ancestorId ?? null;
@@ -371,7 +385,14 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
           }
         }
 
-        return { root, path, nextZoomNoteId, parentKey, boundaryKey: root.getKey(), scrollTargetKey };
+        return {
+          root,
+          path,
+          nextZoomNoteId,
+          parentKey,
+          boundaryKey: root.getKey(),
+          scrollTargetKey,
+        };
       });
 
       if (resolved.root) {
@@ -383,6 +404,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       }
 
       if (zoomNoteIdRef.current && !resolved.root && collab.hydrated) {
+        skipZoomSelectionRef.current = true;
         onZoomNoteIdChange?.(null);
       }
 
@@ -393,6 +415,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
         if (resolved.scrollTargetKey) {
           setZoomScrollTarget(editor, resolved.scrollTargetKey);
         }
+        skipZoomSelectionRef.current = true;
         onZoomNoteIdChange?.(resolved.nextZoomNoteId ?? null);
         return;
       }
@@ -409,6 +432,11 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
   }, [collab.hydrated, editor, onZoomNoteIdChange, onZoomPathChange]);
 
   useEffect(() => {
+    if (skipZoomSelectionRef.current) {
+      skipZoomSelectionRef.current = false;
+      return;
+    }
+
     const noteId = resolveZoomNoteId(zoomNoteId);
     if (!noteId) {
       return;
