@@ -50,6 +50,10 @@ beforeEach<TestContext>(async (ctx) => {
 
   ctx.remdo = remdoTest;
 
+  if (config.env.COLLAB_ENABLED) {
+    await remdoTest._bridge.waitForCollaborationReady();
+  }
+
   if (fixtureName) {
     await remdoTest.waitForSynced();
   }
