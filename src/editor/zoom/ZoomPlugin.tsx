@@ -6,7 +6,6 @@ import { isBulletHit } from '@/editor/outline/bullet-hit-test';
 import { setSelectionBoundary } from '@/editor/outline/selection/boundary';
 import { setZoomScrollTarget } from '@/editor/zoom/scroll-target';
 import type { ListItemNode } from '@lexical/list';
-import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
@@ -73,21 +72,6 @@ const findLowestCommonAncestor = (left: ListItemNode, right: ListItemNode): List
 };
 
 const resolveContentItem = (node: LexicalNode | null): ListItemNode | null => {
-  if (!node) {
-    return null;
-  }
-  if ($isListItemNode(node)) {
-    const content = getContentListItem(node);
-    return isChildrenWrapper(content) ? null : content;
-  }
-  if ($isListNode(node)) {
-    const parent = node.getParent();
-    if ($isListItemNode(parent)) {
-      const content = getContentListItem(parent);
-      return isChildrenWrapper(content) ? null : content;
-    }
-    return null;
-  }
   const listItem = findNearestListItem(node);
   if (!listItem) {
     return null;

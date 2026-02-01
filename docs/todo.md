@@ -27,7 +27,7 @@ Rules:
    - ✅ Done: ensure zoom-reset clears path immediately for UI sync.
 3. **Review & cleanup:**
    - ✅ Done: refactor bullet hit testing into a shared helper.
-   - Pending: re-scan for simpler/clearer logic once subtree filtering is
+   - ✅ Done: re-scan for simpler/clearer logic once subtree filtering is
      implemented.
    - Pending: re-check doc alignment after subtree filtering lands and remove
      any leftover TODOs.
