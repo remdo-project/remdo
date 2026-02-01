@@ -3,6 +3,8 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useCallback, useEffect, useRef } from 'react';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { isBulletHit } from '@/editor/outline/bullet-hit-test';
+import { setSelectionBoundary } from '@/editor/outline/selection/boundary';
+import { setZoomScrollTarget } from '@/editor/zoom/scroll-target';
 import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
@@ -152,9 +154,11 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
     if (!noteId) {
       zoomParentTrackedRef.current = false;
       zoomParentKeyRef.current = null;
+      setSelectionBoundary(editor, null);
       return;
     }
 
+    let boundaryKey: string | null = null;
     editor.getEditorState().read(() => {
       const root = $findNoteById(noteId);
       if (!root) {
@@ -165,7 +169,9 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       const parent = getParentContentItem(root);
       zoomParentTrackedRef.current = true;
       zoomParentKeyRef.current = parent?.getKey() ?? null;
+      boundaryKey = root.getKey();
     });
+    setSelectionBoundary(editor, boundaryKey);
   }, [editor, zoomNoteId]);
 
   const handleBulletPointerDown = useCallback(
@@ -317,18 +323,33 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
 
       const resolved = editorState.read(() => {
         if (!noteId) {
-          return { root: null, path: [] as NotePathItem[], nextZoomNoteId: undefined, parentKey: null };
+          return {
+            root: null,
+            path: [] as NotePathItem[],
+            nextZoomNoteId: undefined,
+            parentKey: null,
+            boundaryKey: null,
+            scrollTargetKey: null as string | null,
+          };
         }
 
         const root = $findNoteById(noteId);
         if (!root) {
-          return { root: null, path: [] as NotePathItem[], nextZoomNoteId: undefined, parentKey: null };
+          return {
+            root: null,
+            path: [] as NotePathItem[],
+            nextZoomNoteId: undefined,
+            parentKey: null,
+            boundaryKey: null,
+            scrollTargetKey: null as string | null,
+          };
         }
 
         const path = $getNoteAncestorPath(root);
         const parent = getParentContentItem(root);
         const parentKey = parent?.getKey() ?? null;
         let nextZoomNoteId: string | null | undefined;
+        let scrollTargetKey: string | null = null;
 
         if (shouldConsiderAutoZoom) {
           const parentChanged = parentWasTracked && prevParentKey !== parentKey;
@@ -342,6 +363,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
             );
 
             if (outsideItems.length > 0) {
+              scrollTargetKey = outsideItems[0]?.getKey() ?? null;
               const ancestor = resolveZoomAncestor(root, outsideItems);
               const ancestorId = ancestor ? $getNoteId(ancestor) : null;
               nextZoomNoteId = ancestorId ?? null;
@@ -349,7 +371,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
           }
         }
 
-        return { root, path, nextZoomNoteId, parentKey };
+        return { root, path, nextZoomNoteId, parentKey, boundaryKey: root.getKey(), scrollTargetKey };
       });
 
       if (resolved.root) {
@@ -368,9 +390,14 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
         resolved.nextZoomNoteId !== undefined &&
         resolved.nextZoomNoteId !== zoomNoteIdRef.current
       ) {
+        if (resolved.scrollTargetKey) {
+          setZoomScrollTarget(editor, resolved.scrollTargetKey);
+        }
         onZoomNoteIdChange?.(resolved.nextZoomNoteId ?? null);
         return;
       }
+
+      setSelectionBoundary(editor, resolved.boundaryKey ?? null);
 
       if (!isPathEqual(resolved.path, lastPathRef.current)) {
         lastPathRef.current = resolved.path;

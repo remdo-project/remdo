@@ -1,11 +1,13 @@
 import { useEffect, useMemo } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { LexicalCommand, LexicalEditor, EditorUpdateOptions, SerializedEditorState } from 'lexical';
-import { $getRoot } from 'lexical';
+import { $createTextNode, $getRoot, $isTextNode } from 'lexical';
 import { assertEditorSchema } from './schema/assertEditorSchema';
 import { useCollaborationStatus } from '../collaboration';
 import { markSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
 import { $normalizeNoteIdsOnLoad } from '../note-id-normalization';
+import { $findNoteById } from '@/editor/outline/note-traversal';
+import { getContentListItem } from '@/editor/outline/list-structure';
 
 async function withTimeout<T>(fnOrPromise: (() => Promise<T>) | Promise<T>, ms: number, message: string): Promise<T> {
   const promise = typeof fnOrPromise === 'function' ? fnOrPromise() : fnOrPromise;
@@ -198,6 +200,24 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     });
   };
 
+  const updateNoteText = async (noteId: string, text: string) => {
+    await mutate(() => {
+      const item = $findNoteById(noteId);
+      if (!item) {
+        return;
+      }
+
+      const content = getContentListItem(item);
+      const textNode = content.getChildren().find((child): child is ReturnType<typeof $createTextNode> => $isTextNode(child));
+      if (textNode) {
+        textNode.setTextContent(text);
+        return;
+      }
+
+      content.append($createTextNode(text));
+    });
+  };
+
   const getEditorState = () => editor.getEditorState().toJSON();
   const validate = <T,>(fn: () => T) => editor.getEditorState().read(fn);
 
@@ -221,6 +241,7 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     validate,
     getEditorState,
     waitForSynced,
+    updateNoteText,
     dispatchCommand,
     getCollabDocId,
     _bridge: bridge,

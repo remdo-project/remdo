@@ -6,6 +6,8 @@ import { $isListNode } from '@lexical/list';
 import { isChildrenWrapper } from '@/editor/outline/list-structure';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { getParentContentItem, getSubtreeItems, getWrapperForContent } from '@/editor/outline/selection/tree';
+import { clearZoomScrollTarget, getZoomScrollTarget, isZoomScrollTargetExpired } from '@/editor/zoom/scroll-target';
+import { scrollZoomTargetIntoView } from '@/editor/zoom/scroll-utils';
 
 const HIDDEN_CLASS = 'zoom-hidden';
 
@@ -134,6 +136,25 @@ export function ZoomVisibilityPlugin({ zoomNoteId }: ZoomVisibilityPluginProps) 
     }
 
     flattenedWrapperKeysRef.current = nextWrappers;
+
+    const pendingScroll = getZoomScrollTarget(editor);
+    if (!pendingScroll) {
+      return;
+    }
+
+    if (isZoomScrollTargetExpired(pendingScroll)) {
+      clearZoomScrollTarget(editor);
+      return;
+    }
+
+    const targetElement = editor.getElementByKey(pendingScroll.key);
+    if (!(targetElement instanceof HTMLElement) || targetElement.classList.contains(HIDDEN_CLASS)) {
+      return;
+    }
+
+    if (scrollZoomTargetIntoView(editor, targetElement)) {
+      clearZoomScrollTarget(editor);
+    }
   }, [editor]);
 
   useEffect(() => {
