@@ -2,59 +2,93 @@ import type { LexicalEditor } from 'lexical';
 
 // Copied from LexicalUtils.ts (data/.vendor/lexical/packages/lexical/src/LexicalUtils.ts)
 // at commit c75b8e105ff9612f0166af22a518be01045fa72b. Keep in sync on Lexical upgrades.
+// Drift is checked by tests/unit/internal/lexical-unexported.spec.ts using the BEGIN/END markers.
 
 const DOM_DOCUMENT_TYPE = 9;
 const DOM_DOCUMENT_FRAGMENT_TYPE = 11;
 const DOM_ELEMENT_TYPE = 1;
 
-function isDOMNode(x: unknown): x is Node {
-  return typeof x === 'object' && x !== null && 'nodeType' in x && typeof x.nodeType === 'number';
+function invariant(condition: unknown, message: string): asserts condition {
+  if (!condition) {
+    throw new Error(message);
+  }
 }
 
-function isHTMLElement(x: unknown): x is HTMLElement {
+// BEGIN COPIED: isDOMNode
+export function isDOMNode(x: unknown): x is Node {
+  return (
+    typeof x === 'object' &&
+    x !== null &&
+    'nodeType' in x &&
+    typeof x.nodeType === 'number'
+  );
+}
+// END COPIED: isDOMNode
+
+// BEGIN COPIED: isHTMLElement
+export function isHTMLElement(x: unknown): x is HTMLElement {
   return isDOMNode(x) && x.nodeType === DOM_ELEMENT_TYPE;
 }
+// END COPIED: isHTMLElement
 
-function isDocumentFragment(x: unknown): x is DocumentFragment {
+// BEGIN COPIED: isDocumentFragment
+export function isDocumentFragment(x: unknown): x is DocumentFragment {
   return isDOMNode(x) && x.nodeType === DOM_DOCUMENT_FRAGMENT_TYPE;
 }
+// END COPIED: isDocumentFragment
 
-function isDOMDocumentNode(node: unknown): node is Document {
+// BEGIN COPIED: isDOMDocumentNode
+export function isDOMDocumentNode(node: unknown): node is Document {
   return isDOMNode(node) && node.nodeType === DOM_DOCUMENT_TYPE;
 }
+// END COPIED: isDOMDocumentNode
 
-function getParentElement(node: Node): HTMLElement | null {
-  const parentElement = (node as HTMLSlotElement).assignedSlot || node.parentElement;
+// BEGIN COPIED: getParentElement
+export function getParentElement(node: Node): HTMLElement | null {
+  const parentElement =
+    (node as HTMLSlotElement).assignedSlot || node.parentElement;
   return isDocumentFragment(parentElement)
     ? ((parentElement as unknown as ShadowRoot).host as HTMLElement)
     : parentElement;
 }
+// END COPIED: getParentElement
 
-function getDOMOwnerDocument(target: EventTarget | null): Document | null {
+// BEGIN COPIED: getDOMOwnerDocument
+export function getDOMOwnerDocument(
+  target: EventTarget | null,
+): Document | null {
   return isDOMDocumentNode(target)
     ? target
     : isHTMLElement(target)
       ? target.ownerDocument
       : null;
 }
+// END COPIED: getDOMOwnerDocument
 
-function getDefaultView(domElem: EventTarget | null): Window | null {
+// BEGIN COPIED: getDefaultView
+export function getDefaultView(domElem: EventTarget | null): Window | null {
   const ownerDoc = getDOMOwnerDocument(domElem);
   return ownerDoc ? ownerDoc.defaultView : null;
 }
+// END COPIED: getDefaultView
 
-function getWindow(editor: LexicalEditor): Window {
-  const windowObj = (editor as LexicalEditor & { _window: Window | null })._window;
+/* eslint-disable ts/no-unnecessary-condition */
+// BEGIN COPIED: getWindow
+export function getWindow(editor: LexicalEditor): Window {
+  const windowObj = editor._window;
   if (windowObj === null) {
-    throw new Error('Lexical editor window object not found');
+    invariant(false, 'window object not found');
   }
   return windowObj;
 }
+// END COPIED: getWindow
+/* eslint-enable ts/no-unnecessary-condition */
 
+// BEGIN COPIED: scrollIntoViewIfNeeded
 export function scrollIntoViewIfNeeded(
   editor: LexicalEditor,
   selectionRect: DOMRect,
-  rootElement: HTMLElement
+  rootElement: HTMLElement,
 ): void {
   const doc = getDOMOwnerDocument(rootElement);
   const defaultView = getDefaultView(doc);
@@ -62,8 +96,7 @@ export function scrollIntoViewIfNeeded(
   if (doc === null || defaultView === null) {
     return;
   }
-
-  let { top: currentTop, bottom: currentBottom } = selectionRect;
+  let {top: currentTop, bottom: currentBottom} = selectionRect;
   let targetTop = 0;
   let targetBottom = 0;
   let element: HTMLElement | null = rootElement;
@@ -88,6 +121,7 @@ export function scrollIntoViewIfNeeded(
 
     if (diff !== 0) {
       if (isBodyElement) {
+        // Only handles scrolling of Y axis
         defaultView.scrollBy(0, diff);
       } else {
         const scrollTop = element.scrollTop;
@@ -103,3 +137,4 @@ export function scrollIntoViewIfNeeded(
     element = getParentElement(element);
   }
 }
+// END COPIED: scrollIntoViewIfNeeded
