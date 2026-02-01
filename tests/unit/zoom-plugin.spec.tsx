@@ -1,6 +1,8 @@
+import { $isTextNode } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 import { clearEditorProps, getNoteElement, meta, registerEditorProps } from '#tests';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
+import { $findNoteById } from '@/editor/outline/note-traversal';
 
 const waitForCall = async (fn: () => void) => {
   for (let i = 0; i < 20; i++) {
@@ -63,6 +65,35 @@ describe('zoom plugin', () => {
       });
 
       clearEditorProps(zoomNoteKey);
+    }
+  );
+
+  const zoomAutoSpy = vi.fn();
+  const zoomAutoKey = createEditorPropsKey('zoom-auto', { zoomNoteId: 'note2', onZoomNoteIdChange: zoomAutoSpy });
+
+  it(
+    'auto-expands zoom to the nearest shared ancestor for outside edits',
+    meta({ fixture: 'tree-complex', editorPropsKey: zoomAutoKey }),
+    async ({ remdo }) => {
+      await remdo.waitForSynced();
+      zoomAutoSpy.mockClear();
+
+      await remdo.mutate(() => {
+        const note4 = $findNoteById('note4');
+        if (!note4) {
+          return;
+        }
+        const textNode = note4.getFirstChild();
+        if ($isTextNode(textNode)) {
+          textNode.setTextContent('note4!');
+        }
+      });
+
+      await waitForCall(() => {
+        expect(zoomAutoSpy).toHaveBeenCalledWith('note1');
+      });
+
+      clearEditorProps(zoomAutoKey);
     }
   );
 });
