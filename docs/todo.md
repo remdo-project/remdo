@@ -29,5 +29,5 @@ Rules:
    - ✅ Done: refactor bullet hit testing into a shared helper.
    - ✅ Done: re-scan for simpler/clearer logic once subtree filtering is
      implemented.
-   - Pending: re-check doc alignment after subtree filtering lands and remove
+   - ✅ Done: re-check doc alignment after subtree filtering lands and remove
      any leftover TODOs.

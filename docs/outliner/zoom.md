@@ -26,6 +26,9 @@ editor.
 3. Zoom is a view filter: structural edits, note identities, and collaboration
    semantics are unchanged. Operations apply to the same underlying notes as in
    the full document view.
+4. While zoomed, selection expansion (including Select All) is bounded to the
+   zoom root. Within that boundary, selection behavior matches
+   [Selection](./selection.md).
 
 ## Entering and changing zoom
 
@@ -73,4 +76,3 @@ Breadcrumb labels use the same display text as the corresponding outline note.
 ## Non-goals
 
 - Zoom does not introduce a new note type or a new structural level.
-- Zoom does not alter selection rules; see [Selection](./selection.md).
