@@ -114,6 +114,8 @@ document captures the full model.
   first before implementing one.
 - Don't assume that the request is always clear, if in doubt ask before
   proceeding.
+- When presenting multiple options or a list of questions, format them as a
+  numbered list.
 - The shared test harness treats console warnings/errors as failures; if you
   need temporary instrumentation during debugging, prefer `console.log` or
   `console.info` and remove the statements before finishing a task.
