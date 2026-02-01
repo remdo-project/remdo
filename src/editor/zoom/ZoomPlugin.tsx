@@ -408,6 +408,23 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
         }
         skipZoomSelectionRef.current = true;
         onZoomNoteIdChange?.(resolved.nextZoomNoteId ?? null);
+        if (onZoomPathChange) {
+          let nextPath: NotePathItem[] = [];
+          const nextNoteId = resolved.nextZoomNoteId ?? null;
+          editor.getEditorState().read(() => {
+            if (!nextNoteId) {
+              return;
+            }
+            const nextRoot = $findNoteById(nextNoteId);
+            if (nextRoot) {
+              nextPath = $getNoteAncestorPath(nextRoot);
+            }
+          });
+          if (!isPathEqual(nextPath, lastPathRef.current)) {
+            lastPathRef.current = nextPath;
+            onZoomPathChange(nextPath);
+          }
+        }
         return;
       }
 

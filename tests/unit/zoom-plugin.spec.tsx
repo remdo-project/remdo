@@ -1,4 +1,5 @@
 import { $isTextNode } from 'lexical';
+import type { TextNode } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 import { clearEditorProps, getNoteElement, meta, registerEditorProps } from '#tests';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
@@ -70,6 +71,13 @@ describe('zoom plugin', () => {
 
   const zoomAutoSpy = vi.fn();
   const zoomAutoKey = createEditorPropsKey('zoom-auto', { zoomNoteId: 'note2', onZoomNoteIdChange: zoomAutoSpy });
+  const zoomAutoPathNoteSpy = vi.fn();
+  const zoomAutoPathSpy = vi.fn();
+  const zoomAutoPathKey = createEditorPropsKey('zoom-auto-path', {
+    zoomNoteId: 'note2',
+    onZoomNoteIdChange: zoomAutoPathNoteSpy,
+    onZoomPathChange: zoomAutoPathSpy,
+  });
 
   it(
     'auto-expands zoom to the nearest shared ancestor for outside edits',
@@ -77,6 +85,33 @@ describe('zoom plugin', () => {
     async ({ remdo }) => {
       await remdo.waitForSynced();
       zoomAutoSpy.mockClear();
+
+      await remdo.mutate(() => {
+        const note4 = $findNoteById('note4')!;
+        const textNode = note4.getFirstChild()!;
+        (textNode as TextNode).setTextContent('note4!');
+      });
+
+      await waitForCall(() => {
+        expect(zoomAutoSpy).toHaveBeenCalledWith('note1');
+      });
+
+      clearEditorProps(zoomAutoKey);
+    }
+  );
+
+  it(
+    'emits the updated zoom path when auto-zoom expands the view',
+    meta({ fixture: 'tree-complex', editorPropsKey: zoomAutoPathKey }),
+    async ({ remdo }) => {
+      await remdo.waitForSynced();
+
+      await waitForCall(() => {
+        expect(zoomAutoPathSpy).toHaveBeenCalled();
+      });
+
+      zoomAutoPathSpy.mockClear();
+      zoomAutoPathNoteSpy.mockClear();
 
       await remdo.mutate(() => {
         const note4 = $findNoteById('note4');
@@ -90,10 +125,18 @@ describe('zoom plugin', () => {
       });
 
       await waitForCall(() => {
-        expect(zoomAutoSpy).toHaveBeenCalledWith('note1');
+        expect(zoomAutoPathNoteSpy).toHaveBeenCalledWith('note1');
       });
 
-      clearEditorProps(zoomAutoKey);
+      await waitForCall(() => {
+        expect(zoomAutoPathSpy).toHaveBeenCalled();
+      });
+
+      const lastPath = zoomAutoPathSpy.mock.calls.at(-1)?.[0] as NotePathItem[];
+      expect(lastPath.map((item) => item.noteId)).toEqual(['note1']);
+      expect(lastPath.map((item) => item.label)).toEqual(['note1']);
+
+      clearEditorProps(zoomAutoPathKey);
     }
   );
 });
