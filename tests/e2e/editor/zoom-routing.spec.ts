@@ -4,8 +4,9 @@ import { editorLocator } from '#editor/locators';
 
 const getBulletMetrics = async (listItem: Locator) => {
   return listItem.evaluate((element: HTMLElement) => {
-    const style = globalThis.getComputedStyle(element, '::before');
-    const rect = element.getBoundingClientRect();
+    const target = element.closest('li.list-item') ?? element;
+    const style = globalThis.getComputedStyle(target, '::before');
+    const rect = target.getBoundingClientRect();
     const left = Number.parseFloat(style.left);
     const baseLeft = rect.left + (Number.isFinite(left) ? left : 0);
     const fallbackPoint = { x: baseLeft + 1, y: rect.top + rect.height / 2 };

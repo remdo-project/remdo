@@ -14,21 +14,10 @@ import {
   KEY_DOWN_COMMAND,
   KEY_ENTER_COMMAND,
 } from 'lexical';
-import { useEffect, useRef } from 'react';
-import {
-  $getOrCreateChildList,
-  findNearestListItem,
-  isChildrenWrapper,
-  getContentListItem,
-  insertBefore,
-} from '@/editor/outline/list-structure';
+import { useEffect } from 'react';
+import { findNearestListItem, isChildrenWrapper, getContentListItem, insertBefore } from '@/editor/outline/list-structure';
 import { isPointAtBoundary, resolveBoundaryPoint } from '@/editor/outline/selection/caret';
-import { $getNoteId } from '#lib/editor/note-id-state';
-
 type CaretPlacement = 'start' | 'middle' | 'end';
-interface InsertionPluginProps {
-  zoomNoteId?: string | null;
-}
 
 function $createNote(text: string): ListItemNode {
   const item = $createListItemNode();
@@ -43,33 +32,9 @@ function $handleEnterAtStart(contentItem: ListItemNode) {
   textNode?.select(0, 0);
 }
 
-const resolveZoomNoteId = (value: string | null | undefined) => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-};
-
-function $handleEnterAtEnd(contentItem: ListItemNode, forceChild: boolean) {
+function $handleEnterAtEnd(contentItem: ListItemNode) {
   const wrapper = contentItem.getNextSibling();
-  let list = isChildrenWrapper(wrapper) ? wrapper.getFirstChild<ListNode>() : null;
-
-  if (forceChild) {
-    if (!list) {
-      list = $getOrCreateChildList(contentItem);
-    }
-    const newChild = $createNote('');
-    const firstChild = list.getFirstChild();
-    if (firstChild) {
-      insertBefore(firstChild, [newChild]);
-    } else {
-      list.append(newChild);
-    }
-    const textNode = newChild.getChildren().find($isTextNode);
-    textNode?.select(0, 0);
-    return;
-  }
+  const list = isChildrenWrapper(wrapper) ? wrapper.getFirstChild<ListNode>() : null;
 
   if (list && list.getChildrenSize() > 0) {
     const newChild = $createNote('');
@@ -161,13 +126,8 @@ function $splitContentItemAtSelection(contentItem: ListItemNode, selection: Retu
   return true;
 }
 
-export function InsertionPlugin({ zoomNoteId }: InsertionPluginProps) {
+export function InsertionPlugin() {
   const [editor] = useLexicalComposerContext();
-  const zoomNoteIdRef = useRef<string | null>(resolveZoomNoteId(zoomNoteId));
-
-  useEffect(() => {
-    zoomNoteIdRef.current = resolveZoomNoteId(zoomNoteId);
-  }, [zoomNoteId]);
 
   useEffect(() => {
     return mergeRegister(
@@ -227,11 +187,9 @@ export function InsertionPlugin({ zoomNoteId }: InsertionPluginProps) {
           }
 
           if (placement === 'end') {
-            const zoomRootId = zoomNoteIdRef.current;
-            const forceChild = Boolean(zoomRootId && $getNoteId(contentItem) === zoomRootId);
             event?.preventDefault();
             event?.stopPropagation();
-            $handleEnterAtEnd(contentItem, forceChild);
+            $handleEnterAtEnd(contentItem);
             return true;
           }
 

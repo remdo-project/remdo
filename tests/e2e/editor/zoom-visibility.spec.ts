@@ -4,8 +4,9 @@ import { editorLocator, setCaretAtText } from '#editor/locators';
 
 const getBulletMetrics = async (listItem: Locator) => {
   return listItem.evaluate((element: HTMLElement) => {
-    const style = globalThis.getComputedStyle(element, '::before');
-    const rect = element.getBoundingClientRect();
+    const target = element.closest('li.list-item') ?? element;
+    const style = globalThis.getComputedStyle(target, '::before');
+    const rect = target.getBoundingClientRect();
     const left = Number.parseFloat(style.left);
     const baseLeft = rect.left + (Number.isFinite(left) ? left : 0);
     const fallbackPoint = { x: baseLeft + 1, y: rect.top + rect.height / 2 };
@@ -73,7 +74,23 @@ test.describe('Zoom visibility', () => {
     await expect(note3).toBeVisible();
   });
 
-  test('enter at zoom root end creates a visible child', async ({ page, editor }) => {
+  test('auto-expands zoom when Enter creates a sibling', async ({ page, editor }) => {
+    await editor.load('flat');
+
+    const editorRoot = editorLocator(page);
+    const note2 = editorRoot.locator('li.list-item:not(.list-nested-item)', { hasText: 'note2' }).first();
+    const metrics = await getBulletMetrics(note2);
+
+    await page.mouse.click(metrics.x, metrics.y);
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+    await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('Enter');
+
+    await expect(page).toHaveURL(`/n/${editor.docId}`);
+    await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
+  });
+
+  test('auto-expands zoom when indenting the zoom root', async ({ page, editor }) => {
     await editor.load('flat');
 
     const editorRoot = editorLocator(page);
@@ -81,11 +98,28 @@ test.describe('Zoom visibility', () => {
     const metrics = await getBulletMetrics(note2);
 
     await page.mouse.click(metrics.x, metrics.y);
-    await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
-    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+    await setCaretAtText(page, 'note2', 0);
+    await page.keyboard.press('Tab');
 
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
     await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeHidden();
-    await expect(editorRoot.locator('li.list-item:not(.list-nested-item):not(.zoom-hidden)')).toHaveCount(2);
+  });
+
+  test('auto-expands zoom when multi-line paste inserts siblings', async ({ page, editor }) => {
+    await editor.load('flat');
+
+    const editorRoot = editorLocator(page);
+    const note2 = editorRoot.locator('li.list-item', { hasText: 'note2' }).first();
+    const metrics = await getBulletMetrics(note2);
+
+    await page.mouse.click(metrics.x, metrics.y);
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+    await setCaretAtText(page, 'note2', 1);
+    await pastePlainText(page, 'A\nB');
+
+    await expect(page).toHaveURL(`/n/${editor.docId}`);
+    await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
   });
 
   test('zoomed child aligns to root indentation', async ({ page, editor }) => {
@@ -93,11 +127,9 @@ test.describe('Zoom visibility', () => {
 
     const editorRoot = editorLocator(page);
     const note2Text = editorRoot.locator('[data-lexical-text="true"]', { hasText: 'note2' }).first();
+    const metrics = await getBulletMetrics(note2Text);
 
-    await page.goto(`/n/${editor.docId}?zoom=note2`);
-    await editorLocator(page).locator('.editor-input').first().waitFor();
-    await editor.load('basic');
-
+    await page.mouse.click(metrics.x, metrics.y);
     await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeHidden();
 
     const { listPaddingLeft, listMarginLeft, wrapperPaddingLeft } = await note2Text.evaluate((element) => {
@@ -118,3 +150,13 @@ test.describe('Zoom visibility', () => {
     expect(wrapperPaddingLeft).toBe(0);
   });
 });
+
+async function pastePlainText(page: Parameters<typeof editorLocator>[0], text: string) {
+  const input = editorLocator(page).locator('.editor-input').first();
+  await input.evaluate((element, payload) => {
+    const data = new DataTransfer();
+    data.setData('text/plain', payload);
+    const event = new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true });
+    element.dispatchEvent(event);
+  }, text);
+}

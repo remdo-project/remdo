@@ -55,7 +55,7 @@ export default function Editor({
           <ReorderingPlugin />
           <SelectionPlugin />
           <SelectionCollapsePlugin />
-          <InsertionPlugin zoomNoteId={zoomNoteId} />
+          <InsertionPlugin />
           <DeletionPlugin />
           <SelectionInputPlugin />
           <ZoomPlugin zoomNoteId={zoomNoteId} onZoomNoteIdChange={onZoomNoteIdChange} onZoomPathChange={onZoomPathChange} />

@@ -41,8 +41,13 @@ editor.
    document root note.
 2. If the zoom root is deleted or otherwise cannot be resolved, zoom resets to
    the document root note automatically.
-3. If the zoom root is moved or reparented, zoom remains on the same note and
-   the breadcrumb path updates to its new location.
+
+## Auto-expanding zoom
+
+1. If an edit affects notes outside the visible subtree, zoom expands to the
+   nearest ancestor that contains the zoom root and the affected notes.
+2. If the zoom root is reparented, zoom expands to its new parent (or the
+   document root note when it becomes top-level) so the change is visible.
 
 ## Breadcrumbs
 
