@@ -35,8 +35,8 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge rules, spacing.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).
-- `docs/outliner/zoom.md` (Medium). Subtree zoom view, auto-expansion (local
-  only), breadcrumbs (20-char truncation), and routing.
+- `docs/outliner/folding.md` (Short). Note folding behavior, visibility filtering,
+  persistence, and auto-expand rules.
 - `docs/outliner/index.md` (Short). Entry point with links; single-source invariants rule.
 - `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization, clipboard identity
   rules, collab, `noteRef`.
@@ -44,6 +44,8 @@ outdated or a doc’s role materially changes.
   semantics; indent/outdent rules.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and constraints.
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder, anchor/focus reversal, directional boundary rules.
+- `docs/outliner/zoom.md` (Medium). Subtree zoom view, auto-expansion rules,
+  breadcrumbs, and routing.
 - `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs;
   tracks paste-placement e2e follow-up and prod schema recovery decisions.
 Whenever you edit any of these docs, update their summaries/buckets here so the

@@ -10,7 +10,7 @@ mode definitions.
 2. Actions apply to the active note’s text; structural selection rules are
    unchanged.
 3. Folded/collapsed parents are called out separately; all other cases assume
-   the parent is expanded.
+   the parent is expanded (see `docs/outliner/folding.md`).
 
 ## Default behavior (caret mode)
 

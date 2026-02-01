@@ -44,8 +44,9 @@ notes:
 
 - **Document order:** the depth-first, pre-order traversal of notes in the
   structural tree.
-- **Previous note / next note:** adjacent notes in document order;
-  folding/collapse is currently out of scope.
+- **Previous note / next note:** adjacent notes in document order. View filters
+  like zoom and folding can hide notes without changing their underlying order
+  (see `./zoom.md` and `./folding.md`).
 - **Empty note:** a note whose body text is empty after trimming whitespace.
 - **Empty leaf note:** an empty note with no children.
 - **Document root note:** the special root note that represents the document
