@@ -121,6 +121,80 @@ test.describe('Zoom visibility', () => {
     await expect(note1).toBeVisible();
   });
 
+  test('auto-expands zoom when Backspace merges a sibling outside the subtree', async ({ page, editor }) => {
+    await editor.load('flat');
+
+    const editorRoot = editorLocator(page);
+    const note2 = editorRoot.locator('li.list-item', { hasText: 'note2' }).first();
+    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
+    const metrics = await getBulletMetrics(note2);
+
+    await page.mouse.click(metrics.x, metrics.y);
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+
+    await setCaretAtText(page, 'note2', 0);
+    await page.keyboard.press('Backspace');
+
+    await expect(page).toHaveURL(`/n/${editor.docId}`);
+    await expect(note1).toBeVisible();
+  });
+
+  test('auto-expands zoom when deleting an empty sibling outside the subtree', async ({ page, editor }) => {
+    await editor.load('flat');
+
+    const editorRoot = editorLocator(page);
+    const note2 = editorRoot.locator('li.list-item', { hasText: 'note2' }).first();
+    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
+    const metrics = await getBulletMetrics(note2);
+
+    await updateNoteText(page, 'note3', '');
+
+    await page.mouse.click(metrics.x, metrics.y);
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+
+    await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('Delete');
+
+    await expect(page).toHaveURL(`/n/${editor.docId}`);
+    await expect(note1).toBeVisible();
+  });
+
+  test('does not expand zoom on Backspace at the document start', async ({ page, editor }) => {
+    await editor.load('flat');
+
+    const editorRoot = editorLocator(page);
+    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
+    const note3 = editorRoot.locator('li.list-item', { hasText: 'note3' }).first();
+    const metrics = await getBulletMetrics(note1);
+
+    await page.mouse.click(metrics.x, metrics.y);
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+
+    await setCaretAtText(page, 'note1', 0);
+    await page.keyboard.press('Backspace');
+
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(note3).toBeHidden();
+  });
+
+  test('does not expand zoom on Delete at the document end', async ({ page, editor }) => {
+    await editor.load('flat');
+
+    const editorRoot = editorLocator(page);
+    const note3 = editorRoot.locator('li.list-item', { hasText: 'note3' }).first();
+    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
+    const metrics = await getBulletMetrics(note3);
+
+    await page.mouse.click(metrics.x, metrics.y);
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note3$`));
+
+    await setCaretAtText(page, 'note3', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('Delete');
+
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note3$`));
+    await expect(note1).toBeHidden();
+  });
+
   test('auto-expands zoom when indenting the zoom root', async ({ page, editor }) => {
     await editor.load('flat');
 
@@ -171,6 +245,74 @@ test.describe('Zoom visibility', () => {
     await expect(note4).toBeVisible();
   });
 
+  test('current breadcrumb is not interactive', async ({ page, editor }) => {
+    await editor.load('basic');
+
+    const editorRoot = editorLocator(page);
+    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
+    const note3 = editorRoot.locator('li.list-item', { hasText: 'note3' }).first();
+    const metrics = await getBulletMetrics(note1);
+
+    await page.mouse.click(metrics.x, metrics.y);
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+
+    const breadcrumbs = page.getByRole('button', { name: editor.docId }).locator('..');
+    const currentCrumb = breadcrumbs.locator('[data-zoom-crumb="current"]').first();
+    await currentCrumb.click();
+
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(note3).toBeHidden();
+  });
+
+  test('zoom state persists across reload', async ({ page, editor }) => {
+    await editor.load('basic');
+
+    const editorRoot = editorLocator(page);
+    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
+    const note3 = editorRoot.locator('li.list-item', { hasText: 'note3' }).first();
+    const metrics = await getBulletMetrics(note1);
+
+    await page.mouse.click(metrics.x, metrics.y);
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(note3).toBeHidden();
+
+    await page.reload();
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(note3).toBeHidden();
+  });
+
+  test('Cmd/Ctrl+A stays within the zoom root', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+
+    const editorRoot = editorLocator(page);
+    const note2Text = editorRoot.locator('[data-lexical-text="true"]', { hasText: 'note2' }).first();
+    const metrics = await getBulletMetrics(note2Text);
+
+    await page.mouse.click(metrics.x, metrics.y);
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+
+    await setCaretAtText(page, 'note2', 0);
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Control+A');
+
+    const selectedNotes = await page.evaluate(async () => {
+      const api = await (__remdoBridgePromise ?? Promise.reject(new Error('remdo bridge is not available')));
+      const keys = api.editor.selection.selectedKeys();
+      return keys
+        .map((key: string) => {
+          const element = api.editor.getElementByKey(key);
+          const text = element?.querySelector('[data-lexical-text="true"]')?.textContent ?? '';
+          return text.trim();
+        })
+        .filter(Boolean);
+    });
+
+    expect(selectedNotes).toContain('note2');
+    expect(selectedNotes).toContain('note3');
+    expect(selectedNotes).not.toContain('note1');
+    expect(selectedNotes).not.toContain('note4');
+  });
+
   test('zoomed child aligns to root indentation', async ({ page, editor }) => {
     await editor.load('basic');
 
@@ -208,4 +350,11 @@ async function pastePlainText(page: Parameters<typeof editorLocator>[0], text: s
     const event = new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true });
     element.dispatchEvent(event);
   }, text);
+}
+
+async function updateNoteText(page: Parameters<typeof editorLocator>[0], noteId: string, text: string) {
+  await page.evaluate(async ({ noteId, text }) => {
+    const api = await (__remdoBridgePromise ?? Promise.reject(new Error('remdo bridge is not available')));
+    await api.updateNoteText(noteId, text);
+  }, { noteId, text });
 }
