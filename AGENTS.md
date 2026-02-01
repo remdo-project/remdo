@@ -150,10 +150,12 @@ document captures the full model.
 
 ### Local agents
 
-1. Run `pnpm run lint`, `pnpm run test:unit`, and other relevant checks after
-   every non-trivial change and whenever it seems useful (e.g., debugging a
-   failing test). Still use judgment to avoid redundant runs, but bias toward
-   keeping these suites green regularly.
+1. For every file edit, run the relevant lint check (if one exists for that file
+   type). Run `pnpm run lint`, `pnpm run test:unit`, and other relevant checks
+   after every non-trivial change. After any behavior change (even small), also
+   run `pnpm run lint` plus the most relevant test suite (default to
+   `pnpm run test:unit` if unsure). Still use judgment to avoid redundant runs,
+   but bias toward keeping these suites green regularly.
 2. If you do run a check and it fails because of your code, either fix the
    regression or clearly report the failure before handing the task back.
 
