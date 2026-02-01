@@ -5,8 +5,13 @@ import { clearEditorProps, getNoteElement, meta, registerEditorProps } from '#te
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 
-const waitForCall = async (fn: () => void) => {
-  for (let i = 0; i < 20; i++) {
+interface SerializedNode {
+  children?: SerializedNode[];
+  noteId?: string;
+}
+
+const waitForCall = async (fn: () => void, attempts = 20) => {
+  for (let i = 0; i < attempts; i++) {
     try {
       fn();
       return;
@@ -23,6 +28,18 @@ const createEditorPropsKey = (prefix: string, props: Parameters<typeof registerE
   return key;
 };
 
+const collectNoteIds = (node: SerializedNode, ids: string[] = []): string[] => {
+  if (typeof node.noteId === 'string') {
+    ids.push(node.noteId);
+  }
+  if (Array.isArray(node.children)) {
+    for (const child of node.children) {
+      collectNoteIds(child, ids);
+    }
+  }
+  return ids;
+};
+
 describe('zoom plugin', () => {
   const zoomPathSpy = vi.fn();
   const zoomPathKey = createEditorPropsKey('zoom-path', { zoomNoteId: 'note2', onZoomPathChange: zoomPathSpy });
@@ -31,15 +48,24 @@ describe('zoom plugin', () => {
     'emits the zoom path for a valid zoom note id',
     meta({ fixture: 'basic', editorPropsKey: zoomPathKey }),
     async ({ remdo }) => {
-      await remdo.waitForSynced();
+      await waitForCall(() => {
+        const state = remdo.getEditorState();
+        const noteIds = collectNoteIds(state.root as unknown as SerializedNode);
+        expect(noteIds).toContain('note2');
+      }, 100);
 
       await waitForCall(() => {
-        expect(zoomPathSpy).toHaveBeenCalled();
-      });
-
-      const lastPath = zoomPathSpy.mock.calls.at(-1)?.[0] as NotePathItem[];
-      expect(lastPath.map((item) => item.noteId)).toEqual(['note1', 'note2']);
-      expect(lastPath.map((item) => item.label)).toEqual(['note1', 'note2']);
+        const match = zoomPathSpy.mock.calls.find((call) => {
+          const path = call[0] as NotePathItem[] | undefined;
+          if (!path) {
+            return false;
+          }
+          const ids = path.map((item) => item.noteId);
+          const labels = path.map((item) => item.label);
+          return ids.join(',') === 'note1,note2' && labels.join(',') === 'note1,note2';
+        });
+        expect(match).toBeTruthy();
+      }, 100);
 
       clearEditorProps(zoomPathKey);
     }

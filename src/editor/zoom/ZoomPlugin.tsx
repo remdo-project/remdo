@@ -7,7 +7,7 @@ import { setSelectionBoundary } from '@/editor/outline/selection/boundary';
 import { setZoomScrollTarget } from '@/editor/zoom/scroll-target';
 import { consumeZoomMergeHint } from '@/editor/zoom/zoom-change-hints';
 import type { ListItemNode } from '@lexical/list';
-import type { LexicalNode } from 'lexical';
+import type { LexicalNode, UpdateListenerPayload } from 'lexical';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
@@ -300,7 +300,12 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
   }, [editor, handleBulletPointerDown, handleBulletPointerMove, handlePointerLeave]);
 
   useEffect(() => {
-    const unregister = editor.registerUpdateListener(({ editorState, dirtyElements, dirtyLeaves, tags }) => {
+    const handleUpdate = ({
+      editorState,
+      dirtyElements,
+      dirtyLeaves,
+      tags,
+    }: UpdateListenerPayload) => {
       const mergeHint = consumeZoomMergeHint(editor);
       const noteId = zoomNoteIdRef.current;
       const shouldConsiderAutoZoom =
@@ -434,6 +439,17 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
         lastPathRef.current = resolved.path;
         onZoomPathChange?.(resolved.path);
       }
+    };
+
+    const unregister = editor.registerUpdateListener(handleUpdate);
+    handleUpdate({
+      editorState: editor.getEditorState(),
+      prevEditorState: editor.getEditorState(),
+      mutatedNodes: null,
+      normalizedNodes: new Set(),
+      dirtyElements: new Map(),
+      dirtyLeaves: new Set(),
+      tags: new Set([COLLABORATION_TAG]),
     });
 
     return () => unregister();
