@@ -5,6 +5,7 @@ import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { isBulletHit } from '@/editor/outline/bullet-hit-test';
 import { setSelectionBoundary } from '@/editor/outline/selection/boundary';
 import { setZoomScrollTarget } from '@/editor/zoom/scroll-target';
+import { consumeZoomMergeHint } from '@/editor/zoom/zoom-change-hints';
 import type { ListItemNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
@@ -300,6 +301,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
 
   useEffect(() => {
     const unregister = editor.registerUpdateListener(({ editorState, dirtyElements, dirtyLeaves, tags }) => {
+      const mergeHint = consumeZoomMergeHint(editor);
       const noteId = zoomNoteIdRef.current;
       const shouldConsiderAutoZoom =
         Boolean(noteId) && !tags.has(COLLABORATION_TAG) && !tags.has('test-bridge-load');
@@ -343,6 +345,10 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
         let scrollTargetKey: string | null = null;
 
         if (shouldConsiderAutoZoom) {
+          if (mergeHint) {
+            nextZoomNoteId = mergeHint.noteId;
+            scrollTargetKey = selectionKey;
+          } else {
           const parentChanged = parentWasTracked && prevParentKey !== parentKey;
           if (parentChanged) {
             const parentId = parent ? $getNoteId(parent) : null;
@@ -366,6 +372,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
               const ancestorId = ancestor ? $getNoteId(ancestor) : null;
               nextZoomNoteId = ancestorId ?? null;
             }
+          }
           }
         }
 

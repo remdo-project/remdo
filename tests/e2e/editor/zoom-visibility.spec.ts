@@ -9,7 +9,20 @@ const getBulletMetrics = async (listItem: Locator) => {
     const rect = target.getBoundingClientRect();
     const left = Number.parseFloat(style.left);
     const baseLeft = rect.left + (Number.isFinite(left) ? left : 0);
-    const fallbackPoint = { x: baseLeft + 1, y: rect.top + rect.height / 2 };
+    const textNode = target.querySelector('[data-lexical-text="true"]')?.firstChild;
+    let lineCenterY = rect.top + rect.height / 2;
+    if (textNode) {
+      const text = textNode.textContent ?? '';
+      const range = document.createRange();
+      const endOffset = Math.min(1, text.length);
+      range.setStart(textNode, 0);
+      range.setEnd(textNode, endOffset);
+      const rangeRect = range.getClientRects()[0] ?? range.getBoundingClientRect();
+      if (rangeRect.height > 0) {
+        lineCenterY = rangeRect.top + rangeRect.height / 2;
+      }
+    }
+    const fallbackPoint = { x: baseLeft + 1, y: lineCenterY };
     const rawContent = style.content;
     const content =
       rawContent === 'none' || rawContent === 'normal'
@@ -90,6 +103,24 @@ test.describe('Zoom visibility', () => {
     await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
   });
 
+  test('auto-expands zoom when Delete merges a sibling outside the subtree', async ({ page, editor }) => {
+    await editor.load('flat');
+
+    const editorRoot = editorLocator(page);
+    const note2 = editorRoot.locator('li.list-item', { hasText: 'note2' }).first();
+    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
+    const metrics = await getBulletMetrics(note2);
+
+    await page.mouse.click(metrics.x, metrics.y);
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+
+    await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('Delete');
+
+    await expect(page).toHaveURL(`/n/${editor.docId}`);
+    await expect(note1).toBeVisible();
+  });
+
   test('auto-expands zoom when indenting the zoom root', async ({ page, editor }) => {
     await editor.load('flat');
 
@@ -120,6 +151,24 @@ test.describe('Zoom visibility', () => {
 
     await expect(page).toHaveURL(`/n/${editor.docId}`);
     await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
+  });
+
+  test('auto-expands zoom when outdenting a descendant', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+
+    const editorRoot = editorLocator(page);
+    const note2Text = editorRoot.locator('[data-lexical-text="true"]', { hasText: 'note2' }).first();
+    const note4 = editorRoot.locator('li.list-item', { hasText: 'note4' }).first();
+    const metrics = await getBulletMetrics(note2Text);
+
+    await page.mouse.click(metrics.x, metrics.y);
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+
+    await setCaretAtText(page, 'note3', 0);
+    await page.keyboard.press('Shift+Tab');
+
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(note4).toBeVisible();
   });
 
   test('zoomed child aligns to root indentation', async ({ page, editor }) => {
