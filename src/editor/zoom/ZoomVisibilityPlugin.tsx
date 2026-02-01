@@ -67,8 +67,13 @@ export function ZoomVisibilityPlugin({ zoomNoteId }: ZoomVisibilityPluginProps) 
 
   const applyVisibility = useCallback((editorState = editor.getEditorState()) => {
     const result = editorState.read(() => {
-      const list = $getRoot().getFirstChild<ListNode>()!;
+      const root = $getRoot();
+      const firstChild = root.getFirstChild();
       const allKeys = new Set<string>();
+      if (!firstChild || !$isListNode(firstChild)) {
+        return { visibleKeys: null as Set<string> | null, allKeys, flattenedWrapperKeys: new Set<string>() };
+      }
+      const list = firstChild;
       collectAllListItemKeys(list, allKeys);
 
       const flattenedWrapperKeys = new Set<string>();
@@ -77,12 +82,12 @@ export function ZoomVisibilityPlugin({ zoomNoteId }: ZoomVisibilityPluginProps) 
         return { visibleKeys: null as Set<string> | null, allKeys, flattenedWrapperKeys };
       }
 
-      const root = $findNoteById(noteId);
-      if (!root) {
+      const target = $findNoteById(noteId);
+      if (!target) {
         return { visibleKeys: null as Set<string> | null, allKeys, flattenedWrapperKeys };
       }
 
-      let current: ListItemNode | null = root;
+      let current: ListItemNode | null = target;
       while (current) {
         const parentList = current.getParent();
         if (!$isListNode(parentList)) {
@@ -99,7 +104,7 @@ export function ZoomVisibilityPlugin({ zoomNoteId }: ZoomVisibilityPluginProps) 
       }
 
       return {
-        visibleKeys: buildVisibleKeys(root),
+        visibleKeys: buildVisibleKeys(target),
         allKeys,
         flattenedWrapperKeys,
       };

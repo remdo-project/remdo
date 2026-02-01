@@ -1,4 +1,5 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
+import { $isListNode } from '@lexical/list';
 import { $getRoot } from 'lexical';
 import { $getNoteId } from '#lib/editor/note-id-state';
 import { isChildrenWrapper } from './list-structure';
@@ -11,7 +12,11 @@ export interface NotePathItem {
 
 export function $findNoteById(noteId: string): ListItemNode | null {
   const root = $getRoot();
-  const list = root.getFirstChild<ListNode>()!;
+  const firstChild = root.getFirstChild();
+  if (!firstChild || !$isListNode(firstChild)) {
+    return null;
+  }
+  const list = firstChild;
 
   const visit = (listNode: ListNode): ListItemNode | null => {
     for (const child of listNode.getChildren()) {
