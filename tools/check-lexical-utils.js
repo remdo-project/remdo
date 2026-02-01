@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import process from 'node:process';
 
 const LEXICAL_UTILS_PATH = path.resolve('data/.vendor/lexical/packages/lexical/src/LexicalUtils.ts');
 const LOCAL_COPY_PATH = path.resolve('src/editor/lexical/unexported.ts');
@@ -8,8 +8,8 @@ const LOCAL_COPY_PATH = path.resolve('src/editor/lexical/unexported.ts');
 const BEGIN_MARKER = '// BEGIN COPIED:';
 const END_MARKER = '// END COPIED:';
 
-const extractBlocks = (source: string): Array<{ label: string; block: string }> => {
-  const blocks: Array<{ label: string; block: string }> = [];
+const extractBlocks = (source) => {
+  const blocks = [];
   let offset = 0;
 
   while (offset < source.length) {
@@ -45,19 +45,32 @@ const extractBlocks = (source: string): Array<{ label: string; block: string }> 
   return blocks;
 };
 
-describe('lexical unexported helpers', () => {
-  it('matches the vendored LexicalUtils implementations', async () => {
-    const [lexicalUtils, localCopy] = await Promise.all([
-      fs.readFile(LEXICAL_UTILS_PATH, 'utf8'),
-      fs.readFile(LOCAL_COPY_PATH, 'utf8'),
-    ]);
+async function main() {
+  const [lexicalUtils, localCopy] = await Promise.all([
+    fs.readFile(LEXICAL_UTILS_PATH, 'utf8'),
+    fs.readFile(LOCAL_COPY_PATH, 'utf8'),
+  ]);
 
-    const blocks = extractBlocks(localCopy);
-    expect(blocks.length).toBeGreaterThan(0);
+  const blocks = extractBlocks(localCopy);
+  if (blocks.length === 0) {
+    throw new Error('Expected at least one BEGIN/END marker block in unexported.ts.');
+  }
 
-    for (const { label, block } of blocks) {
-      const found = lexicalUtils.includes(block);
-      expect(found, `${label} block drifted from LexicalUtils`).toBe(true);
+  const drifted = [];
+  for (const { label, block } of blocks) {
+    if (!lexicalUtils.includes(block)) {
+      drifted.push(label);
     }
-  });
-});
+  }
+
+  if (drifted.length > 0) {
+    throw new Error(`LexicalUtils drift detected for blocks: ${drifted.join(', ')}.`);
+  }
+}
+
+try {
+  await main();
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+}

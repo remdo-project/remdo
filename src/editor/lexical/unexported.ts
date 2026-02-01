@@ -2,7 +2,7 @@ import type { LexicalEditor } from 'lexical';
 
 // Copied from LexicalUtils.ts (data/.vendor/lexical/packages/lexical/src/LexicalUtils.ts)
 // at commit c75b8e105ff9612f0166af22a518be01045fa72b. Keep in sync on Lexical upgrades.
-// Drift is checked by tests/unit/internal/lexical-unexported.spec.ts using the BEGIN/END markers.
+// Drift is checked by tools/check-lexical-utils.js (pnpm run lint:lexical) using the BEGIN/END markers.
 
 const DOM_DOCUMENT_TYPE = 9;
 const DOM_DOCUMENT_FRAGMENT_TYPE = 11;
