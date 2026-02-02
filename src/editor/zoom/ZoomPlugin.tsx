@@ -141,10 +141,15 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
   const zoomParentTrackedRef = useRef(false);
   const zoomParentKeyRef = useRef<string | null>(null);
   const skipZoomSelectionRef = useRef(false);
+  const pendingZoomSelectionRef = useRef<string | null>(null);
+  const pendingZoomSelectionTaskRef = useRef(false);
+  const pendingZoomSelectionNonceRef = useRef(0);
+  const suppressPathUpdatesRef = useRef(false);
   const autoZoomReadyRef = useRef(false);
 
   useEffect(() => {
     zoomNoteIdRef.current = resolveZoomNoteId(zoomNoteId);
+    suppressPathUpdatesRef.current = false;
     const noteId = zoomNoteIdRef.current;
     if (!noteId) {
       zoomParentTrackedRef.current = false;
@@ -335,11 +340,13 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
 
       const resolved = editorState.read(() => {
         const selection = $getSelection();
-        const selectionItem =
+        const selectionItem = $isRangeSelection(selection)
+          ? resolveContentItem(selection.anchor.getNode())
+          : null;
+        const selectionKey =
           $isRangeSelection(selection) && selection.isCollapsed()
-            ? resolveContentItem(selection.anchor.getNode())
+            ? selectionItem?.getKey() ?? null
             : null;
-        const selectionKey = selectionItem?.getKey() ?? null;
         if (!noteId) {
           return {
             root: null,
@@ -348,6 +355,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
             parentKey: null,
             boundaryKey: null,
             scrollTargetKey: null as string | null,
+            selectionInZoomRoot: false,
           };
         }
 
@@ -360,12 +368,14 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
             parentKey: null,
             boundaryKey: null,
             scrollTargetKey: null as string | null,
+            selectionInZoomRoot: false,
           };
         }
 
         const path = $getNoteAncestorPath(root);
         const parent = getParentContentItem(root);
         const parentKey = parent?.getKey() ?? null;
+        const selectionInZoomRoot = selectionItem ? isDescendantOf(selectionItem, root) : false;
         let nextZoomNoteId: string | null | undefined;
         let scrollTargetKey: string | null = null;
 
@@ -408,6 +418,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
           parentKey,
           boundaryKey: root.getKey(),
           scrollTargetKey,
+          selectionInZoomRoot,
         };
       });
 
@@ -420,6 +431,9 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       }
 
       if (zoomNoteIdRef.current && !resolved.root && collab.hydrated && !isZoomInit) {
+        pendingZoomSelectionRef.current = null;
+        pendingZoomSelectionTaskRef.current = false;
+        pendingZoomSelectionNonceRef.current += 1;
         skipZoomSelectionRef.current = true;
         onZoomNoteIdChange?.(null);
       }
@@ -428,6 +442,10 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
         resolved.nextZoomNoteId !== undefined &&
         resolved.nextZoomNoteId !== zoomNoteIdRef.current
       ) {
+        pendingZoomSelectionRef.current = null;
+        pendingZoomSelectionTaskRef.current = false;
+        pendingZoomSelectionNonceRef.current += 1;
+        suppressPathUpdatesRef.current = true;
         if (resolved.scrollTargetKey) {
           setZoomScrollTarget(editor, resolved.scrollTargetKey);
         }
@@ -455,9 +473,49 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
 
       setSelectionBoundary(editor, resolved.boundaryKey ?? null);
 
-      if (!isPathEqual(resolved.path, lastPathRef.current)) {
+      if (!suppressPathUpdatesRef.current && !isPathEqual(resolved.path, lastPathRef.current)) {
         lastPathRef.current = resolved.path;
         onZoomPathChange?.(resolved.path);
+      }
+
+      const pendingZoomSelection = pendingZoomSelectionRef.current;
+      if (pendingZoomSelection && pendingZoomSelection === noteId && resolved.root) {
+        if (resolved.selectionInZoomRoot) {
+          pendingZoomSelectionRef.current = null;
+        } else if (!pendingZoomSelectionTaskRef.current) {
+          pendingZoomSelectionRef.current = null;
+          const pendingToken = pendingZoomSelectionNonceRef.current;
+          pendingZoomSelectionTaskRef.current = true;
+          queueMicrotask(() => {
+            pendingZoomSelectionTaskRef.current = false;
+            if (pendingZoomSelectionNonceRef.current !== pendingToken) {
+              return;
+            }
+            editor.update(() => {
+              if (zoomNoteIdRef.current !== noteId) {
+                return;
+              }
+
+              const targetItem = $findNoteById(noteId);
+              if (!targetItem) {
+                pendingZoomSelectionRef.current = noteId;
+                return;
+              }
+
+              const selection = $getSelection();
+              const selectionItem = $isRangeSelection(selection)
+                ? resolveContentItem(selection.anchor.getNode())
+                : null;
+              if (selectionItem && isDescendantOf(selectionItem, targetItem)) {
+                pendingZoomSelectionRef.current = null;
+                return;
+              }
+
+              pendingZoomSelectionRef.current = null;
+              $selectItemEdge(targetItem, 'start');
+            }, { tag: ZOOM_CARET_TAG });
+          });
+        }
       }
     };
 
@@ -478,19 +536,33 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
   useEffect(() => {
     if (skipZoomSelectionRef.current) {
       skipZoomSelectionRef.current = false;
+      pendingZoomSelectionRef.current = null;
+      pendingZoomSelectionTaskRef.current = false;
+      pendingZoomSelectionNonceRef.current += 1;
       return;
     }
 
     const noteId = resolveZoomNoteId(zoomNoteId);
+    pendingZoomSelectionRef.current = null;
     if (!noteId) {
+      pendingZoomSelectionTaskRef.current = false;
+      pendingZoomSelectionNonceRef.current += 1;
+      return;
+    }
+
+    const hasRoot = editor.getEditorState().read(() => Boolean($findNoteById(noteId)));
+    if (!hasRoot) {
+      pendingZoomSelectionRef.current = noteId;
       return;
     }
 
     editor.update(() => {
       const targetItem = $findNoteById(noteId);
       if (!targetItem) {
+        pendingZoomSelectionRef.current = noteId;
         return;
       }
+      pendingZoomSelectionRef.current = null;
       $selectItemEdge(targetItem, 'start');
     }, { tag: ZOOM_CARET_TAG });
   }, [editor, zoomNoteId]);
