@@ -51,6 +51,8 @@ editor.
    nearest ancestor that contains the zoom root and the affected notes.
 2. If the zoom root is reparented, zoom expands to its new parent (or the
    document root note when it becomes top-level) so the change is visible.
+3. Auto-expansion only runs for local edits; collaboration updates do not
+   change zoom automatically.
 
 ## Breadcrumbs
 
