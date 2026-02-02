@@ -1,6 +1,7 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator } from '#editor/locators';
+import { waitForSynced } from './_support/bridge';
 
 const getBulletMetrics = async (listItem: Locator) => {
   return listItem.evaluate((element: HTMLElement) => {
@@ -71,5 +72,13 @@ test.describe('Zoom routing', () => {
 
     await expect(page).toHaveURL(`/n/${editor.docId}`);
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
+  });
+
+  test('keeps zoom param on initial load', async ({ page, testDocId }) => {
+    await page.goto(`/n/${testDocId}?zoom=note1`);
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${testDocId}\?zoom=note1$`));
+    await waitForSynced(page);
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${testDocId}\?zoom=note1$`));
   });
 });

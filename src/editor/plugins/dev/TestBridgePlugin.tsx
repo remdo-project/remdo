@@ -8,6 +8,7 @@ import { markSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce'
 import { $normalizeNoteIdsOnLoad } from '../note-id-normalization';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { getContentListItem } from '@/editor/outline/list-structure';
+import { TEST_BRIDGE_LOAD_TAG, TEST_BRIDGE_MUTATE_TAG } from '@/editor/update-tags';
 
 async function withTimeout<T>(fnOrPromise: (() => Promise<T>) | Promise<T>, ms: number, message: string): Promise<T> {
   const promise = typeof fnOrPromise === 'function' ? fnOrPromise() : fnOrPromise;
@@ -163,7 +164,7 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
       if (options?.skipSchemaValidationOnce) {
         markSchemaValidationSkipOnce(editor);
       }
-      editor.setEditorState(parsed, { tag: 'test-bridge-load' });
+      editor.setEditorState(parsed, { tag: TEST_BRIDGE_LOAD_TAG });
     }, { skipSchemaValidation: options?.skipSchemaValidationOnce });
 
     if (options?.skipSchemaValidationOnce) {
@@ -180,7 +181,7 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
       throw new TypeError('TestBridgePlugin: mutate callback must be synchronous');
     }
 
-    const tag = ['test-bridge-mutate', ...(Array.isArray(opts?.tag) ? opts.tag : opts?.tag ? [opts.tag] : [])];
+    const tag = [TEST_BRIDGE_MUTATE_TAG, ...(Array.isArray(opts?.tag) ? opts.tag : opts?.tag ? [opts.tag] : [])];
     await withOutcome('mutate', 'update', () => editor.update(fn, { ...opts, tag }));
   };
 

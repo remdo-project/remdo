@@ -49,6 +49,7 @@ import {
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
 import { useCollaborationStatus } from './collaboration';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
+import { NOTE_ID_NORMALIZE_TAG } from '@/editor/update-tags';
 
 interface CutMarker {
   headKeys: string[];
@@ -498,7 +499,7 @@ export function NoteIdPlugin() {
     if (hydrated) {
       editor.update(() => {
         $normalizeNoteIdsOnLoad($getRoot(), docId);
-      });
+      }, { tag: NOTE_ID_NORMALIZE_TAG });
     }
 
     return mergeRegister(

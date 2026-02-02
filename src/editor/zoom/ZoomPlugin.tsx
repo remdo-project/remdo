@@ -14,6 +14,14 @@ import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
 import { getParentContentItem } from '@/editor/outline/selection/tree';
 import { $getNoteId } from '#lib/editor/note-id-state';
+import {
+  NOTE_ID_NORMALIZE_TAG,
+  ROOT_SCHEMA_NORMALIZE_TAG,
+  TEST_BRIDGE_LOAD_TAG,
+  ZOOM_BULLET_TAG,
+  ZOOM_CARET_TAG,
+  ZOOM_INIT_TAG,
+} from '@/editor/update-tags';
 
 interface ZoomPluginProps {
   zoomNoteId?: string | null;
@@ -204,7 +212,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
           return;
         }
         $selectItemEdge(targetItem, 'start');
-      }, { tag: 'zoom:bullet' });
+      }, { tag: ZOOM_BULLET_TAG });
 
       editor.focus();
     },
@@ -308,8 +316,14 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
     }: UpdateListenerPayload) => {
       const mergeHint = consumeZoomMergeHint(editor);
       const noteId = zoomNoteIdRef.current;
+      const isZoomInit = tags.has(ZOOM_INIT_TAG);
       const shouldConsiderAutoZoom =
-        Boolean(noteId) && !tags.has(COLLABORATION_TAG) && !tags.has('test-bridge-load');
+        Boolean(noteId) &&
+        !tags.has(COLLABORATION_TAG) &&
+        !tags.has(TEST_BRIDGE_LOAD_TAG) &&
+        !tags.has(NOTE_ID_NORMALIZE_TAG) &&
+        !tags.has(ROOT_SCHEMA_NORMALIZE_TAG) &&
+        !isZoomInit;
       const prevParentKey = zoomParentKeyRef.current;
       const parentWasTracked = zoomParentTrackedRef.current;
 
@@ -354,30 +368,30 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
             nextZoomNoteId = mergeHint.noteId;
             scrollTargetKey = selectionKey;
           } else {
-          const parentChanged = parentWasTracked && prevParentKey !== parentKey;
-          if (parentChanged) {
-            const parentId = parent ? $getNoteId(parent) : null;
-            nextZoomNoteId = parentId ?? null;
-            scrollTargetKey = selectionKey;
-          } else {
-            const dirtyItems = $collectDirtyContentItems(dirtyElements, dirtyLeaves);
-            const outsideItems = dirtyItems.filter(
-              (item) => !isDescendantOf(item, root) && !isDescendantOf(root, item)
-            );
+            const parentChanged = parentWasTracked && prevParentKey !== parentKey;
+            if (parentChanged) {
+              const parentId = parent ? $getNoteId(parent) : null;
+              nextZoomNoteId = parentId ?? null;
+              scrollTargetKey = selectionKey;
+            } else {
+              const dirtyItems = $collectDirtyContentItems(dirtyElements, dirtyLeaves);
+              const outsideItems = dirtyItems.filter(
+                (item) => !isDescendantOf(item, root) && !isDescendantOf(root, item)
+              );
 
-            if (outsideItems.length > 0) {
-              scrollTargetKey = outsideItems[0]?.getKey() ?? null;
-              if (selectionKey) {
-                const selectionDirty = dirtyItems.some((item) => item.getKey() === selectionKey);
-                if (selectionDirty) {
-                  scrollTargetKey = selectionKey;
+              if (outsideItems.length > 0) {
+                scrollTargetKey = outsideItems[0]?.getKey() ?? null;
+                if (selectionKey) {
+                  const selectionDirty = dirtyItems.some((item) => item.getKey() === selectionKey);
+                  if (selectionDirty) {
+                    scrollTargetKey = selectionKey;
+                  }
                 }
+                const ancestor = resolveZoomAncestor(root, outsideItems);
+                const ancestorId = ancestor ? $getNoteId(ancestor) : null;
+                nextZoomNoteId = ancestorId ?? null;
               }
-              const ancestor = resolveZoomAncestor(root, outsideItems);
-              const ancestorId = ancestor ? $getNoteId(ancestor) : null;
-              nextZoomNoteId = ancestorId ?? null;
             }
-          }
           }
         }
 
@@ -399,7 +413,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
         zoomParentKeyRef.current = null;
       }
 
-      if (zoomNoteIdRef.current && !resolved.root && collab.hydrated) {
+      if (zoomNoteIdRef.current && !resolved.root && collab.hydrated && !isZoomInit) {
         skipZoomSelectionRef.current = true;
         onZoomNoteIdChange?.(null);
       }
@@ -449,7 +463,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       normalizedNodes: new Set(),
       dirtyElements: new Map(),
       dirtyLeaves: new Set(),
-      tags: new Set([COLLABORATION_TAG]),
+      tags: new Set([ZOOM_INIT_TAG]),
     });
 
     return () => unregister();
@@ -472,7 +486,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
         return;
       }
       $selectItemEdge(targetItem, 'start');
-    }, { tag: 'zoom:caret' });
+    }, { tag: ZOOM_CARET_TAG });
   }, [editor, zoomNoteId]);
 
   return null;
