@@ -8,7 +8,18 @@ interface ZoomBreadcrumbsProps {
   onSelectNoteId: (noteId: string | null) => void;
 }
 
+const MAX_LABEL_LENGTH = 20;
+
+const truncateLabel = (label: string) => {
+  if (label.length <= MAX_LABEL_LENGTH) {
+    return label;
+  }
+  return `${label.slice(0, MAX_LABEL_LENGTH)}...`;
+};
+
 export function ZoomBreadcrumbs({ docLabel, path, onSelectNoteId }: ZoomBreadcrumbsProps) {
+  const docLabelDisplay = truncateLabel(docLabel);
+
   return (
     <Breadcrumbs className={styles.breadcrumbs} data-zoom-breadcrumbs>
       <button
@@ -17,14 +28,15 @@ export function ZoomBreadcrumbs({ docLabel, path, onSelectNoteId }: ZoomBreadcru
         data-zoom-crumb="document"
         onClick={() => onSelectNoteId(null)}
       >
-        {docLabel}
+        {docLabelDisplay}
       </button>
       {path.map((item, index) => {
         const isCurrent = index === path.length - 1;
+        const label = truncateLabel(item.label);
         if (isCurrent) {
           return (
             <span key={item.noteId} className={styles.crumbCurrent} data-zoom-crumb="current">
-              {item.label}
+              {label}
             </span>
           );
         }
@@ -37,7 +49,7 @@ export function ZoomBreadcrumbs({ docLabel, path, onSelectNoteId }: ZoomBreadcru
             data-zoom-crumb="ancestor"
             onClick={() => onSelectNoteId(item.noteId)}
           >
-            {item.label}
+            {label}
           </button>
         );
       })}

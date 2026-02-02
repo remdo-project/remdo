@@ -63,7 +63,8 @@ editor.
    - Any ancestor note breadcrumb re-zooms on that note.
    - The zoom root breadcrumb is the current location and is not a link.
 
-Breadcrumb labels use the same display text as the corresponding outline note.
+Breadcrumb labels use the same display text as the corresponding outline note,
+truncated to 20 characters for display when needed.
 
 ## Routing
 
