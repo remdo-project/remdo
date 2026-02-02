@@ -141,6 +141,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
   const zoomParentTrackedRef = useRef(false);
   const zoomParentKeyRef = useRef<string | null>(null);
   const skipZoomSelectionRef = useRef(false);
+  const autoZoomReadyRef = useRef(false);
 
   useEffect(() => {
     zoomNoteIdRef.current = resolveZoomNoteId(zoomNoteId);
@@ -167,6 +168,10 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
     });
     setSelectionBoundary(editor, boundaryKey);
   }, [editor, zoomNoteId]);
+
+  useEffect(() => {
+    autoZoomReadyRef.current = collab.synced;
+  }, [collab.synced, collab.docEpoch]);
 
   const handleBulletPointerDown = useCallback(
     (event: PointerEvent) => {
@@ -319,6 +324,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       const isZoomInit = tags.has(ZOOM_INIT_TAG);
       const shouldConsiderAutoZoom =
         Boolean(noteId) &&
+        autoZoomReadyRef.current &&
         !tags.has(COLLABORATION_TAG) &&
         !tags.has(TEST_BRIDGE_LOAD_TAG) &&
         !tags.has(NOTE_ID_NORMALIZE_TAG) &&
