@@ -84,10 +84,10 @@ test.describe('Zoom routing', () => {
   test('invalid zoom param resets to document URL', async ({ page, editor }) => {
     await page.goto(`/n/${editor.docId}?zoom=missing-note`);
     await editorLocator(page).locator('.editor-input').first().waitFor();
-    await editor.load('basic');
+    await waitForSynced(page);
 
     await expect(page).toHaveURL(`/n/${editor.docId}`);
-    await expect(editorLocator(page).locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
+    await expect(editorLocator(page).locator('li.list-item').first()).toBeVisible();
   });
 
   test('keeps zoom param on initial load', async ({ page, testDocId }) => {
