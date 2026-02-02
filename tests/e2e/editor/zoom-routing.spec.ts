@@ -65,6 +65,22 @@ test.describe('Zoom routing', () => {
     await expect(page).toHaveURL(`/n/${editor.docId}`);
   });
 
+  test('clears breadcrumb path when zoom is cleared', async ({ page, editor }) => {
+    await editor.load('basic');
+
+    const editorRoot = editorLocator(page);
+    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
+    const metrics = await getBulletMetrics(note1);
+    await page.mouse.click(metrics.x, metrics.y);
+
+    const breadcrumbs = page.getByRole('button', { name: editor.docId }).locator('..');
+    const currentCrumb = breadcrumbs.locator('[data-zoom-crumb="current"]');
+    await expect(currentCrumb).toHaveText('note1');
+
+    await page.getByRole('button', { name: editor.docId }).click();
+    await expect(currentCrumb).toHaveCount(0);
+  });
+
   test('invalid zoom param resets to document URL', async ({ page, editor }) => {
     await page.goto(`/n/${editor.docId}?zoom=missing-note`);
     await editorLocator(page).locator('.editor-input').first().waitFor();

@@ -72,21 +72,6 @@ test.describe('Zoom visibility', () => {
     await expect(note3).toBeHidden();
   });
 
-  test('breadcrumb clears zoom', async ({ page, editor }) => {
-    await editor.load('basic');
-
-    const editorRoot = editorLocator(page);
-    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
-    const note3 = editorRoot.locator('li.list-item', { hasText: 'note3' }).first();
-
-    const metrics = await getBulletMetrics(note1);
-    await page.mouse.click(metrics.x, metrics.y);
-    await expect(note3).toBeHidden();
-
-    await page.getByRole('button', { name: editor.docId }).click();
-    await expect(note3).toBeVisible();
-  });
-
   test('auto-expands zoom when Enter creates a sibling', async ({ page, editor }) => {
     await editor.load('flat');
 
