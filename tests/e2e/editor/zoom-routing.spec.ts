@@ -90,11 +90,14 @@ test.describe('Zoom routing', () => {
     await expect(editorLocator(page).locator('li.list-item').first()).toBeVisible();
   });
 
-  test('keeps zoom param on initial load', async ({ page, testDocId }) => {
-    await page.goto(`/n/${testDocId}?zoom=note1`);
-    await editorLocator(page).locator('.editor-input').first().waitFor();
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${testDocId}\?zoom=note1$`));
+  test('keeps zoom param on initial load', async ({ page, editor }) => {
+    await editor.load('flat');
     await waitForSynced(page);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${testDocId}\?zoom=note1$`));
+
+    await page.goto(`/n/${editor.docId}?zoom=note1`);
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await waitForSynced(page);
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
   });
 });
