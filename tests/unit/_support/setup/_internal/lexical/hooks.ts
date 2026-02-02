@@ -4,6 +4,7 @@ import { env } from 'node:process';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tests-common/fixtures';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
+import { getEditorProps } from '../../../lib/editor-props-registry';
 import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
 
 let collabDocCounter = 0;
@@ -15,6 +16,8 @@ beforeEach<TestContext>(async (ctx) => {
     fixture?: string;
     fixtureSchemaBypass?: boolean;
     expectedConsoleIssues?: string[];
+    editorProps?: Parameters<typeof renderRemdoEditor>[0]['editorProps'];
+    editorPropsKey?: string;
   };
   const fixtureName = typeof meta.fixture === 'string' ? meta.fixture : undefined;
   const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
@@ -32,12 +35,14 @@ beforeEach<TestContext>(async (ctx) => {
     try {
       const stateJson = await readFixture(fixtureName);
       await loader._bridge.applySerializedState(stateJson, fixtureOptions);
+      await loader.waitForSynced();
     } finally {
       unmount();
     }
   }
 
-  const { api: remdoTest } = await renderRemdoEditor({ docId });
+  const resolvedEditorProps = meta.editorPropsKey ? getEditorProps(meta.editorPropsKey) ?? meta.editorProps : meta.editorProps;
+  const { api: remdoTest } = await renderRemdoEditor({ docId, editorProps: resolvedEditorProps });
 
   if (!config.env.COLLAB_ENABLED && fixtureName) {
     const stateJson = await readFixture(fixtureName);
@@ -45,6 +50,10 @@ beforeEach<TestContext>(async (ctx) => {
   }
 
   ctx.remdo = remdoTest;
+
+  if (config.env.COLLAB_ENABLED) {
+    await remdoTest._bridge.waitForCollaborationReady();
+  }
 
   if (fixtureName) {
     await remdoTest.waitForSynced();

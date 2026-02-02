@@ -35,6 +35,8 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge rules, spacing.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).
+- `docs/outliner/zoom.md` (Medium). Subtree zoom view, auto-expansion (local
+  only), breadcrumbs (20-char truncation), and routing.
 - `docs/outliner/index.md` (Short). Entry point with links; single-source invariants rule.
 - `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization, clipboard identity
   rules, collab, `noteRef`.
@@ -112,6 +114,8 @@ document captures the full model.
   first before implementing one.
 - Don't assume that the request is always clear, if in doubt ask before
   proceeding.
+- When presenting multiple options or a list of questions, format them as a
+  numbered list.
 - The shared test harness treats console warnings/errors as failures; if you
   need temporary instrumentation during debugging, prefer `console.log` or
   `console.info` and remove the statements before finishing a task.
@@ -148,10 +152,12 @@ document captures the full model.
 
 ### Local agents
 
-1. Run `pnpm run lint`, `pnpm run test:unit`, and other relevant checks after
-   every non-trivial change and whenever it seems useful (e.g., debugging a
-   failing test). Still use judgment to avoid redundant runs, but bias toward
-   keeping these suites green regularly.
+1. For every file edit, run the relevant lint check (if one exists for that file
+   type). Run `pnpm run lint`, `pnpm run test:unit`, and other relevant checks
+   after every non-trivial change. After any behavior change (even small), also
+   run `pnpm run lint` plus the most relevant test suite (default to
+   `pnpm run test:unit` if unsure). Still use judgment to avoid redundant runs,
+   but bias toward keeping these suites green regularly.
 2. If you do run a check and it fails because of your code, either fix the
    regression or clearly report the failure before handing the task back.
 

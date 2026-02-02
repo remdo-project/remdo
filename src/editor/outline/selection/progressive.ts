@@ -54,9 +54,39 @@ export interface ProgressivePlanResult {
   isShrink?: boolean;
 }
 
+function $resolveBoundaryRoot(boundaryKey: string | null | undefined): ListItemNode | null {
+  if (!boundaryKey) {
+    return null;
+  }
+  const node = $getNodeByKey<ListItemNode>(boundaryKey);
+  if (!node) {
+    return null;
+  }
+  return getContentListItem(node);
+}
+
+function isDescendantOf(candidate: ListItemNode, ancestor: ListItemNode): boolean {
+  let current: ListItemNode | null = candidate;
+  while (current) {
+    if (current.getKey() === ancestor.getKey()) {
+      return true;
+    }
+    current = getParentContentItem(current);
+  }
+  return false;
+}
+
+function $resolveDocumentPlan(boundaryRoot: ListItemNode | null): ProgressivePlan | null {
+  if (boundaryRoot) {
+    return $createSubtreePlan(boundaryRoot);
+  }
+  return $createDocumentPlan();
+}
+
 export function $computeProgressivePlan(
   progressionRef: ProgressiveSelectionRef,
-  initialProgression: ProgressiveSelectionState
+  initialProgression: ProgressiveSelectionState,
+  boundaryKey: string | null = null
 ): ProgressivePlanResult | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
@@ -102,7 +132,8 @@ export function $computeProgressivePlan(
   const isContinuing = progressionRef.current.anchorKey === anchorKey;
   const nextStage = isContinuing ? progressionRef.current.stage + 1 : 1;
 
-  const planEntry = $buildPlanForStage(anchorContent, nextStage);
+  const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
+  const planEntry = $buildPlanForStage(anchorContent, nextStage, boundaryRoot);
   if (!planEntry) {
     progressionRef.current = initialProgression;
     return null;
@@ -118,7 +149,8 @@ export function $computeProgressivePlan(
 export function $computeDirectionalPlan(
   progressionRef: ProgressiveSelectionRef,
   direction: 'up' | 'down',
-  initialProgression: ProgressiveSelectionState
+  initialProgression: ProgressiveSelectionState,
+  boundaryKey: string | null = null
 ): ProgressivePlanResult | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
@@ -169,11 +201,12 @@ export function $computeDirectionalPlan(
   const isContinuing = progressionRef.current.locked && progressionRef.current.anchorKey === anchorKey;
   let stage = isContinuing ? progressionRef.current.stage : 0;
   const heads = getContiguousSelectionHeads(selection);
+  const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
 
   const MAX_STAGE = 64;
   while (stage < MAX_STAGE + 1) {
     stage += 1;
-    const planResult = $buildDirectionalStagePlan(anchorContent, heads, stage, direction);
+    const planResult = $buildDirectionalStagePlan(anchorContent, heads, stage, direction, boundaryRoot);
     if (planResult) {
       return planResult;
     }
@@ -214,7 +247,8 @@ export function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
 
 function $buildPlanForStage(
   anchorContent: ListItemNode,
-  stage: number
+  stage: number,
+  boundaryRoot: ListItemNode | null
 ): { plan: ProgressivePlan; stage: number } | null {
   if (stage <= 1) {
     const inlinePlan = $createInlinePlan(anchorContent);
@@ -239,17 +273,21 @@ function $buildPlanForStage(
   const includeSiblings = relative % 2 === 0;
 
   const targetContent = ascendContentItem(anchorContent, levelsUp);
-  if (!targetContent) {
-    const docPlan = $createDocumentPlan();
+  if (!targetContent || (boundaryRoot && !isDescendantOf(targetContent, boundaryRoot))) {
+    const docPlan = $resolveDocumentPlan(boundaryRoot);
     return docPlan ? { plan: docPlan, stage } : null;
   }
 
   if (includeSiblings) {
+    if (boundaryRoot && targetContent.getKey() === boundaryRoot.getKey()) {
+      const docPlan = $resolveDocumentPlan(boundaryRoot);
+      return docPlan ? { plan: docPlan, stage } : null;
+    }
     const parentList = targetContent.getParent();
     if ($isListNode(parentList)) {
       const parentParent = parentList.getParent();
       if (parentParent && parentParent === $getRoot()) {
-        const docPlan = $createDocumentPlan();
+        const docPlan = $resolveDocumentPlan(boundaryRoot);
         if (docPlan) {
           return { plan: docPlan, stage };
         }
@@ -261,7 +299,7 @@ function $buildPlanForStage(
       return { plan: siblingPlan, stage };
     }
 
-    return $buildPlanForStage(anchorContent, stage + 1);
+    return $buildPlanForStage(anchorContent, stage + 1, boundaryRoot);
   }
 
   const subtreePlan = $createSubtreePlan(targetContent);
@@ -269,14 +307,15 @@ function $buildPlanForStage(
     return { plan: subtreePlan, stage };
   }
 
-  return $buildPlanForStage(anchorContent, stage + 1);
+  return $buildPlanForStage(anchorContent, stage + 1, boundaryRoot);
 }
 
 function $buildDirectionalStagePlan(
   anchorContent: ListItemNode,
   heads: ListItemNode[],
   stage: number,
-  direction: 'up' | 'down'
+  direction: 'up' | 'down',
+  boundaryRoot: ListItemNode | null
 ): ProgressivePlanResult | null {
   const anchorKey = anchorContent.getKey();
   const resolvedHeads = heads.length > 0 ? heads : [anchorContent];
@@ -300,8 +339,8 @@ function $buildDirectionalStagePlan(
   const isSiblingStage = relative % 2 === 0;
   const target = levelsUp === 0 ? anchorContent : ascendContentItem(anchorContent, levelsUp);
 
-  if (!target) {
-    const docPlan = $createDocumentPlan();
+  if (!target || (boundaryRoot && !isDescendantOf(target, boundaryRoot))) {
+    const docPlan = $resolveDocumentPlan(boundaryRoot);
     if (!docPlan) {
       return null;
     }
@@ -312,6 +351,10 @@ function $buildDirectionalStagePlan(
   const sortedHeads = sortHeadsByDocumentOrder(allHeads);
 
   if (isSiblingStage) {
+    if (boundaryRoot && target.getKey() === boundaryRoot.getKey()) {
+      const docPlan = $resolveDocumentPlan(boundaryRoot);
+      return docPlan ? { anchorKey, stage, plan: docPlan } : null;
+    }
     return $buildDirectionalSiblingPlan(target, resolvedHeads, sortedHeads, direction, anchorKey, stage);
   }
 
@@ -610,13 +653,25 @@ function $getDocumentBoundaryItems(): { start: ListItemNode; end: ListItemNode }
   return { start: firstItem, end: getSubtreeTail(lastItem) };
 }
 
-export function $isDirectionalBoundary(selection: RangeSelection, direction: 'up' | 'down'): boolean {
+function $resolveBoundaryItems(boundaryRoot: ListItemNode | null): { start: ListItemNode; end: ListItemNode } | null {
+  if (boundaryRoot) {
+    return { start: boundaryRoot, end: getSubtreeTail(boundaryRoot) };
+  }
+  return $getDocumentBoundaryItems();
+}
+
+export function $isDirectionalBoundary(
+  selection: RangeSelection,
+  direction: 'up' | 'down',
+  boundaryKey: string | null = null
+): boolean {
   const heads = getContiguousSelectionHeads(selection);
   if (heads.length === 0) {
     return false;
   }
 
-  const boundary = $getDocumentBoundaryItems();
+  const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
+  const boundary = $resolveBoundaryItems(boundaryRoot);
   if (!boundary) {
     return false;
   }

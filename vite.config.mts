@@ -45,6 +45,7 @@ export default defineConfig(() => {
       ])
     ),
     resolve: {
+      dedupe: ["react", "react-dom"],
       alias: {
         "@": "/src",
         "#tests": path.resolve(__dirname, "./tests/unit/_support/lib/index.ts"),
@@ -65,6 +66,7 @@ export default defineConfig(() => {
       ],
       exclude: [
         ...configDefaults.exclude,
+        '**/.pnpm-store/**',
         '**/data/**',
         'tests/e2e/**',
         ...(config.env.COLLAB_ENABLED ? [] : ['tests/unit/collab/**']),

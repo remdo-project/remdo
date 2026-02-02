@@ -14,7 +14,8 @@ export async function prepareEditorTestSurface(page: Page): Promise<void> {
       style.id = styleId;
       // TODO use routes or a similar mechanism to render just editor instead of using CSS tricks
       style.textContent = `
-      body *:not(.editor-container):not(.editor-container *):not(:has(.editor-container)) {
+      body *:not(.editor-container):not(.editor-container *):not(:has(.editor-container))
+        :not([data-zoom-breadcrumbs]):not([data-zoom-breadcrumbs] *) {
         display: none;
         pointer-events: none;
       }

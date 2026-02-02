@@ -86,7 +86,7 @@ async function setVanillaCaretToTextStart(page: Page, label: string): Promise<vo
 test('compares RemDo vs vanilla state after user-level indentation', async ({ page }, testInfo) => {
   const safeTitle = testInfo.title.replaceAll(/[^a-z0-9-]+/gi, '-').toLowerCase();
   const docId = `lexical-compare-${testInfo.workerIndex}-${safeTitle}-${Date.now()}`;
-  await page.goto(`/?doc=${docId}&lexicalDemo`);
+  await page.goto(`/n/${docId}?lexicalDemo=true`);
 
   await page.waitForSelector(VANILLA_TREE_SELECTOR);
   await editorLocator(page).locator('.editor-input').first().waitFor();

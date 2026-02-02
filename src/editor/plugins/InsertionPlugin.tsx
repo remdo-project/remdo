@@ -15,14 +15,8 @@ import {
   KEY_ENTER_COMMAND,
 } from 'lexical';
 import { useEffect } from 'react';
-import {
-  findNearestListItem,
-  isChildrenWrapper,
-  getContentListItem,
-  insertBefore,
-} from '@/editor/outline/list-structure';
+import { findNearestListItem, isChildrenWrapper, getContentListItem, insertBefore } from '@/editor/outline/list-structure';
 import { isPointAtBoundary, resolveBoundaryPoint } from '@/editor/outline/selection/caret';
-
 type CaretPlacement = 'start' | 'middle' | 'end';
 
 function $createNote(text: string): ListItemNode {

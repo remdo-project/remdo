@@ -2,6 +2,7 @@ import { waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { Outline } from '#tests';
 import {
+  clearEditorProps,
   collectSelectedListItems,
   collapseDomSelectionAtNode,
   dragDomSelectionBetween,
@@ -16,6 +17,7 @@ import {
   readCaretNoteKey,
   pressKey,
   readOutline,
+  registerEditorProps,
   typeText,
   meta,
 } from '#tests';
@@ -34,6 +36,9 @@ const TREE_COMPLEX_OUTLINE: Outline = [
   { noteId: 'note5', text: 'note5' },
   { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
 ];
+
+const ZOOM_SELECTION_KEY = registerEditorProps('zoom-selection-boundary', { zoomNoteId: 'note2' });
+const ZOOM_SELECTION_CTRL_A_KEY = registerEditorProps('zoom-selection-boundary-ctrl-a', { zoomNoteId: 'note2' });
 
 
 describe('selection plugin', () => {
@@ -750,6 +755,40 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
   });
+
+  it(
+    'clamps progressive selection to the zoom root',
+    meta({ fixture: 'tree-complex', editorPropsKey: ZOOM_SELECTION_KEY }),
+    async ({ remdo }) => {
+      await placeCaretAtNote(remdo, 'note2');
+
+      await pressKey(remdo, { key: 'ArrowDown', shift: true });
+      await pressKey(remdo, { key: 'ArrowDown', shift: true });
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+      await pressKey(remdo, { key: 'ArrowDown', shift: true });
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+      clearEditorProps(ZOOM_SELECTION_KEY);
+    }
+  );
+
+  it(
+    'clamps Cmd/Ctrl+A expansion to the zoom root',
+    meta({ fixture: 'tree-complex', editorPropsKey: ZOOM_SELECTION_CTRL_A_KEY }),
+    async ({ remdo }) => {
+      await placeCaretAtNote(remdo, 'note2');
+
+      await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+      await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+      await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+      clearEditorProps(ZOOM_SELECTION_CTRL_A_KEY);
+    }
+  );
 
   it('hoists the parent once Shift+Down runs out of siblings in an existing note range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
         const note2Text = getNoteTextNode(remdo, 'note2');

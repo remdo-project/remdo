@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useCollaborationStatus } from '../collaboration';
 import { assertEditorSchema } from './schema/assertEditorSchema';
 import { consumeSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
+import { SCHEMA_VALIDATE_SYNC_TAG } from '@/editor/update-tags';
 
 export function SchemaValidationPlugin(): null {
   const [editor] = useLexicalComposerContext();
@@ -39,7 +40,7 @@ export function SchemaValidationPlugin(): null {
 
     if (synced && !wasSyncedRef.current) {
       // Trigger a no-op update so the update listener validates within Lexical's cycle.
-      editor.update(() => {}, { tag: 'schema-validate-sync' });
+      editor.update(() => {}, { tag: SCHEMA_VALIDATE_SYNC_TAG });
     }
 
     wasSyncedRef.current = synced;

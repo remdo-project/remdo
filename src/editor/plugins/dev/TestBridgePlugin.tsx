@@ -1,11 +1,14 @@
 import { useEffect, useMemo } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { LexicalCommand, LexicalEditor, EditorUpdateOptions, SerializedEditorState } from 'lexical';
-import { $getRoot } from 'lexical';
+import { $createTextNode, $getRoot, $isTextNode } from 'lexical';
 import { assertEditorSchema } from './schema/assertEditorSchema';
 import { useCollaborationStatus } from '../collaboration';
 import { markSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
 import { $normalizeNoteIdsOnLoad } from '../note-id-normalization';
+import { $findNoteById } from '@/editor/outline/note-traversal';
+import { getContentListItem } from '@/editor/outline/list-structure';
+import { TEST_BRIDGE_LOAD_TAG, TEST_BRIDGE_MUTATE_TAG } from '@/editor/update-tags';
 
 async function withTimeout<T>(fnOrPromise: (() => Promise<T>) | Promise<T>, ms: number, message: string): Promise<T> {
   const promise = typeof fnOrPromise === 'function' ? fnOrPromise() : fnOrPromise;
@@ -161,7 +164,7 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
       if (options?.skipSchemaValidationOnce) {
         markSchemaValidationSkipOnce(editor);
       }
-      editor.setEditorState(parsed, { tag: 'test-bridge-load' });
+      editor.setEditorState(parsed, { tag: TEST_BRIDGE_LOAD_TAG });
     }, { skipSchemaValidation: options?.skipSchemaValidationOnce });
 
     if (options?.skipSchemaValidationOnce) {
@@ -178,7 +181,7 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
       throw new TypeError('TestBridgePlugin: mutate callback must be synchronous');
     }
 
-    const tag = ['test-bridge-mutate', ...(Array.isArray(opts?.tag) ? opts.tag : opts?.tag ? [opts.tag] : [])];
+    const tag = [TEST_BRIDGE_MUTATE_TAG, ...(Array.isArray(opts?.tag) ? opts.tag : opts?.tag ? [opts.tag] : [])];
     await withOutcome('mutate', 'update', () => editor.update(fn, { ...opts, tag }));
   };
 
@@ -195,6 +198,24 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
   const clear = async () => {
     await mutate(() => {
       $getRoot().clear();
+    });
+  };
+
+  const updateNoteText = async (noteId: string, text: string) => {
+    await mutate(() => {
+      const item = $findNoteById(noteId);
+      if (!item) {
+        return;
+      }
+
+      const content = getContentListItem(item);
+      const textNode = content.getChildren().find((child): child is ReturnType<typeof $createTextNode> => $isTextNode(child));
+      if (textNode) {
+        textNode.setTextContent(text);
+        return;
+      }
+
+      content.append($createTextNode(text));
     });
   };
 
@@ -221,6 +242,7 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
     validate,
     getEditorState,
     waitForSynced,
+    updateNoteText,
     dispatchCommand,
     getCollabDocId,
     _bridge: bridge,

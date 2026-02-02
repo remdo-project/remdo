@@ -28,10 +28,13 @@ import {
   getFirstDescendantListItem,
   getNestedList,
   getNextContentSibling,
+  getParentContentItem,
   getSubtreeTail,
   removeNoteSubtree,
   sortHeadsByDocumentOrder,
 } from '@/editor/outline/selection/tree';
+import { setZoomMergeHint } from '@/editor/zoom/zoom-change-hints';
+import { $getNoteId } from '#lib/editor/note-id-state';
 
 function getParentNote(list: ListNode): ListItemNode | null {
   const wrapper = list.getParent();
@@ -70,6 +73,25 @@ function isDescendantOf(node: LexicalNode, ancestor: LexicalNode): boolean {
     current = current.getParent();
   }
   return false;
+}
+
+function findLowestCommonAncestor(left: ListItemNode, right: ListItemNode): ListItemNode | null {
+  const leftKeys = new Set<string>();
+  let current: ListItemNode | null = left;
+  while (current) {
+    leftKeys.add(current.getKey());
+    current = getParentContentItem(current);
+  }
+
+  current = right;
+  while (current) {
+    if (leftKeys.has(current.getKey())) {
+      return current;
+    }
+    current = getParentContentItem(current);
+  }
+
+  return null;
 }
 
 function isCollapsedSelectionAtEdge(
@@ -416,6 +438,8 @@ export function DeletionPlugin() {
 
         if (currentIsEmptyLeaf || targetIsEmptyLeaf) {
           if (targetIsEmptyLeaf) {
+            const mergeAncestor = findLowestCommonAncestor(contentItem, target);
+            setZoomMergeHint(editor, mergeAncestor ? $getNoteId(mergeAncestor) : null);
             removeNoteSubtree(target);
             selection.anchor.set(contentItem.getKey(), 0, 'element');
             selection.focus.set(contentItem.getKey(), 0, 'element');
@@ -429,6 +453,8 @@ export function DeletionPlugin() {
         }
 
         if (currentText.length > 0) {
+          const mergeAncestor = findLowestCommonAncestor(contentItem, target);
+          setZoomMergeHint(editor, mergeAncestor ? $getNoteId(mergeAncestor) : null);
           const leftText = target.getTextContent();
           const { merged, joinOffset } = computeMergeText(leftText, currentText);
           const textNode = $setItemText(target, merged);
@@ -506,6 +532,8 @@ export function DeletionPlugin() {
 
         const leftText = contentItem.getTextContent();
         const rightText = nextNote.getTextContent();
+        const mergeAncestor = findLowestCommonAncestor(contentItem, nextNote);
+        setZoomMergeHint(editor, mergeAncestor ? $getNoteId(mergeAncestor) : null);
         const { merged, joinOffset } = computeMergeText(leftText, rightText);
         const textNode = $setItemText(contentItem, merged);
         textNode.select(joinOffset, joinOffset);

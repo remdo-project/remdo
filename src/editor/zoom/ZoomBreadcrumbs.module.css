@@ -1,0 +1,20 @@
+.breadcrumbs {
+  align-items: center;
+}
+
+.crumbButton {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--mantine-color-dark-0);
+  font: inherit;
+  cursor: pointer;
+}
+
+.crumbButton:hover {
+  text-decoration: underline;
+}
+
+.crumbCurrent {
+  color: var(--mantine-color-dark-2);
+}

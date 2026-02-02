@@ -12,7 +12,7 @@ interface EditorLoadOptions {
 }
 
 async function createEditorHarness(page: Page, docId: string) {
-  await page.goto(`/?doc=${docId}`);
+  await page.goto(`/n/${docId}`);
   await editorLocator(page).locator('.editor-input').first().waitFor();
   await ensureReady(page, { clear: true });
 

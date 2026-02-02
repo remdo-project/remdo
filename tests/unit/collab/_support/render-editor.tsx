@@ -3,18 +3,20 @@ import { configure, render, waitFor } from '@testing-library/react';
 import Editor from '@/editor/Editor';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { COLLAB_LONG_TIMEOUT_MS } from './timeouts';
+import type { ComponentProps } from 'react';
 
 configure({ asyncUtilTimeout: COLLAB_LONG_TIMEOUT_MS });
 
 interface RenderEditorOptions {
   docId: string;
+  editorProps?: Partial<ComponentProps<typeof Editor>>;
 }
 
 /**
  * Renders the RemDo editor for tests and resolves the window remdoTest API.
  * Centralizes collab origin resolution and waiting for bridge readiness.
  */
-export async function renderRemdoEditor({ docId }: RenderEditorOptions): Promise<{
+export async function renderRemdoEditor({ docId, editorProps }: RenderEditorOptions): Promise<{
   api: RemdoTestApi;
   unmount: () => void;
 }> {
@@ -22,7 +24,7 @@ export async function renderRemdoEditor({ docId }: RenderEditorOptions): Promise
 
   const { unmount } = render(
     <MantineProvider>
-      <Editor docId={docId} onTestBridgeReady={(value) => { api = value as RemdoTestApi; }} />
+      <Editor docId={docId} onTestBridgeReady={(value) => { api = value as RemdoTestApi; }} {...editorProps} />
     </MantineProvider>
   );
 

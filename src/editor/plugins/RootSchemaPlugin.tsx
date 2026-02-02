@@ -7,6 +7,7 @@ import { useCollaborationStatus } from './collaboration';
 import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '@/editor/outline/normalization';
 import { markSchemaValidationSkipOnce } from './dev/schema/schemaValidationSkipOnce';
 import { assertEditorSchema } from './dev/schema/assertEditorSchema';
+import { ROOT_SCHEMA_NORMALIZE_TAG } from '@/editor/update-tags';
 
 export function RootSchemaPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -47,7 +48,7 @@ export function RootSchemaPlugin() {
         repairingRef.current = true;
         editor.update(() => {
           $normalizeOutlineRoot($getRoot());
-        });
+        }, { tag: ROOT_SCHEMA_NORMALIZE_TAG });
         repairingRef.current = false;
         repairScheduledRef.current = false;
       });
@@ -82,5 +83,5 @@ function normalizeRootOnce(editor: LexicalEditor) {
   // Run a one-time normalization outside the transform cycle for fresh editors.
   editor.update(() => {
     $normalizeOutlineRoot($getRoot());
-  });
+  }, { tag: ROOT_SCHEMA_NORMALIZE_TAG });
 }

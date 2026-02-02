@@ -1,12 +1,13 @@
 import { Anchor, Container, Group, MantineProvider, Title } from '@mantine/core';
 import { IconBrandVite } from '@tabler/icons-react';
-import Editor from './editor/Editor';
-import VanillaLexicalEditor from './editor/dev/VanillaLexicalEditor';
+import { Link, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import headerStyles from './styles/AppHeader.module.css';
 import { theme } from './theme';
 import { config } from '#config';
 import '@mantine/core/styles.css';
 import { Icon } from './ui/Icon';
+import { DEFAULT_DOC_ID } from './routing';
+import VanillaLexicalEditor from './editor/dev/VanillaLexicalEditor';
 
 interface HostContext {
   protocol: string;
@@ -30,9 +31,16 @@ function buildUrl(host: HostContext, portOffset: number, path = ''): string {
   return `${host.protocol}//${host.hostname}:${host.basePort + portOffset}${path}`;
 }
 
-function resolveDocId(): string {
-  const doc = new URLSearchParams(globalThis.location.search).get('doc')?.trim();
-  return doc || config.env.COLLAB_DOCUMENT_ID;
+function buildSearch(params: { zoom?: string; lexicalDemo?: boolean }): string {
+  const searchParams = new URLSearchParams();
+  if (params.zoom) {
+    searchParams.set('zoom', params.zoom);
+  }
+  if (params.lexicalDemo) {
+    searchParams.set('lexicalDemo', 'true');
+  }
+  const search = searchParams.toString();
+  return search ? `?${search}` : '';
 }
 
 export default function App() {
@@ -43,7 +51,10 @@ export default function App() {
   const lexicalUrl = host
     ? `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`
     : '#lexical';
-  const showVanillaLexical = config.isDevOrTest && new URLSearchParams(globalThis.location.search).has('lexicalDemo');
+  const [searchParams] = useSearchParams();
+  const { docId } = useParams();
+  const showVanillaLexical = config.isDevOrTest && searchParams.has('lexicalDemo');
+  const currentDocId = docId ?? DEFAULT_DOC_ID;
 
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
@@ -51,17 +62,23 @@ export default function App() {
         <header className="app-header">
           <Group gap="md">
             <Title order={1} className="app-heading-title">
-              <a href="/" className={headerStyles.brandLink}>
+              <Link
+                to={`/n/${currentDocId}${buildSearch({})}`}
+                className={headerStyles.brandLink}
+              >
                 <span aria-hidden="true" className={headerStyles.brandIcon} />
                 RemDo
-              </a>
+              </Link>
             </Title>
           </Group>
           <nav>
             <Group gap="md" className="app-header-links">
-              <Anchor className="app-header-link" href="/?doc=project">
+              <Link
+                to={`/n/${DEFAULT_DOC_ID}${buildSearch({})}`}
+                className="app-header-link"
+              >
                 Project
-              </Anchor>
+              </Link>
               {config.isDev && (
                 <>
                   <Anchor className="app-header-link" href={previewUrl}>
@@ -77,9 +94,12 @@ export default function App() {
                   <Anchor className="app-header-link" href={lexicalUrl}>
                     Lexical
                   </Anchor>
-                  <Anchor className="app-header-link" href="/?lexicalDemo">
+                  <Link
+                    to={`/n/${currentDocId}${buildSearch({ lexicalDemo: true })}`}
+                    className="app-header-link"
+                  >
                     Lexical Demo
-                  </Anchor>
+                  </Link>
                 </>
               )}
             </Group>
@@ -87,7 +107,7 @@ export default function App() {
         </header>
 
         {showVanillaLexical && <VanillaLexicalEditor />}
-        <Editor docId={resolveDocId()} />
+        <Outlet />
       </Container>
     </MantineProvider>
   );
