@@ -3,7 +3,7 @@ import type { TextNode } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 import { clearEditorProps, getNoteElement, meta, registerEditorProps } from '#tests';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
-import { $findNoteById } from '@/editor/outline/note-traversal';
+import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
 
 interface SerializedNode {
   children?: SerializedNode[];
@@ -68,6 +68,20 @@ describe('zoom plugin', () => {
       }, 100);
 
       clearEditorProps(zoomPathKey);
+    }
+  );
+
+  it(
+    'emits breadcrumb labels for parent notes without concatenating descendant text',
+    meta({ fixture: 'tree' }),
+    async ({ remdo }) => {
+      const path = remdo.validate(() => {
+        const note = $findNoteById('note3')!;
+        return $getNoteAncestorPath(note);
+      });
+
+      expect(path.map((item) => item.noteId)).toEqual(['note2', 'note3']);
+      expect(path.map((item) => item.label)).toEqual(['note2', 'note3']);
     }
   );
 
