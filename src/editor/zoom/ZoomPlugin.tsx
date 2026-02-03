@@ -1,4 +1,11 @@
-import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelection, COLLABORATION_TAG } from 'lexical';
+import {
+  $getNearestNodeFromDOMNode,
+  $getNodeByKey,
+  $getSelection,
+  $isRangeSelection,
+  COLLABORATION_TAG,
+  COMMAND_PRIORITY_LOW,
+} from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useCallback, useEffect, useRef } from 'react';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
@@ -14,11 +21,11 @@ import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
 import { getParentContentItem } from '@/editor/outline/selection/tree';
 import { $getNoteId } from '#lib/editor/note-id-state';
+import { ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import {
   NOTE_ID_NORMALIZE_TAG,
   ROOT_SCHEMA_NORMALIZE_TAG,
   TEST_BRIDGE_LOAD_TAG,
-  ZOOM_BULLET_TAG,
   ZOOM_CARET_TAG,
   ZOOM_INIT_TAG,
 } from '@/editor/update-tags';
@@ -178,6 +185,26 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
     autoZoomReadyRef.current = collab.synced;
   }, [collab.synced, collab.docEpoch]);
 
+  useEffect(() => {
+    return editor.registerCommand(
+      ZOOM_TO_NOTE_COMMAND,
+      ({ noteId }) => {
+        if (!noteId) {
+          return false;
+        }
+        const targetItem = $findNoteById(noteId);
+        if (!targetItem) {
+          return false;
+        }
+        onZoomNoteIdChange?.(noteId);
+        $selectItemEdge(targetItem, 'start');
+        editor.focus();
+        return true;
+      },
+      COMMAND_PRIORITY_LOW
+    );
+  }, [editor, onZoomNoteIdChange]);
+
   const handleBulletPointerDown = useCallback(
     (event: PointerEvent) => {
       const target = event.target as HTMLElement | null;
@@ -214,19 +241,9 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       event.preventDefault();
       event.stopPropagation();
 
-      onZoomNoteIdChange?.(noteId);
-
-      editor.update(() => {
-        const targetItem = $findNoteById(noteId);
-        if (!targetItem) {
-          return;
-        }
-        $selectItemEdge(targetItem, 'start');
-      }, { tag: ZOOM_BULLET_TAG });
-
-      editor.focus();
+      editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId });
     },
-    [editor, onZoomNoteIdChange]
+    [editor]
   );
 
   const handleBulletPointerMove = useCallback((event: PointerEvent) => {
