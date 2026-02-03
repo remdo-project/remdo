@@ -38,6 +38,7 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/folding.md` (Short). Note folding behavior, visibility filtering,
   persistence, and auto-expand rules.
 - `docs/outliner/index.md` (Short). Entry point with links; single-source invariants rule.
+- `docs/outliner/menu.md` (Short). Note menu entry points, targets, and actions.
 - `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization, clipboard identity
   rules, collab, `noteRef`.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indentation
