@@ -12,13 +12,15 @@ details.
 2. **Note identity:** `./note-ids.md` — `noteId` invariants, lifecycle, and global reference rules.
 3. **Selection:** `./selection.md` — whole-note, contiguous slab selection model and shortcut ladder.
 4. **Zoom view:** `./zoom.md` — subtree isolation, breadcrumbs, and route state.
-5. **Clipboard:** `./clipboard.md` — cut/copy/paste behavior, caret placement, and move rules.
-6. **Indent/Outdent & structure rules:** `./note-structure-rules.md` — structural invariants and indent/outdent semantics.
-7. **Insertion (Enter):** `../insertion.md` — caret-mode Enter behaviors (start/middle/end) and focus rules.
-8. **Reordering (keyboard):** `./reordering.md` — Reordering behavior and
+5. **Folding:** `./folding.md` — collapse/expand note subtrees, visibility
+   filtering, and persistence.
+6. **Clipboard:** `./clipboard.md` — cut/copy/paste behavior, caret placement, and move rules.
+7. **Indent/Outdent & structure rules:** `./note-structure-rules.md` — structural invariants and indent/outdent semantics.
+8. **Insertion (Enter):** `../insertion.md` — caret-mode Enter behaviors (start/middle/end) and focus rules.
+9. **Reordering (keyboard):** `./reordering.md` — Reordering behavior and
    placement invariants.
-9. **Reordering (drag & drop):** `./drag-and-drop.md` — not supported yet; future plan lives here.
-10. **Deletion:** `./deletion.md` — caret vs. structural deletion semantics, merge/no-op rules, and spacing contract.
+10. **Reordering (drag & drop):** `./drag-and-drop.md` — not supported yet; future plan lives here.
+11. **Deletion:** `./deletion.md` — caret vs. structural deletion semantics, merge/no-op rules, and spacing contract.
 
 ## Glossary (minimal)
 

@@ -236,7 +236,7 @@ export function sortHeadsByDocumentOrder(heads: ListItemNode[]): ListItemNode[] 
   return heads.toSorted(compareDocumentOrder);
 }
 
-function getContentDepth(item: ListItemNode): number {
+export function getContentDepth(item: ListItemNode): number {
   let depth = 0;
   let current: ListItemNode | null = getParentContentItem(item);
   while (current) {
@@ -244,6 +244,17 @@ function getContentDepth(item: ListItemNode): number {
     current = getParentContentItem(current);
   }
   return depth;
+}
+
+export function isContentDescendantOf(candidate: ListItemNode, ancestor: ListItemNode): boolean {
+  let current: ListItemNode | null = candidate;
+  while (current) {
+    if (current.getKey() === ancestor.getKey()) {
+      return true;
+    }
+    current = getParentContentItem(current);
+  }
+  return false;
 }
 
 function getNodePath(node: ListItemNode): number[] {

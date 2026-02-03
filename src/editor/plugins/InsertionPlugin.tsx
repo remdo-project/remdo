@@ -15,6 +15,7 @@ import {
   KEY_ENTER_COMMAND,
 } from 'lexical';
 import { useEffect } from 'react';
+import { $isNoteFolded } from '#lib/editor/fold-state';
 import { findNearestListItem, isChildrenWrapper, getContentListItem, insertBefore } from '@/editor/outline/list-structure';
 import { isPointAtBoundary, resolveBoundaryPoint } from '@/editor/outline/selection/caret';
 type CaretPlacement = 'start' | 'middle' | 'end';
@@ -37,6 +38,15 @@ function $handleEnterAtEnd(contentItem: ListItemNode) {
   const list = isChildrenWrapper(wrapper) ? wrapper.getFirstChild<ListNode>() : null;
 
   if (list && list.getChildrenSize() > 0) {
+    if ($isNoteFolded(contentItem)) {
+      const newSibling = $createNote('');
+      const reference = isChildrenWrapper(wrapper) ? wrapper : contentItem;
+      reference.insertAfter(newSibling);
+      const textNode = newSibling.getChildren().find($isTextNode);
+      textNode?.select(0, 0);
+      return;
+    }
+
     const newChild = $createNote('');
     const firstChild = list.getFirstChild();
     if (firstChild) {

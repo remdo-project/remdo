@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { placeCaretAtNote, placeCaretAtNoteTextNode, pressKey, readCaretNoteId, typeText, meta } from '#tests';
+import { $setNoteFolded } from '#lib/editor/fold-state';
+import { $findNoteById } from '@/editor/outline/note-traversal';
 
 describe('insertion semantics (docs/insertion.md)', () => {
   it('enter at start inserts a previous sibling and keeps children with the original', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -69,6 +71,25 @@ describe('insertion semantics (docs/insertion.md)', () => {
           { noteId: 'note2', text: 'note2' },
         ],
       },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+    expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
+  });
+
+  it('enter at end of a folded parent inserts a next sibling', meta({ fixture: 'basic' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      $setNoteFolded(note, true);
+    });
+
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter' });
+    const newNoteId = readCaretNoteId(remdo);
+    await typeText(remdo, 'X');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', folded: true, children: [{ noteId: 'note2', text: 'note2' }] },
+      { noteId: newNoteId, text: 'X' },
       { noteId: 'note3', text: 'note3' },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });

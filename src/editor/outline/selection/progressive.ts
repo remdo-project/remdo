@@ -19,6 +19,7 @@ import {
   getNextContentSibling,
   getParentContentItem,
   getSubtreeTail,
+  isContentDescendantOf,
   sortHeadsByDocumentOrder,
 } from './tree';
 
@@ -63,17 +64,6 @@ function $resolveBoundaryRoot(boundaryKey: string | null | undefined): ListItemN
     return null;
   }
   return getContentListItem(node);
-}
-
-function isDescendantOf(candidate: ListItemNode, ancestor: ListItemNode): boolean {
-  let current: ListItemNode | null = candidate;
-  while (current) {
-    if (current.getKey() === ancestor.getKey()) {
-      return true;
-    }
-    current = getParentContentItem(current);
-  }
-  return false;
 }
 
 function $resolveDocumentPlan(boundaryRoot: ListItemNode | null): ProgressivePlan | null {
@@ -273,7 +263,7 @@ function $buildPlanForStage(
   const includeSiblings = relative % 2 === 0;
 
   const targetContent = ascendContentItem(anchorContent, levelsUp);
-  if (!targetContent || (boundaryRoot && !isDescendantOf(targetContent, boundaryRoot))) {
+  if (!targetContent || (boundaryRoot && !isContentDescendantOf(targetContent, boundaryRoot))) {
     const docPlan = $resolveDocumentPlan(boundaryRoot);
     return docPlan ? { plan: docPlan, stage } : null;
   }
@@ -339,7 +329,7 @@ function $buildDirectionalStagePlan(
   const isSiblingStage = relative % 2 === 0;
   const target = levelsUp === 0 ? anchorContent : ascendContentItem(anchorContent, levelsUp);
 
-  if (!target || (boundaryRoot && !isDescendantOf(target, boundaryRoot))) {
+  if (!target || (boundaryRoot && !isContentDescendantOf(target, boundaryRoot))) {
     const docPlan = $resolveDocumentPlan(boundaryRoot);
     if (!docPlan) {
       return null;

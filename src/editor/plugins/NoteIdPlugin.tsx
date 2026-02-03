@@ -23,6 +23,7 @@ import {
 import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { createNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
+import { $autoExpandIfFolded } from '#lib/editor/fold-state';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import {
   findNearestListItem,
@@ -442,6 +443,7 @@ function $insertNodesAtSelection(
     } else {
       const nested = getNestedList(contentItem);
       if (nested && nested.getChildrenSize() > 0) {
+        $autoExpandIfFolded(contentItem);
         parentList = nested;
         nextSibling = getFirstDescendantListItem(nested);
       } else {

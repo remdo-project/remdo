@@ -10,3 +10,9 @@ Rules:
 - Delete sections once fully done (no archive here).
 - Move durable decisions/specs into the relevant doc under `docs/`, leaving a
   link behind.
+
+## Tooling
+
+- Keep `@typescript-eslint/utils` explicitly listed in dev deps for
+  `eslint-plugin-antfu` runtime imports. Drop it once the upgraded plugin
+  properly declares the dependency.
