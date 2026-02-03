@@ -1,7 +1,7 @@
 ###############################
 # Builder: compile SPA assets #
 ###############################
-FROM node:22-alpine AS builder
+FROM node:24.12-alpine AS builder
 
 WORKDIR /app
 
@@ -43,7 +43,7 @@ RUN mkdir -p /usr/local/bin \
 ############################
 # Runner: serve SPA + YJS  #
 ############################
-FROM node:22-alpine AS runner
+FROM node:24.12-alpine AS runner
 
 # TODO: Add a test to ensure this pinned version stays aligned with package.json.
 ENV YSWEET_VERSION=^0.9.1

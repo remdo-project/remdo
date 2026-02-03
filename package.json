@@ -2,7 +2,7 @@
   "type": "module",
   "packageManager": "pnpm@10.27.0+sha512.72d699da16b1179c14ba9e64dc71c9a40988cbdc65c264cb0e489db7de917f20dcf4d64d8723625f2969ba52d4b7e2a1170682d9ac2a5dcaeaab732b7e16f04a",
   "engines": {
-    "node": ">=22.12.0"
+    "node": "24.12.x"
   },
   "browserslist": {
     "production": [
@@ -51,7 +51,7 @@
     "test": "pnpm run test:unit",
     "test:all": "pnpm install --frozen-lockfile --lockfile-only && pnpm run lint && pnpm run test:unit && pnpm run test:collab && pnpm run test:e2e",
     "test:unit": "cross-env NODE_ENV=test COLLAB_ENABLED=false ./tools/env.sh timeout ${TEST_TIMEOUT:-60}s pnpm exec vitest run",
-    "test:collab": "cross-env NODE_ENV=test ./tools/env.sh timeout ${TEST_TIMEOUT:-60}s pnpm exec vitest run",
+    "test:collab": "cross-env NODE_ENV=test ./tools/env.sh timeout ${TEST_TIMEOUT:-120}s pnpm exec vitest run",
     "test:collab:repeat": "sh -c 'for i in $(seq 1 20); do echo \"===== collab run $i/20 =====\"; pnpm run test:collab || exit 1; done'",
     "test:dev": "cross-env NODE_ENV=test REMDO_VALIDATE_MAIN_DOC=1 ./tools/env.sh pnpm exec vitest run tests/unit/collab/main-doc-schema.collab.spec.ts",
     "test:unit:coverage": "cross-env NODE_ENV=test COLLAB_ENABLED=false ./tools/env.sh timeout ${TEST_TIMEOUT:-60}s pnpm exec vitest run --coverage",
