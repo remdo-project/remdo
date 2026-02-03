@@ -206,6 +206,10 @@
   --fold-toggle-mask-images: url('/icons/menu-2.svg'), url('/icons/plus.svg');
 }
 
+.editor-root li.list-item[data-folded='true'] + li.list-nested-item {
+  display: none;
+}
+
 .editor-root li.list-item::before {
   content: '';
   position: absolute;

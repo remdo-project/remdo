@@ -112,6 +112,8 @@ document captures the full model.
 - When writing tests against known fixtures, assume the fixture shape; avoid
   defensive assertions about expected structure unless the test is explicitly
   about validation.
+- In fixture-based tests, do not add runtime guards (for example
+  `if (!node) throw`) for known fixture nodes; use non-null assertions instead.
 - If you spot any tradeoffs or pros and cons of alternative solutions always ask
   first before implementing one.
 - Don't assume that the request is always clear, if in doubt ask before

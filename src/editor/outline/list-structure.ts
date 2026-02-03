@@ -1,8 +1,9 @@
 // TODO: add unit tests covering every helper in this module.
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
-import { reportInvariant } from '@/editor/invariant';
 import type { LexicalNode } from 'lexical';
+import { $autoExpandIfFolded } from '#lib/editor/fold-state';
+import { reportInvariant } from '@/editor/invariant';
 
 type ChildListItemNode = ListItemNode & { getFirstChild: () => ListNode };
 
@@ -131,6 +132,8 @@ export const $getOrCreateChildList = (parentNote: ListItemNode): ListNode => {
   if (!$isListNode(parentList)) {
     throw new Error('Expected parent note to live inside a list');
   }
+
+  $autoExpandIfFolded(parentNote);
 
   const existingWrapper = parentNote.getNextSibling();
   if (isChildrenWrapper(existingWrapper)) {

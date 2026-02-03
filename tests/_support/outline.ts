@@ -6,6 +6,7 @@ import { traverseSerializedOutline } from '@/editor/plugins/dev/schema/traverseS
 export interface OutlineNode {
   noteId: string | null;
   text?: string;
+  folded?: boolean;
   children?: Outline;
 }
 
@@ -46,6 +47,9 @@ export function extractOutlineFromEditorState(state: unknown): Outline {
       const node: OutlineNode = { noteId: note.noteId };
       if (text !== null) {
         node.text = text;
+      }
+      if (note.folded === true) {
+        node.folded = true;
       }
       if (note.children.length > 0) {
         node.children = readNotes(note.children);
