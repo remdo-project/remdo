@@ -32,7 +32,7 @@ export default function DocumentRoute() {
       nextParams.delete('zoom');
     }
     const nextSearch = nextParams.toString();
-    navigate(
+    void navigate(
       {
         search: nextSearch ? `?${nextSearch}` : '',
       },

@@ -4,5 +4,5 @@ import { router } from './router';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   // TODO: Re-enable React.StrictMode when double-render side effects are fixed.
-  <RouterProvider router={router} future={{ v7_startTransition: true }} />
+  <RouterProvider router={router} />
 );
