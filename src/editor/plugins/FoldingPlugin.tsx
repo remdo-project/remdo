@@ -84,16 +84,19 @@ const $shouldCollapseSelection = (
     return false;
   }
 
-  const anchorItem =
-    findNearestListItem(selection.anchor.getNode()) ?? findNearestListItem(selection.focus.getNode());
-  if (!anchorItem) {
+  const anchorItem = findNearestListItem(selection.anchor.getNode());
+  const focusItem = findNearestListItem(selection.focus.getNode());
+  if (!anchorItem && !focusItem) {
     return false;
   }
-  const contentItem = getContentListItem(anchorItem);
-  if (contentItem.getKey() === foldedItem.getKey()) {
-    return false;
-  }
-  return isContentDescendantOf(contentItem, foldedItem);
+  const items = [anchorItem, focusItem].filter((item): item is ListItemNode => item !== null);
+  return items.some((item) => {
+    const contentItem = getContentListItem(item);
+    if (contentItem.getKey() === foldedItem.getKey()) {
+      return false;
+    }
+    return isContentDescendantOf(contentItem, foldedItem);
+  });
 };
 
 const isFoldToggleHit = (element: HTMLElement, event: PointerEvent): boolean => {
