@@ -30,22 +30,6 @@ const noteHasChildren = (item: ListItemNode): boolean => {
   return getContentSiblings(nested).length > 0;
 };
 
-const resolveContentItem = (item: ListItemNode | null): ListItemNode | null => {
-  if (!item) {
-    return null;
-  }
-  const contentItem = getContentListItem(item);
-  return isChildrenWrapper(contentItem) ? null : contentItem;
-};
-
-const $toggleFold = (item: ListItemNode): boolean => {
-  if (!noteHasChildren(item)) {
-    return false;
-  }
-  $setNoteFolded(item, !$isNoteFolded(item));
-  return true;
-};
-
 const resolveTargetByY = (root: HTMLElement, clientY: number): HTMLElement | null => {
   const items = root.querySelectorAll<HTMLElement>('li.list-item:not(.list-nested-item)');
   for (const item of items) {
@@ -348,8 +332,11 @@ export function FoldingPlugin() {
           return null;
         }
         const listNode = findNearestListItem(node);
-        const contentItem = resolveContentItem(listNode);
-        if (!contentItem || !noteHasChildren(contentItem)) {
+        if (!listNode) {
+          return null;
+        }
+        const contentItem = getContentListItem(listNode);
+        if (isChildrenWrapper(contentItem) || !noteHasChildren(contentItem)) {
           return null;
         }
         return contentItem.getKey();
@@ -395,11 +382,15 @@ export function FoldingPlugin() {
         if (!node) {
           return false;
         }
-        const contentItem = resolveContentItem(node);
-        if (!contentItem) {
+        const contentItem = getContentListItem(node);
+        if (isChildrenWrapper(contentItem)) {
           return false;
         }
-        return $toggleFold(contentItem);
+        if (!noteHasChildren(contentItem)) {
+          return false;
+        }
+        $setNoteFolded(contentItem, !$isNoteFolded(contentItem));
+        return true;
       },
       COMMAND_PRIORITY_LOW
     );
