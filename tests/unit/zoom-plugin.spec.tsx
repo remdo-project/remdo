@@ -1,9 +1,10 @@
 import { $isTextNode } from 'lexical';
 import type { TextNode } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
-import { clearEditorProps, getNoteElement, meta, registerEditorProps } from '#tests';
+import { clearEditorProps, getNoteElement, meta, readCaretNoteId, registerEditorProps } from '#tests';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
+import { ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 
 interface SerializedNode {
   children?: SerializedNode[];
@@ -87,6 +88,8 @@ describe('zoom plugin', () => {
 
   const zoomNoteSpy = vi.fn();
   const zoomNoteKey = createEditorPropsKey('zoom-bullet', { zoomNoteId: null, onZoomNoteIdChange: zoomNoteSpy });
+  const zoomCommandSpy = vi.fn();
+  const zoomCommandKey = createEditorPropsKey('zoom-command', { zoomNoteId: null, onZoomNoteIdChange: zoomCommandSpy });
 
   it(
     'requests zoom when the bullet is clicked',
@@ -106,6 +109,24 @@ describe('zoom plugin', () => {
       });
 
       clearEditorProps(zoomNoteKey);
+    }
+  );
+
+  it(
+    'requests zoom when the zoom command is dispatched',
+    meta({ fixture: 'basic', editorPropsKey: zoomCommandKey }),
+    async ({ remdo }) => {
+      await remdo.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId: 'note2' });
+
+      await waitForCall(() => {
+        expect(zoomCommandSpy).toHaveBeenCalledWith('note2');
+      });
+
+      await waitForCall(() => {
+        expect(readCaretNoteId(remdo)).toBe('note2');
+      });
+
+      clearEditorProps(zoomCommandKey);
     }
   );
 
