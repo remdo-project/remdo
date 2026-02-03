@@ -8,9 +8,11 @@ import {
   $getRoot,
   $getSelection,
   $isRangeSelection,
+  COMMAND_PRIORITY_LOW,
 } from 'lexical';
 
 import { $isNoteFolded, $setNoteFolded } from '#lib/editor/fold-state';
+import { TOGGLE_NOTE_FOLD_COMMAND } from '@/editor/commands';
 import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import type { OutlineSelection } from '@/editor/outline/selection/model';
@@ -26,6 +28,22 @@ const noteHasChildren = (item: ListItemNode): boolean => {
     return false;
   }
   return getContentSiblings(nested).length > 0;
+};
+
+const resolveContentItem = (item: ListItemNode | null): ListItemNode | null => {
+  if (!item) {
+    return null;
+  }
+  const contentItem = getContentListItem(item);
+  return isChildrenWrapper(contentItem) ? null : contentItem;
+};
+
+const $toggleFold = (item: ListItemNode): boolean => {
+  if (!noteHasChildren(item)) {
+    return false;
+  }
+  $setNoteFolded(item, !$isNoteFolded(item));
+  return true;
 };
 
 const resolveTargetByY = (root: HTMLElement, clientY: number): HTMLElement | null => {
@@ -324,35 +342,27 @@ export function FoldingPlugin() {
         return;
       }
 
+      const noteKey = editor.getEditorState().read(() => {
+        const node = $getNearestNodeFromDOMNode(listItem);
+        if (!node) {
+          return null;
+        }
+        const listNode = findNearestListItem(node);
+        const contentItem = resolveContentItem(listNode);
+        if (!contentItem || !noteHasChildren(contentItem)) {
+          return null;
+        }
+        return contentItem.getKey();
+      });
+
+      if (!noteKey) {
+        return;
+      }
+
       event.preventDefault();
       event.stopPropagation();
 
-      editor.update(() => {
-        const node = $getNearestNodeFromDOMNode(listItem);
-        if (!node) {
-          return;
-        }
-        const listNode = findNearestListItem(node);
-        if (!listNode || isChildrenWrapper(listNode)) {
-          return;
-        }
-        const contentItem = getContentListItem(listNode);
-        if (!noteHasChildren(contentItem)) {
-          return;
-        }
-
-        const nextFolded = !$isNoteFolded(contentItem);
-        $setNoteFolded(contentItem, nextFolded);
-
-        if (nextFolded) {
-          const selection = $getSelection();
-          const outlineSelection = editor.selection.get();
-          if ($shouldCollapseSelection(selection, outlineSelection, contentItem)) {
-            $selectItemEdge(contentItem, 'end');
-          }
-        }
-      });
-
+      editor.dispatchCommand(TOGGLE_NOTE_FOLD_COMMAND, { noteKey });
       editor.focus();
     };
 
@@ -378,8 +388,25 @@ export function FoldingPlugin() {
       refreshFoldedAttributes();
     });
 
+    const unregisterToggleCommand = editor.registerCommand(
+      TOGGLE_NOTE_FOLD_COMMAND,
+      ({ noteKey }) => {
+        const node = $getNodeByKey<ListItemNode>(noteKey);
+        if (!node) {
+          return false;
+        }
+        const contentItem = resolveContentItem(node);
+        if (!contentItem) {
+          return false;
+        }
+        return $toggleFold(contentItem);
+      },
+      COMMAND_PRIORITY_LOW
+    );
+
     return () => {
       unregisterRootListener();
+      unregisterToggleCommand();
       unregisterUpdate();
       unregisterTransform();
       if (currentRoot) {

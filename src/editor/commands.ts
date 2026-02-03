@@ -2,6 +2,7 @@ import { createCommand } from 'lexical';
 
 export const REORDER_NOTES_UP_COMMAND = createCommand<undefined>('remdo:reorder-notes-up');
 export const REORDER_NOTES_DOWN_COMMAND = createCommand<undefined>('remdo:reorder-notes-down');
+export const TOGGLE_NOTE_FOLD_COMMAND = createCommand<{ noteKey: string }>('remdo:toggle-note-fold');
 export const COLLAPSE_STRUCTURAL_SELECTION_COMMAND = createCommand<{
   edge?: 'start' | 'end' | 'anchor';
 }>('selection:collapse-structural');
