@@ -18,9 +18,13 @@ import type { LexicalNode, TextNode } from 'lexical';
 import { useEffect, useState } from 'react';
 import {
   findNearestListItem,
+  flattenNoteNodes,
+  getContentSiblings,
   getContentListItem,
   getPreviousContentSibling,
   isChildrenWrapper,
+  insertBefore,
+  $getOrCreateChildList,
 } from '@/editor/outline/list-structure';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
@@ -133,6 +137,36 @@ function $setItemText(item: ListItemNode, text: string): TextNode {
 
 function isEmptyNote(item: ListItemNode): boolean {
   return item.getTextContent().trim().length === 0;
+}
+
+function getChildContentItems(item: ListItemNode): ListItemNode[] {
+  const nested = getNestedList(item);
+  if (!nested) {
+    return [];
+  }
+
+  return getContentSiblings(nested);
+}
+
+function $moveChildrenToTarget(
+  current: ListItemNode,
+  target: ListItemNode,
+  mode: 'append' | 'replace'
+): boolean {
+  const children = getChildContentItems(current);
+  if (children.length === 0) {
+    return false;
+  }
+
+  const nodesToMove = flattenNoteNodes(children);
+  if (mode === 'replace') {
+    insertBefore(current, nodesToMove);
+    return true;
+  }
+
+    const targetList = $getOrCreateChildList(target);
+    targetList.append(...nodesToMove);
+    return true;
 }
 
 function getNextNoteInDocumentOrder(item: ListItemNode): ListItemNode | null {
@@ -271,10 +305,6 @@ export function DeletionPlugin() {
           return false;
         }
 
-        if (noteHasChildren(contentItem)) {
-          return true;
-        }
-
         const previousSibling = getPreviousContentSibling(contentItem);
         if (previousSibling) {
           return false;
@@ -378,6 +408,51 @@ export function DeletionPlugin() {
       return true;
     };
 
+    const $mergeAtStartOfNote = (selection: ReturnType<typeof $getSelection>, current: ListItemNode): boolean => {
+      const target = getPreviousNoteInDocumentOrder(current);
+      if (!target) {
+        return true;
+      }
+
+      const currentHasChildren = noteHasChildren(current);
+      const targetHasChildren = noteHasChildren(target);
+      const currentIsEmptyLeaf = !currentHasChildren && isEmptyNote(current);
+      const targetIsEmptyLeaf = !targetHasChildren && isEmptyNote(target);
+
+      if (targetIsEmptyLeaf) {
+        const mergeAncestor = findLowestCommonAncestor(current, target);
+        setZoomMergeHint(editor, mergeAncestor ? $getNoteId(mergeAncestor) : null);
+        removeNoteSubtree(target);
+        $selectItemEdge(current, 'start');
+        return true;
+      }
+
+      if (currentIsEmptyLeaf) {
+        removeNoteSubtree(current);
+        $selectItemEdge(target, 'end');
+        return true;
+      }
+
+      const mergeAncestor = findLowestCommonAncestor(current, target);
+      setZoomMergeHint(editor, mergeAncestor ? $getNoteId(mergeAncestor) : null);
+      const leftText = target.getTextContent();
+      const rightText = current.getTextContent();
+      const { merged, joinOffset } = computeMergeText(leftText, rightText);
+      const textNode = $setItemText(target, merged);
+      textNode.select(joinOffset, joinOffset);
+
+      if (currentHasChildren) {
+        const targetIsParent = getParentContentItem(current) === target;
+        $moveChildrenToTarget(current, target, targetIsParent ? 'replace' : 'append');
+      }
+
+      removeNoteSubtree(current);
+      if ($isRangeSelection(selection)) {
+        selection.dirty = true;
+      }
+      return true;
+    };
+
     const unregisterBackspace = editor.registerCommand(
       KEY_BACKSPACE_COMMAND,
       (event: KeyboardEvent | null) => {
@@ -405,69 +480,10 @@ export function DeletionPlugin() {
           return false;
         }
 
-        const currentHasChildren = noteHasChildren(contentItem);
-        if (currentHasChildren) {
-          event?.preventDefault();
-          event?.stopPropagation();
-          return true;
-        }
-
-        const previousSibling = getPreviousContentSibling(contentItem);
-        const parentList = contentItem.getParent();
-        const parentNote = $isListNode(parentList) ? getParentNote(parentList) : null;
-
-        if (!previousSibling && !parentNote) {
-          event?.preventDefault();
-          event?.stopPropagation();
-          return true;
-        }
-
         event?.preventDefault();
         event?.stopPropagation();
 
-        const currentText = contentItem.getTextContent();
-
-        const target = previousSibling ? getSubtreeTail(previousSibling) : parentNote;
-        if (!target) {
-          return true;
-        }
-
-        const currentIsEmptyLeaf = isEmptyNote(contentItem);
-        const targetHasChildren = noteHasChildren(target);
-        const targetIsEmptyLeaf = !targetHasChildren && isEmptyNote(target);
-
-        if (currentIsEmptyLeaf || targetIsEmptyLeaf) {
-          if (targetIsEmptyLeaf) {
-            const mergeAncestor = findLowestCommonAncestor(contentItem, target);
-            setZoomMergeHint(editor, mergeAncestor ? $getNoteId(mergeAncestor) : null);
-            removeNoteSubtree(target);
-            selection.anchor.set(contentItem.getKey(), 0, 'element');
-            selection.focus.set(contentItem.getKey(), 0, 'element');
-            selection.dirty = true;
-            return true;
-          }
-
-          removeNoteSubtree(contentItem);
-          $selectItemEdge(target, 'end');
-          return true;
-        }
-
-        if (currentText.length > 0) {
-          const mergeAncestor = findLowestCommonAncestor(contentItem, target);
-          setZoomMergeHint(editor, mergeAncestor ? $getNoteId(mergeAncestor) : null);
-          const leftText = target.getTextContent();
-          const { merged, joinOffset } = computeMergeText(leftText, currentText);
-          const textNode = $setItemText(target, merged);
-          textNode.select(joinOffset, joinOffset);
-        } else {
-          removeNoteSubtree(contentItem);
-          $selectItemEdge(target, 'end');
-          return true;
-        }
-
-        removeNoteSubtree(contentItem);
-
-        return true;
+        return $mergeAtStartOfNote(selection, contentItem);
       },
       COMMAND_PRIORITY_CRITICAL
     );
@@ -526,21 +542,11 @@ export function DeletionPlugin() {
           return true;
         }
 
-        if (noteHasChildren(nextNote)) {
+        if (currentHasChildren && noteHasChildren(nextNote)) {
           return true;
         }
 
-        const leftText = contentItem.getTextContent();
-        const rightText = nextNote.getTextContent();
-        const mergeAncestor = findLowestCommonAncestor(contentItem, nextNote);
-        setZoomMergeHint(editor, mergeAncestor ? $getNoteId(mergeAncestor) : null);
-        const { merged, joinOffset } = computeMergeText(leftText, rightText);
-        const textNode = $setItemText(contentItem, merged);
-        textNode.select(joinOffset, joinOffset);
-
-        removeNoteSubtree(nextNote);
-
-        return true;
+        return $mergeAtStartOfNote(selection, nextNote);
       },
       COMMAND_PRIORITY_CRITICAL
     );
