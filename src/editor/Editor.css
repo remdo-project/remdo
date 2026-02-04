@@ -274,6 +274,19 @@
   -webkit-mask-image: url('/icons/plus.svg');
 }
 
+.note-menu-anchor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  transform: translate(calc(-100% - var(--note-control-gap, 0.35em)), -50%);
+}
+
+.note-menu-shortcut {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
 .editor-root li.list-item.list-nested-item::before {
   content: '';
   display: none;
