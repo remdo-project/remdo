@@ -15,8 +15,8 @@ note identities.
 
 1. Only notes with children are foldable. Leaf notes never show the toggle.
 2. The toggle appears when the pointer is within a note's row bounds and inside
-   the editor width, regardless of horizontal position. It is rendered to the
-   left of the note content. `+` means folded; `-` means expanded.
+   the editor width, or when the note is the caret/focus target. It is rendered
+   to the left of the note content. `+` means folded; `-` means expanded.
 3. Clicking the toggle hides or reveals descendants. Folding is view-only and
    never changes structure or order. Descendants keep their own fold status
    when an ancestor is toggled.

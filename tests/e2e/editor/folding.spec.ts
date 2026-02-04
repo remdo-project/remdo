@@ -14,7 +14,8 @@ test.describe('Folding', () => {
       { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
     ]);
 
-    await listItem.hover();
+    const listItemBox = (await listItem.boundingBox())!;
+    await page.mouse.move(listItemBox.x + listItemBox.width / 2, listItemBox.y + listItemBox.height / 2);
     const foldButton = editorLocator(page).locator('.note-controls__button--expanded');
     await expect(foldButton).toBeVisible();
     await foldButton.click();
@@ -45,7 +46,8 @@ test.describe('Folding', () => {
     await expect(listItem).toBeVisible();
     await expect(childItem).toBeVisible();
 
-    await listItem.hover();
+    const listItemBox = (await listItem.boundingBox())!;
+    await page.mouse.move(listItemBox.x + listItemBox.width / 2, listItemBox.y + listItemBox.height / 2);
     const menuButton = editorLocator(page).locator('.note-controls__button--menu');
     await expect(menuButton).toBeVisible();
     await menuButton.click();
@@ -60,7 +62,8 @@ test.describe('Folding', () => {
     await setCaretAtText(page, 'note3', 2);
 
     const listItem = editorLocator(page).locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note2' }).first();
-    await listItem.hover();
+    const listItemBox = (await listItem.boundingBox())!;
+    await page.mouse.move(listItemBox.x + listItemBox.width / 2, listItemBox.y + listItemBox.height / 2);
     const foldButton = editorLocator(page).locator('.note-controls__button--expanded');
     await expect(foldButton).toBeVisible();
     await foldButton.click();
