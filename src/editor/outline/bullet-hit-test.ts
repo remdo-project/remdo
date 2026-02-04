@@ -71,18 +71,36 @@ const measureGlyphWidth = (style: CSSStyleDeclaration): GlyphMetrics | null => {
 };
 
 export const isBulletHit = (element: HTMLElement, event: PointerEvent) => {
-  let beforeStyle: CSSStyleDeclaration | null = null;
+  let pseudoStyle: CSSStyleDeclaration | null = null;
   const baseStyle = globalThis.getComputedStyle(element);
+  const isChecklistItem =
+    element.classList.contains('list-item-checked') || element.classList.contains('list-item-unchecked');
   if (!config.isTest) {
     try {
-      beforeStyle = globalThis.getComputedStyle(element, '::before');
+      pseudoStyle = globalThis.getComputedStyle(element, '::before');
     } catch {
-      beforeStyle = null;
+      pseudoStyle = null;
     }
   }
 
   const liRect = element.getBoundingClientRect();
-  if (!beforeStyle) {
+  if (isChecklistItem) {
+    const bulletWidth = Number.parseFloat(baseStyle.getPropertyValue('--bullet-width'));
+    const bulletLeft = Number.parseFloat(baseStyle.getPropertyValue('--bullet-left'));
+    if (Number.isFinite(bulletWidth) && bulletWidth > 0) {
+      const start = liRect.left + (Number.isFinite(bulletLeft) ? bulletLeft : 0);
+      const end = start + bulletWidth;
+      return event.clientX >= start && event.clientX <= end;
+    }
+  }
+  if (!pseudoStyle) {
+    const bulletWidth = Number.parseFloat(baseStyle.getPropertyValue('--bullet-width'));
+    const bulletLeft = Number.parseFloat(baseStyle.getPropertyValue('--bullet-left'));
+    if (Number.isFinite(bulletWidth) && bulletWidth > 0) {
+      const start = liRect.left + (Number.isFinite(bulletLeft) ? bulletLeft : 0);
+      const end = start + bulletWidth;
+      return event.clientX >= start && event.clientX <= end;
+    }
     const fallbackWidth = Number.parseFloat(baseStyle.paddingLeft);
     if (!Number.isFinite(fallbackWidth) || fallbackWidth <= 0) {
       return false;
@@ -92,12 +110,12 @@ export const isBulletHit = (element: HTMLElement, event: PointerEvent) => {
     return event.clientX >= start && event.clientX <= end;
   }
 
-  const containerWidth = Number.parseFloat(beforeStyle.width);
-  const left = Number.parseFloat(beforeStyle.left);
+  const containerWidth = Number.parseFloat(pseudoStyle.width);
+  const left = Number.parseFloat(pseudoStyle.left);
   if (!Number.isFinite(containerWidth) || containerWidth <= 0) {
     return false;
   }
-  const glyphMetrics = measureGlyphWidth(beforeStyle);
+  const glyphMetrics = measureGlyphWidth(pseudoStyle);
   const baseLeft = liRect.left + (Number.isFinite(left) ? left : 0);
   if (!glyphMetrics) {
     const start = baseLeft;
@@ -107,7 +125,7 @@ export const isBulletHit = (element: HTMLElement, event: PointerEvent) => {
 
   let offset = 0;
   if (containerWidth > glyphMetrics.width) {
-    const align = beforeStyle.textAlign;
+    const align = pseudoStyle.textAlign;
     if (align === 'center') {
       offset = (containerWidth - glyphMetrics.width) / 2;
     } else if (align === 'right' || align === 'end') {

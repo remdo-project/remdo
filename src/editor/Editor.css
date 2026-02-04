@@ -175,6 +175,14 @@
   --bullet-width: 0.4em;
   --bullet-gap: 0.6em;
   --bullet-mask-image: url('/icons/bullet-circle.svg');
+  --marker-left: var(--bullet-left);
+  --marker-width: var(--bullet-width);
+  --marker-gap: var(--bullet-gap);
+  --marker-height: var(--bullet-width);
+  --marker-mask-image: var(--bullet-mask-image);
+  --marker-mask-size: var(--bullet-width) var(--bullet-width);
+  --marker-mask-position: center;
+  --marker-mask-repeat: no-repeat;
   --fold-toggle-size: 0.85em;
   --fold-toggle-gap: 0.35em;
   --zoom-glow-offset: 0.35em;
@@ -183,7 +191,7 @@
   --zoom-glow-top: calc((1.6em - var(--bullet-width)) / 2 - var(--zoom-glow-offset));
   list-style-type: none;
   position: relative;
-  padding-left: calc(var(--bullet-width) + var(--bullet-gap));
+  padding-left: calc(var(--marker-width) + var(--marker-gap));
   cursor: text;
   background-repeat: no-repeat;
 }
@@ -199,22 +207,27 @@
 .editor-root li.list-item::before {
   content: '';
   position: absolute;
-  left: var(--bullet-left);
-  top: calc((1.6em - var(--bullet-width)) / 2);
-  width: var(--bullet-width);
-  height: var(--bullet-width);
+  left: var(--marker-left);
+  top: calc((1.6em - var(--marker-height)) / 2);
+  width: var(--marker-width);
+  height: var(--marker-height);
   background-color: var(--mantine-color-dark-2);
-  mask-image: var(--bullet-mask-image);
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: contain;
-  -webkit-mask-image: var(--bullet-mask-image);
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  -webkit-mask-size: contain;
+  mask-image: var(--marker-mask-image);
+  mask-repeat: var(--marker-mask-repeat);
+  mask-position: var(--marker-mask-position);
+  mask-size: var(--marker-mask-size);
+  -webkit-mask-image: var(--marker-mask-image);
+  -webkit-mask-repeat: var(--marker-mask-repeat);
+  -webkit-mask-position: var(--marker-mask-position);
+  -webkit-mask-size: var(--marker-mask-size);
   transition: filter 120ms ease, background-color 120ms ease;
   user-select: none;
   pointer-events: none;
+}
+
+.editor-root li.list-item[role='checkbox']:focus,
+.editor-root li.list-item[role='checkbox']:focus-visible {
+  outline: none;
 }
 
 .editor-root ol.list-ol {
@@ -244,13 +257,17 @@
 
 .editor-root li.list-item.list-item-checked,
 .editor-root li.list-item.list-item-unchecked {
-  --bullet-width: 0.85em;
-  --bullet-gap: 0.55em;
-  --bullet-mask-image: url('/icons/checkbox-unchecked.svg');
+  --checkbox-width: 0.85em;
+  --checkbox-gap: 0.35em;
+  --marker-width: calc(var(--bullet-width) + var(--checkbox-gap) + var(--checkbox-width));
+  --marker-height: max(var(--bullet-width), var(--checkbox-width));
+  --marker-mask-image: var(--bullet-mask-image), url('/icons/checkbox-unchecked.svg');
+  --marker-mask-size: var(--bullet-width) var(--bullet-width), var(--checkbox-width) var(--checkbox-width);
+  --marker-mask-position: left center, calc(var(--bullet-width) + var(--checkbox-gap)) center;
 }
 
 .editor-root li.list-item.list-item-checked {
-  --bullet-mask-image: url('/icons/checkbox-checked.svg');
+  --marker-mask-image: var(--bullet-mask-image), url('/icons/checkbox-checked.svg');
 }
 
 .note-controls-layer {
