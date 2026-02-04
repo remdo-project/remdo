@@ -1,6 +1,6 @@
 import type { ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getNearestNodeFromDOMNode } from 'lexical';
+import { $getNearestNodeFromDOMNode, $getSelection, $isRangeSelection } from 'lexical';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -23,6 +23,8 @@ interface NoteControlsState {
 
 interface NoteControlsLayout
   extends Pick<NoteControlsState, 'left' | 'top' | 'fontSize' | 'controlSize' | 'controlGap'> {}
+
+type InteractionSource = 'hover' | 'caret';
 
 const noteHasChildren = (item: ListItemNode): boolean => {
   const nested = getNestedList(item);
@@ -52,6 +54,7 @@ export function NoteControlsPlugin() {
   });
   const [controls, setControls] = useState<NoteControlsState | null>(null);
   const hoverElementRef = useRef<HTMLElement | null>(null);
+  const interactionSourceRef = useRef<InteractionSource>('hover');
 
   const resolveLayout = (
     element: HTMLElement,
@@ -106,36 +109,107 @@ export function NoteControlsPlugin() {
       return result;
     };
 
-    const clearHover = () => {
-      hoverElementRef.current = null;
+    const resolveSelectionKey = (): string | null => {
+      let key: string | null = null;
+      editor.read(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) {
+          return;
+        }
+        const focusItem =
+          findNearestListItem(selection.focus.getNode()) ??
+          findNearestListItem(selection.anchor.getNode());
+        if (!focusItem) {
+          return;
+        }
+        const contentItem = getContentListItem(focusItem);
+        if (isChildrenWrapper(contentItem)) {
+          return;
+        }
+        key = contentItem.getKey();
+      });
+      return key;
+    };
+
+    const resolveSelectionElement = (root: HTMLElement): HTMLElement | null => {
+      const key = resolveSelectionKey();
+      if (!key) {
+        return null;
+      }
+      const element = editor.getElementByKey(key);
+      if (!(element instanceof HTMLElement)) {
+        return null;
+      }
+      if (!root.contains(element)) {
+        return null;
+      }
+      return element;
+    };
+
+    const clearControls = () => {
       setControls(null);
     };
 
-    const syncHover = () => {
-      const root = rootRef.current ?? editor.getRootElement();
-      const anchor = root ? root.closest<HTMLElement>('.editor-container') : null;
-      const element = hoverElementRef.current;
-      if (!root || !anchor || !element) {
-        clearHover();
-        return;
-      }
+    const syncControlsForElement = (element: HTMLElement, root: HTMLElement, anchor: HTMLElement) => {
       const noteState = resolveNoteState(element);
       if (!noteState) {
-        clearHover();
+        clearControls();
         return;
       }
       const layout = resolveLayout(element, root, anchor);
       if (!layout) {
-        clearHover();
+        clearControls();
         return;
       }
       setControls({ ...layout, ...noteState });
     };
 
+    const syncActiveControls = () => {
+      const root = rootRef.current ?? editor.getRootElement();
+      const anchor = root ? root.closest<HTMLElement>('.editor-container') : null;
+      if (!root || !anchor) {
+        clearControls();
+        return;
+      }
+
+      const hoverElement = hoverElementRef.current;
+      if (hoverElement && !root.contains(hoverElement)) {
+        hoverElementRef.current = null;
+      }
+
+      let selectionElement: HTMLElement | null = null;
+      let active: HTMLElement | null = null;
+      if (interactionSourceRef.current === 'hover') {
+        active = hoverElementRef.current;
+        if (!active) {
+          selectionElement = resolveSelectionElement(root);
+          active = selectionElement;
+        }
+      } else {
+        selectionElement = resolveSelectionElement(root);
+        active = selectionElement ?? hoverElementRef.current;
+      }
+
+      if (!active) {
+        clearControls();
+        return;
+      }
+      syncControlsForElement(active, root, anchor);
+    };
+
+    const setInteractionSource = (source: InteractionSource): boolean => {
+      if (interactionSourceRef.current === source) {
+        return false;
+      }
+      interactionSourceRef.current = source;
+      return true;
+    };
+
     const handlePointerMove = (event: PointerEvent | MouseEvent) => {
+      const sourceChanged = setInteractionSource('hover');
       const root = rootRef.current ?? editor.getRootElement();
       if (!root) {
-        clearHover();
+        clearControls();
         return;
       }
       const surfaceRect = root.getBoundingClientRect();
@@ -145,13 +219,17 @@ export function NoteControlsPlugin() {
         event.clientY < surfaceRect.top ||
         event.clientY > surfaceRect.bottom
       ) {
-        clearHover();
+        hoverElementRef.current = null;
+        syncActiveControls();
         return;
       }
 
       if (hoverElementRef.current) {
         const rect = hoverElementRef.current.getBoundingClientRect();
         if (event.clientY >= rect.top && event.clientY <= rect.bottom) {
+          if (sourceChanged) {
+            syncActiveControls();
+          }
           return;
         }
       }
@@ -164,25 +242,31 @@ export function NoteControlsPlugin() {
       const nextHover = candidate ?? resolveTargetByY(root, event.clientY);
 
       if (nextHover === hoverElementRef.current) {
+        if (sourceChanged) {
+          syncActiveControls();
+        }
         return;
       }
       hoverElementRef.current = nextHover;
       if (!nextHover) {
-        clearHover();
+        syncActiveControls();
         return;
       }
-      syncHover();
+      syncActiveControls();
     };
 
     const handleScroll = () => {
-      if (hoverElementRef.current) {
-        syncHover();
-      }
+      syncActiveControls();
     };
 
     const handleResize = () => {
-      if (hoverElementRef.current) {
-        syncHover();
+      syncActiveControls();
+    };
+
+    const handleKeyDown = () => {
+      const sourceChanged = setInteractionSource('caret');
+      if (sourceChanged) {
+        syncActiveControls();
       }
     };
 
@@ -190,6 +274,7 @@ export function NoteControlsPlugin() {
     if (currentRoot) {
       rootRef.current = currentRoot;
       currentRoot.addEventListener('scroll', handleScroll);
+      currentRoot.addEventListener('keydown', handleKeyDown);
     }
 
     document.addEventListener('pointermove', handlePointerMove);
@@ -197,20 +282,20 @@ export function NoteControlsPlugin() {
     const unregisterRootListener = editor.registerRootListener((nextRoot, previousRoot) => {
       if (previousRoot) {
         previousRoot.removeEventListener('scroll', handleScroll);
+        previousRoot.removeEventListener('keydown', handleKeyDown);
       }
       currentRoot = nextRoot;
       rootRef.current = nextRoot;
       setPortalRoot(nextRoot ? nextRoot.closest<HTMLElement>('.editor-container') : null);
       if (currentRoot) {
         currentRoot.addEventListener('scroll', handleScroll);
+        currentRoot.addEventListener('keydown', handleKeyDown);
       }
-      syncHover();
+      syncActiveControls();
     });
 
     const unregisterUpdate = editor.registerUpdateListener(() => {
-      if (hoverElementRef.current) {
-        syncHover();
-      }
+      syncActiveControls();
     });
 
     globalThis.addEventListener('resize', handleResize);
@@ -222,8 +307,9 @@ export function NoteControlsPlugin() {
       document.removeEventListener('pointermove', handlePointerMove);
       if (currentRoot) {
         currentRoot.removeEventListener('scroll', handleScroll);
+        currentRoot.removeEventListener('keydown', handleKeyDown);
       }
-      clearHover();
+      clearControls();
     };
   }, [editor]);
 

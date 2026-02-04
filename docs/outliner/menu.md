@@ -2,7 +2,8 @@
 
 ## Entry
 
-1. Clicking the menu icon beside a note row opens the menu for that note.
+1. Clicking the menu icon beside a note row opens the menu for that note. The
+   icon appears on hover or when the note is the caret/focus target.
 2. Double-Shift within 500ms opens the menu for the caret note when the editor
    is focused; any other key between the two Shift presses cancels the gesture.
 
