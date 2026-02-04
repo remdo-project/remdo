@@ -145,6 +145,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
   const lastPathRef = useRef<NotePathItem[] | null>(null);
   const zoomNoteIdRef = useRef<string | null>(resolveZoomNoteId(zoomNoteId));
   const lastHoverRef = useRef<HTMLElement | null>(null);
+  const rootRef = useRef<HTMLElement | null>(editor.getRootElement());
   const zoomParentTrackedRef = useRef(false);
   const zoomParentKeyRef = useRef<string | null>(null);
   const skipZoomSelectionRef = useRef(false);
@@ -206,18 +207,12 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
   }, [editor, onZoomNoteIdChange]);
 
   const handleBulletPointerDown = useCallback(
-    (event: PointerEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (!target) {
-        return;
-      }
-
-      const listItem = target.closest<HTMLElement>('li.list-item');
+    (event: PointerEvent | MouseEvent, listItem: HTMLElement | null) => {
       if (!listItem) {
         return;
       }
 
-      if (!isBulletHit(listItem, event)) {
+      if (!isBulletHit(listItem, event as PointerEvent)) {
         return;
       }
 
@@ -246,9 +241,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
     [editor]
   );
 
-  const handleBulletPointerMove = useCallback((event: PointerEvent) => {
-    const target = event.target as HTMLElement | null;
-    const listItem = target?.closest<HTMLElement>('li.list-item') ?? null;
+  const handleBulletPointerMove = useCallback((event: PointerEvent | MouseEvent, listItem: HTMLElement | null) => {
     if (!listItem) {
       if (lastHoverRef.current) {
         delete lastHoverRef.current.dataset.zoomBulletHover;
@@ -257,7 +250,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       return;
     }
 
-    if (isBulletHit(listItem, event)) {
+    if (isBulletHit(listItem, event as PointerEvent)) {
       const canZoom = editor.read(() => {
         const node = $getNearestNodeFromDOMNode(listItem);
         if (!node) {
@@ -300,33 +293,68 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
 
   useEffect(() => {
     let currentRoot = editor.getRootElement();
-    if (currentRoot) {
-      currentRoot.addEventListener('pointerdown', handleBulletPointerDown);
-      currentRoot.addEventListener('pointermove', handleBulletPointerMove);
-      currentRoot.addEventListener('pointerleave', handlePointerLeave);
-    }
+    rootRef.current = currentRoot;
 
-    const unregisterRootListener = editor.registerRootListener((rootElement, previousRoot) => {
-      if (previousRoot) {
-        previousRoot.removeEventListener('pointerdown', handleBulletPointerDown);
-        previousRoot.removeEventListener('pointermove', handleBulletPointerMove);
-        previousRoot.removeEventListener('pointerleave', handlePointerLeave);
+    const resolveListItemFromEvent = (event: PointerEvent | MouseEvent) => {
+      const root = rootRef.current;
+      if (!root) {
+        return null;
       }
+
+      const resolveFromElement = (element: Element | null): HTMLElement | null =>
+        element ? element.closest<HTMLElement>('li.list-item') : null;
+
+      let listItem: HTMLElement | null = event.target instanceof Element
+        ? resolveFromElement(event.target)
+        : null;
+
+      if (!listItem && typeof document.elementsFromPoint === 'function') {
+        const stack = document.elementsFromPoint(event.clientX, event.clientY);
+        for (const element of stack) {
+          listItem = resolveFromElement(element);
+          if (listItem) {
+            break;
+          }
+        }
+      }
+
+      if (!listItem) {
+        const hit = document.elementFromPoint(event.clientX, event.clientY);
+        listItem = resolveFromElement(hit);
+      }
+
+      if (!listItem || !root.contains(listItem)) {
+        return null;
+      }
+
+      return listItem;
+    };
+
+    const handleDocumentPointerMove = (event: PointerEvent | MouseEvent) => {
+      const listItem = resolveListItemFromEvent(event);
+      handleBulletPointerMove(event, listItem);
+    };
+
+    const handleDocumentPointerDown = (event: PointerEvent | MouseEvent) => {
+      const listItem = resolveListItemFromEvent(event);
+      if (!listItem) {
+        return;
+      }
+      handleBulletPointerDown(event, listItem);
+    };
+
+    document.addEventListener('pointermove', handleDocumentPointerMove);
+    document.addEventListener('pointerdown', handleDocumentPointerDown);
+
+    const unregisterRootListener = editor.registerRootListener((rootElement, _previousRoot) => {
       currentRoot = rootElement ?? null;
-      if (currentRoot) {
-        currentRoot.addEventListener('pointerdown', handleBulletPointerDown);
-        currentRoot.addEventListener('pointermove', handleBulletPointerMove);
-        currentRoot.addEventListener('pointerleave', handlePointerLeave);
-      }
+      rootRef.current = currentRoot;
     });
 
     return () => {
       unregisterRootListener();
-      if (currentRoot) {
-        currentRoot.removeEventListener('pointerdown', handleBulletPointerDown);
-        currentRoot.removeEventListener('pointermove', handleBulletPointerMove);
-        currentRoot.removeEventListener('pointerleave', handlePointerLeave);
-      }
+      document.removeEventListener('pointermove', handleDocumentPointerMove);
+      document.removeEventListener('pointerdown', handleDocumentPointerDown);
       if (lastHoverRef.current) {
         delete lastHoverRef.current.dataset.zoomBulletHover;
         lastHoverRef.current = null;

@@ -20,6 +20,7 @@ import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { ZoomPlugin } from './zoom/ZoomPlugin';
 import { ZoomVisibilityPlugin } from './zoom/ZoomVisibilityPlugin';
 import { FoldingPlugin } from './plugins/FoldingPlugin';
+import { NoteControlsPlugin } from './plugins/NoteControlsPlugin';
 import './Editor.css';
 
 interface EditorProps {
@@ -60,6 +61,7 @@ export default function Editor({
           <DeletionPlugin />
           <SelectionInputPlugin />
           <FoldingPlugin />
+          <NoteControlsPlugin />
           <ZoomPlugin zoomNoteId={zoomNoteId} onZoomNoteIdChange={onZoomNoteIdChange} onZoomPathChange={onZoomPathChange} />
           <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
           <ListPlugin hasStrictIndent />
