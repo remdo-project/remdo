@@ -217,6 +217,42 @@
   pointer-events: none;
 }
 
+.editor-root ol.list-ol {
+  counter-reset: remdo-ordered;
+}
+
+.editor-root ol.list-ol > li.list-item {
+  --bullet-width: 1.4em;
+  --bullet-gap: 0.5em;
+}
+
+.editor-root ol.list-ol > li.list-item:not(.list-nested-item) {
+  counter-increment: remdo-ordered;
+}
+
+.editor-root ol.list-ol > li.list-item:not(.list-nested-item)::before {
+  content: counter(remdo-ordered) '.';
+  background-color: transparent;
+  mask-image: none;
+  -webkit-mask-image: none;
+  color: var(--mantine-color-dark-2);
+  font-size: 0.85em;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  line-height: var(--bullet-width);
+}
+
+.editor-root li.list-item.list-item-checked,
+.editor-root li.list-item.list-item-unchecked {
+  --bullet-width: 0.85em;
+  --bullet-gap: 0.55em;
+  --bullet-mask-image: url('/icons/checkbox-unchecked.svg');
+}
+
+.editor-root li.list-item.list-item-checked {
+  --bullet-mask-image: url('/icons/checkbox-checked.svg');
+}
+
 .note-controls-layer {
   position: absolute;
   inset: 0;

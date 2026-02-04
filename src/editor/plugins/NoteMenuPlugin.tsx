@@ -1,4 +1,4 @@
-import type { ListItemNode } from '@lexical/list';
+import type { ListItemNode, ListType } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { Menu } from '@mantine/core';
 import { mergeRegister } from '@lexical/utils';
@@ -23,6 +23,7 @@ interface NoteMenuState {
   noteKey: string;
   hasChildren: boolean;
   isFolded: boolean;
+  childListType: ListType | null;
   left: number;
   top: number;
 }
@@ -39,6 +40,12 @@ const noteHasChildren = (item: ListItemNode): boolean => {
   }
   return getContentSiblings(nested).length > 0;
 };
+
+const listTypeOptions = [
+  { type: 'number' as const, label: 'Numbered list', id: 'list-number' },
+  { type: 'check' as const, label: 'Checklist', id: 'list-check' },
+  { type: 'bullet' as const, label: 'Bulleted list', id: 'list-bullet' },
+];
 
 const resolveAnchorFromRect = (rect: DOMRect, anchorRect: DOMRect): NoteMenuAnchor => ({
   left: rect.right - anchorRect.left,
@@ -199,8 +206,10 @@ export function NoteMenuPlugin() {
 
     const resolveNoteState = (
       element: HTMLElement
-    ): { noteKey: string; hasChildren: boolean; isFolded: boolean } | null => {
-      let result: { noteKey: string; hasChildren: boolean; isFolded: boolean } | null = null;
+    ): { noteKey: string; hasChildren: boolean; isFolded: boolean; childListType: ListType | null } | null => {
+      let result:
+        | { noteKey: string; hasChildren: boolean; isFolded: boolean; childListType: ListType | null }
+        | null = null;
       editor.read(() => {
         const node = $getNearestNodeFromDOMNode(element);
         if (!node) {
@@ -218,10 +227,12 @@ export function NoteMenuPlugin() {
           return;
         }
         const hasChildren = noteHasChildren(contentItem);
+        const childListType = hasChildren ? getNestedList(contentItem)?.getListType() ?? null : null;
         result = {
           noteKey: contentItem.getKey(),
           hasChildren,
           isFolded: hasChildren && $isNoteFolded(contentItem),
+          childListType,
         };
       });
       return result;
@@ -402,6 +413,10 @@ export function NoteMenuPlugin() {
   };
 
   const foldLabel = menu.isFolded ? 'Unfold' : 'Fold';
+  const listActions =
+    menu.hasChildren && menu.childListType
+      ? listTypeOptions.filter((option) => option.type !== menu.childListType)
+      : [];
 
   return createPortal(
     <Menu
@@ -443,6 +458,38 @@ export function NoteMenuPlugin() {
         <Menu.Item data-note-menu-item="zoom" onClick={triggerZoom}>
           {renderShortcutLabel('Zoom', 'Z')}
         </Menu.Item>
+        {listActions.length > 0 ? (
+          <>
+            <Menu.Label>Children</Menu.Label>
+            {listActions.map((option) => (
+              <Menu.Item
+                key={option.type}
+                data-note-menu-item={option.id}
+                onClick={() => {
+                  editor.update(() => {
+                    const node = $getNodeByKey<ListItemNode>(menu.noteKey);
+                    if (!node) {
+                      return;
+                    }
+                    const contentItem = getContentListItem(node);
+                    if (isChildrenWrapper(contentItem)) {
+                      return;
+                    }
+                    const nested = getNestedList(contentItem);
+                    if (!nested) {
+                      return;
+                    }
+                    nested.setListType(option.type);
+                  });
+                  closeMenu();
+                  editor.focus();
+                }}
+              >
+                {option.label}
+              </Menu.Item>
+            ))}
+          </>
+        ) : null}
       </Menu.Dropdown>
     </Menu>,
     portalRoot

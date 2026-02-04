@@ -10,8 +10,10 @@
 ## Actions
 
 1. Fold/Unfold toggles per `./folding.md`, hidden for leaf notes, shortcut `F`.
-2. Zoom per `./zoom.md`, shortcut `Z`.
-3. Menu labels visually mark the shortcut letter.
+2. Children list type actions switch the note's immediate children to bullet, numbered, or checked lists,
+   showing only the two non-current options; hidden for leaf notes.
+3. Zoom per `./zoom.md`, shortcut `Z`.
+4. Menu labels visually mark the shortcut letter.
 
 ## Behavior
 
