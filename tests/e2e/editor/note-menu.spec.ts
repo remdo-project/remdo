@@ -37,8 +37,6 @@ test.describe('Note menu', () => {
     await editor.load('tree');
 
     const { menu } = await openMenuForNote(page, 'note2');
-    await expect(menu).toHaveAttribute('data-note-menu-note-id', 'note2');
-
     await page.getByRole('button', { name: editor.docId }).first().click();
     await expect(menu).toHaveCount(0);
 
@@ -56,7 +54,8 @@ test.describe('Note menu', () => {
 
     const menu = menuLocator(page);
     await expect(menu).toHaveCount(1);
-    await expect(menu).toHaveAttribute('data-note-menu-note-id', 'note1');
+    await expect(menuItem(page, 'fold')).toHaveCount(0);
+    await expect(menuItem(page, 'zoom')).toHaveCount(1);
   });
 
   test('double-shift is canceled by other keys', async ({ page, editor }) => {

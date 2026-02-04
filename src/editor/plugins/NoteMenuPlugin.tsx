@@ -1,8 +1,10 @@
 import type { ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { Menu } from '@mantine/core';
+import { mergeRegister } from '@lexical/utils';
 import {
   $getNearestNodeFromDOMNode,
+  $getNodeByKey,
   COMMAND_PRIORITY_LOW,
   SELECTION_CHANGE_COMMAND,
 } from 'lexical';
@@ -19,18 +21,13 @@ import { getNestedList } from '@/editor/outline/selection/tree';
 
 interface NoteMenuState {
   noteKey: string;
-  noteId: string | null;
   hasChildren: boolean;
   isFolded: boolean;
   left: number;
   top: number;
-  fontSize?: string;
-  controlGap?: string;
-  controlSize?: string;
 }
 
-interface NoteMenuLayout
-  extends Pick<NoteMenuState, 'left' | 'top' | 'fontSize' | 'controlGap' | 'controlSize'> {}
+interface NoteMenuLayout extends Pick<NoteMenuState, 'left' | 'top'> {}
 
 const DOUBLE_SHIFT_WINDOW_MS = 500;
 
@@ -46,18 +43,11 @@ const resolveLayout = (element: HTMLElement, root: HTMLElement, anchor: HTMLElem
   if (!root.contains(element)) {
     return null;
   }
-  const style = globalThis.getComputedStyle(element);
-  const fontSizeValue = style.fontSize.trim();
-  const fontSize = fontSizeValue.length > 0 ? fontSizeValue : undefined;
-  const controlGapValue = style.getPropertyValue('--fold-toggle-gap').trim();
-  const controlSizeValue = style.getPropertyValue('--fold-toggle-size').trim();
-  const controlGap = controlGapValue.length > 0 ? controlGapValue : undefined;
-  const controlSize = controlSizeValue.length > 0 ? controlSizeValue : undefined;
   const rect = element.getBoundingClientRect();
   const anchorRect = anchor.getBoundingClientRect();
   const left = rect.left - anchorRect.left + root.scrollLeft;
   const top = rect.top - anchorRect.top + root.scrollTop + rect.height / 2;
-  return { left, top, fontSize, controlGap, controlSize };
+  return { left, top };
 };
 
 const renderShortcutLabel = (label: string, shortcut: string) => {
@@ -111,10 +101,25 @@ export function NoteMenuPlugin() {
 
   const triggerZoom = () => {
     const current = menuRef.current;
-    if (!current?.noteId) {
+    if (!current) {
       return;
     }
-    editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId: current.noteId });
+    const noteId = editor.getEditorState().read(() => {
+      const node = $getNodeByKey<ListItemNode>(current.noteKey);
+      if (!node) {
+        return null;
+      }
+      const contentItem = getContentListItem(node);
+      if (isChildrenWrapper(contentItem)) {
+        return null;
+      }
+      return $getNoteId(contentItem);
+    });
+    if (!noteId) {
+      closeMenu();
+      return;
+    }
+    editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId });
     closeMenu();
     editor.focus();
   };
@@ -202,8 +207,8 @@ export function NoteMenuPlugin() {
 
     const resolveNoteState = (
       element: HTMLElement
-    ): { noteKey: string; noteId: string | null; hasChildren: boolean; isFolded: boolean } | null => {
-      let result: { noteKey: string; noteId: string | null; hasChildren: boolean; isFolded: boolean } | null = null;
+    ): { noteKey: string; hasChildren: boolean; isFolded: boolean } | null => {
+      let result: { noteKey: string; hasChildren: boolean; isFolded: boolean } | null = null;
       editor.read(() => {
         const node = $getNearestNodeFromDOMNode(element);
         if (!node) {
@@ -223,7 +228,6 @@ export function NoteMenuPlugin() {
         const hasChildren = noteHasChildren(contentItem);
         result = {
           noteKey: contentItem.getKey(),
-          noteId: $getNoteId(contentItem),
           hasChildren,
           isFolded: hasChildren && $isNoteFolded(contentItem),
         };
@@ -357,36 +361,26 @@ export function NoteMenuPlugin() {
 
     globalThis.addEventListener('resize', syncMenuPosition);
 
-    return () => {
-      unregisterRootListener();
-      unregisterOpenCommand();
-      unregisterSelectionChange();
-      globalThis.removeEventListener('resize', syncMenuPosition);
-      doubleShiftHandlerRef.current = null;
-      closeMenu();
-    };
+    return mergeRegister(
+      unregisterRootListener,
+      unregisterOpenCommand,
+      unregisterSelectionChange,
+      () => {
+        globalThis.removeEventListener('resize', syncMenuPosition);
+        doubleShiftHandlerRef.current = null;
+        closeMenu();
+      }
+    );
   }, [closeMenu, editor, setMenuState, syncMenuPosition]);
 
   if (!portalRoot || !menu) {
     return null;
   }
 
-  const style: CSSProperties & {
-    '--note-control-gap'?: string;
-    '--note-control-size'?: string;
-  } = {
+  const style: CSSProperties = {
     left: menu.left,
     top: menu.top,
   };
-  if (menu.fontSize) {
-    style.fontSize = menu.fontSize;
-  }
-  if (menu.controlGap) {
-    style['--note-control-gap'] = menu.controlGap;
-  }
-  if (menu.controlSize) {
-    style['--note-control-size'] = menu.controlSize;
-  }
 
   const foldLabel = menu.isFolded ? 'Unfold' : 'Fold';
 
@@ -406,7 +400,6 @@ export function NoteMenuPlugin() {
       <Menu.Dropdown
         className="note-menu-dropdown"
         data-note-menu
-        data-note-menu-note-id={menu.noteId ?? ''}
         data-note-menu-note-key={menu.noteKey}
         onKeyDown={(event) => {
           const key = event.key.toLowerCase();
@@ -428,7 +421,7 @@ export function NoteMenuPlugin() {
             {renderShortcutLabel(foldLabel, 'F')}
           </Menu.Item>
         ) : null}
-        <Menu.Item data-note-menu-item="zoom" onClick={triggerZoom} disabled={!menu.noteId}>
+        <Menu.Item data-note-menu-item="zoom" onClick={triggerZoom}>
           {renderShortcutLabel('Zoom', 'Z')}
         </Menu.Item>
       </Menu.Dropdown>
