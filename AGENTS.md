@@ -33,7 +33,8 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
-- `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge rules, spacing.
+- `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge/reparent
+  rules, spacing.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).
 - `docs/outliner/folding.md` (Short). Note folding behavior, toggle visibility (hover/caret),
   persistence, and auto-expand rules.
@@ -43,7 +44,7 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization, clipboard identity
   rules, collab, `noteRef`.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indentation
-  semantics; indent/outdent rules.
+  semantics; indent/outdent rules; deletion-merge exception.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and constraints.
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder, anchor/focus reversal, directional boundary rules.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, auto-expansion rules,

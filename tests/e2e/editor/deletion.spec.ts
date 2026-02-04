@@ -48,14 +48,15 @@ test.describe('deletion (native browser behavior)', () => {
     expect(await captureEditorSnapshot(page)).toEqual(before);
   });
 
-  test('Backspace at start of parent with children is a no-op', async ({ page, editor }) => {
+  test('Backspace at start of parent with children merges and reparents', async ({ page, editor }) => {
     await editor.load('tree');
     await setCaretAtText(page, 'note2');
-    const before = await captureEditorSnapshot(page);
 
     await page.keyboard.press('Backspace');
 
-    expect(await captureEditorSnapshot(page)).toEqual(before);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'note1 note2', children: [ { noteId: 'note3', text: 'note3' } ] },
+    ]);
   });
 
   test('Backspace merges a leaf into its previous sibling', async ({ page, editor }) => {

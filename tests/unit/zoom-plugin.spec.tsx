@@ -1,7 +1,15 @@
 import { $isTextNode } from 'lexical';
 import type { TextNode } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
-import { clearEditorProps, getNoteElement, meta, readCaretNoteId, registerEditorProps } from '#tests';
+import {
+  clearEditorProps,
+  getNoteElement,
+  meta,
+  placeCaretAtNote,
+  pressKey,
+  readCaretNoteId,
+  registerEditorProps,
+} from '#tests';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
 import { ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
@@ -139,6 +147,11 @@ describe('zoom plugin', () => {
     onZoomNoteIdChange: zoomAutoPathNoteSpy,
     onZoomPathChange: zoomAutoPathSpy,
   });
+  const zoomInsideSpy = vi.fn();
+  const zoomInsideKey = createEditorPropsKey('zoom-inside-empty-leaf', {
+    zoomNoteId: 'note1',
+    onZoomNoteIdChange: zoomInsideSpy,
+  });
 
   it(
     'auto-expands zoom to the nearest shared ancestor for outside edits',
@@ -198,6 +211,28 @@ describe('zoom plugin', () => {
       expect(lastPath.map((item) => item.label)).toEqual(['note1']);
 
       clearEditorProps(zoomAutoPathKey);
+    }
+  );
+
+  it(
+    'does not re-zoom into a descendant when deleting an empty leaf inside the zoom root',
+    meta({ fixture: 'tree', editorPropsKey: zoomInsideKey }),
+    async ({ remdo }) => {
+      await remdo.waitForSynced();
+      zoomInsideSpy.mockClear();
+
+      await placeCaretAtNote(remdo, 'note2', 0);
+      await pressKey(remdo, { key: 'Tab' });
+
+      await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+      await pressKey(remdo, { key: 'Enter' });
+      const emptyNoteId = readCaretNoteId(remdo);
+
+      await placeCaretAtNote(remdo, emptyNoteId, 0);
+      await pressKey(remdo, { key: 'Backspace' });
+
+      expect(zoomInsideSpy).not.toHaveBeenCalled();
+      clearEditorProps(zoomInsideKey);
     }
   );
 });
