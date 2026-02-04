@@ -1,4 +1,3 @@
-import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
 
@@ -33,40 +32,6 @@ const openMenuForNote = async (page: Parameters<typeof editorLocator>[0], label:
   await expect(menu).toHaveCount(1);
 
   return { listItem, menu, menuButton };
-};
-
-const clickChecklistMarker = async (page: Parameters<typeof editorLocator>[0], listItem: Locator) => {
-  const listItemBox = await listItem.boundingBox();
-  if (!listItemBox) {
-    throw new Error('Expected list item to have a bounding box.');
-  }
-
-  const markerMetrics = await listItem.evaluate((element) => {
-    const style = globalThis.getComputedStyle(element);
-    return {
-      bulletLeft: Number.parseFloat(style.getPropertyValue('--bullet-left')),
-      bulletWidth: Number.parseFloat(style.getPropertyValue('--bullet-width')),
-      checkboxGap: Number.parseFloat(style.getPropertyValue('--checkbox-gap')),
-      checkboxWidth: Number.parseFloat(style.getPropertyValue('--checkbox-width')),
-    };
-  });
-  if (!Number.isFinite(markerMetrics.checkboxWidth) || markerMetrics.checkboxWidth <= 0) {
-    throw new TypeError('Expected checklist checkbox width to be available.');
-  }
-  if (!Number.isFinite(markerMetrics.bulletWidth)) {
-    throw new TypeError('Expected checklist bullet width to be available.');
-  }
-  if (!Number.isFinite(markerMetrics.checkboxGap)) {
-    throw new TypeError('Expected checklist checkbox gap to be available.');
-  }
-
-  const bulletLeft = Number.isFinite(markerMetrics.bulletLeft) ? markerMetrics.bulletLeft : 0;
-  const bulletWidth = markerMetrics.bulletWidth;
-  const checkboxGap = markerMetrics.checkboxGap;
-  await page.mouse.click(
-    listItemBox.x + bulletLeft + bulletWidth + checkboxGap + markerMetrics.checkboxWidth / 2,
-    listItemBox.y + listItemBox.height / 2
-  );
 };
 
 test.describe('Note menu', () => {
@@ -168,7 +133,9 @@ test.describe('Note menu', () => {
     await expect(childItem).toHaveClass(/list-item-unchecked/);
     await expect(childItem).toHaveAttribute('role', 'checkbox');
 
-    await clickChecklistMarker(page, childItem);
+    await childItem.focus();
+    await expect(childItem).toBeFocused();
+    await page.keyboard.press('Space');
     await expect(childItem).toHaveAttribute('aria-checked', 'true');
     await expect(childItem).toHaveClass(/list-item-checked/);
   });
@@ -198,11 +165,11 @@ test.describe('Note menu', () => {
     await foldItem.focus();
     await expect(foldItem).toBeFocused();
     await page.keyboard.press('ArrowDown');
+    await expect(zoomItem).toBeFocused();
+    await page.keyboard.press('ArrowDown');
     await expect(numberItem).toBeFocused();
     await page.keyboard.press('ArrowDown');
     await expect(checkItem).toBeFocused();
-    await page.keyboard.press('ArrowDown');
-    await expect(zoomItem).toBeFocused();
     await page.keyboard.press('ArrowDown');
     await expect(foldItem).toBeFocused();
   });
