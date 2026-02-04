@@ -279,7 +279,7 @@
   width: 1px;
   height: 1px;
   pointer-events: none;
-  transform: translate(calc(-100% - var(--note-control-gap, 0.35em)), -50%);
+  transform: translate(-50%, -50%);
 }
 
 .note-menu-shortcut {
