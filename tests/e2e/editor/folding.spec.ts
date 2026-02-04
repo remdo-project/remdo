@@ -1,33 +1,6 @@
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
 
-async function getTogglePoint(listItem: ReturnType<typeof editorLocator>, side: 'left' | 'right') {
-  const point = await listItem.evaluate((element, chosenSide) => {
-    const after = globalThis.getComputedStyle(element, '::after');
-    const width = Number.parseFloat(after.width);
-    const height = Number.parseFloat(after.height);
-    const left = Number.parseFloat(after.left);
-    const top = Number.parseFloat(after.top);
-    if (![width, height, left, top].every(Number.isFinite)) {
-      return null;
-    }
-
-    const rect = element.getBoundingClientRect();
-    const afterLeft = rect.left + left;
-    const afterTop = rect.top + top;
-    const iconSize = height;
-    const x = chosenSide === 'right' ? afterLeft + width - iconSize / 2 : afterLeft + iconSize / 2;
-    const y = afterTop + height / 2;
-    return { x, y };
-  }, side);
-
-  if (!point) {
-    throw new Error('Fold toggle point could not be resolved.');
-  }
-
-  return point;
-}
-
 test.describe('Folding', () => {
   test('toggles folding via plus/minus and hides descendants', async ({ page, editor }) => {
     await editor.load('tree');
@@ -42,8 +15,9 @@ test.describe('Folding', () => {
     ]);
 
     await listItem.hover();
-    const toggle = await getTogglePoint(listItem, 'right');
-    await page.mouse.click(toggle.x, toggle.y);
+    const foldButton = editorLocator(page).locator('.note-controls__button--expanded');
+    await expect(foldButton).toBeVisible();
+    await foldButton.click();
 
     await expect(listItem).toHaveAttribute('data-folded', 'true');
     await expect(childItem).toBeHidden();
@@ -52,7 +26,9 @@ test.describe('Folding', () => {
       { noteId: 'note2', text: 'note2', folded: true, children: [{ noteId: 'note3', text: 'note3' }] },
     ]);
 
-    await page.mouse.click(toggle.x, toggle.y);
+    const expandButton = editorLocator(page).locator('.note-controls__button--folded');
+    await expect(expandButton).toBeVisible();
+    await expandButton.click();
     await expect(listItem).not.toHaveAttribute('data-folded', 'true');
     await expect(childItem).toBeVisible();
     await expect(editor).toMatchOutline([
@@ -70,8 +46,9 @@ test.describe('Folding', () => {
     await expect(childItem).toBeVisible();
 
     await listItem.hover();
-    const menu = await getTogglePoint(listItem, 'left');
-    await page.mouse.click(menu.x, menu.y);
+    const menuButton = editorLocator(page).locator('.note-controls__button--menu');
+    await expect(menuButton).toBeVisible();
+    await menuButton.click();
 
     await expect(listItem).not.toHaveAttribute('data-folded', 'true');
     await expect(childItem).toBeVisible();
@@ -84,8 +61,9 @@ test.describe('Folding', () => {
 
     const listItem = editorLocator(page).locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note2' }).first();
     await listItem.hover();
-    const toggle = await getTogglePoint(listItem, 'right');
-    await page.mouse.click(toggle.x, toggle.y);
+    const foldButton = editorLocator(page).locator('.note-controls__button--expanded');
+    await expect(foldButton).toBeVisible();
+    await foldButton.click();
 
     await expect(listItem).toHaveAttribute('data-folded', 'true');
 
