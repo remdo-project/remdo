@@ -428,6 +428,8 @@ export function DeletionPlugin() {
       }
 
       if (currentIsEmptyLeaf) {
+        const mergeAncestor = findLowestCommonAncestor(current, target);
+        setZoomMergeHint(editor, mergeAncestor ? $getNoteId(mergeAncestor) : null);
         removeNoteSubtree(current);
         $selectItemEdge(target, 'end');
         return true;

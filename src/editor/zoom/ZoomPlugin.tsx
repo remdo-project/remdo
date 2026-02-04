@@ -425,10 +425,23 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
         let scrollTargetKey: string | null = null;
 
         if (shouldConsiderAutoZoom) {
+          let mergeHintApplied = false;
           if (mergeHint) {
-            nextZoomNoteId = mergeHint.noteId;
-            scrollTargetKey = selectionKey;
-          } else {
+            let shouldApply = true;
+            if (mergeHint.noteId) {
+              const mergeItem = $findNoteById(mergeHint.noteId);
+              if (mergeItem && isDescendantOf(mergeItem, root)) {
+                shouldApply = false;
+              }
+            }
+            if (shouldApply) {
+              nextZoomNoteId = mergeHint.noteId;
+              scrollTargetKey = selectionKey;
+              mergeHintApplied = true;
+            }
+          }
+
+          if (!mergeHintApplied) {
             const parentChanged = parentWasTracked && prevParentKey !== parentKey;
             if (parentChanged) {
               const parentId = parent ? $getNoteId(parent) : null;
