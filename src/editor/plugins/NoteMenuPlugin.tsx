@@ -28,6 +28,7 @@ interface NoteMenuState {
 }
 
 interface NoteMenuLayout extends Pick<NoteMenuState, 'left' | 'top'> {}
+type NoteMenuAnchor = NoteMenuLayout;
 
 const DOUBLE_SHIFT_WINDOW_MS = 500;
 
@@ -39,16 +40,10 @@ const noteHasChildren = (item: ListItemNode): boolean => {
   return getContentSiblings(nested).length > 0;
 };
 
-const resolveLayout = (element: HTMLElement, root: HTMLElement, anchor: HTMLElement): NoteMenuLayout | null => {
-  if (!root.contains(element)) {
-    return null;
-  }
-  const rect = element.getBoundingClientRect();
-  const anchorRect = anchor.getBoundingClientRect();
-  const left = rect.left - anchorRect.left + root.scrollLeft;
-  const top = rect.top - anchorRect.top + root.scrollTop + rect.height / 2;
-  return { left, top };
-};
+const resolveAnchorFromRect = (rect: DOMRect, anchorRect: DOMRect): NoteMenuAnchor => ({
+  left: rect.right - anchorRect.left,
+  top: rect.top - anchorRect.top + rect.height / 2,
+});
 
 const renderShortcutLabel = (label: string, shortcut: string) => {
   const lowerLabel = label.toLowerCase();
@@ -150,8 +145,8 @@ export function NoteMenuPlugin() {
       return;
     }
     const root = rootRef.current ?? editor.getRootElement();
-    const anchor = root ? root.closest<HTMLElement>('.editor-container') : null;
-    if (!root || !anchor) {
+    const container = root ? root.closest<HTMLElement>('.editor-container') : null;
+    if (!root || !container) {
       closeMenu();
       return;
     }
@@ -164,12 +159,9 @@ export function NoteMenuPlugin() {
       closeMenu();
       return;
     }
-    const layout = resolveLayout(element, root, anchor);
-    if (!layout) {
-      closeMenu();
-      return;
-    }
-    setMenuState({ ...current, ...layout });
+    const anchorRect = container.getBoundingClientRect();
+    const rect = element.getBoundingClientRect();
+    setMenuState({ ...current, ...resolveAnchorFromRect(rect, anchorRect) });
   }, [closeMenu, editor, setMenuState]);
 
   useEffect(() => {
@@ -262,13 +254,44 @@ export function NoteMenuPlugin() {
       return key;
     };
 
-    const openMenuForKey = (noteKey: string): boolean => {
+    const resolveContainerRect = () => {
       const root = rootRef.current ?? editor.getRootElement();
-      const anchor = root ? root.closest<HTMLElement>('.editor-container') : null;
-      if (!root || !anchor) {
+      const container = root ? root.closest<HTMLElement>('.editor-container') : null;
+      if (!root || !container) {
+        return null;
+      }
+      return { root, container, rect: container.getBoundingClientRect() };
+    };
+
+    const resolveCaretAnchor = (): NoteMenuAnchor | null => {
+      const resolved = resolveContainerRect();
+      if (!resolved) {
+        return null;
+      }
+      const selection = globalThis.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        return null;
+      }
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      if (rect.width > 0 || rect.height > 0) {
+        return resolveAnchorFromRect(rect, resolved.rect);
+      }
+      const clientRects = range.getClientRects();
+      const firstRect = clientRects.item(0);
+      if (firstRect) {
+        return resolveAnchorFromRect(firstRect, resolved.rect);
+      }
+      return null;
+    };
+
+    const openMenuForKey = (noteKey: string, anchorOverride?: NoteMenuAnchor): boolean => {
+      const resolved = resolveContainerRect();
+      if (!resolved) {
         closeMenu();
         return false;
       }
+      const { root, rect: containerRect } = resolved;
       const element = editor.getElementByKey(noteKey);
       if (!(element instanceof HTMLElement)) {
         closeMenu();
@@ -283,12 +306,8 @@ export function NoteMenuPlugin() {
         closeMenu();
         return false;
       }
-      const layout = resolveLayout(element, root, anchor);
-      if (!layout) {
-        closeMenu();
-        return false;
-      }
-      setMenuState({ ...noteState, ...layout });
+      const anchor = anchorOverride ?? resolveAnchorFromRect(element.getBoundingClientRect(), containerRect);
+      setMenuState({ ...noteState, ...anchor });
       return true;
     };
 
@@ -312,7 +331,7 @@ export function NoteMenuPlugin() {
         shiftCanceledRef.current = false;
         const key = resolveSelectionKey();
         if (key) {
-          openMenuForKey(key);
+          openMenuForKey(key, resolveCaretAnchor() ?? undefined);
         }
         return true;
       }
@@ -349,7 +368,7 @@ export function NoteMenuPlugin() {
 
     const unregisterOpenCommand = editor.registerCommand(
       OPEN_NOTE_MENU_COMMAND,
-      ({ noteKey }) => openMenuForKey(noteKey),
+      ({ noteKey, anchor }) => openMenuForKey(noteKey, anchor),
       COMMAND_PRIORITY_LOW
     );
 

@@ -336,7 +336,20 @@ export function NoteControlsPlugin() {
   const onMenuPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteKey: controls.noteKey });
+    const button = event.currentTarget;
+    const container = button.closest<HTMLElement>('.editor-container');
+    if (!container) {
+      editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteKey: controls.noteKey });
+      editor.focus();
+      return;
+    }
+    const rect = button.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const anchor = {
+      left: rect.right - containerRect.left,
+      top: rect.top - containerRect.top + rect.height / 2,
+    };
+    editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteKey: controls.noteKey, anchor });
     editor.focus();
   };
 
