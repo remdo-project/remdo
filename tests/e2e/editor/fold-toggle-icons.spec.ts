@@ -127,4 +127,79 @@ test.describe('Fold toggle icons', () => {
     expect(nextControlsCenter).toBeGreaterThan(note2Box.y);
     expect(nextControlsCenter).toBeLessThan(note2Box.y + note2Box.height);
   });
+
+  test('keeps controls on the last hovered note when the pointer leaves the editor', async ({ page, editor }) => {
+    await editor.load('tree');
+
+    const container = editorLocator(page);
+    const controls = container.locator('.note-controls');
+    const note2 = container.locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note2' }).first();
+
+    await setCaretAtText(page, 'note1', 0);
+    await page.keyboard.press('ArrowRight');
+
+    const [containerBox, note2Box] = await Promise.all([
+      container.boundingBox(),
+      note2.boundingBox(),
+    ]);
+    expect(containerBox).not.toBeNull();
+    expect(note2Box).not.toBeNull();
+    if (!containerBox || !note2Box) {
+      return;
+    }
+
+    const note2CenterX = note2Box.x + note2Box.width / 2;
+    const note2CenterY = note2Box.y + note2Box.height / 2;
+    await page.mouse.move(note2CenterX, note2CenterY);
+    await expect(controls).toBeVisible();
+
+    const controlsBox = await controls.boundingBox();
+    expect(controlsBox).not.toBeNull();
+    if (!controlsBox) {
+      return;
+    }
+    const controlsCenter = controlsBox.y + controlsBox.height / 2;
+    expect(controlsCenter).toBeGreaterThan(note2Box.y);
+    expect(controlsCenter).toBeLessThan(note2Box.y + note2Box.height);
+
+    const viewport = page.viewportSize();
+    const candidates = [
+      { x: containerBox.x - 20, y: containerBox.y + 10 },
+      { x: containerBox.x + containerBox.width + 20, y: containerBox.y + 10 },
+      { x: containerBox.x + 10, y: containerBox.y - 20 },
+      { x: containerBox.x + 10, y: containerBox.y + containerBox.height + 20 },
+    ];
+    const initialPoint = candidates[0];
+    if (!initialPoint) {
+      throw new Error('Expected outside point candidates.');
+    }
+    let outsidePoint = initialPoint;
+    for (const candidate of candidates) {
+      let { x, y } = candidate;
+      if (viewport) {
+        x = Math.min(Math.max(x, 1), viewport.width - 1);
+        y = Math.min(Math.max(y, 1), viewport.height - 1);
+      }
+      const isOutside =
+        x < containerBox.x ||
+        x > containerBox.x + containerBox.width ||
+        y < containerBox.y ||
+        y > containerBox.y + containerBox.height;
+      if (isOutside) {
+        outsidePoint = { x, y };
+        break;
+      }
+    }
+    await page.mouse.move(outsidePoint.x, outsidePoint.y);
+
+    await expect(controls).toBeVisible();
+    const nextControlsBox = await controls.boundingBox();
+    expect(nextControlsBox).not.toBeNull();
+    if (!nextControlsBox) {
+      return;
+    }
+    const nextControlsCenter = nextControlsBox.y + nextControlsBox.height / 2;
+    expect(nextControlsCenter).toBeGreaterThan(note2Box.y);
+    expect(nextControlsCenter).toBeLessThan(note2Box.y + note2Box.height);
+  });
 });

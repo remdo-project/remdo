@@ -206,10 +206,13 @@ export function NoteControlsPlugin() {
     };
 
     const handlePointerMove = (event: PointerEvent | MouseEvent) => {
-      const sourceChanged = setInteractionSource('hover');
       const root = rootRef.current ?? editor.getRootElement();
       if (!root) {
         clearControls();
+        return;
+      }
+      const eventTarget = event.target;
+      if (eventTarget instanceof HTMLElement && eventTarget.closest('[data-note-menu]')) {
         return;
       }
       const surfaceRect = root.getBoundingClientRect();
@@ -219,11 +222,10 @@ export function NoteControlsPlugin() {
         event.clientY < surfaceRect.top ||
         event.clientY > surfaceRect.bottom
       ) {
-        hoverElementRef.current = null;
-        syncActiveControls();
         return;
       }
 
+      const sourceChanged = setInteractionSource('hover');
       if (hoverElementRef.current) {
         const rect = hoverElementRef.current.getBoundingClientRect();
         if (event.clientY >= rect.top && event.clientY <= rect.bottom) {
@@ -234,7 +236,6 @@ export function NoteControlsPlugin() {
         }
       }
 
-      const eventTarget = event.target;
       const candidate =
         eventTarget instanceof HTMLElement
           ? eventTarget.closest<HTMLElement>('li.list-item:not(.list-nested-item)')

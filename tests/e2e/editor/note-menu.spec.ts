@@ -37,6 +37,41 @@ test.describe('Note menu', () => {
     await menu.expectClosed();
   });
 
+  test('keeps controls anchored while hovering the menu', async ({ page, editor }) => {
+    await editor.load('tree');
+
+    const menu = await openNoteMenu(page, 'note2');
+    const controls = editorLocator(page).locator('.note-controls');
+    const note2 = editorLocator(page)
+      .locator('li.list-item:not(.list-nested-item)')
+      .filter({ hasText: 'note2' })
+      .first();
+
+    await expect(controls).toBeVisible();
+    await expect(menu.item('zoom')).toBeVisible();
+
+    const [note2Box, controlsBox] = await Promise.all([note2.boundingBox(), controls.boundingBox()]);
+    expect(note2Box).not.toBeNull();
+    expect(controlsBox).not.toBeNull();
+    if (!note2Box || !controlsBox) {
+      return;
+    }
+    const controlsCenter = controlsBox.y + controlsBox.height / 2;
+    expect(controlsCenter).toBeGreaterThan(note2Box.y);
+    expect(controlsCenter).toBeLessThan(note2Box.y + note2Box.height);
+
+    await menu.item('zoom').hover();
+
+    const nextControlsBox = await controls.boundingBox();
+    expect(nextControlsBox).not.toBeNull();
+    if (!nextControlsBox) {
+      return;
+    }
+    const nextControlsCenter = nextControlsBox.y + nextControlsBox.height / 2;
+    expect(nextControlsCenter).toBeGreaterThan(note2Box.y);
+    expect(nextControlsCenter).toBeLessThan(note2Box.y + note2Box.height);
+  });
+
   test('double-shift is canceled by other keys', async ({ page, editor }) => {
     await editor.load('tree');
 
