@@ -71,10 +71,19 @@
   font-size: var(--mantine-font-size-md);
   line-height: 1.6;
   color: var(--mantine-color-dark-0);
+  --remdo-indent: var(--mantine-spacing-sm);
 }
 
 .editor-paragraph {
   margin: 0 0 var(--mantine-spacing-md) 0;
+}
+
+.editor-root ul,
+.editor-root ol {
+  margin: 0;
+  margin-inline-start: 0;
+  padding-left: var(--remdo-indent);
+  padding-inline-start: var(--remdo-indent);
 }
 
 .editor-input {
@@ -253,8 +262,8 @@
 }
 
 .editor-root ol.list-ol > li.list-item {
-  --bullet-width: 1.4em;
-  --bullet-gap: 0.5em;
+  --bullet-width: 0.4em;
+  --bullet-gap: 0.6em;
 }
 
 .editor-root ol.list-ol > li.list-item:not(.list-nested-item) {
@@ -271,6 +280,8 @@
   font-weight: inherit;
   font-variant-numeric: tabular-nums;
   text-align: right;
+  white-space: nowrap;
+  overflow: visible;
   line-height: var(--list-line-height);
   height: var(--list-line-height);
   top: 0;
