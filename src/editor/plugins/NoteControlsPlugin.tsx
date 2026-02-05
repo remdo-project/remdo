@@ -225,10 +225,10 @@ export function NoteControlsPlugin() {
         return;
       }
 
-      const sourceChanged = setInteractionSource('hover');
       if (hoverElementRef.current) {
         const rect = hoverElementRef.current.getBoundingClientRect();
         if (event.clientY >= rect.top && event.clientY <= rect.bottom) {
+          const sourceChanged = setInteractionSource('hover');
           if (sourceChanged) {
             syncActiveControls();
           }
@@ -242,17 +242,19 @@ export function NoteControlsPlugin() {
           : null;
       const nextHover = candidate ?? resolveTargetByY(root, event.clientY);
 
+      if (!nextHover) {
+        return;
+      }
+
+      const sourceChanged = setInteractionSource('hover');
       if (nextHover === hoverElementRef.current) {
         if (sourceChanged) {
           syncActiveControls();
         }
         return;
       }
+
       hoverElementRef.current = nextHover;
-      if (!nextHover) {
-        syncActiveControls();
-        return;
-      }
       syncActiveControls();
     };
 
