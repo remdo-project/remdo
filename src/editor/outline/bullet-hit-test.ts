@@ -42,6 +42,45 @@ const resolvePseudoFont = (style: CSSStyleDeclaration) => {
   return `${style.fontStyle} ${style.fontVariant} ${style.fontWeight} ${style.fontSize} / ${style.lineHeight} ${style.fontFamily}`;
 };
 
+const resolveLengthPx = (value: string, baseStyle: CSSStyleDeclaration, element: HTMLElement) => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const match = /^(-?(?:\d+(?:\.\d+)?|\.\d+))([a-z%]*)$/i.exec(trimmed);
+  if (!match) {
+    return null;
+  }
+  const rawAmount = match[1];
+  if (!rawAmount) {
+    return null;
+  }
+  const amount = Number.parseFloat(rawAmount);
+  if (!Number.isFinite(amount)) {
+    return null;
+  }
+  const unit = (match[2] ?? '').toLowerCase();
+  if (!unit || unit === 'px') {
+    return amount;
+  }
+  if (unit === 'em') {
+    const fontSize = Number.parseFloat(baseStyle.fontSize);
+    if (!Number.isFinite(fontSize)) {
+      return null;
+    }
+    return amount * fontSize;
+  }
+  if (unit === 'rem') {
+    const root = element.ownerDocument.documentElement;
+    const rootFontSize = Number.parseFloat(globalThis.getComputedStyle(root).fontSize);
+    if (!Number.isFinite(rootFontSize)) {
+      return null;
+    }
+    return amount * rootFontSize;
+  }
+  return null;
+};
+
 const measureGlyphWidth = (style: CSSStyleDeclaration): GlyphMetrics | null => {
   const content = parsePseudoContent(style.content);
   const ctx = getMeasureContext();
@@ -73,6 +112,12 @@ const measureGlyphWidth = (style: CSSStyleDeclaration): GlyphMetrics | null => {
 export const isBulletHit = (element: HTMLElement, event: PointerEvent) => {
   let pseudoStyle: CSSStyleDeclaration | null = null;
   const baseStyle = globalThis.getComputedStyle(element);
+  const liRect = element.getBoundingClientRect();
+  const bulletWidth = resolveLengthPx(baseStyle.getPropertyValue('--bullet-width'), baseStyle, element);
+  const bulletLeft = resolveLengthPx(baseStyle.getPropertyValue('--bullet-left'), baseStyle, element);
+  const listContainer = element.parentElement;
+  const isOrderedList =
+    listContainer instanceof HTMLElement && listContainer.matches('ol.list-ol');
   if (!config.isTest) {
     try {
       pseudoStyle = globalThis.getComputedStyle(element, '::before');
@@ -80,13 +125,23 @@ export const isBulletHit = (element: HTMLElement, event: PointerEvent) => {
       pseudoStyle = null;
     }
   }
-
-  const liRect = element.getBoundingClientRect();
+  if (isOrderedList) {
+    let width = bulletWidth;
+    if (width === null && pseudoStyle) {
+      const fallbackWidth = Number.parseFloat(pseudoStyle.width);
+      if (Number.isFinite(fallbackWidth) && fallbackWidth > 0) {
+        width = fallbackWidth;
+      }
+    }
+    if (width !== null && Number.isFinite(width) && width > 0) {
+      const start = liRect.left + (bulletLeft !== null && Number.isFinite(bulletLeft) ? bulletLeft : 0);
+      const end = start + width;
+      return event.clientX >= start && event.clientX <= end;
+    }
+  }
   if (!pseudoStyle) {
-    const bulletWidth = Number.parseFloat(baseStyle.getPropertyValue('--bullet-width'));
-    const bulletLeft = Number.parseFloat(baseStyle.getPropertyValue('--bullet-left'));
-    if (!config.isTest && Number.isFinite(bulletWidth) && bulletWidth > 0) {
-      const start = liRect.left + (Number.isFinite(bulletLeft) ? bulletLeft : 0);
+    if (!config.isTest && bulletWidth !== null && Number.isFinite(bulletWidth) && bulletWidth > 0) {
+      const start = liRect.left + (bulletLeft !== null && Number.isFinite(bulletLeft) ? bulletLeft : 0);
       const end = start + bulletWidth;
       return event.clientX >= start && event.clientX <= end;
     }
@@ -139,12 +194,21 @@ export const isCheckboxHit = (element: HTMLElement, event: PointerEvent) => {
 
   const liRect = element.getBoundingClientRect();
   const getCheckboxBounds = () => {
-    const checkboxWidth = Number.parseFloat(baseStyle.getPropertyValue('--checkbox-width'));
-    const checkboxLeft = Number.parseFloat(baseStyle.getPropertyValue('--checkbox-left'));
-    if (!Number.isFinite(checkboxWidth) || checkboxWidth <= 0) {
+    const checkboxWidth = resolveLengthPx(
+      baseStyle.getPropertyValue('--checkbox-width'),
+      baseStyle,
+      element,
+    );
+    const checkboxLeft = resolveLengthPx(
+      baseStyle.getPropertyValue('--checkbox-left'),
+      baseStyle,
+      element,
+    );
+    if (checkboxWidth === null || !Number.isFinite(checkboxWidth) || checkboxWidth <= 0) {
       return null;
     }
-    const start = liRect.left + (Number.isFinite(checkboxLeft) ? checkboxLeft : 0);
+    const start =
+      liRect.left + (checkboxLeft !== null && Number.isFinite(checkboxLeft) ? checkboxLeft : 0);
     const end = start + checkboxWidth;
     return { start, end };
   };

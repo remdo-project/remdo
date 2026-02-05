@@ -54,4 +54,48 @@ test.describe('Zoom bullet hover', () => {
     await page.mouse.move(metrics.end + 2, metrics.y);
     await expect(listItem).not.toHaveAttribute('data-zoom-bullet-hover', 'true');
   });
+
+  test('only triggers on the ordered list number area', async ({ page, editor }) => {
+    await editor.load('tree-list-types');
+
+    const listItem = editorLocator(page)
+      .locator('li.list-item:not(.list-nested-item)')
+      .filter({ hasText: 'note2' })
+      .first();
+    await expect(listItem).toBeVisible();
+
+    const metrics = await listItem.evaluate((element) => {
+      const beforeStyle = globalThis.getComputedStyle(element, '::before');
+      const rect = element.getBoundingClientRect();
+      const width = Number.parseFloat(beforeStyle.width);
+      const height = Number.parseFloat(beforeStyle.height);
+      if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
+        return null;
+      }
+      const left = Number.parseFloat(beforeStyle.left);
+      const top = Number.parseFloat(beforeStyle.top);
+      const baseLeft = rect.left + (Number.isFinite(left) ? left : 0);
+      const baseTop = rect.top + (Number.isFinite(top) ? top : 0);
+      return {
+        start: baseLeft,
+        end: baseLeft + width,
+        y: baseTop + height / 2,
+        centerX: baseLeft + width / 2,
+      };
+    });
+
+    expect(metrics).not.toBeNull();
+    if (!metrics) {
+      return;
+    }
+
+    await page.mouse.move(metrics.end + 6, metrics.y);
+    await expect(listItem).not.toHaveAttribute('data-zoom-bullet-hover', 'true');
+
+    await page.mouse.move(metrics.centerX, metrics.y);
+    await expect(listItem).toHaveAttribute('data-zoom-bullet-hover', 'true');
+
+    await page.mouse.move(metrics.end + 2, metrics.y);
+    await expect(listItem).not.toHaveAttribute('data-zoom-bullet-hover', 'true');
+  });
 });
