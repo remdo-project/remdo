@@ -290,6 +290,7 @@
 
 .editor-root li.list-item.list-item-checked {
   --checkbox-mask-image: url('/icons/checkbox-checked.svg');
+  text-decoration: line-through;
 }
 
 .note-controls-layer {
