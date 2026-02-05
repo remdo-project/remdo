@@ -9,7 +9,7 @@ import {
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useCallback, useEffect, useRef } from 'react';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
-import { isBulletHit } from '@/editor/outline/bullet-hit-test';
+import { isBulletHit, isCheckboxHit } from '@/editor/outline/bullet-hit-test';
 import { setSelectionBoundary } from '@/editor/outline/selection/boundary';
 import { setZoomScrollTarget } from '@/editor/zoom/scroll-target';
 import { consumeZoomMergeHint } from '@/editor/zoom/zoom-change-hints';
@@ -144,7 +144,8 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
   const collab = useCollaborationStatus();
   const lastPathRef = useRef<NotePathItem[] | null>(null);
   const zoomNoteIdRef = useRef<string | null>(resolveZoomNoteId(zoomNoteId));
-  const lastHoverRef = useRef<HTMLElement | null>(null);
+  const lastBulletHoverRef = useRef<HTMLElement | null>(null);
+  const lastCheckboxHoverRef = useRef<HTMLElement | null>(null);
   const rootRef = useRef<HTMLElement | null>(editor.getRootElement());
   const zoomParentTrackedRef = useRef(false);
   const zoomParentKeyRef = useRef<string | null>(null);
@@ -241,16 +242,28 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
     [editor]
   );
 
-  const handleBulletPointerMove = useCallback((event: PointerEvent | MouseEvent, listItem: HTMLElement | null) => {
-    if (!listItem) {
-      if (lastHoverRef.current) {
-        delete lastHoverRef.current.dataset.zoomBulletHover;
-        lastHoverRef.current = null;
-      }
-      return;
-    }
+  const handleBulletPointerMove = useCallback(
+    (event: PointerEvent | MouseEvent, listItem: HTMLElement | null) => {
+      const clearBulletHover = () => {
+        if (lastBulletHoverRef.current) {
+          delete lastBulletHoverRef.current.dataset.zoomBulletHover;
+          lastBulletHoverRef.current = null;
+        }
+      };
 
-    if (isBulletHit(listItem, event as PointerEvent)) {
+      const clearCheckboxHover = () => {
+        if (lastCheckboxHoverRef.current) {
+          delete lastCheckboxHoverRef.current.dataset.zoomCheckboxHover;
+          lastCheckboxHoverRef.current = null;
+        }
+      };
+
+      if (!listItem) {
+        clearBulletHover();
+        clearCheckboxHover();
+        return;
+      }
+
       const canZoom = editor.read(() => {
         const node = $getNearestNodeFromDOMNode(listItem);
         if (!node) {
@@ -261,33 +274,45 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       });
 
       if (!canZoom) {
-        if (lastHoverRef.current) {
-          delete lastHoverRef.current.dataset.zoomBulletHover;
-          lastHoverRef.current = null;
-        }
+        clearBulletHover();
+        clearCheckboxHover();
         return;
       }
 
-      if (lastHoverRef.current !== listItem) {
-        if (lastHoverRef.current) {
-          delete lastHoverRef.current.dataset.zoomBulletHover;
+      if (isBulletHit(listItem, event as PointerEvent)) {
+        if (lastBulletHoverRef.current !== listItem) {
+          clearBulletHover();
+          listItem.dataset.zoomBulletHover = 'true';
+          lastBulletHoverRef.current = listItem;
         }
-        listItem.dataset.zoomBulletHover = 'true';
-        lastHoverRef.current = listItem;
+        clearCheckboxHover();
+        return;
       }
-      return;
-    }
 
-    if (lastHoverRef.current) {
-      delete lastHoverRef.current.dataset.zoomBulletHover;
-      lastHoverRef.current = null;
-    }
-  }, [editor]);
+      if (isCheckboxHit(listItem, event as PointerEvent)) {
+        if (lastCheckboxHoverRef.current !== listItem) {
+          clearCheckboxHover();
+          listItem.dataset.zoomCheckboxHover = 'true';
+          lastCheckboxHoverRef.current = listItem;
+        }
+        clearBulletHover();
+        return;
+      }
+
+      clearBulletHover();
+      clearCheckboxHover();
+    },
+    [editor]
+  );
 
   const handlePointerLeave = useCallback(() => {
-    if (lastHoverRef.current) {
-      delete lastHoverRef.current.dataset.zoomBulletHover;
-      lastHoverRef.current = null;
+    if (lastBulletHoverRef.current) {
+      delete lastBulletHoverRef.current.dataset.zoomBulletHover;
+      lastBulletHoverRef.current = null;
+    }
+    if (lastCheckboxHoverRef.current) {
+      delete lastCheckboxHoverRef.current.dataset.zoomCheckboxHover;
+      lastCheckboxHoverRef.current = null;
     }
   }, []);
 
@@ -355,10 +380,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       unregisterRootListener();
       document.removeEventListener('pointermove', handleDocumentPointerMove);
       document.removeEventListener('pointerdown', handleDocumentPointerDown);
-      if (lastHoverRef.current) {
-        delete lastHoverRef.current.dataset.zoomBulletHover;
-        lastHoverRef.current = null;
-      }
+      handlePointerLeave();
     };
   }, [editor, handleBulletPointerDown, handleBulletPointerMove, handlePointerLeave]);
 

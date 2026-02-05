@@ -7,6 +7,7 @@
   box-sizing: border-box;
   position: relative;
   padding: var(--mantine-spacing-lg) var(--mantine-spacing-xl);
+  --indicator-highlight-color: var(--mantine-color-blue-3);
 }
 
 .editor-header {
@@ -172,6 +173,8 @@
 
 .editor-root li.list-item {
   --list-line-height: 1.6em;
+  --indicator-color: var(--mantine-color-dark-2);
+  --checkbox-color: var(--mantine-color-dark-2);
   --bullet-left: 0rem;
   --bullet-width: 0.4em;
   --bullet-gap: 0.6em;
@@ -181,12 +184,6 @@
   --bullet-mask-repeat: no-repeat;
   --fold-toggle-size: 0.85em;
   --fold-toggle-gap: 0.35em;
-  --zoom-glow-offset: 0.35em;
-  --zoom-glow-size: calc(var(--bullet-width) + 0.7em);
-  --zoom-glow-left: calc(var(--bullet-left) - var(--zoom-glow-offset));
-  --zoom-glow-top: calc(
-    (var(--list-line-height) - var(--bullet-width)) / 2 - var(--zoom-glow-offset)
-  );
   list-style-type: none;
   position: relative;
   padding-left: calc(var(--bullet-width) + var(--bullet-gap));
@@ -209,7 +206,7 @@
   top: calc((var(--list-line-height) - var(--bullet-width)) / 2);
   width: var(--bullet-width);
   height: var(--bullet-width);
-  background-color: var(--mantine-color-dark-2);
+  background-color: var(--indicator-color);
   mask-image: var(--bullet-mask-image);
   mask-repeat: var(--bullet-mask-repeat);
   mask-position: var(--bullet-mask-position);
@@ -231,7 +228,7 @@
   top: calc((var(--list-line-height) - var(--checkbox-width)) / 2);
   width: var(--checkbox-width);
   height: var(--checkbox-width);
-  background-color: var(--mantine-color-dark-2);
+  background-color: var(--checkbox-color);
   mask-image: var(--checkbox-mask-image);
   mask-repeat: var(--checkbox-mask-repeat);
   mask-position: var(--checkbox-mask-position);
@@ -269,7 +266,7 @@
   background-color: transparent;
   mask-image: none;
   -webkit-mask-image: none;
-  color: var(--mantine-color-dark-2);
+  color: var(--indicator-color);
   font-size: 1em;
   font-weight: inherit;
   font-variant-numeric: tabular-nums;
@@ -334,7 +331,7 @@
 
 .note-controls__button:hover,
 .note-controls__button:focus-visible {
-  background-color: var(--mantine-color-dark-0);
+  background-color: var(--indicator-highlight-color);
 }
 
 .note-controls__button--menu {
@@ -390,22 +387,17 @@
 
 .editor-root li.list-item[data-zoom-bullet-hover='true'] {
   cursor: pointer;
-  background-image:
-    radial-gradient(
-      circle,
-      rgba(97, 140, 255, 0.9) 0%,
-      rgba(97, 140, 255, 0.45) 45%,
-      rgba(97, 140, 255, 0) 75%
-    );
-  background-size: var(--zoom-glow-size) var(--zoom-glow-size);
-  background-position: var(--zoom-glow-left) var(--zoom-glow-top);
+  --indicator-color: var(--indicator-highlight-color);
+}
+
+.editor-root li.list-item[data-zoom-checkbox-hover='true'] {
+  cursor: pointer;
+  --indicator-color: var(--mantine-color-dark-2);
+  --checkbox-color: var(--indicator-highlight-color);
 }
 
 .editor-root li.list-item[data-zoom-bullet-hover='true']::before {
-  background-color: var(--mantine-color-blue-3);
-  filter:
-    drop-shadow(0 0 6px rgba(97, 140, 255, 0.95))
-    drop-shadow(0 0 14px rgba(97, 140, 255, 0.6));
+  background-color: var(--indicator-color);
 }
 
 .editor-root li.list-item.zoom-hidden {
