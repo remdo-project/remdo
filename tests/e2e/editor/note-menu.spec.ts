@@ -4,13 +4,13 @@ import { openNoteMenu } from './_support/menu';
 
 test.describe('Note menu', () => {
   test('opens and closes via icon, outside click, and Escape', async ({ page, editor }) => {
-    await editor.load('tree');
+    await editor.load('tree-list-types');
 
-    const menu = await openNoteMenu(page, 'note2');
+    const menu = await openNoteMenu(page, 'note1');
     await page.getByRole('button', { name: editor.docId }).first().click();
     await menu.expectClosed();
 
-    await openNoteMenu(page, 'note2');
+    await openNoteMenu(page, 'note1');
     await page.keyboard.press('Escape');
     await menu.expectClosed();
   });
@@ -112,31 +112,45 @@ test.describe('Note menu', () => {
   });
 
   test('shows list type actions for notes with children', async ({ page, editor }) => {
-    await editor.load('tree');
+    await editor.load('tree-list-types');
 
-    const menu = await openNoteMenu(page, 'note2');
+    const menu = await openNoteMenu(page, 'note1');
     await menu.expectOpen();
-    await expect(menu.item('list-number')).toHaveCount(1);
+    await expect(menu.item('list-number')).toHaveCount(0);
     await expect(menu.item('list-check')).toHaveCount(1);
-    await expect(menu.item('list-bullet')).toHaveCount(0);
+    await expect(menu.item('list-bullet')).toHaveCount(1);
+
+    const checkMenu = await openNoteMenu(page, 'note3');
+    await checkMenu.expectOpen();
+    await expect(checkMenu.item('list-number')).toHaveCount(1);
+    await expect(checkMenu.item('list-check')).toHaveCount(0);
+    await expect(checkMenu.item('list-bullet')).toHaveCount(1);
+
+    const bulletMenu = await openNoteMenu(page, 'note5');
+    await bulletMenu.expectOpen();
+    await expect(bulletMenu.item('list-number')).toHaveCount(1);
+    await expect(bulletMenu.item('list-check')).toHaveCount(1);
+    await expect(bulletMenu.item('list-bullet')).toHaveCount(0);
   });
 
   test('switches child list types and updates visuals', async ({ page, editor }) => {
-    await editor.load('tree');
+    await editor.load('tree-list-types');
 
-    const menu = await openNoteMenu(page, 'note2');
+    const menu = await openNoteMenu(page, 'note3');
     await menu.item('list-number').click();
     await menu.expectClosed();
+    await expect(menu.item('list-number')).toHaveCount(0);
 
     const childItem = editorLocator(page)
       .locator('li.list-item:not(.list-nested-item)')
-      .filter({ hasText: 'note3' })
+      .filter({ hasText: 'note4' })
       .first();
     await expect(childItem).toHaveCount(1);
     await expect(childItem.locator('xpath=ancestor::ol[1]')).toHaveClass(/list-ol/);
 
-    await openNoteMenu(page, 'note2');
-    await menu.item('list-check').click();
+    const menuAfter = await openNoteMenu(page, 'note3');
+    await menuAfter.item('list-check').click();
+    await menuAfter.expectClosed();
 
     await expect(childItem).toHaveClass(/list-item-unchecked/);
     await expect(childItem).toHaveAttribute('role', 'checkbox');
@@ -149,9 +163,9 @@ test.describe('Note menu', () => {
   });
 
   test('hides fold action for leaf notes', async ({ page, editor }) => {
-    await editor.load('tree');
+    await editor.load('tree-list-types');
 
-    const menu = await openNoteMenu(page, 'note1');
+    const menu = await openNoteMenu(page, 'note2');
     await expect(menu.item('fold')).toHaveCount(0);
     await expect(menu.item('zoom')).toHaveCount(1);
     await expect(menu.item('list-number')).toHaveCount(0);

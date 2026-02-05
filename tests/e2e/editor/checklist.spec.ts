@@ -1,17 +1,6 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator } from '#editor/locators';
-import { openNoteMenu } from './_support/menu';
-
-const setChildrenListType = async (
-  page: Parameters<typeof editorLocator>[0],
-  label: string,
-  type: 'list-number' | 'list-check' | 'list-bullet'
-) => {
-  const menu = await openNoteMenu(page, label);
-  await menu.item(type).click();
-  await menu.expectClosed();
-};
 
 const getPseudoMetrics = async (listItem: Locator, pseudo: '::before' | '::after') => {
   return listItem.evaluate((element, pseudoSelector) => {
@@ -58,12 +47,11 @@ const clickMarker = async (listItem: Locator, pseudo: '::before' | '::after') =>
 
 test.describe('Checklist markers', () => {
   test('checkbox toggles when clicking the checkbox marker', async ({ page, editor }) => {
-    await editor.load('tree');
-    await setChildrenListType(page, 'note2', 'list-check');
+    await editor.load('tree-list-types');
 
     const childItem = editorLocator(page)
       .locator('li.list-item:not(.list-nested-item)')
-      .filter({ hasText: 'note3' })
+      .filter({ hasText: 'note4' })
       .first();
     await expect(childItem).toHaveCount(1);
     await expect(childItem).toHaveAttribute('role', 'checkbox');
@@ -75,22 +63,21 @@ test.describe('Checklist markers', () => {
   });
 
   test('bullet click zooms without toggling the checkbox', async ({ page, editor }) => {
-    await editor.load('tree');
-    await setChildrenListType(page, 'note2', 'list-check');
+    await editor.load('tree-list-types');
 
     const childItem = editorLocator(page)
       .locator('li.list-item:not(.list-nested-item)')
-      .filter({ hasText: 'note3' })
+      .filter({ hasText: 'note4' })
       .first();
     await expect(childItem).toHaveCount(1);
     await expect(childItem).toHaveAttribute('role', 'checkbox');
     await expect(childItem).toHaveAttribute('aria-checked', 'false');
 
     await clickMarker(childItem, '::before');
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note3$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note4$`));
 
     const zoomedItem = editorLocator(page)
-      .locator('li.list-item:not(.list-nested-item)', { hasText: 'note3' })
+      .locator('li.list-item:not(.list-nested-item)', { hasText: 'note4' })
       .first();
     await expect(zoomedItem).toHaveAttribute('aria-checked', 'false');
   });

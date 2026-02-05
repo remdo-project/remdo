@@ -74,6 +74,14 @@ const CASES: OutlineCase[] = [
     ],
   },
   {
+    fixture: 'tree-list-types',
+    outline: [
+      { noteId: 'note1', text: 'note1', children: [ { noteId: 'note2', text: 'note2' } ] },
+      { noteId: 'note3', text: 'note3', children: [ { noteId: 'note4', text: 'note4' } ] },
+      { noteId: 'note5', text: 'note5', children: [ { noteId: 'note6', text: 'note6' } ] },
+    ],
+  },
+  {
     fixture: 'empty-labels',
     outline: [
       { noteId: 'alpha', text: 'alpha' },
