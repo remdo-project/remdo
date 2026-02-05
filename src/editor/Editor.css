@@ -304,6 +304,10 @@
   text-decoration: line-through;
 }
 
+.editor-root li.list-item[data-note-checked='true'] {
+  text-decoration: line-through;
+}
+
 .note-controls-layer {
   position: absolute;
   inset: 0;
