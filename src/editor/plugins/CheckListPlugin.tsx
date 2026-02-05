@@ -1,4 +1,4 @@
-import { registerCheckList } from '@lexical/list';
+import { $isListItemNode, registerCheckList } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 
 import { $getNoteId } from '#lib/editor/note-id-state';
 import { ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
-import { isBulletHit } from '@/editor/outline/bullet-hit-test';
+import { isBulletHit, isCheckboxHit } from '@/editor/outline/bullet-hit-test';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
 
 const isChecklistItem = (element: HTMLElement): boolean =>
@@ -22,27 +22,30 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
     if (!listItem || !isChecklistItem(listItem)) {
       return;
     }
-    if (!isBulletHit(listItem, event as PointerEvent)) {
+    if (isBulletHit(listItem, event as PointerEvent)) {
+      const noteId = editor.read(() => {
+        const node = $getNearestNodeFromDOMNode(listItem);
+        if (!node) {
+          return null;
+        }
+        const listNode = findNearestListItem(node);
+        if (!listNode || isChildrenWrapper(listNode)) {
+          return null;
+        }
+        const contentItem = getContentListItem(listNode);
+        return $getNoteId(contentItem);
+      });
+      if (!noteId) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId });
       return;
     }
-    const noteId = editor.read(() => {
-      const node = $getNearestNodeFromDOMNode(listItem);
-      if (!node) {
-        return null;
-      }
-      const listNode = findNearestListItem(node);
-      if (!listNode || isChildrenWrapper(listNode)) {
-        return null;
-      }
-      const contentItem = getContentListItem(listNode);
-      return $getNoteId(contentItem);
-    });
-    if (!noteId) {
-      return;
+    if (isCheckboxHit(listItem, event as PointerEvent)) {
+      event.preventDefault();
     }
-    event.preventDefault();
-    event.stopPropagation();
-    editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId });
   };
 
   const handleChecklistClick = (event: MouseEvent) => {
@@ -53,11 +56,28 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
     if (!listItem || !isChecklistItem(listItem)) {
       return;
     }
-    if (!isBulletHit(listItem, event as PointerEvent)) {
+    if (isBulletHit(listItem, event as PointerEvent)) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      return;
+    }
+    if (!isCheckboxHit(listItem, event as PointerEvent)) {
+      return;
+    }
+    if (!editor.isEditable()) {
       return;
     }
     event.preventDefault();
     event.stopPropagation();
+    event.stopImmediatePropagation();
+    editor.update(() => {
+      const node = $getNearestNodeFromDOMNode(listItem);
+      if ($isListItemNode(node)) {
+        listItem.focus();
+        node.toggleChecked();
+      }
+    });
   };
 
   return editor.registerRootListener((rootElement, prevElement) => {

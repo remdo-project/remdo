@@ -1,66 +1,30 @@
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
-
-const menuLocator = (page: Parameters<typeof editorLocator>[0]) =>
-  editorLocator(page).locator('[data-note-menu]');
-const menuItem = (page: Parameters<typeof editorLocator>[0], id: string) =>
-  editorLocator(page).locator(`[data-note-menu-item="${id}"]`);
-const listTypeItem = (page: Parameters<typeof editorLocator>[0], type: 'number' | 'check' | 'bullet') =>
-  menuItem(page, `list-${type}`);
-
-const openMenuForNote = async (page: Parameters<typeof editorLocator>[0], label: string) => {
-  const listItem = editorLocator(page)
-    .locator('li.list-item:not(.list-nested-item)')
-    .filter({ hasText: label })
-    .first();
-  await expect(listItem).toBeVisible();
-
-  const listItemBox = await listItem.boundingBox();
-  if (!listItemBox) {
-    throw new Error('Expected list item to have a bounding box.');
-  }
-  await page.mouse.move(
-    listItemBox.x + listItemBox.width / 2,
-    listItemBox.y + listItemBox.height / 2
-  );
-
-  const menuButton = editorLocator(page).locator('.note-controls__button--menu');
-  await expect(menuButton).toBeVisible();
-  await menuButton.click();
-
-  const menu = menuLocator(page);
-  await expect(menu).toHaveCount(1);
-
-  return { listItem, menu, menuButton };
-};
+import { openNoteMenu } from './_support/menu';
 
 test.describe('Note menu', () => {
   test('opens and closes via icon, outside click, and Escape', async ({ page, editor }) => {
     await editor.load('tree');
 
-    const { menu } = await openMenuForNote(page, 'note2');
+    const menu = await openNoteMenu(page, 'note2');
     await page.getByRole('button', { name: editor.docId }).first().click();
-    await expect(menu).toHaveCount(0);
+    await menu.expectClosed();
 
-    await openMenuForNote(page, 'note2');
+    await openNoteMenu(page, 'note2');
     await page.keyboard.press('Escape');
-    await expect(menu).toHaveCount(0);
+    await menu.expectClosed();
   });
 
   test('opens on double-shift and targets the caret note', async ({ page, editor }) => {
     await editor.load('tree');
 
-    await setCaretAtText(page, 'note1', 0);
-    await page.keyboard.press('Shift');
-    await page.keyboard.press('Shift');
-
-    const menu = menuLocator(page);
-    await expect(menu).toHaveCount(1);
-    await expect(menuItem(page, 'fold')).toHaveCount(0);
-    await expect(menuItem(page, 'zoom')).toHaveCount(1);
-    await expect(listTypeItem(page, 'number')).toHaveCount(0);
-    await expect(listTypeItem(page, 'check')).toHaveCount(0);
-    await expect(listTypeItem(page, 'bullet')).toHaveCount(0);
+    const menu = await openNoteMenu(page, 'note1', { anchor: 'caret', openMethod: 'shortcut' });
+    await menu.expectOpen();
+    await expect(menu.item('fold')).toHaveCount(0);
+    await expect(menu.item('zoom')).toHaveCount(1);
+    await expect(menu.item('list-number')).toHaveCount(0);
+    await expect(menu.item('list-check')).toHaveCount(0);
+    await expect(menu.item('list-bullet')).toHaveCount(0);
   });
 
   test('double-shift is canceled by other keys', async ({ page, editor }) => {
@@ -71,54 +35,53 @@ test.describe('Note menu', () => {
     await page.keyboard.press('A');
     await page.keyboard.press('Shift');
 
-    const menu = menuLocator(page);
-    await expect(menu).toHaveCount(0);
+    await expect(editorLocator(page).locator('[data-note-menu]')).toHaveCount(0);
   });
 
   test('fold actions close the menu and toggle state', async ({ page, editor }) => {
     await editor.load('tree');
 
-    const { listItem, menu } = await openMenuForNote(page, 'note2');
-    await menuItem(page, 'fold').click();
-    await expect(menu).toHaveCount(0);
-    await expect(listItem).toHaveAttribute('data-folded', 'true');
+    const menu = await openNoteMenu(page, 'note2');
+    await menu.item('fold').click();
+    await menu.expectClosed();
+    await expect(menu.listItem).toHaveAttribute('data-folded', 'true');
 
-    await openMenuForNote(page, 'note2');
+    await openNoteMenu(page, 'note2');
     await page.keyboard.press('f');
-    await expect(menu).toHaveCount(0);
-    await expect(listItem).not.toHaveAttribute('data-folded', 'true');
+    await menu.expectClosed();
+    await expect(menu.listItem).not.toHaveAttribute('data-folded', 'true');
   });
 
   test('zoom actions close the menu and update the URL', async ({ page, editor }) => {
     await editor.load('tree');
 
-    const { menu } = await openMenuForNote(page, 'note2');
-    await menuItem(page, 'zoom').click();
-    await expect(menu).toHaveCount(0);
+    const menu = await openNoteMenu(page, 'note2');
+    await menu.item('zoom').click();
+    await menu.expectClosed();
     await expect(page).toHaveURL(/\?zoom=note2$/);
 
-    await openMenuForNote(page, 'note2');
+    await openNoteMenu(page, 'note2');
     await page.keyboard.press('z');
-    await expect(menu).toHaveCount(0);
+    await menu.expectClosed();
     await expect(page).toHaveURL(/\?zoom=note2$/);
   });
 
   test('shows list type actions for notes with children', async ({ page, editor }) => {
     await editor.load('tree');
 
-    const { menu } = await openMenuForNote(page, 'note2');
-    await expect(menu).toHaveCount(1);
-    await expect(listTypeItem(page, 'number')).toHaveCount(1);
-    await expect(listTypeItem(page, 'check')).toHaveCount(1);
-    await expect(listTypeItem(page, 'bullet')).toHaveCount(0);
+    const menu = await openNoteMenu(page, 'note2');
+    await menu.expectOpen();
+    await expect(menu.item('list-number')).toHaveCount(1);
+    await expect(menu.item('list-check')).toHaveCount(1);
+    await expect(menu.item('list-bullet')).toHaveCount(0);
   });
 
   test('switches child list types and updates visuals', async ({ page, editor }) => {
     await editor.load('tree');
 
-    const { menu } = await openMenuForNote(page, 'note2');
-    await listTypeItem(page, 'number').click();
-    await expect(menu).toHaveCount(0);
+    const menu = await openNoteMenu(page, 'note2');
+    await menu.item('list-number').click();
+    await menu.expectClosed();
 
     const childItem = editorLocator(page)
       .locator('li.list-item:not(.list-nested-item)')
@@ -127,8 +90,8 @@ test.describe('Note menu', () => {
     await expect(childItem).toHaveCount(1);
     await expect(childItem.locator('xpath=ancestor::ol[1]')).toHaveClass(/list-ol/);
 
-    await openMenuForNote(page, 'note2');
-    await listTypeItem(page, 'check').click();
+    await openNoteMenu(page, 'note2');
+    await menu.item('list-check').click();
 
     await expect(childItem).toHaveClass(/list-item-unchecked/);
     await expect(childItem).toHaveAttribute('role', 'checkbox');
@@ -143,24 +106,24 @@ test.describe('Note menu', () => {
   test('hides fold action for leaf notes', async ({ page, editor }) => {
     await editor.load('tree');
 
-    const { menu } = await openMenuForNote(page, 'note1');
-    await expect(menuItem(page, 'fold')).toHaveCount(0);
-    await expect(menuItem(page, 'zoom')).toHaveCount(1);
-    await expect(listTypeItem(page, 'number')).toHaveCount(0);
-    await expect(listTypeItem(page, 'check')).toHaveCount(0);
-    await expect(listTypeItem(page, 'bullet')).toHaveCount(0);
-    await expect(menu).toHaveCount(1);
+    const menu = await openNoteMenu(page, 'note1');
+    await expect(menu.item('fold')).toHaveCount(0);
+    await expect(menu.item('zoom')).toHaveCount(1);
+    await expect(menu.item('list-number')).toHaveCount(0);
+    await expect(menu.item('list-check')).toHaveCount(0);
+    await expect(menu.item('list-bullet')).toHaveCount(0);
+    await menu.expectOpen();
   });
 
   test('uses Mantine default arrow navigation loop', async ({ page, editor }) => {
     await editor.load('tree');
 
-    await openMenuForNote(page, 'note2');
+    const menu = await openNoteMenu(page, 'note2');
 
-    const foldItem = menuItem(page, 'fold');
-    const numberItem = listTypeItem(page, 'number');
-    const checkItem = listTypeItem(page, 'check');
-    const zoomItem = menuItem(page, 'zoom');
+    const foldItem = menu.item('fold');
+    const numberItem = menu.item('list-number');
+    const checkItem = menu.item('list-check');
+    const zoomItem = menu.item('zoom');
 
     await foldItem.focus();
     await expect(foldItem).toBeFocused();

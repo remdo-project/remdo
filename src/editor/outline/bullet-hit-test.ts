@@ -73,8 +73,6 @@ const measureGlyphWidth = (style: CSSStyleDeclaration): GlyphMetrics | null => {
 export const isBulletHit = (element: HTMLElement, event: PointerEvent) => {
   let pseudoStyle: CSSStyleDeclaration | null = null;
   const baseStyle = globalThis.getComputedStyle(element);
-  const isChecklistItem =
-    element.classList.contains('list-item-checked') || element.classList.contains('list-item-unchecked');
   if (!config.isTest) {
     try {
       pseudoStyle = globalThis.getComputedStyle(element, '::before');
@@ -84,19 +82,10 @@ export const isBulletHit = (element: HTMLElement, event: PointerEvent) => {
   }
 
   const liRect = element.getBoundingClientRect();
-  if (isChecklistItem) {
-    const bulletWidth = Number.parseFloat(baseStyle.getPropertyValue('--bullet-width'));
-    const bulletLeft = Number.parseFloat(baseStyle.getPropertyValue('--bullet-left'));
-    if (Number.isFinite(bulletWidth) && bulletWidth > 0) {
-      const start = liRect.left + (Number.isFinite(bulletLeft) ? bulletLeft : 0);
-      const end = start + bulletWidth;
-      return event.clientX >= start && event.clientX <= end;
-    }
-  }
   if (!pseudoStyle) {
     const bulletWidth = Number.parseFloat(baseStyle.getPropertyValue('--bullet-width'));
     const bulletLeft = Number.parseFloat(baseStyle.getPropertyValue('--bullet-left'));
-    if (Number.isFinite(bulletWidth) && bulletWidth > 0) {
+    if (!config.isTest && Number.isFinite(bulletWidth) && bulletWidth > 0) {
       const start = liRect.left + (Number.isFinite(bulletLeft) ? bulletLeft : 0);
       const end = start + bulletWidth;
       return event.clientX >= start && event.clientX <= end;
@@ -135,4 +124,52 @@ export const isBulletHit = (element: HTMLElement, event: PointerEvent) => {
   const start = baseLeft + offset - glyphMetrics.boxLeft;
   const end = baseLeft + offset + glyphMetrics.boxRight;
   return event.clientX >= start && event.clientX <= end;
+};
+
+export const isCheckboxHit = (element: HTMLElement, event: PointerEvent) => {
+  let pseudoStyle: CSSStyleDeclaration | null = null;
+  const baseStyle = globalThis.getComputedStyle(element);
+  if (!config.isTest) {
+    try {
+      pseudoStyle = globalThis.getComputedStyle(element, '::after');
+    } catch {
+      pseudoStyle = null;
+    }
+  }
+
+  const liRect = element.getBoundingClientRect();
+  const getCheckboxBounds = () => {
+    const checkboxWidth = Number.parseFloat(baseStyle.getPropertyValue('--checkbox-width'));
+    const checkboxLeft = Number.parseFloat(baseStyle.getPropertyValue('--checkbox-left'));
+    if (!Number.isFinite(checkboxWidth) || checkboxWidth <= 0) {
+      return null;
+    }
+    const start = liRect.left + (Number.isFinite(checkboxLeft) ? checkboxLeft : 0);
+    const end = start + checkboxWidth;
+    return { start, end };
+  };
+
+  if (!pseudoStyle) {
+    const bounds = getCheckboxBounds();
+    if (!bounds) {
+      return false;
+    }
+    return event.clientX >= bounds.start && event.clientX <= bounds.end;
+  }
+
+  const width = Number.parseFloat(pseudoStyle.width);
+  const left = Number.parseFloat(pseudoStyle.left);
+  if (Number.isFinite(width) && width > 0) {
+    const start = liRect.left + (Number.isFinite(left) ? left : 0);
+    const end = start + width;
+    if (event.clientX >= start && event.clientX <= end) {
+      return true;
+    }
+  }
+
+  const bounds = getCheckboxBounds();
+  if (!bounds) {
+    return false;
+  }
+  return event.clientX >= bounds.start && event.clientX <= bounds.end;
 };
