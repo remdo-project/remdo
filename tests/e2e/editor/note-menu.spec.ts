@@ -27,6 +27,16 @@ test.describe('Note menu', () => {
     await expect(menu.item('list-bullet')).toHaveCount(0);
   });
 
+  test('closes when clicking the menu button again', async ({ page, editor }) => {
+    await editor.load('tree');
+
+    const menu = await openNoteMenu(page, 'note2');
+    const menuButton = editorLocator(page).locator('.note-controls__button--menu');
+    await expect(menuButton).toBeVisible();
+    await menuButton.click();
+    await menu.expectClosed();
+  });
+
   test('double-shift is canceled by other keys', async ({ page, editor }) => {
     await editor.load('tree');
 

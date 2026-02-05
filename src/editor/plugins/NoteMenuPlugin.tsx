@@ -297,6 +297,10 @@ export function NoteMenuPlugin() {
     };
 
     const openMenuForKey = (noteKey: string, anchorOverride?: NoteMenuAnchor): boolean => {
+      if (menuRef.current?.noteKey === noteKey) {
+        closeMenu();
+        return true;
+      }
       const resolved = resolveContainerRect();
       if (!resolved) {
         closeMenu();
