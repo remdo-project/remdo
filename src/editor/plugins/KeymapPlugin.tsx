@@ -3,7 +3,7 @@ import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect } from 'react';
 import { mergeRegister } from '@lexical/utils';
-import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
+import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND, SET_NOTE_CHECKED_COMMAND } from '@/editor/commands';
 import { IS_APPLE_PLATFORM } from '@/editor/platform';
 
 export interface KeyChord {
@@ -17,12 +17,22 @@ export interface KeyChord {
 interface KeymapEntry {
   chord: KeyChord;
   command: LexicalCommand<unknown>;
+  payload?: unknown;
 }
 
 type KeymapTable = KeymapEntry[];
 
 function defaultsForPlatform(isApple: boolean): KeymapTable {
   return [
+    {
+      command: SET_NOTE_CHECKED_COMMAND,
+      payload: { state: 'toggle' },
+      chord: {
+        key: 'Enter',
+        ctrl: isApple ? undefined : true,
+        meta: isApple ? true : undefined,
+      },
+    },
     {
       command: REORDER_NOTES_DOWN_COMMAND,
       chord: {
@@ -65,7 +75,7 @@ function getKeymap(): KeymapTable {
     if (!override || override.length === 0) {
       return entry;
     }
-    return override.map((chord) => ({ command: entry.command, chord }));
+    return override.map((chord) => ({ command: entry.command, payload: entry.payload, chord }));
   });
 }
 
@@ -83,10 +93,10 @@ function matchesChord(event: KeyboardEvent, chord: KeyChord): boolean {
 function createKeyHandler(editor: LexicalEditor) {
   return (event: KeyboardEvent): boolean => {
     const table = getKeymap();
-    for (const { chord, command } of table) {
+    for (const { chord, command, payload } of table) {
       if (matchesChord(event, chord)) {
         event.preventDefault();
-        return editor.dispatchCommand(command, null);
+        return editor.dispatchCommand(command, payload ?? null);
       }
     }
     return false;

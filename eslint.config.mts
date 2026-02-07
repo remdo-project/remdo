@@ -81,8 +81,32 @@ export default antfu(
           selector: "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']",
           message: 'Use #config instead of accessing import.meta.env directly.',
         },
+        {
+          selector: "CallExpression[callee.property.name='getChecked']",
+          message: 'Use $getNoteChecked from #lib/editor/checklist-state instead.',
+        },
+        {
+          selector: "CallExpression[callee.property.name='setChecked']",
+          message: 'Use $setNoteChecked from #lib/editor/checklist-state instead.',
+        },
+        {
+          selector: "CallExpression[callee.property.name='toggleChecked']",
+          message: 'Use $toggleNoteChecked from #lib/editor/checklist-state instead.',
+        },
       ],
       'remdo/no-legacy-fallbacks': 'error',
+    },
+  },
+  {
+    files: ['src/editor/plugins/CheckListPlugin.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']",
+          message: 'Use #config instead of accessing import.meta.env directly.',
+        },
+      ],
     },
   },
   {

@@ -5,6 +5,7 @@ import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollaborationPlugin } from './plugins/collaboration';
+import { CheckListPlugin } from './plugins/CheckListPlugin';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { DevPlugin } from './plugins/dev';
 import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin';
@@ -66,6 +67,7 @@ export default function Editor({
           <NoteMenuPlugin />
           <ZoomPlugin zoomNoteId={zoomNoteId} onZoomNoteIdChange={onZoomNoteIdChange} onZoomPathChange={onZoomPathChange} />
           <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
+          <CheckListPlugin />
           <ListPlugin hasStrictIndent />
           <RootSchemaPlugin />
           <NoteIdPlugin />

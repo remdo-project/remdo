@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { $isNoteFolded } from '#lib/editor/fold-state';
-import { OPEN_NOTE_MENU_COMMAND, TOGGLE_NOTE_FOLD_COMMAND } from '@/editor/commands';
+import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
 import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { getNestedList } from '@/editor/outline/selection/tree';
 
@@ -206,10 +206,13 @@ export function NoteControlsPlugin() {
     };
 
     const handlePointerMove = (event: PointerEvent | MouseEvent) => {
-      const sourceChanged = setInteractionSource('hover');
       const root = rootRef.current ?? editor.getRootElement();
       if (!root) {
         clearControls();
+        return;
+      }
+      const eventTarget = event.target;
+      if (eventTarget instanceof HTMLElement && eventTarget.closest('[data-note-menu]')) {
         return;
       }
       const surfaceRect = root.getBoundingClientRect();
@@ -219,14 +222,13 @@ export function NoteControlsPlugin() {
         event.clientY < surfaceRect.top ||
         event.clientY > surfaceRect.bottom
       ) {
-        hoverElementRef.current = null;
-        syncActiveControls();
         return;
       }
 
       if (hoverElementRef.current) {
         const rect = hoverElementRef.current.getBoundingClientRect();
         if (event.clientY >= rect.top && event.clientY <= rect.bottom) {
+          const sourceChanged = setInteractionSource('hover');
           if (sourceChanged) {
             syncActiveControls();
           }
@@ -234,24 +236,25 @@ export function NoteControlsPlugin() {
         }
       }
 
-      const eventTarget = event.target;
       const candidate =
         eventTarget instanceof HTMLElement
           ? eventTarget.closest<HTMLElement>('li.list-item:not(.list-nested-item)')
           : null;
       const nextHover = candidate ?? resolveTargetByY(root, event.clientY);
 
+      if (!nextHover) {
+        return;
+      }
+
+      const sourceChanged = setInteractionSource('hover');
       if (nextHover === hoverElementRef.current) {
         if (sourceChanged) {
           syncActiveControls();
         }
         return;
       }
+
       hoverElementRef.current = nextHover;
-      if (!nextHover) {
-        syncActiveControls();
-        return;
-      }
       syncActiveControls();
     };
 
@@ -356,7 +359,7 @@ export function NoteControlsPlugin() {
   const onFoldPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    editor.dispatchCommand(TOGGLE_NOTE_FOLD_COMMAND, { noteKey: controls.noteKey });
+    editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteKey: controls.noteKey });
     editor.focus();
   };
 

@@ -38,15 +38,17 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).
 - `docs/outliner/folding.md` (Short). Note folding behavior, toggle visibility (hover/caret),
   persistence, and auto-expand rules.
-- `docs/outliner/index.md` (Short). Entry point with links; single-source invariants rule.
+- `docs/outliner/index.md` (Short). Entry point with links (including list types); single-source invariants rule.
+- `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,
+  rendering, and toggle commands.
 - `docs/outliner/menu.md` (Short). Note menu entry points, icon visibility (hover/caret),
-  targets, and actions.
+  targets, and actions (toggle checked/fold/zoom/child list types).
 - `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization, clipboard identity
   rules, collab, `noteRef`.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indentation
   semantics; indent/outdent rules; deletion-merge exception.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and constraints.
-- `docs/outliner/selection.md` (Long). Cursor/selection ladder, anchor/focus reversal, directional boundary rules.
+- `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, auto-expansion rules,
   breadcrumbs, and routing.
 - `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs;

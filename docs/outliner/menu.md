@@ -9,9 +9,12 @@
 
 ## Actions
 
-1. Fold/Unfold toggles per `./folding.md`, hidden for leaf notes, shortcut `F`.
-2. Zoom per `./zoom.md`, shortcut `Z`.
-3. Menu labels visually mark the shortcut letter.
+1. Toggle checked per `./list-types.md`, shortcut `Cmd/Ctrl+Enter`.
+2. Fold/Unfold per `./folding.md` (`toggle` state), hidden for leaf notes, shortcut `F`.
+3. Children list type actions per `./list-types.md`, showing only the two
+   non-current options; hidden for leaf notes.
+4. Zoom per `./zoom.md`, shortcut `Z`.
+5. Menu labels visually mark shortcut letters where applicable.
 
 ## Behavior
 

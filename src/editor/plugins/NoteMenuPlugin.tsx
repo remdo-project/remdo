@@ -1,4 +1,4 @@
-import type { ListItemNode } from '@lexical/list';
+import type { ListItemNode, ListType } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { Menu } from '@mantine/core';
 import { mergeRegister } from '@lexical/utils';
@@ -14,7 +14,7 @@ import { createPortal } from 'react-dom';
 
 import { $isNoteFolded } from '#lib/editor/fold-state';
 import { $getNoteId } from '#lib/editor/note-id-state';
-import { OPEN_NOTE_MENU_COMMAND, TOGGLE_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
+import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { getNestedList } from '@/editor/outline/selection/tree';
@@ -23,6 +23,7 @@ interface NoteMenuState {
   noteKey: string;
   hasChildren: boolean;
   isFolded: boolean;
+  childListType: ListType | null;
   left: number;
   top: number;
 }
@@ -39,6 +40,12 @@ const noteHasChildren = (item: ListItemNode): boolean => {
   }
   return getContentSiblings(nested).length > 0;
 };
+
+const listTypeOptions = [
+  { type: 'number' as const, label: 'Numbered list', id: 'list-number' },
+  { type: 'check' as const, label: 'Checklist', id: 'list-check' },
+  { type: 'bullet' as const, label: 'Bulleted list', id: 'list-bullet' },
+];
 
 const resolveAnchorFromRect = (rect: DOMRect, anchorRect: DOMRect): NoteMenuAnchor => ({
   left: rect.right - anchorRect.left,
@@ -89,7 +96,17 @@ export function NoteMenuPlugin() {
     if (!current || !current.hasChildren) {
       return;
     }
-    editor.dispatchCommand(TOGGLE_NOTE_FOLD_COMMAND, { noteKey: current.noteKey });
+    editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteKey: current.noteKey });
+    closeMenu();
+    editor.focus();
+  };
+
+  const triggerToggleChecked = () => {
+    const current = menuRef.current;
+    if (!current) {
+      return;
+    }
+    editor.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle', noteKey: current.noteKey });
     closeMenu();
     editor.focus();
   };
@@ -199,8 +216,10 @@ export function NoteMenuPlugin() {
 
     const resolveNoteState = (
       element: HTMLElement
-    ): { noteKey: string; hasChildren: boolean; isFolded: boolean } | null => {
-      let result: { noteKey: string; hasChildren: boolean; isFolded: boolean } | null = null;
+    ): { noteKey: string; hasChildren: boolean; isFolded: boolean; childListType: ListType | null } | null => {
+      let result:
+        | { noteKey: string; hasChildren: boolean; isFolded: boolean; childListType: ListType | null }
+        | null = null;
       editor.read(() => {
         const node = $getNearestNodeFromDOMNode(element);
         if (!node) {
@@ -218,10 +237,12 @@ export function NoteMenuPlugin() {
           return;
         }
         const hasChildren = noteHasChildren(contentItem);
+        const childListType = hasChildren ? getNestedList(contentItem)?.getListType() ?? null : null;
         result = {
           noteKey: contentItem.getKey(),
           hasChildren,
           isFolded: hasChildren && $isNoteFolded(contentItem),
+          childListType,
         };
       });
       return result;
@@ -286,6 +307,10 @@ export function NoteMenuPlugin() {
     };
 
     const openMenuForKey = (noteKey: string, anchorOverride?: NoteMenuAnchor): boolean => {
+      if (menuRef.current?.noteKey === noteKey) {
+        closeMenu();
+        return true;
+      }
       const resolved = resolveContainerRect();
       if (!resolved) {
         closeMenu();
@@ -402,6 +427,10 @@ export function NoteMenuPlugin() {
   };
 
   const foldLabel = menu.isFolded ? 'Unfold' : 'Fold';
+  const listActions =
+    menu.hasChildren && menu.childListType
+      ? listTypeOptions.filter((option) => option.type !== menu.childListType)
+      : [];
 
   return createPortal(
     <Menu
@@ -435,6 +464,9 @@ export function NoteMenuPlugin() {
           }
         }}
       >
+        <Menu.Item data-note-menu-item="toggle-checked" onClick={triggerToggleChecked}>
+          Toggle checked
+        </Menu.Item>
         {menu.hasChildren ? (
           <Menu.Item data-note-menu-item="fold" onClick={triggerFoldToggle}>
             {renderShortcutLabel(foldLabel, 'F')}
@@ -443,6 +475,38 @@ export function NoteMenuPlugin() {
         <Menu.Item data-note-menu-item="zoom" onClick={triggerZoom}>
           {renderShortcutLabel('Zoom', 'Z')}
         </Menu.Item>
+        {listActions.length > 0 ? (
+          <>
+            <Menu.Label>Children</Menu.Label>
+            {listActions.map((option) => (
+              <Menu.Item
+                key={option.type}
+                data-note-menu-item={option.id}
+                onClick={() => {
+                  editor.update(() => {
+                    const node = $getNodeByKey<ListItemNode>(menu.noteKey);
+                    if (!node) {
+                      return;
+                    }
+                    const contentItem = getContentListItem(node);
+                    if (isChildrenWrapper(contentItem)) {
+                      return;
+                    }
+                    const nested = getNestedList(contentItem);
+                    if (!nested) {
+                      return;
+                    }
+                    nested.setListType(option.type);
+                  });
+                  closeMenu();
+                  editor.focus();
+                }}
+              >
+                {option.label}
+              </Menu.Item>
+            ))}
+          </>
+        ) : null}
       </Menu.Dropdown>
     </Menu>,
     portalRoot

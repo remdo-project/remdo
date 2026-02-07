@@ -169,8 +169,8 @@ only in the pressed direction (no wrap at the document boundary), while
 
 | Selection state                    | Allowed operations                                                                                       |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Caret / Text Range                 | Typing, inline formatting, inline delete/backspace, inline to-do toggles                                 |
-| Note Range (single or contiguous)  | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste entire notes, run structural commands (always executed in document order) |
+| Caret / Text Range                 | Typing, inline formatting, inline delete/backspace, toggle checked (per `./list-types.md`)              |
+| Note Range (single or contiguous)  | Indent/outdent, reorder, duplicate, convert note type, delete, copy/paste entire notes, toggle checked (per `./list-types.md`), run structural commands (always executed in document order) |
 
 Progressive Selection is simply a shortcut for creating larger note ranges, so
 it inherits the same command surface. These guarantees ensure upcoming tests

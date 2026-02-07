@@ -13,6 +13,8 @@ export const editorTheme: EditorThemeClasses = {
     ul: 'list-ul',
     ol: 'list-ol',
     listitem: 'list-item',
+    listitemChecked: 'list-item-checked',
+    listitemUnchecked: 'list-item-unchecked',
     nested: {
       list: 'list-nested',
       listitem: 'list-nested-item',
