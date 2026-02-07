@@ -12,12 +12,12 @@ import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { $isNoteFolded } from '#lib/editor/fold-state';
 import { $getNoteId } from '#lib/editor/note-id-state';
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
-import { getNestedList, noteHasChildren } from '@/editor/outline/selection/tree';
+import { getNestedList } from '@/editor/outline/selection/tree';
+import { $resolveNoteStateFromDOMNode } from '@/editor/plugins/note-state';
 
 interface NoteMenuState {
   noteKey: string;
@@ -209,35 +209,19 @@ export function NoteMenuPlugin() {
     const resolveNoteState = (
       element: HTMLElement
     ): { noteKey: string; hasChildren: boolean; isFolded: boolean; childListType: ListType | null } | null => {
-      let result:
-        | { noteKey: string; hasChildren: boolean; isFolded: boolean; childListType: ListType | null }
-        | null = null;
-      editor.read(() => {
-        const node = $getNearestNodeFromDOMNode(element);
-        if (!node) {
-          result = null;
-          return;
+      return editor.read(() => {
+        const resolved = $resolveNoteStateFromDOMNode(element);
+        if (!resolved) {
+          return null;
         }
-        const listItem = findNearestListItem(node);
-        if (!listItem) {
-          result = null;
-          return;
-        }
-        const contentItem = getContentListItem(listItem);
-        if (isChildrenWrapper(contentItem)) {
-          result = null;
-          return;
-        }
-        const hasChildren = noteHasChildren(contentItem);
-        const childListType = hasChildren ? getNestedList(contentItem)?.getListType() ?? null : null;
-        result = {
-          noteKey: contentItem.getKey(),
-          hasChildren,
-          isFolded: hasChildren && $isNoteFolded(contentItem),
+        const childListType = resolved.hasChildren ? getNestedList(resolved.contentItem)?.getListType() ?? null : null;
+        return {
+          noteKey: resolved.noteKey,
+          hasChildren: resolved.hasChildren,
+          isFolded: resolved.isFolded,
           childListType,
         };
       });
-      return result;
     };
 
     const resolveSelectionKey = (): string | null => {

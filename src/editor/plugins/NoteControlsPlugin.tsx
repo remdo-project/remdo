@@ -1,13 +1,12 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getNearestNodeFromDOMNode, $getSelection, $isRangeSelection } from 'lexical';
+import { $getSelection, $isRangeSelection } from 'lexical';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { $isNoteFolded } from '#lib/editor/fold-state';
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
-import { noteHasChildren } from '@/editor/outline/selection/tree';
+import { $resolveNoteStateFromDOMNode } from '@/editor/plugins/note-state';
 
 interface NoteControlsState {
   noteKey: string;
@@ -66,31 +65,17 @@ export function NoteControlsPlugin() {
     const resolveNoteState = (
       element: HTMLElement
     ): { noteKey: string; hasChildren: boolean; isFolded: boolean } | null => {
-      let result: { noteKey: string; hasChildren: boolean; isFolded: boolean } | null = null;
-      editor.read(() => {
-        const node = $getNearestNodeFromDOMNode(element);
-        if (!node) {
-          result = null;
-          return;
+      return editor.read(() => {
+        const resolved = $resolveNoteStateFromDOMNode(element);
+        if (!resolved) {
+          return null;
         }
-        const listItem = findNearestListItem(node);
-        if (!listItem) {
-          result = null;
-          return;
-        }
-        const contentItem = getContentListItem(listItem);
-        if (isChildrenWrapper(contentItem)) {
-          result = null;
-          return;
-        }
-        const hasChildren = noteHasChildren(contentItem);
-        result = {
-          noteKey: contentItem.getKey(),
-          hasChildren,
-          isFolded: hasChildren && $isNoteFolded(contentItem),
+        return {
+          noteKey: resolved.noteKey,
+          hasChildren: resolved.hasChildren,
+          isFolded: resolved.isFolded,
         };
       });
-      return result;
     };
 
     const resolveSelectionKey = (): string | null => {
