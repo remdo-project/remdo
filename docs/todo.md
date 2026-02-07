@@ -16,8 +16,6 @@ Rules:
 - Keep `@typescript-eslint/utils` explicitly listed in dev deps for
   `eslint-plugin-antfu` runtime imports. Drop it once the upgraded plugin
   properly declares the dependency.
-- [Optional] Add `csstree-validator` as a strict CSS syntax pass after
-  `stylelint` if we want extra parser-level guarantees without style rules.
 
 ## Editor
 
