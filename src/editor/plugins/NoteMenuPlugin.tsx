@@ -14,7 +14,7 @@ import { createPortal } from 'react-dom';
 
 import { $isNoteFolded } from '#lib/editor/fold-state';
 import { $getNoteId } from '#lib/editor/note-id-state';
-import { OPEN_NOTE_MENU_COMMAND, TOGGLE_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
+import { OPEN_NOTE_MENU_COMMAND, TOGGLE_NOTE_CHECKED_COMMAND, TOGGLE_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { getNestedList } from '@/editor/outline/selection/tree';
@@ -97,6 +97,16 @@ export function NoteMenuPlugin() {
       return;
     }
     editor.dispatchCommand(TOGGLE_NOTE_FOLD_COMMAND, { noteKey: current.noteKey });
+    closeMenu();
+    editor.focus();
+  };
+
+  const triggerToggleChecked = () => {
+    const current = menuRef.current;
+    if (!current) {
+      return;
+    }
+    editor.dispatchCommand(TOGGLE_NOTE_CHECKED_COMMAND, { noteKey: current.noteKey });
     closeMenu();
     editor.focus();
   };
@@ -454,6 +464,9 @@ export function NoteMenuPlugin() {
           }
         }}
       >
+        <Menu.Item data-note-menu-item="toggle-checked" onClick={triggerToggleChecked}>
+          Toggle checked
+        </Menu.Item>
         {menu.hasChildren ? (
           <Menu.Item data-note-menu-item="fold" onClick={triggerFoldToggle}>
             {renderShortcutLabel(foldLabel, 'F')}

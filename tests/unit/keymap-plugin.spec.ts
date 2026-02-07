@@ -1,21 +1,22 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { __testCreateKeyHandler, setKeymapOverrides, clearKeymapOverrides } from '@/editor/plugins/KeymapPlugin';
-import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
+import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND, TOGGLE_NOTE_CHECKED_COMMAND } from '@/editor/commands';
 
 const altChordDown = { key: 'ArrowDown', alt: true, shift: true } as const;
 const altChordUp = { key: 'ArrowUp', alt: true, shift: true } as const;
 const ctrlChordDown = { key: 'ArrowDown', ctrl: true, shift: true } as const;
 const ctrlChordUp = { key: 'ArrowUp', ctrl: true, shift: true } as const;
+const ctrlEnterChord = { key: 'Enter', ctrl: true } as const;
 
 type FakeEvent = KeyboardEvent & { defaultPrevented: boolean };
 
-const makeEvent = (chord: { key: string; alt?: boolean; ctrl?: boolean; shift?: boolean }): FakeEvent => {
+const makeEvent = (chord: { key: string; alt?: boolean; ctrl?: boolean; shift?: boolean; meta?: boolean }): FakeEvent => {
   const event = {
     key: chord.key,
     altKey: chord.alt ?? false,
     ctrlKey: chord.ctrl ?? false,
     shiftKey: chord.shift ?? false,
-    metaKey: false,
+    metaKey: chord.meta ?? false,
     defaultPrevented: false,
     preventDefault(this: FakeEvent) {
       this.defaultPrevented = true;
@@ -71,5 +72,20 @@ describe('keymapPlugin key handler', () => {
     expect(handler(upEvent)).toBe(true);
     expect(upEvent.defaultPrevented).toBe(true);
     expect(dispatchCommand).toHaveBeenCalledWith(REORDER_NOTES_UP_COMMAND, null);
+  });
+
+  it('uses enter chord override for checked toggle', () => {
+    setKeymapOverrides(
+      new Map([
+        [TOGGLE_NOTE_CHECKED_COMMAND, [ctrlEnterChord]],
+      ])
+    );
+    const dispatchCommand = vi.fn().mockReturnValue(true);
+    const handler = __testCreateKeyHandler({ dispatchCommand } as any);
+    const event = makeEvent(ctrlEnterChord);
+
+    expect(handler(event)).toBe(true);
+    expect(event.defaultPrevented).toBe(true);
+    expect(dispatchCommand).toHaveBeenCalledWith(TOGGLE_NOTE_CHECKED_COMMAND, null);
   });
 });

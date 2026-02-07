@@ -9,7 +9,7 @@ interface OpenMenuOptions {
   anchor?: 'note' | 'caret';
 }
 
-type MenuItemId = 'fold' | 'zoom' | 'list-number' | 'list-check' | 'list-bullet';
+type MenuItemId = 'toggle-checked' | 'fold' | 'zoom' | 'list-number' | 'list-check' | 'list-bullet';
 
 interface MenuHandle {
   listItem: Locator;

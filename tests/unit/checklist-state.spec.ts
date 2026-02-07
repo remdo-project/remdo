@@ -3,8 +3,9 @@ import { $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
 
 import { $getNoteChecked, $setNoteChecked } from '#lib/editor/checklist-state';
+import { TOGGLE_NOTE_CHECKED_COMMAND } from '@/editor/commands';
 import { $findNoteById } from '@/editor/outline/note-traversal';
-import { getNoteElement, meta } from '#tests';
+import { getNoteElement, meta, placeCaretAtNote, selectNoteRange } from '#tests';
 
 it('stores checked state on bullet list items', meta({ fixture: 'flat' }), async ({ remdo }) => {
   await remdo.mutate(() => {
@@ -61,4 +62,67 @@ it('restores checked state when list type toggles', meta({ fixture: 'flat' }), a
     return item.getChecked();
   });
   expect(checkedAgain).toBe(true);
+});
+
+it('toggles checked state for the caret note on non-checklist lists', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  await placeCaretAtNote(remdo, 'note1');
+  await remdo.dispatchCommand(TOGGLE_NOTE_CHECKED_COMMAND);
+
+  const checked = remdo.editor.getEditorState().read(() => {
+    const item = $findNoteById('note1')!;
+    return $getNoteChecked(item);
+  });
+  expect(checked).toBe(true);
+
+  await remdo.dispatchCommand(TOGGLE_NOTE_CHECKED_COMMAND);
+
+  const unchecked = remdo.editor.getEditorState().read(() => {
+    const item = $findNoteById('note1')!;
+    return $getNoteChecked(item);
+  });
+  expect(unchecked).toBe(false);
+});
+
+it('applies one target state to every selected note when toggling', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  await remdo.mutate(() => {
+    const note1 = $findNoteById('note1')!;
+    $setNoteChecked(note1, true);
+  });
+
+  await selectNoteRange(remdo, 'note1', 'note2');
+  expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+  await remdo.dispatchCommand(TOGGLE_NOTE_CHECKED_COMMAND);
+
+  const afterMixedToggle = remdo.editor.getEditorState().read(() => {
+    const note1 = $findNoteById('note1')!;
+    const note2 = $findNoteById('note2')!;
+    return [$getNoteChecked(note1), $getNoteChecked(note2)];
+  });
+  expect(afterMixedToggle).toEqual([true, true]);
+
+  await selectNoteRange(remdo, 'note1', 'note2');
+  expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+  await remdo.dispatchCommand(TOGGLE_NOTE_CHECKED_COMMAND);
+
+  const afterAllCheckedToggle = remdo.editor.getEditorState().read(() => {
+    const note1 = $findNoteById('note1')!;
+    const note2 = $findNoteById('note2')!;
+    return [$getNoteChecked(note1), $getNoteChecked(note2)];
+  });
+  expect(afterAllCheckedToggle).toEqual([false, false]);
+});
+
+it('targets only the payload note key when provided', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  await selectNoteRange(remdo, 'note1', 'note2');
+  expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+
+  const note2Key = remdo.editor.getEditorState().read(() => $findNoteById('note2')!.getKey());
+  await remdo.dispatchCommand(TOGGLE_NOTE_CHECKED_COMMAND, { noteKey: note2Key });
+
+  const states = remdo.editor.getEditorState().read(() => {
+    const note1 = $findNoteById('note1')!;
+    const note2 = $findNoteById('note2')!;
+    return [$getNoteChecked(note1), $getNoteChecked(note2)];
+  });
+  expect(states).toEqual([undefined, true]);
 });

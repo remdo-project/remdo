@@ -20,6 +20,7 @@ test.describe('Note menu', () => {
 
     const menu = await openNoteMenu(page, 'note1', { anchor: 'caret', openMethod: 'shortcut' });
     await menu.expectOpen();
+    await expect(menu.item('toggle-checked')).toHaveCount(1);
     await expect(menu.item('fold')).toHaveCount(0);
     await expect(menu.item('zoom')).toHaveCount(1);
     await expect(menu.item('list-number')).toHaveCount(0);
@@ -111,23 +112,42 @@ test.describe('Note menu', () => {
     await expect(page).toHaveURL(/\?zoom=note2$/);
   });
 
+  test('toggle checked closes the menu and updates note state', async ({ page, editor }) => {
+    await editor.load('tree');
+
+    const menu = await openNoteMenu(page, 'note2');
+    await expect(menu.listItem).not.toHaveAttribute('data-note-checked', 'true');
+
+    await menu.item('toggle-checked').click();
+    await menu.expectClosed();
+    await expect(menu.listItem).toHaveAttribute('data-note-checked', 'true');
+
+    const menuAfter = await openNoteMenu(page, 'note2');
+    await menuAfter.item('toggle-checked').click();
+    await menuAfter.expectClosed();
+    await expect(menuAfter.listItem).not.toHaveAttribute('data-note-checked', 'true');
+  });
+
   test('shows list type actions for notes with children', async ({ page, editor }) => {
     await editor.load('tree-list-types');
 
     const menu = await openNoteMenu(page, 'note1');
     await menu.expectOpen();
+    await expect(menu.item('toggle-checked')).toHaveCount(1);
     await expect(menu.item('list-number')).toHaveCount(0);
     await expect(menu.item('list-check')).toHaveCount(1);
     await expect(menu.item('list-bullet')).toHaveCount(1);
 
     const checkMenu = await openNoteMenu(page, 'note3');
     await checkMenu.expectOpen();
+    await expect(checkMenu.item('toggle-checked')).toHaveCount(1);
     await expect(checkMenu.item('list-number')).toHaveCount(1);
     await expect(checkMenu.item('list-check')).toHaveCount(0);
     await expect(checkMenu.item('list-bullet')).toHaveCount(1);
 
     const bulletMenu = await openNoteMenu(page, 'note5');
     await bulletMenu.expectOpen();
+    await expect(bulletMenu.item('toggle-checked')).toHaveCount(1);
     await expect(bulletMenu.item('list-number')).toHaveCount(1);
     await expect(bulletMenu.item('list-check')).toHaveCount(1);
     await expect(bulletMenu.item('list-bullet')).toHaveCount(0);
@@ -166,6 +186,7 @@ test.describe('Note menu', () => {
     await editor.load('tree-list-types');
 
     const menu = await openNoteMenu(page, 'note2');
+    await expect(menu.item('toggle-checked')).toHaveCount(1);
     await expect(menu.item('fold')).toHaveCount(0);
     await expect(menu.item('zoom')).toHaveCount(1);
     await expect(menu.item('list-number')).toHaveCount(0);
@@ -179,12 +200,15 @@ test.describe('Note menu', () => {
 
     const menu = await openNoteMenu(page, 'note2');
 
+    const toggleItem = menu.item('toggle-checked');
     const foldItem = menu.item('fold');
     const numberItem = menu.item('list-number');
     const checkItem = menu.item('list-check');
     const zoomItem = menu.item('zoom');
 
-    await foldItem.focus();
+    await toggleItem.focus();
+    await expect(toggleItem).toBeFocused();
+    await page.keyboard.press('ArrowDown');
     await expect(foldItem).toBeFocused();
     await page.keyboard.press('ArrowDown');
     await expect(zoomItem).toBeFocused();
@@ -193,6 +217,6 @@ test.describe('Note menu', () => {
     await page.keyboard.press('ArrowDown');
     await expect(checkItem).toBeFocused();
     await page.keyboard.press('ArrowDown');
-    await expect(foldItem).toBeFocused();
+    await expect(toggleItem).toBeFocused();
   });
 });
