@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import { $getNodeByKey, $getRoot, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 
 import { $isNoteFolded, $setNoteFolded } from '#lib/editor/fold-state';
-import { TOGGLE_NOTE_FOLD_COMMAND } from '@/editor/commands';
+import { SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
 import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import type { OutlineSelection } from '@/editor/outline/selection/model';
@@ -164,9 +164,9 @@ export function FoldingPlugin() {
       refreshFoldedAttributes();
     });
 
-    const unregisterToggleCommand = editor.registerCommand(
-      TOGGLE_NOTE_FOLD_COMMAND,
-      ({ noteKey }) => {
+    const unregisterSetCommand = editor.registerCommand(
+      SET_NOTE_FOLD_COMMAND,
+      ({ state, noteKey }) => {
         const node = $getNodeByKey<ListItemNode>(noteKey);
         if (!node) {
           return false;
@@ -178,7 +178,11 @@ export function FoldingPlugin() {
         if (!noteHasChildren(contentItem)) {
           return false;
         }
-        $setNoteFolded(contentItem, !$isNoteFolded(contentItem));
+        if (state === 'toggle') {
+          $setNoteFolded(contentItem, !$isNoteFolded(contentItem));
+          return true;
+        }
+        $setNoteFolded(contentItem, state === 'folded');
         return true;
       },
       COMMAND_PRIORITY_LOW
@@ -186,7 +190,7 @@ export function FoldingPlugin() {
 
     return () => {
       unregisterRootListener();
-      unregisterToggleCommand();
+      unregisterSetCommand();
       unregisterUpdate();
       unregisterTransform();
     };

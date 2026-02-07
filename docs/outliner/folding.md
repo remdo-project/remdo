@@ -30,6 +30,7 @@ note identities.
    no longer folded.
 7. Zoom defines the outer visible subtree; folding applies inside that view and
    zooming does not reset folding.
+8. Fold command API is state-based: `folded`, `unfolded`, or `toggle`.
 
 ## Non-goals / future
 

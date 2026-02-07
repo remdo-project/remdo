@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { $isNoteFolded } from '#lib/editor/fold-state';
-import { OPEN_NOTE_MENU_COMMAND, TOGGLE_NOTE_FOLD_COMMAND } from '@/editor/commands';
+import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
 import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { getNestedList } from '@/editor/outline/selection/tree';
 
@@ -359,7 +359,7 @@ export function NoteControlsPlugin() {
   const onFoldPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    editor.dispatchCommand(TOGGLE_NOTE_FOLD_COMMAND, { noteKey: controls.noteKey });
+    editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteKey: controls.noteKey });
     editor.focus();
   };
 
