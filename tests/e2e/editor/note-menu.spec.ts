@@ -7,7 +7,7 @@ test.describe('Note menu', () => {
     await editor.load('tree-list-types');
 
     const menu = await openNoteMenu(page, 'note1');
-    await page.getByRole('button', { name: editor.docId }).first().click();
+    await page.mouse.click(5, 5);
     await menu.expectClosed();
 
     await openNoteMenu(page, 'note1');
