@@ -18,10 +18,11 @@ import type { LexicalNode, UpdateListenerPayload } from 'lexical';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
-import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
-import { getParentContentItem } from '@/editor/outline/selection/tree';
+import { $findNoteById, $getNoteAncestorPath, $resolveNoteIdFromDOMNode } from '@/editor/outline/note-traversal';
+import { findLowestCommonContentAncestor, getParentContentItem, isContentDescendantOf } from '@/editor/outline/selection/tree';
 import { $getNoteId } from '#lib/editor/note-id-state';
 import { ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
+import { resolveZoomNoteId } from './zoom-note-id';
 import {
   NOTE_ID_NORMALIZE_TAG,
   ROOT_SCHEMA_NORMALIZE_TAG,
@@ -47,44 +48,6 @@ const isPathEqual = (next: NotePathItem[], prev: NotePathItem[] | null) => {
     }
     return item.noteId === prevItem.noteId && item.label === prevItem.label;
   });
-};
-
-const resolveZoomNoteId = (value: string | null | undefined) => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-};
-
-const isDescendantOf = (candidate: ListItemNode, ancestor: ListItemNode): boolean => {
-  let current: ListItemNode | null = candidate;
-  while (current) {
-    if (current.getKey() === ancestor.getKey()) {
-      return true;
-    }
-    current = getParentContentItem(current);
-  }
-  return false;
-};
-
-const findLowestCommonAncestor = (left: ListItemNode, right: ListItemNode): ListItemNode | null => {
-  const leftKeys = new Set<string>();
-  let current: ListItemNode | null = left;
-  while (current) {
-    leftKeys.add(current.getKey());
-    current = getParentContentItem(current);
-  }
-
-  current = right;
-  while (current) {
-    if (leftKeys.has(current.getKey())) {
-      return current;
-    }
-    current = getParentContentItem(current);
-  }
-
-  return null;
 };
 
 const resolveContentItem = (node: LexicalNode | null): ListItemNode | null => {
@@ -129,8 +92,8 @@ const resolveZoomAncestor = (root: ListItemNode, outsideItems: ListItemNode[]): 
   let candidate: ListItemNode | null = null;
   for (const item of outsideItems) {
     const next: ListItemNode | null = candidate
-      ? findLowestCommonAncestor(candidate, item)
-      : findLowestCommonAncestor(root, item);
+      ? findLowestCommonContentAncestor(candidate, item)
+      : findLowestCommonContentAncestor(root, item);
     if (!next) {
       return null;
     }
@@ -217,18 +180,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
         return;
       }
 
-      const noteId = editor.read(() => {
-        const node = $getNearestNodeFromDOMNode(listItem);
-        if (!node) {
-          return null;
-        }
-        const listNode = findNearestListItem(node);
-        if (!listNode || isChildrenWrapper(listNode)) {
-          return null;
-        }
-        const contentItem = getContentListItem(listNode);
-        return $getNoteId(contentItem);
-      });
+      const noteId = editor.read(() => $resolveNoteIdFromDOMNode(listItem));
 
       if (!noteId) {
         return;
@@ -442,7 +394,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
         const path = $getNoteAncestorPath(root);
         const parent = getParentContentItem(root);
         const parentKey = parent?.getKey() ?? null;
-        const selectionInZoomRoot = selectionItem ? isDescendantOf(selectionItem, root) : false;
+        const selectionInZoomRoot = selectionItem ? isContentDescendantOf(selectionItem, root) : false;
         let nextZoomNoteId: string | null | undefined;
         let scrollTargetKey: string | null = null;
 
@@ -452,7 +404,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
             let shouldApply = true;
             if (mergeHint.noteId) {
               const mergeItem = $findNoteById(mergeHint.noteId);
-              if (mergeItem && isDescendantOf(mergeItem, root)) {
+              if (mergeItem && isContentDescendantOf(mergeItem, root)) {
                 shouldApply = false;
               }
             }
@@ -472,7 +424,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
             } else {
               const dirtyItems = $collectDirtyContentItems(dirtyElements, dirtyLeaves);
               const outsideItems = dirtyItems.filter(
-                (item) => !isDescendantOf(item, root) && !isDescendantOf(root, item)
+                (item) => !isContentDescendantOf(item, root) && !isContentDescendantOf(root, item)
               );
 
               if (outsideItems.length > 0) {
@@ -586,7 +538,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
               const selectionItem = $isRangeSelection(selection)
                 ? resolveContentItem(selection.anchor.getNode())
                 : null;
-              if (selectionItem && isDescendantOf(selectionItem, targetItem)) {
+              if (selectionItem && isContentDescendantOf(selectionItem, targetItem)) {
                 pendingZoomSelectionRef.current = null;
                 return;
               }

@@ -6,11 +6,11 @@ import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelec
 import { useEffect } from 'react';
 
 import { $getNoteChecked, $setNoteChecked } from '#lib/editor/checklist-state';
-import { $getNoteId } from '#lib/editor/note-id-state';
 import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import type { SetNoteCheckedPayload } from '@/editor/commands';
 import { isBulletHit, isCheckboxHit } from '@/editor/outline/bullet-hit-test';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { $resolveNoteIdFromDOMNode } from '@/editor/outline/note-traversal';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 
 const isChecklistItem = (element: HTMLElement): boolean =>
@@ -87,18 +87,7 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
       return;
     }
     if (isBulletHit(listItem, event as PointerEvent)) {
-      const noteId = editor.read(() => {
-        const node = $getNearestNodeFromDOMNode(listItem);
-        if (!node) {
-          return null;
-        }
-        const listNode = findNearestListItem(node);
-        if (!listNode || isChildrenWrapper(listNode)) {
-          return null;
-        }
-        const contentItem = getContentListItem(listNode);
-        return $getNoteId(contentItem);
-      });
+      const noteId = editor.read(() => $resolveNoteIdFromDOMNode(listItem));
       if (!noteId) {
         return;
       }

@@ -9,6 +9,7 @@ import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/ed
 import { isPointAtBoundary } from './caret';
 import { getContiguousSelectionHeads } from './heads';
 import type { OutlineSelectionRange } from './model';
+import { isEmptyNoteBody } from './note-body';
 import { getNextContentSibling, getSubtreeTail, normalizeContentRange } from './tree';
 
 export interface SnapPayload {
@@ -118,23 +119,6 @@ function resolveEmptySiblingFromBoundary(
   }
 
   return null;
-}
-
-function isEmptyNoteBody(item: ListItemNode): boolean {
-  const contentItem = getContentListItem(item);
-  const pieces: string[] = [];
-
-  for (const child of contentItem.getChildren()) {
-    if ($isListNode(child)) {
-      continue;
-    }
-    const getTextContent = (child as { getTextContent?: () => string }).getTextContent;
-    if (typeof getTextContent === 'function') {
-      pieces.push(getTextContent.call(child));
-    }
-  }
-
-  return pieces.join('').trim().length === 0;
 }
 
 export function selectionMatchesPayload(selection: RangeSelection, payload: SnapPayload): boolean {

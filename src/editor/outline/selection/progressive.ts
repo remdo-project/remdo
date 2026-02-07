@@ -10,6 +10,7 @@ import type { BoundaryMode } from './apply';
 import { selectInlineContent, selectNoteBody, setSelectionBetweenItems } from './apply';
 import { resolveContentBoundaryPoint } from './caret';
 import { getContiguousSelectionHeads } from './heads';
+import { isEmptyNoteBody } from './note-body';
 import type { ProgressiveSelectionState } from './resolve';
 import { resolveSelectionPointItem } from './resolve';
 import {
@@ -73,17 +74,12 @@ function $resolveDocumentPlan(boundaryRoot: ListItemNode | null): ProgressivePla
   return $createDocumentPlan();
 }
 
-export function $computeProgressivePlan(
+function $resolveProgressionAnchorContent(
+  selection: RangeSelection,
   progressionRef: ProgressiveSelectionRef,
   initialProgression: ProgressiveSelectionState,
-  boundaryKey: string | null = null
-): ProgressivePlanResult | null {
-  const selection = $getSelection();
-  if (!$isRangeSelection(selection)) {
-    progressionRef.current = initialProgression;
-    return null;
-  }
-
+  onMissingAnchor?: () => void
+): ListItemNode | null {
   let resolvedAnchorItem: ListItemNode | null = null;
   if (selection.isCollapsed()) {
     resolvedAnchorItem = resolveSelectionPointItem(selection, selection.anchor);
@@ -109,13 +105,34 @@ export function $computeProgressivePlan(
   if (!anchorContent) {
     const anchorItem = resolvedAnchorItem ?? resolveSelectionPointItem(selection, selection.anchor);
     if (!anchorItem) {
-      reportInvariant({
-        message: 'Directional plan could not find anchor list item',
-      });
+      onMissingAnchor?.();
       progressionRef.current = initialProgression;
       return null;
     }
     anchorContent = getContentListItem(anchorItem);
+  }
+
+  return anchorContent;
+}
+
+export function $computeProgressivePlan(
+  progressionRef: ProgressiveSelectionRef,
+  initialProgression: ProgressiveSelectionState,
+  boundaryKey: string | null = null
+): ProgressivePlanResult | null {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection)) {
+    progressionRef.current = initialProgression;
+    return null;
+  }
+
+  const anchorContent = $resolveProgressionAnchorContent(selection, progressionRef, initialProgression, () => {
+    reportInvariant({
+      message: 'Directional plan could not find anchor list item',
+    });
+  });
+  if (!anchorContent) {
+    return null;
   }
 
   const anchorKey = anchorContent.getKey();
@@ -148,35 +165,9 @@ export function $computeDirectionalPlan(
     return null;
   }
 
-  let resolvedAnchorItem: ListItemNode | null = null;
-  if (selection.isCollapsed()) {
-    resolvedAnchorItem = resolveSelectionPointItem(selection, selection.anchor);
-    const resolvedAnchorKey = resolvedAnchorItem ? getContentListItem(resolvedAnchorItem).getKey() : null;
-    const shouldReset =
-      !progressionRef.current.anchorKey ||
-      progressionRef.current.stage < 2 ||
-      !resolvedAnchorKey ||
-      progressionRef.current.anchorKey !== resolvedAnchorKey;
-    if (shouldReset) {
-      progressionRef.current = initialProgression;
-    }
-  }
-
-  let anchorContent: ListItemNode | null = null;
-  if (progressionRef.current.anchorKey) {
-    const storedAnchor = $getNodeByKey<ListItemNode>(progressionRef.current.anchorKey);
-    if (storedAnchor) {
-      anchorContent = getContentListItem(storedAnchor);
-    }
-  }
-
+  const anchorContent = $resolveProgressionAnchorContent(selection, progressionRef, initialProgression);
   if (!anchorContent) {
-    const anchorItem = resolvedAnchorItem ?? resolveSelectionPointItem(selection, selection.anchor);
-    if (!anchorItem) {
-      progressionRef.current = initialProgression;
-      return null;
-    }
-    anchorContent = getContentListItem(anchorItem);
+    return null;
   }
 
   const anchorKey = anchorContent.getKey();
@@ -591,23 +582,6 @@ function $createDocumentPlan(): ProgressivePlan | null {
 
 function $hasInlineBoundary(item: ListItemNode): boolean {
   return Boolean(resolveContentBoundaryPoint(item, 'start') && resolveContentBoundaryPoint(item, 'end'));
-}
-
-function isEmptyNoteBody(item: ListItemNode): boolean {
-  const contentItem = getContentListItem(item);
-  const pieces: string[] = [];
-
-  for (const child of contentItem.getChildren()) {
-    if ($isListNode(child)) {
-      continue;
-    }
-    const getTextContent = (child as { getTextContent?: () => string }).getTextContent;
-    if (typeof getTextContent === 'function') {
-      pieces.push(getTextContent.call(child));
-    }
-  }
-
-  return pieces.join('').trim().length === 0;
 }
 
 function ascendContentItem(item: ListItemNode, levels: number): ListItemNode | null {

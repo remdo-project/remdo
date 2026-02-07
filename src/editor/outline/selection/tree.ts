@@ -265,6 +265,25 @@ export function isContentDescendantOf(candidate: ListItemNode, ancestor: ListIte
   return false;
 }
 
+export function findLowestCommonContentAncestor(left: ListItemNode, right: ListItemNode): ListItemNode | null {
+  const leftKeys = new Set<string>();
+  let current: ListItemNode | null = left;
+  while (current) {
+    leftKeys.add(current.getKey());
+    current = getParentContentItem(current);
+  }
+
+  current = right;
+  while (current) {
+    if (leftKeys.has(current.getKey())) {
+      return current;
+    }
+    current = getParentContentItem(current);
+  }
+
+  return null;
+}
+
 function getNodePath(node: ListItemNode): number[] {
   const path: number[] = [];
   let child: LexicalNode = node;

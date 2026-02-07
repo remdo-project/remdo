@@ -17,9 +17,9 @@ import {
 import { useEffect } from 'react';
 import { $isNoteFolded } from '#lib/editor/fold-state';
 import { findNearestListItem, isChildrenWrapper, getContentListItem, insertBefore } from '@/editor/outline/list-structure';
-import { isPointAtBoundary, resolveBoundaryPoint } from '@/editor/outline/selection/caret';
+import { resolveBoundaryPoint } from '@/editor/outline/selection/caret';
+import { resolveCaretPlacement } from '@/editor/outline/selection/caret-placement';
 import { noteHasChildren } from '@/editor/outline/selection/tree';
-type CaretPlacement = 'start' | 'middle' | 'end';
 
 function $createNote(text: string): ListItemNode {
   const item = $createListItemNode();
@@ -65,26 +65,6 @@ function $handleEnterAtEnd(contentItem: ListItemNode) {
   contentItem.insertAfter(newSibling);
   const textNode = newSibling.getChildren().find($isTextNode);
   textNode?.select(0, 0);
-}
-
-function resolveCaretPlacement(selection: ReturnType<typeof $getSelection>, contentItem: ListItemNode): CaretPlacement | null {
-  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-    return null;
-  }
-
-  if (contentItem.getTextContent().length === 0) {
-    return 'start';
-  }
-
-  if (isPointAtBoundary(selection.anchor, contentItem, 'start')) {
-    return 'start';
-  }
-
-  if (isPointAtBoundary(selection.anchor, contentItem, 'end')) {
-    return 'end';
-  }
-
-  return 'middle';
 }
 
 function $splitContentItemAtSelection(contentItem: ListItemNode, selection: ReturnType<typeof $getSelection>): boolean {

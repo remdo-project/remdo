@@ -113,6 +113,35 @@ function isCollapsedSelectionAtEdge(
   return contentItem.getTextContent().length === 0;
 }
 
+interface EdgeSelectionResult {
+  selection: ReturnType<typeof $getSelection>;
+  contentItem: ListItemNode;
+}
+
+function $resolveCollapsedSelectionAtEdge(edge: 'start' | 'end'): EdgeSelectionResult | null {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+    return null;
+  }
+
+  const anchorNode = selection.anchor.getNode();
+  const candidate = findNearestListItem(anchorNode);
+  if (!candidate) {
+    return null;
+  }
+
+  const contentItem = getContentListItem(candidate);
+  if (!isDescendantOf(anchorNode, contentItem)) {
+    return null;
+  }
+
+  if (!isCollapsedSelectionAtEdge(selection, edge, contentItem)) {
+    return null;
+  }
+
+  return { selection, contentItem };
+}
+
 function computeMergeText(left: string, right: string): { merged: string; joinOffset: number } {
   const needsSpace =
     left.length > 0 &&
@@ -281,25 +310,11 @@ export function DeletionPlugin() {
       }
 
       const shouldBlock = editor.getEditorState().read(() => {
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+        const edgeSelection = $resolveCollapsedSelectionAtEdge('start');
+        if (!edgeSelection) {
           return false;
         }
-
-        const anchorNode = selection.anchor.getNode();
-        const candidate = findNearestListItem(anchorNode);
-        if (!candidate) {
-          return false;
-        }
-
-        const contentItem = getContentListItem(candidate);
-        if (!isDescendantOf(anchorNode, contentItem)) {
-          return false;
-        }
-
-        if (!isCollapsedSelectionAtEdge(selection, 'start', contentItem)) {
-          return false;
-        }
+        const { contentItem } = edgeSelection;
 
         const previousSibling = getPreviousContentSibling(contentItem);
         if (previousSibling) {
@@ -458,25 +473,11 @@ export function DeletionPlugin() {
           return true;
         }
 
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+        const edgeSelection = $resolveCollapsedSelectionAtEdge('start');
+        if (!edgeSelection) {
           return false;
         }
-
-        const anchorNode = selection.anchor.getNode();
-        const candidate = findNearestListItem(anchorNode);
-        if (!candidate) {
-          return false;
-        }
-
-        const contentItem = getContentListItem(candidate);
-        if (!isDescendantOf(anchorNode, contentItem)) {
-          return false;
-        }
-
-        if (!isCollapsedSelectionAtEdge(selection, 'start', contentItem)) {
-          return false;
-        }
+        const { selection, contentItem } = edgeSelection;
 
         event?.preventDefault();
         event?.stopPropagation();
@@ -493,25 +494,11 @@ export function DeletionPlugin() {
           return true;
         }
 
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+        const edgeSelection = $resolveCollapsedSelectionAtEdge('end');
+        if (!edgeSelection) {
           return false;
         }
-
-        const anchorNode = selection.anchor.getNode();
-        const candidate = findNearestListItem(anchorNode);
-        if (!candidate) {
-          return false;
-        }
-
-        const contentItem = getContentListItem(candidate);
-        if (!isDescendantOf(anchorNode, contentItem)) {
-          return false;
-        }
-
-        if (!isCollapsedSelectionAtEdge(selection, 'end', contentItem)) {
-          return false;
-        }
+        const { selection, contentItem } = edgeSelection;
 
         event?.preventDefault();
         event?.stopPropagation();
