@@ -64,33 +64,82 @@ test.describe('Fold toggle icons', () => {
     await expect(editorLocator(page).locator('.note-controls__button--folded')).toHaveCount(0);
   });
 
-  test('keeps icons visible across the editor row width', async ({ page, editor }) => {
-    await editor.load('tree-complex');
+  test('tracks by controls layer boundary (+1 inside follows, -1 outside stays)', async ({ page, editor }) => {
+    await editor.load('basic');
 
-    const input = editorLocator(page).locator('.editor-input').first();
-    const listItem = editorLocator(page).locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note3' }).first();
-    const controls = editorLocator(page).locator('.note-controls');
-    await expect(listItem).toBeVisible();
+    const container = editorLocator(page);
+    const layer = container.locator('.note-controls-layer');
+    const controls = container.locator('.note-controls');
+    const foldButton = container.locator('.note-controls__button--expanded, .note-controls__button--folded').first();
+    const source = container.locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note1' }).first();
+    const target = container.locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note3' }).first();
+    await expect(source).toBeVisible();
+    await expect(target).toBeVisible();
 
-    const [editorBox, itemBox] = await Promise.all([input.boundingBox(), listItem.boundingBox()]);
-    expect(editorBox).not.toBeNull();
-    expect(itemBox).not.toBeNull();
-    if (!editorBox || !itemBox) {
-      return;
+    const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
+    expect(sourceBox).not.toBeNull();
+    expect(targetBox).not.toBeNull();
+    if (!sourceBox || !targetBox) {
+      throw new Error('Expected source and target bounding boxes.');
+    }
+    const sourceCenterY = sourceBox.y + sourceBox.height / 2;
+
+    await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceCenterY);
+    await expect(controls).toBeVisible();
+    await expect(foldButton).toBeVisible();
+    await expect(layer).toBeVisible();
+
+    const [layerBox, controlsBox] = await Promise.all([layer.boundingBox(), controls.boundingBox()]);
+    expect(layerBox).not.toBeNull();
+    expect(controlsBox).not.toBeNull();
+    if (!layerBox || !controlsBox) {
+      throw new Error('Expected layer and controls bounding boxes.');
     }
 
-    const centerY = itemBox.y + itemBox.height / 2;
-    const insideLeftX = editorBox.x + 2;
-    const outsideLeftX = editorBox.x - 2;
+    const assertControlsInsideLayer = (box: NonNullable<typeof controlsBox>) => {
+      expect(box.x).toBeGreaterThanOrEqual(layerBox.x);
+      expect(box.y).toBeGreaterThanOrEqual(layerBox.y);
+      expect(box.x + box.width).toBeLessThanOrEqual(layerBox.x + layerBox.width);
+      expect(box.y + box.height).toBeLessThanOrEqual(layerBox.y + layerBox.height);
+    };
+    assertControlsInsideLayer(controlsBox);
 
-    await page.mouse.move(itemBox.x + itemBox.width / 2, centerY);
+    const insideX = layerBox.x + 1;
+    const outsideX = layerBox.x - 1;
+    const targetYs = [targetBox.y + 1, targetBox.y + targetBox.height / 2, targetBox.y + targetBox.height - 1];
+
+    for (const targetY of targetYs) {
+      await page.mouse.move(insideX, targetY);
+      await expect(controls).toBeVisible();
+
+      const nextControlsBox = await controls.boundingBox();
+      expect(nextControlsBox).not.toBeNull();
+      if (!nextControlsBox) {
+        throw new Error('Expected controls bounding box.');
+      }
+      assertControlsInsideLayer(nextControlsBox);
+      const nextControlsCenter = nextControlsBox.y + nextControlsBox.height / 2;
+      expect(nextControlsCenter).toBeGreaterThanOrEqual(targetBox.y);
+      expect(nextControlsCenter).toBeLessThanOrEqual(targetBox.y + targetBox.height);
+    }
+
+    await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceCenterY);
     await expect(controls).toBeVisible();
 
-    await page.mouse.move(insideLeftX, centerY);
-    await expect(controls).toBeVisible();
+    for (const targetY of targetYs) {
+      await page.mouse.move(outsideX, targetY);
+      await expect(controls).toBeVisible();
 
-    await page.mouse.move(outsideLeftX, centerY);
-    await expect(controls).toBeVisible();
+      const nextControlsBox = await controls.boundingBox();
+      expect(nextControlsBox).not.toBeNull();
+      if (!nextControlsBox) {
+        throw new Error('Expected controls bounding box.');
+      }
+      assertControlsInsideLayer(nextControlsBox);
+      const nextControlsCenter = nextControlsBox.y + nextControlsBox.height / 2;
+      expect(nextControlsCenter).toBeGreaterThanOrEqual(sourceBox.y);
+      expect(nextControlsCenter).toBeLessThanOrEqual(sourceBox.y + sourceBox.height);
+    }
   });
 
   test('tracks the caret when the selection moves', async ({ page, editor }) => {
@@ -193,13 +242,14 @@ test.describe('Fold toggle icons', () => {
     await page.mouse.move(outsidePoint.x, outsidePoint.y);
 
     await expect(controls).toBeVisible();
+
     const nextControlsBox = await controls.boundingBox();
     expect(nextControlsBox).not.toBeNull();
     if (!nextControlsBox) {
-      return;
+      throw new Error('Expected controls bounding box.');
     }
     const nextControlsCenter = nextControlsBox.y + nextControlsBox.height / 2;
-    expect(nextControlsCenter).toBeGreaterThan(note2Box.y);
-    expect(nextControlsCenter).toBeLessThan(note2Box.y + note2Box.height);
+    expect(nextControlsCenter).toBeGreaterThanOrEqual(note2Box.y);
+    expect(nextControlsCenter).toBeLessThanOrEqual(note2Box.y + note2Box.height);
   });
 });

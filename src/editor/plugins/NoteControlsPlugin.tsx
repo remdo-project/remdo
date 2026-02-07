@@ -17,12 +17,9 @@ interface NoteControlsState {
   left: number;
   top: number;
   fontSize?: string;
-  controlSize?: string;
-  controlGap?: string;
 }
 
-interface NoteControlsLayout
-  extends Pick<NoteControlsState, 'left' | 'top' | 'fontSize' | 'controlSize' | 'controlGap'> {}
+interface NoteControlsLayout extends Pick<NoteControlsState, 'left' | 'top' | 'fontSize'> {}
 
 type InteractionSource = 'hover' | 'caret';
 
@@ -67,15 +64,11 @@ export function NoteControlsPlugin() {
     const style = globalThis.getComputedStyle(element);
     const fontSizeValue = style.fontSize.trim();
     const fontSize = fontSizeValue.length > 0 ? fontSizeValue : undefined;
-    const controlSizeValue = style.getPropertyValue('--fold-toggle-size').trim();
-    const controlGapValue = style.getPropertyValue('--fold-toggle-gap').trim();
-    const controlSize = controlSizeValue.length > 0 ? controlSizeValue : undefined;
-    const controlGap = controlGapValue.length > 0 ? controlGapValue : undefined;
     const rect = element.getBoundingClientRect();
     const anchorRect = anchor.getBoundingClientRect();
     const left = rect.left - anchorRect.left + root.scrollLeft;
     const top = rect.top - anchorRect.top + root.scrollTop + rect.height / 2;
-    return { left, top, fontSize, controlSize, controlGap };
+    return { left, top, fontSize };
   };
 
   useEffect(() => {
@@ -215,12 +208,17 @@ export function NoteControlsPlugin() {
       if (eventTarget instanceof HTMLElement && eventTarget.closest('[data-note-menu]')) {
         return;
       }
-      const surfaceRect = root.getBoundingClientRect();
+      const container = root.closest<HTMLElement>('.editor-container');
+      const layer = container?.querySelector<HTMLElement>('.note-controls-layer');
+      const trackingRect = layer?.getBoundingClientRect() ?? container?.getBoundingClientRect();
+      if (!trackingRect) {
+        return;
+      }
       if (
-        event.clientX < surfaceRect.left ||
-        event.clientX > surfaceRect.right ||
-        event.clientY < surfaceRect.top ||
-        event.clientY > surfaceRect.bottom
+        event.clientX < trackingRect.left ||
+        event.clientX > trackingRect.right ||
+        event.clientY < trackingRect.top ||
+        event.clientY > trackingRect.bottom
       ) {
         return;
       }
@@ -319,21 +317,12 @@ export function NoteControlsPlugin() {
   if (!portalRoot || !controls) {
     return null;
   }
-  const style: CSSProperties & {
-    '--note-control-size'?: string;
-    '--note-control-gap'?: string;
-  } = {
+  const style: CSSProperties = {
     left: controls.left,
     top: controls.top,
   };
   if (controls.fontSize) {
     style.fontSize = controls.fontSize;
-  }
-  if (controls.controlSize) {
-    style['--note-control-size'] = controls.controlSize;
-  }
-  if (controls.controlGap) {
-    style['--note-control-gap'] = controls.controlGap;
   }
 
   const onMenuPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
