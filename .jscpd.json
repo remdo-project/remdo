@@ -1,0 +1,30 @@
+{
+  "path": [
+    "src/editor",
+    "lib"
+  ],
+  "ignore": [
+    "**/node_modules/**",
+    "**/data/**",
+    "**/output/**",
+    "**/tests/**",
+    "**/*.snap",
+    "**/*-snapshots/**",
+    "**/.vendor/**"
+  ],
+  "minLines": 8,
+  "minTokens": 80,
+  "formats": [
+    "typescript",
+    "tsx",
+    "javascript",
+    "jsx"
+  ],
+  "reporters": [
+    "console",
+    "json"
+  ],
+  "output": "data/cache/jscpd",
+  "absolute": false,
+  "gitignore": true
+}
