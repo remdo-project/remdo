@@ -7,7 +7,8 @@ import { useEffect } from 'react';
 
 import { $getNoteChecked, $setNoteChecked } from '#lib/editor/checklist-state';
 import { $getNoteId } from '#lib/editor/note-id-state';
-import { TOGGLE_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
+import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
+import type { SetNoteCheckedPayload } from '@/editor/commands';
 import { isBulletHit, isCheckboxHit } from '@/editor/outline/bullet-hit-test';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
@@ -34,9 +35,9 @@ const $setCheckedState = (node: ListItemNode, checked: boolean) => {
 
 const $resolveToggleTargets = (
   editor: LexicalEditor,
-  payload: { noteKey?: string } | undefined
+  payload: SetNoteCheckedPayload
 ): ListItemNode[] => {
-  if (payload?.noteKey) {
+  if (payload.noteKey) {
     const item = $resolveContentItemByKey(payload.noteKey);
     return item ? [item] : [];
   }
@@ -167,11 +168,20 @@ export function CheckListPlugin() {
       registerChecklistBulletZoomGuard(editor),
       registerCheckList(editor),
       editor.registerCommand(
-        TOGGLE_NOTE_CHECKED_COMMAND,
+        SET_NOTE_CHECKED_COMMAND,
         (payload) => {
           const targets = $resolveToggleTargets(editor, payload);
           if (targets.length === 0) {
             return false;
+          }
+          const state = payload.state;
+
+          if (state === 'checked' || state === 'unchecked') {
+            const targetState = state === 'checked';
+            for (const target of targets) {
+              $setCheckedState(target, targetState);
+            }
+            return true;
           }
 
           if (targets.length === 1) {

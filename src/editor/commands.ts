@@ -2,7 +2,12 @@ import { createCommand } from 'lexical';
 
 export const REORDER_NOTES_UP_COMMAND = createCommand<undefined>('remdo:reorder-notes-up');
 export const REORDER_NOTES_DOWN_COMMAND = createCommand<undefined>('remdo:reorder-notes-down');
-export const TOGGLE_NOTE_CHECKED_COMMAND = createCommand<{ noteKey?: string } | undefined>('remdo:toggle-note-checked');
+export type NoteCheckedState = 'checked' | 'unchecked' | 'toggle';
+export interface SetNoteCheckedPayload {
+  state: NoteCheckedState;
+  noteKey?: string;
+}
+export const SET_NOTE_CHECKED_COMMAND = createCommand<SetNoteCheckedPayload>('remdo:set-note-checked');
 export const TOGGLE_NOTE_FOLD_COMMAND = createCommand<{ noteKey: string }>('remdo:toggle-note-fold');
 export const OPEN_NOTE_MENU_COMMAND = createCommand<{
   noteKey: string;

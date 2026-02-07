@@ -14,7 +14,7 @@ import { createPortal } from 'react-dom';
 
 import { $isNoteFolded } from '#lib/editor/fold-state';
 import { $getNoteId } from '#lib/editor/note-id-state';
-import { OPEN_NOTE_MENU_COMMAND, TOGGLE_NOTE_CHECKED_COMMAND, TOGGLE_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
+import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, TOGGLE_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { getNestedList } from '@/editor/outline/selection/tree';
@@ -106,7 +106,7 @@ export function NoteMenuPlugin() {
     if (!current) {
       return;
     }
-    editor.dispatchCommand(TOGGLE_NOTE_CHECKED_COMMAND, { noteKey: current.noteKey });
+    editor.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle', noteKey: current.noteKey });
     closeMenu();
     editor.focus();
   };
