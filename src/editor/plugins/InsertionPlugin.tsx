@@ -18,6 +18,7 @@ import { useEffect } from 'react';
 import { $isNoteFolded } from '#lib/editor/fold-state';
 import { findNearestListItem, isChildrenWrapper, getContentListItem, insertBefore } from '@/editor/outline/list-structure';
 import { isPointAtBoundary, resolveBoundaryPoint } from '@/editor/outline/selection/caret';
+import { noteHasChildren } from '@/editor/outline/selection/tree';
 type CaretPlacement = 'start' | 'middle' | 'end';
 
 function $createNote(text: string): ListItemNode {
@@ -36,8 +37,9 @@ function $handleEnterAtStart(contentItem: ListItemNode) {
 function $handleEnterAtEnd(contentItem: ListItemNode) {
   const wrapper = contentItem.getNextSibling();
   const list = isChildrenWrapper(wrapper) ? wrapper.getFirstChild<ListNode>() : null;
+  const hasChildren = noteHasChildren(contentItem);
 
-  if (list && list.getChildrenSize() > 0) {
+  if (list && hasChildren) {
     if ($isNoteFolded(contentItem)) {
       const newSibling = $createNote('');
       const reference = isChildrenWrapper(wrapper) ? wrapper : contentItem;

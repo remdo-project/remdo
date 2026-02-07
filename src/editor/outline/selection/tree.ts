@@ -137,6 +137,14 @@ export function getNestedList(item: ListItemNode): ListNode | null {
   return null;
 }
 
+export function noteHasChildren(item: ListItemNode): boolean {
+  const nested = getNestedList(item);
+  if (!nested) {
+    return false;
+  }
+  return getContentSiblings(nested).length > 0;
+}
+
 export function getSubtreeItems(item: ListItemNode): ListItemNode[] {
   const content = getContentListItem(item);
   const items: ListItemNode[] = [content];

@@ -19,15 +19,5 @@ Rules:
 
 ## Editor
 
-- Explore zoom bullet hover/click robustness without changing visuals. Ideas:
-  keep pseudo-element bullets + stronger hit-testing via
-  `elementsFromPoint`/`elementFromPoint`, consider an optional invisible per-note
-  hit target for pointer handling (or only in tests), and evaluate throttling
-  pointermove to reduce work while keeping hover accurate.
-- Consolidate `noteHasChildren` into a shared helper. Known ad hoc locations:
-  `src/editor/plugins/NoteControlsPlugin.tsx`,
-  `src/editor/plugins/FoldingPlugin.tsx`,
-  `src/editor/plugins/DeletionPlugin.tsx`. Please do a detailed scan to locate
-  any other implementations before refactoring.
 - Review `ZOOM_TO_NOTE_COMMAND` payload (`noteId`) in `src/editor/commands.ts`
   and confirm it should use a note key instead.

@@ -32,6 +32,7 @@ import {
   getFirstDescendantListItem,
   getNestedList,
   getNextContentSibling,
+  noteHasChildren,
   getParentContentItem,
   getSubtreeTail,
   removeNoteSubtree,
@@ -52,11 +53,6 @@ function getParentNote(list: ListNode): ListItemNode | null {
   }
 
   return null;
-}
-
-function noteHasChildren(item: ListItemNode): boolean {
-  const nested = getNestedList(item);
-  return Boolean(nested && nested.getChildrenSize() > 0);
 }
 
 function getFirstChildContentItem(item: ListItemNode): ListItemNode | null {

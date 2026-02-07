@@ -10,16 +10,9 @@ import { findNearestListItem, getContentListItem, getContentSiblings, isChildren
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import type { OutlineSelection } from '@/editor/outline/selection/model';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
-import { getNestedList, isContentDescendantOf } from '@/editor/outline/selection/tree';
+import { getNestedList, isContentDescendantOf, noteHasChildren } from '@/editor/outline/selection/tree';
 
 const FOLD_ATTR = 'folded';
-const noteHasChildren = (item: ListItemNode): boolean => {
-  const nested = getNestedList(item);
-  if (!nested) {
-    return false;
-  }
-  return getContentSiblings(nested).length > 0;
-};
 
 const collectFoldedKeys = (list: ListNode, keys: Set<string>): void => {
   const items = getContentSiblings(list);

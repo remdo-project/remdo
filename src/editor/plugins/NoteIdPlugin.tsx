@@ -43,6 +43,7 @@ import {
   getFirstDescendantListItem,
   getNestedList,
   getNextContentSibling,
+  noteHasChildren,
   getSubtreeItems,
   removeNoteSubtree,
   sortHeadsByDocumentOrder,
@@ -442,7 +443,7 @@ function $insertNodesAtSelection(
       nextSibling = split ? contentItem : getNextContentSibling(contentItem);
     } else {
       const nested = getNestedList(contentItem);
-      if (nested && nested.getChildrenSize() > 0) {
+      if (nested && noteHasChildren(contentItem)) {
         $autoExpandIfFolded(contentItem);
         parentList = nested;
         nextSibling = getFirstDescendantListItem(nested);

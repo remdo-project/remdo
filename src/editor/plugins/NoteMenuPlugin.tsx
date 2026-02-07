@@ -15,9 +15,9 @@ import { createPortal } from 'react-dom';
 import { $isNoteFolded } from '#lib/editor/fold-state';
 import { $getNoteId } from '#lib/editor/note-id-state';
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
-import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
-import { getNestedList } from '@/editor/outline/selection/tree';
+import { getNestedList, noteHasChildren } from '@/editor/outline/selection/tree';
 
 interface NoteMenuState {
   noteKey: string;
@@ -32,14 +32,6 @@ interface NoteMenuLayout extends Pick<NoteMenuState, 'left' | 'top'> {}
 type NoteMenuAnchor = NoteMenuLayout;
 
 const DOUBLE_SHIFT_WINDOW_MS = 500;
-
-const noteHasChildren = (item: ListItemNode): boolean => {
-  const nested = getNestedList(item);
-  if (!nested) {
-    return false;
-  }
-  return getContentSiblings(nested).length > 0;
-};
 
 const listTypeOptions = [
   { type: 'number' as const, label: 'Numbered list', id: 'list-number' },
