@@ -1,4 +1,4 @@
-export type Handler = (payload: unknown) => void;
+type Handler = (payload: unknown) => void;
 
 export function createMockProvider() {
   const listeners = new Map<string, Set<Handler>>();

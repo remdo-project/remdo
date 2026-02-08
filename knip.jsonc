@@ -1,0 +1,18 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "vite": true,
+  "vitest": true,
+  "playwright": true,
+  "ignoreDependencies": [
+    // Kept intentionally for planned internal ESLint rule helpers.
+    "@typescript-eslint/utils",
+    // Used as a runtime binary via dynamic spawn arguments in tools/lib/collab-server-helper.ts.
+    "y-sweet"
+  ],
+  "entry": [
+    "tools/**/*.ts"
+  ],
+  "project": [
+    "{src,lib,tests,tools,config}/**/*.{ts,tsx,mts}"
+  ]
+}

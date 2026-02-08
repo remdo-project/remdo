@@ -76,26 +76,6 @@ export const getContentListItem = (item: ListItemNode): ListItemNode => {
   return item;
 };
 
-export const getParentNote = (list: ListNode): ListItemNode | null => {
-  const wrapper = list.getParent();
-  if (!$isListItemNode(wrapper)) {
-    reportInvariant({
-      message: 'List parent is not a list item wrapper',
-      context: { wrapperType: wrapper?.getType ? wrapper.getType() : undefined },
-    });
-    return null;
-  }
-  const parentNote = wrapper.getPreviousSibling();
-  if ($isListItemNode(parentNote) && !isChildrenWrapper(parentNote)) {
-    return parentNote;
-  }
-  reportInvariant({
-    message: 'Parent note could not be resolved from wrapper sibling',
-    context: { wrapperKey: wrapper.getKey(), parentType: parentNote?.getType ? parentNote.getType() : undefined },
-  });
-  return null;
-};
-
 export const getNodesForNote = (note: ListItemNode): LexicalNode[] => {
   const nodes: LexicalNode[] = [note];
   const wrapper = note.getNextSibling();

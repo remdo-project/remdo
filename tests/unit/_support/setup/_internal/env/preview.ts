@@ -1,7 +1,7 @@
 import { config } from '#config';
 import { debug } from 'vitest-preview';
 
-export type PreviewFn = typeof debug;
+type PreviewFn = typeof debug;
 
 declare global {
   // eslint-disable-next-line vars-on-top -- ambient declaration required for global helper exposure
@@ -26,5 +26,3 @@ const preview: PreviewFn = (...args) => {
 };
 
 globalThis.preview = preview;
-
-export const previewSetup: Promise<void> = Promise.resolve();

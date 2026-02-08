@@ -104,5 +104,3 @@ export function ReorderingPlugin() {
 
   return null;
 }
-
-export default ReorderingPlugin;

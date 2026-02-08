@@ -8,20 +8,13 @@ import { $findNoteById } from '@/editor/outline/note-traversal';
 import { getParentContentItem, getSubtreeItems, getWrapperForContent } from '@/editor/outline/selection/tree';
 import { clearZoomScrollTarget, getZoomScrollTarget, isZoomScrollTargetExpired } from '@/editor/zoom/scroll-target';
 import { scrollZoomTargetIntoView } from '@/editor/zoom/scroll-utils';
+import { resolveZoomNoteId } from './zoom-note-id';
 
 const HIDDEN_CLASS = 'zoom-hidden';
 
 interface ZoomVisibilityPluginProps {
   zoomNoteId?: string | null;
 }
-
-const resolveZoomNoteId = (value: string | null | undefined) => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-};
 
 const collectAllListItemKeys = (list: ListNode, keys: Set<string>) => {
   for (const child of list.getChildren()) {

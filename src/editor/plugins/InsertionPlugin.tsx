@@ -17,8 +17,9 @@ import {
 import { useEffect } from 'react';
 import { $isNoteFolded } from '#lib/editor/fold-state';
 import { findNearestListItem, isChildrenWrapper, getContentListItem, insertBefore } from '@/editor/outline/list-structure';
-import { isPointAtBoundary, resolveBoundaryPoint } from '@/editor/outline/selection/caret';
-type CaretPlacement = 'start' | 'middle' | 'end';
+import { resolveBoundaryPoint } from '@/editor/outline/selection/caret';
+import { resolveCaretPlacement } from '@/editor/outline/selection/caret-placement';
+import { noteHasChildren } from '@/editor/outline/selection/tree';
 
 function $createNote(text: string): ListItemNode {
   const item = $createListItemNode();
@@ -36,8 +37,9 @@ function $handleEnterAtStart(contentItem: ListItemNode) {
 function $handleEnterAtEnd(contentItem: ListItemNode) {
   const wrapper = contentItem.getNextSibling();
   const list = isChildrenWrapper(wrapper) ? wrapper.getFirstChild<ListNode>() : null;
+  const hasChildren = noteHasChildren(contentItem);
 
-  if (list && list.getChildrenSize() > 0) {
+  if (list && hasChildren) {
     if ($isNoteFolded(contentItem)) {
       const newSibling = $createNote('');
       const reference = isChildrenWrapper(wrapper) ? wrapper : contentItem;
@@ -63,26 +65,6 @@ function $handleEnterAtEnd(contentItem: ListItemNode) {
   contentItem.insertAfter(newSibling);
   const textNode = newSibling.getChildren().find($isTextNode);
   textNode?.select(0, 0);
-}
-
-function resolveCaretPlacement(selection: ReturnType<typeof $getSelection>, contentItem: ListItemNode): CaretPlacement | null {
-  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-    return null;
-  }
-
-  if (contentItem.getTextContent().length === 0) {
-    return 'start';
-  }
-
-  if (isPointAtBoundary(selection.anchor, contentItem, 'start')) {
-    return 'start';
-  }
-
-  if (isPointAtBoundary(selection.anchor, contentItem, 'end')) {
-    return 'end';
-  }
-
-  return 'middle';
 }
 
 function $splitContentItemAtSelection(contentItem: ListItemNode, selection: ReturnType<typeof $getSelection>): boolean {
@@ -222,5 +204,3 @@ export function InsertionPlugin() {
 
   return null;
 }
-
-export default InsertionPlugin;

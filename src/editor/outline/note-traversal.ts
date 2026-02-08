@@ -1,13 +1,29 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
-import { $getRoot } from 'lexical';
+import { $getNearestNodeFromDOMNode, $getRoot } from 'lexical';
 import { $getNoteId } from '#lib/editor/note-id-state';
-import { isChildrenWrapper } from './list-structure';
+import { findNearestListItem, getContentListItem, isChildrenWrapper } from './list-structure';
 import { getNestedList, getParentContentItem } from './selection/tree';
 
 export interface NotePathItem {
   noteId: string;
   label: string;
+}
+
+export function $resolveNoteIdFromDOMNode(node: Node | null): string | null {
+  if (!node) {
+    return null;
+  }
+  const lexicalNode = $getNearestNodeFromDOMNode(node);
+  if (!lexicalNode) {
+    return null;
+  }
+  const listNode = findNearestListItem(lexicalNode);
+  if (!listNode || isChildrenWrapper(listNode)) {
+    return null;
+  }
+  const contentItem = getContentListItem(listNode);
+  return $getNoteId(contentItem);
 }
 
 export function $findNoteById(noteId: string): ListItemNode | null {

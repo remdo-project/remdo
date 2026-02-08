@@ -41,7 +41,7 @@ export function createDataTransfer(payload?: unknown): DataTransfer {
   return transfer;
 }
 
-export function createClipboardEvent(
+function createClipboardEvent(
   payload?: unknown,
   type: 'paste' | 'cut' | 'copy' = 'paste'
 ): ClipboardEvent {

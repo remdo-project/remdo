@@ -192,7 +192,7 @@ function mergeSignals(...sources: (AbortSignal | undefined)[]): AbortSignal {
   return AbortSignal.any(active);
 }
 
-export interface WaitForSyncOptions {
+interface WaitForSyncOptions {
   signal?: AbortSignal;
   /**
    * Optional timeout in milliseconds. Defaults to 5000. Pass null to disable.

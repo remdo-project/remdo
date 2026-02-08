@@ -33,7 +33,8 @@ import {
   isChildrenWrapper,
   flattenNoteNodes,
 } from '@/editor/outline/list-structure';
-import { $selectItemEdge, isPointAtBoundary } from '@/editor/outline/selection/caret';
+import { $selectItemEdge } from '@/editor/outline/selection/caret';
+import { resolveCaretPlacement } from '@/editor/outline/selection/caret-placement';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import type { OutlineSelectionRange } from '@/editor/outline/selection/model';
 import { computeStructuralRangeFromHeads } from '@/editor/outline/selection/resolve';
@@ -43,6 +44,7 @@ import {
   getFirstDescendantListItem,
   getNestedList,
   getNextContentSibling,
+  noteHasChildren,
   getSubtreeItems,
   removeNoteSubtree,
   sortHeadsByDocumentOrder,
@@ -63,8 +65,6 @@ interface ClipboardPayload {
   nodes: SerializedLexicalNode[];
   remdoCut?: boolean;
 }
-
-type CaretPlacement = 'start' | 'middle' | 'end';
 
 const CUT_MARKER_OVERLAY: StructuralOverlayConfig = {
   className: 'editor-input--cut-marker',
@@ -205,26 +205,6 @@ function isInlineSelectionWithinSingleNote(selection: BaseSelection | null): boo
   }
 
   return getContentListItem(anchorItem) === getContentListItem(focusItem);
-}
-
-function resolveCaretPlacement(selection: BaseSelection | null, contentItem: ListItemNode): CaretPlacement | null {
-  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-    return null;
-  }
-
-  if (contentItem.getTextContent().length === 0) {
-    return 'start';
-  }
-
-  if (isPointAtBoundary(selection.anchor, contentItem, 'start')) {
-    return 'start';
-  }
-
-  if (isPointAtBoundary(selection.anchor, contentItem, 'end')) {
-    return 'end';
-  }
-
-  return 'middle';
 }
 
 function $splitContentItemAtSelection(contentItem: ListItemNode, selection: BaseSelection | null): ListItemNode | null {
@@ -442,7 +422,7 @@ function $insertNodesAtSelection(
       nextSibling = split ? contentItem : getNextContentSibling(contentItem);
     } else {
       const nested = getNestedList(contentItem);
-      if (nested && nested.getChildrenSize() > 0) {
+      if (nested && noteHasChildren(contentItem)) {
         $autoExpandIfFolded(contentItem);
         parentList = nested;
         nextSibling = getFirstDescendantListItem(nested);

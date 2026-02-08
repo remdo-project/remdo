@@ -23,17 +23,3 @@ export function getNoteTextNode(remdo: RemdoTestApi, noteId: string): Text {
   }
   return textNode;
 }
-
-export function getNoteTextNodes(remdo: RemdoTestApi, noteId: string): Text[] {
-  const noteElement = getNoteElement(remdo, noteId);
-  const walker = document.createTreeWalker(noteElement, NodeFilter.SHOW_TEXT);
-  const nodes: Text[] = [];
-  let current = walker.nextNode();
-  while (current) {
-    if (current instanceof Text) {
-      nodes.push(current);
-    }
-    current = walker.nextNode();
-  }
-  return nodes;
-}

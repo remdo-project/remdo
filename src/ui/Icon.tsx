@@ -14,7 +14,7 @@ type IconBaseProps = Omit<SVGProps<SVGSVGElement>, 'stroke'> & {
 
 export type IconComponent = ComponentType<IconBaseProps>;
 
-export interface IconProps extends IconBaseProps {
+interface IconProps extends IconBaseProps {
   icon: IconComponent;
   size?: number | string;
   stroke?: number | string;

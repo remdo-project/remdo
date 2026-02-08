@@ -97,7 +97,8 @@
   --remdo-cut-marker-color: var(--mantine-color-dark-3);
   outline: none;
   white-space: pre-wrap;
-  word-break: break-word;
+  word-break: normal;
+  overflow-wrap: break-word;
   background-color: transparent;
   position: relative;
 }

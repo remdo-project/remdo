@@ -45,5 +45,3 @@ export function ProhibitNestedLexicalUpdatesPlugin(): null {
 
   return null;
 }
-
-export default ProhibitNestedLexicalUpdatesPlugin;

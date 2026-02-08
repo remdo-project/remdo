@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
 import type Editor from '@/editor/Editor';
 
-export type EditorProps = Partial<ComponentProps<typeof Editor>>;
+type EditorProps = Partial<ComponentProps<typeof Editor>>;
 
 const registry = new Map<string, EditorProps>();
 

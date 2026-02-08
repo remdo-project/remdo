@@ -6,7 +6,7 @@ import { mergeRegister } from '@lexical/utils';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND, SET_NOTE_CHECKED_COMMAND } from '@/editor/commands';
 import { IS_APPLE_PLATFORM } from '@/editor/platform';
 
-export interface KeyChord {
+interface KeyChord {
   key: string;
   shift?: boolean;
   alt?: boolean;
@@ -118,5 +118,3 @@ export function KeymapPlugin() {
 
   return null;
 }
-
-export default KeymapPlugin;

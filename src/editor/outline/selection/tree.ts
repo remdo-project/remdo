@@ -137,6 +137,14 @@ export function getNestedList(item: ListItemNode): ListNode | null {
   return null;
 }
 
+export function noteHasChildren(item: ListItemNode): boolean {
+  const nested = getNestedList(item);
+  if (!nested) {
+    return false;
+  }
+  return getContentSiblings(nested).length > 0;
+}
+
 export function getSubtreeItems(item: ListItemNode): ListItemNode[] {
   const content = getContentListItem(item);
   const items: ListItemNode[] = [content];
@@ -216,7 +224,7 @@ export function removeNoteSubtree(item: ListItemNode) {
   }
 }
 
-export function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
+function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
   const aPath = getNodePath(a);
   const bPath = getNodePath(b);
   const depth = Math.max(aPath.length, bPath.length);
@@ -236,7 +244,7 @@ export function sortHeadsByDocumentOrder(heads: ListItemNode[]): ListItemNode[] 
   return heads.toSorted(compareDocumentOrder);
 }
 
-export function getContentDepth(item: ListItemNode): number {
+function getContentDepth(item: ListItemNode): number {
   let depth = 0;
   let current: ListItemNode | null = getParentContentItem(item);
   while (current) {
@@ -255,6 +263,25 @@ export function isContentDescendantOf(candidate: ListItemNode, ancestor: ListIte
     current = getParentContentItem(current);
   }
   return false;
+}
+
+export function findLowestCommonContentAncestor(left: ListItemNode, right: ListItemNode): ListItemNode | null {
+  const leftKeys = new Set<string>();
+  let current: ListItemNode | null = left;
+  while (current) {
+    leftKeys.add(current.getKey());
+    current = getParentContentItem(current);
+  }
+
+  current = right;
+  while (current) {
+    if (leftKeys.has(current.getKey())) {
+      return current;
+    }
+    current = getParentContentItem(current);
+  }
+
+  return null;
 }
 
 function getNodePath(node: ListItemNode): number[] {

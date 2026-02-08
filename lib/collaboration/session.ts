@@ -3,7 +3,7 @@ import type * as Y from 'yjs';
 import { createProviderFactory, waitForSync } from './runtime';
 import type { CollaborationProviderInstance, MinimalProviderEvents, ProviderFactory } from './runtime';
 
-export interface CollabSnapshot {
+interface CollabSnapshot {
   docId: string;
   hydrated: boolean;
   synced: boolean;

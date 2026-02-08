@@ -26,5 +26,3 @@ export function DevPlugin({ children, onTestBridgeReady, onTestBridgeDispose }: 
     </>
     : <>{children}</>;
 }
-
-export default DevPlugin;
