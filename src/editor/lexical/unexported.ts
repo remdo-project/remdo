@@ -15,7 +15,7 @@ function invariant(condition: unknown, message: string): asserts condition {
 }
 
 // BEGIN COPIED: isDOMNode
-export function isDOMNode(x: unknown): x is Node {
+function isDOMNode(x: unknown): x is Node {
   return (
     typeof x === 'object' &&
     x !== null &&
@@ -26,25 +26,25 @@ export function isDOMNode(x: unknown): x is Node {
 // END COPIED: isDOMNode
 
 // BEGIN COPIED: isHTMLElement
-export function isHTMLElement(x: unknown): x is HTMLElement {
+function isHTMLElement(x: unknown): x is HTMLElement {
   return isDOMNode(x) && x.nodeType === DOM_ELEMENT_TYPE;
 }
 // END COPIED: isHTMLElement
 
 // BEGIN COPIED: isDocumentFragment
-export function isDocumentFragment(x: unknown): x is DocumentFragment {
+function isDocumentFragment(x: unknown): x is DocumentFragment {
   return isDOMNode(x) && x.nodeType === DOM_DOCUMENT_FRAGMENT_TYPE;
 }
 // END COPIED: isDocumentFragment
 
 // BEGIN COPIED: isDOMDocumentNode
-export function isDOMDocumentNode(node: unknown): node is Document {
+function isDOMDocumentNode(node: unknown): node is Document {
   return isDOMNode(node) && node.nodeType === DOM_DOCUMENT_TYPE;
 }
 // END COPIED: isDOMDocumentNode
 
 // BEGIN COPIED: getParentElement
-export function getParentElement(node: Node): HTMLElement | null {
+function getParentElement(node: Node): HTMLElement | null {
   const parentElement =
     (node as HTMLSlotElement).assignedSlot || node.parentElement;
   return isDocumentFragment(parentElement)
@@ -54,7 +54,7 @@ export function getParentElement(node: Node): HTMLElement | null {
 // END COPIED: getParentElement
 
 // BEGIN COPIED: getDOMOwnerDocument
-export function getDOMOwnerDocument(
+function getDOMOwnerDocument(
   target: EventTarget | null,
 ): Document | null {
   return isDOMDocumentNode(target)
@@ -66,7 +66,7 @@ export function getDOMOwnerDocument(
 // END COPIED: getDOMOwnerDocument
 
 // BEGIN COPIED: getDefaultView
-export function getDefaultView(domElem: EventTarget | null): Window | null {
+function getDefaultView(domElem: EventTarget | null): Window | null {
   const ownerDoc = getDOMOwnerDocument(domElem);
   return ownerDoc ? ownerDoc.defaultView : null;
 }
@@ -74,7 +74,7 @@ export function getDefaultView(domElem: EventTarget | null): Window | null {
 
 /* eslint-disable ts/no-unnecessary-condition */
 // BEGIN COPIED: getWindow
-export function getWindow(editor: LexicalEditor): Window {
+function getWindow(editor: LexicalEditor): Window {
   const windowObj = editor._window;
   if (windowObj === null) {
     invariant(false, 'window object not found');

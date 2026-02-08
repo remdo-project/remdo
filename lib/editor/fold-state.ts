@@ -2,7 +2,7 @@ import type { ListItemNode } from '@lexical/list';
 import { $getState, $setState, createState } from 'lexical';
 import { patchListItemStateConfig } from './list-item-state-config';
 
-export const foldedState = createState('folded', {
+const foldedState = createState('folded', {
   parse: (value) => (value === true ? true : undefined),
 });
 
