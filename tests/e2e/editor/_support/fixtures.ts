@@ -1,5 +1,8 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { setExpectedConsoleIssues, expect, readOutline, test as base } from '#e2e/fixtures';
 import type { Locator, Page } from '#e2e/fixtures';
+import { config } from '#config';
 import { ensureReady, getEditorState, load, waitForSynced } from './bridge';
 import { prepareEditorTestSurface } from './focus';
 import { editorLocator } from './locators';
@@ -11,7 +14,13 @@ interface EditorLoadOptions {
   expectedConsoleIssues?: string[];
 }
 
+async function removeCollabDocFromDisk(docId: string): Promise<void> {
+  const docPath = path.join(config.env.DATA_DIR, 'collab', docId);
+  await fs.rm(docPath, { recursive: true, force: true });
+}
+
 async function createEditorHarness(page: Page, docId: string) {
+  await removeCollabDocFromDisk(docId);
   await page.goto(`/n/${docId}`);
   await editorLocator(page).locator('.editor-input').first().waitFor();
   await ensureReady(page, { clear: true });
