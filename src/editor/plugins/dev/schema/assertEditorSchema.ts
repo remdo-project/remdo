@@ -23,7 +23,7 @@ function flattenNotes(notes: SerializedOutlineNote[], entries: FlatOutlineEntry[
   }
 }
 
-export function collectOutlineEntries(state: SerializedEditorState): FlatOutlineEntry[] | null {
+function collectOutlineEntries(state: SerializedEditorState): FlatOutlineEntry[] | null {
   const { notes, valid } = traverseSerializedOutline(state);
   if (!valid) {
     return null;

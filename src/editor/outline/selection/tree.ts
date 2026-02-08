@@ -224,7 +224,7 @@ export function removeNoteSubtree(item: ListItemNode) {
   }
 }
 
-export function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
+function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
   const aPath = getNodePath(a);
   const bPath = getNodePath(b);
   const depth = Math.max(aPath.length, bPath.length);
@@ -244,7 +244,7 @@ export function sortHeadsByDocumentOrder(heads: ListItemNode[]): ListItemNode[] 
   return heads.toSorted(compareDocumentOrder);
 }
 
-export function getContentDepth(item: ListItemNode): number {
+function getContentDepth(item: ListItemNode): number {
   let depth = 0;
   let current: ListItemNode | null = getParentContentItem(item);
   while (current) {

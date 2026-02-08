@@ -26,5 +26,3 @@ const preview: PreviewFn = (...args) => {
 };
 
 globalThis.preview = preview;
-
-export const previewSetup: Promise<void> = Promise.resolve();

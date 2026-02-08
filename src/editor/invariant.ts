@@ -29,7 +29,7 @@ function getInvariantStatusSnapshot(): InvariantStatusSnapshot {
   return invariantStatus;
 }
 
-export function useInvariantStatus(): InvariantStatusSnapshot {
+function useInvariantStatus(): InvariantStatusSnapshot {
   return useSyncExternalStore(
     subscribeInvariantStatus,
     getInvariantStatusSnapshot,

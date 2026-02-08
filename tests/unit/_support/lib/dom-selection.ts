@@ -35,7 +35,7 @@ export async function dragDomSelectionBetween(start: Node, startOffset: number, 
 // DOM list-item boundary selection for pointer-style multi-note selection.
 // Limitations: requires sibling notes under the same list parent and can over-select
 // in nested lists due to DOM range semantics (use only when testing pointer paths).
-export async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNoteId: string, endNoteId: string) {
+async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNoteId: string, endNoteId: string) {
   const startElement = getNoteElement(remdo, startNoteId);
   const endElement = getNoteElement(remdo, endNoteId);
   const parent = startElement.parentElement;
