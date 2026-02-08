@@ -60,6 +60,7 @@ catalog:
   jiti: ^2.6.1
   jscpd: ^4.0.8
   jsdom: ^27.4.0
+  knip: ^5.83.1
   lexical: ^0.40.0
   lib0: ^0.2.117
   markdownlint-cli2: ^0.20.0

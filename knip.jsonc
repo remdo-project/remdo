@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "vite": true,
+  "vitest": true,
+  "playwright": true,
+  "entry": [
+    "tools/**/*.ts"
+  ],
+  "project": [
+    "{src,lib,tests,tools,config}/**/*.{ts,tsx,mts}"
+  ]
+}
