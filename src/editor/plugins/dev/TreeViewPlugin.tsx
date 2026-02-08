@@ -34,5 +34,3 @@ export function TreeViewPlugin() {
     </section>
   );
 }
-
-export default TreeViewPlugin;

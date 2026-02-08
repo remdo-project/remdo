@@ -276,5 +276,3 @@ export function TestBridgePlugin({
 
   return null;
 }
-
-export default TestBridgePlugin;

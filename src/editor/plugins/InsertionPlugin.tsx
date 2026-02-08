@@ -204,5 +204,3 @@ export function InsertionPlugin() {
 
   return null;
 }
-
-export default InsertionPlugin;

@@ -118,5 +118,3 @@ export function KeymapPlugin() {
 
   return null;
 }
-
-export default KeymapPlugin;

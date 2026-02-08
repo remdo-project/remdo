@@ -124,5 +124,3 @@ export function SelectionCollapsePlugin() {
 
   return null;
 }
-
-export default SelectionCollapsePlugin;

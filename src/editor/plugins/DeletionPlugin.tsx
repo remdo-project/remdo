@@ -544,5 +544,3 @@ export function DeletionPlugin() {
 
   return null;
 }
-
-export default DeletionPlugin;
