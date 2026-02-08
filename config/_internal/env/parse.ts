@@ -15,7 +15,7 @@ type ParsedValue<T extends EnvSpecEntry<Primitive>> = T['default'] extends boole
     ? number
     : string;
 
-export type ParsedEnv<T extends EnvSpec> = {
+type ParsedEnv<T extends EnvSpec> = {
   [K in keyof T]: ParsedValue<T[K]>;
 };
 
@@ -23,7 +23,7 @@ type ClientKeys<T extends EnvSpec> = {
   [K in keyof T]: T[K]['client'] extends true ? K : never;
 }[keyof T];
 
-export type ClientEnv<T extends EnvSpec> = Pick<ParsedEnv<T>, ClientKeys<T>>;
+type ClientEnv<T extends EnvSpec> = Pick<ParsedEnv<T>, ClientKeys<T>>;
 
 function coerceValue<T extends Primitive>(
   raw: string | boolean | undefined,

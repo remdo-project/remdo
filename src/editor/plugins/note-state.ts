@@ -5,7 +5,7 @@ import { $isNoteFolded } from '#lib/editor/fold-state';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { noteHasChildren } from '@/editor/outline/selection/tree';
 
-export interface ResolvedNoteState {
+interface ResolvedNoteState {
   contentItem: ListItemNode;
   noteKey: string;
   hasChildren: boolean;

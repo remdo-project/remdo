@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import type { StatusDescriptor } from './StatusIndicators';
 
-export interface InvariantPayload {
+interface InvariantPayload {
   message: string;
   context?: Record<string, unknown>;
 }

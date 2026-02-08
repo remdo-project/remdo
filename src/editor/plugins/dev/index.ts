@@ -1,2 +1,2 @@
 export { DevPlugin } from './DevPlugin';
-export type { RemdoBridgeApi, RemdoTestApi } from './TestBridgePlugin';
+export type { RemdoTestApi } from './TestBridgePlugin';

@@ -1,7 +1,7 @@
 import { ListItemNode } from '@lexical/list';
 import { $setState } from 'lexical';
 
-export interface ListItemStateConfig<Value> {
+interface ListItemStateConfig<Value> {
   key: string;
   parse: (value: unknown) => Value;
 }

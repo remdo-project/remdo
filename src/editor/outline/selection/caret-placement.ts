@@ -4,7 +4,7 @@ import { $isRangeSelection } from 'lexical';
 
 import { isPointAtBoundary } from './caret';
 
-export type CaretPlacement = 'start' | 'middle' | 'end';
+type CaretPlacement = 'start' | 'middle' | 'end';
 
 export function resolveCaretPlacement(
   selection: BaseSelection | null,

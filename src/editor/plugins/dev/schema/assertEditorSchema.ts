@@ -5,7 +5,7 @@ import { reportInvariant } from '@/editor/invariant';
 import type { SerializedOutlineNote } from './traverseSerializedOutline';
 import { traverseSerializedOutline } from './traverseSerializedOutline';
 
-export interface FlatOutlineEntry {
+interface FlatOutlineEntry {
   indent: number;
   path: string;
 }

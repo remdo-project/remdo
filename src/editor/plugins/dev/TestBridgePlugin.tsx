@@ -250,7 +250,6 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
 }
 
 export type RemdoTestApi = ReturnType<typeof createTestBridgeApi>;
-export type RemdoBridgeApi = RemdoTestApi['_bridge'];
 
 export function TestBridgePlugin({
   onTestBridgeReady,

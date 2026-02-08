@@ -8,8 +8,8 @@ export interface SetNoteCheckedPayload {
   noteKey?: string;
 }
 export const SET_NOTE_CHECKED_COMMAND = createCommand<SetNoteCheckedPayload>('remdo:set-note-checked');
-export type NoteFoldState = 'folded' | 'unfolded' | 'toggle';
-export interface SetNoteFoldPayload {
+type NoteFoldState = 'folded' | 'unfolded' | 'toggle';
+interface SetNoteFoldPayload {
   state: NoteFoldState;
   noteKey: string;
 }

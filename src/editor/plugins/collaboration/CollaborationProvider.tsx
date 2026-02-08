@@ -78,5 +78,3 @@ function useCollaborationRuntimeValue({ docId }: { docId?: string }): Collaborat
     [session, snapshot]
   );
 }
-
-export type { CollaborationStatusValue };

@@ -22,7 +22,7 @@ export interface ProgressiveUnlockState {
   reason: 'directional' | 'external';
 }
 
-export interface OutlineSelectionSnapshot {
+interface OutlineSelectionSnapshot {
   payload: SnapPayload | null;
   hasStructuralSelection: boolean;
   structuralRange: OutlineSelectionRange | null;

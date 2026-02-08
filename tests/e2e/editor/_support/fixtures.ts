@@ -53,4 +53,4 @@ export const test = base.extend<{ testDocId: string; editor: EditorHarness }>({
 });
 
 export { expect, readOutline };
-export type { Page, Locator, EditorHarness };
+export type { Page, Locator };

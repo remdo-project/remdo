@@ -24,7 +24,7 @@ import {
   sortHeadsByDocumentOrder,
 } from './tree';
 
-export interface ProgressiveSelectionRef {
+interface ProgressiveSelectionRef {
   current: ProgressiveSelectionState;
 }
 

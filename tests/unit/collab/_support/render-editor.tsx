@@ -38,5 +38,3 @@ export async function renderRemdoEditor({ docId, editorProps }: RenderEditorOpti
   await resolved._bridge.waitForCollaborationReady();
   return { api: resolved, unmount };
 }
-
-export type RenderRemdoEditor = typeof renderRemdoEditor;
