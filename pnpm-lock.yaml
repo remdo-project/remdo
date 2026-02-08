@@ -15,13 +15,7 @@ catalogs:
     '@lexical/clipboard':
       specifier: ^0.40.0
       version: 0.40.0
-    '@lexical/devtools-core':
-      specifier: ^0.40.0
-      version: 0.40.0
     '@lexical/eslint-plugin':
-      specifier: ^0.40.0
-      version: 0.40.0
-    '@lexical/history':
       specifier: ^0.40.0
       version: 0.40.0
     '@lexical/list':
@@ -31,9 +25,6 @@ catalogs:
       specifier: ^0.40.0
       version: 0.40.0
     '@lexical/react':
-      specifier: ^0.40.0
-      version: 0.40.0
-    '@lexical/rich-text':
       specifier: ^0.40.0
       version: 0.40.0
     '@lexical/utils':
@@ -88,9 +79,6 @@ catalogs:
       specifier: ^4.0.18
       version: 4.0.18
     '@y-sweet/client':
-      specifier: ^0.9.1
-      version: 0.9.1
-    '@y-sweet/react':
       specifier: ^0.9.1
       version: 0.9.1
     '@y-sweet/sdk':
@@ -203,12 +191,6 @@ importers:
       '@lexical/clipboard':
         specifier: 'catalog:'
         version: 0.40.0
-      '@lexical/devtools-core':
-        specifier: 'catalog:'
-        version: 0.40.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@lexical/history':
-        specifier: 'catalog:'
-        version: 0.40.0
       '@lexical/list':
         specifier: 'catalog:'
         version: 0.40.0
@@ -218,9 +200,6 @@ importers:
       '@lexical/react':
         specifier: 'catalog:'
         version: 0.40.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(yjs@13.6.29)
-      '@lexical/rich-text':
-        specifier: 'catalog:'
-        version: 0.40.0
       '@lexical/utils':
         specifier: 'catalog:'
         version: 0.40.0
@@ -239,9 +218,6 @@ importers:
       '@y-sweet/client':
         specifier: 'catalog:'
         version: 0.9.1(yjs@13.6.29)
-      '@y-sweet/react':
-        specifier: 'catalog:'
-        version: 0.9.1(react@19.2.4)(yjs@13.6.29)
       '@y-sweet/sdk':
         specifier: 'catalog:'
         version: 0.9.1
@@ -1769,12 +1745,6 @@ packages:
     resolution: {integrity: sha512-/DpG+cRWHa+rIfenlwZjV3xENdqf1+QYhpYvhOhxDw4WTAzxTRWO/N/TvDf6Q61+FqQFiRNb30MSel7Nm8cVBw==}
     peerDependencies:
       yjs: ^13.0.0
-
-  '@y-sweet/react@0.9.1':
-    resolution: {integrity: sha512-PG1ahP4G2A+vnTT3xTGnzySbn7USy4iy3yEx3zqsY2R2vT9o1ssfeooNC/7/9AK7EzX4O5yxboTHaOyxS8ADxw==}
-    peerDependencies:
-      react: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
-      yjs: ^13
 
   '@y-sweet/sdk@0.9.1':
     resolution: {integrity: sha512-6NklpmfbF2K9mduMQrEfn7gXSmWr0aGVF+mR9oG2P2RJH2JNYIynQKFlJlTUB2hitWVeluPyg8EVD9fhHUqJAA==}
@@ -6041,14 +6011,6 @@ snapshots:
   '@y-sweet/client@0.9.1(yjs@13.6.29)':
     dependencies:
       '@y-sweet/sdk': 0.9.1
-      y-protocols: 1.0.7(yjs@13.6.29)
-      yjs: 13.6.29
-
-  '@y-sweet/react@0.9.1(react@19.2.4)(yjs@13.6.29)':
-    dependencies:
-      '@y-sweet/client': 0.9.1(yjs@13.6.29)
-      '@y-sweet/sdk': 0.9.1
-      react: 19.2.4
       y-protocols: 1.0.7(yjs@13.6.29)
       yjs: 13.6.29
 
