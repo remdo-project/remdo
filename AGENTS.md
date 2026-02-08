@@ -41,6 +41,9 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/index.md` (Short). Entry point with links (including list types); single-source invariants rule.
 - `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,
   rendering, and toggle commands.
+- `docs/outliner/links.md` (Medium). Initial internal note-linking behavior:
+  `@` query flow, ranking/disambiguation rules, keyboard interactions, and
+  `[Future]` roadmap boundaries.
 - `docs/outliner/menu.md` (Short). Note menu entry points, icon visibility (hover/caret),
   targets, and actions (toggle checked/fold/zoom/child list types).
 - `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization, clipboard identity
