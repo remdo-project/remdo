@@ -1,20 +1,20 @@
 {
-  "generatedAt": "2026-02-08T13:18:01.154Z",
+  "generatedAt": "2026-02-08T16:14:24.524Z",
   "files": {
     "totalFiles": 276,
     "textFiles": 276,
     "byType": {
       "ts": {
         "files": 139,
-        "lines": 13188
+        "lines": 13151
       },
       "tsx": {
         "files": 45,
-        "lines": 6043
+        "lines": 6040
       },
       "json": {
         "files": 27,
-        "lines": 1969
+        "lines": 1965
       },
       "md": {
         "files": 19,
@@ -38,7 +38,7 @@
       },
       "jsonc": {
         "files": 2,
-        "lines": 42
+        "lines": 48
       },
       "mts": {
         "files": 2,
@@ -46,7 +46,7 @@
       },
       "yaml": {
         "files": 2,
-        "lines": 100
+        "lines": 91
       },
       "caddyfile": {
         "files": 1,
@@ -95,7 +95,7 @@
   "totals": {
     "files": {
       "files": 275,
-      "lines": 24086
+      "lines": 24039
     },
     "tests": {
       "totalUnique": 367
