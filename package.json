@@ -53,7 +53,7 @@
     "check:unused": "timeout ${TEST_TIMEOUT:-60}s ./tools/env.sh pnpm exec knip -c knip.jsonc --no-progress",
     "deps:list": "pnpm list --depth=-1 --silent",
     "test": "pnpm run test:unit",
-    "test:all": "pnpm install --frozen-lockfile --lockfile-only && pnpm run lint && pnpm run check:all && pnpm run test:unit && pnpm run test:collab && pnpm run test:e2e",
+    "test:all": "pnpm install --frozen-lockfile --lockfile-only && pnpm run lint && pnpm run stats:repo && pnpm run check:all && pnpm run test:unit && pnpm run test:collab && pnpm run test:e2e",
     "test:unit": "cross-env NODE_ENV=test COLLAB_ENABLED=false ./tools/env.sh timeout ${TEST_TIMEOUT:-60}s pnpm exec vitest run",
     "test:collab": "cross-env NODE_ENV=test ./tools/env.sh timeout ${TEST_TIMEOUT:-120}s pnpm exec vitest run",
     "test:collab:repeat": "sh -c 'for i in $(seq 1 20); do echo \"===== collab run $i/20 =====\"; pnpm run test:collab || exit 1; done'",
@@ -66,6 +66,7 @@
     "test:e2e:ui": "./tools/env.sh pnpm exec playwright test --ui --ui-host ${HOST} --ui-port ${PLAYWRIGHT_UI_PORT}",
     "test:e2e:watch": "./tools/env.sh cross-env PWTEST_WATCH=1 pnpm exec playwright test",
     "test:docker": "./tools/docker-test.sh",
+    "stats:repo": "tsx ./tools/repo-stats.ts",
     "load": "./tools/env.sh tsx ./tools/snapshot.ts load",
     "save": "./tools/env.sh tsx ./tools/snapshot.ts save",
     "backup": "./tools/env.sh tsx ./tools/snapshot.ts backup"
