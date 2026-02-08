@@ -123,7 +123,7 @@ try {
           comparison,
         }, null, 2)}\n`);
       } else {
-        printSummary(currentStats, comparison);
+        printSummary(currentStats, comparison, baselineStats);
       }
 
       if (comparison.failedMetrics.length > 0) {
@@ -297,7 +297,7 @@ function exceedsThreshold(current: number, baseline: number): boolean {
 }
 
 function listTrackedFiles(): string[] {
-  const stdout = runCommand('git', ['ls-files', '-z']);
+  const stdout = runCommand('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard']);
   return stdout
     .split('\0')
     .map((entry) => normalizeRelativePath(entry))
@@ -494,11 +494,12 @@ function formatInt(value: number): string {
   return value.toLocaleString('en-US');
 }
 
-function printSummary(stats: RepoStats, comparison?: ComparisonResult): void {
+function printSummary(stats: RepoStats, comparison?: ComparisonResult, baseline?: RepoStats): void {
   const metricEntries = comparison
     ? comparison.metrics.map((metric) => [metric.id, metric] as const)
     : undefined;
   const metricMap = new Map(metricEntries);
+  const hasBaseline = baseline !== undefined;
 
   process.stdout.write(`Repo stats (${stats.generatedAt})\n`);
   process.stdout.write('\n');
@@ -506,9 +507,21 @@ function printSummary(stats: RepoStats, comparison?: ComparisonResult): void {
   process.stdout.write(
     `  ${'Type'.padEnd(16)} ${'Files'.padStart(6)} ${'Lines'.padStart(9)}\n`,
   );
-  for (const [type, bucket] of Object.entries(stats.files.byType)) {
+  const currentEntries = Object.entries(stats.files.byType);
+  const seenTypes = new Set(currentEntries.map(([type]) => type));
+  const baselineOnlyEntries = baseline
+    ? Object.entries(baseline.files.byType)
+      .filter(([type, bucket]) => !seenTypes.has(type) && (bucket.files > 0 || bucket.lines > 0))
+      .toSorted((a, b) => a[0].localeCompare(b[0]))
+    : [];
+  const entriesToRender = [...currentEntries, ...baselineOnlyEntries];
+
+  for (const [type, bucket] of entriesToRender) {
+    const baselineBucket = baseline?.files.byType[type] ?? { files: 0, lines: 0 };
+    const filesDelta = hasBaseline ? formatDeltaFromValues(bucket.files, baselineBucket.files) : '';
+    const linesDelta = hasBaseline ? formatDeltaFromValues(bucket.lines, baselineBucket.lines) : '';
     process.stdout.write(
-      `  ${type.padEnd(16)} ${formatInt(bucket.files).padStart(6)} ${formatInt(bucket.lines).padStart(9)}\n`,
+      `  ${type.padEnd(16)} ${formatInt(bucket.files).padStart(6)}${filesDelta} ${formatInt(bucket.lines).padStart(9)}${linesDelta}\n`,
     );
   }
 
@@ -565,6 +578,19 @@ function formatDelta(metric: ComparisonMetric | undefined): string {
     return colorize(body, 'red');
   }
   return '';
+}
+
+function formatDeltaFromValues(current: number, baseline: number): string {
+  const delta = current - baseline;
+  if (delta === 0) {
+    return '';
+  }
+  const deltaPct = baseline === 0 ? null : (delta / baseline) * 100;
+  const body = ` (${formatSignedInt(delta)}, ${formatSignedPercent(deltaPct)})`;
+  if (delta > 0) {
+    return colorize(body, 'green');
+  }
+  return colorize(body, 'red');
 }
 
 function formatSignedInt(value: number): string {
