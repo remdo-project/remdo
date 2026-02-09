@@ -1,15 +1,13 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $createLinkNode, $isLinkNode } from '@lexical/link';
+import { $createLinkNode } from '@lexical/link';
 import { mergeRegister } from '@lexical/utils';
 import {
   $createRangeSelection,
-  $getNearestNodeFromDOMNode,
   $createTextNode,
   $getSelection,
   $isRangeSelection,
   $isTextNode,
   $setSelection,
-  CLICK_COMMAND,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_LOW,
   KEY_ARROW_DOWN_COMMAND,
@@ -22,8 +20,7 @@ import {
 } from 'lexical';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
-import { createInternalNoteLinkUrl, parseInternalNoteLinkUrl } from '@/editor/links/internal-link-url';
+import { createInternalNoteLinkUrl } from '@/editor/links/internal-link-url';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
 import { resolveLinkPickerAnchor } from './note-link/anchor';
@@ -248,47 +245,6 @@ export function NoteLinkPlugin() {
     return true;
   }, [$resolveActiveQuery, closeSession, docId]);
 
-  const handleLinkClick = useCallback((event: MouseEvent): boolean => {
-    if (event.defaultPrevented || event.button !== 0) {
-      return false;
-    }
-    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
-      return false;
-    }
-    if (!(event.target instanceof Element)) {
-      return false;
-    }
-
-    const root = editor.getRootElement();
-    const anchor = event.target.closest<HTMLAnchorElement>('a.text-link');
-    if (!root || !anchor || !root.contains(anchor)) {
-      return false;
-    }
-
-    const noteId = editor.read(() => {
-      const lexicalNode = $getNearestNodeFromDOMNode(anchor);
-      if (!lexicalNode) {
-        return null;
-      }
-      if ($isLinkNode(lexicalNode)) {
-        return parseInternalNoteLinkUrl(lexicalNode.getURL());
-      }
-      const parent = lexicalNode.getParent();
-      return $isLinkNode(parent) ? parseInternalNoteLinkUrl(parent.getURL()) : null;
-    });
-
-    if (!noteId || noteId.docId !== docId) {
-      return false;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    queueMicrotask(() => {
-      editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId: noteId.noteId });
-    });
-    return true;
-  }, [docId, editor]);
-
   useEffect(() => {
     installOutlineSelectionHelpers(editor);
     syncPickerFromSelection();
@@ -303,13 +259,6 @@ export function NoteLinkPlugin() {
       editor.registerUpdateListener(() => {
         syncPickerFromSelection();
       }),
-      editor.registerCommand(
-        CLICK_COMMAND,
-        (event: MouseEvent) => {
-          return handleLinkClick(event);
-        },
-        COMMAND_PRIORITY_LOW
-      ),
       editor.registerCommand(
         KEY_DOWN_COMMAND,
         (event: KeyboardEvent | null) => {
@@ -419,7 +368,7 @@ export function NoteLinkPlugin() {
         closeSession();
       }
     );
-  }, [closeSession, $confirmActiveOption, editor, handleLinkClick, moveActive, $removeActiveQueryToken, syncPickerFromSelection]);
+  }, [closeSession, $confirmActiveOption, editor, moveActive, $removeActiveQueryToken, syncPickerFromSelection]);
 
   if (!picker || !portalRoot) {
     return null;
