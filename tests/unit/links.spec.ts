@@ -62,6 +62,20 @@ describe('note links (docs/outliner/links.md)', () => {
     ]);
   });
 
+  it('does not reopen link mode after Backspace exits empty query', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@');
+    await pressKey(remdo, { key: 'Backspace' });
+    await typeText(remdo, 'n');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1@n' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
+  });
+
   const zoomFromLinkSpy = vi.fn();
   const zoomFromLinkKey = registerScopedEditorProps('zoom-from-link', {
     zoomNoteId: null,
