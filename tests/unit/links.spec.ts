@@ -1,6 +1,7 @@
 import { $isLinkNode } from '@lexical/link';
 import { describe, expect, it } from 'vitest';
 
+import { $isInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
 import { parseInternalNoteLinkUrl } from '@/editor/links/internal-link-url';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { clearEditorProps, meta, placeCaretAtNote, pressKey, registerScopedEditorProps, typeText } from '#tests';
@@ -8,7 +9,7 @@ import { clearEditorProps, meta, placeCaretAtNote, pressKey, registerScopedEdito
 describe('note links (docs/outliner/links.md)', () => {
   const ZOOM_LINK_SCOPE_KEY = registerScopedEditorProps('links-zoom-scope', { zoomNoteId: 'note2' });
 
-  it('inserts a link with Enter and keeps stable note identity in URL', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('inserts a link with Enter and keeps stable note identity in link state', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, '@note2');
     await pressKey(remdo, { key: 'Enter' });
@@ -23,6 +24,11 @@ describe('note links (docs/outliner/links.md)', () => {
       const note = $findNoteById('note1')!;
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('note2');
+      expect($isInternalNoteLinkNode(linkNode)).toBe(true);
+      if ($isInternalNoteLinkNode(linkNode)) {
+        expect(linkNode.getNoteId()).toBe('note2');
+        expect(linkNode.getDocId()).toBe(remdo.getCollabDocId());
+      }
       expect(parseInternalNoteLinkUrl(linkNode.getURL())).toEqual({
         docId: remdo.getCollabDocId(),
         noteId: 'note2',

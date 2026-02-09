@@ -1,5 +1,4 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $createLinkNode } from '@lexical/link';
 import { mergeRegister } from '@lexical/utils';
 import {
   $createRangeSelection,
@@ -21,7 +20,7 @@ import {
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { createInternalNoteLinkUrl } from '@/editor/links/internal-link-url';
+import { $createInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
 import { resolveLinkPickerAnchor } from './note-link/anchor';
@@ -256,7 +255,7 @@ export function NoteLinkPlugin() {
       return false;
     }
 
-    const linkNode = $createLinkNode(createInternalNoteLinkUrl(docId, activeOption.noteId));
+    const linkNode = $createInternalNoteLinkNode({ docId, noteId: activeOption.noteId });
     linkNode.append($createTextNode(activeOption.title));
     insertionSelection.insertNodes([linkNode, $createTextNode(' ')]);
 

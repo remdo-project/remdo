@@ -24,6 +24,7 @@ import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { createNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { $autoExpandIfFolded } from '#lib/editor/fold-state';
+import { $isInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import {
   findNearestListItem,
@@ -306,6 +307,34 @@ function $regenerateClipboardNoteIds(nodes: LexicalNode[], reservedIds: Set<stri
       const next = createNoteIdAvoiding(reservedIds);
       $setState(node, noteIdState, next);
       reservedIds.add(next);
+    }
+
+    if ($isElementNode(node)) {
+      const children = node.getChildren();
+      for (let i = children.length - 1; i >= 0; i -= 1) {
+        const child = children[i];
+        if (child) {
+          stack.push(child);
+        }
+      }
+    }
+  }
+}
+
+function $normalizeClipboardInternalLinkDocIds(nodes: LexicalNode[], currentDocId: string) {
+  if (currentDocId.length === 0) {
+    return;
+  }
+
+  const stack = nodes.toReversed();
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) {
+      continue;
+    }
+
+    if ($isInternalNoteLinkNode(node) && node.getDocId() === currentDocId) {
+      node.setDocId(undefined);
     }
 
     if ($isElementNode(node)) {
@@ -669,6 +698,7 @@ export function NoteIdPlugin() {
             reservedIds.add(docId);
           }
           $regenerateClipboardNoteIds(payload.nodes, reservedIds);
+          $normalizeClipboardInternalLinkDocIds(payload.nodes, docId);
           const insertNodes = $extractClipboardListChildren(payload.nodes);
           lastPasteSelectionHeadKeysRef.current = null;
           return $insertNodesAtSelection(selectionHeadKeys, payload.selection, insertNodes);
