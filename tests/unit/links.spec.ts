@@ -91,7 +91,7 @@ describe('note links (docs/outliner/links.md)', () => {
     const linkElement = noteElement.querySelector('a');
     expect(linkElement).not.toBeNull();
 
-    linkElement!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    linkElement!.click();
 
     await expect.poll(() => {
       const lastCall = zoomFromLinkSpy.mock.calls.at(-1);
