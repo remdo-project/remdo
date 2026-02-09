@@ -64,9 +64,38 @@ describe('note links (docs/outliner/links.md)', () => {
     await typeText(remdo, '@missing');
 
     expect(document.querySelector('[data-note-link-picker-item]')).toBeNull();
+    const listbox = document.querySelector('.note-link-picker[role="listbox"]');
+    expect(listbox).not.toBeNull();
+    expect(listbox!.getAttribute('aria-activedescendant')).toBeNull();
     const emptyRow = document.querySelector('[data-note-link-picker-empty="true"]');
     expect(emptyRow).not.toBeNull();
     expect(emptyRow!.textContent.trim()).toBe('No results...');
+  });
+
+  it('tracks active option via aria-activedescendant and aria-selected', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@note');
+
+    const readPicker = () => {
+      const listbox = document.querySelector<HTMLElement>('.note-link-picker[role="listbox"]');
+      expect(listbox).not.toBeNull();
+      const rows = [...document.querySelectorAll<HTMLElement>('[data-note-link-picker-item]')];
+      expect(rows).toHaveLength(2);
+      return { listbox: listbox!, rows };
+    };
+
+    let picker = readPicker();
+    expect(picker.rows[0]!.id).not.toBe('');
+    expect(picker.rows[1]!.id).not.toBe('');
+    expect(picker.listbox.getAttribute('aria-activedescendant')).toBe(picker.rows[0]!.id);
+    expect(picker.rows[0]!.getAttribute('aria-selected')).toBe('true');
+    expect(picker.rows[1]!.getAttribute('aria-selected')).toBe('false');
+
+    await pressKey(remdo, { key: 'ArrowDown' });
+    picker = readPicker();
+    expect(picker.listbox.getAttribute('aria-activedescendant')).toBe(picker.rows[1]!.id);
+    expect(picker.rows[0]!.getAttribute('aria-selected')).toBe('false');
+    expect(picker.rows[1]!.getAttribute('aria-selected')).toBe('true');
   });
 
   it('clamps ArrowUp and ArrowDown picker navigation at boundaries', meta({ fixture: 'flat' }), async ({ remdo }) => {
