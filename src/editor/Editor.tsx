@@ -3,6 +3,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
+import { ClickableLinkPlugin } from '@lexical/react/LexicalClickableLinkPlugin';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollaborationPlugin } from './plugins/collaboration';
 import { CheckListPlugin } from './plugins/CheckListPlugin';
@@ -61,6 +62,7 @@ export default function Editor({
           <SelectionPlugin />
           <SelectionCollapsePlugin />
           <NoteLinkPlugin />
+          <ClickableLinkPlugin newTab={false} />
           <InsertionPlugin />
           <DeletionPlugin />
           <SelectionInputPlugin />

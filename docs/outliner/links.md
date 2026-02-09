@@ -16,6 +16,7 @@ Define the initial internal note-linking behavior for RemDo.
    stored locally (no auto-sync on later target renames in this phase).
 5. Inserted links store app-route `href` values using note refs
    (`/n/<docId>_<noteId>`), not custom internal URL schemes.
+6. Link clicks use native `href` navigation semantics and route handling.
 
 ## Query and ranking
 
@@ -52,7 +53,5 @@ Define the initial internal note-linking behavior for RemDo.
    influence ordering but must not reduce search scope.
 5. [Future] Rename-aware display text modes (for example title-mirroring unless
    user-customized).
-6. [Future] Once native `href` navigation is in place and reliable, remove
-   custom JS link-click interception and rely on router handling.
-7. [Future] Ensure floating controls/overlays never block pointer hit-testing
+6. [Future] Ensure floating controls/overlays never block pointer hit-testing
     for inline links, so plain user clicks and test `link.click()` are reliable.

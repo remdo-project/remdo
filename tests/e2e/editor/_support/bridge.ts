@@ -14,7 +14,7 @@ type RemdoTestAction =
 
 async function runWithRemdoTest(page: Page, action: RemdoTestAction): Promise<unknown> {
   return page.evaluate(async (payload) => {
-    const api = await (__remdoBridgePromise ?? Promise.reject(new Error('remdo bridge is not available')));
+    const api = await (globalThis.__remdoBridgePromise ?? Promise.reject(new Error('remdo bridge is not available')));
 
     if (payload.kind === 'getEditorState') {
       return api.getEditorState();
@@ -42,7 +42,7 @@ async function runWithRemdoTest(page: Page, action: RemdoTestAction): Promise<un
 
 async function waitForRemdoTest(page: Page, timeoutMs = 4000): Promise<void> {
   await page.waitForFunction(() => {
-    return Boolean(__remdoBridgePromise);
+    return Boolean(globalThis.__remdoBridgePromise);
   }, undefined, { timeout: timeoutMs });
 }
 
