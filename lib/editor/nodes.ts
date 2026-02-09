@@ -3,9 +3,10 @@ import { LinkNode } from '@lexical/link';
 import { ListItemNode, ListNode } from '@lexical/list';
 
 import { ensureFoldStateConfig } from './fold-state';
+import { InternalNoteLinkNode } from './internal-note-link-node';
 import { ensureNoteIdStateConfig } from './note-id-state';
 
 ensureNoteIdStateConfig();
 ensureFoldStateConfig();
 
-export const editorNodes: InitialConfigType['nodes'] = [ListNode, ListItemNode, LinkNode];
+export const editorNodes: InitialConfigType['nodes'] = [ListNode, ListItemNode, LinkNode, InternalNoteLinkNode];

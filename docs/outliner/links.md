@@ -14,8 +14,9 @@ Define the initial internal note-linking behavior for RemDo.
    text labels.
 4. On insertion, display text is copied once from the target note title and then
    stored locally (no auto-sync on later target renames in this phase).
-5. Inserted links store app-route `href` values using note refs
-   (`/n/<docId>_<noteId>`), not custom internal URL schemes.
+5. Inserted links persist internal identity payload (`noteId` plus optional
+   `docId`) as canonical state; route `href` values
+   (`/n/<docId>_<noteId>`) are rendered from that state in app code.
 6. Link clicks use native `href` navigation semantics and route handling.
 
 ## Query and ranking
@@ -66,3 +67,7 @@ Define the initial internal note-linking behavior for RemDo.
    user-customized).
 6. [Future] Ensure floating controls/overlays never block pointer hit-testing
     for inline links, so plain user clicks and test `link.click()` are reliable.
+7. [Future] Reconsider internal-link behavior when copying/pasting across
+   documents. Current choice: preserve source-target identity (no retargeting to
+   pasted note IDs). Alternatives include retargeting links whose targets are
+   also present in the pasted payload, or other remap policies.
