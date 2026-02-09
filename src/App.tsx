@@ -6,7 +6,7 @@ import { theme } from './theme';
 import { config } from '#config';
 import '@mantine/core/styles.css';
 import { Icon } from './ui/Icon';
-import { DEFAULT_DOC_ID } from './routing';
+import { createDocumentPath, DEFAULT_DOC_ID, parseDocumentRef } from './routing';
 import VanillaLexicalEditor from './editor/dev/VanillaLexicalEditor';
 
 interface HostContext {
@@ -31,11 +31,8 @@ function buildUrl(host: HostContext, portOffset: number, path = ''): string {
   return `${host.protocol}//${host.hostname}:${host.basePort + portOffset}${path}`;
 }
 
-function buildSearch(params: { zoom?: string; lexicalDemo?: boolean }): string {
+function buildSearch(params: { lexicalDemo?: boolean }): string {
   const searchParams = new URLSearchParams();
-  if (params.zoom) {
-    searchParams.set('zoom', params.zoom);
-  }
   if (params.lexicalDemo) {
     searchParams.set('lexicalDemo', 'true');
   }
@@ -51,10 +48,10 @@ export default function App() {
   const lexicalUrl = host
     ? `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`
     : '#lexical';
+  const { docRef } = useParams<{ docRef?: string }>();
   const [searchParams] = useSearchParams();
-  const { docId } = useParams();
   const showVanillaLexical = config.isDevOrTest && searchParams.has('lexicalDemo');
-  const currentDocId = docId ?? DEFAULT_DOC_ID;
+  const currentDocId = parseDocumentRef(docRef)?.docId ?? DEFAULT_DOC_ID;
 
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
@@ -63,7 +60,7 @@ export default function App() {
           <Group gap="md">
             <Title order={1} className="app-heading-title">
               <Link
-                to={`/n/${currentDocId}${buildSearch({})}`}
+                to={`${createDocumentPath(currentDocId)}${buildSearch({})}`}
                 className={headerStyles.brandLink}
               >
                 <span aria-hidden="true" className={headerStyles.brandIcon} />
@@ -74,7 +71,7 @@ export default function App() {
           <nav>
             <Group gap="md" className="app-header-links">
               <Link
-                to={`/n/${DEFAULT_DOC_ID}${buildSearch({})}`}
+                to={`${createDocumentPath(DEFAULT_DOC_ID)}${buildSearch({})}`}
                 className="app-header-link"
               >
                 Project
@@ -95,7 +92,7 @@ export default function App() {
                     Lexical
                   </Anchor>
                   <Link
-                    to={`/n/${currentDocId}${buildSearch({ lexicalDemo: true })}`}
+                    to={`${createDocumentPath(currentDocId)}${buildSearch({ lexicalDemo: true })}`}
                     className="app-header-link"
                   >
                     Lexical Demo

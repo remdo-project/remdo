@@ -21,7 +21,7 @@ describe('note links (docs/outliner/links.md)', () => {
       const note = $findNoteById('note1')!;
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('note2');
-      expect(parseInternalNoteLinkUrl(linkNode.getURL())).toBe('note2');
+      expect(parseInternalNoteLinkUrl(linkNode.getURL())?.noteId).toBe('note2');
       expect(note.getTextContent().endsWith(' ')).toBe(true);
     });
   });

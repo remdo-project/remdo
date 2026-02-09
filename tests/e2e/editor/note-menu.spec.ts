@@ -104,12 +104,12 @@ test.describe('Note menu', () => {
     const menu = await openNoteMenu(page, 'note2');
     await menu.item('zoom').click();
     await menu.expectClosed();
-    await expect(page).toHaveURL(/\?zoom=note2$/);
+    await expect(page).toHaveURL(/_note2$/);
 
     await openNoteMenu(page, 'note2');
     await page.keyboard.press('z');
     await menu.expectClosed();
-    await expect(page).toHaveURL(/\?zoom=note2$/);
+    await expect(page).toHaveURL(/_note2$/);
   });
 
   test('toggle checked closes the menu and updates note state', async ({ page, editor }) => {

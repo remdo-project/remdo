@@ -1,23 +1,30 @@
-const NOTE_LINK_URL_PREFIX = 'remdo://note/';
+import { createDocumentPath, parseDocumentRef } from '@/routing';
 
-export function createInternalNoteLinkUrl(noteId: string): string {
-  return `${NOTE_LINK_URL_PREFIX}${encodeURIComponent(noteId)}`;
+export interface InternalNoteLink {
+  docId: string;
+  noteId: string;
 }
 
-export function parseInternalNoteLinkUrl(url: string): string | null {
-  if (!url.startsWith(NOTE_LINK_URL_PREFIX)) {
-    return null;
-  }
+export function createInternalNoteLinkUrl(docId: string, noteId: string): string {
+  return createDocumentPath(docId, noteId);
+}
 
-  const encoded = url.slice(NOTE_LINK_URL_PREFIX.length);
-  if (encoded.length === 0) {
-    return null;
-  }
-
+export function parseInternalNoteLinkUrl(url: string): InternalNoteLink | null {
+  let parsedUrl: URL;
   try {
-    const noteId = decodeURIComponent(encoded);
-    return noteId.length > 0 ? noteId : null;
+    parsedUrl = new URL(url, globalThis.location.href);
   } catch {
     return null;
   }
+
+  const match = /^\/n\/([^/]+)$/.exec(parsedUrl.pathname);
+  if (!match) {
+    return null;
+  }
+
+  const parsedRef = parseDocumentRef(match[1]);
+  if (!parsedRef?.noteId) {
+    return null;
+  }
+  return { docId: parsedRef.docId, noteId: parsedRef.noteId };
 }
