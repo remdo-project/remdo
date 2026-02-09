@@ -27,12 +27,9 @@ describe('note links (docs/outliner/links.md)', () => {
       expect($isInternalNoteLinkNode(linkNode)).toBe(true);
       if ($isInternalNoteLinkNode(linkNode)) {
         expect(linkNode.getNoteId()).toBe('note2');
-        expect(linkNode.getDocId()).toBe(remdo.getCollabDocId());
+        expect(linkNode.getDocId()).toBeUndefined();
       }
-      expect(parseInternalNoteLinkUrl(linkNode.getURL())).toEqual({
-        docId: remdo.getCollabDocId(),
-        noteId: 'note2',
-      });
+      expect(parseInternalNoteLinkUrl(linkNode.getURL())?.noteId).toBe('note2');
       expect(note.getTextContent().endsWith(' ')).toBe(true);
     });
   });

@@ -269,7 +269,7 @@ describe('note ids on paste', () => {
     expect(new Set(noteIds).size).toBe(outline.length);
   });
 
-  it('drops internal link docId on paste when it matches the current document', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('drops internal link docId on paste when clipboard link docId matches the current document', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, '@note2');
     await pressKey(remdo, { key: 'Enter' });
@@ -277,8 +277,9 @@ describe('note ids on paste', () => {
     await selectStructuralNotes(remdo, 'note1');
     const clipboardPayload = await copySelection(remdo);
     const copiedLink = findSerializedInternalNoteLink(clipboardPayload.nodes![0]! as SerializedLexicalNode)!;
-    expect(copiedLink.docId).toBe(remdo.getCollabDocId());
+    expect(copiedLink.docId).toBeUndefined();
     expect(copiedLink.noteId).toBe('note2');
+    copiedLink.docId = remdo.getCollabDocId();
 
     await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
