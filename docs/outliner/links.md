@@ -48,6 +48,8 @@ Define the initial internal note-linking behavior for RemDo.
 8. Pointer hover updates the active picker row.
 9. Primary-button pointer click on a selectable row confirms that option (same
    as `Enter`/`Tab`).
+10. Picker semantics expose the active row via listbox `aria-activedescendant`;
+    selectable rows also expose active state with `aria-selected`.
 
 ## Non-goals / future
 

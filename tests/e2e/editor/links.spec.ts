@@ -63,6 +63,41 @@ test.describe('note links', () => {
     ]);
   });
 
+  test('updates listbox active descendant for keyboard and hover', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+
+    await page.keyboard.type('@note');
+
+    const listbox = editorLocator(page).locator('.note-link-picker[role="listbox"]');
+    const options = listbox.locator('[data-note-link-picker-item]');
+    const note2Option = options.filter({ hasText: 'note2' }).first();
+    const note3Option = options.filter({ hasText: 'note3' }).first();
+
+    await expect(options).toHaveCount(2);
+
+    const note2Id = await note2Option.getAttribute('id');
+    const note3Id = await note3Option.getAttribute('id');
+    expect(note2Id).toBeTruthy();
+    expect(note3Id).toBeTruthy();
+
+    await expect(listbox).toHaveAttribute('aria-activedescendant', note2Id!);
+    await expect(note2Option).toHaveAttribute('aria-selected', 'true');
+    await expect(note3Option).toHaveAttribute('aria-selected', 'false');
+
+    await page.keyboard.press('ArrowDown');
+
+    await expect(listbox).toHaveAttribute('aria-activedescendant', note3Id!);
+    await expect(note2Option).toHaveAttribute('aria-selected', 'false');
+    await expect(note3Option).toHaveAttribute('aria-selected', 'true');
+
+    await note2Option.hover();
+
+    await expect(listbox).toHaveAttribute('aria-activedescendant', note2Id!);
+    await expect(note2Option).toHaveAttribute('aria-selected', 'true');
+    await expect(note3Option).toHaveAttribute('aria-selected', 'false');
+  });
+
   test('searches the whole document while zoomed into a subtree', async ({ page, editor }) => {
     await editor.load('tree');
 
