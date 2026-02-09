@@ -36,6 +36,6 @@ test.describe('note links', () => {
 
     await link.click();
 
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
   });
 });

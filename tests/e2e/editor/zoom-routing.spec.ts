@@ -45,7 +45,7 @@ const getBulletMetrics = async (listItem: Locator) => {
 };
 
 test.describe('Zoom routing', () => {
-  test('adds zoom param on bullet click', async ({ page, editor }) => {
+  test('adds zoom route on bullet click', async ({ page, editor }) => {
     await editor.load('basic');
 
     const editorRoot = editorLocator(page);
@@ -53,11 +53,11 @@ test.describe('Zoom routing', () => {
 
     const metrics = await getBulletMetrics(note1);
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
   });
 
-  test('clears zoom param when clicking document breadcrumb', async ({ page, editor }) => {
-    await page.goto(`/n/${editor.docId}?zoom=note1`);
+  test('clears zoom route when clicking document breadcrumb', async ({ page, editor }) => {
+    await page.goto(`/n/${editor.docId}_note1`);
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await editor.load('basic');
 
@@ -81,8 +81,8 @@ test.describe('Zoom routing', () => {
     await expect(currentCrumb).toHaveCount(0);
   });
 
-  test('invalid zoom param resets to document URL', async ({ page, editor }) => {
-    await page.goto(`/n/${editor.docId}?zoom=missing-note`);
+  test('invalid zoom route resets to document URL', async ({ page, editor }) => {
+    await page.goto(`/n/${editor.docId}_missing-note`);
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await waitForSynced(page);
 
@@ -90,14 +90,14 @@ test.describe('Zoom routing', () => {
     await expect(editorLocator(page).locator('li.list-item').first()).toBeVisible();
   });
 
-  test('keeps zoom param on initial load', async ({ page, editor }) => {
+  test('keeps zoom route on initial load', async ({ page, editor }) => {
     await editor.load('flat');
     await waitForSynced(page);
 
-    await page.goto(`/n/${editor.docId}?zoom=note1`);
+    await page.goto(`/n/${editor.docId}_note1`);
     await editorLocator(page).locator('.editor-input').first().waitFor();
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
     await waitForSynced(page);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
   });
 });

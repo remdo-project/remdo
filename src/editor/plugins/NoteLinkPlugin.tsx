@@ -25,6 +25,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import { createInternalNoteLinkUrl, parseInternalNoteLinkUrl } from '@/editor/links/internal-link-url';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
+import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
 import { resolveLinkPickerAnchor } from './note-link/anchor';
 import { clampActiveIndex, LINK_PICKER_RESULT_LIMIT, $resolveLinkPickerOptions } from './note-link/options';
 import { NoteLinkPicker } from './note-link/NoteLinkPicker';
@@ -37,6 +38,7 @@ function isTypingTrigger(event: KeyboardEvent): boolean {
 
 export function NoteLinkPlugin() {
   const [editor] = useLexicalComposerContext();
+  const { docId } = useCollaborationStatus();
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(() => {
     const root = editor.getRootElement();
     return root ? root.closest<HTMLElement>('.editor-container') : null;
@@ -238,13 +240,13 @@ export function NoteLinkPlugin() {
       return false;
     }
 
-    const linkNode = $createLinkNode(createInternalNoteLinkUrl(activeOption.noteId));
+    const linkNode = $createLinkNode(createInternalNoteLinkUrl(docId, activeOption.noteId));
     linkNode.append($createTextNode(activeOption.title));
     insertionSelection.insertNodes([linkNode, $createTextNode(' ')]);
 
     closeSession();
     return true;
-  }, [$resolveActiveQuery, closeSession]);
+  }, [$resolveActiveQuery, closeSession, docId]);
 
   const handleLinkClick = useCallback((event: MouseEvent): boolean => {
     if (event.defaultPrevented || event.button !== 0) {
@@ -275,17 +277,17 @@ export function NoteLinkPlugin() {
       return $isLinkNode(parent) ? parseInternalNoteLinkUrl(parent.getURL()) : null;
     });
 
-    if (!noteId) {
+    if (!noteId || noteId.docId !== docId) {
       return false;
     }
 
     event.preventDefault();
     event.stopPropagation();
     queueMicrotask(() => {
-      editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId });
+      editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId: noteId.noteId });
     });
     return true;
-  }, [editor]);
+  }, [docId, editor]);
 
   useEffect(() => {
     installOutlineSelectionHelpers(editor);

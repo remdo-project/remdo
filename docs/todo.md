@@ -35,6 +35,11 @@ Rules:
 - Consider extracting link-local note DFS traversal (`$visitList` in
   `src/editor/links/note-link-index.ts`) into a shared outline traversal helper
   used by links and existing note-tree scans (for example `note-traversal`).
+- Reconsider link-state boundaries and decide what should remain persisted as
+  link state versus derived from routing/editor state.
+- Define and enforce a route-safe `docId`/`noteId` contract so note-ref parsing
+  can stay trivial (`docId_noteId`) without URL-coupled encoding logic; until
+  doc IDs are auto-generated, keep a no-underscore constraint for manual IDs.
 - Plan a wider helper/API refactor around schema assumptions so local editor
   logic becomes much smaller and easier to write: expose strongly typed helpers
   that encode canonical invariants (for example root-first-child-as-list) and
