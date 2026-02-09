@@ -38,4 +38,23 @@ test.describe('note links', () => {
 
     await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
   });
+
+  test('searches the whole document while zoomed into a subtree', async ({ page, editor }) => {
+    await editor.load('tree');
+
+    await page.goto(`/n/${editor.docId}_note2`);
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+
+    await setCaretAtText(page, 'note3', Number.POSITIVE_INFINITY);
+    await page.keyboard.type('@note1');
+
+    const picker = editorLocator(page).locator('[data-note-link-picker]');
+    await expect(picker).toHaveCount(1);
+    await expect(picker.locator('[data-note-link-picker-item]')).toHaveCount(1);
+    await expect(picker.locator('[data-note-link-picker-item]')).toContainText('note1');
+
+    await page.keyboard.press('Enter');
+
+    await expect(editorLocator(page).getByRole('link', { name: 'note1' })).toHaveCount(1);
+  });
 });

@@ -22,14 +22,16 @@ Define the initial internal note-linking behavior for RemDo.
 
 1. Search scope is the whole current document, including while zoomed into a
    subtree.
-2. v1 ranking uses no scoring; after filtering, results keep document order.
-3. Picker rows show the minimal ancestor context needed to disambiguate duplicate
+2. The current note is excluded from results (self-links are out of scope in
+   this phase).
+3. v1 ranking uses no scoring; after filtering, results keep document order.
+4. Picker rows show the minimal ancestor context needed to disambiguate duplicate
    titles in the current result set.
-4. If results are still visually identical after full ancestor context, they
+5. If results are still visually identical after full ancestor context, they
    remain untied and are shown in document order.
-5. No-match state is a single non-selectable `No results...` row.
-6. Creating new notes from the picker is out of scope in this phase.
-7. Query text accepts spaces and punctuation.
+6. No-match state is a single non-selectable `No results...` row.
+7. Creating new notes from the picker is out of scope in this phase.
+8. Query text accepts spaces and punctuation.
 
 ## Picker interaction
 

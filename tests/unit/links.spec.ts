@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 import { parseInternalNoteLinkUrl } from '@/editor/links/internal-link-url';
 import { $findNoteById } from '@/editor/outline/note-traversal';
-import { meta, placeCaretAtNote, pressKey, typeText } from '#tests';
+import { clearEditorProps, meta, placeCaretAtNote, pressKey, registerScopedEditorProps, typeText } from '#tests';
 
 describe('note links (docs/outliner/links.md)', () => {
+  const ZOOM_LINK_SCOPE_KEY = registerScopedEditorProps('links-zoom-scope', { zoomNoteId: 'note2' });
+
   it('inserts a link with Enter and keeps stable note identity in URL', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, '@note2');
@@ -40,6 +42,82 @@ describe('note links (docs/outliner/links.md)', () => {
       { noteId: 'note3', text: 'note3' },
     ]);
   });
+
+  it('keeps filtered results in document order', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@note');
+
+    const optionTitles = [...document.querySelectorAll('.note-link-picker__title')].map((node) => node.textContent);
+    expect(optionTitles).toEqual(['note2', 'note3']);
+  });
+
+  it('does not include the current note in picker options', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@note');
+
+    const optionTitles = [...document.querySelectorAll('.note-link-picker__title')].map((node) => node.textContent);
+    expect(optionTitles).toEqual(['note1', 'note3']);
+  });
+
+  it('shows the no-results row when the query has no matches', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@missing');
+
+    expect(document.querySelector('[data-note-link-picker-item]')).toBeNull();
+    const emptyRow = document.querySelector('[data-note-link-picker-empty="true"]');
+    expect(emptyRow).not.toBeNull();
+    expect(emptyRow!.textContent.trim()).toBe('No results...');
+  });
+
+  it('clamps ArrowUp and ArrowDown picker navigation at boundaries', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@');
+
+    const activeTitle = () => document.querySelector('[data-note-link-picker-item-active="true"] .note-link-picker__title')?.textContent;
+    expect(activeTitle()).toBe('note2');
+
+    await pressKey(remdo, { key: 'ArrowUp' });
+    expect(activeTitle()).toBe('note2');
+
+    await pressKey(remdo, { key: 'ArrowDown' });
+    expect(activeTitle()).toBe('note3');
+
+    await pressKey(remdo, { key: 'ArrowDown' });
+    expect(activeTitle()).toBe('note3');
+  });
+
+  it('shows minimal ancestor context for duplicate titles', meta({ fixture: 'duplicate-titles' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@task');
+
+    const rows = [...document.querySelectorAll('[data-note-link-picker-item]')];
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.querySelector('.note-link-picker__title')?.textContent)).toEqual(['task', 'task']);
+    expect(rows.map((row) => row.querySelector('.note-link-picker__context')?.textContent)).toEqual(['note2', 'note4']);
+  });
+
+  it(
+    'searches the whole document while zoomed',
+    meta({ fixture: 'tree', editorPropsKey: ZOOM_LINK_SCOPE_KEY }),
+    async ({ remdo }) => {
+      try {
+        await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+        await typeText(remdo, '@note1');
+        await pressKey(remdo, { key: 'Enter' });
+
+        expect(remdo).toMatchOutline([
+          { noteId: 'note1', text: 'note1' },
+          {
+            noteId: 'note2',
+            text: 'note2',
+            children: [{ noteId: 'note3', text: 'note3note1 ' }],
+          },
+        ]);
+      } finally {
+        clearEditorProps(ZOOM_LINK_SCOPE_KEY);
+      }
+    }
+  );
 
   it('removes @query token on Escape', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
@@ -78,5 +156,4 @@ describe('note links (docs/outliner/links.md)', () => {
     ]);
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
   });
-
 });
