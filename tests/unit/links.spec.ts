@@ -86,6 +86,25 @@ describe('note links (docs/outliner/links.md)', () => {
     expect(activeTitle()).toBe('note3');
   });
 
+  it('confirms a picker option with pointer down', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@note');
+
+    const rows = [...document.querySelectorAll<HTMLElement>('[data-note-link-picker-item]')];
+    expect(rows).toHaveLength(2);
+
+    const option = rows[1]!;
+    option.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true, cancelable: true }));
+    await remdo.waitForSynced();
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1note3 ' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
+  });
+
   it('shows minimal ancestor context for duplicate titles', meta({ fixture: 'duplicate-titles' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, '@task');

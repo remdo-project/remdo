@@ -428,6 +428,14 @@
   line-height: 1.25;
 }
 
+.note-link-picker__item {
+  cursor: pointer;
+}
+
+.note-link-picker__empty {
+  cursor: default;
+}
+
 .note-link-picker__item--active {
   background: var(--mantine-color-dark-5);
 }

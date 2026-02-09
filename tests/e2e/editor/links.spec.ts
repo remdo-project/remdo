@@ -39,6 +39,30 @@ test.describe('note links', () => {
     await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
   });
 
+  test('inserts a note link from picker using pointer click', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+
+    await page.keyboard.type('@note');
+
+    const picker = editorLocator(page).locator('[data-note-link-picker]');
+    const note3Option = picker.locator('[data-note-link-picker-item]').filter({ hasText: 'note3' }).first();
+    await expect(note3Option).toHaveCount(1);
+
+    await note3Option.hover();
+    await expect(note3Option).toHaveAttribute('data-note-link-picker-item-active', 'true');
+
+    await note3Option.click();
+
+    await expect(picker).toHaveCount(0);
+    await expect(editorLocator(page).getByRole('link', { name: 'note3' })).toHaveCount(1);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'note1note3 ' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
   test('searches the whole document while zoomed into a subtree', async ({ page, editor }) => {
     await editor.load('tree');
 
