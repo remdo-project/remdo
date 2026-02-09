@@ -28,7 +28,7 @@ import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store
 import { resolveLinkPickerAnchor } from './note-link/anchor';
 import { clampActiveIndex, LINK_PICKER_RESULT_LIMIT, $resolveLinkPickerOptions } from './note-link/options';
 import { NoteLinkPicker } from './note-link/NoteLinkPicker';
-import { inferSessionFromAnchor, $resolveLinkQuerySession } from './note-link/session';
+import { $resolveLinkQuerySession } from './note-link/session';
 import type { ActiveLinkQuery, LinkPickerState, LinkQuerySession } from './note-link/types';
 
 function isTypingTrigger(event: KeyboardEvent): boolean {
@@ -83,14 +83,19 @@ export function NoteLinkPlugin() {
       const pendingTrigger = pendingTriggerRef.current;
       pendingTriggerRef.current = false;
 
+      const currentSession = sessionRef.current;
+      if (!pendingTrigger && !currentSession) {
+        return { kind: 'close' };
+      }
+
       const seededSession = pendingTrigger
         ? {
             textNodeKey: anchorNode.getKey(),
             triggerOffset: caretOffset - 1,
           }
-        : null;
+        : currentSession;
 
-      const resolved = $resolveLinkQuerySession(anchorNode, caretOffset, sessionRef.current ?? seededSession);
+      const resolved = $resolveLinkQuerySession(anchorNode, caretOffset, seededSession);
       if (!resolved) {
         sessionRef.current = null;
         return { kind: 'close' };
@@ -160,10 +165,15 @@ export function NoteLinkPlugin() {
       return null;
     }
 
+    const currentSession = sessionRef.current;
+    if (!currentSession) {
+      return null;
+    }
+
     const caretOffset = selection.anchor.offset;
-    const seedSession = sessionRef.current ?? inferSessionFromAnchor(anchorNode, caretOffset);
-    const resolved = $resolveLinkQuerySession(anchorNode, caretOffset, seedSession);
+    const resolved = $resolveLinkQuerySession(anchorNode, caretOffset, currentSession);
     if (!resolved) {
+      sessionRef.current = null;
       return null;
     }
 
