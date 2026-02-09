@@ -37,6 +37,15 @@ const CASES: OutlineCase[] = [
     ],
   },
   {
+    fixture: 'duplicate-titles',
+    outline: [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', children: [ { noteId: 'task-1', text: 'task' } ] },
+      { noteId: 'note4', text: 'note4', children: [ { noteId: 'task-2', text: 'task' } ] },
+      { noteId: 'note6', text: 'note6' },
+    ],
+  },
+  {
     fixture: 'formatted',
     outline: [
       { noteId: 'bold', text: 'bold', children: [ { noteId: 'italic', text: 'italic', children: [ { noteId: 'target', text: 'target' } ] } ] },
