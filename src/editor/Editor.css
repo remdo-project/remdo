@@ -184,6 +184,7 @@
 
 .text-link {
   color: var(--mantine-color-blue-3);
+  cursor: pointer;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.12em;

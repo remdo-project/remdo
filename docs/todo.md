@@ -37,3 +37,9 @@ Rules:
   that encode canonical invariants (for example root-first-child-as-list) and
   avoid nullable/defensive flows in normal paths unless a caller explicitly opts
   into tolerant/fallback behavior.
+- Make real pointer clicks on inline links reliably reach the anchor (no
+  synthetic dispatch workaround), then simplify
+  `tests/e2e/editor/links.spec.ts` ("clicking a note link navigates to zoom
+  target") to plain `await link.click()` and align
+  `tests/unit/links.spec.ts` ("clicking a link zooms to its target note") to
+  use plain `linkElement.click()` as well.

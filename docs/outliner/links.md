@@ -61,3 +61,9 @@ Define the initial internal note-linking behavior for RemDo.
    `/n/<docId>_<noteId>`), replacing query-param zoom links.
 7. [Future] Consolidate routing and internal-link identity contracts so both
    layers share aligned encoding/parsing rules and tests.
+8. [Future] Store real app routes in link `href` values so links can use native
+   browser navigation semantics instead of custom internal schemes.
+9. [Future] Once native `href` navigation is in place and reliable, remove
+   custom JS link-click interception and rely on router handling.
+10. [Future] Ensure floating controls/overlays never block pointer hit-testing
+    for inline links, so plain user clicks and test `link.click()` are reliable.

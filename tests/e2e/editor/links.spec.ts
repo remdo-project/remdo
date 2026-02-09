@@ -23,4 +23,21 @@ test.describe('note links', () => {
       { noteId: 'note3', text: 'note3' },
     ]);
   });
+
+  test('clicking a note link navigates to zoom target', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+
+    await page.keyboard.type('@note2');
+    await page.keyboard.press('Enter');
+
+    const link = editorLocator(page).getByRole('link', { name: 'note2' });
+    await expect(link).toHaveCount(1);
+
+    await link.evaluate((element) => {
+      element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+    });
+
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+  });
 });
