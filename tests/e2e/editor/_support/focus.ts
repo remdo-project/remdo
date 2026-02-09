@@ -22,7 +22,6 @@ export async function prepareEditorTestSurface(page: Page): Promise<void> {
       .editor-container,
       .editor-container * {
         display: revert;
-        pointer-events: auto;
       }
       `;
       document.head.append(style);

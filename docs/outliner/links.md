@@ -41,13 +41,6 @@ Define the initial internal note-linking behavior for RemDo.
 7. `Home` and `End` keep normal text-caret behavior and do not move picker
    selection.
 
-## Current bugs
-
-1. After `Backspace` exits empty-query mode, typing the next character can
-   incorrectly reactivate link-query mode from an existing plain `@` token.
-   This keeps picker key handling active and breaks the expected plain-text flow
-   (for example email-like text input).
-
 ## Non-goals / future
 
 1. [Future] Backlinks are expected as part of the internal-link model.

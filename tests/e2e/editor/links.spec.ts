@@ -34,9 +34,7 @@ test.describe('note links', () => {
     const link = editorLocator(page).getByRole('link', { name: 'note2' });
     await expect(link).toHaveCount(1);
 
-    await link.evaluate((element) => {
-      element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
-    });
+    await link.click();
 
     await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
   });
