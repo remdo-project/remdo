@@ -98,6 +98,70 @@ test.describe('note links', () => {
     await expect(note3Option).toHaveAttribute('aria-selected', 'false');
   });
 
+  test('pressing Enter on no-results closes picker and keeps typed query text', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+
+    await page.keyboard.type('@missing');
+
+    const picker = editorLocator(page).locator('[data-note-link-picker]');
+    await expect(picker).toHaveCount(1);
+    await expect(picker.locator('[data-note-link-picker-empty="true"]')).toHaveCount(1);
+
+    await page.keyboard.press('Enter');
+
+    await expect(picker).toHaveCount(0);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'note1@missing' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  test('outside click closes link-query mode', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+
+    await page.keyboard.type('@note');
+
+    const picker = editorLocator(page).locator('[data-note-link-picker]');
+    await expect(picker).toHaveCount(1);
+
+    await page.evaluate(() => {
+      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    });
+
+    await expect(picker).toHaveCount(0);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'note1@note' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  test('editor blur closes link-query mode', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+
+    await page.keyboard.type('@note');
+
+    const picker = editorLocator(page).locator('[data-note-link-picker]');
+    await expect(picker).toHaveCount(1);
+
+    await editorLocator(page).locator('.editor-input').first().evaluate((element) => {
+      if (element instanceof HTMLElement) {
+        element.blur();
+      }
+    });
+
+    await expect(picker).toHaveCount(0);
+    await expect(editor).toMatchOutline([
+      { noteId: 'note1', text: 'note1@note' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
   test('searches the whole document while zoomed into a subtree', async ({ page, editor }) => {
     await editor.load('tree');
 
