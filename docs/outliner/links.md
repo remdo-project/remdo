@@ -41,6 +41,13 @@ Define the initial internal note-linking behavior for RemDo.
 7. `Home` and `End` keep normal text-caret behavior and do not move picker
    selection.
 
+## Current bugs
+
+1. After `Backspace` exits empty-query mode, typing the next character can
+   incorrectly reactivate link-query mode from an existing plain `@` token.
+   This keeps picker key handling active and breaks the expected plain-text flow
+   (for example email-like text input).
+
 ## Non-goals / future
 
 1. [Future] Backlinks are expected as part of the internal-link model.
@@ -50,3 +57,7 @@ Define the initial internal note-linking behavior for RemDo.
    influence ordering but must not reduce search scope.
 5. [Future] Rename-aware display text modes (for example title-mirroring unless
    user-customized).
+6. [Future] Externally recognizable note URLs for deep-linking (for example
+   `/n/<docId>_<noteId>`), replacing query-param zoom links.
+7. [Future] Consolidate routing and internal-link identity contracts so both
+   layers share aligned encoding/parsing rules and tests.

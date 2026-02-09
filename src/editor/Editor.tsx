@@ -12,6 +12,7 @@ import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin
 import { SelectionCollapsePlugin } from './plugins/SelectionCollapsePlugin';
 import { InsertionPlugin } from './plugins/InsertionPlugin';
 import { DeletionPlugin } from './plugins/DeletionPlugin';
+import { NoteLinkPlugin } from './plugins/NoteLinkPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import { NoteIdPlugin } from './plugins/NoteIdPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
@@ -59,6 +60,7 @@ export default function Editor({
           <ReorderingPlugin />
           <SelectionPlugin />
           <SelectionCollapsePlugin />
+          <NoteLinkPlugin />
           <InsertionPlugin />
           <DeletionPlugin />
           <SelectionInputPlugin />

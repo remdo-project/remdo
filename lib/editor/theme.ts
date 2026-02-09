@@ -3,6 +3,7 @@ import type { EditorThemeClasses } from 'lexical';
 export const editorTheme: EditorThemeClasses = {
   root: 'editor-root',
   paragraph: 'editor-paragraph',
+  link: 'text-link',
   text: {
     bold: 'text-bold',
     italic: 'text-italic',

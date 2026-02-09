@@ -21,3 +21,19 @@ Rules:
 
 - Review `ZOOM_TO_NOTE_COMMAND` payload (`noteId`) in `src/editor/commands.ts`
   and confirm it should use a note key instead.
+- Consider promoting note-link-local `note-context` into a shared helper that
+  resolves content note / noteId from a lexical node (and a thin DOM wrapper),
+  then migrate duplicated call sites (`NoteMenuPlugin`, `CheckListPlugin`,
+  `NoteControlsPlugin`, `ZoomPlugin`, `note-state`, `note-traversal`) in a
+  follow-up refactor.
+- Trial Semgrep first (before Sonar) with a narrow rule for the repeated
+  `findNearestListItem -> getContentListItem -> isChildrenWrapper` flow and
+  verify whether it reliably flags the duplication noted above.
+- Consider extracting link-local note DFS traversal (`$visitList` in
+  `src/editor/links/note-link-index.ts`) into a shared outline traversal helper
+  used by links and existing note-tree scans (for example `note-traversal`).
+- Plan a wider helper/API refactor around schema assumptions so local editor
+  logic becomes much smaller and easier to write: expose strongly typed helpers
+  that encode canonical invariants (for example root-first-child-as-list) and
+  avoid nullable/defensive flows in normal paths unless a caller explicitly opts
+  into tolerant/fallback behavior.
