@@ -72,6 +72,32 @@ describe('note links (docs/outliner/links.md)', () => {
     expect(emptyRow!.textContent.trim()).toBe('No results...');
   });
 
+  it('closes link mode on Enter when there are no results and keeps typed text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@missing');
+    await pressKey(remdo, { key: 'Enter' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1@missing' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
+  });
+
+  it('closes link mode on Tab when there are no results and keeps typed text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@missing');
+    await pressKey(remdo, { key: 'Tab' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1@missing' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
+  });
+
   it('tracks active option via aria-activedescendant and aria-selected', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, '@note');
@@ -96,6 +122,38 @@ describe('note links (docs/outliner/links.md)', () => {
     expect(picker.listbox.getAttribute('aria-activedescendant')).toBe(picker.rows[1]!.id);
     expect(picker.rows[0]!.getAttribute('aria-selected')).toBe('false');
     expect(picker.rows[1]!.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('closes link mode on editor blur', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@note');
+
+    const root = remdo.editor.getRootElement();
+    expect(root).not.toBeNull();
+    root!.dispatchEvent(new FocusEvent('blur'));
+    await remdo.waitForSynced();
+
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1@note' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('closes link mode on outside mouse down', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@note');
+
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    await remdo.waitForSynced();
+
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1@note' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
   });
 
   it('clamps ArrowUp and ArrowDown picker navigation at boundaries', meta({ fixture: 'flat' }), async ({ remdo }) => {

@@ -43,13 +43,17 @@ Define the initial internal note-linking behavior for RemDo.
 5. `Escape` exits link-query mode and removes the current `@query` token.
 6. `Backspace` on an empty query exits link-query mode but leaves `@` as plain
    text.
-7. `Home` and `End` keep normal text-caret behavior and do not move picker
-   selection.
-8. Pointer hover updates the active picker row.
-9. Primary-button pointer click on a selectable row confirms that option (same
+7. Pointer hover updates the active picker row.
+8. Primary-button pointer click on a selectable row confirms that option (same
    as `Enter`/`Tab`).
-10. Picker semantics expose the active row via listbox `aria-activedescendant`;
-    selectable rows also expose active state with `aria-selected`.
+9. Picker semantics expose the active row via listbox `aria-activedescendant`;
+   selectable rows also expose active state with `aria-selected`.
+10. `Enter`/`Tab` on a no-results picker exits link-query mode and leaves the
+    typed `@query` text unchanged.
+11. Clicking outside the editor and picker exits link-query mode and leaves the
+    typed `@query` text unchanged.
+12. Editor blur exits link-query mode and leaves the typed `@query` text
+    unchanged.
 
 ## Non-goals / future
 

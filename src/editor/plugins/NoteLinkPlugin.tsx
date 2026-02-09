@@ -231,6 +231,7 @@ export function NoteLinkPlugin() {
 
     const options = $resolveLinkPickerOptions(activeQuery.query, activeQuery.anchorNode, LINK_PICKER_RESULT_LIMIT);
     if (options.length === 0) {
+      closeSession();
       return true;
     }
 
@@ -411,6 +412,66 @@ export function NoteLinkPlugin() {
       }
     );
   }, [closeSession, $confirmActiveOption, editor, moveActive, $removeActiveQueryToken, syncPickerFromSelection]);
+
+  useEffect(() => {
+    const registerRootBlurListener = (root: HTMLElement | null) => {
+      if (!root) {
+        return () => {};
+      }
+
+      const handleRootBlur = () => {
+        if (!sessionRef.current) {
+          return;
+        }
+        closeSession();
+      };
+
+      // eslint-disable-next-line react-web-api/no-leaked-event-listener -- removed in returned cleanup.
+      root.addEventListener('blur', handleRootBlur, true);
+      return () => {
+        root.removeEventListener('blur', handleRootBlur, true);
+      };
+    };
+
+    let disposeRootBlurListener = registerRootBlurListener(editor.getRootElement());
+    const unregisterRootListener = editor.registerRootListener((nextRoot, previousRoot) => {
+      if (nextRoot === previousRoot) {
+        return;
+      }
+      disposeRootBlurListener();
+      disposeRootBlurListener = registerRootBlurListener(nextRoot);
+    });
+
+    const handleDocumentMouseDown = (event: MouseEvent) => {
+      if (!sessionRef.current) {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      const root = editor.getRootElement();
+      if (root && root.contains(target)) {
+        return;
+      }
+
+      const targetElement = target instanceof Element ? target : target.parentElement;
+      if (targetElement?.closest('[data-note-link-picker]')) {
+        return;
+      }
+
+      closeSession();
+    };
+    document.addEventListener('mousedown', handleDocumentMouseDown, true);
+
+    return () => {
+      unregisterRootListener();
+      disposeRootBlurListener();
+      document.removeEventListener('mousedown', handleDocumentMouseDown, true);
+    };
+  }, [closeSession, editor]);
 
   if (!picker || !portalRoot) {
     return null;
