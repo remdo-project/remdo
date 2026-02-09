@@ -45,6 +45,9 @@ Define the initial internal note-linking behavior for RemDo.
    text.
 7. `Home` and `End` keep normal text-caret behavior and do not move picker
    selection.
+8. Pointer hover updates the active picker row.
+9. Primary-button pointer click on a selectable row confirms that option (same
+   as `Enter`/`Tab`).
 
 ## Non-goals / future
 

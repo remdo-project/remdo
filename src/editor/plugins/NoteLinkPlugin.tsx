@@ -18,6 +18,7 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
 } from 'lexical';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { createInternalNoteLinkUrl } from '@/editor/links/internal-link-url';
@@ -153,6 +154,23 @@ export function NoteLinkPlugin() {
     [setPickerState]
   );
 
+  const setActiveIndex = useCallback(
+    (index: number) => {
+      const current = pickerRef.current;
+      if (!current || current.options.length === 0) {
+        return;
+      }
+
+      const nextIndex = clampActiveIndex(index, current.options.length);
+      if (nextIndex === current.activeIndex) {
+        return;
+      }
+
+      setPickerState({ ...current, activeIndex: nextIndex });
+    },
+    [setPickerState]
+  );
+
   const $resolveActiveQuery = useCallback((): ActiveLinkQuery | null => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
@@ -205,7 +223,7 @@ export function NoteLinkPlugin() {
     return true;
   }, [$resolveActiveQuery, closeSession]);
 
-  const $confirmActiveOption = useCallback((): boolean => {
+  const $confirmActiveOption = useCallback((forcedActiveIndex?: number): boolean => {
     const activeQuery = $resolveActiveQuery();
     if (!activeQuery || !sessionRef.current) {
       return false;
@@ -216,7 +234,7 @@ export function NoteLinkPlugin() {
       return true;
     }
 
-    const activeIndex = clampActiveIndex(pickerRef.current?.activeIndex ?? 0, options.length);
+    const activeIndex = clampActiveIndex(forcedActiveIndex ?? (pickerRef.current?.activeIndex ?? 0), options.length);
     const activeOption = options[activeIndex];
     if (!activeOption) {
       return true;
@@ -244,6 +262,30 @@ export function NoteLinkPlugin() {
     closeSession();
     return true;
   }, [$resolveActiveQuery, closeSession, docId]);
+
+  const handlePickerMouseDown = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+    // Keep the caret/selection stable while interacting with the picker.
+    event.preventDefault();
+  }, []);
+
+  const handleItemMouseOver = useCallback((index: number) => {
+    setActiveIndex(index);
+  }, [setActiveIndex]);
+
+  const handleItemMouseDown = useCallback(
+    (index: number, event: ReactMouseEvent<HTMLDivElement>) => {
+      if (event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+
+      editor.update(() => {
+        $confirmActiveOption(index);
+      });
+    },
+    [$confirmActiveOption, editor]
+  );
 
   useEffect(() => {
     installOutlineSelectionHelpers(editor);
@@ -374,5 +416,13 @@ export function NoteLinkPlugin() {
     return null;
   }
 
-  return <NoteLinkPicker picker={picker} portalRoot={portalRoot} />;
+  return (
+    <NoteLinkPicker
+      picker={picker}
+      portalRoot={portalRoot}
+      onPickerMouseDown={handlePickerMouseDown}
+      onItemMouseOver={handleItemMouseOver}
+      onItemMouseDown={handleItemMouseDown}
+    />
+  );
 }
