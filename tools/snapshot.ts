@@ -17,9 +17,10 @@ import type { Provider } from '@lexical/yjs';
 import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lexical';
 
 import { config } from '#config';
+import { CollabSession } from '#lib/collaboration/session';
 import { restoreEditorStateDefaults, stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 import { createEditorInitialConfig } from '#lib/editor/config';
-import { CollabSession } from '#lib/collaboration/session';
+import { $syncInternalNoteLinkNodeUrls } from '#lib/editor/internal-note-link-node';
 
 type SharedRootObserver = (
   events: Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
@@ -301,6 +302,9 @@ async function withSession(
     await session.awaitSynced();
     syncYjsStateToLexicalV2__EXPERIMENTAL(binding, provider);
     await initialUpdate;
+    editor.update(() => {
+      $syncInternalNoteLinkNodeUrls(docId);
+    });
 
     return await run(editor, { provider, session });
   } finally {
@@ -322,7 +326,7 @@ function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {
   });
 }
 
-async function waitForPersistedData(docId: string, timeoutMs = 5000): Promise<void> {
+async function waitForPersistedData(docId: string, timeoutMs = 15_000): Promise<void> {
   const target = path.join(config.env.DATA_DIR, 'collab', docId, 'data.ysweet');
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {

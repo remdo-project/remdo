@@ -336,7 +336,7 @@ function $normalizeClipboardInternalLinkDocIds(nodes: LexicalNode[], currentDocI
     }
 
     if ($isInternalNoteLinkNode(node) && node.getDocId() === currentDocId) {
-      node.setDocId(undefined);
+      node.setDocId(undefined, currentDocId);
     }
 
     if ($isElementNode(node)) {
@@ -379,7 +379,7 @@ function $insertInternalLinkFromPlainText(
     return false;
   }
 
-  const linkNode = $createInternalNoteLinkNode(linkRef);
+  const linkNode = $createInternalNoteLinkNode(linkRef, {}, currentDocId);
   const resolvedTitle = linkRef.docId ? null : $findNoteById(linkRef.noteId)?.getTextContent() ?? null;
   linkNode.append($createTextNode(resolvedTitle ?? trimmed));
   selection.insertNodes([linkNode]);

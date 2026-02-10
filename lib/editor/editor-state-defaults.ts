@@ -35,6 +35,15 @@ const NODE_DEFAULTS = {
     mode: 'normal',
     style: '',
   },
+  'internal-note-link': {
+    version: 1,
+    format: '',
+    indent: 0,
+    direction: null,
+    rel: null,
+    target: null,
+    title: null,
+  },
 } as const satisfies Record<string, DefaultEntry>;
 
 export function stripEditorStateDefaults(editorState: SerializedEditorState): SerializedEditorState {

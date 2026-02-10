@@ -19,6 +19,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     path.resolve('data', 'cli-flag.json'),
     path.resolve('data', 'cross-doc-check.json'),
     path.resolve('data', 'cross-doc-check-alt.json'),
+    path.resolve('data', 'snapshot.links.json'),
   ];
 
   const baseEnv = { ...process.env } satisfies NodeJS.ProcessEnv;
@@ -41,9 +42,9 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     }
   }
 
-function readEditorState(filePath: string): SerializedEditorState {
-  return JSON.parse(readFileSync(filePath, 'utf8'));
-}
+  function readEditorState(filePath: string): SerializedEditorState {
+    return JSON.parse(readFileSync(filePath, 'utf8'));
+  }
 
   afterEach(() => {
     for (const filePath of SNAPSHOT_OUTPUTS) {
@@ -170,4 +171,19 @@ function readEditorState(filePath: string): SerializedEditorState {
       });
     }
   );
+
+  it('saves same-doc and cross-doc internal links from fixture', async () => {
+    const docId = 'snapshot-links-doc';
+    const fixturePath = path.resolve('tests/fixtures/links.json');
+    const outputPath = path.resolve('data', 'snapshot.links.json');
+    const expected = stripEditorStateDefaults(readEditorState(fixturePath));
+
+    runSnapshotCommand('load', ['--doc', docId, fixturePath]);
+
+    await waitFor(() => {
+      runSnapshotCommand('save', ['--doc', docId, outputPath]);
+      const saved = stripEditorStateDefaults(readEditorState(outputPath));
+      expect(saved.root).toEqual(expected.root);
+    });
+  });
 });

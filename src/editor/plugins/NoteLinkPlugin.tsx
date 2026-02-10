@@ -22,6 +22,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { $createInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
+import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
 import { resolveLinkPickerAnchor } from './note-link/anchor';
 import { clampActiveIndex, LINK_PICKER_RESULT_LIMIT, $resolveLinkPickerOptions } from './note-link/options';
 import { NoteLinkPicker } from './note-link/NoteLinkPicker';
@@ -34,6 +35,7 @@ function isTypingTrigger(event: KeyboardEvent): boolean {
 
 export function NoteLinkPlugin() {
   const [editor] = useLexicalComposerContext();
+  const { docId } = useCollaborationStatus();
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(() => {
     const root = editor.getRootElement();
     return root ? root.closest<HTMLElement>('.editor-container') : null;
@@ -253,13 +255,13 @@ export function NoteLinkPlugin() {
       return false;
     }
 
-    const linkNode = $createInternalNoteLinkNode({ noteId: activeOption.noteId });
+    const linkNode = $createInternalNoteLinkNode({ noteId: activeOption.noteId }, {}, docId);
     linkNode.append($createTextNode(activeOption.title));
     insertionSelection.insertNodes([linkNode, $createTextNode(' ')]);
 
     closeSession();
     return true;
-  }, [$resolveActiveQuery, closeSession]);
+  }, [$resolveActiveQuery, closeSession, docId]);
 
   const handlePickerMouseDown = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
     // Keep the caret/selection stable while interacting with the picker.
