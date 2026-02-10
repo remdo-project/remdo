@@ -4,7 +4,7 @@ import { readFileSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import type { SerializedEditorState } from 'lexical';
 import type { TestContext } from 'vitest';
-import { meta } from '#tests';
+import { meta, withRootNoteId } from '#tests';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import type { Buffer } from 'node:buffer';
@@ -55,7 +55,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('loads data into collaboration doc and writes it back to disk', async () => {
     const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-basic' };
     const loadPath = path.resolve('tests/fixtures/basic.json');
-    const expected = stripEditorStateDefaults(readEditorState(loadPath));
+    const expected = withRootNoteId(stripEditorStateDefaults(readEditorState(loadPath)), docEnv.COLLAB_DOCUMENT_ID);
     const savePath = SNAPSHOT_OUTPUTS[0]!;
     runSnapshotCommand('load', [loadPath], docEnv);
 
@@ -73,7 +73,10 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-flat' };
 
       const savePath = SNAPSHOT_OUTPUTS[1]!;
-      const expectedState = stripEditorStateDefaults(readEditorState(path.resolve('tests/fixtures/flat.json')));
+      const expectedState = withRootNoteId(
+        stripEditorStateDefaults(readEditorState(path.resolve('tests/fixtures/flat.json'))),
+        docEnv.COLLAB_DOCUMENT_ID
+      );
       await waitFor(() => {
         runSnapshotCommand('save', [savePath], docEnv);
         const saved = stripEditorStateDefaults(readEditorState(savePath));
@@ -92,7 +95,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
       await remdo.waitForSynced();
 
-      const expectedState = stripEditorStateDefaults(readEditorState(loadPath));
+      const expectedState = withRootNoteId(stripEditorStateDefaults(readEditorState(loadPath)), docEnv.COLLAB_DOCUMENT_ID);
       const savePath = SNAPSHOT_OUTPUTS[2]!;
 
       await waitFor(() => {
@@ -109,7 +112,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('resolves the document id from the CLI flag', async () => {
     const docId = 'cli-flag';
     const loadPath = path.resolve('tests/fixtures/basic.json');
-    const expected = stripEditorStateDefaults(readEditorState(loadPath));
+    const expected = withRootNoteId(stripEditorStateDefaults(readEditorState(loadPath)), docId);
     const savePath = path.resolve('data', `${docId}.json`);
 
     runSnapshotCommand('load', ['--doc', docId, loadPath]);
@@ -147,8 +150,8 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
       const defaultFixture = path.resolve('tests/fixtures/basic.json');
       const secondaryFixture = path.resolve('tests/fixtures/tree.json');
-      const expectedDefault = stripEditorStateDefaults(readEditorState(defaultFixture));
-      const expectedSecondary = stripEditorStateDefaults(readEditorState(secondaryFixture));
+      const expectedDefault = withRootNoteId(stripEditorStateDefaults(readEditorState(defaultFixture)), defaultDoc);
+      const expectedSecondary = withRootNoteId(stripEditorStateDefaults(readEditorState(secondaryFixture)), secondaryDoc);
       const defaultOutput = path.resolve('data', `${defaultDoc}.json`);
       const secondaryOutput = path.resolve('data', `${secondaryDoc}.json`);
 
@@ -176,7 +179,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const docId = 'snapshot-links-doc';
     const fixturePath = path.resolve('tests/fixtures/links.json');
     const outputPath = path.resolve('data', 'snapshot.links.json');
-    const expected = stripEditorStateDefaults(readEditorState(fixturePath));
+    const expected = withRootNoteId(stripEditorStateDefaults(readEditorState(fixturePath)), docId);
 
     runSnapshotCommand('load', ['--doc', docId, fixturePath]);
 

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { createContext, useMemo, use, useEffect, useSyncExternalStore } from 'react';
 import { config } from '#config';
 import { CollabSession } from '#lib/collaboration/session';
+import { DEFAULT_DOC_ID } from '@/routing';
 
 function createCollaborationStatusValue(snapshot: ReturnType<CollabSession['snapshot']>, session: CollabSession) {
   return {
@@ -43,7 +44,7 @@ export function CollaborationProvider({
 function resolveDocId(explicit?: string) {
   if (explicit && explicit.trim().length > 0) return explicit.trim();
   const doc = globalThis.location.search ? new URLSearchParams(globalThis.location.search).get('doc')?.trim() : null;
-  return doc?.length ? doc : config.env.COLLAB_DOCUMENT_ID;
+  return doc?.length ? doc : DEFAULT_DOC_ID;
 }
 
 function useCollaborationRuntimeValue({ docId }: { docId?: string }): CollaborationStatusValue {

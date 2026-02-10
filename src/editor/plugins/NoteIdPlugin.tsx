@@ -12,7 +12,6 @@ import {
   $isElementNode,
   $isRangeSelection,
   $isTextNode,
-  $setState,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_LOW,
   COPY_COMMAND,
@@ -25,7 +24,7 @@ import { mergeRegister } from '@lexical/utils';
 import { createNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { $autoExpandIfFolded } from '#lib/editor/fold-state';
 import { $createInternalNoteLinkNode, $isInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
-import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
+import { $getNoteId, $setNoteId } from '#lib/editor/note-id-state';
 import {
   findNearestListItem,
   getContentListItem,
@@ -54,7 +53,7 @@ import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
 import { parseInternalNoteLinkUrl } from '@/editor/links/internal-link-url';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { useCollaborationStatus } from './collaboration';
-import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
+import { $normalizeNoteIdsOnLoad } from '#lib/editor/note-id-normalization';
 import { NOTE_ID_NORMALIZE_TAG } from '@/editor/update-tags';
 
 interface CutMarker {
@@ -145,13 +144,13 @@ function $ensureNoteId(item: ListItemNode) {
     return;
   }
 
-  $setState(item, noteIdState, createNoteId());
+  $setNoteId(item, createNoteId());
 }
 
 function $createNoteItemWithText(text: string): ListItemNode {
   const item = $createListItemNode();
   item.append($createTextNode(text));
-  $setState(item, noteIdState, createNoteId());
+  $setNoteId(item, createNoteId());
   return item;
 }
 
@@ -237,7 +236,7 @@ function $splitContentItemAtSelection(contentItem: ListItemNode, selection: Base
   }
 
   const newItem = $createListItemNode();
-  $setState(newItem, noteIdState, createNoteId());
+  $setNoteId(newItem, createNoteId());
 
   let child = contentItem.getFirstChild();
   while (child && child !== splitStart) {
@@ -307,7 +306,7 @@ function $regenerateClipboardNoteIds(nodes: LexicalNode[], reservedIds: Set<stri
 
     if ($isListItemNode(node) && !isChildrenWrapper(node)) {
       const next = createNoteIdAvoiding(reservedIds);
-      $setState(node, noteIdState, next);
+      $setNoteId(node, next);
       reservedIds.add(next);
     }
 
