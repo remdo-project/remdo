@@ -15,6 +15,11 @@ import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
+  it('stores root noteId as the current collaboration document id', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const root = remdo.getEditorState().root as { noteId?: unknown };
+    expect(root.noteId).toBe(remdo.getCollabDocId());
+  });
+
   it('preserves new note ids across clients', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const secondary = await createCollabPeer(remdo);
 

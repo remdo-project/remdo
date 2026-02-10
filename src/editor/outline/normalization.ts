@@ -1,12 +1,12 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import type { RootNode } from 'lexical';
-import { $createParagraphNode, $setState } from 'lexical';
+import { $createParagraphNode } from 'lexical';
 
 import { reportInvariant } from '@/editor/invariant';
 import { getPreviousContentSibling, insertBefore, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { createNoteId } from '#lib/editor/note-ids';
-import { noteIdState } from '#lib/editor/note-id-state';
+import { $setNoteId } from '#lib/editor/note-id-state';
 
 export function $normalizeOutlineRoot(
   root: RootNode,
@@ -69,7 +69,7 @@ function $ensureSingleListRoot(root: RootNode, options?: { skipOrphanWrappers?: 
 
     // Wrap any other node into a list item to preserve content.
     const li = $createListItemNode();
-    $setState(li, noteIdState, createNoteId());
+    $setNoteId(li, createNoteId());
     child.remove();
     li.append(child);
     canonicalList.append(li);
@@ -78,7 +78,7 @@ function $ensureSingleListRoot(root: RootNode, options?: { skipOrphanWrappers?: 
   // Ensure at least one list item with a paragraph exists.
   if (canonicalList.getChildrenSize() === 0) {
     const li = $createListItemNode();
-    $setState(li, noteIdState, createNoteId());
+    $setNoteId(li, createNoteId());
     li.append($createParagraphNode());
     canonicalList.append(li);
   }
