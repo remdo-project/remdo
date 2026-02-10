@@ -43,6 +43,8 @@ Rules:
 - Consider extracting link-local note DFS traversal (`$visitList` in
   `src/editor/links/note-link-index.ts`) into a shared outline traversal helper
   used by links and existing note-tree scans (for example `note-traversal`).
+- Expose custom node state fields in the dev tree view (for example `folded`)
+  instead of relying mostly on derived display values.
 - Reconsider link-state boundaries and decide what should remain persisted as
   link state versus derived from routing/editor state.
 - Plan a wider helper/API refactor around schema assumptions so local editor
@@ -50,9 +52,3 @@ Rules:
   that encode canonical invariants (for example root-first-child-as-list) and
   avoid nullable/defensive flows in normal paths unless a caller explicitly opts
   into tolerant/fallback behavior.
-- ✅ Done: Make real pointer clicks on inline links reliably reach the anchor
-  (no synthetic dispatch workaround), then simplify
-  `tests/e2e/editor/links.spec.ts` ("clicking a note link navigates to zoom
-  target") to plain `await link.click()` and align
-  `tests/unit/links.spec.ts` ("clicking a link zooms to its target note") to
-  use plain `linkElement.click()` as well.

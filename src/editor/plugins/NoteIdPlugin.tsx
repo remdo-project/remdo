@@ -24,7 +24,7 @@ import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { createNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { $autoExpandIfFolded } from '#lib/editor/fold-state';
-import { $isInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
+import { $createInternalNoteLinkNode, $isInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import {
   findNearestListItem,
@@ -51,6 +51,8 @@ import {
   sortHeadsByDocumentOrder,
 } from '@/editor/outline/selection/tree';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
+import { parseInternalNoteLinkUrl } from '@/editor/links/internal-link-url';
+import { $findNoteById } from '@/editor/outline/note-traversal';
 import { useCollaborationStatus } from './collaboration';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
 import { NOTE_ID_NORMALIZE_TAG } from '@/editor/update-tags';
@@ -347,6 +349,41 @@ function $normalizeClipboardInternalLinkDocIds(nodes: LexicalNode[], currentDocI
       }
     }
   }
+}
+
+function $insertInternalLinkFromPlainText(
+  plainText: string,
+  currentDocId: string,
+  outlineSelectionKind: 'structural' | 'caret' | 'inline' | null
+): boolean {
+  if (outlineSelectionKind === 'structural') {
+    return false;
+  }
+
+  const trimmed = plainText.trim();
+  if (trimmed.length === 0) {
+    return false;
+  }
+
+  const linkRef = parseInternalNoteLinkUrl(trimmed, currentDocId);
+  if (!linkRef) {
+    return false;
+  }
+
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection)) {
+    return false;
+  }
+
+  if (!selection.isCollapsed() && !isInlineSelectionWithinSingleNote(selection)) {
+    return false;
+  }
+
+  const linkNode = $createInternalNoteLinkNode(linkRef);
+  const resolvedTitle = linkRef.docId ? null : $findNoteById(linkRef.noteId)?.getTextContent() ?? null;
+  linkNode.append($createTextNode(resolvedTitle ?? trimmed));
+  selection.insertNodes([linkNode]);
+  return true;
 }
 
 function $extractClipboardListChildren(nodes: LexicalNode[]): LexicalNode[] {
@@ -734,6 +771,19 @@ export function NoteIdPlugin() {
           }
 
           const lines = plainText.split(/\r?\n/);
+          if (lines.length === 1) {
+            const handled = $insertInternalLinkFromPlainText(
+              plainText,
+              docId,
+              outlineSelection?.kind ?? null
+            );
+            if (handled) {
+              lastPasteSelectionHeadKeysRef.current = null;
+              event.preventDefault();
+              return true;
+            }
+          }
+
           if (lines.length <= 1) {
             return false;
           }

@@ -18,6 +18,10 @@ Define the initial internal note-linking behavior for RemDo.
    `docId`) as canonical state; route `href` values
    (`/n/<docId>_<noteId>`) are rendered from that state in app code.
 6. Link clicks use native `href` navigation semantics and route handling.
+7. Pasting a plain-text internal note URL (`/n/<docId>_<noteId>`) inserts an
+   internal link node. When the target is in the current document, inserted
+   link text copies the current target note title; otherwise it uses the pasted
+   URL string.
 
 ## Query and ranking
 
@@ -71,3 +75,4 @@ Define the initial internal note-linking behavior for RemDo.
    documents. Current choice: preserve source-target identity (no retargeting to
    pasted note IDs). Alternatives include retargeting links whose targets are
    also present in the pasted payload, or other remap policies.
+8. [Future] Improve cross-document link support.
