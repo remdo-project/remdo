@@ -52,3 +52,40 @@ Rules:
   that encode canonical invariants (for example root-first-child-as-list) and
   avoid nullable/defensive flows in normal paths unless a caller explicitly opts
   into tolerant/fallback behavior.
+
+## Internal links: drop persisted URL/cache (deferred)
+
+Goal:
+
+- Make internal-link canonical state be only `noteId` + optional `docId`
+  (same-doc links omit `docId`), and derive route URL on demand.
+- Remove persisted/cached internal-link `url` and remove doc-wide sync passes
+  that currently rewrite link URLs when doc context changes.
+- Keep the design environment-agnostic: browser/CLI/snapshot should inject doc
+  context via clean boundaries, not via `location` reads inside core link logic.
+- No legacy-data compatibility work is planned for this effort.
+
+Known so far:
+
+- URL is derivable from link identity + current doc id; storing URL is redundant
+  in principle.
+- Current implementation still relies on `LinkNode.__url` behavior, so we
+  currently do full-document URL sync in browser and snapshot paths.
+- Same-doc identity rule is already in place (`docId` omitted for same-doc
+  links), and cross-doc links keep explicit `docId`.
+- `getURL()`/node methods rely on active Lexical state; this is valid in
+  current call paths (DOM updates, editor-state export, read/update callbacks),
+  but they cannot assume an active editor object in every path.
+
+Still to confirm before implementation:
+
+- Best source for current doc id during URL derivation (for example root/editor
+  state field) that works in browser and non-browser runtimes without ad hoc
+  globals.
+- Whether internal links should continue extending `LinkNode` as-is, or move to
+  a custom node contract that does not require persisted `__url`.
+- How to guarantee href updates on doc switch/load without doc-wide link walks.
+- Exact serialization contract after dropping URL fields, and which fixtures/
+  adapter expectations need to change.
+- Whether any call paths invoke URL resolution outside valid Lexical state
+  boundaries once the cache is removed.

@@ -18,6 +18,7 @@ import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import { NoteIdPlugin } from './plugins/NoteIdPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
 import { KeymapPlugin } from './plugins/KeymapPlugin';
+import { InternalLinkDocContextPlugin } from './plugins/InternalLinkDocContextPlugin';
 import { StatusIndicators } from './StatusIndicators';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { ZoomPlugin } from './zoom/ZoomPlugin';
@@ -51,6 +52,7 @@ export default function Editor({
     <div className="editor-container">
       <LexicalComposer initialConfig={editorInitialConfig}>
         <CollaborationPlugin docId={docId}>
+          <InternalLinkDocContextPlugin />
           <StatusIndicators />
           <RichTextPlugin
             contentEditable={<ContentEditable className="editor-input" />}

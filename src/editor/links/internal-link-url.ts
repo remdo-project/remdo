@@ -1,19 +1,8 @@
-import { createDocumentPath, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
+import { createDocumentPath, parseDocumentRef } from '@/routing';
 
 export interface InternalNoteLink {
   noteId: string;
   docId?: string;
-}
-
-export function resolveCurrentDocIdFromLocation(): string {
-  const path = globalThis.location.pathname;
-  const match = /^\/n\/([^/]+)$/.exec(path);
-  if (!match) {
-    return DEFAULT_DOC_ID;
-  }
-
-  const parsed = parseDocumentRef(match[1]);
-  return parsed?.docId ?? DEFAULT_DOC_ID;
 }
 
 export function createInternalNoteLinkUrl(link: InternalNoteLink, currentDocId: string): string {
@@ -24,7 +13,9 @@ export function createInternalNoteLinkUrl(link: InternalNoteLink, currentDocId: 
 export function parseInternalNoteLinkUrl(url: string, currentDocId?: string): InternalNoteLink | null {
   let parsedUrl: URL;
   try {
-    parsedUrl = new URL(url, globalThis.location.href);
+    const locationCandidate = Reflect.get(globalThis as object, 'location') as { href?: unknown } | undefined;
+    const base = typeof locationCandidate?.href === 'string' ? locationCandidate.href : 'http://localhost';
+    parsedUrl = new URL(url, base);
   } catch {
     return null;
   }

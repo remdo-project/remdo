@@ -54,6 +54,14 @@ const CASES: OutlineCase[] = [
     ],
   },
   {
+    fixture: 'links',
+    outline: [
+      { noteId: 'note1', text: 'same note2 cross /n/other-doc_remote-note' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ],
+  },
+  {
     fixture: 'main',
     outline: [
       { noteId: 'note1', text: 'note1', children: [ { noteId: 'note2', text: 'note2' } ] },
