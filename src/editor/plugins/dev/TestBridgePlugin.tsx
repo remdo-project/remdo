@@ -5,7 +5,7 @@ import { $createTextNode, $getRoot, $isTextNode } from 'lexical';
 import { assertEditorSchema } from './schema/assertEditorSchema';
 import { useCollaborationStatus } from '../collaboration';
 import { markSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
-import { $normalizeNoteIdsOnLoad } from '#lib/editor/note-id-normalization';
+import { $normalizeNoteIdsOnLoad } from '../note-id-normalization';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { getContentListItem } from '@/editor/outline/list-structure';
 import { TEST_BRIDGE_LOAD_TAG, TEST_BRIDGE_MUTATE_TAG } from '@/editor/update-tags';
@@ -167,11 +167,13 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
       editor.setEditorState(parsed, { tag: TEST_BRIDGE_LOAD_TAG });
     }, { skipSchemaValidation: options?.skipSchemaValidationOnce });
 
-    await withOutcome('normalizeNoteIds', 'any', () => {
-      editor.update(() => {
-        $normalizeNoteIdsOnLoad($getRoot(), collab.docId);
-      });
-    }, { skipSchemaValidation: options?.skipSchemaValidationOnce });
+    if (options?.skipSchemaValidationOnce) {
+      await withOutcome('normalizeNoteIds', 'any', () => {
+        editor.update(() => {
+          $normalizeNoteIdsOnLoad($getRoot(), collab.docId);
+        });
+      }, { skipSchemaValidation: true });
+    }
   };
 
   const mutate = async (fn: () => void, opts?: EditorUpdateOptions) => {

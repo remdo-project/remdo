@@ -1,9 +1,10 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { RootNode } from 'lexical';
+import { $setState } from 'lexical';
 
 import { createNoteIdAvoiding } from '#lib/editor/note-ids';
-import { $getNoteId, $setNoteId } from '#lib/editor/note-id-state';
+import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import { isChildrenWrapper } from '@/editor/outline/list-structure';
 import { reportInvariant } from '@/editor/invariant';
 
@@ -20,14 +21,6 @@ function formatTextSnippet(text: string): string {
   return JSON.stringify(snippet);
 }
 
-function $normalizeRootNoteIdOnLoad(root: RootNode, docId: string): void {
-  const current = $getNoteId(root);
-  if (current === docId) {
-    return;
-  }
-  $setNoteId(root, docId);
-}
-
 function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, path: number[]) {
   if (isChildrenWrapper(item)) {
     return;
@@ -39,7 +32,7 @@ function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, path: 
     normalized = noteId;
   } else {
     normalized = createNoteIdAvoiding(usedIds);
-    $setNoteId(item, normalized);
+    $setState(item, noteIdState, normalized);
     const reason = noteId ? `duplicate-note-id noteId=${noteId}` : 'missing-note-id';
     const pathLabel = `path=${formatPath(path)}`;
     const textLabel = formatTextSnippet(item.getTextContent());
@@ -84,11 +77,9 @@ function $normalizeNoteIds(root: RootNode, usedIds: Set<string>) {
 }
 
 export function $normalizeNoteIdsOnLoad(root: RootNode, docId: string): void {
-  const normalizedDocId = docId.trim();
   const used = new Set<string>();
-  if (normalizedDocId.length > 0) {
-    $normalizeRootNoteIdOnLoad(root, normalizedDocId);
-    used.add(normalizedDocId);
+  if (docId.length > 0) {
+    used.add(docId);
   }
   $normalizeNoteIds(root, used);
 }

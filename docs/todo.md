@@ -27,23 +27,6 @@ Rules:
   doc IDs are auto-generated, keep a no-underscore constraint for manual IDs.
 - Clarify and separate `docId` (identifier) vs document name/label terminology
   across docs/code/tests as part of the broader deferred doc identity effort.
-- Re-think document identity end-to-end and define one centralized strategy for
-  runtime `docId` vs persisted root `noteId` across all supported environments:
-  browser (state vs location), snapshot CLI, collab/unit harnesses, e2e, and
-  fixture contracts. Include a full scenario inventory and edge-case matrix
-  using `docs/environment.md` as a starting map, then expand beyond it to cover
-  missing use cases.
-- As part of that redesign, decide and document how fixtures should carry root
-  identity (`root.noteId`), when tests should run with fixed vs dynamic doc ids,
-  and where canonical normalization should live so we avoid ad hoc per-test
-  patching.
-- Temporary path: keep fixtures unchanged and use one centralized test helper
-  (`withRootNoteId`) to inject runtime root identity for comparisons; revisit
-  and remove this shim once the end-to-end doc identity model is finalized.
-- Brainstorm and evaluate alternative designs/practices not yet considered
-  (identity source-of-truth boundaries, serialization invariants, test fixture
-  portability, and adapter responsibilities), then pick one coherent model and
-  migrate all affected paths consistently.
 
 ## Editor
 
@@ -69,17 +52,6 @@ Rules:
   that encode canonical invariants (for example root-first-child-as-list) and
   avoid nullable/defensive flows in normal paths unless a caller explicitly opts
   into tolerant/fallback behavior.
-- Redesign and centralize Lexical prototype patching (node state, serialization
-  hooks, and any monkey patches) behind one internal patching module with a
-  clear init order, idempotency guarantees, and focused tests.
-- Review `lib/editor/note-id-normalization.ts:$normalizeNoteIdsOnLoad` and
-  potentially drop the `used.add(normalizedDocId)` reservation if root-note
-  identity enforcement already provides sufficient duplicate protection and the
-  extra constraint is redundant.
-- Align runtime collab `docId` and persisted root `noteId` handling behind one
-  canonical boundary/helper (app + test bridge): define when each source is
-  authoritative, enforce equality once hydrated, and remove ad hoc dual-source
-  reads from call sites.
 
 ## Internal links: drop persisted URL/cache (deferred)
 
