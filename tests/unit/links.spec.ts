@@ -1,10 +1,19 @@
 import { $isLinkNode } from '@lexical/link';
+import { PASTE_COMMAND } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { $isInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
+import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { parseInternalNoteLinkUrl } from '@/editor/links/internal-link-url';
 import { $findNoteById } from '@/editor/outline/note-traversal';
-import { clearEditorProps, meta, placeCaretAtNote, pressKey, registerScopedEditorProps, typeText } from '#tests';
+import { clearEditorProps, createDataTransfer, meta, placeCaretAtNote, pressKey, registerScopedEditorProps, typeText } from '#tests';
+
+async function pastePlainText(remdo: RemdoTestApi, text: string) {
+  const transfer = createDataTransfer();
+  transfer.setData('text/plain', text);
+  const event = new ClipboardEvent('paste', { clipboardData: transfer });
+  await remdo.dispatchCommand(PASTE_COMMAND, event, { expect: 'any' });
+}
 
 describe('note links (docs/outliner/links.md)', () => {
   const ZOOM_LINK_SCOPE_KEY = registerScopedEditorProps('links-zoom-scope', { zoomNoteId: 'note2' });
@@ -44,6 +53,46 @@ describe('note links (docs/outliner/links.md)', () => {
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
+  });
+
+  it('pasting the same-document note URL creates an internal link without docId', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    const url = `/n/${remdo.getCollabDocId()}_note2`;
+    await pastePlainText(remdo, url);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1note2' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe('note2');
+      expect($isInternalNoteLinkNode(linkNode)).toBe(true);
+      if ($isInternalNoteLinkNode(linkNode)) {
+        expect(linkNode.getNoteId()).toBe('note2');
+        expect(linkNode.getDocId()).toBeUndefined();
+      }
+    });
+  });
+
+  it('pasting a cross-document note URL creates an internal link with docId', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    const url = new URL('/n/otherdoc_note2', globalThis.location.href).toString();
+    await pastePlainText(remdo, url);
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe(url);
+      expect($isInternalNoteLinkNode(linkNode)).toBe(true);
+      if ($isInternalNoteLinkNode(linkNode)) {
+        expect(linkNode.getNoteId()).toBe('note2');
+        expect(linkNode.getDocId()).toBe('otherdoc');
+      }
+    });
   });
 
   it('keeps filtered results in document order', meta({ fixture: 'flat' }), async ({ remdo }) => {
