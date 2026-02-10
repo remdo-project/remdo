@@ -105,16 +105,6 @@ function writeJson(filePath: string, data: unknown): void {
   fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`);
 }
 
-function withRootDocId(editorState: SerializedEditorState, docId: string) {
-  return {
-    ...editorState,
-    root: {
-      ...editorState.root,
-      noteId: docId,
-    },
-  };
-}
-
 type GlobalWithOptionalDocument = Omit<typeof globalThis, 'document'> & { document?: Document };
 
 const globalWithOptionalDocument = globalThis as GlobalWithOptionalDocument;
@@ -209,7 +199,7 @@ async function runSave(
   minify: boolean
 ): Promise<void> {
   await withSession(docId, collabOrigin, async (editor) => {
-    const editorState = withRootDocId(editor.getEditorState().toJSON(), docId);
+    const editorState = editor.getEditorState().toJSON();
     const payload = minify ? stripEditorStateDefaults(editorState) : editorState;
     writeJson(filePath, payload);
     console.info(`[snapshot] save -> ${filePath}`);
@@ -247,7 +237,7 @@ async function runBackup(
 
 async function runLoad(docId: string, collabOrigin: string, filePath: string): Promise<void> {
   const raw = JSON.parse(fs.readFileSync(filePath, 'utf8')) as SerializedEditorState;
-  const data = withRootDocId(restoreEditorStateDefaults(raw), docId);
+  const data = restoreEditorStateDefaults(raw);
   await withSession(docId, collabOrigin, async (editor, { session }) => {
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data), { tag: 'snapshot-load' });

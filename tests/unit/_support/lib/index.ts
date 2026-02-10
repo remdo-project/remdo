@@ -6,4 +6,3 @@ export * from './dom-selection';
 export * from './selection';
 export * from './test-meta';
 export * from './editor-props-registry';
-export * from './editor-state';

@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
-import type { SerializedEditorState } from 'lexical';
 import type { Outline } from '#tests';
-import { selectStructuralNotes, meta, withRootNoteId } from '#tests';
+import { selectStructuralNotes, meta } from '#tests';
 import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 
 interface OutlineCase {
@@ -119,9 +118,8 @@ describe('toMatchOutline smoke coverage', () => {
       const fixturePath = path.resolve('tests/fixtures', `${fixture}.json`);
       const raw = await fs.readFile(fixturePath, 'utf8');
       const minified = stripEditorStateDefaults(remdo.getEditorState());
-      const expected = JSON.parse(raw) as SerializedEditorState;
-      const expectedNormalized = stripEditorStateDefaults(withRootNoteId(expected, remdo.getCollabDocId()));
-      expect(JSON.stringify(minified)).toBe(JSON.stringify(expectedNormalized));
+      const minifiedRaw = `${JSON.stringify(minified, null, 2)}\n`;
+      expect(minifiedRaw).toBe(raw);
     });
   }
 
