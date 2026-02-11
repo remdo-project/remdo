@@ -13,7 +13,7 @@ export function CollaborationPlugin({
   docId,
 }: {
   children?: ReactNode;
-  docId?: string;
+  docId: string;
 }) {
   return (
     <CollaborationProvider docId={docId}>

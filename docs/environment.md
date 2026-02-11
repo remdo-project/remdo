@@ -100,3 +100,13 @@ DATA_DIR=data-optA
 ## Local tools
 
 - `tools/env.sh <command>` runs any command with derived env defaults.
+
+## Document ID ownership
+
+- Each runtime environment owns document-id resolution and must inject a
+  non-empty `documentId` into the editor/session it creates.
+- Browser app resolves `documentId` from route state (`/n/:docRef`) and passes
+  it into the editor runtime.
+- Snapshot CLI resolves `documentId` from `--doc` or `COLLAB_DOCUMENT_ID` and
+  passes it into the session/editor it initializes.
+- Document ID is runtime state only; it is not serialized into editor JSON.
