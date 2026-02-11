@@ -117,7 +117,7 @@ it('targets only the payload note key when provided', meta({ fixture: 'flat' }),
   expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
 
   const note2Key = remdo.editor.getEditorState().read(() => $findNoteById('note2')!.getKey());
-  await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle', noteKey: note2Key });
+  await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle', noteItemKey: note2Key });
 
   const states = remdo.editor.getEditorState().read(() => {
     const note1 = $findNoteById('note1')!;
