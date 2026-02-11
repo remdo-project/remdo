@@ -34,6 +34,7 @@ export default function DocumentRoute() {
         onSelectNoteId={setZoomNoteId}
       />
       <Editor
+        key={docId}
         docId={docId}
         zoomNoteId={zoomNoteId}
         onZoomNoteIdChange={setZoomNoteId}

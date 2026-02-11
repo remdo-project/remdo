@@ -1,19 +1,11 @@
 import { config } from '#config';
-import { createNoteId, normalizeNoteId } from '#lib/editor/note-ids';
+import { createNoteId, normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
 import { afterEach, beforeEach } from 'vitest';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tests-common/fixtures';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
 import { getEditorProps } from '../../../lib/editor-props-registry';
 import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
-
-function resolveExplicitDocId(rawDocId: string): string {
-  const normalized = normalizeNoteId(rawDocId);
-  if (normalized) {
-    return normalized;
-  }
-  throw new Error(`Invalid collab doc id: ${rawDocId}`);
-}
 
 beforeEach<TestContext>(async (ctx) => {
   const task = ctx.task as TestContext['task'] | undefined;
@@ -30,7 +22,8 @@ beforeEach<TestContext>(async (ctx) => {
   const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
   setExpectedConsoleIssues(meta.expectedConsoleIssues ?? null);
 
-  let docId = resolveExplicitDocId(meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID);
+  const rawDocId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
+  let docId = normalizeNoteIdOrThrow(rawDocId, `Invalid collab doc id: ${rawDocId}`);
   if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {
     docId = createNoteId();
   }

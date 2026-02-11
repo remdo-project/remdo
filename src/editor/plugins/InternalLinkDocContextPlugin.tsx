@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useLayoutEffect } from 'react';
 
-import { $syncInternalNoteLinkNodeUrls } from '#lib/editor/internal-note-link-node';
+import { clearInternalLinkDocContext, setInternalLinkDocContext } from '#lib/editor/internal-link-doc-context';
 import { useCollaborationStatus } from './collaboration';
 
 export function InternalLinkDocContextPlugin() {
@@ -9,9 +9,10 @@ export function InternalLinkDocContextPlugin() {
   const { docId } = useCollaborationStatus();
 
   useLayoutEffect(() => {
-    editor.update(() => {
-      $syncInternalNoteLinkNodeUrls(docId);
-    });
+    setInternalLinkDocContext(editor, docId);
+    return () => {
+      clearInternalLinkDocContext(editor);
+    };
   }, [docId, editor]);
 
   return null;
