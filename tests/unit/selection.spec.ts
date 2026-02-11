@@ -1015,7 +1015,7 @@ describe('selection plugin', () => {
   });
 
   it('skips the inline stage for empty notes with no text nodes on Shift+Down', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'nested-empty');
+        await placeCaretAtNote(remdo, 'nestedEmpty');
 
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
@@ -1025,23 +1025,23 @@ describe('selection plugin', () => {
   });
 
   it('selects the nested empty note before child-of-empty on Shift+Down', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'nested-empty');
+        await placeCaretAtNote(remdo, 'nestedEmpty');
 
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
 
     expect(remdo.editor.selection.isStructural()).toBe(true);
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['nested-empty'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['nestedEmpty'] });
   });
 
   it('selects only the nested empty note on Cmd/Ctrl+A before child-of-empty', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'nested-empty');
+        await placeCaretAtNote(remdo, 'nestedEmpty');
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo.editor.selection.isStructural()).toBe(true);
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['nested-empty'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['nestedEmpty'] });
   });
 
   it('keeps Cmd/Ctrl+A anchored to child-of-empty when caret is at the end', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
@@ -1077,29 +1077,29 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(remdo).toMatchSelection({
         state: 'structural',
-        notes: ['alpha', 'space', 'beta', 'parent', 'nested-empty', 'child', 'nested-after-child', 'trailing'],
+        notes: ['alpha', 'space', 'beta', 'parent', 'nestedEmpty', 'child', 'nestedAfterChild', 'trailing'],
       });
     });
   });
 
   it('selects the nested empty note on Shift+Up before the previous sibling', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'nested-after-child');
+        await placeCaretAtNote(remdo, 'nestedAfterChild');
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
 
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(true);
-      expect(remdo).toMatchSelection({ state: 'structural', notes: ['nested-after-child'] });
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['nestedAfterChild'] });
     });
   });
 
   it('extends Shift+Click from a nested empty note to its parent', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        const nestedElement = getNoteElement(remdo, 'nested-after-child');
+        const nestedElement = getNoteElement(remdo, 'nestedAfterChild');
     const parentElement = getNoteElement(remdo, 'parent');
 
     await collapseDomSelectionAtNode(nestedElement, nestedElement.childNodes.length);
 
     await waitFor(() => {
-      expect(readCaretNoteKey(remdo)).toBe(getNoteKey(remdo, 'nested-after-child'));
+      expect(readCaretNoteKey(remdo)).toBe(getNoteKey(remdo, 'nestedAfterChild'));
     });
 
     await extendDomSelectionToNode(parentElement, parentElement.childNodes.length);
@@ -1107,24 +1107,24 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(remdo).toMatchSelection({
         state: 'structural',
-        notes: ['parent', 'nested-empty', 'child', 'nested-after-child'],
+        notes: ['parent', 'nestedEmpty', 'child', 'nestedAfterChild'],
       });
     });
   });
 
   it('advances Cmd/Ctrl+A through the empty note ladder stages', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'nested-empty');
+        await placeCaretAtNote(remdo, 'nestedEmpty');
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      expect(remdo).toMatchSelection({ state: 'structural', notes: ['nested-empty'] });
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['nestedEmpty'] });
     });
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
-      expect(remdo).toMatchSelection({ state: 'structural', notes: ['nested-empty', 'child', 'nested-after-child'] });
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['nestedEmpty', 'child', 'nestedAfterChild'] });
     });
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
@@ -1132,7 +1132,7 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(remdo).toMatchSelection({
         state: 'structural',
-        notes: ['parent', 'nested-empty', 'child', 'nested-after-child'],
+        notes: ['parent', 'nestedEmpty', 'child', 'nestedAfterChild'],
       });
     });
   });
@@ -1161,7 +1161,7 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(remdo).toMatchSelection({
         state: 'structural',
-        notes: ['parent', 'nested-empty', 'child', 'nested-after-child'],
+        notes: ['parent', 'nestedEmpty', 'child', 'nestedAfterChild'],
       });
     });
 
@@ -1171,7 +1171,7 @@ describe('selection plugin', () => {
     await waitFor(() => {
       expect(remdo).toMatchSelection({
         state: 'structural',
-        notes: ['parent', 'nested-empty', 'child', 'nested-after-child'],
+        notes: ['parent', 'nestedEmpty', 'child', 'nestedAfterChild'],
       });
     });
   });
@@ -1191,14 +1191,14 @@ describe('selection plugin', () => {
 
   it('snaps mixed empty/non-empty ranges into a contiguous structural selection', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
         const betaText = getNoteTextNode(remdo, 'beta');
-    const emptyTail = getNoteElement(remdo, 'nested-after-child');
+    const emptyTail = getNoteElement(remdo, 'nestedAfterChild');
 
     await dragDomSelectionBetween(betaText, 1, emptyTail, emptyTail.childNodes.length);
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({
         state: 'structural',
-        notes: ['beta', 'parent', 'nested-empty', 'child', 'nested-after-child'],
+        notes: ['beta', 'parent', 'nestedEmpty', 'child', 'nestedAfterChild'],
       });
     });
   });

@@ -32,7 +32,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   });
 
   it('enter at the start of a later text node splits the note (multi-text)', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-    await placeCaretAtNoteTextNode(remdo, 'mixed-formatting', 1, 0);
+    await placeCaretAtNoteTextNode(remdo, 'mixedFormatting', 1, 0);
 
     await pressKey(remdo, { key: 'Enter' });
 
@@ -50,9 +50,9 @@ describe('insertion semantics (docs/insertion.md)', () => {
       },
       { noteId: 'underline', text: 'underline' },
       { noteId: null, text: 'plain ' },
-      { noteId: 'mixed-formatting', text: 'bold italic underline plain' },
+      { noteId: 'mixedFormatting', text: 'bold italic underline plain' },
     ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'mixed-formatting' });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'mixedFormatting' });
   });
 
   it('enter at end creates a first child and focuses it', meta({ fixture: 'basic' }), async ({ remdo }) => {

@@ -1,5 +1,6 @@
 import { expect, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
+import { createNoteId } from '#lib/editor/note-ids';
 import { editorLocator, setCaretAtText } from '#editor/locators';
 
 const REMDO_TREE_SELECTOR = '.editor-tree-view-body pre';
@@ -83,9 +84,8 @@ async function setVanillaCaretToTextStart(page: Page, label: string): Promise<vo
   );
 }
 
-test('compares RemDo vs vanilla state after user-level indentation', async ({ page }, testInfo) => {
-  const safeTitle = testInfo.title.replaceAll(/[^a-z0-9-]+/gi, '-').toLowerCase();
-  const docId = `lexical-compare-${testInfo.workerIndex}-${safeTitle}-${Date.now()}`;
+test('compares RemDo vs vanilla state after user-level indentation', async ({ page }) => {
+  const docId = createNoteId();
   await page.goto(`/n/${docId}?lexicalDemo=true`);
 
   await page.waitForSelector(VANILLA_TREE_SELECTOR);

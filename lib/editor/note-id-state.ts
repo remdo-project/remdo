@@ -1,14 +1,15 @@
 import type { ListItemNode } from '@lexical/list';
 import { $getState, createState } from 'lexical';
 import { patchListItemStateConfig } from './list-item-state-config';
+import { normalizeNoteId } from './note-ids';
 
 export const noteIdState = createState('noteId', {
-  parse: (value) => (typeof value === 'string' ? value : undefined),
+  parse: (value) => normalizeNoteId(value) ?? undefined,
 });
 
 export function $getNoteId(node: ListItemNode): string | null {
   const noteId = $getState(node, noteIdState);
-  return typeof noteId === 'string' && noteId.length > 0 ? noteId : null;
+  return normalizeNoteId(noteId);
 }
 
 let didPatch = false;

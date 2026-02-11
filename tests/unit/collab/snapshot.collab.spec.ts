@@ -16,7 +16,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     path.resolve('data', 'snapshot.cli.json'),
     path.resolve('data', 'snapshot.cli.flat.json'),
     path.resolve('data', 'snapshot.cli.tree.json'),
-    path.resolve('data', 'cli-flag.json'),
+    path.resolve('data', 'cliFlag.json'),
     path.resolve('data', 'cross-doc-check.json'),
     path.resolve('data', 'cross-doc-check-alt.json'),
     path.resolve('data', 'snapshot.links.json'),
@@ -53,7 +53,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('loads data into collaboration doc and writes it back to disk', async () => {
-    const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-basic' };
+    const docEnv = { COLLAB_DOCUMENT_ID: 'snapshotBasic' };
     const loadPath = path.resolve('tests/fixtures/basic.json');
     const expected = stripEditorStateDefaults(readEditorState(loadPath));
     const savePath = SNAPSHOT_OUTPUTS[0]!;
@@ -68,9 +68,9 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
   it(
     'saves the current editor state via snapshot CLI',
-    meta({ collabDocId: 'snapshot-flat', fixture: 'flat' }),
+    meta({ collabDocId: 'snapshotFlat', fixture: 'flat' }),
     async () => {
-      const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-flat' };
+      const docEnv = { COLLAB_DOCUMENT_ID: 'snapshotFlat' };
 
       const savePath = SNAPSHOT_OUTPUTS[1]!;
       const expectedState = stripEditorStateDefaults(readEditorState(path.resolve('tests/fixtures/flat.json')));
@@ -84,9 +84,9 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
   it(
     'loads a snapshot fixture into the editor',
-    meta({ collabDocId: 'snapshot-tree' }),
+    meta({ collabDocId: 'snapshotTree' }),
     async ({ remdo }) => {
-      const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-tree' };
+      const docEnv = { COLLAB_DOCUMENT_ID: 'snapshotTree' };
       const loadPath = path.resolve('tests/fixtures/tree.json');
       runSnapshotCommand('load', [loadPath], docEnv);
 
@@ -107,7 +107,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   );
 
   it('resolves the document id from the CLI flag', async () => {
-    const docId = 'cli-flag';
+    const docId = 'cliFlag';
     const loadPath = path.resolve('tests/fixtures/basic.json');
     const expected = stripEditorStateDefaults(readEditorState(loadPath));
     const savePath = path.resolve('data', `${docId}.json`);
@@ -139,7 +139,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     'cross-loads and saves multiple documents without crosstalk',
     async ({ remdo }: TestContext) => {
       const defaultDoc = remdo.getCollabDocId();
-      const secondaryDoc = `${defaultDoc}-secondary`;
+      const secondaryDoc = `${defaultDoc}S`;
       const envOverrides = {
         COLLAB_DOCUMENT_ID: defaultDoc,
         VITE_COLLAB_DOCUMENT_ID: defaultDoc,
@@ -173,7 +173,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   );
 
   it('saves same-doc and cross-doc internal links from fixture', async () => {
-    const docId = 'snapshot-links-doc';
+    const docId = 'snapshotLinksDoc';
     const fixturePath = path.resolve('tests/fixtures/links.json');
     const outputPath = path.resolve('data', 'snapshot.links.json');
     const expected = stripEditorStateDefaults(readEditorState(fixturePath));

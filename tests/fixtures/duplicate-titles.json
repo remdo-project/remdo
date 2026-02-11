@@ -36,7 +36,7 @@
                 "children": [
                   {
                     "indent": 1,
-                    "noteId": "task-1",
+                    "noteId": "taskOne",
                     "type": "listitem",
                     "value": 1,
                     "children": [
@@ -70,7 +70,7 @@
                 "children": [
                   {
                     "indent": 1,
-                    "noteId": "task-2",
+                    "noteId": "taskTwo",
                     "type": "listitem",
                     "value": 1,
                     "children": [

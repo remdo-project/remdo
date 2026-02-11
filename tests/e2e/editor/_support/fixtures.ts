@@ -3,11 +3,10 @@ import path from 'node:path';
 import { setExpectedConsoleIssues, expect, readOutline, test as base } from '#e2e/fixtures';
 import type { Locator, Page } from '#e2e/fixtures';
 import { config } from '#config';
+import { createNoteId } from '#lib/editor/note-ids';
 import { ensureReady, getEditorState, load, waitForSynced } from './bridge';
 import { prepareEditorTestSurface } from './focus';
 import { editorLocator } from './locators';
-
-let docCounter = 0;
 
 type EditorHarness = Awaited<ReturnType<typeof createEditorHarness>>;
 interface EditorLoadOptions {
@@ -40,8 +39,8 @@ async function createEditorHarness(page: Page, docId: string) {
 
 export const test = base.extend<{ testDocId: string; editor: EditorHarness }>({
   // eslint-disable-next-line no-empty-pattern
-  testDocId: async ({}, use, testInfo) => {
-    const docId = `test-${testInfo.workerIndex}-${docCounter++}`;
+  testDocId: async ({}, use) => {
+    const docId = createNoteId();
     await use(docId);
   },
   editor: async ({ page, testDocId }, use) => {

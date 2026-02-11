@@ -153,7 +153,7 @@ describe('note ids', () => {
 
       const list = $createListNode('bullet');
       const item = $createListItemNode();
-      $setState(item, noteIdState, 'manual-id');
+      $setState(item, noteIdState, 'manualId');
       const paragraph = $createParagraphNode();
       paragraph.append($createTextNode('note'));
       item.append(paragraph);
@@ -163,7 +163,7 @@ describe('note ids', () => {
 
     const outline = readOutline(remdo);
     const noteId = outline[0]?.noteId;
-    expect(noteId).toBe('manual-id');
+    expect(noteId).toBe('manualId');
   });
 
   it('createNoteIdAvoiding skips reserved ids', () => {

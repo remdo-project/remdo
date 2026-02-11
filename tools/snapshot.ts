@@ -21,6 +21,7 @@ import { CollabSession } from '#lib/collaboration/session';
 import { restoreEditorStateDefaults, stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { $syncInternalNoteLinkNodeUrls } from '#lib/editor/internal-note-link-node';
+import { normalizeNoteId } from '#lib/editor/note-ids';
 
 type SharedRootObserver = (
   events: Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
@@ -133,7 +134,11 @@ if (command !== 'save' && command !== 'load' && command !== 'backup') {
   );
 }
 
-const docId = cliDocId?.trim() || config.env.COLLAB_DOCUMENT_ID;
+const rawDocId = cliDocId ?? config.env.COLLAB_DOCUMENT_ID;
+const docId = normalizeNoteId(rawDocId);
+if (!docId) {
+  throw new Error(`Invalid document id: ${rawDocId}`);
+}
 const targetFile = resolveSnapshotPath(command, docId, filePath);
 const collabOrigin = `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
 

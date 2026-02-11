@@ -45,6 +45,22 @@ Refer to this section whenever compatibility concerns come up; if you need to
 support a new platform, update `package.json` first so the baseline stays
 authoritative.
 
+## Compatibility Policy (Pre-1.0)
+
+RemDo is currently pre-1.0. Backward compatibility is not guaranteed unless a
+task or spec explicitly says otherwise.
+
+Default policy:
+
+1. Do not preserve legacy persisted-data formats by default.
+2. Do not preserve legacy ID, route, or internal-schema shapes by default.
+3. Do not plan migration paths or compatibility shims unless explicitly
+   requested.
+4. Review feedback should not raise backward-compatibility-only concerns unless
+   the task/spec explicitly requires compatibility.
+5. If a change intentionally includes backward-compatible behavior, call that
+   out in the task wrap-up message rather than as a review finding.
+
 ## Environment
 
 See `docs/environment.md` for the canonical environment setup across dev, tests,

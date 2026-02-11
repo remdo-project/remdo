@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { createContext, useMemo, use, useEffect, useSyncExternalStore } from 'react';
 import { config } from '#config';
 import { CollabSession } from '#lib/collaboration/session';
+import { normalizeDocumentId } from '@/routing';
 
 function createCollaborationStatusValue(snapshot: ReturnType<CollabSession['snapshot']>, session: CollabSession) {
   return {
@@ -41,11 +42,11 @@ export function CollaborationProvider({
 }
 
 function resolveInjectedDocId(docId: string): string {
-  const trimmed = docId.trim();
-  if (trimmed.length > 0) {
-    return trimmed;
+  const normalized = normalizeDocumentId(docId);
+  if (normalized) {
+    return normalized;
   }
-  throw new Error('CollaborationProvider requires a non-empty docId.');
+  throw new Error('CollaborationProvider requires a valid docId.');
 }
 
 function useCollaborationRuntimeValue({ docId }: { docId: string }): CollaborationStatusValue {

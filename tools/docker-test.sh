@@ -22,7 +22,7 @@ fi
 remdo_load_env_defaults "${ROOT_DIR}"
 
 PORT="${DOCKER_TEST_PORT}"
-COLLAB_DOCUMENT_ID="docker-smoke"
+COLLAB_DOCUMENT_ID="dockerSmoke"
 
 CONTAINER_NAME="${IMAGE_NAME}-${PORT}"
 HEALTH_URL="http://127.0.0.1:${PORT}/health"

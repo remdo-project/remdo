@@ -23,9 +23,9 @@ const CASES: OutlineCase[] = [
     fixture: 'edge-spaces',
     outline: [
       { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2-space-left', text: ' note2-space-left' },
+      { noteId: 'note2SpaceLeft', text: ' note2SpaceLeft' },
       { noteId: 'note3', text: 'note3' },
-      { noteId: 'note4-space-right', text: 'note4-space-right ' },
+      { noteId: 'note4SpaceRight', text: 'note4SpaceRight ' },
       { noteId: 'note5', text: 'note5' },
     ],
   },
@@ -40,8 +40,8 @@ const CASES: OutlineCase[] = [
     fixture: 'duplicate-titles',
     outline: [
       { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', children: [ { noteId: 'task-1', text: 'task' } ] },
-      { noteId: 'note4', text: 'note4', children: [ { noteId: 'task-2', text: 'task' } ] },
+      { noteId: 'note2', text: 'note2', children: [ { noteId: 'taskOne', text: 'task' } ] },
+      { noteId: 'note4', text: 'note4', children: [ { noteId: 'taskTwo', text: 'task' } ] },
       { noteId: 'note6', text: 'note6' },
     ],
   },
@@ -50,13 +50,13 @@ const CASES: OutlineCase[] = [
     outline: [
       { noteId: 'bold', text: 'bold', children: [ { noteId: 'italic', text: 'italic', children: [ { noteId: 'target', text: 'target' } ] } ] },
       { noteId: 'underline', text: 'underline' },
-      { noteId: 'mixed-formatting', text: 'plain bold italic underline plain' },
+      { noteId: 'mixedFormatting', text: 'plain bold italic underline plain' },
     ],
   },
   {
     fixture: 'links',
     outline: [
-      { noteId: 'note1', text: 'same note2 cross /n/other-doc_remote-note' },
+      { noteId: 'note1', text: 'same note2 cross /n/otherDoc_remoteNote' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ],
@@ -104,7 +104,7 @@ const CASES: OutlineCase[] = [
       { noteId: 'alpha', text: 'alpha' },
       { noteId: 'space', text: ' ' },
       { noteId: 'beta', text: 'beta' },
-      { noteId: 'parent', children: [ { noteId: 'nested-empty' }, { noteId: 'child', text: 'child-of-empty' }, { noteId: 'nested-after-child' } ] },
+      { noteId: 'parent', children: [ { noteId: 'nestedEmpty' }, { noteId: 'child', text: 'child-of-empty' }, { noteId: 'nestedAfterChild' } ] },
       { noteId: 'trailing' },
     ],
   },

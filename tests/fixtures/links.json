@@ -17,7 +17,7 @@
               {
                 "noteId": "note2",
                 "type": "internal-note-link",
-                "url": "/n/snapshot-links-doc_note2",
+                "url": "/n/snapshotLinksDoc_note2",
                 "children": [
                   {
                     "text": "note2",
@@ -30,13 +30,13 @@
                 "type": "text"
               },
               {
-                "docId": "other-doc",
-                "noteId": "remote-note",
+                "docId": "otherDoc",
+                "noteId": "remoteNote",
                 "type": "internal-note-link",
-                "url": "/n/other-doc_remote-note",
+                "url": "/n/otherDoc_remoteNote",
                 "children": [
                   {
-                    "text": "/n/other-doc_remote-note",
+                    "text": "/n/otherDoc_remoteNote",
                     "type": "text"
                   }
                 ]

@@ -9,7 +9,7 @@ import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('collaboration session awaitSynced', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   const createSession = () => {
-    const docId = 'doc-id';
+    const docId = 'docId';
     const docMap = new Map<string, Y.Doc>([[docId, new Y.Doc()]]);
     const mock = createMockProvider() as unknown as MockProvider;
     const factory: ProviderFactory = () => mock as any;

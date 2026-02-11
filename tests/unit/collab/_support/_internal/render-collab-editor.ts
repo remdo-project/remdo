@@ -1,16 +1,21 @@
 import { config } from '#config';
-import { env } from 'node:process';
+import { normalizeNoteId } from '#lib/editor/note-ids';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { renderRemdoEditor } from '../render-editor';
 
-let peerCounter = 0;
+function resolveDocId(rawDocId: string): string {
+  const normalized = normalizeNoteId(rawDocId);
+  if (normalized) {
+    return normalized;
+  }
+  throw new Error(`Invalid collab peer doc id: ${rawDocId}`);
+}
 
 export async function renderCollabEditor(options?: { docId?: string }): Promise<RemdoTestApi> {
-  const workerId = env.VITEST_WORKER_ID || '0';
-  const docId =
-    (options && options.docId) ||
-    config.env.COLLAB_DOCUMENT_ID ||
-    `collab-peer-${workerId}-${peerCounter++}`;
+  const explicitDocId = options?.docId;
+  const docId = explicitDocId
+    ? resolveDocId(explicitDocId)
+    : resolveDocId(config.env.COLLAB_DOCUMENT_ID);
 
   const { api } = await renderRemdoEditor({ docId });
   return api;

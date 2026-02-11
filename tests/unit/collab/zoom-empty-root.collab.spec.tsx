@@ -7,11 +7,11 @@ describe('zoom visibility (collab hydration)', { timeout: COLLAB_LONG_TIMEOUT_MS
 
   it(
     'does not crash when zoom note id is set before outline exists',
-    meta({ collabDocId: 'zoom-empty-root', editorPropsKey: zoomKey }),
+    meta({ collabDocId: 'zoomEmptyRoot', editorPropsKey: zoomKey }),
     async ({ remdo }) => {
       try {
         await remdo.waitForSynced();
-        expect(remdo.getCollabDocId()).toBe('zoom-empty-root');
+        expect(remdo.getCollabDocId()).toBe('zoomEmptyRoot');
       } finally {
         clearEditorProps(zoomKey);
       }
