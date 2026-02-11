@@ -336,7 +336,7 @@ function $normalizeClipboardInternalLinkDocIds(nodes: LexicalNode[], currentDocI
     }
 
     if ($isInternalNoteLinkNode(node) && node.getDocId() === currentDocId) {
-      node.setDocId(undefined, currentDocId);
+      node.setDocId(undefined);
     }
 
     if ($isElementNode(node)) {

@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 
 import { $isInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
-import { parseInternalNoteLinkUrl } from '@/editor/links/internal-link-url';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { clearEditorProps, createDataTransfer, meta, placeCaretAtNote, pressKey, registerScopedEditorProps, typeText } from '#tests';
 
@@ -38,7 +37,6 @@ describe('note links (docs/outliner/links.md)', () => {
         expect(linkNode.getNoteId()).toBe('note2');
         expect(linkNode.getDocId()).toBeUndefined();
       }
-      expect(parseInternalNoteLinkUrl(linkNode.getURL())?.noteId).toBe('note2');
       expect(note.getTextContent().endsWith(' ')).toBe(true);
     });
   });

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { createContext, useMemo, use, useEffect, useSyncExternalStore } from 'react';
 import { config } from '#config';
 import { CollabSession } from '#lib/collaboration/session';
-import { normalizeDocumentId } from '@/routing';
+import { normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
 
 function createCollaborationStatusValue(snapshot: ReturnType<CollabSession['snapshot']>, session: CollabSession) {
   return {
@@ -41,17 +41,12 @@ export function CollaborationProvider({
   return <CollaborationStatusContext value={value}>{children}</CollaborationStatusContext>;
 }
 
-function resolveInjectedDocId(docId: string): string {
-  const normalized = normalizeDocumentId(docId);
-  if (normalized) {
-    return normalized;
-  }
-  throw new Error('CollaborationProvider requires a valid docId.');
-}
-
 function useCollaborationRuntimeValue({ docId }: { docId: string }): CollaborationStatusValue {
   const enabled = config.env.COLLAB_ENABLED;
-  const resolvedDocId = useMemo(() => resolveInjectedDocId(docId), [docId]);
+  const resolvedDocId = useMemo(
+    () => normalizeNoteIdOrThrow(docId, 'CollaborationProvider requires a valid docId.'),
+    [docId],
+  );
   const resolvedOrigin = useMemo(() => {
     // Tests run in jsdom without a proxy; target the collab server directly.
     if (config.env.NODE_ENV === 'test') {

@@ -1,5 +1,5 @@
 import { config } from '#config';
-import { normalizeNoteId } from '#lib/editor/note-ids';
+import { normalizeNoteId, normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
 
 export function normalizeDocumentId(value: unknown): string | null {
   return normalizeNoteId(value);
@@ -10,11 +10,7 @@ export function resolveDefaultDocId(rawDocId: string): string {
   if (raw.trim().length === 0) {
     return 'main';
   }
-  const candidate = normalizeDocumentId(raw);
-  if (!candidate) {
-    throw new Error('COLLAB_DOCUMENT_ID must be a valid note-id-compatible identifier.');
-  }
-  return candidate;
+  return normalizeNoteIdOrThrow(raw, 'COLLAB_DOCUMENT_ID must be a valid note-id-compatible identifier.');
 }
 
 export const DEFAULT_DOC_ID = resolveDefaultDocId(config.env.COLLAB_DOCUMENT_ID);
@@ -27,11 +23,8 @@ export interface NoteRef {
 }
 
 export function createNoteRef(docId: string, noteId: string): string {
-  const normalizedDocId = normalizeDocumentId(docId);
-  const normalizedNoteId = normalizeNoteId(noteId);
-  if (!normalizedDocId || !normalizedNoteId) {
-    throw new Error('createNoteRef requires valid document and note ids.');
-  }
+  const normalizedDocId = normalizeNoteIdOrThrow(docId, 'createNoteRef requires valid document and note ids.');
+  const normalizedNoteId = normalizeNoteIdOrThrow(noteId, 'createNoteRef requires valid document and note ids.');
   return `${normalizedDocId}${NOTE_REF_SEPARATOR}${normalizedNoteId}`;
 }
 
@@ -49,16 +42,13 @@ export function parseNoteRef(noteRef: string): NoteRef | null {
 }
 
 export function createDocumentPath(docId: string, noteId: string | null = null): string {
-  const normalizedDocId = normalizeDocumentId(docId);
-  if (!normalizedDocId) {
-    throw new Error('createDocumentPath requires a valid document id.');
-  }
+  const normalizedDocId = normalizeNoteIdOrThrow(docId, 'createDocumentPath requires a valid document id.');
 
   if (noteId !== null) {
-    const normalizedNoteId = normalizeNoteId(noteId);
-    if (!normalizedNoteId) {
-      throw new Error('createDocumentPath requires a valid note id when noteId is provided.');
-    }
+    const normalizedNoteId = normalizeNoteIdOrThrow(
+      noteId,
+      'createDocumentPath requires a valid note id when noteId is provided.',
+    );
     return `/n/${createNoteRef(normalizedDocId, normalizedNoteId)}`;
   }
   return `/n/${normalizedDocId}`;
