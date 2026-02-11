@@ -9,30 +9,35 @@ identity behavior and is intended to drive tests and application logic.
 ## Scope
 
 This specification covers addressable notes (content list items) inside a single
-RemDo document and the global reference (`noteRef`) derived from document + note
-identity. The document root is modeled as a note whose `noteId` equals the
-document ID. This spec does not define the format or storage of document IDs.
+RemDo document and the global reference (`noteRef`) derived from document +
+note identity. The document root is modeled conceptually as a note (see
+`./concepts.md`), but document identity itself is runtime state owned by the
+environment, not serialized as a root `noteId`.
 
 ## Definitions
 
 - **noteId:** an opaque identifier that uniquely identifies a note within a
   single document.
+- **documentId:** a runtime identifier for the active document, injected by the
+  environment (for example browser routing or snapshot CLI).
 - **noteRef:** a globally unique reference composed from a document ID and a
   noteId.
 - **Addressable note:** any non-root note that appears as a content list item in
   the outline.
-- **Document root:** the structural root for a document; a note whose `noteId`
-  equals the document ID and is not directly selectable in the editor.
+- **Document root:** the structural root for a document. It is a conceptual note
+  that is not directly selectable in the editor.
 
 ## Invariants
 
-1. Every note, including the document root, has a `noteId`.
-2. The document root uses `noteId === documentId`.
+1. Every addressable note has a `noteId`.
+2. Document identity (`documentId`) is runtime state and must be injected by the
+   host environment for each editor/session instance.
 3. `noteId` values are unique within a document at any moment in time; different
    documents may reuse the same `noteId` values.
 4. `noteId` values are stable for the lifetime of a note and do not change on
    edits, reorders, indent/outdent, or moves.
-5. `noteId` values round-trip through adapters and serialization unchanged.
+5. `noteId` values round-trip through adapters and serialization unchanged for
+   addressable notes.
 
 ## Lifecycle
 
@@ -74,12 +79,21 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 
 ## Serialization and normalization
 
-- Serialized document states must include `noteId` for every note (including
-  the document root).
+- Serialized document states must include `noteId` for addressable notes.
+- Serialized document states do not persist document identity as `root.noteId`.
 - On load, any missing or duplicate `noteId` values must be normalized before
   the document is exposed to the app: keep existing unique IDs and assign fresh
   IDs to missing or colliding notes (preserving document order).
 - Normalized IDs must be persisted on the next save.
+
+## Runtime document ID ownership
+
+- Browser runtime resolves `documentId` from routing and injects it into the
+  editor/collaboration runtime.
+- Snapshot CLI resolves `documentId` from CLI/env inputs and injects it into the
+  session/editor it initializes.
+- Runtime `documentId` must remain per-editor state and must not be derived from
+  global location reads inside core editor logic.
 
 ## Collaboration
 

@@ -9,7 +9,7 @@ configure({ asyncUtilTimeout: COLLAB_LONG_TIMEOUT_MS });
 
 interface RenderEditorOptions {
   docId: string;
-  editorProps?: Partial<ComponentProps<typeof Editor>>;
+  editorProps?: Partial<Omit<ComponentProps<typeof Editor>, 'docId'>>;
 }
 
 /**
@@ -24,7 +24,7 @@ export async function renderRemdoEditor({ docId, editorProps }: RenderEditorOpti
 
   const { unmount } = render(
     <MantineProvider>
-      <Editor docId={docId} onTestBridgeReady={(value) => { api = value as RemdoTestApi; }} {...editorProps} />
+      <Editor {...editorProps} docId={docId} onTestBridgeReady={(value) => { api = value as RemdoTestApi; }} />
     </MantineProvider>
   );
 

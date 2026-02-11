@@ -30,7 +30,7 @@ import './Editor.css';
 
 interface EditorProps {
   children?: React.ReactNode;
-  docId?: string;
+  docId: string;
   onTestBridgeReady?: (api: unknown) => void;
   onTestBridgeDispose?: () => void;
   zoomNoteId?: string | null;

@@ -9,7 +9,7 @@ describe('collaboration document id resolution', { timeout: COLLAB_LONG_TIMEOUT_
   });
 
   it(
-    'uses the doc id from the query string',
+    'uses the injected doc id from the test harness',
     meta({ collabDocId: 'test-doc' }),
     async ({ remdo }: TestContext) => {
       expect(remdo.getCollabDocId()).toBe('test-doc');
