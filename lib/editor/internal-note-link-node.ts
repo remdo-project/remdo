@@ -27,9 +27,9 @@ export type SerializedInternalNoteLinkNode = Spread<
   SerializedLinkNode
 >;
 
-const DEFAULT_INTERNAL_LINK_REF: InternalNoteLinkRef = { noteId: 'missing-note-id' };
+const DEFAULT_INTERNAL_LINK_REF: InternalNoteLinkRef = { noteId: '' };
 
-function normalizeDocId(docId: string | undefined): string | undefined {
+function normalizeLinkDocId(docId: string | undefined): string | undefined {
   if (typeof docId !== 'string') {
     return undefined;
   }
@@ -37,8 +37,20 @@ function normalizeDocId(docId: string | undefined): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function normalizeNoteId(noteId: string | undefined): string {
-  return typeof noteId === 'string' && noteId.length > 0 ? noteId : 'missing-note-id';
+function normalizeLinkNoteId(noteId: string | undefined): string {
+  return typeof noteId === 'string' ? noteId.trim() : '';
+}
+
+function syncUrlFromIdentity(node: InternalNoteLinkNode, currentDocId: string): void {
+  try {
+    node.__url = createInternalNoteLinkUrl(
+      { docId: node.__docId, noteId: node.__noteId },
+      currentDocId
+    );
+  } catch {
+    // Keep the previous URL when identity is malformed so legacy/broken data
+    // does not crash runtime sync paths or get silently retargeted.
+  }
 }
 
 export class InternalNoteLinkNode extends LinkNode {
@@ -65,8 +77,8 @@ export class InternalNoteLinkNode extends LinkNode {
     key?: NodeKey
   ) {
     super('', attributes, key);
-    this.__noteId = normalizeNoteId(ref.noteId);
-    this.__docId = normalizeDocId(ref.docId);
+    this.__noteId = normalizeLinkNoteId(ref.noteId);
+    this.__docId = normalizeLinkDocId(ref.docId);
   }
 
   static importDOM(): DOMConversionMap | null {
@@ -76,14 +88,14 @@ export class InternalNoteLinkNode extends LinkNode {
   static importJSON(serializedNode: SerializedInternalNoteLinkNode): InternalNoteLinkNode {
     return new InternalNoteLinkNode({
       docId: serializedNode.docId,
-      noteId: normalizeNoteId(serializedNode.noteId),
+      noteId: normalizeLinkNoteId(serializedNode.noteId),
     }).updateFromJSON(serializedNode);
   }
 
   updateFromJSON(serializedNode: LexicalUpdateJSON<SerializedLinkNode>): this {
     const serializedInternal = serializedNode as LexicalUpdateJSON<SerializedInternalNoteLinkNode>;
-    const noteId = normalizeNoteId(serializedInternal.noteId);
-    const docId = normalizeDocId(serializedInternal.docId);
+    const noteId = normalizeLinkNoteId(serializedInternal.noteId);
+    const docId = normalizeLinkDocId(serializedInternal.docId);
     const linkSerialized: LexicalUpdateJSON<SerializedLinkNode> = {
       ...serializedNode,
       rel: serializedNode.rel ?? null,
@@ -168,35 +180,26 @@ export class InternalNoteLinkNode extends LinkNode {
 
   setDocId(docId: string | undefined, currentDocId?: string): this {
     const writable = this.getWritable();
-    writable.__docId = normalizeDocId(docId);
+    writable.__docId = normalizeLinkDocId(docId);
     if (currentDocId) {
-      writable.__url = createInternalNoteLinkUrl(
-        { docId: writable.__docId, noteId: writable.__noteId },
-        currentDocId
-      );
+      syncUrlFromIdentity(writable, currentDocId);
     }
     return writable;
   }
 
   setLinkRef(ref: InternalNoteLinkRef, currentDocId?: string): this {
     const writable = this.getWritable();
-    writable.__noteId = normalizeNoteId(ref.noteId);
-    writable.__docId = normalizeDocId(ref.docId);
+    writable.__noteId = normalizeLinkNoteId(ref.noteId);
+    writable.__docId = normalizeLinkDocId(ref.docId);
     if (currentDocId) {
-      writable.__url = createInternalNoteLinkUrl(
-        { docId: writable.__docId, noteId: writable.__noteId },
-        currentDocId
-      );
+      syncUrlFromIdentity(writable, currentDocId);
     }
     return writable;
   }
 
   syncUrl(currentDocId: string): this {
     const writable = this.getWritable();
-    writable.__url = createInternalNoteLinkUrl(
-      { docId: writable.__docId, noteId: writable.__noteId },
-      currentDocId
-    );
+    syncUrlFromIdentity(writable, currentDocId);
     return writable;
   }
 

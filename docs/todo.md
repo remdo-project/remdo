@@ -19,6 +19,9 @@ Rules:
 - Replace the e2e editor test-surface CSS hack in
   `tests/e2e/editor/_support/focus.ts` (`prepareEditorTestSurface`) with a
   route or comparable harness that renders only the editor under test.
+- Consolidate repeated unit-test Lexical DOM setup (`document.createElement` +
+  `document.body.append` + `createEditor` + `setRootElement`) into a shared
+  test helper with a single cleanup path.
 
 ## Doc IDs / names (deferred)
 
@@ -27,6 +30,16 @@ Rules:
   doc IDs are auto-generated, keep a no-underscore constraint for manual IDs.
 - Clarify and separate `docId` (identifier) vs document name/label terminology
   across docs/code/tests as part of the broader deferred doc identity effort.
+
+## Test doc-id lifecycle hygiene (deferred)
+
+- We currently mix two strategies in tests:
+  random doc IDs (which can leave per-run collab data on disk) and repeatable
+  doc IDs (which require explicit pre-test cleanup and add runtime cost).
+- Plan a unified test doc-id lifecycle approach so data isolation and cleanup
+  are deterministic without ad hoc per-suite behavior.
+- Leave concrete design decisions for later; capture the problem now so future
+  work can handle both isolation and performance together.
 
 ## Editor
 

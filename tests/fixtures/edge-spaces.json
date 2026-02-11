@@ -17,12 +17,12 @@
             ]
           },
           {
-            "noteId": "note2-space-left",
+            "noteId": "note2SpaceLeft",
             "type": "listitem",
             "value": 2,
             "children": [
               {
-                "text": " note2-space-left",
+                "text": " note2SpaceLeft",
                 "type": "text"
               }
             ]
@@ -39,12 +39,12 @@
             ]
           },
           {
-            "noteId": "note4-space-right",
+            "noteId": "note4SpaceRight",
             "type": "listitem",
             "value": 4,
             "children": [
               {
-                "text": "note4-space-right ",
+                "text": "note4SpaceRight ",
                 "type": "text"
               }
             ]

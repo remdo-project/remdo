@@ -90,24 +90,24 @@ test.describe('deletion (native browser behavior)', () => {
     await page.keyboard.press('Delete');
 
     await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note2-space-left' },
+      { noteId: 'note1', text: 'note1 note2SpaceLeft' },
       { noteId: 'note3', text: 'note3' },
-      { noteId: 'note4-space-right', text: 'note4-space-right ' },
+      { noteId: 'note4SpaceRight', text: 'note4SpaceRight ' },
       { noteId: 'note5', text: 'note5' },
     ]);
   });
 
   test('Delete respects spacing when left fragment already ends with space', async ({ page, editor }) => {
     await editor.load('edge-spaces');
-    await setCaretAtText(page, 'note4-space-right', Number.POSITIVE_INFINITY);
+    await setCaretAtText(page, 'note4SpaceRight', Number.POSITIVE_INFINITY);
 
     await page.keyboard.press('Delete');
 
     await expect(editor).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2-space-left', text: ' note2-space-left' },
+      { noteId: 'note2SpaceLeft', text: ' note2SpaceLeft' },
       { noteId: 'note3', text: 'note3' },
-      { noteId: 'note4-space-right', text: 'note4-space-right note5' },
+      { noteId: 'note4SpaceRight', text: 'note4SpaceRight note5' },
     ]);
   });
 

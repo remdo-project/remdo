@@ -82,7 +82,7 @@ test.describe('Zoom routing', () => {
   });
 
   test('invalid zoom route resets to document URL', async ({ page, editor }) => {
-    await page.goto(`/n/${editor.docId}_missing-note`);
+    await page.goto(`/n/${editor.docId}_missingNote`);
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await waitForSynced(page);
 

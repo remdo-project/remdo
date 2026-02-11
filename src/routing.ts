@@ -1,9 +1,23 @@
 import { config } from '#config';
+import { normalizeNoteId } from '#lib/editor/note-ids';
 
-export const DEFAULT_DOC_ID = (() => {
-  const candidate = config.env.COLLAB_DOCUMENT_ID.trim();
-  return candidate && candidate.length > 0 ? candidate : 'main';
-})();
+export function normalizeDocumentId(value: unknown): string | null {
+  return normalizeNoteId(value);
+}
+
+export function resolveDefaultDocId(rawDocId: string): string {
+  const raw = rawDocId;
+  if (raw.trim().length === 0) {
+    return 'main';
+  }
+  const candidate = normalizeDocumentId(raw);
+  if (!candidate) {
+    throw new Error('COLLAB_DOCUMENT_ID must be a valid note-id-compatible identifier.');
+  }
+  return candidate;
+}
+
+export const DEFAULT_DOC_ID = resolveDefaultDocId(config.env.COLLAB_DOCUMENT_ID);
 
 const NOTE_REF_SEPARATOR = '_';
 
@@ -13,7 +27,12 @@ export interface NoteRef {
 }
 
 export function createNoteRef(docId: string, noteId: string): string {
-  return `${docId}${NOTE_REF_SEPARATOR}${noteId}`;
+  const normalizedDocId = normalizeDocumentId(docId);
+  const normalizedNoteId = normalizeNoteId(noteId);
+  if (!normalizedDocId || !normalizedNoteId) {
+    throw new Error('createNoteRef requires valid document and note ids.');
+  }
+  return `${normalizedDocId}${NOTE_REF_SEPARATOR}${normalizedNoteId}`;
 }
 
 export function parseNoteRef(noteRef: string): NoteRef | null {
@@ -21,16 +40,28 @@ export function parseNoteRef(noteRef: string): NoteRef | null {
   if (separatorIndex <= 0 || separatorIndex >= noteRef.length - 1) {
     return null;
   }
-  const docId = noteRef.slice(0, separatorIndex);
-  const noteId = noteRef.slice(separatorIndex + 1);
+  const docId = normalizeDocumentId(noteRef.slice(0, separatorIndex));
+  const noteId = normalizeNoteId(noteRef.slice(separatorIndex + 1));
+  if (!docId || !noteId) {
+    return null;
+  }
   return { docId, noteId };
 }
 
 export function createDocumentPath(docId: string, noteId: string | null = null): string {
-  if (noteId) {
-    return `/n/${createNoteRef(docId, noteId)}`;
+  const normalizedDocId = normalizeDocumentId(docId);
+  if (!normalizedDocId) {
+    throw new Error('createDocumentPath requires a valid document id.');
   }
-  return `/n/${docId}`;
+
+  if (noteId !== null) {
+    const normalizedNoteId = normalizeNoteId(noteId);
+    if (!normalizedNoteId) {
+      throw new Error('createDocumentPath requires a valid note id when noteId is provided.');
+    }
+    return `/n/${createNoteRef(normalizedDocId, normalizedNoteId)}`;
+  }
+  return `/n/${normalizedDocId}`;
 }
 
 export interface ParsedDocumentRef {
@@ -42,16 +73,26 @@ export function parseDocumentRef(docRef: string | undefined): ParsedDocumentRef 
   if (!docRef) {
     return null;
   }
-
-  const separatorIndex = docRef.indexOf(NOTE_REF_SEPARATOR);
-  if (separatorIndex === -1) {
-    return { docId: docRef, noteId: null };
+  const trimmedRef = docRef.trim();
+  if (trimmedRef.length === 0) {
+    return null;
   }
-  if (separatorIndex === 0 || separatorIndex === docRef.length - 1) {
+
+  const separatorIndex = trimmedRef.indexOf(NOTE_REF_SEPARATOR);
+  if (separatorIndex === -1) {
+    const docId = normalizeDocumentId(trimmedRef);
+    return docId ? { docId, noteId: null } : null;
+  }
+  if (separatorIndex === 0 || separatorIndex === trimmedRef.length - 1) {
+    return null;
+  }
+  const docId = normalizeDocumentId(trimmedRef.slice(0, separatorIndex));
+  const noteId = normalizeNoteId(trimmedRef.slice(separatorIndex + 1));
+  if (!docId || !noteId) {
     return null;
   }
   return {
-    docId: docRef.slice(0, separatorIndex),
-    noteId: docRef.slice(separatorIndex + 1),
+    docId,
+    noteId,
   };
 }

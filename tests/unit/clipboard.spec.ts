@@ -117,14 +117,14 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
   });
 
   it('pastes multi-line plain text in the middle of a formatted note with multiple text nodes', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-    await placeCaretAtNoteTextNode(remdo, 'mixed-formatting', 2, 2);
+    await placeCaretAtNoteTextNode(remdo, 'mixedFormatting', 2, 2);
     await pastePlainText(remdo, 'A\nB');
 
     const texts = flattenOutline(readOutline(remdo)).map((node) => node.text ?? '');
     expect(texts).toEqual(['bold', 'italic', 'target', 'underline', 'plain bold it', 'A', 'B', 'alic underline plain']);
 
     const original = findOutlineNodeByText(readOutline(remdo), 'alic underline plain');
-    expect(original?.noteId).toBe('mixed-formatting');
+    expect(original?.noteId).toBe('mixedFormatting');
 
     const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
     expect(focusNote?.noteId).toBeTruthy();
@@ -132,14 +132,14 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
   });
 
   it('splits a formatted note when pasting at the start of a later text node', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-    await placeCaretAtNoteTextNode(remdo, 'mixed-formatting', 1, 0);
+    await placeCaretAtNoteTextNode(remdo, 'mixedFormatting', 1, 0);
     await pastePlainText(remdo, 'A\nB');
 
     const texts = flattenOutline(readOutline(remdo)).map((node) => node.text ?? '');
     expect(texts).toEqual(['bold', 'italic', 'target', 'underline', 'plain ', 'A', 'B', 'bold italic underline plain']);
 
     const original = findOutlineNodeByText(readOutline(remdo), 'bold italic underline plain');
-    expect(original?.noteId).toBe('mixed-formatting');
+    expect(original?.noteId).toBe('mixedFormatting');
 
     const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
     expect(focusNote?.noteId).toBeTruthy();

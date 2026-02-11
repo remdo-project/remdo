@@ -1,13 +1,20 @@
 import { config } from '#config';
+import { createNoteId, normalizeNoteId } from '#lib/editor/note-ids';
 import { afterEach, beforeEach } from 'vitest';
-import { env } from 'node:process';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tests-common/fixtures';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
 import { getEditorProps } from '../../../lib/editor-props-registry';
 import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
 
-let collabDocCounter = 0;
+function resolveExplicitDocId(rawDocId: string): string {
+  const normalized = normalizeNoteId(rawDocId);
+  if (normalized) {
+    return normalized;
+  }
+  throw new Error(`Invalid collab doc id: ${rawDocId}`);
+}
+
 beforeEach<TestContext>(async (ctx) => {
   const task = ctx.task as TestContext['task'] | undefined;
   const meta = (task?.meta ?? {}) as {
@@ -23,10 +30,9 @@ beforeEach<TestContext>(async (ctx) => {
   const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
   setExpectedConsoleIssues(meta.expectedConsoleIssues ?? null);
 
-  let docId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
+  let docId = resolveExplicitDocId(meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID);
   if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {
-    const workerId = env.VITEST_WORKER_ID ?? '0';
-    docId = `test-${workerId}-${collabDocCounter++}`;
+    docId = createNoteId();
   }
 
   // Seed fixtures via a loader before the main editor mounts.

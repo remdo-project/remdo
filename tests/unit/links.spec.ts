@@ -80,7 +80,7 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('pasting a cross-document note URL creates an internal link with docId', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    const url = new URL('/n/otherdoc_note2', globalThis.location.href).toString();
+    const url = new URL('/n/otherDoc_note2', globalThis.location.href).toString();
     await pastePlainText(remdo, url);
 
     remdo.validate(() => {
@@ -90,7 +90,7 @@ describe('note links (docs/outliner/links.md)', () => {
       expect($isInternalNoteLinkNode(linkNode)).toBe(true);
       if ($isInternalNoteLinkNode(linkNode)) {
         expect(linkNode.getNoteId()).toBe('note2');
-        expect(linkNode.getDocId()).toBe('otherdoc');
+        expect(linkNode.getDocId()).toBe('otherDoc');
       }
     });
   });

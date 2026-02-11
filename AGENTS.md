@@ -23,7 +23,8 @@ line (align continuation lines by two spaces).
 Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
-- `docs/contributing.md` (Short). Runtime baselines and Git workflow/branch conventions.
+- `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch conventions, and
+  pre-1.0 compatibility policy (no default migration/back-compat requirements).
 - `docs/deployment-single-container.md` (Short). Single-container build/run (Caddy + Y-Sweet),
   `.env` overrides, `PORT`/`COLLAB_SERVER_PORT`, auth, and `DATA_DIR` mapping.
 - `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, defaults/overrides, worktrees,

@@ -53,7 +53,7 @@
                 "children": [
                   {
                     "indent": 1,
-                    "noteId": "nested-empty",
+                    "noteId": "nestedEmpty",
                     "type": "listitem",
                     "value": 1,
                     "children": []
@@ -72,7 +72,7 @@
                   },
                   {
                     "indent": 1,
-                    "noteId": "nested-after-child",
+                    "noteId": "nestedAfterChild",
                     "type": "listitem",
                     "value": 3,
                     "children": []
