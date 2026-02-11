@@ -23,11 +23,6 @@ Rules:
   `document.body.append` + `createEditor` + `setRootElement`) into a shared
   test helper with a single cleanup path.
 
-## Doc IDs / names (deferred)
-
-- Clarify and separate `docId` (identifier) vs document name/label terminology
-  across docs/code/tests as part of the broader deferred doc identity effort.
-
 ## Test doc-id lifecycle hygiene (deferred)
 
 - We currently mix two strategies in tests:
