@@ -37,8 +37,8 @@ const $resolveToggleTargets = (
   editor: LexicalEditor,
   payload: SetNoteCheckedPayload
 ): ListItemNode[] => {
-  if (payload.noteKey) {
-    const item = $resolveContentItemByKey(payload.noteKey);
+  if (payload.noteItemKey) {
+    const item = $resolveContentItemByKey(payload.noteItemKey);
     return item ? [item] : [];
   }
 

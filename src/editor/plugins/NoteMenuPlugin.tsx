@@ -88,7 +88,7 @@ export function NoteMenuPlugin() {
     if (!current || !current.hasChildren) {
       return;
     }
-    editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteKey: current.noteKey });
+    editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: current.noteKey });
     closeMenu();
     editor.focus();
   };
@@ -98,7 +98,7 @@ export function NoteMenuPlugin() {
     if (!current) {
       return;
     }
-    editor.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle', noteKey: current.noteKey });
+    editor.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle', noteItemKey: current.noteKey });
     closeMenu();
     editor.focus();
   };
@@ -369,7 +369,7 @@ export function NoteMenuPlugin() {
 
     const unregisterOpenCommand = editor.registerCommand(
       OPEN_NOTE_MENU_COMMAND,
-      ({ noteKey, anchor }) => openMenuForKey(noteKey, anchor),
+      ({ noteItemKey, anchor }) => openMenuForKey(noteItemKey, anchor),
       COMMAND_PRIORITY_LOW
     );
 
