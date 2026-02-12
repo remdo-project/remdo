@@ -1,6 +1,6 @@
 import { parseDocumentRef } from '@/routing';
 
-export interface InternalNoteLink {
+interface InternalNoteLink {
   noteId: string;
   docId?: string;
 }

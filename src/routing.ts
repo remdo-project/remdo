@@ -17,7 +17,7 @@ export const DEFAULT_DOC_ID = resolveDefaultDocId(config.env.COLLAB_DOCUMENT_ID)
 
 const NOTE_REF_SEPARATOR = '_';
 
-export interface NoteRef {
+interface NoteRef {
   docId: string;
   noteId: string;
 }
@@ -54,7 +54,7 @@ export function createDocumentPath(docId: string, noteId: string | null = null):
   return `/n/${normalizedDocId}`;
 }
 
-export interface ParsedDocumentRef {
+interface ParsedDocumentRef {
   docId: string;
   noteId: string | null;
 }
