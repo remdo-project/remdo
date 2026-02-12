@@ -53,6 +53,10 @@ interface SessionContext {
   session: CollabSession;
 }
 
+interface SessionOptions {
+  hydrateFromYjs?: boolean;
+}
+
 function parseCliArguments(argv: string[]): CliArguments {
   const result: CliArguments = { markdownPath: null, minify: false };
 
@@ -245,7 +249,7 @@ async function runLoad(docId: string, collabOrigin: string, filePath: string): P
     editor.setEditorState(editor.parseEditorState(data), { tag: 'snapshot-load' });
     await done;
     await session.awaitSynced();
-  });
+  }, { hydrateFromYjs: false });
   await waitForPersistedData(docId);
   console.info(`[snapshot] load <- ${filePath}`);
 }
@@ -253,8 +257,10 @@ async function runLoad(docId: string, collabOrigin: string, filePath: string): P
 async function withSession(
   docId: string,
   collabOrigin: string,
-  run: (editor: LexicalEditor, context: SessionContext) => Promise<void> | void
+  run: (editor: LexicalEditor, context: SessionContext) => Promise<void> | void,
+  options: SessionOptions = {}
 ): Promise<void> {
+  const hydrateFromYjs = options.hydrateFromYjs ?? true;
   const docMap = new Map<string, Doc>();
   const session = new CollabSession({ enabled: true, docId, origin: collabOrigin });
   const attached = session.attach(docMap);
@@ -284,7 +290,9 @@ async function withSession(
       transaction.origin instanceof UndoManager
     );
   };
-  sharedRoot.observeDeep(observer);
+  if (hydrateFromYjs) {
+    sharedRoot.observeDeep(observer);
+  }
   const removeUpdateListener = editor.registerUpdateListener((payload) => {
     const { prevEditorState, editorState, dirtyElements, normalizedNodes, tags } = payload;
     syncLexicalUpdateToYjsV2__EXPERIMENTAL(
@@ -299,17 +307,21 @@ async function withSession(
   });
 
   try {
-    const initialUpdate = waitForEditorUpdate(editor);
     void provider.connect();
     await session.awaitSynced();
-    syncYjsStateToLexicalV2__EXPERIMENTAL(binding, provider);
-    await initialUpdate;
+    if (hydrateFromYjs) {
+      const initialUpdate = waitForEditorUpdate(editor);
+      syncYjsStateToLexicalV2__EXPERIMENTAL(binding, provider);
+      await initialUpdate;
+    }
     setInternalLinkDocContext(editor, docId);
 
     return await run(editor, { provider, session });
   } finally {
     clearInternalLinkDocContext(editor);
-    sharedRoot.unobserveDeep(observer);
+    if (hydrateFromYjs) {
+      sharedRoot.unobserveDeep(observer);
+    }
     removeUpdateListener();
     session.destroy();
     for (const doc of docMap.values()) {
