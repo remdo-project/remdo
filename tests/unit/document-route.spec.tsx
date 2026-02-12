@@ -1,21 +1,16 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import DocumentRoute from '@/routes/DocumentRoute';
 import { createDocumentPath } from '@/routing';
 
-vi.mock('@mantine/core', () => ({
-  Stack: ({ children }: { children?: ReactNode }) => <div data-testid="stack">{children}</div>,
-}));
-
 vi.mock('@/editor/Editor', async () => {
   const React = await import('react');
 
   function MockEditor({ docId }: { docId: string }) {
-    const instanceId = React.useRef(`instance-${Math.random().toString(36).slice(2)}`);
-    return <div data-doc-id={docId} data-instance-id={instanceId.current} data-testid="editor-probe" />;
+    const instanceIdRef = React.useRef(`instance-${Math.random().toString(36).slice(2)}`);
+    return <div data-doc-id={docId} data-instance-id={instanceIdRef.current} data-testid="editor-probe" />;
   }
 
   return { default: MockEditor };

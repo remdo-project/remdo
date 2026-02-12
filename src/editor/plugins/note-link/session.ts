@@ -50,7 +50,7 @@ function readQueryAcrossTextNodes(
   return null;
 }
 
-export function inferSessionFromAnchor(anchorNode: TextNode, caretOffset: number): LinkQuerySession | null {
+function inferSessionFromAnchor(anchorNode: TextNode, caretOffset: number): LinkQuerySession | null {
   let current: TextNode | null = anchorNode;
   while (current) {
     const text = current.getTextContent();

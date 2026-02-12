@@ -16,7 +16,7 @@ import { $requireInternalLinkDocContext } from '#lib/editor/internal-link-doc-co
 import { normalizeNoteIdOrThrow, normalizeOptionalNoteIdOrThrow } from '#lib/editor/note-ids';
 import { createDocumentPath } from '@/routing';
 
-export interface InternalNoteLinkRef {
+interface InternalNoteLinkRef {
   noteId: string;
   docId?: string;
 }

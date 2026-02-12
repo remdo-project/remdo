@@ -1,10 +1,10 @@
-import { Stack } from '@mantine/core';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Editor from '@/editor/Editor';
-import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
+import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
 import { createDocumentPath, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
+import './DocumentRoute.css';
 
 export default function DocumentRoute() {
   const { docRef } = useParams<{ docRef?: string }>();
@@ -27,12 +27,14 @@ export default function DocumentRoute() {
   };
 
   return (
-    <Stack gap="xs">
-      <ZoomBreadcrumbs
-        docLabel={docId}
-        path={zoomPath}
-        onSelectNoteId={setZoomNoteId}
-      />
+    <div className="document-editor-shell">
+      <header className="document-zoom-header">
+        <ZoomBreadcrumbs
+          docLabel={docId}
+          path={zoomPath}
+          onSelectNoteId={setZoomNoteId}
+        />
+      </header>
       <Editor
         key={docId}
         docId={docId}
@@ -40,6 +42,6 @@ export default function DocumentRoute() {
         onZoomNoteIdChange={setZoomNoteId}
         onZoomPathChange={setZoomPath}
       />
-    </Stack>
+    </div>
   );
 }

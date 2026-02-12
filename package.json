@@ -109,7 +109,6 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@types/ws": "catalog:",
-    "@typescript-eslint/utils": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/ui": "catalog:",
     "chokidar-cli": "catalog:",

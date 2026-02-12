@@ -14,7 +14,7 @@ const NOTE_ID_ALLOWED = new Set(
 );
 const NOTE_ID_MAX_LENGTH = 20;
 const NOTE_ID_LENGTH = 10;
-const createNoteId = customAlphabet(NOTE_ID_ALPHABET, NOTE_ID_LENGTH);
+export const createNoteId = customAlphabet(NOTE_ID_ALPHABET, NOTE_ID_LENGTH);
 
 export function normalizeNoteId(value: unknown): string | null {
   if (typeof value !== 'string') {
@@ -57,5 +57,3 @@ export function createNoteIdAvoiding(usedIds: Set<string>, testOnlyGenerator: ()
   }
   return id;
 }
-
-export { createNoteId, NOTE_ID_ALPHABET, NOTE_ID_LENGTH, NOTE_ID_MAX_LENGTH };

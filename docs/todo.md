@@ -13,9 +13,6 @@ Rules:
 
 ## Tooling
 
-- Keep `@typescript-eslint/utils` explicitly listed in dev deps for
-  `eslint-plugin-antfu` runtime imports. Drop it once the upgraded plugin
-  properly declares the dependency.
 - Replace the e2e editor test-surface CSS hack in
   `tests/e2e/editor/_support/focus.ts` (`prepareEditorTestSurface`) with a
   route or comparable harness that renders only the editor under test.
