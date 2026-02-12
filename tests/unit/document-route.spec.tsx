@@ -1,14 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import DocumentRoute from '@/routes/DocumentRoute';
 import { createDocumentPath } from '@/routing';
-
-vi.mock('@mantine/core', () => ({
-  Stack: ({ children }: { children?: ReactNode }) => <div data-testid="stack">{children}</div>,
-}));
 
 vi.mock('@/editor/Editor', async () => {
   const React = await import('react');
