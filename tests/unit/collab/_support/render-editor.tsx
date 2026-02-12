@@ -20,11 +20,17 @@ export async function renderRemdoEditor({ docId, editorProps }: RenderEditorOpti
   api: RemdoTestApi;
   unmount: () => void;
 }> {
+  const { statusPortalRoot, ...resolvedEditorProps } = editorProps ?? {};
   let api: RemdoTestApi | null = null;
 
   const { unmount } = render(
     <MantineProvider>
-      <Editor {...editorProps} docId={docId} onTestBridgeReady={(value) => { api = value as RemdoTestApi; }} />
+      <Editor
+        {...resolvedEditorProps}
+        docId={docId}
+        statusPortalRoot={statusPortalRoot ?? null}
+        onTestBridgeReady={(value) => { api = value as RemdoTestApi; }}
+      />
     </MantineProvider>
   );
 

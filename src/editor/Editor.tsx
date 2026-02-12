@@ -33,6 +33,7 @@ interface EditorProps {
   docId: string;
   onTestBridgeReady?: (api: unknown) => void;
   onTestBridgeDispose?: () => void;
+  statusPortalRoot: HTMLElement | null;
   zoomNoteId?: string | null;
   onZoomNoteIdChange?: (noteId: string | null) => void;
   onZoomPathChange?: (path: NotePathItem[]) => void;
@@ -43,6 +44,7 @@ export default function Editor({
   docId,
   onTestBridgeReady,
   onTestBridgeDispose,
+  statusPortalRoot,
   zoomNoteId,
   onZoomNoteIdChange,
   onZoomPathChange,
@@ -53,7 +55,7 @@ export default function Editor({
       <LexicalComposer initialConfig={editorInitialConfig}>
         <CollaborationPlugin docId={docId}>
           <InternalLinkDocContextPlugin />
-          <StatusIndicators />
+          <StatusIndicators portalRoot={statusPortalRoot} />
           <RichTextPlugin
             contentEditable={<ContentEditable className="editor-input" />}
             ErrorBoundary={LexicalErrorBoundary}

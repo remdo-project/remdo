@@ -12,6 +12,29 @@
   min-height: 1.9rem;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-md);
+}
+
+.document-zoom-breadcrumbs {
+  flex: 1;
+  min-width: 0;
+}
+
+.document-zoom-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  min-height: 1.2rem;
+}
+
+.document-zoom-status .editor-header {
+  position: static;
+  top: auto;
+  right: auto;
+  z-index: auto;
+  color: var(--mantine-color-dark-2);
 }
 
 .document-editor-shell .editor-container {

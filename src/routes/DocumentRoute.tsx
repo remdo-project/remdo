@@ -13,6 +13,7 @@ export default function DocumentRoute() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [zoomPath, setZoomPath] = useState<NotePathItem[]>([]);
+  const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
   const zoomNoteId = parsedRef?.noteId ?? null;
 
   const setZoomNoteId = (noteId: string | null) => {
@@ -29,15 +30,19 @@ export default function DocumentRoute() {
   return (
     <div className="document-editor-shell">
       <header className="document-zoom-header">
-        <ZoomBreadcrumbs
-          docLabel={docId}
-          path={zoomPath}
-          onSelectNoteId={setZoomNoteId}
-        />
+        <div className="document-zoom-breadcrumbs">
+          <ZoomBreadcrumbs
+            docLabel={docId}
+            path={zoomPath}
+            onSelectNoteId={setZoomNoteId}
+          />
+        </div>
+        <div className="document-zoom-status" ref={setStatusHost} />
       </header>
       <Editor
         key={docId}
         docId={docId}
+        statusPortalRoot={statusHost}
         zoomNoteId={zoomNoteId}
         onZoomNoteIdChange={setZoomNoteId}
         onZoomPathChange={setZoomPath}

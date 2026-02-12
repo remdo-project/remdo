@@ -1,4 +1,5 @@
 import { Group, Text } from '@mantine/core';
+import { createPortal } from 'react-dom';
 import { Icon } from '@/ui/Icon';
 import type { IconComponent } from '@/ui/Icon';
 import { useInvariantIndicator } from './invariant';
@@ -34,11 +35,21 @@ function renderIndicator(descriptor: StatusDescriptor) {
   );
 }
 
-export function StatusIndicators() {
+interface StatusIndicatorsProps {
+  portalRoot: HTMLElement | null;
+}
+
+export function StatusIndicators({ portalRoot }: StatusIndicatorsProps) {
   const indicators = [useInvariantIndicator(), useCollaborationIndicator()];
-  return (
+  const content = (
     <Group justify="flex-end" className="editor-header" gap="xs">
       {indicators.map(renderIndicator)}
     </Group>
   );
+
+  if (!portalRoot) {
+    return null;
+  }
+
+  return createPortal(content, portalRoot);
 }
