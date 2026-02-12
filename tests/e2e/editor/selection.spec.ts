@@ -191,7 +191,7 @@ test.describe('clipboard (caret paste placement)', () => {
       { noteId: null, text: 'plain bold it' },
       { noteId: null, text: 'A' },
       { noteId: null, text: 'BZ' },
-      { noteId: 'mixed-formatting', text: 'alic underline plain' },
+      { noteId: 'mixedFormatting', text: 'alic underline plain' },
     ]);
   });
 

@@ -23,7 +23,8 @@ line (align continuation lines by two spaces).
 Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
-- `docs/contributing.md` (Short). Runtime baselines and Git workflow/branch conventions.
+- `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch conventions, and
+  pre-1.0 compatibility policy (no default migration/back-compat requirements).
 - `docs/deployment-single-container.md` (Short). Single-container build/run (Caddy + Y-Sweet),
   `.env` overrides, `PORT`/`COLLAB_SERVER_PORT`, auth, and `DATA_DIR` mapping.
 - `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, defaults/overrides, worktrees,
@@ -41,6 +42,9 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/index.md` (Short). Entry point with links (including list types); single-source invariants rule.
 - `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,
   rendering, and toggle commands.
+- `docs/outliner/links.md` (Medium). Initial internal note-linking behavior:
+  `@` query flow, whole-document search, self-link exclusion, ranking/disambiguation
+  rules, keyboard interactions, and `[Future]` roadmap boundaries.
 - `docs/outliner/menu.md` (Short). Note menu entry points, icon visibility (hover/caret),
   targets, and actions (toggle checked/fold/zoom/child list types).
 - `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization, clipboard identity

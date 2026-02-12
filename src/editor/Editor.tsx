@@ -3,6 +3,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
+import { ClickableLinkPlugin } from '@lexical/react/LexicalClickableLinkPlugin';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollaborationPlugin } from './plugins/collaboration';
 import { CheckListPlugin } from './plugins/CheckListPlugin';
@@ -12,10 +13,12 @@ import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin
 import { SelectionCollapsePlugin } from './plugins/SelectionCollapsePlugin';
 import { InsertionPlugin } from './plugins/InsertionPlugin';
 import { DeletionPlugin } from './plugins/DeletionPlugin';
+import { NoteLinkPlugin } from './plugins/NoteLinkPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import { NoteIdPlugin } from './plugins/NoteIdPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
 import { KeymapPlugin } from './plugins/KeymapPlugin';
+import { InternalLinkDocContextPlugin } from './plugins/InternalLinkDocContextPlugin';
 import { StatusIndicators } from './StatusIndicators';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { ZoomPlugin } from './zoom/ZoomPlugin';
@@ -27,7 +30,7 @@ import './Editor.css';
 
 interface EditorProps {
   children?: React.ReactNode;
-  docId?: string;
+  docId: string;
   onTestBridgeReady?: (api: unknown) => void;
   onTestBridgeDispose?: () => void;
   zoomNoteId?: string | null;
@@ -49,6 +52,7 @@ export default function Editor({
     <div className="editor-container">
       <LexicalComposer initialConfig={editorInitialConfig}>
         <CollaborationPlugin docId={docId}>
+          <InternalLinkDocContextPlugin />
           <StatusIndicators />
           <RichTextPlugin
             contentEditable={<ContentEditable className="editor-input" />}
@@ -59,6 +63,8 @@ export default function Editor({
           <ReorderingPlugin />
           <SelectionPlugin />
           <SelectionCollapsePlugin />
+          <NoteLinkPlugin />
+          <ClickableLinkPlugin newTab={false} />
           <InsertionPlugin />
           <DeletionPlugin />
           <SelectionInputPlugin />

@@ -18,6 +18,9 @@ catalogs:
     '@lexical/eslint-plugin':
       specifier: ^0.40.0
       version: 0.40.0
+    '@lexical/link':
+      specifier: ^0.40.0
+      version: 0.40.0
     '@lexical/list':
       specifier: ^0.40.0
       version: 0.40.0
@@ -183,6 +186,9 @@ importers:
   .:
     dependencies:
       '@lexical/clipboard':
+        specifier: 'catalog:'
+        version: 0.40.0
+      '@lexical/link':
         specifier: 'catalog:'
         version: 0.40.0
       '@lexical/list':

@@ -16,9 +16,10 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     path.resolve('data', 'snapshot.cli.json'),
     path.resolve('data', 'snapshot.cli.flat.json'),
     path.resolve('data', 'snapshot.cli.tree.json'),
-    path.resolve('data', 'cli-flag.json'),
+    path.resolve('data', 'cliFlag.json'),
     path.resolve('data', 'cross-doc-check.json'),
     path.resolve('data', 'cross-doc-check-alt.json'),
+    path.resolve('data', 'snapshot.links.json'),
   ];
 
   const baseEnv = { ...process.env } satisfies NodeJS.ProcessEnv;
@@ -41,9 +42,9 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     }
   }
 
-function readEditorState(filePath: string): SerializedEditorState {
-  return JSON.parse(readFileSync(filePath, 'utf8'));
-}
+  function readEditorState(filePath: string): SerializedEditorState {
+    return JSON.parse(readFileSync(filePath, 'utf8'));
+  }
 
   afterEach(() => {
     for (const filePath of SNAPSHOT_OUTPUTS) {
@@ -52,7 +53,7 @@ function readEditorState(filePath: string): SerializedEditorState {
   });
 
   it('loads data into collaboration doc and writes it back to disk', async () => {
-    const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-basic' };
+    const docEnv = { COLLAB_DOCUMENT_ID: 'snapshotBasic' };
     const loadPath = path.resolve('tests/fixtures/basic.json');
     const expected = stripEditorStateDefaults(readEditorState(loadPath));
     const savePath = SNAPSHOT_OUTPUTS[0]!;
@@ -67,9 +68,9 @@ function readEditorState(filePath: string): SerializedEditorState {
 
   it(
     'saves the current editor state via snapshot CLI',
-    meta({ collabDocId: 'snapshot-flat', fixture: 'flat' }),
+    meta({ collabDocId: 'snapshotFlat', fixture: 'flat' }),
     async () => {
-      const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-flat' };
+      const docEnv = { COLLAB_DOCUMENT_ID: 'snapshotFlat' };
 
       const savePath = SNAPSHOT_OUTPUTS[1]!;
       const expectedState = stripEditorStateDefaults(readEditorState(path.resolve('tests/fixtures/flat.json')));
@@ -83,9 +84,9 @@ function readEditorState(filePath: string): SerializedEditorState {
 
   it(
     'loads a snapshot fixture into the editor',
-    meta({ collabDocId: 'snapshot-tree' }),
+    meta({ collabDocId: 'snapshotTree' }),
     async ({ remdo }) => {
-      const docEnv = { COLLAB_DOCUMENT_ID: 'snapshot-tree' };
+      const docEnv = { COLLAB_DOCUMENT_ID: 'snapshotTree' };
       const loadPath = path.resolve('tests/fixtures/tree.json');
       runSnapshotCommand('load', [loadPath], docEnv);
 
@@ -106,7 +107,7 @@ function readEditorState(filePath: string): SerializedEditorState {
   );
 
   it('resolves the document id from the CLI flag', async () => {
-    const docId = 'cli-flag';
+    const docId = 'cliFlag';
     const loadPath = path.resolve('tests/fixtures/basic.json');
     const expected = stripEditorStateDefaults(readEditorState(loadPath));
     const savePath = path.resolve('data', `${docId}.json`);
@@ -138,7 +139,7 @@ function readEditorState(filePath: string): SerializedEditorState {
     'cross-loads and saves multiple documents without crosstalk',
     async ({ remdo }: TestContext) => {
       const defaultDoc = remdo.getCollabDocId();
-      const secondaryDoc = `${defaultDoc}-secondary`;
+      const secondaryDoc = `${defaultDoc}S`;
       const envOverrides = {
         COLLAB_DOCUMENT_ID: defaultDoc,
         VITE_COLLAB_DOCUMENT_ID: defaultDoc,
@@ -170,4 +171,19 @@ function readEditorState(filePath: string): SerializedEditorState {
       });
     }
   );
+
+  it('saves same-doc and cross-doc internal links from fixture', async () => {
+    const docId = 'snapshotLinksDoc';
+    const fixturePath = path.resolve('tests/fixtures/links.json');
+    const outputPath = path.resolve('data', 'snapshot.links.json');
+    const expected = stripEditorStateDefaults(readEditorState(fixturePath));
+
+    runSnapshotCommand('load', ['--doc', docId, fixturePath]);
+
+    await waitFor(() => {
+      runSnapshotCommand('save', ['--doc', docId, outputPath]);
+      const saved = stripEditorStateDefaults(readEditorState(outputPath));
+      expect(saved.root).toEqual(expected.root);
+    });
+  });
 });

@@ -1,14 +1,10 @@
 import { createBrowserRouter, redirect } from 'react-router-dom';
 import App from './App';
 import DocumentRoute from './routes/DocumentRoute';
-import { DEFAULT_DOC_ID } from './routing';
+import { createDocumentPath, DEFAULT_DOC_ID, normalizeDocumentId, parseDocumentRef } from './routing';
 
-const buildSearch = (zoom: string | null, lexicalDemo: boolean): string => {
+const buildSearch = (lexicalDemo: boolean): string => {
   const searchParams = new URLSearchParams();
-  const trimmedZoom = zoom?.trim();
-  if (trimmedZoom) {
-    searchParams.set('zoom', trimmedZoom);
-  }
   if (lexicalDemo) {
     searchParams.set('lexicalDemo', 'true');
   }
@@ -19,10 +15,9 @@ const buildSearch = (zoom: string | null, lexicalDemo: boolean): string => {
 const redirectToDoc = (request: Request): string => {
   const url = new URL(request.url);
   const params = url.searchParams;
-  const docId = params.get('doc')?.trim() || DEFAULT_DOC_ID;
-  const zoom = params.get('zoom');
+  const docId = normalizeDocumentId(params.get('doc')) ?? DEFAULT_DOC_ID;
   const lexicalDemo = params.has('lexicalDemo');
-  return `/n/${docId}${buildSearch(zoom, lexicalDemo)}`;
+  return `${createDocumentPath(docId)}${buildSearch(lexicalDemo)}`;
 };
 
 export const router = createBrowserRouter([
@@ -37,7 +32,21 @@ export const router = createBrowserRouter([
         },
       },
       {
-        path: 'n/:docId',
+        path: 'n/:docRef',
+        loader: ({ request, params }) => {
+          const url = new URL(request.url);
+          const parsed = parseDocumentRef(params.docRef);
+          if (!parsed) {
+            throw redirect(`${createDocumentPath(DEFAULT_DOC_ID)}${url.search}`);
+          }
+
+          const canonicalPath = createDocumentPath(parsed.docId, parsed.noteId);
+          if (url.pathname !== canonicalPath) {
+            throw redirect(`${canonicalPath}${url.search}`);
+          }
+
+          return null;
+        },
         element: <DocumentRoute />,
       },
     ],

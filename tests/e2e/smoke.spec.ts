@@ -1,7 +1,11 @@
 import { expect, test } from '#e2e/fixtures';
 import { config } from '#config';
+import { normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
 
-const defaultDocId = config.env.COLLAB_DOCUMENT_ID.trim() || 'project';
+const defaultDocId = normalizeNoteIdOrThrow(
+  config.env.COLLAB_DOCUMENT_ID,
+  'E2E smoke requires a valid COLLAB_DOCUMENT_ID.',
+);
 
 test.describe('App smoke', () => {
   test('renders shell', async ({ page }) => {

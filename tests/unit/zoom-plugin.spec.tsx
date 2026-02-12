@@ -8,7 +8,7 @@ import {
   placeCaretAtNote,
   pressKey,
   readCaretNoteId,
-  registerEditorProps,
+  registerScopedEditorProps,
 } from '#tests';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
@@ -31,12 +31,6 @@ const waitForCall = async (fn: () => void, attempts = 20) => {
   fn();
 };
 
-const createEditorPropsKey = (prefix: string, props: Parameters<typeof registerEditorProps>[1]) => {
-  const key = `${prefix}-${Math.random().toString(36).slice(2)}`;
-  registerEditorProps(key, props);
-  return key;
-};
-
 const collectNoteIds = (node: SerializedNode, ids: string[] = []): string[] => {
   if (typeof node.noteId === 'string') {
     ids.push(node.noteId);
@@ -51,7 +45,7 @@ const collectNoteIds = (node: SerializedNode, ids: string[] = []): string[] => {
 
 describe('zoom plugin', () => {
   const zoomPathSpy = vi.fn();
-  const zoomPathKey = createEditorPropsKey('zoom-path', { zoomNoteId: 'note2', onZoomPathChange: zoomPathSpy });
+  const zoomPathKey = registerScopedEditorProps('zoom-path', { zoomNoteId: 'note2', onZoomPathChange: zoomPathSpy });
 
   it(
     'emits the zoom path for a valid zoom note id',
@@ -95,9 +89,9 @@ describe('zoom plugin', () => {
   );
 
   const zoomNoteSpy = vi.fn();
-  const zoomNoteKey = createEditorPropsKey('zoom-bullet', { zoomNoteId: null, onZoomNoteIdChange: zoomNoteSpy });
+  const zoomNoteKey = registerScopedEditorProps('zoom-bullet', { zoomNoteId: null, onZoomNoteIdChange: zoomNoteSpy });
   const zoomCommandSpy = vi.fn();
-  const zoomCommandKey = createEditorPropsKey('zoom-command', { zoomNoteId: null, onZoomNoteIdChange: zoomCommandSpy });
+  const zoomCommandKey = registerScopedEditorProps('zoom-command', { zoomNoteId: null, onZoomNoteIdChange: zoomCommandSpy });
 
   it(
     'requests zoom when the bullet is clicked',
@@ -139,16 +133,16 @@ describe('zoom plugin', () => {
   );
 
   const zoomAutoSpy = vi.fn();
-  const zoomAutoKey = createEditorPropsKey('zoom-auto', { zoomNoteId: 'note2', onZoomNoteIdChange: zoomAutoSpy });
+  const zoomAutoKey = registerScopedEditorProps('zoom-auto', { zoomNoteId: 'note2', onZoomNoteIdChange: zoomAutoSpy });
   const zoomAutoPathNoteSpy = vi.fn();
   const zoomAutoPathSpy = vi.fn();
-  const zoomAutoPathKey = createEditorPropsKey('zoom-auto-path', {
+  const zoomAutoPathKey = registerScopedEditorProps('zoom-auto-path', {
     zoomNoteId: 'note2',
     onZoomNoteIdChange: zoomAutoPathNoteSpy,
     onZoomPathChange: zoomAutoPathSpy,
   });
   const zoomInsideSpy = vi.fn();
-  const zoomInsideKey = createEditorPropsKey('zoom-inside-empty-leaf', {
+  const zoomInsideKey = registerScopedEditorProps('zoom-inside-empty-leaf', {
     zoomNoteId: 'note1',
     onZoomNoteIdChange: zoomInsideSpy,
   });

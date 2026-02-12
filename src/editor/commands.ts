@@ -5,19 +5,21 @@ export const REORDER_NOTES_DOWN_COMMAND = createCommand<undefined>('remdo:reorde
 export type NoteCheckedState = 'checked' | 'unchecked' | 'toggle';
 export interface SetNoteCheckedPayload {
   state: NoteCheckedState;
-  noteKey?: string;
+  noteItemKey?: string;
 }
 export const SET_NOTE_CHECKED_COMMAND = createCommand<SetNoteCheckedPayload>('remdo:set-note-checked');
 type NoteFoldState = 'folded' | 'unfolded' | 'toggle';
 interface SetNoteFoldPayload {
   state: NoteFoldState;
-  noteKey: string;
+  noteItemKey: string;
 }
 export const SET_NOTE_FOLD_COMMAND = createCommand<SetNoteFoldPayload>('remdo:set-note-fold');
 export const OPEN_NOTE_MENU_COMMAND = createCommand<{
-  noteKey: string;
+  noteItemKey: string;
   anchor?: { left: number; top: number };
 }>('remdo:open-note-menu');
+// Keep zoom payload as noteId: callers can dispatch from persisted app/UI state
+// outside the current editor state, while Lexical node keys are ephemeral and may be stale.
 export const ZOOM_TO_NOTE_COMMAND = createCommand<{ noteId: string }>('remdo:zoom-to-note');
 export const COLLAPSE_STRUCTURAL_SELECTION_COMMAND = createCommand<{
   edge?: 'start' | 'end' | 'anchor';

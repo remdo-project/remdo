@@ -80,7 +80,7 @@ test.describe('Zoom visibility', () => {
     const metrics = await getBulletMetrics(note2);
 
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
     await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
     await page.keyboard.press('Enter');
 
@@ -97,7 +97,7 @@ test.describe('Zoom visibility', () => {
     const metrics = await getBulletMetrics(note2);
 
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
 
     await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
     await page.keyboard.press('Delete');
@@ -115,7 +115,7 @@ test.describe('Zoom visibility', () => {
     const metrics = await getBulletMetrics(note2);
 
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
 
     await setCaretAtText(page, 'note2', 0);
     await page.keyboard.press('Backspace');
@@ -135,7 +135,7 @@ test.describe('Zoom visibility', () => {
     await updateNoteText(page, 'note3', '');
 
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
 
     await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
     await page.keyboard.press('Delete');
@@ -153,12 +153,12 @@ test.describe('Zoom visibility', () => {
     const metrics = await getBulletMetrics(note1);
 
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
 
     await setCaretAtText(page, 'note1', 0);
     await page.keyboard.press('Backspace');
 
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
     await expect(note3).toBeHidden();
   });
 
@@ -171,12 +171,12 @@ test.describe('Zoom visibility', () => {
     const metrics = await getBulletMetrics(note3);
 
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note3$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note3$`));
 
     await setCaretAtText(page, 'note3', Number.POSITIVE_INFINITY);
     await page.keyboard.press('Delete');
 
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note3$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note3$`));
     await expect(note1).toBeHidden();
   });
 
@@ -188,11 +188,11 @@ test.describe('Zoom visibility', () => {
     const metrics = await getBulletMetrics(note2);
 
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
     await setCaretAtText(page, 'note2', 0);
     await page.keyboard.press('Tab');
 
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
     await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeHidden();
   });
 
@@ -204,7 +204,7 @@ test.describe('Zoom visibility', () => {
     const metrics = await getBulletMetrics(note2);
 
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
     await setCaretAtText(page, 'note2', 1);
     await pastePlainText(page, 'A\nB');
 
@@ -221,12 +221,12 @@ test.describe('Zoom visibility', () => {
     const metrics = await getBulletMetrics(note2Text);
 
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
 
     await setCaretAtText(page, 'note3', 0);
     await page.keyboard.press('Shift+Tab');
 
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
     await expect(note4).toBeVisible();
   });
 
@@ -239,13 +239,13 @@ test.describe('Zoom visibility', () => {
     const metrics = await getBulletMetrics(note1);
 
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
 
     const breadcrumbs = page.getByRole('button', { name: editor.docId }).locator('..');
     const currentCrumb = breadcrumbs.locator('[data-zoom-crumb="current"]').first();
     await currentCrumb.click();
 
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
     await expect(note3).toBeHidden();
   });
 
@@ -258,11 +258,11 @@ test.describe('Zoom visibility', () => {
     const metrics = await getBulletMetrics(note1);
 
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
     await expect(note3).toBeHidden();
 
     await page.reload();
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note1$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
     await expect(note3).toBeHidden();
   });
 
@@ -274,7 +274,7 @@ test.describe('Zoom visibility', () => {
     const metrics = await getBulletMetrics(note2Text);
 
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}\?zoom=note2$`));
+    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note2$`));
 
     await setCaretAtText(page, 'note2', 0);
     await page.keyboard.press('Control+A');

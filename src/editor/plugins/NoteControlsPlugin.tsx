@@ -307,7 +307,7 @@ export function NoteControlsPlugin() {
     const button = event.currentTarget;
     const container = button.closest<HTMLElement>('.editor-container');
     if (!container) {
-      editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteKey: controls.noteKey });
+      editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: controls.noteKey });
       editor.focus();
       return;
     }
@@ -317,14 +317,14 @@ export function NoteControlsPlugin() {
       left: rect.right - containerRect.left,
       top: rect.top - containerRect.top + rect.height / 2,
     };
-    editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteKey: controls.noteKey, anchor });
+    editor.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: controls.noteKey, anchor });
     editor.focus();
   };
 
   const onFoldPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteKey: controls.noteKey });
+    editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: controls.noteKey });
     editor.focus();
   };
 

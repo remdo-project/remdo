@@ -1,24 +1,24 @@
 {
-  "generatedAt": "2026-02-08T16:14:24.524Z",
+  "generatedAt": "2026-02-09T16:42:16.276Z",
   "files": {
-    "totalFiles": 276,
-    "textFiles": 276,
+    "totalFiles": 290,
+    "textFiles": 290,
     "byType": {
       "ts": {
-        "files": 139,
-        "lines": 13151
+        "files": 149,
+        "lines": 13923
       },
       "tsx": {
-        "files": 45,
-        "lines": 6040
+        "files": 47,
+        "lines": 6521
       },
       "json": {
-        "files": 27,
-        "lines": 1965
+        "files": 28,
+        "lines": 2068
       },
       "md": {
-        "files": 19,
-        "lines": 1125
+        "files": 20,
+        "lines": 1220
       },
       "sh": {
         "files": 10,
@@ -34,7 +34,7 @@
       },
       "css": {
         "files": 5,
-        "lines": 502
+        "lines": 554
       },
       "jsonc": {
         "files": 2,
@@ -46,7 +46,7 @@
       },
       "yaml": {
         "files": 2,
-        "lines": 91
+        "lines": 92
       },
       "caddyfile": {
         "files": 1,
@@ -87,18 +87,18 @@
     }
   },
   "tests": {
-    "unit": 266,
-    "collab": 298,
-    "e2e": 69,
-    "totalUnique": 367
+    "unit": 287,
+    "collab": 319,
+    "e2e": 77,
+    "totalUnique": 396
   },
   "totals": {
     "files": {
-      "files": 275,
-      "lines": 24039
+      "files": 289,
+      "lines": 25543
     },
     "tests": {
-      "totalUnique": 367
+      "totalUnique": 396
     }
   }
 }

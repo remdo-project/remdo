@@ -7,7 +7,7 @@ import { runPnpm } from '#tools/process';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('collab persistence', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
-  const docId = 'persist-collab-test';
+  const docId = 'persistCollabTest';
   const docDir = path.join(config.env.DATA_DIR, 'collab', docId);
   const dataFile = path.join(docDir, 'data.ysweet');
   const snapshotPath = path.resolve('data', `${docId}.json`);

@@ -3,7 +3,7 @@ import { config } from '#config';
 import { editorLocator } from '#editor/locators';
 import { ensureReady } from '#editor/bridge';
 
-const DOCKER_SMOKE_DOC_ID = 'docker-smoke';
+const DOCKER_SMOKE_DOC_ID = 'dockerSmoke';
 
 test('user can enter notes and see them rendered', async ({ page }) => {
   // Docker smoke runs against the prod build where the dev TestBridge is absent,

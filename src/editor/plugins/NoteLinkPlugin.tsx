@@ -1,0 +1,488 @@
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { mergeRegister } from '@lexical/utils';
+import {
+  $createRangeSelection,
+  $createTextNode,
+  $getSelection,
+  $isRangeSelection,
+  $isTextNode,
+  $setSelection,
+  COMMAND_PRIORITY_CRITICAL,
+  COMMAND_PRIORITY_LOW,
+  KEY_ARROW_DOWN_COMMAND,
+  KEY_ARROW_UP_COMMAND,
+  KEY_BACKSPACE_COMMAND,
+  KEY_DOWN_COMMAND,
+  KEY_ENTER_COMMAND,
+  KEY_ESCAPE_COMMAND,
+  KEY_TAB_COMMAND,
+} from 'lexical';
+import type { MouseEvent as ReactMouseEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { $createInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
+import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
+import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
+import { resolveLinkPickerAnchor } from './note-link/anchor';
+import { clampActiveIndex, LINK_PICKER_RESULT_LIMIT, $resolveLinkPickerOptions } from './note-link/options';
+import { NoteLinkPicker } from './note-link/NoteLinkPicker';
+import { $resolveLinkQuerySession } from './note-link/session';
+import type { ActiveLinkQuery, LinkPickerState, LinkQuerySession } from './note-link/types';
+
+function isTypingTrigger(event: KeyboardEvent): boolean {
+  return event.key === '@' && !event.altKey && !event.metaKey && !event.ctrlKey;
+}
+
+export function NoteLinkPlugin() {
+  const [editor] = useLexicalComposerContext();
+  const { docId } = useCollaborationStatus();
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(() => {
+    const root = editor.getRootElement();
+    return root ? root.closest<HTMLElement>('.editor-container') : null;
+  });
+  const [picker, setPicker] = useState<LinkPickerState | null>(null);
+
+  const pickerRef = useRef<LinkPickerState | null>(null);
+  const sessionRef = useRef<LinkQuerySession | null>(null);
+  const pendingTriggerRef = useRef(false);
+
+  const setPickerState = useCallback((next: LinkPickerState | null) => {
+    pickerRef.current = next;
+    setPicker(next);
+  }, []);
+
+  const closeSession = useCallback(() => {
+    sessionRef.current = null;
+    pendingTriggerRef.current = false;
+    setPickerState(null);
+  }, [setPickerState]);
+
+  const syncPickerFromSelection = useCallback(() => {
+    const nextState = editor.getEditorState().read((): {
+      kind: 'update';
+      query: string;
+      options: LinkPickerState['options'];
+      activeIndex: number;
+    } | { kind: 'keep' } | { kind: 'close' } => {
+      if (editor.selection.isStructural()) {
+        return { kind: 'close' };
+      }
+
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+        return sessionRef.current ? { kind: 'keep' } : { kind: 'close' };
+      }
+
+      const anchorNode = selection.anchor.getNode();
+      if (!$isTextNode(anchorNode)) {
+        return sessionRef.current ? { kind: 'keep' } : { kind: 'close' };
+      }
+
+      const caretOffset = selection.anchor.offset;
+      const pendingTrigger = pendingTriggerRef.current;
+      pendingTriggerRef.current = false;
+
+      const currentSession = sessionRef.current;
+      if (!pendingTrigger && !currentSession) {
+        return { kind: 'close' };
+      }
+
+      const seededSession = pendingTrigger
+        ? {
+            textNodeKey: anchorNode.getKey(),
+            triggerOffset: caretOffset - 1,
+          }
+        : currentSession;
+
+      const resolved = $resolveLinkQuerySession(anchorNode, caretOffset, seededSession);
+      if (!resolved) {
+        sessionRef.current = null;
+        return { kind: 'close' };
+      }
+
+      sessionRef.current = resolved.session;
+      const nextOptions = $resolveLinkPickerOptions(resolved.query, anchorNode, LINK_PICKER_RESULT_LIMIT);
+      const nextActiveIndex = clampActiveIndex(pickerRef.current?.activeIndex ?? 0, nextOptions.length);
+
+      return {
+        kind: 'update',
+        query: resolved.query,
+        options: nextOptions,
+        activeIndex: nextActiveIndex,
+      };
+    });
+
+    if (nextState.kind === 'close') {
+      closeSession();
+      return;
+    }
+
+    if (nextState.kind === 'keep') {
+      return;
+    }
+
+    const anchor = resolveLinkPickerAnchor(editor);
+    if (!anchor) {
+      closeSession();
+      return;
+    }
+
+    setPickerState({
+      query: nextState.query,
+      options: nextState.options,
+      activeIndex: nextState.activeIndex,
+      anchor,
+    });
+  }, [closeSession, editor, setPickerState]);
+
+  const moveActive = useCallback(
+    (direction: 'up' | 'down') => {
+      const current = pickerRef.current;
+      if (!current || current.options.length === 0) {
+        return;
+      }
+
+      const delta = direction === 'down' ? 1 : -1;
+      const nextIndex = clampActiveIndex(current.activeIndex + delta, current.options.length);
+      if (nextIndex === current.activeIndex) {
+        return;
+      }
+
+      setPickerState({ ...current, activeIndex: nextIndex });
+    },
+    [setPickerState]
+  );
+
+  const setActiveIndex = useCallback(
+    (index: number) => {
+      const current = pickerRef.current;
+      if (!current || current.options.length === 0) {
+        return;
+      }
+
+      const nextIndex = clampActiveIndex(index, current.options.length);
+      if (nextIndex === current.activeIndex) {
+        return;
+      }
+
+      setPickerState({ ...current, activeIndex: nextIndex });
+    },
+    [setPickerState]
+  );
+
+  const $resolveActiveQuery = useCallback((): ActiveLinkQuery | null => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+      return null;
+    }
+
+    const anchorNode = selection.anchor.getNode();
+    if (!$isTextNode(anchorNode)) {
+      return null;
+    }
+
+    const currentSession = sessionRef.current;
+    if (!currentSession) {
+      return null;
+    }
+
+    const caretOffset = selection.anchor.offset;
+    const resolved = $resolveLinkQuerySession(anchorNode, caretOffset, currentSession);
+    if (!resolved) {
+      sessionRef.current = null;
+      return null;
+    }
+
+    sessionRef.current = resolved.session;
+    return {
+      triggerNode: resolved.triggerNode,
+      anchorNode,
+      caretOffset,
+      query: resolved.query,
+    };
+  }, []);
+
+  const $removeActiveQueryToken = useCallback((): boolean => {
+    const activeQuery = $resolveActiveQuery();
+    if (!activeQuery || !sessionRef.current) {
+      return false;
+    }
+
+    const range = $createRangeSelection();
+    range.setTextNodeRange(
+      activeQuery.triggerNode,
+      sessionRef.current.triggerOffset,
+      activeQuery.anchorNode,
+      activeQuery.caretOffset
+    );
+    $setSelection(range);
+    range.insertText('');
+
+    closeSession();
+    return true;
+  }, [$resolveActiveQuery, closeSession]);
+
+  const $confirmActiveOption = useCallback((forcedActiveIndex?: number): boolean => {
+    const activeQuery = $resolveActiveQuery();
+    if (!activeQuery || !sessionRef.current) {
+      return false;
+    }
+
+    const options = $resolveLinkPickerOptions(activeQuery.query, activeQuery.anchorNode, LINK_PICKER_RESULT_LIMIT);
+    if (options.length === 0) {
+      closeSession();
+      return true;
+    }
+
+    const activeIndex = clampActiveIndex(forcedActiveIndex ?? (pickerRef.current?.activeIndex ?? 0), options.length);
+    const activeOption = options[activeIndex];
+    if (!activeOption) {
+      return true;
+    }
+
+    const range = $createRangeSelection();
+    range.setTextNodeRange(
+      activeQuery.triggerNode,
+      sessionRef.current.triggerOffset,
+      activeQuery.anchorNode,
+      activeQuery.caretOffset
+    );
+    $setSelection(range);
+    range.insertText('');
+
+    const insertionSelection = $getSelection();
+    if (!$isRangeSelection(insertionSelection)) {
+      return false;
+    }
+
+    const linkNode = $createInternalNoteLinkNode({ noteId: activeOption.noteId }, {}, docId);
+    linkNode.append($createTextNode(activeOption.title));
+    insertionSelection.insertNodes([linkNode, $createTextNode(' ')]);
+
+    closeSession();
+    return true;
+  }, [$resolveActiveQuery, closeSession, docId]);
+
+  const handlePickerMouseDown = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+    // Keep the caret/selection stable while interacting with the picker.
+    event.preventDefault();
+  }, []);
+
+  const handleItemMouseOver = useCallback((index: number) => {
+    setActiveIndex(index);
+  }, [setActiveIndex]);
+
+  const handleItemMouseDown = useCallback(
+    (index: number, event: ReactMouseEvent<HTMLDivElement>) => {
+      if (event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+
+      editor.update(() => {
+        $confirmActiveOption(index);
+      });
+    },
+    [$confirmActiveOption, editor]
+  );
+
+  useEffect(() => {
+    installOutlineSelectionHelpers(editor);
+    syncPickerFromSelection();
+
+    return mergeRegister(
+      editor.registerRootListener((nextRoot, previousRoot) => {
+        if (previousRoot === nextRoot) {
+          return;
+        }
+        setPortalRoot(nextRoot ? nextRoot.closest<HTMLElement>('.editor-container') : null);
+      }),
+      editor.registerUpdateListener(() => {
+        syncPickerFromSelection();
+      }),
+      editor.registerCommand(
+        KEY_DOWN_COMMAND,
+        (event: KeyboardEvent | null) => {
+          if (!event || sessionRef.current) {
+            return false;
+          }
+          if (event.isComposing) {
+            return false;
+          }
+          if (editor.selection.isStructural()) {
+            return false;
+          }
+          if (!isTypingTrigger(event)) {
+            return false;
+          }
+          pendingTriggerRef.current = true;
+          return false;
+        },
+        COMMAND_PRIORITY_LOW
+      ),
+      editor.registerCommand(
+        KEY_ARROW_DOWN_COMMAND,
+        (event: KeyboardEvent | null) => {
+          if (!sessionRef.current) {
+            return false;
+          }
+          if (event && (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)) {
+            return false;
+          }
+          event?.preventDefault();
+          event?.stopPropagation();
+          moveActive('down');
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_ARROW_UP_COMMAND,
+        (event: KeyboardEvent | null) => {
+          if (!sessionRef.current) {
+            return false;
+          }
+          if (event && (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)) {
+            return false;
+          }
+          event?.preventDefault();
+          event?.stopPropagation();
+          moveActive('up');
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_ENTER_COMMAND,
+        (event: KeyboardEvent | null) => {
+          const handled = $confirmActiveOption();
+          if (!handled) {
+            return false;
+          }
+          event?.preventDefault();
+          event?.stopPropagation();
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_TAB_COMMAND,
+        (event: KeyboardEvent | null) => {
+          const handled = $confirmActiveOption();
+          if (!handled) {
+            return false;
+          }
+          event?.preventDefault();
+          event?.stopPropagation();
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_ESCAPE_COMMAND,
+        (event: KeyboardEvent | null) => {
+          const handled = $removeActiveQueryToken();
+          if (!handled) {
+            return false;
+          }
+          event?.preventDefault();
+          event?.stopPropagation();
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_BACKSPACE_COMMAND,
+        (event: KeyboardEvent | null) => {
+          const current = pickerRef.current;
+          if (!sessionRef.current || !current || current.query.length > 0) {
+            return false;
+          }
+          event?.preventDefault();
+          event?.stopPropagation();
+          closeSession();
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      () => {
+        closeSession();
+      }
+    );
+  }, [closeSession, $confirmActiveOption, editor, moveActive, $removeActiveQueryToken, syncPickerFromSelection]);
+
+  useEffect(() => {
+    const registerRootBlurListener = (root: HTMLElement | null) => {
+      if (!root) {
+        return () => {};
+      }
+
+      const handleRootBlur = () => {
+        if (!sessionRef.current) {
+          return;
+        }
+        closeSession();
+      };
+
+      // eslint-disable-next-line react-web-api/no-leaked-event-listener -- removed in returned cleanup.
+      root.addEventListener('blur', handleRootBlur, true);
+      return () => {
+        root.removeEventListener('blur', handleRootBlur, true);
+      };
+    };
+
+    let disposeRootBlurListener = registerRootBlurListener(editor.getRootElement());
+    const unregisterRootListener = editor.registerRootListener((nextRoot, previousRoot) => {
+      if (nextRoot === previousRoot) {
+        return;
+      }
+      disposeRootBlurListener();
+      disposeRootBlurListener = registerRootBlurListener(nextRoot);
+    });
+
+    const handleDocumentMouseDown = (event: MouseEvent) => {
+      if (!sessionRef.current) {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      const root = editor.getRootElement();
+      if (root && root.contains(target)) {
+        return;
+      }
+
+      const targetElement = target instanceof Element ? target : target.parentElement;
+      if (targetElement?.closest('[data-note-link-picker]')) {
+        return;
+      }
+
+      closeSession();
+    };
+    document.addEventListener('mousedown', handleDocumentMouseDown, true);
+
+    return () => {
+      unregisterRootListener();
+      disposeRootBlurListener();
+      document.removeEventListener('mousedown', handleDocumentMouseDown, true);
+    };
+  }, [closeSession, editor]);
+
+  if (!picker || !portalRoot) {
+    return null;
+  }
+
+  return (
+    <NoteLinkPicker
+      picker={picker}
+      portalRoot={portalRoot}
+      onPickerMouseDown={handlePickerMouseDown}
+      onItemMouseOver={handleItemMouseOver}
+      onItemMouseDown={handleItemMouseDown}
+    />
+  );
+}
