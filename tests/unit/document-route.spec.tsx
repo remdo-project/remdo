@@ -14,8 +14,8 @@ vi.mock('@/editor/Editor', async () => {
   const React = await import('react');
 
   function MockEditor({ docId }: { docId: string }) {
-    const instanceId = React.useRef(`instance-${Math.random().toString(36).slice(2)}`);
-    return <div data-doc-id={docId} data-instance-id={instanceId.current} data-testid="editor-probe" />;
+    const instanceIdRef = React.useRef(`instance-${Math.random().toString(36).slice(2)}`);
+    return <div data-doc-id={docId} data-instance-id={instanceIdRef.current} data-testid="editor-probe" />;
   }
 
   return { default: MockEditor };
