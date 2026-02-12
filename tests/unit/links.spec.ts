@@ -1,5 +1,6 @@
 import { $isLinkNode } from '@lexical/link';
-import { PASTE_COMMAND } from 'lexical';
+import { act } from '@testing-library/react';
+import { CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { $isInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
@@ -12,6 +13,28 @@ async function pastePlainText(remdo: RemdoTestApi, text: string) {
   transfer.setData('text/plain', text);
   const event = new ClipboardEvent('paste', { clipboardData: transfer });
   await remdo.dispatchCommand(PASTE_COMMAND, event, { expect: 'any' });
+}
+
+async function typeAltGraphAt(remdo: RemdoTestApi) {
+  const root = remdo.editor.getRootElement();
+  expect(root).not.toBeNull();
+
+  const event = new KeyboardEvent('keydown', {
+    key: '@',
+    bubbles: true,
+    cancelable: true,
+    altKey: true,
+    ctrlKey: true,
+  });
+
+  await act(async () => {
+    const allowed = root!.dispatchEvent(event);
+    if (allowed) {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, '@');
+    }
+  });
+
+  await remdo.waitForSynced();
 }
 
 describe('note links (docs/outliner/links.md)', () => {
@@ -39,6 +62,17 @@ describe('note links (docs/outliner/links.md)', () => {
       }
       expect(note.getTextContent().endsWith(' ')).toBe(true);
     });
+  });
+
+  it('opens link-query mode when @ is entered with AltGr modifiers', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeAltGraphAt(remdo);
+
+    // Many non-US layouts produce '@' via AltGr (reported as Ctrl+Alt).
+    // We enforce this so link-query remains keyboard-accessible on those layouts.
+    expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
+    const optionTitles = [...document.querySelectorAll('.note-link-picker__title')].map((node) => node.textContent);
+    expect(optionTitles).toEqual(['note2', 'note3']);
   });
 
   it('confirms the active option with Tab', meta({ fixture: 'flat' }), async ({ remdo }) => {

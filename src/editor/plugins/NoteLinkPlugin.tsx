@@ -30,7 +30,17 @@ import { $resolveLinkQuerySession } from './note-link/session';
 import type { ActiveLinkQuery, LinkPickerState, LinkQuerySession } from './note-link/types';
 
 function isTypingTrigger(event: KeyboardEvent): boolean {
-  return event.key === '@' && !event.altKey && !event.metaKey && !event.ctrlKey;
+  if (event.key !== '@' || event.metaKey) {
+    return false;
+  }
+
+  const altGraphActive = event.getModifierState('AltGraph');
+  const ctrlAltChord = event.ctrlKey && event.altKey;
+  if (altGraphActive || ctrlAltChord) {
+    return true;
+  }
+
+  return !event.altKey && !event.ctrlKey;
 }
 
 export function NoteLinkPlugin() {
