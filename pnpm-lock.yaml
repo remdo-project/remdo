@@ -72,9 +72,6 @@ catalogs:
     '@types/ws':
       specifier: ^8.18.1
       version: 8.18.1
-    '@typescript-eslint/utils':
-      specifier: ^8.55.0
-      version: 8.55.0
     '@vitest/coverage-v8':
       specifier: ^4.0.18
       version: 4.0.18
@@ -276,9 +273,6 @@ importers:
       '@types/ws':
         specifier: 'catalog:'
         version: 8.18.1
-      '@typescript-eslint/utils':
-        specifier: 'catalog:'
-        version: 8.55.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 4.0.18(vitest@4.0.18)
