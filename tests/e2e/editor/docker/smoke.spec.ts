@@ -6,17 +6,17 @@ import { ensureReady } from '#editor/bridge';
 
 const DOCKER_SMOKE_DOC_ID = 'dockerSmoke';
 // eslint-disable-next-line node/no-process-env
-const TINYAUTH_USER = process.env.TINYAUTH_USER;
+const AUTH_USER = process.env.AUTH_USER;
 // eslint-disable-next-line node/no-process-env
-const TINYAUTH_PASSWORD = process.env.TINYAUTH_PASSWORD;
+const AUTH_PASSWORD = process.env.AUTH_PASSWORD;
 
 function getDockerAuth() {
-  if (!TINYAUTH_USER || !TINYAUTH_PASSWORD) {
-    throw new Error('Docker smoke requires TINYAUTH_USER and TINYAUTH_PASSWORD.');
+  if (!AUTH_USER || !AUTH_PASSWORD) {
+    throw new Error('Docker smoke requires AUTH_USER and AUTH_PASSWORD.');
   }
   return {
-    user: TINYAUTH_USER,
-    password: TINYAUTH_PASSWORD,
+    user: AUTH_USER,
+    password: AUTH_PASSWORD,
   };
 }
 

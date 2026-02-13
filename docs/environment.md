@@ -65,11 +65,11 @@ DATA_DIR=data-optA
 ### Host OS
 
 - `.env` lives in the repo root on the host.
-- Required: `TINYAUTH_PASSWORD`.
-- Typical setup: set `TINYAUTH_PASSWORD` and, if needed, `PORT`; leave other
+- Required: `AUTH_PASSWORD`.
+- Typical setup: set `AUTH_PASSWORD` and, if needed, `PORT`; leave other
   auth URL vars on defaults.
 - Optional: `PORT` (defaults to 4000).
-- Optional: `TINYAUTH_USER` (defaults to the current host username).
+- Optional: `AUTH_USER` (defaults to the current host username).
 - Optional: `PUBLIC_BASE_DOMAIN` (defaults from hostname:
   single-label -> `app.<hostname>.shared`,
   dotted/localhost/unknown -> `app.remdo.localhost`).

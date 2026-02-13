@@ -12,9 +12,9 @@ Docker image. It assumes a single external port.
 Environment variables and defaults are documented in `docs/environment.md`.
 
 Tinyauth protects both the SPA and Y-Sweet through Caddy `forward_auth`.
-`TINYAUTH_USER` and `TINYAUTH_PASSWORD` are used at startup to generate a
+`AUTH_USER` and `AUTH_PASSWORD` are used at startup to generate a
 runtime bcrypt user record in memory.
-For most deployments, set `TINYAUTH_PASSWORD` and optionally `PORT`, then keep
+For most deployments, set `AUTH_PASSWORD` and optionally `PORT`, then keep
 the derived auth URL defaults.
 
 Auth routing is single-mode and same-host:
