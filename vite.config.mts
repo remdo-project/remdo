@@ -12,6 +12,7 @@ export default defineConfig(() => {
   return {
     build: {
       outDir: "data/dist",
+      assetsDir: "app-assets",
       emptyOutDir: true,
     },
     server: {

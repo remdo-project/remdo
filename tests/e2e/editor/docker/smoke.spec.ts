@@ -1,15 +1,44 @@
 import { expect, test } from '#e2e/fixtures';
+import type { Page } from '#e2e/fixtures';
 import { config } from '#config';
 import { editorLocator } from '#editor/locators';
 import { ensureReady } from '#editor/bridge';
 
 const DOCKER_SMOKE_DOC_ID = 'dockerSmoke';
+// eslint-disable-next-line node/no-process-env
+const TINYAUTH_USER = process.env.TINYAUTH_USER;
+// eslint-disable-next-line node/no-process-env
+const TINYAUTH_PASSWORD = process.env.TINYAUTH_PASSWORD;
+
+function getDockerAuth() {
+  if (!TINYAUTH_USER || !TINYAUTH_PASSWORD) {
+    throw new Error('Docker smoke requires TINYAUTH_USER and TINYAUTH_PASSWORD.');
+  }
+  return {
+    user: TINYAUTH_USER,
+    password: TINYAUTH_PASSWORD,
+  };
+}
+
+async function loginThroughTinyauthIfNeeded(page: Page) {
+  await page.waitForURL(/\/(login|n\/)/, { timeout: 15_000 });
+  if (!page.url().includes('/login')) {
+    return;
+  }
+
+  const dockerAuth = getDockerAuth();
+  await page.fill('input[autocomplete="username"]', dockerAuth.user);
+  await page.fill('input[autocomplete="current-password"]', dockerAuth.password);
+  await page.click('button[type="submit"]');
+  await page.waitForURL(/\/n\//, { timeout: 15_000 });
+}
 
 test('user can enter notes and see them rendered', async ({ page }) => {
   // Docker smoke runs against the prod build where the dev TestBridge is absent,
   // so we seed content via real typing instead of fixture loads. In dev/test runs
   // clear the shared doc first to avoid duplicate notes.
   await page.goto(`/n/${DOCKER_SMOKE_DOC_ID}`);
+  await loginThroughTinyauthIfNeeded(page);
   if (config.isDevOrTest) {
     await ensureReady(page, { clear: true });
   }

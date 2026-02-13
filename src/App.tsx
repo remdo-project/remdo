@@ -76,6 +76,11 @@ export default function App() {
               >
                 Project
               </Link>
+              {!config.isDevOrTest && (
+                <Anchor className="app-header-link" href="/logout">
+                  Logout
+                </Anchor>
+              )}
               {config.isDev && (
                 <>
                   <Anchor className="app-header-link" href={previewUrl}>

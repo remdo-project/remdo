@@ -8,13 +8,39 @@ export REMDO_ROOT
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/env.defaults.sh
 
-: "${BASICAUTH_USER:?Set BASICAUTH_USER to the username for HTTP basic auth}"
-: "${BASICAUTH_PASSWORD:?Set BASICAUTH_PASSWORD to the password for HTTP basic auth}"
+: "${TINYAUTH_USER:?Set TINYAUTH_USER to the username for Tinyauth login}"
+: "${TINYAUTH_PASSWORD:?Set TINYAUTH_PASSWORD to the password for Tinyauth login}"
+: "${TINYAUTH_APP_URL:?Set TINYAUTH_APP_URL to the public Tinyauth URL (for example http://app.remdo.localhost:4000)}"
 
-# Compute a bcrypt hash at runtime so the plaintext password never touches the image.
-BASICAUTH_PASSWORD_HASH="$(printf '%s\n' "$BASICAUTH_PASSWORD" | caddy hash-password --algorithm bcrypt)"
-export BASICAUTH_PASSWORD_HASH
-unset BASICAUTH_PASSWORD
+app_url_no_scheme="${TINYAUTH_APP_URL#*://}"
+app_host_port="${app_url_no_scheme%%/*}"
+app_host="${app_host_port%%:*}"
+
+if [ -z "${app_host}" ]; then
+  echo "Failed to parse host from TINYAUTH_APP_URL=${TINYAUTH_APP_URL}" >&2
+  exit 1
+fi
+
+case "${app_host}" in
+  *.*.*) ;;
+  *)
+    echo "TINYAUTH_APP_URL host must contain at least three labels (example: app.remdo.shared)." >&2
+    exit 1
+    ;;
+esac
+
+TINYAUTH_USERS="$(
+  NO_COLOR=1 tinyauth user create --username "${TINYAUTH_USER}" --password "${TINYAUTH_PASSWORD}" 2>&1 \
+    | sed -n 's/.* user=//p' \
+    | tail -n1
+)"
+
+if [ -z "${TINYAUTH_USERS}" ]; then
+  echo "Failed to create runtime Tinyauth credentials." >&2
+  exit 1
+fi
+
+unset TINYAUTH_PASSWORD
 
 # Start cron for periodic backups.
 crond -l 2 -L /var/log/cron.log
@@ -22,5 +48,25 @@ crond -l 2 -L /var/log/cron.log
 COLLAB_DATA_DIR="${DATA_DIR%/}/collab"
 mkdir -p "$COLLAB_DATA_DIR"
 y-sweet serve --host 0.0.0.0 --port "${COLLAB_SERVER_PORT}" "$COLLAB_DATA_DIR" &
+
+TINYAUTH_DATA_DIR="${DATA_DIR%/}/tinyauth"
+mkdir -p "${TINYAUTH_DATA_DIR}"
+
+tinyauth_secure_cookie_arg=""
+if [ "${TINYAUTH_SECURE_COOKIE:-false}" = "true" ]; then
+  tinyauth_secure_cookie_arg="--secure-cookie"
+fi
+
+# shellcheck disable=SC2086 # optional secure-cookie flag is intentionally word-split.
+tinyauth \
+  --app-title "RemDo" \
+  --app-url "${TINYAUTH_APP_URL}" \
+  --users "${TINYAUTH_USERS}" \
+  --address 127.0.0.1 \
+  --port "${TINYAUTH_PORT}" \
+  --database-path "${TINYAUTH_DATA_DIR}/tinyauth.db" \
+  --resources-dir "${TINYAUTH_DATA_DIR}/resources" \
+  --disable-analytics \
+  ${tinyauth_secure_cookie_arg} &
 
 exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
