@@ -40,6 +40,11 @@ RUN mkdir -p /usr/local/bin \
     --banner:js="$SNAPSHOT_BANNER" \
     --outfile=/usr/local/bin/snapshot.mjs
 
+##################################
+# Auth binary: fetch Tinyauth    #
+##################################
+FROM ghcr.io/steveiliop56/tinyauth:v4 AS tinyauth
+
 ############################
 # Runner: serve SPA + YJS  #
 ############################
@@ -70,9 +75,11 @@ COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh
 COPY --from=builder /usr/local/bin/snapshot.mjs /usr/local/bin/snapshot.mjs
+COPY --from=tinyauth /tinyauth/tinyauth /usr/local/bin/tinyauth
 
 RUN chmod +x /entrypoint.sh
 RUN chmod +x /usr/local/bin/snapshot.mjs
+RUN chmod +x /usr/local/bin/tinyauth
 
 EXPOSE 8080
 
