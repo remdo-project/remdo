@@ -12,23 +12,6 @@ export REMDO_ROOT
 : "${AUTH_PASSWORD:?Set AUTH_PASSWORD to the password for Tinyauth login}"
 : "${TINYAUTH_APP_URL:?Set TINYAUTH_APP_URL to the public Tinyauth URL (for example http://app.remdo.localhost:4000)}"
 
-app_url_no_scheme="${TINYAUTH_APP_URL#*://}"
-app_host_port="${app_url_no_scheme%%/*}"
-app_host="${app_host_port%%:*}"
-
-if [ -z "${app_host}" ]; then
-  echo "Failed to parse host from TINYAUTH_APP_URL=${TINYAUTH_APP_URL}" >&2
-  exit 1
-fi
-
-case "${app_host}" in
-  *.*.*) ;;
-  *)
-    echo "TINYAUTH_APP_URL host must contain at least three labels (example: app.remdo.shared)." >&2
-    exit 1
-    ;;
-esac
-
 TINYAUTH_USERS="$(
   NO_COLOR=1 tinyauth user create --username "${AUTH_USER}" --password "${AUTH_PASSWORD}" 2>&1 \
     | sed -n 's/.* user=//p' \
