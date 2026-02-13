@@ -52,6 +52,8 @@
 		reverse_proxy 127.0.0.1:{env.TINYAUTH_PORT} {
 			# Keep Tinyauth independent from cached Basic auth headers.
 			header_up -Authorization
+			# Keep browser-visible redirects on the host users entered (e.g. remdo.com).
+			header_down Location "{env.TINYAUTH_APP_URL}" "{http.request.scheme}://{http.request.hostport}"
 		}
 	}
 
