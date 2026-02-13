@@ -8,7 +8,7 @@
 		copy_headers Remote-User Remote-Name Remote-Email Remote-Groups
 		# Prevent stale browser Basic credentials from being forwarded to Tinyauth.
 		header_up -Authorization
-		header_down Location "{env.TINYAUTH_APP_URL}" "{http.request.scheme}://{http.request.hostport}"
+		header_down Location "{env.TINYAUTH_APP_URL}" "{env.TINYAUTH_APP_SCHEME}://{http.request.hostport}"
 	}
 }
 
@@ -53,7 +53,7 @@
 			# Keep Tinyauth independent from cached Basic auth headers.
 			header_up -Authorization
 			# Keep browser-visible redirects on the host users entered (e.g. remdo.com).
-			header_down Location "{env.TINYAUTH_APP_URL}" "{http.request.scheme}://{http.request.hostport}"
+			header_down Location "{env.TINYAUTH_APP_URL}" "{env.TINYAUTH_APP_SCHEME}://{http.request.hostport}"
 		}
 	}
 
