@@ -77,8 +77,7 @@ DATA_DIR=data-optA
   This is Tinyauth's configured app URL (validation/session URL) and the
   canonical browser entry host.
   Leave this unset unless you need a non-derived canonical host.
-  If set manually, it must use a 3+ label hostname (for example
-  `app.remdo.shared` or `app.remdo.localhost`).
+  If set manually, use the exact public URL users browse.
   Browser access must use this same host; alias hosts are not supported.
 - Optional: `TINYAUTH_PORT` (defaults to `PORT + 8`).
 - Optional: `COLLAB_SERVER_PORT` (defaults to `PORT + 4`).
