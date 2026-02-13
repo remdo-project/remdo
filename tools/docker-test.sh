@@ -17,8 +17,8 @@ fi
 : "${DOCKER_TEST_APP_HOST:=app.remdo.localhost}"
 # TODO: drop these defaults once layered env files + a committed base .env exist.
 : "${IMAGE_NAME:=remdo-test}"
-DOCKER_TEST_TINYAUTH_USER="ci"
-DOCKER_TEST_TINYAUTH_PASSWORD="ci-password-1234"
+DOCKER_TEST_USER="ci"
+DOCKER_TEST_PASSWORD="ci-password-1234"
 
 remdo_load_env_defaults "${ROOT_DIR}"
 
@@ -59,8 +59,8 @@ docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
 remdo_docker_run "${IMAGE_NAME}" -d --name "${CONTAINER_NAME}" \
-  -e TINYAUTH_USER="${DOCKER_TEST_TINYAUTH_USER}" \
-  -e TINYAUTH_PASSWORD="${DOCKER_TEST_TINYAUTH_PASSWORD}" \
+  -e AUTH_USER="${DOCKER_TEST_USER}" \
+  -e AUTH_PASSWORD="${DOCKER_TEST_PASSWORD}" \
   -e TINYAUTH_APP_URL="${TINYAUTH_APP_URL}" \
   -e PORT="${PORT}"
 
@@ -87,8 +87,8 @@ if ! E2E_DOCKER=true \
   HOST="${DOCKER_TEST_APP_HOST}" \
   PORT="${PORT}" \
   COLLAB_ENABLED=true \
-  TINYAUTH_USER="${DOCKER_TEST_TINYAUTH_USER}" \
-  TINYAUTH_PASSWORD="${DOCKER_TEST_TINYAUTH_PASSWORD}" \
+  AUTH_USER="${DOCKER_TEST_USER}" \
+  AUTH_PASSWORD="${DOCKER_TEST_PASSWORD}" \
   pnpm exec playwright test -- tests/e2e/editor/docker/smoke.spec.ts; then
   docker logs "${CONTAINER_NAME}" || true
   echo "Smoke e2e failed: ${HEALTH_URL}" >&2

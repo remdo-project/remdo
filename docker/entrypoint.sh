@@ -8,8 +8,8 @@ export REMDO_ROOT
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/env.defaults.sh
 
-: "${TINYAUTH_USER:?Set TINYAUTH_USER to the username for Tinyauth login}"
-: "${TINYAUTH_PASSWORD:?Set TINYAUTH_PASSWORD to the password for Tinyauth login}"
+: "${AUTH_USER:?Set AUTH_USER to the username for Tinyauth login}"
+: "${AUTH_PASSWORD:?Set AUTH_PASSWORD to the password for Tinyauth login}"
 : "${TINYAUTH_APP_URL:?Set TINYAUTH_APP_URL to the public Tinyauth URL (for example http://app.remdo.localhost:4000)}"
 
 app_url_no_scheme="${TINYAUTH_APP_URL#*://}"
@@ -30,7 +30,7 @@ case "${app_host}" in
 esac
 
 TINYAUTH_USERS="$(
-  NO_COLOR=1 tinyauth user create --username "${TINYAUTH_USER}" --password "${TINYAUTH_PASSWORD}" 2>&1 \
+  NO_COLOR=1 tinyauth user create --username "${AUTH_USER}" --password "${AUTH_PASSWORD}" 2>&1 \
     | sed -n 's/.* user=//p' \
     | tail -n1
 )"
@@ -40,7 +40,7 @@ if [ -z "${TINYAUTH_USERS}" ]; then
   exit 1
 fi
 
-unset TINYAUTH_PASSWORD
+unset AUTH_PASSWORD
 
 # Start cron for periodic backups.
 crond -l 2 -L /var/log/cron.log

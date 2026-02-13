@@ -6,6 +6,8 @@
 	forward_auth 127.0.0.1:{env.TINYAUTH_PORT} {
 		uri /api/auth/caddy
 		copy_headers Remote-User Remote-Name Remote-Email Remote-Groups
+		# Prevent stale browser Basic credentials from being forwarded to Tinyauth.
+		header_up -Authorization
 		header_down Location "{env.TINYAUTH_APP_URL}" "{http.request.scheme}://{http.request.hostport}"
 	}
 }
@@ -47,7 +49,10 @@
  /web-app-manifest-512x512.png
 	}
 	handle @tinyauth_paths {
-		reverse_proxy 127.0.0.1:{env.TINYAUTH_PORT}
+		reverse_proxy 127.0.0.1:{env.TINYAUTH_PORT} {
+			# Keep Tinyauth independent from cached Basic auth headers.
+			header_up -Authorization
+		}
 	}
 
 	@options method OPTIONS
