@@ -12,6 +12,13 @@ export REMDO_ROOT
 : "${AUTH_PASSWORD:?Set AUTH_PASSWORD to the password for Tinyauth login}"
 : "${TINYAUTH_APP_URL:?Set TINYAUTH_APP_URL to the public Tinyauth URL (for example http://app.remdo.localhost:4000)}"
 
+app_url_scheme="${TINYAUTH_APP_URL%%://*}"
+if [ -z "${app_url_scheme}" ] || [ "${app_url_scheme}" = "${TINYAUTH_APP_URL}" ]; then
+  echo "Failed to parse scheme from TINYAUTH_APP_URL=${TINYAUTH_APP_URL}" >&2
+  exit 1
+fi
+export TINYAUTH_APP_SCHEME="${app_url_scheme}"
+
 TINYAUTH_USERS="$(
   NO_COLOR=1 tinyauth user create --username "${AUTH_USER}" --password "${AUTH_PASSWORD}" 2>&1 \
     | sed -n 's/.* user=//p' \
