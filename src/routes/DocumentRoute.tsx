@@ -29,15 +29,15 @@ export default function DocumentRoute() {
 
   return (
     <div className="document-editor-shell">
-      <header className="document-zoom-header">
-        <div className="document-zoom-breadcrumbs">
+      <header className="document-header">
+        <div className="document-header-breadcrumbs">
           <ZoomBreadcrumbs
             docLabel={docId}
             path={zoomPath}
             onSelectNoteId={setZoomNoteId}
           />
         </div>
-        <div className="document-zoom-status" ref={setStatusHost} />
+        <div className="document-header-status" ref={setStatusHost} />
       </header>
       <Editor
         key={docId}

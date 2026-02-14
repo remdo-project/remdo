@@ -1,6 +1,6 @@
 import { expect, test } from '#e2e/fixtures';
 import { config } from '#config';
-import { normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
+import { createUniqueNoteId, normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
 
 const defaultDocId = normalizeNoteIdOrThrow(
   config.env.COLLAB_DOCUMENT_ID,
@@ -9,7 +9,7 @@ const defaultDocId = normalizeNoteIdOrThrow(
 
 test.describe('App smoke', () => {
   test('renders shell', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(`/n/${createUniqueNoteId()}`);
 
     await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
 

@@ -183,7 +183,7 @@ test.describe('note links', () => {
     await expect(editorLocator(page).getByRole('link', { name: 'note1' })).toHaveCount(1);
   });
 
-  test.fail('cross-document paste keeps link target doc from clipboard payload across isolated browser contexts', async ({ browser, page, editor }) => {
+  test('cross-document paste keeps link target doc from clipboard payload across isolated browser contexts', async ({ browser, page, editor }) => {
     await editor.load('links');
     await setCaretAtText(page, 'same ', 0);
     await page.keyboard.press('Shift+ArrowDown');

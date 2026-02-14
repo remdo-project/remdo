@@ -23,6 +23,12 @@ export async function prepareEditorTestSurface(page: Page): Promise<void> {
       .editor-container * {
         display: revert;
       }
+      [data-zoom-breadcrumbs],
+      [data-zoom-breadcrumbs] * {
+        display: revert;
+        pointer-events: auto;
+        visibility: visible;
+      }
       `;
       document.head.append(style);
     }

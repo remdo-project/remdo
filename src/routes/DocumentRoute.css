@@ -5,7 +5,7 @@
   background: var(--mantine-color-dark-6);
 }
 
-.document-zoom-header {
+.document-header {
   border-bottom: 1px solid var(--mantine-color-dark-4);
   padding: calc(var(--mantine-spacing-xs) - 0.05rem) var(--mantine-spacing-xl);
   min-height: 1.9rem;
@@ -15,12 +15,12 @@
   gap: var(--mantine-spacing-md);
 }
 
-.document-zoom-breadcrumbs {
+.document-header-breadcrumbs {
   flex: 1;
   min-width: 0;
 }
 
-.document-zoom-status {
+.document-header-status {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -28,7 +28,7 @@
   min-height: 1.2rem;
 }
 
-.document-zoom-status .editor-header {
+.document-header-status .editor-header {
   position: static;
   top: auto;
   right: auto;
