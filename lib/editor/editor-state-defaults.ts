@@ -35,7 +35,7 @@ const NODE_DEFAULTS = {
     mode: 'normal',
     style: '',
   },
-  'internal-note-link': {
+  'note-link': {
     version: 1,
     format: '',
     indent: 0,

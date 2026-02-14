@@ -2,8 +2,8 @@ import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
 import { normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
 
-interface InternalLinkSerializedNode extends SerializedLexicalNode {
-  type: 'internal-note-link';
+interface NoteLinkSerializedNode extends SerializedLexicalNode {
+  type: 'note-link';
   docId?: unknown;
 }
 
@@ -39,10 +39,10 @@ export function prepareEditorStateForRuntime(
   );
   const runtimeState = structuredClone(persistedState);
   forEachSerializedNode(runtimeState, (node) => {
-    if (node.type !== 'internal-note-link') {
+    if (node.type !== 'note-link') {
       return;
     }
-    const typedNode = node as InternalLinkSerializedNode;
+    const typedNode = node as NoteLinkSerializedNode;
     if (typedNode.docId === undefined) {
       typedNode.docId = normalizedDocId;
     }
@@ -60,10 +60,10 @@ export function prepareEditorStateForPersistence(
   );
   const persistedState = structuredClone(runtimeState);
   forEachSerializedNode(persistedState, (node) => {
-    if (node.type !== 'internal-note-link') {
+    if (node.type !== 'note-link') {
       return;
     }
-    const typedNode = node as InternalLinkSerializedNode;
+    const typedNode = node as NoteLinkSerializedNode;
     if (typedNode.docId === normalizedDocId) {
       delete typedNode.docId;
     }

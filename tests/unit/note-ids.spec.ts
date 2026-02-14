@@ -9,7 +9,7 @@ import { waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { SerializedLexicalNode, SerializedTextNode } from 'lexical';
-import type { SerializedInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
+import type { SerializedNoteLinkNode } from '#lib/editor/note-link-node';
 import type { SerializedNoteListItemNode } from '#lib/editor/serialized-note-types';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { flattenOutline } from '#tests-common/outline';
@@ -44,21 +44,21 @@ function findSerializedListItem(node: SerializedLexicalNode, noteId: string): Se
   ));
 }
 
-function findSerializedInternalNoteLink(node: SerializedLexicalNode): SerializedInternalNoteLinkNode | null {
-  return findSerializedNode([node], (candidate): candidate is SerializedInternalNoteLinkNode => (
-    candidate.type === 'internal-note-link'
+function findSerializedNoteLink(node: SerializedLexicalNode): SerializedNoteLinkNode | null {
+  return findSerializedNode([node], (candidate): candidate is SerializedNoteLinkNode => (
+    candidate.type === 'note-link'
   ));
 }
 
-function findSerializedInternalNoteLinkInNodes(nodes: SerializedLexicalNode[] | undefined): SerializedInternalNoteLinkNode | null {
-  return findSerializedNode(nodes, (candidate): candidate is SerializedInternalNoteLinkNode => (
-    candidate.type === 'internal-note-link'
+function findSerializedNoteLinkInNodes(nodes: SerializedLexicalNode[] | undefined): SerializedNoteLinkNode | null {
+  return findSerializedNode(nodes, (candidate): candidate is SerializedNoteLinkNode => (
+    candidate.type === 'note-link'
   ));
 }
 
-function collectSerializedInternalNoteLinksInNodes(nodes: SerializedLexicalNode[] | undefined): SerializedInternalNoteLinkNode[] {
-  return collectSerializedNodes(nodes, (candidate): candidate is SerializedInternalNoteLinkNode => (
-    candidate.type === 'internal-note-link'
+function collectSerializedNoteLinksInNodes(nodes: SerializedLexicalNode[] | undefined): SerializedNoteLinkNode[] {
+  return collectSerializedNodes(nodes, (candidate): candidate is SerializedNoteLinkNode => (
+    candidate.type === 'note-link'
   ));
 }
 
@@ -261,7 +261,7 @@ describe('note ids on paste', () => {
 
     await selectStructuralNotes(remdo, 'note1');
     const clipboardPayload = await copySelection(remdo);
-    const copiedLink = findSerializedInternalNoteLinkInNodes(clipboardPayload.nodes as SerializedLexicalNode[])!;
+    const copiedLink = findSerializedNoteLinkInNodes(clipboardPayload.nodes as SerializedLexicalNode[])!;
     // Clipboard payload must be self-contained across browser contexts, so same-doc links carry docId here.
     expect(copiedLink.docId).toBe(remdo.getCollabDocId());
     expect(copiedLink.noteId).toBe('note2');
@@ -273,7 +273,7 @@ describe('note ids on paste', () => {
     const pastedNoteId = copiedNotes.at(-1)!.noteId!;
     const rootListNode = getSerializedRootListNode(remdo) as SerializedLexicalNode;
     const pastedListItem = findSerializedListItem(rootListNode, pastedNoteId)!;
-    const pastedLink = findSerializedInternalNoteLink(pastedListItem)!;
+    const pastedLink = findSerializedNoteLink(pastedListItem)!;
     expect(pastedLink.noteId).toBe('note2');
     expect(pastedLink.docId).toBe(remdo.getCollabDocId());
   });
@@ -283,7 +283,7 @@ describe('note ids on paste', () => {
     const cutPayload = (await cutSelection(remdo)) as { remdoCut?: boolean; nodes?: SerializedLexicalNode[] };
     expect(cutPayload.remdoCut).toBe(true);
 
-    const links = collectSerializedInternalNoteLinksInNodes(cutPayload.nodes);
+    const links = collectSerializedNoteLinksInNodes(cutPayload.nodes);
     const sameDocLink = links.find((link) => link.noteId === 'note2')!;
     const crossDocLink = links.find((link) => link.noteId === 'remoteNote')!;
 
@@ -299,7 +299,7 @@ describe('note ids on paste', () => {
       await selectStructuralNotes(remdo, 'note1');
       const clipboardPayload = await copySelection(remdo);
       const sourceDocId = remdo.getCollabDocId();
-      const copiedClipboardLink = findSerializedInternalNoteLinkInNodes(clipboardPayload.nodes as SerializedLexicalNode[])!;
+      const copiedClipboardLink = findSerializedNoteLinkInNodes(clipboardPayload.nodes as SerializedLexicalNode[])!;
       expect(copiedClipboardLink.noteId).toBe('note2');
       // Clipboard payload must still carry explicit docId so links remain self-contained across browser boundaries.
       expect(copiedClipboardLink.docId).toBe(sourceDocId);
@@ -317,7 +317,7 @@ describe('note ids on paste', () => {
         const pastedNoteId = readOutline(destination).at(-1)!.noteId!;
         const rootListNode = getSerializedRootListNode(destination) as SerializedLexicalNode;
         const pastedListItem = findSerializedListItem(rootListNode, pastedNoteId)!;
-        const pastedLink = findSerializedInternalNoteLink(pastedListItem)!;
+        const pastedLink = findSerializedNoteLink(pastedListItem)!;
         expect(pastedLink.noteId).toBe('note2');
         expect(pastedLink.docId).toBe(sourceDocId);
       } finally {

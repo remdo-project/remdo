@@ -24,7 +24,7 @@ import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { createNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { $autoExpandIfFolded } from '#lib/editor/fold-state';
-import { $createInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
+import { $createNoteLinkNode } from '#lib/editor/note-link-node';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import {
   findNearestListItem,
@@ -51,7 +51,7 @@ import {
   sortHeadsByDocumentOrder,
 } from '@/editor/outline/selection/tree';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
-import { parseInternalNoteLinkUrl } from '@/editor/links/internal-link-url';
+import { parseNoteLinkUrl } from '@/editor/links/note-link-url';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { useCollaborationStatus } from './collaboration';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
@@ -337,7 +337,7 @@ function $insertInternalLinkFromPlainText(
     return false;
   }
 
-  const linkRef = parseInternalNoteLinkUrl(trimmed, currentDocId);
+  const linkRef = parseNoteLinkUrl(trimmed, currentDocId);
   if (!linkRef) {
     return false;
   }
@@ -351,7 +351,7 @@ function $insertInternalLinkFromPlainText(
     return false;
   }
 
-  const linkNode = $createInternalNoteLinkNode(linkRef, {});
+  const linkNode = $createNoteLinkNode(linkRef, {});
   const resolvedTitle = linkRef.docId === currentDocId ? $findNoteById(linkRef.noteId)?.getTextContent() ?? null : null;
   linkNode.append($createTextNode(resolvedTitle ?? trimmed));
   selection.insertNodes([linkNode]);

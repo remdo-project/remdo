@@ -3,7 +3,7 @@ import { act } from '@testing-library/react';
 import { CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
-import { $isInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
+import { $isNoteLinkNode } from '#lib/editor/note-link-node';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { clearEditorProps, createDataTransfer, meta, placeCaretAtNote, pressKey, registerScopedEditorProps, selectEntireNote, typeText } from '#tests';
@@ -55,8 +55,8 @@ describe('note links (docs/outliner/links.md)', () => {
       const note = $findNoteById('note1')!;
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('note2');
-      expect($isInternalNoteLinkNode(linkNode)).toBe(true);
-      if ($isInternalNoteLinkNode(linkNode)) {
+      expect($isNoteLinkNode(linkNode)).toBe(true);
+      if ($isNoteLinkNode(linkNode)) {
         expect(linkNode.getNoteId()).toBe('note2');
         expect(linkNode.getDocId()).toBe(remdo.getCollabDocId());
       }
@@ -102,8 +102,8 @@ describe('note links (docs/outliner/links.md)', () => {
       const note = $findNoteById('note1')!;
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('note2');
-      expect($isInternalNoteLinkNode(linkNode)).toBe(true);
-      if ($isInternalNoteLinkNode(linkNode)) {
+      expect($isNoteLinkNode(linkNode)).toBe(true);
+      if ($isNoteLinkNode(linkNode)) {
         expect(linkNode.getNoteId()).toBe('note2');
         expect(linkNode.getDocId()).toBe(remdo.getCollabDocId());
       }
@@ -119,8 +119,8 @@ describe('note links (docs/outliner/links.md)', () => {
       const note = $findNoteById('note1')!;
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe(url);
-      expect($isInternalNoteLinkNode(linkNode)).toBe(true);
-      if ($isInternalNoteLinkNode(linkNode)) {
+      expect($isNoteLinkNode(linkNode)).toBe(true);
+      if ($isNoteLinkNode(linkNode)) {
         expect(linkNode.getNoteId()).toBe('note2');
         expect(linkNode.getDocId()).toBe('otherDoc');
       }
@@ -151,7 +151,7 @@ describe('note links (docs/outliner/links.md)', () => {
   it('rehydrates same-document fixture links with current docId in runtime state', meta({ fixture: 'links' }), async ({ remdo }) => {
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      const links = note.getChildren().filter($isInternalNoteLinkNode);
+      const links = note.getChildren().filter($isNoteLinkNode);
       const sameDocLink = links[0]!;
       const crossDocLink = links[1]!;
 

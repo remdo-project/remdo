@@ -20,7 +20,7 @@ import {
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { $createInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
+import { $createNoteLinkNode } from '#lib/editor/note-link-node';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
 import { resolveLinkPickerAnchor } from './note-link/anchor';
@@ -265,7 +265,7 @@ export function NoteLinkPlugin() {
       return false;
     }
 
-    const linkNode = $createInternalNoteLinkNode({ docId, noteId: activeOption.noteId }, {});
+    const linkNode = $createNoteLinkNode({ docId, noteId: activeOption.noteId }, {});
     linkNode.append($createTextNode(activeOption.title));
     insertionSelection.insertNodes([linkNode, $createTextNode(' ')]);
 

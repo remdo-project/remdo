@@ -6,10 +6,10 @@ import { describe, expect, it } from 'vitest';
 import { prepareEditorStateForPersistence, prepareEditorStateForRuntime } from '#lib/editor/editor-state-persistence';
 import { collectSerializedNodes, getSerializedRootNodes } from '#tests';
 
-function collectInternalLinkNodes(state: SerializedEditorState): Array<Record<string, unknown>> {
+function collectNoteLinkNodes(state: SerializedEditorState): Array<Record<string, unknown>> {
   return collectSerializedNodes(
     getSerializedRootNodes(state),
-    (node): node is SerializedLexicalNode & Record<string, unknown> => node.type === 'internal-note-link',
+    (node): node is SerializedLexicalNode & Record<string, unknown> => node.type === 'note-link',
   );
 }
 
@@ -20,7 +20,7 @@ describe('editor state persistence', () => {
     const docId = 'runtimeDoc';
 
     const runtime = prepareEditorStateForRuntime(persisted, docId);
-    const runtimeLinks = collectInternalLinkNodes(runtime);
+    const runtimeLinks = collectNoteLinkNodes(runtime);
     const runtimeSameDoc = runtimeLinks.find((node) => node.noteId === 'note2')!;
     const runtimeCrossDoc = runtimeLinks.find((node) => node.noteId === 'remoteNote')!;
     expect(runtimeSameDoc.docId).toBe(docId);

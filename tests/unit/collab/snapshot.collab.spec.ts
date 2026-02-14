@@ -8,7 +8,7 @@ import { meta } from '#tests';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import type { Buffer } from 'node:buffer';
-import { $isInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
+import { $isNoteLinkNode } from '#lib/editor/note-link-node';
 import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
@@ -191,7 +191,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await waitFor(() => {
       remdo.validate(() => {
         const note = $findNoteById('note1')!;
-        const links = note.getChildren().filter($isInternalNoteLinkNode);
+        const links = note.getChildren().filter($isNoteLinkNode);
         expect(links).toHaveLength(2);
         const runtimeSameDocLink = links[0]!;
         const runtimeCrossDocLink = links[1]!;

@@ -1,11 +1,11 @@
 import { $createTextNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
-import { $createInternalNoteLinkNode, $isInternalNoteLinkNode, InternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
+import { $createNoteLinkNode, $isNoteLinkNode, NoteLinkNode } from '#lib/editor/note-link-node';
 import { meta } from '#tests';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 
-describe('note link node (InternalNoteLinkNode)', () => {
+describe('note link node (NoteLinkNode)', () => {
   it(
     'exports canonical identity without persisting url',
     meta({ fixture: 'flat' }),
@@ -17,9 +17,9 @@ describe('note link node (InternalNoteLinkNode)', () => {
       await remdo.mutate(() => {
         const note = $findNoteById('note1')!;
         note.clear();
-        const sameDoc = $createInternalNoteLinkNode({ docId: currentDocId, noteId: 'note2' }, {});
+        const sameDoc = $createNoteLinkNode({ docId: currentDocId, noteId: 'note2' }, {});
         sameDoc.append($createTextNode('same-doc'));
-        const crossDoc = $createInternalNoteLinkNode({ docId: 'otherDoc', noteId: 'note3' }, {});
+        const crossDoc = $createNoteLinkNode({ docId: 'otherDoc', noteId: 'note3' }, {});
         crossDoc.append($createTextNode('cross-doc'));
         note.append(sameDoc);
         note.append($createTextNode(' '));
@@ -30,7 +30,7 @@ describe('note link node (InternalNoteLinkNode)', () => {
 
       remdo.validate(() => {
         const note = $findNoteById('note1')!;
-        const links = note.getChildren().filter($isInternalNoteLinkNode);
+        const links = note.getChildren().filter($isNoteLinkNode);
         const sameDoc = links[0]!;
         const crossDoc = links[1]!;
 
@@ -61,27 +61,27 @@ describe('note link node (InternalNoteLinkNode)', () => {
 
       await remdo.mutate(() => {
         try {
-          const node = new InternalNoteLinkNode({ docId: 'invalid-doc-id', noteId: 'invalid-note-id' });
+          const node = new NoteLinkNode({ docId: 'invalid-doc-id', noteId: 'invalid-note-id' });
           void node;
         } catch (error) {
           constructorError = error;
         }
 
-        const valid = new InternalNoteLinkNode({ docId: currentDocId, noteId: 'note2' });
+        const valid = new NoteLinkNode({ docId: currentDocId, noteId: 'note2' });
         const serialized = valid.exportJSON() as Record<string, unknown>;
         serialized.noteId = 'invalid-note-id';
 
         try {
-          InternalNoteLinkNode.importJSON(serialized as never);
+          NoteLinkNode.importJSON(serialized as never);
         } catch (error) {
           importError = error;
         }
       });
 
       expect(constructorError).toBeInstanceOf(Error);
-      expect((constructorError as Error).message).toBe('Internal link noteId must be a valid note id.');
+      expect((constructorError as Error).message).toBe('Note link noteId must be a valid note id.');
       expect(importError).toBeInstanceOf(Error);
-      expect((importError as Error).message).toBe('Internal link noteId must be a valid note id.');
+      expect((importError as Error).message).toBe('Note link noteId must be a valid note id.');
     }
   );
 
@@ -95,7 +95,7 @@ describe('note link node (InternalNoteLinkNode)', () => {
       let createNodeError: unknown;
 
       await remdo.mutate(() => {
-        const link = new InternalNoteLinkNode({ docId: currentDocId, noteId: 'note2' });
+        const link = new NoteLinkNode({ docId: currentDocId, noteId: 'note2' });
         try {
           link.setLinkRef({ docId: currentDocId, noteId: 'invalid-note-id' });
         } catch (error) {
@@ -107,18 +107,18 @@ describe('note link node (InternalNoteLinkNode)', () => {
           setDocIdError = error;
         }
         try {
-          $createInternalNoteLinkNode({ docId: currentDocId, noteId: 'invalid-note-id' }, {});
+          $createNoteLinkNode({ docId: currentDocId, noteId: 'invalid-note-id' }, {});
         } catch (error) {
           createNodeError = error;
         }
       });
 
       expect(setLinkRefError).toBeInstanceOf(Error);
-      expect((setLinkRefError as Error).message).toBe('Internal link noteId must be a valid note id.');
+      expect((setLinkRefError as Error).message).toBe('Note link noteId must be a valid note id.');
       expect(setDocIdError).toBeInstanceOf(Error);
-      expect((setDocIdError as Error).message).toBe('Internal link docId must be a valid note id.');
+      expect((setDocIdError as Error).message).toBe('Note link docId must be a valid note id.');
       expect(createNodeError).toBeInstanceOf(Error);
-      expect((createNodeError as Error).message).toBe('Internal link noteId must be a valid note id.');
+      expect((createNodeError as Error).message).toBe('Note link noteId must be a valid note id.');
     }
   );
 });

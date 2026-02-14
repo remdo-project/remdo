@@ -26,10 +26,6 @@ Rules:
   directory (instead of a growing flat file list in
   `tests/unit/collab/snapshot.collab.spec.ts`) and clean that directory in one
   place after each test.
-- Plan a dedicated terminology refactor for code/wire identifiers from
-  `internal*` to `note*` (for example `InternalNoteLinkNode`,
-  `parseInternalNoteLinkUrl`, and serialized node `type`), separate from docs
-  wording updates to avoid mixing schema/API churn with behavior work.
 
 ## Test doc-id lifecycle hygiene (deferred)
 
