@@ -43,13 +43,6 @@ export function normalizeNoteIdOrThrow(value: unknown, errorMessage: string): st
   return normalized;
 }
 
-export function normalizeOptionalNoteIdOrThrow(value: unknown, errorMessage: string): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  return normalizeNoteIdOrThrow(value, errorMessage);
-}
-
 export function createNoteIdAvoiding(usedIds: Set<string>, testOnlyGenerator: () => string = createUniqueNoteId): string {
   let id = testOnlyGenerator();
   while (usedIds.has(id)) {

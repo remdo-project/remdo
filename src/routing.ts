@@ -64,7 +64,7 @@ export function createEditorDocumentPath(docId: string, noteId: string | null = 
   return createDocumentPathWithPrefix(EDITOR_E2E_DOCUMENT_PATH_PREFIX, docId, noteId);
 }
 
-export function resolveDocumentPathPrefix(pathname: string): string {
+function resolveDocumentPathPrefix(pathname: string): string {
   if (pathname.startsWith(`${EDITOR_E2E_DOCUMENT_PATH_PREFIX}/`)) {
     return EDITOR_E2E_DOCUMENT_PATH_PREFIX;
   }

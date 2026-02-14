@@ -9,8 +9,6 @@
  */
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
-export { transformSerializedEditorState } from '#lib/editor/serialized-editor-state';
-
 export function getSerializedNodeChildren(node: SerializedLexicalNode | null | undefined): SerializedLexicalNode[] {
   const children = (node as { children?: unknown } | null | undefined)?.children;
   if (!Array.isArray(children)) {

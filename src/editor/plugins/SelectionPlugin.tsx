@@ -19,6 +19,7 @@ import {
   $getNodeByKey,
   $getSelection,
   $isRangeSelection,
+  $addUpdateTag,
   COMMAND_PRIORITY_CRITICAL,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
@@ -63,15 +64,13 @@ export function SelectionPlugin() {
     const disposedRef = { current: false };
     installOutlineSelectionHelpers(editor);
 
-    const addUpdateTags = (tags: string | string[]) => {
-      const internal = editor as unknown as { _updateTags?: Set<string> };
-      const tagSet = internal._updateTags;
-      if (!tagSet) return;
-
+    const $addUpdateTags = (tags: string | string[]) => {
       if (Array.isArray(tags)) {
-        for (const tag of tags) tagSet.add(tag);
+        for (const tag of tags) {
+          $addUpdateTag(tag);
+        }
       } else {
-        tagSet.add(tags);
+        $addUpdateTag(tags);
       }
     };
 
@@ -210,7 +209,7 @@ export function SelectionPlugin() {
     });
 
     const $applyPlan = (planResult: ProgressivePlanResult) => {
-      addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
+      $addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
 
       const applied = $applyProgressivePlan(planResult);
       if (!applied) {
@@ -246,7 +245,7 @@ export function SelectionPlugin() {
         return false;
       }
 
-      addUpdateTags(PROGRESSIVE_SELECTION_TAG);
+      $addUpdateTags(PROGRESSIVE_SELECTION_TAG);
 
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
@@ -352,7 +351,7 @@ export function SelectionPlugin() {
 
       unlockRef.current = { pending: true, reason: 'directional' };
 
-      addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
+      $addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
 
       const planResult = $computeDirectionalPlan(progressionRef, direction, INITIAL_PROGRESSIVE_STATE, boundaryKey);
       if (!planResult) {
