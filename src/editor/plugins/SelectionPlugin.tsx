@@ -33,7 +33,7 @@ import type { ProgressiveUnlockState } from '@/editor/outline/selection/snapshot
 import type { StructuralOverlayConfig } from '@/editor/outline/selection/overlay';
 import { clearStructuralOverlay, updateStructuralOverlay } from '@/editor/outline/selection/overlay';
 import { useEffect, useRef } from 'react';
-import { getContentListItem } from '@/editor/outline/list-structure';
+import { $resolveContentItemFromNode } from '@/editor/outline/schema';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import { getParentContentItem } from '@/editor/outline/selection/tree';
 
@@ -133,7 +133,10 @@ export function SelectionPlugin() {
         return fallback ?? null;
       }
 
-      const anchorContent = getContentListItem(anchorNode);
+      const anchorContent = $resolveContentItemFromNode(anchorNode);
+      if (!anchorContent) {
+        return fallback ?? null;
+      }
       const parentList = heads[0]!.getParent();
       if (!$isListNode(parentList)) {
         return fallback ?? null;

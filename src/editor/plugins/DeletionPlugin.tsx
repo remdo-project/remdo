@@ -17,15 +17,14 @@ import {
 import type { LexicalNode, TextNode } from 'lexical';
 import { useEffect, useState } from 'react';
 import {
-  findNearestListItem,
   flattenNoteNodes,
   getContentSiblings,
-  getContentListItem,
   getPreviousContentSibling,
   isChildrenWrapper,
   insertBefore,
   $getOrCreateChildList,
 } from '@/editor/outline/list-structure';
+import { $resolveContentNoteFromNode } from '@/editor/outline/note-context';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import {
@@ -125,12 +124,11 @@ function $resolveCollapsedSelectionAtEdge(edge: 'start' | 'end'): EdgeSelectionR
   }
 
   const anchorNode = selection.anchor.getNode();
-  const candidate = findNearestListItem(anchorNode);
-  if (!candidate) {
+  const contentItem = $resolveContentNoteFromNode(anchorNode);
+  if (!contentItem) {
     return null;
   }
 
-  const contentItem = getContentListItem(candidate);
   if (!isDescendantOf(anchorNode, contentItem)) {
     return null;
   }
@@ -389,13 +387,13 @@ export function DeletionPlugin() {
 
         if ($isListNode(list)) {
           const firstItem = getFirstDescendantListItem(list);
-          let targetItem: ListItemNode;
+              let targetItem: ListItemNode;
 
-          if (firstItem) {
-            targetItem = getContentListItem(firstItem);
-          } else {
-            const listItem = $createListItemNode();
-            listItem.append($createParagraphNode());
+              if (firstItem) {
+                targetItem = firstItem;
+              } else {
+                const listItem = $createListItemNode();
+                listItem.append($createParagraphNode());
             list.append(listItem);
             targetItem = listItem;
           }
@@ -409,9 +407,9 @@ export function DeletionPlugin() {
         if ($isTextNode(anchorNode)) {
           selection.setTextNodeRange(anchorNode, selection.anchor.offset, anchorNode, selection.anchor.offset);
         } else {
-          const anchorItem = findNearestListItem(anchorNode);
-          if (anchorItem) {
-            $selectItemEdge(anchorItem, 'start');
+          const contentItem = $resolveContentNoteFromNode(anchorNode);
+          if (contentItem) {
+            $selectItemEdge(contentItem, 'start');
           }
         }
       }

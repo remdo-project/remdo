@@ -1,41 +1,18 @@
 import type { ListItemNode } from '@lexical/list';
-import { $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
 import { useEffect } from 'react';
 import { $indentNote, $outdentNote } from '../lexical-helpers';
-import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { $resolveContentNoteFromNode } from '@/editor/outline/note-context';
+import { getPreviousContentSibling } from '@/editor/outline/list-structure';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
+import { getParentContentItem } from '@/editor/outline/selection/tree';
 
-const hasPreviousContentSibling = (noteItem: ListItemNode): boolean => {
-  let sibling: ListItemNode | null = noteItem.getPreviousSibling();
-
-  while (sibling) {
-    if (!isChildrenWrapper(sibling)) {
-      return true;
-    }
-    sibling = sibling.getPreviousSibling();
-  }
-
-  return false;
-};
+const hasPreviousContentSibling = (noteItem: ListItemNode): boolean => getPreviousContentSibling(noteItem) !== null;
 
 const canIndentNote = (noteItem: ListItemNode): boolean => hasPreviousContentSibling(noteItem);
 
-const canOutdentNote = (noteItem: ListItemNode): boolean => {
-  const parentList = noteItem.getParent();
-  if (!$isListNode(parentList)) {
-    return false;
-  }
-
-  const parentWrapper = parentList.getParent();
-  if (!isChildrenWrapper(parentWrapper)) {
-    return false;
-  }
-
-  const grandParentList = parentWrapper.getParent();
-  return $isListNode(grandParentList);
-};
+const canOutdentNote = (noteItem: ListItemNode): boolean => getParentContentItem(noteItem) !== null;
 
 export function IndentationPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -55,9 +32,9 @@ export function IndentationPlugin() {
         let rootItems = heads;
 
         if (rootItems.length === 0 && selection.isCollapsed()) {
-          const caretItem = findNearestListItem(selection.anchor.getNode());
-          if (caretItem) {
-            rootItems = [getContentListItem(caretItem)];
+          const contentItem = $resolveContentNoteFromNode(selection.anchor.getNode());
+          if (contentItem) {
+            rootItems = [contentItem];
           }
         }
 

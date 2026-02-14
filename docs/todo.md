@@ -36,10 +36,18 @@ Rules:
 - Consolidate serialized-editor-state traversal into one production helper in
   `lib/editor` and reuse it across persistence/defaults transforms (and tests),
   instead of maintaining separate walkers in each module.
-- Continue strict runtime schema-helper migration for remaining modules:
-  `FoldingPlugin`, `InsertionPlugin`, `IndentationPlugin`, `DeletionPlugin`,
-  `ReorderingPlugin`, `SelectionPlugin`, `NoteIdPlugin`, and
-  `outline/selection/*` (keep tolerant behavior only at explicit
+- ✅ Done: strict runtime schema-helper migration for `FoldingPlugin`,
+  `InsertionPlugin`, `IndentationPlugin`, `DeletionPlugin`,
+  `ReorderingPlugin`, `SelectionPlugin`, and `NoteIdPlugin`.
+- Continue strict runtime schema-helper migration for remaining
+  `outline/selection/*` modules (keep tolerant behavior only at explicit
   persisted↔runtime boundaries).
-- [P1] Prevent rich-text edits before schema readiness — `src/editor/Editor.tsx:63-68`
-  Keeping `RichTextPlugin` mounted while gating all RemDo behavior behind `schemaReady` leaves a window (notably when collaboration hydration is slow) where the editor is still editable but core plugins like keymap/insertion/deletion/note-id are disabled. In that state, user input is handled by Lexical default rich-text behavior, which can create non-canonical structure before schema enforcement resumes and lead to unexpected normalization/collab results once hydration finishes.
+- [P1] Prevent rich-text edits before schema readiness —
+  `src/editor/Editor.tsx:63-68`
+  Keeping `RichTextPlugin` mounted while gating all RemDo behavior behind
+  `schemaReady` leaves a window (notably when collaboration hydration is slow)
+  where the editor is still editable but core plugins like
+  keymap/insertion/deletion/note-id are disabled. In that state, user input is
+  handled by Lexical default rich-text behavior, which can create
+  non-canonical structure before schema enforcement resumes and lead to
+  unexpected normalization/collab results once hydration finishes.
