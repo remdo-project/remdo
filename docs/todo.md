@@ -22,6 +22,14 @@ Rules:
 - Rename `createNoteId` to something explicit like `createUniqueNoteId` so the
   uniqueness guarantee is obvious at call sites and tests can avoid defensive
   collision loops.
+- Consolidate snapshot-collab test artifacts under a single dedicated temp
+  directory (instead of a growing flat file list in
+  `tests/unit/collab/snapshot.collab.spec.ts`) and clean that directory in one
+  place after each test.
+- Plan a dedicated terminology refactor for code/wire identifiers from
+  `internal*` to `note*` (for example `InternalNoteLinkNode`,
+  `parseInternalNoteLinkUrl`, and serialized node `type`), separate from docs
+  wording updates to avoid mixing schema/API churn with behavior work.
 
 ## Test doc-id lifecycle hygiene (deferred)
 
@@ -43,8 +51,11 @@ Rules:
   verify whether it reliably flags the duplication noted above.
 - Plan a unified editor-scoped store (`WeakMap<LexicalEditor, ...>`) and migrate
   existing per-feature stores into it (for example
-  `internal-link-doc-context`, `zoom/scroll-target`, `zoom/zoom-change-hints`,
-  `outline/selection/store`, `outline/selection/boundary`) with typed keys.
+  `zoom/scroll-target`, `zoom/zoom-change-hints`, `outline/selection/store`,
+  `outline/selection/boundary`) with typed keys.
+- Consolidate serialized-editor-state traversal into one production helper in
+  `lib/editor` and reuse it across persistence/defaults transforms (and tests),
+  instead of maintaining separate walkers in each module.
 - Expose custom node state fields in the dev tree view (for example `folded`)
   instead of relying mostly on derived display values.
 - Plan a wider helper/API refactor around schema assumptions so local editor

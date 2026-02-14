@@ -2,7 +2,18 @@
 
 ## Purpose
 
-Define the initial internal note-linking behavior for RemDo.
+Define the initial note-linking behavior for RemDo.
+
+## State boundary terms
+
+1. **Runtime editor state:** the in-memory Lexical node state used by editor
+   behavior and rendering.
+2. **Persisted JSON state:** the JSON document shape written to/read from
+   fixtures, snapshot files, and other long-lived storage boundaries.
+3. **Clipboard payload:** transient copy/cut payload (`application/x-lexical-editor`)
+   exchanged between editor contexts.
+4. **Collaboration state:** shared runtime state (for example Yjs-backed) that
+   must behave like runtime/editor state while synced.
 
 ## Core behavior
 
@@ -15,29 +26,31 @@ Define the initial internal note-linking behavior for RemDo.
 4. On insertion, display text is copied once from the target note title and then
    stored locally (no auto-sync on later target renames in this phase).
 5. Runtime/internal editor state stores fully qualified link identity
-   (`docId` + `noteId`) for every internal link node.
+   (`docId` + `noteId`) for every note-link node.
 6. Link clicks use native `href` navigation semantics and route handling.
-7. Pasting a plain-text internal note URL (`/n/<docId>_<noteId>`) inserts an
-   internal link node. When the target is in the current document, inserted
+7. Pasting a plain-text note URL (`/n/<docId>_<noteId>`) inserts a
+   note-link node. When the target is in the current document, inserted
    link text copies the current target note title; otherwise it uses the pasted
    URL string.
 8. Clipboard payloads (copy/cut) must include explicit `docId` for every
-   internal link so cross-context paste has complete target identity.
-9. Cross-document pastes preserve source-target link identity; internal links
+   note link so cross-context paste has complete target identity.
+9. Cross-document pastes preserve source-target link identity; note links
    are not retargeted to the destination document.
 
 ## Identity Representation Boundaries
 
-1. Runtime/editor state keeps internal links fully qualified (`docId` +
+1. Runtime/editor state keeps note links fully qualified (`docId` +
    `noteId`) to avoid context-dependent link resolution.
-2. Persisted document state must omit `docId` when a link targets the active
+2. Persisted JSON state must omit `docId` when a link targets the active
    document. This keeps document identity host-owned rather than embedded as
    canonical content state.
-3. On document load/import, the host/editor adapter must rehydrate missing
-   same-document link `docId` values from the active runtime `documentId`
-   before normal editor behavior runs.
+3. At persisted->runtime boundaries (load/import), hosts must rehydrate missing
+   same-document link `docId` values from the active `documentId` before
+   parsing/applying state into the editor runtime.
 4. Cross-document links keep explicit `docId` values unchanged across save/load.
-5. Note/document identity ownership rules remain defined in
+5. At runtime->persisted boundaries (save/export), hosts must compact out
+   same-document `docId` values before writing persisted JSON output.
+6. Note/document identity ownership rules remain defined in
    [Note IDs](./note-ids.md).
 
 ## Query and ranking
@@ -79,7 +92,7 @@ Define the initial internal note-linking behavior for RemDo.
 
 ## Non-goals / future
 
-1. [Future] Backlinks are expected as part of the internal-link model.
+1. [Future] Backlinks are expected as part of the note-link model.
 2. [Future] Cross-document discovery/insertion in the `@` picker (search scope
    and ranking currently apply only to the active document).
 3. [Future] Fuzzy matching in picker search.

@@ -1,5 +1,6 @@
 export * from './keyboard';
 export * from './clipboard';
+export * from './serialized';
 export * from './dom-note';
 export * from './note';
 export * from './dom-selection';

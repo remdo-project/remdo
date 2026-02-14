@@ -5,7 +5,7 @@ import { $createInternalNoteLinkNode, $isInternalNoteLinkNode, InternalNoteLinkN
 import { meta } from '#tests';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 
-describe('internal note link node', () => {
+describe('note link node (InternalNoteLinkNode)', () => {
   it(
     'exports canonical identity without persisting url',
     meta({ fixture: 'flat' }),
@@ -17,9 +17,9 @@ describe('internal note link node', () => {
       await remdo.mutate(() => {
         const note = $findNoteById('note1')!;
         note.clear();
-        const sameDoc = $createInternalNoteLinkNode({ noteId: 'note2' }, {}, currentDocId);
+        const sameDoc = $createInternalNoteLinkNode({ docId: currentDocId, noteId: 'note2' }, {});
         sameDoc.append($createTextNode('same-doc'));
-        const crossDoc = $createInternalNoteLinkNode({ docId: 'otherDoc', noteId: 'note3' }, {}, currentDocId);
+        const crossDoc = $createInternalNoteLinkNode({ docId: 'otherDoc', noteId: 'note3' }, {});
         crossDoc.append($createTextNode('cross-doc'));
         note.append(sameDoc);
         note.append($createTextNode(' '));
@@ -41,7 +41,7 @@ describe('internal note link node', () => {
         expect(crossDocUrl).toBe('/n/otherDoc_note3');
 
         expect(sameDocJson.noteId).toBe('note2');
-        expect(sameDocJson.docId).toBeUndefined();
+        expect(sameDocJson.docId).toBe(currentDocId);
         expect('url' in sameDocJson).toBe(false);
 
         expect(crossDocJson.noteId).toBe('note3');
@@ -55,6 +55,7 @@ describe('internal note link node', () => {
     'fails fast on malformed link identity',
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
+      const currentDocId = remdo.getCollabDocId();
       let constructorError: unknown;
       let importError: unknown;
 
@@ -66,7 +67,7 @@ describe('internal note link node', () => {
           constructorError = error;
         }
 
-        const valid = new InternalNoteLinkNode({ noteId: 'note2' });
+        const valid = new InternalNoteLinkNode({ docId: currentDocId, noteId: 'note2' });
         const serialized = valid.exportJSON() as Record<string, unknown>;
         serialized.noteId = 'invalid-note-id';
 
@@ -94,9 +95,9 @@ describe('internal note link node', () => {
       let createNodeError: unknown;
 
       await remdo.mutate(() => {
-        const link = new InternalNoteLinkNode({ noteId: 'note2' });
+        const link = new InternalNoteLinkNode({ docId: currentDocId, noteId: 'note2' });
         try {
-          link.setLinkRef({ noteId: 'invalid-note-id' });
+          link.setLinkRef({ docId: currentDocId, noteId: 'invalid-note-id' });
         } catch (error) {
           setLinkRefError = error;
         }
@@ -106,7 +107,7 @@ describe('internal note link node', () => {
           setDocIdError = error;
         }
         try {
-          $createInternalNoteLinkNode({ noteId: 'invalid-note-id' }, {}, currentDocId);
+          $createInternalNoteLinkNode({ docId: currentDocId, noteId: 'invalid-note-id' }, {});
         } catch (error) {
           createNodeError = error;
         }

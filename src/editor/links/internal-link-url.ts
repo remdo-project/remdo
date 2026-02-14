@@ -2,7 +2,7 @@ import { parseDocumentRef } from '@/routing';
 
 interface InternalNoteLink {
   noteId: string;
-  docId?: string;
+  docId: string;
 }
 
 // Temporary base so URL() can parse relative internal-link paths in non-browser contexts.
@@ -27,7 +27,7 @@ export function parseInternalNoteLinkUrl(url: string, currentDocId?: string): In
     return null;
   }
   if (currentDocId && parsedRef.docId === currentDocId) {
-    return { noteId: parsedRef.noteId };
+    return { docId: currentDocId, noteId: parsedRef.noteId };
   }
   return { docId: parsedRef.docId, noteId: parsedRef.noteId };
 }

@@ -12,13 +12,13 @@ import type {
   Spread,
 } from 'lexical';
 
-import { $requireInternalLinkDocContext } from '#lib/editor/internal-link-doc-context';
-import { normalizeNoteIdOrThrow, normalizeOptionalNoteIdOrThrow } from '#lib/editor/note-ids';
+import { normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
 import { createDocumentPath } from '@/routing';
+import { reportInvariant } from '@/editor/invariant';
 
 interface InternalNoteLinkRef {
   noteId: string;
-  docId?: string;
+  docId: string;
 }
 
 export type SerializedInternalNoteLinkNode = Spread<
@@ -41,8 +41,14 @@ const INVALID_LINK_NOTE_ID_ERROR = 'Internal link noteId must be a valid note id
 function $resolveLinkHref(node: InternalNoteLinkNode): string | null {
   const noteId = node.__noteId;
   const docId = node.__docId;
-  const resolvedDocId = docId ?? $requireInternalLinkDocContext();
-  return createDocumentPath(resolvedDocId, noteId);
+  if (!docId) {
+    reportInvariant({
+      message: 'note-link missing docId while resolving href',
+      context: { noteId: noteId || null },
+    });
+    return null;
+  }
+  return createDocumentPath(docId, noteId);
 }
 
 export class InternalNoteLinkNode extends LinkNode {
@@ -54,8 +60,9 @@ export class InternalNoteLinkNode extends LinkNode {
   }
 
   static clone(node: InternalNoteLinkNode): InternalNoteLinkNode {
+    const docId = normalizeNoteIdOrThrow(node.__docId, INVALID_LINK_DOC_ID_ERROR);
     return new InternalNoteLinkNode(
-      { docId: node.__docId, noteId: node.__noteId },
+      { docId, noteId: node.__noteId },
       { rel: node.__rel, target: node.__target, title: node.__title },
       node.__key,
     );
@@ -74,7 +81,7 @@ export class InternalNoteLinkNode extends LinkNode {
       return;
     }
     this.__noteId = normalizeNoteIdOrThrow(ref.noteId, INVALID_LINK_NOTE_ID_ERROR);
-    this.__docId = normalizeOptionalNoteIdOrThrow(ref.docId, INVALID_LINK_DOC_ID_ERROR);
+    this.__docId = normalizeNoteIdOrThrow(ref.docId, INVALID_LINK_DOC_ID_ERROR);
   }
 
   static importDOM(): DOMConversionMap | null {
@@ -83,7 +90,7 @@ export class InternalNoteLinkNode extends LinkNode {
 
   static importJSON(serializedNode: SerializedInternalNoteLinkNode): InternalNoteLinkNode {
     return new InternalNoteLinkNode({
-      docId: normalizeOptionalNoteIdOrThrow(serializedNode.docId, INVALID_LINK_DOC_ID_ERROR),
+      docId: normalizeNoteIdOrThrow(serializedNode.docId, INVALID_LINK_DOC_ID_ERROR),
       noteId: normalizeNoteIdOrThrow(serializedNode.noteId, INVALID_LINK_NOTE_ID_ERROR),
     }).updateFromJSON(serializedNode);
   }
@@ -91,7 +98,7 @@ export class InternalNoteLinkNode extends LinkNode {
   updateFromJSON(serializedNode: LexicalUpdateJSON<SerializedLinkNode>): this {
     const serializedInternal = serializedNode as LexicalUpdateJSON<SerializedInternalNoteLinkNodeInput>;
     const noteId = normalizeNoteIdOrThrow(serializedInternal.noteId, INVALID_LINK_NOTE_ID_ERROR);
-    const docId = normalizeOptionalNoteIdOrThrow(serializedInternal.docId, INVALID_LINK_DOC_ID_ERROR);
+    const docId = normalizeNoteIdOrThrow(serializedInternal.docId, INVALID_LINK_DOC_ID_ERROR);
     const linkSerialized: LexicalUpdateJSON<SerializedLinkNode> = {
       ...serializedNode,
       rel: serializedNode.rel ?? null,
@@ -104,14 +111,13 @@ export class InternalNoteLinkNode extends LinkNode {
 
   exportJSON(): SerializedLinkNode {
     const base = ElementNode.prototype.exportJSON.call(this) as SerializedLinkNode;
-    const noteId = this.getNoteId();
-    const docId = this.getDocId();
+    const { docId, noteId } = this.getLinkRef();
     const serialized = {
       ...base,
       rel: this.getRel(),
       target: this.getTarget(),
       title: this.getTitle(),
-      ...(docId ? { docId } : {}),
+      docId,
       noteId,
     };
     return serialized as unknown as SerializedLinkNode;
@@ -164,8 +170,9 @@ export class InternalNoteLinkNode extends LinkNode {
   }
 
   getLinkRef(): InternalNoteLinkRef {
+    const docId = normalizeNoteIdOrThrow(this.getDocId(), INVALID_LINK_DOC_ID_ERROR);
     return {
-      ...(this.getDocId() ? { docId: this.getDocId() } : {}),
+      docId,
       noteId: this.getNoteId(),
     };
   }
@@ -178,26 +185,25 @@ export class InternalNoteLinkNode extends LinkNode {
     return this.getLatest().__docId;
   }
 
-  setDocId(docId: string | undefined): this {
+  setDocId(docId: string): this {
     const writable = this.getWritable();
-    writable.__docId = normalizeOptionalNoteIdOrThrow(docId, INVALID_LINK_DOC_ID_ERROR);
+    writable.__docId = normalizeNoteIdOrThrow(docId, INVALID_LINK_DOC_ID_ERROR);
     return writable;
   }
 
   setLinkRef(ref: InternalNoteLinkRef): this {
     const writable = this.getWritable();
     writable.__noteId = normalizeNoteIdOrThrow(ref.noteId, INVALID_LINK_NOTE_ID_ERROR);
-    writable.__docId = normalizeOptionalNoteIdOrThrow(ref.docId, INVALID_LINK_DOC_ID_ERROR);
+    writable.__docId = normalizeNoteIdOrThrow(ref.docId, INVALID_LINK_DOC_ID_ERROR);
     return writable;
   }
 
   insertNewAfter(_: RangeSelection, restoreSelection = true): InternalNoteLinkNode {
-    const currentDocId = this.__docId ?? $requireInternalLinkDocContext();
     const linkNode = $createInternalNoteLinkNode(this.getLinkRef(), {
       rel: this.__rel,
       target: this.__target,
       title: this.__title,
-    }, currentDocId);
+    });
     this.insertAfter(linkNode, restoreSelection);
     return linkNode;
   }
@@ -206,16 +212,11 @@ export class InternalNoteLinkNode extends LinkNode {
 export function $createInternalNoteLinkNode(
   ref: InternalNoteLinkRef,
   attributes: { rel?: null | string; target?: null | string; title?: null | string } = {},
-  currentDocId?: string
 ): InternalNoteLinkNode {
   const noteId = normalizeNoteIdOrThrow(ref.noteId, INVALID_LINK_NOTE_ID_ERROR);
-  const docId = normalizeOptionalNoteIdOrThrow(ref.docId, INVALID_LINK_DOC_ID_ERROR);
-  const resolvedCurrentDocId = normalizeOptionalNoteIdOrThrow(currentDocId ?? docId, INVALID_LINK_DOC_ID_ERROR);
-  if (!resolvedCurrentDocId) {
-    throw new Error('Current docId is required when creating same-document internal links.');
-  }
+  const docId = normalizeNoteIdOrThrow(ref.docId, INVALID_LINK_DOC_ID_ERROR);
   return $applyNodeReplacement(new InternalNoteLinkNode(
-    { ...(docId ? { docId } : {}), noteId },
+    { docId, noteId },
     attributes,
     undefined,
   ));

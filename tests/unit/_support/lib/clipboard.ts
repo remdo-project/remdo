@@ -3,6 +3,7 @@ import type { SerializedNoteListItemNode } from '#lib/editor/serialized-note-typ
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import type { SerializedLexicalNode } from 'lexical';
 import { COPY_COMMAND, CUT_COMMAND, PASTE_COMMAND } from 'lexical';
+import { findSerializedNode, getSerializedNodeChildren } from './serialized';
 
 function getListNode(state: RemdoTestApi['getEditorState'] extends () => infer R ? R : never): SerializedListNode {
   const root = (state as { root?: { children?: unknown } }).root;
@@ -51,23 +52,9 @@ function createClipboardEvent(
 }
 
 function findSerializedListItem(node: SerializedLexicalNode, noteId: string): SerializedNoteListItemNode | null {
-  if (node.type === 'listitem') {
-    const listItem = node as SerializedNoteListItemNode;
-    if (listItem.noteId === noteId) {
-      return listItem;
-    }
-  }
-
-  if ('children' in node && Array.isArray((node as { children?: SerializedLexicalNode[] }).children)) {
-    for (const child of (node as { children: SerializedLexicalNode[] }).children) {
-      const found = findSerializedListItem(child, noteId);
-      if (found) {
-        return found;
-      }
-    }
-  }
-
-  return null;
+  return findSerializedNode([node], (candidate): candidate is SerializedNoteListItemNode => (
+    candidate.type === 'listitem' && (candidate as SerializedNoteListItemNode).noteId === noteId
+  ));
 }
 
 export function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
@@ -121,10 +108,8 @@ function normalizeIndent(node: SerializedLexicalNode): void {
   if ('indent' in node && typeof node.indent === 'number') {
     node.indent = 0;
   }
-  if ('children' in node && Array.isArray((node as { children?: SerializedLexicalNode[] }).children)) {
-    for (const child of (node as { children: SerializedLexicalNode[] }).children) {
-      normalizeIndent(child);
-    }
+  for (const child of getSerializedNodeChildren(node)) {
+    normalizeIndent(child);
   }
 }
 

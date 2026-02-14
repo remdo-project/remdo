@@ -24,7 +24,7 @@ import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { createNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { $autoExpandIfFolded } from '#lib/editor/fold-state';
-import { $createInternalNoteLinkNode, $isInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
+import { $createInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import {
   findNearestListItem,
@@ -323,34 +323,6 @@ function $regenerateClipboardNoteIds(nodes: LexicalNode[], reservedIds: Set<stri
   }
 }
 
-function $normalizeClipboardInternalLinkDocIds(nodes: LexicalNode[], currentDocId: string) {
-  if (currentDocId.length === 0) {
-    return;
-  }
-
-  const stack = nodes.toReversed();
-  while (stack.length > 0) {
-    const node = stack.pop();
-    if (!node) {
-      continue;
-    }
-
-    if ($isInternalNoteLinkNode(node) && node.getDocId() === currentDocId) {
-      node.setDocId(undefined);
-    }
-
-    if ($isElementNode(node)) {
-      const children = node.getChildren();
-      for (let i = children.length - 1; i >= 0; i -= 1) {
-        const child = children[i];
-        if (child) {
-          stack.push(child);
-        }
-      }
-    }
-  }
-}
-
 function $insertInternalLinkFromPlainText(
   plainText: string,
   currentDocId: string,
@@ -379,8 +351,8 @@ function $insertInternalLinkFromPlainText(
     return false;
   }
 
-  const linkNode = $createInternalNoteLinkNode(linkRef, {}, currentDocId);
-  const resolvedTitle = linkRef.docId ? null : $findNoteById(linkRef.noteId)?.getTextContent() ?? null;
+  const linkNode = $createInternalNoteLinkNode(linkRef, {});
+  const resolvedTitle = linkRef.docId === currentDocId ? $findNoteById(linkRef.noteId)?.getTextContent() ?? null : null;
   linkNode.append($createTextNode(resolvedTitle ?? trimmed));
   selection.insertNodes([linkNode]);
   return true;
@@ -735,7 +707,6 @@ export function NoteIdPlugin() {
             reservedIds.add(docId);
           }
           $regenerateClipboardNoteIds(payload.nodes, reservedIds);
-          $normalizeClipboardInternalLinkDocIds(payload.nodes, docId);
           const insertNodes = $extractClipboardListChildren(payload.nodes);
           lastPasteSelectionHeadKeysRef.current = null;
           return $insertNodesAtSelection(selectionHeadKeys, payload.selection, insertNodes);

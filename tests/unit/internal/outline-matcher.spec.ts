@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs';
 import type { Outline } from '#tests';
 import { selectStructuralNotes, meta } from '#tests';
 import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
+import { prepareEditorStateForPersistence } from '#lib/editor/editor-state-persistence';
 
 interface OutlineCase {
   fixture: string;
@@ -117,7 +118,8 @@ describe('toMatchOutline smoke coverage', () => {
 
       const fixturePath = path.resolve('tests/fixtures', `${fixture}.json`);
       const raw = await fs.readFile(fixturePath, 'utf8');
-      const minified = stripEditorStateDefaults(remdo.getEditorState());
+      const persisted = prepareEditorStateForPersistence(remdo.getEditorState(), remdo.getCollabDocId());
+      const minified = stripEditorStateDefaults(persisted);
       const minifiedRaw = `${JSON.stringify(minified, null, 2)}\n`;
       expect(minifiedRaw).toBe(raw);
     });

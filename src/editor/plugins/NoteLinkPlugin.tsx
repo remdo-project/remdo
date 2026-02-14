@@ -265,7 +265,7 @@ export function NoteLinkPlugin() {
       return false;
     }
 
-    const linkNode = $createInternalNoteLinkNode({ noteId: activeOption.noteId }, {}, docId);
+    const linkNode = $createInternalNoteLinkNode({ docId, noteId: activeOption.noteId }, {});
     linkNode.append($createTextNode(activeOption.title));
     insertionSelection.insertNodes([linkNode, $createTextNode(' ')]);
 
