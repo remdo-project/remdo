@@ -1,6 +1,7 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator } from '#editor/locators';
+import { createEditorDocumentPathRegExp } from './_support/routes';
 
 const getPseudoMetrics = async (listItem: Locator, pseudo: '::before' | '::after') => {
   return listItem.evaluate((element, pseudoSelector) => {
@@ -74,7 +75,7 @@ test.describe('Checklist markers', () => {
     await expect(childItem).toHaveAttribute('aria-checked', 'false');
 
     await clickMarker(childItem, '::before');
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note4$`));
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note4'));
 
     const zoomedItem = editorLocator(page)
       .locator('li.list-item:not(.list-nested-item)', { hasText: 'note4' })

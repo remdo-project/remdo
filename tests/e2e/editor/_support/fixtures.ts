@@ -5,8 +5,8 @@ import type { Locator, Page } from '#e2e/fixtures';
 import { config } from '#config';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
 import { ensureReady, getEditorState, load, waitForSynced } from './bridge';
-import { prepareEditorTestSurface } from './focus';
 import { editorLocator } from './locators';
+import { createEditorDocumentPath } from './routes';
 
 type EditorHarness = Awaited<ReturnType<typeof createEditorHarness>>;
 interface EditorLoadOptions {
@@ -20,9 +20,10 @@ async function removeCollabDocFromDisk(docId: string): Promise<void> {
 
 async function createEditorHarness(page: Page, docId: string) {
   await removeCollabDocFromDisk(docId);
-  await page.goto(`/n/${docId}`);
+  await page.goto(createEditorDocumentPath(docId));
   await editorLocator(page).locator('.editor-input').first().waitFor();
   await ensureReady(page, { clear: true });
+  await editorLocator(page).locator('.editor-input').first().click();
 
   return {
     docId,
@@ -45,7 +46,6 @@ export const test = base.extend<{ testDocId: string; editor: EditorHarness }>({
   },
   editor: async ({ page, testDocId }, use) => {
     const editor = await createEditorHarness(page, testDocId);
-    await prepareEditorTestSurface(page);
     await use(editor);
     await waitForSynced(page);
   },

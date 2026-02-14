@@ -12,8 +12,7 @@ test.describe('Editor (focused) visibility', () => {
     await expect(input).toBeVisible();
     await expect(editorLocator(page).locator('li.list-item')).toHaveCount(3);
 
-    // App chrome should be hidden by the focus style.
-    await expect(page.getByRole('heading', { name: 'RemDo' })).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'RemDo' })).toHaveCount(0);
   });
 
   test('loads flat fixture and shows expected notes', async ({ editor, page }) => {

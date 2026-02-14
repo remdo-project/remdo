@@ -2,6 +2,7 @@ import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator } from '#editor/locators';
 import { waitForSynced } from './_support/bridge';
+import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
 
 const getBulletMetrics = async (listItem: Locator) => {
   return listItem.evaluate((element: HTMLElement) => {
@@ -53,23 +54,20 @@ test.describe('Zoom routing', () => {
 
     const metrics = await getBulletMetrics(note1);
     await page.mouse.click(metrics.x, metrics.y);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
   });
 
   test('clears zoom route when clicking document breadcrumb', async ({ page, editor }) => {
-    await page.goto(`/n/${editor.docId}_note1`);
+    await page.goto(createEditorDocumentPath(editor.docId, 'note1'));
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await editor.load('basic');
 
     await page.getByRole('button', { name: editor.docId }).click();
-    await expect(page).toHaveURL(`/n/${editor.docId}`);
+    await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
   });
 
   test('clears breadcrumb path when zoom is cleared', async ({ page, editor }) => {
     await editor.load('basic');
-    await page.evaluate(() => {
-      document.getElementById('remdo-editor-focus-style')?.remove();
-    });
 
     const editorRoot = editorLocator(page);
     const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
@@ -87,11 +85,11 @@ test.describe('Zoom routing', () => {
   });
 
   test('invalid zoom route resets to document URL', async ({ page, editor }) => {
-    await page.goto(`/n/${editor.docId}_missingNote`);
+    await page.goto(createEditorDocumentPath(editor.docId, 'missingNote'));
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await waitForSynced(page);
 
-    await expect(page).toHaveURL(`/n/${editor.docId}`);
+    await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
     await expect(editorLocator(page).locator('li.list-item').first()).toBeVisible();
   });
 
@@ -99,10 +97,10 @@ test.describe('Zoom routing', () => {
     await editor.load('flat');
     await waitForSynced(page);
 
-    await page.goto(`/n/${editor.docId}_note1`);
+    await page.goto(createEditorDocumentPath(editor.docId, 'note1'));
     await editorLocator(page).locator('.editor-input').first().waitFor();
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
     await waitForSynced(page);
-    await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
   });
 });
