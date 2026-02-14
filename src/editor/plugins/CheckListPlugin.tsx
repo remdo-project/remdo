@@ -9,20 +9,14 @@ import { $getNoteChecked, $setNoteChecked } from '#lib/editor/checklist-state';
 import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import type { SetNoteCheckedPayload } from '@/editor/commands';
 import { isBulletHit, isCheckboxHit } from '@/editor/outline/bullet-hit-test';
-import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
-import { $resolveNoteIdFromDOMNode } from '@/editor/outline/note-traversal';
+import { $resolveContentNoteFromNode, $resolveNoteIdFromDOMNode } from '@/editor/outline/note-context';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 
 const isChecklistItem = (element: HTMLElement): boolean =>
   element.classList.contains('list-item-checked') || element.classList.contains('list-item-unchecked');
 
 const $resolveContentItemByKey = (key: string): ListItemNode | null => {
-  const node = $getNodeByKey<ListItemNode>(key);
-  if (!$isListItemNode(node)) {
-    return null;
-  }
-  const contentItem = getContentListItem(node);
-  return isChildrenWrapper(contentItem) ? null : contentItem;
+  return $resolveContentNoteFromNode($getNodeByKey<ListItemNode>(key));
 };
 
 const $setCheckedState = (node: ListItemNode, checked: boolean) => {
@@ -66,12 +60,9 @@ const $resolveToggleTargets = (
   if (!$isRangeSelection(selection)) {
     return [];
   }
-  const focusedItem = findNearestListItem(selection.focus.getNode()) ?? findNearestListItem(selection.anchor.getNode());
-  if (!focusedItem) {
-    return [];
-  }
-  const contentItem = getContentListItem(focusedItem);
-  if (isChildrenWrapper(contentItem)) {
+  const contentItem = $resolveContentNoteFromNode(selection.focus.getNode()) ??
+    $resolveContentNoteFromNode(selection.anchor.getNode());
+  if (!contentItem) {
     return [];
   }
   return [contentItem];

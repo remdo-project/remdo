@@ -1,5 +1,4 @@
 import {
-  $getNearestNodeFromDOMNode,
   $getNodeByKey,
   $getSelection,
   $isRangeSelection,
@@ -14,11 +13,11 @@ import { setSelectionBoundary } from '@/editor/outline/selection/boundary';
 import { setZoomScrollTarget } from '@/editor/zoom/scroll-target';
 import { consumeZoomMergeHint } from '@/editor/zoom/zoom-change-hints';
 import type { ListItemNode } from '@lexical/list';
-import type { LexicalNode, UpdateListenerPayload } from 'lexical';
-import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
+import type { UpdateListenerPayload } from 'lexical';
+import { $resolveContentNoteFromDOMNode, $resolveContentNoteFromNode, $resolveNoteIdFromDOMNode } from '@/editor/outline/note-context';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
-import { $findNoteById, $getNoteAncestorPath, $resolveNoteIdFromDOMNode } from '@/editor/outline/note-traversal';
+import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
 import { findLowestCommonContentAncestor, getParentContentItem, isContentDescendantOf } from '@/editor/outline/selection/tree';
 import { $getNoteId } from '#lib/editor/note-id-state';
 import { ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
@@ -50,15 +49,6 @@ const isPathEqual = (next: NotePathItem[], prev: NotePathItem[] | null) => {
   });
 };
 
-const resolveContentItem = (node: LexicalNode | null): ListItemNode | null => {
-  const listItem = findNearestListItem(node);
-  if (!listItem) {
-    return null;
-  }
-  const content = getContentListItem(listItem);
-  return isChildrenWrapper(content) ? null : content;
-};
-
 const $collectDirtyContentItems = (
   dirtyElements: Map<string, boolean>,
   dirtyLeaves: Set<string>
@@ -77,12 +67,12 @@ const $collectDirtyContentItems = (
       continue;
     }
     const node = $getNodeByKey(key);
-    addItem(resolveContentItem(node));
+    addItem($resolveContentNoteFromNode(node));
   }
 
   for (const key of dirtyLeaves) {
     const node = $getNodeByKey(key);
-    addItem(resolveContentItem(node));
+    addItem($resolveContentNoteFromNode(node));
   }
 
   return Array.from(items.values());
@@ -217,12 +207,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       }
 
       const canZoom = editor.read(() => {
-        const node = $getNearestNodeFromDOMNode(listItem);
-        if (!node) {
-          return false;
-        }
-        const listNode = findNearestListItem(node);
-        return Boolean(listNode && !isChildrenWrapper(listNode));
+        return Boolean($resolveContentNoteFromDOMNode(listItem));
       });
 
       if (!canZoom) {
@@ -360,7 +345,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       const resolved = editorState.read(() => {
         const selection = $getSelection();
         const selectionItem = $isRangeSelection(selection)
-          ? resolveContentItem(selection.anchor.getNode())
+          ? $resolveContentNoteFromNode(selection.anchor.getNode())
           : null;
         const selectionKey =
           $isRangeSelection(selection) && selection.isCollapsed()
@@ -536,7 +521,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
 
               const selection = $getSelection();
               const selectionItem = $isRangeSelection(selection)
-                ? resolveContentItem(selection.anchor.getNode())
+                ? $resolveContentNoteFromNode(selection.anchor.getNode())
                 : null;
               if (selectionItem && isContentDescendantOf(selectionItem, targetItem)) {
                 pendingZoomSelectionRef.current = null;

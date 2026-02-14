@@ -3,7 +3,6 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { Menu } from '@mantine/core';
 import { mergeRegister } from '@lexical/utils';
 import {
-  $getNearestNodeFromDOMNode,
   $getNodeByKey,
   COMMAND_PRIORITY_LOW,
   SELECTION_CHANGE_COMMAND,
@@ -14,7 +13,7 @@ import { createPortal } from 'react-dom';
 
 import { $getNoteId } from '#lib/editor/note-id-state';
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
-import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { $resolveContentNoteFromDOMNode, $resolveContentNoteFromNode } from '@/editor/outline/note-context';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { getNestedList } from '@/editor/outline/selection/tree';
 import { $resolveNoteStateFromDOMNode } from '@/editor/plugins/note-state';
@@ -110,11 +109,8 @@ export function NoteMenuPlugin() {
     }
     const noteId = editor.getEditorState().read(() => {
       const node = $getNodeByKey<ListItemNode>(current.noteKey);
-      if (!node) {
-        return null;
-      }
-      const contentItem = getContentListItem(node);
-      if (isChildrenWrapper(contentItem)) {
+      const contentItem = $resolveContentNoteFromNode(node);
+      if (!contentItem) {
         return null;
       }
       return $getNoteId(contentItem);
@@ -237,13 +233,8 @@ export function NoteMenuPlugin() {
         if (!focusNode) {
           return;
         }
-        const focusLexical = $getNearestNodeFromDOMNode(focusNode);
-        const focusItem = focusLexical ? findNearestListItem(focusLexical) : null;
-        if (!focusItem) {
-          return;
-        }
-        const contentItem = getContentListItem(focusItem);
-        if (isChildrenWrapper(contentItem)) {
+        const contentItem = $resolveContentNoteFromDOMNode(focusNode);
+        if (!contentItem) {
           return;
         }
         key = contentItem.getKey();
@@ -461,11 +452,8 @@ export function NoteMenuPlugin() {
                 onClick={() => {
                   editor.update(() => {
                     const node = $getNodeByKey<ListItemNode>(menu.noteKey);
-                    if (!node) {
-                      return;
-                    }
-                    const contentItem = getContentListItem(node);
-                    if (isChildrenWrapper(contentItem)) {
+                    const contentItem = $resolveContentNoteFromNode(node);
+                    if (!contentItem) {
                       return;
                     }
                     const nested = getNestedList(contentItem);

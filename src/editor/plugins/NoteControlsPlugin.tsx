@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
-import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { $resolveContentNoteFromNode } from '@/editor/outline/note-context';
 import { $resolveNoteStateFromDOMNode } from '@/editor/plugins/note-state';
 
 interface NoteControlsState {
@@ -85,14 +85,9 @@ export function NoteControlsPlugin() {
         if (!$isRangeSelection(selection)) {
           return;
         }
-        const focusItem =
-          findNearestListItem(selection.focus.getNode()) ??
-          findNearestListItem(selection.anchor.getNode());
-        if (!focusItem) {
-          return;
-        }
-        const contentItem = getContentListItem(focusItem);
-        if (isChildrenWrapper(contentItem)) {
+        const contentItem = $resolveContentNoteFromNode(selection.focus.getNode()) ??
+          $resolveContentNoteFromNode(selection.anchor.getNode());
+        if (!contentItem) {
           return;
         }
         key = contentItem.getKey();
