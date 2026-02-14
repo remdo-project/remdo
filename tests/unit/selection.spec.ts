@@ -80,10 +80,8 @@ describe('selection plugin', () => {
 
     const isBackward = remdo.validate(() => {
       const selection = $getSelection();
-      if (!$isRangeSelection(selection)) {
-        throw new Error('Expected range selection');
-      }
-      return selection.isBackward();
+      expect($isRangeSelection(selection)).toBe(true);
+      return (selection as ReturnType<typeof $getSelection> & { isBackward: () => boolean }).isBackward();
     });
 
     expect(isBackward).toBe(true);
@@ -868,10 +866,8 @@ describe('selection plugin', () => {
     const assertVisualEnvelopeMatchesSelection = (expected: string[]) => {
       const ids = remdo.validate(() => {
         const selection = $getSelection();
-        if (!$isRangeSelection(selection)) {
-          throw new Error('Expected a range selection');
-        }
-        const items = collectSelectedListItems(selection);
+        expect($isRangeSelection(selection)).toBe(true);
+        const items = collectSelectedListItems(selection as Parameters<typeof collectSelectedListItems>[0]);
         if (items.length === 0) {
           throw new Error('Expected structural selection');
         }

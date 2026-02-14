@@ -1,5 +1,4 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $isListNode } from '@lexical/list';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { waitFor } from '@testing-library/react';
 import type { TextNode } from 'lexical';
@@ -28,17 +27,14 @@ export type SelectionSnapshot =
 export function $getNoteIdOrThrow(item: ListItemNode, message = 'Expected list item to have a noteId'): string {
   const noteId = $getNoteId(item);
   if (!noteId) {
-    throw new Error(message);
+    throw new TypeError(message);
   }
   return noteId;
 }
 
 function $findItemByNoteId(noteId: string): ListItemNode {
   const root = $getRoot();
-  const list = root.getFirstChild();
-  if (!list || !$isListNode(list)) {
-    throw new Error(`No list item found with noteId: ${noteId}`);
-  }
+  const list = root.getFirstChild() as ListNode;
   const $search = (listNode: ListNode): ListItemNode | null => {
     const items = listNode.getChildren<ListItemNode>();
     for (const item of items) {
@@ -55,10 +51,7 @@ function $findItemByNoteId(noteId: string): ListItemNode {
     return null;
   };
 
-  const match = $search(list);
-  if (!match) {
-    throw new Error(`No list item found with noteId: ${noteId}`);
-  }
+  const match = $search(list)!;
   return match;
 }
 
@@ -121,10 +114,7 @@ export async function placeCaretAtNoteTextNode(
   await remdo.mutate(() => {
     const item = $findItemByNoteId(noteId);
     const textNodes = item.getChildren().filter($isTextNode);
-    const target = textNodes[textNodeIndex];
-    if (!target) {
-      throw new Error(`Expected text node ${textNodeIndex} on "${noteId}".`);
-    }
+    const target = textNodes[textNodeIndex]!;
 
     const length = target.getTextContentSize();
     const normalized = offset < 0 ? length + offset : offset;
@@ -177,31 +167,25 @@ export async function selectEntireNote(remdo: RemdoTestApi, noteId: string): Pro
 
   await remdo.mutate(() => {
     const selection = $getSelection();
-    if (!$isRangeSelection(selection)) {
-      throw new Error('Expected range selection');
-    }
+    expect($isRangeSelection(selection)).toBe(true);
+    const rangeSelection = selection as ReturnType<typeof $createRangeSelection>;
+    const anchorNode = rangeSelection.anchor.getNode();
+    expect($isTextNode(anchorNode)).toBe(true);
+    const anchorTextNode = anchorNode as TextNode;
 
-    const anchorNode = selection.anchor.getNode();
-    if (!$isTextNode(anchorNode)) {
-      throw new Error('Expected text node selection anchor');
-    }
-
-    const length = anchorNode.getTextContentSize();
-    selection.setTextNodeRange(anchorNode, 0, anchorNode, length);
+    const length = anchorTextNode.getTextContentSize();
+    rangeSelection.setTextNodeRange(anchorTextNode, 0, anchorTextNode, length);
   });
 }
 export function readCaretNoteKey(remdo: RemdoTestApi): string {
   // Reads the note key from a collapsed caret selection.
   return remdo.validate(() => {
     const selection = $getSelection();
-    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-      throw new Error('Expected collapsed caret selection');
-    }
+    expect($isRangeSelection(selection)).toBe(true);
+    const rangeSelection = selection as ReturnType<typeof $createRangeSelection>;
+    expect(rangeSelection.isCollapsed()).toBe(true);
 
-    const item = findNearestListItem(selection.anchor.getNode()) ?? findNearestListItem(selection.focus.getNode());
-    if (!item) {
-      throw new Error('Expected caret to be inside a list item');
-    }
+    const item = findNearestListItem(rangeSelection.anchor.getNode()) ?? findNearestListItem(rangeSelection.focus.getNode())!;
 
     return item.getKey();
   });
@@ -211,14 +195,11 @@ export function readCaretNoteId(remdo: RemdoTestApi): string {
   // Reads the note id from a collapsed caret selection.
   return remdo.validate(() => {
     const selection = $getSelection();
-    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-      throw new Error('Expected collapsed caret selection');
-    }
+    expect($isRangeSelection(selection)).toBe(true);
+    const rangeSelection = selection as ReturnType<typeof $createRangeSelection>;
+    expect(rangeSelection.isCollapsed()).toBe(true);
 
-    const item = findNearestListItem(selection.anchor.getNode()) ?? findNearestListItem(selection.focus.getNode());
-    if (!item) {
-      throw new Error('Expected caret to be inside a list item');
-    }
+    const item = findNearestListItem(rangeSelection.anchor.getNode()) ?? findNearestListItem(rangeSelection.focus.getNode())!;
 
     return $getNoteIdOrThrow(item, 'Expected caret note to have a noteId');
   });
@@ -285,31 +266,25 @@ export async function selectNoteRange(
     const startTextNode = findContentTextNode(startItem);
     const endTextNode = findContentTextNode(endItem);
 
-    if (!startTextNode || !$isTextNode(startTextNode)) {
-      throw new Error('Expected start text node with select capability');
-    }
-    if (!endTextNode || !$isTextNode(endTextNode)) {
-      throw new Error('Expected end text node with select capability');
-    }
+    expect($isTextNode(startTextNode)).toBe(true);
+    expect($isTextNode(endTextNode)).toBe(true);
+    const startText = startTextNode as TextNode;
+    const endText = endTextNode as TextNode;
 
     let selection = $getSelection();
     if (!$isRangeSelection(selection)) {
       selection = $createRangeSelection();
       $setSelection(selection);
     }
-    if (!$isRangeSelection(selection)) {
-      throw new Error('Expected range selection');
-    }
-
-    const rangeSelection = selection;
-    const startLength = startTextNode.getTextContentSize();
-    const endLength = endTextNode.getTextContentSize();
+    const rangeSelection = selection as ReturnType<typeof $createRangeSelection>;
+    const startLength = startText.getTextContentSize();
+    const endLength = endText.getTextContentSize();
 
     const order = compareNodeOrder(startItem, endItem);
     if (order <= 0) {
-      rangeSelection.setTextNodeRange(startTextNode, 0, endTextNode, endLength);
+      rangeSelection.setTextNodeRange(startText, 0, endText, endLength);
     } else {
-      rangeSelection.setTextNodeRange(startTextNode, startLength, endTextNode, 0);
+      rangeSelection.setTextNodeRange(startText, startLength, endText, 0);
     }
   });
 }

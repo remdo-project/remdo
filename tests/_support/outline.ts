@@ -35,7 +35,7 @@ export function extractOutlineFromEditorState(state: unknown): Outline {
 
   const { notes, valid } = traverseSerializedOutline(state as SerializedEditorState);
   if (!valid) {
-    throw new Error('Expected outline to be valid.');
+    throw new TypeError('Expected outline to be valid.');
   }
 
   const readNotes = (items: SerializedOutlineNote[]): Outline =>

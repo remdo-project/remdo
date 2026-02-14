@@ -64,10 +64,7 @@ function collectSerializedNoteLinksInNodes(nodes: SerializedLexicalNode[] | unde
 
 function cloneSerializedListItemByNoteId(remdo: RemdoTestApi, noteId: string): SerializedNoteListItemNode {
   const listNode = getSerializedRootListNode(remdo) as SerializedLexicalNode;
-  const match = findSerializedListItem(listNode, noteId);
-  if (!match) {
-    throw new Error(`Expected serialized list item with noteId ${noteId}`);
-  }
+  const match = findSerializedListItem(listNode, noteId)!;
   return structuredClone(match);
 }
 
@@ -347,14 +344,8 @@ describe('note ids on paste', () => {
     await selectStructuralNotes(remdo, 'note2');
 
     const clipboardPayload = buildClipboardPayload(remdo, ['note2']);
-    const listNode = clipboardPayload.nodes[0];
-    if (!listNode || !Array.isArray(listNode.children) || listNode.children.length === 0) {
-      throw new Error('Expected clipboard list node with children for duplication test.');
-    }
-    const firstChild = listNode.children[0];
-    if (!firstChild) {
-      throw new Error('Expected clipboard list node with children for duplication test.');
-    }
+    const listNode = clipboardPayload.nodes[0] as { children: SerializedLexicalNode[] };
+    const firstChild = listNode.children[0]!;
     const duplicate = structuredClone(firstChild);
     listNode.children.push(duplicate);
 
@@ -378,10 +369,7 @@ describe('note ids on paste', () => {
     delete parent.noteId;
     setSerializedText(parent, 'pasted parent');
 
-    const nested = findSerializedListItem(wrapper, 'note2');
-    if (!nested) {
-      throw new Error('Expected nested note2 in wrapper payload.');
-    }
+    const nested = findSerializedListItem(wrapper, 'note2')!;
     delete nested.noteId;
     setSerializedText(nested, 'pasted child');
 
@@ -442,10 +430,7 @@ describe('note ids on paste', () => {
     parent.noteId = 'dup';
     setSerializedText(parent, 'dup parent');
 
-    const nested = findSerializedListItem(wrapper, 'note2');
-    if (!nested) {
-      throw new Error('Expected nested note2 in wrapper payload.');
-    }
+    const nested = findSerializedListItem(wrapper, 'note2')!;
     nested.noteId = 'dup';
     setSerializedText(nested, 'dup child');
 

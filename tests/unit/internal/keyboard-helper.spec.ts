@@ -6,7 +6,6 @@ import {
   $getRoot,
   $getSelection,
   $isRangeSelection,
-  $isTextNode,
   CONTROLLED_TEXT_INSERTION_COMMAND,
   createEditor,
   ParagraphNode,
@@ -30,10 +29,7 @@ async function setCaret(editor: LexicalEditor, offset: number) {
       const root = $getRoot();
       const firstChild = root.getFirstChild();
       const paragraph = firstChild as ParagraphNode | null;
-      const textNode = paragraph?.getFirstChild() as TextNode | null;
-      if (!$isTextNode(textNode)) {
-        throw new Error('Expected text node');
-      }
+      const textNode = paragraph?.getFirstChild() as TextNode;
       const clamped = Math.max(0, Math.min(offset, textNode.getTextContentSize()));
       textNode.select(clamped, clamped);
     });

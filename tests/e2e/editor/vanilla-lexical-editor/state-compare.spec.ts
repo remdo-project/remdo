@@ -12,11 +12,10 @@ const stringifyWithoutNoteIds = (value: unknown) =>
 
 async function getEditorStateFromSelector(page: Page, selector: string, label: string): Promise<unknown> {
   return page.evaluate(
-    ({ target, labelText }) => {
-      const element = document.querySelector(target) as { __lexicalEditor?: { getEditorState: () => { toJSON: () => unknown } } } | null;
-      if (!element?.__lexicalEditor) {
-        throw new Error(`${labelText} editor not found.`);
-      }
+    ({ target }) => {
+      const element = document.querySelector(target) as unknown as {
+        __lexicalEditor: { getEditorState: () => { toJSON: () => unknown } };
+      };
       return element.__lexicalEditor.getEditorState().toJSON();
     },
     { target: selector, labelText: label }
