@@ -1,15 +1,15 @@
 import { parseDocumentRef } from '@/routing';
 
-interface InternalNoteLink {
+interface NoteLink {
   noteId: string;
-  docId?: string;
+  docId: string;
 }
 
-// Temporary base so URL() can parse relative internal-link paths in non-browser contexts.
-// Drop once callers provide normalized absolute/internal path input.
+// Temporary base so URL() can parse relative note-link paths in non-browser contexts.
+// Drop once callers provide normalized absolute note-link input.
 const URL_PARSE_BASE = 'http://localhost';
 
-export function parseInternalNoteLinkUrl(url: string, currentDocId?: string): InternalNoteLink | null {
+export function parseNoteLinkUrl(url: string, currentDocId?: string): NoteLink | null {
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(url, URL_PARSE_BASE);
@@ -27,7 +27,7 @@ export function parseInternalNoteLinkUrl(url: string, currentDocId?: string): In
     return null;
   }
   if (currentDocId && parsedRef.docId === currentDocId) {
-    return { noteId: parsedRef.noteId };
+    return { docId: currentDocId, noteId: parsedRef.noteId };
   }
   return { docId: parsedRef.docId, noteId: parsedRef.noteId };
 }

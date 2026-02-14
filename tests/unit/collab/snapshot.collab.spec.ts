@@ -8,21 +8,19 @@ import { meta } from '#tests';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import type { Buffer } from 'node:buffer';
+import { $isNoteLinkNode } from '#lib/editor/note-link-node';
 import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
+import { $findNoteById } from '@/editor/outline/note-traversal';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
-  const SNAPSHOT_OUTPUTS = [
-    path.resolve('data', 'snapshot.cli.json'),
-    path.resolve('data', 'snapshot.cli.flat.json'),
-    path.resolve('data', 'snapshot.cli.tree.json'),
-    path.resolve('data', 'cliFlag.json'),
-    path.resolve('data', 'cross-doc-check.json'),
-    path.resolve('data', 'cross-doc-check-alt.json'),
-    path.resolve('data', 'snapshot.links.json'),
-  ];
+  const SNAPSHOT_OUTPUT_DIR = path.resolve('data', 'snapshot-collab-spec');
 
   const baseEnv = { ...process.env } satisfies NodeJS.ProcessEnv;
+
+  function snapshotOutputPath(fileName: string): string {
+    return path.join(SNAPSHOT_OUTPUT_DIR, fileName);
+  }
 
   function runSnapshotCommand(command: 'load' | 'save', args: string[], envOverrides?: NodeJS.ProcessEnv) {
     try {
@@ -47,16 +45,14 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   }
 
   afterEach(() => {
-    for (const filePath of SNAPSHOT_OUTPUTS) {
-      rmSync(filePath, { force: true });
-    }
+    rmSync(SNAPSHOT_OUTPUT_DIR, { recursive: true, force: true });
   });
 
   it('loads data into collaboration doc and writes it back to disk', async () => {
     const docEnv = { COLLAB_DOCUMENT_ID: 'snapshotBasic' };
     const loadPath = path.resolve('tests/fixtures/basic.json');
-    const expected = stripEditorStateDefaults(readEditorState(loadPath));
-    const savePath = SNAPSHOT_OUTPUTS[0]!;
+    const expected = readEditorState(loadPath);
+    const savePath = snapshotOutputPath('snapshot.cli.json');
     runSnapshotCommand('load', [loadPath], docEnv);
 
     await waitFor(() => {
@@ -72,8 +68,8 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     async () => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshotFlat' };
 
-      const savePath = SNAPSHOT_OUTPUTS[1]!;
-      const expectedState = stripEditorStateDefaults(readEditorState(path.resolve('tests/fixtures/flat.json')));
+      const savePath = snapshotOutputPath('snapshot.cli.flat.json');
+      const expectedState = readEditorState(path.resolve('tests/fixtures/flat.json'));
       await waitFor(() => {
         runSnapshotCommand('save', [savePath], docEnv);
         const saved = stripEditorStateDefaults(readEditorState(savePath));
@@ -92,8 +88,8 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
       await remdo.waitForSynced();
 
-      const expectedState = stripEditorStateDefaults(readEditorState(loadPath));
-      const savePath = SNAPSHOT_OUTPUTS[2]!;
+      const expectedState = readEditorState(loadPath);
+      const savePath = snapshotOutputPath('snapshot.cli.tree.json');
 
       await waitFor(() => {
         runSnapshotCommand('save', [savePath], docEnv);
@@ -109,8 +105,8 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('resolves the document id from the CLI flag', async () => {
     const docId = 'cliFlag';
     const loadPath = path.resolve('tests/fixtures/basic.json');
-    const expected = stripEditorStateDefaults(readEditorState(loadPath));
-    const savePath = path.resolve('data', `${docId}.json`);
+    const expected = readEditorState(loadPath);
+    const savePath = snapshotOutputPath(`${docId}.json`);
 
     runSnapshotCommand('load', ['--doc', docId, loadPath]);
 
@@ -147,10 +143,10 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
       const defaultFixture = path.resolve('tests/fixtures/basic.json');
       const secondaryFixture = path.resolve('tests/fixtures/tree.json');
-      const expectedDefault = stripEditorStateDefaults(readEditorState(defaultFixture));
-      const expectedSecondary = stripEditorStateDefaults(readEditorState(secondaryFixture));
-      const defaultOutput = path.resolve('data', `${defaultDoc}.json`);
-      const secondaryOutput = path.resolve('data', `${secondaryDoc}.json`);
+      const expectedDefault = readEditorState(defaultFixture);
+      const expectedSecondary = readEditorState(secondaryFixture);
+      const defaultOutput = snapshotOutputPath(`${defaultDoc}.json`);
+      const secondaryOutput = snapshotOutputPath(`${secondaryDoc}.json`);
 
       runSnapshotCommand('load', [defaultFixture], envOverrides);
       runSnapshotCommand('load', ['--doc', secondaryDoc, secondaryFixture]);
@@ -172,16 +168,35 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     }
   );
 
-  it('saves same-doc and cross-doc internal links from fixture', async () => {
-    const docId = 'snapshotLinksDoc';
+  it('rehydrates same-doc links in runtime after snapshot load while keeping persisted output compact', async ({ remdo }: TestContext) => {
+    const docId = remdo.getCollabDocId();
+    const envOverrides = {
+      COLLAB_DOCUMENT_ID: docId,
+      VITE_COLLAB_DOCUMENT_ID: docId,
+    } satisfies NodeJS.ProcessEnv;
     const fixturePath = path.resolve('tests/fixtures/links.json');
-    const outputPath = path.resolve('data', 'snapshot.links.json');
-    const expected = stripEditorStateDefaults(readEditorState(fixturePath));
+    const outputPath = snapshotOutputPath('snapshot.links.roundtrip.json');
+    const expected = readEditorState(fixturePath);
 
-    runSnapshotCommand('load', ['--doc', docId, fixturePath]);
+    runSnapshotCommand('load', [fixturePath], envOverrides);
+    await remdo.waitForSynced();
 
     await waitFor(() => {
-      runSnapshotCommand('save', ['--doc', docId, outputPath]);
+      remdo.validate(() => {
+        const note = $findNoteById('note1')!;
+        const links = note.getChildren().filter($isNoteLinkNode);
+        expect(links).toHaveLength(2);
+        const runtimeSameDocLink = links[0]!;
+        const runtimeCrossDocLink = links[1]!;
+        expect(runtimeSameDocLink.getNoteId()).toBe('note2');
+        expect(runtimeCrossDocLink.getNoteId()).toBe('remoteNote');
+        expect(runtimeSameDocLink.getDocId()).toBe(docId);
+        expect(runtimeCrossDocLink.getDocId()).toBe('otherDoc');
+      });
+    });
+
+    await waitFor(() => {
+      runSnapshotCommand('save', [outputPath], envOverrides);
       const saved = stripEditorStateDefaults(readEditorState(outputPath));
       expect(saved.root).toEqual(expected.root);
     });

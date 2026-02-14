@@ -20,7 +20,7 @@ import {
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { $createInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
+import { $createNoteLinkNode } from '#lib/editor/note-link-node';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
 import { resolveLinkPickerAnchor } from './note-link/anchor';
@@ -30,7 +30,17 @@ import { $resolveLinkQuerySession } from './note-link/session';
 import type { ActiveLinkQuery, LinkPickerState, LinkQuerySession } from './note-link/types';
 
 function isTypingTrigger(event: KeyboardEvent): boolean {
-  return event.key === '@' && !event.altKey && !event.metaKey && !event.ctrlKey;
+  if (event.key !== '@' || event.metaKey) {
+    return false;
+  }
+
+  const altGraphActive = event.getModifierState('AltGraph');
+  const ctrlAltChord = event.ctrlKey && event.altKey;
+  if (altGraphActive || ctrlAltChord) {
+    return true;
+  }
+
+  return !event.altKey && !event.ctrlKey;
 }
 
 export function NoteLinkPlugin() {
@@ -255,7 +265,7 @@ export function NoteLinkPlugin() {
       return false;
     }
 
-    const linkNode = $createInternalNoteLinkNode({ noteId: activeOption.noteId }, {}, docId);
+    const linkNode = $createNoteLinkNode({ docId, noteId: activeOption.noteId }, {});
     linkNode.append($createTextNode(activeOption.title));
     insertionSelection.insertNodes([linkNode, $createTextNode(' ')]);
 

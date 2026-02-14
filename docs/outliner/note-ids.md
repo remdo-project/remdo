@@ -10,9 +10,11 @@ identity behavior and is intended to drive tests and application logic.
 
 This specification covers addressable notes (content list items) inside a single
 RemDo document and the global reference (`noteRef`) derived from document +
-note identity. The document root is modeled conceptually as a note (see
+note identity. Note-link identity boundaries (`docId`/`noteId` in runtime,
+compaction rules at persistence boundaries) are defined in
+[Links](./links.md). The document root is modeled conceptually as a note (see
 `./concepts.md`), but document identity itself is runtime state owned by the
-environment, not serialized as a root `noteId`.
+environment, not persisted as a root `noteId`.
 
 ## Definitions
 
@@ -36,8 +38,8 @@ environment, not serialized as a root `noteId`.
    documents may reuse the same `noteId` values.
 4. `noteId` values are stable for the lifetime of a note and do not change on
    edits, reorders, indent/outdent, or moves.
-5. `noteId` values round-trip through adapters and serialization unchanged for
-   addressable notes.
+5. `noteId` values round-trip through adapters and persisted JSON boundaries
+   unchanged for addressable notes.
 
 ## Lifecycle
 
@@ -77,10 +79,17 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 - When a note is deleted, its `noteId` is no longer in use. Reuse is not
   intentionally enforced.
 
-## Serialization and normalization
+## Persisted JSON and normalization
 
-- Serialized document states must include `noteId` for addressable notes.
-- Serialized document states do not persist document identity as `root.noteId`.
+- Persisted JSON document state must include `noteId` for addressable notes.
+- Persisted JSON document state must not persist the active/current document ID
+  as document-level identity (for example, not as `root.noteId` and not as a
+  same-document note-link `docId`).
+- Persisted JSON must keep explicit `docId` values for note links that
+  target other documents.
+- Note-link `docId` representation rules are defined in
+  [Links](./links.md#identity-representation-boundaries) to keep this spec as
+  the single source for note identity and runtime document ownership.
 - On load, any missing or duplicate `noteId` values must be normalized before
   the document is exposed to the app: keep existing unique IDs and assign fresh
   IDs to missing or colliding notes (preserving document order).
@@ -94,6 +103,8 @@ Behavioral clipboard rules (placement, move validation, focus) live in
   session/editor it initializes.
 - Runtime `documentId` must remain per-editor state and must not be derived from
   global location reads inside core editor logic.
+- Runtime `documentId` also drives same-document note-link rehydration at
+  load/import boundaries (see [Links](./links.md)).
 
 ## Collaboration
 

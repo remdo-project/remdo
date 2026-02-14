@@ -19,8 +19,8 @@ import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lex
 import { config } from '#config';
 import { CollabSession } from '#lib/collaboration/session';
 import { restoreEditorStateDefaults, stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
+import { prepareEditorStateForPersistence, prepareEditorStateForRuntime } from '#lib/editor/editor-state-persistence';
 import { createEditorInitialConfig } from '#lib/editor/config';
-import { clearInternalLinkDocContext, setInternalLinkDocContext } from '#lib/editor/internal-link-doc-context';
 import { normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
 
 type SharedRootObserver = (
@@ -206,7 +206,8 @@ async function runSave(
 ): Promise<void> {
   await withSession(docId, collabOrigin, async (editor) => {
     const editorState = editor.getEditorState().toJSON();
-    const payload = minify ? stripEditorStateDefaults(editorState) : editorState;
+    const persistedState = prepareEditorStateForPersistence(editorState, docId);
+    const payload = minify ? stripEditorStateDefaults(persistedState) : persistedState;
     writeJson(filePath, payload);
     console.info(`[snapshot] save -> ${filePath}`);
 
@@ -243,7 +244,8 @@ async function runBackup(
 
 async function runLoad(docId: string, collabOrigin: string, filePath: string): Promise<void> {
   const raw = JSON.parse(fs.readFileSync(filePath, 'utf8')) as SerializedEditorState;
-  const data = restoreEditorStateDefaults(raw);
+  const restored = restoreEditorStateDefaults(raw);
+  const data = prepareEditorStateForRuntime(restored, docId);
   await withSession(docId, collabOrigin, async (editor, { session }) => {
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data), { tag: 'snapshot-load' });
@@ -314,11 +316,9 @@ async function withSession(
       syncYjsStateToLexicalV2__EXPERIMENTAL(binding, provider);
       await initialUpdate;
     }
-    setInternalLinkDocContext(editor, docId);
 
     return await run(editor, { provider, session });
   } finally {
-    clearInternalLinkDocContext(editor);
     if (hydrateFromYjs) {
       sharedRoot.unobserveDeep(observer);
     }

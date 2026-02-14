@@ -3,15 +3,37 @@
   border: 1px solid var(--mantine-color-dark-4);
   border-radius: var(--mantine-radius-md);
   background: var(--mantine-color-dark-6);
-  overflow: hidden;
 }
 
-.document-zoom-header {
+.document-header {
   border-bottom: 1px solid var(--mantine-color-dark-4);
   padding: calc(var(--mantine-spacing-xs) - 0.05rem) var(--mantine-spacing-xl);
   min-height: 1.9rem;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-md);
+}
+
+.document-header-breadcrumbs {
+  flex: 1;
+  min-width: 0;
+}
+
+.document-header-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  min-height: 1.2rem;
+}
+
+.document-header-status .editor-header {
+  position: static;
+  top: auto;
+  right: auto;
+  z-index: auto;
+  color: var(--mantine-color-dark-2);
 }
 
 .document-editor-shell .editor-container {

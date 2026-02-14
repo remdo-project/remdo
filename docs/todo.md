@@ -40,8 +40,11 @@ Rules:
   verify whether it reliably flags the duplication noted above.
 - Plan a unified editor-scoped store (`WeakMap<LexicalEditor, ...>`) and migrate
   existing per-feature stores into it (for example
-  `internal-link-doc-context`, `zoom/scroll-target`, `zoom/zoom-change-hints`,
-  `outline/selection/store`, `outline/selection/boundary`) with typed keys.
+  `zoom/scroll-target`, `zoom/zoom-change-hints`, `outline/selection/store`,
+  `outline/selection/boundary`) with typed keys.
+- Consolidate serialized-editor-state traversal into one production helper in
+  `lib/editor` and reuse it across persistence/defaults transforms (and tests),
+  instead of maintaining separate walkers in each module.
 - Expose custom node state fields in the dev tree view (for example `folded`)
   instead of relying mostly on derived display values.
 - Plan a wider helper/API refactor around schema assumptions so local editor

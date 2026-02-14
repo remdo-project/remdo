@@ -1,17 +1,40 @@
 import { $isLinkNode } from '@lexical/link';
-import { PASTE_COMMAND } from 'lexical';
+import { act } from '@testing-library/react';
+import { CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
-import { $isInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
+import { $isNoteLinkNode } from '#lib/editor/note-link-node';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { $findNoteById } from '@/editor/outline/note-traversal';
-import { clearEditorProps, createDataTransfer, meta, placeCaretAtNote, pressKey, registerScopedEditorProps, typeText } from '#tests';
+import { clearEditorProps, createDataTransfer, meta, placeCaretAtNote, pressKey, registerScopedEditorProps, selectEntireNote, typeText } from '#tests';
 
 async function pastePlainText(remdo: RemdoTestApi, text: string) {
   const transfer = createDataTransfer();
   transfer.setData('text/plain', text);
   const event = new ClipboardEvent('paste', { clipboardData: transfer });
   await remdo.dispatchCommand(PASTE_COMMAND, event, { expect: 'any' });
+}
+
+async function typeAltGraphAt(remdo: RemdoTestApi) {
+  const root = remdo.editor.getRootElement();
+  expect(root).not.toBeNull();
+
+  const event = new KeyboardEvent('keydown', {
+    key: '@',
+    bubbles: true,
+    cancelable: true,
+    altKey: true,
+    ctrlKey: true,
+  });
+
+  await act(async () => {
+    const allowed = root!.dispatchEvent(event);
+    if (allowed) {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, '@');
+    }
+  });
+
+  await remdo.waitForSynced();
 }
 
 describe('note links (docs/outliner/links.md)', () => {
@@ -32,13 +55,24 @@ describe('note links (docs/outliner/links.md)', () => {
       const note = $findNoteById('note1')!;
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('note2');
-      expect($isInternalNoteLinkNode(linkNode)).toBe(true);
-      if ($isInternalNoteLinkNode(linkNode)) {
+      expect($isNoteLinkNode(linkNode)).toBe(true);
+      if ($isNoteLinkNode(linkNode)) {
         expect(linkNode.getNoteId()).toBe('note2');
-        expect(linkNode.getDocId()).toBeUndefined();
+        expect(linkNode.getDocId()).toBe(remdo.getCollabDocId());
       }
       expect(note.getTextContent().endsWith(' ')).toBe(true);
     });
+  });
+
+  it('opens link-query mode when @ is entered with AltGr modifiers', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeAltGraphAt(remdo);
+
+    // Many non-US layouts produce '@' via AltGr (reported as Ctrl+Alt).
+    // We enforce this so link-query remains keyboard-accessible on those layouts.
+    expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
+    const optionTitles = [...document.querySelectorAll('.note-link-picker__title')].map((node) => node.textContent);
+    expect(optionTitles).toEqual(['note2', 'note3']);
   });
 
   it('confirms the active option with Tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -53,7 +87,7 @@ describe('note links (docs/outliner/links.md)', () => {
     ]);
   });
 
-  it('pasting the same-document note URL creates an internal link without docId', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('pasting the same-document note URL creates a note link with docId', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     const url = `/n/${remdo.getCollabDocId()}_note2`;
     await pastePlainText(remdo, url);
@@ -68,15 +102,15 @@ describe('note links (docs/outliner/links.md)', () => {
       const note = $findNoteById('note1')!;
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('note2');
-      expect($isInternalNoteLinkNode(linkNode)).toBe(true);
-      if ($isInternalNoteLinkNode(linkNode)) {
+      expect($isNoteLinkNode(linkNode)).toBe(true);
+      if ($isNoteLinkNode(linkNode)) {
         expect(linkNode.getNoteId()).toBe('note2');
-        expect(linkNode.getDocId()).toBeUndefined();
+        expect(linkNode.getDocId()).toBe(remdo.getCollabDocId());
       }
     });
   });
 
-  it('pasting a cross-document note URL creates an internal link with docId', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('pasting a cross-document note URL creates a note link with docId', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     const url = new URL('/n/otherDoc_note2', globalThis.location.href).toString();
     await pastePlainText(remdo, url);
@@ -85,12 +119,68 @@ describe('note links (docs/outliner/links.md)', () => {
       const note = $findNoteById('note1')!;
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe(url);
-      expect($isInternalNoteLinkNode(linkNode)).toBe(true);
-      if ($isInternalNoteLinkNode(linkNode)) {
+      expect($isNoteLinkNode(linkNode)).toBe(true);
+      if ($isNoteLinkNode(linkNode)) {
         expect(linkNode.getNoteId()).toBe('note2');
         expect(linkNode.getDocId()).toBe('otherDoc');
       }
     });
+  });
+
+  it('keeps inserted link display text unchanged when the target note is later renamed', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@note2');
+    await pressKey(remdo, { key: 'Enter' });
+
+    await selectEntireNote(remdo, 'note2');
+    await typeText(remdo, 'renamed note2');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1note2 ' },
+      { noteId: 'note2', text: 'renamed note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe('note2');
+    });
+  });
+
+  it('rehydrates same-document fixture links with current docId in runtime state', meta({ fixture: 'links' }), async ({ remdo }) => {
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const links = note.getChildren().filter($isNoteLinkNode);
+      const sameDocLink = links[0]!;
+      const crossDocLink = links[1]!;
+
+      expect(sameDocLink.getNoteId()).toBe('note2');
+      expect(sameDocLink.getDocId()).toBe(remdo.getCollabDocId());
+
+      expect(crossDocLink.getNoteId()).toBe('remoteNote');
+      expect(crossDocLink.getDocId()).toBe('otherDoc');
+    });
+  });
+
+  it('accepts spaces and punctuation in link query text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@note2');
+    await typeText(remdo, ' !');
+
+    const picker = document.querySelector('[data-note-link-picker]');
+    expect(picker).not.toBeNull();
+    expect(document.querySelector('[data-note-link-picker-item]')).toBeNull();
+    const emptyRow = document.querySelector('[data-note-link-picker-empty="true"]');
+    expect(emptyRow).not.toBeNull();
+    expect(emptyRow!.textContent.trim()).toBe('No results...');
+
+    await pressKey(remdo, { key: 'Enter' });
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1@note2 !' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
   });
 
   it('keeps filtered results in document order', meta({ fixture: 'flat' }), async ({ remdo }) => {

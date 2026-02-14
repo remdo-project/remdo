@@ -16,7 +16,7 @@
               },
               {
                 "noteId": "note2",
-                "type": "internal-note-link",
+                "type": "note-link",
                 "children": [
                   {
                     "text": "note2",
@@ -31,7 +31,7 @@
               {
                 "docId": "otherDoc",
                 "noteId": "remoteNote",
-                "type": "internal-note-link",
+                "type": "note-link",
                 "children": [
                   {
                     "text": "/n/otherDoc_remoteNote",

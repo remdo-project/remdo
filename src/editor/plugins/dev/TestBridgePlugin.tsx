@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { LexicalCommand, LexicalEditor, EditorUpdateOptions, SerializedEditorState } from 'lexical';
 import { $createTextNode, $getRoot, $isTextNode } from 'lexical';
+import { prepareEditorStateForRuntime } from '#lib/editor/editor-state-persistence';
 import { assertEditorSchema } from './schema/assertEditorSchema';
 import { useCollaborationStatus } from '../collaboration';
 import { markSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
@@ -159,7 +160,8 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
 
   const applySerializedState = async (input: string, options?: ApplySerializedStateOptions) => {
     await ensureHydrated();
-    const parsed = editor.parseEditorState(JSON.parse(input) as SerializedEditorState);
+    const runtimeState = prepareEditorStateForRuntime(JSON.parse(input) as SerializedEditorState, collab.docId);
+    const parsed = editor.parseEditorState(runtimeState);
     await withOutcome('setEditorState', 'update', () => {
       if (options?.skipSchemaValidationOnce) {
         markSchemaValidationSkipOnce(editor);

@@ -232,6 +232,9 @@ test.describe('Zoom visibility', () => {
 
   test('current breadcrumb is not interactive', async ({ page, editor }) => {
     await editor.load('basic');
+    await page.evaluate(() => {
+      document.getElementById('remdo-editor-focus-style')?.remove();
+    });
 
     const editorRoot = editorLocator(page);
     const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
@@ -241,7 +244,9 @@ test.describe('Zoom visibility', () => {
     await page.mouse.click(metrics.x, metrics.y);
     await expect(page).toHaveURL(new RegExp(String.raw`/n/${editor.docId}_note1$`));
 
-    const breadcrumbs = page.getByRole('button', { name: editor.docId }).locator('..');
+    const breadcrumbs = page
+      .getByRole('button', { name: editor.docId })
+      .locator('xpath=ancestor::*[@data-zoom-breadcrumbs]');
     const currentCrumb = breadcrumbs.locator('[data-zoom-crumb="current"]').first();
     await currentCrumb.click();
 

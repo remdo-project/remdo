@@ -1,5 +1,7 @@
 import { expect, test } from '#editor/fixtures';
+import { ensureReady, waitForSynced } from '#editor/bridge';
 import { editorLocator, setCaretAtText } from '#editor/locators';
+import { createUniqueNoteId } from '#lib/editor/note-ids';
 
 test.describe('note links', () => {
   test('inserts a note link from @ picker with Enter', async ({ page, editor }) => {
@@ -179,5 +181,35 @@ test.describe('note links', () => {
     await page.keyboard.press('Enter');
 
     await expect(editorLocator(page).getByRole('link', { name: 'note1' })).toHaveCount(1);
+  });
+
+  test('cross-document paste keeps link target doc from clipboard payload across isolated browser contexts', async ({ browser, page, editor }) => {
+    await editor.load('links');
+    await setCaretAtText(page, 'same ', 0);
+    await page.keyboard.press('Shift+ArrowDown');
+    await page.keyboard.press('Shift+ArrowDown');
+
+    const copyCombo = process.platform === 'darwin' ? 'Meta+C' : 'Control+C';
+    await page.keyboard.press(copyCombo);
+
+    const destinationDocId = createUniqueNoteId();
+    const destinationContext = await browser.newContext();
+    const destinationPage = await destinationContext.newPage();
+    try {
+      await destinationPage.goto(`/n/${destinationDocId}`);
+      await editorLocator(destinationPage).locator('.editor-input').first().waitFor();
+      await ensureReady(destinationPage, { clear: true });
+      // Per docs/outliner/concepts.md, a document never becomes empty; after clear there is one empty note.
+      // Click the editor input to place the caret in that note without loading a fixture.
+      await editorLocator(destinationPage).locator('.editor-input').first().click();
+      const pasteCombo = process.platform === 'darwin' ? 'Meta+V' : 'Control+V';
+      await destinationPage.keyboard.press(pasteCombo);
+      await waitForSynced(destinationPage);
+
+      const pastedLink = editorLocator(destinationPage).getByRole('link', { name: 'note2' }).last();
+      await expect(pastedLink).toHaveAttribute('href', new RegExp(`/n/${editor.docId}_note2$`));
+    } finally {
+      await destinationContext.close();
+    }
   });
 });

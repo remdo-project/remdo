@@ -22,9 +22,9 @@ import {
 } from 'lexical';
 import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
-import { createNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
+import { createUniqueNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { $autoExpandIfFolded } from '#lib/editor/fold-state';
-import { $createInternalNoteLinkNode, $isInternalNoteLinkNode } from '#lib/editor/internal-note-link-node';
+import { $createNoteLinkNode } from '#lib/editor/note-link-node';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import {
   findNearestListItem,
@@ -51,7 +51,7 @@ import {
   sortHeadsByDocumentOrder,
 } from '@/editor/outline/selection/tree';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
-import { parseInternalNoteLinkUrl } from '@/editor/links/internal-link-url';
+import { parseNoteLinkUrl } from '@/editor/links/note-link-url';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { useCollaborationStatus } from './collaboration';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
@@ -145,13 +145,13 @@ function $ensureNoteId(item: ListItemNode) {
     return;
   }
 
-  $setState(item, noteIdState, createNoteId());
+  $setState(item, noteIdState, createUniqueNoteId());
 }
 
 function $createNoteItemWithText(text: string): ListItemNode {
   const item = $createListItemNode();
   item.append($createTextNode(text));
-  $setState(item, noteIdState, createNoteId());
+  $setState(item, noteIdState, createUniqueNoteId());
   return item;
 }
 
@@ -237,7 +237,7 @@ function $splitContentItemAtSelection(contentItem: ListItemNode, selection: Base
   }
 
   const newItem = $createListItemNode();
-  $setState(newItem, noteIdState, createNoteId());
+  $setState(newItem, noteIdState, createUniqueNoteId());
 
   let child = contentItem.getFirstChild();
   while (child && child !== splitStart) {
@@ -323,34 +323,6 @@ function $regenerateClipboardNoteIds(nodes: LexicalNode[], reservedIds: Set<stri
   }
 }
 
-function $normalizeClipboardInternalLinkDocIds(nodes: LexicalNode[], currentDocId: string) {
-  if (currentDocId.length === 0) {
-    return;
-  }
-
-  const stack = nodes.toReversed();
-  while (stack.length > 0) {
-    const node = stack.pop();
-    if (!node) {
-      continue;
-    }
-
-    if ($isInternalNoteLinkNode(node) && node.getDocId() === currentDocId) {
-      node.setDocId(undefined);
-    }
-
-    if ($isElementNode(node)) {
-      const children = node.getChildren();
-      for (let i = children.length - 1; i >= 0; i -= 1) {
-        const child = children[i];
-        if (child) {
-          stack.push(child);
-        }
-      }
-    }
-  }
-}
-
 function $insertInternalLinkFromPlainText(
   plainText: string,
   currentDocId: string,
@@ -365,7 +337,7 @@ function $insertInternalLinkFromPlainText(
     return false;
   }
 
-  const linkRef = parseInternalNoteLinkUrl(trimmed, currentDocId);
+  const linkRef = parseNoteLinkUrl(trimmed, currentDocId);
   if (!linkRef) {
     return false;
   }
@@ -379,8 +351,8 @@ function $insertInternalLinkFromPlainText(
     return false;
   }
 
-  const linkNode = $createInternalNoteLinkNode(linkRef, {}, currentDocId);
-  const resolvedTitle = linkRef.docId ? null : $findNoteById(linkRef.noteId)?.getTextContent() ?? null;
+  const linkNode = $createNoteLinkNode(linkRef, {});
+  const resolvedTitle = linkRef.docId === currentDocId ? $findNoteById(linkRef.noteId)?.getTextContent() ?? null : null;
   linkNode.append($createTextNode(resolvedTitle ?? trimmed));
   selection.insertNodes([linkNode]);
   return true;
@@ -735,7 +707,6 @@ export function NoteIdPlugin() {
             reservedIds.add(docId);
           }
           $regenerateClipboardNoteIds(payload.nodes, reservedIds);
-          $normalizeClipboardInternalLinkDocIds(payload.nodes, docId);
           const insertNodes = $extractClipboardListChildren(payload.nodes);
           lastPasteSelectionHeadKeysRef.current = null;
           return $insertNodesAtSelection(selectionHeadKeys, payload.selection, insertNodes);
