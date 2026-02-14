@@ -1,5 +1,3 @@
-import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
-
 /**
  * Helpers for traversing Lexical serialized nodes (plain JSON objects),
  * not live LexicalNode runtime instances.
@@ -9,15 +7,47 @@ import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
  * - clipboard payloads (`application/x-lexical-editor`),
  * - import/export paths (`importJSON` / `exportJSON`).
  */
+import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
+
+export { transformSerializedEditorState } from '#lib/editor/serialized-editor-state';
 
 export function getSerializedNodeChildren(node: SerializedLexicalNode | null | undefined): SerializedLexicalNode[] {
   const children = (node as { children?: unknown } | null | undefined)?.children;
-  return Array.isArray(children) ? (children as SerializedLexicalNode[]) : [];
+  if (!Array.isArray(children)) {
+    return [];
+  }
+
+  const collected: SerializedLexicalNode[] = [];
+  for (const child of children) {
+    if (child && typeof child === 'object') {
+      collected.push(child as SerializedLexicalNode);
+    }
+  }
+  return collected;
 }
 
 export function getSerializedRootNodes(state: SerializedEditorState): SerializedLexicalNode[] {
   const root = (state as { root?: { children?: unknown } }).root;
   return Array.isArray(root?.children) ? (root.children as SerializedLexicalNode[]) : [];
+}
+
+export function forEachSerializedNode(state: SerializedEditorState, visit: (node: SerializedLexicalNode) => void): void {
+  const stack: SerializedLexicalNode[] = [state.root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) {
+      continue;
+    }
+    visit(node);
+
+    const children = getSerializedNodeChildren(node);
+    for (let i = children.length - 1; i >= 0; i -= 1) {
+      const child = children[i];
+      if (child) {
+        stack.push(child);
+      }
+    }
+  }
 }
 
 export function findSerializedNode<T extends SerializedLexicalNode>(

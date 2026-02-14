@@ -4,6 +4,7 @@ import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ClickableLinkPlugin } from '@lexical/react/LexicalClickableLinkPlugin';
+import { useCallback, useState } from 'react';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollaborationPlugin } from './plugins/collaboration';
 import { CheckListPlugin } from './plugins/CheckListPlugin';
@@ -49,6 +50,11 @@ export default function Editor({
   onZoomPathChange,
 }: EditorProps) {
   const editorInitialConfig = createEditorInitialConfig();
+  const [schemaReady, setSchemaReady] = useState(false);
+  const handleSchemaReadyChange = useCallback((ready: boolean) => {
+    setSchemaReady(ready);
+  }, []);
+
   return (
     <div className="editor-container">
       <LexicalComposer initialConfig={editorInitialConfig}>
@@ -58,26 +64,30 @@ export default function Editor({
             contentEditable={<ContentEditable className="editor-input" />}
             ErrorBoundary={LexicalErrorBoundary}
           />
-          <KeymapPlugin />
-          <IndentationPlugin />
-          <ReorderingPlugin />
-          <SelectionPlugin />
-          <SelectionCollapsePlugin />
-          <NoteLinkPlugin />
-          <ClickableLinkPlugin newTab={false} />
-          <InsertionPlugin />
-          <DeletionPlugin />
-          <SelectionInputPlugin />
-          <FoldingPlugin />
-          <NoteControlsPlugin />
-          <NoteMenuPlugin />
-          <ZoomPlugin zoomNoteId={zoomNoteId} onZoomNoteIdChange={onZoomNoteIdChange} onZoomPathChange={onZoomPathChange} />
-          <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
-          <CheckListPlugin />
-          <ListPlugin hasStrictIndent />
-          <RootSchemaPlugin />
-          <NoteIdPlugin />
-          <DevPlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose}>{children}</DevPlugin>
+          <RootSchemaPlugin onSchemaReadyChange={handleSchemaReadyChange} />
+          {schemaReady ? (
+            <>
+            <NoteIdPlugin />
+            <KeymapPlugin />
+            <IndentationPlugin />
+            <ReorderingPlugin />
+            <SelectionPlugin />
+            <SelectionCollapsePlugin />
+            <NoteLinkPlugin />
+            <ClickableLinkPlugin newTab={false} />
+            <InsertionPlugin />
+            <DeletionPlugin />
+            <SelectionInputPlugin />
+            <FoldingPlugin />
+            <NoteControlsPlugin />
+            <NoteMenuPlugin />
+            <ZoomPlugin zoomNoteId={zoomNoteId} onZoomNoteIdChange={onZoomNoteIdChange} onZoomPathChange={onZoomPathChange} />
+            <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
+            <CheckListPlugin />
+            <ListPlugin hasStrictIndent />
+            <DevPlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose}>{children}</DevPlugin>
+            </>
+          ) : null}
         </CollaborationPlugin>
       </LexicalComposer>
     </div>

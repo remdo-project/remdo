@@ -3,7 +3,6 @@ import { $isRangeSelection } from 'lexical';
 import type { ListItemNode } from '@lexical/list';
 
 import { reportInvariant } from '@/editor/invariant';
-import { getContentListItem } from '@/editor/outline/list-structure';
 
 import type { OutlineSelection, OutlineSelectionRange } from './model';
 import { getContiguousSelectionHeads, getSelectedNotes } from './heads';
@@ -64,7 +63,7 @@ export function $computeOutlineSelectionSnapshot({
   const anchorSelectionItem = $isRangeSelection(selection)
     ? resolveSelectionPointItem(selection, selection.anchor)
     : null;
-  const anchorSelectionKey = anchorSelectionItem ? getContentListItem(anchorSelectionItem).getKey() : null;
+  const anchorSelectionKey = anchorSelectionItem ? anchorSelectionItem.getKey() : null;
   const isCollapsedStructuralIntent =
     isProgressiveTagged &&
     $isRangeSelection(selection) &&
@@ -104,8 +103,8 @@ export function $computeOutlineSelectionSnapshot({
 
   const anchorItem = anchorSelectionItem ?? resolveSelectionPointItem(selection, selection.anchor);
   const focusItem = resolveSelectionPointItem(selection, selection.focus);
-  const anchorKey = anchorItem ? getContentListItem(anchorItem).getKey() : null;
-  const focusKey = focusItem ? getContentListItem(focusItem).getKey() : null;
+  const anchorKey = anchorItem ? anchorItem.getKey() : null;
+  const focusKey = focusItem ? focusItem.getKey() : null;
   const isBackward = selection.isBackward();
 
   if (selection.isCollapsed() && !isCollapsedStructuralIntent) {
@@ -131,7 +130,7 @@ export function $computeOutlineSelectionSnapshot({
   }
 
   const headItems = selection.isCollapsed() ? (anchorItem ? [anchorItem] : []) : getContiguousSelectionHeads(selection);
-  const headKeys = headItems.map((item) => getContentListItem(item).getKey());
+  const headKeys = headItems.map((item) => item.getKey());
   structuralRange = computeStructuralRangeFromHeads(headItems);
   if (headItems.length > 0 && !structuralRange) {
     reportInvariant({

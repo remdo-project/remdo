@@ -1,8 +1,7 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $isListNode } from '@lexical/list';
-import { $getRoot } from 'lexical';
 
 import { $getNoteId } from '#lib/editor/note-id-state';
+import { $requireRootContentList } from '@/editor/outline/schema';
 import { getNestedList } from '@/editor/outline/selection/tree';
 
 interface LinkableNote {
@@ -36,14 +35,9 @@ function $visitList(listNode: ListNode, ancestorPath: string[], notes: LinkableN
 }
 
 export function $collectLinkableNotesInDocumentOrder(): LinkableNote[] {
-  const root = $getRoot();
-  const firstChild = root.getFirstChild();
-  if (!firstChild || !$isListNode(firstChild)) {
-    return [];
-  }
-
   const notes: LinkableNote[] = [];
-  $visitList(firstChild, [], notes);
+  const rootList = $requireRootContentList();
+  $visitList(rootList, [], notes);
   return notes;
 }
 

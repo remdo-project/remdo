@@ -4,14 +4,13 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
 import {
-  findNearestListItem,
   flattenNoteNodes,
-  getContentListItem,
   getContentSiblings,
   getNodesForNote,
   insertAfter,
   insertBefore,
 } from '@/editor/outline/list-structure';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import { useEffect } from 'react';
 import { mergeRegister } from '@lexical/utils';
@@ -61,9 +60,9 @@ function $getSelectionContext(): SelectionContext | null {
   let notes = getContiguousSelectionHeads(selection);
 
   if (notes.length === 0 && selection.isCollapsed()) {
-    const caretItem = findNearestListItem(selection.anchor.getNode());
+    const caretItem = resolveContentItemFromNode(selection.anchor.getNode());
     if (caretItem) {
-      notes = [getContentListItem(caretItem)];
+      notes = [caretItem];
     }
   }
 

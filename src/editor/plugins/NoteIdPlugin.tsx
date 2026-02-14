@@ -27,13 +27,12 @@ import { $autoExpandIfFolded } from '#lib/editor/fold-state';
 import { $createNoteLinkNode } from '#lib/editor/note-link-node';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import {
-  findNearestListItem,
-  getContentListItem,
   $getOrCreateChildList,
   insertBefore,
   isChildrenWrapper,
   flattenNoteNodes,
 } from '@/editor/outline/list-structure';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '@/editor/outline/selection/caret-placement';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
@@ -95,14 +94,7 @@ function getClipboardPayload(event: ClipboardEvent | KeyboardEvent | InputEvent 
 }
 
 function $getContentKeyFromNode(node: LexicalNode | null): string | null {
-  if (!node) {
-    return null;
-  }
-  const listItem = findNearestListItem(node);
-  if (!listItem) {
-    return null;
-  }
-  return getContentListItem(listItem).getKey();
+  return resolveContentItemFromNode(node)?.getKey() ?? null;
 }
 
 function $getContentKeyFromNodeKey(key: string): string | null {
@@ -126,17 +118,16 @@ function hasMarkedDirtyKey(marker: CutMarker, keys: NodeKey[], state: EditorStat
   });
 }
 
-function isCaretWithinMarkedSelection(marker: CutMarker, selection: BaseSelection | null): boolean {
+function $isCaretWithinMarkedSelection(marker: CutMarker, selection: BaseSelection | null): boolean {
   if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
     return false;
   }
 
-  const caretItem = findNearestListItem(selection.anchor.getNode());
-  if (!caretItem) {
+  const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
+  if (!contentItem) {
     return false;
   }
 
-  const contentItem = getContentListItem(caretItem);
   return marker.markedKeys.has(contentItem.getKey());
 }
 
@@ -191,23 +182,23 @@ function resolvePasteSelectionHeadKeys(
   }
   if (selectionHeadKeys.length === 0 && $isRangeSelection(selection) && !selection.isCollapsed()) {
     const heads = getContiguousSelectionHeads(selection);
-    selectionHeadKeys = heads.map((item) => getContentListItem(item).getKey());
+    selectionHeadKeys = heads.map((item) => item.getKey());
   }
   return selectionHeadKeys;
 }
 
-function isInlineSelectionWithinSingleNote(selection: BaseSelection | null): boolean {
+function $isInlineSelectionWithinSingleNote(selection: BaseSelection | null): boolean {
   if (!$isRangeSelection(selection) || selection.isCollapsed()) {
     return false;
   }
 
-  const anchorItem = findNearestListItem(selection.anchor.getNode());
-  const focusItem = findNearestListItem(selection.focus.getNode());
+  const anchorItem = resolveContentItemFromNode(selection.anchor.getNode());
+  const focusItem = resolveContentItemFromNode(selection.focus.getNode());
   if (!anchorItem || !focusItem) {
     return false;
   }
 
-  return getContentListItem(anchorItem) === getContentListItem(focusItem);
+  return anchorItem === focusItem;
 }
 
 function $splitContentItemAtSelection(contentItem: ListItemNode, selection: BaseSelection | null): ListItemNode | null {
@@ -347,7 +338,7 @@ function $insertInternalLinkFromPlainText(
     return false;
   }
 
-  if (!selection.isCollapsed() && !isInlineSelectionWithinSingleNote(selection)) {
+  if (!selection.isCollapsed() && !$isInlineSelectionWithinSingleNote(selection)) {
     return false;
   }
 
@@ -439,11 +430,10 @@ function $insertNodesAtSelection(
     }
     nextSibling = getNextContentSibling(lastHead);
   } else if ($isRangeSelection(selection) && selection.isCollapsed()) {
-    const caretItem = findNearestListItem(selection.anchor.getNode());
-    if (!caretItem) {
+    const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
+    if (!contentItem) {
       return false;
     }
-    const contentItem = getContentListItem(caretItem);
     parentList = contentItem.getParent();
     if (!$isListNode(parentList)) {
       return false;
@@ -494,7 +484,7 @@ function $insertNodesAtSelection(
   }
 
   if (lastInserted) {
-    $selectItemEdge(getContentListItem(lastInserted), 'end');
+    $selectItemEdge(lastInserted, 'end');
   }
 
   return true;
@@ -579,7 +569,7 @@ export function NoteIdPlugin() {
               if ($isRangeSelection(selection) && !selection.isCollapsed()) {
                 const heads = getContiguousSelectionHeads(selection);
                 if (heads.length > 1) {
-                  selectionHeadKeys = heads.map((item) => getContentListItem(item).getKey());
+                  selectionHeadKeys = heads.map((item) => item.getKey());
                   isStructuralCut = true;
                 }
               }
@@ -633,7 +623,7 @@ export function NoteIdPlugin() {
           const marker = cutMarkerRef.current;
           const outlineSelection = editor.selection.get();
           const isInlineSelection =
-            outlineSelection?.kind !== 'structural' && isInlineSelectionWithinSingleNote(payload.selection);
+            outlineSelection?.kind !== 'structural' && $isInlineSelectionWithinSingleNote(payload.selection);
           const selectionHeadKeys = resolvePasteSelectionHeadKeys(
             editor,
             payload.selection,
@@ -647,7 +637,7 @@ export function NoteIdPlugin() {
             }
 
             const caretInMarked =
-              selectionHeadKeys.length === 0 && isCaretWithinMarkedSelection(marker, payload.selection);
+              selectionHeadKeys.length === 0 && $isCaretWithinMarkedSelection(marker, payload.selection);
             const intersection = caretInMarked || selectionHeadKeys.some((key) => marker.markedKeys.has(key));
             if (intersection) {
               lastPasteSelectionHeadKeysRef.current = null;
@@ -683,8 +673,7 @@ export function NoteIdPlugin() {
           }
 
           if (isInlineSelection && $isRangeSelection(payload.selection)) {
-            const inlineAnchor = findNearestListItem(payload.selection.anchor.getNode());
-            const inlineContentItem = inlineAnchor ? getContentListItem(inlineAnchor) : null;
+            const inlineContentItem = resolveContentItemFromNode(payload.selection.anchor.getNode());
             const text = $getPlainTextFromClipboardNodes(payload.nodes);
             const lines = text.split(/\r?\n/);
             const shouldInsertNotes = lines.length > 1;
@@ -761,7 +750,7 @@ export function NoteIdPlugin() {
 
           const selection = $getSelection();
           const isInlineSelection =
-            outlineSelection?.kind !== 'structural' && isInlineSelectionWithinSingleNote(selection);
+            outlineSelection?.kind !== 'structural' && $isInlineSelectionWithinSingleNote(selection);
           const selectionHeadKeys = resolvePasteSelectionHeadKeys(
             editor,
             selection,
@@ -774,8 +763,7 @@ export function NoteIdPlugin() {
 
           let handled = false;
           if ($isRangeSelection(selection) && !selection.isCollapsed() && isInlineSelection) {
-            const inlineAnchor = findNearestListItem(selection.anchor.getNode());
-            const inlineContentItem = inlineAnchor ? getContentListItem(inlineAnchor) : null;
+            const inlineContentItem = resolveContentItemFromNode(selection.anchor.getNode());
             const [firstLine, ...restLines] = lines;
             selection.insertText(firstLine ?? '');
             $insertFirstChildNotes(inlineContentItem, restLines);

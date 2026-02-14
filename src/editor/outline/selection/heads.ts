@@ -3,7 +3,8 @@ import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection } from 'lexical';
 
 import { reportInvariant } from '@/editor/invariant';
-import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from '../list-structure';
+import { getContentSiblings, isChildrenWrapper } from '../list-structure';
+import { resolveContentItemFromNode } from '../schema';
 import { getNextContentSibling, normalizeContentRange } from './tree';
 
 // Returns the contiguous sibling slab that spans anchor/focus as the set of
@@ -19,8 +20,8 @@ export function getContiguousSelectionHeads(selection: RangeSelection): ListItem
     return elementSelectionHeads;
   }
 
-  const anchorItem = findNearestListItem(selection.anchor.getNode());
-  const focusItem = findNearestListItem(selection.focus.getNode());
+  const anchorItem = resolveContentItemFromNode(selection.anchor.getNode());
+  const focusItem = resolveContentItemFromNode(selection.focus.getNode());
   if (!anchorItem || !focusItem) {
     reportInvariant({
       message: 'Selection anchor/focus is not within list items.',
@@ -29,8 +30,8 @@ export function getContiguousSelectionHeads(selection: RangeSelection): ListItem
     return [];
   }
 
-  const anchorContent = getContentListItem(anchorItem);
-  const focusContent = getContentListItem(focusItem);
+  const anchorContent = anchorItem;
+  const focusContent = focusItem;
 
   if (
     anchorContent !== focusContent &&
@@ -86,8 +87,8 @@ export function getSelectedNotes(selection: RangeSelection): ListItemNode[] {
   const candidates: LexicalNode[] = selection.getNodes();
 
   for (const node of candidates) {
-    const listItem = findNearestListItem(node);
-    if (!listItem) {
+    const contentItem = resolveContentItemFromNode(node);
+    if (!contentItem) {
       reportInvariant({
         message: 'Selected node is not within a list item',
         context: { nodeType: node.getType() },
@@ -95,7 +96,6 @@ export function getSelectedNotes(selection: RangeSelection): ListItemNode[] {
       continue;
     }
 
-    const contentItem = getContentListItem(listItem);
     const key = contentItem.getKey();
     if (seen.has(key)) continue;
     seen.add(key);

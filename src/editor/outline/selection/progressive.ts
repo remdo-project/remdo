@@ -4,7 +4,8 @@ import type { RangeSelection } from 'lexical';
 import { $getNodeByKey, $getRoot, $getSelection, $isRangeSelection } from 'lexical';
 
 import { reportInvariant } from '@/editor/invariant';
-import { getContentListItem, getPreviousContentSibling } from '@/editor/outline/list-structure';
+import { getPreviousContentSibling } from '@/editor/outline/list-structure';
+import { $requireRootContentList } from '@/editor/outline/schema';
 
 import type { BoundaryMode } from './apply';
 import { selectInlineContent, selectNoteBody, setSelectionBetweenItems } from './apply';
@@ -64,7 +65,7 @@ function $resolveBoundaryRoot(boundaryKey: string | null | undefined): ListItemN
   if (!node) {
     return null;
   }
-  return getContentListItem(node);
+  return node;
 }
 
 function $resolveDocumentPlan(boundaryRoot: ListItemNode | null): ProgressivePlan | null {
@@ -83,7 +84,7 @@ function $resolveProgressionAnchorContent(
   let resolvedAnchorItem: ListItemNode | null = null;
   if (selection.isCollapsed()) {
     resolvedAnchorItem = resolveSelectionPointItem(selection, selection.anchor);
-    const resolvedAnchorKey = resolvedAnchorItem ? getContentListItem(resolvedAnchorItem).getKey() : null;
+    const resolvedAnchorKey = resolvedAnchorItem ? resolvedAnchorItem.getKey() : null;
     const shouldReset =
       !progressionRef.current.anchorKey ||
       progressionRef.current.stage < 2 ||
@@ -98,7 +99,7 @@ function $resolveProgressionAnchorContent(
   if (progressionRef.current.anchorKey) {
     const storedAnchor = $getNodeByKey<ListItemNode>(progressionRef.current.anchorKey);
     if (storedAnchor) {
-      anchorContent = getContentListItem(storedAnchor);
+      anchorContent = storedAnchor;
     }
   }
 
@@ -109,7 +110,7 @@ function $resolveProgressionAnchorContent(
       progressionRef.current = initialProgression;
       return null;
     }
-    anchorContent = getContentListItem(anchorItem);
+    anchorContent = anchorItem;
   }
 
   return anchorContent;
@@ -558,14 +559,9 @@ function $createSiblingRangePlan(item: ListItemNode): ProgressivePlan | null {
 }
 
 function $createDocumentPlan(): ProgressivePlan | null {
-  const root = $getRoot();
-  const list = root.getFirstChild();
-  if (!$isListNode(list)) {
-    return null;
-  }
-
-  const firstItem = getFirstDescendantListItem(list);
-  const lastItem = getLastDescendantListItem(list);
+  const rootList = $requireRootContentList();
+  const firstItem = getFirstDescendantListItem(rootList);
+  const lastItem = getLastDescendantListItem(rootList);
   if (!firstItem || !lastItem) {
     return null;
   }
@@ -602,14 +598,9 @@ function getHeadsSharingParent(heads: ListItemNode[], parentList: ListNode): Lis
 }
 
 function $getDocumentBoundaryItems(): { start: ListItemNode; end: ListItemNode } | null {
-  const root = $getRoot();
-  const list = root.getFirstChild();
-  if (!$isListNode(list)) {
-    return null;
-  }
-
-  const firstItem = getFirstDescendantListItem(list);
-  const lastItem = getLastDescendantListItem(list);
+  const rootList = $requireRootContentList();
+  const firstItem = getFirstDescendantListItem(rootList);
+  const lastItem = getLastDescendantListItem(rootList);
   if (!firstItem || !lastItem) {
     return null;
   }

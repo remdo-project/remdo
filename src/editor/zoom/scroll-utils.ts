@@ -27,14 +27,18 @@ const getSelectionRect = (targetElement: HTMLElement): DOMRect | null => {
     return null;
   }
 
-  const rects = range.getClientRects();
-  if (rects.length > 0) {
-    return rects[0] ?? null;
+  if (typeof range.getClientRects === 'function') {
+    const rects = range.getClientRects();
+    if (rects.length > 0) {
+      return rects[0] ?? null;
+    }
   }
 
-  const rect = range.getBoundingClientRect();
-  if (rect.height > 0 || rect.width > 0) {
-    return rect;
+  if (typeof range.getBoundingClientRect === 'function') {
+    const rect = range.getBoundingClientRect();
+    if (rect.height > 0 || rect.width > 0) {
+      return rect;
+    }
   }
 
   return null;

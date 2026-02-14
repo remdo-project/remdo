@@ -1,6 +1,6 @@
 //TODO review, refactor, simplify, extract common helpers
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
+import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $createParagraphNode,
@@ -17,15 +17,15 @@ import {
 import type { LexicalNode, TextNode } from 'lexical';
 import { useEffect, useState } from 'react';
 import {
-  findNearestListItem,
   flattenNoteNodes,
   getContentSiblings,
-  getContentListItem,
   getPreviousContentSibling,
   isChildrenWrapper,
   insertBefore,
   $getOrCreateChildList,
 } from '@/editor/outline/list-structure';
+import { $requireRootContentList, $resolveRootContentList, resolveContentItemFromNode } from '@/editor/outline/schema';
+import { $normalizeOutlineRoot } from '@/editor/outline/normalization';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import {
@@ -125,12 +125,11 @@ function $resolveCollapsedSelectionAtEdge(edge: 'start' | 'end'): EdgeSelectionR
   }
 
   const anchorNode = selection.anchor.getNode();
-  const candidate = findNearestListItem(anchorNode);
-  if (!candidate) {
+  const contentItem = resolveContentItemFromNode(anchorNode);
+  if (!contentItem) {
     return null;
   }
 
-  const contentItem = getContentListItem(candidate);
   if (!isDescendantOf(anchorNode, contentItem)) {
     return null;
   }
@@ -379,29 +378,25 @@ export function DeletionPlugin() {
       }
 
       if (!caretApplied) {
-        const root = $getRoot();
-        let list = root.getFirstChild();
-        if (!$isListNode(list)) {
-          const newList = $createListNode('bullet');
-          root.append(newList);
-          list = newList;
+        let rootList = $resolveRootContentList();
+        if (!rootList) {
+          $normalizeOutlineRoot($getRoot());
+          rootList = $requireRootContentList();
         }
 
-        if ($isListNode(list)) {
-          const firstItem = getFirstDescendantListItem(list);
-          let targetItem: ListItemNode;
+        const firstItem = getFirstDescendantListItem(rootList);
+        let targetItem: ListItemNode;
 
-          if (firstItem) {
-            targetItem = getContentListItem(firstItem);
-          } else {
-            const listItem = $createListItemNode();
-            listItem.append($createParagraphNode());
-            list.append(listItem);
-            targetItem = listItem;
-          }
-
-          caretApplied = $selectItemEdge(targetItem, 'start');
+        if (firstItem) {
+          targetItem = firstItem;
+        } else {
+          const listItem = $createListItemNode();
+          listItem.append($createParagraphNode());
+          rootList.append(listItem);
+          targetItem = listItem;
         }
+
+        caretApplied = $selectItemEdge(targetItem, 'start');
       }
 
       if (!caretApplied && $isRangeSelection(selection)) {
@@ -409,9 +404,9 @@ export function DeletionPlugin() {
         if ($isTextNode(anchorNode)) {
           selection.setTextNodeRange(anchorNode, selection.anchor.offset, anchorNode, selection.anchor.offset);
         } else {
-          const anchorItem = findNearestListItem(anchorNode);
-          if (anchorItem) {
-            $selectItemEdge(anchorItem, 'start');
+          const contentItem = resolveContentItemFromNode(anchorNode);
+          if (contentItem) {
+            $selectItemEdge(contentItem, 'start');
           }
         }
       }

@@ -1,12 +1,13 @@
 import type { ListNode } from '@lexical/list';
-import { $isListItemNode, $isListNode, ListItemNode } from '@lexical/list';
+import { ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect, useRef } from 'react';
-import { $getNodeByKey, $getRoot, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
+import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 
 import { $isNoteFolded, $setNoteFolded } from '#lib/editor/fold-state';
 import { SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
-import { findNearestListItem, getContentListItem, getContentSiblings, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { $resolveRootContentList, resolveContentItemFromNode } from '@/editor/outline/schema';
+import { getContentSiblings, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import type { OutlineSelection } from '@/editor/outline/selection/model';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
@@ -36,13 +37,14 @@ const $shouldCollapseSelection = (
     const keys = outlineSelection.selectedKeys.length > 0 ? outlineSelection.selectedKeys : outlineSelection.headKeys;
     for (const key of keys) {
       const node = $getNodeByKey<ListItemNode>(key);
-      if (!$isListItemNode(node) || isChildrenWrapper(node)) {
+      const contentItem = node ? resolveContentItemFromNode(node) : null;
+      if (!contentItem) {
         continue;
       }
-      if (node.getKey() === foldedItem.getKey()) {
+      if (contentItem.getKey() === foldedItem.getKey()) {
         continue;
       }
-      if (isContentDescendantOf(node, foldedItem)) {
+      if (isContentDescendantOf(contentItem, foldedItem)) {
         return true;
       }
     }
@@ -53,18 +55,17 @@ const $shouldCollapseSelection = (
     return false;
   }
 
-  const anchorItem = findNearestListItem(selection.anchor.getNode());
-  const focusItem = findNearestListItem(selection.focus.getNode());
+  const anchorItem = resolveContentItemFromNode(selection.anchor.getNode());
+  const focusItem = resolveContentItemFromNode(selection.focus.getNode());
   if (!anchorItem && !focusItem) {
     return false;
   }
   const items = [anchorItem, focusItem].filter((item): item is ListItemNode => item !== null);
   return items.some((item) => {
-    const contentItem = getContentListItem(item);
-    if (contentItem.getKey() === foldedItem.getKey()) {
+    if (item.getKey() === foldedItem.getKey()) {
       return false;
     }
-    return isContentDescendantOf(contentItem, foldedItem);
+    return isContentDescendantOf(item, foldedItem);
   });
 };
 
@@ -104,11 +105,11 @@ export function FoldingPlugin() {
     const readFoldedKeys = (state = editor.getEditorState()): Set<string> =>
       state.read(() => {
         const keys = new Set<string>();
-        const root = $getRoot();
-        const firstChild = root.getFirstChild();
-        if ($isListNode(firstChild)) {
-          collectFoldedKeys(firstChild, keys);
+        const rootList = $resolveRootContentList();
+        if (!rootList) {
+          return keys;
         }
+        collectFoldedKeys(rootList, keys);
         return keys;
       });
 
@@ -145,11 +146,11 @@ export function FoldingPlugin() {
     const unregisterUpdate = editor.registerUpdateListener(({ editorState }) => {
       const { nextFoldedKeys } = editorState.read(() => {
         const nextFoldedKeys = new Set<string>();
-        const root = $getRoot();
-        const firstChild = root.getFirstChild();
-        if ($isListNode(firstChild)) {
-          collectFoldedKeys(firstChild, nextFoldedKeys);
+        const rootList = $resolveRootContentList();
+        if (!rootList) {
+          return { nextFoldedKeys };
         }
+        collectFoldedKeys(rootList, nextFoldedKeys);
         return { nextFoldedKeys };
       });
 
@@ -164,11 +165,8 @@ export function FoldingPlugin() {
       SET_NOTE_FOLD_COMMAND,
       ({ state, noteItemKey }) => {
         const node = $getNodeByKey<ListItemNode>(noteItemKey);
-        if (!node) {
-          return false;
-        }
-        const contentItem = getContentListItem(node);
-        if (isChildrenWrapper(contentItem)) {
+        const contentItem = node ? resolveContentItemFromNode(node) : null;
+        if (!contentItem) {
           return false;
         }
         if (!noteHasChildren(contentItem)) {

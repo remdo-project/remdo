@@ -3,7 +3,7 @@ import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
 
 import { reportInvariant } from '@/editor/invariant';
-import { getContentListItem, getContentSiblings, isChildrenWrapper, maybeRemoveEmptyWrapper } from '../list-structure';
+import { getContentSiblings, isChildrenWrapper, maybeRemoveEmptyWrapper } from '../list-structure';
 
 export function normalizeContentRange(
   start: ListItemNode,
@@ -77,7 +77,7 @@ export function getParentContentItem(item: ListItemNode): ListItemNode | null {
   }
 
   const parentContent = parentWrapper.getPreviousSibling();
-  if ($isListItemNode(parentContent)) {
+  if ($isListItemNode(parentContent) && !isChildrenWrapper(parentContent)) {
     return parentContent;
   }
 
@@ -146,9 +146,8 @@ export function noteHasChildren(item: ListItemNode): boolean {
 }
 
 export function getSubtreeItems(item: ListItemNode): ListItemNode[] {
-  const content = getContentListItem(item);
-  const items: ListItemNode[] = [content];
-  const nested = getNestedList(content);
+  const items: ListItemNode[] = [item];
+  const nested = getNestedList(item);
   if (!nested) {
     return items;
   }
@@ -168,8 +167,8 @@ export function getFirstDescendantListItem(node: LexicalNode | null): ListItemNo
   }
 
   for (const child of node.getChildren()) {
-    if ($isListItemNode(child)) {
-      return getContentListItem(child);
+    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+      return child;
     }
   }
 
@@ -184,13 +183,13 @@ export function getLastDescendantListItem(node: LexicalNode | null): ListItemNod
   const children = node.getChildren();
   for (let i = children.length - 1; i >= 0; i -= 1) {
     const child = children[i];
-    if ($isListItemNode(child)) {
+    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
       const nested = getNestedList(child);
       const match = getLastDescendantListItem(nested);
       if (match) {
         return match;
       }
-      return getContentListItem(child);
+      return child;
     }
   }
 

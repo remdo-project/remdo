@@ -6,7 +6,7 @@ import {
   toLinkPickerOptions,
 } from '@/editor/links/note-link-index';
 import type { LinkPickerOption } from '@/editor/links/note-link-index';
-import { $resolveCurrentNoteId } from './note-context';
+import { $resolveNoteIdFromNode } from '@/editor/outline/note-context';
 
 export const LINK_PICKER_RESULT_LIMIT = 5;
 
@@ -23,7 +23,7 @@ export function $resolveLinkPickerOptions(
   limit: number = LINK_PICKER_RESULT_LIMIT
 ): LinkPickerOption[] {
   const linkableNotes = $collectLinkableNotesInDocumentOrder();
-  const currentNoteId = $resolveCurrentNoteId(anchorNode);
+  const currentNoteId = $resolveNoteIdFromNode(anchorNode);
   const candidates =
     currentNoteId
       ? linkableNotes.filter((note) => note.noteId !== currentNoteId)

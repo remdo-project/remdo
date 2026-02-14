@@ -121,6 +121,16 @@ Lexical node shape:
   contains a nested `ListNode`, and the `ListItemNode`s inside that nested list
   represent the note's conceptual descendants.
 
+### Runtime contract vs persistence boundaries
+
+- Runtime editor logic assumes the canonical Lexical shape above is already
+  enforced (root has exactly one top-level list, content notes have runtime
+  `noteId`, wrapper adjacency is valid). Invariant violations are treated as
+  bugs, not as normal nullable control flow.
+- Tolerant repair/rehydration behavior belongs only to persisted↔runtime
+  boundaries (load/import/save/export pipelines), not to normal runtime editing
+  helpers.
+
 ### Indentation (concept vs. adapter)
 
 - Conceptually, RemDo models a tree: every note has exactly one parent, so a

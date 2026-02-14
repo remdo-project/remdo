@@ -1,4 +1,4 @@
-import type { ListItemNode, ListNode } from '@lexical/list';
+import type { ListItemNode } from '@lexical/list';
 import { $createListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { mergeRegister } from '@lexical/utils';
@@ -16,10 +16,11 @@ import {
 } from 'lexical';
 import { useEffect } from 'react';
 import { $isNoteFolded } from '#lib/editor/fold-state';
-import { findNearestListItem, isChildrenWrapper, getContentListItem, insertBefore } from '@/editor/outline/list-structure';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
+import { insertBefore } from '@/editor/outline/list-structure';
 import { resolveBoundaryPoint } from '@/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '@/editor/outline/selection/caret-placement';
-import { noteHasChildren } from '@/editor/outline/selection/tree';
+import { getNestedList, noteHasChildren } from '@/editor/outline/selection/tree';
 
 function $createNote(text: string): ListItemNode {
   const item = $createListItemNode();
@@ -35,26 +36,25 @@ function $handleEnterAtStart(contentItem: ListItemNode) {
 }
 
 function $handleEnterAtEnd(contentItem: ListItemNode) {
-  const wrapper = contentItem.getNextSibling();
-  const list = isChildrenWrapper(wrapper) ? wrapper.getFirstChild<ListNode>() : null;
+  const nestedList = getNestedList(contentItem);
   const hasChildren = noteHasChildren(contentItem);
 
-  if (list && hasChildren) {
+  if (nestedList && hasChildren) {
     if ($isNoteFolded(contentItem)) {
       const newSibling = $createNote('');
-      const reference = isChildrenWrapper(wrapper) ? wrapper : contentItem;
-      reference.insertAfter(newSibling);
+      const wrapper = nestedList.getParentOrThrow();
+      wrapper.insertAfter(newSibling);
       const textNode = newSibling.getChildren().find($isTextNode);
       textNode?.select(0, 0);
       return;
     }
 
     const newChild = $createNote('');
-    const firstChild = list.getFirstChild();
+    const firstChild = nestedList.getFirstChild();
     if (firstChild) {
       insertBefore(firstChild, [newChild]);
     } else {
-      list.append(newChild);
+      nestedList.append(newChild);
     }
     const textNode = newChild.getChildren().find($isTextNode);
     textNode?.select(0, 0);
@@ -164,12 +164,11 @@ export function InsertionPlugin() {
             return false;
           }
 
-          const candidateNote = findNearestListItem(selection.anchor.getNode());
-          if (!candidateNote) {
+          const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
+          if (!contentItem) {
             return false;
           }
 
-          const contentItem = getContentListItem(candidateNote);
           const placement = resolveCaretPlacement(selection, contentItem);
           if (placement === 'start') {
             event?.preventDefault();

@@ -30,25 +30,6 @@ Rules:
 
 ## Editor
 
-- Consider promoting note-link-local `note-context` into a shared helper that
-  resolves content note / noteId from a lexical node (and a thin DOM wrapper),
-  then migrate duplicated call sites (`NoteMenuPlugin`, `CheckListPlugin`,
-  `NoteControlsPlugin`, `ZoomPlugin`, `note-state`, `note-traversal`) in a
-  follow-up refactor.
-- Trial Semgrep first (before Sonar) with a narrow rule for the repeated
-  `findNearestListItem -> getContentListItem -> isChildrenWrapper` flow and
-  verify whether it reliably flags the duplication noted above.
-- Plan a unified editor-scoped store (`WeakMap<LexicalEditor, ...>`) and migrate
-  existing per-feature stores into it (for example
-  `zoom/scroll-target`, `zoom/zoom-change-hints`, `outline/selection/store`,
-  `outline/selection/boundary`) with typed keys.
 - Consolidate serialized-editor-state traversal into one production helper in
   `lib/editor` and reuse it across persistence/defaults transforms (and tests),
   instead of maintaining separate walkers in each module.
-- Expose custom node state fields in the dev tree view (for example `folded`)
-  instead of relying mostly on derived display values.
-- Plan a wider helper/API refactor around schema assumptions so local editor
-  logic becomes much smaller and easier to write: expose strongly typed helpers
-  that encode canonical invariants (for example root-first-child-as-list) and
-  avoid nullable/defensive flows in normal paths unless a caller explicitly opts
-  into tolerant/fallback behavior.
