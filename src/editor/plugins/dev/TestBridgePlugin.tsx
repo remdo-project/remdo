@@ -8,7 +8,6 @@ import { useCollaborationStatus } from '../collaboration';
 import { markSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
 import { $normalizeNoteIdsOnLoad } from '../note-id-normalization';
 import { $findNoteById } from '@/editor/outline/note-traversal';
-import { getContentListItem } from '@/editor/outline/list-structure';
 import { TEST_BRIDGE_LOAD_TAG, TEST_BRIDGE_MUTATE_TAG } from '@/editor/update-tags';
 
 async function withTimeout<T>(fnOrPromise: (() => Promise<T>) | Promise<T>, ms: number, message: string): Promise<T> {
@@ -210,14 +209,13 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
         return;
       }
 
-      const content = getContentListItem(item);
-      const textNode = content.getChildren().find((child): child is ReturnType<typeof $createTextNode> => $isTextNode(child));
+      const textNode = item.getChildren().find((child): child is ReturnType<typeof $createTextNode> => $isTextNode(child));
       if (textNode) {
         textNode.setTextContent(text);
         return;
       }
 
-      content.append($createTextNode(text));
+      item.append($createTextNode(text));
     });
   };
 

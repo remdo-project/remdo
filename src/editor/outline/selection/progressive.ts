@@ -5,6 +5,7 @@ import { $getNodeByKey, $getRoot, $getSelection, $isRangeSelection } from 'lexic
 
 import { reportInvariant } from '@/editor/invariant';
 import { getPreviousContentSibling } from '@/editor/outline/list-structure';
+import { $requireRootContentList } from '@/editor/outline/schema';
 
 import type { BoundaryMode } from './apply';
 import { selectInlineContent, selectNoteBody, setSelectionBetweenItems } from './apply';
@@ -558,14 +559,9 @@ function $createSiblingRangePlan(item: ListItemNode): ProgressivePlan | null {
 }
 
 function $createDocumentPlan(): ProgressivePlan | null {
-  const root = $getRoot();
-  const list = root.getFirstChild();
-  if (!$isListNode(list)) {
-    return null;
-  }
-
-  const firstItem = getFirstDescendantListItem(list);
-  const lastItem = getLastDescendantListItem(list);
+  const rootList = $requireRootContentList();
+  const firstItem = getFirstDescendantListItem(rootList);
+  const lastItem = getLastDescendantListItem(rootList);
   if (!firstItem || !lastItem) {
     return null;
   }
@@ -602,14 +598,9 @@ function getHeadsSharingParent(heads: ListItemNode[], parentList: ListNode): Lis
 }
 
 function $getDocumentBoundaryItems(): { start: ListItemNode; end: ListItemNode } | null {
-  const root = $getRoot();
-  const list = root.getFirstChild();
-  if (!$isListNode(list)) {
-    return null;
-  }
-
-  const firstItem = getFirstDescendantListItem(list);
-  const lastItem = getLastDescendantListItem(list);
+  const rootList = $requireRootContentList();
+  const firstItem = getFirstDescendantListItem(rootList);
+  const lastItem = getLastDescendantListItem(rootList);
   if (!firstItem || !lastItem) {
     return null;
   }

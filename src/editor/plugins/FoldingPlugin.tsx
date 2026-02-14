@@ -1,12 +1,12 @@
 import type { ListNode } from '@lexical/list';
-import { $isListNode, ListItemNode } from '@lexical/list';
+import { ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect, useRef } from 'react';
-import { $getNodeByKey, $getRoot, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
+import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 
 import { $isNoteFolded, $setNoteFolded } from '#lib/editor/fold-state';
 import { SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
-import { resolveContentItemFromNode } from '@/editor/outline/schema';
+import { $resolveRootContentList, resolveContentItemFromNode } from '@/editor/outline/schema';
 import { getContentSiblings, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import type { OutlineSelection } from '@/editor/outline/selection/model';
@@ -34,13 +34,13 @@ const $shouldCollapseSelection = (
   foldedItem: ListItemNode
 ): boolean => {
   if (outlineSelection?.kind === 'structural') {
-      const keys = outlineSelection.selectedKeys.length > 0 ? outlineSelection.selectedKeys : outlineSelection.headKeys;
-      for (const key of keys) {
-        const node = $getNodeByKey<ListItemNode>(key);
+    const keys = outlineSelection.selectedKeys.length > 0 ? outlineSelection.selectedKeys : outlineSelection.headKeys;
+    for (const key of keys) {
+      const node = $getNodeByKey<ListItemNode>(key);
       const contentItem = node ? resolveContentItemFromNode(node) : null;
-        if (!contentItem) {
-          continue;
-        }
+      if (!contentItem) {
+        continue;
+      }
       if (contentItem.getKey() === foldedItem.getKey()) {
         continue;
       }
@@ -105,11 +105,11 @@ export function FoldingPlugin() {
     const readFoldedKeys = (state = editor.getEditorState()): Set<string> =>
       state.read(() => {
         const keys = new Set<string>();
-        const root = $getRoot();
-        const firstChild = root.getFirstChild();
-        if ($isListNode(firstChild)) {
-          collectFoldedKeys(firstChild, keys);
+        const rootList = $resolveRootContentList();
+        if (!rootList) {
+          return keys;
         }
+        collectFoldedKeys(rootList, keys);
         return keys;
       });
 
@@ -146,11 +146,11 @@ export function FoldingPlugin() {
     const unregisterUpdate = editor.registerUpdateListener(({ editorState }) => {
       const { nextFoldedKeys } = editorState.read(() => {
         const nextFoldedKeys = new Set<string>();
-        const root = $getRoot();
-        const firstChild = root.getFirstChild();
-        if ($isListNode(firstChild)) {
-          collectFoldedKeys(firstChild, nextFoldedKeys);
+        const rootList = $resolveRootContentList();
+        if (!rootList) {
+          return { nextFoldedKeys };
         }
+        collectFoldedKeys(rootList, nextFoldedKeys);
         return { nextFoldedKeys };
       });
 

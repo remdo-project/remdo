@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { isChildrenWrapper } from '@/editor/outline/list-structure';
 import { $findNoteById } from '@/editor/outline/note-traversal';
-import { $requireRootContentList } from '@/editor/outline/schema';
+import { $resolveRootContentList } from '@/editor/outline/schema';
 import { getParentContentItem, getSubtreeItems, getWrapperForContent } from '@/editor/outline/selection/tree';
 import { clearZoomScrollTarget, getZoomScrollTarget, isZoomScrollTargetExpired } from '@/editor/zoom/scroll-target';
 import { scrollZoomTargetIntoView } from '@/editor/zoom/scroll-utils';
@@ -60,8 +60,11 @@ export function ZoomVisibilityPlugin({ zoomNoteId }: ZoomVisibilityPluginProps) 
 
   const applyVisibility = useCallback((editorState = editor.getEditorState()) => {
     const result = editorState.read(() => {
-      const rootList = $requireRootContentList();
       const allKeys = new Set<string>();
+      const rootList = $resolveRootContentList();
+      if (!rootList) {
+        return { visibleKeys: null as Set<string> | null, allKeys, flattenedWrapperKeys: new Set<string>() };
+      }
       collectAllListItemKeys(rootList, allKeys);
 
       const flattenedWrapperKeys = new Set<string>();

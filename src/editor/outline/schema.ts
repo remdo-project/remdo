@@ -25,7 +25,7 @@ export function $requireRootContentList(): ListNode {
   });
 }
 
-function $resolveRootContentList(): ListNode | null {
+export function $resolveRootContentList(): ListNode | null {
   const root = $getRoot();
   const children = root.getChildren();
   const firstChild = children[0] ?? null;
@@ -82,9 +82,4 @@ export function $requireContentItemNoteId(item: ListItemNode): string {
     });
   }
   return noteId;
-}
-
-export function $requireContentItemNoteIdFromNode(node: LexicalNode | null): string {
-  const contentItem = requireContentItemFromNode(node);
-  return $requireContentItemNoteId(contentItem);
 }

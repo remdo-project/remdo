@@ -1,6 +1,6 @@
 //TODO review, refactor, simplify, extract common helpers
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
+import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $createParagraphNode,
@@ -24,7 +24,8 @@ import {
   insertBefore,
   $getOrCreateChildList,
 } from '@/editor/outline/list-structure';
-import { resolveContentItemFromNode } from '@/editor/outline/schema';
+import { $requireRootContentList, $resolveRootContentList, resolveContentItemFromNode } from '@/editor/outline/schema';
+import { $normalizeOutlineRoot } from '@/editor/outline/normalization';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import {
@@ -377,29 +378,25 @@ export function DeletionPlugin() {
       }
 
       if (!caretApplied) {
-        const root = $getRoot();
-        let list = root.getFirstChild();
-        if (!$isListNode(list)) {
-          const newList = $createListNode('bullet');
-          root.append(newList);
-          list = newList;
+        let rootList = $resolveRootContentList();
+        if (!rootList) {
+          $normalizeOutlineRoot($getRoot());
+          rootList = $requireRootContentList();
         }
 
-        if ($isListNode(list)) {
-          const firstItem = getFirstDescendantListItem(list);
-              let targetItem: ListItemNode;
+        const firstItem = getFirstDescendantListItem(rootList);
+        let targetItem: ListItemNode;
 
-              if (firstItem) {
-                targetItem = firstItem;
-              } else {
-                const listItem = $createListItemNode();
-                listItem.append($createParagraphNode());
-            list.append(listItem);
-            targetItem = listItem;
-          }
-
-          caretApplied = $selectItemEdge(targetItem, 'start');
+        if (firstItem) {
+          targetItem = firstItem;
+        } else {
+          const listItem = $createListItemNode();
+          listItem.append($createParagraphNode());
+          rootList.append(listItem);
+          targetItem = listItem;
         }
+
+        caretApplied = $selectItemEdge(targetItem, 'start');
       }
 
       if (!caretApplied && $isRangeSelection(selection)) {
