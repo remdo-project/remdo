@@ -14,12 +14,16 @@ import { setZoomScrollTarget } from '@/editor/zoom/scroll-target';
 import { consumeZoomMergeHint } from '@/editor/zoom/zoom-change-hints';
 import type { ListItemNode } from '@lexical/list';
 import type { UpdateListenerPayload } from 'lexical';
-import { $resolveContentNoteFromDOMNode, $resolveContentNoteFromNode, $resolveNoteIdFromDOMNode } from '@/editor/outline/note-context';
+import {
+  $resolveContentNoteFromDOMNode,
+  $resolveContentNoteFromNode,
+  $resolveNoteIdFromDOMNode,
+} from '@/editor/outline/note-context';
+import { $requireContentItemNoteId } from '@/editor/outline/schema';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
 import { findLowestCommonContentAncestor, getParentContentItem, isContentDescendantOf } from '@/editor/outline/selection/tree';
-import { $getNoteId } from '#lib/editor/note-id-state';
 import { ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import { resolveZoomNoteId } from './zoom-note-id';
 import {
@@ -403,8 +407,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
           if (!mergeHintApplied) {
             const parentChanged = parentWasTracked && prevParentKey !== parentKey;
             if (parentChanged) {
-              const parentId = parent ? $getNoteId(parent) : null;
-              nextZoomNoteId = parentId ?? null;
+              nextZoomNoteId = parent ? $requireContentItemNoteId(parent) : null;
               scrollTargetKey = selectionKey;
             } else {
               const dirtyItems = $collectDirtyContentItems(dirtyElements, dirtyLeaves);
@@ -421,8 +424,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
                   }
                 }
                 const ancestor = resolveZoomAncestor(root, outsideItems);
-                const ancestorId = ancestor ? $getNoteId(ancestor) : null;
-                nextZoomNoteId = ancestorId ?? null;
+                nextZoomNoteId = ancestor ? $requireContentItemNoteId(ancestor) : null;
               }
             }
           }

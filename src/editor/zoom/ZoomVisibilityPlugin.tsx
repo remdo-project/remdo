@@ -1,10 +1,10 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $getRoot } from 'lexical';
+import { $isListNode } from '@lexical/list';
 import { useCallback, useEffect, useRef } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $isListNode } from '@lexical/list';
 import { isChildrenWrapper } from '@/editor/outline/list-structure';
 import { $findNoteById } from '@/editor/outline/note-traversal';
+import { $requireRootContentList } from '@/editor/outline/schema';
 import { getParentContentItem, getSubtreeItems, getWrapperForContent } from '@/editor/outline/selection/tree';
 import { clearZoomScrollTarget, getZoomScrollTarget, isZoomScrollTargetExpired } from '@/editor/zoom/scroll-target';
 import { scrollZoomTargetIntoView } from '@/editor/zoom/scroll-utils';
@@ -60,14 +60,9 @@ export function ZoomVisibilityPlugin({ zoomNoteId }: ZoomVisibilityPluginProps) 
 
   const applyVisibility = useCallback((editorState = editor.getEditorState()) => {
     const result = editorState.read(() => {
-      const root = $getRoot();
-      const firstChild = root.getFirstChild();
+      const rootList = $requireRootContentList();
       const allKeys = new Set<string>();
-      if (!firstChild || !$isListNode(firstChild)) {
-        return { visibleKeys: null as Set<string> | null, allKeys, flattenedWrapperKeys: new Set<string>() };
-      }
-      const list = firstChild;
-      collectAllListItemKeys(list, allKeys);
+      collectAllListItemKeys(rootList, allKeys);
 
       const flattenedWrapperKeys = new Set<string>();
       const noteId = zoomNoteIdRef.current;

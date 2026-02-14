@@ -11,9 +11,9 @@ import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { $getNoteId } from '#lib/editor/note-id-state';
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
-import { $resolveContentNoteFromDOMNode, $resolveContentNoteFromNode } from '@/editor/outline/note-context';
+import { $resolveContentNoteFromDOMNode } from '@/editor/outline/note-context';
+import { $requireContentItemFromNode, $requireContentItemNoteId } from '@/editor/outline/schema';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { getNestedList } from '@/editor/outline/selection/tree';
 import { $resolveNoteStateFromDOMNode } from '@/editor/plugins/note-state';
@@ -109,11 +109,11 @@ export function NoteMenuPlugin() {
     }
     const noteId = editor.getEditorState().read(() => {
       const node = $getNodeByKey<ListItemNode>(current.noteKey);
-      const contentItem = $resolveContentNoteFromNode(node);
-      if (!contentItem) {
+      if (!node) {
         return null;
       }
-      return $getNoteId(contentItem);
+      const contentItem = $requireContentItemFromNode(node);
+      return $requireContentItemNoteId(contentItem);
     });
     if (!noteId) {
       closeMenu();
@@ -452,10 +452,10 @@ export function NoteMenuPlugin() {
                 onClick={() => {
                   editor.update(() => {
                     const node = $getNodeByKey<ListItemNode>(menu.noteKey);
-                    const contentItem = $resolveContentNoteFromNode(node);
-                    if (!contentItem) {
+                    if (!node) {
                       return;
                     }
+                    const contentItem = $requireContentItemFromNode(node);
                     const nested = getNestedList(contentItem);
                     if (!nested) {
                       return;

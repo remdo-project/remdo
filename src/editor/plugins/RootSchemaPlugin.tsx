@@ -9,7 +9,11 @@ import { markSchemaValidationSkipOnce } from './dev/schema/schemaValidationSkipO
 import { assertEditorSchema } from './dev/schema/assertEditorSchema';
 import { ROOT_SCHEMA_NORMALIZE_TAG } from '@/editor/update-tags';
 
-export function RootSchemaPlugin() {
+interface RootSchemaPluginProps {
+  onSchemaReadyChange: (ready: boolean) => void;
+}
+
+export function RootSchemaPlugin({ onSchemaReadyChange }: RootSchemaPluginProps) {
   const [editor] = useLexicalComposerContext();
   // `hydrated` is true once the current document finishes its initial collab load
   // (or immediately when collab is disabled). `docEpoch` increments whenever a
@@ -29,6 +33,8 @@ export function RootSchemaPlugin() {
    *    again until that document finishes hydrating.
    */
   useLayoutEffect(() => {
+    onSchemaReadyChange(false);
+
     if (!hydrated) {
       return;
     }
@@ -71,17 +77,20 @@ export function RootSchemaPlugin() {
 
       scheduleRepair();
     });
-    normalizeRootOnce(editor);
+    normalizeRootOnce(editor, onSchemaReadyChange);
 
-    return mergeRegister(unregisterNormalization, unregisterRepair);
-  }, [editor, hydrated, docEpoch]);
+    return mergeRegister(unregisterNormalization, unregisterRepair, () => {
+      onSchemaReadyChange(false);
+    });
+  }, [editor, hydrated, docEpoch, onSchemaReadyChange]);
 
   return null;
 }
 
-function normalizeRootOnce(editor: LexicalEditor) {
+function normalizeRootOnce(editor: LexicalEditor, onSchemaReadyChange: (ready: boolean) => void) {
   // Run a one-time normalization outside the transform cycle for fresh editors.
   editor.update(() => {
     $normalizeOutlineRoot($getRoot());
+    onSchemaReadyChange(true);
   }, { tag: ROOT_SCHEMA_NORMALIZE_TAG });
 }

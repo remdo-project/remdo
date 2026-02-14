@@ -1,7 +1,5 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $isListNode } from '@lexical/list';
-import { $getRoot } from 'lexical';
-import { $getNoteId } from '#lib/editor/note-id-state';
+import { $requireContentItemNoteId, $requireRootContentList } from './schema';
 import { isChildrenWrapper } from './list-structure';
 import { getNestedList, getParentContentItem } from './selection/tree';
 
@@ -11,12 +9,7 @@ export interface NotePathItem {
 }
 
 export function $findNoteById(noteId: string): ListItemNode | null {
-  const root = $getRoot();
-  const firstChild = root.getFirstChild();
-  if (!firstChild || !$isListNode(firstChild)) {
-    return null;
-  }
-  const list = firstChild;
+  const list = $requireRootContentList();
 
   const visit = (listNode: ListNode): ListItemNode | null => {
     for (const child of listNode.getChildren()) {
@@ -25,7 +18,7 @@ export function $findNoteById(noteId: string): ListItemNode | null {
         continue;
       }
 
-      if ($getNoteId(item) === noteId) {
+      if ($requireContentItemNoteId(item) === noteId) {
         return item;
       }
 
@@ -50,10 +43,7 @@ export function $getNoteAncestorPath(target: ListItemNode): NotePathItem[] {
   let current: ListItemNode | null = target;
 
   while (current) {
-    const noteId = $getNoteId(current);
-    if (!noteId) {
-      break;
-    }
+    const noteId = $requireContentItemNoteId(current);
     path.push({ noteId, label: current.getTextContent() });
     current = getParentContentItem(current);
   }

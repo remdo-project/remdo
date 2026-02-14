@@ -10,13 +10,15 @@ import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/command
 import type { SetNoteCheckedPayload } from '@/editor/commands';
 import { isBulletHit, isCheckboxHit } from '@/editor/outline/bullet-hit-test';
 import { $resolveContentNoteFromNode, $resolveNoteIdFromDOMNode } from '@/editor/outline/note-context';
+import { $requireContentItemFromNode } from '@/editor/outline/schema';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 
 const isChecklistItem = (element: HTMLElement): boolean =>
   element.classList.contains('list-item-checked') || element.classList.contains('list-item-unchecked');
 
 const $resolveContentItemByKey = (key: string): ListItemNode | null => {
-  return $resolveContentNoteFromNode($getNodeByKey<ListItemNode>(key));
+  const node = $getNodeByKey<ListItemNode>(key);
+  return node ? $requireContentItemFromNode(node) : null;
 };
 
 const $setCheckedState = (node: ListItemNode, checked: boolean) => {

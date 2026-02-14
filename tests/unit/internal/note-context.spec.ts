@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { $resolveContentNoteFromDOMNode, $resolveContentNoteFromNode, $resolveNoteIdFromDOMNode, $resolveNoteIdFromNode } from '@/editor/outline/note-context';
+import {
+  $resolveContentNoteFromDOMNode,
+  $resolveContentNoteFromNode,
+  $resolveNoteIdFromDOMNode,
+  $resolveNoteIdFromNode,
+} from '@/editor/outline/note-context';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { getNoteElement, getNoteTextNode, meta } from '#tests';
 
