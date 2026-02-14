@@ -19,10 +19,6 @@ Rules:
 - Consolidate repeated unit-test Lexical DOM setup (`document.createElement` +
   `document.body.append` + `createEditor` + `setRootElement`) into a shared
   test helper with a single cleanup path.
-- Consolidate snapshot-collab test artifacts under a single dedicated temp
-  directory (instead of a growing flat file list in
-  `tests/unit/collab/snapshot.collab.spec.ts`) and clean that directory in one
-  place after each test.
 
 ## Test doc-id lifecycle hygiene (deferred)
 

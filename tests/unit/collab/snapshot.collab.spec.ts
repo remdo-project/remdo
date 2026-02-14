@@ -14,18 +14,13 @@ import { $findNoteById } from '@/editor/outline/note-traversal';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
-  const SNAPSHOT_OUTPUTS = [
-    path.resolve('data', 'snapshot.cli.json'),
-    path.resolve('data', 'snapshot.cli.flat.json'),
-    path.resolve('data', 'snapshot.cli.tree.json'),
-    path.resolve('data', 'cliFlag.json'),
-    path.resolve('data', 'cross-doc-check.json'),
-    path.resolve('data', 'cross-doc-check-alt.json'),
-    path.resolve('data', 'snapshot.links.json'),
-    path.resolve('data', 'snapshot.links.roundtrip.json'),
-  ];
+  const SNAPSHOT_OUTPUT_DIR = path.resolve('data', 'snapshot-collab-spec');
 
   const baseEnv = { ...process.env } satisfies NodeJS.ProcessEnv;
+
+  function snapshotOutputPath(fileName: string): string {
+    return path.join(SNAPSHOT_OUTPUT_DIR, fileName);
+  }
 
   function runSnapshotCommand(command: 'load' | 'save', args: string[], envOverrides?: NodeJS.ProcessEnv) {
     try {
@@ -50,16 +45,14 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   }
 
   afterEach(() => {
-    for (const filePath of SNAPSHOT_OUTPUTS) {
-      rmSync(filePath, { force: true });
-    }
+    rmSync(SNAPSHOT_OUTPUT_DIR, { recursive: true, force: true });
   });
 
   it('loads data into collaboration doc and writes it back to disk', async () => {
     const docEnv = { COLLAB_DOCUMENT_ID: 'snapshotBasic' };
     const loadPath = path.resolve('tests/fixtures/basic.json');
     const expected = readEditorState(loadPath);
-    const savePath = SNAPSHOT_OUTPUTS[0]!;
+    const savePath = snapshotOutputPath('snapshot.cli.json');
     runSnapshotCommand('load', [loadPath], docEnv);
 
     await waitFor(() => {
@@ -75,7 +68,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     async () => {
       const docEnv = { COLLAB_DOCUMENT_ID: 'snapshotFlat' };
 
-      const savePath = SNAPSHOT_OUTPUTS[1]!;
+      const savePath = snapshotOutputPath('snapshot.cli.flat.json');
       const expectedState = readEditorState(path.resolve('tests/fixtures/flat.json'));
       await waitFor(() => {
         runSnapshotCommand('save', [savePath], docEnv);
@@ -96,7 +89,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       await remdo.waitForSynced();
 
       const expectedState = readEditorState(loadPath);
-      const savePath = SNAPSHOT_OUTPUTS[2]!;
+      const savePath = snapshotOutputPath('snapshot.cli.tree.json');
 
       await waitFor(() => {
         runSnapshotCommand('save', [savePath], docEnv);
@@ -113,7 +106,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const docId = 'cliFlag';
     const loadPath = path.resolve('tests/fixtures/basic.json');
     const expected = readEditorState(loadPath);
-    const savePath = path.resolve('data', `${docId}.json`);
+    const savePath = snapshotOutputPath(`${docId}.json`);
 
     runSnapshotCommand('load', ['--doc', docId, loadPath]);
 
@@ -152,8 +145,8 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       const secondaryFixture = path.resolve('tests/fixtures/tree.json');
       const expectedDefault = readEditorState(defaultFixture);
       const expectedSecondary = readEditorState(secondaryFixture);
-      const defaultOutput = path.resolve('data', `${defaultDoc}.json`);
-      const secondaryOutput = path.resolve('data', `${secondaryDoc}.json`);
+      const defaultOutput = snapshotOutputPath(`${defaultDoc}.json`);
+      const secondaryOutput = snapshotOutputPath(`${secondaryDoc}.json`);
 
       runSnapshotCommand('load', [defaultFixture], envOverrides);
       runSnapshotCommand('load', ['--doc', secondaryDoc, secondaryFixture]);
@@ -182,7 +175,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       VITE_COLLAB_DOCUMENT_ID: docId,
     } satisfies NodeJS.ProcessEnv;
     const fixturePath = path.resolve('tests/fixtures/links.json');
-    const outputPath = path.resolve('data', 'snapshot.links.roundtrip.json');
+    const outputPath = snapshotOutputPath('snapshot.links.roundtrip.json');
     const expected = readEditorState(fixturePath);
 
     runSnapshotCommand('load', [fixturePath], envOverrides);
