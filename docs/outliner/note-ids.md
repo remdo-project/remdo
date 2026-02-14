@@ -10,7 +10,9 @@ identity behavior and is intended to drive tests and application logic.
 
 This specification covers addressable notes (content list items) inside a single
 RemDo document and the global reference (`noteRef`) derived from document +
-note identity. The document root is modeled conceptually as a note (see
+note identity. Internal-link identity boundaries (`docId`/`noteId` in runtime,
+compaction rules at persistence boundaries) are defined in
+[Links](./links.md). The document root is modeled conceptually as a note (see
 `./concepts.md`), but document identity itself is runtime state owned by the
 environment, not serialized as a root `noteId`.
 
@@ -81,6 +83,9 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 
 - Serialized document states must include `noteId` for addressable notes.
 - Serialized document states do not persist document identity as `root.noteId`.
+- Internal-link `docId` representation rules are defined in
+  [Links](./links.md#identity-representation-boundaries) to keep this spec as
+  the single source for note identity and runtime document ownership.
 - On load, any missing or duplicate `noteId` values must be normalized before
   the document is exposed to the app: keep existing unique IDs and assign fresh
   IDs to missing or colliding notes (preserving document order).
@@ -94,6 +99,8 @@ Behavioral clipboard rules (placement, move validation, focus) live in
   session/editor it initializes.
 - Runtime `documentId` must remain per-editor state and must not be derived from
   global location reads inside core editor logic.
+- Runtime `documentId` also drives same-document internal-link rehydration at
+  load/import boundaries (see [Links](./links.md)).
 
 ## Collaboration
 

@@ -14,14 +14,31 @@ Define the initial internal note-linking behavior for RemDo.
    text labels.
 4. On insertion, display text is copied once from the target note title and then
    stored locally (no auto-sync on later target renames in this phase).
-5. Inserted links persist internal identity payload (`noteId` plus optional
-   `docId`) as canonical state; route `href` values
-   (`/n/<docId>_<noteId>`) are rendered from that state in app code.
+5. Runtime/internal editor state stores fully qualified link identity
+   (`docId` + `noteId`) for every internal link node.
 6. Link clicks use native `href` navigation semantics and route handling.
 7. Pasting a plain-text internal note URL (`/n/<docId>_<noteId>`) inserts an
    internal link node. When the target is in the current document, inserted
    link text copies the current target note title; otherwise it uses the pasted
    URL string.
+8. Clipboard payloads (copy/cut) must include explicit `docId` for every
+   internal link so cross-context paste has complete target identity.
+9. Cross-document pastes preserve source-target link identity; internal links
+   are not retargeted to the destination document.
+
+## Identity Representation Boundaries
+
+1. Runtime/editor state keeps internal links fully qualified (`docId` +
+   `noteId`) to avoid context-dependent link resolution.
+2. Persisted document state must omit `docId` when a link targets the active
+   document. This keeps document identity host-owned rather than embedded as
+   canonical content state.
+3. On document load/import, the host/editor adapter must rehydrate missing
+   same-document link `docId` values from the active runtime `documentId`
+   before normal editor behavior runs.
+4. Cross-document links keep explicit `docId` values unchanged across save/load.
+5. Note/document identity ownership rules remain defined in
+   [Note IDs](./note-ids.md).
 
 ## Query and ranking
 
@@ -63,7 +80,8 @@ Define the initial internal note-linking behavior for RemDo.
 ## Non-goals / future
 
 1. [Future] Backlinks are expected as part of the internal-link model.
-2. [Future] Links to notes in other documents.
+2. [Future] Cross-document discovery/insertion in the `@` picker (search scope
+   and ranking currently apply only to the active document).
 3. [Future] Fuzzy matching in picker search.
 4. [Future] Frecency-aware ranking. When this ships, zoom context should
    influence ordering but must not reduce search scope.
@@ -71,8 +89,5 @@ Define the initial internal note-linking behavior for RemDo.
    user-customized).
 6. [Future] Ensure floating controls/overlays never block pointer hit-testing
     for inline links, so plain user clicks and test `link.click()` are reliable.
-7. [Future] Reconsider internal-link behavior when copying/pasting across
-   documents. Current choice: preserve source-target identity (no retargeting to
-   pasted note IDs). Alternatives include retargeting links whose targets are
-   also present in the pasted payload, or other remap policies.
-8. [Future] Improve cross-document link support.
+7. [Future] Improve cross-document link UX beyond identity correctness
+   (validation, richer previews, and authoring ergonomics).

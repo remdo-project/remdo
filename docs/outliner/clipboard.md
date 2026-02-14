@@ -3,8 +3,9 @@
 ## Purpose
 
 Define user-visible cut/copy/paste behavior for RemDo notes, including how
-paste placement depends on caret position. Identity implications live in
-[Note IDs](./note-ids.md).
+paste placement depends on caret position. Note-id identity implications live in
+[Note IDs](./note-ids.md); internal-link `docId` clipboard/persistence rules
+live in [Links](./links.md).
 
 ## Structural selections (note range)
 
@@ -55,5 +56,7 @@ paste placement depends on caret position. Identity implications live in
 
 ## Identity
 
-Identity implications (regen vs. preserve `noteId` values) are defined in
-[Note IDs](./note-ids.md).
+Identity implications:
+
+- Note `noteId` regen/preserve rules are defined in [Note IDs](./note-ids.md).
+- Internal-link `docId` clipboard behavior is defined in [Links](./links.md).

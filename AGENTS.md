@@ -42,13 +42,14 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/index.md` (Short). Entry point with links (including list types); single-source invariants rule.
 - `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,
   rendering, and toggle commands.
-- `docs/outliner/links.md` (Medium). Initial internal note-linking behavior:
-  `@` query flow, whole-document search, self-link exclusion, ranking/disambiguation
-  rules, keyboard interactions, and `[Future]` roadmap boundaries.
+- `docs/outliner/links.md` (Medium). Internal note-linking behavior: `@` query
+  flow, whole-document search/ranking, runtime fully qualified link identity,
+  clipboard/persistence docId boundaries, and cross-document roadmap limits.
 - `docs/outliner/menu.md` (Short). Note menu entry points, icon visibility (hover/caret),
   targets, and actions (toggle checked/fold/zoom/child list types).
-- `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization, clipboard identity
-  rules, collab, `noteRef`.
+- `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization,
+  runtime document-id ownership, clipboard identity rules, collab, and
+  `noteRef`.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indentation
   semantics; indent/outdent rules; deletion-merge exception.
 - `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and constraints.
