@@ -1,8 +1,5 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
-
-type NodeWithChildren = SerializedLexicalNode & {
-  children?: SerializedLexicalNode[];
-};
+import { transformSerializedEditorState } from '#lib/editor/serialized-editor-state';
 
 type DefaultEntry = Record<string, unknown>;
 
@@ -47,35 +44,28 @@ const NODE_DEFAULTS = {
 } as const satisfies Record<string, DefaultEntry>;
 
 export function stripEditorStateDefaults(editorState: SerializedEditorState): SerializedEditorState {
-  return {
-    root: minifyNode(editorState.root) as SerializedEditorState['root'],
-  };
+  return transformSerializedEditorState(editorState, minifyNode);
 }
 
 export function restoreEditorStateDefaults(editorState: SerializedEditorState): SerializedEditorState {
-  return {
-    root: restoreDefaultsForNode(editorState.root) as SerializedEditorState['root'],
-  };
+  return transformSerializedEditorState(editorState, restoreDefaultsForNode);
 }
 
-function minifyNode(node: NodeWithChildren): NodeWithChildren {
-  const minifiedChildren = Array.isArray(node.children)
-    ? node.children.map((child) => minifyNode(child))
+function getNodeDefaults(nodeType: string): Record<string, unknown> {
+  const defaultsEntry = Object.prototype.hasOwnProperty.call(NODE_DEFAULTS, nodeType)
+    ? NODE_DEFAULTS[nodeType as keyof typeof NODE_DEFAULTS]
     : undefined;
+  return (defaultsEntry ?? {}) as Record<string, unknown>;
+}
 
-  const defaultsEntry = Object.prototype.hasOwnProperty.call(NODE_DEFAULTS, node.type)
-    ? NODE_DEFAULTS[node.type as keyof typeof NODE_DEFAULTS]
-    : undefined;
-
-  const defaults = (defaultsEntry ?? {}) as Record<string, unknown>;
+function minifyNode(node: SerializedLexicalNode): SerializedLexicalNode {
+  const defaults = getNodeDefaults(node.type);
   const result: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(node)) {
     if (key === 'children') {
-      if (minifiedChildren) {
-        result.children = minifiedChildren;
-      } else if (Array.isArray(value) && value.length === 0) {
-        result.children = [];
+      if (Array.isArray(value)) {
+        result.children = value;
       }
       continue;
     }
@@ -88,20 +78,12 @@ function minifyNode(node: NodeWithChildren): NodeWithChildren {
     result[key] = value;
   }
 
-  return sortKeys(result) as NodeWithChildren;
+  return sortKeys(result) as SerializedLexicalNode;
 }
 
-function restoreDefaultsForNode(node: NodeWithChildren): NodeWithChildren {
-  const defaultsEntry = Object.prototype.hasOwnProperty.call(NODE_DEFAULTS, node.type)
-    ? NODE_DEFAULTS[node.type as keyof typeof NODE_DEFAULTS]
-    : undefined;
-  const defaults = (defaultsEntry ?? {}) as Record<string, unknown>;
-
+function restoreDefaultsForNode(node: SerializedLexicalNode): SerializedLexicalNode {
+  const defaults = getNodeDefaults(node.type);
   const result: Record<string, unknown> = { ...node };
-
-  if (Array.isArray(node.children)) {
-    result.children = node.children.map((child) => restoreDefaultsForNode(child));
-  }
 
   for (const [key, defaultValue] of Object.entries(defaults)) {
     if (!(key in result)) {
@@ -109,7 +91,7 @@ function restoreDefaultsForNode(node: NodeWithChildren): NodeWithChildren {
     }
   }
 
-  return result as NodeWithChildren;
+  return result as SerializedLexicalNode;
 }
 
 function isEqual(a: unknown, b: unknown): boolean {
