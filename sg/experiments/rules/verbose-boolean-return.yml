@@ -1,0 +1,38 @@
+id: verbose-boolean-return
+language: TypeScript
+severity: info
+message: Immediate if-return boolean pairs can be simplified.
+rule:
+  any:
+    - all:
+        - pattern:
+            context: |
+              function demo() {
+                if ($COND) {
+                  return true;
+                }
+              }
+            selector: if_statement
+        - precedes:
+            pattern: return false;
+            stopBy: neighbor
+    - all:
+        - pattern:
+            context: |
+              function demo() {
+                if ($COND) {
+                  return false;
+                }
+              }
+            selector: if_statement
+        - precedes:
+            pattern: return true;
+            stopBy: neighbor
+files:
+  - src/**/*.ts
+  - src/**/*.tsx
+  - lib/**/*.ts
+  - lib/**/*.tsx
+  - tools/**/*.ts
+  - tests/**/*.ts
+  - tests/**/*.tsx

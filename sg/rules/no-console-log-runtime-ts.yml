@@ -1,0 +1,13 @@
+id: no-console-log-runtime-ts
+language: TypeScript
+severity: warning
+message: Avoid committing console.log in runtime code.
+rule:
+  pattern: console.log($$$ARGS)
+files:
+  - src/**/*.ts
+  - src/**/*.tsx
+  - lib/**/*.ts
+  - lib/**/*.tsx
+  - tools/**/*.ts
+  - config/**/*.ts

@@ -1,0 +1,17 @@
+id: type-escape-hatches
+language: Tsx
+severity: warning
+message: Type-escape cast detected; consider a stricter type guard or narrower helper type.
+rule:
+  any:
+    - pattern: $EXPR as any
+    - pattern: $EXPR as unknown as $TYPE
+    - pattern: $EXPR as never
+files:
+  - src/**/*.ts
+  - src/**/*.tsx
+  - lib/**/*.ts
+  - lib/**/*.tsx
+  - tools/**/*.ts
+  - tests/**/*.ts
+  - tests/**/*.tsx

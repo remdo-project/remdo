@@ -1,0 +1,8 @@
+id: no-console-log-runtime-js
+language: JavaScript
+severity: warning
+message: Avoid committing console.log in runtime code.
+rule:
+  pattern: console.log($$$ARGS)
+files:
+  - tools/**/*.js
