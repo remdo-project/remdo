@@ -100,6 +100,8 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-router-dom": "catalog:",
+    "vite": "catalog:",
+    "ws": "catalog:",
     "yjs": "catalog:"
   },
   "devDependencies": {
@@ -136,10 +138,8 @@
     "stylelint-config-recommended": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
     "vitest": "catalog:",
     "vitest-preview": "catalog:",
-    "ws": "catalog:",
     "y-sweet": "catalog:"
   }
 }
