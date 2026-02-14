@@ -1,5 +1,5 @@
 import { config } from '#config';
-import { createNoteId, normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
+import { createUniqueNoteId, normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
 import { afterEach, beforeEach } from 'vitest';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tests-common/fixtures';
@@ -25,7 +25,7 @@ beforeEach<TestContext>(async (ctx) => {
   const rawDocId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
   let docId = normalizeNoteIdOrThrow(rawDocId, `Invalid collab doc id: ${rawDocId}`);
   if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {
-    docId = createNoteId();
+    docId = createUniqueNoteId();
   }
 
   // Seed fixtures via a loader before the main editor mounts.

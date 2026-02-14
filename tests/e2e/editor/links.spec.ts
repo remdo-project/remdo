@@ -1,7 +1,7 @@
 import { expect, test } from '#editor/fixtures';
 import { ensureReady, waitForSynced } from '#editor/bridge';
 import { editorLocator, setCaretAtText } from '#editor/locators';
-import { createNoteId } from '#lib/editor/note-ids';
+import { createUniqueNoteId } from '#lib/editor/note-ids';
 
 test.describe('note links', () => {
   test('inserts a note link from @ picker with Enter', async ({ page, editor }) => {
@@ -192,7 +192,7 @@ test.describe('note links', () => {
     const copyCombo = process.platform === 'darwin' ? 'Meta+C' : 'Control+C';
     await page.keyboard.press(copyCombo);
 
-    const destinationDocId = createNoteId();
+    const destinationDocId = createUniqueNoteId();
     const destinationContext = await browser.newContext();
     const destinationPage = await destinationContext.newPage();
     try {

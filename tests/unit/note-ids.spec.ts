@@ -34,7 +34,7 @@ import {
   typeText,
   meta,
 } from '#tests';
-import { createNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
+import { createUniqueNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { noteIdState } from '#lib/editor/note-id-state';
 import { renderRemdoEditor } from './collab/_support/render-editor';
 
@@ -304,7 +304,7 @@ describe('note ids on paste', () => {
       // Clipboard payload must still carry explicit docId so links remain self-contained across browser boundaries.
       expect(copiedClipboardLink.docId).toBe(sourceDocId);
 
-      const destinationDocId = createNoteId();
+      const destinationDocId = createUniqueNoteId();
 
       const { api: destination, unmount } = await renderRemdoEditor({ docId: destinationDocId });
       try {

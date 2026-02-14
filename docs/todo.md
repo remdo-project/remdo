@@ -19,9 +19,6 @@ Rules:
 - Consolidate repeated unit-test Lexical DOM setup (`document.createElement` +
   `document.body.append` + `createEditor` + `setRootElement`) into a shared
   test helper with a single cleanup path.
-- Rename `createNoteId` to something explicit like `createUniqueNoteId` so the
-  uniqueness guarantee is obvious at call sites and tests can avoid defensive
-  collision loops.
 - Consolidate snapshot-collab test artifacts under a single dedicated temp
   directory (instead of a growing flat file list in
   `tests/unit/collab/snapshot.collab.spec.ts`) and clean that directory in one

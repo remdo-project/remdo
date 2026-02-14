@@ -22,7 +22,7 @@ import {
 } from 'lexical';
 import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
-import { createNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
+import { createUniqueNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
 import { $autoExpandIfFolded } from '#lib/editor/fold-state';
 import { $createNoteLinkNode } from '#lib/editor/note-link-node';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
@@ -145,13 +145,13 @@ function $ensureNoteId(item: ListItemNode) {
     return;
   }
 
-  $setState(item, noteIdState, createNoteId());
+  $setState(item, noteIdState, createUniqueNoteId());
 }
 
 function $createNoteItemWithText(text: string): ListItemNode {
   const item = $createListItemNode();
   item.append($createTextNode(text));
-  $setState(item, noteIdState, createNoteId());
+  $setState(item, noteIdState, createUniqueNoteId());
   return item;
 }
 
@@ -237,7 +237,7 @@ function $splitContentItemAtSelection(contentItem: ListItemNode, selection: Base
   }
 
   const newItem = $createListItemNode();
-  $setState(newItem, noteIdState, createNoteId());
+  $setState(newItem, noteIdState, createUniqueNoteId());
 
   let child = contentItem.getFirstChild();
   while (child && child !== splitStart) {
