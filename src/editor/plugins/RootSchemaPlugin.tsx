@@ -33,6 +33,7 @@ export function RootSchemaPlugin({ onSchemaReadyChange }: RootSchemaPluginProps)
    *    again until that document finishes hydrating.
    */
   useLayoutEffect(() => {
+    editor.setEditable(false);
     onSchemaReadyChange(false);
 
     if (!hydrated) {
@@ -80,6 +81,7 @@ export function RootSchemaPlugin({ onSchemaReadyChange }: RootSchemaPluginProps)
     normalizeRootOnce(editor, onSchemaReadyChange);
 
     return mergeRegister(unregisterNormalization, unregisterRepair, () => {
+      editor.setEditable(false);
       onSchemaReadyChange(false);
     });
   }, [editor, hydrated, docEpoch, onSchemaReadyChange]);
@@ -91,6 +93,7 @@ function normalizeRootOnce(editor: LexicalEditor, onSchemaReadyChange: (ready: b
   // Run a one-time normalization outside the transform cycle for fresh editors.
   editor.update(() => {
     $normalizeOutlineRoot($getRoot());
+    editor.setEditable(true);
     onSchemaReadyChange(true);
   }, { tag: ROOT_SCHEMA_NORMALIZE_TAG });
 }
