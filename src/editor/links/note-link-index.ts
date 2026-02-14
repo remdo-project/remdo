@@ -1,8 +1,6 @@
-import type { ListItemNode, ListNode } from '@lexical/list';
-
 import { $getNoteId } from '#lib/editor/note-id-state';
+import { forEachContentItemInOutline } from '@/editor/outline/list-traversal';
 import { $requireRootContentList } from '@/editor/outline/schema';
-import { getNestedList } from '@/editor/outline/selection/tree';
 
 interface LinkableNote {
   noteId: string;
@@ -16,28 +14,22 @@ export interface LinkPickerOption {
   context: string | null;
 }
 
-function $visitList(listNode: ListNode, ancestorPath: string[], notes: LinkableNote[]): void {
-  const children = listNode.getChildren<ListItemNode>();
-  for (const child of children) {
-    const noteId = $getNoteId(child);
-    if (!noteId) {
-      continue;
-    }
-
-    const title = child.getTextContent();
-    notes.push({ noteId, title, ancestors: ancestorPath });
-
-    const nestedList = getNestedList(child);
-    if (nestedList) {
-      $visitList(nestedList, [...ancestorPath, title], notes);
-    }
-  }
-}
-
 export function $collectLinkableNotesInDocumentOrder(): LinkableNote[] {
   const notes: LinkableNote[] = [];
   const rootList = $requireRootContentList();
-  $visitList(rootList, [], notes);
+  forEachContentItemInOutline(rootList, (item, ancestors) => {
+    const noteId = $getNoteId(item);
+    if (!noteId) {
+      return;
+    }
+
+    const title = item.getTextContent();
+    notes.push({
+      noteId,
+      title,
+      ancestors: ancestors.map((ancestor) => ancestor.getTextContent()),
+    });
+  });
   return notes;
 }
 

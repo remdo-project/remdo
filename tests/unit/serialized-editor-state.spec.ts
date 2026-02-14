@@ -49,6 +49,33 @@ function createState(): SerializedEditorState {
   };
 }
 
+function createDeepChainState(depth: number): SerializedEditorState {
+  const root: SerializedEditorState['root'] = {
+    type: 'root',
+    version: 1,
+    format: '',
+    indent: 0,
+    direction: null,
+    children: [],
+  };
+
+  let current: SerializedLexicalNode & { children?: SerializedLexicalNode[] } = root;
+  for (let index = 0; index < depth; index += 1) {
+    const child: SerializedLexicalNode & { depth: number; children: SerializedLexicalNode[] } = {
+      type: 'listitem',
+      version: 1,
+      depth: index,
+      children: [],
+    };
+    current.children = [child];
+    current = child;
+  }
+
+  const leaf: SerializedLexicalNode & { text: string } = { type: 'text', version: 1, text: 'leaf' };
+  current.children = [leaf];
+  return { root };
+}
+
 describe('serialized editor state helper', () => {
   it('traverses nodes in preorder DFS', () => {
     const state = createState();
@@ -159,5 +186,27 @@ describe('serialized editor state helper', () => {
     expect(rawNestedChildren[0]).toEqual([]);
     expect(rawNestedChildren[1]).toEqual({ malformed: true });
     expect(nestedChildren.at(-1)?.type).toBe('listitem');
+  });
+
+  it('transforms deep single-child chains without stack overflow', () => {
+    const depth = 30_000;
+    const state = createDeepChainState(depth);
+
+    const transformed = transformSerializedEditorState(state, (node) => (
+      node.type === 'listitem' ? { ...node, touched: true } : node
+    ));
+
+    const transformedItems = collectSerializedNodes(
+      getSerializedRootNodes(transformed),
+      (node): node is SerializedLexicalNode & { touched?: unknown } => node.type === 'listitem',
+    );
+    const originalItems = collectSerializedNodes(
+      getSerializedRootNodes(state),
+      (node): node is SerializedLexicalNode & { touched?: unknown } => node.type === 'listitem',
+    );
+
+    expect(transformedItems).toHaveLength(depth);
+    expect(transformedItems.every((node) => node.touched === true)).toBe(true);
+    expect(originalItems.every((node) => node.touched === undefined)).toBe(true);
   });
 });

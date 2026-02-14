@@ -114,32 +114,86 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 function sortKeys(obj: Record<string, unknown>): Record<string, unknown> {
-  const entries = Object.entries(obj);
+  const sortEntries = (source: Record<string, unknown>) => {
+    const entries = Object.entries(source);
+    entries.sort(([keyA, valueA], [keyB, valueB]) => {
+      const complexA = isComplex(valueA);
+      const complexB = isComplex(valueB);
 
-  entries.sort(([keyA, valueA], [keyB, valueB]) => {
-    const complexA = isComplex(valueA);
-    const complexB = isComplex(valueB);
+      if (complexA !== complexB) {
+        return complexA ? 1 : -1;
+      }
 
-    if (complexA !== complexB) {
-      return complexA ? 1 : -1;
-    }
+      return keyA.localeCompare(keyB);
+    });
+    return entries;
+  };
 
-    return keyA.localeCompare(keyB);
-  });
-
-  const sorted: Record<string, unknown> = {};
-
-  for (const [key, value] of entries) {
-    if (Array.isArray(value)) {
-      sorted[key] = value.map((item) => (isPlainObject(item) ? sortKeys(item) : item));
-    } else if (isPlainObject(value)) {
-      sorted[key] = sortKeys(value);
-    } else {
-      sorted[key] = value;
-    }
+  interface SortFrame {
+    target: Record<string, unknown>;
+    entries: Array<[string, unknown]>;
+    entryIndex: number;
   }
 
-  return sorted;
+  const root: Record<string, unknown> = {};
+  const stack: SortFrame[] = [
+    {
+      target: root,
+      entries: sortEntries(obj),
+      entryIndex: 0,
+    },
+  ];
+
+  while (stack.length > 0) {
+    const frame = stack.at(-1)!;
+    if (frame.entryIndex >= frame.entries.length) {
+      stack.pop();
+      continue;
+    }
+
+    const [key, value] = frame.entries[frame.entryIndex]!;
+    frame.entryIndex += 1;
+
+    if (key === 'children' && Array.isArray(value)) {
+      frame.target[key] = value;
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      const mapped = value.slice();
+      frame.target[key] = mapped;
+      for (let index = mapped.length - 1; index >= 0; index -= 1) {
+        const item = mapped[index];
+        if (!isPlainObject(item)) {
+          continue;
+        }
+
+        const sortedItem: Record<string, unknown> = {};
+        mapped[index] = sortedItem;
+        stack.push({
+          target: sortedItem,
+          entries: sortEntries(item),
+          entryIndex: 0,
+        });
+      }
+      continue;
+    }
+
+    if (isPlainObject(value)) {
+      const sortedChild: Record<string, unknown> = {};
+      frame.target[key] = sortedChild;
+      stack.push({
+        target: sortedChild,
+        entries: sortEntries(value),
+        entryIndex: 0,
+      });
+      continue;
+    }
+
+    frame.target[key] = value;
+  }
+
+  return root;
 }
 
 function isComplex(value: unknown): boolean {

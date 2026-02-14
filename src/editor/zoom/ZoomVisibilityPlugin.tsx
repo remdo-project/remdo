@@ -3,6 +3,7 @@ import { $isListNode } from '@lexical/list';
 import { useCallback, useEffect, useRef } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { isChildrenWrapper } from '@/editor/outline/list-structure';
+import { forEachListItemInOutline } from '@/editor/outline/list-traversal';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { $resolveRootContentList } from '@/editor/outline/schema';
 import { getParentContentItem, getSubtreeItems, getWrapperForContent } from '@/editor/outline/selection/tree';
@@ -17,16 +18,9 @@ interface ZoomVisibilityPluginProps {
 }
 
 const collectAllListItemKeys = (list: ListNode, keys: Set<string>) => {
-  for (const child of list.getChildren()) {
-    const item = child as ListItemNode;
+  forEachListItemInOutline(list, (item) => {
     keys.add(item.getKey());
-    if (isChildrenWrapper(item)) {
-      const nested = item.getFirstChild<ListNode>();
-      if (nested) {
-        collectAllListItemKeys(nested, keys);
-      }
-    }
-  }
+  });
 };
 
 const buildVisibleKeys = (root: ListItemNode) => {

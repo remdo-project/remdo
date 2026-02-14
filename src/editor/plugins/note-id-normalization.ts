@@ -44,10 +44,30 @@ function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, path: 
 }
 
 function $normalizeListNoteIds(list: ListNode, usedIds: Set<string>, prefix: number[] = []) {
-  const children = list.getChildren();
-  let noteIndex = 0;
+  const stack: Array<{
+    children: ReturnType<ListNode['getChildren']>;
+    childIndex: number;
+    noteIndex: number;
+    prefix: number[];
+  }> = [
+    {
+      children: list.getChildren(),
+      childIndex: 0,
+      noteIndex: 0,
+      prefix,
+    },
+  ];
 
-  for (const child of children) {
+  while (stack.length > 0) {
+    const frame = stack.at(-1)!;
+    if (frame.childIndex >= frame.children.length) {
+      stack.pop();
+      continue;
+    }
+
+    const child = frame.children[frame.childIndex];
+    frame.childIndex += 1;
+
     if (!$isListItemNode(child)) {
       continue;
     }
@@ -55,13 +75,19 @@ function $normalizeListNoteIds(list: ListNode, usedIds: Set<string>, prefix: num
     if (isChildrenWrapper(child)) {
       const nested = child.getFirstChild();
       if ($isListNode(nested)) {
-        const wrapperIndex = Math.max(noteIndex - 1, 0);
-        $normalizeListNoteIds(nested, usedIds, [...prefix, wrapperIndex]);
+        const wrapperIndex = Math.max(frame.noteIndex - 1, 0);
+        stack.push({
+          children: nested.getChildren(),
+          childIndex: 0,
+          noteIndex: 0,
+          prefix: [...frame.prefix, wrapperIndex],
+        });
       }
       continue;
     }
-    const path = [...prefix, noteIndex];
-    noteIndex += 1;
+
+    const path = [...frame.prefix, frame.noteIndex];
+    frame.noteIndex += 1;
     $normalizeNoteIdOnLoad(child, usedIds, path);
   }
 }

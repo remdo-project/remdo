@@ -116,12 +116,15 @@ function $needsListNormalization(root: RootNode): boolean {
 }
 
 function hasOrphanWrapper(list: ListNode): boolean {
-  for (const child of list.getChildren()) {
-    if (!$isListItemNode(child)) {
-      continue;
-    }
+  const stack: ListNode[] = [list];
 
-    if (isChildrenWrapper(child)) {
+  while (stack.length > 0) {
+    const currentList = stack.pop()!;
+    for (const child of currentList.getChildren()) {
+      if (!$isListItemNode(child) || !isChildrenWrapper(child)) {
+        continue;
+      }
+
       const previousContent = getPreviousContentSibling(child);
       if (!previousContent) {
         return true;
@@ -132,11 +135,9 @@ function hasOrphanWrapper(list: ListNode): boolean {
       }
 
       const nested = child.getFirstChild();
-      if ($isListNode(nested) && hasOrphanWrapper(nested)) {
-        return true;
+      if ($isListNode(nested)) {
+        stack.push(nested);
       }
-
-      continue;
     }
   }
 
@@ -144,63 +145,91 @@ function hasOrphanWrapper(list: ListNode): boolean {
 }
 
 function normalizeOrphanWrappers(list: ListNode): void {
-  let needsRescan = true;
+  interface NormalizeFrame {
+    list: ListNode;
+    children: ReturnType<ListNode['getChildren']>;
+    childIndex: number;
+  }
 
-  while (needsRescan) {
-    needsRescan = false;
-    const children = list.getChildren();
+  const resetFrame = (frame: NormalizeFrame) => {
+    frame.children = frame.list.getChildren();
+    frame.childIndex = 0;
+  };
 
-    for (const child of children) {
-      if (!isChildrenWrapper(child) || !child.isAttached()) {
-        continue;
-      }
+  const stack: NormalizeFrame[] = [
+    {
+      list,
+      children: list.getChildren(),
+      childIndex: 0,
+    },
+  ];
 
-      const previousContent = getPreviousContentSibling(child);
-      if (!previousContent) {
-        reportInvariant({
-          message: 'orphan-wrapper-without-previous-content',
-          context: { wrapperKey: child.getKey() },
-        });
-        hoistWrapperChildren(child);
-        needsRescan = true;
-        break;
-      }
+  while (stack.length > 0) {
+    const frame = stack.at(-1)!;
+    if (frame.childIndex >= frame.children.length) {
+      stack.pop();
+      continue;
+    }
 
-      if (child.getPreviousSibling() === previousContent) {
-        const nested = child.getFirstChild();
-        if ($isListNode(nested)) {
-          normalizeOrphanWrappers(nested);
-        }
-        continue;
-      }
+    const child = frame.children[frame.childIndex];
+    frame.childIndex += 1;
 
-      const previousWrapper = previousContent.getNextSibling();
-      if (isChildrenWrapper(previousWrapper)) {
-        reportInvariant({
-          message: 'orphan-wrapper-merged-into-previous',
-          context: { wrapperKey: child.getKey(), targetWrapperKey: previousWrapper.getKey() },
-        });
-        const targetList = previousWrapper.getFirstChild();
-        const nestedList = child.getFirstChild();
-        if ($isListNode(targetList) && $isListNode(nestedList)) {
-          targetList.append(...nestedList.getChildren());
-        }
-        child.remove();
-        if ($isListNode(targetList)) {
-          normalizeOrphanWrappers(targetList);
-        }
-        needsRescan = true;
-        break;
-      }
+    if (!isChildrenWrapper(child) || !child.isAttached()) {
+      continue;
+    }
 
+    const previousContent = getPreviousContentSibling(child);
+    if (!previousContent) {
       reportInvariant({
-        message: 'orphan-wrapper-hoisted',
+        message: 'orphan-wrapper-without-previous-content',
         context: { wrapperKey: child.getKey() },
       });
       hoistWrapperChildren(child);
-      needsRescan = true;
-      break;
+      resetFrame(frame);
+      continue;
     }
+
+    if (child.getPreviousSibling() === previousContent) {
+      const nested = child.getFirstChild();
+      if ($isListNode(nested)) {
+        stack.push({
+          list: nested,
+          children: nested.getChildren(),
+          childIndex: 0,
+        });
+      }
+      continue;
+    }
+
+    const previousWrapper = previousContent.getNextSibling();
+    if (isChildrenWrapper(previousWrapper)) {
+      reportInvariant({
+        message: 'orphan-wrapper-merged-into-previous',
+        context: { wrapperKey: child.getKey(), targetWrapperKey: previousWrapper.getKey() },
+      });
+      const targetList = previousWrapper.getFirstChild();
+      const nestedList = child.getFirstChild();
+      if ($isListNode(targetList) && $isListNode(nestedList)) {
+        targetList.append(...nestedList.getChildren());
+      }
+      child.remove();
+      resetFrame(frame);
+      if ($isListNode(targetList)) {
+        stack.push({
+          list: targetList,
+          children: targetList.getChildren(),
+          childIndex: 0,
+        });
+      }
+      continue;
+    }
+
+    reportInvariant({
+      message: 'orphan-wrapper-hoisted',
+      context: { wrapperKey: child.getKey() },
+    });
+    hoistWrapperChildren(child);
+    resetFrame(frame);
   }
 }
 
