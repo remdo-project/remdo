@@ -27,9 +27,3 @@ Rules:
   doc IDs (which require explicit pre-test cleanup and add runtime cost).
 - Plan a unified test doc-id lifecycle approach so data isolation and cleanup
   are deterministic without ad hoc per-suite behavior.
-
-## Editor
-
-- Consolidate serialized-editor-state traversal into one production helper in
-  `lib/editor` and reuse it across persistence/defaults transforms (and tests),
-  instead of maintaining separate walkers in each module.

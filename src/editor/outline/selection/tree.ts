@@ -113,17 +113,19 @@ export function getNextContentSibling(item: ListItemNode): ListItemNode | null {
 }
 
 export function getSubtreeTail(item: ListItemNode): ListItemNode {
-  const nestedList = getNestedList(item);
-  if (!nestedList) {
-    return item;
+  let current = item;
+  let nestedList = getNestedList(current);
+  while (nestedList) {
+    const lastChild = nestedList.getLastChild();
+    if (!$isListItemNode(lastChild)) {
+      break;
+    }
+
+    current = lastChild;
+    nestedList = getNestedList(current);
   }
 
-  const lastChild = nestedList.getLastChild();
-  if (!$isListItemNode(lastChild)) {
-    return item;
-  }
-
-  return getSubtreeTail(lastChild);
+  return current;
 }
 
 export function getNestedList(item: ListItemNode): ListNode | null {
@@ -146,15 +148,24 @@ export function noteHasChildren(item: ListItemNode): boolean {
 }
 
 export function getSubtreeItems(item: ListItemNode): ListItemNode[] {
-  const items: ListItemNode[] = [item];
-  const nested = getNestedList(item);
-  if (!nested) {
-    return items;
-  }
+  const items: ListItemNode[] = [];
+  const stack: ListItemNode[] = [item];
 
-  for (const child of nested.getChildren()) {
-    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
-      items.push(...getSubtreeItems(child));
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    items.push(current);
+
+    const nested = getNestedList(current);
+    if (!nested) {
+      continue;
+    }
+
+    const children = nested.getChildren();
+    for (let i = children.length - 1; i >= 0; i -= 1) {
+      const child = children[i];
+      if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+        stack.push(child);
+      }
     }
   }
 
@@ -180,20 +191,30 @@ export function getLastDescendantListItem(node: LexicalNode | null): ListItemNod
     return null;
   }
 
-  const children = node.getChildren();
-  for (let i = children.length - 1; i >= 0; i -= 1) {
-    const child = children[i];
-    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
-      const nested = getNestedList(child);
-      const match = getLastDescendantListItem(nested);
-      if (match) {
-        return match;
+  let currentList: ListNode | null = node;
+  let fallback: ListItemNode | null = null;
+
+  while (currentList) {
+    const children = currentList.getChildren();
+    let lastContentChild: ListItemNode | null = null;
+    for (let i = children.length - 1; i >= 0; i -= 1) {
+      const child = children[i];
+      if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+        lastContentChild = child;
+        break;
       }
-      return child;
     }
+
+    if (!lastContentChild) {
+      return fallback;
+    }
+
+    fallback = lastContentChild;
+    const nested = getNestedList(lastContentChild);
+    currentList = nested;
   }
 
-  return null;
+  return fallback;
 }
 
 export function getWrapperForContent(item: ListItemNode): ListItemNode | null {

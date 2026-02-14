@@ -6,26 +6,22 @@ import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW }
 
 import { $isNoteFolded, $setNoteFolded } from '#lib/editor/fold-state';
 import { SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
+import { forEachContentItemInOutline } from '@/editor/outline/list-traversal';
 import { $resolveRootContentList, resolveContentItemFromNode } from '@/editor/outline/schema';
-import { getContentSiblings, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { isChildrenWrapper } from '@/editor/outline/list-structure';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import type { OutlineSelection } from '@/editor/outline/selection/model';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
-import { getNestedList, isContentDescendantOf, noteHasChildren } from '@/editor/outline/selection/tree';
+import { isContentDescendantOf, noteHasChildren } from '@/editor/outline/selection/tree';
 
 const FOLD_ATTR = 'folded';
 
 const collectFoldedKeys = (list: ListNode, keys: Set<string>): void => {
-  const items = getContentSiblings(list);
-  for (const item of items) {
+  forEachContentItemInOutline(list, (item) => {
     if ($isNoteFolded(item) && noteHasChildren(item)) {
       keys.add(item.getKey());
     }
-    const nested = getNestedList(item);
-    if (nested) {
-      collectFoldedKeys(nested, keys);
-    }
-  }
+  });
 };
 
 const $shouldCollapseSelection = (

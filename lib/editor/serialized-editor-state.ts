@@ -9,26 +9,66 @@ function isSerializedNode(value: unknown): value is SerializedLexicalNode {
 
 type SerializedNodeTransform = (node: SerializedLexicalNode) => SerializedLexicalNode;
 
+interface TransformFrame {
+  cloned: Record<string, unknown>;
+  rawChildren: unknown[] | null;
+  transformedChildren: unknown[] | null;
+  childIndex: number;
+}
+
 function transformSerializedNode(
   node: SerializedLexicalNode,
   transform: SerializedNodeTransform,
 ): SerializedLexicalNode {
-  const cloned: Record<string, unknown> = { ...node };
-  const rawChildren = (node as { children?: unknown }).children;
+  const createFrame = (currentNode: SerializedLexicalNode): TransformFrame => {
+    const cloned: Record<string, unknown> = { ...currentNode };
+    const rawChildrenValue = (currentNode as { children?: unknown }).children;
+    const rawChildren = Array.isArray(rawChildrenValue) ? rawChildrenValue : null;
 
-  if (Array.isArray(rawChildren)) {
-    const transformedChildren: unknown[] = [];
-    for (const child of rawChildren) {
+    return {
+      cloned,
+      rawChildren,
+      transformedChildren: rawChildren ? [] : null,
+      childIndex: 0,
+    };
+  };
+
+  const stack: TransformFrame[] = [createFrame(node)];
+  let transformedRoot: SerializedLexicalNode | null = null;
+
+  while (stack.length > 0) {
+    const frame = stack.at(-1)!;
+    if (frame.rawChildren && frame.childIndex < frame.rawChildren.length) {
+      const child = frame.rawChildren[frame.childIndex];
+      frame.childIndex += 1;
+
       if (isSerializedNode(child)) {
-        transformedChildren.push(transformSerializedNode(child, transform));
+        stack.push(createFrame(child));
       } else {
-        transformedChildren.push(child);
+        frame.transformedChildren!.push(child);
       }
+      continue;
     }
-    cloned.children = transformedChildren;
+
+    if (frame.transformedChildren) {
+      frame.cloned.children = frame.transformedChildren;
+    }
+    const transformedNode = transform(frame.cloned as SerializedLexicalNode);
+    stack.pop();
+
+    const parent = stack.at(-1);
+    if (!parent) {
+      transformedRoot = transformedNode;
+      break;
+    }
+    parent.transformedChildren!.push(transformedNode);
   }
 
-  return transform(cloned as SerializedLexicalNode);
+  if (!transformedRoot) {
+    throw new Error('Expected serialized state transform to produce a root node.');
+  }
+
+  return transformedRoot;
 }
 
 export function transformSerializedEditorState(
