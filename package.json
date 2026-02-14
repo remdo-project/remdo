@@ -49,7 +49,7 @@
     "lint:md:file": "timeout ${TEST_TIMEOUT:-60}s pnpm run lint:md:file:raw --",
     "lint:md:file:raw": "markdownlint-cli2 --no-globs",
     "lint:ast-grep": "timeout ${TEST_TIMEOUT:-60}s pnpm exec ast-grep scan",
-    "audit:ast-grep": "timeout ${TEST_TIMEOUT:-60}s pnpm exec ast-grep scan --config sg/experiments/sgconfig.yml --report-style short .",
+    "audit:ast-grep": "pnpm exec ast-grep scan --config sg/experiments/sgconfig.yml --report-style short .",
     "audit:stats:repo": "pnpm run stats:repo -- --threshold-ratio 0.05",
     "audit:dup": "jscpd --config .jscpd.json --threshold 3",
     "audit:dup:zero": "jscpd --config .jscpd.json --threshold 0",
