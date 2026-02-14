@@ -127,4 +127,37 @@ describe('serialized editor state helper', () => {
     expect(getSerializedRootNodes(malformedState)).toEqual([]);
     expect(getSerializedNodeChildren(mixedChildren).map((node) => node.type)).toEqual(['text']);
   });
+
+  it('preserves malformed child entries while recursing into valid nodes', () => {
+    const stateWithMalformedChildren: SerializedEditorState = {
+      root: {
+        type: 'root',
+        version: 1,
+        format: '',
+        indent: 0,
+        direction: null,
+        children: [
+          {
+            type: 'list',
+            version: 1,
+            children: [
+              [] as unknown as SerializedLexicalNode,
+              { malformed: true } as unknown as SerializedLexicalNode,
+              { type: 'listitem', version: 1, children: [] },
+            ],
+          } as unknown as SerializedLexicalNode,
+        ],
+      },
+    };
+
+    const transformed = transformSerializedEditorState(stateWithMalformedChildren, (node) => node);
+    const rootChildren = getSerializedRootNodes(transformed);
+    const nestedChildren = getSerializedNodeChildren(rootChildren[0]! as SerializedLexicalNode & { children: unknown[] });
+
+    const rawNestedChildren = (rootChildren[0]! as SerializedLexicalNode & { children: unknown[] }).children;
+    expect(Array.isArray(rawNestedChildren[0])).toBe(true);
+    expect(rawNestedChildren[0]).toEqual([]);
+    expect(rawNestedChildren[1]).toEqual({ malformed: true });
+    expect(nestedChildren.at(-1)?.type).toBe('listitem');
+  });
 });

@@ -1,7 +1,10 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
 function isSerializedNode(value: unknown): value is SerializedLexicalNode {
-  return typeof value === 'object' && value !== null;
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false;
+  }
+  return typeof (value as { type?: unknown }).type === 'string';
 }
 
 type SerializedNodeTransform = (node: SerializedLexicalNode) => SerializedLexicalNode;
