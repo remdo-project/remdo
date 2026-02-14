@@ -1,0 +1,15 @@
+id: no-async-foreach
+language: TypeScript
+severity: error
+message: Async callbacks in forEach are not awaited. Use for...of or Promise.all.
+rule:
+  pattern: $ARRAY.forEach(async ($$$ARGS) => $$$BODY)
+files:
+  - src/**/*.ts
+  - src/**/*.tsx
+  - lib/**/*.ts
+  - lib/**/*.tsx
+  - tools/**/*.ts
+  - config/**/*.ts
+  - tests/**/*.ts
+  - tests/**/*.tsx

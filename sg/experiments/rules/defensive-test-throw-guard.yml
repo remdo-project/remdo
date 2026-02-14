@@ -1,0 +1,9 @@
+id: defensive-test-throw-guard
+language: TypeScript
+severity: warning
+message: Test guard throws can often be replaced with fixture assumptions or non-null assertions.
+rule:
+  pattern: if (!$COND) { throw new Error($MSG); }
+files:
+  - tests/**/*.ts
+  - tests/**/*.tsx

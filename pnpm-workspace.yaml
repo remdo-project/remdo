@@ -16,6 +16,7 @@ overrides:
 
 catalog:
   '@antfu/eslint-config': ^7.4.3
+  '@ast-grep/cli': ^0.40.5
   '@eslint-react/eslint-plugin': ^2.12.4
   '@lexical/clipboard': ^0.40.0
   '@lexical/eslint-plugin': ^0.40.0
@@ -72,6 +73,7 @@ catalog:
   yjs: ^13.6.29
 
 onlyBuiltDependencies:
+  - '@ast-grep/cli'
   - '@swc/core'
   - esbuild
   - leveldown

@@ -2,6 +2,7 @@ import { expect, test } from '#editor/fixtures';
 import { ensureReady, waitForSynced } from '#editor/bridge';
 import { editorLocator, setCaretAtText } from '#editor/locators';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
+import { createEditorDocumentPath } from './_support/routes';
 
 test.describe('note links', () => {
   test('inserts a note link from @ picker with Enter', async ({ page, editor }) => {
@@ -167,7 +168,7 @@ test.describe('note links', () => {
   test('searches the whole document while zoomed into a subtree', async ({ page, editor }) => {
     await editor.load('tree');
 
-    await page.goto(`/n/${editor.docId}_note2`);
+    await page.goto(createEditorDocumentPath(editor.docId, 'note2'));
     await editorLocator(page).locator('.editor-input').first().waitFor();
 
     await setCaretAtText(page, 'note3', Number.POSITIVE_INFINITY);
@@ -196,7 +197,7 @@ test.describe('note links', () => {
     const destinationContext = await browser.newContext();
     const destinationPage = await destinationContext.newPage();
     try {
-      await destinationPage.goto(`/n/${destinationDocId}`);
+      await destinationPage.goto(createEditorDocumentPath(destinationDocId));
       await editorLocator(destinationPage).locator('.editor-input').first().waitFor();
       await ensureReady(destinationPage, { clear: true });
       // Per docs/outliner/concepts.md, a document never becomes empty; after clear there is one empty note.

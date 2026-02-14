@@ -57,10 +57,7 @@ export async function pressKey(
   remdo: RemdoTestApi,
   { key, shift = false, alt = false, meta = false, ctrl = false, ctrlOrMeta }: PressKeyOptions
 ): Promise<void> {
-  const root = remdo.editor.getRootElement();
-  if (!root) {
-    throw new Error('Lexical root element is not mounted');
-  }
+  const root = remdo.editor.getRootElement()!;
 
   const { meta: nextMeta, ctrl: nextCtrl } = normalizeCtrlMeta(meta, ctrl, ctrlOrMeta);
 

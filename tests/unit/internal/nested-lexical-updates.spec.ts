@@ -5,10 +5,7 @@ import { meta } from '#tests';
 const NESTED_UPDATE_COMMAND = createCommand('tests:nested-lexical-update');
 
 function $mutateFirstNoteLabel(suffix: string) {
-  const firstText = $getRoot().getAllTextNodes()[0];
-  if (!firstText) {
-    throw new Error('Expected at least one text node');
-  }
+  const firstText = $getRoot().getAllTextNodes()[0]!;
 
   firstText.setTextContent(`${firstText.getTextContent()}${suffix}`);
 }

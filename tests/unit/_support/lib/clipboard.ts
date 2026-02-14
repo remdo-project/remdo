@@ -15,10 +15,7 @@ function getListNode(state: RemdoTestApi['getEditorState'] extends () => infer R
       (child as { type?: unknown }).type === 'list' &&
       Array.isArray((child as { children?: unknown }).children)
   );
-  if (!listNode) {
-    throw new Error('Expected a list node with children for clipboard payload.');
-  }
-  return listNode;
+  return listNode as SerializedListNode;
 }
 
 export function createDataTransfer(payload?: unknown): DataTransfer {
@@ -62,10 +59,7 @@ export function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
   const selectedItems: SerializedNoteListItemNode[] = [];
 
   for (const noteId of noteIds) {
-    const match = findSerializedListItem(listNode, noteId);
-    if (!match) {
-      throw new Error(`Expected to find list item for noteId "${noteId}" in clipboard payload.`);
-    }
+    const match = findSerializedListItem(listNode, noteId)!;
     selectedItems.push(match);
   }
 
@@ -78,7 +72,7 @@ export function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
 function readClipboardPayload(clipboardEvent: ClipboardEvent, label: string) {
   const rawPayload = clipboardEvent.clipboardData?.getData('application/x-lexical-editor') ?? '';
   if (!rawPayload) {
-    throw new Error(`Expected ${label} to populate clipboard payload.`);
+    throw new TypeError(`Expected ${label} to populate clipboard payload.`);
   }
   return JSON.parse(rawPayload) as { namespace?: string; nodes?: unknown[] };
 }

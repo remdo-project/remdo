@@ -135,10 +135,8 @@ it('leaves a canonical single list untouched', async ({ remdo }) => {
     const list = $expectSingleListRoot();
     expect(list.getKey()).toBe(originalListKey);
     const items = list.getChildren().map((child): ListItemNode => {
-      if (!$isListItemNode(child)) {
-        throw new Error('Expected root list child to remain a list item');
-      }
-      return child;
+      expect($isListItemNode(child)).toBe(true);
+      return child as ListItemNode;
     });
     expect(items.map((child) => child.getKey())).toEqual(originalItemKeys);
   });
@@ -150,11 +148,7 @@ function $expectSingleListRoot(): ListNode {
 
   const list = root.getFirstChild();
   expect($isListNode(list)).toBe(true);
-  if (!$isListNode(list)) {
-    throw new Error('Expected root child to be a list');
-  }
-
-  return list;
+  return list as ListNode;
 }
 
 function expectListItemCount(list: ListNode, expectedCount: number) {

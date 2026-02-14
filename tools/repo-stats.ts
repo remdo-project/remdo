@@ -37,6 +37,7 @@ interface CliArguments {
   json: boolean;
   update: boolean;
   help: boolean;
+  thresholdRatio: number;
 }
 
 interface VitestListItem {
@@ -79,7 +80,7 @@ interface ComparisonResult {
 const repoRoot = process.cwd();
 const envScript = path.join(repoRoot, 'tools/env.sh');
 const baselinePath = path.resolve(repoRoot, 'repo-stats.json');
-const thresholdRatio = 0.1;
+const defaultThresholdRatio = 0.1;
 const generatedFilePatterns: RegExp[] = [
   /^pnpm-lock\.yaml$/,
   /^package-lock\.json$/,
@@ -107,23 +108,23 @@ try {
       if (args.json) {
         process.stdout.write(`${JSON.stringify(currentStats, null, 2)}\n`);
       } else {
-        printSummary(currentStats);
+        printSummary(currentStats, args.thresholdRatio);
         process.stdout.write(`\nBaseline updated: ${path.basename(baselinePath)}\n`);
       }
     } else {
       const baselineStats = readBaselineStats();
-      const comparison = compareStats(currentStats, baselineStats);
+      const comparison = compareStats(currentStats, baselineStats, args.thresholdRatio);
 
       if (args.json) {
         process.stdout.write(`${JSON.stringify({
           baselinePath: path.basename(baselinePath),
-          thresholdPercent: thresholdRatio * 100,
+          thresholdPercent: args.thresholdRatio * 100,
           baselineGeneratedAt: baselineStats.generatedAt,
           current: currentStats,
           comparison,
         }, null, 2)}\n`);
       } else {
-        printSummary(currentStats, comparison, baselineStats);
+        printSummary(currentStats, args.thresholdRatio, comparison, baselineStats);
       }
 
       if (comparison.failedMetrics.length > 0) {
@@ -138,9 +139,10 @@ try {
 }
 
 function parseArgs(argv: string[]): CliArguments {
-  const parsed: CliArguments = { json: false, update: false, help: false };
+  const parsed: CliArguments = { json: false, update: false, help: false, thresholdRatio: defaultThresholdRatio };
 
-  for (const arg of argv) {
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index]!;
     if (arg === '--json') {
       parsed.json = true;
       continue;
@@ -156,6 +158,27 @@ function parseArgs(argv: string[]): CliArguments {
       continue;
     }
 
+    if (arg === '--') {
+      continue;
+    }
+
+    if (arg === '--threshold-ratio') {
+      const value = argv[index + 1];
+      if (!value) {
+        throw new Error('Missing value for --threshold-ratio.');
+      }
+
+      parsed.thresholdRatio = parseThresholdRatio(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--threshold-ratio=')) {
+      const value = arg.slice('--threshold-ratio='.length);
+      parsed.thresholdRatio = parseThresholdRatio(value);
+      continue;
+    }
+
     throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -163,7 +186,7 @@ function parseArgs(argv: string[]): CliArguments {
 }
 
 function printUsage(): void {
-  process.stdout.write('Usage: pnpm run stats:repo [--json] [--update]\n');
+  process.stdout.write('Usage: pnpm run stats:repo [--json] [--update] [--threshold-ratio <0..1>]\n');
 }
 
 function collectStats(): RepoStats {
@@ -238,28 +261,31 @@ function readBaselineStats(): RepoStats {
   }
 }
 
-function compareStats(current: RepoStats, baseline: RepoStats): ComparisonResult {
+function compareStats(current: RepoStats, baseline: RepoStats, thresholdRatio: number): ComparisonResult {
   const metrics = [
     buildComparisonMetric(
       'files.total.files',
       'Files Total files',
       current.totals.files.files,
       baseline.totals.files.files,
+      thresholdRatio,
     ),
     buildComparisonMetric(
       'files.total.lines',
       'Files Total lines',
       current.totals.files.lines,
       baseline.totals.files.lines,
+      thresholdRatio,
     ),
-    buildComparisonMetric('tests.unit', 'Test unit', current.tests.unit, baseline.tests.unit),
-    buildComparisonMetric('tests.collab', 'Test collab', current.tests.collab, baseline.tests.collab),
-    buildComparisonMetric('tests.e2e', 'Test e2e', current.tests.e2e, baseline.tests.e2e),
+    buildComparisonMetric('tests.unit', 'Test unit', current.tests.unit, baseline.tests.unit, thresholdRatio),
+    buildComparisonMetric('tests.collab', 'Test collab', current.tests.collab, baseline.tests.collab, thresholdRatio),
+    buildComparisonMetric('tests.e2e', 'Test e2e', current.tests.e2e, baseline.tests.e2e, thresholdRatio),
     buildComparisonMetric(
       'tests.totalUnique',
       'Test Total (unique)',
       current.tests.totalUnique,
       baseline.tests.totalUnique,
+      thresholdRatio,
     ),
   ];
 
@@ -269,13 +295,19 @@ function compareStats(current: RepoStats, baseline: RepoStats): ComparisonResult
   };
 }
 
-function buildComparisonMetric(id: string, label: string, current: number, baseline: number): ComparisonMetric {
+function buildComparisonMetric(
+  id: string,
+  label: string,
+  current: number,
+  baseline: number,
+  thresholdRatio: number,
+): ComparisonMetric {
   const delta = current - baseline;
   const deltaPct = baseline === 0
     ? (delta === 0 ? 0 : null)
     : ((delta / baseline) * 100);
   const thresholdApplies = thresholdMetricIds.has(id);
-  const failed = thresholdApplies && exceedsThreshold(current, baseline);
+  const failed = thresholdApplies && exceedsThreshold(current, baseline, thresholdRatio);
 
   return {
     id,
@@ -289,7 +321,7 @@ function buildComparisonMetric(id: string, label: string, current: number, basel
   };
 }
 
-function exceedsThreshold(current: number, baseline: number): boolean {
+function exceedsThreshold(current: number, baseline: number, thresholdRatio: number): boolean {
   if (baseline === 0) {
     return current !== 0;
   }
@@ -494,7 +526,12 @@ function formatInt(value: number): string {
   return value.toLocaleString('en-US');
 }
 
-function printSummary(stats: RepoStats, comparison?: ComparisonResult, baseline?: RepoStats): void {
+function printSummary(
+  stats: RepoStats,
+  thresholdRatio: number,
+  comparison?: ComparisonResult,
+  baseline?: RepoStats,
+): void {
   const metricEntries = comparison
     ? comparison.metrics.map((metric) => [metric.id, metric] as const)
     : undefined;
@@ -617,4 +654,12 @@ function colorize(value: string, color: 'green' | 'red'): string {
 
 function writeJson(targetPath: string, data: unknown): void {
   fs.writeFileSync(targetPath, `${JSON.stringify(data, null, 2)}\n`);
+}
+
+function parseThresholdRatio(raw: string): number {
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+    throw new Error(`Invalid --threshold-ratio value: "${raw}". Expected a number between 0 and 1.`);
+  }
+  return parsed;
 }

@@ -14,6 +14,7 @@ COPY \
   pnpm-workspace.yaml \
   tsconfig.json \
   vite.config.mts \
+  vite.shared.ts \
   index.html \
   ./
 
@@ -23,7 +24,7 @@ COPY config ./config
 COPY public ./public
 COPY tools ./tools
 
-RUN pnpm install --frozen-lockfile \
+RUN pnpm install --frozen-lockfile --prod \
   && NODE_ENV=production ./tools/env.sh pnpm run build
 
 # Bundle snapshot tool for runtime backups (no pnpm dependency in runner).

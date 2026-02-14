@@ -41,7 +41,7 @@ function ensureSelectionExtend() {
 (() => {
   const pkg = readPackageJson();
   if (!isNodeVersionSupported(pkg.engines?.node)) {
-    throw new Error(`Node ${pkg.engines?.node} required for tests (current ${process.version})`);
+    throw new TypeError(`Node ${pkg.engines?.node} required for tests (current ${process.version})`);
   }
 
   ensureSelectionExtend();

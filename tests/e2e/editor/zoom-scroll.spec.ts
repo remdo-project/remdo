@@ -2,6 +2,7 @@ import type { Locator } from '#editor/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
+import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
 
 const SCROLL_STYLES = `
   .editor-input {
@@ -111,7 +112,7 @@ test('auto-zoom scrolls to the edited note', async ({ page, editor }) => {
 
   const metrics = await getBulletMetrics(note1);
   await page.mouse.click(metrics.x, metrics.y);
-  await expect(page).toHaveURL(new RegExp(String.raw`/n/${docId}_note1$`));
+  await expect(page).toHaveURL(createEditorDocumentPathRegExp(docId, 'note1'));
 
   await expect(note7).toBeHidden();
 
@@ -126,7 +127,7 @@ test('auto-zoom scrolls to the edited note', async ({ page, editor }) => {
     await api.updateNoteText('note7', 'note7!');
   });
 
-  await expect(page).toHaveURL(`/n/${docId}`);
+  await expect(page).toHaveURL(createEditorDocumentPath(docId));
   await expect(note7).toBeVisible();
 
   await expect.poll(async () => {
@@ -161,10 +162,10 @@ test('auto-zoom keeps the caret note visible after split', async ({ page, editor
 
   await expect(note7).toContainText(longText);
   await page.evaluate((id) => {
-    globalThis.history.pushState({}, '', `/n/${id}_note7`);
+    globalThis.history.pushState({}, '', `/e2e/n/${id}_note7`);
     globalThis.dispatchEvent(new PopStateEvent('popstate'));
   }, docId);
-  await expect(page).toHaveURL(new RegExp(String.raw`/n/${docId}_note7$`));
+  await expect(page).toHaveURL(createEditorDocumentPathRegExp(docId, 'note7'));
 
   const noteIsTall = await note7.evaluate((element) => {
     const container = element.closest('.editor-input');
@@ -182,7 +183,7 @@ test('auto-zoom keeps the caret note visible after split', async ({ page, editor
 
   await page.keyboard.press('Enter');
 
-  await expect(page).toHaveURL(`/n/${docId}_note6`);
+  await expect(page).toHaveURL(createEditorDocumentPath(docId, 'note6'));
 
   await expect.poll(async () => {
     return page.evaluate((suffix) => {

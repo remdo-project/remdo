@@ -79,12 +79,11 @@ test.describe('Fold toggle icons', () => {
     const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
     expect(sourceBox).not.toBeNull();
     expect(targetBox).not.toBeNull();
-    if (!sourceBox || !targetBox) {
-      throw new Error('Expected source and target bounding boxes.');
-    }
-    const sourceCenterY = sourceBox.y + sourceBox.height / 2;
+    const sourceBounds = sourceBox!;
+    const targetBounds = targetBox!;
+    const sourceCenterY = sourceBounds.y + sourceBounds.height / 2;
 
-    await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceCenterY);
+    await page.mouse.move(sourceBounds.x + sourceBounds.width / 2, sourceCenterY);
     await expect(controls).toBeVisible();
     await expect(foldButton).toBeVisible();
     await expect(layer).toBeVisible();
@@ -92,53 +91,44 @@ test.describe('Fold toggle icons', () => {
     const [layerBox, controlsBox] = await Promise.all([layer.boundingBox(), controls.boundingBox()]);
     expect(layerBox).not.toBeNull();
     expect(controlsBox).not.toBeNull();
-    if (!layerBox || !controlsBox) {
-      throw new Error('Expected layer and controls bounding boxes.');
-    }
+    const layerBounds = layerBox!;
+    const controlsBounds = controlsBox!;
 
     const assertControlsInsideLayer = (box: NonNullable<typeof controlsBox>) => {
-      expect(box.x).toBeGreaterThanOrEqual(layerBox.x);
-      expect(box.y).toBeGreaterThanOrEqual(layerBox.y);
-      expect(box.x + box.width).toBeLessThanOrEqual(layerBox.x + layerBox.width);
-      expect(box.y + box.height).toBeLessThanOrEqual(layerBox.y + layerBox.height);
+      expect(box.x).toBeGreaterThanOrEqual(layerBounds.x);
+      expect(box.y).toBeGreaterThanOrEqual(layerBounds.y);
+      expect(box.x + box.width).toBeLessThanOrEqual(layerBounds.x + layerBounds.width);
+      expect(box.y + box.height).toBeLessThanOrEqual(layerBounds.y + layerBounds.height);
     };
-    assertControlsInsideLayer(controlsBox);
+    assertControlsInsideLayer(controlsBounds);
 
-    const insideX = layerBox.x + 1;
-    const outsideX = layerBox.x - 1;
-    const targetYs = [targetBox.y + 1, targetBox.y + targetBox.height / 2, targetBox.y + targetBox.height - 1];
+    const insideX = layerBounds.x + 1;
+    const outsideX = layerBounds.x - 1;
+    const targetYs = [targetBounds.y + 1, targetBounds.y + targetBounds.height / 2, targetBounds.y + targetBounds.height - 1];
 
     for (const targetY of targetYs) {
       await page.mouse.move(insideX, targetY);
       await expect(controls).toBeVisible();
 
-      const nextControlsBox = await controls.boundingBox();
-      expect(nextControlsBox).not.toBeNull();
-      if (!nextControlsBox) {
-        throw new Error('Expected controls bounding box.');
-      }
+      const nextControlsBox = (await controls.boundingBox())!;
       assertControlsInsideLayer(nextControlsBox);
       const nextControlsCenter = nextControlsBox.y + nextControlsBox.height / 2;
-      expect(nextControlsCenter).toBeGreaterThanOrEqual(targetBox.y);
-      expect(nextControlsCenter).toBeLessThanOrEqual(targetBox.y + targetBox.height);
+      expect(nextControlsCenter).toBeGreaterThanOrEqual(targetBounds.y);
+      expect(nextControlsCenter).toBeLessThanOrEqual(targetBounds.y + targetBounds.height);
     }
 
-    await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceCenterY);
+    await page.mouse.move(sourceBounds.x + sourceBounds.width / 2, sourceCenterY);
     await expect(controls).toBeVisible();
 
     for (const targetY of targetYs) {
       await page.mouse.move(outsideX, targetY);
       await expect(controls).toBeVisible();
 
-      const nextControlsBox = await controls.boundingBox();
-      expect(nextControlsBox).not.toBeNull();
-      if (!nextControlsBox) {
-        throw new Error('Expected controls bounding box.');
-      }
+      const nextControlsBox = (await controls.boundingBox())!;
       assertControlsInsideLayer(nextControlsBox);
       const nextControlsCenter = nextControlsBox.y + nextControlsBox.height / 2;
-      expect(nextControlsCenter).toBeGreaterThanOrEqual(sourceBox.y);
-      expect(nextControlsCenter).toBeLessThanOrEqual(sourceBox.y + sourceBox.height);
+      expect(nextControlsCenter).toBeGreaterThanOrEqual(sourceBounds.y);
+      expect(nextControlsCenter).toBeLessThanOrEqual(sourceBounds.y + sourceBounds.height);
     }
   });
 
@@ -218,10 +208,7 @@ test.describe('Fold toggle icons', () => {
       { x: containerBox.x + 10, y: containerBox.y - 20 },
       { x: containerBox.x + 10, y: containerBox.y + containerBox.height + 20 },
     ];
-    const initialPoint = candidates[0];
-    if (!initialPoint) {
-      throw new Error('Expected outside point candidates.');
-    }
+    const initialPoint = candidates[0]!;
     let outsidePoint = initialPoint;
     for (const candidate of candidates) {
       let { x, y } = candidate;
@@ -243,11 +230,7 @@ test.describe('Fold toggle icons', () => {
 
     await expect(controls).toBeVisible();
 
-    const nextControlsBox = await controls.boundingBox();
-    expect(nextControlsBox).not.toBeNull();
-    if (!nextControlsBox) {
-      throw new Error('Expected controls bounding box.');
-    }
+    const nextControlsBox = (await controls.boundingBox())!;
     const nextControlsCenter = nextControlsBox.y + nextControlsBox.height / 2;
     expect(nextControlsCenter).toBeGreaterThanOrEqual(note2Box.y);
     expect(nextControlsCenter).toBeLessThanOrEqual(note2Box.y + note2Box.height);

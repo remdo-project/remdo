@@ -9,10 +9,7 @@ export async function setCaretAtText(
 ): Promise<void> {
   const text = editorLocator(page).locator('[data-lexical-text="true"]').filter({ hasText: label }).first();
   const inputHandle = await text.evaluateHandle((el) => el.closest('.editor-input'));
-  const input = inputHandle.asElement();
-  if (!input) {
-    throw new Error('Editor input not found for caret selection.');
-  }
+  const input = inputHandle.asElement()!;
   await input.evaluate((el) => {
     if (el instanceof HTMLElement) {
       el.focus();
@@ -86,10 +83,7 @@ export async function setCaretAtNoteTextNode(
       element.focus();
     }
     const items = Array.from(element.querySelectorAll('li'));
-    const match = items.find((item) => item.textContent === args.noteText);
-    if (!match) {
-      throw new Error(`Note not found for text "${args.noteText}"`);
-    }
+    const match = items.find((item) => item.textContent === args.noteText)!;
     const nodes: Text[] = [];
     const walker = document.createTreeWalker(match, NodeFilter.SHOW_TEXT);
     let current = walker.nextNode();
@@ -99,10 +93,7 @@ export async function setCaretAtNoteTextNode(
       }
       current = walker.nextNode();
     }
-    const target = nodes[args.textNodeIndex];
-    if (!target) {
-      throw new Error(`Expected text node ${args.textNodeIndex} on "${args.noteText}"`);
-    }
+    const target = nodes[args.textNodeIndex]!;
     const length = target.length;
     const clamped = Math.max(0, Math.min(args.offset, length));
     const selection = globalThis.getSelection();

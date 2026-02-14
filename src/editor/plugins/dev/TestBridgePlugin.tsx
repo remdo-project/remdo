@@ -189,7 +189,7 @@ function createTestBridgeApi(editor: LexicalEditor, collab: ReturnType<typeof us
   const dispatchCommand = async (command: LexicalCommand<unknown>, payload?: unknown, opts?: EditorActionOptions) => {
     const expect = opts?.expect ?? 'update';
     await withOutcome('dispatchCommand', expect, (reportNoop) => {
-      const didDispatch = editor.dispatchCommand(command, payload as never);
+      const didDispatch = editor.dispatchCommand(command, payload);
       if (!didDispatch) {
         reportNoop();
       }

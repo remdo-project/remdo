@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Editor from '@/editor/Editor';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
-import { createDocumentPath, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
+import { createDocumentPathForPathname, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
 import './DocumentRoute.css';
 
 export default function DocumentRoute() {
@@ -11,6 +11,7 @@ export default function DocumentRoute() {
   const parsedRef = parseDocumentRef(docRef);
   const docId = parsedRef?.docId ?? DEFAULT_DOC_ID;
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const [zoomPath, setZoomPath] = useState<NotePathItem[]>([]);
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
@@ -20,7 +21,7 @@ export default function DocumentRoute() {
     const nextSearch = searchParams.toString();
     void navigate(
       {
-        pathname: createDocumentPath(docId, noteId),
+        pathname: createDocumentPathForPathname(location.pathname, docId, noteId),
         search: nextSearch ? `?${nextSearch}` : '',
       },
       { replace: true }

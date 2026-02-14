@@ -16,6 +16,8 @@ export function resolveDefaultDocId(rawDocId: string): string {
 export const DEFAULT_DOC_ID = resolveDefaultDocId(config.env.COLLAB_DOCUMENT_ID);
 
 const NOTE_REF_SEPARATOR = '_';
+const APP_DOCUMENT_PATH_PREFIX = '/n';
+const EDITOR_E2E_DOCUMENT_PATH_PREFIX = '/e2e/n';
 
 interface NoteRef {
   docId: string;
@@ -41,7 +43,7 @@ export function parseNoteRef(noteRef: string): NoteRef | null {
   return { docId, noteId };
 }
 
-export function createDocumentPath(docId: string, noteId: string | null = null): string {
+function createDocumentPathWithPrefix(prefix: string, docId: string, noteId: string | null = null): string {
   const normalizedDocId = normalizeNoteIdOrThrow(docId, 'createDocumentPath requires a valid document id.');
 
   if (noteId !== null) {
@@ -49,9 +51,28 @@ export function createDocumentPath(docId: string, noteId: string | null = null):
       noteId,
       'createDocumentPath requires a valid note id when noteId is provided.',
     );
-    return `/n/${createNoteRef(normalizedDocId, normalizedNoteId)}`;
+    return `${prefix}/${createNoteRef(normalizedDocId, normalizedNoteId)}`;
   }
-  return `/n/${normalizedDocId}`;
+  return `${prefix}/${normalizedDocId}`;
+}
+
+export function createDocumentPath(docId: string, noteId: string | null = null): string {
+  return createDocumentPathWithPrefix(APP_DOCUMENT_PATH_PREFIX, docId, noteId);
+}
+
+export function createEditorDocumentPath(docId: string, noteId: string | null = null): string {
+  return createDocumentPathWithPrefix(EDITOR_E2E_DOCUMENT_PATH_PREFIX, docId, noteId);
+}
+
+function resolveDocumentPathPrefix(pathname: string): string {
+  if (pathname.startsWith(`${EDITOR_E2E_DOCUMENT_PATH_PREFIX}/`)) {
+    return EDITOR_E2E_DOCUMENT_PATH_PREFIX;
+  }
+  return APP_DOCUMENT_PATH_PREFIX;
+}
+
+export function createDocumentPathForPathname(pathname: string, docId: string, noteId: string | null = null): string {
+  return createDocumentPathWithPrefix(resolveDocumentPathPrefix(pathname), docId, noteId);
 }
 
 interface ParsedDocumentRef {

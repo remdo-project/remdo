@@ -146,15 +146,13 @@ describe('toMatchOutline smoke coverage', () => {
       thrown = error;
     }
 
-    if (!(thrown instanceof Error)) {
-      throw new Error('Expected toMatchOutline mismatch to throw');
-    }
-
-    expect(thrown.message).toContain('Outlines differ.');
-    expect(thrown.message).toContain('"text": "wrong label"');
-    expect(thrown.message).toContain('"text": "note1"');
-    expect(thrown.message).toContain('"text": "note2"');
-    expect(thrown.message).toContain('"text": "note3"');
+    expect(thrown).toBeInstanceOf(Error);
+    const thrownError = thrown as Error;
+    expect(thrownError.message).toContain('Outlines differ.');
+    expect(thrownError.message).toContain('"text": "wrong label"');
+    expect(thrownError.message).toContain('"text": "note1"');
+    expect(thrownError.message).toContain('"text": "note2"');
+    expect(thrownError.message).toContain('"text": "note3"');
   });
 
   it('matches selection-only expectations', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {

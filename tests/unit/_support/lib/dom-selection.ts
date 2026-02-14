@@ -179,11 +179,7 @@ function clampDomOffset(node: Node, offset: number): number {
 }
 
 function getDomSelection(): Selection {
-  const selection = globalThis.getSelection();
-  if (!selection) {
-    throw new Error('DOM selection is unavailable');
-  }
-  return selection;
+  return globalThis.getSelection() as Selection;
 }
 
 async function mutateDomSelection(mutator: (selection: Selection) => void) {
