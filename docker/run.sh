@@ -9,9 +9,9 @@ IMAGE_NAME="${IMAGE_NAME:-remdo}"
 remdo_load_dotenv "${ROOT_DIR}"
 remdo_load_env_defaults "${ROOT_DIR}"
 
-: "${BASICAUTH_PASSWORD:?Set BASICAUTH_PASSWORD in ${ROOT_DIR}/.env}"
+: "${AUTH_PASSWORD:?Set AUTH_PASSWORD in ${ROOT_DIR}/.env}"
 
-if (( ${#BASICAUTH_PASSWORD} < 10 )); then
+if (( ${#AUTH_PASSWORD} < 10 )); then
   echo "Password must be at least 10 characters." >&2
   exit 1
 fi
@@ -23,5 +23,6 @@ DOCKER_ENV_ARGS=()
 [[ -f "${ENV_FILE}" ]] && DOCKER_ENV_ARGS=(--env-file "${ENV_FILE}")
 
 remdo_docker_run "${IMAGE_NAME}" --rm "${DOCKER_ENV_ARGS[@]}" \
-  -e BASICAUTH_USER="${BASICAUTH_USER}" \
-  -e BASICAUTH_PASSWORD="${BASICAUTH_PASSWORD}"
+  -e AUTH_USER="${AUTH_USER}" \
+  -e AUTH_PASSWORD="${AUTH_PASSWORD}" \
+  -e TINYAUTH_APP_URL="${TINYAUTH_APP_URL}"

@@ -1,8 +1,7 @@
-# Single-Container Deployment (Caddy + Y-Sweet)
+# Single-Container Deployment (Caddy + Y-Sweet + Tinyauth)
 
-This recipe builds the RemDo SPA and bundles the Y-Sweet collab backend into one
-Docker image. It assumes same-origin requests: the SPA and `/doc/*` share a
-single external port.
+This recipe builds the RemDo SPA and bundles Y-Sweet plus Tinyauth into one
+Docker image. It assumes a single external port.
 
 ## Build & Run
 
@@ -12,22 +11,33 @@ single external port.
 
 Environment variables and defaults are documented in `docs/environment.md`.
 
-Basic auth covers both the SPA and Y-Sweet. The entrypoint hashes the basic
-auth password at runtime; the plaintext password never touches the image or
-disk. For production, feed these env vars via your secret store (e.g.,
-Docker/Podman secrets, Render/Heroku config vars, or a sealed Kubernetes
-secret) instead of committing them to the repo.
+Tinyauth protects both the SPA and Y-Sweet through Caddy `forward_auth`.
+`AUTH_USER` and `AUTH_PASSWORD` are used at startup to generate a
+runtime bcrypt user record in memory.
+For most deployments, set `AUTH_PASSWORD` and optionally `PORT`, then keep
+the derived auth URL defaults.
+
+Auth routing is single-mode and same-host:
+
+- The app and Tinyauth share the same external host and port.
+- Browser access must use the same host configured in `TINYAUTH_APP_URL`.
+- Caddy routes auth UI/API paths (`/login`, `/logout`, `/api/user/*`,
+  `/api/auth/*`, `/resources/*`, `/assets/*`, etc.) to Tinyauth.
+- All other app routes stay on the SPA/Y-Sweet path behind `forward_auth`.
+
+`TINYAUTH_APP_URL` defaults to `http://${PUBLIC_BASE_DOMAIN}:${PORT}`.
+`PUBLIC_BASE_DOMAIN` defaults from host hostname (see `docs/environment.md`).
 
 The container exposes `PORT`; `/doc/*` and `/d*` are proxied to the collab
 server on `COLLAB_SERVER_PORT`. WebSockets are forwarded automatically by
-Caddy. Health check: `GET /health` returns 200 when called with the same basic
-auth header.
+Caddy. Health check: `GET /health` returns 200 without authentication.
 
 ## Data
 
 - `docker/run.sh` mounts the host data directory to `/data` inside the
   container.
 - Y-Sweet stores docs under `/data/collab` (host: `${DATA_DIR}/collab`).
+- Tinyauth stores state under `/data/tinyauth` (host: `${DATA_DIR}/tinyauth`).
 - Snapshot backups go under `/data/backup` (host: `${DATA_DIR}/backup`).
 - The image sets `PATH` to include `/usr/local/bin`, so bundled tools like
   `snapshot.mjs` are available without per-script overrides.

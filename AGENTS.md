@@ -25,10 +25,10 @@ outdated or a doc’s role materially changes.
 
 - `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch conventions, and
   pre-1.0 compatibility policy (no default migration/back-compat requirements).
-- `docs/deployment-single-container.md` (Short). Single-container build/run (Caddy + Y-Sweet),
-  `.env` overrides, `PORT`/`COLLAB_SERVER_PORT`, auth, and `DATA_DIR` mapping.
-- `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, defaults/overrides, worktrees,
-  and blocked port guard.
+- `docs/deployment-single-container.md` (Short). Single-container build/run (Caddy + Y-Sweet +
+  Tinyauth), same-host auth routing, `PORT`/`COLLAB_SERVER_PORT`, and `DATA_DIR` mapping.
+- `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, Tinyauth Docker vars,
+  including hostname-derived same-host defaults/overrides, worktrees, and blocked port guard.
 - `docs/insertion.md` (Short). Caret-mode `Enter` behavior, focus rules, and
   paste placement pointer.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line

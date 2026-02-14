@@ -5,6 +5,7 @@ export default defineConfig({
   ...createViteSharedConfig(),
   build: {
     outDir: "data/dist",
+    assetsDir: "app-assets",
     emptyOutDir: true,
   },
 });
