@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
-import { $resolveContentNoteFromNode } from '@/editor/outline/note-context';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { $resolveNoteStateFromDOMNode } from '@/editor/plugins/note-state';
 
 interface NoteControlsState {
@@ -85,8 +85,8 @@ export function NoteControlsPlugin() {
         if (!$isRangeSelection(selection)) {
           return;
         }
-        const contentItem = $resolveContentNoteFromNode(selection.focus.getNode()) ??
-          $resolveContentNoteFromNode(selection.anchor.getNode());
+        const contentItem = resolveContentItemFromNode(selection.focus.getNode()) ??
+          resolveContentItemFromNode(selection.anchor.getNode());
         if (!contentItem) {
           return;
         }

@@ -35,7 +35,7 @@ function $resolveRootContentList(): ListNode | null {
   return firstChild;
 }
 
-export function $resolveContentItemFromNode(node: LexicalNode | null): ListItemNode | null {
+export function resolveContentItemFromNode(node: LexicalNode | null): ListItemNode | null {
   const listItem = findNearestListItem(node);
   if (!listItem) {
     return null;
@@ -44,7 +44,7 @@ export function $resolveContentItemFromNode(node: LexicalNode | null): ListItemN
   return isChildrenWrapper(contentItem) ? null : contentItem;
 }
 
-export function $requireContentItem(item: ListItemNode): ListItemNode {
+export function requireContentItem(item: ListItemNode): ListItemNode {
   const contentItem = getContentListItem(item);
   if (isChildrenWrapper(contentItem)) {
     failOutlineInvariant('Expected content list item, received malformed wrapper chain', {
@@ -55,7 +55,7 @@ export function $requireContentItem(item: ListItemNode): ListItemNode {
   return contentItem;
 }
 
-export function $requireContentItemFromNode(node: LexicalNode | null): ListItemNode {
+export function requireContentItemFromNode(node: LexicalNode | null): ListItemNode {
   if (!node) {
     failOutlineInvariant('Expected lexical node while resolving content list item', {
       node: null,
@@ -70,7 +70,7 @@ export function $requireContentItemFromNode(node: LexicalNode | null): ListItemN
     });
   }
 
-  return $requireContentItem(listItem);
+  return requireContentItem(listItem);
 }
 
 export function $requireContentItemNoteId(item: ListItemNode): string {
@@ -85,6 +85,6 @@ export function $requireContentItemNoteId(item: ListItemNode): string {
 }
 
 export function $requireContentItemNoteIdFromNode(node: LexicalNode | null): string {
-  const contentItem = $requireContentItemFromNode(node);
+  const contentItem = requireContentItemFromNode(node);
   return $requireContentItemNoteId(contentItem);
 }

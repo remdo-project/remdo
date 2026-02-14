@@ -4,22 +4,18 @@ import type { LexicalNode } from 'lexical';
 
 import {
   $requireContentItemNoteId,
-  $resolveContentItemFromNode,
+  resolveContentItemFromNode,
 } from './schema';
-
-export function $resolveContentNoteFromNode(node: LexicalNode | null): ListItemNode | null {
-  return $resolveContentItemFromNode(node);
-}
 
 export function $resolveContentNoteFromDOMNode(node: Node | null): ListItemNode | null {
   if (!node) {
     return null;
   }
-  return $resolveContentNoteFromNode($getNearestNodeFromDOMNode(node));
+  return resolveContentItemFromNode($getNearestNodeFromDOMNode(node));
 }
 
 export function $resolveNoteIdFromNode(node: LexicalNode | null): string | null {
-  const contentItem = $resolveContentNoteFromNode(node);
+  const contentItem = resolveContentItemFromNode(node);
   if (!contentItem) {
     return null;
   }

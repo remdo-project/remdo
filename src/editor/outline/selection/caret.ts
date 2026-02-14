@@ -3,7 +3,7 @@ import { $isListNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection, TextNode } from 'lexical';
 import { $createRangeSelection, $isTextNode, $setSelection } from 'lexical';
 
-import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 
 type Edge = 'start' | 'end';
 
@@ -111,7 +111,7 @@ export function shouldBlockHorizontalExpansion(
 }
 
 export function $selectItemEdge(item: ListItemNode, edge: Edge): boolean {
-  const contentItem = getContentListItem(item);
+  const contentItem = item;
   const selectable = contentItem as ListItemNode & { selectStart?: () => void; selectEnd?: () => void };
   const selectEdge = edge === 'start' ? selectable.selectStart : selectable.selectEnd;
 
@@ -139,12 +139,11 @@ export function collapseSelectionToCaret(selection: RangeSelection): boolean {
     return true;
   }
 
-  const anchorItem = findNearestListItem(anchorNode);
-  if (!anchorItem) {
+  const contentItem = resolveContentItemFromNode(anchorNode);
+  if (!contentItem) {
     return false;
   }
 
-  const contentItem = getContentListItem(anchorItem);
   const caretPoint = resolveContentBoundaryPoint(contentItem, 'start');
   if (caretPoint) {
     selection.setTextNodeRange(caretPoint.node, caretPoint.offset, caretPoint.node, caretPoint.offset);

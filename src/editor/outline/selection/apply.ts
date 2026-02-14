@@ -3,8 +3,6 @@ import { $isListNode } from '@lexical/list';
 import type { RangeSelection, TextNode } from 'lexical';
 import { $createRangeSelection, $getNodeByKey, $setSelection } from 'lexical';
 
-import { getContentListItem } from '@/editor/outline/list-structure';
-
 import { resolveBoundaryPoint, resolveContentBoundaryPoint } from './caret';
 import { getSubtreeTail } from './tree';
 
@@ -16,7 +14,7 @@ export function $applyCaretEdge(itemKey: string, edge: 'start' | 'end'): boolean
     return false;
   }
 
-  const contentItem = getContentListItem(targetItem);
+  const contentItem = targetItem;
   const selectableContent = contentItem as ListItemNode & {
     selectStart?: () => RangeSelection;
     selectEnd?: () => RangeSelection;
@@ -138,8 +136,8 @@ function resolveElementBoundaryItem(
 ): ListItemNode | null {
   if (mode === 'subtree' && edge === 'end') {
     const tail = getSubtreeTail(item);
-    return getContentListItem(tail);
+    return tail;
   }
 
-  return getContentListItem(item);
+  return item;
 }

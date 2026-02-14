@@ -1,7 +1,7 @@
 import type { ListItemNode } from '@lexical/list';
 import { $getSelection, $isRangeSelection } from 'lexical';
 
-import { findNearestListItem, getContentListItem } from '@/editor/outline/list-structure';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 
 import { shouldBlockHorizontalExpansion } from './caret';
 
@@ -14,12 +14,12 @@ export function $shouldBlockHorizontalArrow(direction: 'left' | 'right'): boolea
   const selectionListItems: ListItemNode[] = [];
   const seen = new Set<string>();
   for (const node of selection.getNodes()) {
-    const listItem = findNearestListItem(node);
-    if (!listItem) continue;
-    const key = listItem.getKey();
+    const contentItem = resolveContentItemFromNode(node);
+    if (!contentItem) continue;
+    const key = contentItem.getKey();
     if (seen.has(key)) continue;
     seen.add(key);
-    selectionListItems.push(listItem);
+    selectionListItems.push(contentItem);
   }
 
   const isCollapsed = selection.isCollapsed();
@@ -29,13 +29,12 @@ export function $shouldBlockHorizontalArrow(direction: 'left' | 'right'): boolea
 
   const targetItem =
     selectionListItems[0] ??
-    (isCollapsed ? findNearestListItem(selection.focus.getNode()) : null);
+    (isCollapsed ? resolveContentItemFromNode(selection.focus.getNode()) : null);
   if (!targetItem) {
     return false;
   }
 
-  const contentItem = getContentListItem(targetItem);
   const focus = selection.focus;
   const edge = direction === 'left' ? 'start' : 'end';
-  return shouldBlockHorizontalExpansion(focus, contentItem, edge);
+  return shouldBlockHorizontalExpansion(focus, targetItem, edge);
 }

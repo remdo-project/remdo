@@ -24,7 +24,7 @@ import {
   insertBefore,
   $getOrCreateChildList,
 } from '@/editor/outline/list-structure';
-import { $resolveContentNoteFromNode } from '@/editor/outline/note-context';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import {
@@ -124,7 +124,7 @@ function $resolveCollapsedSelectionAtEdge(edge: 'start' | 'end'): EdgeSelectionR
   }
 
   const anchorNode = selection.anchor.getNode();
-  const contentItem = $resolveContentNoteFromNode(anchorNode);
+  const contentItem = resolveContentItemFromNode(anchorNode);
   if (!contentItem) {
     return null;
   }
@@ -407,7 +407,7 @@ export function DeletionPlugin() {
         if ($isTextNode(anchorNode)) {
           selection.setTextNodeRange(anchorNode, selection.anchor.offset, anchorNode, selection.anchor.offset);
         } else {
-          const contentItem = $resolveContentNoteFromNode(anchorNode);
+          const contentItem = resolveContentItemFromNode(anchorNode);
           if (contentItem) {
             $selectItemEdge(contentItem, 'start');
           }

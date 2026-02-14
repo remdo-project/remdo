@@ -32,7 +32,7 @@ import {
   isChildrenWrapper,
   flattenNoteNodes,
 } from '@/editor/outline/list-structure';
-import { $resolveContentNoteFromNode } from '@/editor/outline/note-context';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '@/editor/outline/selection/caret-placement';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
@@ -94,7 +94,7 @@ function getClipboardPayload(event: ClipboardEvent | KeyboardEvent | InputEvent 
 }
 
 function $getContentKeyFromNode(node: LexicalNode | null): string | null {
-  return $resolveContentNoteFromNode(node)?.getKey() ?? null;
+  return resolveContentItemFromNode(node)?.getKey() ?? null;
 }
 
 function $getContentKeyFromNodeKey(key: string): string | null {
@@ -123,7 +123,7 @@ function $isCaretWithinMarkedSelection(marker: CutMarker, selection: BaseSelecti
     return false;
   }
 
-  const contentItem = $resolveContentNoteFromNode(selection.anchor.getNode());
+  const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
   if (!contentItem) {
     return false;
   }
@@ -192,8 +192,8 @@ function $isInlineSelectionWithinSingleNote(selection: BaseSelection | null): bo
     return false;
   }
 
-  const anchorItem = $resolveContentNoteFromNode(selection.anchor.getNode());
-  const focusItem = $resolveContentNoteFromNode(selection.focus.getNode());
+  const anchorItem = resolveContentItemFromNode(selection.anchor.getNode());
+  const focusItem = resolveContentItemFromNode(selection.focus.getNode());
   if (!anchorItem || !focusItem) {
     return false;
   }
@@ -430,7 +430,7 @@ function $insertNodesAtSelection(
     }
     nextSibling = getNextContentSibling(lastHead);
   } else if ($isRangeSelection(selection) && selection.isCollapsed()) {
-    const contentItem = $resolveContentNoteFromNode(selection.anchor.getNode());
+    const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
     if (!contentItem) {
       return false;
     }
@@ -673,7 +673,7 @@ export function NoteIdPlugin() {
           }
 
           if (isInlineSelection && $isRangeSelection(payload.selection)) {
-            const inlineContentItem = $resolveContentNoteFromNode(payload.selection.anchor.getNode());
+            const inlineContentItem = resolveContentItemFromNode(payload.selection.anchor.getNode());
             const text = $getPlainTextFromClipboardNodes(payload.nodes);
             const lines = text.split(/\r?\n/);
             const shouldInsertNotes = lines.length > 1;
@@ -763,7 +763,7 @@ export function NoteIdPlugin() {
 
           let handled = false;
           if ($isRangeSelection(selection) && !selection.isCollapsed() && isInlineSelection) {
-            const inlineContentItem = $resolveContentNoteFromNode(selection.anchor.getNode());
+            const inlineContentItem = resolveContentItemFromNode(selection.anchor.getNode());
             const [firstLine, ...restLines] = lines;
             selection.insertText(firstLine ?? '');
             $insertFirstChildNotes(inlineContentItem, restLines);

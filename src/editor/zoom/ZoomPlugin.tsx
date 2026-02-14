@@ -16,10 +16,9 @@ import type { ListItemNode } from '@lexical/list';
 import type { UpdateListenerPayload } from 'lexical';
 import {
   $resolveContentNoteFromDOMNode,
-  $resolveContentNoteFromNode,
   $resolveNoteIdFromDOMNode,
 } from '@/editor/outline/note-context';
-import { $requireContentItemNoteId } from '@/editor/outline/schema';
+import { $requireContentItemNoteId, resolveContentItemFromNode } from '@/editor/outline/schema';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
@@ -71,12 +70,12 @@ const $collectDirtyContentItems = (
       continue;
     }
     const node = $getNodeByKey(key);
-    addItem($resolveContentNoteFromNode(node));
+    addItem(resolveContentItemFromNode(node));
   }
 
   for (const key of dirtyLeaves) {
     const node = $getNodeByKey(key);
-    addItem($resolveContentNoteFromNode(node));
+    addItem(resolveContentItemFromNode(node));
   }
 
   return Array.from(items.values());
@@ -349,7 +348,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       const resolved = editorState.read(() => {
         const selection = $getSelection();
         const selectionItem = $isRangeSelection(selection)
-          ? $resolveContentNoteFromNode(selection.anchor.getNode())
+          ? resolveContentItemFromNode(selection.anchor.getNode())
           : null;
         const selectionKey =
           $isRangeSelection(selection) && selection.isCollapsed()
@@ -523,7 +522,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
 
               const selection = $getSelection();
               const selectionItem = $isRangeSelection(selection)
-                ? $resolveContentNoteFromNode(selection.anchor.getNode())
+                ? resolveContentItemFromNode(selection.anchor.getNode())
                 : null;
               if (selectionItem && isContentDescendantOf(selectionItem, targetItem)) {
                 pendingZoomSelectionRef.current = null;

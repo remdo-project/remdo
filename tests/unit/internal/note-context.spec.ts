@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   $resolveContentNoteFromDOMNode,
-  $resolveContentNoteFromNode,
   $resolveNoteIdFromDOMNode,
   $resolveNoteIdFromNode,
 } from '@/editor/outline/note-context';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { getNoteElement, getNoteTextNode, meta } from '#tests';
 
@@ -16,7 +16,7 @@ describe('note context helpers', () => {
       const textNode = note.getFirstChild()!;
       return {
         noteKey: note.getKey(),
-        contentKey: $resolveContentNoteFromNode(textNode)!.getKey(),
+        contentKey: resolveContentItemFromNode(textNode)!.getKey(),
         noteId: $resolveNoteIdFromNode(textNode),
       };
     });
@@ -50,7 +50,7 @@ describe('note context helpers', () => {
       return {
         contentFromDOM: $resolveContentNoteFromDOMNode(outsideNode),
         noteIdFromDOM: $resolveNoteIdFromDOMNode(outsideNode),
-        contentFromNullLexical: $resolveContentNoteFromNode(null),
+        contentFromNullLexical: resolveContentItemFromNode(null),
         noteIdFromNullLexical: $resolveNoteIdFromNode(null),
       };
     });

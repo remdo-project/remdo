@@ -16,7 +16,7 @@ import {
 } from 'lexical';
 import { useEffect } from 'react';
 import { $isNoteFolded } from '#lib/editor/fold-state';
-import { $resolveContentNoteFromNode } from '@/editor/outline/note-context';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { insertBefore } from '@/editor/outline/list-structure';
 import { resolveBoundaryPoint } from '@/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '@/editor/outline/selection/caret-placement';
@@ -164,7 +164,7 @@ export function InsertionPlugin() {
             return false;
           }
 
-          const contentItem = $resolveContentNoteFromNode(selection.anchor.getNode());
+          const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
           if (!contentItem) {
             return false;
           }

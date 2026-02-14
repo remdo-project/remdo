@@ -3,7 +3,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
 import { useEffect } from 'react';
 import { $indentNote, $outdentNote } from '../lexical-helpers';
-import { $resolveContentNoteFromNode } from '@/editor/outline/note-context';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { getPreviousContentSibling } from '@/editor/outline/list-structure';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import { getParentContentItem } from '@/editor/outline/selection/tree';
@@ -32,7 +32,7 @@ export function IndentationPlugin() {
         let rootItems = heads;
 
         if (rootItems.length === 0 && selection.isCollapsed()) {
-          const contentItem = $resolveContentNoteFromNode(selection.anchor.getNode());
+          const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
           if (contentItem) {
             rootItems = [contentItem];
           }

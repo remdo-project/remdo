@@ -30,18 +30,9 @@ Rules:
 
 ## Editor
 
-- ✅ Done: promoted strict runtime note-context/schema helpers and migrated
-  `NoteMenuPlugin`, `CheckListPlugin`, `NoteControlsPlugin`, `ZoomPlugin`,
-  `note-state`, and `note-traversal` off local nullable schema checks.
 - Consolidate serialized-editor-state traversal into one production helper in
   `lib/editor` and reuse it across persistence/defaults transforms (and tests),
   instead of maintaining separate walkers in each module.
-- ✅ Done: strict runtime schema-helper migration for `FoldingPlugin`,
-  `InsertionPlugin`, `IndentationPlugin`, `DeletionPlugin`,
-  `ReorderingPlugin`, `SelectionPlugin`, and `NoteIdPlugin`.
-- Continue strict runtime schema-helper migration for remaining
-  `outline/selection/*` modules (keep tolerant behavior only at explicit
-  persisted↔runtime boundaries).
 - [P1] Prevent rich-text edits before schema readiness —
   `src/editor/Editor.tsx:63-68`
   Keeping `RichTextPlugin` mounted while gating all RemDo behavior behind

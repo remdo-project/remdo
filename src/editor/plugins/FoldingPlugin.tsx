@@ -6,8 +6,7 @@ import { $getNodeByKey, $getRoot, $getSelection, $isRangeSelection, COMMAND_PRIO
 
 import { $isNoteFolded, $setNoteFolded } from '#lib/editor/fold-state';
 import { SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
-import { $resolveContentNoteFromNode } from '@/editor/outline/note-context';
-import { $resolveContentItemFromNode } from '@/editor/outline/schema';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { getContentSiblings, isChildrenWrapper } from '@/editor/outline/list-structure';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import type { OutlineSelection } from '@/editor/outline/selection/model';
@@ -35,13 +34,13 @@ const $shouldCollapseSelection = (
   foldedItem: ListItemNode
 ): boolean => {
   if (outlineSelection?.kind === 'structural') {
-    const keys = outlineSelection.selectedKeys.length > 0 ? outlineSelection.selectedKeys : outlineSelection.headKeys;
-    for (const key of keys) {
-      const node = $getNodeByKey<ListItemNode>(key);
-      const contentItem = node ? $resolveContentItemFromNode(node) : null;
-      if (!contentItem) {
-        continue;
-      }
+      const keys = outlineSelection.selectedKeys.length > 0 ? outlineSelection.selectedKeys : outlineSelection.headKeys;
+      for (const key of keys) {
+        const node = $getNodeByKey<ListItemNode>(key);
+      const contentItem = node ? resolveContentItemFromNode(node) : null;
+        if (!contentItem) {
+          continue;
+        }
       if (contentItem.getKey() === foldedItem.getKey()) {
         continue;
       }
@@ -56,8 +55,8 @@ const $shouldCollapseSelection = (
     return false;
   }
 
-  const anchorItem = $resolveContentNoteFromNode(selection.anchor.getNode());
-  const focusItem = $resolveContentNoteFromNode(selection.focus.getNode());
+  const anchorItem = resolveContentItemFromNode(selection.anchor.getNode());
+  const focusItem = resolveContentItemFromNode(selection.focus.getNode());
   if (!anchorItem && !focusItem) {
     return false;
   }
@@ -166,7 +165,7 @@ export function FoldingPlugin() {
       SET_NOTE_FOLD_COMMAND,
       ({ state, noteItemKey }) => {
         const node = $getNodeByKey<ListItemNode>(noteItemKey);
-        const contentItem = node ? $resolveContentItemFromNode(node) : null;
+        const contentItem = node ? resolveContentItemFromNode(node) : null;
         if (!contentItem) {
           return false;
         }

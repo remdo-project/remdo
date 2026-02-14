@@ -1,13 +1,10 @@
 import type { ListItemNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 
-import { getContentListItem } from '@/editor/outline/list-structure';
-
 export function isEmptyNoteBody(item: ListItemNode): boolean {
-  const contentItem = getContentListItem(item);
   const pieces: string[] = [];
 
-  for (const child of contentItem.getChildren()) {
+  for (const child of item.getChildren()) {
     if ($isListNode(child)) {
       continue;
     }

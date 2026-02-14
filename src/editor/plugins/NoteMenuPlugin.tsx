@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom';
 
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import { $resolveContentNoteFromDOMNode } from '@/editor/outline/note-context';
-import { $requireContentItemFromNode, $requireContentItemNoteId } from '@/editor/outline/schema';
+import { requireContentItemFromNode, $requireContentItemNoteId } from '@/editor/outline/schema';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { getNestedList } from '@/editor/outline/selection/tree';
 import { $resolveNoteStateFromDOMNode } from '@/editor/plugins/note-state';
@@ -112,7 +112,7 @@ export function NoteMenuPlugin() {
       if (!node) {
         return null;
       }
-      const contentItem = $requireContentItemFromNode(node);
+      const contentItem = requireContentItemFromNode(node);
       return $requireContentItemNoteId(contentItem);
     });
     if (!noteId) {
@@ -455,7 +455,7 @@ export function NoteMenuPlugin() {
                     if (!node) {
                       return;
                     }
-                    const contentItem = $requireContentItemFromNode(node);
+                    const contentItem = requireContentItemFromNode(node);
                     const nested = getNestedList(contentItem);
                     if (!nested) {
                       return;

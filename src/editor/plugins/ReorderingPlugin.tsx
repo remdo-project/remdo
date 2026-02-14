@@ -10,7 +10,7 @@ import {
   insertAfter,
   insertBefore,
 } from '@/editor/outline/list-structure';
-import { $resolveContentNoteFromNode } from '@/editor/outline/note-context';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import { useEffect } from 'react';
 import { mergeRegister } from '@lexical/utils';
@@ -60,7 +60,7 @@ function $getSelectionContext(): SelectionContext | null {
   let notes = getContiguousSelectionHeads(selection);
 
   if (notes.length === 0 && selection.isCollapsed()) {
-    const caretItem = $resolveContentNoteFromNode(selection.anchor.getNode());
+    const caretItem = resolveContentItemFromNode(selection.anchor.getNode());
     if (caretItem) {
       notes = [caretItem];
     }

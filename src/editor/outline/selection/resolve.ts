@@ -1,10 +1,11 @@
 import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
-import type { RangeSelection } from 'lexical';
+import type { LexicalNode, RangeSelection } from 'lexical';
 import { $getNodeByKey } from 'lexical';
 
 import { reportInvariant } from '@/editor/invariant';
-import { findNearestListItem, getContentListItem, isChildrenWrapper } from '@/editor/outline/list-structure';
+import { isChildrenWrapper } from '@/editor/outline/list-structure';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 
 import { isPointAtBoundary } from './caret';
 import { getContiguousSelectionHeads } from './heads';
@@ -30,10 +31,11 @@ export function resolveSelectionPointItem(
   selection: RangeSelection,
   point: RangeSelection['anchor']
 ): ListItemNode | null {
-  const direct = findNearestListItem(point.getNode());
+  const pointNode = point.getNode();
+  const direct = resolveContentItemFromNode(pointNode);
   if (direct) {
-    const content = getContentListItem(direct);
-    const nextEmptySibling = resolveEmptySiblingFromBoundary(selection, point, direct, content);
+    const content = direct;
+    const nextEmptySibling = resolveEmptySiblingFromBoundary(selection, point, pointNode, content);
     if (nextEmptySibling) {
       return nextEmptySibling;
     }
@@ -61,13 +63,22 @@ export function resolveSelectionPointItem(
     return null;
   }
 
-  return getContentListItem(child);
+  if (!isChildrenWrapper(child)) {
+    return child;
+  }
+
+  const previous = child.getPreviousSibling();
+  if ($isListItemNode(previous) && !isChildrenWrapper(previous)) {
+    return previous;
+  }
+
+  return null;
 }
 
 function resolveEmptySiblingFromBoundary(
   selection: RangeSelection,
   point: RangeSelection['anchor'],
-  directItem: ListItemNode,
+  pointNode: LexicalNode,
   contentItem: ListItemNode
 ): ListItemNode | null {
   const nextSibling = getNextContentSibling(contentItem);
@@ -87,7 +98,7 @@ function resolveEmptySiblingFromBoundary(
       }
     }
 
-    if (isChildrenWrapper(directItem)) {
+    if ($isListItemNode(pointNode) && isChildrenWrapper(pointNode)) {
       return nextSibling;
     }
   }
@@ -98,7 +109,7 @@ function resolveEmptySiblingFromBoundary(
   ) {
     const anchorPoint = selection.anchor;
     const focusPoint = selection.focus;
-    if (isChildrenWrapper(directItem) && point.getNode() === directItem) {
+    if ($isListItemNode(pointNode) && isChildrenWrapper(pointNode) && point.getNode() === pointNode) {
       return nextSibling;
     }
 
@@ -122,8 +133,8 @@ function resolveEmptySiblingFromBoundary(
 }
 
 export function selectionMatchesPayload(selection: RangeSelection, payload: SnapPayload): boolean {
-  const anchorItem = findNearestListItem(selection.anchor.getNode());
-  const focusItem = findNearestListItem(selection.focus.getNode());
+  const anchorItem = resolveSelectionPointItem(selection, selection.anchor);
+  const focusItem = resolveSelectionPointItem(selection, selection.focus);
   if (!anchorItem || !focusItem) {
     return false;
   }
@@ -149,14 +160,14 @@ export function $createSnapPayload(
 
   const anchorNode = overrideAnchorKey
     ? $getNodeByKey<ListItemNode>(overrideAnchorKey)
-    : findNearestListItem(selection.anchor.getNode());
-  const focusNode = findNearestListItem(selection.focus.getNode());
+    : resolveSelectionPointItem(selection, selection.anchor);
+  const focusNode = resolveSelectionPointItem(selection, selection.focus);
   if (!anchorNode || !focusNode) {
     return null;
   }
 
-  const anchorContent = getContentListItem(anchorNode);
-  const focusContent = getContentListItem(focusNode);
+  const anchorContent = anchorNode;
+  const focusContent = focusNode;
   const normalizedRange = normalizeContentRange(anchorContent, focusContent);
   const startContent = normalizedRange.start;
   const endContent = normalizedRange.end;
@@ -183,7 +194,7 @@ export function computeStructuralRangeFromHeads(heads: ListItemNode[]): OutlineS
     return null;
   }
 
-  const caretItems = noteItems.map((item) => getContentListItem(item));
+  const caretItems = noteItems;
   const caretStartItem = caretItems[0]!;
   const caretEndItem = caretItems.at(-1)!;
   const visualEndItem = getSubtreeTail(caretEndItem);
@@ -200,11 +211,11 @@ export function inferPointerProgressionState(
   selection: RangeSelection,
   noteItems: ListItemNode[]
 ): ProgressiveSelectionState | null {
-  const anchorItem = findNearestListItem(selection.anchor.getNode());
+  const anchorItem = resolveSelectionPointItem(selection, selection.anchor);
   if (!anchorItem) {
     return null;
   }
-  const anchorContent = getContentListItem(anchorItem);
+  const anchorContent = anchorItem;
   const heads = noteItems.length > 0 ? noteItems : getContiguousSelectionHeads(selection);
   if (heads.length <= 1) {
     return null;

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import {
-  $requireContentItem,
-  $requireContentItemFromNode,
+  requireContentItem,
+  requireContentItemFromNode,
   $requireContentItemNoteId,
   $requireRootContentList,
 } from '@/editor/outline/schema';
@@ -15,8 +15,8 @@ describe('outline schema helpers', () => {
       const rootList = $requireRootContentList();
       const note = $findNoteById('note1')!;
       const text = note.getFirstChild()!;
-      const contentFromItem = $requireContentItem(note);
-      const contentFromNode = $requireContentItemFromNode(text);
+      const contentFromItem = requireContentItem(note);
+      const contentFromNode = requireContentItemFromNode(text);
 
       return {
         rootType: rootList.getType(),
