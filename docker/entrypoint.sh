@@ -49,6 +49,10 @@ fi
 
 # shellcheck disable=SC2086 # optional secure-cookie flag is intentionally word-split.
 # 14 days = 14 * 24 * 60 * 60 = 1,209,600 seconds.
+# FIXME: Tinyauth shows an "Invalid Domain" UI warning when the browser host differs
+# from --app-url. We currently disable UI warnings globally to suppress this.
+# A proper fix likely requires forking Tinyauth to support either athena.shared as
+# app-url or per-warning suppression instead of an all-or-nothing toggle.
 tinyauth \
   --app-title "RemDo" \
   --app-url "${TINYAUTH_APP_URL}" \
@@ -59,6 +63,7 @@ tinyauth \
   --database-path "${TINYAUTH_DATA_DIR}/tinyauth.db" \
   --resources-dir "${TINYAUTH_DATA_DIR}/resources" \
   --disable-analytics \
+  --disable-ui-warnings \
   ${tinyauth_secure_cookie_arg} &
 
 exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
