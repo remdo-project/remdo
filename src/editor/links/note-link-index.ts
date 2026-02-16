@@ -1,5 +1,5 @@
 import { $getNoteId } from '#lib/editor/note-id-state';
-import { forEachContentItemInOutline } from '@/editor/outline/list-traversal';
+import { forEachContentItemWithAncestorsInOutline } from '@/editor/outline/list-traversal';
 import { $requireRootContentList } from '@/editor/outline/schema';
 
 interface LinkableNote {
@@ -17,7 +17,7 @@ export interface LinkPickerOption {
 export function $collectLinkableNotesInDocumentOrder(): LinkableNote[] {
   const notes: LinkableNote[] = [];
   const rootList = $requireRootContentList();
-  forEachContentItemInOutline(rootList, (item, ancestors) => {
+  forEachContentItemWithAncestorsInOutline(rootList, (item, ancestors) => {
     const noteId = $getNoteId(item);
     if (!noteId) {
       return;
