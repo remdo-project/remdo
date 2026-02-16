@@ -1,5 +1,6 @@
 import { Anchor, Container, Group, MantineProvider, Title } from '@mantine/core';
 import { IconBrandVite } from '@tabler/icons-react';
+import type { MouseEvent } from 'react';
 import { Link, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import headerStyles from './styles/AppHeader.module.css';
 import { theme } from './theme';
@@ -52,6 +53,20 @@ export default function App() {
   const [searchParams] = useSearchParams();
   const showVanillaLexical = config.isDevOrTest && searchParams.has('lexicalDemo');
   const currentDocId = parseDocumentRef(docRef)?.docId ?? DEFAULT_DOC_ID;
+  const handleLogoutClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    void (async () => {
+      try {
+        const response = await fetch('/api/user/logout', { method: 'POST' });
+        if (!response.ok) {
+          throw new Error('Logout request failed.');
+        }
+        globalThis.location.assign('/');
+      } catch {
+        globalThis.location.assign('/logout');
+      }
+    })();
+  };
 
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
@@ -71,13 +86,13 @@ export default function App() {
           <nav>
             <Group gap="md" className="app-header-links">
               <Link
-                to={`${createDocumentPath(DEFAULT_DOC_ID)}${buildSearch({})}`}
+                to={`${createDocumentPath('project')}${buildSearch({})}`}
                 className="app-header-link"
               >
                 Project
               </Link>
               {!config.isDevOrTest && (
-                <Anchor className="app-header-link" href="/logout">
+                <Anchor className="app-header-link" href="/logout" onClick={handleLogoutClick}>
                   Logout
                 </Anchor>
               )}
