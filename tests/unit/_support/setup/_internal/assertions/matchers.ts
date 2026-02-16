@@ -94,6 +94,10 @@ function assertOutlineExpectation(outline: Outline, path: number[] = []) {
     if (maybeText === null) {
       throw new Error(`outline[${nodePath.join('>')}].text must be omitted or a string; null is not allowed.`);
     }
+    const maybeChecked = (node as { checked?: unknown }).checked;
+    if (maybeChecked !== undefined && typeof maybeChecked !== 'boolean') {
+      throw new TypeError(`outline[${nodePath.join('>')}].checked must be omitted or boolean.`);
+    }
 
     if (node.noteId !== null && (typeof node.noteId !== 'string' || node.noteId.length === 0)) {
       throw new TypeError(`outline[${nodePath.join('>')}].noteId must be a non-empty string or null.`);

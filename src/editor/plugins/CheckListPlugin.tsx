@@ -5,12 +5,13 @@ import type { LexicalEditor } from 'lexical';
 import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 import { useEffect } from 'react';
 
-import { $getNoteChecked, $setNoteChecked } from '#lib/editor/checklist-state';
+import { $getNoteChecked, $setNoteCheckedRaw } from '#lib/editor/checklist-state';
 import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import type { SetNoteCheckedPayload } from '@/editor/commands';
 import { isBulletHit, isCheckboxHit } from '@/editor/outline/bullet-hit-test';
 import { $resolveNoteIdFromDOMNode } from '@/editor/outline/note-context';
 import { requireContentItemFromNode, resolveContentItemFromNode } from '@/editor/outline/schema';
+import { getParentContentItem, getSubtreeItems } from '@/editor/outline/selection/tree';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 
 const isChecklistItem = (element: HTMLElement): boolean =>
@@ -21,12 +22,47 @@ const $resolveContentItemByKey = (key: string): ListItemNode | null => {
   return node ? requireContentItemFromNode(node) : null;
 };
 
-const $setCheckedState = (node: ListItemNode, checked: boolean) => {
-  $setNoteChecked(node, checked);
+const $setNoteCheckedForSingleNode = (node: ListItemNode, checked: boolean) => {
+  $setNoteCheckedRaw(node, checked);
   const parent = node.getParent();
   if ($isListNode(parent) && parent.getListType() === 'check') {
     node.setChecked(checked);
   }
+};
+
+// User-facing checklist actions always apply to a subtree so descendants match
+// the toggled root.
+const $setNoteCheckedRecursively = (node: ListItemNode, checked: boolean) => {
+  for (const item of getSubtreeItems(node)) {
+    $setNoteCheckedForSingleNode(item, checked);
+  }
+};
+
+const $resolveRootTargetsFromKeys = (keys: string[]): ListItemNode[] => {
+  const ordered: ListItemNode[] = [];
+  const seen = new Set<string>();
+  for (const key of keys) {
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    const item = $resolveContentItemByKey(key);
+    if (item) {
+      ordered.push(item);
+    }
+  }
+
+  const selectedKeys = new Set(ordered.map((item) => item.getKey()));
+  return ordered.filter((item) => {
+    let parent = getParentContentItem(item);
+    while (parent) {
+      if (selectedKeys.has(parent.getKey())) {
+        return false;
+      }
+      parent = getParentContentItem(parent);
+    }
+    return true;
+  });
 };
 
 const $resolveToggleTargets = (
@@ -40,19 +76,8 @@ const $resolveToggleTargets = (
 
   const outlineSelection = editor.selection.get();
   if (outlineSelection?.kind === 'structural') {
-    const keys = outlineSelection.selectedKeys.length > 0 ? outlineSelection.selectedKeys : outlineSelection.headKeys;
-    const seen = new Set<string>();
-    const targets: ListItemNode[] = [];
-    for (const key of keys) {
-      if (seen.has(key)) {
-        continue;
-      }
-      seen.add(key);
-      const item = $resolveContentItemByKey(key);
-      if (item) {
-        targets.push(item);
-      }
-    }
+    const keys = outlineSelection.headKeys.length > 0 ? outlineSelection.headKeys : outlineSelection.selectedKeys;
+    const targets = $resolveRootTargetsFromKeys(keys);
     if (targets.length > 0) {
       return targets;
     }
@@ -121,7 +146,7 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
       const node = $getNearestNodeFromDOMNode(listItem);
       if ($isListItemNode(node)) {
         listItem.focus();
-        $setCheckedState(node, !$getNoteChecked(node));
+        $setNoteCheckedRecursively(node, !$getNoteChecked(node));
       }
     });
   };
@@ -161,7 +186,7 @@ export function CheckListPlugin() {
           if (state === 'checked' || state === 'unchecked') {
             const targetState = state === 'checked';
             for (const target of targets) {
-              $setCheckedState(target, targetState);
+              $setNoteCheckedRecursively(target, targetState);
             }
             return true;
           }
@@ -169,14 +194,14 @@ export function CheckListPlugin() {
           if (targets.length === 1) {
             const single = targets[0]!;
             const target = !$getNoteChecked(single);
-            $setCheckedState(single, target);
+            $setNoteCheckedRecursively(single, target);
             return true;
           }
 
           const allChecked = targets.every((target) => $getNoteChecked(target) === true);
           const targetState = !allChecked;
           for (const target of targets) {
-            $setCheckedState(target, targetState);
+            $setNoteCheckedRecursively(target, targetState);
           }
           return true;
         },
@@ -217,7 +242,7 @@ export function CheckListPlugin() {
         const current = node.getChecked();
         const stored = $getNoteChecked(node);
         if (current !== stored && (current || stored !== undefined)) {
-          $setNoteChecked(node, current);
+          $setNoteCheckedRaw(node, current);
         }
       }),
       editor.registerUpdateListener(({ editorState, dirtyElements }) => {
