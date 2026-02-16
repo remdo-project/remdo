@@ -8,6 +8,11 @@ updates:
 
     open-pull-requests-limit: 1
 
+    ignore:
+      - dependency-name: jsdom
+        versions:
+          - ">= 28.0.0 < 28.2.0"
+
     groups:
       weekly-all:
         patterns:
