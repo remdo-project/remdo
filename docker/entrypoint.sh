@@ -48,10 +48,10 @@ if [ "${TINYAUTH_SECURE_COOKIE:-false}" = "true" ]; then
 fi
 
 # shellcheck disable=SC2086 # optional secure-cookie flag is intentionally word-split.
+# 14 days = 14 * 24 * 60 * 60 = 1,209,600 seconds.
 tinyauth \
   --app-title "RemDo" \
   --app-url "${TINYAUTH_APP_URL}" \
-  # 14 days = 14 * 24 * 60 * 60 = 1,209,600 seconds.
   --session-expiry "1209600" \
   --users "${TINYAUTH_USERS}" \
   --address 127.0.0.1 \
