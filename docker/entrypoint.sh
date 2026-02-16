@@ -51,6 +51,8 @@ fi
 tinyauth \
   --app-title "RemDo" \
   --app-url "${TINYAUTH_APP_URL}" \
+  # 14 days = 14 * 24 * 60 * 60 = 1,209,600 seconds.
+  --session-expiry "1209600" \
   --users "${TINYAUTH_USERS}" \
   --address 127.0.0.1 \
   --port "${TINYAUTH_PORT}" \
