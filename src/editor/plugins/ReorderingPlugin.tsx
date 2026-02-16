@@ -4,14 +4,18 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
 import {
+  $getOrCreateChildList,
   flattenNoteNodes,
   getContentSiblings,
+  getPreviousContentSibling,
   getNodesForNote,
   insertAfter,
   insertBefore,
+  maybeRemoveEmptyWrapper,
 } from '@/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
+import { getNextContentSibling, getParentContentItem } from '@/editor/outline/selection/tree';
 import { useEffect } from 'react';
 import { mergeRegister } from '@lexical/utils';
 
@@ -44,6 +48,68 @@ function moveUpWithinList(notes: ListItemNode[], siblings: ListItemNode[]): bool
 
   const nodesToMove = flattenNoteNodes(notes);
   insertBefore(previousSibling, nodesToMove);
+  return true;
+}
+
+function $moveToParentSiblingChildList(
+  notes: ListItemNode[],
+  direction: 'up' | 'down'
+): boolean {
+  const firstNote = notes[0];
+  if (!firstNote) return false;
+
+  const sourceList = firstNote.getParent();
+  if (!$isListNode(sourceList)) return false;
+
+  const parentContent = getParentContentItem(firstNote);
+  if (!parentContent) return false;
+
+  const targetParent =
+    direction === 'down'
+      ? getNextContentSibling(parentContent)
+      : getPreviousContentSibling(parentContent);
+  if (!targetParent) return false;
+
+  const nodesToMove = flattenNoteNodes(notes);
+  const targetList = $getOrCreateChildList(targetParent);
+
+  if (direction === 'down') {
+    const targetSiblings = getContentSiblings(targetList);
+    const firstChild = targetSiblings[0];
+    if (firstChild) {
+      insertBefore(firstChild, nodesToMove);
+    } else {
+      targetList.append(...nodesToMove);
+    }
+  } else {
+    targetList.append(...nodesToMove);
+  }
+
+  maybeRemoveEmptyWrapper(sourceList);
+  return true;
+}
+
+function outdentSelection(notes: ListItemNode[], direction: 'up' | 'down'): boolean {
+  const firstNote = notes[0];
+  if (!firstNote) return false;
+
+  const sourceList = firstNote.getParent();
+  if (!$isListNode(sourceList)) return false;
+
+  const parentContent = getParentContentItem(firstNote);
+  if (!parentContent) return false;
+
+  const nodesToMove = flattenNoteNodes(notes);
+  if (direction === 'down') {
+    const parentNodes = getNodesForNote(parentContent);
+    const parentTail = parentNodes.at(-1);
+    if (!parentTail) return false;
+    insertAfter(parentTail, nodesToMove);
+  } else {
+    insertBefore(parentContent, nodesToMove);
+  }
+
+  maybeRemoveEmptyWrapper(sourceList);
   return true;
 }
 
@@ -81,14 +147,22 @@ function $moveSelectionDown(): boolean {
   const ctx = $getSelectionContext();
   if (!ctx) return false;
   const { notes, siblings } = ctx;
-  return moveDownWithinList(notes, siblings);
+  return (
+    moveDownWithinList(notes, siblings)
+    || $moveToParentSiblingChildList(notes, 'down')
+    || outdentSelection(notes, 'down')
+  );
 }
 
 function $moveSelectionUp(): boolean {
   const ctx = $getSelectionContext();
   if (!ctx) return false;
   const { notes, siblings } = ctx;
-  return moveUpWithinList(notes, siblings);
+  return (
+    moveUpWithinList(notes, siblings)
+    || $moveToParentSiblingChildList(notes, 'up')
+    || outdentSelection(notes, 'up')
+  );
 }
 
 export function ReorderingPlugin() {

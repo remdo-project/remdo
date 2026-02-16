@@ -1,23 +1,36 @@
 # Reordering (keyboard)
 
-Scope: keyboard-driven reordering. Moves are level-preserving: they reorder
-contiguous sibling slabs without changing their depth. Drag-and-drop is covered
-in `./drag-and-drop.md`.
+Scope: keyboard-driven reordering. Drag-and-drop is covered in
+`./drag-and-drop.md`.
 
 ## Shortcuts
 
 - macOS: `Ctrl+Shift+ArrowUp` / `Ctrl+Shift+ArrowDown`
 - Windows/Linux: `Alt+Shift+ArrowUp` / `Alt+Shift+ArrowDown`
 
-## Command surface (level-preserving)
+## Command model (single directional move)
 
-1. **Move Down:** Swaps the selected note (or contiguous selection) with the
-   next sibling when one exists.
-2. **Move Up:** Swaps the selected note (or selection) with the previous
-   sibling when one exists.
+Reordering uses one directional model for both commands:
 
-## Boundary behavior
+1. Try a level-preserving swap with the adjacent sibling in the requested
+   direction.
+2. If there is no adjacent sibling, try one-level reparent through the parent's
+   adjacent sibling:
+   1. **Move Down:** if the current parent has a next sibling, move the subtree
+      as that sibling's first child.
+   2. **Move Up:** if the current parent has a previous sibling, move the
+      subtree as that sibling's last child.
+3. If reparent is not possible, try one-level outdent:
+   1. **Move Down:** insert the subtree immediately after its former parent.
+   2. **Move Up:** insert the subtree immediately before its former parent.
+4. If outdent is not possible, the command is a no-op.
 
-Moves at the topmost or bottommost sibling are no-ops; reparenting and outdent
-on reorder are explicitly disallowed to keep depth stable and behavior
-predictable.
+Each keypress performs exactly one successful step from this fallback cascade.
+Commands never skip multiple levels in a single move.
+
+## Structural guarantees
+
+1. Subtree-atomic moves still apply: a note always moves with all descendants.
+2. Selection constraints still apply: reorder operates on contiguous sibling
+   slabs.
+3. Reparent/outdent fallback changes depth by at most one level per command.
