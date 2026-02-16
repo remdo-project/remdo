@@ -15,6 +15,7 @@ import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
 import { findNearestListItem, getRootElementOrThrow } from './selection';
 import { $getNoteId } from '#lib/editor/note-id-state';
+import { $setNoteCheckedRaw } from '#lib/editor/checklist-state';
 import { expect } from 'vitest';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
 export type { Outline, OutlineNode } from '#tests-common/outline';
@@ -154,6 +155,15 @@ export function getNoteKey(remdo: RemdoTestApi, noteId: string): string {
   return remdo.validate(() => {
     const item = $findItemByNoteId(noteId);
     return item.getKey();
+  });
+}
+
+// Test-only helper for precise fixture setup. This bypasses recursive checklist
+// command semantics and writes per-note storage state directly.
+export async function setRawNoteCheckedState(remdo: RemdoTestApi, noteId: string, checked: boolean) {
+  await remdo.mutate(() => {
+    const item = $findItemByNoteId(noteId);
+    $setNoteCheckedRaw(item, checked);
   });
 }
 

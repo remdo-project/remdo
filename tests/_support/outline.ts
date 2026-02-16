@@ -7,6 +7,7 @@ export interface OutlineNode {
   noteId: string | null;
   text?: string;
   folded?: boolean;
+  checked?: boolean;
   children?: Outline;
 }
 
@@ -51,6 +52,9 @@ export function extractOutlineFromEditorState(state: unknown): Outline {
       if (note.folded === true) {
         node.folded = true;
       }
+      if (note.checked === true) {
+        node.checked = true;
+      }
       if (note.children.length > 0) {
         node.children = readNotes(note.children);
       }
@@ -76,14 +80,21 @@ export function flattenOutline(outline: Outline): OutlineNode[] {
 
 export function mutateOutlineNoteIdWildcards(actual: Outline, expected: Outline): void {
   // Normalize actuals before comparison so we keep vitest's diff output while still allowing
-  // `noteId: null` in expected outlines to mean "present but don't care about the value", and so
-  // the same helper works for vitest and playwright expectations.
+  // `noteId: null` in expected outlines to mean "present but don't care about the value".
+  //
+  // Checked-state expectations are strict by default:
+  // - `checked: true` -> strict checked match
+  // - `checked` omitted/undefined -> unchecked match
+  // - `checked: false` -> unchecked match (explicit form)
   const walk = (actualNodes: Outline, expectedNodes: Outline) => {
     for (let index = 0; index < actualNodes.length; index += 1) {
       const actualNode = actualNodes[index]!;
       const expectedNode = expectedNodes[index];
       if (expectedNode?.noteId === null) {
         actualNode.noteId = null;
+      }
+      if (expectedNode?.checked === false && actualNode.checked !== true) {
+        actualNode.checked = false;
       }
       if (actualNode.children) {
         walk(actualNode.children, expectedNode?.children ?? []);

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import type { Outline } from '#tests';
-import { selectStructuralNotes, meta } from '#tests';
+import { selectStructuralNotes, meta, setRawNoteCheckedState } from '#tests';
 import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 import { prepareEditorStateForPersistence } from '#lib/editor/editor-state-persistence';
 
@@ -159,6 +159,55 @@ describe('toMatchOutline smoke coverage', () => {
     await selectStructuralNotes(remdo, 'note2', 'note3');
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+  });
+
+  it('supports checked assertions in toMatchOutline', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await setRawNoteCheckedState(remdo, 'note1', true);
+    await setRawNoteCheckedState(remdo, 'note2', false);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', checked: true },
+      { noteId: 'note2', text: 'note2', checked: false },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('fails checked assertions when expected checked state does not match', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    let thrown: unknown;
+    try {
+      expect(remdo).toMatchOutline([
+        { noteId: 'note1', text: 'note1', checked: true },
+        { noteId: 'note2', text: 'note2', checked: true },
+        { noteId: 'note3', text: 'note3' },
+      ]);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Error);
+    const thrownError = thrown as Error;
+    expect(thrownError.message).toContain('Outlines differ.');
+    expect(thrownError.message).toContain('"checked": true');
+  });
+
+  it('treats omitted checked as unchecked expectation', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await setRawNoteCheckedState(remdo, 'note1', true);
+
+    let thrown: unknown;
+    try {
+      expect(remdo).toMatchOutline([
+        { noteId: 'note1', text: 'note1' },
+        { noteId: 'note2', text: 'note2' },
+        { noteId: 'note3', text: 'note3' },
+      ]);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Error);
+    const thrownError = thrown as Error;
+    expect(thrownError.message).toContain('Outlines differ.');
+    expect(thrownError.message).toContain('"checked": true');
   });
 
   it('reports selection mismatches', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {

@@ -11,6 +11,7 @@ export interface SerializedOutlineNote {
   path: number[];
   noteId: string;
   folded?: boolean;
+  checked?: boolean;
   contentNodes: SerializedLexicalNode[];
   children: SerializedOutlineNote[];
 }
@@ -137,11 +138,13 @@ export function traverseSerializedOutline(state: SerializedEditorState): Travers
     }
       usedNoteIds.add(noteId);
       const foldedValue = (child as { folded?: unknown }).folded;
+      const checkedValue = (child as { checkState?: unknown }).checkState;
       const note: SerializedOutlineNote = {
         indent,
         path,
         noteId,
         folded: foldedValue === true ? true : undefined,
+        checked: checkedValue === true ? true : undefined,
         contentNodes,
         children: [],
       };

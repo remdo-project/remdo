@@ -52,7 +52,8 @@ outdated or a doc’s role materially changes.
   `noteRef`.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indentation
   semantics; indent/outdent rules; deletion-merge exception.
-- `docs/outliner/reordering.md` (Short). Level-preserving reordering behavior and constraints.
+- `docs/outliner/reordering.md` (Short). Directional reorder fallback cascade: swap,
+  parent-sibling reparent, outdent, then no-op.
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, auto-expansion rules,
   breadcrumbs, and routing.
