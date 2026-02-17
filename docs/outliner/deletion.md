@@ -40,6 +40,16 @@ semantics are defined in `docs/outliner/selection.md`.
       empty-leaf deletion and merge/reparent behavior).
 5. Middle of a note: `Backspace`/`Delete` behave like a plain text editor.
 
+## Zoom boundary behavior (caret mode)
+
+When zoom is active, caret-mode deletion keeps merges inside the zoom boundary:
+
+1. `Backspace` at the start of the zoom root is a no-op.
+2. Forward `Delete` at the end of the zoom root is a no-op when the next note
+   in document order is outside the zoom boundary.
+3. For all other notes inside the zoom boundary, caret-mode deletion uses the
+   default rules above.
+
 ## Structural selection (contiguous note range)
 
 1. Pressing `Backspace` or `Delete` removes the selected notes and all of their

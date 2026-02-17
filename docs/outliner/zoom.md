@@ -3,9 +3,9 @@
 ## Purpose
 
 Define the user-visible behavior for isolating a single note and its
-subtree. This “zoom view” is a presentation filter only; it never changes the
-underlying outline structure. It is distinct from caret/selection state in the
-editor.
+subtree. Zoom is both a presentation filter and an editing scope boundary:
+while zoomed, editing stays inside the visible subtree. It is distinct from
+caret/selection state in the editor.
 
 ## Definitions
 
@@ -13,6 +13,7 @@ editor.
   document root note represents the full document view).
 - **Zoom root:** The note whose subtree is displayed for the current zoom
   target.
+- **Zoom boundary:** The zoom root plus all of its descendants.
 - **Zoom path:** The ordered list of ancestors from the document to the zoom
   root, used for breadcrumbs.
 
@@ -23,12 +24,13 @@ editor.
 2. **Subtree zoom:** Only the zoom root and its descendants are visible. The
    zoom root is rendered at depth 0; its descendants keep their relative
    indentation within the subtree.
-3. Zoom is a view filter: structural edits, note identities, and collaboration
-   semantics are unchanged. Operations apply to the same underlying notes as in
-   the full document view.
+3. Zoom does not introduce a new note type or structural level. Note identities
+   and collaboration semantics are unchanged.
 4. While zoomed, selection expansion (including Select All) is bounded to the
    zoom root. Within that boundary, selection behavior matches
    [Selection](./selection.md).
+5. While zoomed, edits are bounded to the zoom boundary. Commands must not
+   create, merge, move, or target notes outside that boundary.
 
 ## Entering and changing zoom
 
@@ -45,14 +47,24 @@ editor.
 2. If the zoom root is deleted or otherwise cannot be resolved, zoom resets to
    the document root note automatically.
 
-## Auto-expanding zoom
+## Zoom stability
 
-1. If an edit affects notes outside the visible subtree, zoom expands to the
-   nearest ancestor that contains the zoom root and the affected notes.
-2. If the zoom root is reparented, zoom expands to its new parent (or the
-   document root note when it becomes top-level) so the change is visible.
-3. Auto-expansion only runs for local edits; collaboration updates do not
-   change zoom automatically.
+1. Local edits do not change zoom automatically.
+2. Collaboration updates do not change zoom automatically.
+3. Zoom changes only through explicit zoom navigation or when the zoom target
+   can no longer be resolved.
+
+## Boundary-specific command rules
+
+1. `Enter` boundary behavior is defined in [Insertion](../insertion.md).
+2. `Backspace`/`Delete` boundary behavior is defined in
+   [Deletion](./deletion.md).
+3. Indent/outdent boundary behavior is defined in
+   [Note Structure Rules](./note-structure-rules.md).
+4. Reorder boundary behavior is defined in [Reordering](./reordering.md).
+5. When a command hits the boundary, the editor may show brief non-modal
+   feedback, but the command result is always determined by the linked command
+   specs.
 
 ## Breadcrumbs
 
@@ -75,7 +87,3 @@ truncated to 20 characters for display when needed.
 2. For document-root zoom, the canonical URL is `/n/<docId>`.
 3. Loading `/n/<docId>_<noteId>` activates zoom if the note exists; otherwise
    the document opens at the document root.
-
-## Non-goals
-
-- Zoom does not introduce a new note type or a new structural level.

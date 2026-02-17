@@ -28,6 +28,16 @@ Reordering uses one directional model for both commands:
 Each keypress performs exactly one successful step from this fallback cascade.
 Commands never skip multiple levels in a single move.
 
+## Zoom boundary
+
+When zoom is active, each fallback step is valid only if the resulting
+placement stays inside the zoom boundary:
+
+1. Steps that would move the subtree outside the zoom boundary are skipped.
+2. The command continues through the fallback cascade using only in-boundary
+   steps.
+3. If no fallback step stays in boundary, the command is a no-op.
+
 ## Structural guarantees
 
 1. Subtree-atomic moves still apply: a note always moves with all descendants.

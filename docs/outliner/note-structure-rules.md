@@ -21,6 +21,18 @@ guarantees.
 - **Predictability:** Outdent/indent placement is deterministic, so the same
   command always lands notes in the expected position.
 
+## Zoom Boundary Constraint
+
+When zoom is active, indent/outdent must keep the moved subtree inside the zoom
+boundary (the zoom root and descendants). Any indent/outdent that would move
+the selection outside that boundary is a no-op.
+
+Examples:
+
+- Indenting the zoom root is a no-op.
+- Outdenting the zoom root is a no-op.
+- Outdenting a direct child of the zoom root is a no-op.
+
 ## Indentation Semantics (concept vs. adapter)
 
 - Conceptual model: every note has exactly one parent (except the document

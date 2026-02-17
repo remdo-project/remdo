@@ -29,8 +29,8 @@ outdated or a doc’s role materially changes.
   Tinyauth), same-host auth routing, `PORT`/`COLLAB_SERVER_PORT`, and `DATA_DIR` mapping.
 - `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, Tinyauth Docker vars,
   including hostname-derived same-host defaults/overrides, worktrees, and blocked port guard.
-- `docs/insertion.md` (Short). Caret-mode `Enter` behavior, focus rules, and
-  paste placement pointer.
+- `docs/insertion.md` (Medium). Caret-mode `Enter` behavior, zoom-boundary
+  insertion rules, focus rules, and paste placement pointer.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
@@ -39,7 +39,8 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).
 - `docs/outliner/folding.md` (Short). Note folding behavior, toggle visibility (hover/caret),
   persistence, and auto-expand rules.
-- `docs/outliner/index.md` (Short). Entry point with links (including list types); single-source invariants rule.
+- `docs/outliner/index.md` (Medium). Entry point with links (including list
+  types); single-source invariants rule.
 - `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,
   rendering, and toggle commands.
 - `docs/outliner/links.md` (Medium). Note-linking behavior: `@` query
@@ -55,8 +56,8 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/reordering.md` (Short). Directional reorder fallback cascade: swap,
   parent-sibling reparent, outdent, then no-op.
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
-- `docs/outliner/zoom.md` (Medium). Subtree zoom view, auto-expansion rules,
-  breadcrumbs, and routing.
+- `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
+  scope, breadcrumbs, and routing.
 - `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs;
   tracks paste-placement e2e follow-up and prod schema recovery decisions.
 Whenever you edit any of these docs, update their summaries/buckets here so the
