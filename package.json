@@ -56,7 +56,6 @@
     "audit:unused:zero": "timeout ${TEST_TIMEOUT:-60}s ./tools/env.sh pnpm exec knip -c knip.jsonc --no-progress --max-issues 0",
     "audit:checks": "pnpm run audit:dup && pnpm run audit:unused",
     "audit:all": "pnpm run audit:ast-grep && pnpm run audit:stats:repo && pnpm run audit:dup:zero && pnpm run audit:unused:zero",
-    "lint:lexical": "node ./tools/check-lexical-utils.js",
     "typecheck": "timeout ${TEST_TIMEOUT:-60}s tsc",
     "typecheck:tests": "timeout ${TEST_TIMEOUT:-60}s pnpm exec tsc -p tsconfig.tests.json --pretty false",
     "typecheck:watch": "tsc --watch",

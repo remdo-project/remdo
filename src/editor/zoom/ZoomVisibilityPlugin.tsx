@@ -7,8 +7,6 @@ import { forEachListItemInOutline } from '@/editor/outline/list-traversal';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { $resolveRootContentList } from '@/editor/outline/schema';
 import { getParentContentItem, getSubtreeItems, getWrapperForContent } from '@/editor/outline/selection/tree';
-import { clearZoomScrollTarget, getZoomScrollTarget, isZoomScrollTargetExpired } from '@/editor/zoom/scroll-target';
-import { scrollZoomTargetIntoView } from '@/editor/zoom/scroll-utils';
 import { resolveZoomNoteId } from './zoom-note-id';
 
 const HIDDEN_CLASS = 'zoom-hidden';
@@ -50,7 +48,6 @@ export function ZoomVisibilityPlugin({ zoomNoteId }: ZoomVisibilityPluginProps) 
   const [editor] = useLexicalComposerContext();
   const zoomNoteIdRef = useRef<string | null>(resolveZoomNoteId(zoomNoteId));
   const flattenedWrapperKeysRef = useRef<Set<string>>(new Set());
-  const pendingScrollFrameRef = useRef<number | null>(null);
 
   const applyVisibility = useCallback((editorState = editor.getEditorState()) => {
     const result = editorState.read(() => {
@@ -127,44 +124,6 @@ export function ZoomVisibilityPlugin({ zoomNoteId }: ZoomVisibilityPluginProps) 
     }
 
     flattenedWrapperKeysRef.current = nextWrappers;
-
-    const pendingScroll = getZoomScrollTarget(editor);
-    if (!pendingScroll) {
-      return;
-    }
-
-    if (isZoomScrollTargetExpired(pendingScroll)) {
-      clearZoomScrollTarget(editor);
-      return;
-    }
-
-    const targetElement = editor.getElementByKey(pendingScroll.key);
-    if (!(targetElement instanceof HTMLElement) || targetElement.classList.contains(HIDDEN_CLASS)) {
-      return;
-    }
-
-    if (pendingScrollFrameRef.current !== null) {
-      return;
-    }
-
-    pendingScrollFrameRef.current = globalThis.requestAnimationFrame(() => {
-      pendingScrollFrameRef.current = null;
-      const latest = getZoomScrollTarget(editor);
-      if (!latest) {
-        return;
-      }
-      if (isZoomScrollTargetExpired(latest)) {
-        clearZoomScrollTarget(editor);
-        return;
-      }
-      const element = editor.getElementByKey(latest.key);
-      if (!(element instanceof HTMLElement) || element.classList.contains(HIDDEN_CLASS)) {
-        return;
-      }
-      if (scrollZoomTargetIntoView(editor, element)) {
-        clearZoomScrollTarget(editor);
-      }
-    });
   }, [editor]);
 
   useEffect(() => {
@@ -177,15 +136,6 @@ export function ZoomVisibilityPlugin({ zoomNoteId }: ZoomVisibilityPluginProps) 
       applyVisibility(editorState);
     });
   }, [applyVisibility, editor]);
-
-  useEffect(() => {
-    return () => {
-      if (pendingScrollFrameRef.current !== null) {
-        globalThis.cancelAnimationFrame(pendingScrollFrameRef.current);
-        pendingScrollFrameRef.current = null;
-      }
-    };
-  }, []);
 
   return null;
 }

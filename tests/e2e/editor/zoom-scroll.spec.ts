@@ -2,7 +2,7 @@ import type { Locator } from '#editor/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
-import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
+import { createEditorDocumentPathRegExp } from './_support/routes';
 
 const SCROLL_STYLES = `
   .editor-input {
@@ -84,7 +84,7 @@ const getBulletMetrics = async (listItem: Locator) => {
   });
 };
 
-test('auto-zoom scrolls to the edited note', async ({ page, editor }) => {
+test('editing outside the zoom boundary does not change zoom or scroll state', async ({ page, editor }) => {
   await setupScrollableEditor(page);
 
   await editor.load('tree-complex');
@@ -127,23 +127,14 @@ test('auto-zoom scrolls to the edited note', async ({ page, editor }) => {
     await api.updateNoteText('note7', 'note7!');
   });
 
-  await expect(page).toHaveURL(createEditorDocumentPath(docId));
-  await expect(note7).toBeVisible();
+  await expect(page).toHaveURL(createEditorDocumentPathRegExp(docId, 'note1'));
+  await expect(note7).toBeHidden();
 
-  await expect.poll(async () => {
-    return note7.evaluate((element) => {
-      const container = element.closest('.editor-input');
-      if (!container) {
-        return false;
-      }
-      const noteRect = element.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
-      return noteRect.top >= containerRect.top - 1 && noteRect.bottom <= containerRect.bottom + 1;
-    });
-  }).toBe(true);
+  const endScrollTop = await scrollContainer.evaluate((element) => element.scrollTop);
+  expect(endScrollTop).toBe(0);
 });
 
-test('auto-zoom keeps the caret note visible after split', async ({ page, editor }) => {
+test('zoom-root split keeps zoom and keeps the caret visible', async ({ page, editor }) => {
   await setupScrollableEditor(page);
 
   await editor.load('tree-complex');
@@ -183,7 +174,7 @@ test('auto-zoom keeps the caret note visible after split', async ({ page, editor
 
   await page.keyboard.press('Enter');
 
-  await expect(page).toHaveURL(createEditorDocumentPath(docId, 'note6'));
+  await expect(page).toHaveURL(createEditorDocumentPathRegExp(docId, 'note7'));
 
   await expect.poll(async () => {
     return page.evaluate((suffix) => {

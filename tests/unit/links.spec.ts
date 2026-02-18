@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { $isNoteLinkNode } from '#lib/editor/note-link-node';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { $findNoteById } from '@/editor/outline/note-traversal';
-import { clearEditorProps, createDataTransfer, meta, placeCaretAtNote, pressKey, registerScopedEditorProps, selectEntireNote, typeText } from '#tests';
+import { createDataTransfer, meta, placeCaretAtNote, pressKey, selectEntireNote, typeText } from '#tests';
 
 async function pastePlainText(remdo: RemdoTestApi, text: string) {
   const transfer = createDataTransfer();
@@ -38,8 +38,6 @@ async function typeAltGraphAt(remdo: RemdoTestApi) {
 }
 
 describe('note links (docs/outliner/links.md)', () => {
-  const ZOOM_LINK_SCOPE_KEY = registerScopedEditorProps('links-zoom-scope', { zoomNoteId: 'note2' });
-
   it('inserts a link with Enter and keeps stable note identity in link state', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, '@note2');
@@ -344,24 +342,20 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it(
     'searches the whole document while zoomed',
-    meta({ fixture: 'tree', editorPropsKey: ZOOM_LINK_SCOPE_KEY }),
+    meta({ fixture: 'tree', editorProps: { zoomNoteId: 'note2' } }),
     async ({ remdo }) => {
-      try {
-        await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
-        await typeText(remdo, '@note1');
-        await pressKey(remdo, { key: 'Enter' });
+      await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+      await typeText(remdo, '@note1');
+      await pressKey(remdo, { key: 'Enter' });
 
-        expect(remdo).toMatchOutline([
-          { noteId: 'note1', text: 'note1' },
-          {
-            noteId: 'note2',
-            text: 'note2',
-            children: [{ noteId: 'note3', text: 'note3note1 ' }],
-          },
-        ]);
-      } finally {
-        clearEditorProps(ZOOM_LINK_SCOPE_KEY);
-      }
+      expect(remdo).toMatchOutline([
+        { noteId: 'note1', text: 'note1' },
+        {
+          noteId: 'note2',
+          text: 'note2',
+          children: [{ noteId: 'note3', text: 'note3note1 ' }],
+        },
+      ]);
     }
   );
 

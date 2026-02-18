@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { placeCaretAtNote, placeCaretAtNoteTextNode, pressKey, readCaretNoteId, typeText, meta } from '#tests';
+import {
+  placeCaretAtNote,
+  placeCaretAtNoteTextNode,
+  pressKey,
+  readCaretNoteId,
+  typeText,
+  meta,
+} from '#tests';
 import { $setNoteFolded } from '#lib/editor/fold-state';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 
@@ -93,6 +100,66 @@ describe('insertion semantics (docs/insertion.md)', () => {
       { noteId: 'note3', text: 'note3' },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
+  });
+
+  it('enter at end of the zoom root inserts a first child', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter' });
+    const newNoteId = readCaretNoteId(remdo);
+    await typeText(remdo, 'X');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', children: [{ noteId: newNoteId, text: 'X' }] },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+    expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
+  });
+
+  it('enter at start of the zoom root inserts a first child', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Enter' });
+    const newNoteId = readCaretNoteId(remdo);
+    await typeText(remdo, 'X');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', children: [{ noteId: newNoteId, text: 'X' }] },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+    expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
+  });
+
+  it('enter in the middle of the zoom root splits into a first child and moves focus to that child', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2', 2);
+    await pressKey(remdo, { key: 'Enter' });
+    const newChildId = readCaretNoteId(remdo);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'no', children: [{ noteId: newChildId, text: 'te2' }] },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+    expect(remdo).toMatchSelection({ state: 'caret', note: newChildId });
+  });
+
+  it('enter in the middle of the zoom root keeps existing descendants as direct children', meta({ fixture: 'tree', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2', 2);
+    await pressKey(remdo, { key: 'Enter' });
+    const splitChildId = readCaretNoteId(remdo);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      {
+        noteId: 'note2',
+        text: 'no',
+        children: [
+          { noteId: splitChildId, text: 'te2' },
+          { noteId: 'note3', text: 'note3' },
+        ],
+      },
+    ]);
+    expect(remdo).toMatchSelection({ state: 'caret', note: splitChildId });
   });
 
   it('enter is a no-op in structural mode', meta({ fixture: 'tree' }), async ({ remdo }) => {

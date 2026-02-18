@@ -14,12 +14,14 @@ import {
   KEY_DOWN_COMMAND,
   KEY_ENTER_COMMAND,
 } from 'lexical';
+import type { LexicalNode } from 'lexical';
 import { useEffect } from 'react';
 import { $isNoteFolded } from '#lib/editor/fold-state';
 import { resolveContentItemFromNode } from '@/editor/outline/schema';
-import { insertBefore } from '@/editor/outline/list-structure';
+import { $getOrCreateChildList, insertBefore } from '@/editor/outline/list-structure';
 import { resolveBoundaryPoint } from '@/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '@/editor/outline/selection/caret-placement';
+import { getZoomBoundary } from '@/editor/outline/selection/boundary';
 import { getNestedList, noteHasChildren } from '@/editor/outline/selection/tree';
 
 function $createNote(text: string): ListItemNode {
@@ -67,7 +69,28 @@ function $handleEnterAtEnd(contentItem: ListItemNode) {
   textNode?.select(0, 0);
 }
 
-function $splitContentItemAtSelection(contentItem: ListItemNode, selection: ReturnType<typeof $getSelection>): boolean {
+function $insertFirstChild(contentItem: ListItemNode, newItem: ListItemNode) {
+  const childList = $getOrCreateChildList(contentItem);
+  const firstChild = childList.getFirstChild();
+  if (firstChild) {
+    insertBefore(firstChild, [newItem]);
+    return;
+  }
+  childList.append(newItem);
+}
+
+function $insertEmptyFirstChild(contentItem: ListItemNode) {
+  const newChild = $createNote('');
+  $insertFirstChild(contentItem, newChild);
+  const textNode = newChild.getChildren().find($isTextNode);
+  textNode?.select(0, 0);
+}
+
+function $splitContentItemAtSelection(
+  contentItem: ListItemNode,
+  selection: ReturnType<typeof $getSelection>,
+  destination: 'sibling' | 'first-child' = 'sibling'
+): boolean {
   if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
     return false;
   }
@@ -95,20 +118,35 @@ function $splitContentItemAtSelection(contentItem: ListItemNode, selection: Retu
   }
 
   const newItem = $createListItemNode();
-  let child = contentItem.getFirstChild();
-  while (child && child !== splitAfterNode) {
-    const next = child.getNextSibling();
-    newItem.append(child);
-    child = next;
+
+  if (destination === 'first-child') {
+    let child: ReturnType<typeof contentItem.getFirstChild> = splitAfterNode;
+    while (child !== null) {
+      const nextSibling: LexicalNode | null = child.getNextSibling();
+      newItem.append(child);
+      child = nextSibling;
+    }
+  } else {
+    let child = contentItem.getFirstChild();
+    while (child && child !== splitAfterNode) {
+      const next = child.getNextSibling();
+      newItem.append(child);
+      child = next;
+    }
   }
 
   if (newItem.getChildrenSize() === 0) {
     return false;
   }
 
-  contentItem.insertBefore(newItem);
+  if (destination === 'first-child') {
+    $insertFirstChild(contentItem, newItem);
+  } else {
+    contentItem.insertBefore(newItem);
+  }
 
-  const caretPoint = resolveBoundaryPoint(contentItem, 'start');
+  const caretTarget = destination === 'first-child' ? newItem : contentItem;
+  const caretPoint = resolveBoundaryPoint(caretTarget, 'start');
   if (caretPoint) {
     const range = $createRangeSelection();
     range.setTextNodeRange(caretPoint.node, caretPoint.offset, caretPoint.node, caretPoint.offset);
@@ -168,24 +206,34 @@ export function InsertionPlugin() {
           if (!contentItem) {
             return false;
           }
+          const zoomBoundaryKey = getZoomBoundary(editor);
+          const isZoomRoot = zoomBoundaryKey !== null && contentItem.getKey() === zoomBoundaryKey;
 
           const placement = resolveCaretPlacement(selection, contentItem);
           if (placement === 'start') {
             event?.preventDefault();
             event?.stopPropagation();
-            $handleEnterAtStart(contentItem);
+            if (isZoomRoot) {
+              $insertEmptyFirstChild(contentItem);
+            } else {
+              $handleEnterAtStart(contentItem);
+            }
             return true;
           }
 
           if (placement === 'end') {
             event?.preventDefault();
             event?.stopPropagation();
-            $handleEnterAtEnd(contentItem);
+            if (isZoomRoot) {
+              $insertEmptyFirstChild(contentItem);
+            } else {
+              $handleEnterAtEnd(contentItem);
+            }
             return true;
           }
 
           if (placement === 'middle') {
-            const split = $splitContentItemAtSelection(contentItem, selection);
+            const split = $splitContentItemAtSelection(contentItem, selection, isZoomRoot ? 'first-child' : 'sibling');
             if (!split) {
               return false;
             }

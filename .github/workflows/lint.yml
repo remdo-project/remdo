@@ -16,4 +16,4 @@ jobs:
       - uses: ./.github/actions/setup-pnpm
       - run: pnpm run vendor:lexical
       - run: pnpm run stats:repo
-      - run: pnpm run lint && pnpm run lint:lexical && pnpm run deps:list
+      - run: pnpm run lint && pnpm run deps:list

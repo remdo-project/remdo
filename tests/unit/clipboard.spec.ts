@@ -146,6 +146,29 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
   });
 
+  it('keeps existing zoom-root descendants as direct children on middle multi-line paste', meta({ fixture: 'tree', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2', 2);
+    await pastePlainText(remdo, 'A\nB');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      {
+        noteId: 'note2',
+        text: 'no',
+        children: [
+          { noteId: null, text: 'A' },
+          { noteId: null, text: 'B' },
+          { noteId: null, text: 'te2' },
+          { noteId: 'note3', text: 'note3' },
+        ],
+      },
+    ]);
+
+    const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
+    expect(focusNote?.noteId).toBeTruthy();
+    expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
+  });
+
   it('treats empty notes as start placement for multi-line pastes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note2');
     await pressKey(remdo, { key: 'Backspace' });

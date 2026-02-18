@@ -1,37 +1,26 @@
 import {
-  $getNodeByKey,
   $getSelection,
   $isRangeSelection,
-  COLLABORATION_TAG,
   COMMAND_PRIORITY_LOW,
 } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useCallback, useEffect, useRef } from 'react';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { isBulletHit, isCheckboxHit } from '@/editor/outline/bullet-hit-test';
-import { setSelectionBoundary } from '@/editor/outline/selection/boundary';
-import { setZoomScrollTarget } from '@/editor/zoom/scroll-target';
-import { consumeZoomMergeHint } from '@/editor/zoom/zoom-change-hints';
-import type { ListItemNode } from '@lexical/list';
+import { setZoomBoundary } from '@/editor/outline/selection/boundary';
 import type { UpdateListenerPayload } from 'lexical';
 import {
   $resolveContentNoteFromDOMNode,
   $resolveNoteIdFromDOMNode,
 } from '@/editor/outline/note-context';
-import { $requireContentItemNoteId, resolveContentItemFromNode } from '@/editor/outline/schema';
+import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
-import { findLowestCommonContentAncestor, getParentContentItem, isContentDescendantOf } from '@/editor/outline/selection/tree';
+import { isContentDescendantOf } from '@/editor/outline/selection/tree';
 import { ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import { resolveZoomNoteId } from './zoom-note-id';
-import {
-  NOTE_ID_NORMALIZE_TAG,
-  ROOT_SCHEMA_NORMALIZE_TAG,
-  TEST_BRIDGE_LOAD_TAG,
-  ZOOM_CARET_TAG,
-  ZOOM_INIT_TAG,
-} from '@/editor/update-tags';
+import { ZOOM_CARET_TAG, ZOOM_INIT_TAG } from '@/editor/update-tags';
 
 interface ZoomPluginProps {
   zoomNoteId?: string | null;
@@ -52,49 +41,6 @@ const isPathEqual = (next: NotePathItem[], prev: NotePathItem[] | null) => {
   });
 };
 
-const $collectDirtyContentItems = (
-  dirtyElements: Map<string, boolean>,
-  dirtyLeaves: Set<string>
-): ListItemNode[] => {
-  const items = new Map<string, ListItemNode>();
-
-  const addItem = (item: ListItemNode | null) => {
-    if (!item) {
-      return;
-    }
-    items.set(item.getKey(), item);
-  };
-
-  for (const [key, intentional] of dirtyElements) {
-    if (!intentional) {
-      continue;
-    }
-    const node = $getNodeByKey(key);
-    addItem(resolveContentItemFromNode(node));
-  }
-
-  for (const key of dirtyLeaves) {
-    const node = $getNodeByKey(key);
-    addItem(resolveContentItemFromNode(node));
-  }
-
-  return Array.from(items.values());
-};
-
-const resolveZoomAncestor = (root: ListItemNode, outsideItems: ListItemNode[]): ListItemNode | null => {
-  let candidate: ListItemNode | null = null;
-  for (const item of outsideItems) {
-    const next: ListItemNode | null = candidate
-      ? findLowestCommonContentAncestor(candidate, item)
-      : findLowestCommonContentAncestor(root, item);
-    if (!next) {
-      return null;
-    }
-    candidate = next;
-  }
-  return candidate;
-};
-
 export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }: ZoomPluginProps) {
   const [editor] = useLexicalComposerContext();
   const collab = useCollaborationStatus();
@@ -103,45 +49,29 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
   const lastBulletHoverRef = useRef<HTMLElement | null>(null);
   const lastCheckboxHoverRef = useRef<HTMLElement | null>(null);
   const rootRef = useRef<HTMLElement | null>(editor.getRootElement());
-  const zoomParentTrackedRef = useRef(false);
-  const zoomParentKeyRef = useRef<string | null>(null);
   const skipZoomSelectionRef = useRef(false);
   const pendingZoomSelectionRef = useRef<string | null>(null);
   const pendingZoomSelectionTaskRef = useRef(false);
   const pendingZoomSelectionNonceRef = useRef(0);
-  const suppressPathUpdatesRef = useRef(false);
-  const autoZoomReadyRef = useRef(false);
 
   useEffect(() => {
     zoomNoteIdRef.current = resolveZoomNoteId(zoomNoteId);
-    suppressPathUpdatesRef.current = false;
     const noteId = zoomNoteIdRef.current;
     if (!noteId) {
-      zoomParentTrackedRef.current = false;
-      zoomParentKeyRef.current = null;
-      setSelectionBoundary(editor, null);
+      setZoomBoundary(editor, null);
       return;
     }
 
-    let boundaryKey: string | null = null;
+    let zoomBoundaryKey: string | null = null;
     editor.getEditorState().read(() => {
       const root = $findNoteById(noteId);
       if (!root) {
-        zoomParentTrackedRef.current = false;
-        zoomParentKeyRef.current = null;
         return;
       }
-      const parent = getParentContentItem(root);
-      zoomParentTrackedRef.current = true;
-      zoomParentKeyRef.current = parent?.getKey() ?? null;
-      boundaryKey = root.getKey();
+      zoomBoundaryKey = root.getKey();
     });
-    setSelectionBoundary(editor, boundaryKey);
+    setZoomBoundary(editor, zoomBoundaryKey);
   }, [editor, zoomNoteId]);
-
-  useEffect(() => {
-    autoZoomReadyRef.current = collab.synced;
-  }, [collab.synced, collab.docEpoch]);
 
   useEffect(() => {
     return editor.registerCommand(
@@ -327,41 +257,21 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
   useEffect(() => {
     const handleUpdate = ({
       editorState,
-      dirtyElements,
-      dirtyLeaves,
       tags,
     }: UpdateListenerPayload) => {
-      const mergeHint = consumeZoomMergeHint(editor);
       const noteId = zoomNoteIdRef.current;
       const isZoomInit = tags.has(ZOOM_INIT_TAG);
-      const shouldConsiderAutoZoom =
-        Boolean(noteId) &&
-        autoZoomReadyRef.current &&
-        !tags.has(COLLABORATION_TAG) &&
-        !tags.has(TEST_BRIDGE_LOAD_TAG) &&
-        !tags.has(NOTE_ID_NORMALIZE_TAG) &&
-        !tags.has(ROOT_SCHEMA_NORMALIZE_TAG) &&
-        !isZoomInit;
-      const prevParentKey = zoomParentKeyRef.current;
-      const parentWasTracked = zoomParentTrackedRef.current;
 
       const resolved = editorState.read(() => {
         const selection = $getSelection();
         const selectionItem = $isRangeSelection(selection)
           ? resolveContentItemFromNode(selection.anchor.getNode())
           : null;
-        const selectionKey =
-          $isRangeSelection(selection) && selection.isCollapsed()
-            ? selectionItem?.getKey() ?? null
-            : null;
         if (!noteId) {
           return {
             root: null,
             path: [] as NotePathItem[],
-            nextZoomNoteId: undefined,
-            parentKey: null,
-            boundaryKey: null,
-            scrollTargetKey: null as string | null,
+            zoomBoundaryKey: null,
             selectionInZoomRoot: false,
           };
         }
@@ -371,81 +281,25 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
           return {
             root: null,
             path: [] as NotePathItem[],
-            nextZoomNoteId: undefined,
-            parentKey: null,
-            boundaryKey: null,
-            scrollTargetKey: null as string | null,
+            zoomBoundaryKey: null,
             selectionInZoomRoot: false,
           };
         }
 
-        const path = $getNoteAncestorPath(root);
-        const parent = getParentContentItem(root);
-        const parentKey = parent?.getKey() ?? null;
         const selectionInZoomRoot = selectionItem ? isContentDescendantOf(selectionItem, root) : false;
-        let nextZoomNoteId: string | null | undefined;
-        let scrollTargetKey: string | null = null;
-
-        if (shouldConsiderAutoZoom) {
-          let mergeHintApplied = false;
-          if (mergeHint) {
-            let shouldApply = true;
-            if (mergeHint.noteId) {
-              const mergeItem = $findNoteById(mergeHint.noteId);
-              if (mergeItem && isContentDescendantOf(mergeItem, root)) {
-                shouldApply = false;
-              }
-            }
-            if (shouldApply) {
-              nextZoomNoteId = mergeHint.noteId;
-              scrollTargetKey = selectionKey;
-              mergeHintApplied = true;
-            }
-          }
-
-          if (!mergeHintApplied) {
-            const parentChanged = parentWasTracked && prevParentKey !== parentKey;
-            if (parentChanged) {
-              nextZoomNoteId = parent ? $requireContentItemNoteId(parent) : null;
-              scrollTargetKey = selectionKey;
-            } else {
-              const dirtyItems = $collectDirtyContentItems(dirtyElements, dirtyLeaves);
-              const outsideItems = dirtyItems.filter(
-                (item) => !isContentDescendantOf(item, root) && !isContentDescendantOf(root, item)
-              );
-
-              if (outsideItems.length > 0) {
-                scrollTargetKey = outsideItems[0]?.getKey() ?? null;
-                if (selectionKey) {
-                  const selectionDirty = dirtyItems.some((item) => item.getKey() === selectionKey);
-                  if (selectionDirty) {
-                    scrollTargetKey = selectionKey;
-                  }
-                }
-                const ancestor = resolveZoomAncestor(root, outsideItems);
-                nextZoomNoteId = ancestor ? $requireContentItemNoteId(ancestor) : null;
-              }
-            }
-          }
-        }
-
         return {
           root,
-          path,
-          nextZoomNoteId,
-          parentKey,
-          boundaryKey: root.getKey(),
-          scrollTargetKey,
+          path: $getNoteAncestorPath(root),
+          zoomBoundaryKey: root.getKey(),
           selectionInZoomRoot,
         };
       });
 
-      if (resolved.root) {
-        zoomParentTrackedRef.current = true;
-        zoomParentKeyRef.current = resolved.parentKey ?? null;
-      } else {
-        zoomParentTrackedRef.current = false;
-        zoomParentKeyRef.current = null;
+      setZoomBoundary(editor, resolved.zoomBoundaryKey ?? null);
+
+      if (!isPathEqual(resolved.path, lastPathRef.current)) {
+        lastPathRef.current = resolved.path;
+        onZoomPathChange?.(resolved.path);
       }
 
       if (zoomNoteIdRef.current && !resolved.root && collab.hydrated && !isZoomInit) {
@@ -454,46 +308,7 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
         pendingZoomSelectionNonceRef.current += 1;
         skipZoomSelectionRef.current = true;
         onZoomNoteIdChange?.(null);
-      }
-
-      if (
-        resolved.nextZoomNoteId !== undefined &&
-        resolved.nextZoomNoteId !== zoomNoteIdRef.current
-      ) {
-        pendingZoomSelectionRef.current = null;
-        pendingZoomSelectionTaskRef.current = false;
-        pendingZoomSelectionNonceRef.current += 1;
-        suppressPathUpdatesRef.current = true;
-        if (resolved.scrollTargetKey) {
-          setZoomScrollTarget(editor, resolved.scrollTargetKey);
-        }
-        skipZoomSelectionRef.current = true;
-        onZoomNoteIdChange?.(resolved.nextZoomNoteId ?? null);
-        if (onZoomPathChange) {
-          let nextPath: NotePathItem[] = [];
-          const nextNoteId = resolved.nextZoomNoteId ?? null;
-          editor.getEditorState().read(() => {
-            if (!nextNoteId) {
-              return;
-            }
-            const nextRoot = $findNoteById(nextNoteId);
-            if (nextRoot) {
-              nextPath = $getNoteAncestorPath(nextRoot);
-            }
-          });
-          if (!isPathEqual(nextPath, lastPathRef.current)) {
-            lastPathRef.current = nextPath;
-            onZoomPathChange(nextPath);
-          }
-        }
         return;
-      }
-
-      setSelectionBoundary(editor, resolved.boundaryKey ?? null);
-
-      if (!suppressPathUpdatesRef.current && !isPathEqual(resolved.path, lastPathRef.current)) {
-        lastPathRef.current = resolved.path;
-        onZoomPathChange?.(resolved.path);
       }
 
       const pendingZoomSelection = pendingZoomSelectionRef.current;

@@ -1,6 +1,6 @@
-import { $isTextNode } from 'lexical';
+import { waitFor } from '@testing-library/react';
 import type { TextNode } from 'lexical';
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import {
   clearEditorProps,
   getNoteElement,
@@ -12,52 +12,20 @@ import {
 } from '#tests';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
+import { removeNoteSubtree } from '@/editor/outline/selection/tree';
 import { ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
-
-interface SerializedNode {
-  children?: SerializedNode[];
-  noteId?: string;
-}
-
-const waitForCall = async (fn: () => void, attempts = 20) => {
-  for (let i = 0; i < attempts; i++) {
-    try {
-      fn();
-      return;
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    }
-  }
-  fn();
-};
-
-const collectNoteIds = (node: SerializedNode, ids: string[] = []): string[] => {
-  if (typeof node.noteId === 'string') {
-    ids.push(node.noteId);
-  }
-  if (Array.isArray(node.children)) {
-    for (const child of node.children) {
-      collectNoteIds(child, ids);
-    }
-  }
-  return ids;
-};
 
 describe('zoom plugin', () => {
   const zoomPathSpy = vi.fn();
-  const zoomPathKey = registerScopedEditorProps('zoom-path', { zoomNoteId: 'note2', onZoomPathChange: zoomPathSpy });
-
+  const zoomPathKey = registerScopedEditorProps('zoom-path', {
+    zoomNoteId: 'note2',
+    onZoomPathChange: zoomPathSpy,
+  });
   it(
     'emits the zoom path for a valid zoom note id',
     meta({ fixture: 'basic', editorPropsKey: zoomPathKey }),
-    async ({ remdo }) => {
-      await waitForCall(() => {
-        const state = remdo.getEditorState();
-        const noteIds = collectNoteIds(state.root as unknown as SerializedNode);
-        expect(noteIds).toContain('note2');
-      }, 100);
-
-      await waitForCall(() => {
+    async () => {
+      await waitFor(() => {
         const match = zoomPathSpy.mock.calls.find((call) => {
           const path = call[0] as NotePathItem[] | undefined;
           if (!path) {
@@ -68,9 +36,7 @@ describe('zoom plugin', () => {
           return ids.join(',') === 'note1,note2' && labels.join(',') === 'note1,note2';
         });
         expect(match).toBeTruthy();
-      }, 100);
-
-      clearEditorProps(zoomPathKey);
+      });
     }
   );
 
@@ -89,10 +55,10 @@ describe('zoom plugin', () => {
   );
 
   const zoomNoteSpy = vi.fn();
-  const zoomNoteKey = registerScopedEditorProps('zoom-bullet', { zoomNoteId: null, onZoomNoteIdChange: zoomNoteSpy });
-  const zoomCommandSpy = vi.fn();
-  const zoomCommandKey = registerScopedEditorProps('zoom-command', { zoomNoteId: null, onZoomNoteIdChange: zoomCommandSpy });
-
+  const zoomNoteKey = registerScopedEditorProps('zoom-bullet', {
+    zoomNoteId: null,
+    onZoomNoteIdChange: zoomNoteSpy,
+  });
   it(
     'requests zoom when the bullet is clicked',
     meta({ fixture: 'basic', editorPropsKey: zoomNoteKey }),
@@ -106,53 +72,51 @@ describe('zoom plugin', () => {
           : new PointerEvent('pointerdown', { bubbles: true });
       noteElement.dispatchEvent(event);
 
-      await waitForCall(() => {
+      await waitFor(() => {
         expect(zoomNoteSpy).toHaveBeenCalledWith('note1');
       });
-
-      clearEditorProps(zoomNoteKey);
     }
   );
 
+  const zoomCommandSpy = vi.fn();
+  const zoomCommandKey = registerScopedEditorProps('zoom-command', {
+    zoomNoteId: null,
+    onZoomNoteIdChange: zoomCommandSpy,
+  });
   it(
     'requests zoom when the zoom command is dispatched',
     meta({ fixture: 'basic', editorPropsKey: zoomCommandKey }),
     async ({ remdo }) => {
       await remdo.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId: 'note2' });
 
-      await waitForCall(() => {
+      await waitFor(() => {
         expect(zoomCommandSpy).toHaveBeenCalledWith('note2');
       });
 
-      await waitForCall(() => {
+      await waitFor(() => {
         expect(readCaretNoteId(remdo)).toBe('note2');
       });
-
-      clearEditorProps(zoomCommandKey);
     }
   );
 
-  const zoomAutoSpy = vi.fn();
-  const zoomAutoKey = registerScopedEditorProps('zoom-auto', { zoomNoteId: 'note2', onZoomNoteIdChange: zoomAutoSpy });
-  const zoomAutoPathNoteSpy = vi.fn();
-  const zoomAutoPathSpy = vi.fn();
-  const zoomAutoPathKey = registerScopedEditorProps('zoom-auto-path', {
+  const zoomStableNoteSpy = vi.fn();
+  const zoomStablePathSpy = vi.fn();
+  const zoomStableKey = registerScopedEditorProps('zoom-stable', {
     zoomNoteId: 'note2',
-    onZoomNoteIdChange: zoomAutoPathNoteSpy,
-    onZoomPathChange: zoomAutoPathSpy,
+    onZoomNoteIdChange: zoomStableNoteSpy,
+    onZoomPathChange: zoomStablePathSpy,
   });
-  const zoomInsideSpy = vi.fn();
-  const zoomInsideKey = registerScopedEditorProps('zoom-inside-empty-leaf', {
-    zoomNoteId: 'note1',
-    onZoomNoteIdChange: zoomInsideSpy,
-  });
-
   it(
-    'auto-expands zoom to the nearest shared ancestor for outside edits',
-    meta({ fixture: 'tree-complex', editorPropsKey: zoomAutoKey }),
+    'keeps zoom stable when an outside note is edited',
+    meta({ fixture: 'tree-complex', editorPropsKey: zoomStableKey }),
     async ({ remdo }) => {
       await remdo.waitForSynced();
-      zoomAutoSpy.mockClear();
+
+      await waitFor(() => {
+        expect(zoomStablePathSpy).toHaveBeenCalled();
+      });
+      zoomStableNoteSpy.mockClear();
+      zoomStablePathSpy.mockClear();
 
       await remdo.mutate(() => {
         const note4 = $findNoteById('note4')!;
@@ -160,54 +124,51 @@ describe('zoom plugin', () => {
         (textNode as TextNode).setTextContent('note4!');
       });
 
-      await waitForCall(() => {
-        expect(zoomAutoSpy).toHaveBeenCalledWith('note1');
-      });
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
-      clearEditorProps(zoomAutoKey);
+      expect(zoomStableNoteSpy).not.toHaveBeenCalled();
+      expect(zoomStablePathSpy).not.toHaveBeenCalled();
     }
   );
 
+  const zoomResetSpy = vi.fn();
+  const zoomResetPathSpy = vi.fn();
+  const zoomResetKey = registerScopedEditorProps('zoom-reset', {
+    zoomNoteId: 'note2',
+    onZoomNoteIdChange: zoomResetSpy,
+    onZoomPathChange: zoomResetPathSpy,
+  });
   it(
-    'emits the updated zoom path when auto-zoom expands the view',
-    meta({ fixture: 'tree-complex', editorPropsKey: zoomAutoPathKey }),
+    'requests zoom reset when the zoom root can no longer be resolved',
+    meta({ fixture: 'tree', editorPropsKey: zoomResetKey }),
     async ({ remdo }) => {
-      await remdo.waitForSynced();
-
-      await waitForCall(() => {
-        expect(zoomAutoPathSpy).toHaveBeenCalled();
-      });
-
-      zoomAutoPathSpy.mockClear();
-      zoomAutoPathNoteSpy.mockClear();
+      zoomResetSpy.mockClear();
+      zoomResetPathSpy.mockClear();
 
       await remdo.mutate(() => {
-        const note4 = $findNoteById('note4');
-        if (!note4) {
-          return;
-        }
-        const textNode = note4.getFirstChild();
-        if ($isTextNode(textNode)) {
-          textNode.setTextContent('note4!');
-        }
+        const zoomRoot = $findNoteById('note2')!;
+        removeNoteSubtree(zoomRoot);
       });
 
-      await waitForCall(() => {
-        expect(zoomAutoPathNoteSpy).toHaveBeenCalledWith('note1');
+      await waitFor(() => {
+        expect(zoomResetSpy).toHaveBeenCalledWith(null);
       });
 
-      await waitForCall(() => {
-        expect(zoomAutoPathSpy).toHaveBeenCalled();
+      await waitFor(() => {
+        const emittedDocRootPath = zoomResetPathSpy.mock.calls.some((call) => {
+          const path = call[0] as NotePathItem[] | undefined;
+          return Array.isArray(path) && path.length === 0;
+        });
+        expect(emittedDocRootPath).toBe(true);
       });
-
-      const lastPath = zoomAutoPathSpy.mock.calls.at(-1)?.[0] as NotePathItem[];
-      expect(lastPath.map((item) => item.noteId)).toEqual(['note1']);
-      expect(lastPath.map((item) => item.label)).toEqual(['note1']);
-
-      clearEditorProps(zoomAutoPathKey);
     }
   );
 
+  const zoomInsideSpy = vi.fn();
+  const zoomInsideKey = registerScopedEditorProps('zoom-inside', {
+    zoomNoteId: 'note1',
+    onZoomNoteIdChange: zoomInsideSpy,
+  });
   it(
     'does not re-zoom into a descendant when deleting an empty leaf inside the zoom root',
     meta({ fixture: 'tree', editorPropsKey: zoomInsideKey }),
@@ -226,7 +187,15 @@ describe('zoom plugin', () => {
       await pressKey(remdo, { key: 'Backspace' });
 
       expect(zoomInsideSpy).not.toHaveBeenCalled();
-      clearEditorProps(zoomInsideKey);
     }
   );
+
+  afterAll(() => {
+    clearEditorProps(zoomPathKey);
+    clearEditorProps(zoomNoteKey);
+    clearEditorProps(zoomCommandKey);
+    clearEditorProps(zoomStableKey);
+    clearEditorProps(zoomResetKey);
+    clearEditorProps(zoomInsideKey);
+  });
 });

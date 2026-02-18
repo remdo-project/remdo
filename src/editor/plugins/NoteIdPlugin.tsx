@@ -33,6 +33,7 @@ import {
   flattenNoteNodes,
 } from '@/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '@/editor/outline/schema';
+import { getZoomBoundary } from '@/editor/outline/selection/boundary';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '@/editor/outline/selection/caret-placement';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
@@ -201,7 +202,11 @@ function $isInlineSelectionWithinSingleNote(selection: BaseSelection | null): bo
   return anchorItem === focusItem;
 }
 
-function $splitContentItemAtSelection(contentItem: ListItemNode, selection: BaseSelection | null): ListItemNode | null {
+function $splitContentItemAtSelection(
+  contentItem: ListItemNode,
+  selection: BaseSelection | null,
+  destination: 'sibling' | 'first-child' = 'sibling'
+): ListItemNode | null {
   if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
     return null;
   }
@@ -230,18 +235,37 @@ function $splitContentItemAtSelection(contentItem: ListItemNode, selection: Base
   const newItem = $createListItemNode();
   $setState(newItem, noteIdState, createUniqueNoteId());
 
-  let child = contentItem.getFirstChild();
-  while (child && child !== splitStart) {
-    const next = child.getNextSibling();
-    newItem.append(child);
-    child = next;
+  if (destination === 'first-child') {
+    let child: LexicalNode | null = splitStart;
+    while (child) {
+      const nextSibling: LexicalNode | null = child.getNextSibling();
+      newItem.append(child);
+      child = nextSibling;
+    }
+  } else {
+    let child = contentItem.getFirstChild();
+    while (child && child !== splitStart) {
+      const next = child.getNextSibling();
+      newItem.append(child);
+      child = next;
+    }
   }
 
   if (newItem.getChildrenSize() === 0) {
     return null;
   }
 
-  contentItem.insertBefore(newItem);
+  if (destination === 'first-child') {
+    const childList = $getOrCreateChildList(contentItem);
+    const firstChild = childList.getFirstChild();
+    if (firstChild) {
+      insertBefore(firstChild, [newItem]);
+    } else {
+      childList.append(newItem);
+    }
+  } else {
+    contentItem.insertBefore(newItem);
+  }
   return newItem;
 }
 
@@ -402,6 +426,7 @@ function $populateClipboardFromSelection(
 }
 
 function $insertNodesAtSelection(
+  editor: LexicalEditor,
   headKeys: string[],
   selection: BaseSelection | null,
   nodes: LexicalNode[]
@@ -442,20 +467,38 @@ function $insertNodesAtSelection(
     if (!placement) {
       return false;
     }
+    const zoomBoundaryKey = getZoomBoundary(editor);
+    const isZoomRoot = zoomBoundaryKey !== null && contentItem.getKey() === zoomBoundaryKey;
 
     if (placement === 'start') {
-      nextSibling = contentItem;
-    } else if (placement === 'middle') {
-      const split = $splitContentItemAtSelection(contentItem, selection);
-      nextSibling = split ? contentItem : getNextContentSibling(contentItem);
-    } else {
-      const nested = getNestedList(contentItem);
-      if (nested && noteHasChildren(contentItem)) {
-        $autoExpandIfFolded(contentItem);
-        parentList = nested;
-        nextSibling = getFirstDescendantListItem(nested);
+      if (isZoomRoot) {
+        parentList = $getOrCreateChildList(contentItem);
+        nextSibling = getFirstDescendantListItem(parentList);
       } else {
-        nextSibling = getNextContentSibling(contentItem);
+        nextSibling = contentItem;
+      }
+    } else if (placement === 'middle') {
+      if (isZoomRoot) {
+        parentList = $getOrCreateChildList(contentItem);
+        const split = $splitContentItemAtSelection(contentItem, selection, 'first-child');
+        nextSibling = split ?? getFirstDescendantListItem(parentList);
+      } else {
+        const split = $splitContentItemAtSelection(contentItem, selection);
+        nextSibling = split ? contentItem : getNextContentSibling(contentItem);
+      }
+    } else {
+      if (isZoomRoot) {
+        parentList = $getOrCreateChildList(contentItem);
+        nextSibling = getFirstDescendantListItem(parentList);
+      } else {
+        const nested = getNestedList(contentItem);
+        if (nested && noteHasChildren(contentItem)) {
+          $autoExpandIfFolded(contentItem);
+          parentList = nested;
+          nextSibling = getFirstDescendantListItem(nested);
+        } else {
+          nextSibling = getNextContentSibling(contentItem);
+        }
       }
     }
   } else {
@@ -662,7 +705,7 @@ export function NoteIdPlugin() {
               }
               setCutMarker(null);
               lastPasteSelectionHeadKeysRef.current = null;
-              if ($insertNodesAtSelection(insertionKeys, insertionSelection, nodesToMove)) {
+              if ($insertNodesAtSelection(editor, insertionKeys, insertionSelection, nodesToMove)) {
                 return true;
               }
             }
@@ -698,7 +741,7 @@ export function NoteIdPlugin() {
           $regenerateClipboardNoteIds(payload.nodes, reservedIds);
           const insertNodes = $extractClipboardListChildren(payload.nodes);
           lastPasteSelectionHeadKeysRef.current = null;
-          return $insertNodesAtSelection(selectionHeadKeys, payload.selection, insertNodes);
+          return $insertNodesAtSelection(editor, selectionHeadKeys, payload.selection, insertNodes);
         },
         COMMAND_PRIORITY_LOW
       ),
@@ -770,7 +813,7 @@ export function NoteIdPlugin() {
             handled = true;
           } else {
             const nodes = buildListItemsFromPlainText(plainText);
-            handled = $insertNodesAtSelection(selectionHeadKeys, selection, nodes);
+            handled = $insertNodesAtSelection(editor, selectionHeadKeys, selection, nodes);
           }
           if (handled) {
             lastPasteSelectionHeadKeysRef.current = null;

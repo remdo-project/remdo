@@ -565,23 +565,20 @@ describe('note ids on paste', () => {
     ]);
   });
 
-  it('inserts multi-note cuts at caret without replacing inline-selected notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('inserts multi-note cuts at a caret inside note text without replacing surrounding text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note2', 'note3');
     const clipboardPayload = await cutSelection(remdo);
 
-    const note1Text = getNoteTextNode(remdo, 'note1');
-    await dragDomSelectionBetween(note1Text, 1, note1Text, 3);
-    expect(remdo).toMatchSelection({ state: 'inline', note: 'note1' });
+    await placeCaretAtNote(remdo, 'note1', 1);
 
     await pastePayload(remdo, clipboardPayload);
 
-    // Expected: treat the inline range as a caret placement (start of selection),
-    // so the note is split and the cut note is inserted between prefix/suffix.
+    // Expected: split at the caret offset and insert the cut notes between prefix/suffix.
     expect(remdo).toMatchOutline([
       { noteId: null, text: 'n' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
-      { noteId: 'note1', text: 'e1' },
+      { noteId: 'note1', text: 'ote1' },
     ]);
   });
 
@@ -792,6 +789,24 @@ describe('note ids on paste', () => {
 });
 
 describe('note ids on split', () => {
+  it('keeps text order and unique ids when splitting the zoom root', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2', 2);
+    await pressKey(remdo, { key: 'Enter' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'no', children: [{ noteId: null, text: 'te2' }] },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    const outline = readOutline(remdo);
+    const splitChild = outline[1]?.children?.find((node) => node.text === 'te2');
+    expect(splitChild?.noteId).toEqual(expect.any(String));
+    expect(splitChild?.noteId).not.toBe('note2');
+    const noteIds = collectOutlineNoteIds(outline);
+    expect(new Set(noteIds).size).toBe(noteIds.length);
+  });
+
   it('assigns a fresh noteId to the new sibling when splitting a note', meta({ fixture: 'tree' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });

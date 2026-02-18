@@ -1,7 +1,7 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
-import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
+import { createEditorDocumentPathRegExp } from './_support/routes';
 
 const getBulletMetrics = async (listItem: Locator) => {
   return listItem.evaluate((element: HTMLElement) => {
@@ -73,7 +73,7 @@ test.describe('Zoom visibility', () => {
     await expect(note3).toBeHidden();
   });
 
-  test('auto-expands zoom when Enter creates a sibling', async ({ page, editor }) => {
+  test('keeps zoom and inserts a child when Enter is pressed at the zoom-root end', async ({ page, editor }) => {
     await editor.load('flat');
 
     const editorRoot = editorLocator(page);
@@ -84,17 +84,18 @@ test.describe('Zoom visibility', () => {
     await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note2'));
     await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
     await page.keyboard.press('Enter');
+    await page.keyboard.type('X');
 
-    await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
-    await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note2'));
+    await expect(editorRoot.locator('li.list-item', { hasText: 'X' }).first()).toBeVisible();
+    await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeHidden();
   });
 
-  test('auto-expands zoom when Delete merges a sibling outside the subtree', async ({ page, editor }) => {
+  test('keeps zoom when Delete at zoom-root end would merge outside the zoom boundary', async ({ page, editor }) => {
     await editor.load('flat');
 
     const editorRoot = editorLocator(page);
     const note2 = editorRoot.locator('li.list-item', { hasText: 'note2' }).first();
-    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
     const metrics = await getBulletMetrics(note2);
 
     await page.mouse.click(metrics.x, metrics.y);
@@ -103,16 +104,15 @@ test.describe('Zoom visibility', () => {
     await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
     await page.keyboard.press('Delete');
 
-    await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
-    await expect(note1).toBeVisible();
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note2'));
+    await expect(editorRoot.locator('li.list-item', { hasText: 'note1' }).first()).toBeHidden();
   });
 
-  test('auto-expands zoom when Backspace merges a sibling outside the subtree', async ({ page, editor }) => {
+  test('keeps zoom when Backspace at zoom-root start would merge outside the zoom boundary', async ({ page, editor }) => {
     await editor.load('flat');
 
     const editorRoot = editorLocator(page);
     const note2 = editorRoot.locator('li.list-item', { hasText: 'note2' }).first();
-    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
     const metrics = await getBulletMetrics(note2);
 
     await page.mouse.click(metrics.x, metrics.y);
@@ -121,16 +121,15 @@ test.describe('Zoom visibility', () => {
     await setCaretAtText(page, 'note2', 0);
     await page.keyboard.press('Backspace');
 
-    await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
-    await expect(note1).toBeVisible();
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note2'));
+    await expect(editorRoot.locator('li.list-item', { hasText: 'note1' }).first()).toBeHidden();
   });
 
-  test('auto-expands zoom when deleting an empty sibling outside the subtree', async ({ page, editor }) => {
+  test('keeps zoom when Delete at zoom-root end would target an empty note outside the zoom boundary', async ({ page, editor }) => {
     await editor.load('flat');
 
     const editorRoot = editorLocator(page);
     const note2 = editorRoot.locator('li.list-item', { hasText: 'note2' }).first();
-    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
     const metrics = await getBulletMetrics(note2);
 
     await updateNoteText(page, 'note3', '');
@@ -141,8 +140,8 @@ test.describe('Zoom visibility', () => {
     await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
     await page.keyboard.press('Delete');
 
-    await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
-    await expect(note1).toBeVisible();
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note2'));
+    await expect(editorRoot.locator('li.list-item', { hasText: 'note1' }).first()).toBeHidden();
   });
 
   test('does not expand zoom on Backspace at the document start', async ({ page, editor }) => {
@@ -181,7 +180,7 @@ test.describe('Zoom visibility', () => {
     await expect(note1).toBeHidden();
   });
 
-  test('auto-expands zoom when indenting the zoom root', async ({ page, editor }) => {
+  test('keeps zoom when indenting the zoom root would leave the zoom boundary', async ({ page, editor }) => {
     await editor.load('flat');
 
     const editorRoot = editorLocator(page);
@@ -193,11 +192,11 @@ test.describe('Zoom visibility', () => {
     await setCaretAtText(page, 'note2', 0);
     await page.keyboard.press('Tab');
 
-    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note2'));
     await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeHidden();
   });
 
-  test('auto-expands zoom when multi-line paste inserts siblings', async ({ page, editor }) => {
+  test('keeps zoom and inserts child notes on multi-line paste at the zoom root', async ({ page, editor }) => {
     await editor.load('flat');
 
     const editorRoot = editorLocator(page);
@@ -209,16 +208,18 @@ test.describe('Zoom visibility', () => {
     await setCaretAtText(page, 'note2', 1);
     await pastePlainText(page, 'A\nB');
 
-    await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
-    await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note2'));
+    await expect(editorRoot.locator('li.list-item', { hasText: 'A' }).first()).toBeVisible();
+    await expect(editorRoot.locator('li.list-item', { hasText: 'B' }).first()).toBeVisible();
+    await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeHidden();
   });
 
-  test('auto-expands zoom when outdenting a descendant', async ({ page, editor }) => {
+  test('keeps zoom when outdenting a descendant would leave the zoom boundary', async ({ page, editor }) => {
     await editor.load('tree-complex');
 
     const editorRoot = editorLocator(page);
+    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
     const note2Text = editorRoot.locator('[data-lexical-text="true"]', { hasText: 'note2' }).first();
-    const note4 = editorRoot.locator('li.list-item', { hasText: 'note4' }).first();
     const metrics = await getBulletMetrics(note2Text);
 
     await page.mouse.click(metrics.x, metrics.y);
@@ -227,8 +228,8 @@ test.describe('Zoom visibility', () => {
     await setCaretAtText(page, 'note3', 0);
     await page.keyboard.press('Shift+Tab');
 
-    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
-    await expect(note4).toBeVisible();
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note2'));
+    await expect(note1).toBeHidden();
   });
 
   test('current breadcrumb is not interactive', async ({ page, editor }) => {

@@ -21,6 +21,24 @@ it('tab on note1 at start is a no-op (no structure change)', meta({ fixture: 'fl
   expect(remdo).toMatchEditorState(before);
 });
 
+it('tab on the zoom root is a no-op', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+  const before = remdo.getEditorState();
+
+  await placeCaretAtNote(remdo, 'note2');
+  await pressKey(remdo, { key: 'Tab' });
+
+  expect(remdo).toMatchEditorState(before);
+});
+
+it('shift+tab on a direct child of the zoom root is a no-op', meta({ fixture: 'tree-complex', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+  const before = remdo.getEditorState();
+
+  await placeCaretAtNote(remdo, 'note3');
+  await pressKey(remdo, { key: 'Tab', shift: true });
+
+  expect(remdo).toMatchEditorState(before);
+});
+
 it("tab on note2 at start nests it under note1; note3 stays at root", meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2');
   await pressKey(remdo, { key: 'Tab' }); // indent note2 under note1

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { placeCaretAtNote, selectNoteRange, readOutline, meta } from '#tests';
+import {
+  placeCaretAtNote,
+  selectNoteRange,
+  readOutline,
+  meta,
+} from '#tests';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
 
 describe('keyboard reordering (command path)', () => {
@@ -35,6 +40,26 @@ describe('keyboard reordering (command path)', () => {
     await placeCaretAtNote(remdo, 'note1');
     await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND, undefined, { expect: 'noop' });
     expect(remdo).toMatchOutline(outlineBefore);
+  });
+
+  it('reordering the zoom root is a no-op when the fallback would leave the zoom boundary', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+    const before = readOutline(remdo);
+
+    await placeCaretAtNote(remdo, 'note2');
+    await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND, undefined, { expect: 'noop' });
+    await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND, undefined, { expect: 'noop' });
+
+    expect(remdo).toMatchOutline(before);
+  });
+
+  it('reordering a zoom-subtree tail note is a no-op when fallback steps leave the zoom boundary', meta({ fixture: 'tree-complex', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+    const before = readOutline(remdo);
+
+    await placeCaretAtNote(remdo, 'note3');
+    await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND, undefined, { expect: 'noop' });
+    await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND, undefined, { expect: 'noop' });
+
+    expect(remdo).toMatchOutline(before);
   });
 
   it('move down from only child outdents when parent has no next sibling', meta({ fixture: 'tree' }), async ({ remdo }) => {

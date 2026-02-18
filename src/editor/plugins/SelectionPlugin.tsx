@@ -4,7 +4,7 @@ import { collapseSelectionToCaret, resolveBoundaryPoint } from '@/editor/outline
 import { $applyCaretEdge } from '@/editor/outline/selection/apply';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND, PROGRESSIVE_SELECTION_DIRECTION_COMMAND } from '@/editor/commands';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
-import { getSelectionBoundary } from '@/editor/outline/selection/boundary';
+import { getZoomBoundary } from '@/editor/outline/selection/boundary';
 import { $shouldBlockHorizontalArrow } from '@/editor/outline/selection/navigation';
 import {
   $applyProgressivePlan,
@@ -272,10 +272,10 @@ export function SelectionPlugin() {
     const unregisterSelectAll = editor.registerCommand(
       SELECT_ALL_COMMAND,
       (event: KeyboardEvent | null) => {
-        const boundaryKey = getSelectionBoundary(editor);
+        const zoomBoundaryKey = getZoomBoundary(editor);
         const planResult = editor
           .getEditorState()
-          .read(() => $computeProgressivePlan(progressionRef, INITIAL_PROGRESSIVE_STATE, boundaryKey));
+          .read(() => $computeProgressivePlan(progressionRef, INITIAL_PROGRESSIVE_STATE, zoomBoundaryKey));
 
         if (!planResult) {
           return false;
@@ -333,7 +333,7 @@ export function SelectionPlugin() {
     );
 
     const $runDirectionalPlan = (direction: 'up' | 'down') => {
-      const boundaryKey = getSelectionBoundary(editor);
+      const zoomBoundaryKey = getZoomBoundary(editor);
       const isBoundary = editor.getEditorState().read(() => {
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) {
@@ -342,7 +342,7 @@ export function SelectionPlugin() {
         if (!editor.selection.isStructural()) {
           return false;
         }
-        return $isDirectionalBoundary(selection, direction, boundaryKey);
+        return $isDirectionalBoundary(selection, direction, zoomBoundaryKey);
       });
 
       if (isBoundary) {
@@ -353,7 +353,12 @@ export function SelectionPlugin() {
 
       $addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
 
-      const planResult = $computeDirectionalPlan(progressionRef, direction, INITIAL_PROGRESSIVE_STATE, boundaryKey);
+      const planResult = $computeDirectionalPlan(
+        progressionRef,
+        direction,
+        INITIAL_PROGRESSIVE_STATE,
+        zoomBoundaryKey
+      );
       if (!planResult) {
         progressionRef.current = INITIAL_PROGRESSIVE_STATE;
         return;
