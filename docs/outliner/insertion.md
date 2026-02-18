@@ -1,16 +1,11 @@
 # Insertion (Enter) Semantics
 
 Defines how RemDo inserts new notes when `Enter` is pressed in **caret mode**.
+This spec assumes the caret is inside a single note and actions apply to the
+active note text. Unless stated otherwise, parent notes are expanded; folded and
+collapsed parent behavior is called out explicitly (see [Folding](./folding.md)).
 Structural mode still treats `Enter` as a no-op; see [Selection](./selection.md)
 for mode definitions.
-
-## Scope
-
-1. Caret is inside a single note (expanded parent unless stated otherwise).
-2. Actions apply to the active note’s text; structural selection rules are
-   unchanged.
-3. Folded/collapsed parents are called out separately; all other cases assume
-   the parent is expanded (see [Folding](./folding.md)).
 
 ## Default behavior (caret mode)
 
