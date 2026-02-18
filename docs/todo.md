@@ -29,20 +29,18 @@ Rules:
 
 ## Collaboration architecture roadmap [Future]
 
-Roadmap vocabulary and implementation planning from `temp.md` live here until
-promoted into dedicated spec docs.
-
 ### Stages and success criteria
 
 1. **Stage 0: single hub, online-first.**
    Success: one server is the single collaboration backend for docs.
 2. **Stage 1: offline doc persistence.**
    Success: an already-opened doc can be edited offline and syncs on reconnect.
-   Scope note: this is offline doc state, not necessarily offline app-shell
-   loading.
-3. **Stage 2: multi-hub client.**
+3. **Stage 2: offline app-shell loading.**
+   Success: the app shell can open offline (for example via PWA caching), even
+   before document data sync is available.
+4. **Stage 3: multi-hub client.**
    Success: one client can browse/edit docs from multiple trusted hubs.
-4. **Stage 2.5: local vault hub (optional).**
+5. **Stage 4: local vault hub (optional).**
    Success: local-only docs behave like normal docs and remain device-local.
 
 ### Implementation tracks

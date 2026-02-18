@@ -8,14 +8,6 @@ terms. It does not define outliner behavior or note/link identity boundaries;
 those remain in outliner docs. Multi-hub/federation terms in this doc are
 `[Future]`.
 
-## Related docs
-
-- `docs/environment.md` for env/deployment defaults and script sources of truth.
-- `docs/outliner/note-ids.md` and `docs/outliner/links.md` for document/link
-  identity behavior.
-- `docs/todo.md#collaboration-architecture-roadmap-future` for staged
-  implementation planning.
-
 ## Delivery Surfaces
 
 - **Hosted Web:** SPA served from server/CDN and loaded by browser.
