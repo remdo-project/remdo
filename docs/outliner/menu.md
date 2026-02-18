@@ -10,7 +10,9 @@
 ## Actions
 
 1. Toggle checked recursively per `./list-types.md`, shortcut `Cmd/Ctrl+Enter`.
-2. Fold/Unfold per `./folding.md` (`toggle` state), hidden for leaf notes, shortcut `F`.
+2. Fold/Unfold per `./folding.md` (`toggle` state), hidden for leaf notes,
+   shortcut `F` when menu is open (for the caret note this is `Shift`, `Shift`,
+   then `F`).
 3. Children list type actions per `./list-types.md`, showing only the two
    non-current options; hidden for leaf notes.
 4. Zoom per `./zoom.md`, shortcut `Z`.

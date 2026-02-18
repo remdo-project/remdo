@@ -72,6 +72,7 @@ export function NoteMenuPlugin() {
   const lastShiftRef = useRef(0);
   const shiftCanceledRef = useRef(false);
   const doubleShiftHandlerRef = useRef<((event: KeyboardEvent) => void) | null>(null);
+  const menuShortcutHandlerRef = useRef<((event: KeyboardEvent) => boolean) | null>(null);
 
   const setMenuState = useCallback((next: NoteMenuState | null) => {
     menuRef.current = next;
@@ -122,6 +123,30 @@ export function NoteMenuPlugin() {
     editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId });
     closeMenu();
     editor.focus();
+  };
+
+  menuShortcutHandlerRef.current = (event: KeyboardEvent) => {
+    const current = menuRef.current;
+    if (!current) {
+      return false;
+    }
+    if (event.altKey || event.ctrlKey || event.metaKey) {
+      return false;
+    }
+    const key = event.key.toLowerCase();
+    if (key === 'f' && current.hasChildren) {
+      event.preventDefault();
+      event.stopPropagation();
+      triggerFoldToggle();
+      return true;
+    }
+    if (key === 'z') {
+      event.preventDefault();
+      event.stopPropagation();
+      triggerZoom();
+      return true;
+    }
+    return false;
   };
 
   const handleRootFocusOut = useCallback(
@@ -191,11 +216,15 @@ export function NoteMenuPlugin() {
       if (!(active instanceof Node) || !root.contains(active)) {
         return;
       }
+      if (menuShortcutHandlerRef.current?.(event)) {
+        return;
+      }
       doubleShiftHandlerRef.current?.(event);
     };
     document.addEventListener('keydown', handleDocumentKeyDown);
     return () => {
       document.removeEventListener('keydown', handleDocumentKeyDown);
+      menuShortcutHandlerRef.current = null;
     };
   }, []);
 
