@@ -16,7 +16,7 @@ outdated or a doc’s role materially changes.
 
 - `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch conventions, and
   pre-1.0 compatibility policy (no default migration/back-compat requirements).
-- `docs/environment.md` (Long). Env setup for dev/test/prod/CI, including
+- `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, including
   single-container Docker deployment flow, same-host auth routing, worktrees,
   and blocked port guard.
 - `docs/index.md` (Medium). Documentation entry point with map, doc workflow, and invariants.
