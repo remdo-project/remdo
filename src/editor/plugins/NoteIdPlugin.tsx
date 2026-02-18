@@ -28,6 +28,7 @@ import { $createNoteLinkNode } from '#lib/editor/note-link-node';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import {
   $getOrCreateChildList,
+  getContentSiblings,
   insertBefore,
   isChildrenWrapper,
   flattenNoteNodes,
@@ -448,12 +449,22 @@ function $insertNodesAtSelection(
     }
 
     orderedHeads = sortHeadsByDocumentOrder(heads);
-    const lastHead = orderedHeads.at(-1)!;
-    parentList = lastHead.getParent();
-    if (!$isListNode(parentList)) {
-      return false;
+    const zoomBoundaryKey = getZoomBoundary(editor);
+    const zoomRootHead =
+      zoomBoundaryKey === null ? null : orderedHeads.find((head) => head.getKey() === zoomBoundaryKey) ?? null;
+    if (zoomRootHead) {
+      parentList = $getOrCreateChildList(zoomRootHead);
+      nextSibling = getFirstDescendantListItem(parentList);
+      const replacementHeads = orderedHeads.filter((head) => head !== zoomRootHead);
+      orderedHeads = replacementHeads.length > 0 ? replacementHeads : getContentSiblings(parentList);
+    } else {
+      const lastHead = orderedHeads.at(-1)!;
+      parentList = lastHead.getParent();
+      if (!$isListNode(parentList)) {
+        return false;
+      }
+      nextSibling = getNextContentSibling(lastHead);
     }
-    nextSibling = getNextContentSibling(lastHead);
   } else if ($isRangeSelection(selection) && selection.isCollapsed()) {
     const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
     if (!contentItem) {
