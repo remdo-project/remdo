@@ -1,9 +1,10 @@
 # Environment Configuration
 
 This document is the single source of truth for RemDo environment setup across
-dev, tests, prod (host + Docker), backup machines, and CI. All runtime defaults
-are derived in `tools/env.defaults.sh` (via `tools/env.sh`). Use `.env` only for
-overrides (it is optional).
+dev, tests, prod (host + Docker), backup machines, and CI.
+Var defaults and derivations are defined in `tools/env.defaults.sh` (via
+`tools/env.sh`) and are authoritative. Use `.env` only for overrides (it is
+optional).
 
 ## Dev (local)
 
@@ -68,20 +69,12 @@ DATA_DIR=data-optA
 - Required: `AUTH_PASSWORD`.
 - Typical setup: set `AUTH_PASSWORD` and, if needed, `PORT`; leave other
   auth URL vars on defaults.
-- Optional: `PORT` (defaults to 4000).
-- Optional: `AUTH_USER` (defaults to the current host username).
-- Optional: `PUBLIC_BASE_DOMAIN` (defaults from hostname:
-  single-label -> `app.<hostname>.shared`,
-  dotted/localhost/unknown -> `app.remdo.localhost`).
-- Optional: `TINYAUTH_APP_URL` (defaults to `http://${PUBLIC_BASE_DOMAIN}:${PORT}`).
+- `TINYAUTH_APP_URL` is optional.
   This is Tinyauth's configured app URL (validation/session URL) and the
   canonical browser entry host.
   Leave this unset unless you need a non-derived canonical host.
   If set manually, use the exact public URL users browse.
   Browser access must use this same host; alias hosts are not supported.
-- Optional: `TINYAUTH_PORT` (defaults to `PORT + 8`).
-- Optional: `COLLAB_SERVER_PORT` (defaults to `PORT + 4`).
-- Optional: `DATA_DIR` (defaults to `data/` under the repo root).
 - `DATA_DIR` is the host path for persistent data.
 
 ### Self-hosted (Docker)

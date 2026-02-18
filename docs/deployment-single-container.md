@@ -9,7 +9,8 @@ Docker image. It assumes a single external port.
   when present (copy `.env.example` and override what you need). The image tag
   defaults to `remdo` but can be set via `IMAGE_NAME`.
 
-Environment variables and defaults are documented in `docs/environment.md`.
+Environment usage is documented in `docs/environment.md`.
+Authoritative defaults and derivations are defined in `tools/env.defaults.sh`.
 
 Tinyauth protects both the SPA and Y-Sweet through Caddy `forward_auth`.
 `AUTH_USER` and `AUTH_PASSWORD` are used at startup to generate a
@@ -25,8 +26,8 @@ Auth routing is single-mode and same-host:
   `/api/auth/*`, `/resources/*`, `/assets/*`, etc.) to Tinyauth.
 - All other app routes stay on the SPA/Y-Sweet path behind `forward_auth`.
 
-`TINYAUTH_APP_URL` defaults to `http://${PUBLIC_BASE_DOMAIN}:${PORT}`.
-`PUBLIC_BASE_DOMAIN` defaults from host hostname (see `docs/environment.md`).
+Leave `TINYAUTH_APP_URL` and `PUBLIC_BASE_DOMAIN` unset unless you need
+explicit host overrides.
 
 The container exposes `PORT`; `/doc/*` and `/d*` are proxied to the collab
 server on `COLLAB_SERVER_PORT`. WebSockets are forwarded automatically by
