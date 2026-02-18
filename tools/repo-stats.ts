@@ -186,7 +186,7 @@ function parseArgs(argv: string[]): CliArguments {
 }
 
 function printUsage(): void {
-  process.stdout.write('Usage: pnpm run stats:repo [--json] [--update] [--threshold-ratio <0..1>]\n');
+  process.stdout.write('Usage: pnpm run audit:stats [--json] [--update] [--threshold-ratio <0..1>]\n');
 }
 
 function collectStats(): RepoStats {
@@ -250,14 +250,14 @@ function collectStats(): RepoStats {
 
 function readBaselineStats(): RepoStats {
   if (!fs.existsSync(baselinePath)) {
-    throw new Error('Missing repo-stats.json. Run "pnpm run stats:repo --update" to create it.');
+    throw new Error('Missing repo-stats.json. Run "pnpm run audit:stats --update" to create it.');
   }
 
   const content = fs.readFileSync(baselinePath, 'utf8');
   try {
     return JSON.parse(content) as RepoStats;
   } catch {
-    throw new Error('Failed to parse repo-stats.json. Run "pnpm run stats:repo --update" to regenerate it.');
+    throw new Error('Failed to parse repo-stats.json. Run "pnpm run audit:stats --update" to regenerate it.');
   }
 }
 
@@ -597,7 +597,7 @@ function printSummary(
         `  ${colorize('!', 'red')} ${metric.label}: ${formatInt(metric.baseline)} -> ${formatInt(metric.current)} (${formatSignedInt(metric.delta)}, ${formatSignedPercent(metric.deltaPct)}, limit ${thresholdRatio * 100}%)\n`,
       );
     }
-    process.stdout.write('  If expected, run: pnpm run stats:repo --update\n');
+    process.stdout.write('  If expected, run: pnpm run audit:stats --update\n');
   }
 }
 

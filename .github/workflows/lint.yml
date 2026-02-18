@@ -15,5 +15,5 @@ jobs:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-pnpm
       - run: pnpm run vendor:lexical
-      - run: pnpm run stats:repo
-      - run: pnpm run lint && pnpm run lint:lexical && pnpm run deps:list
+      - run: pnpm run audit:stats
+      - run: pnpm run lint && pnpm run lint:lexical
