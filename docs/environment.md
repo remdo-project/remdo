@@ -77,11 +77,36 @@ DATA_DIR=data-optA
   Browser access must use this same host; alias hosts are not supported.
 - `DATA_DIR` is the host path for persistent data.
 
-### Self-hosted (Docker)
+### Self-hosted (single-container Docker)
 
+- One-step: `./docker/run.sh` builds and runs the image using `.env` overrides
+  when present (copy `.env.example` and override what you need). The image tag
+  defaults to `remdo` but can be set via `IMAGE_NAME`.
+- This mode bundles the RemDo SPA, Y-Sweet, and Tinyauth in one image and
+  assumes a single external port.
+- For most deployments, set `AUTH_PASSWORD` and optionally `PORT`, then keep
+  derived auth URL vars on defaults.
+- Tinyauth protects both the SPA and Y-Sweet through Caddy `forward_auth`.
+- Auth routing is single-mode and same-host:
+  app and Tinyauth share the same external host and port; browser access must
+  use the same host configured in `TINYAUTH_APP_URL`; Caddy routes auth
+  UI/API paths (`/login`, `/logout`, `/api/user/*`, `/api/auth/*`,
+  `/resources/*`, `/assets/*`, etc.) to Tinyauth; all other app routes stay on
+  the SPA/Y-Sweet path behind `forward_auth`.
+- Leave `TINYAUTH_APP_URL` and `PUBLIC_BASE_DOMAIN` unset unless you need
+  explicit host overrides.
+- The container exposes `PORT`; `/doc/*` and `/d*` are proxied to the collab
+  server on `COLLAB_SERVER_PORT`. WebSockets are forwarded automatically by
+  Caddy. Health check: `GET /health` returns 200 without authentication.
 - `docker/run.sh` mounts host `DATA_DIR` to `/data` inside the container.
 - Inside the container, the app uses `DATA_DIR=/data`.
-- Y-Sweet data: `/data/collab`, backups: `/data/backup`.
+- Y-Sweet stores docs under `/data/collab` (host: `${DATA_DIR}/collab`).
+- Tinyauth stores state under `/data/tinyauth` (host: `${DATA_DIR}/tinyauth`).
+- Snapshot backups go under `/data/backup` (host: `${DATA_DIR}/backup`).
+- The image sets `PATH` to include `/usr/local/bin`, so bundled tools like
+  `snapshot.mjs` are available without per-script overrides.
+- The Dockerfile lives at `docker/Dockerfile`; run builds from repo root so
+  `data/.vendor/lexical` is available.
 - Self-hosted setups assume no external services; everything runs in the
   container.
 
