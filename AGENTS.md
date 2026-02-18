@@ -20,6 +20,11 @@ governance (map, workflow, invariants, and update rules), use `docs/index.md`.
   developer; do not start or kill them.
 - Background processes started from worktrees (by their unique ports) can be
   started or stopped by coding agents as needed without asking.
+- For parallel option exploration, keep worktrees as sibling directories (not
+  nested inside the main repo) and use a predictable naming pattern based on
+  base port (for example `remdo-7000`, `remdo-7000-wt-optA`).
+- Assign a unique `PORT` per worktree (for example base `PORT + 100`, `+200`)
+  to avoid collisions across dev servers, tests, and collab services.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
 - The project is in dev phase, do not introduce temporary shims when refactoring
