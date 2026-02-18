@@ -61,6 +61,11 @@ Default policy:
 5. If a change intentionally includes backward-compatible behavior, call that
    out in the task wrap-up message rather than as a review finding.
 
+## Documentation
+
+See `docs/index.md` for documentation navigation and maintenance rules:
+documentation map, doc workflow, and documentation invariants.
+
 ## Environment
 
 See `docs/environment.md` for the canonical environment setup across dev, tests,

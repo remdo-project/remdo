@@ -20,7 +20,7 @@ details.
 8. **Note menu:** `./menu.md` — note-scoped menu entry points, targets, and actions.
 9. **Clipboard:** `./clipboard.md` — cut/copy/paste behavior, caret placement, and move rules.
 10. **Indent/Outdent & structure rules:** `./note-structure-rules.md` — structural invariants and indent/outdent semantics.
-11. **Insertion (Enter):** `../insertion.md` — caret-mode Enter behaviors
+11. **Insertion (Enter):** `./insertion.md` — caret-mode Enter behaviors
     (start/middle/end), zoom-boundary insertion rules, and focus rules.
 12. **Reordering (keyboard):** `./reordering.md` — Reordering behavior and
    placement invariants.

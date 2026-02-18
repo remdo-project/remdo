@@ -44,7 +44,7 @@ live in [Links](./links.md).
   any inline selection as normal.
 - Pasting notes or multi-line plain text inserts multiple notes (one line per
   note for plain text).
-- Placement follows the caret-position rules from [Insertion](../insertion.md),
+- Placement follows the caret-position rules from [Insertion](./insertion.md),
   mirroring `Enter`:
   - Start of note: insert pasted notes as previous siblings (above).
   - Middle of note: split the note at the caret (prefix becomes a new sibling
