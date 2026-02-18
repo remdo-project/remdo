@@ -211,6 +211,47 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
   });
 
+  it(
+    'keeps structural paste replacements inside the zoom boundary when the zoom root is selected',
+    meta({ fixture: 'tree-complex', editorProps: { zoomNoteId: 'note2' } }),
+    async ({ remdo }) => {
+      await placeCaretAtNote(remdo, 'note2');
+      await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+      await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+
+      await pastePlainText(remdo, 'A\nB');
+
+      expect(remdo).toMatchOutline([
+        {
+          noteId: 'note1',
+          text: 'note1',
+          children: [
+            {
+              noteId: 'note2',
+              text: 'note2',
+              children: [
+                { noteId: null, text: 'A' },
+                { noteId: null, text: 'B' },
+              ],
+            },
+            { noteId: 'note4', text: 'note4' },
+          ],
+        },
+        { noteId: 'note5', text: 'note5' },
+        {
+          noteId: 'note6',
+          text: 'note6',
+          children: [{ noteId: 'note7', text: 'note7' }],
+        },
+      ]);
+
+      const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
+      expect(focusNote?.noteId).toBeTruthy();
+      expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
+    }
+  );
+
   it('replaces selected inline text while inserting notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note2');
     await pastePlainText(remdo, 'A\nB');
