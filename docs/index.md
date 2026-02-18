@@ -83,3 +83,9 @@ updated like other doc entries.
 6. **[Future] markers.** Sections or bullets tagged `[Future]` are exploratory;
    do not design, code, or test against them until they are promoted into the
    main spec.
+7. **Behavior changes require doc updates.** When behavior changes, update the
+   affected docs in the same change. If no doc update is needed, explicitly
+   state why.
+8. **Move/rename hygiene.** When moving or renaming docs, update all inbound
+   links and the documentation map in the same change; do not leave temporary
+   broken references.

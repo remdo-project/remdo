@@ -45,13 +45,7 @@ live in [Links](./links.md).
 - Pasting notes or multi-line plain text inserts multiple notes (one line per
   note for plain text).
 - Placement follows the caret-position rules from [Insertion](./insertion.md),
-  mirroring `Enter`:
-  - Start of note: insert pasted notes as previous siblings (above).
-  - Middle of note: split the note at the caret (prefix becomes a new sibling
-    above; suffix stays in the original note) and insert pasted notes between
-    the split notes.
-  - End of note: if the note has children and the parent is expanded, insert
-    pasted notes as the first child; otherwise insert as next siblings below.
+  mirroring `Enter`.
 - After a multi-note paste, focus lands at the end of the last inserted note.
 
 ## Identity
