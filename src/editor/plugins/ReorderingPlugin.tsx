@@ -1,4 +1,4 @@
-import type { ListItemNode, ListNode } from '@lexical/list';
+import type { ListItemNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
@@ -14,12 +14,21 @@ import {
   maybeRemoveEmptyWrapper,
 } from '@/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '@/editor/outline/schema';
+import {
+  $resolveZoomBoundaryRoot,
+  isWithinZoomBoundary,
+} from '@/editor/outline/selection/boundary';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import { getNextContentSibling, getParentContentItem } from '@/editor/outline/selection/tree';
 import { useEffect } from 'react';
 import { mergeRegister } from '@lexical/utils';
 
-function moveDownWithinList(notes: ListItemNode[], siblings: ListItemNode[]): boolean {
+
+function moveDownWithinList(notes: ListItemNode[], siblings: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
+  if (!notes.every((note) => isWithinZoomBoundary(note, boundaryRoot))) {
+    return false;
+  }
+
   const firstNote = notes[0];
   if (!firstNote) return false;
 
@@ -28,6 +37,7 @@ function moveDownWithinList(notes: ListItemNode[], siblings: ListItemNode[]): bo
   const endIndex = startIndex + notes.length - 1;
   const nextSibling = siblings[endIndex + 1];
   if (!nextSibling) return false;
+  if (!isWithinZoomBoundary(nextSibling, boundaryRoot)) return false;
 
   const nodesToMove = flattenNoteNodes(notes);
   const targetNodes = getNodesForNote(nextSibling);
@@ -37,7 +47,11 @@ function moveDownWithinList(notes: ListItemNode[], siblings: ListItemNode[]): bo
   return true;
 }
 
-function moveUpWithinList(notes: ListItemNode[], siblings: ListItemNode[]): boolean {
+function moveUpWithinList(notes: ListItemNode[], siblings: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
+  if (!notes.every((note) => isWithinZoomBoundary(note, boundaryRoot))) {
+    return false;
+  }
+
   const firstNote = notes[0];
   if (!firstNote) return false;
 
@@ -45,6 +59,7 @@ function moveUpWithinList(notes: ListItemNode[], siblings: ListItemNode[]): bool
   if (startIndex === -1) return false;
   const previousSibling = siblings[startIndex - 1];
   if (!previousSibling) return false;
+  if (!isWithinZoomBoundary(previousSibling, boundaryRoot)) return false;
 
   const nodesToMove = flattenNoteNodes(notes);
   insertBefore(previousSibling, nodesToMove);
@@ -53,8 +68,13 @@ function moveUpWithinList(notes: ListItemNode[], siblings: ListItemNode[]): bool
 
 function $moveToParentSiblingChildList(
   notes: ListItemNode[],
-  direction: 'up' | 'down'
+  direction: 'up' | 'down',
+  boundaryRoot: ListItemNode | null
 ): boolean {
+  if (!notes.every((note) => isWithinZoomBoundary(note, boundaryRoot))) {
+    return false;
+  }
+
   const firstNote = notes[0];
   if (!firstNote) return false;
 
@@ -63,12 +83,14 @@ function $moveToParentSiblingChildList(
 
   const parentContent = getParentContentItem(firstNote);
   if (!parentContent) return false;
+  if (!isWithinZoomBoundary(parentContent, boundaryRoot)) return false;
 
   const targetParent =
     direction === 'down'
       ? getNextContentSibling(parentContent)
       : getPreviousContentSibling(parentContent);
   if (!targetParent) return false;
+  if (!isWithinZoomBoundary(targetParent, boundaryRoot)) return false;
 
   const nodesToMove = flattenNoteNodes(notes);
   const targetList = $getOrCreateChildList(targetParent);
@@ -89,7 +111,11 @@ function $moveToParentSiblingChildList(
   return true;
 }
 
-function outdentSelection(notes: ListItemNode[], direction: 'up' | 'down'): boolean {
+function outdentSelection(notes: ListItemNode[], direction: 'up' | 'down', boundaryRoot: ListItemNode | null): boolean {
+  if (!notes.every((note) => isWithinZoomBoundary(note, boundaryRoot))) {
+    return false;
+  }
+
   const firstNote = notes[0];
   if (!firstNote) return false;
 
@@ -98,6 +124,10 @@ function outdentSelection(notes: ListItemNode[], direction: 'up' | 'down'): bool
 
   const parentContent = getParentContentItem(firstNote);
   if (!parentContent) return false;
+  if (!isWithinZoomBoundary(parentContent, boundaryRoot)) return false;
+  if (boundaryRoot && parentContent.getKey() === boundaryRoot.getKey()) {
+    return false;
+  }
 
   const nodesToMove = flattenNoteNodes(notes);
   if (direction === 'down') {
@@ -115,11 +145,10 @@ function outdentSelection(notes: ListItemNode[], direction: 'up' | 'down'): bool
 
 interface SelectionContext {
   notes: ListItemNode[];
-  parentList: ListNode;
   siblings: ListItemNode[];
 }
 
-function $getSelectionContext(): SelectionContext | null {
+function $getSelectionContext(boundaryRoot: ListItemNode | null): SelectionContext | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) return null;
 
@@ -139,29 +168,32 @@ function $getSelectionContext(): SelectionContext | null {
   if (!$isListNode(parentList)) return null;
 
   const siblings = getContentSiblings(parentList);
+  if (boundaryRoot && !notes.every((note) => isWithinZoomBoundary(note, boundaryRoot))) {
+    return null;
+  }
 
-  return { notes, parentList, siblings };
+  return { notes, siblings };
 };
 
-function $moveSelectionDown(): boolean {
-  const ctx = $getSelectionContext();
+function $moveSelectionDown(boundaryRoot: ListItemNode | null): boolean {
+  const ctx = $getSelectionContext(boundaryRoot);
   if (!ctx) return false;
   const { notes, siblings } = ctx;
   return (
-    moveDownWithinList(notes, siblings)
-    || $moveToParentSiblingChildList(notes, 'down')
-    || outdentSelection(notes, 'down')
+    moveDownWithinList(notes, siblings, boundaryRoot)
+    || $moveToParentSiblingChildList(notes, 'down', boundaryRoot)
+    || outdentSelection(notes, 'down', boundaryRoot)
   );
 }
 
-function $moveSelectionUp(): boolean {
-  const ctx = $getSelectionContext();
+function $moveSelectionUp(boundaryRoot: ListItemNode | null): boolean {
+  const ctx = $getSelectionContext(boundaryRoot);
   if (!ctx) return false;
   const { notes, siblings } = ctx;
   return (
-    moveUpWithinList(notes, siblings)
-    || $moveToParentSiblingChildList(notes, 'up')
-    || outdentSelection(notes, 'up')
+    moveUpWithinList(notes, siblings, boundaryRoot)
+    || $moveToParentSiblingChildList(notes, 'up', boundaryRoot)
+    || outdentSelection(notes, 'up', boundaryRoot)
   );
 }
 
@@ -169,9 +201,18 @@ export function ReorderingPlugin() {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
+    const $moveUp = () => {
+      const boundaryRoot = $resolveZoomBoundaryRoot(editor);
+      return $moveSelectionUp(boundaryRoot);
+    };
+    const $moveDown = () => {
+      const boundaryRoot = $resolveZoomBoundaryRoot(editor);
+      return $moveSelectionDown(boundaryRoot);
+    };
+
     return mergeRegister(
-      editor.registerCommand(REORDER_NOTES_UP_COMMAND, $moveSelectionUp, COMMAND_PRIORITY_LOW),
-      editor.registerCommand(REORDER_NOTES_DOWN_COMMAND, $moveSelectionDown, COMMAND_PRIORITY_LOW)
+      editor.registerCommand(REORDER_NOTES_UP_COMMAND, $moveUp, COMMAND_PRIORITY_LOW),
+      editor.registerCommand(REORDER_NOTES_DOWN_COMMAND, $moveDown, COMMAND_PRIORITY_LOW)
     );
   }, [editor]);
 

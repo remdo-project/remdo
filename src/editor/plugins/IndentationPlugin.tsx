@@ -5,14 +5,42 @@ import { useEffect } from 'react';
 import { $indentNote, $outdentNote } from '../lexical-helpers';
 import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { getPreviousContentSibling } from '@/editor/outline/list-structure';
+import { $resolveZoomBoundaryRoot, isWithinZoomBoundary } from '@/editor/outline/selection/boundary';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
-import { getParentContentItem } from '@/editor/outline/selection/tree';
+import { getParentContentItem, isContentDescendantOf } from '@/editor/outline/selection/tree';
 
-const hasPreviousContentSibling = (noteItem: ListItemNode): boolean => getPreviousContentSibling(noteItem) !== null;
+const hasPreviousContentSibling = (noteItem: ListItemNode, boundaryRoot: ListItemNode | null): boolean => {
+  const previous = getPreviousContentSibling(noteItem);
+  if (!previous) {
+    return false;
+  }
+  return isWithinZoomBoundary(previous, boundaryRoot);
+};
 
-const canIndentNote = (noteItem: ListItemNode): boolean => hasPreviousContentSibling(noteItem);
+const canIndentNote = (noteItem: ListItemNode, boundaryRoot: ListItemNode | null): boolean => {
+  if (!isWithinZoomBoundary(noteItem, boundaryRoot)) {
+    return false;
+  }
+  return hasPreviousContentSibling(noteItem, boundaryRoot);
+};
 
-const canOutdentNote = (noteItem: ListItemNode): boolean => getParentContentItem(noteItem) !== null;
+const canOutdentNote = (noteItem: ListItemNode, boundaryRoot: ListItemNode | null): boolean => {
+  if (!isWithinZoomBoundary(noteItem, boundaryRoot)) {
+    return false;
+  }
+
+  const parent = getParentContentItem(noteItem);
+  if (!parent) {
+    return false;
+  }
+  if (!boundaryRoot) {
+    return true;
+  }
+  if (!isContentDescendantOf(parent, boundaryRoot)) {
+    return false;
+  }
+  return parent.getKey() !== boundaryRoot.getKey();
+};
 
 export function IndentationPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -42,10 +70,11 @@ export function IndentationPlugin() {
           return false;
         }
 
+        const boundaryRoot = $resolveZoomBoundaryRoot(editor);
         event.preventDefault();
 
         if (event.shiftKey) {
-          const allCanOutdent = rootItems.every(canOutdentNote);
+          const allCanOutdent = rootItems.every((item) => canOutdentNote(item, boundaryRoot));
           if (!allCanOutdent) {
             return true;
           }
@@ -55,7 +84,7 @@ export function IndentationPlugin() {
           }
         } else {
           // Check if all notes can be indented before attempting to indent any
-          const allCanIndent = rootItems.every(canIndentNote);
+          const allCanIndent = rootItems.every((item) => canIndentNote(item, boundaryRoot));
           if (!allCanIndent) {
             // If any note can't be indented, make the entire operation a no-op
             return true;

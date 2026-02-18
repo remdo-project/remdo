@@ -26,6 +26,20 @@ mode definitions.
    parent), insert a next sibling immediately below. Focus always moves to the
    newly created note.
 
+## Zoom boundary behavior (caret mode)
+
+When zoom is active, default insertion still applies except where it would place
+the new note outside the zoom boundary. In those cases, insertion stays inside
+the zoom root subtree:
+
+1. **Caret in zoom root at start** – insert a new first child.
+2. **Caret in zoom root in middle** – split the zoom root so text before the
+   caret becomes a new first child; the zoom root keeps trailing text and
+   existing children.
+3. **Caret in zoom root at end** – insert a new first child.
+4. For all other notes inside the zoom boundary, use default start/middle/end
+   behavior.
+
 ## Focus rules
 
 1. **Start of note:** place the caret in the new sibling above so typing
@@ -34,6 +48,8 @@ mode definitions.
    caret) so the trailing text remains the active line.
 3. **End of note:** place the caret at the start of the newly created note
    (child or sibling) so typing immediately fills it.
+4. In zoom-boundary insertion at the zoom root, focus follows the same
+   start/middle/end policy above (child for start/end, zoom root for middle).
 
 ## Paste placement (caret mode)
 

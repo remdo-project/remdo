@@ -26,6 +26,7 @@ import {
 } from '@/editor/outline/list-structure';
 import { $requireRootContentList, $resolveRootContentList, resolveContentItemFromNode } from '@/editor/outline/schema';
 import { $normalizeOutlineRoot } from '@/editor/outline/normalization';
+import { $resolveZoomBoundaryRoot, isWithinZoomBoundary } from '@/editor/outline/selection/boundary';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
 import {
@@ -37,9 +38,8 @@ import {
   getSubtreeTail,
   removeNoteSubtree,
   sortHeadsByDocumentOrder,
+  isContentDescendantOf,
 } from '@/editor/outline/selection/tree';
-import { setZoomMergeHint } from '@/editor/zoom/zoom-change-hints';
-import { $getNoteId } from '#lib/editor/note-id-state';
 
 function getParentNote(list: ListNode): ListItemNode | null {
   const wrapper = list.getParent();
@@ -73,25 +73,6 @@ function isDescendantOf(node: LexicalNode, ancestor: LexicalNode): boolean {
     current = current.getParent();
   }
   return false;
-}
-
-function findLowestCommonAncestor(left: ListItemNode, right: ListItemNode): ListItemNode | null {
-  const leftKeys = new Set<string>();
-  let current: ListItemNode | null = left;
-  while (current) {
-    leftKeys.add(current.getKey());
-    current = getParentContentItem(current);
-  }
-
-  current = right;
-  while (current) {
-    if (leftKeys.has(current.getKey())) {
-      return current;
-    }
-    current = getParentContentItem(current);
-  }
-
-  return null;
 }
 
 function isCollapsedSelectionAtEdge(
@@ -188,9 +169,9 @@ function $moveChildrenToTarget(
     return true;
   }
 
-    const targetList = $getOrCreateChildList(target);
-    targetList.append(...nodesToMove);
-    return true;
+  const targetList = $getOrCreateChildList(target);
+  targetList.append(...nodesToMove);
+  return true;
 }
 
 function getNextNoteInDocumentOrder(item: ListItemNode): ListItemNode | null {
@@ -251,7 +232,10 @@ function resolveCaretPlanAfterRemoval(item: ListItemNode): CaretPlan | null {
   return null;
 }
 
-function resolveCaretPlanAfterStructuralDeletion(heads: ListItemNode[]): CaretPlan | null {
+function resolveCaretPlanAfterStructuralDeletion(
+  heads: ListItemNode[],
+  boundaryRoot: ListItemNode | null
+): CaretPlan | null {
   if (heads.length === 0) {
     return null;
   }
@@ -259,19 +243,19 @@ function resolveCaretPlanAfterStructuralDeletion(heads: ListItemNode[]): CaretPl
   const orderedHeads = sortHeadsByDocumentOrder(heads);
   const lastHead = orderedHeads.at(-1)!;
   const nextSibling = getNextContentSibling(lastHead);
-  if (nextSibling) {
+  if (nextSibling && isWithinZoomBoundary(nextSibling, boundaryRoot)) {
     return { target: nextSibling, edge: 'start' };
   }
 
   const firstHead = orderedHeads[0]!;
   const previousSibling = getPreviousContentSibling(firstHead);
-  if (previousSibling) {
+  if (previousSibling && isWithinZoomBoundary(previousSibling, boundaryRoot)) {
     return { target: getSubtreeTail(previousSibling), edge: 'end' };
   }
 
   const parentList = firstHead.getParent();
   const parentNote = $isListNode(parentList) ? getParentNote(parentList) : null;
-  if (parentNote) {
+  if (parentNote && isWithinZoomBoundary(parentNote, boundaryRoot)) {
     return { target: parentNote, edge: 'end' };
   }
 
@@ -365,7 +349,8 @@ export function DeletionPlugin() {
       event?.preventDefault();
       event?.stopPropagation();
 
-      const caretPlan = resolveCaretPlanAfterStructuralDeletion(heads);
+      const boundaryRoot = $resolveZoomBoundaryRoot(editor);
+      const caretPlan = resolveCaretPlanAfterStructuralDeletion(heads, boundaryRoot);
       const orderedHeads = sortHeadsByDocumentOrder(heads);
 
       for (const head of orderedHeads.toReversed()) {
@@ -375,6 +360,10 @@ export function DeletionPlugin() {
       let caretApplied = false;
       if (caretPlan) {
         caretApplied = $selectItemEdge(caretPlan.target, caretPlan.edge);
+      }
+
+      if (!caretApplied && boundaryRoot && boundaryRoot.isAttached()) {
+        caretApplied = $selectItemEdge(boundaryRoot, 'start');
       }
 
       if (!caretApplied) {
@@ -426,23 +415,17 @@ export function DeletionPlugin() {
       const targetIsEmptyLeaf = !targetHasChildren && isEmptyNote(target);
 
       if (targetIsEmptyLeaf) {
-        const mergeAncestor = findLowestCommonAncestor(current, target);
-        setZoomMergeHint(editor, mergeAncestor ? $getNoteId(mergeAncestor) : null);
         removeNoteSubtree(target);
         $selectItemEdge(current, 'start');
         return true;
       }
 
       if (currentIsEmptyLeaf) {
-        const mergeAncestor = findLowestCommonAncestor(current, target);
-        setZoomMergeHint(editor, mergeAncestor ? $getNoteId(mergeAncestor) : null);
         removeNoteSubtree(current);
         $selectItemEdge(target, 'end');
         return true;
       }
 
-      const mergeAncestor = findLowestCommonAncestor(current, target);
-      setZoomMergeHint(editor, mergeAncestor ? $getNoteId(mergeAncestor) : null);
       const leftText = target.getTextContent();
       const rightText = current.getTextContent();
       const { merged, joinOffset } = computeMergeText(leftText, rightText);
@@ -476,6 +459,10 @@ export function DeletionPlugin() {
 
         event?.preventDefault();
         event?.stopPropagation();
+        const boundaryRoot = $resolveZoomBoundaryRoot(editor);
+        if (boundaryRoot && contentItem.getKey() === boundaryRoot.getKey()) {
+          return true;
+        }
 
         return $mergeAtStartOfNote(selection, contentItem);
       },
@@ -497,13 +484,20 @@ export function DeletionPlugin() {
 
         event?.preventDefault();
         event?.stopPropagation();
+        const boundaryRoot = $resolveZoomBoundaryRoot(editor);
+        const nextNote = getNextNoteInDocumentOrder(contentItem);
+        const nextNoteOutsideBoundary =
+          boundaryRoot !== null && nextNote !== null && !isContentDescendantOf(nextNote, boundaryRoot);
 
         const currentHasChildren = noteHasChildren(contentItem);
         const currentIsEmptyLeaf = !currentHasChildren && isEmptyNote(contentItem);
 
         if (currentIsEmptyLeaf) {
+          if (boundaryRoot && contentItem.getKey() === boundaryRoot.getKey() && (!nextNote || nextNoteOutsideBoundary)) {
+            return true;
+          }
+
           const previousNote = getPreviousNoteInDocumentOrder(contentItem);
-          const nextNote = getNextNoteInDocumentOrder(contentItem);
           if (!previousNote && !nextNote) {
             $selectItemEdge(contentItem, 'end');
             return true;
@@ -517,8 +511,10 @@ export function DeletionPlugin() {
           return true;
         }
 
-        const nextNote = getNextNoteInDocumentOrder(contentItem);
         if (!nextNote) {
+          return true;
+        }
+        if (nextNoteOutsideBoundary) {
           return true;
         }
 
