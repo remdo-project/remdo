@@ -57,6 +57,12 @@ Client-side storage for collaboration state.
 - Web/webview default: IndexedDB.
 - `[Future]` native desktop options: filesystem or SQLite-backed store.
 
+### Hydration vs sync
+
+- **Hydrated:** document state is ready for editing (from local persistence or
+  server sync).
+- **Synced:** provider is connected and has no pending unsent local changes.
+
 ## Multi-Hub Vocabulary [Future]
 
 The terms below are exploratory and must not be treated as implementation

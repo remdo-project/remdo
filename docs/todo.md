@@ -55,3 +55,23 @@ Rules:
 3. **Access-control edge cases**
    - If read-only access is introduced, ensure local/offline channels do not
      violate intended permissions.
+
+## To discuss
+
+1. **Offline support guard is runtime safety, not just a test workaround.**
+   - Keep capability gating for `offlineSupport` in runtime provider creation;
+     insecure contexts can lack `crypto.subtle`, and unguarded enablement can
+     crash startup.
+2. **Expose explicit offline persistence mode via env.**
+   - Add `COLLAB_OFFLINE_SUPPORT=auto|on|off`.
+   - `auto`: capability-gated (current behavior).
+   - `off`: deterministic runs that avoid IndexedDB path.
+   - `on`: force offline path and fail fast where unsupported.
+3. **Do not replace collab-backed e2e with IndexedDB-only e2e.**
+   - Keep Y-Sweet-backed e2e for cross-route/cross-context sync behavior and
+     collaboration readiness guarantees.
+   - Add a dedicated offline-focused e2e slice for IndexedDB behavior
+     (reopen/reconnect/recovery) in a trustworthy origin.
+4. **Harden Playwright base URL host handling.**
+   - Normalize `HOST` through `resolveLoopbackHost` when building e2e base URL
+     so `0.0.0.0` does not force a non-trustworthy browser origin.

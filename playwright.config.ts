@@ -2,8 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 import process from 'node:process';
 import os from 'node:os';
 import { config } from './config';
+import { resolveLoopbackHost } from './lib/net/loopback';
 
-const host = config.env.HOST;
+const host = resolveLoopbackHost(config.env.HOST, '127.0.0.1');
 const port = config.env.PORT;
 const baseURL = `http://${host}:${port}`;
 
