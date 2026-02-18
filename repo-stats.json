@@ -1,32 +1,32 @@
 {
-  "generatedAt": "2026-02-14T23:02:53.491Z",
+  "generatedAt": "2026-02-18T10:05:53.175Z",
   "files": {
-    "totalFiles": 315,
-    "textFiles": 315,
+    "totalFiles": 313,
+    "textFiles": 313,
     "byType": {
       "ts": {
-        "files": 163,
-        "lines": 15515
+        "files": 160,
+        "lines": 15751
       },
       "tsx": {
-        "files": 48,
-        "lines": 6630
+        "files": 49,
+        "lines": 6680
       },
       "json": {
         "files": 29,
-        "lines": 2144
+        "lines": 2140
       },
       "md": {
         "files": 20,
-        "lines": 1282
+        "lines": 1369
       },
       "yml": {
         "files": 15,
-        "lines": 237
+        "lines": 244
       },
       "sh": {
         "files": 10,
-        "lines": 388
+        "lines": 420
       },
       "svg": {
         "files": 8,
@@ -36,13 +36,13 @@
         "files": 6,
         "lines": 597
       },
+      "mts": {
+        "files": 3,
+        "lines": 337
+      },
       "jsonc": {
         "files": 2,
         "lines": 46
-      },
-      "mts": {
-        "files": 2,
-        "lines": 378
       },
       "yaml": {
         "files": 2,
@@ -50,7 +50,7 @@
       },
       "caddyfile": {
         "files": 1,
-        "lines": 26
+        "lines": 75
       },
       "codeowners": {
         "files": 1,
@@ -58,11 +58,11 @@
       },
       "dockerfile": {
         "files": 1,
-        "lines": 63
+        "lines": 70
       },
       "example": {
         "files": 1,
-        "lines": 8
+        "lines": 27
       },
       "gitignore": {
         "files": 1,
@@ -71,10 +71,6 @@
       "html": {
         "files": 1,
         "lines": 13
-      },
-      "js": {
-        "files": 1,
-        "lines": 61
       },
       "license": {
         "files": 1,
@@ -87,18 +83,18 @@
     }
   },
   "tests": {
-    "unit": 321,
-    "collab": 354,
+    "unit": 345,
+    "collab": 378,
     "e2e": 78,
-    "totalUnique": 432
+    "totalUnique": 456
   },
   "totals": {
     "files": {
-      "files": 314,
-      "lines": 27538
+      "files": 312,
+      "lines": 27919
     },
     "tests": {
-      "totalUnique": 432
+      "totalUnique": 456
     }
   }
 }
