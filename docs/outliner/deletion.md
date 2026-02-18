@@ -1,7 +1,7 @@
 # Deletion
 
 Defines how `Backspace` (Mac "Delete") and forward `Delete` behave. Selection
-semantics are defined in `docs/outliner/selection.md`.
+semantics are defined in [Selection](./selection.md).
 
 ## Caret mode (collapsed caret or inline range)
 

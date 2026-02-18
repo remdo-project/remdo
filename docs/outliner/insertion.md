@@ -1,8 +1,8 @@
 # Insertion (Enter) Semantics
 
 Defines how RemDo inserts new notes when `Enter` is pressed in **caret mode**.
-Structural mode still treats `Enter` as a no-op; see `docs/selection.md` for
-mode definitions.
+Structural mode still treats `Enter` as a no-op; see [Selection](./selection.md)
+for mode definitions.
 
 ## Scope
 
@@ -10,7 +10,7 @@ mode definitions.
 2. Actions apply to the active note’s text; structural selection rules are
    unchanged.
 3. Folded/collapsed parents are called out separately; all other cases assume
-   the parent is expanded (see `docs/outliner/folding.md`).
+   the parent is expanded (see [Folding](./folding.md)).
 
 ## Default behavior (caret mode)
 
@@ -56,4 +56,4 @@ the zoom root subtree:
 When a paste inserts multiple notes, its placement follows the same
 start/middle/end rules as `Enter`. Clipboard details (including how multi-line
 plain text is interpreted and focus after paste) live in
-[Clipboard](./outliner/clipboard.md).
+[Clipboard](./clipboard.md).

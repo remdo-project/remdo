@@ -26,7 +26,7 @@ note identities.
 5. If folding would hide the active selection, it collapses to the folded note
    (caret at end of its text). Hidden descendants are not selectable.
 6. Structural operations remain subtree-atomic; insertion rules in
-   `docs/insertion.md` are unchanged. If a child is inserted or moved under a
+   [Insertion](./insertion.md) are unchanged. If a child is inserted or moved under a
    folded parent, the parent auto-expands. If a note loses its last child, it is
    no longer folded.
 7. Zoom defines the outer visible subtree; folding applies inside that view and

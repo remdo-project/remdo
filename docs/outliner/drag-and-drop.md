@@ -4,7 +4,7 @@
 
 Drag-and-drop reordering is currently not supported in RemDo.
 
-## Planned placement semantics (future)
+## [Future] Planned placement semantics
 
 - **Indent via placement:** Dropping onto a note (or into its “make child”
   affordance) would indent the dragged note under that target when the target is

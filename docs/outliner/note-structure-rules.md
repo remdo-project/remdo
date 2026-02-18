@@ -67,7 +67,7 @@ entire subtree, preventing orphaned children or broken hierarchies.
 
 _Note:_ Deletion merges are an explicit exception: when two notes are merged,
 the removed note's children may be reparented to the survivor. See
-`docs/outliner/deletion.md` for the full rule set.
+[Deletion](./deletion.md) for the full rule set.
 
 ## Valid Indentation
 

@@ -56,7 +56,7 @@ caret/selection state in the editor.
 
 ## Boundary-specific command rules
 
-1. `Enter` boundary behavior is defined in [Insertion](../insertion.md).
+1. `Enter` boundary behavior is defined in [Insertion](./insertion.md).
 2. `Backspace`/`Delete` boundary behavior is defined in
    [Deletion](./deletion.md).
 3. Indent/outdent boundary behavior is defined in

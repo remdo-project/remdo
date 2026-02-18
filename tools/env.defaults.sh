@@ -13,6 +13,8 @@
 : "${VITEST_PREVIEW:=false}"
 : "${TMPDIR:=${REMDO_ROOT%/}/node_modules/.cache/vitest-tmp}" # Keep Vitest temp files out of repo root and shared with vitest-preview.
 
+# Derive a same-host canonical app base domain when no explicit override is provided.
+# Single-label hostnames map to app.<hostname>.shared; dotted/localhost/unknown map to app.remdo.localhost.
 if [ -z "${PUBLIC_BASE_DOMAIN:-}" ]; then
   derived_hostname="${REMDO_HOSTNAME:-${HOSTNAME:-}}"
 
@@ -33,6 +35,7 @@ if [ -z "${PUBLIC_BASE_DOMAIN:-}" ]; then
   esac
 fi
 
+# Default AUTH_USER to the current shell user.
 if [ -z "${AUTH_USER:-}" ]; then
   if [ -n "${USER:-}" ]; then
     AUTH_USER="${USER}"
@@ -41,10 +44,12 @@ if [ -z "${AUTH_USER:-}" ]; then
   fi
 fi
 
+# Resolve relative DATA_DIR paths against the repo root.
 if [ -n "${REMDO_ROOT:-}" ] && [ "${DATA_DIR#"/"}" = "${DATA_DIR}" ]; then
   DATA_DIR="${REMDO_ROOT%/}/${DATA_DIR}"
 fi
 
+# Derive all service/tool ports from the base PORT to keep multi-workdir runs predictable.
 : "${HMR_PORT:=$((PORT + 1))}"
 : "${VITEST_PORT:=$((PORT + 2))}"
 : "${VITEST_PREVIEW_PORT:=$((PORT + 3))}"
@@ -54,8 +59,10 @@ fi
 : "${PLAYWRIGHT_UI_PORT:=$((PORT + 6))}"
 : "${DOCKER_TEST_PORT:=$((PORT + 7))}"
 : "${TINYAUTH_PORT:=$((PORT + 8))}"
+# Tinyauth validates sessions against this canonical app URL/host.
 : "${TINYAUTH_APP_URL:=http://${PUBLIC_BASE_DOMAIN}:${PORT}}"
 
+# Chromium blocks these ports; fail fast if base or derived ports land on one.
 restricted_ports="0 1 7 9 11 13 15 17 19 20 21 22 23 25 37 42 43 53 69 77 79 87 95 \
 101 102 103 104 109 110 111 113 115 117 119 123 135 137 139 143 161 179 389 427 \
 465 512 513 514 515 526 530 531 532 540 548 554 556 563 587 601 636 989 990 993 \

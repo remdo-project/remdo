@@ -11,100 +11,8 @@ on those baselines—no legacy browser shims.
 
 AGENTS.md is the only doc you must read at the start of every session. Do one
 full pass through the `docs/` folder when you onboard, then revisit only the
-sections relevant to your current task—use edits, diffs, and the map below to
-decide what matters.
-
-## Documentation Map
-
-Length buckets: Short (<300 words), Medium (300–800), Long (800–1500), Very long
-(>1500). Update a doc’s bucket only when it crosses a boundary.
-Map format: maintain alphabetical order and wrap entries at ~100 characters per
-line (align continuation lines by two spaces).
-Keep the map current—refresh summaries/buckets only when they are materially
-outdated or a doc’s role materially changes.
-
-- `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch conventions, and
-  pre-1.0 compatibility policy (no default migration/back-compat requirements).
-- `docs/deployment-single-container.md` (Short). Single-container build/run (Caddy + Y-Sweet +
-  Tinyauth), same-host auth routing, `PORT`/`COLLAB_SERVER_PORT`, and `DATA_DIR` mapping.
-- `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, Tinyauth Docker vars,
-  including hostname-derived same-host defaults/overrides, worktrees, and blocked port guard.
-- `docs/insertion.md` (Medium). Caret-mode `Enter` behavior, zoom-boundary
-  insertion rules, focus rules, and paste placement pointer.
-- `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
-  handling, caret placement, and move marker behavior.
-- `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
-- `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge/reparent
-  rules, spacing.
-- `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).
-- `docs/outliner/folding.md` (Short). Note folding behavior, toggle visibility (hover/caret),
-  persistence, and auto-expand rules.
-- `docs/outliner/index.md` (Medium). Entry point with links (including list
-  types); single-source invariants rule.
-- `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,
-  rendering, and toggle commands.
-- `docs/outliner/links.md` (Medium). Note-linking behavior: `@` query
-  flow, whole-document search/ranking, runtime fully qualified link identity,
-  clipboard/persistence docId boundaries, and cross-document roadmap limits.
-- `docs/outliner/menu.md` (Short). Note menu entry points, icon visibility (hover/caret),
-  targets, and actions (toggle checked/fold/zoom/child list types).
-- `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization,
-  runtime document-id ownership, clipboard identity rules, collab, and
-  `noteRef`.
-- `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indentation
-  semantics; indent/outdent rules; deletion-merge exception.
-- `docs/outliner/reordering.md` (Short). Directional reorder fallback cascade: swap,
-  parent-sibling reparent, outdent, then no-op.
-- `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
-- `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
-  scope, breadcrumbs, and routing.
-- `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs;
-  tracks paste-placement e2e follow-up and prod schema recovery decisions.
-Whenever you edit any of these docs, update their summaries/buckets here so the
-map stays trustworthy.
-
-## Doc Workflow
-
-1. Before coding, identify the feature area and read the matching sections from
-   the map above; do not reread unrelated docs.
-2. While working, deep-link to the authoritative doc (e.g.,
-   `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
-   source of truth.
-3. After modifying documentation, refresh this map so the pointers stay current.
-   Do not add update-tracking sections to AGENTS.md.
-
-### Documentation invariants
-
-1. **Single source per topic.** Define each behavior once in the doc best suited
-   to it; eliminate duplicates and replace any extra copies with pointers.
-2. **Top-down linking.** Prefer links from higher-level docs (index, concepts)
-   into detailed docs (selection, indent/outdent, reordering); same-level links
-   only when they add clear value.
-3. **Self-contained set.** Keep required context inside this doc set; avoid
-   external references.
-4. **Coherence checks.** When editing a doc, ensure the change aligns with
-   existing resolutions and update related docs/maps if needed.
-5. **Intentional gaps.** Stubs/placeholders are acceptable in dev—mark status
-   clearly when a section is partial.
-6. **[Future] markers.** Sections or bullets tagged `[Future]` are exploratory;
-   do not design, code, or test against them until they are promoted into the
-   main spec.
-
-### Core ideas
-
-- **Structure-first.** Notes form a hierarchical tree; every note is addressable
-  and linkable.
-- **Collaboration by default.** Real-time multi-user editing with clear
-  attribution.
-- **Small, composable primitives.** Predictable behaviors, minimal UI,
-  consistent commands.
-
-### What is a note?
-
-Refer to `docs/outliner/concepts.md` for the canonical definition of a note,
-including its invariants, structure, and adapter contracts. In short, notes are
-the addressable, typed units that form RemDo’s ordered tree; the concepts
-document captures the full model.
+sections relevant to your current task. For documentation navigation and
+governance (map, workflow, invariants, and update rules), use `docs/index.md`.
 
 ## Safety & Process
 
@@ -112,6 +20,11 @@ document captures the full model.
   developer; do not start or kill them.
 - Background processes started from worktrees (by their unique ports) can be
   started or stopped by coding agents as needed without asking.
+- For parallel option exploration, keep worktrees as sibling directories (not
+  nested inside the main repo) and use a predictable naming pattern based on
+  base port (for example `remdo-7000`, `remdo-7000-wt-optA`).
+- Assign a unique `PORT` per worktree (for example base `PORT + 100`, `+200`)
+  to avoid collisions across dev servers, tests, and collab services.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
 - The project is in dev phase, do not introduce temporary shims when refactoring
@@ -119,8 +32,8 @@ document captures the full model.
 - Always focus on the simplest and shortest possible implementation that meets
   the request. Propose any additional guards, optimisations, checks, etc. as
   follow ups instead of adding them by default.
-- The `docs/todo.md` summary in the documentation map should remain as-is and
-  should not be automatically updated like other doc entries.
+- The `docs/todo.md` summary in `docs/index.md` should remain as-is and should
+  not be automatically updated like other doc entries.
 - When writing tests against known fixtures, assume the fixture shape; avoid
   defensive assertions about expected structure unless the test is explicitly
   about validation.
