@@ -17,9 +17,10 @@ note identities.
 2. The toggle appears when the pointer is within a note's row bounds and inside
    the editor width, or when the note is the caret/focus target. It is rendered
    to the left of the note content. `+` means folded; `-` means expanded.
-3. Clicking the toggle hides or reveals descendants. Folding is view-only and
-   never changes structure or order. Descendants keep their own fold status
-   when an ancestor is toggled.
+3. Toggling fold state hides or reveals descendants. This can be done via the
+   row toggle or via the note menu keyboard path (`Shift`, `Shift`, then `F`).
+   Folding is view-only and never changes structure or order. Descendants keep
+   their own fold status when an ancestor is toggled.
 4. Folding is saved per note and synced in collaboration; undo/redo restores it
    like any other edit.
 5. If folding would hide the active selection, it collapses to the folded note
@@ -31,9 +32,3 @@ note identities.
 7. Zoom defines the outer visible subtree; folding applies inside that view and
    zooming does not reset folding.
 8. Fold command API is state-based: `folded`, `unfolded`, or `toggle`.
-
-## Non-goals / future
-
-1. [Future] Recursive fold/unfold gestures (for example modifier-click or
-   "collapse all") are not specified yet.
-2. [Future] Keyboard shortcuts for folding are out of scope for now.

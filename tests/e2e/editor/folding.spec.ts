@@ -1,8 +1,9 @@
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
+import { openNoteMenu } from './_support/menu';
 
 test.describe('Folding', () => {
-  test('toggles folding via plus/minus and hides descendants', async ({ page, editor }) => {
+  test('toggles folding via double-shift then F and hides descendants', async ({ page, editor }) => {
     await editor.load('tree');
 
     const listItem = editorLocator(page).locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note2' }).first();
@@ -14,11 +15,10 @@ test.describe('Folding', () => {
       { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
     ]);
 
-    const listItemBox = (await listItem.boundingBox())!;
-    await page.mouse.move(listItemBox.x + listItemBox.width / 2, listItemBox.y + listItemBox.height / 2);
-    const foldButton = editorLocator(page).locator('.note-controls__button--expanded');
-    await expect(foldButton).toBeVisible();
-    await foldButton.click();
+    await setCaretAtText(page, 'note2', 0);
+    const foldMenu = await openNoteMenu(page, 'note2', { anchor: 'caret', openMethod: 'shortcut' });
+    await foldMenu.pressShortcut('f');
+    await foldMenu.expectClosed();
 
     await expect(listItem).toHaveAttribute('data-folded', 'true');
     await expect(childItem).toBeHidden();
@@ -27,9 +27,9 @@ test.describe('Folding', () => {
       { noteId: 'note2', text: 'note2', folded: true, children: [{ noteId: 'note3', text: 'note3' }] },
     ]);
 
-    const expandButton = editorLocator(page).locator('.note-controls__button--folded');
-    await expect(expandButton).toBeVisible();
-    await expandButton.click();
+    const unfoldMenu = await openNoteMenu(page, 'note2', { anchor: 'caret', openMethod: 'shortcut' });
+    await unfoldMenu.pressShortcut('f');
+    await unfoldMenu.expectClosed();
     await expect(listItem).not.toHaveAttribute('data-folded', 'true');
     await expect(childItem).toBeVisible();
     await expect(editor).toMatchOutline([
@@ -38,7 +38,7 @@ test.describe('Folding', () => {
     ]);
   });
 
-  test('menu icon does not toggle folding', async ({ page, editor }) => {
+  test('opening note menu via shortcut does not toggle folding', async ({ page, editor }) => {
     await editor.load('tree');
 
     const listItem = editorLocator(page).locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note2' }).first();
@@ -46,11 +46,7 @@ test.describe('Folding', () => {
     await expect(listItem).toBeVisible();
     await expect(childItem).toBeVisible();
 
-    const listItemBox = (await listItem.boundingBox())!;
-    await page.mouse.move(listItemBox.x + listItemBox.width / 2, listItemBox.y + listItemBox.height / 2);
-    const menuButton = editorLocator(page).locator('.note-controls__button--menu');
-    await expect(menuButton).toBeVisible();
-    await menuButton.click();
+    await openNoteMenu(page, 'note2', { anchor: 'caret', openMethod: 'shortcut' });
 
     await expect(listItem).not.toHaveAttribute('data-folded', 'true');
     await expect(childItem).toBeVisible();
