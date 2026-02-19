@@ -3,10 +3,18 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IMAGE_NAME="${IMAGE_NAME:-remdo}"
+CALLER_PORT="${PORT-}"
 
 # shellcheck disable=SC1091 # shared helper lives in the repo.
 . "${ROOT_DIR}/tools/lib/docker.sh"
 remdo_load_dotenv "${ROOT_DIR}"
+
+if [[ -n "${CALLER_PORT}" && -n "${PORT:-}" && "${PORT:-}" != "${CALLER_PORT}" ]]; then
+  echo "PORT mismatch: caller provided ${CALLER_PORT}, but ${ROOT_DIR}/.env sets ${PORT}." >&2
+  echo "Align the values or unset one source before running docker/run.sh." >&2
+  exit 1
+fi
+
 remdo_load_env_defaults "${ROOT_DIR}"
 
 : "${AUTH_PASSWORD:?Set AUTH_PASSWORD in ${ROOT_DIR}/.env}"
