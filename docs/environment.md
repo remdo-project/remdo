@@ -49,8 +49,8 @@ optional).
 
 ## Backup machine
 
-- Source of truth: `tools/make-backup.sh` (including required `PROD_DATA_ADDR`
-  format and local backup repo assumptions).
+- Source of truth: `tools/remote/make-backup.sh` (including required
+  `PROD_APP_ADDR` format and local backup repo assumptions).
 
 ## CI
 
