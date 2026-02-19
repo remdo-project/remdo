@@ -59,5 +59,5 @@ test('user can enter notes and see them rendered', async ({ page }) => {
   await expect(listItems.filter({ hasText: /note3/ })).toHaveCount(1);
 
   const shell = editorLocator(page).locator('xpath=ancestor::*[contains(@class,"document-editor-shell")]').first();
-  await expect(shell.locator('.collab-status[aria-label="Live"]')).toBeVisible();
+  await expect(shell.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
 });

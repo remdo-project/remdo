@@ -38,6 +38,14 @@
   opacity: 1;
 }
 
+.collab-status--healthy {
+  color: var(--mantine-color-gray-5);
+}
+
+.collab-status--degraded {
+  color: var(--mantine-color-yellow-6);
+}
+
 .app-header {
   display: flex;
   align-items: center;

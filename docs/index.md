@@ -14,6 +14,9 @@ line (align continuation lines by two spaces).
 Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
+- `docs/architecture.md` (Medium). Cross-cutting architecture vocabulary for
+  delivery surfaces, gateway/origin boundaries, collaboration runtime building
+  blocks, and `[Future]` multi-hub terms.
 - `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch conventions, and
   pre-1.0 compatibility policy (no default migration/back-compat requirements).
 - `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, including

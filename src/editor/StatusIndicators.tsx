@@ -11,6 +11,7 @@ export interface StatusDescriptor {
   icon: IconComponent;
   color?: string;
   ariaLabel: string;
+  title?: string;
   text?: string;
   className?: string;
 }
@@ -28,6 +29,7 @@ function renderIndicator(descriptor: StatusDescriptor) {
       className={wrapperClassName}
       style={descriptor.color ? { color: descriptor.color } : undefined}
       aria-label={descriptor.ariaLabel}
+      title={descriptor.title}
     >
       <Icon icon={descriptor.icon} />
       {descriptor.text ? <Text size="sm" className="status-icon-text">{descriptor.text}</Text> : null}

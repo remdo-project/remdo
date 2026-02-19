@@ -18,6 +18,7 @@ import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lex
 
 import { config } from '#config';
 import { CollabSession } from '#lib/collaboration/session';
+import type { CollaborationProviderInstance } from '#lib/collaboration/runtime';
 import { restoreEditorStateDefaults, stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 import { prepareEditorStateForPersistence, prepareEditorStateForRuntime } from '#lib/editor/editor-state-persistence';
 import { createEditorInitialConfig } from '#lib/editor/config';
@@ -47,6 +48,7 @@ type SnapshotProvider = Provider & {
   on: (event: string, handler: (payload: unknown) => void) => void;
   off: (event: string, handler: (payload: unknown) => void) => void;
 };
+type SnapshotProviderWithWebSocket = SnapshotProvider & { _WS?: typeof globalThis.WebSocket };
 
 interface SessionContext {
   provider: SnapshotProvider;
@@ -265,21 +267,16 @@ async function withSession(
   const hydrateFromYjs = options.hydrateFromYjs ?? true;
   const docMap = new Map<string, Doc>();
   const session = new CollabSession({ enabled: true, docId, origin: collabOrigin });
-  const attached = session.attach(docMap);
-  if (!attached) {
-    throw new Error('Collaboration disabled');
-  }
-  const provider = attached.provider as unknown as SnapshotProvider;
-  (provider as unknown as { _WS?: typeof globalThis.WebSocket })._WS = WebSocket as unknown as typeof globalThis.WebSocket;
-  const syncDoc = docMap.get(docId);
-  if (!syncDoc) {
-    throw new Error('Failed to resolve collaboration document.');
-  }
+  session.attach(docMap);
+  const attached = await waitForSessionAttachment(session, docMap, docId);
+  const provider = attached.provider as SnapshotProviderWithWebSocket;
+  provider._WS = WebSocket as unknown as typeof globalThis.WebSocket;
+  const syncDoc = attached.doc;
   const editor = createEditor(
     createEditorInitialConfig() as CreateEditorArgs
   );
   const binding = createBindingV2__EXPERIMENTAL(editor, docId, syncDoc, docMap);
-  const sharedRoot = binding.root as unknown as SharedRoot;
+  const sharedRoot = binding.root as SharedRoot;
   const observer: SharedRootObserver = (events, transaction) => {
     if (transaction.origin === binding) {
       return;
@@ -328,6 +325,48 @@ async function withSession(
       doc.destroy();
     }
   }
+}
+
+async function waitForSessionAttachment(
+  session: CollabSession,
+  docMap: Map<string, Doc>,
+  docId: string,
+  timeoutMs = 5000
+): Promise<{ provider: CollaborationProviderInstance; doc: Doc }> {
+  const resolveAttachment = () => {
+    const provider = session.getProvider();
+    const doc = docMap.get(docId);
+    if (!provider || !doc) {
+      return null;
+    }
+    return { provider, doc };
+  };
+
+  const immediate = resolveAttachment();
+  if (immediate) {
+    return immediate;
+  }
+
+  return new Promise((resolve, reject) => {
+    let unsubscribe = () => {};
+    const timeoutHandle = setTimeout(() => {
+      unsubscribe();
+      reject(new Error(`Timed out waiting for collaboration provider for ${docId}`));
+    }, timeoutMs);
+
+    const onUpdate = () => {
+      const attached = resolveAttachment();
+      if (!attached) {
+        return;
+      }
+      clearTimeout(timeoutHandle);
+      unsubscribe();
+      resolve(attached);
+    };
+
+    unsubscribe = session.subscribe(onUpdate);
+    onUpdate();
+  });
 }
 
 function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {

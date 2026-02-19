@@ -1,19 +1,151 @@
 import type { Provider } from '@lexical/yjs';
 import { createYjsProvider } from '@y-sweet/client';
 import type { ClientToken } from '@y-sweet/sdk';
+import { trace } from '#lib/log';
 import { resolveLoopbackHost } from '#lib/net/loopback';
 import * as Y from 'yjs';
 export type CollaborationProviderInstance = Provider & { destroy: () => void };
+type CollaborationProviderConnectionStatus =
+  | 'offline'
+  | 'connecting'
+  | 'error'
+  | 'handshaking'
+  | 'connected';
+export type CollaborationConnectionStatus =
+  | 'disconnected'
+  | 'connecting'
+  | 'error'
+  | 'handshaking'
+  | 'connected';
 
-export type ProviderFactory = (id: string, docMap: Map<string, Y.Doc>) => CollaborationProviderInstance;
+export interface MinimalProviderEvents {
+  on: (event: string, handler: (payload: unknown) => void) => void;
+  off: (event: string, handler: (payload: unknown) => void) => void;
+  synced?: boolean;
+  hasLocalChanges?: boolean;
+}
+
+export interface CollaborationSessionProvider extends CollaborationProviderInstance {
+  synced?: boolean;
+  hasLocalChanges?: boolean;
+  status: CollaborationProviderConnectionStatus;
+}
+
+export type CollaborationProviderEventsView = CollaborationSessionProvider & MinimalProviderEvents;
+
+export interface ProviderFactoryResult {
+  provider: CollaborationSessionProvider;
+  doc: Y.Doc;
+}
+
+export type ProviderFactory = (
+  id: string,
+  docMap: Map<string, Y.Doc>
+) => ProviderFactoryResult | Promise<ProviderFactoryResult>;
+
+export function asCollaborationProviderEvents(provider: CollaborationSessionProvider): CollaborationProviderEventsView {
+  return provider as CollaborationProviderEventsView;
+}
+
+export function toCollaborationConnectionStatus(
+  status: CollaborationProviderConnectionStatus
+): CollaborationConnectionStatus {
+  return status === 'offline' ? 'disconnected' : status;
+}
 
 const docInitPromises = new Map<string, Promise<void>>();
 const docAuthInFlight = new Map<string, Promise<ClientToken>>();
 
+export interface LocalPersistenceSupportDecision {
+  enabled: boolean;
+  reason?: string;
+}
+
+const LOCAL_PERSISTENCE_PROBE_DB = 'remdo-local-persistence-probe';
+const LOCAL_PERSISTENCE_PROBE_STORE = 'probe';
+let localPersistenceSupportDecisionPromise: Promise<LocalPersistenceSupportDecision> | null = null;
+
+export function getLocalPersistenceSupportDecision(): Promise<LocalPersistenceSupportDecision> {
+  if (!localPersistenceSupportDecisionPromise) {
+    localPersistenceSupportDecisionPromise = evaluateLocalPersistenceSupportDecision();
+  }
+  return localPersistenceSupportDecisionPromise;
+}
+
+async function evaluateLocalPersistenceSupportDecision(): Promise<LocalPersistenceSupportDecision> {
+  const indexedDb = (globalThis as { indexedDB?: IDBFactory | null }).indexedDB;
+  if (!indexedDb) {
+    return { enabled: false, reason: 'indexedDB unavailable' };
+  }
+
+  if (!('crypto' in globalThis) || !('subtle' in globalThis.crypto)) {
+    return { enabled: false, reason: 'crypto.subtle unavailable' };
+  }
+
+  if (typeof globalThis.crypto.subtle.generateKey !== 'function') {
+    return { enabled: false, reason: 'crypto.subtle.generateKey unavailable' };
+  }
+
+  const indexedDbOpenable = await canOpenIndexedDb(indexedDb);
+  if (!indexedDbOpenable) {
+    return { enabled: false, reason: 'indexedDB open failed' };
+  }
+
+  return { enabled: true };
+}
+
+async function canOpenIndexedDb(indexedDb: IDBFactory): Promise<boolean> {
+  let db: IDBDatabase | null = null;
+  try {
+    db = await openIndexedDbProbe(indexedDb);
+    return true;
+  } catch (error) {
+    trace('collab', 'local persistence probe failed', {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  } finally {
+    db?.close();
+    tryDeleteIndexedDbProbe(indexedDb);
+  }
+}
+
+function openIndexedDbProbe(indexedDb: IDBFactory): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    let request: IDBOpenDBRequest;
+    try {
+      request = indexedDb.open(LOCAL_PERSISTENCE_PROBE_DB, 1);
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
+    request.addEventListener('upgradeneeded', () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(LOCAL_PERSISTENCE_PROBE_STORE)) {
+        db.createObjectStore(LOCAL_PERSISTENCE_PROBE_STORE);
+      }
+    });
+    request.addEventListener('error', () => reject(request.error ?? new Error('indexedDB open failed')));
+    request.addEventListener('blocked', () => reject(new Error('indexedDB open blocked')));
+    request.addEventListener('success', () => resolve(request.result));
+  });
+}
+
+function tryDeleteIndexedDbProbe(indexedDb: IDBFactory) {
+  try {
+    const request = indexedDb.deleteDatabase(LOCAL_PERSISTENCE_PROBE_DB);
+    request.addEventListener('error', () => {});
+    request.addEventListener('blocked', () => {});
+  } catch {
+    // Ignore probe-cleanup failures.
+  }
+}
+
 export function createProviderFactory(origin?: string): ProviderFactory {
   const resolveEndpoints = createEndpointResolver(origin);
 
-  return (id: string, docMap: Map<string, Y.Doc>) => {
+  return async (id: string, docMap: Map<string, Y.Doc>) => {
     let doc = docMap.get(id);
     if (!doc) {
       doc = new Y.Doc();
@@ -32,8 +164,16 @@ export function createProviderFactory(origin?: string): ProviderFactory {
       return rewriteTokenHost(token);
     };
 
+    const localPersistenceSupport = await getLocalPersistenceSupportDecision();
+    trace(
+      'collab',
+      localPersistenceSupport.enabled ? 'local persistence enabled' : 'local persistence disabled',
+      { docId: id, ...(localPersistenceSupport.reason ? { reason: localPersistenceSupport.reason } : {}) }
+    );
+
     const provider = createYjsProvider(doc, id, authEndpoint, {
       connect: false,
+      offlineSupport: localPersistenceSupport.enabled,
       showDebuggerLink: false,
     });
     let destroyed = false;
@@ -51,7 +191,12 @@ export function createProviderFactory(origin?: string): ProviderFactory {
       originalDestroy();
     };
 
-    return Object.assign(provider as unknown as Provider, { destroy }) as CollaborationProviderInstance;
+    return {
+      provider: Object.assign(provider as unknown as Provider, {
+        destroy,
+      }) as CollaborationSessionProvider,
+      doc,
+    };
   };
 }
 
@@ -119,6 +264,7 @@ function getAuthToken(docId: string, endpoints: { auth: string; create: string }
   }
 
   const promise = (async () => {
+    trace('collab', 'requesting auth token', { docId });
     await ensureDocInitialized(docId, endpoints.create);
 
     const requestAuth = async () =>
@@ -130,6 +276,7 @@ function getAuthToken(docId: string, endpoints: { auth: string; create: string }
 
     let response = await requestAuth();
     if (response.status === 404) {
+      trace('collab', 'doc missing during auth; recreating', { docId });
       // If the server dropped the doc, ensure we re-run creation instead of reusing
       // the successful cached init promise.
       docInitPromises.delete(docId);
@@ -138,9 +285,11 @@ function getAuthToken(docId: string, endpoints: { auth: string; create: string }
     }
 
     if (!response.ok) {
+      trace('collab', 'auth token request failed', { docId, status: response.status });
       throw new Error(`Failed to auth doc ${docId}: ${response.status} ${response.statusText}`);
     }
 
+    trace('collab', 'auth token ready', { docId });
     return (await response.json()) as ClientToken;
   })();
 
@@ -175,13 +324,6 @@ function rewriteTokenHost(token: ClientToken): ClientToken {
     url: rewrite(token.url),
     baseUrl: rewrite(token.baseUrl),
   };
-}
-
-export interface MinimalProviderEvents {
-  on: (event: string, handler: (payload: unknown) => void) => void;
-  off: (event: string, handler: (payload: unknown) => void) => void;
-  synced?: boolean;
-  hasLocalChanges?: boolean;
 }
 
 function mergeSignals(...sources: (AbortSignal | undefined)[]): AbortSignal {

@@ -46,13 +46,12 @@ function CollaborationRuntimeBridge() {
       return;
     }
 
-    const attached = session.attach(yjsDocMap);
-    if (!attached) return;
+    session.attach(yjsDocMap);
 
     return () => {
       session.detach();
     };
-  }, [session, yjsDocMap, docId, enabled]);
+  }, [session, yjsDocMap, enabled]);
 
   const provider = session.getProvider();
   const doc = yjsDocMap.get(docId);
