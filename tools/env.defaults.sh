@@ -6,12 +6,12 @@
 : "${NODE_ENV:=development}"
 : "${HOST:=127.0.0.1}"
 : "${PORT:=4000}"
-: "${DATA_DIR:=data}"
 : "${COLLAB_ENABLED:=true}"
 : "${COLLAB_DOCUMENT_ID:=main}"
 : "${CI:=false}"
 : "${VITEST_PREVIEW:=false}"
 : "${TMPDIR:=${REMDO_ROOT%/}/node_modules/.cache/vitest-tmp}" # Keep Vitest temp files out of repo root and shared with vitest-preview.
+DATA_DIR="${REMDO_ROOT%/}/data"
 
 # Derive a same-host canonical app base domain when no explicit override is provided.
 # Single-label hostnames map to app.<hostname>.shared; dotted/localhost/unknown map to app.remdo.localhost.
@@ -42,11 +42,6 @@ if [ -z "${AUTH_USER:-}" ]; then
   else
     AUTH_USER="$(id -un)"
   fi
-fi
-
-# Resolve relative DATA_DIR paths against the repo root.
-if [ -n "${REMDO_ROOT:-}" ] && [ "${DATA_DIR#"/"}" = "${DATA_DIR}" ]; then
-  DATA_DIR="${REMDO_ROOT%/}/${DATA_DIR}"
 fi
 
 # Derive all service/tool ports from the base PORT to keep multi-workdir runs predictable.

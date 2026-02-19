@@ -56,13 +56,12 @@ ENV YSWEET_VERSION=^0.9.1
 
 WORKDIR /app
 
-ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin \
-  DATA_DIR=/data
+ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
 
 # hadolint ignore=DL3018
 RUN apk add --no-cache caddy \
   && npm install -g "y-sweet@${YSWEET_VERSION}" \
-  && mkdir -p /data /etc/caddy /srv/remdo /var/log /usr/local/share/remdo
+  && mkdir -p /etc/caddy /srv/remdo/data /var/log /usr/local/share/remdo
 
 # Install backup script and cron schedule (runs every minute).
 COPY docker/backup.sh /usr/local/bin/backup.sh
