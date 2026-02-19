@@ -42,7 +42,7 @@ optional).
 - Runtime process wiring and on-container data layout source of truth:
   `docker/entrypoint.sh` and `docker/backup.sh`.
 - This mode assumes single-container, single external port deployment.
-- Container runtime data path is fixed to `/srv/remdo/data` and mounted from the
+- Container runtime data path is fixed to `/app/data` and mounted from the
   host repo data directory.
 
 ### Cloud (Render)

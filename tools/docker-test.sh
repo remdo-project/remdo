@@ -30,11 +30,11 @@ cleanup_data_dir() {
     return
   fi
 
-  if ! docker exec "${CONTAINER_NAME}" sh -c 'rm -rf /srv/remdo/data/* /srv/remdo/data/.[!.]* /srv/remdo/data/..?*' \
+  if ! docker exec "${CONTAINER_NAME}" sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' \
     >/dev/null 2>&1; then
     if docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
-      docker run --rm -v "${TEST_DATA_DIR}:/srv/remdo/data" "${IMAGE_NAME}" \
-        sh -c 'rm -rf /srv/remdo/data/* /srv/remdo/data/.[!.]* /srv/remdo/data/..?*' >/dev/null 2>&1 || true
+      docker run --rm -v "${TEST_DATA_DIR}:/app/data" "${IMAGE_NAME}" \
+        sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' >/dev/null 2>&1 || true
     fi
   fi
 

@@ -36,7 +36,7 @@ remdo_docker_run() {
   mkdir -p "${data_dir}"
 
   docker run "$@" \
-    -v "${data_dir}:/srv/remdo/data" \
+    -v "${data_dir}:/app/data" \
     -p "${PORT}:${PORT}" \
     "${image_name}"
 }

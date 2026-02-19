@@ -61,7 +61,7 @@ ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
 # hadolint ignore=DL3018
 RUN apk add --no-cache caddy \
   && npm install -g "y-sweet@${YSWEET_VERSION}" \
-  && mkdir -p /etc/caddy /srv/remdo/data /var/log /usr/local/share/remdo
+  && mkdir -p /app/data /etc/caddy /srv/remdo /var/log /usr/local/share/remdo
 
 # Install backup script and cron schedule (runs every minute).
 COPY docker/backup.sh /usr/local/bin/backup.sh
