@@ -30,11 +30,13 @@ remdo_docker_build() {
 
 remdo_docker_run() {
   local image_name="$1"
-  shift
+  local data_dir="$2"
+  shift 2
+
+  mkdir -p "${data_dir}"
 
   docker run "$@" \
-    -e DATA_DIR="/data" \
-    -v "${DATA_DIR}:/data" \
+    -v "${data_dir}:/app/data" \
     -p "${PORT}:${PORT}" \
     "${image_name}"
 }

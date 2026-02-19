@@ -31,7 +31,8 @@ optional).
 - Typical setup: set `AUTH_PASSWORD` and optionally `PORT`, then keep other
   vars on defaults.
 - If you override `TINYAUTH_APP_URL`, browser access must use the same host.
-- `DATA_DIR` is the host path for persisted runtime data.
+- Runtime data is always stored at `<repoRoot>/data` (derived from
+  `REMDO_ROOT`).
 
 ### Self-hosted (single-container Docker)
 
@@ -41,6 +42,8 @@ optional).
 - Runtime process wiring and on-container data layout source of truth:
   `docker/entrypoint.sh` and `docker/backup.sh`.
 - This mode assumes single-container, single external port deployment.
+- Container runtime data path is fixed to `/app/data` and mounted from the
+  host repo data directory.
 
 ### Cloud (Render)
 
@@ -49,8 +52,8 @@ optional).
 
 ## Backup machine
 
-- Source of truth: `tools/make-backup.sh` (including required `PROD_DATA_ADDR`
-  format and local backup repo assumptions).
+- Source of truth: `tools/remote/make-backup.sh` (including required
+  `PROD_APP_ADDR` format and local backup repo assumptions).
 
 ## CI
 

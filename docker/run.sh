@@ -22,7 +22,7 @@ ENV_FILE="${ROOT_DIR}/.env"
 DOCKER_ENV_ARGS=()
 [[ -f "${ENV_FILE}" ]] && DOCKER_ENV_ARGS=(--env-file "${ENV_FILE}")
 
-remdo_docker_run "${IMAGE_NAME}" --rm "${DOCKER_ENV_ARGS[@]}" \
+remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" --rm "${DOCKER_ENV_ARGS[@]}" \
   -e AUTH_USER="${AUTH_USER}" \
   -e AUTH_PASSWORD="${AUTH_PASSWORD}" \
   -e TINYAUTH_APP_URL="${TINYAUTH_APP_URL}"

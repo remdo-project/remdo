@@ -5,13 +5,7 @@ ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck disable=SC1091 # shared helper lives in the repo.
 . "${ROOT_DIR}/tools/lib/docker.sh"
 remdo_load_dotenv "${ROOT_DIR}"
-
-if [[ -z "${DATA_DIR:-}" ]]; then
-  DATA_DIR="$(mktemp -d -t remdo-docker-test-XXXXXX)"
-  CLEAN_DATA_DIR="true"
-else
-  CLEAN_DATA_DIR="false"
-fi
+TEST_DATA_DIR="$(mktemp -d -t remdo-docker-test-XXXXXX)"
 
 : "${PORT:=4000}"
 : "${DOCKER_TEST_APP_HOST:=app.remdo.localhost}"
@@ -32,19 +26,19 @@ HEALTH_URL="http://127.0.0.1:${PORT}/health"
 DATA_CLEANED="false"
 
 cleanup_data_dir() {
-  if [[ "${CLEAN_DATA_DIR}" != "true" || "${DATA_CLEANED}" == "true" ]]; then
+  if [[ "${DATA_CLEANED}" == "true" ]]; then
     return
   fi
 
-  if ! docker exec "${CONTAINER_NAME}" sh -c 'rm -rf /data/* /data/.[!.]* /data/..?*' \
+  if ! docker exec "${CONTAINER_NAME}" sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' \
     >/dev/null 2>&1; then
     if docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
-      docker run --rm -v "${DATA_DIR}:/data" "${IMAGE_NAME}" \
-        sh -c 'rm -rf /data/* /data/.[!.]* /data/..?*' >/dev/null 2>&1 || true
+      docker run --rm -v "${TEST_DATA_DIR}:/app/data" "${IMAGE_NAME}" \
+        sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' >/dev/null 2>&1 || true
     fi
   fi
 
-  rm -rf "${DATA_DIR}" >/dev/null 2>&1 || true
+  rm -rf "${TEST_DATA_DIR}" >/dev/null 2>&1 || true
   DATA_CLEANED="true"
 }
 
@@ -58,7 +52,7 @@ docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
-remdo_docker_run "${IMAGE_NAME}" -d --name "${CONTAINER_NAME}" \
+remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}" -d --name "${CONTAINER_NAME}" \
   -e AUTH_USER="${DOCKER_TEST_USER}" \
   -e AUTH_PASSWORD="${DOCKER_TEST_PASSWORD}" \
   -e TINYAUTH_APP_URL="${TINYAUTH_APP_URL}" \
@@ -96,7 +90,7 @@ if ! E2E_DOCKER=true \
 fi
 
 echo "Docker smoke e2e OK: ${HEALTH_URL}"
-COLLAB_DATA_PATH="${DATA_DIR%/}/collab/${COLLAB_DOCUMENT_ID}/data.ysweet"
+COLLAB_DATA_PATH="${TEST_DATA_DIR%/}/collab/${COLLAB_DOCUMENT_ID}/data.ysweet"
 collab_ready="false"
 for _ in {1..40}; do
   if [[ -f "${COLLAB_DATA_PATH}" ]]; then
@@ -121,7 +115,7 @@ if ! docker exec -e HOST="127.0.0.1" -e COLLAB_DOCUMENT_ID="${COLLAB_DOCUMENT_ID
   exit 1
 fi
 
-BACKUP_DIR="${DATA_DIR%/}/backup"
+BACKUP_DIR="${TEST_DATA_DIR%/}/backup"
 MAIN_JSON="${BACKUP_DIR}/${COLLAB_DOCUMENT_ID}.json"
 MAIN_MD="${BACKUP_DIR}/${COLLAB_DOCUMENT_ID}.md"
 PROJECT_JSON="${BACKUP_DIR}/project.json"

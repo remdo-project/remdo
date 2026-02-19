@@ -2,13 +2,15 @@
 set -euo pipefail
 
 # Fetches backups and collab data from prod, then shows markdown diff.
-# Required: PROD_DATA_ADDR (remote data dir, sourced from .env).
+# Required: PROD_APP_ADDR (remote repo dir, sourced from .env).
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 # shellcheck disable=SC1090 # allow sourcing repo-local .env
 . "${ROOT_DIR}/.env"
 
-: "${PROD_DATA_ADDR:?Set PROD_DATA_ADDR in .env (e.g. deploy@prod.example.com:~/projects/remdo/data)}"
+REMOTE_APP_ADDR="${PROD_APP_ADDR:?Set PROD_APP_ADDR in .env (e.g. deploy@prod.example.com:~/projects/remdo)}"
+REMOTE_APP_ADDR="${REMOTE_APP_ADDR%/}"
+REMOTE_DATA_DIR="${REMOTE_APP_ADDR}/data"
 LOCAL_DATA_DIR="${ROOT_DIR}/data/backup-repo"
 STAMP="$(date +%y-%m-%d_%H-%M)"
 
@@ -20,7 +22,6 @@ fi
 
 # Pull backup artifacts from prod.
 # backup/ is for review/commit; collab/ is archived as a full snapshot.
-REMOTE_DATA_DIR="${PROD_DATA_ADDR%/}"
 BIN_DIR="${LOCAL_DATA_DIR}/ysweet-${STAMP}"
 BIN_ARCHIVE="${BIN_DIR}.tar.gz"
 

@@ -3,7 +3,7 @@ set -eu
 # shellcheck disable=SC3040 # allow POSIX sh + bash pipefail fallback usage
 set -o pipefail 2>/dev/null || true
 
-: "${REMDO_ROOT:=/srv/remdo}"
+: "${REMDO_ROOT:=/app}"
 export REMDO_ROOT
 
 # shellcheck disable=SC1091 # provided by the image build.
