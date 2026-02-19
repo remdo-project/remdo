@@ -75,6 +75,8 @@ describe('collaboration session hydration persistence', { timeout: COLLAB_LONG_T
     const doc = new Y.Doc();
     const docMap = new Map<string, Y.Doc>([[docId, doc]]);
     const provider = createMockProvider();
+    const indexedDBProvider = { source: 'indexeddb' };
+    (provider as unknown as { indexedDBProvider?: unknown }).indexedDBProvider = indexedDBProvider;
     const factory = createMockProviderFactory(provider);
     const session = new CollabSession({ enabled: true, docId, providerFactory: factory });
 
@@ -86,11 +88,41 @@ describe('collaboration session hydration persistence', { timeout: COLLAB_LONG_T
 
     doc.transact(() => {
       doc.getText('offline').insert(0, 'cached');
-    }, { source: 'local-cache' });
+    }, indexedDBProvider);
 
     expect(session.snapshot().hydrated).toBe(true);
     expect(session.snapshot().localCacheHydrated).toBe(true);
     expect(session.snapshot().synced).toBe(false);
+  });
+
+  it('does not mark hydrated from non-cache doc updates before provider sync', () => {
+    const docId = 'docId-not-cache';
+    const doc = new Y.Doc();
+    const docMap = new Map<string, Y.Doc>([[docId, doc]]);
+    const provider = createMockProvider();
+    const factory = createMockProviderFactory(provider);
+    const session = new CollabSession({ enabled: true, docId, providerFactory: factory });
+
+    session.attach(docMap);
+    expect(session.snapshot().hydrated).toBe(false);
+    expect(session.snapshot().synced).toBe(false);
+    expect(session.snapshot().localCacheHydrated).toBe(false);
+
+    doc.transact(() => {
+      doc.getText('bootstrap').insert(0, 'seed');
+    }, { source: 'bootstrap' });
+
+    expect(session.snapshot().hydrated).toBe(false);
+    expect(session.snapshot().synced).toBe(false);
+    expect(session.snapshot().localCacheHydrated).toBe(false);
+
+    doc.transact(() => {
+      doc.getText('remote').insert(0, 'sync-chunk');
+    }, provider);
+
+    expect(session.snapshot().hydrated).toBe(false);
+    expect(session.snapshot().synced).toBe(false);
+    expect(session.snapshot().localCacheHydrated).toBe(false);
   });
 
   it('resets hydrated to false when re-attaching a hydrated session', () => {

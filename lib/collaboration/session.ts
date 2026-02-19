@@ -41,6 +41,23 @@ function isLocalCacheHydratedDoc(doc: Y.Doc): boolean {
   return doc.store.clients.size > 0;
 }
 
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isLocalCacheUpdateOrigin(origin: unknown, provider: CollaborationSessionProvider): boolean {
+  const indexedDBProvider = (provider as { indexedDBProvider?: unknown }).indexedDBProvider;
+  if (indexedDBProvider !== undefined && origin === indexedDBProvider) {
+    return true;
+  }
+
+  if (!isObjectRecord(origin)) {
+    return false;
+  }
+
+  return origin.source === 'local-cache';
+}
+
 function isProviderFactoryPromise(
   value: ProviderFactoryResult | Promise<ProviderFactoryResult>
 ): value is Promise<ProviderFactoryResult> {
@@ -173,8 +190,9 @@ export class CollabSession {
         this.notify();
       };
 
-      const handleDocUpdate = () => {
+      const handleDocUpdate = (_update: Uint8Array, origin: unknown) => {
         if (this.state.localCacheHydrated) return;
+        if (!isLocalCacheUpdateOrigin(origin, provider)) return;
         trace('collab', 'local cache hydrated from local document updates', { docId: this.state.docId });
         recomputeState({ localCacheHydrated: true });
       };
