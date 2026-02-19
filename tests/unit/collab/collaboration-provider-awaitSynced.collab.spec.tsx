@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
 
 import { CollabSession } from '#lib/collaboration/session';
-import type { ProviderFactory } from '#lib/collaboration/runtime';
-import { createMockProvider } from './_support/mock-provider';
+import { createMockProvider, createMockProviderFactory } from './_support/mock-provider';
 import type { MockProvider } from './_support/mock-provider';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
@@ -11,8 +10,8 @@ describe('collaboration session awaitSynced', { timeout: COLLAB_LONG_TIMEOUT_MS 
   const createSession = () => {
     const docId = 'docId';
     const docMap = new Map<string, Y.Doc>([[docId, new Y.Doc()]]);
-    const mock = createMockProvider() as unknown as MockProvider;
-    const factory: ProviderFactory = () => mock as any;
+    const mock: MockProvider = createMockProvider();
+    const factory = createMockProviderFactory(mock);
     const session = new CollabSession({ enabled: true, docId, providerFactory: factory });
     session.attach(docMap);
     return { session, mock };
@@ -75,5 +74,12 @@ describe('collaboration session awaitSynced', { timeout: COLLAB_LONG_TIMEOUT_MS 
 
     await expect(second).resolves.toBeUndefined();
     expect(session.snapshot().synced).toBe(true);
+  });
+
+  it('tears down cleanly with mock providers', () => {
+    const { session } = createSession();
+
+    expect(() => session.detach()).not.toThrow();
+    expect(() => session.destroy()).not.toThrow();
   });
 });

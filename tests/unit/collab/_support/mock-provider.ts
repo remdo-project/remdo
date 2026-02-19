@@ -1,12 +1,28 @@
+import type * as Y from 'yjs';
+import type {
+  CollaborationSessionProvider,
+  MinimalProviderEvents,
+  ProviderFactory,
+  ProviderFactoryResult,
+} from '#lib/collaboration/runtime';
+
 type Handler = (payload: unknown) => void;
 
-export function createMockProvider() {
+export interface MockProvider extends MinimalProviderEvents {
+  synced: boolean;
+  hasLocalChanges: boolean;
+  status: CollaborationSessionProvider['status'];
+  emit: (event: string, payload?: unknown) => void;
+  destroy: () => void;
+}
+
+export function createMockProvider(): MockProvider {
   const listeners = new Map<string, Set<Handler>>();
 
   return {
     synced: false,
     hasLocalChanges: false,
-    destroy: () => {},
+    status: 'offline',
     on(event: string, handler: Handler) {
       const set = listeners.get(event) ?? new Set<Handler>();
       set.add(handler);
@@ -27,7 +43,15 @@ export function createMockProvider() {
         handler(payload);
       }
     },
+    destroy() {
+      listeners.clear();
+    },
   };
 }
 
-export type MockProvider = ReturnType<typeof createMockProvider>;
+export function createMockProviderFactory(provider: MockProvider): ProviderFactory {
+  return (id: string, map: Map<string, Y.Doc>) => ({
+    provider: provider as unknown as ProviderFactoryResult['provider'],
+    doc: map.get(id)!,
+  });
+}
