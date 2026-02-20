@@ -12,7 +12,11 @@ those remain in outliner docs. Multi-hub/federation terms in this doc are
 
 - **Hosted Web:** SPA served from server/CDN and loaded by browser.
 - **PWA Shell:** Hosted web plus service worker/manifest for offline app-shell
-  entry.
+  entry. In production builds, the service worker caches shell/navigation
+  assets so routes can open offline, but collaboration/auth HTTP endpoints stay
+  network-only. Offline doc editing still works for previously cached docs via
+  collaboration local persistence (IndexedDB), not via service-worker endpoint
+  caching.
 - **Desktop Shell:** Native wrapper (for example Electron/Tauri) hosting the
   same SPA with OS integration.
 

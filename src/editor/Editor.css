@@ -324,6 +324,25 @@
   padding-left: calc(var(--bullet-width) + var(--checkbox-gap) + var(--checkbox-width) + var(--bullet-gap));
 }
 
+.editor-offline-empty-state {
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--mantine-spacing-xs);
+  color: var(--mantine-color-dark-0);
+}
+
+.editor-offline-empty-state h2 {
+  margin: 0;
+  font-size: var(--mantine-font-size-lg);
+}
+
+.editor-offline-empty-state p {
+  margin: 0;
+  color: var(--mantine-color-dark-2);
+}
+
 .editor-root li.list-item.list-item-checked {
   --checkbox-mask-image: url('/icons/checkbox-checked.svg');
   text-decoration: line-through;

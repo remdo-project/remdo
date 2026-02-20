@@ -29,11 +29,11 @@ Rules:
 
 ### Stages and success criteria
 
-1. **Stage 0: single hub, online-first.**
+1. ✅ Done **Stage 0: single hub, online-first.**
    Success: one server is the single collaboration backend for docs.
-2. **Stage 1: offline doc persistence.**
+2. ✅ Done **Stage 1: offline doc persistence.**
    Success: an already-opened doc can be edited offline and syncs on reconnect.
-3. **Stage 2: offline app-shell loading.**
+3. ✅ Done **Stage 2: offline app-shell loading.**
    Success: the app shell can open offline (for example via PWA caching), even
    before document data sync is available.
 4. **Stage 3: multi-hub client.**

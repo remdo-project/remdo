@@ -1,5 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { VitePWA } from 'vite-plugin-pwa';
 import { config } from './config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -7,6 +8,38 @@ const isPreviewSession = config.env.VITEST_PREVIEW;
 
 export function createViteSharedConfig() {
   return {
+    plugins: [
+      VitePWA({
+        registerType: 'autoUpdate',
+        manifest: {
+          name: 'RemDo',
+          short_name: 'RemDo',
+          background_color: '#1a1b1e',
+          theme_color: '#1a1b1e',
+          icons: [
+            {
+              src: 'favicon.svg',
+              sizes: 'any',
+              type: 'image/svg+xml',
+              purpose: 'any',
+            },
+          ],
+        },
+        workbox: {
+          navigateFallback: '/index.html',
+          runtimeCaching: [
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/doc') || url.pathname.startsWith('/d/'),
+              handler: 'NetworkOnly',
+            },
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+              handler: 'NetworkOnly',
+            },
+          ],
+        },
+      }),
+    ],
     server: {
       host: config.env.HOST,
       port: config.env.PORT,
@@ -29,6 +62,12 @@ export function createViteSharedConfig() {
       host: config.env.HOST,
       port: config.env.PREVIEW_PORT,
       strictPort: true,
+      proxy: {
+        '/doc': {
+          target: `http://${config.env.HOST}:${config.env.COLLAB_CLIENT_PORT}`,
+          changeOrigin: true,
+        },
+      },
     },
     assetsInclude: ['**/*.ysweet'],
     define: Object.fromEntries(

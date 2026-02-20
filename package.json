@@ -40,9 +40,11 @@
     "audit:unused:zero": "timeout ${TEST_TIMEOUT:-60}s ./tools/env.sh pnpm exec knip -c knip.jsonc --no-progress --max-issues 0",
     "backup": "./tools/env.sh tsx ./tools/snapshot.ts backup",
     "build": "./tools/env.sh vite build",
+    "build:watch": "./tools/env.sh vite build --watch",
     "dev": "concurrently \"pnpm run dev:web\" \"pnpm run dev:collab\" \"pnpm run test:preview\"",
     "dev:collab": "./tools/env.sh tsx ./tools/collab-server.ts",
     "dev:init": "./tools/dev-init.sh",
+    "dev:pwa": "./tools/env.sh sh -c 'PREVIEW_PORT=\"$PORT\" pnpm run build && PREVIEW_PORT=\"$PORT\" concurrently \"pnpm run build:watch\" \"pnpm run dev:collab\" \"pnpm run preview\"'",
     "dev:web": "./tools/env.sh vite",
     "lint": "cross-env CI=1 pnpm run typecheck && pnpm run lint:code && pnpm run lint:css && pnpm run lint:md",
     "lint:code": "timeout ${TEST_TIMEOUT:-60}s cross-env CI=1 eslint --max-warnings=0 --cache --cache-location ${ESLINT_CACHE_LOCATION:-data/cache/lint-code}",
@@ -97,6 +99,7 @@
     "react-dom": "catalog:",
     "react-router-dom": "catalog:",
     "vite": "catalog:",
+    "workbox-window": "catalog:",
     "ws": "catalog:",
     "yjs": "catalog:"
   },
@@ -134,6 +137,7 @@
     "stylelint-config-recommended": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
+    "vite-plugin-pwa": "catalog:",
     "vitest": "catalog:",
     "vitest-preview": "catalog:",
     "y-sweet": "catalog:"
