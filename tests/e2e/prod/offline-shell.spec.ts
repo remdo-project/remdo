@@ -3,6 +3,7 @@ import { createUniqueNoteId } from '#lib/editor/note-ids';
 import type { Page } from '@playwright/test';
 import {
   allowOfflineDisconnectedConsoleIssue,
+  cleanupOfflineTest,
   loginThroughTinyauthIfNeeded,
   waitForServiceWorkerControl,
 } from './_support/helpers';
@@ -29,11 +30,7 @@ test.describe('Offline app shell', () => {
       await expect(offlinePage.locator('.document-editor-shell')).toBeVisible();
       await expect(offlinePage.locator('.editor-container')).toBeVisible();
     } finally {
-      detachOfflineGuards?.();
-      if (offlinePage) {
-        await offlinePage.close();
-      }
-      await context.setOffline(false);
+      await cleanupOfflineTest(context, offlinePage, detachOfflineGuards);
     }
   });
 
@@ -60,11 +57,7 @@ test.describe('Offline app shell', () => {
       ).toBeVisible();
       await expect(offlinePage.locator('.editor-input')).toHaveCount(0);
     } finally {
-      detachOfflineGuards?.();
-      if (offlinePage) {
-        await offlinePage.close();
-      }
-      await context.setOffline(false);
+      await cleanupOfflineTest(context, offlinePage, detachOfflineGuards);
     }
   });
 });

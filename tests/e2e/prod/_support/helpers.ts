@@ -1,5 +1,6 @@
 import type { Page } from '#e2e/fixtures';
 import { setExpectedConsoleIssues } from '#e2e/fixtures';
+import type { BrowserContext } from '@playwright/test';
 import process from 'node:process';
 
 // eslint-disable-next-line node/no-process-env
@@ -44,4 +45,32 @@ export function allowOfflineDisconnectedConsoleIssue(page: Page): void {
     ['net::ERR_INTERNET_DISCONNECTED', 'Failed to get client token'],
     { mode: 'allowContains' },
   );
+}
+
+export async function cleanupOfflineTest(
+  context: BrowserContext,
+  page: Page | undefined,
+  detachGuards: (() => void) | undefined,
+): Promise<void> {
+  let cleanupError: unknown;
+  try {
+    detachGuards?.();
+  } catch (error) {
+    cleanupError = error;
+  }
+  if (page) {
+    try {
+      await page.close();
+    } catch (error) {
+      cleanupError ??= error;
+    }
+  }
+  try {
+    await context.setOffline(false);
+  } catch (error) {
+    cleanupError ??= error;
+  }
+  if (cleanupError) {
+    throw cleanupError;
+  }
 }
