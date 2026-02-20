@@ -11,24 +11,12 @@ const workers = PLAYWRIGHT_WORKERS ?? Math.max(2, os.cpus().length - 1);
 const useDocker = E2E_DOCKER === 'true';
 const port = useDocker ? config.env.PORT : config.env.PLAYWRIGHT_WEB_PORT;
 const baseURL = `http://${host}:${port}`;
-const derivedPortVars = [
-  'TINYAUTH_PORT',
-  'HMR_PORT',
-  'VITEST_PORT',
-  'VITEST_PREVIEW_PORT',
-  'COLLAB_SERVER_PORT',
-  'COLLAB_CLIENT_PORT',
-  'PREVIEW_PORT',
-  'PLAYWRIGHT_UI_PORT',
-  'DOCKER_TEST_PORT',
-  'PLAYWRIGHT_WEB_PORT',
-];
-const clearDerivedPorts = derivedPortVars.map((name) => `-u ${name}`).join(' ');
+const hmrPort = useDocker ? config.env.HMR_PORT : port + 1;
 
 const webServer = useDocker
   ? undefined
   : {
-      command: `env ${clearDerivedPorts} PORT=${port} ./tools/env.sh pnpm exec vite`,
+      command: `./tools/env.sh env PORT=${port} HMR_PORT=${hmrPort} pnpm exec vite`,
       url: baseURL,
       // Reusing an existing server can accidentally target preview/prod-mode
       // instances (e.g. dev:pwa) that do not expose /e2e routes.
