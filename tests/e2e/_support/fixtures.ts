@@ -101,7 +101,7 @@ function consumeExpectedIssue(expected: ConsoleIssueMatchers | undefined, issueM
   return false;
 }
 
-function attachGuards(page: Page) {
+export function attachPageGuards(page: Page): () => void {
   const allowResponse = (response: Response) => {
     const url = response.url();
     if (url.startsWith('data:')) return true;
@@ -157,7 +157,7 @@ function attachGuards(page: Page) {
 
 export const test = base.extend({
   page: async ({ page }, apply) => {
-    const detach = attachGuards(page);
+    const detach = attachPageGuards(page);
     await apply(page);
     detach();
   },

@@ -16,6 +16,12 @@ Rules:
 - Consolidate repeated unit-test Lexical DOM setup (`document.createElement` +
   `document.body.append` + `createEditor` + `setRootElement`) into a shared
   test helper with a single cleanup path.
+- Clean up port assignment flow across `tools/env.defaults.sh`, `tools/env.sh`,
+  and Playwright webServer startup so derived ports are always recomputed from a
+  single base without manual `env -u ...` clearing.
+- Use `playwright.config.ts` (`test:e2e:dev` webServer command) as the example:
+  stale exported `HMR_PORT`/derived vars required explicit unsets to avoid
+  collisions when only `PORT` changed.
 
 ## Test doc-id lifecycle hygiene (deferred)
 

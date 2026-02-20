@@ -1,5 +1,6 @@
-import { expect, test } from '#e2e/fixtures';
+import { attachPageGuards, expect, test } from '#e2e/fixtures';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
+import type { Page } from '@playwright/test';
 import {
   allowOfflineDisconnectedConsoleIssue,
   loginThroughTinyauthIfNeeded,
@@ -16,15 +17,22 @@ test.describe('Offline app shell', () => {
     allowOfflineDisconnectedConsoleIssue(page);
     await page.close();
 
+    let offlinePage: Page | undefined;
+    let detachOfflineGuards: (() => void) | undefined;
     await context.setOffline(true);
     try {
-      const offlinePage = await context.newPage();
+      offlinePage = await context.newPage();
+      detachOfflineGuards = attachPageGuards(offlinePage);
       allowOfflineDisconnectedConsoleIssue(offlinePage);
       await offlinePage.goto(`/n/${warmedDocId}`);
       await expect(offlinePage.getByRole('link', { name: 'RemDo' })).toBeVisible();
       await expect(offlinePage.locator('.document-editor-shell')).toBeVisible();
       await expect(offlinePage.locator('.editor-container')).toBeVisible();
     } finally {
+      detachOfflineGuards?.();
+      if (offlinePage) {
+        await offlinePage.close();
+      }
       await context.setOffline(false);
     }
   });
@@ -37,10 +45,13 @@ test.describe('Offline app shell', () => {
     allowOfflineDisconnectedConsoleIssue(page);
     await page.close();
 
+    let offlinePage: Page | undefined;
+    let detachOfflineGuards: (() => void) | undefined;
     await context.setOffline(true);
     try {
       const uncachedDocId = createUniqueNoteId();
-      const offlinePage = await context.newPage();
+      offlinePage = await context.newPage();
+      detachOfflineGuards = attachPageGuards(offlinePage);
       allowOfflineDisconnectedConsoleIssue(offlinePage);
       await offlinePage.goto(`/n/${uncachedDocId}`);
       await expect(offlinePage.locator('.editor-offline-empty-state')).toBeVisible();
@@ -49,6 +60,10 @@ test.describe('Offline app shell', () => {
       ).toBeVisible();
       await expect(offlinePage.locator('.editor-input')).toHaveCount(0);
     } finally {
+      detachOfflineGuards?.();
+      if (offlinePage) {
+        await offlinePage.close();
+      }
       await context.setOffline(false);
     }
   });

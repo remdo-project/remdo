@@ -1,32 +1,32 @@
 {
-  "generatedAt": "2026-02-18T10:05:53.175Z",
+  "generatedAt": "2026-02-20T10:37:11.373Z",
   "files": {
-    "totalFiles": 313,
-    "textFiles": 313,
+    "totalFiles": 324,
+    "textFiles": 324,
     "byType": {
       "ts": {
-        "files": 160,
-        "lines": 15751
+        "files": 168,
+        "lines": 16564
       },
       "tsx": {
         "files": 49,
-        "lines": 6680
+        "lines": 6871
       },
       "json": {
         "files": 29,
-        "lines": 2140
+        "lines": 2143
       },
       "md": {
-        "files": 20,
-        "lines": 1369
+        "files": 22,
+        "lines": 1389
       },
       "yml": {
         "files": 15,
         "lines": 244
       },
       "sh": {
-        "files": 10,
-        "lines": 420
+        "files": 11,
+        "lines": 448
       },
       "svg": {
         "files": 8,
@@ -34,7 +34,7 @@
       },
       "css": {
         "files": 6,
-        "lines": 597
+        "lines": 619
       },
       "mts": {
         "files": 3,
@@ -46,7 +46,7 @@
       },
       "yaml": {
         "files": 2,
-        "lines": 93
+        "lines": 96
       },
       "caddyfile": {
         "files": 1,
@@ -58,11 +58,11 @@
       },
       "dockerfile": {
         "files": 1,
-        "lines": 70
+        "lines": 69
       },
       "example": {
         "files": 1,
-        "lines": 27
+        "lines": 28
       },
       "gitignore": {
         "files": 1,
@@ -83,18 +83,18 @@
     }
   },
   "tests": {
-    "unit": 345,
-    "collab": 378,
-    "e2e": 78,
-    "totalUnique": 456
+    "unit": 362,
+    "collab": 400,
+    "e2e": 80,
+    "totalUnique": 480
   },
   "totals": {
     "files": {
-      "files": 312,
-      "lines": 27919
+      "files": 323,
+      "lines": 28999
     },
     "tests": {
-      "totalUnique": 456
+      "totalUnique": 480
     }
   }
 }
