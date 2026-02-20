@@ -1,26 +1,25 @@
 import { expect, test } from '#e2e/fixtures';
-import type { Page } from '#e2e/fixtures';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
-
-async function waitForServiceWorkerControl(page: Page): Promise<void> {
-  await page.waitForFunction(() => 'serviceWorker' in navigator);
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.ready;
-  });
-  await page.reload();
-  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-}
+import {
+  allowOfflineDisconnectedConsoleIssue,
+  loginThroughTinyauthIfNeeded,
+  waitForServiceWorkerControl,
+} from './_support/helpers';
 
 test.describe('Offline app shell', () => {
   test('opens the app shell while offline after an online warm-up', async ({ page, context }) => {
     const warmedDocId = createUniqueNoteId();
     await page.goto(`/n/${warmedDocId}`);
+    await loginThroughTinyauthIfNeeded(page);
     await expect(page.locator('.document-editor-shell')).toBeVisible();
     await waitForServiceWorkerControl(page);
+    allowOfflineDisconnectedConsoleIssue(page);
+    await page.close();
 
     await context.setOffline(true);
     try {
       const offlinePage = await context.newPage();
+      allowOfflineDisconnectedConsoleIssue(offlinePage);
       await offlinePage.goto(`/n/${warmedDocId}`);
       await expect(offlinePage.getByRole('link', { name: 'RemDo' })).toBeVisible();
       await expect(offlinePage.locator('.document-editor-shell')).toBeVisible();
@@ -33,12 +32,16 @@ test.describe('Offline app shell', () => {
   test('shows offline empty state for a document without local cache', async ({ page, context }) => {
     const warmedDocId = createUniqueNoteId();
     await page.goto(`/n/${warmedDocId}`);
+    await loginThroughTinyauthIfNeeded(page);
     await waitForServiceWorkerControl(page);
+    allowOfflineDisconnectedConsoleIssue(page);
+    await page.close();
 
     await context.setOffline(true);
     try {
       const uncachedDocId = createUniqueNoteId();
       const offlinePage = await context.newPage();
+      allowOfflineDisconnectedConsoleIssue(offlinePage);
       await offlinePage.goto(`/n/${uncachedDocId}`);
       await expect(offlinePage.locator('.editor-offline-empty-state')).toBeVisible();
       await expect(

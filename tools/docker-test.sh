@@ -74,7 +74,7 @@ if [[ "${health_ready}" != "true" ]]; then
 fi
 
 echo "Docker health check OK: ${HEALTH_URL}"
-echo "Running Playwright editor smoke against Docker server..."
+echo "Running Playwright prod E2E suite against Docker server (tests/e2e/prod)..."
 
 if ! E2E_DOCKER=true \
   NODE_ENV=production \
@@ -83,13 +83,13 @@ if ! E2E_DOCKER=true \
   COLLAB_ENABLED=true \
   AUTH_USER="${DOCKER_TEST_USER}" \
   AUTH_PASSWORD="${DOCKER_TEST_PASSWORD}" \
-  pnpm exec playwright test -- tests/e2e/editor/docker/smoke.spec.ts; then
+  pnpm exec playwright test -- tests/e2e/prod; then
   docker logs "${CONTAINER_NAME}" || true
-  echo "Smoke e2e failed: ${HEALTH_URL}" >&2
+  echo "Prod e2e failed: ${HEALTH_URL}" >&2
   exit 1
 fi
 
-echo "Docker smoke e2e OK: ${HEALTH_URL}"
+echo "Docker prod e2e OK: ${HEALTH_URL}"
 COLLAB_DATA_PATH="${TEST_DATA_DIR%/}/collab/${COLLAB_DOCUMENT_ID}/data.ysweet"
 collab_ready="false"
 for _ in {1..40}; do

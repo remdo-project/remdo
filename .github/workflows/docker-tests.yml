@@ -27,4 +27,4 @@ jobs:
         run: pnpm run dev:init
 
       - name: Run Docker smoke tests
-        run: pnpm run test:docker
+        run: pnpm run test:e2e:prod

@@ -5,20 +5,21 @@ import { config } from './config';
 import { resolveLoopbackHost } from './lib/net/loopback';
 
 const host = resolveLoopbackHost(config.env.HOST, '127.0.0.1');
-const port = config.env.PORT;
-const baseURL = `http://${host}:${port}`;
-
 // eslint-disable-next-line node/no-process-env
 const { PLAYWRIGHT_WORKERS, E2E_DOCKER } = process.env;
 const workers = PLAYWRIGHT_WORKERS ?? Math.max(2, os.cpus().length - 1);
 const useDocker = E2E_DOCKER === 'true';
+const port = useDocker ? config.env.PORT : config.env.PLAYWRIGHT_WEB_PORT;
+const baseURL = `http://${host}:${port}`;
 
 const webServer = useDocker
   ? undefined
   : {
-      command: 'pnpm run dev:web',
+      command: `./tools/env.sh sh -c 'PORT=${port} pnpm exec vite'`,
       url: baseURL,
-      reuseExistingServer: !config.env.CI,
+      // Reusing an existing server can accidentally target preview/prod-mode
+      // instances (e.g. dev:pwa) that do not expose /e2e routes.
+      reuseExistingServer: false,
     };
 
 export default defineConfig({

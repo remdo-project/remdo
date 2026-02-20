@@ -11,10 +11,94 @@ export async function readOutline(editor: EditorLike): Promise<Outline> {
   return extractOutlineFromEditorState(await editor.getEditorState());
 }
 
-const issueExpectationsByPage = new WeakMap<Page, Set<string>>();
+interface ConsoleIssueMatchers {
+  exactCounts: Map<string, number>;
+  containsCounts: Map<string, number>;
+  allowedContains: string[];
+}
 
-export function setExpectedConsoleIssues(page: Page, messages: string[]): void {
-  issueExpectationsByPage.set(page, new Set(messages));
+type ConsoleIssueMatchMode = 'exact' | 'contains' | 'allowContains';
+
+interface ConsoleIssuePatternOptions {
+  mode?: ConsoleIssueMatchMode;
+}
+
+const issueExpectationsByPage = new WeakMap<Page, ConsoleIssueMatchers>();
+
+function createIssueCounts(messages: string[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const message of messages) {
+    counts.set(message, (counts.get(message) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function appendIssueCounts(target: Map<string, number>, messages: string[]): void {
+  for (const message of messages) {
+    target.set(message, (target.get(message) ?? 0) + 1);
+  }
+}
+
+export function setExpectedConsoleIssues(
+  page: Page,
+  messages: string[],
+  options: ConsoleIssuePatternOptions = {},
+): void {
+  const mode = options.mode ?? 'exact';
+  const current =
+    issueExpectationsByPage.get(page) ??
+    {
+      exactCounts: createIssueCounts([]),
+      containsCounts: createIssueCounts([]),
+      allowedContains: [],
+    };
+  if (mode === 'exact') {
+    appendIssueCounts(current.exactCounts, messages);
+  } else if (mode === 'contains') {
+    appendIssueCounts(current.containsCounts, messages);
+  } else {
+    for (const message of messages) {
+      if (!current.allowedContains.includes(message)) {
+        current.allowedContains.push(message);
+      }
+    }
+  }
+  issueExpectationsByPage.set(page, current);
+}
+
+function consumeExpectedIssue(expected: ConsoleIssueMatchers | undefined, issueMessage: string): boolean {
+  if (!expected) {
+    return false;
+  }
+  const exactRemaining = expected.exactCounts.get(issueMessage) ?? 0;
+  if (exactRemaining > 0) {
+    if (exactRemaining === 1) {
+      expected.exactCounts.delete(issueMessage);
+    } else {
+      expected.exactCounts.set(issueMessage, exactRemaining - 1);
+    }
+    return true;
+  }
+  for (const [pattern, remaining] of expected.containsCounts.entries()) {
+    if (remaining <= 0) {
+      continue;
+    }
+    if (!issueMessage.includes(pattern)) {
+      continue;
+    }
+    if (remaining === 1) {
+      expected.containsCounts.delete(pattern);
+    } else {
+      expected.containsCounts.set(pattern, remaining - 1);
+    }
+    return true;
+  }
+  for (const pattern of expected.allowedContains) {
+    if (issueMessage.includes(pattern)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function attachGuards(page: Page) {
@@ -31,8 +115,7 @@ function attachGuards(page: Page) {
 
     const issueMessage = message.text();
     const expected = issueExpectationsByPage.get(page);
-    if (expected?.has(issueMessage)) {
-      expected.delete(issueMessage);
+    if (consumeExpectedIssue(expected, issueMessage)) {
       return;
     }
 
@@ -57,8 +140,13 @@ function attachGuards(page: Page) {
 
   return () => {
     const expected = issueExpectationsByPage.get(page);
-    if (expected && expected.size > 0) {
-      throw new Error(`Expected console issues not reported: ${[...expected].join(', ')}`);
+    const outstandingExact = expected ? [...expected.exactCounts.entries()] : [];
+    const outstandingContains = expected ? [...expected.containsCounts.entries()] : [];
+    const outstanding = [...outstandingExact, ...outstandingContains];
+    if (outstanding.length > 0) {
+      const remaining = outstanding.flatMap(([message, count]) =>
+        Array.from({ length: count }, () => message));
+      throw new Error(`Expected console issues not reported: ${remaining.join(', ')}`);
     }
     issueExpectationsByPage.delete(page);
     page.off('console', onConsole);

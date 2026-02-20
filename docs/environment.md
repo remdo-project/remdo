@@ -16,7 +16,7 @@ optional).
 - For override behavior, use script docs/source (`tools/env.defaults.sh`,
   `tools/docker-test.sh`).
 
-### Docker E2E (test:docker)
+### Docker E2E (test:e2e:prod)
 
 - Runs E2E tests against a Dockerized production build of the current repo.
 - Requires a local Docker daemon (or rootless Docker) to be running.
