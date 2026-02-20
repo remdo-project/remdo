@@ -53,7 +53,9 @@ optional).
 ## Backup machine
 
 - Source of truth: `tools/remote/make-backup.sh` (including required
-  `PROD_APP_ADDR` format and local backup repo assumptions).
+  `PROD_APP_ADDR` default target, optional auto-discovered
+  `PROD_APP_ADDR_<suffix>` targets (alphanumeric suffix only), and local backup
+  repo assumptions).
 
 ## CI
 
