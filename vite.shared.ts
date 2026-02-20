@@ -5,6 +5,17 @@ import { config } from './config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = config.env.VITEST_PREVIEW;
+const shellFallbackBlocklist = [
+  // Auth/UI routes served by tinyauth.
+  /^\/(?:login|authorize|logout|continue|totp|forgot-password|unauthorized|error)(?:\/|$)/,
+  // Tinyauth static assets.
+  /^\/resources(?:\/|$)/,
+  // Server APIs.
+  /^\/api(?:\/|$)/,
+  // Collaboration backend routes (not SPA document pages).
+  /^\/doc(?:\/|$)/,
+  /^\/d(?:\/|$)/,
+];
 
 export function createViteSharedConfig() {
   return {
@@ -26,8 +37,20 @@ export function createViteSharedConfig() {
           ],
         },
         workbox: {
-          navigateFallback: '/index.html',
           runtimeCaching: [
+            {
+              urlPattern: ({ request, url }) =>
+                request.mode === 'navigate' &&
+                !shellFallbackBlocklist.some((pattern) => pattern.test(url.pathname)),
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'app-shell-navigation',
+                networkTimeoutSeconds: 5,
+                precacheFallback: {
+                  fallbackURL: '/index.html',
+                },
+              },
+            },
             {
               urlPattern: ({ url }) => url.pathname.startsWith('/doc') || url.pathname.startsWith('/d/'),
               handler: 'NetworkOnly',
