@@ -37,6 +37,9 @@ export function createViteSharedConfig() {
           ],
         },
         workbox: {
+          // Disable vite-plugin-pwa's default app-shell NavigationRoute so our
+          // custom navigation runtimeCaching blocklist is the source of truth.
+          navigateFallback: undefined,
           runtimeCaching: [
             {
               urlPattern: ({ request, url }) =>
