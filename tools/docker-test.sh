@@ -76,8 +76,21 @@ fi
 echo "Docker health check OK: ${HEALTH_URL}"
 echo "Running Playwright prod E2E suite against Docker server (tests/e2e/prod)..."
 
+PLAYWRIGHT_BROWSERS_DIR="${PLAYWRIGHT_BROWSERS_PATH:-}"
+if [[ -n "${PLAYWRIGHT_BROWSERS_DIR}" ]]; then
+  mkdir -p "${PLAYWRIGHT_BROWSERS_DIR}" >/dev/null 2>&1 || true
+fi
+if [[ -z "${PLAYWRIGHT_BROWSERS_DIR}" || ! -w "${PLAYWRIGHT_BROWSERS_DIR}" ]]; then
+  PLAYWRIGHT_BROWSERS_DIR="${ROOT_DIR%/}/data/cache/playwright-browsers"
+  mkdir -p "${PLAYWRIGHT_BROWSERS_DIR}"
+fi
+
+echo "Ensuring Playwright Chromium is installed (${PLAYWRIGHT_BROWSERS_DIR})..."
+PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" pnpm exec playwright install chromium
+
 if ! E2E_DOCKER=true \
   NODE_ENV=production \
+  PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" \
   HOST="${DOCKER_TEST_APP_HOST}" \
   PORT="${PORT}" \
   COLLAB_ENABLED=true \
