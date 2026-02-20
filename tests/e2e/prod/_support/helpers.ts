@@ -39,5 +39,9 @@ export async function waitForServiceWorkerControl(page: Page): Promise<void> {
 }
 
 export function allowOfflineDisconnectedConsoleIssue(page: Page): void {
-  setExpectedConsoleIssues(page, ['net::ERR_INTERNET_DISCONNECTED'], { mode: 'allowContains' });
+  setExpectedConsoleIssues(
+    page,
+    ['net::ERR_INTERNET_DISCONNECTED', 'Failed to get client token'],
+    { mode: 'allowContains' },
+  );
 }
