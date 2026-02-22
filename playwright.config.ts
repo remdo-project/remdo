@@ -18,9 +18,10 @@ const webServer = useDocker
   : {
       command: `./tools/env.sh env PORT=${port} HMR_PORT=${hmrPort} pnpm exec vite`,
       url: baseURL,
-      // Reusing an existing server can accidentally target preview/prod-mode
-      // instances (e.g. dev:pwa) that do not expose /e2e routes.
-      reuseExistingServer: false,
+      // Intentional: reuse an already-running RemDo Vite dev server on PLAYWRIGHT_WEB_PORT
+      // to keep local E2E/debug loops fast. This port is expected to be reserved for the
+      // test target; if another app is bound there, E2E results are invalid.
+      reuseExistingServer: true,
     };
 
 export default defineConfig({
