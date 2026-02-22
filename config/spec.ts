@@ -17,6 +17,7 @@ export const envSpec = defineEnvSpec(
     VITEST_PREVIEW_PORT: { default: 0 },
     PLAYWRIGHT_UI_PORT: { default: 0 },
     PLAYWRIGHT_WEB_PORT: { default: 0 },
+    PLAYWRIGHT_HMR_PORT: { default: 0 },
     CI: { default: false },
     VITEST_PREVIEW: { default: false },
   } satisfies EnvSpec,
