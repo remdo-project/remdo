@@ -5,20 +5,23 @@ import { config } from './config';
 import { resolveLoopbackHost } from './lib/net/loopback';
 
 const host = resolveLoopbackHost(config.env.HOST, '127.0.0.1');
-const port = config.env.PORT;
-const baseURL = `http://${host}:${port}`;
-
 // eslint-disable-next-line node/no-process-env
 const { PLAYWRIGHT_WORKERS, E2E_DOCKER } = process.env;
 const workers = PLAYWRIGHT_WORKERS ?? Math.max(2, os.cpus().length - 1);
 const useDocker = E2E_DOCKER === 'true';
+const port = useDocker ? config.env.PORT : config.env.PLAYWRIGHT_WEB_PORT;
+const baseURL = `http://${host}:${port}`;
+const hmrPort = useDocker ? config.env.HMR_PORT : config.env.PLAYWRIGHT_HMR_PORT;
 
 const webServer = useDocker
   ? undefined
   : {
-      command: 'pnpm run dev:web',
+      command: `./tools/env.sh env PORT=${port} HMR_PORT=${hmrPort} pnpm exec vite`,
       url: baseURL,
-      reuseExistingServer: !config.env.CI,
+      // Intentional: reuse an already-running RemDo Vite dev server on PLAYWRIGHT_WEB_PORT
+      // to keep local E2E/debug loops fast. This port is expected to be reserved for the
+      // test target; if another app is bound there, E2E results are invalid.
+      reuseExistingServer: true,
     };
 
 export default defineConfig({
