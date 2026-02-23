@@ -64,6 +64,47 @@ describe('local persistence support decision', () => {
     });
   });
 
+  it('disables local persistence when crypto.subtle is unavailable', async () => {
+    vi.stubGlobal(
+      'indexedDB',
+      {
+        open: vi.fn(() => createOpenSuccessRequest()),
+        deleteDatabase: vi.fn(() => createDeleteRequest()),
+      } as unknown as IDBFactory
+    );
+    vi.stubGlobal('crypto', {
+      getRandomValues: vi.fn(),
+      randomUUID: vi.fn(),
+    });
+
+    const { getLocalPersistenceSupportDecision } = await loadRuntime();
+    await expect(getLocalPersistenceSupportDecision()).resolves.toEqual({
+      enabled: false,
+      reason: 'crypto.subtle unavailable',
+    });
+  });
+
+  it('disables local persistence when crypto.subtle.generateKey is unavailable', async () => {
+    vi.stubGlobal(
+      'indexedDB',
+      {
+        open: vi.fn(() => createOpenSuccessRequest()),
+        deleteDatabase: vi.fn(() => createDeleteRequest()),
+      } as unknown as IDBFactory
+    );
+    vi.stubGlobal('crypto', {
+      getRandomValues: vi.fn(),
+      randomUUID: vi.fn(),
+      subtle: {},
+    });
+
+    const { getLocalPersistenceSupportDecision } = await loadRuntime();
+    await expect(getLocalPersistenceSupportDecision()).resolves.toEqual({
+      enabled: false,
+      reason: 'crypto.subtle.generateKey unavailable',
+    });
+  });
+
   it('disables local persistence when indexedDB cannot be opened', async () => {
     vi.stubGlobal(
       'indexedDB',
