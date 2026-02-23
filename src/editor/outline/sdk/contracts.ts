@@ -53,8 +53,8 @@ export interface NoteSdkAdapter {
   docId: () => DocumentId;
   adapterSelection: () => AdapterNoteSelection;
   hasNote: (noteId: NoteId) => boolean;
-  textOf: (noteId: NoteId) => string | null;
-  childrenOf: (noteId: NoteId) => readonly NoteId[] | null;
+  textOf: (noteId: NoteId) => string;
+  childrenOf: (noteId: NoteId) => readonly NoteId[];
   indentNotes: (noteIds: readonly NoteId[]) => boolean;
   outdentNotes: (noteIds: readonly NoteId[]) => boolean;
   moveNotesUp: (noteIds: readonly NoteId[]) => boolean;

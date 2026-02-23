@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { meta, placeCaretAtNote, selectNoteRange } from '#tests';
 import { createLexicalNoteSdk } from '@/editor/outline/sdk/adapters/lexical';
+import { NoteNotFoundError } from '@/editor/outline/sdk';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { removeNoteSubtree } from '@/editor/outline/selection/tree';
 
@@ -137,10 +138,10 @@ describe('note sdk', () => {
 
     remdo.validate(() => {
       expect(handle.id()).toBe('note2');
-      expect(() => handle.text()).toThrow('Note not found: note2');
-      expect(() => handle.children()).toThrow('Note not found: note2');
-      expect(() => handle.indent()).toThrow('Note not found: note2');
-      expect(() => handle.moveUp()).toThrow('Note not found: note2');
+      expect(() => handle.text()).toThrowError(NoteNotFoundError);
+      expect(() => handle.children()).toThrowError(NoteNotFoundError);
+      expect(() => handle.indent()).toThrowError(NoteNotFoundError);
+      expect(() => handle.moveUp()).toThrowError(NoteNotFoundError);
     });
   });
 
@@ -157,7 +158,7 @@ describe('note sdk', () => {
   it('throws when get() targets a missing note', meta({ fixture: 'flat' }), async ({ remdo }) => {
     remdo.validate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      expect(() => sdk.get('missing')).toThrow('Note not found: missing');
+      expect(() => sdk.get('missing')).toThrowError(NoteNotFoundError);
     });
   });
 });

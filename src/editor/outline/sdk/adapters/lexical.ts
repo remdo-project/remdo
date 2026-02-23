@@ -9,6 +9,7 @@ import { getContiguousSelectionHeads, getSelectedNotes } from '@/editor/outline/
 import { getNestedList } from '@/editor/outline/selection/tree';
 import { createNoteSdk } from '../core';
 import type { AdapterNoteSelection, NoteId, NoteSdk, NoteSdkAdapter } from '../contracts';
+import { NoteNotFoundError } from '../errors';
 import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
 
@@ -22,7 +23,7 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
   const $requireNoteById = (noteId: NoteId): ListItemNode => {
     const note = $resolveNoteById(noteId);
     if (!note) {
-      throw new Error(`Note not found: ${noteId}`);
+      throw new NoteNotFoundError(noteId);
     }
     return note;
   };

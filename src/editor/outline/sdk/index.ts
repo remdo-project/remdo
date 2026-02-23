@@ -6,3 +6,4 @@ export type {
   NoteSdk,
 } from './contracts';
 export { createNoteSdk } from './core';
+export { NoteNotFoundError } from './errors';

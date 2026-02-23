@@ -1,4 +1,5 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import type { LexicalEditor } from 'lexical';
 import { COMMAND_PRIORITY_LOW } from 'lexical';
 import { mergeRegister } from '@lexical/utils';
 import { useEffect } from 'react';
@@ -9,7 +10,7 @@ import { useCollaborationStatus } from './collaboration';
 type MoveDirection = 'up' | 'down';
 
 function moveSelectionViaSdk(
-  editor: Parameters<typeof createLexicalNoteSdk>[0]['editor'],
+  editor: LexicalEditor,
   docId: string,
   direction: MoveDirection
 ): boolean {

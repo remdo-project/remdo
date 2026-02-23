@@ -9,27 +9,24 @@ import type {
   NoteSelectionKind,
   NoteSelectionVariant,
 } from './contracts';
+import { NoteNotFoundError } from './errors';
 
 export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
   const sameSelectionKind = (left: NoteSelectionKind, right: NoteSelectionKind): boolean => left === right;
 
   const assertNoteExists = (noteId: NoteId): void => {
     if (!adapter.hasNote(noteId)) {
-      throw new Error(`Note not found: ${noteId}`);
+      throw new NoteNotFoundError(noteId);
     }
   };
 
   const createHandle = (noteId: NoteId): Note => ({
     id: () => noteId,
     text: () => {
-      return adapter.textOf(noteId) ?? '';
+      return adapter.textOf(noteId);
     },
     children: () => {
-      const childIds = adapter.childrenOf(noteId);
-      if (!childIds) {
-        return [];
-      }
-      return childIds.map((childId) => createHandle(childId));
+      return adapter.childrenOf(noteId).map((childId) => createHandle(childId));
     },
     indent: () => {
       return adapter.indentNotes([noteId]);

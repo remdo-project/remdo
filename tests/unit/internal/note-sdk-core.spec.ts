@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createNoteSdk } from '@/editor/outline/sdk';
+import { createNoteSdk, NoteNotFoundError } from '@/editor/outline/sdk';
 import type { AdapterNoteSelection, NoteSdkAdapter } from '@/editor/outline/sdk/contracts';
 
 function createMockAdapterFixture(
@@ -14,7 +14,7 @@ function createMockAdapterFixture(
   const requireNote = (noteId: string): { text: string; children: string[] } => {
     const note = notes.get(noteId);
     if (!note) {
-      throw new Error(`Note not found: ${noteId}`);
+      throw new NoteNotFoundError(noteId);
     }
     return note;
   };
@@ -74,7 +74,7 @@ describe('note sdk core', () => {
     expect(caret.heads().map((head) => head.id())).toEqual(['b']);
     expect(sdk.indent(selection.heads())).toBe(true);
     expect(() => selection.as('structural')).toThrow('Expected structural selection, got caret');
-    expect(() => sdk.get('missing')).toThrow('Note not found: missing');
+    expect(() => sdk.get('missing')).toThrowError(NoteNotFoundError);
   });
 
   it('delegates mutating operations to adapter and preserves no-op booleans', () => {
@@ -96,10 +96,10 @@ describe('note sdk core', () => {
 
     fixture.notes.delete('b');
 
-    expect(() => note.text()).toThrow('Note not found: b');
-    expect(() => note.children()).toThrow('Note not found: b');
-    expect(() => note.indent()).toThrow('Note not found: b');
-    expect(() => note.moveUp()).toThrow('Note not found: b');
+    expect(() => note.text()).toThrowError(NoteNotFoundError);
+    expect(() => note.children()).toThrowError(NoteNotFoundError);
+    expect(() => note.indent()).toThrowError(NoteNotFoundError);
+    expect(() => note.moveUp()).toThrowError(NoteNotFoundError);
   });
 
   it('delegates sdk note operations using structural selection heads', () => {
