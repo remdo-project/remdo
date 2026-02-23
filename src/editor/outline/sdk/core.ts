@@ -22,11 +22,9 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
   const createHandle = (noteId: NoteId): Note => ({
     id: () => noteId,
     text: () => {
-      assertNoteExists(noteId);
       return adapter.textOf(noteId) ?? '';
     },
     children: () => {
-      assertNoteExists(noteId);
       const childIds = adapter.childrenOf(noteId);
       if (!childIds) {
         return [];
@@ -34,20 +32,16 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
       return childIds.map((childId) => createHandle(childId));
     },
     indent: () => {
-      assertNoteExists(noteId);
-      return adapter.indent(noteId);
+      return adapter.indentNotes([noteId]);
     },
     outdent: () => {
-      assertNoteExists(noteId);
-      return adapter.outdent(noteId);
+      return adapter.outdentNotes([noteId]);
     },
     moveUp: () => {
-      assertNoteExists(noteId);
-      return adapter.moveUp(noteId);
+      return adapter.moveNotesUp([noteId]);
     },
     moveDown: () => {
-      assertNoteExists(noteId);
-      return adapter.moveDown(noteId);
+      return adapter.moveNotesDown([noteId]);
     },
   });
 
@@ -63,8 +57,21 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     return createHandle(noteId);
   };
 
+  const runNoteMutation = (
+    notes: readonly Note[],
+    operation: (noteIds: readonly NoteId[]) => boolean
+  ): boolean => {
+    if (notes.length === 0) {
+      return false;
+    }
+
+    const noteIds = notes.map((note) => note.id());
+    return operation(noteIds);
+  };
+
   const createSelection = <K extends NoteSelectionKind>(
-    shape: Extract<NoteSelectionVariant, { kind: K }>
+    shape: Extract<NoteSelectionVariant, { kind: K }>,
+    heads: readonly Note[]
   ): NoteSelectionByKind<K> => {
     const selection: NoteSelectionByKind<K> = {
       ...shape,
@@ -74,36 +81,33 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
         }
         return selection as unknown as NoteSelectionByKind<ExpectedKind>;
       },
+      heads: () => heads,
     };
     return selection;
   };
 
   const resolveSelection = (adapterSelection: AdapterNoteSelection): NoteSelection => {
     if (adapterSelection.kind === 'none') {
-      return createSelection({ kind: 'none' });
-    }
-
-    if (adapterSelection.kind === 'caret' || adapterSelection.kind === 'inline') {
-      const note = resolveHandle(adapterSelection.noteId);
-      if (!note) {
-        return createSelection({ kind: 'none' });
-      }
-      return createSelection({ kind: adapterSelection.kind, note });
+      return createSelection({ kind: 'none' }, []);
     }
 
     const heads = adapterSelection.headIds
       .map((noteId) => resolveHandle(noteId))
       .filter((note): note is Note => note !== null);
     if (heads.length === 0) {
-      return createSelection({ kind: 'none' });
+      return createSelection({ kind: 'none' }, []);
     }
 
-    return createSelection({ kind: 'structural', heads });
+    return createSelection({ kind: adapterSelection.kind }, heads);
   };
 
   return {
     docId: () => adapter.docId(),
     selection: () => resolveSelection(adapter.adapterSelection()),
     get: (noteId) => getOrThrow(noteId),
+    indent: (notes) => runNoteMutation(notes, adapter.indentNotes),
+    outdent: (notes) => runNoteMutation(notes, adapter.outdentNotes),
+    moveUp: (notes) => runNoteMutation(notes, adapter.moveNotesUp),
+    moveDown: (notes) => runNoteMutation(notes, adapter.moveNotesDown),
   };
 }

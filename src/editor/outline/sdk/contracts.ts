@@ -16,18 +16,23 @@ export interface NoteSdk {
   docId: () => DocumentId;
   selection: () => NoteSelection;
   get: (noteId: NoteId) => Note;
+  indent: (notes: readonly Note[]) => boolean;
+  outdent: (notes: readonly Note[]) => boolean;
+  moveUp: (notes: readonly Note[]) => boolean;
+  moveDown: (notes: readonly Note[]) => boolean;
 }
 
 export type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
 
 export type NoteSelectionVariant =
   | { kind: 'none' }
-  | { kind: 'caret'; note: Note }
-  | { kind: 'inline'; note: Note }
-  | { kind: 'structural'; heads: readonly Note[] };
+  | { kind: 'caret' }
+  | { kind: 'inline' }
+  | { kind: 'structural' };
 
 export interface NoteSelectionApi {
   as: <K extends NoteSelectionKind>(kind: K) => NoteSelectionByKind<K>;
+  heads: () => readonly Note[];
 }
 
 export type NoteSelectionByKind<K extends NoteSelectionKind = NoteSelectionKind> = Extract<
@@ -39,9 +44,9 @@ export type NoteSelectionByKind<K extends NoteSelectionKind = NoteSelectionKind>
 export type NoteSelection = NoteSelectionByKind;
 
 export type AdapterNoteSelection =
-  | { kind: 'none' }
-  | { kind: 'caret'; noteId: NoteId }
-  | { kind: 'inline'; noteId: NoteId }
+  | { kind: 'none'; headIds: readonly [] }
+  | { kind: 'caret'; headIds: readonly [NoteId] }
+  | { kind: 'inline'; headIds: readonly [NoteId] }
   | { kind: 'structural'; headIds: readonly NoteId[] };
 
 export interface NoteSdkAdapter {
@@ -50,8 +55,8 @@ export interface NoteSdkAdapter {
   hasNote: (noteId: NoteId) => boolean;
   textOf: (noteId: NoteId) => string | null;
   childrenOf: (noteId: NoteId) => readonly NoteId[] | null;
-  indent: (noteId: NoteId) => boolean;
-  outdent: (noteId: NoteId) => boolean;
-  moveUp: (noteId: NoteId) => boolean;
-  moveDown: (noteId: NoteId) => boolean;
+  indentNotes: (noteIds: readonly NoteId[]) => boolean;
+  outdentNotes: (noteIds: readonly NoteId[]) => boolean;
+  moveNotesUp: (noteIds: readonly NoteId[]) => boolean;
+  moveNotesDown: (noteIds: readonly NoteId[]) => boolean;
 }

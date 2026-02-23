@@ -1,27 +1,53 @@
 import { describe, expect, it } from 'vitest';
 import { createNoteSdk } from '@/editor/outline/sdk';
-import type { NoteSdkAdapter } from '@/editor/outline/sdk';
+import type { AdapterNoteSelection, NoteSdkAdapter } from '@/editor/outline/sdk/contracts';
 
-function createMockAdapterFixture(): { adapter: NoteSdkAdapter; notes: Map<string, { text: string; children: string[] }> } {
+function createMockAdapterFixture(
+  adapterSelection?: AdapterNoteSelection
+): { adapter: NoteSdkAdapter; notes: Map<string, { text: string; children: string[] }> } {
+  const resolvedSelection = adapterSelection ?? { kind: 'caret', headIds: ['b'] };
   const notes = new Map<string, { text: string; children: string[] }>([
     ['a', { text: 'A', children: ['b', 'c'] }],
     ['b', { text: 'B', children: [] }],
     ['c', { text: 'C', children: [] }],
   ]);
-  const current: string | null = 'b';
+  const requireNote = (noteId: string): { text: string; children: string[] } => {
+    const note = notes.get(noteId);
+    if (!note) {
+      throw new Error(`Note not found: ${noteId}`);
+    }
+    return note;
+  };
+  const requireNotes = (noteIds: readonly string[]): void => {
+    for (const noteId of noteIds) {
+      requireNote(noteId);
+    }
+  };
 
   return {
     notes,
     adapter: {
       docId: () => 'doc-1',
-      adapterSelection: () => ({ kind: 'caret', noteId: current }),
+      adapterSelection: () => resolvedSelection,
       hasNote: (noteId) => notes.has(noteId),
-      textOf: (noteId) => notes.get(noteId)?.text ?? null,
-      childrenOf: (noteId) => notes.get(noteId)?.children ?? null,
-      indent: (noteId) => notes.has(noteId),
-      outdent: (noteId) => noteId !== 'a' && notes.has(noteId),
-      moveUp: (noteId) => noteId === 'b',
-      moveDown: (noteId) => noteId === 'b',
+      textOf: (noteId) => requireNote(noteId).text,
+      childrenOf: (noteId) => requireNote(noteId).children,
+      indentNotes: (noteIds) => {
+        requireNotes(noteIds);
+        return true;
+      },
+      outdentNotes: (noteIds) => {
+        requireNotes(noteIds);
+        return noteIds.every((noteId) => noteId !== 'a');
+      },
+      moveNotesUp: (noteIds) => {
+        requireNotes(noteIds);
+        return noteIds.length === 1 && noteIds[0] === 'b';
+      },
+      moveNotesDown: (noteIds) => {
+        requireNotes(noteIds);
+        return noteIds.length === 1 && noteIds[0] === 'b';
+      },
     },
   };
 }
@@ -45,7 +71,8 @@ describe('note sdk core', () => {
     const selection = sdk.selection();
     expect(selection.kind).toBe('caret');
     const caret = selection.as('caret');
-    expect(caret.note.id()).toBe('b');
+    expect(caret.heads().map((head) => head.id())).toEqual(['b']);
+    expect(sdk.indent(selection.heads())).toBe(true);
     expect(() => selection.as('structural')).toThrow('Expected structural selection, got caret');
     expect(() => sdk.get('missing')).toThrow('Note not found: missing');
   });
@@ -73,5 +100,16 @@ describe('note sdk core', () => {
     expect(() => note.children()).toThrow('Note not found: b');
     expect(() => note.indent()).toThrow('Note not found: b');
     expect(() => note.moveUp()).toThrow('Note not found: b');
+  });
+
+  it('delegates sdk note operations using structural selection heads', () => {
+    const fixture = createMockAdapterFixture({ kind: 'structural', headIds: ['b'] });
+    const sdk = createNoteSdk(fixture.adapter);
+    const selection = sdk.selection().as('structural');
+
+    expect(sdk.indent(selection.heads())).toBe(true);
+    expect(sdk.outdent(selection.heads())).toBe(true);
+    expect(sdk.moveUp(selection.heads())).toBe(true);
+    expect(sdk.moveDown(selection.heads())).toBe(true);
   });
 });

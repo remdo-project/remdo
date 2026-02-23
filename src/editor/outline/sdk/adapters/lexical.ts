@@ -19,12 +19,22 @@ export interface LexicalNoteSdkAdapterOptions {
 
 export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOptions): NoteSdkAdapter {
   const $resolveNoteById = (noteId: NoteId) => $findNoteById(noteId);
+  const $requireNoteById = (noteId: NoteId): ListItemNode => {
+    const note = $resolveNoteById(noteId);
+    if (!note) {
+      throw new Error(`Note not found: ${noteId}`);
+    }
+    return note;
+  };
   const $resolveBoundaryRoot = () => $resolveZoomBoundaryRoot(editor);
+  const $requireNotesByIds = (noteIds: readonly NoteId[]): ListItemNode[] => {
+    return noteIds.map((noteId) => $requireNoteById(noteId));
+  };
 
   const $selectionFallbackFromRange = (): AdapterNoteSelection => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection)) {
-      return { kind: 'none' };
+      return { kind: 'none', headIds: [] };
     }
 
     if (!selection.isCollapsed()) {
@@ -38,11 +48,11 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
     const item = resolveContentItemFromNode(selection.focus.getNode()) ??
       resolveContentItemFromNode(selection.anchor.getNode());
     if (!item) {
-      return { kind: 'none' };
+      return { kind: 'none', headIds: [] };
     }
 
     const noteId = $requireContentItemNoteId(item);
-    return selection.isCollapsed() ? { kind: 'caret', noteId } : { kind: 'inline', noteId };
+    return selection.isCollapsed() ? { kind: 'caret', headIds: [noteId] } : { kind: 'inline', headIds: [noteId] };
   };
 
   const $noteIdFromContentKey = (key: string): NoteId | null => {
@@ -65,7 +75,7 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
       const headIds = keys
         .map((key) => $noteIdFromContentKey(key))
         .filter((noteId): noteId is NoteId => noteId !== null);
-      return headIds.length > 0 ? { kind: 'structural', headIds } : { kind: 'none' };
+      return headIds.length > 0 ? { kind: 'structural', headIds } : { kind: 'none', headIds: [] };
     }
 
     const key = outlineSelection.focusKey ?? outlineSelection.anchorKey;
@@ -74,21 +84,18 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
     }
     const noteId = $noteIdFromContentKey(key);
     if (!noteId) {
-      return { kind: 'none' };
+      return { kind: 'none', headIds: [] };
     }
-    return outlineSelection.kind === 'inline' ? { kind: 'inline', noteId } : { kind: 'caret', noteId };
+    return outlineSelection.kind === 'inline' ? { kind: 'inline', headIds: [noteId] } : { kind: 'caret', headIds: [noteId] };
   };
 
   return {
     docId: () => docId,
     adapterSelection: () => $adapterSelection(),
     hasNote: (noteId) => Boolean($resolveNoteById(noteId)),
-    textOf: (noteId) => $resolveNoteById(noteId)?.getTextContent() ?? null,
+    textOf: (noteId) => $requireNoteById(noteId).getTextContent(),
     childrenOf: (noteId) => {
-      const current = $resolveNoteById(noteId);
-      if (!current) {
-        return null;
-      }
+      const current = $requireNoteById(noteId);
 
       const nested = getNestedList(current);
       if (!nested) {
@@ -97,33 +104,21 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
 
       return getContentSiblings(nested).map((child) => $requireContentItemNoteId(child));
     },
-    indent: (noteId) => {
-      const note = $resolveNoteById(noteId);
-      if (!note) {
-        return false;
-      }
-      return indentNotes([note], $resolveBoundaryRoot());
+    indentNotes: (noteIds) => {
+      const notes = $requireNotesByIds(noteIds);
+      return indentNotes(notes, $resolveBoundaryRoot());
     },
-    outdent: (noteId) => {
-      const note = $resolveNoteById(noteId);
-      if (!note) {
-        return false;
-      }
-      return outdentNotes([note], $resolveBoundaryRoot());
+    outdentNotes: (noteIds) => {
+      const notes = $requireNotesByIds(noteIds);
+      return outdentNotes(notes, $resolveBoundaryRoot());
     },
-    moveUp: (noteId) => {
-      const note = $resolveNoteById(noteId);
-      if (!note) {
-        return false;
-      }
-      return moveNotesUp([note], $resolveBoundaryRoot());
+    moveNotesUp: (noteIds) => {
+      const notes = $requireNotesByIds(noteIds);
+      return moveNotesUp(notes, $resolveBoundaryRoot());
     },
-    moveDown: (noteId) => {
-      const note = $resolveNoteById(noteId);
-      if (!note) {
-        return false;
-      }
-      return moveNotesDown([note], $resolveBoundaryRoot());
+    moveNotesDown: (noteIds) => {
+      const notes = $requireNotesByIds(noteIds);
+      return moveNotesDown(notes, $resolveBoundaryRoot());
     },
   };
 }

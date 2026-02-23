@@ -1,42 +1,37 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
+import { COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
 import { useEffect } from 'react';
-import { $resolveZoomBoundaryRoot } from '@/editor/outline/selection/boundary';
-import { indentNotes, outdentNotes, resolveRangeSelectionHeads } from '@/editor/outline/note-ops';
+import { createLexicalNoteSdk } from '@/editor/outline/sdk/adapters/lexical';
+import { useCollaborationStatus } from './collaboration';
 
 export function IndentationPlugin() {
   const [editor] = useLexicalComposerContext();
+  const { docId } = useCollaborationStatus();
 
   useEffect(() => {
     return editor.registerCommand(
       KEY_TAB_COMMAND,
       (event: KeyboardEvent) => {
-        const selection = $getSelection();
-
-        // Only handle range selections (both collapsed and non-collapsed)
-        if (!$isRangeSelection(selection)) {
-          return false;
-        }
-
-        const heads = resolveRangeSelectionHeads(selection);
+        const sdk = createLexicalNoteSdk({ editor, docId });
+        const selection = sdk.selection();
+        const heads = selection.heads();
         if (heads.length === 0) {
           return false;
         }
 
-        const boundaryRoot = $resolveZoomBoundaryRoot(editor);
         event.preventDefault();
 
         if (event.shiftKey) {
-          outdentNotes(heads, boundaryRoot);
+          sdk.outdent(heads);
         } else {
-          indentNotes(heads, boundaryRoot);
+          sdk.indent(heads);
         }
 
         return true;
       },
       COMMAND_PRIORITY_LOW
     );
-  }, [editor]);
+  }, [editor, docId]);
 
   return null;
 }
