@@ -11,6 +11,8 @@ jobs:
       actions: write
     timeout-minutes: 20
     runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-pnpm
@@ -27,4 +29,4 @@ jobs:
         run: pnpm run dev:init
 
       - name: Run Docker smoke tests
-        run: pnpm run test:docker
+        run: pnpm run test:e2e:prod

@@ -6,7 +6,7 @@ import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ClickableLinkPlugin } from '@lexical/react/LexicalClickableLinkPlugin';
 import { useCallback, useState } from 'react';
 import { createEditorInitialConfig } from '#lib/editor/config';
-import { CollaborationPlugin } from './plugins/collaboration';
+import { CollaborationPlugin, useOfflineDocumentUnavailable } from './plugins/collaboration';
 import { CheckListPlugin } from './plugins/CheckListPlugin';
 import { IndentationPlugin } from './plugins/IndentationPlugin';
 import { DevPlugin } from './plugins/dev';
@@ -50,16 +50,52 @@ export default function Editor({
   onZoomPathChange,
 }: EditorProps) {
   const editorInitialConfig = createEditorInitialConfig();
+
+  return (
+    <div className="editor-container">
+      <LexicalComposer initialConfig={editorInitialConfig}>
+        <CollaborationPlugin docId={docId}>
+          <EditorRuntime
+            children={children}
+            onTestBridgeReady={onTestBridgeReady}
+            onTestBridgeDispose={onTestBridgeDispose}
+            statusPortalRoot={statusPortalRoot}
+            zoomNoteId={zoomNoteId}
+            onZoomNoteIdChange={onZoomNoteIdChange}
+            onZoomPathChange={onZoomPathChange}
+          />
+        </CollaborationPlugin>
+      </LexicalComposer>
+    </div>
+  );
+}
+
+function EditorRuntime({
+  children,
+  onTestBridgeReady,
+  onTestBridgeDispose,
+  statusPortalRoot,
+  zoomNoteId,
+  onZoomNoteIdChange,
+  onZoomPathChange,
+}: Omit<EditorProps, 'docId'>) {
+  const offlineDocumentUnavailable = useOfflineDocumentUnavailable();
   const [schemaReady, setSchemaReady] = useState(false);
   const handleSchemaReadyChange = useCallback((ready: boolean) => {
     setSchemaReady(ready);
   }, []);
 
   return (
-    <div className="editor-container">
-      <LexicalComposer initialConfig={editorInitialConfig}>
-        <CollaborationPlugin docId={docId}>
-          <StatusIndicators portalRoot={statusPortalRoot} />
+    <>
+      <StatusIndicators portalRoot={statusPortalRoot} />
+      {offlineDocumentUnavailable ? (
+        <section className="editor-offline-empty-state" role="status" aria-live="polite">
+          <h2>Offline</h2>
+          <p>You&apos;re offline. This document has no local copy yet.</p>
+          <p>Reconnect to load it.</p>
+        </section>
+      ) : (
+        <>
           <RichTextPlugin
             contentEditable={<ContentEditable className="editor-input" />}
             ErrorBoundary={LexicalErrorBoundary}
@@ -67,29 +103,35 @@ export default function Editor({
           <RootSchemaPlugin onSchemaReadyChange={handleSchemaReadyChange} />
           {schemaReady ? (
             <>
-            <NoteIdPlugin />
-            <KeymapPlugin />
-            <IndentationPlugin />
-            <ReorderingPlugin />
-            <SelectionPlugin />
-            <SelectionCollapsePlugin />
-            <NoteLinkPlugin />
-            <ClickableLinkPlugin newTab={false} />
-            <InsertionPlugin />
-            <DeletionPlugin />
-            <SelectionInputPlugin />
-            <FoldingPlugin />
-            <NoteControlsPlugin />
-            <NoteMenuPlugin />
-            <ZoomPlugin zoomNoteId={zoomNoteId} onZoomNoteIdChange={onZoomNoteIdChange} onZoomPathChange={onZoomPathChange} />
-            <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
-            <CheckListPlugin />
-            <ListPlugin hasStrictIndent />
-            <DevPlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose}>{children}</DevPlugin>
+              <NoteIdPlugin />
+              <KeymapPlugin />
+              <IndentationPlugin />
+              <ReorderingPlugin />
+              <SelectionPlugin />
+              <SelectionCollapsePlugin />
+              <NoteLinkPlugin />
+              <ClickableLinkPlugin newTab={false} />
+              <InsertionPlugin />
+              <DeletionPlugin />
+              <SelectionInputPlugin />
+              <FoldingPlugin />
+              <NoteControlsPlugin />
+              <NoteMenuPlugin />
+              <ZoomPlugin
+                zoomNoteId={zoomNoteId}
+                onZoomNoteIdChange={onZoomNoteIdChange}
+                onZoomPathChange={onZoomPathChange}
+              />
+              <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
+              <CheckListPlugin />
+              <ListPlugin hasStrictIndent />
+              <DevPlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose}>
+                {children}
+              </DevPlugin>
             </>
           ) : null}
-        </CollaborationPlugin>
-      </LexicalComposer>
-    </div>
+        </>
+      )}
+    </>
   );
 }

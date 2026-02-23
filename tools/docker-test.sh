@@ -74,22 +74,35 @@ if [[ "${health_ready}" != "true" ]]; then
 fi
 
 echo "Docker health check OK: ${HEALTH_URL}"
-echo "Running Playwright editor smoke against Docker server..."
+echo "Running Playwright prod E2E suite against Docker server (tests/e2e/prod)..."
+
+PLAYWRIGHT_BROWSERS_DIR="${PLAYWRIGHT_BROWSERS_PATH:-}"
+if [[ -n "${PLAYWRIGHT_BROWSERS_DIR}" ]]; then
+  mkdir -p "${PLAYWRIGHT_BROWSERS_DIR}" >/dev/null 2>&1 || true
+fi
+if [[ -z "${PLAYWRIGHT_BROWSERS_DIR}" || ! -w "${PLAYWRIGHT_BROWSERS_DIR}" ]]; then
+  PLAYWRIGHT_BROWSERS_DIR="${ROOT_DIR%/}/data/cache/playwright-browsers"
+  mkdir -p "${PLAYWRIGHT_BROWSERS_DIR}"
+fi
+
+echo "Ensuring Playwright Chromium is installed (${PLAYWRIGHT_BROWSERS_DIR})..."
+PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" pnpm exec playwright install chromium
 
 if ! E2E_DOCKER=true \
   NODE_ENV=production \
+  PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" \
   HOST="${DOCKER_TEST_APP_HOST}" \
   PORT="${PORT}" \
   COLLAB_ENABLED=true \
   AUTH_USER="${DOCKER_TEST_USER}" \
   AUTH_PASSWORD="${DOCKER_TEST_PASSWORD}" \
-  pnpm exec playwright test -- tests/e2e/editor/docker/smoke.spec.ts; then
+  pnpm exec playwright test -- tests/e2e/prod; then
   docker logs "${CONTAINER_NAME}" || true
-  echo "Smoke e2e failed: ${HEALTH_URL}" >&2
+  echo "Prod e2e failed: ${HEALTH_URL}" >&2
   exit 1
 fi
 
-echo "Docker smoke e2e OK: ${HEALTH_URL}"
+echo "Docker prod e2e OK: ${HEALTH_URL}"
 COLLAB_DATA_PATH="${TEST_DATA_DIR%/}/collab/${COLLAB_DOCUMENT_ID}/data.ysweet"
 collab_ready="false"
 for _ in {1..40}; do
