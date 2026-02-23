@@ -67,6 +67,14 @@ Client-side storage for collaboration state.
   server sync).
 - **Synced:** provider is connected and has no pending unsent local changes.
 
+### Offline cache recovery contract
+
+- First-open offline with no local document cache shows an offline empty state;
+  editing stays unavailable until reconnect.
+- Local persistence is best-effort. If browser storage is cleared or evicted,
+  the document behaves as uncached on the next offline open.
+- Reconnect rehydrates from the hub and returns the document to normal editing.
+
 ## Multi-Hub Vocabulary [Future]
 
 The terms below are exploratory and must not be treated as implementation

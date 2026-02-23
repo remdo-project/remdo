@@ -60,4 +60,46 @@ test.describe('Offline app shell', () => {
       await cleanupOfflineTest(context, offlinePage, detachOfflineGuards);
     }
   });
+
+  test('reopens a cached document offline, accepts edits, and reconnects', async ({ page, context }) => {
+    const docId = createUniqueNoteId();
+    const onlineSeedText = `online-seed-${docId.slice(0, 8)}`;
+    const offlineEditText = `offline-edit-${docId.slice(0, 8)}`;
+
+    await page.goto(`/n/${docId}`);
+    await loginThroughTinyauthIfNeeded(page);
+    const editorInput = page.locator('.editor-input').first();
+    await editorInput.waitFor({ state: 'visible' });
+    await editorInput.click();
+    await page.keyboard.type(onlineSeedText);
+    await expect(page.locator('li.list-item').filter({ hasText: onlineSeedText })).toHaveCount(1);
+    await waitForServiceWorkerControl(page);
+    await expect(page.locator('li.list-item').filter({ hasText: onlineSeedText })).toHaveCount(1);
+    allowOfflineDisconnectedConsoleIssue(page);
+    await page.close();
+
+    let offlinePage: Page | undefined;
+    let detachOfflineGuards: (() => void) | undefined;
+    await context.setOffline(true);
+    try {
+      offlinePage = await context.newPage();
+      detachOfflineGuards = attachPageGuards(offlinePage);
+      allowOfflineDisconnectedConsoleIssue(offlinePage);
+      await offlinePage.goto(`/n/${docId}`);
+      const offlineEditorInput = offlinePage.locator('.editor-input').first();
+      await expect(offlineEditorInput).toBeVisible();
+      await expect(offlinePage.locator('li.list-item').filter({ hasText: onlineSeedText })).toHaveCount(1);
+
+      await offlineEditorInput.click();
+      await offlinePage.keyboard.press('Enter');
+      await offlinePage.keyboard.type(offlineEditText);
+      await expect(offlinePage.locator('li.list-item').filter({ hasText: offlineEditText })).toHaveCount(1);
+
+      await context.setOffline(false);
+      await expect(offlinePage.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+      await expect(offlinePage.locator('li.list-item').filter({ hasText: offlineEditText })).toHaveCount(1);
+    } finally {
+      await cleanupOfflineTest(context, offlinePage, detachOfflineGuards);
+    }
+  });
 });

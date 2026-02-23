@@ -46,25 +46,3 @@ Rules:
    Success: one client can browse/edit docs from multiple trusted hubs.
 5. **Stage 4: local vault hub (optional).**
    Success: local-only docs behave like normal docs and remain device-local.
-
-### Implementation tracks
-
-1. **Offline correctness**
-   - Define first-open-offline behavior when no local doc copy exists.
-   - Define durability/recovery UX when local storage is cleared or evicted.
-2. **Multi-hub ergonomics**
-   - Decide routing/origin model for multi-hub usage (gateway vs explicit per-hub
-     config).
-   - Model auth/token behavior per hub.
-3. **Access-control edge cases**
-   - If read-only access is introduced, ensure local/offline channels do not
-     violate intended permissions.
-
-## To discuss
-
-1. **Offline support guard is runtime safety, not just a test workaround.**
-   - Keep capability gating for `offlineSupport` in runtime provider creation;
-     insecure contexts can lack `crypto.subtle`, and unguarded enablement can
-     crash startup.
-2. - Add a dedicated offline-focused e2e slice for IndexedDB behavior
-     (reopen/reconnect/recovery) in a trustworthy origin.
