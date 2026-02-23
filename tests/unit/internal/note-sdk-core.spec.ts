@@ -32,6 +32,13 @@ function createMockAdapterFixture(
       hasNote: (noteId) => notes.has(noteId),
       textOf: (noteId) => requireNote(noteId).text,
       childrenOf: (noteId) => requireNote(noteId).children,
+      deleteNotes: (noteIds) => {
+        requireNotes(noteIds);
+        for (const noteId of noteIds) {
+          notes.delete(noteId);
+        }
+        return true;
+      },
       indentNotes: (noteIds) => {
         requireNotes(noteIds);
         return true;
@@ -111,5 +118,14 @@ describe('note sdk core', () => {
     expect(sdk.outdent(selection.heads())).toBe(true);
     expect(sdk.moveUp(selection.heads())).toBe(true);
     expect(sdk.moveDown(selection.heads())).toBe(true);
+  });
+
+  it('deletes notes via sdk batch operation', () => {
+    const fixture = createMockAdapterFixture();
+    const sdk = createNoteSdk(fixture.adapter);
+    const note = sdk.get('b');
+
+    expect(sdk.delete([note])).toBe(true);
+    expect(() => note.text()).toThrowError(NoteNotFoundError);
   });
 });

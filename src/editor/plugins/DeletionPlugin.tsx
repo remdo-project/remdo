@@ -2,6 +2,7 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { createLexicalNoteSdk } from '@/editor/outline/sdk/adapters/lexical';
 import {
   $createParagraphNode,
   $createTextNode,
@@ -24,7 +25,12 @@ import {
   insertBefore,
   $getOrCreateChildList,
 } from '@/editor/outline/list-structure';
-import { $requireRootContentList, $resolveRootContentList, resolveContentItemFromNode } from '@/editor/outline/schema';
+import {
+  $requireContentItemNoteId,
+  $requireRootContentList,
+  $resolveRootContentList,
+  resolveContentItemFromNode,
+} from '@/editor/outline/schema';
 import { $normalizeOutlineRoot } from '@/editor/outline/normalization';
 import { $resolveZoomBoundaryRoot, isWithinZoomBoundary } from '@/editor/outline/selection/boundary';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
@@ -40,6 +46,7 @@ import {
   sortHeadsByDocumentOrder,
   isContentDescendantOf,
 } from '@/editor/outline/selection/tree';
+import { useCollaborationStatus } from './collaboration';
 
 function getParentNote(list: ListNode): ListItemNode | null {
   const wrapper = list.getParent();
@@ -270,6 +277,7 @@ function $resolveStructuralHeadsFromKeys(keys: string[]): ListItemNode[] {
 
 export function DeletionPlugin() {
   const [editor] = useLexicalComposerContext();
+  const { docId } = useCollaborationStatus();
   const [rootElement, setRootElement] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -352,10 +360,9 @@ export function DeletionPlugin() {
       const boundaryRoot = $resolveZoomBoundaryRoot(editor);
       const caretPlan = resolveCaretPlanAfterStructuralDeletion(heads, boundaryRoot);
       const orderedHeads = sortHeadsByDocumentOrder(heads);
-
-      for (const head of orderedHeads.toReversed()) {
-        removeNoteSubtree(head);
-      }
+      const sdk = createLexicalNoteSdk({ editor, docId });
+      const notesToDelete = orderedHeads.map((head) => sdk.get($requireContentItemNoteId(head)));
+      sdk.delete(notesToDelete);
 
       let caretApplied = false;
       if (caretPlan) {
@@ -531,7 +538,7 @@ export function DeletionPlugin() {
       unregisterBackspace();
       unregisterDelete();
     };
-  }, [editor]);
+  }, [editor, docId]);
 
   return null;
 }

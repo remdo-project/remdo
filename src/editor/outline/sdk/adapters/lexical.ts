@@ -6,7 +6,7 @@ import { $findNoteById } from '@/editor/outline/note-traversal';
 import { $requireContentItemNoteId, resolveContentItemFromNode } from '@/editor/outline/schema';
 import { $resolveZoomBoundaryRoot } from '@/editor/outline/selection/boundary';
 import { getContiguousSelectionHeads, getSelectedNotes } from '@/editor/outline/selection/heads';
-import { getNestedList } from '@/editor/outline/selection/tree';
+import { getNestedList, removeNoteSubtree, sortHeadsByDocumentOrder } from '@/editor/outline/selection/tree';
 import { createNoteSdk } from '../core';
 import type { AdapterNoteSelection, NoteId, NoteSdk, NoteSdkAdapter } from '../contracts';
 import { NoteNotFoundError } from '../errors';
@@ -104,6 +104,13 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
       }
 
       return getContentSiblings(nested).map((child) => $requireContentItemNoteId(child));
+    },
+    deleteNotes: (noteIds) => {
+      const notes = sortHeadsByDocumentOrder($requireNotesByIds(noteIds));
+      for (const note of notes.toReversed()) {
+        removeNoteSubtree(note);
+      }
+      return notes.length > 0;
     },
     indentNotes: (noteIds) => {
       const notes = $requireNotesByIds(noteIds);

@@ -102,6 +102,7 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     docId: () => adapter.docId(),
     selection: () => resolveSelection(adapter.adapterSelection()),
     get: (noteId) => getOrThrow(noteId),
+    delete: (notes) => runNoteMutation(notes, adapter.deleteNotes),
     indent: (notes) => runNoteMutation(notes, adapter.indentNotes),
     outdent: (notes) => runNoteMutation(notes, adapter.outdentNotes),
     moveUp: (notes) => runNoteMutation(notes, adapter.moveNotesUp),

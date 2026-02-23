@@ -16,6 +16,7 @@ export interface NoteSdk {
   docId: () => DocumentId;
   selection: () => NoteSelection;
   get: (noteId: NoteId) => Note;
+  delete: (notes: readonly Note[]) => boolean;
   indent: (notes: readonly Note[]) => boolean;
   outdent: (notes: readonly Note[]) => boolean;
   moveUp: (notes: readonly Note[]) => boolean;
@@ -55,6 +56,7 @@ export interface NoteSdkAdapter {
   hasNote: (noteId: NoteId) => boolean;
   textOf: (noteId: NoteId) => string;
   childrenOf: (noteId: NoteId) => readonly NoteId[];
+  deleteNotes: (noteIds: readonly NoteId[]) => boolean;
   indentNotes: (noteIds: readonly NoteId[]) => boolean;
   outdentNotes: (noteIds: readonly NoteId[]) => boolean;
   moveNotesUp: (noteIds: readonly NoteId[]) => boolean;
