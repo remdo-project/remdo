@@ -22,6 +22,9 @@ Rules:
 - Use `playwright.config.ts` (`test:e2e:dev` webServer command) as the example:
   stale exported `HMR_PORT`/derived vars required explicit unsets to avoid
   collisions when only `PORT` changed.
+- Naming follow-up: consider renaming `boundaryRoot` to `zoomBoundaryRoot` in
+  note operation helpers and SDK adapter plumbing where the boundary is always
+  zoom-specific.
 
 ## Test doc-id lifecycle hygiene (deferred)
 
