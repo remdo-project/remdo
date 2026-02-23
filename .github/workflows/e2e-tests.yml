@@ -11,6 +11,8 @@ jobs:
       actions: write
     timeout-minutes: 10
     runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-pnpm
