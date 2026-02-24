@@ -5,7 +5,7 @@ import type { AdapterNoteSelection, NoteSdkAdapter } from '@/editor/outline/sdk/
 function createMockAdapterFixture(
   adapterSelection?: AdapterNoteSelection
 ): { adapter: NoteSdkAdapter; notes: Map<string, { text: string; children: string[] }> } {
-  const resolvedSelection = adapterSelection ?? { kind: 'caret', headIds: ['b'] };
+  const resolvedSelection = adapterSelection ?? { kind: 'caret', heads: ['b'] };
   const notes = new Map<string, { text: string; children: string[] }>([
     ['a', { text: 'A', children: ['b', 'c'] }],
     ['b', { text: 'B', children: [] }],
@@ -32,26 +32,26 @@ function createMockAdapterFixture(
       hasNote: (noteId) => notes.has(noteId),
       textOf: (noteId) => requireNote(noteId).text,
       childrenOf: (noteId) => requireNote(noteId).children,
-      deleteNotes: (noteIds) => {
+      delete: (noteIds) => {
         requireNotes(noteIds);
         for (const noteId of noteIds) {
           notes.delete(noteId);
         }
         return true;
       },
-      indentNotes: (noteIds) => {
+      indent: (noteIds) => {
         requireNotes(noteIds);
         return true;
       },
-      outdentNotes: (noteIds) => {
+      outdent: (noteIds) => {
         requireNotes(noteIds);
         return noteIds.every((noteId) => noteId !== 'a');
       },
-      moveNotesUp: (noteIds) => {
+      moveUp: (noteIds) => {
         requireNotes(noteIds);
         return noteIds.length === 1 && noteIds[0] === 'b';
       },
-      moveNotesDown: (noteIds) => {
+      moveDown: (noteIds) => {
         requireNotes(noteIds);
         return noteIds.length === 1 && noteIds[0] === 'b';
       },
@@ -110,7 +110,7 @@ describe('note sdk core', () => {
   });
 
   it('uses structural selection heads for sdk operations', () => {
-    const fixture = createMockAdapterFixture({ kind: 'structural', headIds: ['b'] });
+    const fixture = createMockAdapterFixture({ kind: 'structural', heads: ['b'] });
     const sdk = createNoteSdk(fixture.adapter);
     const selection = sdk.selection().as('structural');
 

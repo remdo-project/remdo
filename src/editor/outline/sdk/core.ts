@@ -5,9 +5,7 @@ import type {
   NoteSdk,
   NoteSdkAdapter,
   NoteSelection,
-  NoteSelectionByKind,
   NoteSelectionKind,
-  NoteSelectionVariant,
 } from './contracts';
 import { NoteNotFoundError } from './errors';
 
@@ -54,18 +52,15 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     return operation(noteIds);
   };
 
-  const createSelection = <K extends NoteSelectionKind>(
-    shape: Extract<NoteSelectionVariant, { kind: K }>,
-    heads: readonly Note[]
-  ): NoteSelectionByKind<K> => {
-    const selection: NoteSelectionByKind<K> = {
-      ...shape,
-      as: <ExpectedKind extends NoteSelectionKind>(kind: ExpectedKind): NoteSelectionByKind<ExpectedKind> => {
-        if (!sameSelectionKind(selection.kind, kind)) {
-          throw new Error(`Expected ${kind} selection, got ${selection.kind}`);
+  const createSelection = (kind: NoteSelectionKind, heads: readonly Note[]): NoteSelection => {
+    const selection: NoteSelection = {
+      kind,
+      as: ((expectedKind: NoteSelectionKind) => {
+        if (!sameSelectionKind(selection.kind, expectedKind)) {
+          throw new Error(`Expected ${expectedKind} selection, got ${selection.kind}`);
         }
-        return selection as unknown as NoteSelectionByKind<ExpectedKind>;
-      },
+        return selection;
+      }) as NoteSelection['as'],
       heads: () => heads,
     };
     return selection;
@@ -73,27 +68,27 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
 
   const resolveSelection = (adapterSelection: AdapterNoteSelection): NoteSelection => {
     if (adapterSelection.kind === 'none') {
-      return createSelection({ kind: 'none' }, []);
+      return createSelection('none', []);
     }
 
-    const heads = adapterSelection.headIds
+    const heads = adapterSelection.heads
       .map((noteId) => resolveHandle(noteId))
       .filter((note): note is Note => note !== null);
     if (heads.length === 0) {
-      return createSelection({ kind: 'none' }, []);
+      return createSelection('none', []);
     }
 
-    return createSelection({ kind: adapterSelection.kind }, heads);
+    return createSelection(adapterSelection.kind, heads);
   };
 
   return {
     docId: () => adapter.docId(),
     selection: () => resolveSelection(adapter.adapterSelection()),
     get: (noteId) => getOrThrow(noteId),
-    delete: (notes) => runNoteMutation(notes, adapter.deleteNotes),
-    indent: (notes) => runNoteMutation(notes, adapter.indentNotes),
-    outdent: (notes) => runNoteMutation(notes, adapter.outdentNotes),
-    moveUp: (notes) => runNoteMutation(notes, adapter.moveNotesUp),
-    moveDown: (notes) => runNoteMutation(notes, adapter.moveNotesDown),
+    delete: (notes) => runNoteMutation(notes, adapter.delete),
+    indent: (notes) => runNoteMutation(notes, adapter.indent),
+    outdent: (notes) => runNoteMutation(notes, adapter.outdent),
+    moveUp: (notes) => runNoteMutation(notes, adapter.moveUp),
+    moveDown: (notes) => runNoteMutation(notes, adapter.moveDown),
   };
 }

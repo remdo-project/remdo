@@ -8,53 +8,46 @@ export interface Note {
   children: () => readonly Note[];
 }
 
-export interface NoteSdk {
+export interface NoteBatchOps<TRef> {
+  delete: (items: readonly TRef[]) => boolean;
+  indent: (items: readonly TRef[]) => boolean;
+  outdent: (items: readonly TRef[]) => boolean;
+  moveUp: (items: readonly TRef[]) => boolean;
+  moveDown: (items: readonly TRef[]) => boolean;
+}
+
+export interface NoteSdk extends NoteBatchOps<Note> {
   docId: () => DocumentId;
   selection: () => NoteSelection;
   get: (noteId: NoteId) => Note;
-  delete: (notes: readonly Note[]) => boolean;
-  indent: (notes: readonly Note[]) => boolean;
-  outdent: (notes: readonly Note[]) => boolean;
-  moveUp: (notes: readonly Note[]) => boolean;
-  moveDown: (notes: readonly Note[]) => boolean;
 }
 
 export type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
 
-export type NoteSelectionVariant =
-  | { kind: 'none' }
-  | { kind: 'caret' }
-  | { kind: 'inline' }
-  | { kind: 'structural' };
+export type SelectionSnapshot<TRef> =
+  | { kind: 'none'; heads: readonly [] }
+  | { kind: 'caret'; heads: readonly [TRef] }
+  | { kind: 'inline'; heads: readonly [TRef] }
+  | { kind: 'structural'; heads: readonly TRef[] };
 
 export interface NoteSelectionApi {
-  as: <K extends NoteSelectionKind>(kind: K) => NoteSelectionByKind<K>;
+  as: {
+    (kind: 'none'): NoteSelection & { kind: 'none' };
+    (kind: 'caret'): NoteSelection & { kind: 'caret' };
+    (kind: 'inline'): NoteSelection & { kind: 'inline' };
+    (kind: 'structural'): NoteSelection & { kind: 'structural' };
+  };
   heads: () => readonly Note[];
 }
 
-export type NoteSelectionByKind<K extends NoteSelectionKind = NoteSelectionKind> = Extract<
-  NoteSelectionVariant,
-  { kind: K }
-> &
-  NoteSelectionApi;
+export type NoteSelection = { kind: NoteSelectionKind } & NoteSelectionApi;
 
-export type NoteSelection = NoteSelectionByKind;
+export type AdapterNoteSelection = SelectionSnapshot<NoteId>;
 
-export type AdapterNoteSelection =
-  | { kind: 'none'; headIds: readonly [] }
-  | { kind: 'caret'; headIds: readonly [NoteId] }
-  | { kind: 'inline'; headIds: readonly [NoteId] }
-  | { kind: 'structural'; headIds: readonly NoteId[] };
-
-export interface NoteSdkAdapter {
+export interface NoteSdkAdapter extends NoteBatchOps<NoteId> {
   docId: () => DocumentId;
   adapterSelection: () => AdapterNoteSelection;
   hasNote: (noteId: NoteId) => boolean;
   textOf: (noteId: NoteId) => string;
   childrenOf: (noteId: NoteId) => readonly NoteId[];
-  deleteNotes: (noteIds: readonly NoteId[]) => boolean;
-  indentNotes: (noteIds: readonly NoteId[]) => boolean;
-  outdentNotes: (noteIds: readonly NoteId[]) => boolean;
-  moveNotesUp: (noteIds: readonly NoteId[]) => boolean;
-  moveNotesDown: (noteIds: readonly NoteId[]) => boolean;
 }

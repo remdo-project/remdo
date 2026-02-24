@@ -35,25 +35,25 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
   const $selectionFallbackFromRange = (): AdapterNoteSelection => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection)) {
-      return { kind: 'none', headIds: [] };
+      return { kind: 'none', heads: [] };
     }
 
     if (!selection.isCollapsed()) {
-      const headIds = getContiguousSelectionHeads(selection).map((head) => $requireContentItemNoteId(head));
+      const heads = getContiguousSelectionHeads(selection).map((head) => $requireContentItemNoteId(head));
       const hasMultiNoteSelection = getSelectedNotes(selection).length > 1;
-      if ((headIds.length > 1 || hasMultiNoteSelection) && headIds.length > 0) {
-        return { kind: 'structural', headIds };
+      if ((heads.length > 1 || hasMultiNoteSelection) && heads.length > 0) {
+        return { kind: 'structural', heads };
       }
     }
 
     const item = resolveContentItemFromNode(selection.focus.getNode()) ??
       resolveContentItemFromNode(selection.anchor.getNode());
     if (!item) {
-      return { kind: 'none', headIds: [] };
+      return { kind: 'none', heads: [] };
     }
 
     const noteId = $requireContentItemNoteId(item);
-    return selection.isCollapsed() ? { kind: 'caret', headIds: [noteId] } : { kind: 'inline', headIds: [noteId] };
+    return selection.isCollapsed() ? { kind: 'caret', heads: [noteId] } : { kind: 'inline', heads: [noteId] };
   };
 
   const $noteIdFromContentKey = (key: string): NoteId | null => {
@@ -73,10 +73,10 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
     if (outlineSelection.kind === 'structural') {
       const keys =
         outlineSelection.headKeys.length > 0 ? outlineSelection.headKeys : outlineSelection.selectedKeys;
-      const headIds = keys
+      const heads = keys
         .map((key) => $noteIdFromContentKey(key))
         .filter((noteId): noteId is NoteId => noteId !== null);
-      return headIds.length > 0 ? { kind: 'structural', headIds } : { kind: 'none', headIds: [] };
+      return heads.length > 0 ? { kind: 'structural', heads } : { kind: 'none', heads: [] };
     }
 
     const key = outlineSelection.focusKey ?? outlineSelection.anchorKey;
@@ -85,9 +85,9 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
     }
     const noteId = $noteIdFromContentKey(key);
     if (!noteId) {
-      return { kind: 'none', headIds: [] };
+      return { kind: 'none', heads: [] };
     }
-    return outlineSelection.kind === 'inline' ? { kind: 'inline', headIds: [noteId] } : { kind: 'caret', headIds: [noteId] };
+    return outlineSelection.kind === 'inline' ? { kind: 'inline', heads: [noteId] } : { kind: 'caret', heads: [noteId] };
   };
 
   return {
@@ -105,26 +105,26 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
 
       return getContentSiblings(nested).map((child) => $requireContentItemNoteId(child));
     },
-    deleteNotes: (noteIds) => {
+    delete: (noteIds) => {
       const notes = sortHeadsByDocumentOrder($requireNotesByIds(noteIds));
       for (const note of notes.toReversed()) {
         removeNoteSubtree(note);
       }
       return notes.length > 0;
     },
-    indentNotes: (noteIds) => {
+    indent: (noteIds) => {
       const notes = $requireNotesByIds(noteIds);
       return indentNotes(notes, $resolveBoundaryRoot());
     },
-    outdentNotes: (noteIds) => {
+    outdent: (noteIds) => {
       const notes = $requireNotesByIds(noteIds);
       return outdentNotes(notes, $resolveBoundaryRoot());
     },
-    moveNotesUp: (noteIds) => {
+    moveUp: (noteIds) => {
       const notes = $requireNotesByIds(noteIds);
       return moveNotesUp(notes, $resolveBoundaryRoot());
     },
-    moveNotesDown: (noteIds) => {
+    moveDown: (noteIds) => {
       const notes = $requireNotesByIds(noteIds);
       return moveNotesDown(notes, $resolveBoundaryRoot());
     },
