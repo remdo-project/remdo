@@ -24,19 +24,12 @@ export interface NoteSdk extends NoteBatchOps<Note> {
 
 export type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
 
-export type SelectionSnapshot<TRef> =
-  | { kind: 'none'; heads: readonly [] }
-  | { kind: 'caret'; heads: readonly [TRef] }
-  | { kind: 'inline'; heads: readonly [TRef] }
-  | { kind: 'structural'; heads: readonly TRef[] };
+export interface SelectionSnapshot<TRef> {
+  kind: NoteSelectionKind;
+  heads: readonly TRef[];
+}
 
 export interface NoteSelectionApi {
-  as: {
-    (kind: 'none'): NoteSelection & { kind: 'none' };
-    (kind: 'caret'): NoteSelection & { kind: 'caret' };
-    (kind: 'inline'): NoteSelection & { kind: 'inline' };
-    (kind: 'structural'): NoteSelection & { kind: 'structural' };
-  };
   heads: () => readonly Note[];
 }
 

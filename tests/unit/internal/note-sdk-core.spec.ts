@@ -77,10 +77,8 @@ describe('note sdk core', () => {
     expect(sdk.docId()).toBe('doc-1');
     const selection = sdk.selection();
     expect(selection.kind).toBe('caret');
-    const caret = selection.as('caret');
-    expect(caret.heads().map((head) => head.id())).toEqual(['b']);
+    expect(selection.heads().map((head) => head.id())).toEqual(['b']);
     expect(sdk.indent(selection.heads())).toBe(true);
-    expect(() => selection.as('structural')).toThrow('Expected structural selection, got caret');
     expect(() => sdk.get('missing')).toThrowError(NoteNotFoundError);
   });
 
@@ -112,7 +110,8 @@ describe('note sdk core', () => {
   it('uses structural selection heads for sdk operations', () => {
     const fixture = createMockAdapterFixture({ kind: 'structural', heads: ['b'] });
     const sdk = createNoteSdk(fixture.adapter);
-    const selection = sdk.selection().as('structural');
+    const selection = sdk.selection();
+    expect(selection.kind).toBe('structural');
 
     expect(sdk.moveDown(selection.heads())).toBe(true);
   });

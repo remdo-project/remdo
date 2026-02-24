@@ -10,8 +10,6 @@ import type {
 import { NoteNotFoundError } from './errors';
 
 export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
-  const sameSelectionKind = (left: NoteSelectionKind, right: NoteSelectionKind): boolean => left === right;
-
   const assertNoteExists = (noteId: NoteId): void => {
     if (!adapter.hasNote(noteId)) {
       throw new NoteNotFoundError(noteId);
@@ -53,17 +51,10 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
   };
 
   const createSelection = (kind: NoteSelectionKind, heads: readonly Note[]): NoteSelection => {
-    const selection: NoteSelection = {
+    return {
       kind,
-      as: ((expectedKind: NoteSelectionKind) => {
-        if (!sameSelectionKind(selection.kind, expectedKind)) {
-          throw new Error(`Expected ${expectedKind} selection, got ${selection.kind}`);
-        }
-        return selection;
-      }) as NoteSelection['as'],
       heads: () => heads,
     };
-    return selection;
   };
 
   const resolveSelection = (adapterSelection: AdapterNoteSelection): NoteSelection => {
