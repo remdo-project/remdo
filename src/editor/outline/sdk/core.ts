@@ -28,18 +28,6 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     children: () => {
       return adapter.childrenOf(noteId).map((childId) => createHandle(childId));
     },
-    indent: () => {
-      return adapter.indentNotes([noteId]);
-    },
-    outdent: () => {
-      return adapter.outdentNotes([noteId]);
-    },
-    moveUp: () => {
-      return adapter.moveNotesUp([noteId]);
-    },
-    moveDown: () => {
-      return adapter.moveNotesDown([noteId]);
-    },
   });
 
   const resolveHandle = (noteId: NoteId): Note | null => {

@@ -6,10 +6,6 @@ export interface Note {
   id: () => NoteId;
   text: () => string;
   children: () => readonly Note[];
-  indent: () => boolean;
-  outdent: () => boolean;
-  moveUp: () => boolean;
-  moveDown: () => boolean;
 }
 
 export interface NoteSdk {

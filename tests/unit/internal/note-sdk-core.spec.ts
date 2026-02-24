@@ -90,10 +90,10 @@ describe('note sdk core', () => {
     const a = sdk.get('a');
     const b = sdk.get('b');
 
-    expect(a.outdent()).toBe(false);
-    expect(b.indent()).toBe(true);
-    expect(b.moveUp()).toBe(true);
-    expect(b.moveDown()).toBe(true);
+    expect(sdk.outdent([a])).toBe(false);
+    expect(sdk.indent([b])).toBe(true);
+    expect(sdk.moveUp([b])).toBe(true);
+    expect(sdk.moveDown([b])).toBe(true);
   });
 
   it('throws from handle operations once the note is removed', () => {
@@ -101,31 +101,19 @@ describe('note sdk core', () => {
     const sdk = createNoteSdk(fixture.adapter);
     const note = sdk.get('b');
 
-    fixture.notes.delete('b');
+    expect(sdk.delete([note])).toBe(true);
 
     expect(() => note.text()).toThrowError(NoteNotFoundError);
     expect(() => note.children()).toThrowError(NoteNotFoundError);
-    expect(() => note.indent()).toThrowError(NoteNotFoundError);
-    expect(() => note.moveUp()).toThrowError(NoteNotFoundError);
+    expect(() => sdk.indent([note])).toThrowError(NoteNotFoundError);
+    expect(() => sdk.moveUp([note])).toThrowError(NoteNotFoundError);
   });
 
-  it('delegates sdk note operations using structural selection heads', () => {
+  it('uses structural selection heads for sdk operations', () => {
     const fixture = createMockAdapterFixture({ kind: 'structural', headIds: ['b'] });
     const sdk = createNoteSdk(fixture.adapter);
     const selection = sdk.selection().as('structural');
 
-    expect(sdk.indent(selection.heads())).toBe(true);
-    expect(sdk.outdent(selection.heads())).toBe(true);
-    expect(sdk.moveUp(selection.heads())).toBe(true);
     expect(sdk.moveDown(selection.heads())).toBe(true);
-  });
-
-  it('deletes notes via sdk batch operation', () => {
-    const fixture = createMockAdapterFixture();
-    const sdk = createNoteSdk(fixture.adapter);
-    const note = sdk.get('b');
-
-    expect(sdk.delete([note])).toBe(true);
-    expect(() => note.text()).toThrowError(NoteNotFoundError);
   });
 });

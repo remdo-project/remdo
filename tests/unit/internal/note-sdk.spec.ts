@@ -110,10 +110,10 @@ describe('note sdk', () => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       const note = sdk.get('note2');
       outcomes = {
-        indentOne: note.indent(),
-        indentTwo: note.indent(),
-        outdentOne: note.outdent(),
-        outdentTwo: note.outdent(),
+        indentOne: sdk.indent([note]),
+        indentTwo: sdk.indent([note]),
+        outdentOne: sdk.outdent([note]),
+        outdentTwo: sdk.outdent([note]),
       };
     });
 
@@ -137,22 +137,23 @@ describe('note sdk', () => {
     });
 
     remdo.validate(() => {
+      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       expect(handle.id()).toBe('note2');
       expect(() => handle.text()).toThrowError(NoteNotFoundError);
       expect(() => handle.children()).toThrowError(NoteNotFoundError);
-      expect(() => handle.indent()).toThrowError(NoteNotFoundError);
-      expect(() => handle.moveUp()).toThrowError(NoteNotFoundError);
+      expect(() => sdk.indent([handle])).toThrowError(NoteNotFoundError);
+      expect(() => sdk.moveUp([handle])).toThrowError(NoteNotFoundError);
     });
   });
 
   it('throws when used outside lexical read/update context', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    const note = remdo.validate(() => {
+    const sdkAndNote = remdo.validate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      return sdk.get('note2');
+      return { sdk, note: sdk.get('note2') };
     });
 
-    expect(() => note.text()).toThrow();
-    expect(() => note.indent()).toThrow();
+    expect(() => sdkAndNote.note.text()).toThrow();
+    expect(() => sdkAndNote.sdk.indent([sdkAndNote.note])).toThrow();
   });
 
   it('throws when get() targets a missing note', meta({ fixture: 'flat' }), async ({ remdo }) => {
