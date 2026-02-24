@@ -8,20 +8,6 @@ export interface Note {
   children: () => readonly Note[];
 }
 
-export interface NoteBatchOps<TRef> {
-  delete: (items: readonly TRef[]) => boolean;
-  indent: (items: readonly TRef[]) => boolean;
-  outdent: (items: readonly TRef[]) => boolean;
-  moveUp: (items: readonly TRef[]) => boolean;
-  moveDown: (items: readonly TRef[]) => boolean;
-}
-
-export interface NoteSdk extends NoteBatchOps<Note> {
-  docId: () => DocumentId;
-  selection: () => NoteSelection;
-  get: (noteId: NoteId) => Note;
-}
-
 export type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
 
 export interface SelectionSnapshot<TRef> {
@@ -29,17 +15,25 @@ export interface SelectionSnapshot<TRef> {
   heads: readonly TRef[];
 }
 
-export interface NoteSelectionApi {
-  heads: () => readonly Note[];
+export interface NoteSdkBase<TRef> {
+  docId: () => DocumentId;
+  selection: () => SelectionSnapshot<TRef>;
+  delete: (items: readonly TRef[]) => boolean;
+  indent: (items: readonly TRef[]) => boolean;
+  outdent: (items: readonly TRef[]) => boolean;
+  moveUp: (items: readonly TRef[]) => boolean;
+  moveDown: (items: readonly TRef[]) => boolean;
 }
 
-export type NoteSelection = { kind: NoteSelectionKind } & NoteSelectionApi;
+export interface NoteSdk extends NoteSdkBase<Note> {
+  get: (noteId: NoteId) => Note;
+}
+
+export type NoteSelection = SelectionSnapshot<Note>;
 
 export type AdapterNoteSelection = SelectionSnapshot<NoteId>;
 
-export interface NoteSdkAdapter extends NoteBatchOps<NoteId> {
-  docId: () => DocumentId;
-  adapterSelection: () => AdapterNoteSelection;
+export interface NoteSdkAdapter extends NoteSdkBase<NoteId> {
   hasNote: (noteId: NoteId) => boolean;
   textOf: (noteId: NoteId) => string;
   childrenOf: (noteId: NoteId) => readonly NoteId[];

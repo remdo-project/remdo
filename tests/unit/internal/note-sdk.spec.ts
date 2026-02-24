@@ -34,7 +34,7 @@ describe('note sdk', () => {
     });
 
     expect(selection.kind).toBe('caret');
-    expect(selection.heads().map((head) => head.id())).toEqual(['note3']);
+    expect(selection.heads.map((head) => head.id())).toEqual(['note3']);
   });
 
   it('resolves structural selection heads', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -46,7 +46,7 @@ describe('note sdk', () => {
     });
 
     expect(selection.kind).toBe('structural');
-    expect(selection.heads().map((head) => head.id())).toEqual(['note2', 'note3']);
+    expect(selection.heads.map((head) => head.id())).toEqual(['note2', 'note3']);
   });
 
   it(
@@ -63,7 +63,7 @@ describe('note sdk', () => {
           const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
           const selection = sdk.selection();
           expect(selection.kind).toBe('structural');
-          return selection.heads().map((head) => head.id());
+          return selection.heads.map((head) => head.id());
         });
 
         expect(result).toEqual(['note2', 'note3']);
@@ -87,7 +87,7 @@ describe('note sdk', () => {
           const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
           const selection = sdk.selection();
           expect(selection.kind).toBe('structural');
-          return selection.heads().map((head) => head.id());
+          return selection.heads.map((head) => head.id());
         });
 
         expect(result).toEqual(['note2']);

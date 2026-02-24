@@ -53,7 +53,7 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
   const createSelection = (kind: NoteSelectionKind, heads: readonly Note[]): NoteSelection => {
     return {
       kind,
-      heads: () => heads,
+      heads,
     };
   };
 
@@ -74,7 +74,7 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
 
   return {
     docId: () => adapter.docId(),
-    selection: () => resolveSelection(adapter.adapterSelection()),
+    selection: () => resolveSelection(adapter.selection()),
     get: (noteId) => getOrThrow(noteId),
     delete: (notes) => runNoteMutation(notes, adapter.delete),
     indent: (notes) => runNoteMutation(notes, adapter.indent),

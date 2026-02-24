@@ -15,7 +15,7 @@ function moveSelectionViaSdk(
   direction: MoveDirection
 ): boolean {
   const sdk = createLexicalNoteSdk({ editor, docId });
-  const heads = sdk.selection().heads();
+  const heads = sdk.selection().heads;
   return direction === 'up' ? sdk.moveUp(heads) : sdk.moveDown(heads);
 }
 

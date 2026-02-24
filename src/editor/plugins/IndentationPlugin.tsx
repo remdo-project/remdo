@@ -13,7 +13,7 @@ export function IndentationPlugin() {
       KEY_TAB_COMMAND,
       (event: KeyboardEvent) => {
         const sdk = createLexicalNoteSdk({ editor, docId });
-        const heads = sdk.selection().heads();
+        const heads = sdk.selection().heads;
         if (heads.length === 0) {
           return false;
         }

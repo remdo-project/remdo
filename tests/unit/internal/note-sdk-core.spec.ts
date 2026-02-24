@@ -28,7 +28,7 @@ function createMockAdapterFixture(
     notes,
     adapter: {
       docId: () => 'doc-1',
-      adapterSelection: () => resolvedSelection,
+      selection: () => resolvedSelection,
       hasNote: (noteId) => notes.has(noteId),
       textOf: (noteId) => requireNote(noteId).text,
       childrenOf: (noteId) => requireNote(noteId).children,
@@ -77,8 +77,8 @@ describe('note sdk core', () => {
     expect(sdk.docId()).toBe('doc-1');
     const selection = sdk.selection();
     expect(selection.kind).toBe('caret');
-    expect(selection.heads().map((head) => head.id())).toEqual(['b']);
-    expect(sdk.indent(selection.heads())).toBe(true);
+    expect(selection.heads.map((head) => head.id())).toEqual(['b']);
+    expect(sdk.indent(selection.heads)).toBe(true);
     expect(() => sdk.get('missing')).toThrowError(NoteNotFoundError);
   });
 
@@ -113,6 +113,6 @@ describe('note sdk core', () => {
     const selection = sdk.selection();
     expect(selection.kind).toBe('structural');
 
-    expect(sdk.moveDown(selection.heads())).toBe(true);
+    expect(sdk.moveDown(selection.heads)).toBe(true);
   });
 });

@@ -92,7 +92,7 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
 
   return {
     docId: () => docId,
-    adapterSelection: () => $adapterSelection(),
+    selection: () => $adapterSelection(),
     hasNote: (noteId) => Boolean($resolveNoteById(noteId)),
     textOf: (noteId) => $requireNoteById(noteId).getTextContent(),
     childrenOf: (noteId) => {
