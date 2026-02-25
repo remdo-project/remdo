@@ -18,6 +18,10 @@ governance (map, workflow, invariants, and update rules), use `docs/index.md`.
 
 - Background processes started from the root workdir are controlled by the
   developer; do not start or kill them.
+- Exception: agents may start the shared DevTools Chromium endpoint on
+  `127.0.0.1:9222` when it is down; leave it running.
+- Do not stop or clean up the shared DevTools endpoint on `127.0.0.1:9222`
+  unless the user asks, or troubleshooting requires a restart.
 - Background processes started from worktrees (by their unique ports) can be
   started or stopped by coding agents as needed without asking.
 - For parallel option exploration, keep worktrees as sibling directories (not
@@ -48,6 +52,25 @@ governance (map, workflow, invariants, and update rules), use `docs/index.md`.
 - Use DevTools snapshots, screenshots, and in-page inspection as the primary source
   of truth when checking “what this looks like” or confirming browser-side
   changes.
+- DevTools bootstrap (Playwright Chromium):
+  1. Health check:
+     `curl -fsS http://127.0.0.1:9222/json/version >/dev/null`
+  2. If down, run:
+
+     ```sh
+     mkdir -p /tmp/pw-devtools-home/.config /tmp/pw-devtools-home/.cache /tmp/pw-cdp-profile
+     setsid env HOME=/tmp/pw-devtools-home \
+       XDG_CONFIG_HOME=/tmp/pw-devtools-home/.config \
+       XDG_CACHE_HOME=/tmp/pw-devtools-home/.cache \
+       /home/piotr/.cache/ms-playwright/chromium-1208/chrome-linux/chrome \
+       --headless=new --no-sandbox --disable-dev-shm-usage --disable-breakpad \
+       --disable-crash-reporter --disable-background-networking \
+       --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 \
+       --user-data-dir=/tmp/pw-cdp-profile --no-first-run \
+       --no-default-browser-check about:blank >/tmp/pw-cdp.log 2>&1 < /dev/null &
+     ```
+
+  3. If this flow fails or drifts, report it.
 - When presenting multiple options or a list of questions, format them as a
   numbered list.
 - The shared test harness treats console warnings/errors as failures; if you
