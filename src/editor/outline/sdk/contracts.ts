@@ -15,10 +15,13 @@ export interface SelectionSnapshot<TRef> {
   heads: readonly TRef[];
 }
 
+export type MoveTarget<TRef> = { parent: TRef; index: number } | { before: TRef } | { after: TRef };
+
 export interface NoteSdkBase<TRef> {
   docId: () => DocumentId;
   selection: () => SelectionSnapshot<TRef>;
   delete: (items: readonly TRef[]) => boolean;
+  move: (items: readonly TRef[], target: MoveTarget<TRef>) => boolean;
   indent: (items: readonly TRef[]) => boolean;
   outdent: (items: readonly TRef[]) => boolean;
   moveUp: (items: readonly TRef[]) => boolean;

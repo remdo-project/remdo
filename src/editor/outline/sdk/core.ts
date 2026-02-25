@@ -1,5 +1,6 @@
 import type {
   AdapterNoteSelection,
+  MoveTarget,
   Note,
   NoteId,
   NoteSdk,
@@ -50,6 +51,16 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     return operation(noteIds);
   };
 
+  const resolveMoveTarget = (target: MoveTarget<Note>): MoveTarget<NoteId> => {
+    if ('parent' in target) {
+      return { parent: target.parent.id(), index: target.index };
+    }
+    if ('before' in target) {
+      return { before: target.before.id() };
+    }
+    return { after: target.after.id() };
+  };
+
   const createSelection = (kind: NoteSelectionKind, heads: readonly Note[]): NoteSelection => {
     return {
       kind,
@@ -77,6 +88,7 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     selection: () => resolveSelection(adapter.selection()),
     get: (noteId) => getOrThrow(noteId),
     delete: (notes) => runNoteMutation(notes, adapter.delete),
+    move: (notes, target) => runNoteMutation(notes, (noteIds) => adapter.move(noteIds, resolveMoveTarget(target))),
     indent: (notes) => runNoteMutation(notes, adapter.indent),
     outdent: (notes) => runNoteMutation(notes, adapter.outdent),
     moveUp: (notes) => runNoteMutation(notes, adapter.moveUp),

@@ -1,16 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { createNoteSdk, NoteNotFoundError } from '@/editor/outline/sdk';
-import type { AdapterNoteSelection, NoteSdkAdapter } from '@/editor/outline/sdk/contracts';
+import type { AdapterNoteSelection, MoveTarget, NoteSdkAdapter } from '@/editor/outline/sdk/contracts';
 
 function createMockAdapterFixture(
   adapterSelection?: AdapterNoteSelection
-): { adapter: NoteSdkAdapter; notes: Map<string, { text: string; children: string[] }> } {
+): {
+  adapter: NoteSdkAdapter;
+  notes: Map<string, { text: string; children: string[] }>;
+  moveCalls: Array<{ noteIds: readonly string[]; target: MoveTarget<string> }>;
+} {
   const resolvedSelection = adapterSelection ?? { kind: 'caret', heads: ['b'] };
   const notes = new Map<string, { text: string; children: string[] }>([
     ['a', { text: 'A', children: ['b', 'c'] }],
     ['b', { text: 'B', children: [] }],
     ['c', { text: 'C', children: [] }],
   ]);
+  const moveCalls: Array<{ noteIds: readonly string[]; target: MoveTarget<string> }> = [];
   const requireNote = (noteId: string): { text: string; children: string[] } => {
     const note = notes.get(noteId);
     if (!note) {
@@ -26,6 +31,7 @@ function createMockAdapterFixture(
 
   return {
     notes,
+    moveCalls,
     adapter: {
       docId: () => 'doc-1',
       selection: () => resolvedSelection,
@@ -37,6 +43,18 @@ function createMockAdapterFixture(
         for (const noteId of noteIds) {
           notes.delete(noteId);
         }
+        return true;
+      },
+      move: (noteIds, target) => {
+        requireNotes(noteIds);
+        if ('parent' in target) {
+          requireNote(target.parent);
+        } else if ('before' in target) {
+          requireNote(target.before);
+        } else {
+          requireNote(target.after);
+        }
+        moveCalls.push({ noteIds: [...noteIds], target });
         return true;
       },
       indent: (noteIds) => {
@@ -92,6 +110,25 @@ describe('note sdk core', () => {
     expect(sdk.indent([b])).toBe(true);
     expect(sdk.moveUp([b])).toBe(true);
     expect(sdk.moveDown([b])).toBe(true);
+  });
+
+  it('converts move targets from note handles to note ids', () => {
+    const fixture = createMockAdapterFixture();
+    const sdk = createNoteSdk(fixture.adapter);
+    const a = sdk.get('a');
+    const b = sdk.get('b');
+    const c = sdk.get('c');
+
+    expect(sdk.move([c], { before: b })).toBe(true);
+    expect(sdk.move([c], { after: b })).toBe(true);
+    expect(sdk.move([c], { parent: a, index: -1 })).toBe(true);
+    expect(sdk.move([], { before: b })).toBe(false);
+
+    expect(fixture.moveCalls).toEqual([
+      { noteIds: ['c'], target: { before: 'b' } },
+      { noteIds: ['c'], target: { after: 'b' } },
+      { noteIds: ['c'], target: { parent: 'a', index: -1 } },
+    ]);
   });
 
   it('throws from handle operations once the note is removed', () => {
