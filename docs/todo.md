@@ -31,6 +31,9 @@ Rules:
 - Selection/mutation model follow-up: consider dropping `heads` as the primary
   concept and using range semantics everywhere (or at least in more layers)
   when the operation contract is contiguous selection movement.
+- Internal plugin architecture follow-up: keep first-party plugins helper-first
+  (Lexical-level shared helpers), use SDK where it clearly simplifies code, and
+  keep SDK as the primary extension surface for third-party plugins.
 
 ## Test doc-id lifecycle hygiene (deferred)
 

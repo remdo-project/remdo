@@ -2,6 +2,7 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { $noteRangeFromNotesByDocumentOrder } from '@/editor/outline/note-range';
 import { createLexicalNoteSdk } from '@/editor/outline/sdk/adapters/lexical';
 import {
   $createParagraphNode,
@@ -18,15 +19,14 @@ import {
 import type { LexicalNode, TextNode } from 'lexical';
 import { useEffect, useState } from 'react';
 import {
+  $getOrCreateChildList,
   flattenNoteNodes,
   getContentSiblings,
   getPreviousContentSibling,
-  isChildrenWrapper,
   insertBefore,
-  $getOrCreateChildList,
+  isChildrenWrapper,
 } from '@/editor/outline/list-structure';
 import {
-  $requireContentItemNoteId,
   $requireRootContentList,
   $resolveRootContentList,
   resolveContentItemFromNode,
@@ -359,17 +359,12 @@ export function DeletionPlugin() {
 
       const boundaryRoot = $resolveZoomBoundaryRoot(editor);
       const caretPlan = resolveCaretPlanAfterStructuralDeletion(heads, boundaryRoot);
-      const orderedHeads = sortHeadsByDocumentOrder(heads);
       const sdk = createLexicalNoteSdk({ editor, docId });
-      const start = orderedHeads[0];
-      const end = orderedHeads.at(-1);
-      if (!start || !end) {
+      const range = $noteRangeFromNotesByDocumentOrder(heads);
+      if (!range) {
         return false;
       }
-      sdk.delete({
-        start: $requireContentItemNoteId(start),
-        end: $requireContentItemNoteId(end),
-      });
+      sdk.delete(range);
 
       let caretApplied = false;
       if (caretPlan) {

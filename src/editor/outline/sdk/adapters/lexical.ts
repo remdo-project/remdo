@@ -2,6 +2,7 @@ import type { LexicalEditor, LexicalNode } from 'lexical';
 import { $createTextNode, $getNodeByKey, $getSelection, $isRangeSelection, $setState } from 'lexical';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
 import { noteIdState } from '#lib/editor/note-id-state';
+import { noteRangeFromNoteId, noteRangeFromOrderedIds } from '@/editor/outline/note-range';
 import {
   $getOrCreateChildList,
   flattenNoteNodes,
@@ -272,10 +273,9 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
     if (!selection.isCollapsed()) {
       const heads = getContiguousSelectionHeads(selection).map((head) => $requireContentItemNoteId(head));
       const hasMultiNoteSelection = getSelectedNotes(selection).length > 1;
-      const start = heads[0];
-      const end = heads.at(-1);
-      if ((heads.length > 1 || hasMultiNoteSelection) && start && end) {
-        return { kind: 'structural', range: { start, end } };
+      const range = noteRangeFromOrderedIds(heads);
+      if ((heads.length > 1 || hasMultiNoteSelection) && range) {
+        return { kind: 'structural', range };
       }
     }
 
@@ -286,7 +286,7 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
     }
 
     const noteId = $requireContentItemNoteId(item);
-    const range = { start: noteId, end: noteId };
+    const range = noteRangeFromNoteId(noteId);
     return selection.isCollapsed() ? { kind: 'caret', range } : { kind: 'inline', range };
   };
 
@@ -310,9 +310,8 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
       const heads = keys
         .map((key) => $noteIdFromContentKey(key))
         .filter((noteId): noteId is NoteId => noteId !== null);
-      const start = heads[0];
-      const end = heads.at(-1);
-      return start && end ? { kind: 'structural', range: { start, end } } : { kind: 'none', range: null };
+      const range = noteRangeFromOrderedIds(heads);
+      return range ? { kind: 'structural', range } : { kind: 'none', range: null };
     }
 
     const key = outlineSelection.focusKey ?? outlineSelection.anchorKey;
@@ -323,7 +322,7 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
     if (!noteId) {
       return { kind: 'none', range: null };
     }
-    const range = { start: noteId, end: noteId };
+    const range = noteRangeFromNoteId(noteId);
     return outlineSelection.kind === 'inline' ? { kind: 'inline', range } : { kind: 'caret', range };
   };
 
