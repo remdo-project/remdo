@@ -1,5 +1,7 @@
 import type { LexicalEditor, LexicalNode } from 'lexical';
-import { $getNodeByKey, $getSelection, $isRangeSelection } from 'lexical';
+import { $createTextNode, $getNodeByKey, $getSelection, $isRangeSelection, $setState } from 'lexical';
+import { createUniqueNoteId } from '#lib/editor/note-ids';
+import { noteIdState } from '#lib/editor/note-id-state';
 import {
   $getOrCreateChildList,
   flattenNoteNodes,
@@ -13,7 +15,7 @@ import {
 import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '@/editor/outline/note-ops';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { $requireContentItemNoteId, resolveContentItemFromNode } from '@/editor/outline/schema';
-import { $resolveZoomBoundaryRoot, isWithinZoomBoundary } from '@/editor/outline/selection/boundary';
+import { $resolveZoomBoundaryRoot } from '@/editor/outline/selection/boundary';
 import { getContiguousSelectionHeads, getSelectedNotes } from '@/editor/outline/selection/heads';
 import {
   getNestedList,
@@ -22,10 +24,18 @@ import {
   sortHeadsByDocumentOrder,
 } from '@/editor/outline/selection/tree';
 import { createNoteSdk } from '../core';
-import type { AdapterNoteSelection, MoveTarget, NoteId, NoteRange, NoteSdk, NoteSdkAdapter } from '../contracts';
+import type {
+  AdapterDraftNote,
+  AdapterNoteSelection,
+  PlaceTarget,
+  NoteId,
+  NoteRange,
+  NoteSdk,
+  NoteSdkAdapter,
+} from '../contracts';
 import { NoteNotFoundError } from '../errors';
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $isListItemNode, $isListNode } from '@lexical/list';
+import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 
 export interface LexicalNoteSdkAdapterOptions {
   editor: LexicalEditor;
@@ -47,7 +57,7 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
     return note;
   };
   const $resolveBoundaryRoot = () => $resolveZoomBoundaryRoot(editor);
-  const $requireRangeNotes = (range: NoteRange): ListItemNode[] | null => {
+  const $resolveRangeNotes = (range: NoteRange): ListItemNode[] | null => {
     const start = $requireNoteById(range.start);
     const end = $requireNoteById(range.end);
 
@@ -76,7 +86,7 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
     for (const note of notes) {
       const key = note.getKey();
       if (seen.has(key)) {
-        throw new Error('move() expects unique note heads');
+        throw new Error('place() expects unique note heads');
       }
       seen.add(key);
     }
@@ -92,7 +102,7 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
           continue;
         }
         if (isContentDescendantOf(left, right) || isContentDescendantOf(right, left)) {
-          throw new Error('move() expects head notes only (no ancestor/descendant overlap)');
+          throw new Error('place() expects head notes only (no ancestor/descendant overlap)');
         }
       }
     }
@@ -123,22 +133,18 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
 
     return { start, end };
   };
-  const $resolveMoveInsertionTarget = (
-    target: MoveTarget,
-    movedNotes: ListItemNode[],
-    boundaryRoot: ListItemNode | null
-  ): MoveInsertionTarget | null => {
+  const $resolvePlaceInsertionTarget = (
+    target: PlaceTarget,
+    movedNotes: ListItemNode[]
+  ): MoveInsertionTarget => {
     const movedKeys = new Set(movedNotes.map((note) => note.getKey()));
     const isInsideMovedSubtree = (candidate: ListItemNode): boolean =>
       movedNotes.some((note) => isContentDescendantOf(candidate, note));
 
     if ('before' in target) {
       const sibling = $requireNoteById(target.before);
-      if (!isWithinZoomBoundary(sibling, boundaryRoot)) {
-        return null;
-      }
       if (movedKeys.has(sibling.getKey())) {
-        return null;
+        throw new Error('Cannot place notes before themselves');
       }
       if (isInsideMovedSubtree(sibling)) {
         throw new Error('Cannot move notes relative to their own descendants');
@@ -150,7 +156,7 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
         const run = $resolveContiguousRun(movedNotes, siblings);
         const siblingIndex = siblings.indexOf(sibling);
         if (run && siblingIndex === run.end + 1) {
-          return null;
+          throw new Error('place() target would be a no-op');
         }
       }
       return { kind: 'before', reference: sibling };
@@ -158,11 +164,8 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
 
     if ('after' in target) {
       const sibling = $requireNoteById(target.after);
-      if (!isWithinZoomBoundary(sibling, boundaryRoot)) {
-        return null;
-      }
       if (movedKeys.has(sibling.getKey())) {
-        return null;
+        throw new Error('Cannot place notes after themselves');
       }
       if (isInsideMovedSubtree(sibling)) {
         throw new Error('Cannot move notes relative to their own descendants');
@@ -174,22 +177,19 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
         const run = $resolveContiguousRun(movedNotes, siblings);
         const siblingIndex = siblings.indexOf(sibling);
         if (run && siblingIndex === run.start - 1) {
-          return null;
+          throw new Error('place() target would be a no-op');
         }
       }
 
       const siblingNodes = getNodesForNote(sibling);
       const siblingTail = siblingNodes.at(-1);
       if (!siblingTail) {
-        return null;
+        throw new Error('Could not resolve place() target');
       }
       return { kind: 'after', reference: siblingTail };
     }
 
     const parent = $requireNoteById(target.parent);
-    if (!isWithinZoomBoundary(parent, boundaryRoot)) {
-      return null;
-    }
     if (isInsideMovedSubtree(parent)) {
       throw new Error('Cannot move notes into their own subtree');
     }
@@ -203,21 +203,19 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
     }
     return { kind: 'before', reference: anchor };
   };
-  const $moveNotes = (notes: ListItemNode[], target: MoveTarget): boolean => {
+  const $placeNotes = (notes: ListItemNode[], target: PlaceTarget): void => {
     if (notes.length === 0) {
-      return false;
+      throw new Error('place() expects at least one note');
     }
-    const boundaryRoot = $resolveBoundaryRoot();
-    if (!notes.every((note) => isWithinZoomBoundary(note, boundaryRoot))) {
-      return false;
+    const hasDetached = notes.some((note) => !note.isAttached());
+    const hasAttached = notes.some((note) => note.isAttached());
+    if (hasDetached && hasAttached) {
+      throw new Error('place() cannot mix attached and detached notes');
     }
 
     $assertMoveHeads(notes);
 
-    const insertion = $resolveMoveInsertionTarget(target, notes, boundaryRoot);
-    if (!insertion) {
-      return false;
-    }
+    const insertion = $resolvePlaceInsertionTarget(target, notes);
 
     const sourceLists = new Map<string, ListNode>();
     for (const note of notes) {
@@ -239,8 +237,30 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
     for (const list of sourceLists.values()) {
       maybeRemoveEmptyWrapper(list);
     }
+  };
+  const $createDraftNote = (text: string): AdapterDraftNote => {
+    const note = $createListItemNode();
+    note.append($createTextNode(text));
 
-    return true;
+    let placed = false;
+    return {
+      place: (target) => {
+        if (placed || note.isAttached()) {
+          throw new Error('Draft note already placed');
+        }
+
+        let noteId = createUniqueNoteId();
+        while ($resolveNoteById(noteId)) {
+          noteId = createUniqueNoteId();
+        }
+
+        $placeNotes([note], target);
+
+        $setState(note, noteIdState, noteId);
+        placed = true;
+        return noteId;
+      },
+    };
   };
 
   const $selectionFallbackFromRange = (): AdapterNoteSelection => {
@@ -310,7 +330,9 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
   return {
     docId: () => docId,
     selection: () => $adapterSelection(),
+    createNote: (text = '') => $createDraftNote(text),
     hasNote: (noteId) => Boolean($resolveNoteById(noteId)),
+    isBounded: (noteId) => Boolean($resolveNoteById(noteId)),
     textOf: (noteId) => $requireNoteById(noteId).getTextContent(),
     childrenOf: (noteId) => {
       const current = $requireNoteById(noteId);
@@ -323,7 +345,7 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
       return getContentSiblings(nested).map((child) => $requireContentItemNoteId(child));
     },
     delete: (range) => {
-      const resolved = $requireRangeNotes(range);
+      const resolved = $resolveRangeNotes(range);
       if (!resolved || resolved.length === 0) {
         return false;
       }
@@ -334,40 +356,40 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
       }
       return notes.length > 0;
     },
-    move: (range, target) => {
-      const notes = $requireRangeNotes(range);
-      if (!notes || notes.length === 0) {
-        return false;
+    place: (range, target) => {
+      const resolved = $resolveRangeNotes(range);
+      if (!resolved || resolved.length === 0) {
+        throw new Error('place() expects a contiguous sibling range');
       }
-      return $moveNotes(notes, target);
+      $placeNotes(resolved, target);
     },
     indent: (range) => {
-      const notes = $requireRangeNotes(range);
-      if (!notes || notes.length === 0) {
+      const resolved = $resolveRangeNotes(range);
+      if (!resolved || resolved.length === 0) {
         return false;
       }
-      return indentNotes(notes, $resolveBoundaryRoot());
+      return indentNotes(resolved, $resolveBoundaryRoot());
     },
     outdent: (range) => {
-      const notes = $requireRangeNotes(range);
-      if (!notes || notes.length === 0) {
+      const resolved = $resolveRangeNotes(range);
+      if (!resolved || resolved.length === 0) {
         return false;
       }
-      return outdentNotes(notes, $resolveBoundaryRoot());
+      return outdentNotes(resolved, $resolveBoundaryRoot());
     },
     moveUp: (range) => {
-      const notes = $requireRangeNotes(range);
-      if (!notes || notes.length === 0) {
+      const resolved = $resolveRangeNotes(range);
+      if (!resolved || resolved.length === 0) {
         return false;
       }
-      return moveNotesUp(notes, $resolveBoundaryRoot());
+      return moveNotesUp(resolved, $resolveBoundaryRoot());
     },
     moveDown: (range) => {
-      const notes = $requireRangeNotes(range);
-      if (!notes || notes.length === 0) {
+      const resolved = $resolveRangeNotes(range);
+      if (!resolved || resolved.length === 0) {
         return false;
       }
-      return moveNotesDown(notes, $resolveBoundaryRoot());
+      return moveNotesDown(resolved, $resolveBoundaryRoot());
     },
   };
 }

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { createNoteSdk, NoteNotFoundError } from '@/editor/outline/sdk';
-import type { AdapterNoteSelection, MoveTarget, NoteRange, NoteSdkAdapter } from '@/editor/outline/sdk/contracts';
+import type { AdapterNoteSelection, NoteRange, NoteSdkAdapter, PlaceTarget } from '@/editor/outline/sdk/contracts';
 
 function createMockAdapterFixture(
   adapterSelection?: AdapterNoteSelection
 ): {
   adapter: NoteSdkAdapter;
   notes: Map<string, { text: string; children: string[] }>;
-  moveCalls: Array<{ range: NoteRange; target: MoveTarget }>;
+  placeCalls: Array<{ range: NoteRange; target: PlaceTarget }>;
 } {
   const resolvedSelection = adapterSelection ?? { kind: 'caret', range: { start: 'b', end: 'b' } };
   const notes = new Map<string, { text: string; children: string[] }>([
@@ -15,7 +15,8 @@ function createMockAdapterFixture(
     ['b', { text: 'B', children: [] }],
     ['c', { text: 'C', children: [] }],
   ]);
-  const moveCalls: Array<{ range: NoteRange; target: MoveTarget }> = [];
+  const placeCalls: Array<{ range: NoteRange; target: PlaceTarget }> = [];
+  let nextDraftId = 1;
 
   const requireNote = (noteId: string): { text: string; children: string[] } => {
     const note = notes.get(noteId);
@@ -32,11 +33,36 @@ function createMockAdapterFixture(
 
   return {
     notes,
-    moveCalls,
+    placeCalls,
     adapter: {
       docId: () => 'doc-1',
       selection: () => resolvedSelection,
+      createNote: (text = '') => {
+        let placed = false;
+        return {
+          place: (target) => {
+            if (placed) {
+              throw new Error('Draft note already placed');
+            }
+            if ('parent' in target) {
+              requireNote(target.parent);
+            } else if ('before' in target) {
+              requireNote(target.before);
+            } else {
+              requireNote(target.after);
+            }
+
+            const noteId = `draft-${nextDraftId}`;
+            nextDraftId += 1;
+            notes.set(noteId, { text, children: [] });
+            placeCalls.push({ range: { start: noteId, end: noteId }, target });
+            placed = true;
+            return noteId;
+          },
+        };
+      },
       hasNote: (noteId) => notes.has(noteId),
+      isBounded: (noteId) => notes.has(noteId),
       textOf: (noteId) => requireNote(noteId).text,
       childrenOf: (noteId) => requireNote(noteId).children,
       delete: (range) => {
@@ -45,7 +71,7 @@ function createMockAdapterFixture(
         notes.delete(range.end);
         return true;
       },
-      move: (range, target) => {
+      place: (range, target) => {
         requireRange(range);
         if ('parent' in target) {
           requireNote(target.parent);
@@ -54,8 +80,7 @@ function createMockAdapterFixture(
         } else {
           requireNote(target.after);
         }
-        moveCalls.push({ range, target });
-        return true;
+        placeCalls.push({ range, target });
       },
       indent: (range) => {
         requireRange(range);
@@ -84,6 +109,7 @@ describe('note sdk core', () => {
     const note = sdk.note('a');
 
     expect(note.id()).toBe('a');
+    expect(note.bounded()).toBe(true);
     expect(note.text()).toBe('A');
     expect(note.children().map((child) => child.id())).toEqual(['b', 'c']);
   });
@@ -113,15 +139,26 @@ describe('note sdk core', () => {
     expect(sdk.moveDown({ start: 'b', end: 'b' })).toBe(true);
   });
 
-  it('delegates move targets in note-id form', () => {
+  it('creates a draft and returns note handle after place', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createNoteSdk(fixture.adapter);
 
-    expect(sdk.move({ start: 'c', end: 'c' }, { before: 'b' })).toBe(true);
-    expect(sdk.move({ start: 'c', end: 'c' }, { after: 'b' })).toBe(true);
-    expect(sdk.move({ start: 'c', end: 'c' }, { parent: 'a', index: -1 })).toBe(true);
+    const draft = sdk.createNote('Draft');
+    const placed = draft.place({ before: 'b' });
 
-    expect(fixture.moveCalls).toEqual([
+    expect(placed.id()).toBe('draft-1');
+    expect(placed.text()).toBe('Draft');
+  });
+
+  it('delegates place targets in note-id form', () => {
+    const fixture = createMockAdapterFixture();
+    const sdk = createNoteSdk(fixture.adapter);
+
+    expect(() => sdk.place({ start: 'c', end: 'c' }, { before: 'b' })).not.toThrow();
+    expect(() => sdk.place({ start: 'c', end: 'c' }, { after: 'b' })).not.toThrow();
+    expect(() => sdk.place({ start: 'c', end: 'c' }, { parent: 'a', index: -1 })).not.toThrow();
+
+    expect(fixture.placeCalls).toEqual([
       { range: { start: 'c', end: 'c' }, target: { before: 'b' } },
       { range: { start: 'c', end: 'c' }, target: { after: 'b' } },
       { range: { start: 'c', end: 'c' }, target: { parent: 'a', index: -1 } },
@@ -135,6 +172,7 @@ describe('note sdk core', () => {
 
     expect(sdk.delete({ start: 'b', end: 'b' })).toBe(true);
 
+    expect(note.bounded()).toBe(false);
     expect(() => note.text()).toThrowError(NoteNotFoundError);
     expect(() => note.children()).toThrowError(NoteNotFoundError);
     expect(() => sdk.indent({ start: 'b', end: 'b' })).toThrowError(NoteNotFoundError);

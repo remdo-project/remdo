@@ -135,18 +135,17 @@ describe('note sdk', () => {
   });
 
   it('moves ranges before and after targets', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    let moved: { before: boolean; after: boolean } | null = null;
+    let moved = false;
 
     await remdo.mutate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
 
-      moved = {
-        before: sdk.move({ start: 'note3', end: 'note3' }, { before: 'note2' }),
-        after: sdk.move({ start: 'note1', end: 'note1' }, { after: 'note2' }),
-      };
+      sdk.place({ start: 'note3', end: 'note3' }, { before: 'note2' });
+      sdk.place({ start: 'note1', end: 'note1' }, { after: 'note2' });
+      moved = true;
     });
 
-    expect(moved).toEqual({ before: true, after: true });
+    expect(moved).toBe(true);
     expect(remdo).toMatchOutline([
       { noteId: 'note3', text: 'note3' },
       { noteId: 'note2', text: 'note2' },
@@ -154,19 +153,58 @@ describe('note sdk', () => {
     ]);
   });
 
+  it('creates a draft note and returns a bounded note after placement', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    let inserted:
+      | {
+          placedId: string;
+          placedText: string;
+          boundedAfterPlace: boolean;
+          secondPlaceError: string;
+        }
+      | null = null;
+
+    await remdo.mutate(() => {
+      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const draft = sdk.createNote('draft');
+      const placed = draft.place({ parent: 'note1', index: 999 });
+      let secondPlaceError = '';
+      try {
+        draft.place({ parent: 'note1', index: 0 });
+      } catch (error) {
+        secondPlaceError = error instanceof Error ? error.message : String(error);
+      }
+      inserted = {
+        placedId: placed.id(),
+        placedText: placed.text(),
+        boundedAfterPlace: placed.bounded(),
+        secondPlaceError,
+      };
+    });
+
+    expect(inserted).not.toBeNull();
+    expect(inserted!.placedId.length).toBeGreaterThan(0);
+    expect(inserted!.placedText).toBe('draft');
+    expect(inserted!.boundedAfterPlace).toBe(true);
+    expect(inserted!.secondPlaceError).toBe('Draft note already placed');
+    const outline = readOutline(remdo);
+    expect(outline[0]?.text).toBe('note1');
+    expect(outline[0]?.children?.[0]?.text).toBe('draft');
+    expect(outline[1]?.text).toBe('note2');
+    expect(outline[2]?.text).toBe('note3');
+  });
+
   it('moves notes into parent by index with negative and clamped indexing', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    let outcomes: { intoFromEnd: boolean; intoClamp: boolean } | null = null;
+    let moved = false;
 
     await remdo.mutate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
 
-      outcomes = {
-        intoFromEnd: sdk.move({ start: 'note5', end: 'note5' }, { parent: 'note1', index: -2 }),
-        intoClamp: sdk.move({ start: 'note6', end: 'note6' }, { parent: 'note1', index: 999 }),
-      };
+      sdk.place({ start: 'note5', end: 'note5' }, { parent: 'note1', index: -2 });
+      sdk.place({ start: 'note6', end: 'note6' }, { parent: 'note1', index: 999 });
+      moved = true;
     });
 
-    expect(outcomes).toEqual({ intoFromEnd: true, intoClamp: true });
+    expect(moved).toBe(true);
     expect(remdo).toMatchOutline([
       {
         noteId: 'note1', text: 'note1', children: [
@@ -179,32 +217,40 @@ describe('note sdk', () => {
     ]);
   });
 
-  it('returns false for move targets that reference moved heads directly', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('throws for place targets that would be no-op or use invalid ranges', meta({ fixture: 'flat' }), async ({ remdo }) => {
     let result:
       | {
-          beforeSelf: boolean;
-          afterSelf: boolean;
-          beforeOther: boolean;
-          reversedRange: boolean;
+          beforeSelf: string;
+          afterSelf: string;
+          beforeOther: string;
+          reversedRange: string;
         }
       | null = null;
 
     remdo.editor.update(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const captureError = (run: () => unknown): string => {
+        try {
+          run();
+          return 'no-throw';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
 
       result = {
-        beforeSelf: sdk.move({ start: 'note2', end: 'note2' }, { before: 'note2' }),
-        afterSelf: sdk.move({ start: 'note2', end: 'note2' }, { after: 'note2' }),
-        beforeOther: sdk.move({ start: 'note2', end: 'note2' }, { before: 'note3' }),
-        reversedRange: sdk.move({ start: 'note3', end: 'note2' }, { before: 'note1' }),
+        beforeSelf: captureError(() => sdk.place({ start: 'note2', end: 'note2' }, { before: 'note2' })),
+        afterSelf: captureError(() => sdk.place({ start: 'note2', end: 'note2' }, { after: 'note2' })),
+        beforeOther: captureError(() => sdk.place({ start: 'note2', end: 'note2' }, { before: 'note3' })),
+        reversedRange: captureError(() => sdk.place({ start: 'note3', end: 'note2' }, { before: 'note1' })),
       };
     });
 
     expect(result).toEqual({
-      beforeSelf: false,
-      afterSelf: false,
-      beforeOther: false,
-      reversedRange: false,
+      beforeSelf: 'Cannot place notes before themselves',
+      afterSelf: 'Cannot place notes after themselves',
+      beforeOther: 'place() target would be a no-op',
+      reversedRange: 'place() expects a contiguous sibling range',
     });
     expect(readOutline(remdo).map((node) => node.noteId)).toEqual(['note1', 'note2', 'note3']);
   });
@@ -217,7 +263,7 @@ describe('note sdk', () => {
       removeNoteSubtree($findNoteById('note2')!);
 
       try {
-        sdk.move({ start: 'note3', end: 'note3' }, { before: 'note2' });
+        sdk.place({ start: 'note3', end: 'note3' }, { before: 'note2' });
       } catch (error) {
         errorMessage = error instanceof Error ? error.message : String(error);
       }
@@ -226,8 +272,8 @@ describe('note sdk', () => {
     expect(errorMessage).toBe('Note not found: note2');
   });
 
-  it('throws for illegal ancestry and rejects non-sibling ranges', meta({ fixture: 'tree' }), async ({ remdo }) => {
-    let outcomes: { descendant: string; nonSibling: boolean } | null = null;
+  it('throws for illegal ancestry and non-sibling ranges', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    let outcomes: { descendant: string; nonSibling: string } | null = null;
 
     remdo.editor.update(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
@@ -242,14 +288,14 @@ describe('note sdk', () => {
       };
 
       outcomes = {
-        descendant: captureError(() => sdk.move({ start: 'note2', end: 'note2' }, { before: 'note3' })),
-        nonSibling: sdk.move({ start: 'note2', end: 'note3' }, { after: 'note2' }),
+        descendant: captureError(() => sdk.place({ start: 'note2', end: 'note2' }, { before: 'note3' })),
+        nonSibling: captureError(() => sdk.place({ start: 'note2', end: 'note3' }, { after: 'note2' })),
       };
     });
 
     expect(outcomes).toEqual({
       descendant: 'Cannot move notes relative to their own descendants',
-      nonSibling: false,
+      nonSibling: 'place() expects a contiguous sibling range',
     });
   });
 
@@ -265,6 +311,7 @@ describe('note sdk', () => {
 
     remdo.validate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      expect(note.bounded()).toBe(false);
       expect(() => note.text()).toThrowError(NoteNotFoundError);
       expect(() => note.children()).toThrowError(NoteNotFoundError);
       expect(() => sdk.indent({ start: 'note2', end: 'note2' })).toThrowError(NoteNotFoundError);

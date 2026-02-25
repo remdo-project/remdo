@@ -1,6 +1,8 @@
 import type {
+  AdapterDraftNote,
   AdapterNoteSelection,
-  MoveTarget,
+  DraftNote,
+  PlaceTarget,
   Note,
   NoteId,
   NoteRange,
@@ -17,25 +19,38 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     }
   };
 
-  const assertRangeNotesExist = (range: NoteRange): void => {
-    assertNoteExists(range.start);
-    assertNoteExists(range.end);
+  const assertBoundedNoteExists = (noteId: NoteId): void => {
+    if (!adapter.isBounded(noteId)) {
+      throw new NoteNotFoundError(noteId);
+    }
   };
 
-  const assertMoveTargetNotesExist = (target: MoveTarget): void => {
+  const assertRangeNotesBounded = (range: NoteRange): void => {
+    assertBoundedNoteExists(range.start);
+    assertBoundedNoteExists(range.end);
+  };
+
+  const assertPlaceTargetNotesExist = (target: PlaceTarget): void => {
     if ('parent' in target) {
-      assertNoteExists(target.parent);
+      if (!adapter.isBounded(target.parent)) {
+        throw new NoteNotFoundError(target.parent);
+      }
       return;
     }
     if ('before' in target) {
-      assertNoteExists(target.before);
+      if (!adapter.isBounded(target.before)) {
+        throw new NoteNotFoundError(target.before);
+      }
       return;
     }
-    assertNoteExists(target.after);
+    if (!adapter.isBounded(target.after)) {
+      throw new NoteNotFoundError(target.after);
+    }
   };
 
   const createHandle = (noteId: NoteId): Note => ({
     id: () => noteId,
+    bounded: () => adapter.isBounded(noteId),
     text: () => {
       assertNoteExists(noteId);
       return adapter.textOf(noteId);
@@ -49,6 +64,21 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
   const getNoteOrThrow = (noteId: NoteId): Note => {
     assertNoteExists(noteId);
     return createHandle(noteId);
+  };
+
+  const createDraftHandle = (draft: AdapterDraftNote): DraftNote => {
+    let placed = false;
+    return {
+      place: (target) => {
+        if (placed) {
+          throw new Error('Draft note already placed');
+        }
+        assertPlaceTargetNotesExist(target);
+        const noteId = draft.place(target);
+        placed = true;
+        return getNoteOrThrow(noteId);
+      },
+    };
   };
 
   const createNoneSelection = (): NoteSelection => ({ kind: 'none', range: null });
@@ -65,22 +95,23 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     return adapterSelection;
   };
 
-  const runRangeMutation = (
+  const runRangeMutation = <T>(
     range: NoteRange,
-    operation: (noteRange: NoteRange) => boolean
-  ): boolean => {
-    assertRangeNotesExist(range);
+    operation: (noteRange: NoteRange) => T
+  ): T => {
+    assertRangeNotesBounded(range);
     return operation(range);
   };
 
   return {
     docId: () => adapter.docId(),
     selection: () => resolveSelection(adapter.selection()),
+    createNote: (text) => createDraftHandle(adapter.createNote(text)),
     note: (noteId) => getNoteOrThrow(noteId),
     delete: (range) => runRangeMutation(range, adapter.delete),
-    move: (range, target) => {
-      assertMoveTargetNotesExist(target);
-      return runRangeMutation(range, (noteRange) => adapter.move(noteRange, target));
+    place: (range, target) => {
+      assertPlaceTargetNotesExist(target);
+      runRangeMutation(range, (noteRange) => adapter.place(noteRange, target));
     },
     indent: (range) => runRangeMutation(range, adapter.indent),
     outdent: (range) => runRangeMutation(range, adapter.outdent),

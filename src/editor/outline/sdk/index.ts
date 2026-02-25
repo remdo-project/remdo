@@ -1,7 +1,8 @@
 export type {
   DocumentId,
+  DraftNote,
   NoteRange,
-  MoveTarget,
+  PlaceTarget,
   Note,
   NoteId,
   NoteSelection,
