@@ -4,7 +4,6 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { mergeRegister } from '@lexical/utils';
 import {
   $createRangeSelection,
-  $createTextNode,
   $getSelection,
   $isRangeSelection,
   $isTextNode,
@@ -17,56 +16,51 @@ import {
 import type { LexicalNode } from 'lexical';
 import { useEffect } from 'react';
 import { $isNoteFolded } from '#lib/editor/fold-state';
-import { resolveContentItemFromNode } from '@/editor/outline/schema';
+import { $findNoteById } from '@/editor/outline/note-traversal';
+import type { NoteSdk, PlaceTarget } from '@/editor/outline/sdk';
+import { createLexicalNoteSdk } from '@/editor/outline/sdk/adapters/lexical';
+import { $requireContentItemNoteId, resolveContentItemFromNode } from '@/editor/outline/schema';
 import { $getOrCreateChildList, insertBefore } from '@/editor/outline/list-structure';
 import { resolveBoundaryPoint } from '@/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '@/editor/outline/selection/caret-placement';
 import { getZoomBoundary } from '@/editor/outline/selection/boundary';
 import { getNestedList, noteHasChildren } from '@/editor/outline/selection/tree';
+import { useCollaborationStatus } from './collaboration';
 
-function $createNote(text: string): ListItemNode {
-  const item = $createListItemNode();
-  item.append($createTextNode(text));
-  return item;
-}
-
-function $handleEnterAtStart(contentItem: ListItemNode) {
-  const newItem = $createNote('');
-  contentItem.insertBefore(newItem);
-  const textNode = newItem.getChildren().find($isTextNode);
+function $selectNoteStartById(noteId: string): void {
+  const note = $findNoteById(noteId);
+  if (!note) {
+    return;
+  }
+  const textNode = note.getChildren().find($isTextNode);
   textNode?.select(0, 0);
 }
 
-function $handleEnterAtEnd(contentItem: ListItemNode) {
+function $placeEmptyNoteAndSelectStart(sdk: NoteSdk, target: PlaceTarget): void {
+  const placed = sdk.createNote().place(target);
+  $selectNoteStartById(placed.id());
+}
+
+function $handleEnterAtStart(contentItem: ListItemNode, sdk: NoteSdk): void {
+  $placeEmptyNoteAndSelectStart(sdk, { before: $requireContentItemNoteId(contentItem) });
+}
+
+function $handleEnterAtEnd(contentItem: ListItemNode, sdk: NoteSdk): void {
+  const contentItemId = $requireContentItemNoteId(contentItem);
   const nestedList = getNestedList(contentItem);
   const hasChildren = noteHasChildren(contentItem);
 
   if (nestedList && hasChildren) {
     if ($isNoteFolded(contentItem)) {
-      const newSibling = $createNote('');
-      const wrapper = nestedList.getParentOrThrow();
-      wrapper.insertAfter(newSibling);
-      const textNode = newSibling.getChildren().find($isTextNode);
-      textNode?.select(0, 0);
+      $placeEmptyNoteAndSelectStart(sdk, { after: contentItemId });
       return;
     }
 
-    const newChild = $createNote('');
-    const firstChild = nestedList.getFirstChild();
-    if (firstChild) {
-      insertBefore(firstChild, [newChild]);
-    } else {
-      nestedList.append(newChild);
-    }
-    const textNode = newChild.getChildren().find($isTextNode);
-    textNode?.select(0, 0);
+    $placeEmptyNoteAndSelectStart(sdk, { parent: contentItemId, index: 0 });
     return;
   }
 
-  const newSibling = $createNote('');
-  contentItem.insertAfter(newSibling);
-  const textNode = newSibling.getChildren().find($isTextNode);
-  textNode?.select(0, 0);
+  $placeEmptyNoteAndSelectStart(sdk, { after: contentItemId });
 }
 
 function $insertFirstChild(contentItem: ListItemNode, newItem: ListItemNode) {
@@ -77,13 +71,6 @@ function $insertFirstChild(contentItem: ListItemNode, newItem: ListItemNode) {
     return;
   }
   childList.append(newItem);
-}
-
-function $insertEmptyFirstChild(contentItem: ListItemNode) {
-  const newChild = $createNote('');
-  $insertFirstChild(contentItem, newChild);
-  const textNode = newChild.getChildren().find($isTextNode);
-  textNode?.select(0, 0);
 }
 
 function $splitContentItemAtSelection(
@@ -158,6 +145,7 @@ function $splitContentItemAtSelection(
 
 export function InsertionPlugin() {
   const [editor] = useLexicalComposerContext();
+  const { docId } = useCollaborationStatus();
 
   useEffect(() => {
     return mergeRegister(
@@ -208,27 +196,28 @@ export function InsertionPlugin() {
           }
           const zoomBoundaryKey = getZoomBoundary(editor);
           const isZoomRoot = zoomBoundaryKey !== null && contentItem.getKey() === zoomBoundaryKey;
+          const sdk = createLexicalNoteSdk({ editor, docId });
 
           const placement = resolveCaretPlacement(selection, contentItem);
           if (placement === 'start') {
+            if (isZoomRoot) {
+              $placeEmptyNoteAndSelectStart(sdk, { parent: $requireContentItemNoteId(contentItem), index: 0 });
+            } else {
+              $handleEnterAtStart(contentItem, sdk);
+            }
             event?.preventDefault();
             event?.stopPropagation();
-            if (isZoomRoot) {
-              $insertEmptyFirstChild(contentItem);
-            } else {
-              $handleEnterAtStart(contentItem);
-            }
             return true;
           }
 
           if (placement === 'end') {
+            if (isZoomRoot) {
+              $placeEmptyNoteAndSelectStart(sdk, { parent: $requireContentItemNoteId(contentItem), index: 0 });
+            } else {
+              $handleEnterAtEnd(contentItem, sdk);
+            }
             event?.preventDefault();
             event?.stopPropagation();
-            if (isZoomRoot) {
-              $insertEmptyFirstChild(contentItem);
-            } else {
-              $handleEnterAtEnd(contentItem);
-            }
             return true;
           }
 
@@ -247,7 +236,7 @@ export function InsertionPlugin() {
         COMMAND_PRIORITY_HIGH
       )
     );
-  }, [editor]);
+  }, [editor, docId]);
 
   return null;
 }
