@@ -80,28 +80,35 @@ governance (map, workflow, invariants, and update rules), use `docs/index.md`.
 ## Checks
 
 - Current timings on this machine (rounded with headroom): `pnpm run lint` about
-  5–10s, `pnpm run test:unit` about 10–20s, `pnpm run test:collab` about
-  12–25s. If you ever hit the 60s guard, debug the failure (don’t extend); only
-  adjust ranges if healthy runs consistently land outside them.
+  8–18s, `pnpm run test:unit` about 12–25s, `pnpm run test:collab` about
+  22–35s. Recent healthy run on 2026-02-25 measured roughly: lint 8.3s,
+  unit 13.3s, collab 27.3s. If you ever hit the timeout guard, debug the
+  failure (don’t extend); only adjust ranges if healthy runs consistently land
+  outside them.
 - E2E (Playwright): run `pnpm test:e2e`. In sandboxed environments, accessing
   the local dev server (localhost) may require network escalation; without it,
   Playwright can’t reach the server and will fail to start.
 
-### Scoped check runs (validated 2025-12-09; commands trimmed to tool defaults and pnpm scripts where they behave)
+### Scoped check runs (validated 2026-02-25; prefer these during iteration)
 
-1. Typecheck tests project: `pnpm run typecheck:tests` (uses
-   `noEmit`/`incremental` from configs). Ran in ~1.7s.
-2. Code lint per path: `pnpm run lint:code -- <path ...>` keeps the scripted
-   `eslint` defaults/caching; validated on `tests/unit/smoke.spec.tsx` in ~2s.
-3. Markdown lint per file: `pnpm run lint:md:file -- <file ...>` to avoid the
-   script’s built-in `docs/**` globs; single-file `AGENTS.md` run completed in
-   ~0.6s.
-4. Unit test filter via script:
+1. Typecheck project: `pnpm run typecheck` (uses incremental cache from
+   `tsconfig.json`). Healthy run is usually ~1.8s in this workspace.
+2. Code lint per path: `pnpm run lint:code -- <path ...>` keeps scripted
+   `eslint` caching; validated on three TSX files in ~2.2s.
+3. Code lint for changed JS/TS files from git diff:
+   `git diff --name-only --diff-filter=ACMRTUXB HEAD | rg '\.(c|m)?(j|t)sx?$' | xargs -r pnpm run lint:code --`
+4. CSS lint for changed files from git diff:
+   `git diff --name-only --diff-filter=ACMRTUXB HEAD | rg '\.css$' | xargs -r pnpm exec stylelint`
+5. CSS syntax validation for changed files:
+   `git diff --name-only --diff-filter=ACMRTUXB HEAD | rg '\.css$' | xargs -r -n1 pnpm exec csstree-validator`
+   (`csstree-validator` accepts one file per invocation).
+6. Markdown lint per file: `pnpm run lint:md:file -- <file ...>`.
+7. Unit test filter via script:
    `pnpm run test:unit <file> -t "<full test name>"` (don’t add an extra `--`,
    or Vitest will ignore the filter). Example:
    `tests/unit/smoke.spec.tsx -t "loads basic outline structure from JSON"` ran
    only that file in ~1.3s.
-5. Collab test filter via script:
+8. Collab test filter via script:
    `pnpm run test:collab tests/unit/collab/<file> -t "<full test name>"`;
    example
    `smoke.collab.spec.tsx -t "lexical helpers operate in collaboration mode"`
@@ -109,14 +116,18 @@ governance (map, workflow, invariants, and update rules), use `docs/index.md`.
 
 ### Local agents
 
-1. For every file edit, run the relevant lint check (if one exists for that file
-   type). Run `pnpm run lint`, `pnpm run test:unit`, and other relevant checks
-   after every non-trivial change. After any behavior change (even small), also
-   run `pnpm run lint` plus the most relevant test suite (default to
-   `pnpm run test:unit` if unsure). Still use judgment to avoid redundant runs,
-   but bias toward keeping these suites green regularly.
-2. If you do run a check and it fails because of your code, either fix the
-   regression or clearly report the failure before handing the task back.
+1. During iteration, prefer scoped checks from the section above on the files
+   you touched instead of repeatedly running full suites.
+2. Before handing the current task back:
+   1. Always run `pnpm run lint`.
+   2. Run `pnpm run test:unit` for behavior/code changes (skip for docs-only or
+      purely cosmetic style changes).
+   3. Run `pnpm run test:collab` only when collaboration risk exists.
+      Collaboration risk includes changes under
+      `src/editor/plugins/collaboration/**`, `tests/unit/collab/**`, or editor
+      state/synchronization/persistence paths that can affect shared behavior.
+3. If a check fails because of your changes, either fix the regression or
+   clearly report the failure before handing the task back.
 
 ### Cloud agents
 
