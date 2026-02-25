@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TextInput } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -17,6 +18,7 @@ export default function DocumentRoute() {
   const navigate = useNavigate();
   const [zoomPath, setZoomPath] = useState<NotePathItem[]>([]);
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const zoomNoteId = parsedRef?.noteId ?? null;
 
   const setZoomNoteId = (noteId: string | null) => {
@@ -28,6 +30,52 @@ export default function DocumentRoute() {
       },
       { replace: true }
     );
+  };
+
+  const focusEditorInput = () => {
+    const editorInput = document.querySelector<HTMLElement>('.editor-input');
+    editorInput?.focus();
+  };
+
+  useEffect(() => {
+    const handleFindShortcut = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.altKey || event.shiftKey) {
+        return;
+      }
+      if (!event.key || event.key.toLowerCase() !== 'f') {
+        return;
+      }
+      if (!event.metaKey && !event.ctrlKey) {
+        return;
+      }
+
+      const searchInput = searchInputRef.current;
+      if (!searchInput) {
+        return;
+      }
+
+      // Allow browser find on the next press when search is already focused.
+      if (document.activeElement === searchInput) {
+        return;
+      }
+
+      event.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+    };
+
+    document.addEventListener('keydown', handleFindShortcut);
+    return () => {
+      document.removeEventListener('keydown', handleFindShortcut);
+    };
+  }, []);
+
+  const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Escape' || event.altKey || event.metaKey || event.ctrlKey) {
+      return;
+    }
+    event.preventDefault();
+    focusEditorInput();
   };
 
   return (
@@ -44,7 +92,9 @@ export default function DocumentRoute() {
           <TextInput
             aria-label="Search document"
             className="document-header-search remdo-interaction-surface"
+            ref={searchInputRef}
             leftSection={<IconSearch aria-hidden="true" size={14} />}
+            onKeyDown={handleSearchKeyDown}
             placeholder="Search"
             size="xs"
           />

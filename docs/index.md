@@ -22,6 +22,8 @@ outdated or a doc’s role materially changes.
 - `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, including
   single-container Docker deployment flow, same-host auth routing, and
   backup/CI conventions.
+- `docs/hints.md` (Short). Backlog of potential UX hint concepts that are not
+  yet surfaced in the UI.
 - `docs/index.md` (Medium). Documentation entry point with map, doc workflow, and invariants.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
