@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { TextInput } from '@mantine/core';
+import { IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Editor from '@/editor/Editor';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
@@ -38,7 +40,16 @@ export default function DocumentRoute() {
             onSelectNoteId={setZoomNoteId}
           />
         </div>
-        <div className="document-header-status" ref={setStatusHost} />
+        <div className="document-header-actions">
+          <TextInput
+            aria-label="Search document"
+            className="document-header-search"
+            leftSection={<IconSearch aria-hidden="true" size={14} />}
+            placeholder="Search"
+            size="xs"
+          />
+          <div className="document-header-status" ref={setStatusHost} />
+        </div>
       </header>
       <Editor
         key={docId}

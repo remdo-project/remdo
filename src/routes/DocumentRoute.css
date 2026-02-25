@@ -20,6 +20,20 @@
   min-width: 0;
 }
 
+.document-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--mantine-spacing-sm);
+  flex-shrink: 0;
+}
+
+.document-header-search {
+  min-width: 10rem;
+  width: 16rem;
+  max-width: 22vw;
+}
+
 .document-header-status {
   display: flex;
   align-items: center;
@@ -40,4 +54,12 @@
   border: none;
   border-radius: 0;
   background: transparent;
+}
+
+@media (max-width: 48em) {
+  .document-header-search {
+    min-width: 8rem;
+    width: 12rem;
+    max-width: 36vw;
+  }
 }

@@ -1,3 +1,4 @@
+import { MantineProvider } from '@mantine/core';
 import { render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
@@ -27,7 +28,11 @@ describe('document route', () => {
       { initialEntries: [createDocumentPath('main')] },
     );
 
-    render(<RouterProvider router={router} />);
+    render(
+      <MantineProvider>
+        <RouterProvider router={router} />
+      </MantineProvider>
+    );
 
     const first = await screen.findByTestId('editor-probe');
     const firstInstanceId = first.dataset.instanceId;
