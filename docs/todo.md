@@ -26,6 +26,12 @@ Rules:
   note operation helpers and SDK adapter plumbing where the boundary is always
   zoom-specific.
 
+## Outliner SDK follow-up
+
+- Selection/mutation model follow-up: consider dropping `heads` as the primary
+  concept and using range semantics everywhere (or at least in more layers)
+  when the operation contract is contiguous selection movement.
+
 ## Test doc-id lifecycle hygiene (deferred)
 
 - We currently mix two strategies in tests:
