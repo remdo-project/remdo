@@ -15,8 +15,11 @@ function moveSelectionViaSdk(
   direction: MoveDirection
 ): boolean {
   const sdk = createLexicalNoteSdk({ editor, docId });
-  const heads = sdk.selection().heads;
-  return direction === 'up' ? sdk.moveUp(heads) : sdk.moveDown(heads);
+  const { kind, range } = sdk.selection();
+  if (kind === 'none') {
+    return false;
+  }
+  return direction === 'up' ? sdk.moveUp(range) : sdk.moveDown(range);
 }
 
 export function ReorderingPlugin() {

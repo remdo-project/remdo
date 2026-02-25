@@ -9,7 +9,7 @@ describe('note sdk', () => {
   it('resolves note reads and document context', meta({ fixture: 'tree' }), async ({ remdo }) => {
     const result = remdo.validate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      const note = sdk.get('note2');
+      const note = sdk.note('note2');
 
       return {
         docId: sdk.docId(),
@@ -33,11 +33,14 @@ describe('note sdk', () => {
       return sdk.selection();
     });
 
-    expect(selection.kind).toBe('caret');
-    expect(selection.heads.map((head) => head.id())).toEqual(['note3']);
+    if (selection.kind !== 'caret') {
+      throw new Error(`Expected caret selection, got ${selection.kind}`);
+    }
+    expect(selection.range.start).toBe('note3');
+    expect(selection.range.end).toBe('note3');
   });
 
-  it('resolves structural selection heads', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('resolves structural selection range', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectNoteRange(remdo, 'note2', 'note3');
 
     const selection = remdo.validate(() => {
@@ -45,12 +48,15 @@ describe('note sdk', () => {
       return sdk.selection();
     });
 
-    expect(selection.kind).toBe('structural');
-    expect(selection.heads.map((head) => head.id())).toEqual(['note2', 'note3']);
+    if (selection.kind !== 'structural') {
+      throw new Error(`Expected structural selection, got ${selection.kind}`);
+    }
+    expect(selection.range.start).toBe('note2');
+    expect(selection.range.end).toBe('note3');
   });
 
   it(
-    'falls back to structural selection heads when outline selection store is unavailable',
+    'falls back to structural selection range when outline selection store is unavailable',
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       await selectNoteRange(remdo, 'note2', 'note3');
@@ -62,11 +68,16 @@ describe('note sdk', () => {
         const result = remdo.validate(() => {
           const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
           const selection = sdk.selection();
-          expect(selection.kind).toBe('structural');
-          return selection.heads.map((head) => head.id());
+          if (selection.kind !== 'structural') {
+            throw new Error(`Expected structural selection, got ${selection.kind}`);
+          }
+          return {
+            start: selection.range.start,
+            end: selection.range.end,
+          };
         });
 
-        expect(result).toEqual(['note2', 'note3']);
+        expect(result).toEqual({ start: 'note2', end: 'note3' });
       } finally {
         remdo.editor.selection.get = originalGet;
       }
@@ -74,7 +85,7 @@ describe('note sdk', () => {
   );
 
   it(
-    'falls back to structural selection for parent-to-descendant range with a single head',
+    'falls back to structural selection for parent-to-descendant range with a single-point range',
     meta({ fixture: 'tree-complex' }),
     async ({ remdo }) => {
       await selectNoteRange(remdo, 'note2', 'note3');
@@ -86,11 +97,16 @@ describe('note sdk', () => {
         const result = remdo.validate(() => {
           const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
           const selection = sdk.selection();
-          expect(selection.kind).toBe('structural');
-          return selection.heads.map((head) => head.id());
+          if (selection.kind !== 'structural') {
+            throw new Error(`Expected structural selection, got ${selection.kind}`);
+          }
+          return {
+            start: selection.range.start,
+            end: selection.range.end,
+          };
         });
 
-        expect(result).toEqual(['note2']);
+        expect(result).toEqual({ start: 'note2', end: 'note2' });
       } finally {
         remdo.editor.selection.get = originalGet;
       }
@@ -102,12 +118,11 @@ describe('note sdk', () => {
 
     await remdo.mutate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      const note = sdk.get('note2');
       outcomes = {
-        indentOne: sdk.indent([note]),
-        indentTwo: sdk.indent([note]),
-        outdentOne: sdk.outdent([note]),
-        outdentTwo: sdk.outdent([note]),
+        indentOne: sdk.indent({ start: 'note2', end: 'note2' }),
+        indentTwo: sdk.indent({ start: 'note2', end: 'note2' }),
+        outdentOne: sdk.outdent({ start: 'note2', end: 'note2' }),
+        outdentTwo: sdk.outdent({ start: 'note2', end: 'note2' }),
       };
     });
 
@@ -119,18 +134,15 @@ describe('note sdk', () => {
     });
   });
 
-  it('moves notes before and after targets while preserving caller order', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('moves ranges before and after targets', meta({ fixture: 'flat' }), async ({ remdo }) => {
     let moved: { before: boolean; after: boolean } | null = null;
 
     await remdo.mutate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      const note1 = sdk.get('note1');
-      const note2 = sdk.get('note2');
-      const note3 = sdk.get('note3');
 
       moved = {
-        before: sdk.move([note3, note1], { before: note2 }),
-        after: sdk.move([note1], { after: note2 }),
+        before: sdk.move({ start: 'note3', end: 'note3' }, { before: 'note2' }),
+        after: sdk.move({ start: 'note1', end: 'note1' }, { after: 'note2' }),
       };
     });
 
@@ -147,13 +159,10 @@ describe('note sdk', () => {
 
     await remdo.mutate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      const note1 = sdk.get('note1');
-      const note5 = sdk.get('note5');
-      const note6 = sdk.get('note6');
 
       outcomes = {
-        intoFromEnd: sdk.move([note5], { parent: note1, index: -2 }),
-        intoClamp: sdk.move([note6], { parent: note1, index: 999 }),
+        intoFromEnd: sdk.move({ start: 'note5', end: 'note5' }, { parent: 'note1', index: -2 }),
+        intoClamp: sdk.move({ start: 'note6', end: 'note6' }, { parent: 'note1', index: 999 }),
       };
     });
 
@@ -176,18 +185,18 @@ describe('note sdk', () => {
           beforeSelf: boolean;
           afterSelf: boolean;
           beforeOther: boolean;
+          reversedRange: boolean;
         }
       | null = null;
 
     remdo.editor.update(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      const note2 = sdk.get('note2');
-      const note3 = sdk.get('note3');
 
       result = {
-        beforeSelf: sdk.move([note2], { before: note2 }),
-        afterSelf: sdk.move([note2], { after: note2 }),
-        beforeOther: sdk.move([note2], { before: note3 }),
+        beforeSelf: sdk.move({ start: 'note2', end: 'note2' }, { before: 'note2' }),
+        afterSelf: sdk.move({ start: 'note2', end: 'note2' }, { after: 'note2' }),
+        beforeOther: sdk.move({ start: 'note2', end: 'note2' }, { before: 'note3' }),
+        reversedRange: sdk.move({ start: 'note3', end: 'note2' }, { before: 'note1' }),
       };
     });
 
@@ -195,6 +204,7 @@ describe('note sdk', () => {
       beforeSelf: false,
       afterSelf: false,
       beforeOther: false,
+      reversedRange: false,
     });
     expect(readOutline(remdo).map((node) => node.noteId)).toEqual(['note1', 'note2', 'note3']);
   });
@@ -204,12 +214,10 @@ describe('note sdk', () => {
 
     remdo.editor.update(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      const source = sdk.get('note3');
-      const target = sdk.get('note2');
       removeNoteSubtree($findNoteById('note2')!);
 
       try {
-        sdk.move([source], { before: target });
+        sdk.move({ start: 'note3', end: 'note3' }, { before: 'note2' });
       } catch (error) {
         errorMessage = error instanceof Error ? error.message : String(error);
       }
@@ -218,13 +226,11 @@ describe('note sdk', () => {
     expect(errorMessage).toBe('Note not found: note2');
   });
 
-  it('throws for illegal ancestry and invalid move input heads', meta({ fixture: 'tree' }), async ({ remdo }) => {
-    let outcomes: { descendant: string; duplicate: string; overlap: string } | null = null;
+  it('throws for illegal ancestry and rejects non-sibling ranges', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    let outcomes: { descendant: string; nonSibling: boolean } | null = null;
 
     remdo.editor.update(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      const note2 = sdk.get('note2');
-      const note3 = sdk.get('note3');
 
       const captureError = (run: () => unknown): string => {
         try {
@@ -236,54 +242,50 @@ describe('note sdk', () => {
       };
 
       outcomes = {
-        descendant: captureError(() => sdk.move([note2], { before: note3 })),
-        duplicate: captureError(() => sdk.move([note2, note2], { after: note3 })),
-        overlap: captureError(() => sdk.move([note2, note3], { after: note2 })),
+        descendant: captureError(() => sdk.move({ start: 'note2', end: 'note2' }, { before: 'note3' })),
+        nonSibling: sdk.move({ start: 'note2', end: 'note3' }, { after: 'note2' }),
       };
     });
 
     expect(outcomes).toEqual({
       descendant: 'Cannot move notes relative to their own descendants',
-      duplicate: 'move() expects unique note heads',
-      overlap: 'move() expects head notes only (no ancestor/descendant overlap)',
+      nonSibling: false,
     });
   });
 
-  it('keeps handles stable by noteId and throws once deleted', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    const handle = remdo.validate(() => {
+  it('throws from reads and operations once a note is deleted', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const note = remdo.validate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      return sdk.get('note2');
+      return sdk.note('note2');
     });
 
     await remdo.mutate(() => {
-      const node = $findNoteById('note2')!;
-      removeNoteSubtree(node);
+      removeNoteSubtree($findNoteById('note2')!);
     });
 
     remdo.validate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      expect(handle.id()).toBe('note2');
-      expect(() => handle.text()).toThrowError(NoteNotFoundError);
-      expect(() => handle.children()).toThrowError(NoteNotFoundError);
-      expect(() => sdk.indent([handle])).toThrowError(NoteNotFoundError);
-      expect(() => sdk.moveUp([handle])).toThrowError(NoteNotFoundError);
+      expect(() => note.text()).toThrowError(NoteNotFoundError);
+      expect(() => note.children()).toThrowError(NoteNotFoundError);
+      expect(() => sdk.indent({ start: 'note2', end: 'note2' })).toThrowError(NoteNotFoundError);
+      expect(() => sdk.moveUp({ start: 'note2', end: 'note2' })).toThrowError(NoteNotFoundError);
     });
   });
 
   it('throws when used outside lexical read/update context', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const sdkAndNote = remdo.validate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      return { sdk, note: sdk.get('note2') };
+      return { sdk, note: sdk.note('note2') };
     });
 
     expect(() => sdkAndNote.note.text()).toThrow();
-    expect(() => sdkAndNote.sdk.indent([sdkAndNote.note])).toThrow();
+    expect(() => sdkAndNote.sdk.indent({ start: 'note2', end: 'note2' })).toThrow();
   });
 
-  it('throws when get() targets a missing note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('throws when reads target a missing note', meta({ fixture: 'flat' }), async ({ remdo }) => {
     remdo.validate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      expect(() => sdk.get('missing')).toThrowError(NoteNotFoundError);
+      expect(() => sdk.note('missing')).toThrowError(NoteNotFoundError);
     });
   });
 });

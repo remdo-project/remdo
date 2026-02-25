@@ -1,21 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { createNoteSdk, NoteNotFoundError } from '@/editor/outline/sdk';
-import type { AdapterNoteSelection, MoveTarget, NoteSdkAdapter } from '@/editor/outline/sdk/contracts';
+import type { AdapterNoteSelection, MoveTarget, NoteRange, NoteSdkAdapter } from '@/editor/outline/sdk/contracts';
 
 function createMockAdapterFixture(
   adapterSelection?: AdapterNoteSelection
 ): {
   adapter: NoteSdkAdapter;
   notes: Map<string, { text: string; children: string[] }>;
-  moveCalls: Array<{ noteIds: readonly string[]; target: MoveTarget<string> }>;
+  moveCalls: Array<{ range: NoteRange; target: MoveTarget }>;
 } {
-  const resolvedSelection = adapterSelection ?? { kind: 'caret', heads: ['b'] };
+  const resolvedSelection = adapterSelection ?? { kind: 'caret', range: { start: 'b', end: 'b' } };
   const notes = new Map<string, { text: string; children: string[] }>([
     ['a', { text: 'A', children: ['b', 'c'] }],
     ['b', { text: 'B', children: [] }],
     ['c', { text: 'C', children: [] }],
   ]);
-  const moveCalls: Array<{ noteIds: readonly string[]; target: MoveTarget<string> }> = [];
+  const moveCalls: Array<{ range: NoteRange; target: MoveTarget }> = [];
+
   const requireNote = (noteId: string): { text: string; children: string[] } => {
     const note = notes.get(noteId);
     if (!note) {
@@ -23,10 +24,10 @@ function createMockAdapterFixture(
     }
     return note;
   };
-  const requireNotes = (noteIds: readonly string[]): void => {
-    for (const noteId of noteIds) {
-      requireNote(noteId);
-    }
+
+  const requireRange = (range: NoteRange): void => {
+    requireNote(range.start);
+    requireNote(range.end);
   };
 
   return {
@@ -38,15 +39,14 @@ function createMockAdapterFixture(
       hasNote: (noteId) => notes.has(noteId),
       textOf: (noteId) => requireNote(noteId).text,
       childrenOf: (noteId) => requireNote(noteId).children,
-      delete: (noteIds) => {
-        requireNotes(noteIds);
-        for (const noteId of noteIds) {
-          notes.delete(noteId);
-        }
+      delete: (range) => {
+        requireRange(range);
+        notes.delete(range.start);
+        notes.delete(range.end);
         return true;
       },
-      move: (noteIds, target) => {
-        requireNotes(noteIds);
+      move: (range, target) => {
+        requireRange(range);
         if ('parent' in target) {
           requireNote(target.parent);
         } else if ('before' in target) {
@@ -54,34 +54,34 @@ function createMockAdapterFixture(
         } else {
           requireNote(target.after);
         }
-        moveCalls.push({ noteIds: [...noteIds], target });
+        moveCalls.push({ range, target });
         return true;
       },
-      indent: (noteIds) => {
-        requireNotes(noteIds);
+      indent: (range) => {
+        requireRange(range);
         return true;
       },
-      outdent: (noteIds) => {
-        requireNotes(noteIds);
-        return noteIds.every((noteId) => noteId !== 'a');
+      outdent: (range) => {
+        requireRange(range);
+        return range.start !== 'a' || range.end !== 'a';
       },
-      moveUp: (noteIds) => {
-        requireNotes(noteIds);
-        return noteIds.length === 1 && noteIds[0] === 'b';
+      moveUp: (range) => {
+        requireRange(range);
+        return range.start === 'b' && range.end === 'b';
       },
-      moveDown: (noteIds) => {
-        requireNotes(noteIds);
-        return noteIds.length === 1 && noteIds[0] === 'b';
+      moveDown: (range) => {
+        requireRange(range);
+        return range.start === 'b' && range.end === 'b';
       },
     },
   };
 }
 
 describe('note sdk core', () => {
-  it('builds note handles from adapter data', () => {
+  it('reads note data from adapter', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createNoteSdk(fixture.adapter);
-    const note = sdk.get('a');
+    const note = sdk.note('a');
 
     expect(note.id()).toBe('a');
     expect(note.text()).toBe('A');
@@ -94,62 +94,61 @@ describe('note sdk core', () => {
 
     expect(sdk.docId()).toBe('doc-1');
     const selection = sdk.selection();
-    expect(selection.kind).toBe('caret');
-    expect(selection.heads.map((head) => head.id())).toEqual(['b']);
-    expect(sdk.indent(selection.heads)).toBe(true);
-    expect(() => sdk.get('missing')).toThrowError(NoteNotFoundError);
+    if (selection.kind !== 'caret') {
+      throw new Error(`Expected caret selection, got ${selection.kind}`);
+    }
+    expect(selection.range.start).toBe('b');
+    expect(selection.range.end).toBe('b');
+    expect(sdk.indent(selection.range)).toBe(true);
+    expect(() => sdk.note('missing')).toThrowError(NoteNotFoundError);
   });
 
   it('delegates mutating operations to adapter and preserves no-op booleans', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createNoteSdk(fixture.adapter);
-    const a = sdk.get('a');
-    const b = sdk.get('b');
 
-    expect(sdk.outdent([a])).toBe(false);
-    expect(sdk.indent([b])).toBe(true);
-    expect(sdk.moveUp([b])).toBe(true);
-    expect(sdk.moveDown([b])).toBe(true);
+    expect(sdk.outdent({ start: 'a', end: 'a' })).toBe(false);
+    expect(sdk.indent({ start: 'b', end: 'b' })).toBe(true);
+    expect(sdk.moveUp({ start: 'b', end: 'b' })).toBe(true);
+    expect(sdk.moveDown({ start: 'b', end: 'b' })).toBe(true);
   });
 
-  it('converts move targets from note handles to note ids', () => {
+  it('delegates move targets in note-id form', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createNoteSdk(fixture.adapter);
-    const a = sdk.get('a');
-    const b = sdk.get('b');
-    const c = sdk.get('c');
 
-    expect(sdk.move([c], { before: b })).toBe(true);
-    expect(sdk.move([c], { after: b })).toBe(true);
-    expect(sdk.move([c], { parent: a, index: -1 })).toBe(true);
-    expect(sdk.move([], { before: b })).toBe(false);
+    expect(sdk.move({ start: 'c', end: 'c' }, { before: 'b' })).toBe(true);
+    expect(sdk.move({ start: 'c', end: 'c' }, { after: 'b' })).toBe(true);
+    expect(sdk.move({ start: 'c', end: 'c' }, { parent: 'a', index: -1 })).toBe(true);
 
     expect(fixture.moveCalls).toEqual([
-      { noteIds: ['c'], target: { before: 'b' } },
-      { noteIds: ['c'], target: { after: 'b' } },
-      { noteIds: ['c'], target: { parent: 'a', index: -1 } },
+      { range: { start: 'c', end: 'c' }, target: { before: 'b' } },
+      { range: { start: 'c', end: 'c' }, target: { after: 'b' } },
+      { range: { start: 'c', end: 'c' }, target: { parent: 'a', index: -1 } },
     ]);
   });
 
-  it('throws from handle operations once the note is removed', () => {
+  it('throws from reads and operations once the note is removed', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createNoteSdk(fixture.adapter);
-    const note = sdk.get('b');
+    const note = sdk.note('b');
 
-    expect(sdk.delete([note])).toBe(true);
+    expect(sdk.delete({ start: 'b', end: 'b' })).toBe(true);
 
     expect(() => note.text()).toThrowError(NoteNotFoundError);
     expect(() => note.children()).toThrowError(NoteNotFoundError);
-    expect(() => sdk.indent([note])).toThrowError(NoteNotFoundError);
-    expect(() => sdk.moveUp([note])).toThrowError(NoteNotFoundError);
+    expect(() => sdk.indent({ start: 'b', end: 'b' })).toThrowError(NoteNotFoundError);
+    expect(() => sdk.moveUp({ start: 'b', end: 'b' })).toThrowError(NoteNotFoundError);
   });
 
-  it('uses structural selection heads for sdk operations', () => {
-    const fixture = createMockAdapterFixture({ kind: 'structural', heads: ['b'] });
+  it('uses structural selection range for sdk operations', () => {
+    const fixture = createMockAdapterFixture({ kind: 'structural', range: { start: 'b', end: 'b' } });
     const sdk = createNoteSdk(fixture.adapter);
     const selection = sdk.selection();
-    expect(selection.kind).toBe('structural');
+    if (selection.kind !== 'structural') {
+      throw new Error(`Expected structural selection, got ${selection.kind}`);
+    }
 
-    expect(sdk.moveDown(selection.heads)).toBe(true);
+    expect(sdk.moveDown(selection.range)).toBe(true);
   });
 });

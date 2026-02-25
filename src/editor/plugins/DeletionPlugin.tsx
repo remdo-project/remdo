@@ -361,8 +361,15 @@ export function DeletionPlugin() {
       const caretPlan = resolveCaretPlanAfterStructuralDeletion(heads, boundaryRoot);
       const orderedHeads = sortHeadsByDocumentOrder(heads);
       const sdk = createLexicalNoteSdk({ editor, docId });
-      const notesToDelete = orderedHeads.map((head) => sdk.get($requireContentItemNoteId(head)));
-      sdk.delete(notesToDelete);
+      const start = orderedHeads[0];
+      const end = orderedHeads.at(-1);
+      if (!start || !end) {
+        return false;
+      }
+      sdk.delete({
+        start: $requireContentItemNoteId(start),
+        end: $requireContentItemNoteId(end),
+      });
 
       let caretApplied = false;
       if (caretPlan) {

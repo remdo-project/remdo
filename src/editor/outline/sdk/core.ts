@@ -3,10 +3,10 @@ import type {
   MoveTarget,
   Note,
   NoteId,
+  NoteRange,
   NoteSdk,
   NoteSdkAdapter,
   NoteSelection,
-  NoteSelectionKind,
 } from './contracts';
 import { NoteNotFoundError } from './errors';
 
@@ -17,81 +17,74 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     }
   };
 
+  const assertRangeNotesExist = (range: NoteRange): void => {
+    assertNoteExists(range.start);
+    assertNoteExists(range.end);
+  };
+
+  const assertMoveTargetNotesExist = (target: MoveTarget): void => {
+    if ('parent' in target) {
+      assertNoteExists(target.parent);
+      return;
+    }
+    if ('before' in target) {
+      assertNoteExists(target.before);
+      return;
+    }
+    assertNoteExists(target.after);
+  };
+
   const createHandle = (noteId: NoteId): Note => ({
     id: () => noteId,
     text: () => {
+      assertNoteExists(noteId);
       return adapter.textOf(noteId);
     },
     children: () => {
+      assertNoteExists(noteId);
       return adapter.childrenOf(noteId).map((childId) => createHandle(childId));
     },
   });
 
-  const resolveHandle = (noteId: NoteId): Note | null => {
-    if (!adapter.hasNote(noteId)) {
-      return null;
-    }
-    return createHandle(noteId);
-  };
-
-  const getOrThrow = (noteId: NoteId): Note => {
+  const getNoteOrThrow = (noteId: NoteId): Note => {
     assertNoteExists(noteId);
     return createHandle(noteId);
   };
 
-  const runNoteMutation = (
-    notes: readonly Note[],
-    operation: (noteIds: readonly NoteId[]) => boolean
-  ): boolean => {
-    if (notes.length === 0) {
-      return false;
-    }
-
-    const noteIds = notes.map((note) => note.id());
-    return operation(noteIds);
-  };
-
-  const resolveMoveTarget = (target: MoveTarget<Note>): MoveTarget<NoteId> => {
-    if ('parent' in target) {
-      return { parent: target.parent.id(), index: target.index };
-    }
-    if ('before' in target) {
-      return { before: target.before.id() };
-    }
-    return { after: target.after.id() };
-  };
-
-  const createSelection = (kind: NoteSelectionKind, heads: readonly Note[]): NoteSelection => {
-    return {
-      kind,
-      heads,
-    };
-  };
+  const createNoneSelection = (): NoteSelection => ({ kind: 'none', range: null });
 
   const resolveSelection = (adapterSelection: AdapterNoteSelection): NoteSelection => {
     if (adapterSelection.kind === 'none') {
-      return createSelection('none', []);
+      return createNoneSelection();
     }
 
-    const heads = adapterSelection.heads
-      .map((noteId) => resolveHandle(noteId))
-      .filter((note): note is Note => note !== null);
-    if (heads.length === 0) {
-      return createSelection('none', []);
+    const { start, end } = adapterSelection.range;
+    if (!adapter.hasNote(start) || !adapter.hasNote(end)) {
+      return createNoneSelection();
     }
+    return adapterSelection;
+  };
 
-    return createSelection(adapterSelection.kind, heads);
+  const runRangeMutation = (
+    range: NoteRange,
+    operation: (noteRange: NoteRange) => boolean
+  ): boolean => {
+    assertRangeNotesExist(range);
+    return operation(range);
   };
 
   return {
     docId: () => adapter.docId(),
     selection: () => resolveSelection(adapter.selection()),
-    get: (noteId) => getOrThrow(noteId),
-    delete: (notes) => runNoteMutation(notes, adapter.delete),
-    move: (notes, target) => runNoteMutation(notes, (noteIds) => adapter.move(noteIds, resolveMoveTarget(target))),
-    indent: (notes) => runNoteMutation(notes, adapter.indent),
-    outdent: (notes) => runNoteMutation(notes, adapter.outdent),
-    moveUp: (notes) => runNoteMutation(notes, adapter.moveUp),
-    moveDown: (notes) => runNoteMutation(notes, adapter.moveDown),
+    note: (noteId) => getNoteOrThrow(noteId),
+    delete: (range) => runRangeMutation(range, adapter.delete),
+    move: (range, target) => {
+      assertMoveTargetNotesExist(target);
+      return runRangeMutation(range, (noteRange) => adapter.move(noteRange, target));
+    },
+    indent: (range) => runRangeMutation(range, adapter.indent),
+    outdent: (range) => runRangeMutation(range, adapter.outdent),
+    moveUp: (range) => runRangeMutation(range, adapter.moveUp),
+    moveDown: (range) => runRangeMutation(range, adapter.moveDown),
   };
 }

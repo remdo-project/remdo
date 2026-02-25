@@ -2,41 +2,46 @@ export type NoteId = string;
 // TODO(sdk): Revisit whether `DocumentId` should remain distinct once SDK models documents as notes.
 export type DocumentId = string;
 
+export type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
+
 export interface Note {
   id: () => NoteId;
   text: () => string;
   children: () => readonly Note[];
 }
 
-export type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
-
-export interface SelectionSnapshot<TRef> {
-  kind: NoteSelectionKind;
-  heads: readonly TRef[];
+export interface NoteRange {
+  start: NoteId;
+  end: NoteId;
 }
 
-export type MoveTarget<TRef> = { parent: TRef; index: number } | { before: TRef } | { after: TRef };
+export type MoveTarget = { parent: NoteId; index: number } | { before: NoteId } | { after: NoteId };
 
-export interface NoteSdkBase<TRef> {
+export interface NoteSdkBase {
   docId: () => DocumentId;
-  selection: () => SelectionSnapshot<TRef>;
-  delete: (items: readonly TRef[]) => boolean;
-  move: (items: readonly TRef[], target: MoveTarget<TRef>) => boolean;
-  indent: (items: readonly TRef[]) => boolean;
-  outdent: (items: readonly TRef[]) => boolean;
-  moveUp: (items: readonly TRef[]) => boolean;
-  moveDown: (items: readonly TRef[]) => boolean;
+  selection: () => SelectionSnapshot;
+  delete: (range: NoteRange) => boolean;
+  move: (range: NoteRange, target: MoveTarget) => boolean;
+  indent: (range: NoteRange) => boolean;
+  outdent: (range: NoteRange) => boolean;
+  moveUp: (range: NoteRange) => boolean;
+  moveDown: (range: NoteRange) => boolean;
 }
 
-export interface NoteSdk extends NoteSdkBase<Note> {
-  get: (noteId: NoteId) => Note;
+export type SelectionWithRangeKind = Exclude<NoteSelectionKind, 'none'>;
+
+export type SelectionSnapshot =
+  | { kind: 'none'; range: null }
+  | { kind: SelectionWithRangeKind; range: NoteRange };
+
+export type NoteSelection = SelectionSnapshot;
+export type AdapterNoteSelection = NoteSelection;
+
+export interface NoteSdk extends NoteSdkBase {
+  note: (noteId: NoteId) => Note;
 }
 
-export type NoteSelection = SelectionSnapshot<Note>;
-
-export type AdapterNoteSelection = SelectionSnapshot<NoteId>;
-
-export interface NoteSdkAdapter extends NoteSdkBase<NoteId> {
+export interface NoteSdkAdapter extends NoteSdkBase {
   hasNote: (noteId: NoteId) => boolean;
   textOf: (noteId: NoteId) => string;
   childrenOf: (noteId: NoteId) => readonly NoteId[];

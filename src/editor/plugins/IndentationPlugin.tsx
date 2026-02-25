@@ -13,17 +13,17 @@ export function IndentationPlugin() {
       KEY_TAB_COMMAND,
       (event: KeyboardEvent) => {
         const sdk = createLexicalNoteSdk({ editor, docId });
-        const heads = sdk.selection().heads;
-        if (heads.length === 0) {
+        const { kind, range } = sdk.selection();
+        if (kind === 'none') {
           return false;
         }
 
         event.preventDefault();
 
         if (event.shiftKey) {
-          sdk.outdent(heads);
+          sdk.outdent(range);
         } else {
-          sdk.indent(heads);
+          sdk.indent(range);
         }
 
         return true;
