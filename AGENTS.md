@@ -43,6 +43,11 @@ governance (map, workflow, invariants, and update rules), use `docs/index.md`.
   first before implementing one.
 - Don't assume that the request is always clear, if in doubt ask before
   proceeding.
+- For UI behavior or rendering questions, always use Chrome DevTools to verify the
+  live page before concluding on layout, interaction, or accessibility.
+- Use DevTools snapshots, screenshots, and in-page inspection as the primary source
+  of truth when checking “what this looks like” or confirming browser-side
+  changes.
 - When presenting multiple options or a list of questions, format them as a
   numbered list.
 - The shared test harness treats console warnings/errors as failures; if you
