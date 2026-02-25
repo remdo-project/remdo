@@ -1,0 +1,26 @@
+.remdo-interaction-surface {
+  --interaction-radius: var(--mantine-radius-sm);
+  --focus-ring: 0 0 0 1px rgb(111 138 255 / 0.42), 0 0 0 3px rgb(111 138 255 / 0.11), 0 0 22px 5px rgb(111 138 255 / 0.12);
+  --hover-ring: 0 0 0 1px rgb(111 138 255 / 0.18), 0 0 14px 4px rgb(111 138 255 / 0.07);
+  position: relative;
+  border-radius: var(--interaction-radius);
+}
+
+.remdo-interaction-surface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: none;
+  transition: box-shadow 120ms ease;
+}
+
+.remdo-interaction-surface:focus-within::after,
+.remdo-interaction-surface[data-active='focus']::after {
+  box-shadow: var(--focus-ring);
+}
+
+.remdo-interaction-surface[data-active='hover']::after {
+  box-shadow: var(--hover-ring);
+}

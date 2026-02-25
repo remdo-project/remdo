@@ -15,6 +15,12 @@
   --note-controls-track-width: calc(var(--note-controls-strip-width) + var(--note-controls-track-gap));
 }
 
+.editor-container.remdo-interaction-surface {
+  --interaction-radius: var(--mantine-radius-md);
+  --focus-ring: 0 0 0 1px rgb(111 138 255 / 0.3), 0 0 0 3px rgb(111 138 255 / 0.07), 0 0 24px 6px rgb(111 138 255 / 0.11);
+  --hover-ring: 0 0 0 1px rgb(111 138 255 / 0.12), 0 0 16px 5px rgb(111 138 255 / 0.06);
+}
+
 .editor-header {
   position: absolute;
   top: var(--mantine-spacing-sm);

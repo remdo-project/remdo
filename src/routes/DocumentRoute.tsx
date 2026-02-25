@@ -43,7 +43,7 @@ export default function DocumentRoute() {
         <div className="document-header-actions">
           <TextInput
             aria-label="Search document"
-            className="document-header-search"
+            className="document-header-search remdo-interaction-surface"
             leftSection={<IconSearch aria-hidden="true" size={14} />}
             placeholder="Search"
             size="xs"

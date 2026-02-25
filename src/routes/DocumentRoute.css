@@ -32,6 +32,12 @@
   min-width: 10rem;
   width: 16rem;
   max-width: 22vw;
+  --interaction-radius: var(--mantine-radius-sm);
+}
+
+.document-header-search .mantine-Input-input:focus,
+.document-header-search .mantine-Input-input:focus-visible {
+  border-color: var(--mantine-color-dark-4);
 }
 
 .document-header-status {
