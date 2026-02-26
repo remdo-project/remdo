@@ -34,9 +34,13 @@ Rules:
 - Internal plugin architecture follow-up: keep first-party plugins helper-first
   (Lexical-level shared helpers), use SDK where it clearly simplifies code, and
   keep SDK as the primary extension surface for third-party plugins.
-- Re-review helper functions in `src/editor/plugins/IndentationPlugin.tsx` and
-  `src/editor/plugins/ReorderingPlugin.tsx`, and confirm whether each local
+- Re-review helper functions in `src/editor/plugins/IndentationPlugin.tsx`,
+  `src/editor/plugins/ReorderingPlugin.tsx`, and
+  `src/editor/plugins/InsertionPlugin.tsx`, and confirm whether each local
   helper is still needed versus existing shared selection/note-op helpers.
+- After SDK usage drop in `src/editor/plugins/DeletionPlugin.tsx`, re-review
+  local structural-delete and caret-planning helpers and identify which parts
+  should be extracted into shared note-op helpers.
 
 ## Test doc-id lifecycle hygiene (deferred)
 
