@@ -18,6 +18,7 @@ import { $findNoteById } from '@/editor/outline/note-traversal';
 import { $requireContentItemNoteId, resolveContentItemFromNode } from '@/editor/outline/schema';
 import { $resolveZoomBoundaryRoot } from '@/editor/outline/selection/boundary';
 import { getContiguousSelectionHeads, getSelectedNotes } from '@/editor/outline/selection/heads';
+import { $resolveStructuralHeadsFromRange } from '@/editor/outline/selection/range';
 import {
   getNestedList,
   isContentDescendantOf,
@@ -290,13 +291,13 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
     }
 
     if (outlineSelection.kind === 'structural') {
-      const keys =
-        outlineSelection.headKeys.length > 0 ? outlineSelection.headKeys : outlineSelection.selectedKeys;
-      const heads = keys
-        .map((key) => $noteIdFromContentKey(key))
-        .filter((noteId): noteId is NoteId => noteId !== null);
-      const range = noteRangeFromOrderedIds(heads);
-      return range ? { kind: 'structural', range } : { kind: 'none', range: null };
+      const range = outlineSelection.range;
+      if (!range) {
+        return { kind: 'none', range: null };
+      }
+      const heads = $resolveStructuralHeadsFromRange(range).map((head) => $requireContentItemNoteId(head));
+      const structuralNoteRange = noteRangeFromOrderedIds(heads);
+      return structuralNoteRange ? { kind: 'structural', range: structuralNoteRange } : { kind: 'none', range: null };
     }
 
     const key = outlineSelection.focusKey ?? outlineSelection.anchorKey;

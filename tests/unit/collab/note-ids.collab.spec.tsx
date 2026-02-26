@@ -254,6 +254,29 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
   });
 
+  it('drops cut markers after remote inserts inside the cut boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const secondary = await createCollabPeer(remdo);
+
+    await selectStructuralNotes(remdo, 'note2', 'note3');
+    const clipboardPayload = await cutSelection(remdo);
+
+    await placeCaretAtNote(secondary, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(secondary, { key: 'Enter' });
+    await waitFor(() => {
+      expect(remdo).toMatchOutline(readOutline(secondary));
+    });
+
+    const expectedOutline = readOutline(remdo);
+
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+    await waitFor(() => {
+      expect(secondary).toMatchOutline(expectedOutline);
+    });
+  });
+
   it('merges cut moves with concurrent edits on the moved note', meta({ fixture: 'flat' }, { retry: 3 }), async ({ remdo }) => {
     const secondary = await createCollabPeer(remdo);
 

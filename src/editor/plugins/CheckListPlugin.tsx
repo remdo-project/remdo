@@ -10,6 +10,7 @@ import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/command
 import type { SetNoteCheckedPayload } from '@/editor/commands';
 import { isBulletHit, isCheckboxHit } from '@/editor/outline/bullet-hit-test';
 import { $resolveNoteIdFromDOMNode } from '@/editor/outline/note-context';
+import { $resolveStructuralItemsFromRange } from '@/editor/outline/selection/range';
 import { requireContentItemFromNode, resolveContentItemFromNode } from '@/editor/outline/schema';
 import { getParentContentItem, getSubtreeItems } from '@/editor/outline/selection/tree';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
@@ -38,18 +39,16 @@ const $setNoteCheckedRecursively = (node: ListItemNode, checked: boolean) => {
   }
 };
 
-const $resolveRootTargetsFromKeys = (keys: string[]): ListItemNode[] => {
+const $resolveRootTargets = (items: ListItemNode[]): ListItemNode[] => {
   const ordered: ListItemNode[] = [];
   const seen = new Set<string>();
-  for (const key of keys) {
+  for (const item of items) {
+    const key = item.getKey();
     if (seen.has(key)) {
       continue;
     }
     seen.add(key);
-    const item = $resolveContentItemByKey(key);
-    if (item) {
-      ordered.push(item);
-    }
+    ordered.push(item);
   }
 
   const selectedKeys = new Set(ordered.map((item) => item.getKey()));
@@ -75,9 +74,8 @@ const $resolveToggleTargets = (
   }
 
   const outlineSelection = editor.selection.get();
-  if (outlineSelection?.kind === 'structural') {
-    const keys = outlineSelection.headKeys.length > 0 ? outlineSelection.headKeys : outlineSelection.selectedKeys;
-    const targets = $resolveRootTargetsFromKeys(keys);
+  if (outlineSelection?.kind === 'structural' && outlineSelection.range) {
+    const targets = $resolveRootTargets($resolveStructuralItemsFromRange(outlineSelection.range));
     if (targets.length > 0) {
       return targets;
     }

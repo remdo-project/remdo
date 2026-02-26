@@ -200,6 +200,8 @@ export function computeStructuralRangeFromHeads(heads: ListItemNode[]): OutlineS
   const visualEndItem = getSubtreeTail(caretEndItem);
 
   return {
+    headStartKey: caretStartItem.getKey(),
+    headEndKey: caretEndItem.getKey(),
     caretStartKey: caretStartItem.getKey(),
     caretEndKey: caretEndItem.getKey(),
     visualStartKey: caretStartItem.getKey(),

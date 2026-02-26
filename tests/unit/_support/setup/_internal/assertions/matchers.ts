@@ -8,11 +8,12 @@ import {
   isChildrenWrapper,
   resolveContentListItem,
 } from '#tests';
-import { $getSelection, $isRangeSelection, $getNodeByKey, $getRoot } from 'lexical';
+import { $getSelection, $isRangeSelection, $getRoot } from 'lexical';
 import type { RangeSelection, LexicalNode } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 import { $getNoteId } from '#lib/editor/note-id-state';
+import { $resolveStructuralItemsFromRange } from '@/editor/outline/selection/range';
 
 type RemdoTestHelpers = TestContext['remdo'];
 
@@ -121,22 +122,16 @@ function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
     const docRoot = $getRoot().getFirstChild();
     const outlineSelection = remdo.editor.selection.get();
     const selection = $getSelection();
-    const readOutlineSelectionNotes = (): string[] => {
-      if (outlineSelection?.kind !== 'structural') {
+    const $readOutlineSelectionNotes = (): string[] => {
+      if (outlineSelection?.kind !== 'structural' || !outlineSelection.range) {
         return [];
       }
-      return outlineSelection.selectedKeys
-        .map((key) => {
-          const node = $getNodeByKey<ListItemNode>(key);
-          if (!node || !node.isAttached()) {
-            return null;
-          }
-          return $getNoteId(node);
-        })
+      return $resolveStructuralItemsFromRange(outlineSelection.range)
+        .map((item) => $getNoteId(item))
         .filter((noteId: string | null): noteId is string => typeof noteId === 'string' && noteId.length > 0);
     };
 
-    const outlineNotes = outlineSelection?.kind === 'structural' ? readOutlineSelectionNotes() : [];
+    const outlineNotes = outlineSelection?.kind === 'structural' ? $readOutlineSelectionNotes() : [];
 
     if (!$isRangeSelection(selection)) {
       return outlineNotes.length > 0

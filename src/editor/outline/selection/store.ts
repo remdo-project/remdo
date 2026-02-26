@@ -6,8 +6,6 @@ const outlineSelectionStore = new WeakMap<LexicalEditor, OutlineSelection | null
 export interface OutlineSelectionApi {
   get: () => OutlineSelection | null;
   set: (selection: OutlineSelection | null) => void;
-  heads: () => string[];
-  selectedKeys: () => string[];
   isStructural: () => boolean;
 }
 
@@ -23,8 +21,6 @@ export function installOutlineSelectionHelpers(editor: LexicalEditor): void {
     set: (selection) => {
       outlineSelectionStore.set(editor, selection);
     },
-    heads: () => outlineSelectionStore.get(editor)?.headKeys ?? [],
-    selectedKeys: () => outlineSelectionStore.get(editor)?.selectedKeys ?? [],
     isStructural: () => outlineSelectionStore.get(editor)?.kind === 'structural',
   };
 }

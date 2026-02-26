@@ -891,6 +891,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
     expect(remdo.editor.selection.get()?.kind).toBe('structural');
     expect(remdo.editor.selection.get()?.range).not.toBeNull();
+    expect(remdo.editor.selection.get()?.range?.headStartKey).toBe(getNoteKey(remdo, 'note2'));
+    expect(remdo.editor.selection.get()?.range?.headEndKey).toBe(getNoteKey(remdo, 'note2'));
     expect(remdo.editor.selection.get()?.range?.visualStartKey).toBe(getNoteKey(remdo, 'note2'));
     expect(remdo.editor.selection.get()?.range?.visualEndKey).toBe(getNoteKey(remdo, 'note3'));
 
@@ -900,6 +902,8 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
     expect(remdo.editor.selection.get()?.kind).toBe('structural');
     expect(remdo.editor.selection.get()?.range).not.toBeNull();
+    expect(remdo.editor.selection.get()?.range?.headStartKey).toBe(getNoteKey(remdo, 'note1'));
+    expect(remdo.editor.selection.get()?.range?.headEndKey).toBe(getNoteKey(remdo, 'note1'));
     expect(remdo.editor.selection.get()?.range?.visualStartKey).toBe(getNoteKey(remdo, 'note1'));
     expect(remdo.editor.selection.get()?.range?.visualEndKey).toBe(getNoteKey(remdo, 'note4'));
   });
@@ -913,9 +917,9 @@ describe('selection plugin', () => {
       stage: 2,
       anchorKey: null,
       focusKey: null,
-      headKeys: ['missing-key'],
-      selectedKeys: ['missing-key'],
       range: {
+        headStartKey: 'missing-key',
+        headEndKey: 'missing-key',
         caretStartKey: 'missing-key',
         caretEndKey: 'missing-key',
         visualStartKey: 'missing-key',
