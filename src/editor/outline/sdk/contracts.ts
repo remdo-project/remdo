@@ -15,11 +15,6 @@ export interface Note {
   children: () => readonly Note[];
 }
 
-export interface DraftNote {
-  /** Places the draft and returns the created bounded note handle. Throws on invalid target or no-op placement. */
-  place: (target: PlaceTarget) => Note;
-}
-
 export interface NoteRange {
   start: NoteId;
   end: NoteId;
@@ -56,20 +51,15 @@ export type NoteSelection = SelectionSnapshot;
 export type AdapterNoteSelection = NoteSelection;
 
 export interface NoteSdk extends NoteSdkBase {
-  /** Creates an unbounded draft note with optional initial text. */
-  createNote: (text?: string) => DraftNote;
+  /** Creates and places a note at target, then returns the created bounded note handle. */
+  createNote: (target: PlaceTarget, text?: string) => Note;
   /** Returns a note handle by id; reads throw when the note does not exist. */
   note: (noteId: NoteId) => Note;
 }
 
-export interface AdapterDraftNote {
-  /** Places the adapter draft and returns attached note id. Throws on failure. */
-  place: (target: PlaceTarget) => NoteId;
-}
-
 export interface NoteSdkAdapter extends NoteSdkBase {
-  /** Creates an adapter-level draft note with optional initial text. */
-  createNote: (text?: string) => AdapterDraftNote;
+  /** Creates and places an adapter-level note at target, then returns attached note id. */
+  createNote: (target: PlaceTarget, text?: string) => NoteId;
   /** True when note id exists (bounded). */
   hasNote: (noteId: NoteId) => boolean;
   /** True when note id resolves to currently attached note. */

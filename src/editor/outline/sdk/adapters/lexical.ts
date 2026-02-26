@@ -26,7 +26,6 @@ import {
 } from '@/editor/outline/selection/tree';
 import { createNoteSdk } from '../core';
 import type {
-  AdapterDraftNote,
   AdapterNoteSelection,
   PlaceTarget,
   NoteId,
@@ -239,29 +238,15 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
       maybeRemoveEmptyWrapper(list);
     }
   };
-  const $createDraftNote = (text: string): AdapterDraftNote => {
-    let note: ListItemNode | null = null;
-    let placed = false;
-    return {
-      place: (target) => {
-        if (placed || note?.isAttached()) {
-          throw new Error('Draft note already placed');
-        }
+  const $createNote = (target: PlaceTarget, text: string): NoteId => {
+    const note = $createListItemNode();
+    note.append($createTextNode(text));
+    const noteId = createUniqueNoteId();
 
-        if (!note) {
-          note = $createListItemNode();
-          note.append($createTextNode(text));
-        }
+    $placeNotes([note], target);
 
-        const noteId = createUniqueNoteId();
-
-        $placeNotes([note], target);
-
-        $setState(note, noteIdState, noteId);
-        placed = true;
-        return noteId;
-      },
-    };
+    $setState(note, noteIdState, noteId);
+    return noteId;
   };
 
   const $selectionFallbackFromRange = (): AdapterNoteSelection => {
@@ -329,7 +314,7 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
   return {
     docId: () => docId,
     selection: () => $adapterSelection(),
-    createNote: (text = '') => $createDraftNote(text),
+    createNote: (target, text = '') => $createNote(target, text),
     hasNote: (noteId) => Boolean($resolveNoteById(noteId)),
     isBounded: (noteId) => Boolean($resolveNoteById(noteId)),
     textOf: (noteId) => $requireNoteById(noteId).getTextContent(),

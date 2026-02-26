@@ -37,7 +37,7 @@ function $selectNoteStartById(noteId: string): void {
 }
 
 function $placeEmptyNoteAndSelectStart(sdk: NoteSdk, target: PlaceTarget): void {
-  const placed = sdk.createNote().place(target);
+  const placed = sdk.createNote(target);
   $selectNoteStartById(placed.id());
 }
 

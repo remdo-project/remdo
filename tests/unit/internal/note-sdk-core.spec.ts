@@ -37,29 +37,20 @@ function createMockAdapterFixture(
     adapter: {
       docId: () => 'doc-1',
       selection: () => resolvedSelection,
-      createNote: (text = '') => {
-        let placed = false;
-        return {
-          place: (target) => {
-            if (placed) {
-              throw new Error('Draft note already placed');
-            }
-            if ('parent' in target) {
-              requireNote(target.parent);
-            } else if ('before' in target) {
-              requireNote(target.before);
-            } else {
-              requireNote(target.after);
-            }
+      createNote: (target, text = '') => {
+        if ('parent' in target) {
+          requireNote(target.parent);
+        } else if ('before' in target) {
+          requireNote(target.before);
+        } else {
+          requireNote(target.after);
+        }
 
-            const noteId = `draft-${nextDraftId}`;
-            nextDraftId += 1;
-            notes.set(noteId, { text, children: [] });
-            placeCalls.push({ range: { start: noteId, end: noteId }, target });
-            placed = true;
-            return noteId;
-          },
-        };
+        const noteId = `draft-${nextDraftId}`;
+        nextDraftId += 1;
+        notes.set(noteId, { text, children: [] });
+        placeCalls.push({ range: { start: noteId, end: noteId }, target });
+        return noteId;
       },
       hasNote: (noteId) => notes.has(noteId),
       isBounded: (noteId) => notes.has(noteId),
@@ -141,12 +132,11 @@ describe('note sdk core', () => {
     expect(sdk.moveDown({ start: 'b', end: 'b' })).toBe(true);
   });
 
-  it('creates a draft and returns note handle after place', () => {
+  it('creates and places a note, returning note handle', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createNoteSdk(fixture.adapter);
 
-    const draft = sdk.createNote('Draft');
-    const placed = draft.place({ before: 'b' });
+    const placed = sdk.createNote({ before: 'b' }, 'Draft');
 
     expect(placed.id()).toBe('draft-1');
     expect(placed.text()).toBe('Draft');

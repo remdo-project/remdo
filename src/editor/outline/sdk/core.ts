@@ -1,7 +1,5 @@
 import type {
-  AdapterDraftNote,
   AdapterNoteSelection,
-  DraftNote,
   PlaceTarget,
   Note,
   NoteId,
@@ -61,21 +59,6 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     },
   });
 
-  const createDraftHandle = (draft: AdapterDraftNote): DraftNote => {
-    let placed = false;
-    return {
-      place: (target) => {
-        if (placed) {
-          throw new Error('Draft note already placed');
-        }
-        assertPlaceTargetNotesExist(target);
-        const noteId = draft.place(target);
-        placed = true;
-        return createHandle(noteId);
-      },
-    };
-  };
-
   const createNoneSelection = (): NoteSelection => ({ kind: 'none', range: null });
 
   const resolveSelection = (adapterSelection: AdapterNoteSelection): NoteSelection => {
@@ -101,7 +84,10 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
   return {
     docId: () => adapter.docId(),
     selection: () => resolveSelection(adapter.selection()),
-    createNote: (text) => createDraftHandle(adapter.createNote(text)),
+    createNote: (target, text) => {
+      assertPlaceTargetNotesExist(target);
+      return createHandle(adapter.createNote(target, text));
+    },
     note: (noteId) => createHandle(noteId),
     delete: (range) => runRangeMutation(range, adapter.delete),
     place: (range, target) => {

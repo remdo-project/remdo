@@ -34,8 +34,7 @@ describe('sdk showcase', () => {
         | null = null;
 
       await remdo.mutate(() => {
-        const draft = sdk.createNote('sdk note');
-        const placed = draft.place({ after: 'note2' });
+        const placed = sdk.createNote({ after: 'note2' }, 'sdk note');
 
         const indentResult = sdk.indent({ start: placed.id(), end: placed.id() });
         const outdentResult = sdk.outdent({ start: placed.id(), end: placed.id() });

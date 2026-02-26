@@ -153,31 +153,22 @@ describe('note sdk', () => {
     ]);
   });
 
-  it('creates a draft note and returns a bounded note after placement', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('creates and places a note, returning a bounded note handle', meta({ fixture: 'flat' }), async ({ remdo }) => {
     let inserted:
       | {
           placedId: string;
           placedText: string;
           boundedAfterPlace: boolean;
-          secondPlaceError: string;
         }
       | null = null;
 
     await remdo.mutate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      const draft = sdk.createNote('draft');
-      const placed = draft.place({ parent: 'note1', index: 999 });
-      let secondPlaceError = '';
-      try {
-        draft.place({ parent: 'note1', index: 0 });
-      } catch (error) {
-        secondPlaceError = error instanceof Error ? error.message : String(error);
-      }
+      const placed = sdk.createNote({ parent: 'note1', index: 999 }, 'draft');
       inserted = {
         placedId: placed.id(),
         placedText: placed.text(),
         boundedAfterPlace: placed.bounded(),
-        secondPlaceError,
       };
     });
 
@@ -185,7 +176,6 @@ describe('note sdk', () => {
     expect(inserted!.placedId.length).toBeGreaterThan(0);
     expect(inserted!.placedText).toBe('draft');
     expect(inserted!.boundedAfterPlace).toBe(true);
-    expect(inserted!.secondPlaceError).toBe('Draft note already placed');
     const outline = readOutline(remdo);
     expect(outline[0]?.text).toBe('note1');
     expect(outline[0]?.children?.[0]?.text).toBe('draft');
