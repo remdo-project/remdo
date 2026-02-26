@@ -15,6 +15,7 @@ import {
 import { resolveContentItemFromNode } from './schema';
 import { isWithinZoomBoundary } from './selection/boundary';
 import { getContiguousSelectionHeads } from './selection/heads';
+import { resolveContiguousSiblingRangeFromHeads } from './selection/sibling-run';
 import { getNextContentSibling, getParentContentItem, isContentDescendantOf } from './selection/tree';
 
 export function resolveRangeSelectionHeads(selection: RangeSelection): ListItemNode[] {
@@ -259,8 +260,7 @@ function outdentMoveFallback(notes: ListItemNode[], direction: 'up' | 'down', bo
 }
 
 function resolveMovableHeads(notes: ListItemNode[], boundaryRoot: ListItemNode | null): ListItemNode[] | null {
-  const first = notes[0];
-  if (!first) {
+  if (notes.length === 0) {
     return null;
   }
 
@@ -268,32 +268,7 @@ function resolveMovableHeads(notes: ListItemNode[], boundaryRoot: ListItemNode |
     return null;
   }
 
-  const parentList = first.getParent();
-  if (!$isListNode(parentList)) {
-    return null;
-  }
-  if (!notes.every((note) => note.getParent() === parentList)) {
-    return null;
-  }
-
-  const siblings = getContentSiblings(parentList);
-  const indexes = notes.map((note) => siblings.indexOf(note));
-  if (indexes.includes(-1)) {
-    return null;
-  }
-
-  const sortedIndexes = indexes.toSorted((left, right) => left - right);
-  const startIndex = sortedIndexes[0];
-  const endIndex = sortedIndexes.at(-1);
-  if (startIndex === undefined || endIndex === undefined) {
-    return null;
-  }
-
-  if (endIndex - startIndex + 1 !== notes.length) {
-    return null;
-  }
-
-  return siblings.slice(startIndex, endIndex + 1);
+  return resolveContiguousSiblingRangeFromHeads(notes);
 }
 
 function $moveNotesDown(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {

@@ -49,7 +49,7 @@ import {
   getNextContentSibling,
   noteHasChildren,
   getSubtreeItems,
-  removeNoteSubtree,
+  removeNoteHeads,
   sortHeadsByDocumentOrder,
 } from '@/editor/outline/selection/tree';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
@@ -532,9 +532,7 @@ function $insertNodesAtSelection(
   }
 
   if (orderedHeads.length > 0) {
-    for (const head of orderedHeads.toReversed()) {
-      removeNoteSubtree(head);
-    }
+    removeNoteHeads(orderedHeads);
   }
 
   if (lastInserted) {

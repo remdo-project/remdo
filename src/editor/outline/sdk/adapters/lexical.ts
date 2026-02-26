@@ -20,10 +20,13 @@ import { $resolveZoomBoundaryRoot } from '@/editor/outline/selection/boundary';
 import { getContiguousSelectionHeads, getSelectedNotes } from '@/editor/outline/selection/heads';
 import { $resolveStructuralHeadsFromRange } from '@/editor/outline/selection/range';
 import {
+  resolveContiguousRunIndexes,
+  resolveContiguousSiblingRangeBetween,
+} from '@/editor/outline/selection/sibling-run';
+import {
   getNestedList,
   isContentDescendantOf,
-  removeNoteSubtree,
-  sortHeadsByDocumentOrder,
+  removeNoteHeads,
 } from '@/editor/outline/selection/tree';
 import { createNoteSdk } from '../core';
 import type {
@@ -61,20 +64,7 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
   const $resolveRangeNotes = (range: NoteRange): ListItemNode[] | null => {
     const start = $requireNoteById(range.start);
     const end = $requireNoteById(range.end);
-
-    const parent = start.getParent();
-    if (!$isListNode(parent) || end.getParent() !== parent) {
-      return null;
-    }
-
-    const siblings = getContentSiblings(parent);
-    const startIndex = siblings.indexOf(start);
-    const endIndex = siblings.indexOf(end);
-    if (startIndex === -1 || endIndex === -1 || startIndex > endIndex) {
-      return null;
-    }
-
-    return siblings.slice(startIndex, endIndex + 1);
+    return resolveContiguousSiblingRangeBetween(start, end);
   };
   const $normalizeInsertionSlot = (index: number, size: number): number => {
     if (index >= 0) {
@@ -108,32 +98,6 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
       }
     }
   };
-  const $resolveContiguousRun = (
-    notes: readonly ListItemNode[],
-    siblings: readonly ListItemNode[]
-  ): { start: number; end: number } | null => {
-    const indexes = notes.map((note) => siblings.indexOf(note));
-    if (indexes.includes(-1)) {
-      return null;
-    }
-
-    const sortedIndexes = indexes.toSorted((left, right) => left - right);
-    const start = sortedIndexes[0];
-    const end = sortedIndexes.at(-1);
-    if (start === undefined || end === undefined) {
-      return null;
-    }
-
-    if (end - start + 1 !== notes.length) {
-      return null;
-    }
-
-    if (!indexes.every((index, position) => index === start + position)) {
-      return null;
-    }
-
-    return { start, end };
-  };
   const $resolvePlaceInsertionTarget = (
     target: PlaceTarget,
     movedNotes: ListItemNode[]
@@ -154,9 +118,9 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
       const siblingParent = sibling.getParent();
       if ($isListNode(siblingParent)) {
         const siblings = getContentSiblings(siblingParent);
-        const run = $resolveContiguousRun(movedNotes, siblings);
+        const run = resolveContiguousRunIndexes(movedNotes, siblings);
         const siblingIndex = siblings.indexOf(sibling);
-        if (run && siblingIndex === run.end + 1) {
+        if (run && siblingIndex === run.endIndex + 1) {
           throw new Error('place() target would be a no-op');
         }
       }
@@ -175,9 +139,9 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
       const siblingParent = sibling.getParent();
       if ($isListNode(siblingParent)) {
         const siblings = getContentSiblings(siblingParent);
-        const run = $resolveContiguousRun(movedNotes, siblings);
+        const run = resolveContiguousRunIndexes(movedNotes, siblings);
         const siblingIndex = siblings.indexOf(sibling);
-        if (run && siblingIndex === run.start - 1) {
+        if (run && siblingIndex === run.startIndex - 1) {
           throw new Error('place() target would be a no-op');
         }
       }
@@ -334,12 +298,7 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
       if (!resolved || resolved.length === 0) {
         return false;
       }
-
-      const notes = sortHeadsByDocumentOrder(resolved);
-      for (const note of notes.toReversed()) {
-        removeNoteSubtree(note);
-      }
-      return notes.length > 0;
+      return removeNoteHeads(resolved);
     },
     place: (range, target) => {
       const resolved = $resolveRangeNotes(range);

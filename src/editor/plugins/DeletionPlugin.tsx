@@ -40,6 +40,7 @@ import {
   noteHasChildren,
   getParentContentItem,
   getSubtreeTail,
+  removeNoteHeads,
   removeNoteSubtree,
   sortHeadsByDocumentOrder,
   isContentDescendantOf,
@@ -349,11 +350,7 @@ export function DeletionPlugin() {
 
       const boundaryRoot = $resolveZoomBoundaryRoot(editor);
       const caretPlan = resolveCaretPlanAfterStructuralDeletion(heads, boundaryRoot);
-      const orderedHeads = sortHeadsByDocumentOrder(heads);
-
-      for (const head of orderedHeads.toReversed()) {
-        removeNoteSubtree(head);
-      }
+      removeNoteHeads(heads);
 
       let caretApplied = false;
       if (caretPlan) {
