@@ -1,8 +1,6 @@
 export type NoteId = string;
-// TODO(sdk): Revisit whether `DocumentId` should remain distinct once SDK models documents as notes.
-export type DocumentId = string;
-
-export type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
+type DocumentId = string;
+type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
 
 export interface Note {
   /** Stable id for an attached note. */
@@ -22,7 +20,7 @@ export interface NoteRange {
 
 export type PlaceTarget = { parent: NoteId; index: number } | { before: NoteId } | { after: NoteId };
 
-export interface NoteSdkBase {
+interface NoteSdkBase {
   /** Returns current document id for this sdk instance. */
   docId: () => DocumentId;
   /** Returns normalized selection snapshot; range is null only for kind:none. */
@@ -41,7 +39,7 @@ export interface NoteSdkBase {
   moveDown: (range: NoteRange) => boolean;
 }
 
-export type SelectionWithRangeKind = Exclude<NoteSelectionKind, 'none'>;
+type SelectionWithRangeKind = Exclude<NoteSelectionKind, 'none'>;
 
 export type SelectionSnapshot =
   | { kind: 'none'; range: null }

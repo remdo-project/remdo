@@ -31,7 +31,7 @@ export function resolveRangeSelectionHeads(selection: RangeSelection): ListItemN
   return contentItem ? [contentItem] : [];
 }
 
-export function canIndentNote(noteItem: ListItemNode, boundaryRoot: ListItemNode | null): boolean {
+function canIndentNote(noteItem: ListItemNode, boundaryRoot: ListItemNode | null): boolean {
   if (!isWithinZoomBoundary(noteItem, boundaryRoot)) {
     return false;
   }
@@ -44,7 +44,7 @@ export function canIndentNote(noteItem: ListItemNode, boundaryRoot: ListItemNode
   return isWithinZoomBoundary(previous, boundaryRoot);
 }
 
-export function canOutdentNote(noteItem: ListItemNode, boundaryRoot: ListItemNode | null): boolean {
+function canOutdentNote(noteItem: ListItemNode, boundaryRoot: ListItemNode | null): boolean {
   if (!isWithinZoomBoundary(noteItem, boundaryRoot)) {
     return false;
   }
@@ -65,7 +65,7 @@ export function canOutdentNote(noteItem: ListItemNode, boundaryRoot: ListItemNod
   return parent.getKey() !== boundaryRoot.getKey();
 }
 
-export function $indentNotes(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
+function $indentNotes(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
   if (notes.length === 0) {
     return false;
   }
@@ -82,7 +82,7 @@ export function $indentNotes(notes: ListItemNode[], boundaryRoot: ListItemNode |
 }
 export const indentNotes = $indentNotes;
 
-export function $outdentNotes(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
+function $outdentNotes(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
   if (notes.length === 0) {
     return false;
   }
@@ -296,7 +296,7 @@ function resolveMovableHeads(notes: ListItemNode[], boundaryRoot: ListItemNode |
   return siblings.slice(startIndex, endIndex + 1);
 }
 
-export function $moveNotesDown(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
+function $moveNotesDown(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
   const movableHeads = resolveMovableHeads(notes, boundaryRoot);
   if (!movableHeads || movableHeads.length === 0) {
     return false;
@@ -321,7 +321,7 @@ export function $moveNotesDown(notes: ListItemNode[], boundaryRoot: ListItemNode
 }
 export const moveNotesDown = $moveNotesDown;
 
-export function $moveNotesUp(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
+function $moveNotesUp(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
   const movableHeads = resolveMovableHeads(notes, boundaryRoot);
   if (!movableHeads || movableHeads.length === 0) {
     return false;

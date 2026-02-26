@@ -37,12 +37,12 @@ import { NoteNotFoundError } from '../errors';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 
-export interface LexicalNoteSdkAdapterOptions {
+interface LexicalNoteSdkAdapterOptions {
   editor: LexicalEditor;
   docId: string;
 }
 
-export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOptions): NoteSdkAdapter {
+function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOptions): NoteSdkAdapter {
   type MoveInsertionTarget =
     | { kind: 'before'; reference: LexicalNode }
     | { kind: 'after'; reference: LexicalNode }

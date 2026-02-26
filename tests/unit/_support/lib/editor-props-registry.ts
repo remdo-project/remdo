@@ -6,7 +6,7 @@ type EditorProps = Partial<ComponentProps<typeof Editor>>;
 const registry = new Map<string, EditorProps>();
 let propsKeyCounter = 0;
 
-export function registerEditorProps(key: string, props: EditorProps): string {
+function registerEditorProps(key: string, props: EditorProps): string {
   registry.set(key, props);
   return key;
 }
