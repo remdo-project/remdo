@@ -30,6 +30,7 @@ and filtering can evolve later without changing the core focus flow.
    within the active zoom boundary.
 9. Arrow navigation stops at boundaries (no wraparound).
 10. `Enter` zooms to the currently highlighted note.
+11. After `Enter` zoom, focus moves to the editor, which exits search mode.
 
 ## Relationship To Query Filtering
 
