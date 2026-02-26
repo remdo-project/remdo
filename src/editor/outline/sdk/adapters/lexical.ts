@@ -240,14 +240,17 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
     }
   };
   const $createDraftNote = (text: string): AdapterDraftNote => {
-    const note = $createListItemNode();
-    note.append($createTextNode(text));
-
+    let note: ListItemNode | null = null;
     let placed = false;
     return {
       place: (target) => {
-        if (placed || note.isAttached()) {
+        if (placed || note?.isAttached()) {
           throw new Error('Draft note already placed');
+        }
+
+        if (!note) {
+          note = $createListItemNode();
+          note.append($createTextNode(text));
         }
 
         const noteId = createUniqueNoteId();
