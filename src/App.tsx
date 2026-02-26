@@ -6,6 +6,7 @@ import headerStyles from './styles/AppHeader.module.css';
 import { theme } from './theme';
 import { config } from '#config';
 import '@mantine/core/styles.css';
+import './styles/interaction.css';
 import { Icon } from './ui/Icon';
 import { createDocumentPath, DEFAULT_DOC_ID, parseDocumentRef } from './routing';
 import VanillaLexicalEditor from './editor/dev/VanillaLexicalEditor';

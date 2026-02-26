@@ -52,7 +52,7 @@ export default function Editor({
   const editorInitialConfig = createEditorInitialConfig();
 
   return (
-    <div className="editor-container">
+    <div className="editor-container remdo-interaction-surface">
       <LexicalComposer initialConfig={editorInitialConfig}>
         <CollaborationPlugin docId={docId}>
           <EditorRuntime

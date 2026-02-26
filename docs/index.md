@@ -22,6 +22,8 @@ outdated or a doc’s role materially changes.
 - `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, including
   single-container Docker deployment flow, same-host auth routing, and
   backup/CI conventions.
+- `docs/hints.md` (Short). Backlog of potential UX hint concepts that are not
+  yet surfaced in the UI.
 - `docs/index.md` (Medium). Documentation entry point with map, doc workflow, and invariants.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
@@ -49,6 +51,9 @@ outdated or a doc’s role materially changes.
   semantics; indent/outdent rules; deletion-merge exception.
 - `docs/outliner/reordering.md` (Short). Directional reorder fallback cascade: swap,
   parent-sibling reparent, outdent, then no-op.
+- `docs/outliner/search.md` (Short). Search mode behavior: focus-driven mode
+  entry/exit, editor read-only scope, single highlighted note navigation, and
+  Enter-to-zoom.
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
   scope, breadcrumbs, and routing.
