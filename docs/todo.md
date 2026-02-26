@@ -34,6 +34,9 @@ Rules:
 - Internal plugin architecture follow-up: keep first-party plugins helper-first
   (Lexical-level shared helpers), use SDK where it clearly simplifies code, and
   keep SDK as the primary extension surface for third-party plugins.
+- Re-review `src/editor/plugins/IndentationPlugin.tsx` helper functions and
+  confirm whether each local helper is still needed versus existing shared
+  selection/note-op helpers.
 
 ## Test doc-id lifecycle hygiene (deferred)
 
