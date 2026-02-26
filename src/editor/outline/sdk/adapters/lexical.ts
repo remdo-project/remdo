@@ -250,10 +250,7 @@ export function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAda
           throw new Error('Draft note already placed');
         }
 
-        let noteId = createUniqueNoteId();
-        while ($resolveNoteById(noteId)) {
-          noteId = createUniqueNoteId();
-        }
+        const noteId = createUniqueNoteId();
 
         $placeNotes([note], target);
 
