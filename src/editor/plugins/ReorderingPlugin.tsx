@@ -1,57 +1,20 @@
-import type { ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { LexicalEditor } from 'lexical';
-import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
+import { COMMAND_PRIORITY_LOW } from 'lexical';
 import { mergeRegister } from '@lexical/utils';
 import { useEffect } from 'react';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
-import { moveNotesDown, moveNotesUp, resolveRangeSelectionHeads } from '@/editor/outline/note-ops';
-import { resolveContentItemFromNode } from '@/editor/outline/schema';
+import { moveNotesDown, moveNotesUp } from '@/editor/outline/note-ops';
 import { $resolveZoomBoundaryRoot } from '@/editor/outline/selection/boundary';
+import { $resolveSelectedNoteHeads } from './selected-note-heads';
 
 type MoveDirection = 'up' | 'down';
-
-function $resolveContentHeadsFromKeys(keys: string[]): ListItemNode[] {
-  const heads: ListItemNode[] = [];
-  const seenKeys = new Set<string>();
-  for (const key of keys) {
-    const node = $getNodeByKey<ListItemNode>(key);
-    const head = resolveContentItemFromNode(node);
-    if (!head) {
-      continue;
-    }
-    const headKey = head.getKey();
-    if (seenKeys.has(headKey)) {
-      continue;
-    }
-    seenKeys.add(headKey);
-    heads.push(head);
-  }
-  return heads;
-}
-
-function $resolveReorderingHeads(editor: LexicalEditor): ListItemNode[] {
-  if (editor.selection.isStructural()) {
-    const headKeys = editor.selection.heads();
-    const keys = headKeys.length > 0 ? headKeys : editor.selection.selectedKeys();
-    const heads = $resolveContentHeadsFromKeys(keys);
-    if (heads.length > 0) {
-      return heads;
-    }
-  }
-
-  const selection = $getSelection();
-  if (!$isRangeSelection(selection)) {
-    return [];
-  }
-  return resolveRangeSelectionHeads(selection);
-}
 
 function $moveSelection(
   editor: LexicalEditor,
   direction: MoveDirection
 ): boolean {
-  const heads = $resolveReorderingHeads(editor);
+  const heads = $resolveSelectedNoteHeads(editor);
   if (heads.length === 0) {
     return false;
   }
