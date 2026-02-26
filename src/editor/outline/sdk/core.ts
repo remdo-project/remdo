@@ -48,7 +48,7 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
 
   const createHandle = (noteId: NoteId): Note => ({
     id: () => noteId,
-    bounded: () => adapter.isBounded(noteId),
+    attached: () => adapter.isBounded(noteId),
     text: () => {
       assertNoteExists(noteId);
       return adapter.textOf(noteId);

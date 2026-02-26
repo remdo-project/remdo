@@ -153,12 +153,12 @@ describe('note sdk', () => {
     ]);
   });
 
-  it('creates and places a note, returning a bounded note handle', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('creates and places a note, returning an attached note handle', meta({ fixture: 'flat' }), async ({ remdo }) => {
     let inserted:
       | {
           placedId: string;
           placedText: string;
-          boundedAfterPlace: boolean;
+          attachedAfterPlace: boolean;
         }
       | null = null;
 
@@ -168,14 +168,14 @@ describe('note sdk', () => {
       inserted = {
         placedId: placed.id(),
         placedText: placed.text(),
-        boundedAfterPlace: placed.bounded(),
+        attachedAfterPlace: placed.attached(),
       };
     });
 
     expect(inserted).not.toBeNull();
     expect(inserted!.placedId.length).toBeGreaterThan(0);
     expect(inserted!.placedText).toBe('draft');
-    expect(inserted!.boundedAfterPlace).toBe(true);
+    expect(inserted!.attachedAfterPlace).toBe(true);
     const outline = readOutline(remdo);
     expect(outline[0]?.text).toBe('note1');
     expect(outline[0]?.children?.[0]?.text).toBe('draft');
@@ -301,7 +301,7 @@ describe('note sdk', () => {
 
     remdo.validate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      expect(note.bounded()).toBe(false);
+      expect(note.attached()).toBe(false);
       expect(() => note.text()).toThrowError(NoteNotFoundError);
       expect(() => note.children()).toThrowError(NoteNotFoundError);
       expect(() => sdk.indent({ start: 'note2', end: 'note2' })).toThrowError(NoteNotFoundError);
@@ -323,7 +323,7 @@ describe('note sdk', () => {
     remdo.validate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       const note = sdk.note('missing');
-      expect(note.bounded()).toBe(false);
+      expect(note.attached()).toBe(false);
       expect(() => note.text()).toThrowError(NoteNotFoundError);
     });
   });

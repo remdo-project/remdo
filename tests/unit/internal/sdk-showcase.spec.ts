@@ -23,10 +23,10 @@ describe('sdk showcase', () => {
       });
 
       let mutationResult:
-        | {
+          | {
             placedIdLength: number;
             placedText: string;
-            placedBounded: boolean;
+            placedAttached: boolean;
             indentResult: boolean;
             outdentResult: boolean;
             deleteResult: boolean;
@@ -34,17 +34,17 @@ describe('sdk showcase', () => {
         | null = null;
 
       await remdo.mutate(() => {
-        const placed = sdk.createNote({ after: 'note2' }, 'sdk note');
+        const sdkNote = sdk.createNote({ after: 'note2' }, 'sdk note');
 
-        const indentResult = sdk.indent({ start: placed.id(), end: placed.id() });
-        const outdentResult = sdk.outdent({ start: placed.id(), end: placed.id() });
+        const indentResult = sdk.indent({ start: sdkNote.id(), end: sdkNote.id() });
+        const outdentResult = sdk.outdent({ start: sdkNote.id(), end: sdkNote.id() });
         sdk.place({ start: 'note2', end: 'note2' }, { before: 'note1' });
         const deleteResult = sdk.delete({ start: 'note3', end: 'note3' });
 
         mutationResult = {
-          placedIdLength: placed.id().length,
-          placedText: placed.text(),
-          placedBounded: placed.bounded(),
+          placedIdLength: sdkNote.id().length,
+          placedText: sdkNote.text(),
+          placedAttached: sdkNote.attached(),
           indentResult,
           outdentResult,
           deleteResult,
@@ -54,7 +54,7 @@ describe('sdk showcase', () => {
       expect(mutationResult).not.toBeNull();
       expect(mutationResult!.placedIdLength).toBeGreaterThan(0);
       expect(mutationResult!.placedText).toBe('sdk note');
-      expect(mutationResult!.placedBounded).toBe(true);
+      expect(mutationResult!.placedAttached).toBe(true);
       expect(mutationResult!.indentResult).toBe(true);
       expect(mutationResult!.outdentResult).toBe(true);
       expect(mutationResult!.deleteResult).toBe(true);

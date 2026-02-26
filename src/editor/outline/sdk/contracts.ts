@@ -5,10 +5,10 @@ export type DocumentId = string;
 export type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
 
 export interface Note {
-  /** Stable id for a bounded note. */
+  /** Stable id for an attached note. */
   id: () => NoteId;
   /** True when the note still exists in the current editor state. */
-  bounded: () => boolean;
+  attached: () => boolean;
   /** Returns current note text. Throws when note does not exist. */
   text: () => string;
   /** Returns direct child notes. Throws when note does not exist. */
@@ -51,7 +51,7 @@ export type NoteSelection = SelectionSnapshot;
 export type AdapterNoteSelection = NoteSelection;
 
 export interface NoteSdk extends NoteSdkBase {
-  /** Creates and places a note at target, then returns the created bounded note handle. */
+  /** Creates and places a note at target, then returns the created attached note handle. */
   createNote: (target: PlaceTarget, text?: string) => Note;
   /** Returns a note handle by id; reads throw when the note does not exist. */
   note: (noteId: NoteId) => Note;

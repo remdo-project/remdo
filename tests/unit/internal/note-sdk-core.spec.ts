@@ -100,7 +100,7 @@ describe('note sdk core', () => {
     const note = sdk.note('a');
 
     expect(note.id()).toBe('a');
-    expect(note.bounded()).toBe(true);
+    expect(note.attached()).toBe(true);
     expect(note.text()).toBe('A');
     expect(note.children().map((child) => child.id())).toEqual(['b', 'c']);
   });
@@ -118,7 +118,7 @@ describe('note sdk core', () => {
     expect(selection.range.end).toBe('b');
     expect(sdk.indent(selection.range)).toBe(true);
     const missing = sdk.note('missing');
-    expect(missing.bounded()).toBe(false);
+    expect(missing.attached()).toBe(false);
     expect(() => missing.text()).toThrowError(NoteNotFoundError);
   });
 
@@ -164,7 +164,7 @@ describe('note sdk core', () => {
 
     expect(sdk.delete({ start: 'b', end: 'b' })).toBe(true);
 
-    expect(note.bounded()).toBe(false);
+    expect(note.attached()).toBe(false);
     expect(() => note.text()).toThrowError(NoteNotFoundError);
     expect(() => note.children()).toThrowError(NoteNotFoundError);
     expect(() => sdk.indent({ start: 'b', end: 'b' })).toThrowError(NoteNotFoundError);
