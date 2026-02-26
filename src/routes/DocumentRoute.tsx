@@ -34,7 +34,11 @@ export default function DocumentRoute() {
 
   const focusEditorInput = () => {
     const editorInput = document.querySelector<HTMLElement>('.editor-input');
-    editorInput?.focus();
+    if (!editorInput) {
+      return false;
+    }
+    editorInput.focus();
+    return true;
   };
 
   useEffect(() => {
@@ -74,8 +78,11 @@ export default function DocumentRoute() {
     if (event.key !== 'Escape' || event.altKey || event.metaKey || event.ctrlKey) {
       return;
     }
-    event.preventDefault();
-    focusEditorInput();
+    if (focusEditorInput()) {
+      event.preventDefault();
+      return;
+    }
+    event.currentTarget.blur();
   };
 
   return (

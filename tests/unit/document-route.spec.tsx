@@ -97,4 +97,17 @@ describe('document route', () => {
     expect(searchInput).not.toHaveFocus();
     expect(document.activeElement).toHaveClass('editor-input');
   });
+
+  it('blurs search on Escape when editor input is unavailable', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    screen.getByTestId('editor-input-probe').remove();
+
+    searchInput.focus();
+    expect(searchInput).toHaveFocus();
+
+    fireEvent.keyDown(searchInput, { key: 'Escape' });
+    expect(searchInput).not.toHaveFocus();
+  });
 });
