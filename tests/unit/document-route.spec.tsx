@@ -85,6 +85,24 @@ describe('document route', () => {
     expect(searchInput).toHaveFocus();
   });
 
+  it('focuses search on find shortcut for localized key values using KeyF code', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+
+    const localizedShortcut = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'а',
+      code: 'KeyF',
+      metaKey: true,
+    });
+
+    document.dispatchEvent(localizedShortcut);
+    expect(localizedShortcut.defaultPrevented).toBe(true);
+    expect(searchInput).toHaveFocus();
+  });
+
   it('moves focus to editor when Escape is pressed in search', async () => {
     renderDocumentRoute();
 

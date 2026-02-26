@@ -46,7 +46,8 @@ export default function DocumentRoute() {
       if (event.defaultPrevented || event.altKey || event.shiftKey) {
         return;
       }
-      if (!event.key || event.key.toLowerCase() !== 'f') {
+      const isFindShortcut = event.code === 'KeyF' || (!!event.key && event.key.toLowerCase() === 'f');
+      if (!isFindShortcut) {
         return;
       }
       if (!event.metaKey && !event.ctrlKey) {
