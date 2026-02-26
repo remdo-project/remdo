@@ -61,11 +61,6 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     },
   });
 
-  const getNoteOrThrow = (noteId: NoteId): Note => {
-    assertNoteExists(noteId);
-    return createHandle(noteId);
-  };
-
   const createDraftHandle = (draft: AdapterDraftNote): DraftNote => {
     let placed = false;
     return {
@@ -76,7 +71,7 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
         assertPlaceTargetNotesExist(target);
         const noteId = draft.place(target);
         placed = true;
-        return getNoteOrThrow(noteId);
+        return createHandle(noteId);
       },
     };
   };
@@ -107,7 +102,7 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     docId: () => adapter.docId(),
     selection: () => resolveSelection(adapter.selection()),
     createNote: (text) => createDraftHandle(adapter.createNote(text)),
-    note: (noteId) => getNoteOrThrow(noteId),
+    note: (noteId) => createHandle(noteId),
     delete: (range) => runRangeMutation(range, adapter.delete),
     place: (range, target) => {
       assertPlaceTargetNotesExist(target);

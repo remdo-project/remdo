@@ -58,7 +58,7 @@ export type AdapterNoteSelection = NoteSelection;
 export interface NoteSdk extends NoteSdkBase {
   /** Creates an unbounded draft note with optional initial text. */
   createNote: (text?: string) => DraftNote;
-  /** Resolves bounded note handle by id. Throws when note does not exist. */
+  /** Returns a note handle by id; reads throw when the note does not exist. */
   note: (noteId: NoteId) => Note;
 }
 

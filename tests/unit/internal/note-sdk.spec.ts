@@ -329,10 +329,12 @@ describe('note sdk', () => {
     expect(() => sdkAndNote.sdk.indent({ start: 'note2', end: 'note2' })).toThrow();
   });
 
-  it('throws when reads target a missing note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('defers missing note errors to read methods', meta({ fixture: 'flat' }), async ({ remdo }) => {
     remdo.validate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      expect(() => sdk.note('missing')).toThrowError(NoteNotFoundError);
+      const note = sdk.note('missing');
+      expect(note.bounded()).toBe(false);
+      expect(() => note.text()).toThrowError(NoteNotFoundError);
     });
   });
 });

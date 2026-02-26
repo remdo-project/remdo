@@ -114,7 +114,7 @@ describe('note sdk core', () => {
     expect(note.children().map((child) => child.id())).toEqual(['b', 'c']);
   });
 
-  it('reflects selection and throws for missing notes', () => {
+  it('reflects selection and defers missing note errors to reads', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createNoteSdk(fixture.adapter);
 
@@ -126,7 +126,9 @@ describe('note sdk core', () => {
     expect(selection.range.start).toBe('b');
     expect(selection.range.end).toBe('b');
     expect(sdk.indent(selection.range)).toBe(true);
-    expect(() => sdk.note('missing')).toThrowError(NoteNotFoundError);
+    const missing = sdk.note('missing');
+    expect(missing.bounded()).toBe(false);
+    expect(() => missing.text()).toThrowError(NoteNotFoundError);
   });
 
   it('delegates mutating operations to adapter and preserves no-op booleans', () => {

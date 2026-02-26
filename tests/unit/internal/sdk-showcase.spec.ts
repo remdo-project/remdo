@@ -9,6 +9,7 @@ describe('sdk showcase', () => {
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note2');
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const note2 = sdk.note('note2');
 
       remdo.validate(() => {
         expect(sdk.docId()).toBe(remdo.getCollabDocId());
@@ -18,7 +19,7 @@ describe('sdk showcase', () => {
           throw new Error(`Expected caret selection, got ${selection.kind}`);
         }
         expect(selection.range).toEqual({ start: 'note2', end: 'note2' });
-        expect(sdk.note('note2').text()).toBe('note2');
+        expect(note2.text()).toBe('note2');
       });
 
       let mutationResult:
