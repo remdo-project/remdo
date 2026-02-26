@@ -1,40 +1,40 @@
 {
-  "generatedAt": "2026-02-20T10:37:11.373Z",
+  "generatedAt": "2026-02-26T16:06:12.011Z",
   "files": {
-    "totalFiles": 324,
-    "textFiles": 324,
+    "totalFiles": 338,
+    "textFiles": 338,
     "byType": {
       "ts": {
-        "files": 168,
-        "lines": 16564
+        "files": 179,
+        "lines": 18140
       },
       "tsx": {
         "files": 49,
-        "lines": 6871
+        "lines": 6793
       },
       "json": {
         "files": 29,
         "lines": 2143
       },
       "md": {
-        "files": 22,
-        "lines": 1389
+        "files": 24,
+        "lines": 1495
       },
       "yml": {
         "files": 15,
-        "lines": 244
+        "lines": 248
       },
       "sh": {
         "files": 11,
-        "lines": 448
+        "lines": 479
       },
       "svg": {
         "files": 8,
         "lines": 21
       },
       "css": {
-        "files": 6,
-        "lines": 619
+        "files": 7,
+        "lines": 693
       },
       "mts": {
         "files": 3,
@@ -62,7 +62,7 @@
       },
       "example": {
         "files": 1,
-        "lines": 28
+        "lines": 36
       },
       "gitignore": {
         "files": 1,
@@ -83,18 +83,18 @@
     }
   },
   "tests": {
-    "unit": 362,
-    "collab": 400,
-    "e2e": 80,
-    "totalUnique": 480
+    "unit": 394,
+    "collab": 432,
+    "e2e": 81,
+    "totalUnique": 513
   },
   "totals": {
     "files": {
-      "files": 323,
-      "lines": 28999
+      "files": 337,
+      "lines": 30720
     },
     "tests": {
-      "totalUnique": 480
+      "totalUnique": 513
     }
   }
 }
