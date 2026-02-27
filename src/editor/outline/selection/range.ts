@@ -43,3 +43,7 @@ export function $resolveStructuralItemsFromRange(range: OutlineSelectionRange): 
   }
   return items;
 }
+
+export function $collectStructuralItemKeysFromRange(range: OutlineSelectionRange): Set<string> {
+  return new Set($resolveStructuralItemsFromRange(range).map((item) => item.getKey()));
+}

@@ -228,6 +228,36 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
   });
 
+  it('keeps structural cut-paste as no-op after remote deletion of the cut source', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const secondary = await createCollabPeer(remdo);
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+
+    await selectStructuralNotes(secondary, 'note2');
+    await pressKey(secondary, { key: 'Delete' });
+
+    const expectedOutline = [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+    ];
+
+    await waitFor(() => {
+      expect(remdo).toMatchOutline(expectedOutline);
+    });
+
+    // Single-note structural destination makes fallback-to-destination behavior
+    // obvious: if fallback runs, note1 would be moved/removed.
+    await selectStructuralNotes(remdo, 'note1');
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+    await waitFor(() => {
+      expect(secondary).toMatchOutline(expectedOutline);
+    });
+  });
+
   it('drops cut markers after remote structural edits', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const secondary = await createCollabPeer(remdo);
 

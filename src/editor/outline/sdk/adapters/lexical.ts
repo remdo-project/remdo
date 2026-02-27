@@ -17,12 +17,16 @@ import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '@/editor/
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { $requireContentItemNoteId, resolveContentItemFromNode } from '@/editor/outline/schema';
 import { $resolveZoomBoundaryRoot } from '@/editor/outline/selection/boundary';
-import { getContiguousSelectionHeads, getSelectedNotes } from '@/editor/outline/selection/heads';
+import type { OutlineSelectionRange } from '@/editor/outline/selection/model';
 import { $resolveStructuralHeadsFromRange } from '@/editor/outline/selection/range';
 import {
   resolveContiguousRunIndexes,
   resolveContiguousSiblingRangeBetween,
 } from '@/editor/outline/selection/sibling-run';
+import {
+  $resolveStructuralRangeFromLexicalSelection,
+  $resolveStructuralRangeFromOutlineSelection,
+} from '@/editor/outline/selection/structural-range';
 import {
   getNestedList,
   isContentDescendantOf,
@@ -214,18 +218,22 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
     return noteId;
   };
 
+  const $noteRangeFromStructuralRange = (range: OutlineSelectionRange): NoteRange | null => {
+    const heads = $resolveStructuralHeadsFromRange(range).map((head) => $requireContentItemNoteId(head));
+    return noteRangeFromOrderedIds(heads);
+  };
+
   const $selectionFallbackFromRange = (): AdapterNoteSelection => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection)) {
       return { kind: 'none', range: null };
     }
 
-    if (!selection.isCollapsed()) {
-      const heads = getContiguousSelectionHeads(selection).map((head) => $requireContentItemNoteId(head));
-      const hasMultiNoteSelection = getSelectedNotes(selection).length > 1;
-      const range = noteRangeFromOrderedIds(heads);
-      if ((heads.length > 1 || hasMultiNoteSelection) && range) {
-        return { kind: 'structural', range };
+    const structuralRange = $resolveStructuralRangeFromLexicalSelection(selection, { allowMultiNoteSelection: true });
+    if (structuralRange) {
+      const noteRange = $noteRangeFromStructuralRange(structuralRange);
+      if (noteRange) {
+        return { kind: 'structural', range: noteRange };
       }
     }
 
@@ -254,13 +262,9 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
       return $selectionFallbackFromRange();
     }
 
-    if (outlineSelection.kind === 'structural') {
-      const range = outlineSelection.range;
-      if (!range) {
-        return { kind: 'none', range: null };
-      }
-      const heads = $resolveStructuralHeadsFromRange(range).map((head) => $requireContentItemNoteId(head));
-      const structuralNoteRange = noteRangeFromOrderedIds(heads);
+    const outlineRange = $resolveStructuralRangeFromOutlineSelection(outlineSelection);
+    if (outlineRange) {
+      const structuralNoteRange = $noteRangeFromStructuralRange(outlineRange);
       return structuralNoteRange ? { kind: 'structural', range: structuralNoteRange } : { kind: 'none', range: null };
     }
 
