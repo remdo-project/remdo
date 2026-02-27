@@ -15,15 +15,16 @@ live in [Links](./links.md).
   originals do not change what gets pasted.
 - Cut prepares the selected notes to be moved; they stay in place until you
   paste them elsewhere.
-- If you edit cut notes before pasting, the pending cut is canceled so the
-  edits stay where you made them. This keeps copy and cut predictable instead
-  of pasting a different version than the one you can see.
+- If you edit anything inside the pending cut boundary before pasting, the cut
+  is canceled so edits stay where they were made. This keeps cut/move behavior
+  predictable instead of moving a boundary slice that changed after the cut.
 - After a structural cut, the selection collapses to the visual start so you
   can keep editing with a clear caret position.
 - Pasting while a note range is selected replaces that selection with the
   pasted notes.
 - Pasting after a cut moves the cut notes to the new location. If the cut is no
-  longer valid (for example, the cut notes were edited), paste does nothing.
+  longer valid (for example, anything inside the cut boundary was edited), paste
+  does nothing.
 - A cut can be pasted once; after a successful paste the cut is cleared.
 - If you try to paste into the cut notes or their descendants, nothing happens
   and the cut remains pending.

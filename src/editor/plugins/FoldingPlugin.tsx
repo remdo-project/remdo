@@ -11,6 +11,7 @@ import { $resolveRootContentList, resolveContentItemFromNode } from '@/editor/ou
 import { isChildrenWrapper } from '@/editor/outline/list-structure';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import type { OutlineSelection } from '@/editor/outline/selection/model';
+import { $resolveStructuralItemsFromRange } from '@/editor/outline/selection/range';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { isContentDescendantOf, noteHasChildren } from '@/editor/outline/selection/tree';
 
@@ -29,14 +30,8 @@ const $shouldCollapseSelection = (
   outlineSelection: OutlineSelection | null,
   foldedItem: ListItemNode
 ): boolean => {
-  if (outlineSelection?.kind === 'structural') {
-    const keys = outlineSelection.selectedKeys.length > 0 ? outlineSelection.selectedKeys : outlineSelection.headKeys;
-    for (const key of keys) {
-      const node = $getNodeByKey<ListItemNode>(key);
-      const contentItem = node ? resolveContentItemFromNode(node) : null;
-      if (!contentItem) {
-        continue;
-      }
+  if (outlineSelection?.kind === 'structural' && outlineSelection.range) {
+    for (const contentItem of $resolveStructuralItemsFromRange(outlineSelection.range)) {
       if (contentItem.getKey() === foldedItem.getKey()) {
         continue;
       }

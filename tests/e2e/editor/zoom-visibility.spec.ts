@@ -286,11 +286,31 @@ test.describe('Zoom visibility', () => {
 
     const selectedNotes = await page.evaluate(async () => {
       const api = await (__remdoBridgePromise ?? Promise.reject(new Error('remdo bridge is not available')));
-      const keys = api.editor.selection.selectedKeys();
-      return keys
-        .map((key: string) => {
-          const element = api.editor.getElementByKey(key);
-          const text = element?.querySelector('[data-lexical-text="true"]')?.textContent ?? '';
+      const outlineSelection = api.editor.selection.get();
+      const range = outlineSelection?.kind === 'structural' ? outlineSelection.range : null;
+      if (!range) {
+        return [];
+      }
+
+      const startElement = api.editor.getElementByKey(range.visualStartKey);
+      const endElement = api.editor.getElementByKey(range.visualEndKey);
+      if (!(startElement instanceof HTMLElement) || !(endElement instanceof HTMLElement)) {
+        return [];
+      }
+
+      const contentItems = Array.from(document.querySelectorAll<HTMLElement>('li.list-item:not(.list-nested-item)'));
+      return contentItems
+        .filter((item) => {
+          const startsAfterOrAt =
+            item === startElement ||
+            Boolean(startElement.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING);
+          const endsBeforeOrAt =
+            item === endElement ||
+            Boolean(endElement.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_PRECEDING);
+          return startsAfterOrAt && endsBeforeOrAt;
+        })
+        .map((item) => {
+          const text = item.querySelector('[data-lexical-text="true"]')?.textContent ?? '';
           return text.trim();
         })
         .filter(Boolean);

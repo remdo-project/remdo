@@ -112,7 +112,7 @@ Behavioral clipboard rules (placement, move validation, focus) live in
   created locally and synced as part of the note content.
 - Remote operations must not overwrite existing `noteId` values during normal
   application.
-- If a cut marker exists, any remote edit that touches a marked note cancels
+- If a cut marker exists, any remote edit inside the marked boundary cancels
   the marker to avoid ambiguous moves.
 
 ## Global references

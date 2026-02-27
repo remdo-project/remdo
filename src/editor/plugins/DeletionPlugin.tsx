@@ -5,7 +5,6 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import {
   $createParagraphNode,
   $createTextNode,
-  $getNodeByKey,
   $getRoot,
   $getSelection,
   $isRangeSelection,
@@ -17,18 +16,23 @@ import {
 import type { LexicalNode, TextNode } from 'lexical';
 import { useEffect, useState } from 'react';
 import {
+  $getOrCreateChildList,
   flattenNoteNodes,
   getContentSiblings,
   getPreviousContentSibling,
-  isChildrenWrapper,
   insertBefore,
-  $getOrCreateChildList,
+  isChildrenWrapper,
 } from '@/editor/outline/list-structure';
-import { $requireRootContentList, $resolveRootContentList, resolveContentItemFromNode } from '@/editor/outline/schema';
+import {
+  $requireRootContentList,
+  $resolveRootContentList,
+  resolveContentItemFromNode,
+} from '@/editor/outline/schema';
 import { $normalizeOutlineRoot } from '@/editor/outline/normalization';
 import { $resolveZoomBoundaryRoot, isWithinZoomBoundary } from '@/editor/outline/selection/boundary';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
+import { $resolveStructuralHeadsFromRange } from '@/editor/outline/selection/range';
 import {
   getFirstDescendantListItem,
   getNestedList,
@@ -262,12 +266,6 @@ function resolveCaretPlanAfterStructuralDeletion(
   return null;
 }
 
-function $resolveStructuralHeadsFromKeys(keys: string[]): ListItemNode[] {
-  return keys
-    .map((key) => $getNodeByKey<ListItemNode>(key))
-    .filter((node): node is ListItemNode => $isListItemNode(node) && node.isAttached());
-}
-
 export function DeletionPlugin() {
   const [editor] = useLexicalComposerContext();
   const [rootElement, setRootElement] = useState<HTMLElement | null>(null);
@@ -331,13 +329,13 @@ export function DeletionPlugin() {
       }
 
       const outlineSelection = editor.selection.get();
-      const structuralKeys = outlineSelection?.headKeys ?? [];
-      if (structuralKeys.length === 0) {
+      const structuralRange = outlineSelection?.range;
+      if (!structuralRange) {
         return false;
       }
 
       const selection = $getSelection();
-      let heads = $resolveStructuralHeadsFromKeys(structuralKeys);
+      let heads = $resolveStructuralHeadsFromRange(structuralRange);
       if (heads.length === 0 && $isRangeSelection(selection)) {
         heads = getContiguousSelectionHeads(selection);
       }

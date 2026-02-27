@@ -1,0 +1,102 @@
+import type {
+  AdapterNoteSelection,
+  PlaceTarget,
+  Note,
+  NoteId,
+  NoteRange,
+  NoteSdk,
+  NoteSdkAdapter,
+  NoteSelection,
+} from './contracts';
+import { NoteNotFoundError } from './errors';
+
+export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
+  const assertNoteExists = (noteId: NoteId): void => {
+    if (!adapter.hasNote(noteId)) {
+      throw new NoteNotFoundError(noteId);
+    }
+  };
+
+  const assertBoundedNoteExists = (noteId: NoteId): void => {
+    if (!adapter.isBounded(noteId)) {
+      throw new NoteNotFoundError(noteId);
+    }
+  };
+
+  const assertRangeNotesBounded = (range: NoteRange): void => {
+    assertBoundedNoteExists(range.start);
+    assertBoundedNoteExists(range.end);
+  };
+
+  const assertPlaceTargetNotesExist = (target: PlaceTarget): void => {
+    if ('parent' in target) {
+      if (!adapter.isBounded(target.parent)) {
+        throw new NoteNotFoundError(target.parent);
+      }
+      return;
+    }
+    if ('before' in target) {
+      if (!adapter.isBounded(target.before)) {
+        throw new NoteNotFoundError(target.before);
+      }
+      return;
+    }
+    if (!adapter.isBounded(target.after)) {
+      throw new NoteNotFoundError(target.after);
+    }
+  };
+
+  const createHandle = (noteId: NoteId): Note => ({
+    id: () => noteId,
+    attached: () => adapter.isBounded(noteId),
+    text: () => {
+      assertNoteExists(noteId);
+      return adapter.textOf(noteId);
+    },
+    children: () => {
+      assertNoteExists(noteId);
+      return adapter.childrenOf(noteId).map((childId) => createHandle(childId));
+    },
+  });
+
+  const createNoneSelection = (): NoteSelection => ({ kind: 'none', range: null });
+
+  const resolveSelection = (adapterSelection: AdapterNoteSelection): NoteSelection => {
+    if (adapterSelection.kind === 'none') {
+      return createNoneSelection();
+    }
+
+    const { start, end } = adapterSelection.range;
+    if (!adapter.hasNote(start) || !adapter.hasNote(end)) {
+      return createNoneSelection();
+    }
+    return adapterSelection;
+  };
+
+  const runRangeMutation = <T>(
+    range: NoteRange,
+    operation: (noteRange: NoteRange) => T
+  ): T => {
+    assertRangeNotesBounded(range);
+    return operation(range);
+  };
+
+  return {
+    docId: () => adapter.docId(),
+    selection: () => resolveSelection(adapter.selection()),
+    createNote: (target, text) => {
+      assertPlaceTargetNotesExist(target);
+      return createHandle(adapter.createNote(target, text));
+    },
+    note: (noteId) => createHandle(noteId),
+    delete: (range) => runRangeMutation(range, adapter.delete),
+    place: (range, target) => {
+      assertPlaceTargetNotesExist(target);
+      runRangeMutation(range, (noteRange) => adapter.place(noteRange, target));
+    },
+    indent: (range) => runRangeMutation(range, adapter.indent),
+    outdent: (range) => runRangeMutation(range, adapter.outdent),
+    moveUp: (range) => runRangeMutation(range, adapter.moveUp),
+    moveDown: (range) => runRangeMutation(range, adapter.moveDown),
+  };
+}

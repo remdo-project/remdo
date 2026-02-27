@@ -883,6 +883,59 @@ describe('selection plugin', () => {
     assertVisualEnvelopeMatchesSelection(['note1', 'note2', 'note3', 'note4']);
   });
 
+  it('stores a concrete structural range whenever structural mode is active', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2');
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(remdo.editor.selection.get()?.kind).toBe('structural');
+    expect(remdo.editor.selection.get()?.range).not.toBeNull();
+    expect(remdo.editor.selection.get()?.range?.headStartKey).toBe(getNoteKey(remdo, 'note2'));
+    expect(remdo.editor.selection.get()?.range?.headEndKey).toBe(getNoteKey(remdo, 'note2'));
+    expect(remdo.editor.selection.get()?.range?.visualStartKey).toBe(getNoteKey(remdo, 'note2'));
+    expect(remdo.editor.selection.get()?.range?.visualEndKey).toBe(getNoteKey(remdo, 'note3'));
+
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    expect(remdo.editor.selection.get()?.kind).toBe('structural');
+    expect(remdo.editor.selection.get()?.range).not.toBeNull();
+    expect(remdo.editor.selection.get()?.range?.headStartKey).toBe(getNoteKey(remdo, 'note1'));
+    expect(remdo.editor.selection.get()?.range?.headEndKey).toBe(getNoteKey(remdo, 'note1'));
+    expect(remdo.editor.selection.get()?.range?.visualStartKey).toBe(getNoteKey(remdo, 'note1'));
+    expect(remdo.editor.selection.get()?.range?.visualEndKey).toBe(getNoteKey(remdo, 'note4'));
+  });
+
+  it('recomputes outline selection from lexical state and clears malformed cached structural state', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2');
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+
+    remdo.editor.selection.set({
+      kind: 'structural',
+      stage: 2,
+      anchorKey: null,
+      focusKey: null,
+      range: {
+        headStartKey: 'missing-key',
+        headEndKey: 'missing-key',
+        caretStartKey: 'missing-key',
+        caretEndKey: 'missing-key',
+        visualStartKey: 'missing-key',
+        visualEndKey: 'missing-key',
+      },
+      isBackward: false,
+    });
+
+    expect(remdo.editor.selection.get()?.kind).toBe('structural');
+    await placeCaretAtNote(remdo, 'note2');
+
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+    expect(remdo.editor.selection.get()?.kind).toBe('caret');
+    expect(remdo.editor.selection.get()?.range).toBeNull();
+  });
+
   it('marks structural selection once Shift+Down reaches stage 2 even for leaf notes', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note4');
     expect(remdo.editor.selection.isStructural()).toBe(false);

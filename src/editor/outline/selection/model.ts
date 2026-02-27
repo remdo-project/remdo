@@ -1,6 +1,8 @@
 export type OutlineSelectionKind = 'caret' | 'inline' | 'structural';
 
 export interface OutlineSelectionRange {
+  headStartKey: string;
+  headEndKey: string;
   caretStartKey: string;
   caretEndKey: string;
   visualStartKey: string;
@@ -12,8 +14,6 @@ export interface OutlineSelection {
   stage: number;
   anchorKey: string | null;
   focusKey: string | null;
-  headKeys: string[];
-  selectedKeys: string[];
   range: OutlineSelectionRange | null;
   isBackward: boolean;
 }

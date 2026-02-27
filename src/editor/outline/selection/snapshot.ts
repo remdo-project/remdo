@@ -1,6 +1,5 @@
 import type { BaseSelection } from 'lexical';
 import { $isRangeSelection } from 'lexical';
-import type { ListItemNode } from '@lexical/list';
 
 import { reportInvariant } from '@/editor/invariant';
 
@@ -14,7 +13,6 @@ import {
   resolveSelectionPointItem,
   selectionMatchesPayload,
 } from './resolve';
-import { getSubtreeItems } from './tree';
 
 export interface ProgressiveUnlockState {
   pending: boolean;
@@ -49,7 +47,6 @@ export function $computeOutlineSelectionSnapshot({
 }: OutlineSelectionSnapshotInput): OutlineSelectionSnapshot {
   let payload: SnapPayload | null = null;
   let structuralRange: OutlineSelectionRange | null = null;
-  let selectedKeys: string[] = [];
   let hasStructuralSelection = false;
   let outlineSelection: OutlineSelection | null = null;
 
@@ -113,8 +110,6 @@ export function $computeOutlineSelectionSnapshot({
       stage: 0,
       anchorKey,
       focusKey,
-      headKeys: [],
-      selectedKeys: [],
       range: null,
       isBackward,
     };
@@ -130,7 +125,6 @@ export function $computeOutlineSelectionSnapshot({
   }
 
   const headItems = selection.isCollapsed() ? (anchorItem ? [anchorItem] : []) : getContiguousSelectionHeads(selection);
-  const headKeys = headItems.map((item) => item.getKey());
   structuralRange = computeStructuralRangeFromHeads(headItems);
   if (headItems.length > 0 && !structuralRange) {
     reportInvariant({
@@ -142,7 +136,8 @@ export function $computeOutlineSelectionSnapshot({
   const hasMultiNoteRange = headItems.length > 1;
   const hasMultiNoteSelection = getSelectedNotes(selection).length > 1;
   const isProgressiveStructural = nextProgression.locked && nextProgression.stage >= 2;
-  hasStructuralSelection = isProgressiveStructural || hasMultiNoteRange || hasMultiNoteSelection;
+  const hasStructuralIntent = isProgressiveStructural || hasMultiNoteRange || hasMultiNoteSelection;
+  hasStructuralSelection = hasStructuralIntent && structuralRange !== null;
   if (!nextProgression.locked && hasMultiNoteRange) {
     const inferredProgression = inferPointerProgressionState(selection, headItems);
     if (inferredProgression) {
@@ -161,17 +156,12 @@ export function $computeOutlineSelectionSnapshot({
   }
 
   const stage = nextProgression.locked ? nextProgression.stage : hasStructuralSelection ? 2 : 1;
-  if (hasStructuralSelection) {
-    selectedKeys = expandStructuralSelectionKeys(headKeys, headItems);
-  }
 
   outlineSelection = {
     kind: hasStructuralSelection ? 'structural' : 'inline',
     stage,
     anchorKey,
     focusKey,
-    headKeys: hasStructuralSelection ? headKeys : [],
-    selectedKeys: hasStructuralSelection ? selectedKeys : [],
     range: hasStructuralSelection ? structuralRange : null,
     isBackward,
   };
@@ -184,28 +174,6 @@ export function $computeOutlineSelectionSnapshot({
     progression: nextProgression,
     unlock: nextUnlock,
   };
-}
-
-function expandStructuralSelectionKeys(headKeys: string[], heads: ListItemNode[]): string[] {
-  if (heads.length === 0) {
-    return [];
-  }
-
-  const expanded: string[] = [];
-  const seen = new Set<string>();
-
-  for (const head of heads) {
-    for (const item of getSubtreeItems(head)) {
-      const key = item.getKey();
-      if (seen.has(key)) {
-        continue;
-      }
-      seen.add(key);
-      expanded.push(key);
-    }
-  }
-
-  return expanded.length > 0 ? expanded : headKeys;
 }
 
 // resolveSelectionPointItem moved to selection/resolve.ts

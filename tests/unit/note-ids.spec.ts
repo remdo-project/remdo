@@ -729,6 +729,21 @@ describe('note ids on paste', () => {
     expect(remdo).toMatchOutline(expectedOutline);
   });
 
+  it('drops cut markers after inserts inside the cut boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectStructuralNotes(remdo, 'note2', 'note3');
+    const clipboardPayload = await cutSelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter' });
+
+    const expectedOutline = readOutline(remdo);
+
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline(expectedOutline);
+  });
+
   it('treats structural pastes inside a cut subtree as a no-op', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);

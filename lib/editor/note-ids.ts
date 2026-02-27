@@ -14,6 +14,7 @@ const NOTE_ID_ALLOWED = new Set(
 );
 const NOTE_ID_MAX_LENGTH = 20;
 const NOTE_ID_LENGTH = 10;
+// Runtime note creation trusts this generator as collision-resistant and does not perform document scans.
 export const createUniqueNoteId = customAlphabet(NOTE_ID_ALPHABET, NOTE_ID_LENGTH);
 
 export function normalizeNoteId(value: unknown): string | null {
