@@ -49,3 +49,31 @@ Rules:
    Success: one client can browse/edit docs from multiple trusted hubs.
 5. **Stage 4: local vault hub (optional).**
    Success: local-only docs behave like normal docs and remain device-local.
+
+## Note-first SDK model (proposal)
+
+- Make `Note` the core domain primitive across the SDK, not only the editor.
+- Represent documents, user config entries, and content notes as note-like
+  entities with different kinds.
+- Keep SDK usage note-centric (`get`, `children`, traversal, cross-document
+  search), while storage is adapter-based.
+- Start with a simple in-memory adapter now; keep Lexical adapter as-is for
+  editor-backed notes; allow future SQLite adapter without SDK usage changes.
+
+### Cautions and open questions
+
+- Avoid forcing one flat note shape too early; keep a minimal `kind` +
+  capabilities model first, and delay deep type hierarchy decisions.
+- Define stable identity semantics now: note IDs scope, parent/child ownership,
+  and cross-document references must stay backend-agnostic.
+- Keep SDK domain API separate from adapter API so in-memory/Lexical/SQLite can
+  swap without changing call sites.
+- Decide whether cross-document link search is powered by loading document trees
+  or by a separate index/search layer (prefer not to require loading all docs).
+- Clarify loading model: what is lazy, what is preloaded, and which SDK calls
+  are allowed to block/asynchronously hydrate data.
+- Clarify mutation boundaries and consistency expectations across adapters
+  (single-note writes vs transactional/multi-note updates).
+- When document-scoped note APIs land, move `createNote`/`note` under a
+  document-level note handle and remove user-config responsibilities from
+  `src/editor/outline/sdk/adapters/lexical.ts` (compose adapters at SDK level).

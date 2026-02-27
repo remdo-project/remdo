@@ -32,6 +32,7 @@ import {
   isContentDescendantOf,
   removeNoteHeads,
 } from '@/editor/outline/selection/tree';
+import { createHardcodedUserConfigAdapter } from './hardcoded-user-config';
 import { createNoteSdk } from '../core';
 import type {
   AdapterNoteSelection,
@@ -55,6 +56,7 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
     | { kind: 'before'; reference: LexicalNode }
     | { kind: 'after'; reference: LexicalNode }
     | { kind: 'append'; list: ListNode };
+  const userConfig = createHardcodedUserConfigAdapter();
 
   const $resolveNoteById = (noteId: NoteId) => $findNoteById(noteId);
   const $requireNoteById = (noteId: NoteId): ListItemNode => {
@@ -282,6 +284,11 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
 
   return {
     docId: () => docId,
+    userConfigId: () => userConfig.userConfigId(),
+    hasUserConfigNote: (noteId) => userConfig.hasUserConfigNote(noteId),
+    userConfigKindOf: (noteId) => userConfig.userConfigKindOf(noteId),
+    userConfigTextOf: (noteId) => userConfig.userConfigTextOf(noteId),
+    userConfigChildrenOf: (noteId) => userConfig.userConfigChildrenOf(noteId),
     selection: () => $adapterSelection(),
     createNote: (target, text = '') => $createNote(target, text),
     hasNote: (noteId) => Boolean($resolveNoteById(noteId)),

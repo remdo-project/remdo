@@ -1,16 +1,30 @@
 export type NoteId = string;
+export type NoteKind =
+  | 'editor-note'
+  | 'user-config'
+  | 'document-list'
+  | 'document'
+  | (string & {});
+
 type DocumentId = string;
 type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
 
-export interface Note {
-  /** Stable id for an attached note. */
+export interface Note<K extends NoteKind = NoteKind> {
+  /** Stable id for a note. */
   id: () => NoteId;
-  /** True when the note still exists in the current editor state. */
-  attached: () => boolean;
+  /** Runtime discriminator for note shape/role. */
+  kind: () => K;
   /** Returns current note text. Throws when note does not exist. */
   text: () => string;
-  /** Returns direct child notes. Throws when note does not exist. */
+  /** Returns direct child notes. */
   children: () => readonly Note[];
+}
+
+export interface EditorNote extends Note<'editor-note'> {
+  /** True when the note still exists in the current editor state. */
+  attached: () => boolean;
+  /** Returns direct child editor notes. Throws when note does not exist. */
+  children: () => readonly EditorNote[];
 }
 
 export interface NoteRange {
@@ -49,13 +63,25 @@ export type NoteSelection = SelectionSnapshot;
 export type AdapterNoteSelection = NoteSelection;
 
 export interface NoteSdk extends NoteSdkBase {
-  /** Creates and places a note at target, then returns the created attached note handle. */
-  createNote: (target: PlaceTarget, text?: string) => Note;
-  /** Returns a note handle by id; reads throw when the note does not exist. */
-  note: (noteId: NoteId) => Note;
+  /** Returns user-config root note handle. */
+  userConfig: () => Note;
+  /** Creates and places an editor note at target, then returns attached note handle. */
+  createNote: (target: PlaceTarget, text?: string) => EditorNote;
+  /** Returns an editor note handle by id; reads throw when the note does not exist. */
+  note: (noteId: NoteId) => EditorNote;
 }
 
 export interface NoteSdkAdapter extends NoteSdkBase {
+  /** Returns user-config root note id. */
+  userConfigId: () => NoteId;
+  /** True when user-config note id exists. */
+  hasUserConfigNote: (noteId: NoteId) => boolean;
+  /** Reads user-config note kind. Throws when user-config note does not exist. */
+  userConfigKindOf: (noteId: NoteId) => NoteKind;
+  /** Reads user-config note text. Throws when user-config note does not exist. */
+  userConfigTextOf: (noteId: NoteId) => string;
+  /** Reads direct user-config child ids. Throws when user-config note does not exist. */
+  userConfigChildrenOf: (noteId: NoteId) => readonly NoteId[];
   /** Creates and places an adapter-level note at target, then returns attached note id. */
   createNote: (target: PlaceTarget, text?: string) => NoteId;
   /** True when note id exists (bounded). */

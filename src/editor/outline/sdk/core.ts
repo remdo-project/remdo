@@ -1,5 +1,6 @@
 import type {
   AdapterNoteSelection,
+  EditorNote,
   PlaceTarget,
   Note,
   NoteId,
@@ -46,8 +47,9 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     }
   };
 
-  const createHandle = (noteId: NoteId): Note => ({
+  const createHandle = (noteId: NoteId): EditorNote => ({
     id: () => noteId,
+    kind: () => 'editor-note',
     attached: () => adapter.isBounded(noteId),
     text: () => {
       assertNoteExists(noteId);
@@ -56,6 +58,31 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     children: () => {
       assertNoteExists(noteId);
       return adapter.childrenOf(noteId).map((childId) => createHandle(childId));
+    },
+  });
+
+  // TODO(note-sdk): This is a temporary user-config-specific read path.
+  // Refactor to repository-scoped note resolvers once SDK composes user-config
+  // and document note repositories at the facade level.
+  const createUserConfigHandle = (noteId: NoteId): Note => ({
+    id: () => noteId,
+    kind: () => {
+      if (!adapter.hasUserConfigNote(noteId)) {
+        throw new NoteNotFoundError(noteId);
+      }
+      return adapter.userConfigKindOf(noteId);
+    },
+    text: () => {
+      if (!adapter.hasUserConfigNote(noteId)) {
+        throw new NoteNotFoundError(noteId);
+      }
+      return adapter.userConfigTextOf(noteId);
+    },
+    children: () => {
+      if (!adapter.hasUserConfigNote(noteId)) {
+        throw new NoteNotFoundError(noteId);
+      }
+      return adapter.userConfigChildrenOf(noteId).map((childId) => createUserConfigHandle(childId));
     },
   });
 
@@ -83,6 +110,7 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
 
   return {
     docId: () => adapter.docId(),
+    userConfig: () => createUserConfigHandle(adapter.userConfigId()),
     selection: () => resolveSelection(adapter.selection()),
     createNote: (target, text) => {
       assertPlaceTargetNotesExist(target);

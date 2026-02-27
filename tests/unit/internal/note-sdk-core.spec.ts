@@ -17,6 +17,9 @@ function createMockAdapterFixture(
   ]);
   const placeCalls: Array<{ range: NoteRange; target: PlaceTarget }> = [];
   let nextDraftId = 1;
+  const configNotes = new Map<string, { kind: string; text: string; children: string[] }>([
+    ['user-config', { kind: 'user-config', text: 'User Config', children: [] }],
+  ]);
 
   const requireNote = (noteId: string): { text: string; children: string[] } => {
     const note = notes.get(noteId);
@@ -36,6 +39,29 @@ function createMockAdapterFixture(
     placeCalls,
     adapter: {
       docId: () => 'doc-1',
+      userConfigId: () => 'user-config',
+      hasUserConfigNote: (noteId) => configNotes.has(noteId),
+      userConfigKindOf: (noteId) => {
+        const note = configNotes.get(noteId);
+        if (!note) {
+          throw new NoteNotFoundError(noteId);
+        }
+        return note.kind;
+      },
+      userConfigTextOf: (noteId) => {
+        const note = configNotes.get(noteId);
+        if (!note) {
+          throw new NoteNotFoundError(noteId);
+        }
+        return note.text;
+      },
+      userConfigChildrenOf: (noteId) => {
+        const note = configNotes.get(noteId);
+        if (!note) {
+          throw new NoteNotFoundError(noteId);
+        }
+        return note.children;
+      },
       selection: () => resolvedSelection,
       createNote: (target, text = '') => {
         if ('parent' in target) {
