@@ -1,15 +1,33 @@
+catalogMode: prefer
+
+shellEmulator: true
+
+trustPolicy: no-downgrade
+
+trustPolicyExclude:
+  - rollup@2.80.0
+  - undici-types@6.21.0
+  - semver@6.3.1
+
+overrides:
+  body-parser: 2.2.1
+  express: '>=5.2.0'
+  js-yaml: 4.1.1
+  qs: 6.14.2
+  table>ajv: 8.18.0
+
 catalog:
   '@antfu/eslint-config': ^7.6.1
   '@ast-grep/cli': ^0.41.0
   '@eslint-react/eslint-plugin': ^2.13.0
-  '@lexical/clipboard': ^0.40.0
-  '@lexical/eslint-plugin': ^0.40.0
-  '@lexical/link': ^0.40.0
-  '@lexical/list': ^0.40.0
-  '@lexical/markdown': ^0.40.0
-  '@lexical/react': ^0.40.0
-  '@lexical/utils': ^0.40.0
-  '@lexical/yjs': ^0.40.0
+  '@lexical/clipboard': ^0.41.0
+  '@lexical/eslint-plugin': ^0.41.0
+  '@lexical/link': ^0.41.0
+  '@lexical/list': ^0.41.0
+  '@lexical/markdown': ^0.41.0
+  '@lexical/react': ^0.41.0
+  '@lexical/utils': ^0.41.0
+  '@lexical/yjs': ^0.41.0
   '@mantine/core': ^8.3.15
   '@mantine/hooks': ^8.3.15
   '@playwright/test': ^1.58.2
@@ -31,7 +49,7 @@ catalog:
   cross-env: ^10.1.0
   csstree-validator: ^4.0.1
   eslint: ^9.39.3
-  eslint-plugin-compat: ^6.2.1
+  eslint-plugin-compat: ^7.0.0
   eslint-plugin-react-hooks: ^7.0.1
   eslint-plugin-react-refresh: ^0.5.2
   eslint-plugin-unicorn: ^63.0.0
@@ -39,7 +57,7 @@ catalog:
   jscpd: ^4.0.8
   jsdom: ^27.4.0
   knip: ^5.85.0
-  lexical: ^0.40.0
+  lexical: ^0.41.0
   markdownlint-cli2: ^0.21.0
   nanoid: ^5.1.6
   react: ^19.2.4
@@ -58,27 +76,9 @@ catalog:
   y-sweet: ^0.9.1
   yjs: ^13.6.29
 
-catalogMode: prefer
-
 onlyBuiltDependencies:
   - '@ast-grep/cli'
   - '@swc/core'
   - esbuild
   - leveldown
   - y-sweet
-
-overrides:
-  body-parser: 2.2.1
-  express: '>=5.2.0'
-  js-yaml: 4.1.1
-  qs: 6.14.2
-  table>ajv: 8.18.0
-
-shellEmulator: true
-
-trustPolicy: no-downgrade
-
-trustPolicyExclude:
-  - rollup@2.80.0
-  - undici-types@6.21.0
-  - semver@6.3.1
