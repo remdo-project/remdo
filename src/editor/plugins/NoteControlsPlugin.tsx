@@ -175,17 +175,17 @@ export function NoteControlsPlugin() {
         clearControls();
         return;
       }
+      const container = root.closest<HTMLElement>('.editor-container');
       const eventTarget = event.target;
       const eventTargetElement = eventTarget instanceof Element ? eventTarget : null;
       if (eventTargetElement?.closest('[data-note-menu]')) {
         return;
       }
-      const isWithinRoot = eventTargetElement ? root.contains(eventTargetElement) : false;
+      const isWithinContainer = !!(eventTargetElement && container?.contains(eventTargetElement));
       const isWithinNoteControls = !!eventTargetElement?.closest('.note-controls-layer');
-      if (eventTargetElement && !isWithinRoot && !isWithinNoteControls) {
+      if (eventTargetElement && !isWithinContainer && !isWithinNoteControls) {
         return;
       }
-      const container = root.closest<HTMLElement>('.editor-container');
       const layer = container?.querySelector<HTMLElement>('.note-controls-layer');
       const trackingRect = layer?.getBoundingClientRect() ?? container?.getBoundingClientRect();
       if (!trackingRect) {

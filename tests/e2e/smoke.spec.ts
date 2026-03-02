@@ -6,10 +6,7 @@ test.describe('App smoke', () => {
     await page.goto(`/n/${createUniqueNoteId()}`);
 
     await expect(page.getByRole('link', { name: 'RemDo' })).toBeVisible();
-
-    const project = page.getByRole('link', { name: 'Project' });
-    await expect(project).toBeVisible();
-    await expect(project).toHaveAttribute('href', `/n/project`);
+    await expect(page.getByRole('button', { name: 'Choose document' })).toBeVisible();
 
     await expect(page.locator('.editor-container').first()).toBeVisible();
     await expect(page.locator('.editor-input').first()).toBeVisible();
