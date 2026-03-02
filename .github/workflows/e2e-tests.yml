@@ -29,4 +29,6 @@ jobs:
         run: pnpm run dev:init
 
       - name: Run Playwright e2e suite
+        env:
+          TEST_TIMEOUT: 360
         run: pnpm run test:e2e

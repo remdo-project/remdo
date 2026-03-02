@@ -90,7 +90,7 @@ indent operation is a no-op.
 
 **Example (Valid Indent):** Starting with a flat list of notes:
 
-```
+```text
 - note1
 - note2
 - note3
@@ -99,7 +99,7 @@ indent operation is a no-op.
 
 If we indent "note2", and "note1" is directly above it, the result is:
 
-```
+```text
 - note1
   - note2
 - note3
