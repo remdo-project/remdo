@@ -86,12 +86,6 @@ export default function App() {
           </Group>
           <nav>
             <Group gap="md" className="app-header-links">
-              <Link
-                to={`${createDocumentPath('project')}${buildSearch({})}`}
-                className="app-header-link"
-              >
-                Project
-              </Link>
               {!config.isDevOrTest && (
                 <Anchor className="app-header-link" href="/logout" onClick={handleLogoutClick}>
                   Logout
