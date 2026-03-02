@@ -27,6 +27,12 @@ export default antfu(
   },
   unicornUnopinionatedConfig,
   {
+    files: ['**/*.md'],
+    rules: {
+      'unicorn/expiring-todo-comments': 'off',
+    },
+  },
+  {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parserOptions: {
