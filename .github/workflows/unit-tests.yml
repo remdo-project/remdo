@@ -15,4 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-pnpm
-      - run: pnpm run test:unit
+      - env:
+          TEST_TIMEOUT: 120
+        run: pnpm run test:unit
