@@ -31,10 +31,10 @@
   "scripts": {
     "audit:all": "pnpm run audit:ast-grep && pnpm run audit:stats:strict && pnpm run audit:dup:zero && pnpm run audit:unused:zero",
     "audit:ast-grep": "pnpm exec ast-grep scan --config sg/experiments/sgconfig.yml --report-style short .",
-    "audit:checks": "pnpm run audit:dup && pnpm run audit:unused && pnpm run audit:policy",
+    "audit:checks": "pnpm run audit:dup && pnpm run audit:unused && pnpm run audit:policy && pnpm run audit:security",
     "audit:dup": "jscpd --config .jscpd.json --threshold 3",
     "audit:dup:zero": "jscpd --config .jscpd.json --threshold 0",
-    "audit:policy": "timeout ${TEST_TIMEOUT:-60}s ./tools/check-pnpm-policy.sh",
+    "audit:policy": "timeout ${TEST_TIMEOUT:-60}s tsx ./tools/check-pnpm-policy.ts",
     "audit:stats": "tsx ./tools/repo-stats.ts",
     "audit:stats:strict": "pnpm run audit:stats -- --threshold-ratio 0.05",
     "audit:unused": "timeout ${TEST_TIMEOUT:-60}s ./tools/env.sh pnpm exec knip -c knip.jsonc --no-progress --max-issues 25",
@@ -81,7 +81,8 @@
     "typecheck": "timeout ${TEST_TIMEOUT:-60}s tsc",
     "typecheck:tests": "timeout ${TEST_TIMEOUT:-60}s pnpm exec tsc -p tsconfig.tests.json --pretty false",
     "typecheck:watch": "tsc --watch",
-    "vendor:lexical": "./tools/vendor-lexical.sh"
+    "vendor:lexical": "./tools/vendor-lexical.sh",
+    "audit:security": "timeout ${TEST_TIMEOUT:-60}s pnpm audit --audit-level=high --prod"
   },
   "dependencies": {
     "@lexical/clipboard": "catalog:",
