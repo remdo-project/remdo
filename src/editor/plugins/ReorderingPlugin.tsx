@@ -4,9 +4,9 @@ import { COMMAND_PRIORITY_LOW } from 'lexical';
 import { mergeRegister } from '@lexical/utils';
 import { useEffect } from 'react';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
-import { moveNotesDown, moveNotesUp } from '@/editor/outline/note-ops';
+import { moveNotesDownInRange, moveNotesUpInRange } from '@/editor/outline/note-ops';
 import { $resolveZoomBoundaryRoot } from '@/editor/outline/selection/boundary';
-import { $resolveSelectedNoteHeads } from './selected-note-heads';
+import { $resolveSelectedNoteRange } from './selected-note-range';
 
 type MoveDirection = 'up' | 'down';
 
@@ -14,12 +14,12 @@ function $moveSelection(
   editor: LexicalEditor,
   direction: MoveDirection
 ): boolean {
-  const heads = $resolveSelectedNoteHeads(editor);
-  if (heads.length === 0) {
+  const range = $resolveSelectedNoteRange(editor);
+  if (!range) {
     return false;
   }
   const boundaryRoot = $resolveZoomBoundaryRoot(editor);
-  return direction === 'up' ? moveNotesUp(heads, boundaryRoot) : moveNotesDown(heads, boundaryRoot);
+  return direction === 'up' ? moveNotesUpInRange(range, boundaryRoot) : moveNotesDownInRange(range, boundaryRoot);
 }
 
 export function ReorderingPlugin() {

@@ -244,6 +244,17 @@ export function removeNoteSubtree(item: ListItemNode) {
   }
 }
 
+export function removeNoteHeads(heads: readonly ListItemNode[]): boolean {
+  if (heads.length === 0) {
+    return false;
+  }
+
+  for (let i = heads.length - 1; i >= 0; i -= 1) {
+    removeNoteSubtree(heads[i]!);
+  }
+  return true;
+}
+
 function compareDocumentOrder(a: ListItemNode, b: ListItemNode): number {
   const aPath = getNodePath(a);
   const bPath = getNodePath(b);

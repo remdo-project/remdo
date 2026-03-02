@@ -17,14 +17,22 @@ import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '@/editor/
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { $requireContentItemNoteId, resolveContentItemFromNode } from '@/editor/outline/schema';
 import { $resolveZoomBoundaryRoot } from '@/editor/outline/selection/boundary';
-import { getContiguousSelectionHeads, getSelectedNotes } from '@/editor/outline/selection/heads';
+import type { OutlineSelectionRange } from '@/editor/outline/selection/model';
 import { $resolveStructuralHeadsFromRange } from '@/editor/outline/selection/range';
+import {
+  resolveContiguousRunIndexes,
+  resolveContiguousSiblingRangeBetween,
+} from '@/editor/outline/selection/sibling-run';
+import {
+  $resolveStructuralRangeFromLexicalSelection,
+  $resolveStructuralRangeFromOutlineSelection,
+} from '@/editor/outline/selection/structural-range';
 import {
   getNestedList,
   isContentDescendantOf,
-  removeNoteSubtree,
-  sortHeadsByDocumentOrder,
+  removeNoteHeads,
 } from '@/editor/outline/selection/tree';
+import { createHardcodedUserConfigAdapter } from './hardcoded-user-config';
 import { createNoteSdk } from '../core';
 import type {
   AdapterNoteSelection,
@@ -48,6 +56,7 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
     | { kind: 'before'; reference: LexicalNode }
     | { kind: 'after'; reference: LexicalNode }
     | { kind: 'append'; list: ListNode };
+  const userConfig = createHardcodedUserConfigAdapter();
 
   const $resolveNoteById = (noteId: NoteId) => $findNoteById(noteId);
   const $requireNoteById = (noteId: NoteId): ListItemNode => {
@@ -61,20 +70,7 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
   const $resolveRangeNotes = (range: NoteRange): ListItemNode[] | null => {
     const start = $requireNoteById(range.start);
     const end = $requireNoteById(range.end);
-
-    const parent = start.getParent();
-    if (!$isListNode(parent) || end.getParent() !== parent) {
-      return null;
-    }
-
-    const siblings = getContentSiblings(parent);
-    const startIndex = siblings.indexOf(start);
-    const endIndex = siblings.indexOf(end);
-    if (startIndex === -1 || endIndex === -1 || startIndex > endIndex) {
-      return null;
-    }
-
-    return siblings.slice(startIndex, endIndex + 1);
+    return resolveContiguousSiblingRangeBetween(start, end);
   };
   const $normalizeInsertionSlot = (index: number, size: number): number => {
     if (index >= 0) {
@@ -108,32 +104,6 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
       }
     }
   };
-  const $resolveContiguousRun = (
-    notes: readonly ListItemNode[],
-    siblings: readonly ListItemNode[]
-  ): { start: number; end: number } | null => {
-    const indexes = notes.map((note) => siblings.indexOf(note));
-    if (indexes.includes(-1)) {
-      return null;
-    }
-
-    const sortedIndexes = indexes.toSorted((left, right) => left - right);
-    const start = sortedIndexes[0];
-    const end = sortedIndexes.at(-1);
-    if (start === undefined || end === undefined) {
-      return null;
-    }
-
-    if (end - start + 1 !== notes.length) {
-      return null;
-    }
-
-    if (!indexes.every((index, position) => index === start + position)) {
-      return null;
-    }
-
-    return { start, end };
-  };
   const $resolvePlaceInsertionTarget = (
     target: PlaceTarget,
     movedNotes: ListItemNode[]
@@ -154,9 +124,9 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
       const siblingParent = sibling.getParent();
       if ($isListNode(siblingParent)) {
         const siblings = getContentSiblings(siblingParent);
-        const run = $resolveContiguousRun(movedNotes, siblings);
+        const run = resolveContiguousRunIndexes(movedNotes, siblings);
         const siblingIndex = siblings.indexOf(sibling);
-        if (run && siblingIndex === run.end + 1) {
+        if (run && siblingIndex === run.endIndex + 1) {
           throw new Error('place() target would be a no-op');
         }
       }
@@ -175,9 +145,9 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
       const siblingParent = sibling.getParent();
       if ($isListNode(siblingParent)) {
         const siblings = getContentSiblings(siblingParent);
-        const run = $resolveContiguousRun(movedNotes, siblings);
+        const run = resolveContiguousRunIndexes(movedNotes, siblings);
         const siblingIndex = siblings.indexOf(sibling);
-        if (run && siblingIndex === run.start - 1) {
+        if (run && siblingIndex === run.startIndex - 1) {
           throw new Error('place() target would be a no-op');
         }
       }
@@ -250,18 +220,22 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
     return noteId;
   };
 
+  const $noteRangeFromStructuralRange = (range: OutlineSelectionRange): NoteRange | null => {
+    const heads = $resolveStructuralHeadsFromRange(range).map((head) => $requireContentItemNoteId(head));
+    return noteRangeFromOrderedIds(heads);
+  };
+
   const $selectionFallbackFromRange = (): AdapterNoteSelection => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection)) {
       return { kind: 'none', range: null };
     }
 
-    if (!selection.isCollapsed()) {
-      const heads = getContiguousSelectionHeads(selection).map((head) => $requireContentItemNoteId(head));
-      const hasMultiNoteSelection = getSelectedNotes(selection).length > 1;
-      const range = noteRangeFromOrderedIds(heads);
-      if ((heads.length > 1 || hasMultiNoteSelection) && range) {
-        return { kind: 'structural', range };
+    const structuralRange = $resolveStructuralRangeFromLexicalSelection(selection, { allowMultiNoteSelection: true });
+    if (structuralRange) {
+      const noteRange = $noteRangeFromStructuralRange(structuralRange);
+      if (noteRange) {
+        return { kind: 'structural', range: noteRange };
       }
     }
 
@@ -290,13 +264,9 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
       return $selectionFallbackFromRange();
     }
 
-    if (outlineSelection.kind === 'structural') {
-      const range = outlineSelection.range;
-      if (!range) {
-        return { kind: 'none', range: null };
-      }
-      const heads = $resolveStructuralHeadsFromRange(range).map((head) => $requireContentItemNoteId(head));
-      const structuralNoteRange = noteRangeFromOrderedIds(heads);
+    const outlineRange = $resolveStructuralRangeFromOutlineSelection(outlineSelection);
+    if (outlineRange) {
+      const structuralNoteRange = $noteRangeFromStructuralRange(outlineRange);
       return structuralNoteRange ? { kind: 'structural', range: structuralNoteRange } : { kind: 'none', range: null };
     }
 
@@ -314,6 +284,11 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
 
   return {
     docId: () => docId,
+    userConfigId: () => userConfig.userConfigId(),
+    hasUserConfigNote: (noteId) => userConfig.hasUserConfigNote(noteId),
+    userConfigKindOf: (noteId) => userConfig.userConfigKindOf(noteId),
+    userConfigTextOf: (noteId) => userConfig.userConfigTextOf(noteId),
+    userConfigChildrenOf: (noteId) => userConfig.userConfigChildrenOf(noteId),
     selection: () => $adapterSelection(),
     createNote: (target, text = '') => $createNote(target, text),
     hasNote: (noteId) => Boolean($resolveNoteById(noteId)),
@@ -334,12 +309,7 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
       if (!resolved || resolved.length === 0) {
         return false;
       }
-
-      const notes = sortHeadsByDocumentOrder(resolved);
-      for (const note of notes.toReversed()) {
-        removeNoteSubtree(note);
-      }
-      return notes.length > 0;
+      return removeNoteHeads(resolved);
     },
     place: (range, target) => {
       const resolved = $resolveRangeNotes(range);

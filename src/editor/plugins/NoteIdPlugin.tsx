@@ -37,10 +37,13 @@ import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { getZoomBoundary } from '@/editor/outline/selection/boundary';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '@/editor/outline/selection/caret-placement';
-import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
+import { $resolveStructuralDeletionHeads } from '@/editor/outline/selection/deletion';
 import type { OutlineSelectionRange } from '@/editor/outline/selection/model';
-import { $resolveStructuralHeadsFromRange, $resolveStructuralItemsFromRange } from '@/editor/outline/selection/range';
-import { computeStructuralRangeFromHeads } from '@/editor/outline/selection/resolve';
+import { $collectStructuralItemKeysFromRange } from '@/editor/outline/selection/range';
+import {
+  $resolveStructuralRangeFromLexicalSelection,
+  $resolveStructuralRangeFromOutlineSelection,
+} from '@/editor/outline/selection/structural-range';
 import type { StructuralOverlayConfig } from '@/editor/outline/selection/overlay';
 import { updateStructuralOverlay } from '@/editor/outline/selection/overlay';
 import {
@@ -48,9 +51,7 @@ import {
   getNestedList,
   getNextContentSibling,
   noteHasChildren,
-  getSubtreeItems,
-  removeNoteSubtree,
-  sortHeadsByDocumentOrder,
+  removeNoteHeads,
 } from '@/editor/outline/selection/tree';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
 import { parseNoteLinkUrl } from '@/editor/links/note-link-url';
@@ -126,7 +127,7 @@ function hasBoundaryDirtyKey(marker: CutMarker, keys: NodeKey[], state: EditorSt
   }
 
   return state.read(() => {
-    const boundaryKeys = new Set($resolveStructuralItemsFromRange(marker.range).map((item) => item.getKey()));
+    const boundaryKeys = $collectStructuralItemKeysFromRange(marker.range);
     if (boundaryKeys.size === 0) {
       return false;
     }
@@ -191,23 +192,16 @@ function $getPlainTextFromClipboardNodes(nodes: LexicalNode[]): string {
   return nodes.map((node) => node.getTextContent()).join('\n');
 }
 
-function resolvePasteSelectionRange(
+function $resolvePasteSelectionRange(
   editor: LexicalEditor,
   selection: BaseSelection | null,
   cachedRange: OutlineSelectionRange | null
 ): OutlineSelectionRange | null {
-  let selectionRange = cachedRange;
-  if (!selectionRange) {
-    const outlineSelection = editor.selection.get();
-    if (outlineSelection?.kind === 'structural' && outlineSelection.range) {
-      selectionRange = outlineSelection.range;
-    }
-  }
-  if (!selectionRange && $isRangeSelection(selection) && !selection.isCollapsed()) {
-    const heads = getContiguousSelectionHeads(selection);
-    selectionRange = computeStructuralRangeFromHeads(heads);
-  }
-  return selectionRange;
+  return (
+    cachedRange
+    ?? $resolveStructuralRangeFromOutlineSelection(editor.selection.get())
+    ?? $resolveStructuralRangeFromLexicalSelection(selection)
+  );
 }
 
 function $isInlineSelectionWithinSingleNote(selection: BaseSelection | null): boolean {
@@ -303,16 +297,6 @@ function $insertFirstChildNotes(contentItem: ListItemNode | null, lines: string[
   } else {
     childList.append(...nodes);
   }
-}
-
-function $collectMarkedKeysFromHeads(heads: ListItemNode[]): Set<string> {
-  const marked = new Set<string>();
-  for (const node of heads) {
-    for (const item of getSubtreeItems(node)) {
-      marked.add(item.getKey());
-    }
-  }
-  return marked;
 }
 
 function $regenerateClipboardNoteIds(nodes: LexicalNode[], reservedIds: Set<string>) {
@@ -443,12 +427,10 @@ function $insertNodesAtSelection(
   let nextSibling: LexicalNode | null = null;
 
   if (structuralRange) {
-    const heads = $resolveStructuralHeadsFromRange(structuralRange);
-    if (heads.length === 0) {
+    orderedHeads = $resolveStructuralDeletionHeads(structuralRange, selection);
+    if (orderedHeads.length === 0) {
       return false;
     }
-
-    orderedHeads = sortHeadsByDocumentOrder(heads);
     const zoomBoundaryKey = getZoomBoundary(editor);
     const zoomRootHead =
       zoomBoundaryKey === null ? null : orderedHeads.find((head) => head.getKey() === zoomBoundaryKey) ?? null;
@@ -532,9 +514,7 @@ function $insertNodesAtSelection(
   }
 
   if (orderedHeads.length > 0) {
-    for (const head of orderedHeads.toReversed()) {
-      removeNoteSubtree(head);
-    }
+    removeNoteHeads(orderedHeads);
   }
 
   if (lastInserted) {
@@ -615,34 +595,24 @@ export function NoteIdPlugin() {
         CUT_COMMAND,
         (event) => {
           const result = editor.getEditorState().read(() => {
-            let selectionRange: OutlineSelectionRange | null = null;
-            const outlineSelection = editor.selection.get();
-            if (outlineSelection?.kind === 'structural' && outlineSelection.range) {
-              selectionRange = outlineSelection.range;
-            } else {
-              const selection = $getSelection();
-              if ($isRangeSelection(selection) && !selection.isCollapsed()) {
-                const heads = getContiguousSelectionHeads(selection);
-                if (heads.length > 1) {
-                  selectionRange = computeStructuralRangeFromHeads(heads);
-                }
-              }
-            }
+            const selection = $getSelection();
+            const selectionRange =
+              $resolveStructuralRangeFromOutlineSelection(editor.selection.get())
+              ?? $resolveStructuralRangeFromLexicalSelection(selection, { requireMultipleHeads: true });
 
             if (!selectionRange) {
               return { handled: false, marker: null };
             }
 
-            const heads = $resolveStructuralHeadsFromRange(selectionRange);
+            const heads = $resolveStructuralDeletionHeads(selectionRange, selection);
             if (heads.length === 0) {
               return { handled: false, marker: null };
             }
 
             const marker: CutMarker = {
-              markedKeys: $collectMarkedKeysFromHeads(heads),
+              markedKeys: $collectStructuralItemKeysFromRange(selectionRange),
               range: selectionRange,
             };
-            const selection = $getSelection();
             $populateClipboardFromSelection(editor, selection, event);
             return { handled: true, marker };
           });
@@ -667,7 +637,7 @@ export function NoteIdPlugin() {
           const outlineSelection = editor.selection.get();
           const isInlineSelection =
             outlineSelection?.kind !== 'structural' && $isInlineSelectionWithinSingleNote(payload.selection);
-          const selectionRange = resolvePasteSelectionRange(
+          const selectionRange = $resolvePasteSelectionRange(
             editor,
             payload.selection,
             lastPasteSelectionRangeRef.current
@@ -684,7 +654,7 @@ export function NoteIdPlugin() {
             const selectedMarkedKeys =
               selectionRange === null
                 ? null
-                : new Set($resolveStructuralItemsFromRange(selectionRange).map((item) => item.getKey()));
+                : $collectStructuralItemKeysFromRange(selectionRange);
             const intersection =
               caretInMarked ||
               (selectedMarkedKeys !== null && [...selectedMarkedKeys].some((key) => marker.markedKeys.has(key)));
@@ -693,9 +663,8 @@ export function NoteIdPlugin() {
               return true;
             }
 
-            const heads = $resolveStructuralHeadsFromRange(marker.range);
-            if (heads.length > 0) {
-              const ordered = sortHeadsByDocumentOrder(heads);
+            const ordered = $resolveStructuralDeletionHeads(marker.range, payload.selection);
+            if (ordered.length > 0) {
               const nodesToMove = flattenNoteNodes(ordered);
               let insertionRange = selectionRange;
               let insertionSelection: BaseSelection | null = payload.selection;
@@ -750,10 +719,8 @@ export function NoteIdPlugin() {
         PASTE_COMMAND,
         (event) => {
           const outlineSelection = editor.selection.get();
-          lastPasteSelectionRangeRef.current =
-            outlineSelection?.kind === 'structural' && outlineSelection.range
-              ? { ...outlineSelection.range }
-              : null;
+          const outlineRange = $resolveStructuralRangeFromOutlineSelection(outlineSelection);
+          lastPasteSelectionRangeRef.current = outlineRange ? { ...outlineRange } : null;
           const clipboardPayload = getClipboardPayload(event);
           lastPasteWasCutRef.current = clipboardPayload?.remdoCut === true;
           if (!lastPasteWasCutRef.current) {
@@ -793,7 +760,7 @@ export function NoteIdPlugin() {
           const selection = $getSelection();
           const isInlineSelection =
             outlineSelection?.kind !== 'structural' && $isInlineSelectionWithinSingleNote(selection);
-          const selectionRange = resolvePasteSelectionRange(
+          const selectionRange = $resolvePasteSelectionRange(
             editor,
             selection,
             lastPasteSelectionRangeRef.current

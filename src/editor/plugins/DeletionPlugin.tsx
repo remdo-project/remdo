@@ -29,10 +29,12 @@ import {
   resolveContentItemFromNode,
 } from '@/editor/outline/schema';
 import { $normalizeOutlineRoot } from '@/editor/outline/normalization';
-import { $resolveZoomBoundaryRoot, isWithinZoomBoundary } from '@/editor/outline/selection/boundary';
+import { $resolveZoomBoundaryRoot } from '@/editor/outline/selection/boundary';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
-import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
-import { $resolveStructuralHeadsFromRange } from '@/editor/outline/selection/range';
+import {
+  $resolveStructuralDeletionTargets,
+  applyStructuralDeletionTargets,
+} from '@/editor/outline/selection/deletion';
 import {
   getFirstDescendantListItem,
   getNestedList,
@@ -41,7 +43,6 @@ import {
   getParentContentItem,
   getSubtreeTail,
   removeNoteSubtree,
-  sortHeadsByDocumentOrder,
   isContentDescendantOf,
 } from '@/editor/outline/selection/tree';
 
@@ -236,36 +237,6 @@ function resolveCaretPlanAfterRemoval(item: ListItemNode): CaretPlan | null {
   return null;
 }
 
-function resolveCaretPlanAfterStructuralDeletion(
-  heads: ListItemNode[],
-  boundaryRoot: ListItemNode | null
-): CaretPlan | null {
-  if (heads.length === 0) {
-    return null;
-  }
-
-  const orderedHeads = sortHeadsByDocumentOrder(heads);
-  const lastHead = orderedHeads.at(-1)!;
-  const nextSibling = getNextContentSibling(lastHead);
-  if (nextSibling && isWithinZoomBoundary(nextSibling, boundaryRoot)) {
-    return { target: nextSibling, edge: 'start' };
-  }
-
-  const firstHead = orderedHeads[0]!;
-  const previousSibling = getPreviousContentSibling(firstHead);
-  if (previousSibling && isWithinZoomBoundary(previousSibling, boundaryRoot)) {
-    return { target: getSubtreeTail(previousSibling), edge: 'end' };
-  }
-
-  const parentList = firstHead.getParent();
-  const parentNote = $isListNode(parentList) ? getParentNote(parentList) : null;
-  if (parentNote && isWithinZoomBoundary(parentNote, boundaryRoot)) {
-    return { target: parentNote, edge: 'end' };
-  }
-
-  return null;
-}
-
 export function DeletionPlugin() {
   const [editor] = useLexicalComposerContext();
   const [rootElement, setRootElement] = useState<HTMLElement | null>(null);
@@ -335,29 +306,19 @@ export function DeletionPlugin() {
       }
 
       const selection = $getSelection();
-      let heads = $resolveStructuralHeadsFromRange(structuralRange);
-      if (heads.length === 0 && $isRangeSelection(selection)) {
-        heads = getContiguousSelectionHeads(selection);
-      }
-
-      if (heads.length === 0) {
+      const boundaryRoot = $resolveZoomBoundaryRoot(editor);
+      const structuralTargets = $resolveStructuralDeletionTargets(structuralRange, selection, boundaryRoot);
+      if (!structuralTargets) {
         return false;
       }
 
       event?.preventDefault();
       event?.stopPropagation();
-
-      const boundaryRoot = $resolveZoomBoundaryRoot(editor);
-      const caretPlan = resolveCaretPlanAfterStructuralDeletion(heads, boundaryRoot);
-      const orderedHeads = sortHeadsByDocumentOrder(heads);
-
-      for (const head of orderedHeads.toReversed()) {
-        removeNoteSubtree(head);
-      }
+      applyStructuralDeletionTargets(structuralTargets);
 
       let caretApplied = false;
-      if (caretPlan) {
-        caretApplied = $selectItemEdge(caretPlan.target, caretPlan.edge);
+      if (structuralTargets.caretPlan) {
+        caretApplied = $selectItemEdge(structuralTargets.caretPlan.target, structuralTargets.caretPlan.edge);
       }
 
       if (!caretApplied && boundaryRoot && boundaryRoot.isAttached()) {

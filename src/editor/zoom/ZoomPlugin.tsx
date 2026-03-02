@@ -195,12 +195,16 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
       if (!root) {
         return null;
       }
+      const eventTarget = event.target;
+      if (eventTarget instanceof Element && !root.contains(eventTarget)) {
+        return null;
+      }
 
       const resolveFromElement = (element: Element | null): HTMLElement | null =>
         element ? element.closest<HTMLElement>('li.list-item') : null;
 
-      let listItem: HTMLElement | null = event.target instanceof Element
-        ? resolveFromElement(event.target)
+      let listItem: HTMLElement | null = eventTarget instanceof Element
+        ? resolveFromElement(eventTarget)
         : null;
 
       if (!listItem && typeof document.elementsFromPoint === 'function') {

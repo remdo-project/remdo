@@ -1,9 +1,8 @@
 import type { ListItemNode } from '@lexical/list';
-import { $isListNode } from '@lexical/list';
 import { $getNodeByKey } from 'lexical';
 import type { OutlineSelectionRange } from './model';
-import { getContentSiblings } from '../list-structure';
 import { resolveContentItemFromNode } from '../schema';
+import { resolveContiguousSiblingRangeBetween } from './sibling-run';
 import { getSubtreeItems } from './tree';
 
 function $resolveRangeBoundaryItem(key: string): ListItemNode | null {
@@ -21,20 +20,7 @@ export function $resolveStructuralHeadsFromRange(range: OutlineSelectionRange): 
   if (!start || !end) {
     return [];
   }
-
-  const parent = start.getParent();
-  if (!$isListNode(parent) || end.getParent() !== parent) {
-    return [];
-  }
-
-  const siblings = getContentSiblings(parent);
-  const startIndex = siblings.indexOf(start);
-  const endIndex = siblings.indexOf(end);
-  if (startIndex === -1 || endIndex === -1 || startIndex > endIndex) {
-    return [];
-  }
-
-  return siblings.slice(startIndex, endIndex + 1);
+  return resolveContiguousSiblingRangeBetween(start, end) ?? [];
 }
 
 export function $resolveStructuralItemsFromRange(range: OutlineSelectionRange): ListItemNode[] {
@@ -56,4 +42,8 @@ export function $resolveStructuralItemsFromRange(range: OutlineSelectionRange): 
     }
   }
   return items;
+}
+
+export function $collectStructuralItemKeysFromRange(range: OutlineSelectionRange): Set<string> {
+  return new Set($resolveStructuralItemsFromRange(range).map((item) => item.getKey()));
 }

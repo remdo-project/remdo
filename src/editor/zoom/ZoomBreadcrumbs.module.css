@@ -24,3 +24,14 @@
 .crumbCurrent {
   color: var(--mantine-color-dark-2);
 }
+
+.documentControl {
+  display: inline-flex;
+  align-items: center;
+}
+
+.documentCrumbGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}

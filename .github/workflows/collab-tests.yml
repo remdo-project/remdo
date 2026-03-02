@@ -16,4 +16,6 @@ jobs:
       - uses: ./.github/actions/setup-pnpm
 
       - name: Run collaboration unit tests
+        env:
+          TEST_TIMEOUT: 270
         run: pnpm run test:collab

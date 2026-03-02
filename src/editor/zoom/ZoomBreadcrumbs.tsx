@@ -1,9 +1,11 @@
+import type { ReactNode } from 'react';
 import { Breadcrumbs } from '@mantine/core';
 import styles from './ZoomBreadcrumbs.module.css';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 
 interface ZoomBreadcrumbsProps {
   docLabel: string;
+  documentControl?: ReactNode;
   path: NotePathItem[];
   onSelectNoteId: (noteId: string | null) => void;
 }
@@ -17,19 +19,35 @@ const truncateLabel = (label: string) => {
   return `${label.slice(0, MAX_LABEL_LENGTH)}...`;
 };
 
-export function ZoomBreadcrumbs({ docLabel, path, onSelectNoteId }: ZoomBreadcrumbsProps) {
+export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectNoteId }: ZoomBreadcrumbsProps) {
   const docLabelDisplay = truncateLabel(docLabel);
 
   return (
     <Breadcrumbs className={styles.breadcrumbs} data-zoom-breadcrumbs>
-      <button
-        type="button"
-        className={styles.crumbButton}
-        data-zoom-crumb="document"
-        onClick={() => onSelectNoteId(null)}
-      >
-        {docLabelDisplay}
-      </button>
+      {documentControl ? (
+        <span className={styles.documentCrumbGroup} data-zoom-crumb="document-group">
+          <button
+            type="button"
+            className={styles.crumbButton}
+            data-zoom-crumb="document"
+            onClick={() => onSelectNoteId(null)}
+          >
+            {docLabelDisplay}
+          </button>
+          <span className={styles.documentControl} data-zoom-crumb="document-control">
+            {documentControl}
+          </span>
+        </span>
+      ) : (
+        <button
+          type="button"
+          className={styles.crumbButton}
+          data-zoom-crumb="document"
+          onClick={() => onSelectNoteId(null)}
+        >
+          {docLabelDisplay}
+        </button>
+      )}
       {path.map((item, index) => {
         const isCurrent = index === path.length - 1;
         const label = truncateLabel(item.label);

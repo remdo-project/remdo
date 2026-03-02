@@ -2,6 +2,8 @@ import type { ListItemNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import type { RangeSelection } from 'lexical';
 import { $indentNote, $outdentNote } from '@/editor/lexical-helpers';
+import type { OutlineSelectionRange } from './selection/model';
+import { $resolveStructuralHeadsFromRange } from './selection/range';
 import {
   $getOrCreateChildList,
   flattenNoteNodes,
@@ -15,6 +17,7 @@ import {
 import { resolveContentItemFromNode } from './schema';
 import { isWithinZoomBoundary } from './selection/boundary';
 import { getContiguousSelectionHeads } from './selection/heads';
+import { resolveContiguousSiblingRangeFromHeads } from './selection/sibling-run';
 import { getNextContentSibling, getParentContentItem, isContentDescendantOf } from './selection/tree';
 
 export function resolveRangeSelectionHeads(selection: RangeSelection): ListItemNode[] {
@@ -82,6 +85,11 @@ function $indentNotes(notes: ListItemNode[], boundaryRoot: ListItemNode | null):
 }
 export const indentNotes = $indentNotes;
 
+function $indentNotesInRange(range: OutlineSelectionRange, boundaryRoot: ListItemNode | null): boolean {
+  return indentNotes($resolveStructuralHeadsFromRange(range), boundaryRoot);
+}
+export const indentNotesInRange = $indentNotesInRange;
+
 function $outdentNotes(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
   if (notes.length === 0) {
     return false;
@@ -98,6 +106,11 @@ function $outdentNotes(notes: ListItemNode[], boundaryRoot: ListItemNode | null)
   return true;
 }
 export const outdentNotes = $outdentNotes;
+
+function $outdentNotesInRange(range: OutlineSelectionRange, boundaryRoot: ListItemNode | null): boolean {
+  return outdentNotes($resolveStructuralHeadsFromRange(range), boundaryRoot);
+}
+export const outdentNotesInRange = $outdentNotesInRange;
 
 function moveDownWithinList(notes: ListItemNode[], siblings: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
   if (!notes.every((note) => isWithinZoomBoundary(note, boundaryRoot))) {
@@ -259,8 +272,7 @@ function outdentMoveFallback(notes: ListItemNode[], direction: 'up' | 'down', bo
 }
 
 function resolveMovableHeads(notes: ListItemNode[], boundaryRoot: ListItemNode | null): ListItemNode[] | null {
-  const first = notes[0];
-  if (!first) {
+  if (notes.length === 0) {
     return null;
   }
 
@@ -268,32 +280,7 @@ function resolveMovableHeads(notes: ListItemNode[], boundaryRoot: ListItemNode |
     return null;
   }
 
-  const parentList = first.getParent();
-  if (!$isListNode(parentList)) {
-    return null;
-  }
-  if (!notes.every((note) => note.getParent() === parentList)) {
-    return null;
-  }
-
-  const siblings = getContentSiblings(parentList);
-  const indexes = notes.map((note) => siblings.indexOf(note));
-  if (indexes.includes(-1)) {
-    return null;
-  }
-
-  const sortedIndexes = indexes.toSorted((left, right) => left - right);
-  const startIndex = sortedIndexes[0];
-  const endIndex = sortedIndexes.at(-1);
-  if (startIndex === undefined || endIndex === undefined) {
-    return null;
-  }
-
-  if (endIndex - startIndex + 1 !== notes.length) {
-    return null;
-  }
-
-  return siblings.slice(startIndex, endIndex + 1);
+  return resolveContiguousSiblingRangeFromHeads(notes);
 }
 
 function $moveNotesDown(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
@@ -321,6 +308,11 @@ function $moveNotesDown(notes: ListItemNode[], boundaryRoot: ListItemNode | null
 }
 export const moveNotesDown = $moveNotesDown;
 
+function $moveNotesDownInRange(range: OutlineSelectionRange, boundaryRoot: ListItemNode | null): boolean {
+  return moveNotesDown($resolveStructuralHeadsFromRange(range), boundaryRoot);
+}
+export const moveNotesDownInRange = $moveNotesDownInRange;
+
 function $moveNotesUp(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
   const movableHeads = resolveMovableHeads(notes, boundaryRoot);
   if (!movableHeads || movableHeads.length === 0) {
@@ -345,3 +337,8 @@ function $moveNotesUp(notes: ListItemNode[], boundaryRoot: ListItemNode | null):
   );
 }
 export const moveNotesUp = $moveNotesUp;
+
+function $moveNotesUpInRange(range: OutlineSelectionRange, boundaryRoot: ListItemNode | null): boolean {
+  return moveNotesUp($resolveStructuralHeadsFromRange(range), boundaryRoot);
+}
+export const moveNotesUpInRange = $moveNotesUpInRange;

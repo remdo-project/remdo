@@ -35,6 +35,24 @@
   --interaction-radius: var(--mantine-radius-sm);
 }
 
+.document-header-doc-menu {
+  color: var(--mantine-color-dark-2);
+  --interaction-radius: var(--mantine-radius-sm);
+}
+
+.document-header-doc-menu:hover,
+.document-header-doc-menu:focus-visible {
+  color: var(--mantine-color-dark-0);
+}
+
+.document-header-doc-dropdown {
+  min-width: 10rem;
+}
+
+.document-header-doc-dropdown [role='option'] {
+  white-space: nowrap;
+}
+
 .document-header-search .mantine-Input-input:focus,
 .document-header-search .mantine-Input-input:focus-visible {
   border-color: var(--mantine-color-dark-4);

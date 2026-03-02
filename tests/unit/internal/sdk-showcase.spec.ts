@@ -1,3 +1,13 @@
+/**
+ * Temporary SDK scratchpad.
+ *
+ * This file is intentionally used to prototype and discuss SDK shape changes.
+ * It is not a normative test suite and should not be used for test coverage
+ * planning or quality gates beyond basic safety checks.
+ *
+ * Proper unit/integration suites remain the source of truth; this file is
+ * expected to be removed once the SDK API reaches a stable/final shape.
+ */
 import { describe, expect, it } from 'vitest';
 import { meta, placeCaretAtNote } from '#tests';
 import { createLexicalNoteSdk } from '@/editor/outline/sdk/adapters/lexical';
@@ -53,6 +63,33 @@ describe('sdk showcase', () => {
         { noteId: 'note1', text: 'note1' },
         { noteId: null, text: 'sdk note' },
       ]);
+    }
+  );
+
+  it(
+    'lists document ids and titles via user-config document-list traversal',
+    meta({ fixture: 'flat' }),
+    async ({ remdo }) => {
+      await placeCaretAtNote(remdo, 'note1');
+      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+
+      remdo.validate(() => {
+        const documentList = sdk.userConfig().children().find((entry) => entry.kind() === 'document-list');
+        if (!documentList) {
+          throw new Error('Expected document-list note');
+        }
+        const listedDocuments = documentList.children().filter((entry) => entry.kind() === 'document').map((document) => ({
+          id: document.id(),
+          text: document.text(),
+        }));
+
+        expect(listedDocuments).toEqual([
+          { id: 'main', text: 'Main' },
+          { id: 'project', text: 'Project' },
+          { id: 'basic', text: 'Basic' },
+          { id: 'flat', text: 'Flat' },
+        ]);
+      });
     }
   );
 });
