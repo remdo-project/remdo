@@ -1,4 +1,5 @@
-import type { NoteId, NoteKind } from '../contracts';
+import { createNoteSdk } from '../core';
+import type { AdapterNoteSelection, NoteId, NoteKind, NoteSdk, NoteSdkAdapter } from '../contracts';
 import { NoteNotFoundError } from '../errors';
 
 interface UserConfigRecord {
@@ -50,4 +51,39 @@ export function createHardcodedUserConfigAdapter(): HardcodedUserConfigAdapter {
     userConfigTextOf: (noteId) => requireRecord(noteId).text,
     userConfigChildrenOf: (noteId) => requireRecord(noteId).children,
   };
+}
+
+const noSelection: AdapterNoteSelection = { kind: 'none', range: null };
+
+export function createHardcodedUserConfigNoteSdk(): NoteSdk {
+  const userConfig = createHardcodedUserConfigAdapter();
+  const adapter: NoteSdkAdapter = {
+    docId: () => MAIN_DOCUMENT_ID,
+    userConfigId: () => userConfig.userConfigId(),
+    hasUserConfigNote: (noteId) => userConfig.hasUserConfigNote(noteId),
+    userConfigKindOf: (noteId) => userConfig.userConfigKindOf(noteId),
+    userConfigTextOf: (noteId) => userConfig.userConfigTextOf(noteId),
+    userConfigChildrenOf: (noteId) => userConfig.userConfigChildrenOf(noteId),
+    selection: () => noSelection,
+    createNote: () => {
+      throw new Error('createNote is not supported by hardcoded user-config sdk.');
+    },
+    hasNote: () => false,
+    isBounded: () => false,
+    textOf: (noteId) => {
+      throw new NoteNotFoundError(noteId);
+    },
+    childrenOf: (noteId) => {
+      throw new NoteNotFoundError(noteId);
+    },
+    delete: () => false,
+    place: () => {
+      throw new Error('place is not supported by hardcoded user-config sdk.');
+    },
+    indent: () => false,
+    outdent: () => false,
+    moveUp: () => false,
+    moveDown: () => false,
+  };
+  return createNoteSdk(adapter);
 }

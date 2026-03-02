@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createNoteSdk, NoteNotFoundError } from '@/editor/outline/sdk';
-import type { AdapterNoteSelection, NoteRange, NoteSdkAdapter, PlaceTarget } from '@/editor/outline/sdk/contracts';
+import type { AdapterNoteSelection, NoteKind, NoteRange, NoteSdkAdapter, PlaceTarget } from '@/editor/outline/sdk/contracts';
 
 function createMockAdapterFixture(
   adapterSelection?: AdapterNoteSelection
@@ -17,8 +17,11 @@ function createMockAdapterFixture(
   ]);
   const placeCalls: Array<{ range: NoteRange; target: PlaceTarget }> = [];
   let nextDraftId = 1;
-  const configNotes = new Map<string, { kind: string; text: string; children: string[] }>([
-    ['user-config', { kind: 'user-config', text: 'User Config', children: [] }],
+  const configNotes = new Map<string, { kind: NoteKind; text: string; children: string[] }>([
+    ['user-config', { kind: 'user-config', text: 'User Config', children: ['document-list'] }],
+    ['document-list', { kind: 'document-list', text: 'Documents', children: ['main', 'flat'] }],
+    ['main', { kind: 'document', text: 'Main', children: [] }],
+    ['flat', { kind: 'document', text: 'Flat', children: [] }],
   ]);
 
   const requireNote = (noteId: string): { text: string; children: string[] } => {
@@ -120,6 +123,26 @@ function createMockAdapterFixture(
 }
 
 describe('note sdk core', () => {
+  it('lists documents through user-config document-list traversal', () => {
+    const fixture = createMockAdapterFixture();
+    const sdk = createNoteSdk(fixture.adapter);
+    const documentList = sdk.userConfig().children().find((entry) => entry.kind() === 'document-list');
+    if (!documentList) {
+      throw new Error('Expected document-list note');
+    }
+
+    expect(
+      documentList.children().filter((entry) => entry.kind() === 'document').map((document) => ({
+        id: document.id(),
+        kind: document.kind(),
+        text: document.text(),
+      }))
+    ).toEqual([
+      { id: 'main', kind: 'document', text: 'Main' },
+      { id: 'flat', kind: 'document', text: 'Flat' },
+    ]);
+  });
+
   it('reads note data from adapter', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createNoteSdk(fixture.adapter);

@@ -77,3 +77,6 @@ Rules:
 - When document-scoped note APIs land, move `createNote`/`note` under a
   document-level note handle and remove user-config responsibilities from
   `src/editor/outline/sdk/adapters/lexical.ts` (compose adapters at SDK level).
+- Before closing the current note-first SDK/doc-switcher workstream, delete the
+  temporary hardcoded adapter file
+  `src/editor/outline/sdk/adapters/hardcoded-user-config.ts`.

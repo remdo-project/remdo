@@ -67,18 +67,18 @@ describe('sdk showcase', () => {
   );
 
   it(
-    'lists document ids and titles via sdk user-config document-list note',
+    'lists document ids and titles via user-config document-list traversal',
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
 
       remdo.validate(() => {
-        const userConfigChildren = sdk.userConfig().children();
-        const documentList = userConfigChildren.find((entry) => entry.kind() === 'document-list');
-        expect(documentList).toBeDefined();
-
-        const listedDocuments = documentList?.children().map((document) => ({
+        const documentList = sdk.userConfig().children().find((entry) => entry.kind() === 'document-list');
+        if (!documentList) {
+          throw new Error('Expected document-list note');
+        }
+        const listedDocuments = documentList.children().filter((entry) => entry.kind() === 'document').map((document) => ({
           id: document.id(),
           text: document.text(),
         }));

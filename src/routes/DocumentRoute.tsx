@@ -1,10 +1,11 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
-import { TextInput } from '@mantine/core';
-import { IconSearch } from '@tabler/icons-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
+import { IconChevronDown, IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Editor from '@/editor/Editor';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
+import { createHardcodedUserConfigNoteSdk } from '@/editor/outline/sdk';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
 import { createDocumentPathForPathname, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
 import './DocumentRoute.css';
@@ -20,6 +21,23 @@ export default function DocumentRoute() {
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const zoomNoteId = parsedRef?.noteId ?? null;
+  const sdk = useMemo(() => createHardcodedUserConfigNoteSdk(), []);
+  const documentOptions = useMemo(
+    () => {
+      const documentList = sdk.userConfig().children().find((entry) => entry.kind() === 'document-list');
+      if (!documentList) {
+        return [];
+      }
+      return documentList
+        .children()
+        .filter((entry) => entry.kind() === 'document')
+        .map((document) => ({ value: document.id(), label: document.text() }));
+    },
+    [sdk]
+  );
+  const documentPicker = useCombobox({
+    onDropdownClose: () => documentPicker.resetSelectedOption(),
+  });
 
   const setZoomNoteId = (noteId: string | null) => {
     const nextSearch = searchParams.toString();
@@ -30,6 +48,17 @@ export default function DocumentRoute() {
       },
       { replace: true }
     );
+  };
+
+  const setDocumentId = (nextDocId: string) => {
+    if (nextDocId === docId) {
+      return;
+    }
+    const nextSearch = searchParams.toString();
+    void navigate({
+      pathname: createDocumentPathForPathname(location.pathname, nextDocId),
+      search: nextSearch ? `?${nextSearch}` : '',
+    });
   };
 
   const focusEditorInput = () => {
@@ -92,6 +121,45 @@ export default function DocumentRoute() {
         <div className="document-header-breadcrumbs">
           <ZoomBreadcrumbs
             docLabel={docId}
+            documentControl={(
+              <Combobox
+                offset={{ mainAxis: 4, crossAxis: -44 }}
+                onOptionSubmit={(value) => {
+                  setDocumentId(value);
+                  documentPicker.closeDropdown();
+                }}
+                position="bottom-start"
+                shadow="md"
+                store={documentPicker}
+                withinPortal={false}
+              >
+                <Combobox.Target>
+                  <ActionIcon
+                    aria-label="Choose document"
+                    className="document-header-doc-menu remdo-interaction-surface"
+                    disabled={documentOptions.length === 0}
+                    onClick={() => documentPicker.toggleDropdown()}
+                    size="sm"
+                    variant="subtle"
+                  >
+                    <IconChevronDown aria-hidden="true" size={14} />
+                  </ActionIcon>
+                </Combobox.Target>
+                <Combobox.Dropdown className="document-header-doc-dropdown">
+                  <Combobox.Options>
+                    {documentOptions.map((document) => (
+                      <Combobox.Option
+                        active={document.value === docId}
+                        key={document.value}
+                        value={document.value}
+                      >
+                        {document.label}
+                      </Combobox.Option>
+                    ))}
+                  </Combobox.Options>
+                </Combobox.Dropdown>
+              </Combobox>
+            )}
             path={zoomPath}
             onSelectNoteId={setZoomNoteId}
           />

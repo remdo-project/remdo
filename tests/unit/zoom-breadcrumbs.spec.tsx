@@ -58,4 +58,21 @@ describe('zoom breadcrumbs', () => {
     expect(onSelect).toHaveBeenNthCalledWith(1, null);
     expect(onSelect).toHaveBeenNthCalledWith(2, 'note1');
   });
+
+  it('renders a custom document control instead of the default document button', () => {
+    const onSelect = vi.fn();
+    renderBreadcrumbs({
+      docLabel: 'project',
+      documentControl: (
+        <select aria-label="Switch document">
+          <option value="project">Project</option>
+        </select>
+      ),
+      path: [],
+      onSelectNoteId: onSelect,
+    });
+
+    expect(screen.getByRole('combobox', { name: 'Switch document' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'project' })).toBeInTheDocument();
+  });
 });

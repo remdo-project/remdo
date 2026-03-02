@@ -176,7 +176,13 @@ export function NoteControlsPlugin() {
         return;
       }
       const eventTarget = event.target;
-      if (eventTarget instanceof HTMLElement && eventTarget.closest('[data-note-menu]')) {
+      const eventTargetElement = eventTarget instanceof Element ? eventTarget : null;
+      if (eventTargetElement?.closest('[data-note-menu]')) {
+        return;
+      }
+      const isWithinRoot = eventTargetElement ? root.contains(eventTargetElement) : false;
+      const isWithinNoteControls = !!eventTargetElement?.closest('.note-controls-layer');
+      if (eventTargetElement && !isWithinRoot && !isWithinNoteControls) {
         return;
       }
       const container = root.closest<HTMLElement>('.editor-container');
@@ -206,7 +212,7 @@ export function NoteControlsPlugin() {
       }
 
       const candidate =
-        eventTarget instanceof HTMLElement
+        eventTarget instanceof Element
           ? eventTarget.closest<HTMLElement>('li.list-item:not(.list-nested-item)')
           : null;
       const nextHover = candidate ?? resolveTargetByY(root, event.clientY);
