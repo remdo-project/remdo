@@ -57,6 +57,9 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
   scope, breadcrumbs, and routing.
+- `docs/performance/client-side-perf-tests.md` (Medium). Minimal client-side
+  perf baseline spec: median metric and core modes/operations/workloads, plus
+  optional experiments (warmups, thresholds, baselines, and gating).
 - `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs;
   tracks paste-placement e2e follow-up and prod schema recovery decisions.
 Whenever you edit any of these docs, update their summaries/buckets here so the
