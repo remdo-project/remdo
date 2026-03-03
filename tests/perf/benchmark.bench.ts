@@ -1,14 +1,13 @@
-import { config } from '#config';
-import { readFixture } from '#tests-common/fixtures';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import { placeCaretAtNote, pressKey, typeText } from '#tests';
 import { REORDER_NOTES_DOWN_COMMAND } from '@/editor/commands';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
-import { resolveDefaultDocId } from '@/routing';
 import { afterAll, bench, describe } from 'vitest';
-import { generateBalancedWorkload } from './generate-balanced-workload';
 import { renderRemdoEditor } from '../unit/collab/_support/render-editor';
+import type { SerializedEditorState } from 'lexical';
 
-type WorkloadId = 'flat' | 'balanced-8x3';
+type WorkloadId = `${number}x${number}`;
 
 interface WorkloadTargets {
   leafNoteId: string;
@@ -26,40 +25,71 @@ interface Operation {
 
 interface BenchmarkHarness {
   remdo: RemdoTestApi;
-  flatStateJson: string;
-  balancedStateJson: string;
+  workloadStateJson: string;
+  workloadTargets: WorkloadTargets;
 }
 
-const WORKLOAD_TARGETS: Record<WorkloadId, WorkloadTargets> = {
-  flat: {
-    leafNoteId: 'note3',
-    typingNoteId: 'note1',
-    typingMiddleOffset: 2,
-    deleteNoteId: 'note2',
-    withinParentNoteId: 'note2',
-    betweenParentsMovingNoteId: 'note2',
-  },
-  'balanced-8x3': {
-    leafNoteId: 'b888',
+// eslint-disable-next-line node/no-process-env -- perf bench intentionally reads direct env override.
+const selectedWorkloadId = resolveWorkloadId(process.env.PERF_WORKLOAD || '8x3');
+// eslint-disable-next-line node/no-process-env -- perf bench intentionally reads direct env override.
+const dataDir = process.env.DATA_DIR || path.resolve('data');
+
+function resolveWorkloadId(rawWorkloadId: string): WorkloadId {
+  const workloadId = rawWorkloadId.trim();
+  if (/^\d+x\d+$/.test(workloadId)) {
+    return workloadId as WorkloadId;
+  }
+
+  throw new Error(
+    `Unsupported PERF_WORKLOAD: "${rawWorkloadId}". Use "<branch>x<depth>" (example: "8x3").`
+  );
+}
+
+function resolveWorkloadTargets(workloadId: WorkloadId): WorkloadTargets {
+  const [branchPart, depthPart] = workloadId.split('x');
+  const branchFactor = Number(branchPart);
+  const depth = Number(depthPart);
+
+  return {
+    leafNoteId: `b${String(branchFactor).repeat(depth)}`,
     typingNoteId: 'b111',
     typingMiddleOffset: 2,
     deleteNoteId: 'b111',
     withinParentNoteId: 'b12',
     betweenParentsMovingNoteId: 'b12',
-  },
-};
+  };
+}
 
-const mode = config.env.COLLAB_ENABLED ? 'collab' : 'non-collab';
+async function resolveWorkloadState(workloadId: WorkloadId): Promise<{ stateJson: string; targets: WorkloadTargets }> {
+  const workloadPath = path.resolve(dataDir, 'perf', `${workloadId}.json`);
+  let rawFixture: string;
+
+  try {
+    rawFixture = await fs.readFile(workloadPath, 'utf8');
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      throw new Error(
+        [
+          `Missing perf workload file: ${workloadPath}`,
+          `Generate it with: pnpm run perf:generate -- ${workloadId}`,
+        ].join('\n')
+      );
+    }
+    throw error;
+  }
+
+  const parsed = JSON.parse(rawFixture) as SerializedEditorState;
+
+  return {
+    stateJson: JSON.stringify(parsed),
+    targets: resolveWorkloadTargets(workloadId),
+  };
+}
 
 async function ensureStructuralSelection(remdo: RemdoTestApi, noteId: string): Promise<void> {
   await placeCaretAtNote(remdo, noteId, 0);
   await pressKey(remdo, { key: 'ArrowDown', shift: true });
-
-  // Match the app's two-stage ladder: first Shift+Arrow enters inline range,
-  // second enters structural range for non-empty notes.
-  if (!remdo.editor.selection.isStructural()) {
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
-  }
+  await pressKey(remdo, { key: 'ArrowDown', shift: true });
 }
 
 const OPERATIONS: Operation[] = [
@@ -116,31 +146,7 @@ const OPERATIONS: Operation[] = [
   },
 ];
 
-function registerWorkloadBenchmarks(
-  workloadId: WorkloadId,
-  getStateJson: () => string,
-  getRemdo: () => RemdoTestApi,
-  ensureHarnessReady: () => Promise<void>
-): void {
-  const targets = WORKLOAD_TARGETS[workloadId];
-
-  describe(`${workloadId} workload`, () => {
-    for (const operation of OPERATIONS) {
-      bench(operation.name, async () => {
-        const remdo = getRemdo();
-        await remdo._bridge.applySerializedState(getStateJson());
-        await operation.run(remdo, targets);
-      }, {
-        throws: true,
-        setup: async () => {
-          await ensureHarnessReady();
-        },
-      });
-    }
-  });
-}
-
-describe(`editor performance (${mode})`, () => {
+describe(`editor performance (${selectedWorkloadId})`, () => {
   let unmount: (() => void) | null = null;
   let harness: BenchmarkHarness | null = null;
 
@@ -156,33 +162,29 @@ describe(`editor performance (${mode})`, () => {
       return;
     }
 
-    const [flatStateJson, mounted] = await Promise.all([
-      readFixture('flat'),
-      renderRemdoEditor({ docId: resolveDefaultDocId(config.env.COLLAB_DOCUMENT_ID) }),
+    const [workload, mounted] = await Promise.all([
+      resolveWorkloadState(selectedWorkloadId),
+      renderRemdoEditor({ docId: 'main' }),
     ]);
 
     harness = {
       remdo: mounted.api,
-      flatStateJson,
-      balancedStateJson: generateBalancedWorkload(),
+      workloadStateJson: workload.stateJson,
+      workloadTargets: workload.targets,
     };
     unmount = mounted.unmount;
   };
 
-  const getRemdo = (): RemdoTestApi => {
-    return harness!.remdo;
-  };
-
-  registerWorkloadBenchmarks(
-    'flat',
-    () => harness!.flatStateJson,
-    getRemdo,
-    ensureHarnessReady
-  );
-  registerWorkloadBenchmarks(
-    'balanced-8x3',
-    () => harness!.balancedStateJson,
-    getRemdo,
-    ensureHarnessReady
-  );
+  for (const operation of OPERATIONS) {
+    bench(operation.name, async () => {
+      const remdo = harness!.remdo;
+      await remdo._bridge.applySerializedState(harness!.workloadStateJson);
+      await operation.run(remdo, harness!.workloadTargets);
+    }, {
+      throws: true,
+      setup: async () => {
+        await ensureHarnessReady();
+      },
+    });
+  }
 });

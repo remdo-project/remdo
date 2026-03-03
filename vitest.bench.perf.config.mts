@@ -7,7 +7,6 @@ export default defineConfig({
   ...createViteSharedConfig(),
   test: {
     environment: 'jsdom',
-    globalSetup: './tests/global/collab-server-setup.ts',
     setupFiles: ['./tests/unit/_support/setup/index.ts'],
     benchmark: {
       include: ['tests/perf/**/*.bench.ts'],
