@@ -53,7 +53,8 @@ outdated or a doc’s role materially changes.
   parent-sibling reparent, outdent, then no-op.
 - `docs/outliner/search.md` (Short). Search behavior: focus-driven mode
   entry/exit, single highlighted note navigation over visible notes, flat
-  text-match results on typing, and Enter-to-zoom.
+  text-match results on typing, Enter-to-zoom, and `[Future]` slash-prefixed
+  tree navigation.
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
   scope, breadcrumbs, and routing.
