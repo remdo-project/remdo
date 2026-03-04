@@ -3,7 +3,7 @@ import path from 'node:path';
 import { placeCaretAtNote, pressKey, typeText } from '#tests';
 import { REORDER_NOTES_DOWN_COMMAND } from '@/editor/commands';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
-import { afterAll, bench, describe } from 'vitest';
+import { bench, describe } from 'vitest';
 import { renderRemdoEditor } from '../unit/collab/_support/render-editor';
 import type { SerializedEditorState } from 'lexical';
 
@@ -195,13 +195,6 @@ describe(`editor performance (${selectedWorkloadId})`, () => {
   let unmount: (() => void) | null = null;
   let harness: BenchmarkHarness | null = null;
 
-  afterAll(async () => {
-    if (harness) {
-      await harness.remdo.waitForSynced();
-    }
-    unmount?.();
-  });
-
   const ensureHarnessReady = async (): Promise<void> => {
     if (harness) {
       return;
@@ -220,6 +213,17 @@ describe(`editor performance (${selectedWorkloadId})`, () => {
     unmount = mounted.unmount;
   };
 
+  const cleanupHarness = async (): Promise<void> => {
+    if (!harness) {
+      return;
+    }
+
+    await harness.remdo.waitForSynced();
+    unmount?.();
+    harness = null;
+    unmount = null;
+  };
+
   for (const operation of OPERATIONS) {
     bench(operation.name, async () => {
       const remdo = harness!.remdo;
@@ -229,6 +233,12 @@ describe(`editor performance (${selectedWorkloadId})`, () => {
       setup: async task => {
         await ensureHarnessReady();
         installWorkloadResetBeforeEach(task, harness!);
+      },
+      teardown: async (_, mode) => {
+        if (mode !== 'run') {
+          return;
+        }
+        await cleanupHarness();
       },
     });
   }
