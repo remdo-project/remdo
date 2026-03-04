@@ -33,13 +33,13 @@ interface BenchmarkHarness {
   workloadTargets: WorkloadTargets;
 }
 
+const MIN_BENCH_DEPTH = 3;
+const MAX_BRANCH_FACTOR = 10;
+
 // eslint-disable-next-line node/no-process-env -- perf bench intentionally reads direct env override.
 const selectedWorkloadId = resolveWorkloadId(process.env.PERF_WORKLOAD || '8x3');
 // eslint-disable-next-line node/no-process-env -- perf bench intentionally reads direct env override.
 const dataDir = process.env.DATA_DIR || path.resolve('data');
-
-const MIN_BENCH_DEPTH = 3;
-const MAX_BRANCH_FACTOR = 10;
 
 function parseWorkloadShape(rawWorkloadId: string): WorkloadShape {
   const match = rawWorkloadId.trim().match(/^(\d+)x(\d+)$/);
