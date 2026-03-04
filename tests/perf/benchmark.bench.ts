@@ -213,12 +213,11 @@ describe(`editor performance (${selectedWorkloadId})`, () => {
     unmount = mounted.unmount;
   };
 
-  const cleanupHarness = async (): Promise<void> => {
+  const cleanupHarness = (): void => {
     if (!harness) {
       return;
     }
 
-    await harness.remdo.waitForSynced();
     unmount?.();
     harness = null;
     unmount = null;
@@ -234,11 +233,11 @@ describe(`editor performance (${selectedWorkloadId})`, () => {
         await ensureHarnessReady();
         installWorkloadResetBeforeEach(task, harness!);
       },
-      teardown: async (_, mode) => {
+      teardown: (_, mode) => {
         if (mode !== 'run') {
           return;
         }
-        await cleanupHarness();
+        cleanupHarness();
       },
     });
   }
