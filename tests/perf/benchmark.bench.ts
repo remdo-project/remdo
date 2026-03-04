@@ -8,6 +8,10 @@ import { renderRemdoEditor } from '../unit/collab/_support/render-editor';
 import type { SerializedEditorState } from 'lexical';
 
 type WorkloadId = `${number}x${number}`;
+interface WorkloadShape {
+  branchFactor: number;
+  depth: number;
+}
 
 interface WorkloadTargets {
   leafNoteId: string;
@@ -34,15 +38,42 @@ const selectedWorkloadId = resolveWorkloadId(process.env.PERF_WORKLOAD || '8x3')
 // eslint-disable-next-line node/no-process-env -- perf bench intentionally reads direct env override.
 const dataDir = process.env.DATA_DIR || path.resolve('data');
 
-function resolveWorkloadId(rawWorkloadId: string): WorkloadId {
-  const workloadId = rawWorkloadId.trim();
-  if (/^\d+x\d+$/.test(workloadId)) {
-    return workloadId as WorkloadId;
+const MIN_BENCH_DEPTH = 3;
+const MAX_BRANCH_FACTOR = 10;
+
+function parseWorkloadShape(rawWorkloadId: string): WorkloadShape {
+  const match = rawWorkloadId.trim().match(/^(\d+)x(\d+)$/);
+  if (!match) {
+    throw new Error(
+      `Unsupported PERF_WORKLOAD: "${rawWorkloadId}". Use "<branch>x<depth>" (example: "8x3").`
+    );
   }
 
-  throw new Error(
-    `Unsupported PERF_WORKLOAD: "${rawWorkloadId}". Use "<branch>x<depth>" (example: "8x3").`
-  );
+  return {
+    branchFactor: Number(match[1]),
+    depth: Number(match[2]),
+  };
+}
+
+function resolveWorkloadId(rawWorkloadId: string): WorkloadId {
+  const workloadId = rawWorkloadId.trim();
+  const { branchFactor, depth } = parseWorkloadShape(workloadId);
+
+  if (branchFactor < 2) {
+    throw new Error(`Unsupported PERF_WORKLOAD: "${workloadId}". Branch factor must be >= 2.`);
+  }
+  if (branchFactor > MAX_BRANCH_FACTOR) {
+    throw new Error(
+      `Unsupported PERF_WORKLOAD: "${workloadId}". Branch factor must be <= ${MAX_BRANCH_FACTOR}.`
+    );
+  }
+  if (depth < MIN_BENCH_DEPTH) {
+    throw new Error(
+      `Unsupported PERF_WORKLOAD: "${workloadId}". Depth must be >= ${MIN_BENCH_DEPTH} for benchmark targets.`
+    );
+  }
+
+  return workloadId as WorkloadId;
 }
 
 function resolveWorkloadTargets(workloadId: WorkloadId): WorkloadTargets {

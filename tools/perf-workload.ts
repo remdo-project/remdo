@@ -30,9 +30,15 @@ function buildBalancedState(shape: string): SerializedEditorState {
 
   const branchFactor = Number(match[1]);
   const maxDepth = Number(match[2]);
+  const MAX_BRANCH_FACTOR = 10;
 
   if (branchFactor < 2) {
     throw new Error(`Unsupported workload "${shape}": branch factor must be >= 2.`);
+  }
+  if (branchFactor > MAX_BRANCH_FACTOR) {
+    throw new Error(
+      `Unsupported workload "${shape}": branch factor must be <= ${MAX_BRANCH_FACTOR}.`
+    );
   }
   if (maxDepth < 1) {
     throw new Error(`Unsupported workload "${shape}": depth must be >= 1.`);
