@@ -1,42 +1,29 @@
-# Search Mode (Focus Navigation)
+# Search
 
 ## Purpose
 
-Define user-visible behavior for document search focus/navigation mode.
+Define how search works from the user point of view.
 
-Search mode is about orientation and movement while searching; query matching
-and filtering can evolve later without changing the core focus flow.
+## Terms
 
-## Definitions
+- **Search Mode:** active while the search box has focus.
+- **Highlighted note:** the single note currently targeted by search navigation.
 
-- **Search mode:** active while the search input has focus.
-- **Search highlight:** the single note currently targeted for navigation.
-- **Candidate set:** notes currently visible in the active zoom boundary.
+## Behavior
 
-## Core behavior
-
-1. Focusing the document search input enters search mode (including
-   `Cmd/Ctrl+F` shortcut entry).
-2. While search mode is active, the editor is read-only.
-3. Search mode exits when the search input loses focus.
-4. Pressing `Escape` in the search input returns focus to the editor, which
-   exits search mode.
-5. Search mode always has exactly one highlighted note.
-6. On entry, highlight defaults to the zoom boundary anchor (the current zoom
-   root).
-7. `ArrowDown` moves highlight to the next visible note in document order
-   within the active zoom boundary.
-8. `ArrowUp` moves highlight to the previous visible note in document order
-   within the active zoom boundary.
-9. Arrow navigation stops at boundaries (no wraparound).
-10. `Enter` zooms to the currently highlighted note.
-11. After `Enter` zoom, focus moves to the editor, which exits search mode.
-
-## Relationship To Query Filtering
-
-1. Search query filtering is not required for search mode to operate.
-2. When query filtering is added, this interaction model remains:
-   enter search mode, keep one highlight, navigate with arrows, and zoom with
-   `Enter`.
-3. Filtering changes which notes are visible/candidates, not the search-mode
-   navigation contract.
+1. Focusing the search box enters Search Mode (including `Cmd/Ctrl+F`).
+2. Entering Search Mode keeps the current view as-is and highlights the first
+   note visible at the top of that view.
+3. Search Mode always has exactly one highlighted note.
+4. `ArrowDown` highlights the next visible note.
+5. `ArrowUp` highlights the previous visible note.
+6. Folded children are skipped while navigating.
+7. Arrow navigation stops at the first/last available note (no wraparound).
+8. Typing in the search box switches the list to a flat results view.
+9. Flat results show only notes whose text matches the query text (plain text
+   match; no fuzzy matching).
+10. In flat results, `ArrowUp` and `ArrowDown` move the highlight through
+    results the same way.
+11. Search Mode ends when the search box loses focus.
+12. `Enter` moves focus to the editor and zooms to the highlighted note.
+13. `Escape` moves focus to the editor.
