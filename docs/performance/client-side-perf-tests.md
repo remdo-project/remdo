@@ -22,7 +22,7 @@ This is the minimal baseline we should run first.
      `PERF_WORKLOAD=8x3 pnpm run perf:bench`
    - Run larger bench: `pnpm run perf:bench:8x5`
    - Run a single operation (useful for fast experiments):
-     `pnpm run perf:bench -- -t "add note" --maxWorkers=1 --no-file-parallelism`
+     `pnpm run perf:generate && pnpm exec vitest bench -c vitest.bench.perf.config.mts --run -t "add note"`
 7. Manual interactive mode:
    - Load default perf workload into collab doc: `pnpm run perf:load`
    - Load larger workload into collab doc: `pnpm run perf:load:8x5`

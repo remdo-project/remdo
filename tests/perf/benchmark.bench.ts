@@ -33,6 +33,10 @@ interface BenchmarkHarness {
   workloadTargets: WorkloadTargets;
 }
 
+interface BenchmarkIterationTask {
+  opts: object;
+}
+
 const MIN_BENCH_DEPTH = 3;
 const MAX_BRANCH_FACTOR = 10;
 
@@ -123,6 +127,16 @@ async function ensureStructuralSelection(remdo: RemdoTestApi, noteId: string): P
   await pressKey(remdo, { key: 'ArrowDown', shift: true });
 }
 
+function installWorkloadResetBeforeEach(
+  task: BenchmarkIterationTask,
+  harness: BenchmarkHarness
+): void {
+  const options = task.opts as { beforeEach?: () => Promise<void> };
+  options.beforeEach = async () => {
+    await harness.remdo._bridge.applySerializedState(harness.workloadStateJson);
+  };
+}
+
 const OPERATIONS: Operation[] = [
   {
     name: 'add note',
@@ -209,12 +223,12 @@ describe(`editor performance (${selectedWorkloadId})`, () => {
   for (const operation of OPERATIONS) {
     bench(operation.name, async () => {
       const remdo = harness!.remdo;
-      await remdo._bridge.applySerializedState(harness!.workloadStateJson);
       await operation.run(remdo, harness!.workloadTargets);
     }, {
       throws: true,
-      setup: async () => {
+      setup: async task => {
         await ensureHarnessReady();
+        installWorkloadResetBeforeEach(task, harness!);
       },
     });
   }
