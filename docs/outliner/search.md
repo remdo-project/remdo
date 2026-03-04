@@ -14,7 +14,7 @@ Define how search works from the user point of view.
 1. Focusing the search box enters Search Mode (including `Cmd/Ctrl+F`).
 2. Entering Search Mode keeps the current view as-is and highlights the first
    note visible at the top of that view.
-3. Search Mode always has exactly one highlighted note.
+3. Search Mode has exactly one highlighted note when candidates exist.
 4. `ArrowDown` highlights the next visible note.
 5. `ArrowUp` highlights the previous visible note.
 6. Folded children are skipped while navigating.
@@ -24,6 +24,7 @@ Define how search works from the user point of view.
    match; no fuzzy matching).
 10. In flat results, `ArrowUp` and `ArrowDown` move the highlight through
     results the same way.
-11. Search Mode ends when the search box loses focus.
-12. `Enter` moves focus to the editor and zooms to the highlighted note.
-13. `Escape` moves focus to the editor.
+11. If flat results are empty, there is no highlighted note.
+12. Search Mode ends when the search box loses focus.
+13. `Enter` moves focus to the editor and zooms to the highlighted note.
+14. `Escape` moves focus to the editor.

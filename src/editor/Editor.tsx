@@ -26,6 +26,7 @@ import { ZoomVisibilityPlugin } from './zoom/ZoomVisibilityPlugin';
 import { FoldingPlugin } from './plugins/FoldingPlugin';
 import { NoteControlsPlugin } from './plugins/NoteControlsPlugin';
 import { NoteMenuPlugin } from './plugins/NoteMenuPlugin';
+import { SearchDecorationsPlugin } from './plugins/SearchDecorationsPlugin';
 import './Editor.css';
 
 interface EditorProps {
@@ -37,6 +38,8 @@ interface EditorProps {
   zoomNoteId?: string | null;
   onZoomNoteIdChange?: (noteId: string | null) => void;
   onZoomPathChange?: (path: NotePathItem[]) => void;
+  searchHighlightedNoteId?: string | null;
+  searchModeActive?: boolean;
 }
 
 export default function Editor({
@@ -48,6 +51,8 @@ export default function Editor({
   zoomNoteId,
   onZoomNoteIdChange,
   onZoomPathChange,
+  searchHighlightedNoteId,
+  searchModeActive,
 }: EditorProps) {
   const editorInitialConfig = createEditorInitialConfig();
 
@@ -63,6 +68,8 @@ export default function Editor({
             zoomNoteId={zoomNoteId}
             onZoomNoteIdChange={onZoomNoteIdChange}
             onZoomPathChange={onZoomPathChange}
+            searchHighlightedNoteId={searchHighlightedNoteId}
+            searchModeActive={searchModeActive}
           />
         </CollaborationPlugin>
       </LexicalComposer>
@@ -78,6 +85,8 @@ function EditorRuntime({
   zoomNoteId,
   onZoomNoteIdChange,
   onZoomPathChange,
+  searchHighlightedNoteId,
+  searchModeActive,
 }: Omit<EditorProps, 'docId'>) {
   const offlineDocumentUnavailable = useOfflineDocumentUnavailable();
   const [schemaReady, setSchemaReady] = useState(false);
@@ -123,6 +132,7 @@ function EditorRuntime({
                 onZoomPathChange={onZoomPathChange}
               />
               <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
+              <SearchDecorationsPlugin highlightedNoteId={searchHighlightedNoteId} active={searchModeActive} />
               <CheckListPlugin />
               <ListPlugin hasStrictIndent />
               <DevPlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose}>

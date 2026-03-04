@@ -34,6 +34,13 @@ Rules:
 - Plan a unified test doc-id lifecycle approach so data isolation and cleanup
   are deterministic without ad hoc per-suite behavior.
 
+## Search architecture
+
+- Replace `DocumentRoute` DOM scraping candidate discovery with a shared
+  Lexical-level outline index/query utility (reused by search + link picker)
+  that publishes `{ noteId, text, order, visibility }` snapshots for search
+  navigation and flat results.
+
 ## Collaboration architecture roadmap [Future]
 
 ### Stages and success criteria
