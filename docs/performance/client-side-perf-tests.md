@@ -20,33 +20,37 @@ This is the minimal baseline we should run first.
 6. Workflow:
    - Run bench (auto-generates selected workload first):
      `PERF_WORKLOAD=8x3 pnpm run perf:bench`
-   - Run larger bench:
-     `pnpm run perf:bench:8x5`
+   - Run larger bench: `pnpm run perf:bench:8x5`
+   - Run a single operation (useful for fast experiments):
+     `pnpm run perf:bench -- -t "add note" --maxWorkers=1 --no-file-parallelism`
 7. Manual interactive mode:
-   - Load default perf workload into collab doc:
-     `pnpm run perf:load`
-   - Load larger workload into collab doc:
-     `pnpm run perf:load:8x5`
-
-## Optional Experiments (Add Only If Useful)
-
-Everything below is optional and should be added only after observing concrete
-value from the minimal version.
-
-1. Add `generate-if-missing` mode for benchmarks.
-   - Not needed currently because `perf:bench` always pre-generates.
-2. Override benchmark defaults (`warmupIterations`, `warmupTime`, `iterations`,
-   `time`) when noise is proven.
-3. Add baseline storage and delta output/regression gates.
-4. Add absolute floor + ratio threshold if tiny-ms cases are noisy.
-5. Add extra stats (`mean`, `p95`, raw samples) for diagnostics.
-6. Add richer output formatting or platform tagging.
-7. Add dynamic target discovery if workloads stop being regular.
+   - Load default perf workload into collab doc: `pnpm run perf:load`
+   - Load larger workload into collab doc: `pnpm run perf:load:8x5`
 
 ## Current Repository Note
 
 The current implementation is a fixture-only Vitest Bench runner in
 `tests/perf/**`, plus a separate workload generator:
 
-1. `PERF_WORKLOAD=<workloadId> pnpm run perf:bench` (auto-runs `perf:generate` first)
+1. `PERF_WORKLOAD=<workloadId> pnpm run perf:bench` (auto-runs `perf:generate`
+   first)
 2. `pnpm run perf:load` / `pnpm run perf:load:8x5` for manual collab repro
+
+## Typing-Latency Optimizations
+
+1. Skip full schema validation on leaf-only typing updates.
+   - What to do: in `SchemaValidationPlugin`, use `dirtyLeaves`/`dirtyElements`
+     and run `validateSchema()` only for structural (intentional non-root
+     element) updates.
+2. Skip root-shape repair scans for typing-like updates.
+   - What to do: in `RootSchemaPlugin`, avoid `$shouldNormalizeOutlineRoot(...)`
+     checks when update contains dirty leaves but no intentional non-root
+     element mutations.
+3. Avoid redundant structural overlay writes in selection updates.
+   - What to do: in `SelectionPlugin`, cache previous structural range/active
+     state and only call `updateStructuralOverlay(...)` when range/activity
+     actually changes.
+4. Avoid redundant outline-selection store writes.
+   - What to do: in `SelectionPlugin`, compare next `OutlineSelection` with
+     current stored selection and call `editor.selection.set(...)` only when it
+     differs.
