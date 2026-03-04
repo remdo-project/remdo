@@ -38,6 +38,7 @@ interface BenchmarkIterationTask {
 }
 
 const MIN_BENCH_DEPTH = 3;
+const MIN_BENCH_BRANCH_FACTOR = 3;
 const MAX_BRANCH_FACTOR = 10;
 
 // eslint-disable-next-line node/no-process-env -- perf bench intentionally reads direct env override.
@@ -63,8 +64,10 @@ function resolveWorkloadId(rawWorkloadId: string): WorkloadId {
   const workloadId = rawWorkloadId.trim();
   const { branchFactor, depth } = parseWorkloadShape(workloadId);
 
-  if (branchFactor < 2) {
-    throw new Error(`Unsupported PERF_WORKLOAD: "${workloadId}". Branch factor must be >= 2.`);
+  if (branchFactor < MIN_BENCH_BRANCH_FACTOR) {
+    throw new Error(
+      `Unsupported PERF_WORKLOAD: "${workloadId}". Branch factor must be >= ${MIN_BENCH_BRANCH_FACTOR} for benchmark targets.`
+    );
   }
   if (branchFactor > MAX_BRANCH_FACTOR) {
     throw new Error(
