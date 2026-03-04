@@ -20,6 +20,7 @@ export default defineConfig({
       '**/.pnpm-store/**',
       '**/data/**',
       'tests/e2e/**',
+      'tests/perf/**',
       ...(config.env.COLLAB_ENABLED ? [] : ['tests/unit/collab/**']),
     ],
     css: true,
