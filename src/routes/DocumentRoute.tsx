@@ -586,19 +586,23 @@ export default function DocumentRoute() {
               id={searchResultsListboxId}
               role="listbox"
             >
-              {flatResults.map((result, index) => (
-                <li
-                  aria-selected={result.noteId === highlightedResultNoteId}
-                  key={result.noteId}
-                  className="document-search-results-item"
-                  data-search-result-active={result.noteId === highlightedResultNoteId ? 'true' : undefined}
-                  data-search-result-item
-                  id={`${searchResultsListboxId}-option-${index}`}
-                  role="option"
-                >
-                  {result.text.length > 0 ? result.text : '(empty note)'}
-                </li>
-              ))}
+              {flatResults.map((result, index) => {
+                const hasChildren = (sdkSearchCandidates.childCandidateMap[result.noteId]?.length ?? 0) > 0;
+                return (
+                  <li
+                    aria-selected={result.noteId === highlightedResultNoteId}
+                    key={result.noteId}
+                    className="document-search-results-item"
+                    data-search-result-has-children={hasChildren ? 'true' : undefined}
+                    data-search-result-active={result.noteId === highlightedResultNoteId ? 'true' : undefined}
+                    data-search-result-item
+                    id={`${searchResultsListboxId}-option-${index}`}
+                    role="option"
+                  >
+                    {result.text.length > 0 ? result.text : '(empty note)'}
+                  </li>
+                );
+              })}
             </ol>
           ) : (
             <p className="document-search-results-empty">

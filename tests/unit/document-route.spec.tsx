@@ -259,6 +259,25 @@ describe('document route', () => {
     expect(resultItems).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
   });
 
+  it('marks non-leaf flat results with a children hint flag', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
+    });
+
+    const results = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'));
+    const note1 = results.find((item) => item.textContent === 'note1');
+    const note2 = results.find((item) => item.textContent === 'note2');
+    const note3 = results.find((item) => item.textContent === 'note3');
+    expect(note1).toHaveAttribute('data-search-result-has-children', 'true');
+    expect(note3).toHaveAttribute('data-search-result-has-children', 'true');
+    expect(note2).not.toHaveAttribute('data-search-result-has-children');
+  });
+
   it('exposes combobox/listbox semantics with active-descendant tracking', async () => {
     renderDocumentRoute();
 

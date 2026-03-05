@@ -136,6 +136,11 @@
   overflow-wrap: anywhere;
 }
 
+.document-search-results-item[data-search-result-has-children='true']::after {
+  content: ' /...';
+  color: var(--mantine-color-dark-3);
+}
+
 .document-search-results-item[data-search-result-active='true'] {
   --interaction-radius: var(--mantine-radius-xs);
   border-radius: var(--interaction-radius);

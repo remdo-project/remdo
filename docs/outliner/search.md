@@ -67,3 +67,5 @@ behavior and the planned slash-prefixed navigation flow.
     state and active descendant linkage.
 32. Search results expose listbox semantics and mark the highlighted result as
     selected.
+33. In flat results, non-leaf notes show a muted `/...` suffix hint; leaf notes
+    show no suffix.

@@ -20,8 +20,8 @@ details.
 8. **Search mode:** `./search.md` — focused search navigation flow (single
   highlight, always-flat results (empty query shows all notes), text-match
   filtering, Enter-to-zoom, slash root/depth navigation with non-mutating arrow
-  cycling, inline-completion acceptance with `ArrowRight`, and combobox/listbox
-  accessibility semantics.
+  cycling, inline-completion acceptance with `ArrowRight`, combobox/listbox
+  accessibility semantics, and non-leaf `/...` result hints.
 9. **Note menu:** `./menu.md` — note-scoped menu entry points, targets, and actions.
 10. **Clipboard:** `./clipboard.md` — cut/copy/paste behavior, caret placement, and move rules.
 11. **Indent/Outdent & structure rules:** `./note-structure-rules.md` — structural invariants and indent/outdent semantics.
