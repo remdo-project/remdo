@@ -233,13 +233,6 @@
   cursor: text;
   background-repeat: no-repeat;
 }
-
-.editor-root li.list-item[data-search-highlighted='true'] {
-  --interaction-radius: var(--mantine-radius-xs);
-  border-radius: var(--interaction-radius);
-  box-shadow: var(--focus-ring);
-}
-
 .editor-root li.list-item[data-folded='true'] + li.list-nested-item {
   display: none;
 }

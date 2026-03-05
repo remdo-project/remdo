@@ -43,16 +43,12 @@ vi.mock('@/editor/Editor', async () => {
   interface MockEditorProps {
     docId: string;
     onSearchCandidatesChange?: (snapshot: TestSdkSearchSnapshot) => void;
-    searchHighlightedNoteId?: string | null;
-    searchModeActive?: boolean;
     zoomNoteId?: string | null;
   }
 
   function MockEditor({
     docId,
     onSearchCandidatesChange,
-    searchHighlightedNoteId,
-    searchModeActive,
     zoomNoteId,
   }: MockEditorProps) {
     React.useEffect(() => {
@@ -78,12 +74,7 @@ vi.mock('@/editor/Editor', async () => {
     return (
       <>
         <div data-doc-id={docId} data-instance-id={instanceIdRef.current} data-testid="editor-probe" />
-        <div
-          data-search-highlighted-note-id={searchHighlightedNoteId ?? ''}
-          data-search-mode-active={searchModeActive ? 'true' : 'false'}
-          data-testid="editor-search-probe"
-          data-zoom-note-id={zoomNoteId ?? ''}
-        />
+        <div data-testid="editor-search-probe" data-zoom-note-id={zoomNoteId ?? ''} />
         <div className="editor-input" data-testid="editor-input-probe" tabIndex={-1}>
           <ul>
             <li className="list-item" data-note-id="note1">note1</li>
