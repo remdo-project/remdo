@@ -1,26 +1,14 @@
-import type {
-  ChangeEvent,
-  CompositionEvent,
-  FocusEvent,
-  KeyboardEvent as ReactKeyboardEvent,
-  SyntheticEvent,
-} from 'react';
-import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Editor from '@/editor/Editor';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { createHardcodedUserConfigNoteSdk } from '@/editor/outline/sdk';
-import type { SdkSearchCandidateSnapshot } from '@/editor/search/sdk-search-candidates';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
 import { createDocumentPathForPathname, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
+import { useDocumentSearchModel } from './useDocumentSearchModel';
 import './DocumentRoute.css';
-
-interface SearchCandidate {
-  noteId: string;
-  text: string;
-}
 
 function isVisibleInCurrentView(element: HTMLElement): boolean {
   if (element.classList.contains('zoom-hidden')) {
@@ -37,18 +25,6 @@ function isVisibleInCurrentView(element: HTMLElement): boolean {
   return true;
 }
 
-interface SearchCandidateState {
-  sourceDocId: string;
-  allCandidates: SearchCandidate[];
-  topLevelCandidates: SearchCandidate[];
-  childCandidateMap: Record<string, SearchCandidate[]>;
-}
-
-interface SearchInputSelection {
-  start: number;
-  end: number;
-}
-
 export default function DocumentRoute() {
   const { docRef } = useParams<{ docRef?: string }>();
   const parsedRef = parseDocumentRef(docRef);
@@ -58,25 +34,8 @@ export default function DocumentRoute() {
   const navigate = useNavigate();
   const [zoomPath, setZoomPath] = useState<NotePathItem[]>([]);
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchModeActive, setSearchModeActive] = useState(false);
-  const [highlightedNoteId, setHighlightedNoteId] = useReducer(
-    (_current: string | null, next: string | null) => next,
-    null
-  );
-  const [sdkSearchCandidateState, setSdkSearchCandidateState] = useReducer(
-    (_current: SearchCandidateState, next: SearchCandidateState) => next,
-    { sourceDocId: '', allCandidates: [], topLevelCandidates: [], childCandidateMap: {} }
-  );
-  const [slashScopePathNoteIds, setSlashScopePathNoteIds] = useState<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const shellRef = useRef<HTMLDivElement | null>(null);
-  const pendingEditorFocusAfterSearchExitRef = useRef(false);
-  const previousSearchModeRef = useRef(false);
-  const previousSearchQueryRef = useRef(searchQuery);
-  const skipHighlightResetForQueryChangeRef = useRef(false);
-  const [searchInputSelection, setSearchInputSelection] = useState<SearchInputSelection>({ start: 0, end: 0 });
-  const [searchInputComposing, setSearchInputComposing] = useState(false);
   const searchResultsListboxId = useId();
   const zoomNoteId = parsedRef?.noteId ?? null;
   const sdk = useMemo(() => createHardcodedUserConfigNoteSdk(), []);
@@ -130,26 +89,30 @@ export default function DocumentRoute() {
     return document.activeElement === editorInput;
   }, []);
 
-  const handleSdkSearchCandidatesChange = useCallback((snapshot: SdkSearchCandidateSnapshot) => {
-    const mapCandidates = (candidates: SdkSearchCandidateSnapshot['allCandidates']): SearchCandidate[] => (
-      candidates.map((candidate) => ({
-        noteId: candidate.noteId,
-        text: candidate.text,
-      }))
-    );
-
-    setSdkSearchCandidateState({
-      sourceDocId: docId,
-      allCandidates: mapCandidates(snapshot.allCandidates),
-      topLevelCandidates: mapCandidates(snapshot.topLevelCandidates),
-      childCandidateMap: Object.fromEntries(
-        Object.entries(snapshot.childCandidateMap).map(([noteId, candidates]) => [
-          noteId,
-          mapCandidates(candidates),
-        ])
-      ),
-    });
-  }, [docId]);
+  const {
+    childCandidateMap,
+    flatResults,
+    handleSearchBlur,
+    handleSearchCandidatesChange,
+    handleSearchChange,
+    handleSearchCompositionEnd,
+    handleSearchCompositionStart,
+    handleSearchFocus,
+    handleSearchKeyDown,
+    handleSearchSelect,
+    hasSearchResultOptions,
+    highlightedResultNoteId,
+    inlineCompletionHint,
+    inlineCompletionText,
+    inlineCompletionVisible,
+    isSlashMode,
+    searchModeActive,
+    searchQuery,
+  } = useDocumentSearchModel({
+    docId,
+    focusEditorInput,
+    setZoomNoteId,
+  });
 
   useEffect(() => {
     const handleFindShortcut = (event: KeyboardEvent) => {
@@ -185,303 +148,12 @@ export default function DocumentRoute() {
     };
   }, []);
 
-  useEffect(() => {
-    if (searchModeActive || !pendingEditorFocusAfterSearchExitRef.current) {
-      return;
-    }
-    pendingEditorFocusAfterSearchExitRef.current = false;
-    focusEditorInput();
-  }, [focusEditorInput, searchModeActive]);
-
-  const sdkSearchCandidates = useMemo(
-    () => (sdkSearchCandidateState.sourceDocId === docId ? sdkSearchCandidateState : {
-      sourceDocId: docId,
-      allCandidates: [],
-      topLevelCandidates: [],
-      childCandidateMap: {},
-    }),
-    [docId, sdkSearchCandidateState]
-  );
-  const isSlashMode = searchModeActive && searchQuery.startsWith('/');
-  const textNeedle = searchQuery.toLocaleLowerCase();
-  const slashSegmentNeedle = searchQuery.slice(searchQuery.lastIndexOf('/') + 1).toLocaleLowerCase();
-  const slashScopePath = useMemo(
-    () => (sdkSearchCandidates.sourceDocId === docId ? slashScopePathNoteIds : []),
-    [docId, sdkSearchCandidates.sourceDocId, slashScopePathNoteIds]
-  );
-  const slashScopeParentNoteId = slashScopePath.at(-1) ?? null;
-
-  const textResults = useMemo(() => {
-    if (searchQuery.length === 0) {
-      return sdkSearchCandidates.allCandidates;
-    }
-    return sdkSearchCandidates.allCandidates.filter((candidate) => candidate.text.toLocaleLowerCase().includes(textNeedle));
-  }, [sdkSearchCandidates.allCandidates, searchQuery.length, textNeedle]);
-
-  const slashScopeCandidates = useMemo(
-    () => {
-      if (!slashScopeParentNoteId) {
-        return sdkSearchCandidates.topLevelCandidates;
-      }
-      const scopedCandidates = sdkSearchCandidates.childCandidateMap[slashScopeParentNoteId];
-      return scopedCandidates ?? sdkSearchCandidates.topLevelCandidates;
-    },
-    [sdkSearchCandidates.childCandidateMap, sdkSearchCandidates.topLevelCandidates, slashScopeParentNoteId]
-  );
-
-  const slashResults = useMemo(() => {
-    if (slashSegmentNeedle.length === 0) {
-      return slashScopeCandidates;
-    }
-    return slashScopeCandidates.filter((candidate) => (
-      candidate.text.toLocaleLowerCase().includes(slashSegmentNeedle)
-    ));
-  }, [slashScopeCandidates, slashSegmentNeedle]);
-
-  const flatResults = isSlashMode ? slashResults : textResults;
-  const isFlatResultsActive = searchModeActive;
-  const navigationCandidates = useMemo(
-    () => (isFlatResultsActive ? flatResults : []),
-    [flatResults, isFlatResultsActive]
-  );
-  const highlightedNavigationCandidate = useMemo(
-    () => (
-      highlightedNoteId
-        ? navigationCandidates.find((candidate) => candidate.noteId === highlightedNoteId) ?? null
-        : null
-    ),
-    [highlightedNoteId, navigationCandidates]
-  );
-  const completionSourceCandidate = highlightedNavigationCandidate ?? navigationCandidates[0] ?? null;
-  const isSearchInputCaretAtEnd = searchInputSelection.start === searchInputSelection.end &&
-    searchInputSelection.end === searchQuery.length;
-  const inlineCompletionText = useMemo(() => {
-    if (!searchModeActive) {
-      return '';
-    }
-
-    if (searchQuery.length === 0) {
-      return '/';
-    }
-
-    if (!isSlashMode || !completionSourceCandidate) {
-      return '';
-    }
-
-    const currentSegment = searchQuery.slice(searchQuery.lastIndexOf('/') + 1);
-    const sourceText = completionSourceCandidate.text;
-    const currentSegmentLower = currentSegment.toLocaleLowerCase();
-    const sourceTextLower = sourceText.toLocaleLowerCase();
-    if (!sourceTextLower.startsWith(currentSegmentLower)) {
-      return '';
-    }
-
-    if (currentSegment.length < sourceText.length) {
-      return sourceText.slice(currentSegment.length);
-    }
-
-    const sourceChildren = sdkSearchCandidates.childCandidateMap[completionSourceCandidate.noteId] ?? [];
-    return sourceChildren.length > 0 ? '/' : '';
-  }, [completionSourceCandidate, isSlashMode, sdkSearchCandidates.childCandidateMap, searchModeActive, searchQuery]);
-  const inlineCompletionHint = inlineCompletionText.length > 0 ? '→' : '';
-  const inlineCompletionVisible = searchModeActive &&
-    !searchInputComposing &&
-    isSearchInputCaretAtEnd &&
-    inlineCompletionText.length > 0;
-
-  useEffect(() => {
-    const modeEntered = searchModeActive && !previousSearchModeRef.current;
-    const queryChanged = previousSearchQueryRef.current !== searchQuery;
-    const shouldResetForQueryChange = queryChanged && !skipHighlightResetForQueryChangeRef.current;
-    skipHighlightResetForQueryChangeRef.current = false;
-    previousSearchModeRef.current = searchModeActive;
-    previousSearchQueryRef.current = searchQuery;
-
-    if (!searchModeActive) {
-      setHighlightedNoteId(null);
-      return;
-    }
-
-    if (navigationCandidates.length === 0) {
-      setHighlightedNoteId(null);
-      return;
-    }
-
-    if (
-      modeEntered ||
-      shouldResetForQueryChange ||
-      !highlightedNoteId ||
-      !navigationCandidates.some((candidate) => candidate.noteId === highlightedNoteId)
-    ) {
-      setHighlightedNoteId(navigationCandidates[0]!.noteId);
-    }
-  }, [highlightedNoteId, navigationCandidates, searchModeActive, searchQuery]);
-
-  const applySearchQuery = useCallback((
-    nextSearchQuery: string,
-    options?: { preserveHighlight?: boolean; forceCaretAtEnd?: boolean }
-  ) => {
-    if (options?.preserveHighlight) {
-      skipHighlightResetForQueryChangeRef.current = true;
-    }
-
-    if (nextSearchQuery.startsWith('/')) {
-      const previousSlashCount = searchQuery.startsWith('/')
-        ? searchQuery.split('/').length - 1
-        : 0;
-      const nextSlashCount = nextSearchQuery.split('/').length - 1;
-      const appendedSlash = nextSlashCount > previousSlashCount && nextSearchQuery.endsWith('/');
-
-      if (nextSearchQuery === '/') {
-        setSlashScopePathNoteIds([]);
-      } else if (nextSlashCount < previousSlashCount) {
-        const nextDepth = Math.max(0, nextSlashCount - 1);
-        setSlashScopePathNoteIds((currentPath) => currentPath.slice(0, nextDepth));
-      } else if (appendedSlash && highlightedNoteId) {
-        setSlashScopePathNoteIds((currentPath) => [...currentPath, highlightedNoteId]);
-      }
-    } else if (slashScopePathNoteIds.length > 0) {
-      setSlashScopePathNoteIds([]);
-    }
-
-    setSearchQuery(nextSearchQuery);
-    if (options?.forceCaretAtEnd) {
-      setSearchInputSelection({ start: nextSearchQuery.length, end: nextSearchQuery.length });
-    }
-  }, [highlightedNoteId, searchQuery, slashScopePathNoteIds]);
-
-  const moveSearchHighlight = (direction: 'up' | 'down') => {
-    if (navigationCandidates.length === 0) {
-      setHighlightedNoteId(null);
-      return;
-    }
-
-    let nextHighlightedNoteId: string;
-    if (highlightedNoteId) {
-      const currentIndex = navigationCandidates.findIndex((candidate) => candidate.noteId === highlightedNoteId);
-      if (currentIndex === -1) {
-        nextHighlightedNoteId = navigationCandidates[0]!.noteId;
-      } else {
-        const delta = direction === 'down' ? 1 : -1;
-        const nextIndex = Math.max(0, Math.min(navigationCandidates.length - 1, currentIndex + delta));
-        nextHighlightedNoteId = navigationCandidates[nextIndex]!.noteId;
-      }
-    } else {
-      nextHighlightedNoteId = navigationCandidates[0]!.noteId;
-    }
-
-    setHighlightedNoteId(nextHighlightedNoteId);
-  };
-
-  const closeSearchAndFocusEditor = useCallback(() => {
-    setSearchModeActive(false);
-    queueMicrotask(() => {
-      focusEditorInput();
-    });
-  }, [focusEditorInput]);
-
-  const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Escape' && !event.altKey && !event.metaKey && !event.ctrlKey) {
-      if (focusEditorInput()) {
-        event.preventDefault();
-        return;
-      }
-      pendingEditorFocusAfterSearchExitRef.current = true;
-      event.preventDefault();
-      event.currentTarget.blur();
-      return;
-    }
-
-    if (event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) {
-      return;
-    }
-
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      moveSearchHighlight('down');
-      return;
-    }
-
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      moveSearchHighlight('up');
-      return;
-    }
-
-    if (event.key === 'ArrowRight') {
-      if (!inlineCompletionVisible) {
-        return;
-      }
-      event.preventDefault();
-      applySearchQuery(`${searchQuery}${inlineCompletionText}`, {
-        preserveHighlight: true,
-        forceCaretAtEnd: true,
-      });
-      return;
-    }
-
-    if (event.key !== 'Enter') {
-      return;
-    }
-
-    event.preventDefault();
-    if (isSlashMode && searchQuery === '/') {
-      setZoomNoteId(null);
-      closeSearchAndFocusEditor();
-      return;
-    }
-
-    const highlightedCandidate = highlightedNoteId
-      ? navigationCandidates.find((candidate) => candidate.noteId === highlightedNoteId) ?? null
-      : null;
-
-    if (!highlightedCandidate) {
-      return;
-    }
-    setZoomNoteId(highlightedCandidate.noteId);
-    closeSearchAndFocusEditor();
-  };
-
-  const updateSearchInputSelection = (input: HTMLInputElement) => {
-    const nextStart = input.selectionStart ?? input.value.length;
-    const nextEnd = input.selectionEnd ?? input.value.length;
-    setSearchInputSelection({ start: nextStart, end: nextEnd });
-  };
-
-  const handleSearchFocus = (event: FocusEvent<HTMLInputElement>) => {
-    setSearchModeActive(true);
-    updateSearchInputSelection(event.currentTarget);
-  };
-
-  const handleSearchBlur = () => {
-    setSearchModeActive(false);
-    setSearchInputComposing(false);
-  };
-
-  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const nextSearchQuery = event.currentTarget.value;
-    updateSearchInputSelection(event.currentTarget);
-    applySearchQuery(nextSearchQuery);
-  };
-  const handleSearchSelect = (event: SyntheticEvent<HTMLInputElement>) => {
-    updateSearchInputSelection(event.currentTarget);
-  };
-  const handleSearchCompositionStart = (_event: CompositionEvent<HTMLInputElement>) => {
-    setSearchInputComposing(true);
-  };
-  const handleSearchCompositionEnd = (event: CompositionEvent<HTMLInputElement>) => {
-    setSearchInputComposing(false);
-    updateSearchInputSelection(event.currentTarget);
-  };
-
-  const highlightedResultNoteId = searchModeActive ? highlightedNoteId : null;
   const highlightedResultIndex = highlightedResultNoteId
     ? flatResults.findIndex((result) => result.noteId === highlightedResultNoteId)
     : -1;
   const activeResultOptionId = highlightedResultIndex >= 0
     ? `${searchResultsListboxId}-option-${highlightedResultIndex}`
     : undefined;
-  const hasSearchResultOptions = isFlatResultsActive && flatResults.length > 0;
 
   return (
     <div className="document-editor-shell" ref={shellRef}>
@@ -536,10 +208,10 @@ export default function DocumentRoute() {
           <div className="document-header-search-shell">
             <TextInput
               aria-label="Search document"
-              aria-activedescendant={isFlatResultsActive ? activeResultOptionId : undefined}
+              aria-activedescendant={searchModeActive ? activeResultOptionId : undefined}
               aria-autocomplete={inlineCompletionVisible ? 'both' : 'list'}
               aria-controls={hasSearchResultOptions ? searchResultsListboxId : undefined}
-              aria-expanded={isFlatResultsActive}
+              aria-expanded={searchModeActive}
               aria-haspopup="listbox"
               className="document-header-search remdo-interaction-surface"
               ref={searchInputRef}
@@ -573,7 +245,7 @@ export default function DocumentRoute() {
           <div className="document-header-status" ref={setStatusHost} />
         </div>
       </header>
-      {isFlatResultsActive ? (
+      {searchModeActive ? (
         <section
           className="document-search-results"
           data-search-mode={isSlashMode ? 'slash' : 'text'}
@@ -587,7 +259,7 @@ export default function DocumentRoute() {
               role="listbox"
             >
               {flatResults.map((result, index) => {
-                const hasChildren = (sdkSearchCandidates.childCandidateMap[result.noteId]?.length ?? 0) > 0;
+                const hasChildren = (childCandidateMap[result.noteId]?.length ?? 0) > 0;
                 return (
                   <li
                     aria-selected={result.noteId === highlightedResultNoteId}
@@ -611,11 +283,11 @@ export default function DocumentRoute() {
           )}
         </section>
       ) : null}
-      <div className={isFlatResultsActive ? 'document-editor-pane document-editor-pane--hidden' : 'document-editor-pane'}>
+      <div className={searchModeActive ? 'document-editor-pane document-editor-pane--hidden' : 'document-editor-pane'}>
         <Editor
           key={docId}
           docId={docId}
-          onSearchCandidatesChange={handleSdkSearchCandidatesChange}
+          onSearchCandidatesChange={handleSearchCandidatesChange}
           onZoomNoteIdChange={setZoomNoteId}
           onZoomPathChange={setZoomPath}
           searchHighlightedNoteId={null}
