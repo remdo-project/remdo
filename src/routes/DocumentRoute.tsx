@@ -77,6 +77,7 @@ export default function DocumentRoute() {
       search: nextSearch ? `?${nextSearch}` : '',
     });
   };
+
   const focusEditorInput = useCallback(() => {
     const editorInput = shellRef.current?.querySelector<HTMLElement>('.editor-input') ?? null;
     if (!editorInput) {
@@ -132,7 +133,6 @@ export default function DocumentRoute() {
         return;
       }
 
-      // Allow browser find on the next press when search is already focused.
       if (document.activeElement === searchInput) {
         return;
       }
@@ -214,7 +214,6 @@ export default function DocumentRoute() {
               aria-expanded={searchModeActive}
               aria-haspopup="listbox"
               className="document-header-search remdo-interaction-surface"
-              ref={searchInputRef}
               leftSection={<IconSearch aria-hidden="true" size={14} />}
               onBlur={handleSearchBlur}
               onChange={handleSearchChange}
@@ -224,6 +223,7 @@ export default function DocumentRoute() {
               onKeyDown={handleSearchKeyDown}
               onSelect={handleSearchSelect}
               placeholder={searchModeActive ? '' : 'Search'}
+              ref={searchInputRef}
               role="combobox"
               size="xs"
               value={searchQuery}
@@ -263,12 +263,12 @@ export default function DocumentRoute() {
                 return (
                   <li
                     aria-selected={result.noteId === highlightedResultNoteId}
-                    key={result.noteId}
                     className="document-search-results-item"
-                    data-search-result-has-children={hasChildren ? 'true' : undefined}
                     data-search-result-active={result.noteId === highlightedResultNoteId ? 'true' : undefined}
+                    data-search-result-has-children={hasChildren ? 'true' : undefined}
                     data-search-result-item
                     id={`${searchResultsListboxId}-option-${index}`}
+                    key={result.noteId}
                     role="option"
                   >
                     {result.text.length > 0 ? result.text : '(empty note)'}
@@ -290,8 +290,6 @@ export default function DocumentRoute() {
           onSearchCandidatesChange={handleSearchCandidatesChange}
           onZoomNoteIdChange={setZoomNoteId}
           onZoomPathChange={setZoomPath}
-          searchHighlightedNoteId={null}
-          searchModeActive={false}
           statusPortalRoot={statusHost}
           zoomNoteId={zoomNoteId}
         />

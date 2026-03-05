@@ -15,15 +15,6 @@
   --note-controls-track-width: calc(var(--note-controls-strip-width) + var(--note-controls-track-gap));
 }
 
-.editor-container.remdo-interaction-surface {
-  --interaction-radius: var(--mantine-radius-md);
-  --focus-ring: 0 0 0 1px rgb(var(--interaction-accent-rgb) / 0.3), 0 0 0 3px rgb(var(--interaction-accent-rgb) / 0.07), 0 0 24px 6px rgb(var(--interaction-accent-rgb) / 0.11);
-  --hover-ring: 0 0 0 1px rgb(var(--interaction-accent-rgb) / 0.12), 0 0 16px 5px rgb(var(--interaction-accent-rgb) / 0.06);
-  --indicator-highlight-color: rgb(var(--interaction-accent-rgb) / 0.9);
-  --note-control-glow: 0 0 0.34rem rgb(var(--interaction-accent-rgb) / 0.32);
-  --note-control-glow-subtle: 0 0 0.28rem rgb(var(--interaction-accent-rgb) / 0.24);
-}
-
 .editor-header {
   position: absolute;
   top: var(--mantine-spacing-sm);
@@ -234,12 +225,6 @@
   background-repeat: no-repeat;
 }
 
-.editor-root li.list-item[data-search-highlighted='true'] {
-  --interaction-radius: var(--mantine-radius-xs);
-  border-radius: var(--interaction-radius);
-  box-shadow: var(--focus-ring);
-}
-
 .editor-root li.list-item[data-folded='true'] + li.list-nested-item {
   display: none;
 }
@@ -264,7 +249,7 @@
   -webkit-mask-repeat: var(--bullet-mask-repeat);
   -webkit-mask-position: var(--bullet-mask-position);
   -webkit-mask-size: var(--bullet-mask-size);
-  transition: background-color 120ms ease, filter 120ms ease;
+  transition: background-color 120ms ease;
   user-select: none;
   pointer-events: none;
 }
@@ -286,7 +271,7 @@
   -webkit-mask-repeat: var(--checkbox-mask-repeat);
   -webkit-mask-position: var(--checkbox-mask-position);
   -webkit-mask-size: var(--checkbox-mask-size);
-  transition: background-color 120ms ease, filter 120ms ease;
+  transition: background-color 120ms ease;
   user-select: none;
   cursor: pointer;
   pointer-events: auto;
@@ -389,14 +374,12 @@
 .note-controls__button {
   display: inline-flex;
   grid-row: 1;
-  position: relative;
   align-items: center;
   justify-content: center;
   width: var(--note-control-size);
   height: var(--note-control-size);
   padding: 0;
   border: none;
-  border-radius: var(--mantine-radius-xs);
   background-color: var(--mantine-color-dark-2);
   mask-repeat: no-repeat;
   mask-position: center;
@@ -405,30 +388,14 @@
   -webkit-mask-position: center;
   -webkit-mask-size: contain;
   cursor: pointer;
-  transition: background-color 120ms ease, filter 120ms ease;
+  transition: background-color 120ms ease;
   user-select: none;
   pointer-events: auto;
-}
-
-.note-controls__button::after {
-  content: '';
-  position: absolute;
-  inset: -0.14em;
-  border-radius: inherit;
-  pointer-events: none;
-  box-shadow: none;
-  transition: box-shadow 120ms ease;
 }
 
 .note-controls__button:hover,
 .note-controls__button:focus-visible {
   background-color: var(--indicator-highlight-color);
-  filter: drop-shadow(var(--note-control-glow-subtle));
-}
-
-.note-controls__button:hover::after,
-.note-controls__button:focus-visible::after {
-  box-shadow: var(--hover-ring);
 }
 
 .note-controls__button--menu {
@@ -541,15 +508,12 @@
 
 .editor-root li.list-item[data-zoom-checkbox-hover='true'] {
   cursor: pointer;
+  --indicator-color: var(--mantine-color-dark-2);
   --checkbox-color: var(--indicator-highlight-color);
 }
 
 .editor-root li.list-item[data-zoom-bullet-hover='true']::before {
-  filter: drop-shadow(var(--note-control-glow));
-}
-
-.editor-root li.list-item[data-zoom-checkbox-hover='true']::after {
-  filter: drop-shadow(var(--note-control-glow));
+  background-color: var(--indicator-color);
 }
 
 .editor-root li.list-item.zoom-hidden {

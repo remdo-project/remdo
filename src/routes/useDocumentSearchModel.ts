@@ -25,56 +25,6 @@ interface SearchInputSelection {
   end: number;
 }
 
-const EMPTY_SEARCH_CANDIDATES: SearchCandidate[] = [];
-const EMPTY_SEARCH_CANDIDATE_STATE: SearchCandidateState = {
-  sourceDocId: '',
-  allCandidates: EMPTY_SEARCH_CANDIDATES,
-  childCandidateMap: {},
-};
-
-function mapSearchCandidates(
-  candidates: ReadonlyArray<{ noteId: string; text: string }>
-): SearchCandidate[] {
-  return candidates.map((candidate) => ({
-    noteId: candidate.noteId,
-    text: candidate.text,
-  }));
-}
-
-function filterCandidates(candidates: SearchCandidate[], needle: string): SearchCandidate[] {
-  if (needle.length === 0) {
-    return candidates;
-  }
-  return candidates.filter((candidate) => candidate.text.toLocaleLowerCase().includes(needle));
-}
-
-function countSlashes(query: string): number {
-  return query.split('/').length - 1;
-}
-
-function getNextHighlightedNoteId(
-  candidates: SearchCandidate[],
-  highlightedNoteId: string | null,
-  direction: 'up' | 'down'
-): string | null {
-  if (candidates.length === 0) {
-    return null;
-  }
-
-  if (!highlightedNoteId) {
-    return candidates[0]!.noteId;
-  }
-
-  const currentIndex = candidates.findIndex((candidate) => candidate.noteId === highlightedNoteId);
-  if (currentIndex === -1) {
-    return candidates[0]!.noteId;
-  }
-
-  const delta = direction === 'down' ? 1 : -1;
-  const nextIndex = Math.max(0, Math.min(candidates.length - 1, currentIndex + delta));
-  return candidates[nextIndex]!.noteId;
-}
-
 interface UseDocumentSearchModelOptions {
   docId: string;
   focusEditorInput: () => boolean;
@@ -102,6 +52,56 @@ interface UseDocumentSearchModelResult {
   searchQuery: string;
 }
 
+const EMPTY_SEARCH_CANDIDATES: SearchCandidate[] = [];
+const EMPTY_SEARCH_CANDIDATE_STATE: SearchCandidateState = {
+  sourceDocId: '',
+  allCandidates: EMPTY_SEARCH_CANDIDATES,
+  childCandidateMap: {},
+};
+
+function mapSearchCandidates(
+  candidates: ReadonlyArray<{ noteId: string; text: string }>
+): SearchCandidate[] {
+  return candidates.map((candidate) => ({
+    noteId: candidate.noteId,
+    text: candidate.text,
+  }));
+}
+
+function countSlashes(query: string): number {
+  return query.split('/').length - 1;
+}
+
+function filterCandidates(candidates: SearchCandidate[], needle: string): SearchCandidate[] {
+  if (needle.length === 0) {
+    return candidates;
+  }
+  return candidates.filter((candidate) => candidate.text.toLocaleLowerCase().includes(needle));
+}
+
+function getNextHighlightedNoteId(
+  candidates: SearchCandidate[],
+  highlightedNoteId: string | null,
+  direction: 'up' | 'down'
+): string | null {
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  if (!highlightedNoteId) {
+    return candidates[0]!.noteId;
+  }
+
+  const currentIndex = candidates.findIndex((candidate) => candidate.noteId === highlightedNoteId);
+  if (currentIndex === -1) {
+    return candidates[0]!.noteId;
+  }
+
+  const delta = direction === 'down' ? 1 : -1;
+  const nextIndex = Math.max(0, Math.min(candidates.length - 1, currentIndex + delta));
+  return candidates[nextIndex]!.noteId;
+}
+
 export function useDocumentSearchModel({
   docId,
   focusEditorInput,
@@ -117,25 +117,36 @@ export function useDocumentSearchModel({
     EMPTY_SEARCH_CANDIDATE_STATE
   );
   const [slashScopePathNoteIds, setSlashScopePathNoteIds] = useState<string[]>([]);
-  const pendingEditorFocusAfterSearchExitRef = useRef(false);
-  const previousSearchModeRef = useRef(false);
-  const previousSearchQueryRef = useRef(searchQuery);
-  const skipHighlightResetForQueryChangeRef = useRef(false);
   const [searchInputSelection, setSearchInputSelection] = useState<SearchInputSelection>({ start: 0, end: 0 });
   const [searchInputComposing, setSearchInputComposing] = useState(false);
+  const pendingEditorFocusAfterSearchExitRef = useRef(false);
 
-  const handleSearchCandidatesChange = useCallback((snapshot: SdkSearchCandidateSnapshot) => {
-    setSdkSearchCandidateState({
-      sourceDocId: docId,
-      allCandidates: mapSearchCandidates(snapshot.allCandidates),
-      childCandidateMap: Object.fromEntries(
-        Object.entries(snapshot.childCandidateMap).map(([noteId, candidates]) => [
-          noteId,
-          mapSearchCandidates(candidates),
-        ])
-      ),
-    });
-  }, [docId]);
+  const sdkSearchCandidates = sdkSearchCandidateState.sourceDocId === docId
+    ? sdkSearchCandidateState
+    : { ...EMPTY_SEARCH_CANDIDATE_STATE, sourceDocId: docId };
+  const isSlashMode = searchModeActive && searchQuery.startsWith('/');
+  const slashScopeParentNoteId = slashScopePathNoteIds.at(-1) ?? ROOT_SEARCH_SCOPE_ID;
+  const textNeedle = searchQuery.toLocaleLowerCase();
+  const slashSegmentNeedle = searchQuery.slice(searchQuery.lastIndexOf('/') + 1).toLocaleLowerCase();
+
+  const textResults = useMemo(
+    () => filterCandidates(sdkSearchCandidates.allCandidates, textNeedle),
+    [sdkSearchCandidates.allCandidates, textNeedle]
+  );
+  const slashScopeCandidates = useMemo(
+    () => sdkSearchCandidates.childCandidateMap[slashScopeParentNoteId] ?? EMPTY_SEARCH_CANDIDATES,
+    [sdkSearchCandidates.childCandidateMap, slashScopeParentNoteId]
+  );
+  const slashResults = useMemo(
+    () => filterCandidates(slashScopeCandidates, slashSegmentNeedle),
+    [slashScopeCandidates, slashSegmentNeedle]
+  );
+  const flatResults = isSlashMode ? slashResults : textResults;
+  const navigationCandidates = searchModeActive ? flatResults : EMPTY_SEARCH_CANDIDATES;
+  const highlightedNavigationCandidate = highlightedNoteId
+    ? navigationCandidates.find((candidate) => candidate.noteId === highlightedNoteId) ?? null
+    : null;
+  const completionSourceCandidate = highlightedNavigationCandidate ?? navigationCandidates[0] ?? null;
 
   useEffect(() => {
     if (searchModeActive || !pendingEditorFocusAfterSearchExitRef.current) {
@@ -145,40 +156,19 @@ export function useDocumentSearchModel({
     focusEditorInput();
   }, [focusEditorInput, searchModeActive]);
 
-  const sdkSearchCandidates = sdkSearchCandidateState.sourceDocId === docId
-    ? sdkSearchCandidateState
-    : { ...EMPTY_SEARCH_CANDIDATE_STATE, sourceDocId: docId };
-  const isSlashMode = searchModeActive && searchQuery.startsWith('/');
-  const textNeedle = searchQuery.toLocaleLowerCase();
-  const slashSegmentNeedle = searchQuery.slice(searchQuery.lastIndexOf('/') + 1).toLocaleLowerCase();
-  const slashScopeParentNoteId = slashScopePathNoteIds.at(-1) ?? ROOT_SEARCH_SCOPE_ID;
+  useEffect(() => {
+    if (!searchModeActive || navigationCandidates.length === 0) {
+      setHighlightedNoteId(null);
+      return;
+    }
 
-  const textResults = useMemo(
-    () => filterCandidates(sdkSearchCandidates.allCandidates, textNeedle),
-    [sdkSearchCandidates.allCandidates, textNeedle]
-  );
+    if (highlightedNoteId && navigationCandidates.some((candidate) => candidate.noteId === highlightedNoteId)) {
+      return;
+    }
 
-  const slashScopeCandidates = useMemo(
-    () => sdkSearchCandidates.childCandidateMap[slashScopeParentNoteId] ?? EMPTY_SEARCH_CANDIDATES,
-    [sdkSearchCandidates.childCandidateMap, slashScopeParentNoteId]
-  );
+    setHighlightedNoteId(navigationCandidates[0]!.noteId);
+  }, [highlightedNoteId, navigationCandidates, searchModeActive]);
 
-  const slashResults = useMemo(
-    () => filterCandidates(slashScopeCandidates, slashSegmentNeedle),
-    [slashScopeCandidates, slashSegmentNeedle]
-  );
-
-  const flatResults = isSlashMode ? slashResults : textResults;
-  const navigationCandidates = searchModeActive ? flatResults : EMPTY_SEARCH_CANDIDATES;
-  const highlightedNavigationCandidate = useMemo(
-    () => (
-      highlightedNoteId
-        ? navigationCandidates.find((candidate) => candidate.noteId === highlightedNoteId) ?? null
-        : null
-    ),
-    [highlightedNoteId, navigationCandidates]
-  );
-  const completionSourceCandidate = highlightedNavigationCandidate ?? navigationCandidates[0] ?? null;
   const isSearchInputCaretAtEnd = searchInputSelection.start === searchInputSelection.end &&
     searchInputSelection.end === searchQuery.length;
   const inlineCompletionText = useMemo(() => {
@@ -215,42 +205,7 @@ export function useDocumentSearchModel({
     isSearchInputCaretAtEnd &&
     inlineCompletionText.length > 0;
 
-  useEffect(() => {
-    const modeEntered = searchModeActive && !previousSearchModeRef.current;
-    const queryChanged = previousSearchQueryRef.current !== searchQuery;
-    const shouldResetForQueryChange = queryChanged && !skipHighlightResetForQueryChangeRef.current;
-    skipHighlightResetForQueryChangeRef.current = false;
-    previousSearchModeRef.current = searchModeActive;
-    previousSearchQueryRef.current = searchQuery;
-
-    if (!searchModeActive) {
-      setHighlightedNoteId(null);
-      return;
-    }
-
-    if (navigationCandidates.length === 0) {
-      setHighlightedNoteId(null);
-      return;
-    }
-
-    if (
-      modeEntered ||
-      shouldResetForQueryChange ||
-      !highlightedNoteId ||
-      !navigationCandidates.some((candidate) => candidate.noteId === highlightedNoteId)
-    ) {
-      setHighlightedNoteId(navigationCandidates[0]!.noteId);
-    }
-  }, [highlightedNoteId, navigationCandidates, searchModeActive, searchQuery]);
-
-  const applySearchQuery = useCallback((
-    nextSearchQuery: string,
-    options?: { preserveHighlight?: boolean; forceCaretAtEnd?: boolean }
-  ) => {
-    if (options?.preserveHighlight) {
-      skipHighlightResetForQueryChangeRef.current = true;
-    }
-
+  const applySearchQuery = useCallback((nextSearchQuery: string) => {
     if (nextSearchQuery.startsWith('/')) {
       const previousSlashCount = searchQuery.startsWith('/')
         ? countSlashes(searchQuery)
@@ -271,14 +226,20 @@ export function useDocumentSearchModel({
     }
 
     setSearchQuery(nextSearchQuery);
-    if (options?.forceCaretAtEnd) {
-      setSearchInputSelection({ start: nextSearchQuery.length, end: nextSearchQuery.length });
-    }
-  }, [highlightedNoteId, searchQuery, slashScopePathNoteIds]);
+  }, [highlightedNoteId, searchQuery, slashScopePathNoteIds.length]);
 
-  const moveSearchHighlight = (direction: 'up' | 'down') => {
-    setHighlightedNoteId(getNextHighlightedNoteId(navigationCandidates, highlightedNoteId, direction));
-  };
+  const handleSearchCandidatesChange = useCallback((snapshot: SdkSearchCandidateSnapshot) => {
+    setSdkSearchCandidateState({
+      sourceDocId: docId,
+      allCandidates: mapSearchCandidates(snapshot.allCandidates),
+      childCandidateMap: Object.fromEntries(
+        Object.entries(snapshot.childCandidateMap).map(([noteId, candidates]) => [
+          noteId,
+          mapSearchCandidates(candidates),
+        ])
+      ),
+    });
+  }, [docId]);
 
   const closeSearchAndFocusEditor = useCallback(() => {
     setSearchModeActive(false);
@@ -305,13 +266,13 @@ export function useDocumentSearchModel({
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      moveSearchHighlight('down');
+      setHighlightedNoteId(getNextHighlightedNoteId(navigationCandidates, highlightedNoteId, 'down'));
       return;
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      moveSearchHighlight('up');
+      setHighlightedNoteId(getNextHighlightedNoteId(navigationCandidates, highlightedNoteId, 'up'));
       return;
     }
 
@@ -320,10 +281,9 @@ export function useDocumentSearchModel({
         return;
       }
       event.preventDefault();
-      applySearchQuery(`${searchQuery}${inlineCompletionText}`, {
-        preserveHighlight: true,
-        forceCaretAtEnd: true,
-      });
+      const nextQuery = `${searchQuery}${inlineCompletionText}`;
+      applySearchQuery(nextQuery);
+      setSearchInputSelection({ start: nextQuery.length, end: nextQuery.length });
       return;
     }
 
@@ -341,6 +301,7 @@ export function useDocumentSearchModel({
     if (!highlightedNavigationCandidate) {
       return;
     }
+
     setZoomNoteId(highlightedNavigationCandidate.noteId);
     closeSearchAndFocusEditor();
   };
@@ -362,9 +323,8 @@ export function useDocumentSearchModel({
   };
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const nextSearchQuery = event.currentTarget.value;
     updateSearchInputSelection(event.currentTarget);
-    applySearchQuery(nextSearchQuery);
+    applySearchQuery(event.currentTarget.value);
   };
 
   const handleSearchSelect = (event: SyntheticEvent<HTMLInputElement>) => {
