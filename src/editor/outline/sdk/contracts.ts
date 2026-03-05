@@ -27,6 +27,11 @@ export interface EditorNote extends Note<'editor-note'> {
   children: () => readonly EditorNote[];
 }
 
+export interface DocumentNote extends Note<'document'> {
+  /** Returns direct document-root editor notes in display order. */
+  children: () => readonly EditorNote[];
+}
+
 export interface NoteRange {
   start: NoteId;
   end: NoteId;
@@ -63,6 +68,8 @@ export type NoteSelection = SelectionSnapshot;
 export type AdapterNoteSelection = NoteSelection;
 
 export interface NoteSdk extends NoteSdkBase {
+  /** Returns current document note handle. */
+  currentDocument: () => DocumentNote;
   /** Returns user-config root note handle. */
   userConfig: () => Note;
   /** Creates and places an editor note at target, then returns attached note handle. */
@@ -72,6 +79,8 @@ export interface NoteSdk extends NoteSdkBase {
 }
 
 export interface NoteSdkAdapter extends NoteSdkBase {
+  /** Reads direct current-document root editor note ids in display order. */
+  currentDocumentChildrenIds: () => readonly NoteId[];
   /** Returns user-config root note id. */
   userConfigId: () => NoteId;
   /** True when user-config note id exists. */

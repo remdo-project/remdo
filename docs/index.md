@@ -52,8 +52,8 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/reordering.md` (Short). Directional reorder fallback cascade: swap,
   parent-sibling reparent, outdent, then no-op.
 - `docs/outliner/search.md` (Short). Search behavior: focus-driven mode
-  entry/exit, single highlighted note navigation over visible notes, flat
-  text-match results on typing, Enter-to-zoom, and `[Future]` slash-prefixed
+  entry/exit, single highlighted note in always-flat results (including empty
+  query), text-match filtering, Enter-to-zoom, and `[Future]` slash-prefixed
   tree navigation.
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing

@@ -1,7 +1,7 @@
 import type { LexicalEditor, LexicalNode } from 'lexical';
 import { $createTextNode, $getNodeByKey, $getSelection, $isRangeSelection, $setState } from 'lexical';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
-import { noteIdState } from '#lib/editor/note-id-state';
+import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import { noteRangeFromNoteId, noteRangeFromOrderedIds } from '@/editor/outline/note-range';
 import {
   $getOrCreateChildList,
@@ -15,7 +15,7 @@ import {
 } from '@/editor/outline/list-structure';
 import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '@/editor/outline/note-ops';
 import { $findNoteById } from '@/editor/outline/note-traversal';
-import { $requireContentItemNoteId, resolveContentItemFromNode } from '@/editor/outline/schema';
+import { $requireContentItemNoteId, $requireRootContentList, resolveContentItemFromNode } from '@/editor/outline/schema';
 import { $resolveZoomBoundaryRoot } from '@/editor/outline/selection/boundary';
 import type { OutlineSelectionRange } from '@/editor/outline/selection/model';
 import { $resolveStructuralHeadsFromRange } from '@/editor/outline/selection/range';
@@ -284,6 +284,12 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
 
   return {
     docId: () => docId,
+    currentDocumentChildrenIds: () => {
+      const rootList = $requireRootContentList();
+      return getContentSiblings(rootList)
+        .map((item) => $getNoteId(item))
+        .filter((noteId): noteId is NoteId => noteId !== null);
+    },
     userConfigId: () => userConfig.userConfigId(),
     hasUserConfigNote: (noteId) => userConfig.hasUserConfigNote(noteId),
     userConfigKindOf: (noteId) => userConfig.userConfigKindOf(noteId),
@@ -302,7 +308,9 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
         return [];
       }
 
-      return getContentSiblings(nested).map((child) => $requireContentItemNoteId(child));
+      return getContentSiblings(nested)
+        .map((child) => $getNoteId(child))
+        .filter((noteId): noteId is NoteId => noteId !== null);
     },
     delete: (range) => {
       const resolved = $resolveRangeNotes(range);

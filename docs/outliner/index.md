@@ -18,8 +18,8 @@ details.
 6. **List types:** `./list-types.md` — bullet/number/check semantics and checked state.
 7. **Links:** `./links.md` — initial note-linking behavior, picker/query rules, and future boundaries.
 8. **Search mode:** `./search.md` — focused search navigation flow (single
-   highlight, arrow traversal over visible notes, flat text-match results,
-   Enter-to-zoom) plus `[Future]` slash-prefixed tree navigation.
+   highlight, always-flat results (empty query shows all notes), text-match
+   filtering, Enter-to-zoom, plus `[Future]` slash-prefixed tree navigation.
 9. **Note menu:** `./menu.md` — note-scoped menu entry points, targets, and actions.
 10. **Clipboard:** `./clipboard.md` — cut/copy/paste behavior, caret placement, and move rules.
 11. **Indent/Outdent & structure rules:** `./note-structure-rules.md` — structural invariants and indent/outdent semantics.

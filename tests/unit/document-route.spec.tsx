@@ -1,22 +1,55 @@
 import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DocumentRoute from '@/routes/DocumentRoute';
 import { createDocumentPath } from '@/routing';
 
 vi.mock('@/editor/Editor', async () => {
   const React = await import('react');
+  const defaultCandidates = [
+    { noteId: 'note1', text: 'note1' },
+    { noteId: 'note2', text: 'note2' },
+    { noteId: 'note3', text: 'note3' },
+    { noteId: 'note4', text: 'note4' },
+    { noteId: 'note5', text: 'note5' },
+  ];
 
   interface MockEditorProps {
     docId: string;
+    onSearchCandidatesChange?: (candidates: Array<{ noteId: string; text: string }>) => void;
     searchHighlightedNoteId?: string | null;
     searchModeActive?: boolean;
     zoomNoteId?: string | null;
   }
 
-  function MockEditor({ docId, searchHighlightedNoteId, searchModeActive, zoomNoteId }: MockEditorProps) {
+  function MockEditor({
+    docId,
+    onSearchCandidatesChange,
+    searchHighlightedNoteId,
+    searchModeActive,
+    zoomNoteId,
+  }: MockEditorProps) {
+    React.useEffect(() => {
+      const candidateMap = (
+        globalThis as typeof globalThis & {
+          __remdoMockSdkSearchCandidatesByDoc?: Record<string, Array<{ noteId: string; text: string }> | null>;
+        }
+      ).__remdoMockSdkSearchCandidatesByDoc;
+      const candidateSelection = candidateMap?.[docId];
+
+      if (candidateSelection === null) {
+        return;
+      }
+
+      const sdkCandidates = candidateSelection ?? defaultCandidates;
+      onSearchCandidatesChange?.(sdkCandidates);
+      return () => {
+        onSearchCandidatesChange?.([]);
+      };
+    }, [docId, onSearchCandidatesChange]);
+
     const instanceIdRef = React.useRef(`instance-${Math.random().toString(36).slice(2)}`);
     return (
       <>
@@ -48,6 +81,14 @@ vi.mock('@/editor/zoom/ZoomBreadcrumbs', () => ({
 }));
 
 describe('document route', () => {
+  beforeEach(() => {
+    (
+      globalThis as typeof globalThis & {
+        __remdoMockSdkSearchCandidatesByDoc?: Record<string, Array<{ noteId: string; text: string }> | null>;
+      }
+    ).__remdoMockSdkSearchCandidatesByDoc = undefined;
+  });
+
   const renderDocumentRoute = () => {
     const router = createMemoryRouter(
       [{ path: '/n/:docRef', element: <DocumentRoute /> }],
@@ -63,7 +104,8 @@ describe('document route', () => {
     return router;
   };
 
-  const getSearchProbe = () => screen.getByTestId('editor-search-probe');
+  const getActiveSearchResult = () =>
+    document.querySelector<HTMLElement>('[data-search-result-item][data-search-result-active="true"]');
 
   it('remounts editor when document id changes via route params', async () => {
     const router = renderDocumentRoute();
@@ -154,52 +196,58 @@ describe('document route', () => {
     await waitFor(() => {
       expect(searchInput).not.toHaveFocus();
       expect(document.activeElement).toHaveClass('editor-input');
-      const probe = getSearchProbe();
-      expect(probe.dataset.searchModeActive).toBe('false');
-      expect(probe.dataset.searchHighlightedNoteId).toBe('');
     });
   });
 
-  it('initializes search highlight to the first visible note on focus', async () => {
+  it('shows all notes in flat results and highlights the first item on empty query', async () => {
     renderDocumentRoute();
 
     const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
     searchInput.focus();
 
     await waitFor(() => {
-      const probe = getSearchProbe();
-      expect(probe.dataset.searchModeActive).toBe('true');
-      expect(probe.dataset.searchHighlightedNoteId).toBe('note1');
+      expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
+      expect(getActiveSearchResult()?.textContent).toBe('note1');
     });
+
+    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+      .map((item) => item.textContent);
+    expect(resultItems).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
   });
 
-  it('moves highlight with arrows over visible notes without wraparound', async () => {
+  it('moves highlight with arrows over flat results without wraparound', async () => {
     renderDocumentRoute();
 
     const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
     searchInput.focus();
 
     await waitFor(() => {
-      expect(getSearchProbe().dataset.searchHighlightedNoteId).toBe('note1');
+      expect(getActiveSearchResult()?.textContent).toBe('note1');
     });
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getSearchProbe().dataset.searchHighlightedNoteId).toBe('note3');
+    expect(getActiveSearchResult()?.textContent).toBe('note2');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getSearchProbe().dataset.searchHighlightedNoteId).toBe('note5');
+    expect(getActiveSearchResult()?.textContent).toBe('note3');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getSearchProbe().dataset.searchHighlightedNoteId).toBe('note5');
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    expect(getActiveSearchResult()?.textContent).toBe('note5');
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    expect(getActiveSearchResult()?.textContent).toBe('note5');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getSearchProbe().dataset.searchHighlightedNoteId).toBe('note3');
+    expect(getActiveSearchResult()?.textContent).toBe('note4');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getSearchProbe().dataset.searchHighlightedNoteId).toBe('note1');
+    fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
+    fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
+    expect(getActiveSearchResult()?.textContent).toBe('note1');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getSearchProbe().dataset.searchHighlightedNoteId).toBe('note1');
+    expect(getActiveSearchResult()?.textContent).toBe('note1');
   });
 
   it('shows flat results across the whole document while query is non-empty', async () => {
@@ -216,6 +264,28 @@ describe('document route', () => {
     expect(document.querySelector('.document-editor-pane--hidden')).not.toBeNull();
   });
 
+  it('uses sdk-provided candidates for flat results', async () => {
+    (
+      globalThis as typeof globalThis & {
+        __remdoMockSdkSearchCandidatesByDoc?: Record<string, Array<{ noteId: string; text: string }> | null>;
+      }
+    ).__remdoMockSdkSearchCandidatesByDoc = {
+      main: [{ noteId: 'sdk-1', text: 'sdk result' }],
+    };
+
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: 'sdk' } });
+
+    await screen.findByTestId('document-search-results');
+    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+      .map((item) => item.textContent);
+
+    expect(resultItems).toEqual(['sdk result']);
+  });
+
   it('keeps no highlight for no-match query and Enter is a no-op', async () => {
     const router = renderDocumentRoute();
 
@@ -224,36 +294,43 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: 'zzz' } });
 
     await screen.findByText('No matches');
-    expect(getSearchProbe().dataset.searchHighlightedNoteId).toBe('');
+    expect(getActiveSearchResult()).toBeNull();
 
     fireEvent.keyDown(searchInput, { key: 'Enter' });
     expect(router.state.location.pathname).toBe(createDocumentPath('main'));
     expect(searchInput).toHaveFocus();
   });
 
-  it('refreshes candidates when editor input appears after search mode starts', async () => {
-    renderDocumentRoute();
+  it('clears stale sdk candidates when switching documents', async () => {
+    (
+      globalThis as typeof globalThis & {
+        __remdoMockSdkSearchCandidatesByDoc?: Record<string, Array<{ noteId: string; text: string }> | null>;
+      }
+    ).__remdoMockSdkSearchCandidatesByDoc = {
+      main: [{ noteId: 'mainonly', text: 'main only' }],
+      other: null,
+    };
 
+    const router = renderDocumentRoute();
     const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
-    const editorInput = screen.getByTestId('editor-input-probe');
-    const restoredEditorInput = editorInput.cloneNode(true) as HTMLElement;
-    editorInput.remove();
-
     searchInput.focus();
-    await waitFor(() => {
-      expect(getSearchProbe().dataset.searchModeActive).toBe('true');
-      expect(getSearchProbe().dataset.searchHighlightedNoteId).toBe('');
-    });
-
-    const shell = searchInput.closest('.document-editor-shell');
-    shell!.append(restoredEditorInput);
-
-    fireEvent.change(searchInput, { target: { value: 'note1' } });
+    fireEvent.change(searchInput, { target: { value: 'main' } });
 
     await waitFor(() => {
-      const active = document.querySelector<HTMLElement>('[data-search-result-item][data-search-result-active="true"]');
-      expect(active?.textContent).toBe('note1');
+      expect(getActiveSearchResult()?.textContent).toBe('main only');
     });
+
+    await router.navigate(createDocumentPath('other'));
+
+    const otherSearchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    otherSearchInput.focus();
+    fireEvent.change(otherSearchInput, { target: { value: 'main' } });
+
+    await screen.findByText('No matches');
+    expect(document.querySelectorAll('[data-search-result-item]')).toHaveLength(0);
+
+    fireEvent.keyDown(otherSearchInput, { key: 'Enter' });
+    expect(router.state.location.pathname).toBe(createDocumentPath('other'));
   });
 
   it('zooms to highlighted flat result on Enter and moves focus to editor', async () => {
@@ -287,11 +364,8 @@ describe('document route', () => {
     fireEvent.blur(searchInput);
 
     await waitFor(() => {
-      const probe = getSearchProbe();
-      expect(probe.dataset.searchModeActive).toBe('false');
-      expect(probe.dataset.searchHighlightedNoteId).toBe('');
+      expect(screen.queryByTestId('document-search-results')).toBeNull();
     });
-    expect(screen.queryByTestId('document-search-results')).toBeNull();
   });
 
   it('blurs search on Escape when editor input is unavailable', async () => {

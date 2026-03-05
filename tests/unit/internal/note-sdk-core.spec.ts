@@ -42,6 +42,7 @@ function createMockAdapterFixture(
     placeCalls,
     adapter: {
       docId: () => 'doc-1',
+      currentDocumentChildrenIds: () => ['a'],
       userConfigId: () => 'user-config',
       hasUserConfigNote: (noteId) => configNotes.has(noteId),
       userConfigKindOf: (noteId) => {
@@ -152,6 +153,17 @@ describe('note sdk core', () => {
     expect(note.attached()).toBe(true);
     expect(note.text()).toBe('A');
     expect(note.children().map((child) => child.id())).toEqual(['b', 'c']);
+  });
+
+  it('reads current document from adapter', () => {
+    const fixture = createMockAdapterFixture();
+    const sdk = createNoteSdk(fixture.adapter);
+    const document = sdk.currentDocument();
+
+    expect(document.id()).toBe('doc-1');
+    expect(document.kind()).toBe('document');
+    expect(document.text()).toBe('doc-1');
+    expect(document.children().map((note) => note.id())).toEqual(['a']);
   });
 
   it('reflects selection and defers missing note errors to reads', () => {

@@ -59,6 +59,7 @@ export function createHardcodedUserConfigNoteSdk(): NoteSdk {
   const userConfig = createHardcodedUserConfigAdapter();
   const adapter: NoteSdkAdapter = {
     docId: () => MAIN_DOCUMENT_ID,
+    currentDocumentChildrenIds: () => [],
     userConfigId: () => userConfig.userConfigId(),
     hasUserConfigNote: (noteId) => userConfig.hasUserConfigNote(noteId),
     userConfigKindOf: (noteId) => userConfig.userConfigKindOf(noteId),

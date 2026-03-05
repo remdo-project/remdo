@@ -27,6 +27,8 @@ import { FoldingPlugin } from './plugins/FoldingPlugin';
 import { NoteControlsPlugin } from './plugins/NoteControlsPlugin';
 import { NoteMenuPlugin } from './plugins/NoteMenuPlugin';
 import { SearchDecorationsPlugin } from './plugins/SearchDecorationsPlugin';
+import { SearchCandidatesPlugin } from './plugins/SearchCandidatesPlugin';
+import type { SdkSearchCandidate } from './search/sdk-search-candidates';
 import './Editor.css';
 
 interface EditorProps {
@@ -38,6 +40,7 @@ interface EditorProps {
   zoomNoteId?: string | null;
   onZoomNoteIdChange?: (noteId: string | null) => void;
   onZoomPathChange?: (path: NotePathItem[]) => void;
+  onSearchCandidatesChange?: (candidates: SdkSearchCandidate[]) => void;
   searchHighlightedNoteId?: string | null;
   searchModeActive?: boolean;
 }
@@ -51,6 +54,7 @@ export default function Editor({
   zoomNoteId,
   onZoomNoteIdChange,
   onZoomPathChange,
+  onSearchCandidatesChange,
   searchHighlightedNoteId,
   searchModeActive,
 }: EditorProps) {
@@ -62,12 +66,14 @@ export default function Editor({
         <CollaborationPlugin docId={docId}>
           <EditorRuntime
             children={children}
+            docId={docId}
             onTestBridgeReady={onTestBridgeReady}
             onTestBridgeDispose={onTestBridgeDispose}
             statusPortalRoot={statusPortalRoot}
             zoomNoteId={zoomNoteId}
             onZoomNoteIdChange={onZoomNoteIdChange}
             onZoomPathChange={onZoomPathChange}
+            onSearchCandidatesChange={onSearchCandidatesChange}
             searchHighlightedNoteId={searchHighlightedNoteId}
             searchModeActive={searchModeActive}
           />
@@ -79,15 +85,17 @@ export default function Editor({
 
 function EditorRuntime({
   children,
+  docId,
   onTestBridgeReady,
   onTestBridgeDispose,
   statusPortalRoot,
   zoomNoteId,
   onZoomNoteIdChange,
   onZoomPathChange,
+  onSearchCandidatesChange,
   searchHighlightedNoteId,
   searchModeActive,
-}: Omit<EditorProps, 'docId'>) {
+}: EditorProps) {
   const offlineDocumentUnavailable = useOfflineDocumentUnavailable();
   const [schemaReady, setSchemaReady] = useState(false);
   const handleSchemaReadyChange = useCallback((ready: boolean) => {
@@ -132,6 +140,7 @@ function EditorRuntime({
                 onZoomPathChange={onZoomPathChange}
               />
               <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
+              <SearchCandidatesPlugin docId={docId} onCandidatesChange={onSearchCandidatesChange} />
               <SearchDecorationsPlugin highlightedNoteId={searchHighlightedNoteId} active={searchModeActive} />
               <CheckListPlugin />
               <ListPlugin hasStrictIndent />
