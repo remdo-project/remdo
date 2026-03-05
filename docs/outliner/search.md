@@ -9,8 +9,8 @@ behavior and the planned slash-prefixed navigation flow.
 
 - **Search Mode:** active while the search box has focus.
 - **Highlighted note:** the single note currently targeted by search navigation.
-- **[Future] Slash navigation mode:** input mode entered when query starts with
-  `/`; intended for quick tree navigation rather than text matching.
+- **Slash navigation mode:** input mode entered when query starts with `/`;
+  intended for quick tree navigation rather than text matching.
 
 ## Behavior
 
@@ -27,21 +27,16 @@ behavior and the planned slash-prefixed navigation flow.
 10. Search Mode ends when the search box loses focus.
 11. `Enter` moves focus to the editor and zooms to the highlighted note.
 12. `Escape` moves focus to the editor.
-
-## [Future] Slash navigation
-
-1. If the query starts with `/`, the input switches from text search semantics
-   to navigation semantics.
-2. In slash navigation mode, results represent navigable tree targets at the
-   current level (starting from document/root scope).
-3. `ArrowUp`/`ArrowDown` cycle through the shown targets and keep one active
-   highlight.
-4. Cycling targets updates the visible input path so the field reflects the
-   currently highlighted navigation target.
-5. Adding another `/` descends into the highlighted target and switches results
-   to its children.
-6. Entering `/` and pressing `Enter` immediately zooms out to document level
-   (root scope) and shows a root-level highlight cue.
-7. Pressing `Enter` with a deeper slash path jumps/zooms to the currently
-   highlighted target.
-8. `Escape` exits slash navigation mode and returns focus to the editor.
+13. If the query starts with `/`, Search Mode switches to slash navigation
+    semantics.
+14. In slash navigation, query filtering applies only to the segment after the
+    last `/`.
+15. Slash navigation shows top-level document notes as candidates at the root
+    level.
+16. In slash navigation, appending another `/` descends into the highlighted
+    note and switches candidates to its direct children.
+17. In slash navigation, cycling highlighted candidates with arrow keys updates
+    the visible input path to the highlighted target path.
+18. In slash navigation, pressing `Enter` on exact `/` zooms to document root.
+19. In slash navigation with any deeper slash path, pressing `Enter` zooms to
+    the highlighted candidate.

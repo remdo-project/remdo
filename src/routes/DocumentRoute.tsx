@@ -6,7 +6,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import Editor from '@/editor/Editor';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { createHardcodedUserConfigNoteSdk } from '@/editor/outline/sdk';
-import type { SdkSearchCandidate } from '@/editor/search/sdk-search-candidates';
+import type { SdkSearchCandidateSnapshot } from '@/editor/search/sdk-search-candidates';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
 import { createDocumentPathForPathname, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
 import './DocumentRoute.css';
@@ -33,7 +33,9 @@ function isVisibleInCurrentView(element: HTMLElement): boolean {
 
 interface SearchCandidateState {
   sourceDocId: string;
-  candidates: SearchCandidate[];
+  allCandidates: SearchCandidate[];
+  topLevelCandidates: SearchCandidate[];
+  childCandidateMap: Record<string, SearchCandidate[]>;
 }
 
 export default function DocumentRoute() {
@@ -53,13 +55,16 @@ export default function DocumentRoute() {
   );
   const [sdkSearchCandidateState, setSdkSearchCandidateState] = useReducer(
     (_current: SearchCandidateState, next: SearchCandidateState) => next,
-    { sourceDocId: '', candidates: [] }
+    { sourceDocId: '', allCandidates: [], topLevelCandidates: [], childCandidateMap: {} }
   );
+  const [slashScopePathNoteIds, setSlashScopePathNoteIds] = useState<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const shellRef = useRef<HTMLDivElement | null>(null);
   const pendingEditorFocusAfterSearchExitRef = useRef(false);
   const previousSearchModeRef = useRef(false);
   const previousSearchQueryRef = useRef(searchQuery);
+  const skipHighlightResetForQueryChangeRef = useRef(false);
+  const slashFilterSuspendedRef = useRef(false);
   const zoomNoteId = parsedRef?.noteId ?? null;
   const sdk = useMemo(() => createHardcodedUserConfigNoteSdk(), []);
   const documentOptions = useMemo(
@@ -112,13 +117,24 @@ export default function DocumentRoute() {
     return document.activeElement === editorInput;
   }, []);
 
-  const handleSdkSearchCandidatesChange = useCallback((candidates: SdkSearchCandidate[]) => {
-    setSdkSearchCandidateState({
-      sourceDocId: docId,
-      candidates: candidates.map((candidate) => ({
+  const handleSdkSearchCandidatesChange = useCallback((snapshot: SdkSearchCandidateSnapshot) => {
+    const mapCandidates = (candidates: SdkSearchCandidateSnapshot['allCandidates']): SearchCandidate[] => (
+      candidates.map((candidate) => ({
         noteId: candidate.noteId,
         text: candidate.text,
-      })),
+      }))
+    );
+
+    setSdkSearchCandidateState({
+      sourceDocId: docId,
+      allCandidates: mapCandidates(snapshot.allCandidates),
+      topLevelCandidates: mapCandidates(snapshot.topLevelCandidates),
+      childCandidateMap: Object.fromEntries(
+        Object.entries(snapshot.childCandidateMap).map(([noteId, candidates]) => [
+          noteId,
+          mapCandidates(candidates),
+        ])
+      ),
     });
   }, [docId]);
 
@@ -165,17 +181,63 @@ export default function DocumentRoute() {
   }, [focusEditorInput, searchModeActive]);
 
   const sdkSearchCandidates = useMemo(
-    () => (sdkSearchCandidateState.sourceDocId === docId ? sdkSearchCandidateState.candidates : []),
+    () => (sdkSearchCandidateState.sourceDocId === docId ? sdkSearchCandidateState : {
+      sourceDocId: docId,
+      allCandidates: [],
+      topLevelCandidates: [],
+      childCandidateMap: {},
+    }),
     [docId, sdkSearchCandidateState]
   );
+  const isSlashMode = searchModeActive && searchQuery.startsWith('/');
+  const textNeedle = searchQuery.toLocaleLowerCase();
+  const slashSegmentNeedle = searchQuery.slice(searchQuery.lastIndexOf('/') + 1).toLocaleLowerCase();
+  const slashScopePath = useMemo(
+    () => (sdkSearchCandidates.sourceDocId === docId ? slashScopePathNoteIds : []),
+    [docId, sdkSearchCandidates.sourceDocId, slashScopePathNoteIds]
+  );
+  const slashScopeParentNoteId = slashScopePath.at(-1) ?? null;
 
-  const flatResults = useMemo(() => {
+  const textResults = useMemo(() => {
     if (searchQuery.length === 0) {
-      return sdkSearchCandidates;
+      return sdkSearchCandidates.allCandidates;
     }
-    const needle = searchQuery.toLocaleLowerCase();
-    return sdkSearchCandidates.filter((candidate) => candidate.text.toLocaleLowerCase().includes(needle));
-  }, [sdkSearchCandidates, searchQuery]);
+    return sdkSearchCandidates.allCandidates.filter((candidate) => candidate.text.toLocaleLowerCase().includes(textNeedle));
+  }, [sdkSearchCandidates.allCandidates, searchQuery.length, textNeedle]);
+
+  const slashScopeCandidates = useMemo(
+    () => {
+      if (!slashScopeParentNoteId) {
+        return sdkSearchCandidates.topLevelCandidates;
+      }
+      const scopedCandidates = sdkSearchCandidates.childCandidateMap[slashScopeParentNoteId];
+      return scopedCandidates ?? sdkSearchCandidates.topLevelCandidates;
+    },
+    [sdkSearchCandidates.childCandidateMap, sdkSearchCandidates.topLevelCandidates, slashScopeParentNoteId]
+  );
+
+  const slashResults = useMemo(() => {
+    if (slashFilterSuspendedRef.current || slashSegmentNeedle.length === 0) {
+      return slashScopeCandidates;
+    }
+    return slashScopeCandidates.filter((candidate) => (
+      candidate.text.toLocaleLowerCase().includes(slashSegmentNeedle)
+    ));
+  }, [slashScopeCandidates, slashSegmentNeedle]);
+
+  const flatResults = isSlashMode ? slashResults : textResults;
+  const noteTextById = useMemo(() => {
+    const textById: Record<string, string> = {};
+    for (const candidate of sdkSearchCandidates.allCandidates) {
+      textById[candidate.noteId] = candidate.text;
+    }
+    for (const candidate of sdkSearchCandidates.topLevelCandidates) {
+      if (textById[candidate.noteId] === undefined) {
+        textById[candidate.noteId] = candidate.text;
+      }
+    }
+    return textById;
+  }, [sdkSearchCandidates.allCandidates, sdkSearchCandidates.topLevelCandidates]);
 
   const isFlatResultsActive = searchModeActive;
   const navigationCandidates = useMemo(
@@ -186,6 +248,8 @@ export default function DocumentRoute() {
   useEffect(() => {
     const modeEntered = searchModeActive && !previousSearchModeRef.current;
     const queryChanged = previousSearchQueryRef.current !== searchQuery;
+    const shouldResetForQueryChange = queryChanged && !skipHighlightResetForQueryChangeRef.current;
+    skipHighlightResetForQueryChangeRef.current = false;
     previousSearchModeRef.current = searchModeActive;
     previousSearchQueryRef.current = searchQuery;
 
@@ -201,7 +265,7 @@ export default function DocumentRoute() {
 
     if (
       modeEntered ||
-      queryChanged ||
+      shouldResetForQueryChange ||
       !highlightedNoteId ||
       !navigationCandidates.some((candidate) => candidate.noteId === highlightedNoteId)
     ) {
@@ -209,27 +273,50 @@ export default function DocumentRoute() {
     }
   }, [highlightedNoteId, navigationCandidates, searchModeActive, searchQuery]);
 
+  const syncSlashSearchQuery = useCallback((nextHighlightedNoteId: string) => {
+    const nextPathSegments = [...slashScopePath, nextHighlightedNoteId].map((noteId) => noteTextById[noteId] ?? '');
+    const nextSearchQuery = `/${nextPathSegments.join('/')}`;
+    if (nextSearchQuery === searchQuery) {
+      return;
+    }
+
+    slashFilterSuspendedRef.current = true;
+    skipHighlightResetForQueryChangeRef.current = true;
+    setSearchQuery(nextSearchQuery);
+  }, [noteTextById, searchQuery, slashScopePath]);
+
   const moveSearchHighlight = (direction: 'up' | 'down') => {
     if (navigationCandidates.length === 0) {
       setHighlightedNoteId(null);
       return;
     }
 
-    if (!highlightedNoteId) {
-      setHighlightedNoteId(navigationCandidates[0]!.noteId);
-      return;
+    let nextHighlightedNoteId: string;
+    if (highlightedNoteId) {
+      const currentIndex = navigationCandidates.findIndex((candidate) => candidate.noteId === highlightedNoteId);
+      if (currentIndex === -1) {
+        nextHighlightedNoteId = navigationCandidates[0]!.noteId;
+      } else {
+        const delta = direction === 'down' ? 1 : -1;
+        const nextIndex = Math.max(0, Math.min(navigationCandidates.length - 1, currentIndex + delta));
+        nextHighlightedNoteId = navigationCandidates[nextIndex]!.noteId;
+      }
+    } else {
+      nextHighlightedNoteId = navigationCandidates[0]!.noteId;
     }
 
-    const currentIndex = navigationCandidates.findIndex((candidate) => candidate.noteId === highlightedNoteId);
-    if (currentIndex === -1) {
-      setHighlightedNoteId(navigationCandidates[0]!.noteId);
-      return;
+    setHighlightedNoteId(nextHighlightedNoteId);
+    if (isSlashMode) {
+      syncSlashSearchQuery(nextHighlightedNoteId);
     }
-
-    const delta = direction === 'down' ? 1 : -1;
-    const nextIndex = Math.max(0, Math.min(navigationCandidates.length - 1, currentIndex + delta));
-    setHighlightedNoteId(navigationCandidates[nextIndex]!.noteId);
   };
+
+  const closeSearchAndFocusEditor = useCallback(() => {
+    setSearchModeActive(false);
+    queueMicrotask(() => {
+      focusEditorInput();
+    });
+  }, [focusEditorInput]);
 
   const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Escape' && !event.altKey && !event.metaKey && !event.ctrlKey) {
@@ -264,14 +351,21 @@ export default function DocumentRoute() {
     }
 
     event.preventDefault();
-    if (!highlightedNoteId) {
+    if (isSlashMode && searchQuery === '/') {
+      setZoomNoteId(null);
+      closeSearchAndFocusEditor();
       return;
     }
-    setZoomNoteId(highlightedNoteId);
-    setSearchModeActive(false);
-    queueMicrotask(() => {
-      focusEditorInput();
-    });
+
+    const highlightedCandidate = highlightedNoteId
+      ? navigationCandidates.find((candidate) => candidate.noteId === highlightedNoteId) ?? null
+      : null;
+
+    if (!highlightedCandidate) {
+      return;
+    }
+    setZoomNoteId(highlightedCandidate.noteId);
+    closeSearchAndFocusEditor();
   };
 
   const handleSearchFocus = () => {
@@ -283,7 +377,28 @@ export default function DocumentRoute() {
   };
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.currentTarget.value);
+    const nextSearchQuery = event.currentTarget.value;
+    slashFilterSuspendedRef.current = false;
+    if (nextSearchQuery.startsWith('/')) {
+      const previousSlashCount = searchQuery.startsWith('/')
+        ? searchQuery.split('/').length - 1
+        : 0;
+      const nextSlashCount = nextSearchQuery.split('/').length - 1;
+      const appendedSlash = nextSlashCount > previousSlashCount && nextSearchQuery.endsWith('/');
+
+      if (nextSearchQuery === '/') {
+        setSlashScopePathNoteIds([]);
+      } else if (nextSlashCount < previousSlashCount) {
+        const nextDepth = Math.max(0, nextSlashCount - 1);
+        setSlashScopePathNoteIds((currentPath) => currentPath.slice(0, nextDepth));
+      } else if (appendedSlash && highlightedNoteId) {
+        setSlashScopePathNoteIds((currentPath) => [...currentPath, highlightedNoteId]);
+      }
+    } else if (slashScopePathNoteIds.length > 0) {
+      setSlashScopePathNoteIds([]);
+    }
+
+    setSearchQuery(nextSearchQuery);
   };
 
   const highlightedResultNoteId = searchModeActive ? highlightedNoteId : null;
@@ -355,7 +470,11 @@ export default function DocumentRoute() {
         </div>
       </header>
       {isFlatResultsActive ? (
-        <section className="document-search-results" data-testid="document-search-results">
+        <section
+          className="document-search-results"
+          data-search-mode={isSlashMode ? 'slash' : 'text'}
+          data-testid="document-search-results"
+        >
           {flatResults.length > 0 ? (
             <ol className="document-search-results-list">
               {flatResults.map((result) => (

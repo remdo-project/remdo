@@ -28,7 +28,7 @@ import { NoteControlsPlugin } from './plugins/NoteControlsPlugin';
 import { NoteMenuPlugin } from './plugins/NoteMenuPlugin';
 import { SearchDecorationsPlugin } from './plugins/SearchDecorationsPlugin';
 import { SearchCandidatesPlugin } from './plugins/SearchCandidatesPlugin';
-import type { SdkSearchCandidate } from './search/sdk-search-candidates';
+import type { SdkSearchCandidateSnapshot } from './search/sdk-search-candidates';
 import './Editor.css';
 
 interface EditorProps {
@@ -40,7 +40,7 @@ interface EditorProps {
   zoomNoteId?: string | null;
   onZoomNoteIdChange?: (noteId: string | null) => void;
   onZoomPathChange?: (path: NotePathItem[]) => void;
-  onSearchCandidatesChange?: (candidates: SdkSearchCandidate[]) => void;
+  onSearchCandidatesChange?: (snapshot: SdkSearchCandidateSnapshot) => void;
   searchHighlightedNoteId?: string | null;
   searchModeActive?: boolean;
 }

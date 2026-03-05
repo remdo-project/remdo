@@ -6,19 +6,44 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DocumentRoute from '@/routes/DocumentRoute';
 import { createDocumentPath } from '@/routing';
 
+interface TestSdkSearchSnapshot {
+  allCandidates: Array<{ noteId: string; text: string }>;
+  topLevelCandidates: Array<{ noteId: string; text: string }>;
+  childCandidateMap: Record<string, Array<{ noteId: string; text: string }>>;
+}
+
 vi.mock('@/editor/Editor', async () => {
   const React = await import('react');
-  const defaultCandidates = [
-    { noteId: 'note1', text: 'note1' },
-    { noteId: 'note2', text: 'note2' },
-    { noteId: 'note3', text: 'note3' },
-    { noteId: 'note4', text: 'note4' },
-    { noteId: 'note5', text: 'note5' },
-  ];
+  const defaultSnapshot = {
+    allCandidates: [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note4', text: 'note4' },
+      { noteId: 'note5', text: 'note5' },
+    ],
+    topLevelCandidates: [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note5', text: 'note5' },
+    ],
+    childCandidateMap: {
+      note1: [{ noteId: 'note2', text: 'note2' }],
+      note2: [],
+      note3: [{ noteId: 'note4', text: 'note4' }],
+      note4: [],
+      note5: [],
+    },
+  } satisfies TestSdkSearchSnapshot;
+  const emptySnapshot = {
+    allCandidates: [],
+    topLevelCandidates: [],
+    childCandidateMap: {},
+  } satisfies TestSdkSearchSnapshot;
 
   interface MockEditorProps {
     docId: string;
-    onSearchCandidatesChange?: (candidates: Array<{ noteId: string; text: string }>) => void;
+    onSearchCandidatesChange?: (snapshot: TestSdkSearchSnapshot) => void;
     searchHighlightedNoteId?: string | null;
     searchModeActive?: boolean;
     zoomNoteId?: string | null;
@@ -34,7 +59,7 @@ vi.mock('@/editor/Editor', async () => {
     React.useEffect(() => {
       const candidateMap = (
         globalThis as typeof globalThis & {
-          __remdoMockSdkSearchCandidatesByDoc?: Record<string, Array<{ noteId: string; text: string }> | null>;
+          __remdoMockSdkSearchCandidatesByDoc?: Record<string, TestSdkSearchSnapshot | null>;
         }
       ).__remdoMockSdkSearchCandidatesByDoc;
       const candidateSelection = candidateMap?.[docId];
@@ -43,10 +68,10 @@ vi.mock('@/editor/Editor', async () => {
         return;
       }
 
-      const sdkCandidates = candidateSelection ?? defaultCandidates;
-      onSearchCandidatesChange?.(sdkCandidates);
+      const sdkSnapshot = candidateSelection ?? defaultSnapshot;
+      onSearchCandidatesChange?.(sdkSnapshot);
       return () => {
-        onSearchCandidatesChange?.([]);
+        onSearchCandidatesChange?.(emptySnapshot);
       };
     }, [docId, onSearchCandidatesChange]);
 
@@ -84,15 +109,15 @@ describe('document route', () => {
   beforeEach(() => {
     (
       globalThis as typeof globalThis & {
-        __remdoMockSdkSearchCandidatesByDoc?: Record<string, Array<{ noteId: string; text: string }> | null>;
+        __remdoMockSdkSearchCandidatesByDoc?: Record<string, TestSdkSearchSnapshot | null>;
       }
     ).__remdoMockSdkSearchCandidatesByDoc = undefined;
   });
 
-  const renderDocumentRoute = () => {
+  const renderDocumentRoute = (initialEntry: string = createDocumentPath('main')) => {
     const router = createMemoryRouter(
       [{ path: '/n/:docRef', element: <DocumentRoute /> }],
-      { initialEntries: [createDocumentPath('main')] },
+      { initialEntries: [initialEntry] },
     );
 
     render(
@@ -215,6 +240,164 @@ describe('document route', () => {
     expect(resultItems).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
   });
 
+  it('switches to slash mode and shows top-level candidates for "/"', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/' } });
+
+    const results = await screen.findByTestId('document-search-results');
+    expect(results.dataset.searchMode).toBe('slash');
+
+    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+      .map((item) => item.textContent);
+    expect(resultItems).toEqual(['note1', 'note3', 'note5']);
+    expect(getActiveSearchResult()?.textContent).toBe('note1');
+  });
+
+  it('moves slash-mode highlight over top-level candidates without wraparound', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/' } });
+
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('note1');
+    });
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    expect(getActiveSearchResult()?.textContent).toBe('note3');
+    expect(searchInput).toHaveValue('/note3');
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    expect(getActiveSearchResult()?.textContent).toBe('note5');
+    expect(searchInput).toHaveValue('/note5');
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    expect(getActiveSearchResult()?.textContent).toBe('note5');
+    expect(searchInput).toHaveValue('/note5');
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
+    expect(getActiveSearchResult()?.textContent).toBe('note3');
+    expect(searchInput).toHaveValue('/note3');
+  });
+
+  it('descends slash scope to highlighted note children after appending "/"', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/' } });
+
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('note1');
+    });
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    expect(getActiveSearchResult()?.textContent).toBe('note3');
+    expect(searchInput).toHaveValue('/note3');
+
+    fireEvent.change(searchInput, { target: { value: `${(searchInput as HTMLInputElement).value}/` } });
+
+    await waitFor(() => {
+      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+        .map((item) => item.textContent);
+      expect(resultItems).toEqual(['note4']);
+      expect(getActiveSearchResult()?.textContent).toBe('note4');
+      expect(searchInput).toHaveValue('/note3/');
+    });
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    await waitFor(() => {
+      expect(searchInput).toHaveValue('/note3/note4');
+    });
+  });
+
+  it('keeps cycling scope after slash input is auto-written', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/' } });
+
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('note1');
+    });
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    expect(getActiveSearchResult()?.textContent).toBe('note3');
+    expect(searchInput).toHaveValue('/note3');
+
+    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+      .map((item) => item.textContent);
+    expect(resultItems).toEqual(['note1', 'note3', 'note5']);
+  });
+
+  it('auto-writes a deeper slash path after descending twice', async () => {
+    (
+      globalThis as typeof globalThis & {
+        __remdoMockSdkSearchCandidatesByDoc?: Record<string, TestSdkSearchSnapshot | null>;
+      }
+    ).__remdoMockSdkSearchCandidatesByDoc = {
+      main: {
+        allCandidates: [
+          { noteId: 'note1', text: 'note1' },
+          { noteId: 'note2', text: 'note2' },
+          { noteId: 'note3', text: 'note3' },
+          { noteId: 'note4', text: 'note4' },
+          { noteId: 'note5', text: 'note5' },
+          { noteId: 'note6', text: 'note6' },
+        ],
+        topLevelCandidates: [
+          { noteId: 'note1', text: 'note1' },
+          { noteId: 'note3', text: 'note3' },
+          { noteId: 'note5', text: 'note5' },
+        ],
+        childCandidateMap: {
+          note1: [{ noteId: 'note2', text: 'note2' }],
+          note2: [],
+          note3: [{ noteId: 'note4', text: 'note4' }],
+          note4: [{ noteId: 'note6', text: 'note6' }],
+          note5: [],
+          note6: [],
+        },
+      },
+    };
+
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/' } });
+
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('note1');
+    });
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    expect(searchInput).toHaveValue('/note3');
+
+    fireEvent.change(searchInput, { target: { value: `${(searchInput as HTMLInputElement).value}/` } });
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('note4');
+    });
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    await waitFor(() => {
+      expect(searchInput).toHaveValue('/note3/note4');
+    });
+
+    fireEvent.change(searchInput, { target: { value: `${(searchInput as HTMLInputElement).value}/` } });
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('note6');
+    });
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    await waitFor(() => {
+      expect(searchInput).toHaveValue('/note3/note4/note6');
+    });
+  });
+
   it('moves highlight with arrows over flat results without wraparound', async () => {
     renderDocumentRoute();
 
@@ -267,10 +450,16 @@ describe('document route', () => {
   it('uses sdk-provided candidates for flat results', async () => {
     (
       globalThis as typeof globalThis & {
-        __remdoMockSdkSearchCandidatesByDoc?: Record<string, Array<{ noteId: string; text: string }> | null>;
+        __remdoMockSdkSearchCandidatesByDoc?: Record<string, TestSdkSearchSnapshot | null>;
       }
     ).__remdoMockSdkSearchCandidatesByDoc = {
-      main: [{ noteId: 'sdk-1', text: 'sdk result' }],
+      main: {
+        allCandidates: [{ noteId: 'sdk1', text: 'sdk result' }],
+        topLevelCandidates: [{ noteId: 'sdk1', text: 'sdk result' }],
+        childCandidateMap: {
+          sdk1: [],
+        },
+      },
     };
 
     renderDocumentRoute();
@@ -304,10 +493,16 @@ describe('document route', () => {
   it('clears stale sdk candidates when switching documents', async () => {
     (
       globalThis as typeof globalThis & {
-        __remdoMockSdkSearchCandidatesByDoc?: Record<string, Array<{ noteId: string; text: string }> | null>;
+        __remdoMockSdkSearchCandidatesByDoc?: Record<string, TestSdkSearchSnapshot | null>;
       }
     ).__remdoMockSdkSearchCandidatesByDoc = {
-      main: [{ noteId: 'mainonly', text: 'main only' }],
+      main: {
+        allCandidates: [{ noteId: 'mainonly', text: 'main only' }],
+        topLevelCandidates: [{ noteId: 'mainonly', text: 'main only' }],
+        childCandidateMap: {
+          mainonly: [],
+        },
+      },
       other: null,
     };
 
@@ -333,6 +528,22 @@ describe('document route', () => {
     expect(router.state.location.pathname).toBe(createDocumentPath('other'));
   });
 
+  it('zooms to document root on Enter when query is exactly "/"', async () => {
+    const router = renderDocumentRoute(createDocumentPath('main', 'note3'));
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/' } });
+    await screen.findByTestId('document-search-results');
+
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(createDocumentPath('main'));
+    });
+    expect(document.activeElement).toHaveClass('editor-input');
+  });
+
   it('zooms to highlighted flat result on Enter and moves focus to editor', async () => {
     const router = renderDocumentRoute();
 
@@ -349,6 +560,33 @@ describe('document route', () => {
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe(createDocumentPath('main', 'note3'));
+    });
+    expect(document.activeElement).toHaveClass('editor-input');
+  });
+
+  it('zooms to highlighted slash descendant on Enter', async () => {
+    const router = renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/' } });
+
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('note1');
+    });
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    expect(getActiveSearchResult()?.textContent).toBe('note3');
+
+    fireEvent.change(searchInput, { target: { value: `${(searchInput as HTMLInputElement).value}/` } });
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('note4');
+    });
+
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(createDocumentPath('main', 'note4'));
     });
     expect(document.activeElement).toHaveClass('editor-input');
   });
