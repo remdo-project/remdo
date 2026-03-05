@@ -63,3 +63,7 @@ behavior and the planned slash-prefixed navigation flow.
     current input and does not trigger zoom.
 30. Inline completion may display symbolic shortcut hint metadata (for example
     `→`), but hint is not inserted text.
+31. Search input exposes combobox semantics for assistive tech, including popup
+    state and active descendant linkage.
+32. Search results expose listbox semantics and mark the highlighted result as
+    selected.

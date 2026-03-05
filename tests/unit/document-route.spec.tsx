@@ -154,7 +154,7 @@ describe('document route', () => {
   it('focuses search on find shortcut and allows browser find on second press', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
 
     const firstShortcut = new KeyboardEvent('keydown', {
       bubbles: true,
@@ -180,7 +180,7 @@ describe('document route', () => {
   it('focuses search on find shortcut for localized key values using KeyF code', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
 
     const localizedShortcut = new KeyboardEvent('keydown', {
       bubbles: true,
@@ -198,7 +198,7 @@ describe('document route', () => {
   it('moves focus to editor when Escape is pressed in search', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
 
     searchInput.focus();
     expect(searchInput).toHaveFocus();
@@ -211,7 +211,7 @@ describe('document route', () => {
   it('moves focus to editor on Escape in flat results when editor pane is hidden', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: 'note' } });
     await screen.findByTestId('document-search-results');
@@ -229,7 +229,7 @@ describe('document route', () => {
   it('hides placeholder while search mode is active and restores it on blur', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     expect(searchInput).toHaveAttribute('placeholder', 'Search');
 
     searchInput.focus();
@@ -246,7 +246,7 @@ describe('document route', () => {
   it('shows all notes in flat results and highlights the first item on empty query', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
 
     await waitFor(() => {
@@ -259,10 +259,33 @@ describe('document route', () => {
     expect(resultItems).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
   });
 
+  it('exposes combobox/listbox semantics with active-descendant tracking', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+
+    const resultsListbox = await screen.findByRole('listbox', { name: 'Search results' });
+    expect(searchInput).toHaveAttribute('aria-haspopup', 'listbox');
+    expect(searchInput).toHaveAttribute('aria-expanded', 'true');
+    expect(searchInput).toHaveAttribute('aria-controls', resultsListbox.id);
+
+    const firstOption = screen.getByRole('option', { name: 'note1' });
+    expect(firstOption).toHaveAttribute('aria-selected', 'true');
+    expect(searchInput).toHaveAttribute('aria-activedescendant', firstOption.id);
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+
+    const secondOption = screen.getByRole('option', { name: 'note2' });
+    expect(firstOption).toHaveAttribute('aria-selected', 'false');
+    expect(secondOption).toHaveAttribute('aria-selected', 'true');
+    expect(searchInput).toHaveAttribute('aria-activedescendant', secondOption.id);
+  });
+
   it('shows slash inline completion on empty query and accepts it on ArrowRight', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
 
     await waitFor(() => {
@@ -277,7 +300,7 @@ describe('document route', () => {
   it('does not show inline completion for non-empty text mode queries', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: 'note' } });
 
@@ -289,7 +312,7 @@ describe('document route', () => {
   it('switches to slash mode and shows top-level candidates for "/"', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: '/' } });
 
@@ -305,7 +328,7 @@ describe('document route', () => {
   it('shows slash suffix completion and accepts with ArrowRight', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: '/no' } });
 
@@ -320,7 +343,7 @@ describe('document route', () => {
   it('shows slash continuation completion for exact match with children', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: '/note3' } });
 
@@ -335,7 +358,7 @@ describe('document route', () => {
   it('hides slash continuation completion for exact match without children', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: '/note5' } });
 
@@ -347,7 +370,7 @@ describe('document route', () => {
   it('does not alter query on ArrowRight when inline completion is hidden', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: 'note' } });
     await waitFor(() => {
@@ -361,7 +384,7 @@ describe('document route', () => {
   it('hides inline completion during composition and restores it afterward', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
 
     await waitFor(() => {
@@ -382,7 +405,7 @@ describe('document route', () => {
   it('hides inline completion when caret is not at input end', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: '/no' } });
 
@@ -401,7 +424,7 @@ describe('document route', () => {
   it('filters slash results to notes matching the visible segment', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: '/note1' } });
 
@@ -417,7 +440,7 @@ describe('document route', () => {
   it('slash arrow cycling changes highlight without mutating query', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: '/' } });
 
@@ -443,7 +466,7 @@ describe('document route', () => {
   it('descends slash scope to highlighted note children after appending "/"', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: '/' } });
 
@@ -502,7 +525,7 @@ describe('document route', () => {
 
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: '/' } });
 
@@ -531,7 +554,7 @@ describe('document route', () => {
   it('moves highlight with arrows over flat results without wraparound', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
 
     await waitFor(() => {
@@ -566,7 +589,7 @@ describe('document route', () => {
   it('shows flat results across the whole document while query is non-empty', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: 'note' } });
 
@@ -594,7 +617,7 @@ describe('document route', () => {
 
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: 'sdk' } });
 
@@ -608,7 +631,7 @@ describe('document route', () => {
   it('keeps no highlight for no-match query and Enter is a no-op', async () => {
     const router = renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: 'zzz' } });
 
@@ -637,7 +660,7 @@ describe('document route', () => {
     };
 
     const router = renderDocumentRoute();
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: 'main' } });
 
@@ -647,7 +670,7 @@ describe('document route', () => {
 
     await router.navigate(createDocumentPath('other'));
 
-    const otherSearchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const otherSearchInput = await screen.findByRole('combobox', { name: 'Search document' });
     otherSearchInput.focus();
     fireEvent.change(otherSearchInput, { target: { value: 'main' } });
 
@@ -661,7 +684,7 @@ describe('document route', () => {
   it('zooms to document root on Enter when query is exactly "/"', async () => {
     const router = renderDocumentRoute(createDocumentPath('main', 'note3'));
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: '/' } });
     await screen.findByTestId('document-search-results');
@@ -677,7 +700,7 @@ describe('document route', () => {
   it('zooms to highlighted flat result on Enter and moves focus to editor', async () => {
     const router = renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: 'note3' } });
 
@@ -697,7 +720,7 @@ describe('document route', () => {
   it('zooms to highlighted slash descendant on Enter', async () => {
     const router = renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: '/' } });
 
@@ -724,7 +747,7 @@ describe('document route', () => {
   it('ends search mode on blur and hides flat results', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: 'note' } });
     await screen.findByTestId('document-search-results');
@@ -739,7 +762,7 @@ describe('document route', () => {
   it('blurs search on Escape when editor input is unavailable', async () => {
     renderDocumentRoute();
 
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     screen.getByTestId('editor-input-probe').remove();
 
     searchInput.focus();

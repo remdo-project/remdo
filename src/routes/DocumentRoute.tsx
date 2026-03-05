@@ -5,7 +5,7 @@ import type {
   KeyboardEvent as ReactKeyboardEvent,
   SyntheticEvent,
 } from 'react';
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -77,6 +77,7 @@ export default function DocumentRoute() {
   const skipHighlightResetForQueryChangeRef = useRef(false);
   const [searchInputSelection, setSearchInputSelection] = useState<SearchInputSelection>({ start: 0, end: 0 });
   const [searchInputComposing, setSearchInputComposing] = useState(false);
+  const searchResultsListboxId = useId();
   const zoomNoteId = parsedRef?.noteId ?? null;
   const sdk = useMemo(() => createHardcodedUserConfigNoteSdk(), []);
   const documentOptions = useMemo(
@@ -474,6 +475,13 @@ export default function DocumentRoute() {
   };
 
   const highlightedResultNoteId = searchModeActive ? highlightedNoteId : null;
+  const highlightedResultIndex = highlightedResultNoteId
+    ? flatResults.findIndex((result) => result.noteId === highlightedResultNoteId)
+    : -1;
+  const activeResultOptionId = highlightedResultIndex >= 0
+    ? `${searchResultsListboxId}-option-${highlightedResultIndex}`
+    : undefined;
+  const hasSearchResultOptions = isFlatResultsActive && flatResults.length > 0;
 
   return (
     <div className="document-editor-shell" ref={shellRef}>
@@ -528,6 +536,11 @@ export default function DocumentRoute() {
           <div className="document-header-search-shell">
             <TextInput
               aria-label="Search document"
+              aria-activedescendant={isFlatResultsActive ? activeResultOptionId : undefined}
+              aria-autocomplete={inlineCompletionVisible ? 'both' : 'list'}
+              aria-controls={hasSearchResultOptions ? searchResultsListboxId : undefined}
+              aria-expanded={isFlatResultsActive}
+              aria-haspopup="listbox"
               className="document-header-search remdo-interaction-surface"
               ref={searchInputRef}
               leftSection={<IconSearch aria-hidden="true" size={14} />}
@@ -539,6 +552,7 @@ export default function DocumentRoute() {
               onKeyDown={handleSearchKeyDown}
               onSelect={handleSearchSelect}
               placeholder={searchModeActive ? '' : 'Search'}
+              role="combobox"
               size="xs"
               value={searchQuery}
             />
@@ -566,13 +580,21 @@ export default function DocumentRoute() {
           data-testid="document-search-results"
         >
           {flatResults.length > 0 ? (
-            <ol className="document-search-results-list">
-              {flatResults.map((result) => (
+            <ol
+              aria-label="Search results"
+              className="document-search-results-list"
+              id={searchResultsListboxId}
+              role="listbox"
+            >
+              {flatResults.map((result, index) => (
                 <li
+                  aria-selected={result.noteId === highlightedResultNoteId}
                   key={result.noteId}
                   className="document-search-results-item"
                   data-search-result-active={result.noteId === highlightedResultNoteId ? 'true' : undefined}
                   data-search-result-item
+                  id={`${searchResultsListboxId}-option-${index}`}
+                  role="option"
                 >
                   {result.text.length > 0 ? result.text : '(empty note)'}
                 </li>
