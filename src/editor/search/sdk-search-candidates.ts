@@ -7,9 +7,10 @@ export interface SdkSearchCandidate {
 
 export interface SdkSearchCandidateSnapshot {
   allCandidates: SdkSearchCandidate[];
-  topLevelCandidates: SdkSearchCandidate[];
   childCandidateMap: Record<string, SdkSearchCandidate[]>;
 }
+
+export const ROOT_SEARCH_SCOPE_ID = '__document_root__';
 
 function appendCandidates(note: EditorNote, candidates: SdkSearchCandidate[]): void {
   candidates.push({
@@ -30,15 +31,14 @@ export function collectSearchCandidatesFromSdk(sdk: Pick<NoteSdk, 'currentDocume
   return candidates;
 }
 
-export function collectTopLevelSearchCandidatesFromSdk(sdk: Pick<NoteSdk, 'currentDocument'>): SdkSearchCandidate[] {
-  return sdk.currentDocument().children().map((note) => ({
-    noteId: note.id(),
-    text: note.text(),
-  }));
-}
-
 export function collectChildCandidateMapFromSdk(sdk: Pick<NoteSdk, 'currentDocument'>): Record<string, SdkSearchCandidate[]> {
-  const childCandidateMap: Record<string, SdkSearchCandidate[]> = {};
+  const rootNotes = sdk.currentDocument().children();
+  const childCandidateMap: Record<string, SdkSearchCandidate[]> = {
+    [ROOT_SEARCH_SCOPE_ID]: rootNotes.map((note) => ({
+      noteId: note.id(),
+      text: note.text(),
+    })),
+  };
 
   const visit = (note: EditorNote): void => {
     childCandidateMap[note.id()] = note.children().map((child) => ({
@@ -51,7 +51,7 @@ export function collectChildCandidateMapFromSdk(sdk: Pick<NoteSdk, 'currentDocum
     }
   };
 
-  for (const rootNote of sdk.currentDocument().children()) {
+  for (const rootNote of rootNotes) {
     visit(rootNote);
   }
 

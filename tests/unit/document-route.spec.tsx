@@ -3,12 +3,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/sdk-search-candidates';
 import DocumentRoute from '@/routes/DocumentRoute';
 import { createDocumentPath } from '@/routing';
 
 interface TestSdkSearchSnapshot {
   allCandidates: Array<{ noteId: string; text: string }>;
-  topLevelCandidates: Array<{ noteId: string; text: string }>;
   childCandidateMap: Record<string, Array<{ noteId: string; text: string }>>;
 }
 
@@ -22,12 +22,12 @@ vi.mock('@/editor/Editor', async () => {
       { noteId: 'note4', text: 'note4' },
       { noteId: 'note5', text: 'note5' },
     ],
-    topLevelCandidates: [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: 'note5', text: 'note5' },
-    ],
     childCandidateMap: {
+      [ROOT_SEARCH_SCOPE_ID]: [
+        { noteId: 'note1', text: 'note1' },
+        { noteId: 'note3', text: 'note3' },
+        { noteId: 'note5', text: 'note5' },
+      ],
       note1: [{ noteId: 'note2', text: 'note2' }],
       note2: [],
       note3: [{ noteId: 'note4', text: 'note4' }],
@@ -37,7 +37,6 @@ vi.mock('@/editor/Editor', async () => {
   } satisfies TestSdkSearchSnapshot;
   const emptySnapshot = {
     allCandidates: [],
-    topLevelCandidates: [],
     childCandidateMap: {},
   } satisfies TestSdkSearchSnapshot;
 
@@ -526,12 +525,12 @@ describe('document route', () => {
           { noteId: 'note5', text: 'note5' },
           { noteId: 'note6', text: 'note6' },
         ],
-        topLevelCandidates: [
-          { noteId: 'note1', text: 'note1' },
-          { noteId: 'note3', text: 'note3' },
-          { noteId: 'note5', text: 'note5' },
-        ],
         childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [
+            { noteId: 'note1', text: 'note1' },
+            { noteId: 'note3', text: 'note3' },
+            { noteId: 'note5', text: 'note5' },
+          ],
           note1: [{ noteId: 'note2', text: 'note2' }],
           note2: [],
           note3: [{ noteId: 'note4', text: 'note4' }],
@@ -627,8 +626,8 @@ describe('document route', () => {
     ).__remdoMockSdkSearchCandidatesByDoc = {
       main: {
         allCandidates: [{ noteId: 'sdk1', text: 'sdk result' }],
-        topLevelCandidates: [{ noteId: 'sdk1', text: 'sdk result' }],
         childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'sdk1', text: 'sdk result' }],
           sdk1: [],
         },
       },
@@ -670,8 +669,8 @@ describe('document route', () => {
     ).__remdoMockSdkSearchCandidatesByDoc = {
       main: {
         allCandidates: [{ noteId: 'mainonly', text: 'main only' }],
-        topLevelCandidates: [{ noteId: 'mainonly', text: 'main only' }],
         childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'mainonly', text: 'main only' }],
           mainonly: [],
         },
       },

@@ -4,7 +4,6 @@ import { createLexicalNoteSdk } from '@/editor/outline/sdk/adapters/lexical';
 import {
   collectChildCandidateMapFromSdk,
   collectSearchCandidatesFromSdk,
-  collectTopLevelSearchCandidatesFromSdk,
 } from '@/editor/search/sdk-search-candidates';
 import type { SdkSearchCandidateSnapshot } from '@/editor/search/sdk-search-candidates';
 
@@ -60,13 +59,11 @@ function signaturesMatch(
   };
 
   return entriesMatch(left.allCandidates, right.allCandidates) &&
-    entriesMatch(left.topLevelCandidates, right.topLevelCandidates) &&
     mapsMatch(left.childCandidateMap, right.childCandidateMap);
 }
 
 const emptySnapshot: SdkSearchCandidateSnapshot = {
   allCandidates: [],
-  topLevelCandidates: [],
   childCandidateMap: {},
 };
 
@@ -87,7 +84,6 @@ export function SearchCandidatesPlugin({ docId, onCandidatesChange }: SearchCand
   const readAndEmitCandidates = useCallback((editorState = editor.getEditorState()) => {
     const snapshot = editorState.read(() => ({
       allCandidates: collectSearchCandidatesFromSdk(sdk),
-      topLevelCandidates: collectTopLevelSearchCandidatesFromSdk(sdk),
       childCandidateMap: collectChildCandidateMapFromSdk(sdk),
     }));
     emitCandidates(snapshot);

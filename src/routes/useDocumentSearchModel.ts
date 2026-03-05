@@ -6,6 +6,7 @@ import type {
   SyntheticEvent,
 } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/sdk-search-candidates';
 import type { SdkSearchCandidateSnapshot } from '@/editor/search/sdk-search-candidates';
 
 interface SearchCandidate {
@@ -16,7 +17,6 @@ interface SearchCandidate {
 interface SearchCandidateState {
   sourceDocId: string;
   allCandidates: SearchCandidate[];
-  topLevelCandidates: SearchCandidate[];
   childCandidateMap: Record<string, SearchCandidate[]>;
 }
 
@@ -29,7 +29,6 @@ const EMPTY_SEARCH_CANDIDATES: SearchCandidate[] = [];
 const EMPTY_SEARCH_CANDIDATE_STATE: SearchCandidateState = {
   sourceDocId: '',
   allCandidates: EMPTY_SEARCH_CANDIDATES,
-  topLevelCandidates: EMPTY_SEARCH_CANDIDATES,
   childCandidateMap: {},
 };
 
@@ -129,7 +128,6 @@ export function useDocumentSearchModel({
     setSdkSearchCandidateState({
       sourceDocId: docId,
       allCandidates: mapSearchCandidates(snapshot.allCandidates),
-      topLevelCandidates: mapSearchCandidates(snapshot.topLevelCandidates),
       childCandidateMap: Object.fromEntries(
         Object.entries(snapshot.childCandidateMap).map(([noteId, candidates]) => [
           noteId,
@@ -153,7 +151,7 @@ export function useDocumentSearchModel({
   const isSlashMode = searchModeActive && searchQuery.startsWith('/');
   const textNeedle = searchQuery.toLocaleLowerCase();
   const slashSegmentNeedle = searchQuery.slice(searchQuery.lastIndexOf('/') + 1).toLocaleLowerCase();
-  const slashScopeParentNoteId = slashScopePathNoteIds.at(-1) ?? null;
+  const slashScopeParentNoteId = slashScopePathNoteIds.at(-1) ?? ROOT_SEARCH_SCOPE_ID;
 
   const textResults = useMemo(
     () => filterCandidates(sdkSearchCandidates.allCandidates, textNeedle),
@@ -161,14 +159,8 @@ export function useDocumentSearchModel({
   );
 
   const slashScopeCandidates = useMemo(
-    () => {
-      if (!slashScopeParentNoteId) {
-        return sdkSearchCandidates.topLevelCandidates;
-      }
-      const scopedCandidates = sdkSearchCandidates.childCandidateMap[slashScopeParentNoteId];
-      return scopedCandidates ?? sdkSearchCandidates.topLevelCandidates;
-    },
-    [sdkSearchCandidates.childCandidateMap, sdkSearchCandidates.topLevelCandidates, slashScopeParentNoteId]
+    () => sdkSearchCandidates.childCandidateMap[slashScopeParentNoteId] ?? EMPTY_SEARCH_CANDIDATES,
+    [sdkSearchCandidates.childCandidateMap, slashScopeParentNoteId]
   );
 
   const slashResults = useMemo(

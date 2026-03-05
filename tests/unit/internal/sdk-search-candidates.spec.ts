@@ -3,7 +3,7 @@ import type { EditorNote } from '@/editor/outline/sdk/contracts';
 import {
   collectChildCandidateMapFromSdk,
   collectSearchCandidatesFromSdk,
-  collectTopLevelSearchCandidatesFromSdk,
+  ROOT_SEARCH_SCOPE_ID,
 } from '@/editor/search/sdk-search-candidates';
 
 function createMockEditorNote(
@@ -59,13 +59,13 @@ describe('sdk search candidates', () => {
     expect(candidates).toEqual([]);
   });
 
-  it('collects only top-level notes for slash root mode', () => {
+  it('stores slash-root candidates under the synthetic root scope key', () => {
     const top = createMockEditorNote('top', 'Top', [
       createMockEditorNote('child-a', 'Child A'),
     ]);
     const sibling = createMockEditorNote('sibling', 'Sibling');
 
-    const candidates = collectTopLevelSearchCandidatesFromSdk({
+    const childCandidateMap = collectChildCandidateMapFromSdk({
       currentDocument: () => ({
         id: () => 'main',
         kind: () => 'document',
@@ -74,7 +74,7 @@ describe('sdk search candidates', () => {
       }),
     });
 
-    expect(candidates).toEqual([
+    expect(childCandidateMap[ROOT_SEARCH_SCOPE_ID]).toEqual([
       { noteId: 'top', text: 'Top' },
       { noteId: 'sibling', text: 'Sibling' },
     ]);
@@ -97,6 +97,10 @@ describe('sdk search candidates', () => {
     });
 
     expect(childCandidateMap).toEqual({
+      [ROOT_SEARCH_SCOPE_ID]: [
+        { noteId: 'top', text: 'Top' },
+        { noteId: 'sibling', text: 'Sibling' },
+      ],
       top: [
         { noteId: 'child-a', text: 'Child A' },
         { noteId: 'child-b', text: 'Child B' },
