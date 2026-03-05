@@ -28,11 +28,42 @@
   flex-shrink: 0;
 }
 
+.document-header-search-shell {
+  position: relative;
+}
+
 .document-header-search {
   min-width: 10rem;
   width: 16rem;
   max-width: 22vw;
   --interaction-radius: var(--mantine-radius-sm);
+}
+
+.document-header-search-inline-completion {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding-inline-start: 1.75rem;
+  padding-inline-end: 0.625rem;
+  white-space: pre;
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.75rem;
+}
+
+.document-header-search-inline-prefix {
+  visibility: hidden;
+}
+
+.document-header-search-inline-suffix {
+  color: var(--mantine-color-dark-2);
+}
+
+.document-header-search-inline-hint {
+  color: var(--mantine-color-dark-3);
+  margin-inline-start: 0.35rem;
 }
 
 .document-header-doc-menu {

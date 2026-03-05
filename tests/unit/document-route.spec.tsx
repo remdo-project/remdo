@@ -131,6 +131,8 @@ describe('document route', () => {
 
   const getActiveSearchResult = () =>
     document.querySelector<HTMLElement>('[data-search-result-item][data-search-result-active="true"]');
+  const getInlineCompletion = () =>
+    document.querySelector<HTMLElement>('[data-testid="document-search-inline-completion"]');
 
   it('remounts editor when document id changes via route params', async () => {
     const router = renderDocumentRoute();
@@ -224,6 +226,23 @@ describe('document route', () => {
     });
   });
 
+  it('hides placeholder while search mode is active and restores it on blur', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    expect(searchInput).toHaveAttribute('placeholder', 'Search');
+
+    searchInput.focus();
+    await waitFor(() => {
+      expect(searchInput).toHaveAttribute('placeholder', '');
+    });
+
+    fireEvent.blur(searchInput);
+    await waitFor(() => {
+      expect(searchInput).toHaveAttribute('placeholder', 'Search');
+    });
+  });
+
   it('shows all notes in flat results and highlights the first item on empty query', async () => {
     renderDocumentRoute();
 
@@ -240,6 +259,33 @@ describe('document route', () => {
     expect(resultItems).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
   });
 
+  it('shows slash inline completion on empty query and accepts it on ArrowRight', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+
+    await waitFor(() => {
+      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('/');
+      expect(getInlineCompletion()?.dataset.inlineCompletionHint).toBe('→');
+    });
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowRight' });
+    expect(searchInput).toHaveValue('/');
+  });
+
+  it('does not show inline completion for non-empty text mode queries', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: 'note' } });
+
+    await waitFor(() => {
+      expect(getInlineCompletion()).toBeNull();
+    });
+  });
+
   it('switches to slash mode and shows top-level candidates for "/"', async () => {
     renderDocumentRoute();
 
@@ -254,6 +300,102 @@ describe('document route', () => {
       .map((item) => item.textContent);
     expect(resultItems).toEqual(['note1', 'note3', 'note5']);
     expect(getActiveSearchResult()?.textContent).toBe('note1');
+  });
+
+  it('shows slash suffix completion and accepts with ArrowRight', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/no' } });
+
+    await waitFor(() => {
+      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('te1');
+    });
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowRight' });
+    expect(searchInput).toHaveValue('/note1');
+  });
+
+  it('shows slash continuation completion for exact match with children', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/note3' } });
+
+    await waitFor(() => {
+      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('/');
+    });
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowRight' });
+    expect(searchInput).toHaveValue('/note3/');
+  });
+
+  it('hides slash continuation completion for exact match without children', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/note5' } });
+
+    await waitFor(() => {
+      expect(getInlineCompletion()).toBeNull();
+    });
+  });
+
+  it('does not alter query on ArrowRight when inline completion is hidden', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: 'note' } });
+    await waitFor(() => {
+      expect(getInlineCompletion()).toBeNull();
+    });
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowRight' });
+    expect(searchInput).toHaveValue('note');
+  });
+
+  it('hides inline completion during composition and restores it afterward', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+
+    await waitFor(() => {
+      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('/');
+    });
+
+    fireEvent.compositionStart(searchInput);
+    await waitFor(() => {
+      expect(getInlineCompletion()).toBeNull();
+    });
+
+    fireEvent.compositionEnd(searchInput);
+    await waitFor(() => {
+      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('/');
+    });
+  });
+
+  it('hides inline completion when caret is not at input end', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/no' } });
+
+    await waitFor(() => {
+      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('te1');
+    });
+
+    (searchInput as HTMLInputElement).setSelectionRange(1, 1);
+    fireEvent.select(searchInput);
+
+    await waitFor(() => {
+      expect(getInlineCompletion()).toBeNull();
+    });
   });
 
   it('filters slash results to notes matching the visible segment', async () => {

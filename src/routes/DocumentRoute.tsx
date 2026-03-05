@@ -1,4 +1,10 @@
-import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
+import type {
+  ChangeEvent,
+  CompositionEvent,
+  FocusEvent,
+  KeyboardEvent as ReactKeyboardEvent,
+  SyntheticEvent,
+} from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconSearch } from '@tabler/icons-react';
@@ -38,6 +44,11 @@ interface SearchCandidateState {
   childCandidateMap: Record<string, SearchCandidate[]>;
 }
 
+interface SearchInputSelection {
+  start: number;
+  end: number;
+}
+
 export default function DocumentRoute() {
   const { docRef } = useParams<{ docRef?: string }>();
   const parsedRef = parseDocumentRef(docRef);
@@ -64,6 +75,8 @@ export default function DocumentRoute() {
   const previousSearchModeRef = useRef(false);
   const previousSearchQueryRef = useRef(searchQuery);
   const skipHighlightResetForQueryChangeRef = useRef(false);
+  const [searchInputSelection, setSearchInputSelection] = useState<SearchInputSelection>({ start: 0, end: 0 });
+  const [searchInputComposing, setSearchInputComposing] = useState(false);
   const zoomNoteId = parsedRef?.noteId ?? null;
   const sdk = useMemo(() => createHardcodedUserConfigNoteSdk(), []);
   const documentOptions = useMemo(
@@ -243,6 +256,50 @@ export default function DocumentRoute() {
     () => (isFlatResultsActive ? flatResults : []),
     [flatResults, isFlatResultsActive]
   );
+  const highlightedNavigationCandidate = useMemo(
+    () => (
+      highlightedNoteId
+        ? navigationCandidates.find((candidate) => candidate.noteId === highlightedNoteId) ?? null
+        : null
+    ),
+    [highlightedNoteId, navigationCandidates]
+  );
+  const completionSourceCandidate = highlightedNavigationCandidate ?? navigationCandidates[0] ?? null;
+  const isSearchInputCaretAtEnd = searchInputSelection.start === searchInputSelection.end &&
+    searchInputSelection.end === searchQuery.length;
+  const inlineCompletionText = useMemo(() => {
+    if (!searchModeActive) {
+      return '';
+    }
+
+    if (searchQuery.length === 0) {
+      return '/';
+    }
+
+    if (!isSlashMode || !completionSourceCandidate) {
+      return '';
+    }
+
+    const currentSegment = searchQuery.slice(searchQuery.lastIndexOf('/') + 1);
+    const sourceText = completionSourceCandidate.text;
+    const currentSegmentLower = currentSegment.toLocaleLowerCase();
+    const sourceTextLower = sourceText.toLocaleLowerCase();
+    if (!sourceTextLower.startsWith(currentSegmentLower)) {
+      return '';
+    }
+
+    if (currentSegment.length < sourceText.length) {
+      return sourceText.slice(currentSegment.length);
+    }
+
+    const sourceChildren = sdkSearchCandidates.childCandidateMap[completionSourceCandidate.noteId] ?? [];
+    return sourceChildren.length > 0 ? '/' : '';
+  }, [completionSourceCandidate, isSlashMode, sdkSearchCandidates.childCandidateMap, searchModeActive, searchQuery]);
+  const inlineCompletionHint = inlineCompletionText.length > 0 ? '→' : '';
+  const inlineCompletionVisible = searchModeActive &&
+    !searchInputComposing &&
+    isSearchInputCaretAtEnd &&
+    inlineCompletionText.length > 0;
 
   useEffect(() => {
     const modeEntered = searchModeActive && !previousSearchModeRef.current;
@@ -272,6 +329,39 @@ export default function DocumentRoute() {
     }
   }, [highlightedNoteId, navigationCandidates, searchModeActive, searchQuery]);
 
+  const applySearchQuery = useCallback((
+    nextSearchQuery: string,
+    options?: { preserveHighlight?: boolean; forceCaretAtEnd?: boolean }
+  ) => {
+    if (options?.preserveHighlight) {
+      skipHighlightResetForQueryChangeRef.current = true;
+    }
+
+    if (nextSearchQuery.startsWith('/')) {
+      const previousSlashCount = searchQuery.startsWith('/')
+        ? searchQuery.split('/').length - 1
+        : 0;
+      const nextSlashCount = nextSearchQuery.split('/').length - 1;
+      const appendedSlash = nextSlashCount > previousSlashCount && nextSearchQuery.endsWith('/');
+
+      if (nextSearchQuery === '/') {
+        setSlashScopePathNoteIds([]);
+      } else if (nextSlashCount < previousSlashCount) {
+        const nextDepth = Math.max(0, nextSlashCount - 1);
+        setSlashScopePathNoteIds((currentPath) => currentPath.slice(0, nextDepth));
+      } else if (appendedSlash && highlightedNoteId) {
+        setSlashScopePathNoteIds((currentPath) => [...currentPath, highlightedNoteId]);
+      }
+    } else if (slashScopePathNoteIds.length > 0) {
+      setSlashScopePathNoteIds([]);
+    }
+
+    setSearchQuery(nextSearchQuery);
+    if (options?.forceCaretAtEnd) {
+      setSearchInputSelection({ start: nextSearchQuery.length, end: nextSearchQuery.length });
+    }
+  }, [highlightedNoteId, searchQuery, slashScopePathNoteIds]);
+
   const syncSlashSearchQuery = useCallback((nextHighlightedNoteId: string) => {
     const nextPathSegments = [...slashScopePath, nextHighlightedNoteId].map((noteId) => noteTextById[noteId] ?? '');
     const nextSearchQuery = `/${nextPathSegments.join('/')}`;
@@ -279,9 +369,11 @@ export default function DocumentRoute() {
       return;
     }
 
-    skipHighlightResetForQueryChangeRef.current = true;
-    setSearchQuery(nextSearchQuery);
-  }, [noteTextById, searchQuery, slashScopePath]);
+    applySearchQuery(nextSearchQuery, {
+      preserveHighlight: true,
+      forceCaretAtEnd: true,
+    });
+  }, [applySearchQuery, noteTextById, searchQuery, slashScopePath]);
 
   const moveSearchHighlight = (direction: 'up' | 'down') => {
     if (navigationCandidates.length === 0) {
@@ -344,6 +436,18 @@ export default function DocumentRoute() {
       return;
     }
 
+    if (event.key === 'ArrowRight') {
+      if (!inlineCompletionVisible) {
+        return;
+      }
+      event.preventDefault();
+      applySearchQuery(`${searchQuery}${inlineCompletionText}`, {
+        preserveHighlight: true,
+        forceCaretAtEnd: true,
+      });
+      return;
+    }
+
     if (event.key !== 'Enter') {
       return;
     }
@@ -366,36 +470,36 @@ export default function DocumentRoute() {
     closeSearchAndFocusEditor();
   };
 
-  const handleSearchFocus = () => {
+  const updateSearchInputSelection = (input: HTMLInputElement) => {
+    const nextStart = input.selectionStart ?? input.value.length;
+    const nextEnd = input.selectionEnd ?? input.value.length;
+    setSearchInputSelection({ start: nextStart, end: nextEnd });
+  };
+
+  const handleSearchFocus = (event: FocusEvent<HTMLInputElement>) => {
     setSearchModeActive(true);
+    updateSearchInputSelection(event.currentTarget);
   };
 
   const handleSearchBlur = () => {
     setSearchModeActive(false);
+    setSearchInputComposing(false);
   };
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextSearchQuery = event.currentTarget.value;
-    if (nextSearchQuery.startsWith('/')) {
-      const previousSlashCount = searchQuery.startsWith('/')
-        ? searchQuery.split('/').length - 1
-        : 0;
-      const nextSlashCount = nextSearchQuery.split('/').length - 1;
-      const appendedSlash = nextSlashCount > previousSlashCount && nextSearchQuery.endsWith('/');
-
-      if (nextSearchQuery === '/') {
-        setSlashScopePathNoteIds([]);
-      } else if (nextSlashCount < previousSlashCount) {
-        const nextDepth = Math.max(0, nextSlashCount - 1);
-        setSlashScopePathNoteIds((currentPath) => currentPath.slice(0, nextDepth));
-      } else if (appendedSlash && highlightedNoteId) {
-        setSlashScopePathNoteIds((currentPath) => [...currentPath, highlightedNoteId]);
-      }
-    } else if (slashScopePathNoteIds.length > 0) {
-      setSlashScopePathNoteIds([]);
-    }
-
-    setSearchQuery(nextSearchQuery);
+    updateSearchInputSelection(event.currentTarget);
+    applySearchQuery(nextSearchQuery);
+  };
+  const handleSearchSelect = (event: SyntheticEvent<HTMLInputElement>) => {
+    updateSearchInputSelection(event.currentTarget);
+  };
+  const handleSearchCompositionStart = (_event: CompositionEvent<HTMLInputElement>) => {
+    setSearchInputComposing(true);
+  };
+  const handleSearchCompositionEnd = (event: CompositionEvent<HTMLInputElement>) => {
+    setSearchInputComposing(false);
+    updateSearchInputSelection(event.currentTarget);
   };
 
   const highlightedResultNoteId = searchModeActive ? highlightedNoteId : null;
@@ -450,19 +554,37 @@ export default function DocumentRoute() {
           />
         </div>
         <div className="document-header-actions">
-          <TextInput
-            aria-label="Search document"
-            className="document-header-search remdo-interaction-surface"
-            ref={searchInputRef}
-            leftSection={<IconSearch aria-hidden="true" size={14} />}
-            onBlur={handleSearchBlur}
-            onChange={handleSearchChange}
-            onFocus={handleSearchFocus}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Search"
-            size="xs"
-            value={searchQuery}
-          />
+          <div className="document-header-search-shell">
+            <TextInput
+              aria-label="Search document"
+              className="document-header-search remdo-interaction-surface"
+              ref={searchInputRef}
+              leftSection={<IconSearch aria-hidden="true" size={14} />}
+              onBlur={handleSearchBlur}
+              onChange={handleSearchChange}
+              onCompositionEnd={handleSearchCompositionEnd}
+              onCompositionStart={handleSearchCompositionStart}
+              onFocus={handleSearchFocus}
+              onKeyDown={handleSearchKeyDown}
+              onSelect={handleSearchSelect}
+              placeholder={searchModeActive ? '' : 'Search'}
+              size="xs"
+              value={searchQuery}
+            />
+            {inlineCompletionVisible ? (
+              <div
+                aria-hidden="true"
+                className="document-header-search-inline-completion"
+                data-inline-completion-hint={inlineCompletionHint}
+                data-inline-completion-text={inlineCompletionText}
+                data-testid="document-search-inline-completion"
+              >
+                <span className="document-header-search-inline-prefix">{searchQuery}</span>
+                <span className="document-header-search-inline-suffix">{inlineCompletionText}</span>
+                <span className="document-header-search-inline-hint">{inlineCompletionHint}</span>
+              </div>
+            ) : null}
+          </div>
           <div className="document-header-status" ref={setStatusHost} />
         </div>
       </header>

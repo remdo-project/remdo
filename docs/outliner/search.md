@@ -11,7 +11,7 @@ behavior and the planned slash-prefixed navigation flow.
 - **Highlighted note:** the single note currently targeted by search navigation.
 - **Slash navigation mode:** input mode entered when query starts with `/`;
   intended for quick tree navigation rather than text matching.
-- **[Future] Inline completion:** a non-committed ghost suggestion shown inside
+- **Inline completion:** a non-committed ghost suggestion shown inside
   the search input that can be accepted as typed text.
 
 ## Behavior
@@ -44,22 +44,22 @@ behavior and the planned slash-prefixed navigation flow.
 19. In slash navigation, pressing `Enter` on exact `/` zooms to document root.
 20. In slash navigation with any deeper slash path, pressing `Enter` zooms to
     the highlighted candidate.
-
-## [Future] Inline completion
-
-1. Inline completion appears only while the search input is focused and there is
-   a non-empty completion to show.
-2. Inline completion is hidden while IME composition is active, when selection
-   is non-collapsed, or when caret is not at the end of the input.
-3. For an empty query, inline completion is `/`.
-4. In slash mode (`/` or `/segment`), the completion source is the first visible
-   slash candidate in the current scope.
-5. The completion text is only the remaining suffix when the current segment is
-   a prefix of that source note text.
-6. If the current segment already equals the source note text:
-   - show `/` when the source note has children;
-   - show no completion when it has no children.
-7. `ArrowRight` accepts inline completion by appending only the suggested text
-   to the current input; it does not trigger zoom.
-8. Inline completion includes a symbolic shortcut hint for acceptance (for
-   example `→`), but the hint is metadata, not inserted text.
+21. Inline completion appears only while search input is focused and completion
+    text is non-empty.
+22. Inline completion is hidden while IME composition is active, when selection
+    is non-collapsed, or when caret is not at input end.
+23. While Search Mode is active, the static `Search` placeholder is hidden to
+    avoid visual overlap with inline completion.
+24. For empty query, inline completion text is `/`.
+25. For non-empty non-slash query text, inline completion is hidden.
+26. In slash mode, inline completion source candidate is highlighted candidate
+    when present, otherwise first visible slash candidate.
+27. In slash mode, if current segment is a prefix of source note text, inline
+    completion text is the remaining suffix.
+28. In slash mode, if current segment exactly matches source note text:
+    - inline completion is `/` when source note has children;
+    - inline completion is hidden when source note has no children.
+29. `ArrowRight` accepts inline completion by appending only suggested text to
+    current input and does not trigger zoom.
+30. Inline completion may display symbolic shortcut hint metadata (for example
+    `→`), but hint is not inserted text.
