@@ -40,7 +40,7 @@ behavior and the planned slash-prefixed navigation flow.
 17. In slash navigation, appending another `/` descends into the highlighted
     note and switches candidates to its direct children.
 18. In slash navigation, cycling highlighted candidates with arrow keys updates
-    the visible input path to the highlighted target path.
+    only highlight; it does not mutate visible query text.
 19. In slash navigation, pressing `Enter` on exact `/` zooms to document root.
 20. In slash navigation with any deeper slash path, pressing `Enter` zooms to
     the highlighted candidate.

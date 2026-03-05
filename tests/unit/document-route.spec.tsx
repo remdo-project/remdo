@@ -414,7 +414,7 @@ describe('document route', () => {
     expect(resultItems).toEqual(['note1']);
   });
 
-  it('auto-written slash query narrows results and keeps highlight bounded', async () => {
+  it('slash arrow cycling changes highlight without mutating query', async () => {
     renderDocumentRoute();
 
     const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
@@ -427,17 +427,17 @@ describe('document route', () => {
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
     expect(getActiveSearchResult()?.textContent).toBe('note3');
-    expect(searchInput).toHaveValue('/note3');
+    expect(searchInput).toHaveValue('/');
     expect(Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]')).map((item) => item.textContent))
-      .toEqual(['note3']);
+      .toEqual(['note1', 'note3', 'note5']);
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note3');
-    expect(searchInput).toHaveValue('/note3');
+    expect(getActiveSearchResult()?.textContent).toBe('note5');
+    expect(searchInput).toHaveValue('/');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
     expect(getActiveSearchResult()?.textContent).toBe('note3');
-    expect(searchInput).toHaveValue('/note3');
+    expect(searchInput).toHaveValue('/');
   });
 
   it('descends slash scope to highlighted note children after appending "/"', async () => {
@@ -453,7 +453,7 @@ describe('document route', () => {
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
     expect(getActiveSearchResult()?.textContent).toBe('note3');
-    expect(searchInput).toHaveValue('/note3');
+    expect(searchInput).toHaveValue('/');
 
     fireEvent.change(searchInput, { target: { value: `${(searchInput as HTMLInputElement).value}/` } });
 
@@ -462,36 +462,14 @@ describe('document route', () => {
         .map((item) => item.textContent);
       expect(resultItems).toEqual(['note4']);
       expect(getActiveSearchResult()?.textContent).toBe('note4');
-      expect(searchInput).toHaveValue('/note3/');
+      expect(searchInput).toHaveValue('//');
     });
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    await waitFor(() => {
-      expect(searchInput).toHaveValue('/note3/note4');
-    });
+    expect(searchInput).toHaveValue('//');
   });
 
-  it('filters to the visible slash query after auto-write', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/' } });
-
-    await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
-    });
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note3');
-    expect(searchInput).toHaveValue('/note3');
-
-    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-      .map((item) => item.textContent);
-    expect(resultItems).toEqual(['note3']);
-  });
-
-  it('auto-writes a deeper slash path after descending twice', async () => {
+  it('supports deeper slash scope descent without query auto-write', async () => {
     (
       globalThis as typeof globalThis & {
         __remdoMockSdkSearchCandidatesByDoc?: Record<string, TestSdkSearchSnapshot | null>;
@@ -533,25 +511,21 @@ describe('document route', () => {
     });
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(searchInput).toHaveValue('/note3');
+    expect(searchInput).toHaveValue('/');
 
-    fireEvent.change(searchInput, { target: { value: `${(searchInput as HTMLInputElement).value}/` } });
+    fireEvent.change(searchInput, { target: { value: '//' } });
     await waitFor(() => {
       expect(getActiveSearchResult()?.textContent).toBe('note4');
     });
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    await waitFor(() => {
-      expect(searchInput).toHaveValue('/note3/note4');
-    });
+    expect(searchInput).toHaveValue('//');
 
-    fireEvent.change(searchInput, { target: { value: `${(searchInput as HTMLInputElement).value}/` } });
+    fireEvent.change(searchInput, { target: { value: '///' } });
     await waitFor(() => {
       expect(getActiveSearchResult()?.textContent).toBe('note6');
     });
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    await waitFor(() => {
-      expect(searchInput).toHaveValue('/note3/note4/note6');
-    });
+    expect(searchInput).toHaveValue('///');
   });
 
   it('moves highlight with arrows over flat results without wraparound', async () => {

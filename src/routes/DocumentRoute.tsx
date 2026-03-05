@@ -238,19 +238,6 @@ export default function DocumentRoute() {
   }, [slashScopeCandidates, slashSegmentNeedle]);
 
   const flatResults = isSlashMode ? slashResults : textResults;
-  const noteTextById = useMemo(() => {
-    const textById: Record<string, string> = {};
-    for (const candidate of sdkSearchCandidates.allCandidates) {
-      textById[candidate.noteId] = candidate.text;
-    }
-    for (const candidate of sdkSearchCandidates.topLevelCandidates) {
-      if (textById[candidate.noteId] === undefined) {
-        textById[candidate.noteId] = candidate.text;
-      }
-    }
-    return textById;
-  }, [sdkSearchCandidates.allCandidates, sdkSearchCandidates.topLevelCandidates]);
-
   const isFlatResultsActive = searchModeActive;
   const navigationCandidates = useMemo(
     () => (isFlatResultsActive ? flatResults : []),
@@ -362,19 +349,6 @@ export default function DocumentRoute() {
     }
   }, [highlightedNoteId, searchQuery, slashScopePathNoteIds]);
 
-  const syncSlashSearchQuery = useCallback((nextHighlightedNoteId: string) => {
-    const nextPathSegments = [...slashScopePath, nextHighlightedNoteId].map((noteId) => noteTextById[noteId] ?? '');
-    const nextSearchQuery = `/${nextPathSegments.join('/')}`;
-    if (nextSearchQuery === searchQuery) {
-      return;
-    }
-
-    applySearchQuery(nextSearchQuery, {
-      preserveHighlight: true,
-      forceCaretAtEnd: true,
-    });
-  }, [applySearchQuery, noteTextById, searchQuery, slashScopePath]);
-
   const moveSearchHighlight = (direction: 'up' | 'down') => {
     if (navigationCandidates.length === 0) {
       setHighlightedNoteId(null);
@@ -396,9 +370,6 @@ export default function DocumentRoute() {
     }
 
     setHighlightedNoteId(nextHighlightedNoteId);
-    if (isSlashMode) {
-      syncSlashSearchQuery(nextHighlightedNoteId);
-    }
   };
 
   const closeSearchAndFocusEditor = useCallback(() => {
