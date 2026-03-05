@@ -64,7 +64,6 @@ export default function DocumentRoute() {
   const previousSearchModeRef = useRef(false);
   const previousSearchQueryRef = useRef(searchQuery);
   const skipHighlightResetForQueryChangeRef = useRef(false);
-  const slashFilterSuspendedRef = useRef(false);
   const zoomNoteId = parsedRef?.noteId ?? null;
   const sdk = useMemo(() => createHardcodedUserConfigNoteSdk(), []);
   const documentOptions = useMemo(
@@ -217,7 +216,7 @@ export default function DocumentRoute() {
   );
 
   const slashResults = useMemo(() => {
-    if (slashFilterSuspendedRef.current || slashSegmentNeedle.length === 0) {
+    if (slashSegmentNeedle.length === 0) {
       return slashScopeCandidates;
     }
     return slashScopeCandidates.filter((candidate) => (
@@ -280,7 +279,6 @@ export default function DocumentRoute() {
       return;
     }
 
-    slashFilterSuspendedRef.current = true;
     skipHighlightResetForQueryChangeRef.current = true;
     setSearchQuery(nextSearchQuery);
   }, [noteTextById, searchQuery, slashScopePath]);
@@ -378,7 +376,6 @@ export default function DocumentRoute() {
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextSearchQuery = event.currentTarget.value;
-    slashFilterSuspendedRef.current = false;
     if (nextSearchQuery.startsWith('/')) {
       const previousSlashCount = searchQuery.startsWith('/')
         ? searchQuery.split('/').length - 1

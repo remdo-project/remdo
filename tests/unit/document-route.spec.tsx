@@ -256,7 +256,23 @@ describe('document route', () => {
     expect(getActiveSearchResult()?.textContent).toBe('note1');
   });
 
-  it('moves slash-mode highlight over top-level candidates without wraparound', async () => {
+  it('filters slash results to notes matching the visible segment', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/note1' } });
+
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('note1');
+    });
+
+    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+      .map((item) => item.textContent);
+    expect(resultItems).toEqual(['note1']);
+  });
+
+  it('auto-written slash query narrows results and keeps highlight bounded', async () => {
     renderDocumentRoute();
 
     const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
@@ -270,14 +286,12 @@ describe('document route', () => {
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
     expect(getActiveSearchResult()?.textContent).toBe('note3');
     expect(searchInput).toHaveValue('/note3');
+    expect(Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]')).map((item) => item.textContent))
+      .toEqual(['note3']);
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note5');
-    expect(searchInput).toHaveValue('/note5');
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note5');
-    expect(searchInput).toHaveValue('/note5');
+    expect(getActiveSearchResult()?.textContent).toBe('note3');
+    expect(searchInput).toHaveValue('/note3');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
     expect(getActiveSearchResult()?.textContent).toBe('note3');
@@ -315,7 +329,7 @@ describe('document route', () => {
     });
   });
 
-  it('keeps cycling scope after slash input is auto-written', async () => {
+  it('filters to the visible slash query after auto-write', async () => {
     renderDocumentRoute();
 
     const searchInput = await screen.findByRole('textbox', { name: 'Search document' });
@@ -332,7 +346,7 @@ describe('document route', () => {
 
     const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
       .map((item) => item.textContent);
-    expect(resultItems).toEqual(['note1', 'note3', 'note5']);
+    expect(resultItems).toEqual(['note3']);
   });
 
   it('auto-writes a deeper slash path after descending twice', async () => {

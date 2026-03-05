@@ -33,14 +33,16 @@ behavior and the planned slash-prefixed navigation flow.
     semantics.
 14. In slash navigation, query filtering applies only to the segment after the
     last `/`.
-15. Slash navigation shows top-level document notes as candidates at the root
+15. In slash navigation, visible query text is the active filter source;
+    displayed results must always match that visible segment filter.
+16. Slash navigation shows top-level document notes as candidates at the root
     level.
-16. In slash navigation, appending another `/` descends into the highlighted
+17. In slash navigation, appending another `/` descends into the highlighted
     note and switches candidates to its direct children.
-17. In slash navigation, cycling highlighted candidates with arrow keys updates
+18. In slash navigation, cycling highlighted candidates with arrow keys updates
     the visible input path to the highlighted target path.
-18. In slash navigation, pressing `Enter` on exact `/` zooms to document root.
-19. In slash navigation with any deeper slash path, pressing `Enter` zooms to
+19. In slash navigation, pressing `Enter` on exact `/` zooms to document root.
+20. In slash navigation with any deeper slash path, pressing `Enter` zooms to
     the highlighted candidate.
 
 ## [Future] Inline completion
