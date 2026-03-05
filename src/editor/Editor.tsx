@@ -26,7 +26,6 @@ import { ZoomVisibilityPlugin } from './zoom/ZoomVisibilityPlugin';
 import { FoldingPlugin } from './plugins/FoldingPlugin';
 import { NoteControlsPlugin } from './plugins/NoteControlsPlugin';
 import { NoteMenuPlugin } from './plugins/NoteMenuPlugin';
-import { SearchDecorationsPlugin } from './plugins/SearchDecorationsPlugin';
 import { SearchCandidatesPlugin } from './plugins/SearchCandidatesPlugin';
 import type { SdkSearchCandidateSnapshot } from './search/sdk-search-candidates';
 import './Editor.css';
@@ -41,8 +40,6 @@ interface EditorProps {
   onZoomNoteIdChange?: (noteId: string | null) => void;
   onZoomPathChange?: (path: NotePathItem[]) => void;
   onSearchCandidatesChange?: (snapshot: SdkSearchCandidateSnapshot) => void;
-  searchHighlightedNoteId?: string | null;
-  searchModeActive?: boolean;
 }
 
 export default function Editor({
@@ -55,8 +52,6 @@ export default function Editor({
   onZoomNoteIdChange,
   onZoomPathChange,
   onSearchCandidatesChange,
-  searchHighlightedNoteId,
-  searchModeActive,
 }: EditorProps) {
   const editorInitialConfig = createEditorInitialConfig();
 
@@ -74,8 +69,6 @@ export default function Editor({
             onZoomNoteIdChange={onZoomNoteIdChange}
             onZoomPathChange={onZoomPathChange}
             onSearchCandidatesChange={onSearchCandidatesChange}
-            searchHighlightedNoteId={searchHighlightedNoteId}
-            searchModeActive={searchModeActive}
           />
         </CollaborationPlugin>
       </LexicalComposer>
@@ -93,8 +86,6 @@ function EditorRuntime({
   onZoomNoteIdChange,
   onZoomPathChange,
   onSearchCandidatesChange,
-  searchHighlightedNoteId,
-  searchModeActive,
 }: EditorProps) {
   const offlineDocumentUnavailable = useOfflineDocumentUnavailable();
   const [schemaReady, setSchemaReady] = useState(false);
@@ -141,7 +132,6 @@ function EditorRuntime({
               />
               <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
               <SearchCandidatesPlugin docId={docId} onCandidatesChange={onSearchCandidatesChange} />
-              <SearchDecorationsPlugin highlightedNoteId={searchHighlightedNoteId} active={searchModeActive} />
               <CheckListPlugin />
               <ListPlugin hasStrictIndent />
               <DevPlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose}>
