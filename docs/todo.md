@@ -36,10 +36,9 @@ Rules:
 
 ## Search architecture
 
-- Replace `DocumentRoute` DOM scraping candidate discovery with a shared
-  Lexical-level outline index/query utility (reused by search + link picker)
-  that publishes `{ noteId, text, order, visibility }` snapshots for search
-  navigation and flat results.
+- [Future] Evaluate unifying candidate discovery/query logic between search and
+  link picker (search already uses SDK/Lexical candidates; link picker still
+  uses its own traversal/filter pipeline).
 
 ## Collaboration architecture roadmap [Future]
 
