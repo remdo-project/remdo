@@ -8,6 +8,7 @@ import {
 import type { SdkSearchCandidateSnapshot } from '@/editor/search/sdk-search-candidates';
 
 interface SearchCandidatesPluginProps {
+  active?: boolean;
   docId: string;
   onCandidatesChange?: (snapshot: SdkSearchCandidateSnapshot) => void;
 }
@@ -54,7 +55,11 @@ const emptySnapshot: SdkSearchCandidateSnapshot = {
   childCandidateMap: {},
 };
 
-export function SearchCandidatesPlugin({ docId, onCandidatesChange }: SearchCandidatesPluginProps) {
+export function SearchCandidatesPlugin({
+  active = false,
+  docId,
+  onCandidatesChange,
+}: SearchCandidatesPluginProps) {
   const [editor] = useLexicalComposerContext();
   const sdk = useMemo(() => createLexicalNoteSdk({ editor, docId }), [docId, editor]);
   const previousSnapshotRef = useRef<SdkSearchCandidateSnapshot>(emptySnapshot);
@@ -69,28 +74,44 @@ export function SearchCandidatesPlugin({ docId, onCandidatesChange }: SearchCand
   }, [onCandidatesChange]);
 
   const readAndEmitCandidates = useCallback((editorState = editor.getEditorState()) => {
+    if (!active) {
+      return;
+    }
+
     const snapshot = editorState.read(() => ({
       allCandidates: collectSearchCandidatesFromSdk(sdk),
       childCandidateMap: collectChildCandidateMapFromSdk(sdk),
     }));
     emitCandidates(snapshot);
-  }, [editor, emitCandidates, sdk]);
+  }, [active, editor, emitCandidates, sdk]);
 
   useEffect(() => {
+    if (!active) {
+      return;
+    }
+
     previousSnapshotRef.current = emptySnapshot;
     readAndEmitCandidates();
-  }, [readAndEmitCandidates]);
+  }, [active, readAndEmitCandidates]);
 
   useEffect(() => {
+    if (!active) {
+      return;
+    }
+
     return editor.registerUpdateListener(({ editorState }) => readAndEmitCandidates(editorState));
-  }, [editor, readAndEmitCandidates]);
+  }, [active, editor, readAndEmitCandidates]);
 
   useEffect(() => {
+    if (!active) {
+      return;
+    }
+
     return editor.registerRootListener(() => {
       previousSnapshotRef.current = emptySnapshot;
       readAndEmitCandidates();
     });
-  }, [editor, readAndEmitCandidates]);
+  }, [active, editor, readAndEmitCandidates]);
 
   useEffect(() => {
     return () => {

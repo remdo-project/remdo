@@ -290,6 +290,7 @@ export default function DocumentRoute() {
           onSearchCandidatesChange={handleSearchCandidatesChange}
           onZoomNoteIdChange={setZoomNoteId}
           onZoomPathChange={setZoomPath}
+          searchModeActive={searchModeActive}
           statusPortalRoot={statusHost}
           zoomNoteId={zoomNoteId}
         />
