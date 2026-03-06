@@ -20,6 +20,11 @@ interface SearchCandidateState {
   childCandidateMap: Record<string, SearchCandidate[]>;
 }
 
+interface SlashScopeState {
+  sourceDocId: string;
+  pathNoteIds: string[];
+}
+
 interface SearchInputSelection {
   start: number;
   end: number;
@@ -53,6 +58,7 @@ interface UseDocumentSearchModelResult {
 }
 
 const EMPTY_SEARCH_CANDIDATES: SearchCandidate[] = [];
+const EMPTY_NOTE_IDS: string[] = [];
 const EMPTY_SEARCH_CANDIDATE_STATE: SearchCandidateState = {
   sourceDocId: '',
   allCandidates: EMPTY_SEARCH_CANDIDATES,
@@ -116,7 +122,10 @@ export function useDocumentSearchModel({
   const [sdkSearchCandidateState, setSdkSearchCandidateState] = useState<SearchCandidateState>(
     EMPTY_SEARCH_CANDIDATE_STATE
   );
-  const [slashScopePathNoteIds, setSlashScopePathNoteIds] = useState<string[]>([]);
+  const [slashScopeState, setSlashScopeState] = useState<SlashScopeState>({
+    sourceDocId: docId,
+    pathNoteIds: EMPTY_NOTE_IDS,
+  });
   const [searchInputSelection, setSearchInputSelection] = useState<SearchInputSelection>({ start: 0, end: 0 });
   const [searchInputComposing, setSearchInputComposing] = useState(false);
   const pendingEditorFocusAfterSearchExitRef = useRef(false);
@@ -124,6 +133,9 @@ export function useDocumentSearchModel({
   const sdkSearchCandidates = sdkSearchCandidateState.sourceDocId === docId
     ? sdkSearchCandidateState
     : { ...EMPTY_SEARCH_CANDIDATE_STATE, sourceDocId: docId };
+  const slashScopePathNoteIds = slashScopeState.sourceDocId === docId
+    ? slashScopeState.pathNoteIds
+    : EMPTY_NOTE_IDS;
   const isSlashMode = searchModeActive && searchQuery.startsWith('/');
   const slashScopeParentNoteId = slashScopePathNoteIds.at(-1) ?? ROOT_SEARCH_SCOPE_ID;
   const textNeedle = searchQuery.toLocaleLowerCase();
@@ -205,6 +217,19 @@ export function useDocumentSearchModel({
     isSearchInputCaretAtEnd &&
     inlineCompletionText.length > 0;
 
+  const updateSlashScopePath = useCallback((
+    nextPath: string[] | ((currentPath: string[]) => string[])
+  ) => {
+    setSlashScopeState((currentState) => {
+      const currentPath = currentState.sourceDocId === docId ? currentState.pathNoteIds : EMPTY_NOTE_IDS;
+      const resolvedPath = typeof nextPath === 'function' ? nextPath(currentPath) : nextPath;
+      return {
+        sourceDocId: docId,
+        pathNoteIds: resolvedPath,
+      };
+    });
+  }, [docId]);
+
   const applySearchQuery = useCallback((nextSearchQuery: string) => {
     if (nextSearchQuery.startsWith('/')) {
       const previousSlashCount = searchQuery.startsWith('/')
@@ -214,19 +239,19 @@ export function useDocumentSearchModel({
       const appendedSlash = nextSlashCount > previousSlashCount && nextSearchQuery.endsWith('/');
 
       if (nextSearchQuery === '/') {
-        setSlashScopePathNoteIds([]);
+        updateSlashScopePath(EMPTY_NOTE_IDS);
       } else if (nextSlashCount < previousSlashCount) {
         const nextDepth = Math.max(0, nextSlashCount - 1);
-        setSlashScopePathNoteIds((currentPath) => currentPath.slice(0, nextDepth));
+        updateSlashScopePath((currentPath) => currentPath.slice(0, nextDepth));
       } else if (appendedSlash && highlightedNoteId) {
-        setSlashScopePathNoteIds((currentPath) => [...currentPath, highlightedNoteId]);
+        updateSlashScopePath((currentPath) => [...currentPath, highlightedNoteId]);
       }
     } else if (slashScopePathNoteIds.length > 0) {
-      setSlashScopePathNoteIds([]);
+      updateSlashScopePath(EMPTY_NOTE_IDS);
     }
 
     setSearchQuery(nextSearchQuery);
-  }, [highlightedNoteId, searchQuery, slashScopePathNoteIds.length]);
+  }, [highlightedNoteId, searchQuery, slashScopePathNoteIds.length, updateSlashScopePath]);
 
   const handleSearchCandidatesChange = useCallback((snapshot: SdkSearchCandidateSnapshot) => {
     setSdkSearchCandidateState({

@@ -737,6 +737,55 @@ describe('document route', () => {
     expect(router.state.location.pathname).toBe(createDocumentPath('other'));
   });
 
+  it('resets slash scope path when switching documents', async () => {
+    (
+      globalThis as typeof globalThis & {
+        __remdoMockSdkSearchCandidatesByDoc?: Record<string, TestSdkSearchSnapshot | null>;
+      }
+    ).__remdoMockSdkSearchCandidatesByDoc = {
+      other: {
+        allCandidates: [
+          { noteId: 'other1', text: 'other1' },
+          { noteId: 'other2', text: 'other2' },
+        ],
+        childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'other1', text: 'other1' }],
+          other1: [{ noteId: 'other2', text: 'other2' }],
+          other2: [],
+        },
+      },
+    };
+
+    const router = renderDocumentRoute();
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/' } });
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('note1');
+    });
+
+    fireEvent.change(searchInput, { target: { value: '//' } });
+    await waitFor(() => {
+      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+        .map((item) => item.textContent);
+      expect(resultItems).toEqual(['note2']);
+      expect(searchInput).toHaveValue('//');
+    });
+
+    await router.navigate(createDocumentPath('other'));
+
+    const otherSearchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    otherSearchInput.focus();
+
+    await waitFor(() => {
+      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+        .map((item) => item.textContent);
+      expect(resultItems).toEqual(['other1']);
+      expect(getActiveSearchResult()?.textContent).toBe('other1');
+      expect(otherSearchInput).toHaveValue('//');
+    });
+  });
+
   it('zooms to document root on Enter when query is exactly "/"', async () => {
     const router = renderDocumentRoute(createDocumentPath('main', 'note3'));
 
