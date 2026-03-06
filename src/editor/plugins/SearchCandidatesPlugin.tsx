@@ -12,52 +12,39 @@ interface SearchCandidatesPluginProps {
   onCandidatesChange?: (snapshot: SdkSearchCandidateSnapshot) => void;
 }
 
+function entriesMatch(
+  leftEntries: SdkSearchCandidateSnapshot['allCandidates'],
+  rightEntries: SdkSearchCandidateSnapshot['allCandidates']
+): boolean {
+  return leftEntries.length === rightEntries.length &&
+    leftEntries.every((leftCandidate, index) => {
+      const rightCandidate = rightEntries[index];
+      return rightCandidate !== undefined &&
+        leftCandidate.noteId === rightCandidate.noteId &&
+        leftCandidate.text === rightCandidate.text;
+    });
+}
+
+function mapsMatch(
+  leftMap: SdkSearchCandidateSnapshot['childCandidateMap'],
+  rightMap: SdkSearchCandidateSnapshot['childCandidateMap']
+): boolean {
+  const leftNoteIds = Object.keys(leftMap);
+  if (leftNoteIds.length !== Object.keys(rightMap).length) {
+    return false;
+  }
+
+  return leftNoteIds.every((noteId) => {
+    const rightCandidates = rightMap[noteId];
+    return rightCandidates !== undefined &&
+      entriesMatch(leftMap[noteId] ?? [], rightCandidates);
+  });
+}
+
 function signaturesMatch(
   left: SdkSearchCandidateSnapshot,
   right: SdkSearchCandidateSnapshot
 ): boolean {
-  const entriesMatch = (
-    leftEntries: SdkSearchCandidateSnapshot['allCandidates'],
-    rightEntries: SdkSearchCandidateSnapshot['allCandidates']
-  ): boolean => {
-    if (leftEntries.length !== rightEntries.length) {
-      return false;
-    }
-
-    for (let index = 0; index < leftEntries.length; index += 1) {
-      const leftCandidate = leftEntries[index];
-      const rightCandidate = rightEntries[index];
-      if (!leftCandidate || !rightCandidate) {
-        return false;
-      }
-      if (leftCandidate.noteId !== rightCandidate.noteId || leftCandidate.text !== rightCandidate.text) {
-        return false;
-      }
-    }
-
-    return true;
-  };
-
-  const mapsMatch = (
-    leftMap: SdkSearchCandidateSnapshot['childCandidateMap'],
-    rightMap: SdkSearchCandidateSnapshot['childCandidateMap']
-  ): boolean => {
-    const leftEntries = Object.entries(leftMap);
-    const rightEntries = Object.entries(rightMap);
-    if (leftEntries.length !== rightEntries.length) {
-      return false;
-    }
-
-    for (const [noteId, candidates] of leftEntries) {
-      const rightCandidates = rightMap[noteId];
-      if (!rightCandidates || !entriesMatch(candidates, rightCandidates)) {
-        return false;
-      }
-    }
-
-    return true;
-  };
-
   return entriesMatch(left.allCandidates, right.allCandidates) &&
     mapsMatch(left.childCandidateMap, right.childCandidateMap);
 }
@@ -95,9 +82,7 @@ export function SearchCandidatesPlugin({ docId, onCandidatesChange }: SearchCand
   }, [readAndEmitCandidates]);
 
   useEffect(() => {
-    return editor.registerUpdateListener(({ editorState }) => {
-      readAndEmitCandidates(editorState);
-    });
+    return editor.registerUpdateListener(({ editorState }) => readAndEmitCandidates(editorState));
   }, [editor, readAndEmitCandidates]);
 
   useEffect(() => {

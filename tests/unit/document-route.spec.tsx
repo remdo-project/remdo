@@ -430,6 +430,25 @@ describe('document route', () => {
     });
   });
 
+  it('hides inline completion when selection is non-collapsed', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/no' } });
+
+    await waitFor(() => {
+      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('te1');
+    });
+
+    (searchInput as HTMLInputElement).setSelectionRange(1, 3);
+    fireEvent.select(searchInput);
+
+    await waitFor(() => {
+      expect(getInlineCompletion()).toBeNull();
+    });
+  });
+
   it('filters slash results to notes matching the visible segment', async () => {
     renderDocumentRoute();
 
@@ -558,6 +577,34 @@ describe('document route', () => {
     });
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
     expect(searchInput).toHaveValue('///');
+  });
+
+  it('moves slash scope back up when trailing slash is removed', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/' } });
+
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('note1');
+    });
+
+    fireEvent.change(searchInput, { target: { value: '//' } });
+    await waitFor(() => {
+      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+        .map((item) => item.textContent);
+      expect(resultItems).toEqual(['note2']);
+      expect(getActiveSearchResult()?.textContent).toBe('note2');
+    });
+
+    fireEvent.change(searchInput, { target: { value: '/' } });
+    await waitFor(() => {
+      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+        .map((item) => item.textContent);
+      expect(resultItems).toEqual(['note1', 'note3', 'note5']);
+      expect(getActiveSearchResult()?.textContent).toBe('note1');
+    });
   });
 
   it('moves highlight with arrows over flat results without wraparound', async () => {
