@@ -117,6 +117,29 @@ function resolveCompletedSlashPath(
   return nextPath;
 }
 
+function pathsMatch(left: string[], right: string[]): boolean {
+  return left.length === right.length &&
+    left.every((noteId, index) => noteId === right[index]);
+}
+
+function resolveSlashScopePath(
+  query: string,
+  currentPath: string[],
+  highlightedNoteId: string | null,
+  childCandidateMap: Record<string, SearchCandidate[]>
+): string[] {
+  if (!query.startsWith('/')) {
+    return EMPTY_NOTE_IDS;
+  }
+
+  const completedSlashDepth = Math.max(0, countSlashes(query) - 1);
+  if (query === '/' || completedSlashDepth === 0) {
+    return EMPTY_NOTE_IDS;
+  }
+
+  return resolveCompletedSlashPath(query, currentPath, highlightedNoteId, childCandidateMap);
+}
+
 function getNextHighlightedNoteId(
   candidates: SearchCandidate[],
   highlightedNoteId: string | null,
@@ -168,8 +191,17 @@ export function useDocumentSearchModel({
   const slashScopePathNoteIds = slashScopeState.sourceDocId === docId
     ? slashScopeState.pathNoteIds
     : EMPTY_NOTE_IDS;
+  const resolvedSlashScopePathNoteIds = useMemo(
+    () => resolveSlashScopePath(
+      searchQuery,
+      slashScopePathNoteIds,
+      highlightedNoteId,
+      sdkSearchCandidates.childCandidateMap
+    ),
+    [highlightedNoteId, sdkSearchCandidates.childCandidateMap, searchQuery, slashScopePathNoteIds]
+  );
   const isSlashMode = searchModeActive && searchQuery.startsWith('/');
-  const slashScopeParentNoteId = slashScopePathNoteIds.at(-1) ?? ROOT_SEARCH_SCOPE_ID;
+  const slashScopeParentNoteId = resolvedSlashScopePathNoteIds.at(-1) ?? ROOT_SEARCH_SCOPE_ID;
   const textNeedle = searchQuery.toLocaleLowerCase();
   const slashSegmentNeedle = searchQuery.slice(searchQuery.lastIndexOf('/') + 1).toLocaleLowerCase();
 
@@ -263,33 +295,22 @@ export function useDocumentSearchModel({
   }, [docId]);
 
   const applySearchQuery = useCallback((nextSearchQuery: string) => {
-    if (nextSearchQuery.startsWith('/')) {
-      const nextSlashCount = countSlashes(nextSearchQuery);
-      const nextCompletedSlashDepth = Math.max(0, nextSlashCount - 1);
+    const nextSlashScopePath = resolveSlashScopePath(
+      nextSearchQuery,
+      resolvedSlashScopePathNoteIds,
+      highlightedNoteId,
+      sdkSearchCandidates.childCandidateMap
+    );
 
-      if (nextSearchQuery === '/') {
-        updateSlashScopePath(EMPTY_NOTE_IDS);
-      } else if (nextCompletedSlashDepth > 0) {
-        updateSlashScopePath(
-          resolveCompletedSlashPath(
-            nextSearchQuery,
-            slashScopePathNoteIds,
-            highlightedNoteId,
-            sdkSearchCandidates.childCandidateMap
-          )
-        );
-      } else if (slashScopePathNoteIds.length > 0) {
-        updateSlashScopePath(EMPTY_NOTE_IDS);
-      }
-    } else if (slashScopePathNoteIds.length > 0) {
-      updateSlashScopePath(EMPTY_NOTE_IDS);
+    if (!pathsMatch(nextSlashScopePath, resolvedSlashScopePathNoteIds)) {
+      updateSlashScopePath(nextSlashScopePath);
     }
 
     setSearchQuery(nextSearchQuery);
   }, [
     highlightedNoteId,
+    resolvedSlashScopePathNoteIds,
     sdkSearchCandidates.childCandidateMap,
-    slashScopePathNoteIds,
     updateSlashScopePath,
   ]);
 
