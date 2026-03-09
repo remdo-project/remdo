@@ -356,6 +356,10 @@ export function useDocumentSearchModel({
   }, [focusEditorInput]);
 
   const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing || searchInputComposing) {
+      return;
+    }
+
     if (event.key === 'Escape' && !event.altKey && !event.metaKey && !event.ctrlKey) {
       if (focusEditorInput()) {
         event.preventDefault();

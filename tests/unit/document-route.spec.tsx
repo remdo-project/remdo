@@ -438,6 +438,40 @@ describe('document route', () => {
     });
   });
 
+  it('ignores search hotkeys while composition is active', async () => {
+    const router = renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: 'note' } });
+
+    await waitFor(() => {
+      const active = screen.getByRole('option', { name: 'note1' });
+      expect(active).toHaveAttribute('aria-selected', 'true');
+      expect(searchInput).toHaveAttribute('aria-activedescendant', active.id);
+    });
+
+    fireEvent.compositionStart(searchInput);
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+    expect(screen.getByRole('option', { name: 'note1' })).toHaveAttribute('aria-selected', 'true');
+    expect(searchInput).toHaveAttribute(
+      'aria-activedescendant',
+      screen.getByRole('option', { name: 'note1' }).id,
+    );
+
+    fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
+    expect(screen.getByRole('option', { name: 'note1' })).toHaveAttribute('aria-selected', 'true');
+
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+    expect(router.state.location.pathname).toBe(createDocumentPath('main'));
+    expect(screen.getByTestId('editor-search-probe')).toHaveAttribute('data-zoom-note-id', '');
+
+    fireEvent.keyDown(searchInput, { key: 'Escape' });
+    expect(searchInput).toHaveFocus();
+    expect(document.activeElement).not.toHaveClass('editor-input');
+  });
+
   it('hides inline completion when caret is not at input end', async () => {
     renderDocumentRoute();
 
