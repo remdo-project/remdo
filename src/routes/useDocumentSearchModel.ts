@@ -170,6 +170,22 @@ function getNextHighlightedNoteId(
   return candidates[nextIndex]!.noteId;
 }
 
+function resolveHighlightedNoteId(
+  candidates: SearchCandidate[],
+  highlightedNoteId: string | null,
+  searchModeActive: boolean
+): string | null {
+  if (!searchModeActive || candidates.length === 0) {
+    return null;
+  }
+
+  if (highlightedNoteId && candidates.some((candidate) => candidate.noteId === highlightedNoteId)) {
+    return highlightedNoteId;
+  }
+
+  return candidates[0]!.noteId;
+}
+
 export function useDocumentSearchModel({
   docId,
   focusEditorInput,
@@ -226,8 +242,12 @@ export function useDocumentSearchModel({
   );
   const flatResults = isSlashMode ? slashResults : textResults;
   const navigationCandidates = searchModeActive ? flatResults : EMPTY_SEARCH_CANDIDATES;
-  const highlightedNavigationCandidate = highlightedNoteId
-    ? navigationCandidates.find((candidate) => candidate.noteId === highlightedNoteId) ?? null
+  const resolvedHighlightedNoteId = useMemo(
+    () => resolveHighlightedNoteId(navigationCandidates, highlightedNoteId, searchModeActive),
+    [highlightedNoteId, navigationCandidates, searchModeActive]
+  );
+  const highlightedNavigationCandidate = resolvedHighlightedNoteId
+    ? navigationCandidates.find((candidate) => candidate.noteId === resolvedHighlightedNoteId) ?? null
     : null;
   const completionSourceCandidate = highlightedNavigationCandidate ?? navigationCandidates[0] ?? null;
 
@@ -240,17 +260,11 @@ export function useDocumentSearchModel({
   }, [focusEditorInput, searchModeActive]);
 
   useEffect(() => {
-    if (!searchModeActive || navigationCandidates.length === 0) {
-      setHighlightedNoteId(null);
+    if (highlightedNoteId === resolvedHighlightedNoteId) {
       return;
     }
-
-    if (highlightedNoteId && navigationCandidates.some((candidate) => candidate.noteId === highlightedNoteId)) {
-      return;
-    }
-
-    setHighlightedNoteId(navigationCandidates[0]!.noteId);
-  }, [highlightedNoteId, navigationCandidates, searchModeActive]);
+    setHighlightedNoteId(resolvedHighlightedNoteId);
+  }, [highlightedNoteId, resolvedHighlightedNoteId]);
 
   const isSearchInputCaretAtEnd = searchInputSelection.start === searchInputSelection.end &&
     searchInputSelection.end === searchQuery.length;
@@ -305,7 +319,7 @@ export function useDocumentSearchModel({
     const nextSlashScopePath = resolveSlashScopePath(
       nextSearchQuery,
       resolvedSlashScopePathNoteIds,
-      highlightedNoteId,
+      resolvedHighlightedNoteId,
       sdkSearchCandidates.childCandidateMap
     );
 
@@ -315,7 +329,7 @@ export function useDocumentSearchModel({
 
     setSearchQuery(nextSearchQuery);
   }, [
-    highlightedNoteId,
+    resolvedHighlightedNoteId,
     resolvedSlashScopePathNoteIds,
     sdkSearchCandidates.childCandidateMap,
     updateSlashScopePath,
@@ -359,13 +373,13 @@ export function useDocumentSearchModel({
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      setHighlightedNoteId(getNextHighlightedNoteId(navigationCandidates, highlightedNoteId, 'down'));
+      setHighlightedNoteId(getNextHighlightedNoteId(navigationCandidates, resolvedHighlightedNoteId, 'down'));
       return;
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      setHighlightedNoteId(getNextHighlightedNoteId(navigationCandidates, highlightedNoteId, 'up'));
+      setHighlightedNoteId(getNextHighlightedNoteId(navigationCandidates, resolvedHighlightedNoteId, 'up'));
       return;
     }
 
@@ -433,7 +447,7 @@ export function useDocumentSearchModel({
     updateSearchInputSelection(event.currentTarget);
   };
 
-  const highlightedResultNoteId = searchModeActive ? highlightedNoteId : null;
+  const highlightedResultNoteId = searchModeActive ? resolvedHighlightedNoteId : null;
   const hasSearchResultOptions = navigationCandidates.length > 0;
 
   return {

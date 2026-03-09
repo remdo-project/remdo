@@ -297,6 +297,27 @@ describe('document route', () => {
     expect(searchInput).toHaveAttribute('aria-activedescendant', secondOption.id);
   });
 
+  it('keeps the first matching result highlighted when recovering from no matches', async () => {
+    const router = renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: 'zzzz' } });
+    await screen.findByText('No matches');
+
+    fireEvent.change(searchInput, { target: { value: 'note' } });
+
+    const firstOption = screen.getByRole('option', { name: 'note1' });
+    expect(firstOption).toHaveAttribute('aria-selected', 'true');
+    expect(searchInput).toHaveAttribute('aria-activedescendant', firstOption.id);
+
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(createDocumentPath('main', 'note1'));
+    });
+  });
+
   it('shows slash inline completion on empty query and accepts it on ArrowRight', async () => {
     renderDocumentRoute();
 
