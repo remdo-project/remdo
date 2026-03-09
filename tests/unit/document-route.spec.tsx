@@ -520,6 +520,53 @@ describe('document route', () => {
     expect(searchInput).toHaveValue('//');
   });
 
+  it('resolves slash descent from the changed query segment when pasting a trailing slash path', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/' } });
+
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('note1');
+    });
+
+    fireEvent.change(searchInput, { target: { value: '/note3/' } });
+
+    await waitFor(() => {
+      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+        .map((item) => item.textContent);
+      expect(resultItems).toEqual(['note4']);
+      expect(getActiveSearchResult()?.textContent).toBe('note4');
+      expect(searchInput).toHaveValue('/note3/');
+    });
+  });
+
+  it('replaces an existing descended slash path from the new query segment', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/note1/' } });
+
+    await waitFor(() => {
+      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+        .map((item) => item.textContent);
+      expect(resultItems).toEqual(['note2']);
+      expect(getActiveSearchResult()?.textContent).toBe('note2');
+    });
+
+    fireEvent.change(searchInput, { target: { value: '/note3/' } });
+
+    await waitFor(() => {
+      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+        .map((item) => item.textContent);
+      expect(resultItems).toEqual(['note4']);
+      expect(getActiveSearchResult()?.textContent).toBe('note4');
+      expect(searchInput).toHaveValue('/note3/');
+    });
+  });
+
   it('supports deeper slash scope descent without query auto-write', async () => {
     (
       globalThis as typeof globalThis & {

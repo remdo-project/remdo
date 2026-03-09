@@ -85,6 +85,36 @@ function filterCandidates(candidates: SearchCandidate[], needle: string): Search
   return candidates.filter((candidate) => candidate.text.toLocaleLowerCase().includes(needle));
 }
 
+function resolveCompletedSlashPath(
+  query: string,
+  currentPath: string[],
+  highlightedNoteId: string | null,
+  childCandidateMap: Record<string, SearchCandidate[]>
+): string[] {
+  const completedSegments = query.split('/').slice(1, -1);
+  const nextPath: string[] = [];
+
+  for (const [index, segment] of completedSegments.entries()) {
+    const parentNoteId = nextPath.at(-1) ?? ROOT_SEARCH_SCOPE_ID;
+    const scopeCandidates = childCandidateMap[parentNoteId] ?? EMPTY_SEARCH_CANDIDATES;
+    const matches = filterCandidates(scopeCandidates, segment.toLocaleLowerCase());
+    if (matches.length === 0) {
+      break;
+    }
+
+    const currentPathCandidate = currentPath[index];
+    const matchedCurrentPathCandidate = currentPathCandidate
+      ? matches.find((candidate) => candidate.noteId === currentPathCandidate) ?? null
+      : null;
+    const matchedHighlightedCandidate = highlightedNoteId
+      ? matches.find((candidate) => candidate.noteId === highlightedNoteId) ?? null
+      : null;
+    nextPath.push((matchedCurrentPathCandidate ?? matchedHighlightedCandidate ?? matches[0])!.noteId);
+  }
+
+  return nextPath;
+}
+
 function getNextHighlightedNoteId(
   candidates: SearchCandidate[],
   highlightedNoteId: string | null,
@@ -236,22 +266,34 @@ export function useDocumentSearchModel({
         ? countSlashes(searchQuery)
         : 0;
       const nextSlashCount = countSlashes(nextSearchQuery);
-      const appendedSlash = nextSlashCount > previousSlashCount && nextSearchQuery.endsWith('/');
 
       if (nextSearchQuery === '/') {
         updateSlashScopePath(EMPTY_NOTE_IDS);
+      } else if (nextSearchQuery.endsWith('/') && nextSlashCount > 1) {
+        updateSlashScopePath(
+          resolveCompletedSlashPath(
+            nextSearchQuery,
+            slashScopePathNoteIds,
+            highlightedNoteId,
+            sdkSearchCandidates.childCandidateMap
+          )
+        );
       } else if (nextSlashCount < previousSlashCount) {
         const nextDepth = Math.max(0, nextSlashCount - 1);
         updateSlashScopePath((currentPath) => currentPath.slice(0, nextDepth));
-      } else if (appendedSlash && highlightedNoteId) {
-        updateSlashScopePath((currentPath) => [...currentPath, highlightedNoteId]);
       }
     } else if (slashScopePathNoteIds.length > 0) {
       updateSlashScopePath(EMPTY_NOTE_IDS);
     }
 
     setSearchQuery(nextSearchQuery);
-  }, [highlightedNoteId, searchQuery, slashScopePathNoteIds.length, updateSlashScopePath]);
+  }, [
+    highlightedNoteId,
+    sdkSearchCandidates.childCandidateMap,
+    searchQuery,
+    slashScopePathNoteIds,
+    updateSlashScopePath,
+  ]);
 
   const handleSearchCandidatesChange = useCallback((snapshot: SdkSearchCandidateSnapshot) => {
     setSdkSearchCandidateState({
