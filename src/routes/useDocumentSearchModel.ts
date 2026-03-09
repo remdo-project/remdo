@@ -64,6 +64,7 @@ const EMPTY_SEARCH_CANDIDATE_STATE: SearchCandidateState = {
   allCandidates: EMPTY_SEARCH_CANDIDATES,
   childCandidateMap: {},
 };
+const INVALID_SEARCH_SCOPE_ID = '__invalid_search_scope__';
 
 function mapSearchCandidates(
   candidates: ReadonlyArray<{ noteId: string; text: string }>
@@ -99,6 +100,7 @@ function resolveCompletedSlashPath(
     const scopeCandidates = childCandidateMap[parentNoteId] ?? EMPTY_SEARCH_CANDIDATES;
     const matches = filterCandidates(scopeCandidates, segment.toLocaleLowerCase());
     if (matches.length === 0) {
+      nextPath.push(INVALID_SEARCH_SCOPE_ID);
       break;
     }
 

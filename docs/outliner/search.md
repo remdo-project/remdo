@@ -44,28 +44,31 @@ behavior and the planned slash-prefixed navigation flow.
 19. In slash navigation, pressing `Enter` on exact `/` zooms to document root.
 20. In slash navigation with any deeper slash path, pressing `Enter` zooms to
     the highlighted candidate.
-21. Inline completion appears only while search input is focused and completion
+21. Invalid completed slash paths (for example `/missing/` or
+    `/parent/missing/`) show no matches and must not fall back to ancestor or
+    root candidates.
+22. Inline completion appears only while search input is focused and completion
     text is non-empty.
-22. Inline completion is hidden while IME composition is active, when selection
+23. Inline completion is hidden while IME composition is active, when selection
     is non-collapsed, or when caret is not at input end.
-23. While Search Mode is active, the static `Search` placeholder is hidden to
+24. While Search Mode is active, the static `Search` placeholder is hidden to
     avoid visual overlap with inline completion.
-24. For empty query, inline completion text is `/`.
-25. For non-empty non-slash query text, inline completion is hidden.
-26. In slash mode, inline completion source candidate is highlighted candidate
+25. For empty query, inline completion text is `/`.
+26. For non-empty non-slash query text, inline completion is hidden.
+27. In slash mode, inline completion source candidate is highlighted candidate
     when present, otherwise first visible slash candidate.
-27. In slash mode, if current segment is a prefix of source note text, inline
+28. In slash mode, if current segment is a prefix of source note text, inline
     completion text is the remaining suffix.
-28. In slash mode, if current segment exactly matches source note text:
+29. In slash mode, if current segment exactly matches source note text:
     - inline completion is `/` when source note has children;
     - inline completion is hidden when source note has no children.
-29. `ArrowRight` accepts inline completion by appending only suggested text to
+30. `ArrowRight` accepts inline completion by appending only suggested text to
     current input and does not trigger zoom.
-30. Inline completion may display symbolic shortcut hint metadata (for example
+31. Inline completion may display symbolic shortcut hint metadata (for example
     `→`), but hint is not inserted text.
-31. Search input exposes combobox semantics for assistive tech, including popup
+32. Search input exposes combobox semantics for assistive tech, including popup
     state and active descendant linkage.
-32. Search results expose listbox semantics and mark the highlighted result as
+33. Search results expose listbox semantics and mark the highlighted result as
     selected.
-33. In flat results, non-leaf notes show a muted `/...` suffix hint; leaf notes
+34. In flat results, non-leaf notes show a muted `/...` suffix hint; leaf notes
     show no suffix.

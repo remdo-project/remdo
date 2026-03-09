@@ -567,6 +567,21 @@ describe('document route', () => {
     });
   });
 
+  it('keeps invalid trailing slash paths empty instead of falling back to root results', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/missing/' } });
+
+    await screen.findByText('No matches');
+    expect(getActiveSearchResult()).toBeNull();
+    expect(searchInput).toHaveValue('/missing/');
+
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+    expect(searchInput).toHaveFocus();
+  });
+
   it('supports deeper slash scope descent without query auto-write', async () => {
     (
       globalThis as typeof globalThis & {

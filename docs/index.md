@@ -54,9 +54,9 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/search.md` (Short). Search behavior: focus-driven mode
   entry/exit, single highlighted note in always-flat results (including empty
   query), text-match filtering, Enter-to-zoom, slash root/depth navigation,
-  non-mutating arrow cycling in slash mode, inline-completion acceptance with
-  `ArrowRight`, combobox/listbox accessibility semantics, and non-leaf `/...`
-  result hints.
+  invalid slash paths staying empty, non-mutating arrow cycling in slash mode,
+  inline-completion acceptance with `ArrowRight`, combobox/listbox
+  accessibility semantics, and non-leaf `/...` result hints.
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
   scope, breadcrumbs, and routing.
