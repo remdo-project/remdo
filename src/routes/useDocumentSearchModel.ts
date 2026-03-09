@@ -86,6 +86,13 @@ function filterCandidates(candidates: SearchCandidate[], needle: string): Search
   return candidates.filter((candidate) => candidate.text.toLocaleLowerCase().includes(needle));
 }
 
+function matchCompletedSegmentCandidates(candidates: SearchCandidate[], segment: string): SearchCandidate[] {
+  if (segment.length === 0) {
+    return candidates;
+  }
+  return candidates.filter((candidate) => candidate.text.toLocaleLowerCase() === segment);
+}
+
 function resolveCompletedSlashPath(
   query: string,
   currentPath: string[],
@@ -98,7 +105,7 @@ function resolveCompletedSlashPath(
   for (const [index, segment] of completedSegments.entries()) {
     const parentNoteId = nextPath.at(-1) ?? ROOT_SEARCH_SCOPE_ID;
     const scopeCandidates = childCandidateMap[parentNoteId] ?? EMPTY_SEARCH_CANDIDATES;
-    const matches = filterCandidates(scopeCandidates, segment.toLocaleLowerCase());
+    const matches = matchCompletedSegmentCandidates(scopeCandidates, segment.toLocaleLowerCase());
     if (matches.length === 0) {
       nextPath.push(INVALID_SEARCH_SCOPE_ID);
       break;

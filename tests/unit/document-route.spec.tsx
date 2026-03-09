@@ -983,6 +983,43 @@ describe('document route', () => {
     expect(router.state.location.pathname).toBe(createDocumentPath('main'));
   });
 
+  it('matches completed slash segments exactly instead of by substring', async () => {
+    const globals = globalThis as typeof globalThis & MockSdkSearchGlobals;
+    globals.__remdoMockSdkSearchCandidatesByDoc = {
+      main: {
+        allCandidates: [
+          { noteId: 'barfoo', text: 'barfoo' },
+          { noteId: 'barfoo-child', text: 'barfoo child' },
+          { noteId: 'foo', text: 'foo' },
+          { noteId: 'foo-child', text: 'foo child' },
+        ],
+        childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [
+            { noteId: 'barfoo', text: 'barfoo' },
+            { noteId: 'foo', text: 'foo' },
+          ],
+          barfoo: [{ noteId: 'barfoo-child', text: 'barfoo child' }],
+          'barfoo-child': [],
+          foo: [{ noteId: 'foo-child', text: 'foo child' }],
+          'foo-child': [],
+        },
+      },
+    };
+
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: '/foo/' } });
+
+    await waitFor(() => {
+      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
+        .map((item) => item.textContent);
+      expect(resultItems).toEqual(['foo child']);
+      expect(getActiveSearchResult()?.textContent).toBe('foo child');
+    });
+  });
+
   it('zooms to document root on Enter when query is exactly "/"', async () => {
     const router = renderDocumentRoute(createDocumentPath('main', 'note3'));
 
