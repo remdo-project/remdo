@@ -1,3 +1,29 @@
+catalogMode: prefer
+
+shellEmulator: true
+
+trustPolicy: no-downgrade
+
+trustPolicyExclude:
+  - rollup@2.80.0
+  - serialize-javascript@7.0.3
+  - undici-types@6.21.0
+  - semver@6.3.1
+overrides:
+  '@eslint/config-array>minimatch': 3.1.5
+  '@eslint/eslintrc>ajv': 6.14.0
+  '@eslint/eslintrc>minimatch': 3.1.5
+  '@typescript-eslint/typescript-estree>minimatch': 9.0.7
+  body-parser: 2.2.1
+  eslint>ajv: 6.14.0
+  eslint>minimatch: 3.1.5
+  express: '>=5.2.0'
+  glob>minimatch: 10.2.4
+  js-yaml: 4.1.1
+  qs: 6.14.2
+  serialize-javascript: 7.0.3
+  table>ajv: 8.18.0
+
 catalog:
   '@antfu/eslint-config': ^7.6.1
   '@ast-grep/cli': ^0.41.0
@@ -58,9 +84,6 @@ catalog:
   ws: 8.19.0
   y-sweet: ^0.9.1
   yjs: ^13.6.29
-
-catalogMode: prefer
-
 onlyBuiltDependencies:
   - '@ast-grep/cli'
   - '@swc/core'
@@ -68,27 +91,4 @@ onlyBuiltDependencies:
   - leveldown
   - y-sweet
 
-overrides:
-  '@eslint/config-array>minimatch': 3.1.5
-  '@eslint/eslintrc>ajv': 6.14.0
-  '@eslint/eslintrc>minimatch': 3.1.5
-  '@typescript-eslint/typescript-estree>minimatch': 9.0.7
-  body-parser: 2.2.1
-  eslint>ajv: 6.14.0
-  eslint>minimatch: 3.1.5
-  express: '>=5.2.0'
-  glob>minimatch: 10.2.4
-  js-yaml: 4.1.1
-  qs: 6.14.2
-  serialize-javascript: 7.0.3
-  table>ajv: 8.18.0
 
-shellEmulator: true
-
-trustPolicy: no-downgrade
-
-trustPolicyExclude:
-  - rollup@2.80.0
-  - serialize-javascript@7.0.3
-  - undici-types@6.21.0
-  - semver@6.3.1
