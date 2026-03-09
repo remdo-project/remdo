@@ -264,14 +264,12 @@ export function useDocumentSearchModel({
 
   const applySearchQuery = useCallback((nextSearchQuery: string) => {
     if (nextSearchQuery.startsWith('/')) {
-      const previousSlashCount = searchQuery.startsWith('/')
-        ? countSlashes(searchQuery)
-        : 0;
       const nextSlashCount = countSlashes(nextSearchQuery);
+      const nextCompletedSlashDepth = Math.max(0, nextSlashCount - 1);
 
       if (nextSearchQuery === '/') {
         updateSlashScopePath(EMPTY_NOTE_IDS);
-      } else if (nextSearchQuery.endsWith('/') && nextSlashCount > 1) {
+      } else if (nextCompletedSlashDepth > 0) {
         updateSlashScopePath(
           resolveCompletedSlashPath(
             nextSearchQuery,
@@ -280,9 +278,8 @@ export function useDocumentSearchModel({
             sdkSearchCandidates.childCandidateMap
           )
         );
-      } else if (nextSlashCount < previousSlashCount) {
-        const nextDepth = Math.max(0, nextSlashCount - 1);
-        updateSlashScopePath((currentPath) => currentPath.slice(0, nextDepth));
+      } else if (slashScopePathNoteIds.length > 0) {
+        updateSlashScopePath(EMPTY_NOTE_IDS);
       }
     } else if (slashScopePathNoteIds.length > 0) {
       updateSlashScopePath(EMPTY_NOTE_IDS);
@@ -292,7 +289,6 @@ export function useDocumentSearchModel({
   }, [
     highlightedNoteId,
     sdkSearchCandidates.childCandidateMap,
-    searchQuery,
     slashScopePathNoteIds,
     updateSlashScopePath,
   ]);
