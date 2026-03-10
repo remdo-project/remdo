@@ -35,6 +35,7 @@
     "audit:dup": "jscpd --config .jscpd.json --threshold 3",
     "audit:dup:zero": "jscpd --config .jscpd.json --threshold 0",
     "audit:policy": "timeout ${TEST_TIMEOUT:-120}s tsx ./tools/check-pnpm-policy.ts",
+    "audit:security": "timeout ${TEST_TIMEOUT:-120}s pnpm audit --audit-level=high --prod",
     "audit:stats": "tsx ./tools/repo-stats.ts",
     "audit:stats:strict": "pnpm run audit:stats -- --threshold-ratio 0.05",
     "audit:unused": "timeout ${TEST_TIMEOUT:-120}s ./tools/env.sh pnpm exec knip -c knip.jsonc --no-progress --max-issues 25",
@@ -60,6 +61,13 @@
     "lint:md:file:raw": "markdownlint-cli2 --no-globs",
     "lint:md:raw": "markdownlint-cli2 \"AGENTS.md\" \"docs/**/*.md\"",
     "load": "./tools/env.sh tsx ./tools/snapshot.ts load",
+    "perf:bench": "cross-env NODE_ENV=test COLLAB_ENABLED=false ./tools/env.sh timeout ${TEST_TIMEOUT:-240}s pnpm exec vitest bench -c vitest.bench.perf.config.mts --run",
+    "perf:bench:8x5": "cross-env PERF_WORKLOAD=8x5 TEST_TIMEOUT=900 pnpm run perf:bench",
+    "perf:generate": "./tools/env.sh tsx ./tools/perf-workload.ts",
+    "perf:generate:8x5": "cross-env PERF_WORKLOAD=8x5 pnpm run perf:generate",
+    "perf:load": "pnpm run perf:generate && pnpm run load data/perf/8x3.json",
+    "perf:load:8x5": "pnpm run perf:generate:8x5 && pnpm run load data/perf/8x5.json",
+    "preperf:bench": "pnpm run perf:generate",
     "preview": "./tools/env.sh vite preview",
     "save": "./tools/env.sh tsx ./tools/snapshot.ts save",
     "test": "pnpm run test:unit:full",
@@ -83,8 +91,8 @@
     "typecheck": "timeout ${TEST_TIMEOUT:-120}s tsc",
     "typecheck:tests": "timeout ${TEST_TIMEOUT:-120}s pnpm exec tsc -p tsconfig.tests.json --pretty false",
     "typecheck:watch": "tsc --watch",
-    "vendor:lexical": "./tools/vendor-lexical.sh",
-    "audit:security": "timeout ${TEST_TIMEOUT:-120}s pnpm audit --audit-level=high --prod"
+    "vendor:lexical": "./tools/vendor-lexical.sh"
+    
   },
   "dependencies": {
     "@lexical/clipboard": "catalog:",
