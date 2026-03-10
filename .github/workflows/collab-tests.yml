@@ -18,4 +18,4 @@ jobs:
       - name: Run collaboration unit tests
         env:
           TEST_TIMEOUT: 270
-        run: pnpm run test:collab
+        run: pnpm run test:collab:full
