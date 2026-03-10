@@ -17,4 +17,4 @@ jobs:
       - uses: ./.github/actions/setup-pnpm
       - env:
           TEST_TIMEOUT: 120
-        run: pnpm run test:unit
+        run: pnpm run test:unit:full
