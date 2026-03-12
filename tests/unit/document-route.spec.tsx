@@ -14,6 +14,7 @@ interface TestSdkSearchSnapshot {
 
 interface MockSdkSearchGlobals {
   __remdoMockSdkSearchCandidateEmitters?: Record<string, () => void>;
+  __remdoMockSdkSearchCandidateResetters?: Record<string, () => void>;
   __remdoMockSdkSearchCandidatesByDoc?: Record<string, TestSdkSearchSnapshot | null>;
 }
 
@@ -40,14 +41,9 @@ vi.mock('@/editor/Editor', async () => {
       note5: [],
     },
   } satisfies TestSdkSearchSnapshot;
-  const emptySnapshot = {
-    allCandidates: [],
-    childCandidateMap: {},
-  } satisfies TestSdkSearchSnapshot;
-
   interface MockEditorProps {
     docId: string;
-    onSearchCandidatesChange?: (snapshot: TestSdkSearchSnapshot) => void;
+    onSearchCandidatesChange?: (snapshot: TestSdkSearchSnapshot | null) => void;
     zoomNoteId?: string | null;
   }
 
@@ -70,11 +66,17 @@ vi.mock('@/editor/Editor', async () => {
 
       emitCurrentSnapshot();
       (globals.__remdoMockSdkSearchCandidateEmitters ??= {})[docId] = emitCurrentSnapshot;
+      (globals.__remdoMockSdkSearchCandidateResetters ??= {})[docId] = () => {
+        onSearchCandidatesChange?.(null);
+      };
       return () => {
         if (globals.__remdoMockSdkSearchCandidateEmitters?.[docId] === emitCurrentSnapshot) {
           delete globals.__remdoMockSdkSearchCandidateEmitters[docId];
         }
-        onSearchCandidatesChange?.(emptySnapshot);
+        if (globals.__remdoMockSdkSearchCandidateResetters?.[docId]) {
+          delete globals.__remdoMockSdkSearchCandidateResetters[docId];
+        }
+        onSearchCandidatesChange?.(null);
       };
     }, [docId, onSearchCandidatesChange]);
 
@@ -108,6 +110,7 @@ describe('document route', () => {
     const globals = globalThis as typeof globalThis & MockSdkSearchGlobals;
     globals.__remdoMockSdkSearchCandidatesByDoc = undefined;
     globals.__remdoMockSdkSearchCandidateEmitters = undefined;
+    globals.__remdoMockSdkSearchCandidateResetters = undefined;
   });
 
   const renderDocumentRoute = (initialEntry: string = createDocumentPath('main')) => {
@@ -914,6 +917,53 @@ describe('document route', () => {
       expect(screen.queryByText('No notes')).toBeNull();
     });
 
+    globals.__remdoMockSdkSearchCandidateEmitters?.main?.();
+
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('fresh result');
+    });
+  });
+
+  it('waits for a fresh snapshot after invalidating current document candidates', async () => {
+    const globals = globalThis as typeof globalThis & MockSdkSearchGlobals;
+    globals.__remdoMockSdkSearchCandidatesByDoc = {
+      main: {
+        allCandidates: [{ noteId: 'stale', text: 'shared result' }],
+        childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'stale', text: 'shared result' }],
+          stale: [],
+        },
+      },
+    };
+
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: 'result' } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
+      expect(getActiveSearchResult()?.textContent).toBe('shared result');
+    });
+
+    globals.__remdoMockSdkSearchCandidateResetters?.main?.();
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('document-search-results')).toBeNull();
+      expect(screen.queryByText('No matches')).toBeNull();
+      expect(screen.queryByText('No notes')).toBeNull();
+    });
+
+    globals.__remdoMockSdkSearchCandidatesByDoc = {
+      main: {
+        allCandidates: [{ noteId: 'fresh', text: 'fresh result' }],
+        childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
+          fresh: [],
+        },
+      },
+    };
     globals.__remdoMockSdkSearchCandidateEmitters?.main?.();
 
     await waitFor(() => {

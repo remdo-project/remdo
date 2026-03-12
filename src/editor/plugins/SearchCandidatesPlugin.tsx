@@ -9,7 +9,7 @@ import type { SdkSearchCandidateSnapshot } from '@/editor/search/sdk-search-cand
 
 interface SearchCandidatesPluginProps {
   docId: string;
-  onCandidatesChange?: (snapshot: SdkSearchCandidateSnapshot) => void;
+  onCandidatesChange?: (snapshot: SdkSearchCandidateSnapshot | null) => void;
 }
 
 function entriesMatch(
@@ -85,7 +85,12 @@ export function SearchCandidatesPlugin({
   }, [docId, readAndEmitCandidates]);
 
   useEffect(() => {
-    return editor.registerUpdateListener(({ editorState }) => readAndEmitCandidates(editorState));
+    return editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, editorState }) => {
+      if (dirtyElements.size === 0 && dirtyLeaves.size === 0) {
+        return;
+      }
+      readAndEmitCandidates(editorState);
+    });
   }, [editor, readAndEmitCandidates]);
 
   useEffect(() => {
@@ -98,7 +103,7 @@ export function SearchCandidatesPlugin({
   useEffect(() => {
     return () => {
       previousSnapshotRef.current = emptySnapshot;
-      onCandidatesChange?.(emptySnapshot);
+      onCandidatesChange?.(null);
     };
   }, [onCandidatesChange]);
 

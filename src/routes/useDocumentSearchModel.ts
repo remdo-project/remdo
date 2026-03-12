@@ -40,7 +40,7 @@ interface UseDocumentSearchModelResult {
   childCandidateMap: Record<string, SearchCandidate[]>;
   flatResults: SearchCandidate[];
   handleSearchBlur: () => void;
-  handleSearchCandidatesChange: (snapshot: SdkSearchCandidateSnapshot) => void;
+  handleSearchCandidatesChange: (snapshot: SdkSearchCandidateSnapshot | null) => void;
   handleSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleSearchCompositionEnd: (event: CompositionEvent<HTMLInputElement>) => void;
   handleSearchCompositionStart: (_event: CompositionEvent<HTMLInputElement>) => void;
@@ -337,7 +337,12 @@ export function useDocumentSearchModel({
     updateSlashScopePath,
   ]);
 
-  const handleSearchCandidatesChange = useCallback((snapshot: SdkSearchCandidateSnapshot) => {
+  const handleSearchCandidatesChange = useCallback((snapshot: SdkSearchCandidateSnapshot | null) => {
+    if (!snapshot) {
+      setCurrentDocumentCandidateState(EMPTY_SEARCH_CANDIDATE_STATE);
+      return;
+    }
+
     setCurrentDocumentCandidateState({
       sourceDocId: docId,
       allCandidates: mapSearchCandidates(snapshot.allCandidates),

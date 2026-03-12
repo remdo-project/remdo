@@ -39,7 +39,7 @@ interface EditorProps {
   zoomNoteId?: string | null;
   onZoomNoteIdChange?: (noteId: string | null) => void;
   onZoomPathChange?: (path: NotePathItem[]) => void;
-  onSearchCandidatesChange?: (snapshot: SdkSearchCandidateSnapshot) => void;
+  onSearchCandidatesChange?: (snapshot: SdkSearchCandidateSnapshot | null) => void;
 }
 
 export default function Editor({
