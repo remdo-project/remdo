@@ -39,8 +39,8 @@ behavior and the planned slash-prefixed navigation flow.
     displayed results must always match that visible segment filter.
 17. Slash navigation shows top-level document notes as candidates at the root
     level.
-18. In slash navigation, appending another `/` descends into the highlighted
-    note and switches candidates to its direct children.
+18. In slash navigation, appending another `/` after an exact segment match
+    descends into that note and switches candidates to its direct children.
 19. In slash navigation, cycling highlighted candidates with arrow keys updates
     only highlight; it does not mutate visible query text.
 20. In slash navigation, pressing `Enter` on exact `/` zooms to document root.
