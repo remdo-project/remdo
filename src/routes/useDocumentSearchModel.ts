@@ -192,7 +192,7 @@ export function useDocumentSearchModel({
   setZoomNoteId,
 }: UseDocumentSearchModelOptions): UseDocumentSearchModelResult {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchModeActive, setSearchModeActive] = useState(false);
+  const [searchModeRequested, setSearchModeRequested] = useState(false);
   const [highlightedNoteId, setHighlightedNoteId] = useReducer(
     (_current: string | null, next: string | null) => next,
     null
@@ -207,10 +207,12 @@ export function useDocumentSearchModel({
   const [searchInputSelection, setSearchInputSelection] = useState<SearchInputSelection>({ start: 0, end: 0 });
   const [searchInputComposing, setSearchInputComposing] = useState(false);
   const pendingEditorFocusAfterSearchExitRef = useRef(false);
+  const searchCandidatesReady = sdkSearchCandidateState.sourceDocId === docId;
 
   const sdkSearchCandidates = sdkSearchCandidateState.sourceDocId === docId
     ? sdkSearchCandidateState
     : { ...EMPTY_SEARCH_CANDIDATE_STATE, sourceDocId: docId };
+  const searchModeActive = searchModeRequested && searchCandidatesReady;
   const slashScopePathNoteIds = slashScopeState.sourceDocId === docId
     ? slashScopeState.pathNoteIds
     : EMPTY_NOTE_IDS;
@@ -349,7 +351,7 @@ export function useDocumentSearchModel({
   }, [docId]);
 
   const closeSearchAndFocusEditor = useCallback(() => {
-    setSearchModeActive(false);
+    setSearchModeRequested(false);
     queueMicrotask(() => {
       focusEditorInput();
     });
@@ -424,12 +426,12 @@ export function useDocumentSearchModel({
   };
 
   const handleSearchFocus = (event: FocusEvent<HTMLInputElement>) => {
-    setSearchModeActive(true);
+    setSearchModeRequested(true);
     updateSearchInputSelection(event.currentTarget);
   };
 
   const handleSearchBlur = () => {
-    setSearchModeActive(false);
+    setSearchModeRequested(false);
     setSearchInputComposing(false);
   };
 

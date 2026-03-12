@@ -35,7 +35,6 @@ interface EditorProps {
   docId: string;
   onTestBridgeReady?: (api: unknown) => void;
   onTestBridgeDispose?: () => void;
-  searchModeActive?: boolean;
   statusPortalRoot: HTMLElement | null;
   zoomNoteId?: string | null;
   onZoomNoteIdChange?: (noteId: string | null) => void;
@@ -48,7 +47,6 @@ export default function Editor({
   docId,
   onTestBridgeReady,
   onTestBridgeDispose,
-  searchModeActive,
   statusPortalRoot,
   zoomNoteId,
   onZoomNoteIdChange,
@@ -66,7 +64,6 @@ export default function Editor({
             docId={docId}
             onTestBridgeReady={onTestBridgeReady}
             onTestBridgeDispose={onTestBridgeDispose}
-            searchModeActive={searchModeActive}
             statusPortalRoot={statusPortalRoot}
             zoomNoteId={zoomNoteId}
             onZoomNoteIdChange={onZoomNoteIdChange}
@@ -84,7 +81,6 @@ function EditorRuntime({
   docId,
   onTestBridgeReady,
   onTestBridgeDispose,
-  searchModeActive,
   statusPortalRoot,
   zoomNoteId,
   onZoomNoteIdChange,
@@ -136,7 +132,6 @@ function EditorRuntime({
               />
               <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
               <SearchCandidatesPlugin
-                active={searchModeActive}
                 docId={docId}
                 onCandidatesChange={onSearchCandidatesChange}
               />

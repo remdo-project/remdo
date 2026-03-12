@@ -878,11 +878,47 @@ describe('document route', () => {
     otherSearchInput.focus();
     fireEvent.change(otherSearchInput, { target: { value: 'main' } });
 
-    await screen.findByText('No matches');
-    expect(document.querySelectorAll('[data-search-result-item]')).toHaveLength(0);
+    await waitFor(() => {
+      expect(screen.queryByTestId('document-search-results')).toBeNull();
+      expect(screen.queryByText('No matches')).toBeNull();
+    });
 
     fireEvent.keyDown(otherSearchInput, { key: 'Enter' });
     expect(router.state.location.pathname).toBe(createDocumentPath('other'));
+  });
+
+  it('waits for the first candidate snapshot before showing search results', async () => {
+    const globals = globalThis as typeof globalThis & MockSdkSearchGlobals;
+    globals.__remdoMockSdkSearchCandidatesByDoc = {
+      main: null,
+    };
+
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: 'fresh' } });
+
+    globals.__remdoMockSdkSearchCandidatesByDoc = {
+      main: {
+        allCandidates: [{ noteId: 'fresh', text: 'fresh result' }],
+        childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
+          fresh: [],
+        },
+      },
+    };
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('document-search-results')).toBeNull();
+      expect(screen.queryByText('No notes')).toBeNull();
+    });
+
+    globals.__remdoMockSdkSearchCandidateEmitters?.main?.();
+
+    await waitFor(() => {
+      expect(getActiveSearchResult()?.textContent).toBe('fresh result');
+    });
   });
 
   it('re-resolves slash scope path when switching documents', async () => {

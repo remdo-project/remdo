@@ -8,7 +8,6 @@ import {
 import type { SdkSearchCandidateSnapshot } from '@/editor/search/sdk-search-candidates';
 
 interface SearchCandidatesPluginProps {
-  active?: boolean;
   docId: string;
   onCandidatesChange?: (snapshot: SdkSearchCandidateSnapshot) => void;
 }
@@ -56,7 +55,6 @@ const emptySnapshot: SdkSearchCandidateSnapshot = {
 };
 
 export function SearchCandidatesPlugin({
-  active = false,
   docId,
   onCandidatesChange,
 }: SearchCandidatesPluginProps) {
@@ -74,44 +72,28 @@ export function SearchCandidatesPlugin({
   }, [onCandidatesChange]);
 
   const readAndEmitCandidates = useCallback((editorState = editor.getEditorState()) => {
-    if (!active) {
-      return;
-    }
-
     const snapshot = editorState.read(() => ({
       allCandidates: collectSearchCandidatesFromSdk(sdk),
       childCandidateMap: collectChildCandidateMapFromSdk(sdk),
     }));
     emitCandidates(snapshot);
-  }, [active, editor, emitCandidates, sdk]);
+  }, [editor, emitCandidates, sdk]);
 
   useEffect(() => {
-    if (!active) {
-      return;
-    }
-
     previousSnapshotRef.current = emptySnapshot;
     readAndEmitCandidates();
-  }, [active, readAndEmitCandidates]);
+  }, [docId, readAndEmitCandidates]);
 
   useEffect(() => {
-    if (!active) {
-      return;
-    }
-
     return editor.registerUpdateListener(({ editorState }) => readAndEmitCandidates(editorState));
-  }, [active, editor, readAndEmitCandidates]);
+  }, [editor, readAndEmitCandidates]);
 
   useEffect(() => {
-    if (!active) {
-      return;
-    }
-
     return editor.registerRootListener(() => {
       previousSnapshotRef.current = emptySnapshot;
       readAndEmitCandidates();
     });
-  }, [active, editor, readAndEmitCandidates]);
+  }, [editor, readAndEmitCandidates]);
 
   useEffect(() => {
     return () => {
