@@ -65,6 +65,10 @@ Rules:
     availability. Even if a picker lists only available docs later, deep links,
     pasted URLs, stale history, and internal links still resolve through the
     same activation boundary.
+- Add a document-level SDK visitor/walker API and use it as the shared
+  traversal primitive for search snapshot building and note-link candidate
+  collection. Keep search/query semantics and note-link ranking/disambiguation
+  outside the SDK.
 - [Future] Evaluate unifying candidate discovery/query logic between search and
   link picker (search already uses SDK/Lexical candidates; link picker still
   uses its own traversal/filter pipeline).
