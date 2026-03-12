@@ -321,6 +321,22 @@ describe('document route', () => {
     });
   });
 
+  it('zooms to a clicked search result and closes search', async () => {
+    const router = renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: 'note3' } });
+
+    const result = await screen.findByRole('option', { name: 'note3' });
+    fireEvent.pointerDown(result);
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(createDocumentPath('main', 'note3'));
+      expect(screen.queryByTestId('document-search-results')).toBeNull();
+    });
+  });
+
   it('shows slash inline completion on empty query and accepts it on ArrowRight', async () => {
     renderDocumentRoute();
 

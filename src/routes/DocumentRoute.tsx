@@ -100,6 +100,7 @@ export default function DocumentRoute() {
     handleSearchCompositionStart,
     handleSearchFocus,
     handleSearchKeyDown,
+    handleSearchResultPointerDown,
     handleSearchSelect,
     hasSearchResultOptions,
     highlightedResultNoteId,
@@ -269,6 +270,9 @@ export default function DocumentRoute() {
                     data-search-result-item
                     id={`${searchResultsListboxId}-option-${index}`}
                     key={result.noteId}
+                    onPointerDown={(event) => {
+                      handleSearchResultPointerDown(event, result.noteId);
+                    }}
                     role="option"
                   >
                     {result.text.length > 0 ? result.text : '(empty note)'}

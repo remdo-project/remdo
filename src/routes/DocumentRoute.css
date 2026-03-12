@@ -131,6 +131,7 @@
 .document-search-results-item {
   border-radius: var(--mantine-radius-xs);
   color: var(--mantine-color-dark-0);
+  cursor: pointer;
   padding: 0.15rem 0.4rem;
   white-space: pre-wrap;
   overflow-wrap: anywhere;

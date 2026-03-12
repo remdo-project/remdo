@@ -3,6 +3,7 @@ import type {
   CompositionEvent,
   FocusEvent,
   KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
   SyntheticEvent,
 } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
@@ -46,6 +47,7 @@ interface UseDocumentSearchModelResult {
   handleSearchCompositionStart: (_event: CompositionEvent<HTMLInputElement>) => void;
   handleSearchFocus: (event: FocusEvent<HTMLInputElement>) => void;
   handleSearchKeyDown: (event: ReactKeyboardEvent<HTMLInputElement>) => void;
+  handleSearchResultPointerDown: (event: ReactPointerEvent<HTMLElement>, noteId: string) => void;
   handleSearchSelect: (event: SyntheticEvent<HTMLInputElement>) => void;
   hasSearchResultOptions: boolean;
   highlightedResultNoteId: string | null;
@@ -362,6 +364,11 @@ export function useDocumentSearchModel({
     });
   }, [focusEditorInput]);
 
+  const acceptSearchResult = useCallback((noteId: string | null) => {
+    setZoomNoteId(noteId);
+    closeSearchAndFocusEditor();
+  }, [closeSearchAndFocusEditor, setZoomNoteId]);
+
   const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     if (event.nativeEvent.isComposing || searchInputComposing) {
       return;
@@ -411,8 +418,7 @@ export function useDocumentSearchModel({
 
     event.preventDefault();
     if (isSlashMode && searchQuery === '/') {
-      setZoomNoteId(null);
-      closeSearchAndFocusEditor();
+      acceptSearchResult(null);
       return;
     }
 
@@ -420,8 +426,15 @@ export function useDocumentSearchModel({
       return;
     }
 
-    setZoomNoteId(highlightedNavigationCandidate.noteId);
-    closeSearchAndFocusEditor();
+    acceptSearchResult(highlightedNavigationCandidate.noteId);
+  };
+
+  const handleSearchResultPointerDown = (
+    event: ReactPointerEvent<HTMLElement>,
+    noteId: string
+  ) => {
+    event.preventDefault();
+    acceptSearchResult(noteId);
   };
 
   const updateSearchInputSelection = (input: HTMLInputElement) => {
@@ -471,6 +484,7 @@ export function useDocumentSearchModel({
     handleSearchCompositionStart,
     handleSearchFocus,
     handleSearchKeyDown,
+    handleSearchResultPointerDown,
     handleSearchSelect,
     hasSearchResultOptions,
     highlightedResultNoteId,
