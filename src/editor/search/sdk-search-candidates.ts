@@ -1,4 +1,4 @@
-import type { EditorNote, NoteSdk } from '@/editor/outline/sdk/contracts';
+import type { NoteSdk } from '@/editor/outline/sdk/contracts';
 
 export interface SdkSearchCandidate {
   noteId: string;
@@ -12,22 +12,23 @@ export interface SdkSearchCandidateSnapshot {
 
 export const ROOT_SEARCH_SCOPE_ID = '__document_root__';
 
-function appendCandidates(note: EditorNote, candidates: SdkSearchCandidate[]): void {
-  candidates.push({
-    noteId: note.id(),
-    text: note.text(),
-  });
-
-  for (const child of note.children()) {
-    appendCandidates(child, candidates);
-  }
-}
-
 export function collectSearchCandidatesFromSdk(sdk: Pick<NoteSdk, 'currentDocument'>): SdkSearchCandidate[] {
   const candidates: SdkSearchCandidate[] = [];
-  for (const rootNote of sdk.currentDocument().children()) {
-    appendCandidates(rootNote, candidates);
+  const stack = sdk.currentDocument().children().toReversed();
+
+  while (stack.length > 0) {
+    const note = stack.pop()!;
+    candidates.push({
+      noteId: note.id(),
+      text: note.text(),
+    });
+
+    const children = note.children();
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      stack.push(children[index]!);
+    }
   }
+
   return candidates;
 }
 
@@ -39,20 +40,19 @@ export function collectChildCandidateMapFromSdk(sdk: Pick<NoteSdk, 'currentDocum
       text: note.text(),
     })),
   };
+  const stack = rootNotes.toReversed();
 
-  const visit = (note: EditorNote): void => {
-    childCandidateMap[note.id()] = note.children().map((child) => ({
+  while (stack.length > 0) {
+    const note = stack.pop()!;
+    const children = note.children();
+    childCandidateMap[note.id()] = children.map((child) => ({
       noteId: child.id(),
       text: child.text(),
     }));
 
-    for (const child of note.children()) {
-      visit(child);
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      stack.push(children[index]!);
     }
-  };
-
-  for (const rootNote of rootNotes) {
-    visit(rootNote);
   }
 
   return childCandidateMap;

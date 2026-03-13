@@ -22,6 +22,16 @@ function createMockEditorNote(
   };
 }
 
+function createDeepChain(depth: number): EditorNote {
+  let current = createMockEditorNote(`deep-${depth - 1}`, `Deep ${depth - 1}`);
+
+  for (let index = depth - 2; index >= 0; index -= 1) {
+    current = createMockEditorNote(`deep-${index}`, `Deep ${index}`, [current]);
+  }
+
+  return current;
+}
+
 describe('sdk search candidates', () => {
   it('flattens root notes and descendants in pre-order', () => {
     const top = createMockEditorNote('top', 'Top', [
@@ -137,5 +147,31 @@ describe('sdk search candidates', () => {
       note2: [],
       note3: [],
     });
+  });
+
+  it('collects deep single-child chains without stack overflow', () => {
+    const depth = 12_000;
+    const root = createDeepChain(depth);
+    const sdk = {
+      currentDocument: () => ({
+        id: () => 'main',
+        kind: () => 'document' as const,
+        text: () => 'Main',
+        children: () => [root],
+      }),
+    };
+
+    const allCandidates = collectSearchCandidatesFromSdk(sdk);
+    const childCandidateMap = collectChildCandidateMapFromSdk(sdk);
+
+    expect(allCandidates).toHaveLength(depth);
+    expect(allCandidates[0]).toEqual({ noteId: 'deep-0', text: 'Deep 0' });
+    expect(allCandidates.at(-1)).toEqual({
+      noteId: `deep-${depth - 1}`,
+      text: `Deep ${depth - 1}`,
+    });
+    expect(childCandidateMap[ROOT_SEARCH_SCOPE_ID]).toEqual([{ noteId: 'deep-0', text: 'Deep 0' }]);
+    expect(childCandidateMap['deep-0']).toEqual([{ noteId: 'deep-1', text: 'Deep 1' }]);
+    expect(childCandidateMap[`deep-${depth - 1}`]).toEqual([]);
   });
 });
