@@ -148,6 +148,7 @@
     "jsdom": "catalog:",
     "knip": "catalog:",
     "markdownlint-cli2": "catalog:",
+    "playwright": "catalog:",
     "stylelint": "catalog:",
     "stylelint-config-recommended": "catalog:",
     "tsx": "catalog:",

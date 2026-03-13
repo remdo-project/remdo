@@ -76,7 +76,7 @@ describe('collaboration session hydration persistence', { timeout: COLLAB_LONG_T
     const docMap = new Map<string, Y.Doc>([[docId, doc]]);
     const provider = createMockProvider();
     const indexedDBProvider = { source: 'indexeddb' };
-    (provider as unknown as { indexedDBProvider?: unknown }).indexedDBProvider = indexedDBProvider;
+    provider.indexedDBProvider = indexedDBProvider;
     const factory = createMockProviderFactory(provider);
     const session = new CollabSession({ enabled: true, docId, providerFactory: factory });
 

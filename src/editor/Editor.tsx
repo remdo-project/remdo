@@ -26,6 +26,8 @@ import { ZoomVisibilityPlugin } from './zoom/ZoomVisibilityPlugin';
 import { FoldingPlugin } from './plugins/FoldingPlugin';
 import { NoteControlsPlugin } from './plugins/NoteControlsPlugin';
 import { NoteMenuPlugin } from './plugins/NoteMenuPlugin';
+import { SearchCandidatesPlugin } from './plugins/SearchCandidatesPlugin';
+import type { SdkSearchCandidateSnapshot } from './search/sdk-search-candidates';
 import './Editor.css';
 
 interface EditorProps {
@@ -34,9 +36,11 @@ interface EditorProps {
   onTestBridgeReady?: (api: unknown) => void;
   onTestBridgeDispose?: () => void;
   statusPortalRoot: HTMLElement | null;
+  searchModeRequested?: boolean;
   zoomNoteId?: string | null;
   onZoomNoteIdChange?: (noteId: string | null) => void;
   onZoomPathChange?: (path: NotePathItem[]) => void;
+  onSearchCandidatesChange?: (snapshot: SdkSearchCandidateSnapshot | null) => void;
 }
 
 export default function Editor({
@@ -45,24 +49,29 @@ export default function Editor({
   onTestBridgeReady,
   onTestBridgeDispose,
   statusPortalRoot,
+  searchModeRequested,
   zoomNoteId,
   onZoomNoteIdChange,
   onZoomPathChange,
+  onSearchCandidatesChange,
 }: EditorProps) {
   const editorInitialConfig = createEditorInitialConfig();
 
   return (
-    <div className="editor-container remdo-interaction-surface">
+    <div className="editor-container">
       <LexicalComposer initialConfig={editorInitialConfig}>
         <CollaborationPlugin docId={docId}>
           <EditorRuntime
             children={children}
+            docId={docId}
             onTestBridgeReady={onTestBridgeReady}
             onTestBridgeDispose={onTestBridgeDispose}
+            searchModeRequested={searchModeRequested}
             statusPortalRoot={statusPortalRoot}
             zoomNoteId={zoomNoteId}
             onZoomNoteIdChange={onZoomNoteIdChange}
             onZoomPathChange={onZoomPathChange}
+            onSearchCandidatesChange={onSearchCandidatesChange}
           />
         </CollaborationPlugin>
       </LexicalComposer>
@@ -72,13 +81,16 @@ export default function Editor({
 
 function EditorRuntime({
   children,
+  docId,
   onTestBridgeReady,
   onTestBridgeDispose,
   statusPortalRoot,
+  searchModeRequested,
   zoomNoteId,
   onZoomNoteIdChange,
   onZoomPathChange,
-}: Omit<EditorProps, 'docId'>) {
+  onSearchCandidatesChange,
+}: EditorProps) {
   const offlineDocumentUnavailable = useOfflineDocumentUnavailable();
   const [schemaReady, setSchemaReady] = useState(false);
   const handleSchemaReadyChange = useCallback((ready: boolean) => {
@@ -123,6 +135,12 @@ function EditorRuntime({
                 onZoomPathChange={onZoomPathChange}
               />
               <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
+              {searchModeRequested ? (
+                <SearchCandidatesPlugin
+                  docId={docId}
+                  onCandidatesChange={onSearchCandidatesChange}
+                />
+              ) : null}
               <CheckListPlugin />
               <ListPlugin hasStrictIndent />
               <DevPlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose}>

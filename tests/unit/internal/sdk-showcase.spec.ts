@@ -74,10 +74,7 @@ describe('sdk showcase', () => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
 
       remdo.validate(() => {
-        const documentList = sdk.userConfig().children().find((entry) => entry.kind() === 'document-list');
-        if (!documentList) {
-          throw new Error('Expected document-list note');
-        }
+        const documentList = sdk.userConfig().children().find((entry) => entry.kind() === 'document-list')!;
         const listedDocuments = documentList.children().filter((entry) => entry.kind() === 'document').map((document) => ({
           id: document.id(),
           text: document.text(),

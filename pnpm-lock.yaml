@@ -135,6 +135,9 @@ catalogs:
     nanoid:
       specifier: ^5.1.6
       version: 5.1.6
+    playwright:
+      specifier: ^1.58.2
+      version: 1.58.2
     react:
       specifier: ^19.2.4
       version: 19.2.4
@@ -354,6 +357,9 @@ importers:
       markdownlint-cli2:
         specifier: 'catalog:'
         version: 0.21.0
+      playwright:
+        specifier: 'catalog:'
+        version: 1.58.2
       stylelint:
         specifier: 'catalog:'
         version: 17.4.0(typescript@5.9.3)

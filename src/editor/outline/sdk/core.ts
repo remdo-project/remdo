@@ -1,5 +1,6 @@
 import type {
   AdapterNoteSelection,
+  DocumentNote,
   EditorNote,
   PlaceTarget,
   Note,
@@ -88,6 +89,19 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
 
   const createNoneSelection = (): NoteSelection => ({ kind: 'none', range: null });
 
+  const createCurrentDocumentHandle = (): DocumentNote => ({
+    id: () => adapter.docId(),
+    kind: () => 'document',
+    text: () => {
+      const currentDocId = adapter.docId();
+      if (adapter.hasUserConfigNote(currentDocId) && adapter.userConfigKindOf(currentDocId) === 'document') {
+        return adapter.userConfigTextOf(currentDocId);
+      }
+      return currentDocId;
+    },
+    children: () => adapter.currentDocumentChildrenIds().map((noteId) => createHandle(noteId)),
+  });
+
   const resolveSelection = (adapterSelection: AdapterNoteSelection): NoteSelection => {
     if (adapterSelection.kind === 'none') {
       return createNoneSelection();
@@ -110,6 +124,7 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
 
   return {
     docId: () => adapter.docId(),
+    currentDocument: () => createCurrentDocumentHandle(),
     userConfig: () => createUserConfigHandle(adapter.userConfigId()),
     selection: () => resolveSelection(adapter.selection()),
     createNote: (target, text) => {

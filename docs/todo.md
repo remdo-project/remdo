@@ -34,6 +34,48 @@ Rules:
 - Plan a unified test doc-id lifecycle approach so data isolation and cleanup
   are deterministic without ad hoc per-suite behavior.
 
+## Search architecture
+
+- Search contract cleanup:
+  - Confirmed: runtime `documentId` is host-owned state, injected by the
+    environment, and should not be derived inside search logic. Source:
+    `docs/outliner/note-ids.md`.
+  - Confirmed: search scope is the whole current document. Source:
+    `docs/outliner/search.md`.
+  - Confirmed: internal note-link identity and route-ref syntax are structurally
+    validated before navigation (`docId`/`noteId`, `/n/<docId>`,
+    `/n/<docId>_<noteId>`). Sources: `docs/outliner/links.md`,
+    `docs/outliner/note-ids.md`.
+  - Design contract: routing, links, history, and document pickers produce a
+    **requested document**. A requested document is not automatically the active
+    document for search/editor/zoom.
+  - Design contract: a single document-activation boundary is responsible for
+    turning a requested document into an **active document** or an
+    unavailable/invalid-document outcome.
+  - Design contract: search consumes only the active document identity and its
+    candidate snapshot. Search has no offline/availability awareness and should
+    not branch on document availability signals.
+  - Design contract: invalid document refs are handled before activation;
+    valid-but-unavailable documents are handled by the activation boundary;
+    neither case is represented as a search empty state.
+  - Design contract: `No matches` / `No notes` mean search ran against an active
+    document and found zero matching/all candidates. They must never mean
+    offline, unavailable, invalid, or not-yet-activated.
+  - Design contract: document-switching UI is a requester, not the authority on
+    availability. Even if a picker lists only available docs later, deep links,
+    pasted URLs, stale history, and internal links still resolve through the
+    same activation boundary.
+- Add a document-level SDK visitor/walker API and use it as the shared
+  traversal primitive for search snapshot building and note-link candidate
+  collection. Keep search/query semantics and note-link ranking/disambiguation
+  outside the SDK.
+- Make lexical note lookup indexed / amortized `O(1)` and move SDK handle reads
+  (`textOf`, `childrenOf`, `hasNote`, `note(...)`) onto that path so search and
+  other SDK consumers do not pay scan-based lookup costs per visited note.
+- [Future] Evaluate unifying candidate discovery/query logic between search and
+  link picker (search already uses SDK/Lexical candidates; link picker still
+  uses its own traversal/filter pipeline).
+
 ## Collaboration architecture roadmap [Future]
 
 ### Stages and success criteria

@@ -5,10 +5,13 @@
   "playwright": true,
   "ignoreDependencies": [
     // Used as a runtime binary via dynamic spawn arguments in tools/lib/collab-server-helper.ts.
-    "y-sweet"
+    "y-sweet",
+    // Invoked as a CLI binary from package scripts and tooling (`pnpm exec playwright ...`).
+    "playwright"
   ],
   "entry": [
-    "tools/**/*.ts"
+    "tools/**/*.ts",
+    "tests/perf/**/*.bench.ts"
   ],
   "project": [
     "{src,lib,tests,tools,config}/**/*.{ts,tsx,mts}"

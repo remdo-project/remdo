@@ -51,9 +51,12 @@ outdated or a doc’s role materially changes.
   semantics; indent/outdent rules; deletion-merge exception.
 - `docs/outliner/reordering.md` (Short). Directional reorder fallback cascade: swap,
   parent-sibling reparent, outdent, then no-op.
-- `docs/outliner/search.md` (Short). Search mode behavior: focus-driven mode
-  entry/exit, editor read-only scope, single highlighted note navigation, and
-  Enter-to-zoom.
+- `docs/outliner/search.md` (Short). Search behavior: focus-driven mode
+  entry/exit, single highlighted note in always-flat results (including empty
+  query), text-match filtering, Enter-to-zoom, slash root/depth navigation,
+  invalid slash paths staying empty, non-mutating arrow cycling in slash mode,
+  inline-completion acceptance with `ArrowRight`, combobox/listbox
+  accessibility semantics, and non-leaf `/...` result hints.
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
   scope, breadcrumbs, and routing.

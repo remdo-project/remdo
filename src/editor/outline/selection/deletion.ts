@@ -14,12 +14,12 @@ import {
   sortHeadsByDocumentOrder,
 } from './tree';
 
-export interface StructuralDeletionCaretPlan {
+interface StructuralDeletionCaretPlan {
   target: ListItemNode;
   edge: 'start' | 'end';
 }
 
-export interface StructuralDeletionTargets {
+interface StructuralDeletionTargets {
   heads: ListItemNode[];
   caretPlan: StructuralDeletionCaretPlan | null;
 }
