@@ -8,6 +8,10 @@ export interface NotePathItem {
   label: string;
 }
 
+// Current implementation scans the outline.
+// Planned direction: indexed note lookup so SDK handle reads built on top of
+// this path become cheap enough for consumers like search to treat note access
+// as effectively O(1).
 export function $findNoteById(noteId: string): ListItemNode | null {
   const list = $requireRootContentList();
   let match: ListItemNode | null = null;

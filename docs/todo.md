@@ -69,6 +69,9 @@ Rules:
   traversal primitive for search snapshot building and note-link candidate
   collection. Keep search/query semantics and note-link ranking/disambiguation
   outside the SDK.
+- Make lexical note lookup indexed / amortized `O(1)` and move SDK handle reads
+  (`textOf`, `childrenOf`, `hasNote`, `note(...)`) onto that path so search and
+  other SDK consumers do not pay scan-based lookup costs per visited note.
 - [Future] Evaluate unifying candidate discovery/query logic between search and
   link picker (search already uses SDK/Lexical candidates; link picker still
   uses its own traversal/filter pipeline).
