@@ -120,15 +120,22 @@ interface ParentMoveContext {
   parentContent: ListItemNode;
 }
 
-function resolveParentMoveContext(
+function resolveMoveLeadNote(
   notes: ListItemNode[],
   boundaryRoot: ListItemNode | null
-): ParentMoveContext | null {
+): ListItemNode | null {
   if (!notes.every((note) => isWithinZoomBoundary(note, boundaryRoot))) {
     return null;
   }
 
-  const firstNote = notes[0];
+  return notes[0] ?? null;
+}
+
+function resolveParentMoveContext(
+  notes: ListItemNode[],
+  boundaryRoot: ListItemNode | null
+): ParentMoveContext | null {
+  const firstNote = resolveMoveLeadNote(notes, boundaryRoot);
   if (!firstNote) {
     return null;
   }
@@ -155,12 +162,11 @@ function moveWithinList(
   direction: MoveDirection,
   boundaryRoot: ListItemNode | null
 ): boolean {
-  const context = resolveParentMoveContext(notes, boundaryRoot);
-  if (!context) {
+  const firstNote = resolveMoveLeadNote(notes, boundaryRoot);
+  if (!firstNote) {
     return false;
   }
 
-  const { firstNote } = context;
   const startIndex = siblings.indexOf(firstNote);
   if (startIndex === -1) {
     return false;
