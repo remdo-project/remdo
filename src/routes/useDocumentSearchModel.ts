@@ -56,6 +56,7 @@ interface UseDocumentSearchModelResult {
   inlineCompletionVisible: boolean;
   isSlashMode: boolean;
   searchModeActive: boolean;
+  searchModeRequested: boolean;
   searchQuery: string;
 }
 
@@ -493,6 +494,7 @@ export function useDocumentSearchModel({
     inlineCompletionVisible,
     isSlashMode,
     searchModeActive,
+    searchModeRequested,
     searchQuery,
   };
 }

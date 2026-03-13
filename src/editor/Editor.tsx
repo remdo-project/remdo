@@ -36,6 +36,7 @@ interface EditorProps {
   onTestBridgeReady?: (api: unknown) => void;
   onTestBridgeDispose?: () => void;
   statusPortalRoot: HTMLElement | null;
+  searchModeRequested?: boolean;
   zoomNoteId?: string | null;
   onZoomNoteIdChange?: (noteId: string | null) => void;
   onZoomPathChange?: (path: NotePathItem[]) => void;
@@ -48,6 +49,7 @@ export default function Editor({
   onTestBridgeReady,
   onTestBridgeDispose,
   statusPortalRoot,
+  searchModeRequested,
   zoomNoteId,
   onZoomNoteIdChange,
   onZoomPathChange,
@@ -64,6 +66,7 @@ export default function Editor({
             docId={docId}
             onTestBridgeReady={onTestBridgeReady}
             onTestBridgeDispose={onTestBridgeDispose}
+            searchModeRequested={searchModeRequested}
             statusPortalRoot={statusPortalRoot}
             zoomNoteId={zoomNoteId}
             onZoomNoteIdChange={onZoomNoteIdChange}
@@ -82,6 +85,7 @@ function EditorRuntime({
   onTestBridgeReady,
   onTestBridgeDispose,
   statusPortalRoot,
+  searchModeRequested,
   zoomNoteId,
   onZoomNoteIdChange,
   onZoomPathChange,
@@ -131,10 +135,12 @@ function EditorRuntime({
                 onZoomPathChange={onZoomPathChange}
               />
               <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
-              <SearchCandidatesPlugin
-                docId={docId}
-                onCandidatesChange={onSearchCandidatesChange}
-              />
+              {searchModeRequested ? (
+                <SearchCandidatesPlugin
+                  docId={docId}
+                  onCandidatesChange={onSearchCandidatesChange}
+                />
+              ) : null}
               <CheckListPlugin />
               <ListPlugin hasStrictIndent />
               <DevPlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose}>

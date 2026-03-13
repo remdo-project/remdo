@@ -44,12 +44,14 @@ vi.mock('@/editor/Editor', async () => {
   interface MockEditorProps {
     docId: string;
     onSearchCandidatesChange?: (snapshot: TestSdkSearchSnapshot | null) => void;
+    searchModeRequested?: boolean;
     zoomNoteId?: string | null;
   }
 
   function MockEditor({
     docId,
     onSearchCandidatesChange,
+    searchModeRequested,
     zoomNoteId,
   }: MockEditorProps) {
     React.useEffect(() => {
@@ -83,7 +85,12 @@ vi.mock('@/editor/Editor', async () => {
     const instanceIdRef = React.useRef(`instance-${Math.random().toString(36).slice(2)}`);
     return (
       <>
-        <div data-doc-id={docId} data-instance-id={instanceIdRef.current} data-testid="editor-probe" />
+        <div
+          data-doc-id={docId}
+          data-instance-id={instanceIdRef.current}
+          data-search-mode-requested={searchModeRequested ? 'true' : 'false'}
+          data-testid="editor-probe"
+        />
         <div data-testid="editor-search-probe" data-zoom-note-id={zoomNoteId ?? ''} />
         <div className="editor-input" data-testid="editor-input-probe" tabIndex={-1}>
           <ul>
@@ -239,6 +246,25 @@ describe('document route', () => {
     fireEvent.blur(searchInput);
     await waitFor(() => {
       expect(searchInput).toHaveAttribute('placeholder', 'Search');
+    });
+  });
+
+  it('requests search candidates from the editor only while search is focused', async () => {
+    renderDocumentRoute();
+
+    const editorProbe = await screen.findByTestId('editor-probe');
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+
+    expect(editorProbe.dataset.searchModeRequested).toBe('false');
+
+    searchInput.focus();
+    await waitFor(() => {
+      expect(editorProbe.dataset.searchModeRequested).toBe('true');
+    });
+
+    fireEvent.blur(searchInput);
+    await waitFor(() => {
+      expect(editorProbe.dataset.searchModeRequested).toBe('false');
     });
   });
 

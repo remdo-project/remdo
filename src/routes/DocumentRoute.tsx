@@ -109,6 +109,7 @@ export default function DocumentRoute() {
     inlineCompletionVisible,
     isSlashMode,
     searchModeActive,
+    searchModeRequested,
     searchQuery,
   } = useDocumentSearchModel({
     docId,
@@ -294,6 +295,7 @@ export default function DocumentRoute() {
           onSearchCandidatesChange={handleSearchCandidatesChange}
           onZoomNoteIdChange={setZoomNoteId}
           onZoomPathChange={setZoomPath}
+          searchModeRequested={searchModeRequested}
           statusPortalRoot={statusHost}
           zoomNoteId={zoomNoteId}
         />
