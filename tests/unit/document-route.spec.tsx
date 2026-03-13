@@ -347,6 +347,21 @@ describe('document route', () => {
     });
   });
 
+  it('keeps the search popup exposed as a listbox when there are no matches', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: 'zzzz' } });
+
+    const resultsListbox = await screen.findByRole('listbox', { name: 'Search results' });
+    const emptyOption = screen.getByRole('option', { name: 'No matches' });
+
+    expect(searchInput).toHaveAttribute('aria-controls', resultsListbox.id);
+    expect(searchInput).toHaveAttribute('aria-expanded', 'true');
+    expect(emptyOption).toHaveAttribute('aria-disabled', 'true');
+  });
+
   it('zooms to a clicked search result and closes search', async () => {
     const router = renderDocumentRoute();
 

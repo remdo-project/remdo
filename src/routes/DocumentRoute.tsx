@@ -105,7 +105,6 @@ export default function DocumentRoute() {
     handleSearchResultClick,
     handleSearchResultPointerDown,
     handleSearchSelect,
-    hasSearchResultOptions,
     highlightedResultNoteId,
     inlineCompletionHint,
     inlineCompletionText,
@@ -245,7 +244,7 @@ export default function DocumentRoute() {
               aria-label="Search document"
               aria-activedescendant={searchModeActive ? activeResultOptionId : undefined}
               aria-autocomplete={inlineCompletionVisible ? 'both' : 'list'}
-              aria-controls={hasSearchResultOptions ? searchResultsListboxId : undefined}
+              aria-controls={searchModeActive ? searchResultsListboxId : undefined}
               aria-expanded={searchModeActive}
               aria-haspopup="listbox"
               className="document-header-search remdo-interaction-surface"
@@ -287,42 +286,44 @@ export default function DocumentRoute() {
           data-testid="document-search-results"
           ref={searchResultsRef}
         >
-          {flatResults.length > 0 ? (
-            <ol
-              aria-label="Search results"
-              className="document-search-results-list"
-              id={searchResultsListboxId}
-              role="listbox"
-            >
-              {flatResults.map((result, index) => {
-                const hasChildren = (childCandidateMap[result.noteId]?.length ?? 0) > 0;
-                return (
-                  <li
-                    aria-selected={result.noteId === highlightedResultNoteId}
-                    className="document-search-results-item"
-                    data-search-result-active={result.noteId === highlightedResultNoteId ? 'true' : undefined}
-                    data-search-result-has-children={hasChildren ? 'true' : undefined}
-                    data-search-result-item
-                    id={`${searchResultsListboxId}-option-${index}`}
-                    key={result.noteId}
-                    onClick={(event) => {
-                      handleSearchResultClick(event, result.noteId);
-                    }}
-                    onPointerDown={(event) => {
-                      handleSearchResultPointerDown(event, result.noteId);
-                    }}
-                    role="option"
-                  >
-                    {result.text.length > 0 ? result.text : '(empty note)'}
-                  </li>
-                );
-              })}
-            </ol>
-          ) : (
-            <p className="document-search-results-empty">
-              {searchQuery.length > 0 ? 'No matches' : 'No notes'}
-            </p>
-          )}
+          <ol
+            aria-label="Search results"
+            className="document-search-results-list"
+            id={searchResultsListboxId}
+            role="listbox"
+          >
+            {flatResults.length > 0 ? flatResults.map((result, index) => {
+              const hasChildren = (childCandidateMap[result.noteId]?.length ?? 0) > 0;
+              return (
+                <li
+                  aria-selected={result.noteId === highlightedResultNoteId}
+                  className="document-search-results-item"
+                  data-search-result-active={result.noteId === highlightedResultNoteId ? 'true' : undefined}
+                  data-search-result-has-children={hasChildren ? 'true' : undefined}
+                  data-search-result-item
+                  id={`${searchResultsListboxId}-option-${index}`}
+                  key={result.noteId}
+                  onClick={(event) => {
+                    handleSearchResultClick(event, result.noteId);
+                  }}
+                  onPointerDown={(event) => {
+                    handleSearchResultPointerDown(event, result.noteId);
+                  }}
+                  role="option"
+                >
+                  {result.text.length > 0 ? result.text : '(empty note)'}
+                </li>
+              );
+            }) : (
+              <li
+                aria-disabled="true"
+                className="document-search-results-empty"
+                role="option"
+              >
+                {searchQuery.length > 0 ? 'No matches' : 'No notes'}
+              </li>
+            )}
+          </ol>
         </section>
       ) : null}
       <div className={searchModeActive ? 'document-editor-pane document-editor-pane--hidden' : 'document-editor-pane'}>

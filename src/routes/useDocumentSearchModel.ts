@@ -52,7 +52,6 @@ interface UseDocumentSearchModelResult {
   handleSearchResultClick: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
   handleSearchResultPointerDown: (event: ReactPointerEvent<HTMLElement>, noteId: string) => void;
   handleSearchSelect: (event: SyntheticEvent<HTMLInputElement>) => void;
-  hasSearchResultOptions: boolean;
   highlightedResultNoteId: string | null;
   inlineCompletionHint: string;
   inlineCompletionText: string;
@@ -500,8 +499,6 @@ export function useDocumentSearchModel({
   };
 
   const highlightedResultNoteId = searchModeActive ? resolvedHighlightedNoteId : null;
-  const hasSearchResultOptions = navigationCandidates.length > 0;
-
   return {
     childCandidateMap: currentDocumentCandidates.childCandidateMap,
     flatResults,
@@ -516,7 +513,6 @@ export function useDocumentSearchModel({
     handleSearchResultClick,
     handleSearchResultPointerDown,
     handleSearchSelect,
-    hasSearchResultOptions,
     highlightedResultNoteId,
     inlineCompletionHint,
     inlineCompletionText,
