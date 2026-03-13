@@ -356,9 +356,33 @@ describe('document route', () => {
 
     const result = await screen.findByRole('option', { name: 'note3' });
     fireEvent.pointerDown(result);
+    expect(router.state.location.pathname).toBe(createDocumentPath('main'));
+    expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
+    fireEvent.click(result);
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe(createDocumentPath('main', 'note3'));
+      expect(screen.queryByTestId('document-search-results')).toBeNull();
+    });
+  });
+
+  it('dismisses search on outside primary click without changing the route', async () => {
+    const router = renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: 'note' } });
+
+    await screen.findByTestId('document-search-results');
+
+    fireEvent.pointerDown(screen.getByTestId('editor-probe'), {
+      button: 0,
+      isPrimary: true,
+      pointerType: 'mouse',
+    });
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(createDocumentPath('main'));
       expect(screen.queryByTestId('document-search-results')).toBeNull();
     });
   });

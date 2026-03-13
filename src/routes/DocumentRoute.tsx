@@ -35,6 +35,7 @@ export default function DocumentRoute() {
   const [zoomPath, setZoomPath] = useState<NotePathItem[]>([]);
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchResultsRef = useRef<HTMLElement | null>(null);
   const shellRef = useRef<HTMLDivElement | null>(null);
   const searchResultsListboxId = useId();
   const zoomNoteId = parsedRef?.noteId ?? null;
@@ -98,8 +99,10 @@ export default function DocumentRoute() {
     handleSearchChange,
     handleSearchCompositionEnd,
     handleSearchCompositionStart,
+    handleSearchDismiss,
     handleSearchFocus,
     handleSearchKeyDown,
+    handleSearchResultClick,
     handleSearchResultPointerDown,
     handleSearchSelect,
     hasSearchResultOptions,
@@ -149,6 +152,36 @@ export default function DocumentRoute() {
       document.removeEventListener('keydown', handleFindShortcut);
     };
   }, []);
+
+  useEffect(() => {
+    if (!searchModeActive) {
+      return;
+    }
+
+    const handlePointerDownOutsideSearch = (event: PointerEvent) => {
+      if (!event.isPrimary) {
+        return;
+      }
+      if (event.pointerType === 'mouse' && event.button !== 0) {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (searchInputRef.current?.contains(target) || searchResultsRef.current?.contains(target)) {
+        return;
+      }
+
+      handleSearchDismiss();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDownOutsideSearch, true);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDownOutsideSearch, true);
+    };
+  }, [handleSearchDismiss, searchModeActive]);
 
   const highlightedResultIndex = highlightedResultNoteId
     ? flatResults.findIndex((result) => result.noteId === highlightedResultNoteId)
@@ -252,6 +285,7 @@ export default function DocumentRoute() {
           className="document-search-results"
           data-search-mode={isSlashMode ? 'slash' : 'text'}
           data-testid="document-search-results"
+          ref={searchResultsRef}
         >
           {flatResults.length > 0 ? (
             <ol
@@ -271,6 +305,9 @@ export default function DocumentRoute() {
                     data-search-result-item
                     id={`${searchResultsListboxId}-option-${index}`}
                     key={result.noteId}
+                    onClick={(event) => {
+                      handleSearchResultClick(event, result.noteId);
+                    }}
                     onPointerDown={(event) => {
                       handleSearchResultPointerDown(event, result.noteId);
                     }}

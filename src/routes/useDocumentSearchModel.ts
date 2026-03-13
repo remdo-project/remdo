@@ -3,6 +3,7 @@ import type {
   CompositionEvent,
   FocusEvent,
   KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
   SyntheticEvent,
 } from 'react';
@@ -45,8 +46,10 @@ interface UseDocumentSearchModelResult {
   handleSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleSearchCompositionEnd: (event: CompositionEvent<HTMLInputElement>) => void;
   handleSearchCompositionStart: (_event: CompositionEvent<HTMLInputElement>) => void;
+  handleSearchDismiss: () => void;
   handleSearchFocus: (event: FocusEvent<HTMLInputElement>) => void;
   handleSearchKeyDown: (event: ReactKeyboardEvent<HTMLInputElement>) => void;
+  handleSearchResultClick: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
   handleSearchResultPointerDown: (event: ReactPointerEvent<HTMLElement>, noteId: string) => void;
   handleSearchSelect: (event: SyntheticEvent<HTMLInputElement>) => void;
   hasSearchResultOptions: boolean;
@@ -209,6 +212,7 @@ export function useDocumentSearchModel({
   });
   const [searchInputSelection, setSearchInputSelection] = useState<SearchInputSelection>({ start: 0, end: 0 });
   const [searchInputComposing, setSearchInputComposing] = useState(false);
+  const ignoreNextSearchBlurRef = useRef(false);
   const pendingEditorFocusAfterSearchExitRef = useRef(false);
   const currentDocumentCandidatesReady = currentDocumentCandidateState.sourceDocId === docId;
 
@@ -370,6 +374,11 @@ export function useDocumentSearchModel({
     closeSearchAndFocusEditor();
   }, [closeSearchAndFocusEditor, setZoomNoteId]);
 
+  const dismissSearch = useCallback(() => {
+    setSearchModeRequested(false);
+    setSearchInputComposing(false);
+  }, []);
+
   const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     if (event.nativeEvent.isComposing || searchInputComposing) {
       return;
@@ -432,9 +441,25 @@ export function useDocumentSearchModel({
 
   const handleSearchResultPointerDown = (
     event: ReactPointerEvent<HTMLElement>,
-    noteId: string
+    _noteId: string
   ) => {
-    event.preventDefault();
+    if (!event.isPrimary) {
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+
+    ignoreNextSearchBlurRef.current = true;
+    queueMicrotask(() => {
+      ignoreNextSearchBlurRef.current = false;
+    });
+  };
+
+  const handleSearchResultClick = (event: ReactMouseEvent<HTMLElement>, noteId: string) => {
+    if (event.button !== 0) {
+      return;
+    }
     acceptSearchResult(noteId);
   };
 
@@ -450,8 +475,10 @@ export function useDocumentSearchModel({
   };
 
   const handleSearchBlur = () => {
-    setSearchModeRequested(false);
-    setSearchInputComposing(false);
+    if (ignoreNextSearchBlurRef.current) {
+      return;
+    }
+    dismissSearch();
   };
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -483,8 +510,10 @@ export function useDocumentSearchModel({
     handleSearchChange,
     handleSearchCompositionEnd,
     handleSearchCompositionStart,
+    handleSearchDismiss: dismissSearch,
     handleSearchFocus,
     handleSearchKeyDown,
+    handleSearchResultClick,
     handleSearchResultPointerDown,
     handleSearchSelect,
     hasSearchResultOptions,
