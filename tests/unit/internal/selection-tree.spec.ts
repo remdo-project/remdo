@@ -130,17 +130,10 @@ describe('selection tree helpers', () => {
       await act(async () => {
         editor.update(() => {
           const rootList = $buildDeepNestedOutline(depth);
-          const first = rootList.getFirstChild();
-          if (!$isListItemNode(first)) {
-            throw new Error('Expected first root-list child to be a content list item.');
-          }
-
+          const first = rootList.getFirstChild() as ListItemNode;
           const items = getSubtreeItems(first);
           const tail = getSubtreeTail(first);
-          const last = getLastDescendantListItem(rootList);
-          if (!last) {
-            throw new Error('Expected deep outline to have a last descendant list item.');
-          }
+          const last = getLastDescendantListItem(rootList)!;
 
           result = {
             count: items.length,

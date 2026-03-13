@@ -8,7 +8,7 @@ interface UserConfigRecord {
   children: readonly NoteId[];
 }
 
-export interface HardcodedUserConfigAdapter {
+interface HardcodedUserConfigAdapter {
   userConfigId: () => NoteId;
   hasUserConfigNote: (noteId: NoteId) => boolean;
   userConfigKindOf: (noteId: NoteId) => NoteKind;

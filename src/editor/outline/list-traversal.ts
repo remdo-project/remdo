@@ -4,6 +4,13 @@ import { $isListItemNode, $isListNode } from '@lexical/list';
 import { isChildrenWrapper } from './list-structure';
 
 type TraverseResult = void | boolean;
+type ContentItemVisitor = (item: ListItemNode, ancestors: ListItemNode[]) => TraverseResult;
+
+interface ContentFrame {
+  children: ReturnType<ListNode['getChildren']>;
+  childIndex: number;
+  ancestors: ListItemNode[];
+}
 
 function getNestedListForContentItem(item: ListItemNode): ListNode | null {
   const wrapper = item.getNextSibling();
@@ -15,61 +22,7 @@ function getNestedListForContentItem(item: ListItemNode): ListNode | null {
   return $isListNode(nested) ? nested : null;
 }
 
-export function forEachContentItemInOutline(
-  rootList: ListNode,
-  visit: (item: ListItemNode) => TraverseResult
-): void {
-  interface ContentFrame {
-    children: ReturnType<ListNode['getChildren']>;
-    childIndex: number;
-  }
-
-  const stack: ContentFrame[] = [
-    {
-      children: rootList.getChildren(),
-      childIndex: 0,
-    },
-  ];
-
-  while (stack.length > 0) {
-    const frame = stack.at(-1)!;
-    if (frame.childIndex >= frame.children.length) {
-      stack.pop();
-      continue;
-    }
-
-    const child = frame.children[frame.childIndex];
-    frame.childIndex += 1;
-    if (!$isListItemNode(child) || isChildrenWrapper(child)) {
-      continue;
-    }
-
-    if (visit(child) === false) {
-      return;
-    }
-
-    const nested = getNestedListForContentItem(child);
-    if (!nested) {
-      continue;
-    }
-
-    stack.push({
-      children: nested.getChildren(),
-      childIndex: 0,
-    });
-  }
-}
-
-export function forEachContentItemWithAncestorsInOutline(
-  rootList: ListNode,
-  visit: (item: ListItemNode, ancestors: ListItemNode[]) => TraverseResult
-): void {
-  interface ContentFrame {
-    children: ReturnType<ListNode['getChildren']>;
-    childIndex: number;
-    ancestors: ListItemNode[];
-  }
-
+function forEachContentItemFrameInOutline(rootList: ListNode, visit: ContentItemVisitor): void {
   const stack: ContentFrame[] = [
     {
       children: rootList.getChildren(),
@@ -106,6 +59,20 @@ export function forEachContentItemWithAncestorsInOutline(
       ancestors: [...frame.ancestors, child],
     });
   }
+}
+
+export function forEachContentItemInOutline(
+  rootList: ListNode,
+  visit: (item: ListItemNode) => TraverseResult
+): void {
+  forEachContentItemFrameInOutline(rootList, (item) => visit(item));
+}
+
+export function forEachContentItemWithAncestorsInOutline(
+  rootList: ListNode,
+  visit: (item: ListItemNode, ancestors: ListItemNode[]) => TraverseResult
+): void {
+  forEachContentItemFrameInOutline(rootList, visit);
 }
 
 export function forEachListItemInOutline(

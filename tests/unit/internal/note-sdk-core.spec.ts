@@ -127,10 +127,7 @@ describe('note sdk core', () => {
   it('lists documents through user-config document-list traversal', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createNoteSdk(fixture.adapter);
-    const documentList = sdk.userConfig().children().find((entry) => entry.kind() === 'document-list');
-    if (!documentList) {
-      throw new Error('Expected document-list note');
-    }
+    const documentList = sdk.userConfig().children().find((entry) => entry.kind() === 'document-list')!;
 
     expect(
       documentList.children().filter((entry) => entry.kind() === 'document').map((document) => ({

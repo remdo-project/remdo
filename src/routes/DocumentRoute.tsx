@@ -317,6 +317,7 @@ export default function DocumentRoute() {
             }) : (
               <li
                 aria-disabled="true"
+                aria-selected="false"
                 className="document-search-results-empty"
                 role="option"
               >
