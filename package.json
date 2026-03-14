@@ -43,6 +43,7 @@
     "backup": "./tools/env.sh tsx ./tools/snapshot.ts backup",
     "build": "./tools/env.sh vite build",
     "build:watch": "./tools/env.sh vite build --watch",
+    "deps:refresh:workspace": "sh ./tools/refresh-workspace-deps.sh",
     "dev": "concurrently \"pnpm run dev:web\" \"pnpm run dev:collab\" \"pnpm run test:preview\"",
     "dev:collab": "./tools/env.sh tsx ./tools/collab-server.ts",
     "dev:init": "./tools/dev-init.sh",
