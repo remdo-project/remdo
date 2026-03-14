@@ -1,3 +1,4 @@
+import WebSocket from 'ws';
 import { vi } from 'vitest';
 
 Object.defineProperty(globalThis, 'matchMedia', {
@@ -11,6 +12,10 @@ Object.defineProperty(globalThis, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 });
+
+// Use ws in tests to avoid undici/jsdom Event realm mismatches during collab sockets.
+(globalThis as typeof globalThis & { WebSocket: typeof globalThis.WebSocket }).WebSocket =
+  WebSocket as unknown as typeof globalThis.WebSocket;
 
 // jsdom's Range omits getBoundingClientRect, but Lexical calls it when scrolling
 // collapsed selections into view. Provide a no-op shim to avoid noisy errors.

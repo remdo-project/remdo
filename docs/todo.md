@@ -43,6 +43,9 @@ Rules:
   and look for chances to simplify RemDo by using newly provided functionality.
 - Only auto-apply small/local simplifications; report larger follow-up
   opportunities instead of widening the maintenance task.
+- After dependency refresh, use `gh` to check for still-uncovered Dependabot PRs
+  or GitHub security alerts so the run can report what was intentionally held
+  back vs what still needs follow-up.
 
 ## Test doc-id lifecycle hygiene (deferred)
 
