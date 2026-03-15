@@ -10,7 +10,8 @@ keeping them is gone.
 
 1. [websocket-shim.ts](/home/piotr/projects/remdo/tests/unit/_support/setup/_internal/env/collab/websocket-shim.ts)
    Reason: jsdom/Node `WebSocket` still breaks collab tests with an `Event`
-   realm mismatch.
+   realm mismatch. Rechecked on `vitest 4.1.0` and `jsdom 29.0.0`; still
+   needed.
    Revisit when: `pnpm run test:collab:full` stays green with
    `REMDO_DISABLE_COLLAB_WEBSOCKET_SHIM=1`.
 
@@ -59,23 +60,3 @@ upgrade again and rerun the full validation set.
    beyond the skill's happy path.
    Dependabot: ignore `>= 7.7.0 < 8.0.0` while this blocker stands.
    Revisit when: we are ready to absorb the lint fallout as a dedicated task.
-
-4. `vitest` `4.0.18`
-   Held back from: `4.1.0`
-   Reason: kept aligned with the current stable test runtime.
-   Revisit when: the full unit and collab suites stay green on `4.1.x`.
-
-5. `@vitest/ui` `4.0.18`
-   Held back from: `4.1.0`
-   Reason: kept aligned with `vitest`.
-   Revisit when: `vitest` moves successfully.
-
-6. `@vitest/coverage-v8` `4.0.18`
-   Held back from: `4.1.0`
-   Reason: kept aligned with `vitest`.
-   Revisit when: `vitest` moves successfully.
-
-7. `jsdom` `^28.1.0`
-   Held back from: `29.0.0`
-   Reason: kept aligned with the current stable Vitest/jsdom test runtime.
-   Revisit when: the full unit and collab suites stay green on the newer stack.

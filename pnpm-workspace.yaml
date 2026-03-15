@@ -48,8 +48,8 @@ catalog:
   '@types/react': ^19.2.14
   '@types/react-dom': ^19.2.3
   '@types/ws': ^8.18.1
-  '@vitest/coverage-v8': 4.0.18
-  '@vitest/ui': 4.0.18
+  '@vitest/coverage-v8': 4.1.0
+  '@vitest/ui': 4.1.0
   '@y-sweet/client': ^0.9.1
   '@y-sweet/sdk': ^0.9.1
   chokidar-cli: ^3.0.0
@@ -63,7 +63,7 @@ catalog:
   eslint-plugin-unicorn: ^63.0.0
   jiti: ^2.6.1
   jscpd: ^4.0.8
-  jsdom: ^28.1.0
+  jsdom: ^29.0.0
   knip: ^5.86.0
   lexical: ^0.41.0
   markdownlint-cli2: ^0.21.0
@@ -78,7 +78,7 @@ catalog:
   typescript: ^5.9.3
   vite: ^7.3.1
   vite-plugin-pwa: ^1.2.0
-  vitest: 4.0.18
+  vitest: 4.1.0
   vitest-preview: ^0.0.3
   workbox-window: ^7.4.0
   ws: 8.19.0
