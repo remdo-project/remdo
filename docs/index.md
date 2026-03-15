@@ -42,9 +42,10 @@ outdated or a doc’s role materially changes.
   insertion rules, focus rules, and paste placement pointer.
 - `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,
   rendering, and toggle commands.
-- `docs/outliner/links.md` (Medium). Note-linking behavior: `@` query
-  flow, whole-document search/ranking, runtime fully qualified link identity,
-  clipboard/persistence docId boundaries, and cross-document roadmap limits.
+- `docs/outliner/links.md` (Medium). Note-linking behavior and the
+  internal-vs-external link boundary: `@` query flow, whole-document
+  search/ranking, runtime fully qualified link identity, clipboard/persistence
+  docId boundaries, and cross-document roadmap limits.
 - `docs/outliner/menu.md` (Short). Note menu entry points, icon visibility (hover/caret),
   targets, and actions (toggle checked/fold/zoom/child list types).
 - `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization,

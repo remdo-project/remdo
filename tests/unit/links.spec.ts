@@ -108,6 +108,23 @@ describe('note links (docs/outliner/links.md)', () => {
     });
   });
 
+  it('pasting an absolute same-document note URL still creates a note link', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    const url = new URL(`/n/${remdo.getCollabDocId()}_note2`, globalThis.location.href).toString();
+    await pastePlainText(remdo, url);
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe('note2');
+      expect($isNoteLinkNode(linkNode)).toBe(true);
+      if ($isNoteLinkNode(linkNode)) {
+        expect(linkNode.getNoteId()).toBe('note2');
+        expect(linkNode.getDocId()).toBe(remdo.getCollabDocId());
+      }
+    });
+  });
+
   it('pasting a cross-document note URL creates a note link with docId', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     const url = new URL('/n/otherDoc_note2', globalThis.location.href).toString();
@@ -122,6 +139,76 @@ describe('note links (docs/outliner/links.md)', () => {
         expect(linkNode.getNoteId()).toBe('note2');
         expect(linkNode.getDocId()).toBe('otherDoc');
       }
+    });
+  });
+
+  it('pasting an external URL creates a regular link that opens in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = 'https://example.com/';
+    await pastePlainText(remdo, url);
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe(url);
+      expect($isNoteLinkNode(linkNode)).toBe(false);
+      expect(linkNode.getURL()).toBe(url);
+      expect(linkNode.getTarget()).toBe('_blank');
+      expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
+  });
+
+  it('pasting a foreign note-shaped URL keeps it as a regular external link', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = 'https://example.com/n/main_note2';
+    await pastePlainText(remdo, url);
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe(url);
+      expect($isNoteLinkNode(linkNode)).toBe(false);
+      expect(linkNode.getURL()).toBe(url);
+      expect(linkNode.getTarget()).toBe('_blank');
+      expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
+  });
+
+  it('typing an external URL creates a regular link that opens in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = 'https://example.com/';
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe(url);
+      expect($isNoteLinkNode(linkNode)).toBe(false);
+      expect(linkNode.getURL()).toBe(url);
+      expect(linkNode.getTarget()).toBe('_blank');
+      expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
+  });
+
+  it('typing a same-origin note URL creates a regular link', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = new URL(`/n/${remdo.getCollabDocId()}_note2`, globalThis.location.href).toString();
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe(url);
+      expect($isNoteLinkNode(linkNode)).toBe(false);
+      expect(linkNode.getURL()).toBe(url);
+      expect(linkNode.getTarget()).toBe('_blank');
+      expect(linkNode.getRel()).toBe('noopener noreferrer');
     });
   });
 

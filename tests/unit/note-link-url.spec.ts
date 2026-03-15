@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseNoteLinkUrl } from '@/editor/links/note-link-url';
+import { parseNoteLinkUrl, parseOwnedNoteLinkUrl } from '@/editor/links/note-link-url';
 
 describe('note link URL helpers', () => {
   it('parses same-document URL into fully-qualified reference', () => {
@@ -13,5 +13,19 @@ describe('note link URL helpers', () => {
 
   it('parses relative URLs without browser location in node runtime', () => {
     expect(parseNoteLinkUrl('/n/main_note2', 'main')).toEqual({ docId: 'main', noteId: 'note2' });
+  });
+
+  it('treats same-origin absolute note URLs as owned note links', () => {
+    expect(parseOwnedNoteLinkUrl('https://remdo.test/n/main_note2', {
+      currentDocId: 'main',
+      currentOrigin: 'https://remdo.test',
+    })).toEqual({ docId: 'main', noteId: 'note2' });
+  });
+
+  it('does not treat foreign absolute note-shaped URLs as owned note links', () => {
+    expect(parseOwnedNoteLinkUrl('https://example.com/n/main_note2', {
+      currentDocId: 'main',
+      currentOrigin: 'https://remdo.test',
+    })).toBeNull();
   });
 });

@@ -15,6 +15,7 @@ import { SelectionCollapsePlugin } from './plugins/SelectionCollapsePlugin';
 import { InsertionPlugin } from './plugins/InsertionPlugin';
 import { DeletionPlugin } from './plugins/DeletionPlugin';
 import { NoteLinkPlugin } from './plugins/NoteLinkPlugin';
+import { ExternalLinkPlugin } from './plugins/ExternalLinkPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import { NoteIdPlugin } from './plugins/NoteIdPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
@@ -122,6 +123,7 @@ function EditorRuntime({
               <SelectionPlugin />
               <SelectionCollapsePlugin />
               <NoteLinkPlugin />
+              <ExternalLinkPlugin />
               <ClickableLinkPlugin newTab={false} />
               <InsertionPlugin />
               <DeletionPlugin />

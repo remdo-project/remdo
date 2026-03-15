@@ -54,7 +54,7 @@ import {
   removeNoteHeads,
 } from '@/editor/outline/selection/tree';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
-import { parseNoteLinkUrl } from '@/editor/links/note-link-url';
+import { parseOwnedNoteLinkUrl } from '@/editor/links/note-link-url';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { useCollaborationStatus } from './collaboration';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
@@ -327,6 +327,7 @@ function $regenerateClipboardNoteIds(nodes: LexicalNode[], reservedIds: Set<stri
 
 function $insertInternalLinkFromPlainText(
   plainText: string,
+  currentOrigin: string,
   currentDocId: string,
   outlineSelectionKind: 'structural' | 'caret' | 'inline' | null
 ): boolean {
@@ -339,7 +340,7 @@ function $insertInternalLinkFromPlainText(
     return false;
   }
 
-  const linkRef = parseNoteLinkUrl(trimmed, currentDocId);
+  const linkRef = parseOwnedNoteLinkUrl(trimmed, { currentDocId, currentOrigin });
   if (!linkRef) {
     return false;
   }
@@ -741,10 +742,12 @@ export function NoteIdPlugin() {
 
           const lines = plainText.split(/\r?\n/);
           if (lines.length === 1) {
+            const currentOrigin = globalThis.location.origin;
             const handled = $insertInternalLinkFromPlainText(
               plainText,
+              currentOrigin,
               docId,
-              outlineSelection?.kind ?? null
+                outlineSelection?.kind ?? null
             );
             if (handled) {
               lastPasteSelectionRangeRef.current = null;
