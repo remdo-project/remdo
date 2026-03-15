@@ -93,7 +93,6 @@
     "typecheck:tests": "timeout ${TEST_TIMEOUT:-120}s pnpm exec tsc -p tsconfig.tests.json --pretty false",
     "typecheck:watch": "tsc --watch",
     "vendor:lexical": "./tools/vendor-lexical.sh"
-    
   },
   "dependencies": {
     "@lexical/clipboard": "catalog:",
@@ -109,10 +108,12 @@
     "@y-sweet/client": "catalog:",
     "@y-sweet/sdk": "catalog:",
     "lexical": "catalog:",
+    "linkify-it": "catalog:",
     "nanoid": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-router-dom": "catalog:",
+    "tlds": "catalog:",
     "vite": "catalog:",
     "vite-plugin-pwa": "catalog:",
     "workbox-window": "catalog:",
@@ -129,6 +130,7 @@
     "@testing-library/react": "catalog:",
     "@types/estree": "catalog:",
     "@types/jsdom": "catalog:",
+    "@types/linkify-it": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

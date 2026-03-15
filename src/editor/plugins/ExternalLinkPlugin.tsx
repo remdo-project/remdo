@@ -1,18 +1,18 @@
 import { AutoLinkNode, registerAutoLink } from '@lexical/link';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { LinkMatcher } from '@lexical/link';
+import LinkifyIt from 'linkify-it';
 import { useEffect } from 'react';
+import tlds from 'tlds';
 
 const EXTERNAL_LINK_ATTRIBUTES = {
   rel: 'noopener noreferrer',
   target: '_blank',
 } as const;
 
-// Mirror Lexical's playground URL matcher and keep typed URL handling generic.
-const URL_REGEX =
-  /(?:https?:\/\/(?:www\.)?|www\.)[-\w@:%.+~#=]{1,256}\.[\w()]{1,6}\b[-\w()@:%.+~#?&/=]*(?<![-.+():%])/i;
-const LOCAL_URL_REGEX =
-  /https?:\/\/(?:localhost|127(?:\.\d{1,3}){3})(?::\d+)?(?:\/[-\w()@:%.+~#?&/=]*)?(?<![-.+():%])/i;
+const linkify = new LinkifyIt()
+  .tlds(tlds)
+  .set({ fuzzyEmail: false, fuzzyIP: false, fuzzyLink: true });
 
 interface MatchResult {
   attributes: typeof EXTERNAL_LINK_ATTRIBUTES;
@@ -22,20 +22,35 @@ interface MatchResult {
   url: string;
 }
 
+interface ExternalLinkifyMatch {
+  index: number;
+  lastIndex: number;
+  raw: string;
+  schema: string;
+  url: string;
+}
+
+function isSupportedExternalMatch(match: ExternalLinkifyMatch) {
+  return match.schema === 'http:' || match.schema === 'https:' || match.raw.startsWith('www.');
+}
+
 const externalUrlMatcher: LinkMatcher = (text): MatchResult | null => {
-  const match = URL_REGEX.exec(text) ?? LOCAL_URL_REGEX.exec(text);
+  if (!linkify.pretest(text)) {
+    return null;
+  }
+
+  const match = linkify.match(text)?.find(isSupportedExternalMatch);
   if (!match) {
     return null;
   }
 
-  const matchedText = match[0];
-  const url = matchedText.startsWith('http') ? matchedText : `https://${matchedText}`;
+  const url = match.schema ? match.url : `https://${match.raw}`;
 
   return {
     attributes: EXTERNAL_LINK_ATTRIBUTES,
     index: match.index,
-    length: matchedText.length,
-    text: matchedText,
+    length: match.lastIndex - match.index,
+    text: match.raw,
     url,
   };
 };
