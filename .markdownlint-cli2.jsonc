@@ -1,7 +1,8 @@
 {
   "globs": [
     "AGENTS.md",
-    "docs/**/*.md"
+    "docs/**/*.md",
+    ".codex/skills/**/*.md"
   ],
   "ignores": [
     "node_modules",
