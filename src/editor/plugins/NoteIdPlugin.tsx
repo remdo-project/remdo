@@ -5,10 +5,12 @@ import type { BaseSelection, EditorState, LexicalEditor, LexicalNode, NodeKey, S
 import { $getHtmlContent, $getLexicalContent, setLexicalClipboardDataTransfer } from '@lexical/clipboard';
 import type { LexicalClipboardData } from '@lexical/clipboard';
 import {
+  $copyNode,
   $createTextNode,
   $getNodeByKey,
   $getRoot,
   $getSelection,
+  $insertNodes,
   $isElementNode,
   $isRangeSelection,
   $isTextNode,
@@ -190,6 +192,27 @@ function $getPlainTextFromClipboardNodes(nodes: LexicalNode[]): string {
     return lines.join('\n');
   }
   return nodes.map((node) => node.getTextContent()).join('\n');
+}
+
+function $cloneClipboardNodeTree<T extends LexicalNode>(node: T): T {
+  const clone = $copyNode(node);
+  if ($isElementNode(node) && $isElementNode(clone)) {
+    const childClones = node.getChildren().map((child) => $cloneClipboardNodeTree(child));
+    clone.append(...childClones);
+  }
+  return clone;
+}
+
+function $extractInlineClipboardNodes(nodes: LexicalNode[]): LexicalNode[] {
+  const items = $extractClipboardListChildren(nodes);
+  if (items.length === 1) {
+    const [item] = items;
+    if ($isListItemNode(item) && !isChildrenWrapper(item)) {
+      return item.getChildren().map($cloneClipboardNodeTree);
+    }
+  }
+
+  return [];
 }
 
 function $resolvePasteSelectionRange(
@@ -700,7 +723,15 @@ export function NoteIdPlugin() {
               return true;
             }
 
-            payload.selection.insertText(text);
+            const inlineNodes = $extractInlineClipboardNodes(payload.nodes);
+            if (inlineNodes.length > 0) {
+              if (!payload.selection.isCollapsed()) {
+                payload.selection.insertText('');
+              }
+              $insertNodes(inlineNodes);
+            } else {
+              payload.selection.insertText(text);
+            }
             lastPasteSelectionRangeRef.current = null;
             return true;
           }
