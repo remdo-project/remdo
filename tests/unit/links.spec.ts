@@ -1,7 +1,7 @@
 import { $createLinkNode, $isLinkNode } from '@lexical/link';
 import { act } from '@testing-library/react';
 import { $createTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { $isNoteLinkNode } from '#lib/editor/note-link-node';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
@@ -158,6 +158,24 @@ describe('note links (docs/outliner/links.md)', () => {
     });
   });
 
+  it('clicking an external link opens a new tab without opener access', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = 'https://example.com/';
+    await pastePlainText(remdo, url);
+
+    const openSpy = vi.spyOn(globalThis, 'open').mockImplementation(() => null);
+    try {
+      const anchor = remdo.editor.getRootElement()!.querySelector('a')!;
+      await act(async () => {
+        anchor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      });
+
+      expect(openSpy).toHaveBeenCalledWith(url, '_blank', 'noopener,noreferrer');
+    } finally {
+      openSpy.mockRestore();
+    }
+  });
+
   it('normalizes imported-style external LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/';
@@ -240,6 +258,44 @@ describe('note links (docs/outliner/links.md)', () => {
   it('typing a long-TLD www URL creates a regular link', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const text = 'www.example.technology/';
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, text);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe(text);
+      expect($isNoteLinkNode(linkNode)).toBe(false);
+      expect(linkNode.getURL()).toBe(`https://${text}`);
+      expect(linkNode.getTarget()).toBe('_blank');
+      expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
+  });
+
+  it('typing a bare domain creates a regular link', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const text = 'example.com';
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, text);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe(text);
+      expect($isNoteLinkNode(linkNode)).toBe(false);
+      expect(linkNode.getURL()).toBe(`https://${text}`);
+      expect(linkNode.getTarget()).toBe('_blank');
+      expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
+  });
+
+  it('typing a bare long-TLD domain creates a regular link', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const text = 'example.technology/';
     await act(async () => {
       remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, text);
     });

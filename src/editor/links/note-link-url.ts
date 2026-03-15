@@ -13,6 +13,7 @@ interface OwnedNoteLinkUrlOptions {
 // Temporary base so URL() can parse relative note-link paths in non-browser contexts.
 // Drop once callers provide normalized absolute note-link input.
 const URL_PARSE_BASE = 'http://localhost';
+const NOTE_LINK_PATH_PATTERN = /^\/n\/([^/]+)$/;
 
 export function parseNoteLinkUrl(url: string, currentDocId?: string): NoteLink | null {
   let parsedUrl: URL;
@@ -22,7 +23,7 @@ export function parseNoteLinkUrl(url: string, currentDocId?: string): NoteLink |
     return null;
   }
 
-  const match = /^\/n\/([^/]+)$/.exec(parsedUrl.pathname);
+  const match = NOTE_LINK_PATH_PATTERN.exec(parsedUrl.pathname);
   if (!match) {
     return null;
   }

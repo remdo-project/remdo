@@ -1,9 +1,9 @@
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
+import { ClickableLinkPlugin } from '@lexical/react/LexicalClickableLinkPlugin';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { ClickableLinkPlugin } from '@lexical/react/LexicalClickableLinkPlugin';
 import { useCallback, useState } from 'react';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollaborationPlugin, useOfflineDocumentUnavailable } from './plugins/collaboration';
@@ -16,6 +16,7 @@ import { InsertionPlugin } from './plugins/InsertionPlugin';
 import { DeletionPlugin } from './plugins/DeletionPlugin';
 import { NoteLinkPlugin } from './plugins/NoteLinkPlugin';
 import { ExternalLinkPlugin } from './plugins/ExternalLinkPlugin';
+import { BlankTargetLinkInterceptorPlugin } from './plugins/BlankTargetLinkInterceptorPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import { NoteIdPlugin } from './plugins/NoteIdPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
@@ -124,6 +125,7 @@ function EditorRuntime({
               <SelectionCollapsePlugin />
               <NoteLinkPlugin />
               <ExternalLinkPlugin />
+              <BlankTargetLinkInterceptorPlugin />
               <ClickableLinkPlugin newTab={false} />
               <InsertionPlugin />
               <DeletionPlugin />
