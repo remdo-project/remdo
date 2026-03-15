@@ -28,4 +28,18 @@ describe('note link URL helpers', () => {
       currentOrigin: 'https://remdo.test',
     })).toBeNull();
   });
+
+  it('treats same-origin protocol-relative note URLs as owned note links', () => {
+    expect(parseOwnedNoteLinkUrl('//remdo.test/n/main_note2', {
+      currentDocId: 'main',
+      currentOrigin: 'https://remdo.test',
+    })).toEqual({ docId: 'main', noteId: 'note2' });
+  });
+
+  it('does not treat foreign protocol-relative note-shaped URLs as owned note links', () => {
+    expect(parseOwnedNoteLinkUrl('//example.com/n/main_note2', {
+      currentDocId: 'main',
+      currentOrigin: 'https://remdo.test',
+    })).toBeNull();
+  });
 });

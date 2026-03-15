@@ -39,11 +39,15 @@ export function parseNoteLinkUrl(url: string, currentDocId?: string): NoteLink |
 
 export function parseOwnedNoteLinkUrl(url: string, options: OwnedNoteLinkUrlOptions = {}): NoteLink | null {
   const { currentDocId, currentOrigin } = options;
-  const isAbsolute = /^[a-z][a-z\d+.-]*:/i.test(url);
-  if (isAbsolute && currentOrigin) {
+  const hasOwnOrigin = /^[a-z][a-z\d+.-]*:/i.test(url) || url.startsWith('//');
+  if (hasOwnOrigin) {
+    if (!currentOrigin) {
+      return null;
+    }
+
     let parsedUrl: URL;
     try {
-      parsedUrl = new URL(url);
+      parsedUrl = new URL(url, currentOrigin);
     } catch {
       return null;
     }
