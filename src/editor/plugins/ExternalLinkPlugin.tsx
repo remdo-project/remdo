@@ -43,6 +43,9 @@ function normalizeExternalUrl(url: string): string | null {
   if (url.startsWith('//')) {
     return url;
   }
+  if (!/^[a-z][a-z\d+.-]*:/i.test(url)) {
+    return url;
+  }
   try {
     const parsed = new URL(url);
     return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? url : null;
@@ -93,7 +96,7 @@ export function ExternalLinkPlugin() {
         }
         if (
           node.getURL() === normalizedUrl
-          && 
+          &&
           node.getTarget() === EXTERNAL_LINK_ATTRIBUTES.target
           && node.getRel() === EXTERNAL_LINK_ATTRIBUTES.rel
         ) {
