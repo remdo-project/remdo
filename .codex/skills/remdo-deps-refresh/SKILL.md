@@ -16,9 +16,13 @@ Happy path only.
    whether any held-back versions can now move.
 5. Review runtime/tooling baseline updates separately when relevant:
    `package.json` (`packageManager`, `engines.node`), `docker/Dockerfile`, and CI runtime pins.
-6. Use `gh` to check for still-open Dependabot PRs and GitHub Dependabot alerts. Make sure the
-   refresh covered them; if safe follow-up updates are still needed, do them. Only leave items
-   open when they are intentionally held back or need manual takeover.
+6. Use `gh` to reconcile still-open Dependabot PRs and GitHub Dependabot alerts against both the
+   current branch and the default branch. Classify each item as:
+   `covered here` (fixed on this branch, pending merge),
+   `already on default branch` (stale GitHub item),
+   `unresolved` (safe follow-up still needed),
+   or `blocked intentionally` (documented hold-back or manual takeover).
+   Do any safe unresolved follow-up updates. Do not treat `covered here` items as open decisions.
 7. For minor or major dependency changes, read the official changelog/release notes and
    look for chances to simplify RemDo by using newly provided functionality.
 8. Stop and hand over when the update needs a broad migration, ambiguous behavior changes, or a larger refactor.
