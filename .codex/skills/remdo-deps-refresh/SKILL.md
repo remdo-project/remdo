@@ -15,6 +15,9 @@ Happy path only.
    and drop any shim that is no longer needed.
 5. Review runtime/tooling baseline updates separately when relevant:
    `package.json` (`packageManager`, `engines.node`), `docker/Dockerfile`, and CI runtime pins.
-6. For minor or major dependency changes, read the official changelog/release notes and
+6. Use `gh` to check for still-open Dependabot PRs and GitHub Dependabot alerts. Make sure the
+   refresh covered them; if safe follow-up updates are still needed, do them. Only leave items
+   open when they are intentionally held back or need manual takeover.
+7. For minor or major dependency changes, read the official changelog/release notes and
    look for chances to simplify RemDo by using newly provided functionality.
-7. Stop and hand over when the update needs a broad migration, ambiguous behavior changes, or a larger refactor.
+8. Stop and hand over when the update needs a broad migration, ambiguous behavior changes, or a larger refactor.
