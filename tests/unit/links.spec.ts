@@ -293,6 +293,57 @@ describe('note links (docs/outliner/links.md)', () => {
     });
   });
 
+  it('normalizes imported-style external AutoLinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const url = 'https://example.com/';
+    const state = structuredClone(remdo.getEditorState()) as {
+      root: { children?: Array<{ children?: unknown[] }> };
+    };
+    const rootChildren = state.root.children ?? [];
+    const listNode = rootChildren.find((node) => Array.isArray(node.children));
+    const listItems = Array.isArray(listNode?.children) ? listNode.children as Array<{ noteId?: string; children?: unknown[] }> : [];
+    const note = listItems.find((node) => node.noteId === 'note1')!;
+    note.children = [
+      {
+        children: [
+          {
+            detail: 0,
+            format: 0,
+            mode: 'normal',
+            style: '',
+            text: 'Example',
+            type: 'text',
+            version: 1,
+          },
+        ],
+        direction: null,
+        format: '',
+        indent: 0,
+        isUnlinked: false,
+        rel: null,
+        target: null,
+        title: null,
+        type: 'autolink',
+        url,
+        version: 1,
+      },
+    ];
+    await act(async () => {
+      const parsed = remdo.editor.parseEditorState(JSON.stringify(state));
+      remdo.editor.setEditorState(parsed);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe('Example');
+      expect($isNoteLinkNode(linkNode)).toBe(false);
+      expect(linkNode.getURL()).toBe(url);
+      expect(linkNode.getTarget()).toBe('_blank');
+      expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
+  });
+
   it('pasting a foreign note-shaped URL keeps it as a regular external link', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/n/main_note2';

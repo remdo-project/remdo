@@ -2,6 +2,7 @@ import { AutoLinkNode, LinkNode, registerAutoLink } from '@lexical/link';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { LinkMatcher } from '@lexical/link';
 import LinkifyIt from 'linkify-it';
+import { $getNodeByKey } from 'lexical';
 import { useEffect } from 'react';
 import tlds from 'tlds';
 
@@ -77,6 +78,49 @@ const externalUrlMatcher: LinkMatcher = (text): MatchResult | null => {
 
 const MATCHERS = [externalUrlMatcher];
 
+function normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
+  if ($isNoteLinkNode(node)) {
+    return;
+  }
+  const normalizedUrl = normalizeExternalUrl(node.getURL());
+  if (!normalizedUrl) {
+    return;
+  }
+  if (
+    node.getURL() === normalizedUrl
+    && node.getTarget() === EXTERNAL_LINK_ATTRIBUTES.target
+    && node.getRel() === EXTERNAL_LINK_ATTRIBUTES.rel
+  ) {
+    return;
+  }
+  node
+    .setURL(normalizedUrl)
+    .setTarget(EXTERNAL_LINK_ATTRIBUTES.target)
+    .setRel(EXTERNAL_LINK_ATTRIBUTES.rel);
+}
+
+function registerExternalLinkMutationListener(
+  editor: ReturnType<typeof useLexicalComposerContext>[0],
+  klass: typeof LinkNode | typeof AutoLinkNode,
+) {
+  return editor.registerMutationListener(klass, (mutations) => {
+    const keys = [...mutations].flatMap(([key, mutation]) => (mutation === 'destroyed' ? [] : [key]));
+    if (keys.length === 0) {
+      return;
+    }
+    queueMicrotask(() => {
+      editor.update(() => {
+        for (const key of keys) {
+          const node = $getNodeByKey(key);
+          if (node instanceof LinkNode || node instanceof AutoLinkNode) {
+            normalizeExternalLinkNode(node);
+          }
+        }
+      });
+    });
+  });
+}
+
 export function ExternalLinkPlugin() {
   const [editor] = useLexicalComposerContext();
 
@@ -86,27 +130,10 @@ export function ExternalLinkPlugin() {
     }
     return [
       registerAutoLink(editor, { changeHandlers: [], excludeParents: [], matchers: MATCHERS }),
-      editor.registerNodeTransform(LinkNode, (node) => {
-        if ($isNoteLinkNode(node)) {
-          return;
-        }
-        const normalizedUrl = normalizeExternalUrl(node.getURL());
-        if (!normalizedUrl) {
-          return;
-        }
-        if (
-          node.getURL() === normalizedUrl
-          &&
-          node.getTarget() === EXTERNAL_LINK_ATTRIBUTES.target
-          && node.getRel() === EXTERNAL_LINK_ATTRIBUTES.rel
-        ) {
-          return;
-        }
-        node
-          .setURL(normalizedUrl)
-          .setTarget(EXTERNAL_LINK_ATTRIBUTES.target)
-          .setRel(EXTERNAL_LINK_ATTRIBUTES.rel);
-      }),
+      editor.registerNodeTransform(LinkNode, normalizeExternalLinkNode),
+      editor.registerNodeTransform(AutoLinkNode, normalizeExternalLinkNode),
+      registerExternalLinkMutationListener(editor, LinkNode),
+      registerExternalLinkMutationListener(editor, AutoLinkNode),
     ].reduceRight<() => void>(
       (cleanup, unregister) => () => {
         unregister();
