@@ -215,6 +215,6 @@ describe('toMatchOutline smoke coverage', () => {
 
     expect(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note5'] });
-    }).toThrowError(/Selections differ/);
+    }).toThrow(/Selections differ/);
   });
 });

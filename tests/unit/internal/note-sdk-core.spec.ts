@@ -177,7 +177,7 @@ describe('note sdk core', () => {
     expect(sdk.indent(selection.range)).toBe(true);
     const missing = sdk.note('missing');
     expect(missing.attached()).toBe(false);
-    expect(() => missing.text()).toThrowError(NoteNotFoundError);
+    expect(() => missing.text()).toThrow(NoteNotFoundError);
   });
 
   it('delegates mutating operations to adapter and preserves no-op booleans', () => {
@@ -223,10 +223,10 @@ describe('note sdk core', () => {
     expect(sdk.delete({ start: 'b', end: 'b' })).toBe(true);
 
     expect(note.attached()).toBe(false);
-    expect(() => note.text()).toThrowError(NoteNotFoundError);
-    expect(() => note.children()).toThrowError(NoteNotFoundError);
-    expect(() => sdk.indent({ start: 'b', end: 'b' })).toThrowError(NoteNotFoundError);
-    expect(() => sdk.moveUp({ start: 'b', end: 'b' })).toThrowError(NoteNotFoundError);
+    expect(() => note.text()).toThrow(NoteNotFoundError);
+    expect(() => note.children()).toThrow(NoteNotFoundError);
+    expect(() => sdk.indent({ start: 'b', end: 'b' })).toThrow(NoteNotFoundError);
+    expect(() => sdk.moveUp({ start: 'b', end: 'b' })).toThrow(NoteNotFoundError);
   });
 
   it('uses structural selection range for sdk operations', () => {

@@ -302,10 +302,10 @@ describe('note sdk', () => {
     remdo.validate(() => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       expect(note.attached()).toBe(false);
-      expect(() => note.text()).toThrowError(NoteNotFoundError);
-      expect(() => note.children()).toThrowError(NoteNotFoundError);
-      expect(() => sdk.indent({ start: 'note2', end: 'note2' })).toThrowError(NoteNotFoundError);
-      expect(() => sdk.moveUp({ start: 'note2', end: 'note2' })).toThrowError(NoteNotFoundError);
+      expect(() => note.text()).toThrow(NoteNotFoundError);
+      expect(() => note.children()).toThrow(NoteNotFoundError);
+      expect(() => sdk.indent({ start: 'note2', end: 'note2' })).toThrow(NoteNotFoundError);
+      expect(() => sdk.moveUp({ start: 'note2', end: 'note2' })).toThrow(NoteNotFoundError);
     });
   });
 
@@ -324,7 +324,7 @@ describe('note sdk', () => {
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       const note = sdk.note('missing');
       expect(note.attached()).toBe(false);
-      expect(() => note.text()).toThrowError(NoteNotFoundError);
+      expect(() => note.text()).toThrow(NoteNotFoundError);
     });
   });
 });
