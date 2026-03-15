@@ -212,6 +212,18 @@ function $extractInlineClipboardNodes(nodes: LexicalNode[]): LexicalNode[] {
     }
   }
 
+  if (items.length === 0) {
+    const inlineNodes: LexicalNode[] = [];
+    for (const node of nodes) {
+      if ($isElementNode(node) && !node.isInline()) {
+        inlineNodes.push(...node.getChildren().map($cloneClipboardNodeTree));
+      } else {
+        inlineNodes.push($cloneClipboardNodeTree(node));
+      }
+    }
+    return inlineNodes;
+  }
+
   return [];
 }
 

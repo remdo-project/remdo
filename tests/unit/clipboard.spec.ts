@@ -326,6 +326,36 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     });
   });
 
+  it('preserves partially selected inline external links when copying and pasting inside the editor', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const linkNode = $createLinkNode('https://example.com/');
+      const linkText = $createTextNode('Example');
+      linkNode.append(linkText);
+      const note = $findNoteById('note2')!;
+      note.clear();
+      note.append(linkNode, $createTextNode(' tail'));
+
+      const selection = $createRangeSelection();
+      selection.setTextNodeRange(linkText, 0, linkText, linkText.getTextContentSize());
+      $setSelection(selection);
+    });
+
+    const payload = await copySelection(remdo);
+
+    await selectEntireNote(remdo, 'note1');
+    await pastePayload(remdo, payload);
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe('Example');
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe('Example');
+      expect(linkNode.getURL()).toBe('https://example.com/');
+      expect(linkNode.getTarget()).toBe('_blank');
+      expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
+  });
+
   it('preserves note ids when pasting a note payload over an inline selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note2');
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
