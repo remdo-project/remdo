@@ -43,18 +43,21 @@ upgrade again and rerun the full validation set.
    Held back from: `10.0.3`
    Reason: `@lexical/eslint-plugin` crashes under ESLint 10 with
    `context.getSourceCode is not a function`.
+   Dependabot: ignore `>= 10.0.0 < 11.0.0` while this blocker stands.
    Revisit when: Lexical publishes ESLint 10 support.
 
 2. `vite` `^7.3.1`
    Held back from: `8.0.0`
    Reason: [vite.shared.ts](/home/piotr/projects/remdo/vite.shared.ts) depends
    on `vite-plugin-pwa`, and `vite-plugin-pwa 1.2.0` does not support Vite 8.
+   Dependabot: ignore `>= 8.0.0 < 9.0.0` while this blocker stands.
    Revisit when: `vite-plugin-pwa` supports Vite 8 cleanly.
 
 3. `@antfu/eslint-config` `7.6.1`
    Held back from: `7.7.2`
    Reason: the newer config expands the lint surface enough to push the refresh
    beyond the skill's happy path.
+   Dependabot: ignore `>= 7.7.0 < 8.0.0` while this blocker stands.
    Revisit when: we are ready to absorb the lint fallout as a dedicated task.
 
 4. `vitest` `4.0.18`
