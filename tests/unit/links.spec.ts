@@ -274,7 +274,7 @@ describe('note links (docs/outliner/links.md)', () => {
     });
   });
 
-  it('typing a bare domain creates a regular link', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('typing a bare domain leaves plain text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const text = 'example.com';
     await act(async () => {
@@ -284,16 +284,12 @@ describe('note links (docs/outliner/links.md)', () => {
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      const linkNode = note.getChildren().find($isLinkNode)!;
-      expect(linkNode.getTextContent()).toBe(text);
-      expect($isNoteLinkNode(linkNode)).toBe(false);
-      expect(linkNode.getURL()).toBe(`https://${text}`);
-      expect(linkNode.getTarget()).toBe('_blank');
-      expect(linkNode.getRel()).toBe('noopener noreferrer');
+      expect(note.getTextContent()).toBe(text);
+      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
   });
 
-  it('typing a bare long-TLD domain creates a regular link', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('typing a bare long-TLD domain leaves plain text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const text = 'example.technology/';
     await act(async () => {
@@ -303,12 +299,8 @@ describe('note links (docs/outliner/links.md)', () => {
 
     remdo.validate(() => {
       const note = $findNoteById('note1')!;
-      const linkNode = note.getChildren().find($isLinkNode)!;
-      expect(linkNode.getTextContent()).toBe(text);
-      expect($isNoteLinkNode(linkNode)).toBe(false);
-      expect(linkNode.getURL()).toBe(`https://${text}`);
-      expect(linkNode.getTarget()).toBe('_blank');
-      expect(linkNode.getRel()).toBe('noopener noreferrer');
+      expect(note.getTextContent()).toBe(text);
+      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
   });
 

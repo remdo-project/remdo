@@ -33,7 +33,7 @@ interface ExternalLinkifyMatch {
 }
 
 function isSupportedExternalMatch(match: ExternalLinkifyMatch) {
-  return isAbsoluteWebUrl(match.url);
+  return match.schema === 'http:' || match.schema === 'https:' || /^www\./i.test(match.raw);
 }
 
 function isAbsoluteWebUrl(url: string) {
