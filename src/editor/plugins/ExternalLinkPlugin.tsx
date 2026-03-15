@@ -36,15 +36,18 @@ function isSupportedExternalMatch(match: ExternalLinkifyMatch) {
   return match.schema === 'http:' || match.schema === 'https:' || match.schema === '//' || /^www\./i.test(match.raw);
 }
 
-function isAbsoluteWebUrl(url: string) {
+function normalizeExternalUrl(url: string): string | null {
+  if (/^www\./i.test(url)) {
+    return `https://${url}`;
+  }
   if (url.startsWith('//')) {
-    return true;
+    return url;
   }
   try {
     const parsed = new URL(url);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? url : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -81,16 +84,25 @@ export function ExternalLinkPlugin() {
     return [
       registerAutoLink(editor, { changeHandlers: [], excludeParents: [], matchers: MATCHERS }),
       editor.registerNodeTransform(LinkNode, (node) => {
-        if ($isNoteLinkNode(node) || !isAbsoluteWebUrl(node.getURL())) {
+        if ($isNoteLinkNode(node)) {
+          return;
+        }
+        const normalizedUrl = normalizeExternalUrl(node.getURL());
+        if (!normalizedUrl) {
           return;
         }
         if (
+          node.getURL() === normalizedUrl
+          && 
           node.getTarget() === EXTERNAL_LINK_ATTRIBUTES.target
           && node.getRel() === EXTERNAL_LINK_ATTRIBUTES.rel
         ) {
           return;
         }
-        node.setTarget(EXTERNAL_LINK_ATTRIBUTES.target).setRel(EXTERNAL_LINK_ATTRIBUTES.rel);
+        node
+          .setURL(normalizedUrl)
+          .setTarget(EXTERNAL_LINK_ATTRIBUTES.target)
+          .setRel(EXTERNAL_LINK_ATTRIBUTES.rel);
       }),
     ].reduceRight<() => void>(
       (cleanup, unregister) => () => {
