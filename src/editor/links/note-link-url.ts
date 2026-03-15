@@ -22,6 +22,8 @@ export function parseNoteLinkUrl(url: string, currentDocId?: string): NoteLink |
   } catch {
     return null;
   }
+  // Canonicalize note links by pathname only. Query/hash are intentionally
+  // ignored because RemDo note-link identity is docId + noteId.
 
   const match = NOTE_LINK_PATH_PATTERN.exec(parsedUrl.pathname);
   if (!match) {

@@ -125,6 +125,23 @@ describe('note links (docs/outliner/links.md)', () => {
     });
   });
 
+  it('pasting a same-origin note URL with query or fragment creates a canonical note link', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    const url = `${new URL(`/n/${remdo.getCollabDocId()}_note2`, globalThis.location.href).toString()}?foo=1#frag`;
+    await pastePlainText(remdo, url);
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe('note2');
+      expect($isNoteLinkNode(linkNode)).toBe(true);
+      if ($isNoteLinkNode(linkNode)) {
+        expect(linkNode.getNoteId()).toBe('note2');
+        expect(linkNode.getDocId()).toBe(remdo.getCollabDocId());
+      }
+    });
+  });
+
   it('pasting a cross-document note URL creates a note link with docId', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     const url = new URL('/n/otherDoc_note2', globalThis.location.href).toString();
