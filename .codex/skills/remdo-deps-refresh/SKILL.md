@@ -11,7 +11,7 @@ Happy path only.
 2. Before wrapping up, get `pnpm run lint`, `pnpm run test:unit:full`,
    `pnpm run test:collab:full`, and `pnpm run test:e2e` green.
 3. If checks fail, fix only direct, local fallout and rerun the relevant checks.
-4. Review [dependency-maintenance.md](/home/piotr/projects/remdo/docs/dev/dependency-maintenance.md)
+4. Review [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md)
    after dependency or runtime updates. Drop obsolete workarounds and re-check
    whether any held-back versions can now move.
 5. Review runtime/tooling baseline updates separately when relevant:

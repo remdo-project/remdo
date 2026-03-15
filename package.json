@@ -60,7 +60,7 @@
     "lint:md": "timeout ${TEST_TIMEOUT:-120}s pnpm run lint:md:raw",
     "lint:md:file": "timeout ${TEST_TIMEOUT:-120}s pnpm run lint:md:file:raw --",
     "lint:md:file:raw": "markdownlint-cli2 --no-globs",
-    "lint:md:raw": "markdownlint-cli2 \"AGENTS.md\" \"docs/**/*.md\"",
+    "lint:md:raw": "markdownlint-cli2 \"AGENTS.md\" \"docs/**/*.md\" \".codex/skills/**/*.md\"",
     "load": "./tools/env.sh tsx ./tools/snapshot.ts load",
     "perf:bench": "cross-env NODE_ENV=test COLLAB_ENABLED=false ./tools/env.sh timeout ${TEST_TIMEOUT:-240}s pnpm exec vitest bench -c vitest.bench.perf.config.mts --run",
     "perf:bench:8x5": "cross-env PERF_WORKLOAD=8x5 TEST_TIMEOUT=900 pnpm run perf:bench",

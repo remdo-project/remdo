@@ -1,4 +1,5 @@
 import process from 'node:process';
+import { config } from '#config';
 import WebSocket from 'ws';
 
 const SHIM_FLAG = '__remdoCollabWebSocketShimInstalled__';
@@ -10,12 +11,10 @@ type GlobalWithWebSocketShim = typeof globalThis & {
 
 const patchedGlobal = globalThis as GlobalWithWebSocketShim;
 // eslint-disable-next-line node/no-process-env
-const collabEnabled = process.env.COLLAB_ENABLED !== 'false';
-// eslint-disable-next-line node/no-process-env
 const shimDisabled = process.env.REMDO_DISABLE_COLLAB_WEBSOCKET_SHIM === '1';
 
 if (
-  collabEnabled
+  config.env.COLLAB_ENABLED
   && !shimDisabled
   && !patchedGlobal[SHIM_FLAG]
 ) {
