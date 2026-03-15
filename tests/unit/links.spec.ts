@@ -1,6 +1,6 @@
-import { $isLinkNode } from '@lexical/link';
+import { $createLinkNode, $isLinkNode } from '@lexical/link';
 import { act } from '@testing-library/react';
-import { CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
+import { $createTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { $isNoteLinkNode } from '#lib/editor/note-link-node';
@@ -151,6 +151,31 @@ describe('note links (docs/outliner/links.md)', () => {
       const note = $findNoteById('note1')!;
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe(url);
+      expect($isNoteLinkNode(linkNode)).toBe(false);
+      expect(linkNode.getURL()).toBe(url);
+      expect(linkNode.getTarget()).toBe('_blank');
+      expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
+  });
+
+  it('normalizes imported-style external LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = 'https://example.com/';
+    await act(async () => {
+      remdo.editor.update(() => {
+        const note = $findNoteById('note1')!;
+        note.clear();
+        const linkNode = $createLinkNode(url);
+        linkNode.append($createTextNode('Example'));
+        note.append(linkNode);
+      });
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe('Example');
       expect($isNoteLinkNode(linkNode)).toBe(false);
       expect(linkNode.getURL()).toBe(url);
       expect(linkNode.getTarget()).toBe('_blank');
