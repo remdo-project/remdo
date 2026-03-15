@@ -201,6 +201,31 @@ describe('note links (docs/outliner/links.md)', () => {
     });
   });
 
+  it('normalizes imported-style protocol-relative LinkNodes to open in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = '//example.com/path';
+    await act(async () => {
+      remdo.editor.update(() => {
+        const note = $findNoteById('note1')!;
+        note.clear();
+        const linkNode = $createLinkNode(url);
+        linkNode.append($createTextNode('Example'));
+        note.append(linkNode);
+      });
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe('Example');
+      expect($isNoteLinkNode(linkNode)).toBe(false);
+      expect(linkNode.getURL()).toBe(url);
+      expect(linkNode.getTarget()).toBe('_blank');
+      expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
+  });
+
   it('pasting a foreign note-shaped URL keeps it as a regular external link', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/n/main_note2';
@@ -220,6 +245,25 @@ describe('note links (docs/outliner/links.md)', () => {
   it('typing an external URL creates a regular link that opens in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note1');
     const url = 'https://example.com/';
+    await act(async () => {
+      remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe(url);
+      expect($isNoteLinkNode(linkNode)).toBe(false);
+      expect(linkNode.getURL()).toBe(url);
+      expect(linkNode.getTarget()).toBe('_blank');
+      expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
+  });
+
+  it('typing a protocol-relative URL creates a regular link that opens in a new tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    const url = '//example.com/path';
     await act(async () => {
       remdo.editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, url);
     });

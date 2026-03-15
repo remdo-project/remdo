@@ -33,10 +33,13 @@ interface ExternalLinkifyMatch {
 }
 
 function isSupportedExternalMatch(match: ExternalLinkifyMatch) {
-  return match.schema === 'http:' || match.schema === 'https:' || /^www\./i.test(match.raw);
+  return match.schema === 'http:' || match.schema === 'https:' || match.schema === '//' || /^www\./i.test(match.raw);
 }
 
 function isAbsoluteWebUrl(url: string) {
+  if (url.startsWith('//')) {
+    return true;
+  }
   try {
     const parsed = new URL(url);
     return parsed.protocol === 'http:' || parsed.protocol === 'https:';
