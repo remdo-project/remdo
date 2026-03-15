@@ -3,7 +3,6 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { ClickableLinkPlugin } from '@lexical/react/LexicalClickableLinkPlugin';
 import { useCallback, useState } from 'react';
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { CollaborationPlugin, useOfflineDocumentUnavailable } from './plugins/collaboration';
@@ -14,7 +13,7 @@ import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin
 import { SelectionCollapsePlugin } from './plugins/SelectionCollapsePlugin';
 import { InsertionPlugin } from './plugins/InsertionPlugin';
 import { DeletionPlugin } from './plugins/DeletionPlugin';
-import { NoteLinkPlugin } from './plugins/NoteLinkPlugin';
+import { LinksPlugin } from './plugins/LinksPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import { NoteIdPlugin } from './plugins/NoteIdPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
@@ -121,8 +120,7 @@ function EditorRuntime({
               <ReorderingPlugin />
               <SelectionPlugin />
               <SelectionCollapsePlugin />
-              <NoteLinkPlugin />
-              <ClickableLinkPlugin newTab={false} />
+              <LinksPlugin />
               <InsertionPlugin />
               <DeletionPlugin />
               <SelectionInputPlugin />
