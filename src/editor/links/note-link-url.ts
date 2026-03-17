@@ -5,9 +5,15 @@ interface NoteLink {
   docId: string;
 }
 
+interface OwnedNoteLinkUrlOptions {
+  currentDocId?: string;
+  currentOrigin?: string;
+}
+
 // Temporary base so URL() can parse relative note-link paths in non-browser contexts.
 // Drop once callers provide normalized absolute note-link input.
 const URL_PARSE_BASE = 'http://localhost';
+const NOTE_LINK_PATH_PATTERN = /^\/n\/([^/]+)$/;
 
 export function parseNoteLinkUrl(url: string, currentDocId?: string): NoteLink | null {
   let parsedUrl: URL;
@@ -16,8 +22,10 @@ export function parseNoteLinkUrl(url: string, currentDocId?: string): NoteLink |
   } catch {
     return null;
   }
+  // Canonicalize note links by pathname only. Query/hash are intentionally
+  // ignored because RemDo note-link identity is docId + noteId.
 
-  const match = /^\/n\/([^/]+)$/.exec(parsedUrl.pathname);
+  const match = NOTE_LINK_PATH_PATTERN.exec(parsedUrl.pathname);
   if (!match) {
     return null;
   }
@@ -30,4 +38,26 @@ export function parseNoteLinkUrl(url: string, currentDocId?: string): NoteLink |
     return { docId: currentDocId, noteId: parsedRef.noteId };
   }
   return { docId: parsedRef.docId, noteId: parsedRef.noteId };
+}
+
+export function parseOwnedNoteLinkUrl(url: string, options: OwnedNoteLinkUrlOptions = {}): NoteLink | null {
+  const { currentDocId, currentOrigin } = options;
+  const hasOwnOrigin = /^[a-z][a-z\d+.-]*:/i.test(url) || url.startsWith('//');
+  if (hasOwnOrigin) {
+    if (!currentOrigin) {
+      return null;
+    }
+
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url, currentOrigin);
+    } catch {
+      return null;
+    }
+    if (parsedUrl.origin !== currentOrigin) {
+      return null;
+    }
+  }
+
+  return parseNoteLinkUrl(url, currentDocId);
 }

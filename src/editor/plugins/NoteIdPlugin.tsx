@@ -5,10 +5,12 @@ import type { BaseSelection, EditorState, LexicalEditor, LexicalNode, NodeKey, S
 import { $getHtmlContent, $getLexicalContent, setLexicalClipboardDataTransfer } from '@lexical/clipboard';
 import type { LexicalClipboardData } from '@lexical/clipboard';
 import {
+  $copyNode,
   $createTextNode,
   $getNodeByKey,
   $getRoot,
   $getSelection,
+  $insertNodes,
   $isElementNode,
   $isRangeSelection,
   $isTextNode,
@@ -54,7 +56,7 @@ import {
   removeNoteHeads,
 } from '@/editor/outline/selection/tree';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/editor/commands';
-import { parseNoteLinkUrl } from '@/editor/links/note-link-url';
+import { parseOwnedNoteLinkUrl } from '@/editor/links/note-link-url';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { useCollaborationStatus } from './collaboration';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
@@ -192,6 +194,39 @@ function $getPlainTextFromClipboardNodes(nodes: LexicalNode[]): string {
   return nodes.map((node) => node.getTextContent()).join('\n');
 }
 
+function $cloneClipboardNodeTree<T extends LexicalNode>(node: T): T {
+  const clone = $copyNode(node);
+  if ($isElementNode(node) && $isElementNode(clone)) {
+    const childClones = node.getChildren().map((child) => $cloneClipboardNodeTree(child));
+    clone.append(...childClones);
+  }
+  return clone;
+}
+
+function $extractInlineClipboardNodes(nodes: LexicalNode[]): LexicalNode[] {
+  const items = $extractClipboardListChildren(nodes);
+  if (items.length === 1) {
+    const [item] = items;
+    if ($isListItemNode(item) && !isChildrenWrapper(item)) {
+      return item.getChildren().map($cloneClipboardNodeTree);
+    }
+  }
+
+  if (items.length === 0) {
+    const inlineNodes: LexicalNode[] = [];
+    for (const node of nodes) {
+      if ($isElementNode(node) && !node.isInline()) {
+        inlineNodes.push(...node.getChildren().map($cloneClipboardNodeTree));
+      } else {
+        inlineNodes.push($cloneClipboardNodeTree(node));
+      }
+    }
+    return inlineNodes;
+  }
+
+  return [];
+}
+
 function $resolvePasteSelectionRange(
   editor: LexicalEditor,
   selection: BaseSelection | null,
@@ -327,6 +362,7 @@ function $regenerateClipboardNoteIds(nodes: LexicalNode[], reservedIds: Set<stri
 
 function $insertInternalLinkFromPlainText(
   plainText: string,
+  currentOrigin: string,
   currentDocId: string,
   outlineSelectionKind: 'structural' | 'caret' | 'inline' | null
 ): boolean {
@@ -339,7 +375,7 @@ function $insertInternalLinkFromPlainText(
     return false;
   }
 
-  const linkRef = parseNoteLinkUrl(trimmed, currentDocId);
+  const linkRef = parseOwnedNoteLinkUrl(trimmed, { currentDocId, currentOrigin });
   if (!linkRef) {
     return false;
   }
@@ -699,7 +735,15 @@ export function NoteIdPlugin() {
               return true;
             }
 
-            payload.selection.insertText(text);
+            const inlineNodes = $extractInlineClipboardNodes(payload.nodes);
+            if (inlineNodes.length > 0) {
+              if (!payload.selection.isCollapsed()) {
+                payload.selection.insertText('');
+              }
+              $insertNodes(inlineNodes);
+            } else {
+              payload.selection.insertText(text);
+            }
             lastPasteSelectionRangeRef.current = null;
             return true;
           }
@@ -741,10 +785,12 @@ export function NoteIdPlugin() {
 
           const lines = plainText.split(/\r?\n/);
           if (lines.length === 1) {
+            const currentOrigin = globalThis.location.origin;
             const handled = $insertInternalLinkFromPlainText(
               plainText,
+              currentOrigin,
               docId,
-              outlineSelection?.kind ?? null
+                outlineSelection?.kind ?? null
             );
             if (handled) {
               lastPasteSelectionRangeRef.current = null;

@@ -9,6 +9,7 @@ trustPolicyExclude:
   - serialize-javascript@7.0.3
   - undici-types@6.21.0
   - semver@6.3.1
+
 overrides:
   '@eslint/config-array>minimatch': 3.1.5
   '@eslint/eslintrc>ajv': 6.14.0
@@ -23,7 +24,6 @@ overrides:
   qs: 6.14.2
   serialize-javascript: 7.0.3
   table>ajv: 8.18.0
-
 catalog:
   '@antfu/eslint-config': 7.6.1
   '@ast-grep/cli': ^0.41.1
@@ -44,6 +44,7 @@ catalog:
   '@testing-library/react': ^16.3.2
   '@types/estree': ^1.0.8
   '@types/jsdom': ^28.0.0
+  '@types/linkify-it': ^5.0.0
   '@types/node': ^25.5.0
   '@types/react': ^19.2.14
   '@types/react-dom': ^19.2.3
@@ -66,6 +67,7 @@ catalog:
   jsdom: ^29.0.0
   knip: ^5.86.0
   lexical: ^0.41.0
+  linkify-it: ^5.0.0
   markdownlint-cli2: ^0.21.0
   nanoid: ^5.1.6
   playwright: ^1.58.2
@@ -74,6 +76,7 @@ catalog:
   react-router-dom: ^7.13.1
   stylelint: ^17.4.0
   stylelint-config-recommended: ^18.0.0
+  tlds: ^1.261.0
   tsx: ^4.21.0
   typescript: ^5.9.3
   vite: ^7.3.1
@@ -84,11 +87,11 @@ catalog:
   ws: 8.19.0
   y-sweet: ^0.9.1
   yjs: ^13.6.30
+
 onlyBuiltDependencies:
   - '@ast-grep/cli'
   - '@swc/core'
   - esbuild
   - leveldown
   - y-sweet
-
 

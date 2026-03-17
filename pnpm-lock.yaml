@@ -63,6 +63,9 @@ catalogs:
     '@types/jsdom':
       specifier: ^28.0.0
       version: 28.0.0
+    '@types/linkify-it':
+      specifier: ^5.0.0
+      version: 5.0.0
     '@types/node':
       specifier: ^25.5.0
       version: 25.5.0
@@ -129,6 +132,9 @@ catalogs:
     lexical:
       specifier: ^0.41.0
       version: 0.41.0
+    linkify-it:
+      specifier: ^5.0.0
+      version: 5.0.0
     markdownlint-cli2:
       specifier: ^0.21.0
       version: 0.21.0
@@ -153,6 +159,9 @@ catalogs:
     stylelint-config-recommended:
       specifier: ^18.0.0
       version: 18.0.0
+    tlds:
+      specifier: ^1.261.0
+      version: 1.261.0
     tsx:
       specifier: ^4.21.0
       version: 4.21.0
@@ -242,6 +251,9 @@ importers:
       lexical:
         specifier: 'catalog:'
         version: 0.41.0
+      linkify-it:
+        specifier: 'catalog:'
+        version: 5.0.0
       nanoid:
         specifier: 'catalog:'
         version: 5.1.6
@@ -254,6 +266,9 @@ importers:
       react-router-dom:
         specifier: 'catalog:'
         version: 7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      tlds:
+        specifier: 'catalog:'
+        version: 1.261.0
       vite:
         specifier: 'catalog:'
         version: 7.3.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
@@ -297,6 +312,9 @@ importers:
       '@types/jsdom':
         specifier: 'catalog:'
         version: 28.0.0
+      '@types/linkify-it':
+        specifier: 'catalog:'
+        version: 5.0.0
       '@types/node':
         specifier: 'catalog:'
         version: 25.5.0
@@ -2141,6 +2159,9 @@ packages:
 
   '@types/katex@0.16.8':
     resolution: {integrity: sha512-trgaNyfU+Xh2Tc+ABIb44a5AYUpicB3uwirOioeOkNPPbmgRNtcWyDeeFRzjPZENO9Vq8gvVqfhaaXWLlevVwg==}
+
+  '@types/linkify-it@5.0.0':
+    resolution: {integrity: sha512-sVDA58zAw4eWAffKOaQH5/5j3XeayukzDk+ewSsnv3p4yJEZHCCzMDiZM8e0OUrRvmpGZ85jf4yDHkHsgBNr9Q==}
 
   '@types/mdast@4.0.4':
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
@@ -5267,6 +5288,10 @@ packages:
     resolution: {integrity: sha512-Bf+ILmBgretUrdJxzXM0SgXLZ3XfiaUuOj/IKQHuTXip+05Xn+uyEYdVg0kYDipTBcLrCVyUzAPz7QmArb0mmw==}
     engines: {node: '>=14.0.0'}
 
+  tlds@1.261.0:
+    resolution: {integrity: sha512-QXqwfEl9ddlGBaRFXIvNKK6OhipSiLXuRuLJX5DErz0o0Q0rYxulWLdFryTkV5PkdZct5iMInwYEGe/eR++1AA==}
+    hasBin: true
+
   tldts-core@7.0.25:
     resolution: {integrity: sha512-ZjCZK0rppSBu7rjHYDYsEaMOIbbT+nWF57hKkv4IUmZWBNrBWBOjIElc0mKRgLM8bm7x/BBlof6t2gi/Oq/Asw==}
 
@@ -7728,6 +7753,8 @@ snapshots:
 
   '@types/katex@0.16.8': {}
 
+  '@types/linkify-it@5.0.0': {}
+
   '@types/mdast@4.0.4':
     dependencies:
       '@types/unist': 3.0.3
@@ -7821,8 +7848,8 @@ snapshots:
 
   '@typescript-eslint/project-service@8.56.1(typescript@5.9.3)':
     dependencies:
-      '@typescript-eslint/tsconfig-utils': 8.56.1(typescript@5.9.3)
-      '@typescript-eslint/types': 8.56.1
+      '@typescript-eslint/tsconfig-utils': 8.57.0(typescript@5.9.3)
+      '@typescript-eslint/types': 8.57.0
       debug: 4.4.3
       typescript: 5.9.3
     transitivePeerDependencies:
@@ -11481,6 +11508,8 @@ snapshots:
       picomatch: 4.0.3
 
   tinyrainbow@3.1.0: {}
+
+  tlds@1.261.0: {}
 
   tldts-core@7.0.25: {}
 

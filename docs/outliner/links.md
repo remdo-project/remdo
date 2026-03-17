@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Define the initial note-linking behavior for RemDo.
+Define the initial note-linking behavior for RemDo, including the boundary
+between RemDo-owned note links and generic external links.
 
 ## State boundary terms
 
@@ -17,24 +18,37 @@ Define the initial note-linking behavior for RemDo.
 
 ## Core behavior
 
-1. Links are created inline through a keyboard-first typeahead flow triggered by
+1. RemDo-owned links are note links targeting stable note identity
+   (`docId` + `noteId`), not the visible link text.
+2. Generic URL links do not use RemDo note-link semantics; they use normal
+   Lexical link behavior, including generic URL autolinking.
+3. RemDo classification runs before generic link handling so RemDo-owned note
+   refs keep note-link identity/clipboard behavior instead of degrading into
+   plain URL links.
+4. Links are created inline through a keyboard-first typeahead flow triggered by
    `@`.
-2. Link-query mode can start anywhere in note text. Query length minimum is 0,
+5. Link-query mode can start anywhere in note text. Query length minimum is 0,
    so results may appear immediately.
-3. Inserted links target stable note identity (`noteId`/equivalent), not plain
-   text labels.
-4. On insertion, display text is copied once from the target note title and then
+6. On insertion, note-link display text is copied once from the target note
+   title and then
    stored locally (no auto-sync on later target renames in this phase).
-5. Runtime/internal editor state stores fully qualified link identity
+7. Runtime/internal editor state stores fully qualified link identity
    (`docId` + `noteId`) for every note-link node.
-6. Link clicks use native `href` navigation semantics and route handling.
-7. Pasting a plain-text note URL (`/n/<docId>_<noteId>`) inserts a
+8. Note-link clicks use native `href` navigation semantics and route handling.
+9. Pasting a RemDo-owned plain-text note URL inserts a
    note-link node. When the target is in the current document, inserted
    link text copies the current target note title; otherwise it uses the pasted
    URL string.
-8. Clipboard payloads (copy/cut) must include explicit `docId` for every
+10. Typed URLs use Lexical generic link behavior, including same-origin
+    RemDo note URLs typed as raw URLs.
+11. Pasted generic URLs that are not upgraded to note links use Lexical generic
+    link behavior.
+12. Generic URL links open in a new tab.
+13. URLs that merely resemble RemDo note routes but are not classified by
+    RemDo as owned note refs remain generic external links.
+14. Clipboard payloads (copy/cut) must include explicit `docId` for every
    note link so cross-context paste has complete target identity.
-9. Cross-document pastes preserve source-target link identity; note links
+15. Cross-document pastes preserve source-target link identity; note links
    are not retargeted to the destination document.
 
 ## Identity Representation Boundaries

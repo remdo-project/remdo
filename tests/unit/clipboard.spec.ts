@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { $createLinkNode, $isLinkNode } from '@lexical/link';
 import {
   createDataTransfer,
   buildClipboardPayload,
+  copySelection,
   getNoteKey,
   meta,
   pastePayload,
@@ -18,7 +20,6 @@ import type { Outline, OutlineNode } from '#tests';
 import { flattenOutline } from '#tests-common/outline';
 import type { ListItemNode } from '@lexical/list';
 import {
-  $createParagraphNode,
   $createRangeSelection,
   $createTextNode,
   $getNodeByKey,
@@ -26,7 +27,7 @@ import {
   $setSelection,
   PASTE_COMMAND,
 } from 'lexical';
-import type { SerializedLexicalNode } from 'lexical';
+import { $findNoteById } from '@/editor/outline/note-traversal';
 
 describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
   it('pastes single-line plain text inline', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -298,30 +299,61 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     }
   );
 
-  it.fails('pastes inline non-list clipboard payloads as text', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await selectEntireNote(remdo, 'note2');
-    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
-
-    // Use a non-list payload to mirror external Lexical clipboard data (no list items).
-    // Plain-text pastes (no lexical payload) already work; this guards the edge case
-    // where a Lexical payload arrives with non-list nodes, which used to become a no-op.
-    let payload!: { namespace: string; nodes: SerializedLexicalNode[] };
+  it('preserves inline external links when copying and pasting inside the editor', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      const paragraph = $createParagraphNode();
-      paragraph.append($createTextNode('pasted'));
-      payload = {
-        namespace: (remdo.editor as { _config?: { namespace?: string } })._config?.namespace ?? 'remdo',
-        nodes: [paragraph.exportJSON()],
-      };
+      const linkNode = $createLinkNode('https://example.com/');
+      linkNode.append($createTextNode('Example'));
+      const note = $findNoteById('note2')!;
+      note.clear();
+      note.append(linkNode);
     });
 
+    await selectEntireNote(remdo, 'note2');
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+    const payload = await copySelection(remdo);
+
+    await selectEntireNote(remdo, 'note1');
     await pastePayload(remdo, payload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'pasted' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe('Example');
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe('Example');
+      expect(linkNode.getURL()).toBe('https://example.com/');
+      expect(linkNode.getTarget()).toBe('_blank');
+      expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
+  });
+
+  it('preserves partially selected inline external links when copying and pasting inside the editor', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const linkNode = $createLinkNode('https://example.com/');
+      const linkText = $createTextNode('Example');
+      linkNode.append(linkText);
+      const note = $findNoteById('note2')!;
+      note.clear();
+      note.append(linkNode, $createTextNode(' tail'));
+
+      const selection = $createRangeSelection();
+      selection.setTextNodeRange(linkText, 0, linkText, linkText.getTextContentSize());
+      $setSelection(selection);
+    });
+
+    const payload = await copySelection(remdo);
+
+    await selectEntireNote(remdo, 'note1');
+    await pastePayload(remdo, payload);
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe('Example');
+      const linkNode = note.getChildren().find($isLinkNode)!;
+      expect(linkNode.getTextContent()).toBe('Example');
+      expect(linkNode.getURL()).toBe('https://example.com/');
+      expect(linkNode.getTarget()).toBe('_blank');
+      expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
   });
 
   it('preserves note ids when pasting a note payload over an inline selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
