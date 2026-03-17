@@ -7,3 +7,6 @@ rule:
 files:
   - tests/**/*.ts
   - tests/**/*.tsx
+ignores:
+  - tests/perf/**/*.ts
+  - tests/perf/**/*.tsx
