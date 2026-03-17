@@ -29,9 +29,8 @@
     ]
   },
   "scripts": {
-    "audit:all": "pnpm run audit:ast-grep && pnpm run audit:stats:strict && pnpm run audit:dup:zero && pnpm run audit:unused:zero && pnpm run audit:checks",
+    "audit:all": "pnpm run audit:ast-grep && pnpm run audit:stats:strict && pnpm run audit:dup:zero && pnpm run audit:unused:zero && pnpm run audit:policy && pnpm run audit:security",
     "audit:ast-grep": "pnpm exec ast-grep scan --config config/ast-grep/sgconfig.yml --report-style short .",
-    "audit:checks": "pnpm run audit:policy && pnpm run audit:security",
     "audit:dup": "jscpd --config .jscpd.json --threshold 3",
     "audit:dup:zero": "jscpd --config .jscpd.json --threshold 0",
     "audit:policy": "timeout ${TEST_TIMEOUT:-120}s tsx ./tools/check-pnpm-policy.ts",
