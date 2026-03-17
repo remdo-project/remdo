@@ -51,7 +51,6 @@ FROM ghcr.io/steveiliop56/tinyauth:v4 AS tinyauth
 ############################
 FROM node:24.12-alpine AS runner
 
-# TODO: Add a test to ensure this pinned version stays aligned with package.json.
 ENV YSWEET_VERSION=^0.9.1
 
 WORKDIR /app

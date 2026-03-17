@@ -63,9 +63,35 @@ const topLevelKeys = (lines: string[], section: string): Set<string> => {
   return out;
 };
 
+const capture = (source: string, pattern: RegExp, description: string): string => {
+  const match = source.match(pattern);
+  const value = match?.[1]?.trim();
+  if (!value) {
+    throw new Error(`missing ${description}`);
+  }
+  return value;
+};
+
+const normalizeNodeSeries = (raw: string, description: string): string => {
+  const match = raw.trim().match(/^(\d+\.\d+)/u);
+  const value = match?.[1];
+  if (!value) {
+    throw new Error(`unsupported ${description}: ${raw}`);
+  }
+  return value;
+};
+
 try {
-  const workspace = fs.readFileSync('pnpm-workspace.yaml', 'utf8').split(/\r?\n/u);
+  const workspaceRaw = fs.readFileSync('pnpm-workspace.yaml', 'utf8');
+  const workspace = workspaceRaw.split(/\r?\n/u);
   const lockfile = fs.readFileSync('pnpm-lock.yaml', 'utf8').split(/\r?\n/u);
+  const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8')) as {
+    engines?: {
+      node?: string;
+    };
+  };
+  const setupPnpm = fs.readFileSync('.github/actions/setup-pnpm/action.yml', 'utf8');
+  const dockerfile = fs.readFileSync('docker/Dockerfile', 'utf8');
 
   const lockKeys = new Set([...topLevelKeys(lockfile, 'packages'), ...topLevelKeys(lockfile, 'snapshots')]);
   for (const entry of listItems(workspace, 'trustPolicyExclude')) {
@@ -79,6 +105,40 @@ try {
     if (lockOverrides.get(key) !== value) {
       throw new Error(`stale override entry: ${key}`);
     }
+  }
+
+  const packageNode = packageJson.engines?.node;
+  if (!packageNode) {
+    throw new Error('missing package.json engines.node');
+  }
+  const expectedNodeSeries = normalizeNodeSeries(packageNode, 'package.json engines.node');
+
+  const ciNodeSeries = normalizeNodeSeries(
+    capture(setupPnpm, /node-version:\s*([^\n]+)/u, '.github/actions/setup-pnpm/action.yml node-version'),
+    '.github/actions/setup-pnpm/action.yml node-version',
+  );
+  if (ciNodeSeries !== expectedNodeSeries) {
+    throw new Error(`Node version drift: setup-pnpm uses ${ciNodeSeries}, package.json expects ${expectedNodeSeries}`);
+  }
+
+  const dockerNodeTags = [...dockerfile.matchAll(/^FROM node:(\d+\.\d+)-alpine AS (\w+)$/gmu)];
+  if (dockerNodeTags.length === 0) {
+    throw new Error('missing docker Node base images');
+  }
+  for (const [, dockerNodeSeries, stageName] of dockerNodeTags) {
+    if (dockerNodeSeries !== expectedNodeSeries) {
+      throw new Error(`Node version drift: docker ${stageName} uses ${dockerNodeSeries}, package.json expects ${expectedNodeSeries}`);
+    }
+  }
+
+  const workspaceCatalog = mapEntries(workspaceRaw.split(/\r?\n/u), 'catalog');
+  const workspaceYSweet = workspaceCatalog.get('y-sweet');
+  if (!workspaceYSweet) {
+    throw new Error('missing pnpm-workspace.yaml catalog y-sweet entry');
+  }
+  const dockerYSweet = capture(dockerfile, /^ENV YSWEET_VERSION=(.+)$/mu, 'docker YSWEET_VERSION');
+  if (dockerYSweet !== workspaceYSweet) {
+    throw new Error(`y-sweet version drift: docker uses ${dockerYSweet}, pnpm-workspace.yaml expects ${workspaceYSweet}`);
   }
 
   process.stdout.write('pnpm policy entries are active\n');
