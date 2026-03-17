@@ -26,27 +26,6 @@ Rules:
   note operation helpers and SDK adapter plumbing where the boundary is always
   zoom-specific.
 
-## Dependency refresh skill (draft)
-
-- Add a project-local skill for dependency refresh with a tiny `SKILL.md` and a
-  simple deterministic script.
-- Script scope: workspace/package dependencies only.
-- Update source of truth through the shared catalog in `pnpm-workspace.yaml`,
-  then run `pnpm install`, `pnpm run lint`, `pnpm run test:unit`, and
-  `pnpm run test:collab`.
-- Skill scope: runtime/platform/tooling baseline review outside workspace deps
-  (for example `package.json` `packageManager` / `engines.node`, Docker base
-  images, runtime-installed tools, and possibly CI action/runtime drift).
-- If dependency updates break checks, fix only direct/local fallout on the happy
-  path; stop and hand over on broader migration work or ambiguous breakage.
-- For minor/major dependency changes, check official changelogs/release notes
-  and look for chances to simplify RemDo by using newly provided functionality.
-- Only auto-apply small/local simplifications; report larger follow-up
-  opportunities instead of widening the maintenance task.
-- After dependency refresh, use `gh` to check for still-uncovered Dependabot PRs
-  or GitHub security alerts so the run can report what was intentionally held
-  back vs what still needs follow-up.
-
 ## Test doc-id lifecycle hygiene (deferred)
 
 - We currently mix two strategies in tests:
