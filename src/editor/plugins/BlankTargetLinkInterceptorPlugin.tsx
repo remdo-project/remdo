@@ -36,10 +36,7 @@ export function BlankTargetLinkInterceptorPlugin() {
         return;
       }
 
-      const openedWindow = globalThis.open(anchor.href, '_blank', 'noopener,noreferrer');
-      if (openedWindow) {
-        openedWindow.opener = null;
-      }
+      globalThis.open(anchor.href, '_blank', 'noopener,noreferrer');
       event.preventDefault();
       event.stopPropagation();
     };

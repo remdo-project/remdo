@@ -78,12 +78,18 @@ const externalUrlMatcher: LinkMatcher = (text): MatchResult | null => {
 
 const MATCHERS = [externalUrlMatcher];
 
+function unwrapLinkNode(node: LinkNode | AutoLinkNode) {
+  const parent = node.getParentOrThrow();
+  parent.splice(node.getIndexWithinParent(), 1, node.getChildren());
+}
+
 function normalizeExternalLinkNode(node: LinkNode | AutoLinkNode) {
   if ($isNoteLinkNode(node)) {
     return;
   }
   const normalizedUrl = normalizeExternalUrl(node.getURL());
   if (!normalizedUrl) {
+    unwrapLinkNode(node);
     return;
   }
   if (

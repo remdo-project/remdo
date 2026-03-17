@@ -1,4 +1,4 @@
-import { $createLinkNode, $isLinkNode } from '@lexical/link';
+import { $createAutoLinkNode, $createLinkNode, $isLinkNode } from '@lexical/link';
 import { act } from '@testing-library/react';
 import { $createTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
@@ -341,6 +341,46 @@ describe('note links (docs/outliner/links.md)', () => {
       expect(linkNode.getURL()).toBe(url);
       expect(linkNode.getTarget()).toBe('_blank');
       expect(linkNode.getRel()).toBe('noopener noreferrer');
+    });
+  });
+
+  it('unwraps imported-style LinkNodes with unsupported protocols', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await act(async () => {
+      remdo.editor.update(() => {
+        const note = $findNoteById('note1')!;
+        note.clear();
+        const linkNode = $createLinkNode('javascript:alert(1)');
+        linkNode.append($createTextNode('Example'));
+        note.append(linkNode);
+      });
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe('Example');
+      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
+    });
+  });
+
+  it('unwraps imported-style AutoLinkNodes with unsupported protocols', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectEntireNote(remdo, 'note1');
+    await act(async () => {
+      remdo.editor.update(() => {
+        const note = $findNoteById('note1')!;
+        note.clear();
+        const linkNode = $createAutoLinkNode('javascript:alert(1)');
+        linkNode.append($createTextNode('Example'));
+        note.append(linkNode);
+      });
+    });
+    await remdo.waitForSynced();
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getTextContent()).toBe('Example');
+      expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
   });
 
