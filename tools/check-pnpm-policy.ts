@@ -131,7 +131,7 @@ try {
     }
   }
 
-  const workspaceCatalog = mapEntries(workspaceRaw.split(/\r?\n/u), 'catalog');
+  const workspaceCatalog = mapEntries(workspace, 'catalog');
   const workspaceYSweet = workspaceCatalog.get('y-sweet');
   if (!workspaceYSweet) {
     throw new Error('missing pnpm-workspace.yaml catalog y-sweet entry');
