@@ -56,7 +56,6 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
     | { kind: 'before'; reference: LexicalNode }
     | { kind: 'after'; reference: LexicalNode }
     | { kind: 'append'; list: ListNode };
-  const userConfig = createHardcodedDocumentMetadata();
 
   const $resolveNoteById = (noteId: NoteId) => $findNoteById(noteId);
   const $requireNoteById = (noteId: NoteId): ListItemNode => {
@@ -290,11 +289,6 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
         .map((item) => $getNoteId(item))
         .filter((noteId): noteId is NoteId => noteId !== null);
     },
-    userConfigId: () => userConfig.userConfigId(),
-    hasUserConfigNote: (noteId) => userConfig.hasUserConfigNote(noteId),
-    userConfigKindOf: (noteId) => userConfig.userConfigKindOf(noteId),
-    userConfigTextOf: (noteId) => userConfig.userConfigTextOf(noteId),
-    userConfigChildrenOf: (noteId) => userConfig.userConfigChildrenOf(noteId),
     selection: () => $adapterSelection(),
     createNote: (target, text = '') => $createNote(target, text),
     hasNote: (noteId) => Boolean($resolveNoteById(noteId)),
@@ -358,5 +352,6 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
 }
 
 export function createLexicalNoteSdk(options: LexicalNoteSdkAdapterOptions): EditorNotes {
-  return createEditorNotes(createLexicalNoteSdkAdapter(options));
+  const metadata = createHardcodedDocumentMetadata();
+  return createEditorNotes(createLexicalNoteSdkAdapter(options), metadata);
 }

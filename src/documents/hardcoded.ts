@@ -1,14 +1,7 @@
+import type { DocumentMetadataSource } from '@/documents/contracts';
 import type { NoteId, NoteKind } from '@/notes/contracts';
 import { NoteNotFoundError } from '@/notes/errors';
 import { createUserConfigHandle } from './handles';
-
-interface HardcodedDocumentMetadata {
-  userConfigId: () => NoteId;
-  hasUserConfigNote: (noteId: NoteId) => boolean;
-  userConfigKindOf: (noteId: NoteId) => NoteKind;
-  userConfigTextOf: (noteId: NoteId) => string;
-  userConfigChildrenOf: (noteId: NoteId) => readonly NoteId[];
-}
 
 interface UserConfigRecord {
   kind: NoteKind;
@@ -45,7 +38,7 @@ const requireRecord = (noteId: NoteId): UserConfigRecord => {
   return record;
 };
 
-export function createHardcodedDocumentMetadata(): HardcodedDocumentMetadata {
+export function createHardcodedDocumentMetadata(): DocumentMetadataSource {
   return {
     userConfigId: () => USER_CONFIG_ROOT_ID,
     hasUserConfigNote: (noteId) => userConfigRecords.has(noteId),

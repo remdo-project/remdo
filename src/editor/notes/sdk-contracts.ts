@@ -1,6 +1,6 @@
 import type { DocumentNote } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
-import type { Note, NoteId, NoteKind } from '@/notes/contracts';
+import type { Note, NoteId } from '@/notes/contracts';
 
 type DocumentId = string;
 type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
@@ -54,16 +54,6 @@ export interface EditorNotes extends EditorNotesBase {
 export interface EditorNotesAdapter extends EditorNotesBase {
   /** Reads direct current-document root editor note ids in display order. */
   currentDocumentChildrenIds: () => readonly NoteId[];
-  /** Returns user-config root note id. */
-  userConfigId: () => NoteId;
-  /** True when user-config note id exists. */
-  hasUserConfigNote: (noteId: NoteId) => boolean;
-  /** Reads user-config note kind. Throws when user-config note does not exist. */
-  userConfigKindOf: (noteId: NoteId) => NoteKind;
-  /** Reads user-config note text. Throws when user-config note does not exist. */
-  userConfigTextOf: (noteId: NoteId) => string;
-  /** Reads direct user-config child ids. Throws when user-config note does not exist. */
-  userConfigChildrenOf: (noteId: NoteId) => readonly NoteId[];
   /** Creates and places an adapter-level note at target, then returns attached note id. */
   createNote: (target: PlaceTarget, text?: string) => NoteId;
   /** True when note id exists (bounded). */

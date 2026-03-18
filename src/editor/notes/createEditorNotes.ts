@@ -1,3 +1,4 @@
+import type { DocumentMetadataSource } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
 import type {
   AdapterNoteSelection,
@@ -14,7 +15,7 @@ import { createCurrentDocumentHandle, createUserConfigHandle } from '@/documents
 import { NoteNotFoundError } from '@/notes/errors';
 import { createNoteAs } from '@/notes/handle-utils';
 
-export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
+export function createEditorNotes(adapter: EditorNotesAdapter, metadata: DocumentMetadataSource): EditorNotes {
   const assertBoundedNoteExists = (noteId: NoteId): void => {
     if (!adapter.isBounded(noteId)) {
       throw new NoteNotFoundError(noteId);
@@ -81,8 +82,8 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
 
   return {
     docId: () => adapter.docId(),
-    currentDocument: () => createCurrentDocumentHandle(adapter, createHandle),
-    userConfig: () => createUserConfigHandle(adapter, adapter.userConfigId()),
+    currentDocument: () => createCurrentDocumentHandle(adapter, metadata, createHandle),
+    userConfig: () => createUserConfigHandle(metadata, metadata.userConfigId()),
     selection: () => resolveSelection(adapter.selection()),
     createNote: (target, text) => {
       assertPlaceTargetNotesExist(target);
