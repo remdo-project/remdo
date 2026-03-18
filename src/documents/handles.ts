@@ -1,4 +1,4 @@
-import type { DocumentNote, UserConfigSource, UserConfigNote } from '@/documents/contracts';
+import type { DocumentNote, UserConfigSource } from '@/documents/contracts';
 import type { EditorNote, EditorNotesAdapter } from '@/editor/notes/contracts';
 import type { Note, NoteId } from '@/notes/contracts';
 import { createNoteAs } from '@/notes/handle-utils';
@@ -17,7 +17,7 @@ function createUserConfigNote(userConfig: UserConfigSource, noteId: NoteId): Not
   return handle;
 }
 
-export function createUserConfigRootNote(userConfig: UserConfigSource): UserConfigNote {
+export function createUserConfigRootNote(userConfig: UserConfigSource): Note<'user-config'> {
   return createUserConfigNote(userConfig, userConfig.rootId()).as('user-config');
 }
 

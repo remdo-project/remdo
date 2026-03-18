@@ -1,4 +1,4 @@
-import type { DocumentListNote, DocumentNote, UserConfigNote } from '@/documents/contracts';
+import type { DocumentNote } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
 
 export type NoteId = string;
@@ -20,8 +20,8 @@ export interface Note<K extends NoteKind = NoteKind> {
   /** Narrows the note by runtime kind; throws when the expected kind does not match. */
   as: {
     (kind: 'editor-note'): EditorNote;
-    (kind: 'user-config'): UserConfigNote;
-    (kind: 'document-list'): DocumentListNote;
+    (kind: 'user-config'): Note<'user-config'>;
+    (kind: 'document-list'): Note<'document-list'>;
     (kind: 'document'): DocumentNote;
     (kind: NoteKind): Note;
   };
