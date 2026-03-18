@@ -34,13 +34,13 @@ import {
 } from '@/editor/outline/selection/tree';
 import type {
   AdapterNoteSelection,
+  EditorNotes,
+  EditorNotesAdapter,
   PlaceTarget,
   NoteRange,
-  NoteSdk,
-  NoteSdkAdapter,
 } from '@/editor/notes/sdk-contracts';
 import { createHardcodedUserConfigAdapter } from './hardcoded-user-config';
-import { createNoteSdk } from '../core';
+import { createEditorNotes } from '../core';
 import type { NoteId } from '../contracts';
 import { NoteNotFoundError } from '../errors';
 import type { ListItemNode, ListNode } from '@lexical/list';
@@ -51,7 +51,7 @@ interface LexicalNoteSdkAdapterOptions {
   docId: string;
 }
 
-function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOptions): NoteSdkAdapter {
+function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOptions): EditorNotesAdapter {
   type MoveInsertionTarget =
     | { kind: 'before'; reference: LexicalNode }
     | { kind: 'after'; reference: LexicalNode }
@@ -357,6 +357,6 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
   };
 }
 
-export function createLexicalNoteSdk(options: LexicalNoteSdkAdapterOptions): NoteSdk {
-  return createNoteSdk(createLexicalNoteSdkAdapter(options));
+export function createLexicalNoteSdk(options: LexicalNoteSdkAdapterOptions): EditorNotes {
+  return createEditorNotes(createLexicalNoteSdkAdapter(options));
 }

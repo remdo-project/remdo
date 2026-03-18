@@ -21,7 +21,7 @@ export type SelectionSnapshot =
 export type NoteSelection = SelectionSnapshot;
 export type AdapterNoteSelection = NoteSelection;
 
-interface NoteSdkBase {
+interface EditorNotesBase {
   /** Returns current document id for this sdk instance. */
   docId: () => DocumentId;
   /** Returns normalized selection snapshot; range is null only for kind:none. */
@@ -40,7 +40,7 @@ interface NoteSdkBase {
   moveDown: (range: NoteRange) => boolean;
 }
 
-export interface NoteSdk extends NoteSdkBase {
+export interface EditorNotes extends EditorNotesBase {
   /** Returns current document note handle. */
   currentDocument: () => DocumentNote;
   /** Returns user-config root note handle. */
@@ -51,7 +51,7 @@ export interface NoteSdk extends NoteSdkBase {
   note: (noteId: NoteId) => EditorNote;
 }
 
-export interface NoteSdkAdapter extends NoteSdkBase {
+export interface EditorNotesAdapter extends EditorNotesBase {
   /** Reads direct current-document root editor note ids in display order. */
   currentDocumentChildrenIds: () => readonly NoteId[];
   /** Returns user-config root note id. */

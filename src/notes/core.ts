@@ -1,9 +1,9 @@
 import type { EditorNote } from '@/editor/notes/contracts';
 import type {
   AdapterNoteSelection,
+  EditorNotes,
+  EditorNotesAdapter,
   NoteRange,
-  NoteSdk,
-  NoteSdkAdapter,
   NoteSelection,
   PlaceTarget,
 } from '@/editor/notes/sdk-contracts';
@@ -14,7 +14,7 @@ import { createCurrentDocumentHandle, createUserConfigHandle } from '@/documents
 import { NoteNotFoundError } from './errors';
 import { createNoteAs } from './handle-utils';
 
-export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
+export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
   const assertBoundedNoteExists = (noteId: NoteId): void => {
     if (!adapter.isBounded(noteId)) {
       throw new NoteNotFoundError(noteId);

@@ -1,4 +1,4 @@
-import type { NoteSdk } from '@/editor/notes/sdk-contracts';
+import type { EditorNotes } from '@/editor/notes/sdk-contracts';
 
 export interface SdkSearchCandidate {
   noteId: string;
@@ -12,7 +12,7 @@ export interface SdkSearchCandidateSnapshot {
 
 export const ROOT_SEARCH_SCOPE_ID = '__document_root__';
 
-export function collectSearchCandidatesFromSdk(sdk: Pick<NoteSdk, 'currentDocument'>): SdkSearchCandidate[] {
+export function collectSearchCandidatesFromSdk(sdk: Pick<EditorNotes, 'currentDocument'>): SdkSearchCandidate[] {
   const candidates: SdkSearchCandidate[] = [];
   const stack = sdk.currentDocument().children().toReversed();
 
@@ -32,7 +32,7 @@ export function collectSearchCandidatesFromSdk(sdk: Pick<NoteSdk, 'currentDocume
   return candidates;
 }
 
-export function collectChildCandidateMapFromSdk(sdk: Pick<NoteSdk, 'currentDocument'>): Record<string, SdkSearchCandidate[]> {
+export function collectChildCandidateMapFromSdk(sdk: Pick<EditorNotes, 'currentDocument'>): Record<string, SdkSearchCandidate[]> {
   const rootNotes = sdk.currentDocument().children();
   const childCandidateMap: Record<string, SdkSearchCandidate[]> = {
     [ROOT_SEARCH_SCOPE_ID]: rootNotes.map((note) => ({

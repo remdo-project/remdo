@@ -1,10 +1,10 @@
 import type { DocumentNote } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
-import type { NoteSdkAdapter } from '@/editor/notes/sdk-contracts';
+import type { EditorNotesAdapter } from '@/editor/notes/sdk-contracts';
 import type { Note, NoteId } from '@/notes/contracts';
 import { createNoteAs } from '@/notes/handle-utils';
 
-export function createUserConfigHandle(adapter: NoteSdkAdapter, noteId: NoteId): Note {
+export function createUserConfigHandle(adapter: EditorNotesAdapter, noteId: NoteId): Note {
   const kind = () => adapter.userConfigKindOf(noteId);
 
   const handle: Note = {
@@ -19,7 +19,7 @@ export function createUserConfigHandle(adapter: NoteSdkAdapter, noteId: NoteId):
 }
 
 export function createCurrentDocumentHandle(
-  adapter: NoteSdkAdapter,
+  adapter: EditorNotesAdapter,
   createEditorNote: (noteId: NoteId) => EditorNote
 ): DocumentNote {
   const currentDocId = adapter.docId();

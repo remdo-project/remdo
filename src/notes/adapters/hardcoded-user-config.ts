@@ -1,5 +1,5 @@
-import type { AdapterNoteSelection, NoteSdk, NoteSdkAdapter } from '@/editor/notes/sdk-contracts';
-import { createNoteSdk } from '../core';
+import type { AdapterNoteSelection, EditorNotes, EditorNotesAdapter } from '@/editor/notes/sdk-contracts';
+import { createEditorNotes } from '../core';
 import type { NoteId, NoteKind } from '../contracts';
 import { NoteNotFoundError } from '../errors';
 
@@ -56,9 +56,9 @@ export function createHardcodedUserConfigAdapter(): HardcodedUserConfigAdapter {
 
 const noSelection: AdapterNoteSelection = { kind: 'none', range: null };
 
-export function createHardcodedUserConfigNoteSdk(): NoteSdk {
+export function createHardcodedUserConfigNoteSdk(): EditorNotes {
   const userConfig = createHardcodedUserConfigAdapter();
-  const adapter: NoteSdkAdapter = {
+  const adapter: EditorNotesAdapter = {
     docId: () => MAIN_DOCUMENT_ID,
     currentDocumentChildrenIds: () => [],
     userConfigId: () => userConfig.userConfigId(),
@@ -87,5 +87,5 @@ export function createHardcodedUserConfigNoteSdk(): NoteSdk {
     moveUp: () => false,
     moveDown: () => false,
   };
-  return createNoteSdk(adapter);
+  return createEditorNotes(adapter);
 }
