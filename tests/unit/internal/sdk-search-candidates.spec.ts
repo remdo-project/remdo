@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { meta } from '#tests';
-import { createLexicalNoteSdk } from '@/editor/notes';
+import { createLexicalEditorNotes } from '@/editor/notes';
 import type { DocumentListNote, DocumentNote, UserConfigNote } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
 import type { Note, NoteKind } from '@/notes/contracts';
@@ -139,7 +139,7 @@ describe('sdk search candidates', () => {
 
   it('reads note-head text only from the real lexical adapter shape', meta({ fixture: 'basic' }), async ({ remdo }) => {
     const result = remdo.validate(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       return {
         allCandidates: collectSearchCandidatesFromSdk(sdk),
         childCandidateMap: collectChildCandidateMapFromSdk(sdk),

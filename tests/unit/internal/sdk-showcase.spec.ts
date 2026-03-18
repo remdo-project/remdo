@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest';
 import { meta, placeCaretAtNote } from '#tests';
 import { createHardcodedUserConfigRootNote } from '@/documents';
-import { createLexicalNoteSdk } from '@/editor/notes';
+import { createLexicalEditorNotes } from '@/editor/notes';
 
 describe('sdk showcase', () => {
   it(
@@ -19,7 +19,7 @@ describe('sdk showcase', () => {
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note2');
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       const note2 = sdk.note('note2');
 
       remdo.validate(() => {
@@ -96,7 +96,7 @@ describe('sdk showcase', () => {
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       const userConfig = createHardcodedUserConfigRootNote();
 
       remdo.validate(() => {

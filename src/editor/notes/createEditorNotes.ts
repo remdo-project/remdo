@@ -1,4 +1,3 @@
-import type { UserConfigSource } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
 import type {
   AdapterNoteSelection,
@@ -15,36 +14,7 @@ import { createCurrentDocumentHandle } from '@/documents/handles';
 import { NoteNotFoundError } from '@/notes/errors';
 import { createNoteAs } from '@/notes/handle-utils';
 
-export function createEditorNotes(adapter: EditorNotesAdapter, userConfig: UserConfigSource): EditorNotes {
-  const assertBoundedNoteExists = (noteId: NoteId): void => {
-    if (!adapter.isBounded(noteId)) {
-      throw new NoteNotFoundError(noteId);
-    }
-  };
-
-  const assertRangeNotesBounded = (range: NoteRange): void => {
-    assertBoundedNoteExists(range.start);
-    assertBoundedNoteExists(range.end);
-  };
-
-  const assertPlaceTargetNotesExist = (target: PlaceTarget): void => {
-    if ('parent' in target) {
-      if (!adapter.isBounded(target.parent)) {
-        throw new NoteNotFoundError(target.parent);
-      }
-      return;
-    }
-    if ('before' in target) {
-      if (!adapter.isBounded(target.before)) {
-        throw new NoteNotFoundError(target.before);
-      }
-      return;
-    }
-    if (!adapter.isBounded(target.after)) {
-      throw new NoteNotFoundError(target.after);
-    }
-  };
-
+export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
   const createHandle = (noteId: NoteId): EditorNote => {
     const kind = () => 'editor-note' as const;
     const handle: EditorNote = {
@@ -76,22 +46,34 @@ export function createEditorNotes(adapter: EditorNotesAdapter, userConfig: UserC
     range: NoteRange,
     operation: (noteRange: NoteRange) => T
   ): T => {
-    assertRangeNotesBounded(range);
+    if (!adapter.isBounded(range.start)) {
+      throw new NoteNotFoundError(range.start);
+    }
+    if (!adapter.isBounded(range.end)) {
+      throw new NoteNotFoundError(range.end);
+    }
     return operation(range);
+  };
+
+  const ensurePlaceTargetExists = (target: PlaceTarget): void => {
+    const noteId = 'parent' in target ? target.parent : 'before' in target ? target.before : target.after;
+    if (!adapter.isBounded(noteId)) {
+      throw new NoteNotFoundError(noteId);
+    }
   };
 
   return {
     docId: () => adapter.docId(),
-    currentDocument: () => createCurrentDocumentHandle(adapter, userConfig, createHandle),
+    currentDocument: () => createCurrentDocumentHandle(adapter, createHandle),
     selection: () => resolveSelection(adapter.selection()),
     createNote: (target, text) => {
-      assertPlaceTargetNotesExist(target);
+      ensurePlaceTargetExists(target);
       return createHandle(adapter.createNote(target, text));
     },
     note: (noteId) => createHandle(noteId),
     delete: (range) => runRangeMutation(range, adapter.delete),
     place: (range, target) => {
-      assertPlaceTargetNotesExist(target);
+      ensurePlaceTargetExists(target);
       runRangeMutation(range, (noteRange) => adapter.place(noteRange, target));
     },
     indent: (range) => runRangeMutation(range, adapter.indent),

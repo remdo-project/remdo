@@ -1,6 +1,6 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { createLexicalNoteSdk } from '@/editor/notes';
+import { createLexicalEditorNotes } from '@/editor/notes';
 import {
   collectChildCandidateMapFromSdk,
   collectSearchCandidatesFromSdk,
@@ -59,7 +59,7 @@ export function SearchCandidatesPlugin({
   onCandidatesChange,
 }: SearchCandidatesPluginProps) {
   const [editor] = useLexicalComposerContext();
-  const sdk = useMemo(() => createLexicalNoteSdk({ editor, docId }), [docId, editor]);
+  const sdk = useMemo(() => createLexicalEditorNotes({ editor, docId }), [docId, editor]);
   const previousSnapshotRef = useRef<SdkSearchCandidateSnapshot>(emptySnapshot);
 
   const emitCandidates = useCallback((snapshot: SdkSearchCandidateSnapshot) => {

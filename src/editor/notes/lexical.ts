@@ -32,7 +32,6 @@ import {
   isContentDescendantOf,
   removeNoteHeads,
 } from '@/editor/outline/selection/tree';
-import { createHardcodedUserConfigSource } from '@/documents/hardcoded';
 import type {
   AdapterNoteSelection,
   EditorNotes,
@@ -46,12 +45,12 @@ import { NoteNotFoundError } from '@/notes/errors';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 
-interface LexicalNoteSdkAdapterOptions {
+interface LexicalEditorNotesAdapterOptions {
   editor: LexicalEditor;
   docId: string;
 }
 
-function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOptions): EditorNotesAdapter {
+function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAdapterOptions): EditorNotesAdapter {
   type MoveInsertionTarget =
     | { kind: 'before'; reference: LexicalNode }
     | { kind: 'after'; reference: LexicalNode }
@@ -351,7 +350,6 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
   };
 }
 
-export function createLexicalNoteSdk(options: LexicalNoteSdkAdapterOptions): EditorNotes {
-  const userConfig = createHardcodedUserConfigSource();
-  return createEditorNotes(createLexicalNoteSdkAdapter(options), userConfig);
+export function createLexicalEditorNotes(options: LexicalEditorNotesAdapterOptions): EditorNotes {
+  return createEditorNotes(createLexicalEditorNotesAdapter(options));
 }

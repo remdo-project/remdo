@@ -26,7 +26,7 @@ describe('search candidates plugin', () => {
       useLexicalComposerContext: () => [mockEditor],
     }));
     vi.doMock('@/editor/notes', () => ({
-      createLexicalNoteSdk: () => ({}),
+      createLexicalEditorNotes: () => ({}),
     }));
     vi.doMock('@/editor/search/sdk-search-candidates', () => ({
       collectSearchCandidatesFromSdk,
@@ -68,7 +68,7 @@ describe('search candidates plugin', () => {
       useLexicalComposerContext: () => [mockEditor],
     }));
     vi.doMock('@/editor/notes', () => ({
-      createLexicalNoteSdk: () => ({}),
+      createLexicalEditorNotes: () => ({}),
     }));
     vi.doMock('@/editor/search/sdk-search-candidates', () => ({
       collectSearchCandidatesFromSdk: () => [{ noteId: 'note1', text: 'note1' }],

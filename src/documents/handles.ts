@@ -24,7 +24,6 @@ export function createUserConfigRootNote(userConfig: UserConfigSource): UserConf
 
 export function createCurrentDocumentHandle(
   adapter: EditorNotesAdapter,
-  userConfig: UserConfigSource,
   createEditorNote: (noteId: NoteId) => EditorNote
 ): DocumentNote {
   const currentDocId = adapter.docId();
@@ -33,12 +32,7 @@ export function createCurrentDocumentHandle(
   const handle: DocumentNote = {
     id: () => currentDocId,
     kind,
-    text: () => {
-      if (userConfig.hasNote(currentDocId) && userConfig.kindOf(currentDocId) === 'document') {
-        return userConfig.textOf(currentDocId);
-      }
-      return currentDocId;
-    },
+    text: () => currentDocId,
     children: () => adapter.currentDocumentChildrenIds().map((noteId) => createEditorNote(noteId)),
     as: createNoteAs(currentDocId, kind, () => handle),
   };

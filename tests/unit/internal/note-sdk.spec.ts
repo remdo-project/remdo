@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { meta, placeCaretAtNote, readOutline, selectNoteRange } from '#tests';
-import { createLexicalNoteSdk } from '@/editor/notes';
+import { createLexicalEditorNotes as createLexicalNoteSdk } from '@/editor/notes';
 import { NoteNotFoundError } from '@/notes/errors';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { removeNoteSubtree } from '@/editor/outline/selection/tree';
