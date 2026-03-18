@@ -132,21 +132,21 @@ describe('editor notes core', () => {
   it('narrows notes by kind and throws on mismatches', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createEditorNotes(fixture.adapter);
-    const documentList = createUserConfigRootNote(fixture.userConfig).children()[0]!.as('document-list');
+    const documentList = createUserConfigRootNote(fixture.userConfig).documentList();
     const note = sdk.note('a');
 
     expect(documentList.kind()).toBe('document-list');
-    expect(documentList.children()[0]!.as('document').text()).toBe('Main');
+    expect(documentList.children()[0]!.text()).toBe('Main');
     expect(note.as('editor-note').attached()).toBe(true);
     expect(() => note.as('document')).toThrow('expected "document"');
   });
 
   it('lists documents through user-config document-list traversal', () => {
     const fixture = createMockAdapterFixture();
-    const documentList = createUserConfigRootNote(fixture.userConfig).children().find((entry) => entry.kind() === 'document-list')!;
+    const documentList = createUserConfigRootNote(fixture.userConfig).documentList();
 
     expect(
-      documentList.children().filter((entry) => entry.kind() === 'document').map((document) => ({
+      documentList.children().map((document) => ({
         id: document.id(),
         kind: document.kind(),
         text: document.text(),

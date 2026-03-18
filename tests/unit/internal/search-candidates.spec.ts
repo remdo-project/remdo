@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { meta } from '#tests';
 import { createLexicalEditorNotes } from '@/editor/notes';
-import type { DocumentNote } from '@/documents/contracts';
+import type { DocumentListNote, DocumentNote, UserConfigNote } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
 import type { Note, NoteKind } from '@/notes/contracts';
 import {
@@ -12,8 +12,8 @@ import {
 
 function createMockNoteAs(noteId: string, kind: () => NoteKind, self: () => Note): Note['as'] {
   function asNote(kindToMatch: 'editor-note'): EditorNote;
-  function asNote(kindToMatch: 'user-config'): Note<'user-config'>;
-  function asNote(kindToMatch: 'document-list'): Note<'document-list'>;
+  function asNote(kindToMatch: 'user-config'): UserConfigNote;
+  function asNote(kindToMatch: 'document-list'): DocumentListNote;
   function asNote(kindToMatch: 'document'): DocumentNote;
   function asNote(kindToMatch: NoteKind): Note;
   function asNote(kindToMatch: NoteKind): Note {

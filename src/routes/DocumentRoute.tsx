@@ -41,16 +41,7 @@ export default function DocumentRoute() {
   const zoomNoteId = parsedRef?.noteId ?? null;
   const userConfigRoot = useMemo(() => getUserConfig(), []);
   const documentOptions = useMemo(
-    () => {
-      const documentList = userConfigRoot.children().find((entry) => entry.kind() === 'document-list');
-      if (!documentList) {
-        return [];
-      }
-      return documentList
-        .children()
-        .filter((entry) => entry.kind() === 'document')
-        .map((document) => ({ value: document.id(), label: document.text() }));
-    },
+    () => userConfigRoot.documentList().children().map((document) => ({ value: document.id(), label: document.text() })),
     [userConfigRoot]
   );
   const documentPicker = useCombobox({

@@ -75,8 +75,7 @@ describe('editor notes showcase', () => {
       const userConfig = getUserConfig();
 
       remdo.validate(() => {
-        const documentList = userConfig.children().find((entry) => entry.kind() === 'document-list')!;
-        const listedDocuments = documentList.children().filter((entry) => entry.kind() === 'document').map((document) => ({
+        const listedDocuments = userConfig.documentList().children().map((document) => ({
           id: document.id(),
           text: document.text(),
         }));
@@ -100,12 +99,11 @@ describe('editor notes showcase', () => {
       const userConfig = getUserConfig();
 
       remdo.validate(() => {
-        const userConfigRoot = userConfig.as('user-config');
-        const documentList = userConfigRoot.children()[0]!.as('document-list');
-        const firstDocument = documentList.children()[0]!.as('document');
+        const documentList = userConfig.documentList();
+        const firstDocument = documentList.children()[0]!;
         const note1 = sdk.note('note1').as('editor-note');
 
-        expect(userConfigRoot.kind()).toBe('user-config');
+        expect(userConfig.kind()).toBe('user-config');
         expect(documentList.kind()).toBe('document-list');
         expect(firstDocument.id()).toBe('main');
         expect(firstDocument.text()).toBe('Main');
