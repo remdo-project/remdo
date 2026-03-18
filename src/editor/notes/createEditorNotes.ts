@@ -1,16 +1,15 @@
+import type { DocumentNote } from '@/documents/contracts';
 import type {
-  AdapterNoteSelection,
   EditorNote,
   EditorNotes,
   EditorNotesAdapter,
   NoteRange,
-  NoteSelection,
   PlaceTarget,
+  SelectionSnapshot,
 } from '@/editor/notes/contracts';
 import type {
   NoteId,
 } from '@/notes/contracts';
-import { createCurrentDocumentHandle } from '@/documents/handles';
 import { NoteNotFoundError } from '@/notes/errors';
 import { createNoteAs } from '@/notes/handle-utils';
 
@@ -28,9 +27,22 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
     return handle;
   };
 
-  const createNoneSelection = (): NoteSelection => ({ kind: 'none', range: null });
+  const createCurrentDocumentHandle = (): DocumentNote => {
+    const currentDocId = adapter.docId();
+    const kind = () => 'document' as const;
+    const handle: DocumentNote = {
+      id: () => currentDocId,
+      kind,
+      text: () => currentDocId,
+      children: () => adapter.currentDocumentChildrenIds().map((noteId) => createHandle(noteId)),
+      as: createNoteAs(currentDocId, kind, () => handle),
+    };
+    return handle;
+  };
 
-  const resolveSelection = (adapterSelection: AdapterNoteSelection): NoteSelection => {
+  const createNoneSelection = (): SelectionSnapshot => ({ kind: 'none', range: null });
+
+  const resolveSelection = (adapterSelection: SelectionSnapshot): SelectionSnapshot => {
     if (adapterSelection.kind === 'none') {
       return createNoneSelection();
     }
@@ -64,7 +76,7 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
 
   return {
     docId: () => adapter.docId(),
-    currentDocument: () => createCurrentDocumentHandle(adapter, createHandle),
+    currentDocument: createCurrentDocumentHandle,
     selection: () => resolveSelection(adapter.selection()),
     createNote: (target, text) => {
       ensurePlaceTargetExists(target);

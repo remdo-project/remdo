@@ -15,8 +15,6 @@ const PROJECT_DOCUMENT_ID = 'project';
 const BASIC_DOCUMENT_ID = 'basic';
 const FLAT_DOCUMENT_ID = 'flat';
 
-export const HARDCODED_DEFAULT_DOCUMENT_ID = MAIN_DOCUMENT_ID;
-
 const userConfigRecords = new Map<NoteId, UserConfigRecord>([
   [USER_CONFIG_ROOT_ID, { kind: 'user-config', text: 'User Config', children: [DOCUMENT_LIST_ID] }],
   [

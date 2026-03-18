@@ -33,11 +33,11 @@ import {
   removeNoteHeads,
 } from '@/editor/outline/selection/tree';
 import type {
-  AdapterNoteSelection,
   EditorNotes,
   EditorNotesAdapter,
   PlaceTarget,
   NoteRange,
+  SelectionSnapshot,
 } from '@/editor/notes/contracts';
 import { createEditorNotes } from './createEditorNotes';
 import type { NoteId } from '@/notes/contracts';
@@ -223,7 +223,7 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
     return noteRangeFromOrderedIds(heads);
   };
 
-  const $selectionFallbackFromRange = (): AdapterNoteSelection => {
+  const $selectionFallbackFromRange = (): SelectionSnapshot => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection)) {
       return { kind: 'none', range: null };
@@ -256,7 +256,7 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
     return $requireContentItemNoteId(node);
   };
 
-  const $adapterSelection = (): AdapterNoteSelection => {
+  const $adapterSelection = (): SelectionSnapshot => {
     const outlineSelection = editor.selection.get();
     if (!outlineSelection) {
       return $selectionFallbackFromRange();

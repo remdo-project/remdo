@@ -24,9 +24,6 @@ export type SelectionSnapshot =
   | { kind: 'none'; range: null }
   | { kind: SelectionWithRangeKind; range: NoteRange };
 
-export type NoteSelection = SelectionSnapshot;
-export type AdapterNoteSelection = NoteSelection;
-
 interface EditorNotesBase {
   /** Returns current document id for this editor-notes instance. */
   docId: () => DocumentId;

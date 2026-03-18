@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { createUserConfigRootNote } from '@/documents/handles';
 import { createEditorNotes } from '@/editor/notes';
-import type { AdapterNoteSelection, EditorNotesAdapter, NoteRange, PlaceTarget } from '@/editor/notes/contracts';
+import type { EditorNotesAdapter, NoteRange, PlaceTarget, SelectionSnapshot } from '@/editor/notes/contracts';
 import { NoteNotFoundError } from '@/notes/errors';
 import type { NoteKind } from '@/notes/contracts';
 
 function createMockAdapterFixture(
-  adapterSelection?: AdapterNoteSelection
+  adapterSelection?: SelectionSnapshot
 ): {
   adapter: EditorNotesAdapter;
   userConfig: Parameters<typeof createUserConfigRootNote>[0];
