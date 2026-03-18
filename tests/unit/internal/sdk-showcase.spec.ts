@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { meta, placeCaretAtNote } from '#tests';
-import { createLexicalNoteSdk } from '@/editor/outline/sdk/adapters/lexical';
+import { createLexicalNoteSdk } from '@/notes/adapters/lexical';
 
 describe('sdk showcase', () => {
   it(

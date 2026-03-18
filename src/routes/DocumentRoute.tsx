@@ -4,7 +4,7 @@ import { IconChevronDown, IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Editor from '@/editor/Editor';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
-import { createHardcodedUserConfigNoteSdk } from '@/editor/outline/sdk';
+import { createHardcodedUserConfigNoteSdk } from '@/notes';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
 import { createDocumentPathForPathname, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
 import { useDocumentSearchModel } from './useDocumentSearchModel';

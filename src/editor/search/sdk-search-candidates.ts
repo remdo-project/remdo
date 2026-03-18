@@ -1,4 +1,4 @@
-import type { NoteSdk } from '@/editor/outline/sdk/contracts';
+import type { NoteSdk } from '@/notes/contracts';
 
 export interface SdkSearchCandidate {
   noteId: string;

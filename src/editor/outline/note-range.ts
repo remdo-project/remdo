@@ -1,4 +1,4 @@
-import type { NoteId, NoteRange } from './sdk/contracts';
+import type { NoteId, NoteRange } from '@/notes/contracts';
 
 export function noteRangeFromNoteId(noteId: NoteId): NoteRange {
   return { start: noteId, end: noteId };

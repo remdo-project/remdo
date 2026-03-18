@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createNoteSdk, NoteNotFoundError } from '@/editor/outline/sdk';
-import type { AdapterNoteSelection, NoteKind, NoteRange, NoteSdkAdapter, PlaceTarget } from '@/editor/outline/sdk/contracts';
+import { createNoteSdk, NoteNotFoundError } from '@/notes';
+import type { AdapterNoteSelection, NoteKind, NoteRange, NoteSdkAdapter, PlaceTarget } from '@/notes/contracts';
 
 function createMockAdapterFixture(
   adapterSelection?: AdapterNoteSelection

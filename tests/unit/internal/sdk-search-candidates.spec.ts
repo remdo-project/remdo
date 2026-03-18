@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { meta } from '#tests';
-import { createLexicalNoteSdk } from '@/editor/outline/sdk/adapters/lexical';
-import type { EditorNote } from '@/editor/outline/sdk/contracts';
+import { createLexicalNoteSdk } from '@/notes/adapters/lexical';
+import type { EditorNote } from '@/notes/contracts';
 import {
   collectChildCandidateMapFromSdk,
   collectSearchCandidatesFromSdk,

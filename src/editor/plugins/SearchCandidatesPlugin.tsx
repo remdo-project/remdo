@@ -1,6 +1,6 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { createLexicalNoteSdk } from '@/editor/outline/sdk/adapters/lexical';
+import { createLexicalNoteSdk } from '@/notes/adapters/lexical';
 import {
   collectChildCandidateMapFromSdk,
   collectSearchCandidatesFromSdk,
