@@ -1,12 +1,12 @@
-import type { EditorNote } from '@/editor/notes/contracts';
 import type {
   AdapterNoteSelection,
+  EditorNote,
   EditorNotes,
   EditorNotesAdapter,
   NoteRange,
   NoteSelection,
   PlaceTarget,
-} from '@/editor/notes/sdk-contracts';
+} from '@/editor/notes/contracts';
 import type {
   NoteId,
 } from '@/notes/contracts';

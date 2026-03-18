@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { UserConfigSource } from '@/documents/contracts';
 import { createUserConfigRootNote } from '@/documents/handles';
 import { createEditorNotes } from '@/editor/notes';
-import type { AdapterNoteSelection, EditorNotesAdapter, NoteRange, PlaceTarget } from '@/editor/notes/sdk-contracts';
+import type { AdapterNoteSelection, EditorNotesAdapter, NoteRange, PlaceTarget } from '@/editor/notes/contracts';
 import { NoteNotFoundError } from '@/notes/errors';
 import type { NoteKind } from '@/notes/contracts';
 

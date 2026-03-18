@@ -1,6 +1,5 @@
 import type { DocumentNote, UserConfigSource, UserConfigNote } from '@/documents/contracts';
-import type { EditorNote } from '@/editor/notes/contracts';
-import type { EditorNotesAdapter } from '@/editor/notes/sdk-contracts';
+import type { EditorNote, EditorNotesAdapter } from '@/editor/notes/contracts';
 import type { Note, NoteId } from '@/notes/contracts';
 import { createNoteAs } from '@/notes/handle-utils';
 

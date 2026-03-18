@@ -38,7 +38,7 @@ import type {
   EditorNotesAdapter,
   PlaceTarget,
   NoteRange,
-} from '@/editor/notes/sdk-contracts';
+} from '@/editor/notes/contracts';
 import { createEditorNotes } from './createEditorNotes';
 import type { NoteId } from '@/notes/contracts';
 import { NoteNotFoundError } from '@/notes/errors';
