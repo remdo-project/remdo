@@ -3,8 +3,7 @@ export type NoteKind =
   | 'editor-note'
   | 'user-config'
   | 'document-list'
-  | 'document'
-  | (string & {});
+  | 'document';
 
 type DocumentId = string;
 type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';

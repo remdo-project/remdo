@@ -1,35 +1,16 @@
 import type {
   AdapterNoteSelection,
-  DocumentListNote,
-  DocumentNote,
   EditorNote,
   PlaceTarget,
-  Note,
   NoteId,
-  NoteKind,
   NoteRange,
   NoteSdk,
   NoteSdkAdapter,
   NoteSelection,
-  UserConfigNote,
 } from './contracts';
+import { createCurrentDocumentHandle, createUserConfigHandle } from '@/documents/handles';
 import { NoteNotFoundError } from './errors';
-
-function createNoteAs(noteId: NoteId, kind: () => NoteKind, self: () => Note): Note['as'] {
-  function asNote(kindToMatch: 'editor-note'): EditorNote;
-  function asNote(kindToMatch: 'user-config'): UserConfigNote;
-  function asNote(kindToMatch: 'document-list'): DocumentListNote;
-  function asNote(kindToMatch: 'document'): DocumentNote;
-  function asNote(kindToMatch: NoteKind): Note;
-  function asNote(kindToMatch: NoteKind): Note {
-    const actualKind = kind();
-    if (actualKind !== kindToMatch) {
-      throw new Error(`Note "${noteId}" is "${actualKind}", expected "${kindToMatch}".`);
-    }
-    return self();
-  }
-  return asNote;
-}
+import { createNoteAs } from './handle-utils';
 
 export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
   const assertNoteExists = (noteId: NoteId): void => {
@@ -86,55 +67,7 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
     return handle;
   };
 
-  // TODO(note-sdk): This is a temporary user-config-specific read path.
-  // Refactor to repository-scoped note resolvers once SDK composes user-config
-  // and document note repositories at the facade level.
-  const createUserConfigHandle = (noteId: NoteId): Note => {
-    const kind = () => {
-      if (!adapter.hasUserConfigNote(noteId)) {
-        throw new NoteNotFoundError(noteId);
-      }
-      return adapter.userConfigKindOf(noteId);
-    };
-    const handle: Note = {
-      id: () => noteId,
-      kind,
-      text: () => {
-        if (!adapter.hasUserConfigNote(noteId)) {
-          throw new NoteNotFoundError(noteId);
-        }
-        return adapter.userConfigTextOf(noteId);
-      },
-      children: () => {
-        if (!adapter.hasUserConfigNote(noteId)) {
-          throw new NoteNotFoundError(noteId);
-        }
-        return adapter.userConfigChildrenOf(noteId).map((childId) => createUserConfigHandle(childId));
-      },
-      as: createNoteAs(noteId, kind, () => handle),
-    };
-    return handle;
-  };
-
   const createNoneSelection = (): NoteSelection => ({ kind: 'none', range: null });
-
-  const createCurrentDocumentHandle = (): DocumentNote => {
-    const currentDocId = adapter.docId();
-    const kind = () => 'document' as const;
-    const handle: DocumentNote = {
-      id: () => currentDocId,
-      kind,
-      text: () => {
-        if (adapter.hasUserConfigNote(currentDocId) && adapter.userConfigKindOf(currentDocId) === 'document') {
-          return adapter.userConfigTextOf(currentDocId);
-        }
-        return currentDocId;
-      },
-      children: () => adapter.currentDocumentChildrenIds().map((noteId) => createHandle(noteId)),
-      as: createNoteAs(currentDocId, kind, () => handle),
-    };
-    return handle;
-  };
 
   const resolveSelection = (adapterSelection: AdapterNoteSelection): NoteSelection => {
     if (adapterSelection.kind === 'none') {
@@ -158,8 +91,8 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
 
   return {
     docId: () => adapter.docId(),
-    currentDocument: () => createCurrentDocumentHandle(),
-    userConfig: () => createUserConfigHandle(adapter.userConfigId()),
+    currentDocument: () => createCurrentDocumentHandle(adapter, createHandle),
+    userConfig: () => createUserConfigHandle(adapter, adapter.userConfigId()),
     selection: () => resolveSelection(adapter.selection()),
     createNote: (target, text) => {
       assertPlaceTargetNotesExist(target);
