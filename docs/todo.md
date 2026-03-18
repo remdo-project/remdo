@@ -102,6 +102,58 @@ Rules:
 - Start with a simple in-memory adapter now; keep Lexical adapter as-is for
   editor-backed notes; allow future SQLite adapter without SDK usage changes.
 
+### Agreed next steps
+
+1. Define the generic SDK/core contract first, before moving route metadata:
+   `Note` owns sync `text()`, sync `children()`, and throwing `as(kind)`.
+2. Keep async behavior out of the raw `Note` handle for now. Cross-boundary
+   traversal/search should live in async walker/finder helpers above the note
+   API.
+3. Treat adapter boundaries as an SDK implementation detail. Callers should
+   traverse one note-first API without caring whether edges cross from metadata
+   storage into editor-backed notes.
+4. Keep document-specific note kinds on top of the generic note SDK/core rather
+   than baking those mechanics into a document-only module.
+5. Keep one `DocumentNote` kind. Its long-term meaning is the document node in
+   the unified tree; `document.children()` is intended to expose document body
+   root notes.
+6. Defer non-current-document loading behavior instead of baking temporary
+   unloaded/skip semantics into the public note API. If needed during
+   transition, keep temporary limitations clearly internal to the SDK layer.
+
+### Incremental implementation order
+
+1. Extract generic note mechanics into SDK/core:
+   base `Note` contract, typed kind narrowing via `as(kind)`, and generic
+   adapter-facing handle construction.
+2. Add document-specific kinds on top of that generic layer:
+   `UserConfigNote`, `DocumentListNote`, `DocumentNote`, plus only the minimal
+   convenience helpers that encode agreed invariants.
+3. Introduce async walker/finder/query helpers intended for search and
+   note-link completion so future cross-document traversal does not force raw
+   recursive `children()` traversal into callers.
+4. Rewire the hardcoded document list to use the new generic SDK/domain shape
+   in-memory first.
+5. Only then move route/document-picker code off the temporary hardcoded
+   editor-SDK path.
+6. After the new generic shape is in place, remove user-config responsibilities
+   from `src/editor/outline/sdk/adapters/lexical.ts`.
+7. Replace hardcoded metadata storage with persisted metadata storage
+   (for example a dedicated meta Y-Sweet doc) behind the same SDK/domain
+   boundary.
+
+### Planned doc follow-ups
+
+- `docs/outliner/concepts.md`: update once `Note` is promoted from outliner
+  concept to the broader SDK/runtime primitive with explicit generic-vs-domain
+  layering.
+- `docs/architecture.md`: update once the repository/query layer and
+  cross-adapter traversal contract are real.
+- `docs/outliner/search.md`: update when search moves onto the async
+  walker/finder contract.
+- `docs/outliner/links.md`: update when note-link completion/search uses the
+  same async traversal/query layer.
+
 ### Cautions and open questions
 
 - Avoid forcing one flat note shape too early; keep a minimal `kind` +
