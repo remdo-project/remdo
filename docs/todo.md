@@ -121,6 +121,24 @@ Rules:
    unloaded/skip semantics into the public note API. If needed during
    transition, keep temporary limitations clearly internal to the SDK layer.
 
+### Simplicity requirement
+
+1. Optimize for the simplest solution to use and to implement, not for maximum
+   extensibility up front.
+2. Treat every API surface addition as suspicious until it proves necessary:
+   avoid adding functions, methods, helpers, options, wrappers, or extra
+   abstraction layers unless a current caller clearly needs them.
+3. Avoid speculative flexibility. Do not keep temporary compatibility shims,
+   transitional APIs, or “might be useful later” hooks by default.
+4. Keep validation and runtime branching to the minimum needed to protect real
+   invariants; avoid redundant checks that only defend against shapes the SDK
+   itself constructs.
+5. Prefer one direct path over multiple equivalent entry points. If two APIs
+   solve the same current problem, pick one and delete the other.
+6. When in doubt between a more general design and a narrower one that fully
+   satisfies the current step, choose the narrower design and expand only after
+   a concrete need appears.
+
 ### Incremental implementation order
 
 1. Extract generic note mechanics into SDK/core:
