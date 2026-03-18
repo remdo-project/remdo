@@ -9,6 +9,22 @@ export type NoteKind =
 type DocumentId = string;
 type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
 
+export interface UserConfigNote extends Note<'user-config'> {}
+
+export interface DocumentListNote extends Note<'document-list'> {}
+
+export interface EditorNote extends Note<'editor-note'> {
+  /** True when the note still exists in the current editor state. */
+  attached: () => boolean;
+  /** Returns direct child editor notes. Throws when the note does not exist. */
+  children: () => readonly EditorNote[];
+}
+
+export interface DocumentNote extends Note<'document'> {
+  /** Returns direct document-root editor notes in display order. */
+  children: () => readonly EditorNote[];
+}
+
 export interface Note<K extends NoteKind = NoteKind> {
   /** Stable id for a note. */
   id: () => NoteId;
@@ -18,18 +34,14 @@ export interface Note<K extends NoteKind = NoteKind> {
   text: () => string;
   /** Returns direct child notes. */
   children: () => readonly Note[];
-}
-
-export interface EditorNote extends Note<'editor-note'> {
-  /** True when the note still exists in the current editor state. */
-  attached: () => boolean;
-  /** Returns direct child editor notes. Throws when note does not exist. */
-  children: () => readonly EditorNote[];
-}
-
-export interface DocumentNote extends Note<'document'> {
-  /** Returns direct document-root editor notes in display order. */
-  children: () => readonly EditorNote[];
+  /** Narrows the note by runtime kind; throws when the expected kind does not match. */
+  as: {
+    (kind: 'editor-note'): EditorNote;
+    (kind: 'user-config'): UserConfigNote;
+    (kind: 'document-list'): DocumentListNote;
+    (kind: 'document'): DocumentNote;
+    (kind: NoteKind): Note;
+  };
 }
 
 export interface NoteRange {

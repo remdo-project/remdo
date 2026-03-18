@@ -124,6 +124,18 @@ function createMockAdapterFixture(
 }
 
 describe('note sdk core', () => {
+  it('narrows notes by kind and throws on mismatches', () => {
+    const fixture = createMockAdapterFixture();
+    const sdk = createNoteSdk(fixture.adapter);
+    const documentList = sdk.userConfig().children()[0]!.as('document-list');
+    const note = sdk.note('a');
+
+    expect(documentList.kind()).toBe('document-list');
+    expect(documentList.children()[0]!.as('document').text()).toBe('Main');
+    expect(note.as('editor-note').attached()).toBe(true);
+    expect(() => note.as('document')).toThrow('expected "document"');
+  });
+
   it('lists documents through user-config document-list traversal', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createNoteSdk(fixture.adapter);

@@ -89,4 +89,27 @@ describe('sdk showcase', () => {
       });
     }
   );
+
+  it(
+    'shows explicit note narrowing with as(kind)',
+    meta({ fixture: 'flat' }),
+    async ({ remdo }) => {
+      await placeCaretAtNote(remdo, 'note1');
+      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+
+      remdo.validate(() => {
+        const userConfig = sdk.userConfig().as('user-config');
+        const documentList = userConfig.children()[0]!.as('document-list');
+        const firstDocument = documentList.children()[0]!.as('document');
+        const note1 = sdk.note('note1').as('editor-note');
+
+        expect(userConfig.kind()).toBe('user-config');
+        expect(documentList.kind()).toBe('document-list');
+        expect(firstDocument.id()).toBe('main');
+        expect(firstDocument.text()).toBe('Main');
+        expect(note1.attached()).toBe(true);
+        expect(note1.text()).toBe('note1');
+      });
+    }
+  );
 });
