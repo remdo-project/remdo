@@ -1,7 +1,14 @@
-import type { DocumentNote, UserConfigSource } from '@/documents/contracts';
+import type { DocumentNote } from '@/documents/contracts';
 import type { EditorNote, EditorNotesAdapter } from '@/editor/notes/contracts';
-import type { Note, NoteId } from '@/notes/contracts';
+import type { Note, NoteId, NoteKind } from '@/notes/contracts';
 import { createNoteAs } from '@/notes/handle-utils';
+
+interface UserConfigSource {
+  rootId: () => NoteId;
+  kindOf: (noteId: NoteId) => NoteKind;
+  textOf: (noteId: NoteId) => string;
+  childrenOf: (noteId: NoteId) => readonly NoteId[];
+}
 
 function createUserConfigNote(userConfig: UserConfigSource, noteId: NoteId): Note {
   const kind = () => userConfig.kindOf(noteId);
