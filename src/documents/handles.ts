@@ -1,10 +1,17 @@
 import type { DocumentNote } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
 import type { EditorNotesAdapter } from '@/editor/notes/sdk-contracts';
-import type { Note, NoteId } from '@/notes/contracts';
+import type { Note, NoteId, NoteKind } from '@/notes/contracts';
 import { createNoteAs } from '@/notes/handle-utils';
 
-export function createUserConfigHandle(adapter: EditorNotesAdapter, noteId: NoteId): Note {
+interface MetadataNotesSource {
+  hasUserConfigNote: (noteId: NoteId) => boolean;
+  userConfigKindOf: (noteId: NoteId) => NoteKind;
+  userConfigTextOf: (noteId: NoteId) => string;
+  userConfigChildrenOf: (noteId: NoteId) => readonly NoteId[];
+}
+
+export function createUserConfigHandle(adapter: MetadataNotesSource, noteId: NoteId): Note {
   const kind = () => adapter.userConfigKindOf(noteId);
 
   const handle: Note = {

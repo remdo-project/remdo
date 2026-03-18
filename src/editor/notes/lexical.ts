@@ -32,6 +32,7 @@ import {
   isContentDescendantOf,
   removeNoteHeads,
 } from '@/editor/outline/selection/tree';
+import { createHardcodedDocumentMetadata } from '@/documents/hardcoded';
 import type {
   AdapterNoteSelection,
   EditorNotes,
@@ -39,7 +40,6 @@ import type {
   PlaceTarget,
   NoteRange,
 } from '@/editor/notes/sdk-contracts';
-import { createHardcodedUserConfigAdapter } from './hardcoded-user-config';
 import { createEditorNotes } from './createEditorNotes';
 import type { NoteId } from '@/notes/contracts';
 import { NoteNotFoundError } from '@/notes/errors';
@@ -56,7 +56,7 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
     | { kind: 'before'; reference: LexicalNode }
     | { kind: 'after'; reference: LexicalNode }
     | { kind: 'append'; list: ListNode };
-  const userConfig = createHardcodedUserConfigAdapter();
+  const userConfig = createHardcodedDocumentMetadata();
 
   const $resolveNoteById = (noteId: NoteId) => $findNoteById(noteId);
   const $requireNoteById = (noteId: NoteId): ListItemNode => {

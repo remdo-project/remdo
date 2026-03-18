@@ -1,20 +1,19 @@
-import type { AdapterNoteSelection, EditorNotes, EditorNotesAdapter } from '@/editor/notes/sdk-contracts';
-import { createEditorNotes } from './createEditorNotes';
 import type { NoteId, NoteKind } from '@/notes/contracts';
 import { NoteNotFoundError } from '@/notes/errors';
+import { createUserConfigHandle } from './handles';
 
-interface UserConfigRecord {
-  kind: NoteKind;
-  text: string;
-  children: readonly NoteId[];
-}
-
-interface HardcodedUserConfigAdapter {
+interface HardcodedDocumentMetadata {
   userConfigId: () => NoteId;
   hasUserConfigNote: (noteId: NoteId) => boolean;
   userConfigKindOf: (noteId: NoteId) => NoteKind;
   userConfigTextOf: (noteId: NoteId) => string;
   userConfigChildrenOf: (noteId: NoteId) => readonly NoteId[];
+}
+
+interface UserConfigRecord {
+  kind: NoteKind;
+  text: string;
+  children: readonly NoteId[];
 }
 
 const USER_CONFIG_ROOT_ID = 'user-config';
@@ -23,6 +22,8 @@ const MAIN_DOCUMENT_ID = 'main';
 const PROJECT_DOCUMENT_ID = 'project';
 const BASIC_DOCUMENT_ID = 'basic';
 const FLAT_DOCUMENT_ID = 'flat';
+
+export const HARDCODED_DEFAULT_DOCUMENT_ID = MAIN_DOCUMENT_ID;
 
 const userConfigRecords = new Map<NoteId, UserConfigRecord>([
   [USER_CONFIG_ROOT_ID, { kind: 'user-config', text: 'User Config', children: [DOCUMENT_LIST_ID] }],
@@ -44,7 +45,7 @@ const requireRecord = (noteId: NoteId): UserConfigRecord => {
   return record;
 };
 
-export function createHardcodedUserConfigAdapter(): HardcodedUserConfigAdapter {
+export function createHardcodedDocumentMetadata(): HardcodedDocumentMetadata {
   return {
     userConfigId: () => USER_CONFIG_ROOT_ID,
     hasUserConfigNote: (noteId) => userConfigRecords.has(noteId),
@@ -54,38 +55,7 @@ export function createHardcodedUserConfigAdapter(): HardcodedUserConfigAdapter {
   };
 }
 
-const noSelection: AdapterNoteSelection = { kind: 'none', range: null };
-
-export function createHardcodedUserConfigNoteSdk(): EditorNotes {
-  const userConfig = createHardcodedUserConfigAdapter();
-  const adapter: EditorNotesAdapter = {
-    docId: () => MAIN_DOCUMENT_ID,
-    currentDocumentChildrenIds: () => [],
-    userConfigId: () => userConfig.userConfigId(),
-    hasUserConfigNote: (noteId) => userConfig.hasUserConfigNote(noteId),
-    userConfigKindOf: (noteId) => userConfig.userConfigKindOf(noteId),
-    userConfigTextOf: (noteId) => userConfig.userConfigTextOf(noteId),
-    userConfigChildrenOf: (noteId) => userConfig.userConfigChildrenOf(noteId),
-    selection: () => noSelection,
-    createNote: () => {
-      throw new Error('createNote is not supported by hardcoded user-config sdk.');
-    },
-    hasNote: () => false,
-    isBounded: () => false,
-    textOf: (noteId) => {
-      throw new NoteNotFoundError(noteId);
-    },
-    childrenOf: (noteId) => {
-      throw new NoteNotFoundError(noteId);
-    },
-    delete: () => false,
-    place: () => {
-      throw new Error('place is not supported by hardcoded user-config sdk.');
-    },
-    indent: () => false,
-    outdent: () => false,
-    moveUp: () => false,
-    moveDown: () => false,
-  };
-  return createEditorNotes(adapter);
+export function createHardcodedUserConfigNote() {
+  const metadata = createHardcodedDocumentMetadata();
+  return createUserConfigHandle(metadata, metadata.userConfigId());
 }
