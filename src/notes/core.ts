@@ -1,12 +1,14 @@
 import type { EditorNote } from '@/editor/notes/contracts';
 import type {
   AdapterNoteSelection,
-  PlaceTarget,
-  NoteId,
   NoteRange,
   NoteSdk,
   NoteSdkAdapter,
   NoteSelection,
+  PlaceTarget,
+} from '@/editor/notes/sdk-contracts';
+import type {
+  NoteId,
 } from './contracts';
 import { createCurrentDocumentHandle, createUserConfigHandle } from '@/documents/handles';
 import { NoteNotFoundError } from './errors';

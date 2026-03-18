@@ -32,16 +32,16 @@ import {
   isContentDescendantOf,
   removeNoteHeads,
 } from '@/editor/outline/selection/tree';
-import { createHardcodedUserConfigAdapter } from './hardcoded-user-config';
-import { createNoteSdk } from '../core';
 import type {
   AdapterNoteSelection,
   PlaceTarget,
-  NoteId,
   NoteRange,
   NoteSdk,
   NoteSdkAdapter,
-} from '../contracts';
+} from '@/editor/notes/sdk-contracts';
+import { createHardcodedUserConfigAdapter } from './hardcoded-user-config';
+import { createNoteSdk } from '../core';
+import type { NoteId } from '../contracts';
 import { NoteNotFoundError } from '../errors';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';

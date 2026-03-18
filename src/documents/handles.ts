@@ -1,6 +1,7 @@
 import type { DocumentNote } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
-import type { Note, NoteId, NoteSdkAdapter } from '@/notes/contracts';
+import type { NoteSdkAdapter } from '@/editor/notes/sdk-contracts';
+import type { Note, NoteId } from '@/notes/contracts';
 import { createNoteAs } from '@/notes/handle-utils';
 
 export function createUserConfigHandle(adapter: NoteSdkAdapter, noteId: NoteId): Note {
