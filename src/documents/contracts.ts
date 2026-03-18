@@ -12,7 +12,6 @@ export interface DocumentNote extends Note<'document'> {
 
 export interface UserConfigSource {
   rootId: () => NoteId;
-  hasNote: (noteId: NoteId) => boolean;
   kindOf: (noteId: NoteId) => NoteKind;
   textOf: (noteId: NoteId) => string;
   childrenOf: (noteId: NoteId) => readonly NoteId[];

@@ -4,7 +4,7 @@ import type { EditorNotesAdapter } from '@/editor/notes/sdk-contracts';
 import type { Note, NoteId } from '@/notes/contracts';
 import { createNoteAs } from '@/notes/handle-utils';
 
-export function createUserConfigNote(userConfig: UserConfigSource, noteId: NoteId): Note {
+function createUserConfigNote(userConfig: UserConfigSource, noteId: NoteId): Note {
   const kind = () => userConfig.kindOf(noteId);
 
   const handle: Note = {

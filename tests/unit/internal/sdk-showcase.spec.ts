@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { meta, placeCaretAtNote } from '#tests';
-import { createHardcodedUserConfigRootNote } from '@/documents';
+import { getUserConfig } from '@/documents';
 import { createLexicalEditorNotes } from '@/editor/notes';
 
 describe('sdk showcase', () => {
@@ -72,7 +72,7 @@ describe('sdk showcase', () => {
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
-      const userConfig = createHardcodedUserConfigRootNote();
+      const userConfig = getUserConfig();
 
       remdo.validate(() => {
         const documentList = userConfig.children().find((entry) => entry.kind() === 'document-list')!;
@@ -97,7 +97,7 @@ describe('sdk showcase', () => {
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
       const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      const userConfig = createHardcodedUserConfigRootNote();
+      const userConfig = getUserConfig();
 
       remdo.validate(() => {
         const userConfigRoot = userConfig.as('user-config');

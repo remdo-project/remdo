@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { createHardcodedUserConfigRootNote } from '@/documents';
+import { getUserConfig } from '@/documents';
 import Editor from '@/editor/Editor';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
@@ -39,7 +39,7 @@ export default function DocumentRoute() {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const searchResultsListboxId = useId();
   const zoomNoteId = parsedRef?.noteId ?? null;
-  const userConfigRoot = useMemo(() => createHardcodedUserConfigRootNote(), []);
+  const userConfigRoot = useMemo(() => getUserConfig(), []);
   const documentOptions = useMemo(
     () => {
       const documentList = userConfigRoot.children().find((entry) => entry.kind() === 'document-list');

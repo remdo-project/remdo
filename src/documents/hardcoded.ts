@@ -1,7 +1,7 @@
 import type { UserConfigSource } from '@/documents/contracts';
 import type { NoteId, NoteKind } from '@/notes/contracts';
 import { NoteNotFoundError } from '@/notes/errors';
-import { createUserConfigNote } from './handles';
+import { createUserConfigRootNote } from './handles';
 
 interface UserConfigRecord {
   kind: NoteKind;
@@ -38,17 +38,16 @@ const requireRecord = (noteId: NoteId): UserConfigRecord => {
   return record;
 };
 
-export function createHardcodedUserConfigSource(): UserConfigSource {
+function createHardcodedUserConfigSource(): UserConfigSource {
   return {
     rootId: () => USER_CONFIG_ROOT_ID,
-    hasNote: (noteId) => userConfigRecords.has(noteId),
     kindOf: (noteId) => requireRecord(noteId).kind,
     textOf: (noteId) => requireRecord(noteId).text,
     childrenOf: (noteId) => requireRecord(noteId).children,
   };
 }
 
-export function createHardcodedUserConfigRootNote() {
+export function getUserConfig() {
   const userConfig = createHardcodedUserConfigSource();
-  return createUserConfigNote(userConfig, userConfig.rootId());
+  return createUserConfigRootNote(userConfig);
 }
