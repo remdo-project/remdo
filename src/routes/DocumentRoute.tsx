@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { createHardcodedUserConfigRootNote } from '@/documents/hardcoded';
+import { createHardcodedUserConfigRootNote } from '@/documents';
 import Editor from '@/editor/Editor';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';

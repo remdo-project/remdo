@@ -1,6 +1,6 @@
 import type { DocumentNote } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
-import type { Note, NoteId } from '@/notes/contracts';
+import type { NoteId } from '@/notes/contracts';
 
 type DocumentId = string;
 type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
@@ -43,8 +43,6 @@ interface EditorNotesBase {
 export interface EditorNotes extends EditorNotesBase {
   /** Returns current document note handle. */
   currentDocument: () => DocumentNote;
-  /** Returns user-config root note handle. */
-  userConfig: () => Note;
   /** Creates and places an editor note at target, then returns attached note handle. */
   createNote: (target: PlaceTarget, text?: string) => EditorNote;
   /** Returns an editor note handle by id; reads throw when the note does not exist. */

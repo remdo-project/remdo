@@ -10,6 +10,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { meta, placeCaretAtNote } from '#tests';
+import { createHardcodedUserConfigRootNote } from '@/documents';
 import { createLexicalNoteSdk } from '@/editor/notes';
 
 describe('sdk showcase', () => {
@@ -71,10 +72,10 @@ describe('sdk showcase', () => {
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const userConfig = createHardcodedUserConfigRootNote();
 
       remdo.validate(() => {
-        const documentList = sdk.userConfig().children().find((entry) => entry.kind() === 'document-list')!;
+        const documentList = userConfig.children().find((entry) => entry.kind() === 'document-list')!;
         const listedDocuments = documentList.children().filter((entry) => entry.kind() === 'document').map((document) => ({
           id: document.id(),
           text: document.text(),
@@ -96,14 +97,15 @@ describe('sdk showcase', () => {
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
       const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const userConfig = createHardcodedUserConfigRootNote();
 
       remdo.validate(() => {
-        const userConfig = sdk.userConfig().as('user-config');
-        const documentList = userConfig.children()[0]!.as('document-list');
+        const userConfigRoot = userConfig.as('user-config');
+        const documentList = userConfigRoot.children()[0]!.as('document-list');
         const firstDocument = documentList.children()[0]!.as('document');
         const note1 = sdk.note('note1').as('editor-note');
 
-        expect(userConfig.kind()).toBe('user-config');
+        expect(userConfigRoot.kind()).toBe('user-config');
         expect(documentList.kind()).toBe('document-list');
         expect(firstDocument.id()).toBe('main');
         expect(firstDocument.text()).toBe('Main');

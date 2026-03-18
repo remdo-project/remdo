@@ -11,7 +11,7 @@ import type {
 import type {
   NoteId,
 } from '@/notes/contracts';
-import { createCurrentDocumentHandle, createUserConfigNote } from '@/documents/handles';
+import { createCurrentDocumentHandle } from '@/documents/handles';
 import { NoteNotFoundError } from '@/notes/errors';
 import { createNoteAs } from '@/notes/handle-utils';
 
@@ -83,7 +83,6 @@ export function createEditorNotes(adapter: EditorNotesAdapter, userConfig: UserC
   return {
     docId: () => adapter.docId(),
     currentDocument: () => createCurrentDocumentHandle(adapter, userConfig, createHandle),
-    userConfig: () => createUserConfigNote(userConfig, userConfig.rootId()),
     selection: () => resolveSelection(adapter.selection()),
     createNote: (target, text) => {
       assertPlaceTargetNotesExist(target);

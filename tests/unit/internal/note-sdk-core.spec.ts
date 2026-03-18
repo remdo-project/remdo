@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createUserConfigRootNote } from '@/documents';
 import type { UserConfigSource } from '@/documents/contracts';
 import { createEditorNotes } from '@/editor/notes';
 import type { AdapterNoteSelection, EditorNotesAdapter, NoteRange, PlaceTarget } from '@/editor/notes/sdk-contracts';
@@ -133,7 +134,7 @@ describe('note sdk core', () => {
   it('narrows notes by kind and throws on mismatches', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createEditorNotes(fixture.adapter, fixture.userConfig);
-    const documentList = sdk.userConfig().children()[0]!.as('document-list');
+    const documentList = createUserConfigRootNote(fixture.userConfig).children()[0]!.as('document-list');
     const note = sdk.note('a');
 
     expect(documentList.kind()).toBe('document-list');
@@ -144,8 +145,7 @@ describe('note sdk core', () => {
 
   it('lists documents through user-config document-list traversal', () => {
     const fixture = createMockAdapterFixture();
-    const sdk = createEditorNotes(fixture.adapter, fixture.userConfig);
-    const documentList = sdk.userConfig().children().find((entry) => entry.kind() === 'document-list')!;
+    const documentList = createUserConfigRootNote(fixture.userConfig).children().find((entry) => entry.kind() === 'document-list')!;
 
     expect(
       documentList.children().filter((entry) => entry.kind() === 'document').map((document) => ({

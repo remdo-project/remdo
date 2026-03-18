@@ -1,4 +1,4 @@
-import type { DocumentNote, UserConfigSource } from '@/documents/contracts';
+import type { DocumentNote, UserConfigSource, UserConfigNote } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
 import type { EditorNotesAdapter } from '@/editor/notes/sdk-contracts';
 import type { Note, NoteId } from '@/notes/contracts';
@@ -16,6 +16,10 @@ export function createUserConfigNote(userConfig: UserConfigSource, noteId: NoteI
   };
 
   return handle;
+}
+
+export function createUserConfigRootNote(userConfig: UserConfigSource): UserConfigNote {
+  return createUserConfigNote(userConfig, userConfig.rootId()).as('user-config');
 }
 
 export function createCurrentDocumentHandle(
