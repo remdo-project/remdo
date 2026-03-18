@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { DocumentMetadataSource } from '@/documents/contracts';
+import type { UserConfigSource } from '@/documents/contracts';
 import { createEditorNotes } from '@/editor/notes';
 import type { AdapterNoteSelection, EditorNotesAdapter, NoteRange, PlaceTarget } from '@/editor/notes/sdk-contracts';
 import { NoteNotFoundError } from '@/notes/errors';
@@ -9,7 +9,7 @@ function createMockAdapterFixture(
   adapterSelection?: AdapterNoteSelection
 ): {
   adapter: EditorNotesAdapter;
-  metadata: DocumentMetadataSource;
+  userConfig: UserConfigSource;
   notes: Map<string, { text: string; children: string[] }>;
   placeCalls: Array<{ range: NoteRange; target: PlaceTarget }>;
 } {
@@ -44,24 +44,24 @@ function createMockAdapterFixture(
   return {
     notes,
     placeCalls,
-    metadata: {
-      userConfigId: () => 'user-config',
-      hasUserConfigNote: (noteId) => configNotes.has(noteId),
-      userConfigKindOf: (noteId) => {
+    userConfig: {
+      rootId: () => 'user-config',
+      hasNote: (noteId) => configNotes.has(noteId),
+      kindOf: (noteId) => {
         const note = configNotes.get(noteId);
         if (!note) {
           throw new NoteNotFoundError(noteId);
         }
         return note.kind;
       },
-      userConfigTextOf: (noteId) => {
+      textOf: (noteId) => {
         const note = configNotes.get(noteId);
         if (!note) {
           throw new NoteNotFoundError(noteId);
         }
         return note.text;
       },
-      userConfigChildrenOf: (noteId) => {
+      childrenOf: (noteId) => {
         const note = configNotes.get(noteId);
         if (!note) {
           throw new NoteNotFoundError(noteId);
@@ -132,7 +132,7 @@ function createMockAdapterFixture(
 describe('note sdk core', () => {
   it('narrows notes by kind and throws on mismatches', () => {
     const fixture = createMockAdapterFixture();
-    const sdk = createEditorNotes(fixture.adapter, fixture.metadata);
+    const sdk = createEditorNotes(fixture.adapter, fixture.userConfig);
     const documentList = sdk.userConfig().children()[0]!.as('document-list');
     const note = sdk.note('a');
 
@@ -144,7 +144,7 @@ describe('note sdk core', () => {
 
   it('lists documents through user-config document-list traversal', () => {
     const fixture = createMockAdapterFixture();
-    const sdk = createEditorNotes(fixture.adapter, fixture.metadata);
+    const sdk = createEditorNotes(fixture.adapter, fixture.userConfig);
     const documentList = sdk.userConfig().children().find((entry) => entry.kind() === 'document-list')!;
 
     expect(
@@ -161,7 +161,7 @@ describe('note sdk core', () => {
 
   it('reads note data from adapter', () => {
     const fixture = createMockAdapterFixture();
-    const sdk = createEditorNotes(fixture.adapter, fixture.metadata);
+    const sdk = createEditorNotes(fixture.adapter, fixture.userConfig);
     const note = sdk.note('a');
 
     expect(note.id()).toBe('a');
@@ -172,7 +172,7 @@ describe('note sdk core', () => {
 
   it('reads current document from adapter', () => {
     const fixture = createMockAdapterFixture();
-    const sdk = createEditorNotes(fixture.adapter, fixture.metadata);
+    const sdk = createEditorNotes(fixture.adapter, fixture.userConfig);
     const document = sdk.currentDocument();
 
     expect(document.id()).toBe('doc-1');
@@ -183,7 +183,7 @@ describe('note sdk core', () => {
 
   it('reflects selection and defers missing note errors to reads', () => {
     const fixture = createMockAdapterFixture();
-    const sdk = createEditorNotes(fixture.adapter, fixture.metadata);
+    const sdk = createEditorNotes(fixture.adapter, fixture.userConfig);
 
     expect(sdk.docId()).toBe('doc-1');
     const selection = sdk.selection();
@@ -200,7 +200,7 @@ describe('note sdk core', () => {
 
   it('delegates mutating operations to adapter and preserves no-op booleans', () => {
     const fixture = createMockAdapterFixture();
-    const sdk = createEditorNotes(fixture.adapter, fixture.metadata);
+    const sdk = createEditorNotes(fixture.adapter, fixture.userConfig);
 
     expect(sdk.outdent({ start: 'a', end: 'a' })).toBe(false);
     expect(sdk.indent({ start: 'b', end: 'b' })).toBe(true);
@@ -210,7 +210,7 @@ describe('note sdk core', () => {
 
   it('creates and places a note, returning note handle', () => {
     const fixture = createMockAdapterFixture();
-    const sdk = createEditorNotes(fixture.adapter, fixture.metadata);
+    const sdk = createEditorNotes(fixture.adapter, fixture.userConfig);
 
     const placed = sdk.createNote({ before: 'b' }, 'Draft');
 
@@ -220,7 +220,7 @@ describe('note sdk core', () => {
 
   it('delegates place targets in note-id form', () => {
     const fixture = createMockAdapterFixture();
-    const sdk = createEditorNotes(fixture.adapter, fixture.metadata);
+    const sdk = createEditorNotes(fixture.adapter, fixture.userConfig);
 
     expect(() => sdk.place({ start: 'c', end: 'c' }, { before: 'b' })).not.toThrow();
     expect(() => sdk.place({ start: 'c', end: 'c' }, { after: 'b' })).not.toThrow();
@@ -235,7 +235,7 @@ describe('note sdk core', () => {
 
   it('throws from reads and operations once the note is removed', () => {
     const fixture = createMockAdapterFixture();
-    const sdk = createEditorNotes(fixture.adapter, fixture.metadata);
+    const sdk = createEditorNotes(fixture.adapter, fixture.userConfig);
     const note = sdk.note('b');
 
     expect(sdk.delete({ start: 'b', end: 'b' })).toBe(true);
@@ -249,7 +249,7 @@ describe('note sdk core', () => {
 
   it('uses structural selection range for sdk operations', () => {
     const fixture = createMockAdapterFixture({ kind: 'structural', range: { start: 'b', end: 'b' } });
-    const sdk = createEditorNotes(fixture.adapter, fixture.metadata);
+    const sdk = createEditorNotes(fixture.adapter, fixture.userConfig);
     const selection = sdk.selection();
     if (selection.kind !== 'structural') {
       throw new Error(`Expected structural selection, got ${selection.kind}`);

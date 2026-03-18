@@ -32,7 +32,7 @@ import {
   isContentDescendantOf,
   removeNoteHeads,
 } from '@/editor/outline/selection/tree';
-import { createHardcodedDocumentMetadata } from '@/documents/hardcoded';
+import { createHardcodedUserConfigSource } from '@/documents/hardcoded';
 import type {
   AdapterNoteSelection,
   EditorNotes,
@@ -352,6 +352,6 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
 }
 
 export function createLexicalNoteSdk(options: LexicalNoteSdkAdapterOptions): EditorNotes {
-  const metadata = createHardcodedDocumentMetadata();
-  return createEditorNotes(createLexicalNoteSdkAdapter(options), metadata);
+  const userConfig = createHardcodedUserConfigSource();
+  return createEditorNotes(createLexicalNoteSdkAdapter(options), userConfig);
 }

@@ -1,7 +1,7 @@
-import type { DocumentMetadataSource } from '@/documents/contracts';
+import type { UserConfigSource } from '@/documents/contracts';
 import type { NoteId, NoteKind } from '@/notes/contracts';
 import { NoteNotFoundError } from '@/notes/errors';
-import { createUserConfigHandle } from './handles';
+import { createUserConfigNote } from './handles';
 
 interface UserConfigRecord {
   kind: NoteKind;
@@ -38,17 +38,17 @@ const requireRecord = (noteId: NoteId): UserConfigRecord => {
   return record;
 };
 
-export function createHardcodedDocumentMetadata(): DocumentMetadataSource {
+export function createHardcodedUserConfigSource(): UserConfigSource {
   return {
-    userConfigId: () => USER_CONFIG_ROOT_ID,
-    hasUserConfigNote: (noteId) => userConfigRecords.has(noteId),
-    userConfigKindOf: (noteId) => requireRecord(noteId).kind,
-    userConfigTextOf: (noteId) => requireRecord(noteId).text,
-    userConfigChildrenOf: (noteId) => requireRecord(noteId).children,
+    rootId: () => USER_CONFIG_ROOT_ID,
+    hasNote: (noteId) => userConfigRecords.has(noteId),
+    kindOf: (noteId) => requireRecord(noteId).kind,
+    textOf: (noteId) => requireRecord(noteId).text,
+    childrenOf: (noteId) => requireRecord(noteId).children,
   };
 }
 
-export function createHardcodedUserConfigNote() {
-  const metadata = createHardcodedDocumentMetadata();
-  return createUserConfigHandle(metadata, metadata.userConfigId());
+export function createHardcodedUserConfigRootNote() {
+  const userConfig = createHardcodedUserConfigSource();
+  return createUserConfigNote(userConfig, userConfig.rootId());
 }

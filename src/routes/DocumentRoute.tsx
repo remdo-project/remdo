@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { createHardcodedUserConfigNote } from '@/documents/hardcoded';
+import { createHardcodedUserConfigRootNote } from '@/documents/hardcoded';
 import Editor from '@/editor/Editor';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
@@ -39,10 +39,10 @@ export default function DocumentRoute() {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const searchResultsListboxId = useId();
   const zoomNoteId = parsedRef?.noteId ?? null;
-  const userConfig = useMemo(() => createHardcodedUserConfigNote(), []);
+  const userConfigRoot = useMemo(() => createHardcodedUserConfigRootNote(), []);
   const documentOptions = useMemo(
     () => {
-      const documentList = userConfig.children().find((entry) => entry.kind() === 'document-list');
+      const documentList = userConfigRoot.children().find((entry) => entry.kind() === 'document-list');
       if (!documentList) {
         return [];
       }
@@ -51,7 +51,7 @@ export default function DocumentRoute() {
         .filter((entry) => entry.kind() === 'document')
         .map((document) => ({ value: document.id(), label: document.text() }));
     },
-    [userConfig]
+    [userConfigRoot]
   );
   const documentPicker = useCombobox({
     onDropdownClose: () => documentPicker.resetSelectedOption(),

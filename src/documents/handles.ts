@@ -1,17 +1,17 @@
-import type { DocumentMetadataSource, DocumentNote } from '@/documents/contracts';
+import type { DocumentNote, UserConfigSource } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
 import type { EditorNotesAdapter } from '@/editor/notes/sdk-contracts';
 import type { Note, NoteId } from '@/notes/contracts';
 import { createNoteAs } from '@/notes/handle-utils';
 
-export function createUserConfigHandle(metadata: DocumentMetadataSource, noteId: NoteId): Note {
-  const kind = () => metadata.userConfigKindOf(noteId);
+export function createUserConfigNote(userConfig: UserConfigSource, noteId: NoteId): Note {
+  const kind = () => userConfig.kindOf(noteId);
 
   const handle: Note = {
     id: () => noteId,
     kind,
-    text: () => metadata.userConfigTextOf(noteId),
-    children: () => metadata.userConfigChildrenOf(noteId).map((childId) => createUserConfigHandle(metadata, childId)),
+    text: () => userConfig.textOf(noteId),
+    children: () => userConfig.childrenOf(noteId).map((childId) => createUserConfigNote(userConfig, childId)),
     as: createNoteAs(noteId, kind, () => handle),
   };
 
@@ -20,7 +20,7 @@ export function createUserConfigHandle(metadata: DocumentMetadataSource, noteId:
 
 export function createCurrentDocumentHandle(
   adapter: EditorNotesAdapter,
-  metadata: DocumentMetadataSource,
+  userConfig: UserConfigSource,
   createEditorNote: (noteId: NoteId) => EditorNote
 ): DocumentNote {
   const currentDocId = adapter.docId();
@@ -30,8 +30,8 @@ export function createCurrentDocumentHandle(
     id: () => currentDocId,
     kind,
     text: () => {
-      if (metadata.hasUserConfigNote(currentDocId) && metadata.userConfigKindOf(currentDocId) === 'document') {
-        return metadata.userConfigTextOf(currentDocId);
+      if (userConfig.hasNote(currentDocId) && userConfig.kindOf(currentDocId) === 'document') {
+        return userConfig.textOf(currentDocId);
       }
       return currentDocId;
     },
