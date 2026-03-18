@@ -1,11 +1,9 @@
+import type { DocumentListNote, DocumentNote, UserConfigNote } from '@/documents/contracts';
+import type { EditorNote } from '@/editor/notes/contracts';
 import type {
-  DocumentListNote,
-  DocumentNote,
-  EditorNote,
   Note,
   NoteId,
   NoteKind,
-  UserConfigNote,
 } from './contracts';
 
 export function createNoteAs(noteId: NoteId, kind: () => NoteKind, self: () => Note): Note['as'] {

@@ -1,4 +1,6 @@
-import type { DocumentNote, EditorNote, Note, NoteId, NoteSdkAdapter } from '@/notes/contracts';
+import type { DocumentNote } from '@/documents/contracts';
+import type { EditorNote } from '@/editor/notes/contracts';
+import type { Note, NoteId, NoteSdkAdapter } from '@/notes/contracts';
 import { NoteNotFoundError } from '@/notes/errors';
 import { createNoteAs } from '@/notes/handle-utils';
 

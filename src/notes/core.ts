@@ -1,6 +1,6 @@
+import type { EditorNote } from '@/editor/notes/contracts';
 import type {
   AdapterNoteSelection,
-  EditorNote,
   PlaceTarget,
   NoteId,
   NoteRange,
