@@ -9,10 +9,10 @@ import type {
 } from '@/editor/notes/sdk-contracts';
 import type {
   NoteId,
-} from './contracts';
+} from '@/notes/contracts';
 import { createCurrentDocumentHandle, createUserConfigHandle } from '@/documents/handles';
-import { NoteNotFoundError } from './errors';
-import { createNoteAs } from './handle-utils';
+import { NoteNotFoundError } from '@/notes/errors';
+import { createNoteAs } from '@/notes/handle-utils';
 
 export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
   const assertBoundedNoteExists = (noteId: NoteId): void => {

@@ -25,7 +25,7 @@ describe('search candidates plugin', () => {
       // eslint-disable-next-line react/no-unnecessary-use-prefix -- Mock must match Lexical hook export.
       useLexicalComposerContext: () => [mockEditor],
     }));
-    vi.doMock('@/notes/adapters/lexical', () => ({
+    vi.doMock('@/editor/notes', () => ({
       createLexicalNoteSdk: () => ({}),
     }));
     vi.doMock('@/editor/search/sdk-search-candidates', () => ({
@@ -67,7 +67,7 @@ describe('search candidates plugin', () => {
       // eslint-disable-next-line react/no-unnecessary-use-prefix -- Mock must match Lexical hook export.
       useLexicalComposerContext: () => [mockEditor],
     }));
-    vi.doMock('@/notes/adapters/lexical', () => ({
+    vi.doMock('@/editor/notes', () => ({
       createLexicalNoteSdk: () => ({}),
     }));
     vi.doMock('@/editor/search/sdk-search-candidates', () => ({

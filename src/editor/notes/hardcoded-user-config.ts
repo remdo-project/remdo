@@ -1,7 +1,7 @@
 import type { AdapterNoteSelection, EditorNotes, EditorNotesAdapter } from '@/editor/notes/sdk-contracts';
-import { createEditorNotes } from '../core';
-import type { NoteId, NoteKind } from '../contracts';
-import { NoteNotFoundError } from '../errors';
+import { createEditorNotes } from './createEditorNotes';
+import type { NoteId, NoteKind } from '@/notes/contracts';
+import { NoteNotFoundError } from '@/notes/errors';
 
 interface UserConfigRecord {
   kind: NoteKind;

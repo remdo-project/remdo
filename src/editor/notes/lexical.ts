@@ -40,9 +40,9 @@ import type {
   NoteRange,
 } from '@/editor/notes/sdk-contracts';
 import { createHardcodedUserConfigAdapter } from './hardcoded-user-config';
-import { createEditorNotes } from '../core';
-import type { NoteId } from '../contracts';
-import { NoteNotFoundError } from '../errors';
+import { createEditorNotes } from './createEditorNotes';
+import type { NoteId } from '@/notes/contracts';
+import { NoteNotFoundError } from '@/notes/errors';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 
