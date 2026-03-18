@@ -334,7 +334,8 @@ function listTrackedFiles(): string[] {
     .split('\0')
     .map((entry) => normalizeRelativePath(entry))
     .filter((entry) => entry.length > 0)
-    .filter((entry) => !isExcludedGeneratedFile(entry));
+    .filter((entry) => !isExcludedGeneratedFile(entry))
+    .filter((entry) => fs.existsSync(path.resolve(repoRoot, entry)));
 }
 
 function isExcludedGeneratedFile(relativePath: string): boolean {
