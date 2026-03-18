@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { meta, placeCaretAtNote, readOutline, selectNoteRange } from '#tests';
-import { createLexicalEditorNotes as createLexicalNoteSdk } from '@/editor/notes';
+import { createLexicalEditorNotes } from '@/editor/notes';
 import { NoteNotFoundError } from '@/notes/errors';
 import { $findNoteById } from '@/editor/outline/note-traversal';
 import { removeNoteSubtree } from '@/editor/outline/selection/tree';
 
-describe('note sdk', () => {
+describe('editor notes', () => {
   it('resolves note reads and document context', meta({ fixture: 'tree' }), async ({ remdo }) => {
     const result = remdo.validate(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       const note = sdk.note('note2');
 
       return {
@@ -29,7 +29,7 @@ describe('note sdk', () => {
     await placeCaretAtNote(remdo, 'note3');
 
     const selection = remdo.validate(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       return sdk.selection();
     });
 
@@ -44,7 +44,7 @@ describe('note sdk', () => {
     await selectNoteRange(remdo, 'note2', 'note3');
 
     const selection = remdo.validate(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       return sdk.selection();
     });
 
@@ -66,7 +66,7 @@ describe('note sdk', () => {
 
       try {
         const result = remdo.validate(() => {
-          const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+          const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
           const selection = sdk.selection();
           if (selection.kind !== 'structural') {
             throw new Error(`Expected structural selection, got ${selection.kind}`);
@@ -95,7 +95,7 @@ describe('note sdk', () => {
 
       try {
         const result = remdo.validate(() => {
-          const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+          const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
           const selection = sdk.selection();
           if (selection.kind !== 'structural') {
             throw new Error(`Expected structural selection, got ${selection.kind}`);
@@ -117,7 +117,7 @@ describe('note sdk', () => {
     let outcomes: { indentOne: boolean; indentTwo: boolean; outdentOne: boolean; outdentTwo: boolean } | null = null;
 
     await remdo.mutate(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       outcomes = {
         indentOne: sdk.indent({ start: 'note2', end: 'note2' }),
         indentTwo: sdk.indent({ start: 'note2', end: 'note2' }),
@@ -138,7 +138,7 @@ describe('note sdk', () => {
     let moved = false;
 
     await remdo.mutate(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
 
       sdk.place({ start: 'note3', end: 'note3' }, { before: 'note2' });
       sdk.place({ start: 'note1', end: 'note1' }, { after: 'note2' });
@@ -163,7 +163,7 @@ describe('note sdk', () => {
       | null = null;
 
     await remdo.mutate(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       const placed = sdk.createNote({ parent: 'note1', index: 999 }, 'draft');
       inserted = {
         placedId: placed.id(),
@@ -187,7 +187,7 @@ describe('note sdk', () => {
     let moved = false;
 
     await remdo.mutate(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
 
       sdk.place({ start: 'note5', end: 'note5' }, { parent: 'note1', index: -2 });
       sdk.place({ start: 'note6', end: 'note6' }, { parent: 'note1', index: 999 });
@@ -218,7 +218,7 @@ describe('note sdk', () => {
       | null = null;
 
     remdo.editor.update(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       const captureError = (run: () => unknown): string => {
         try {
           run();
@@ -249,7 +249,7 @@ describe('note sdk', () => {
     let errorMessage = '';
 
     remdo.editor.update(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       removeNoteSubtree($findNoteById('note2')!);
 
       try {
@@ -266,7 +266,7 @@ describe('note sdk', () => {
     let outcomes: { descendant: string; nonSibling: string } | null = null;
 
     remdo.editor.update(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
 
       const captureError = (run: () => unknown): string => {
         try {
@@ -291,7 +291,7 @@ describe('note sdk', () => {
 
   it('throws from reads and operations once a note is deleted', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const note = remdo.validate(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       return sdk.note('note2');
     });
 
@@ -300,7 +300,7 @@ describe('note sdk', () => {
     });
 
     remdo.validate(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       expect(note.attached()).toBe(false);
       expect(() => note.text()).toThrow(NoteNotFoundError);
       expect(() => note.children()).toThrow(NoteNotFoundError);
@@ -311,7 +311,7 @@ describe('note sdk', () => {
 
   it('throws when used outside lexical read/update context', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const sdkAndNote = remdo.validate(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       return { sdk, note: sdk.note('note2') };
     });
 
@@ -321,7 +321,7 @@ describe('note sdk', () => {
 
   it('defers missing note errors to read methods', meta({ fixture: 'flat' }), async ({ remdo }) => {
     remdo.validate(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       const note = sdk.note('missing');
       expect(note.attached()).toBe(false);
       expect(() => note.text()).toThrow(NoteNotFoundError);

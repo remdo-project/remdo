@@ -13,7 +13,7 @@ import { meta, placeCaretAtNote } from '#tests';
 import { getUserConfig } from '@/documents';
 import { createLexicalEditorNotes } from '@/editor/notes';
 
-describe('sdk showcase', () => {
+describe('editor notes showcase', () => {
   it(
     'walks through the main sdk workflow on a flat fixture (select, read, create, place, indent/outdent, move, delete)',
     meta({ fixture: 'flat' }),

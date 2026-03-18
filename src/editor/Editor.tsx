@@ -26,7 +26,7 @@ import { FoldingPlugin } from './plugins/FoldingPlugin';
 import { NoteControlsPlugin } from './plugins/NoteControlsPlugin';
 import { NoteMenuPlugin } from './plugins/NoteMenuPlugin';
 import { SearchCandidatesPlugin } from './plugins/SearchCandidatesPlugin';
-import type { SdkSearchCandidateSnapshot } from './search/sdk-search-candidates';
+import type { SearchCandidateSnapshot } from './search/search-candidates';
 import './Editor.css';
 
 interface EditorProps {
@@ -39,7 +39,7 @@ interface EditorProps {
   zoomNoteId?: string | null;
   onZoomNoteIdChange?: (noteId: string | null) => void;
   onZoomPathChange?: (path: NotePathItem[]) => void;
-  onSearchCandidatesChange?: (snapshot: SdkSearchCandidateSnapshot | null) => void;
+  onSearchCandidatesChange?: (snapshot: SearchCandidateSnapshot | null) => void;
 }
 
 export default function Editor({

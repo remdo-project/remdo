@@ -3,19 +3,19 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/sdk-search-candidates';
+import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/search-candidates';
 import DocumentRoute from '@/routes/DocumentRoute';
 import { createDocumentPath } from '@/routing';
 
-interface TestSdkSearchSnapshot {
+interface TestSearchSnapshot {
   allCandidates: Array<{ noteId: string; text: string }>;
   childCandidateMap: Record<string, Array<{ noteId: string; text: string }>>;
 }
 
-interface MockSdkSearchGlobals {
-  __remdoMockSdkSearchCandidateEmitters?: Record<string, () => void>;
-  __remdoMockSdkSearchCandidateResetters?: Record<string, () => void>;
-  __remdoMockSdkSearchCandidatesByDoc?: Record<string, TestSdkSearchSnapshot | null>;
+interface MockSearchGlobals {
+  __remdoMockSearchCandidateEmitters?: Record<string, () => void>;
+  __remdoMockSearchCandidateResetters?: Record<string, () => void>;
+  __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
 }
 
 vi.mock('@/editor/Editor', async () => {
@@ -40,10 +40,10 @@ vi.mock('@/editor/Editor', async () => {
       note4: [],
       note5: [],
     },
-  } satisfies TestSdkSearchSnapshot;
+  } satisfies TestSearchSnapshot;
   interface MockEditorProps {
     docId: string;
-    onSearchCandidatesChange?: (snapshot: TestSdkSearchSnapshot | null) => void;
+    onSearchCandidatesChange?: (snapshot: TestSearchSnapshot | null) => void;
     searchModeRequested?: boolean;
     zoomNoteId?: string | null;
   }
@@ -55,9 +55,9 @@ vi.mock('@/editor/Editor', async () => {
     zoomNoteId,
   }: MockEditorProps) {
     React.useEffect(() => {
-      const globals = globalThis as typeof globalThis & MockSdkSearchGlobals;
+      const globals = globalThis as typeof globalThis & MockSearchGlobals;
       const emitCurrentSnapshot = () => {
-        const candidateSelection = globals.__remdoMockSdkSearchCandidatesByDoc?.[docId];
+        const candidateSelection = globals.__remdoMockSearchCandidatesByDoc?.[docId];
         if (candidateSelection === null) {
           return;
         }
@@ -67,16 +67,16 @@ vi.mock('@/editor/Editor', async () => {
       };
 
       emitCurrentSnapshot();
-      (globals.__remdoMockSdkSearchCandidateEmitters ??= {})[docId] = emitCurrentSnapshot;
-      (globals.__remdoMockSdkSearchCandidateResetters ??= {})[docId] = () => {
+      (globals.__remdoMockSearchCandidateEmitters ??= {})[docId] = emitCurrentSnapshot;
+      (globals.__remdoMockSearchCandidateResetters ??= {})[docId] = () => {
         onSearchCandidatesChange?.(null);
       };
       return () => {
-        if (globals.__remdoMockSdkSearchCandidateEmitters?.[docId] === emitCurrentSnapshot) {
-          delete globals.__remdoMockSdkSearchCandidateEmitters[docId];
+        if (globals.__remdoMockSearchCandidateEmitters?.[docId] === emitCurrentSnapshot) {
+          delete globals.__remdoMockSearchCandidateEmitters[docId];
         }
-        if (globals.__remdoMockSdkSearchCandidateResetters?.[docId]) {
-          delete globals.__remdoMockSdkSearchCandidateResetters[docId];
+        if (globals.__remdoMockSearchCandidateResetters?.[docId]) {
+          delete globals.__remdoMockSearchCandidateResetters[docId];
         }
         onSearchCandidatesChange?.(null);
       };
@@ -114,10 +114,10 @@ vi.mock('@/editor/zoom/ZoomBreadcrumbs', () => ({
 
 describe('document route', () => {
   beforeEach(() => {
-    const globals = globalThis as typeof globalThis & MockSdkSearchGlobals;
-    globals.__remdoMockSdkSearchCandidatesByDoc = undefined;
-    globals.__remdoMockSdkSearchCandidateEmitters = undefined;
-    globals.__remdoMockSdkSearchCandidateResetters = undefined;
+    const globals = globalThis as typeof globalThis & MockSearchGlobals;
+    globals.__remdoMockSearchCandidatesByDoc = undefined;
+    globals.__remdoMockSearchCandidateEmitters = undefined;
+    globals.__remdoMockSearchCandidateResetters = undefined;
   });
 
   const renderDocumentRoute = (initialEntry: string = createDocumentPath('main')) => {
@@ -755,9 +755,9 @@ describe('document route', () => {
   it('supports deeper slash scope descent without query auto-write', async () => {
     (
       globalThis as typeof globalThis & {
-        __remdoMockSdkSearchCandidatesByDoc?: Record<string, TestSdkSearchSnapshot | null>;
+        __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
       }
-    ).__remdoMockSdkSearchCandidatesByDoc = {
+    ).__remdoMockSearchCandidatesByDoc = {
       main: {
         allCandidates: [
           { noteId: 'note1', text: 'note1' },
@@ -891,9 +891,9 @@ describe('document route', () => {
   it('uses sdk-provided candidates for flat results', async () => {
     (
       globalThis as typeof globalThis & {
-        __remdoMockSdkSearchCandidatesByDoc?: Record<string, TestSdkSearchSnapshot | null>;
+        __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
       }
-    ).__remdoMockSdkSearchCandidatesByDoc = {
+    ).__remdoMockSearchCandidatesByDoc = {
       main: {
         allCandidates: [{ noteId: 'sdk1', text: 'sdk result' }],
         childCandidateMap: {
@@ -934,9 +934,9 @@ describe('document route', () => {
   it('clears stale sdk candidates when switching documents', async () => {
     (
       globalThis as typeof globalThis & {
-        __remdoMockSdkSearchCandidatesByDoc?: Record<string, TestSdkSearchSnapshot | null>;
+        __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
       }
-    ).__remdoMockSdkSearchCandidatesByDoc = {
+    ).__remdoMockSearchCandidatesByDoc = {
       main: {
         allCandidates: [{ noteId: 'mainonly', text: 'main only' }],
         childCandidateMap: {
@@ -972,8 +972,8 @@ describe('document route', () => {
   });
 
   it('waits for the first candidate snapshot before showing search results', async () => {
-    const globals = globalThis as typeof globalThis & MockSdkSearchGlobals;
-    globals.__remdoMockSdkSearchCandidatesByDoc = {
+    const globals = globalThis as typeof globalThis & MockSearchGlobals;
+    globals.__remdoMockSearchCandidatesByDoc = {
       main: null,
     };
 
@@ -983,7 +983,7 @@ describe('document route', () => {
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: 'fresh' } });
 
-    globals.__remdoMockSdkSearchCandidatesByDoc = {
+    globals.__remdoMockSearchCandidatesByDoc = {
       main: {
         allCandidates: [{ noteId: 'fresh', text: 'fresh result' }],
         childCandidateMap: {
@@ -998,7 +998,7 @@ describe('document route', () => {
       expect(screen.queryByText('No notes')).toBeNull();
     });
 
-    globals.__remdoMockSdkSearchCandidateEmitters?.main?.();
+    globals.__remdoMockSearchCandidateEmitters?.main?.();
 
     await waitFor(() => {
       expect(getActiveSearchResult()?.textContent).toBe('fresh result');
@@ -1006,8 +1006,8 @@ describe('document route', () => {
   });
 
   it('waits for a fresh snapshot after invalidating current document candidates', async () => {
-    const globals = globalThis as typeof globalThis & MockSdkSearchGlobals;
-    globals.__remdoMockSdkSearchCandidatesByDoc = {
+    const globals = globalThis as typeof globalThis & MockSearchGlobals;
+    globals.__remdoMockSearchCandidatesByDoc = {
       main: {
         allCandidates: [{ noteId: 'stale', text: 'shared result' }],
         childCandidateMap: {
@@ -1028,7 +1028,7 @@ describe('document route', () => {
       expect(getActiveSearchResult()?.textContent).toBe('shared result');
     });
 
-    globals.__remdoMockSdkSearchCandidateResetters?.main?.();
+    globals.__remdoMockSearchCandidateResetters?.main?.();
 
     await waitFor(() => {
       expect(screen.queryByTestId('document-search-results')).toBeNull();
@@ -1036,7 +1036,7 @@ describe('document route', () => {
       expect(screen.queryByText('No notes')).toBeNull();
     });
 
-    globals.__remdoMockSdkSearchCandidatesByDoc = {
+    globals.__remdoMockSearchCandidatesByDoc = {
       main: {
         allCandidates: [{ noteId: 'fresh', text: 'fresh result' }],
         childCandidateMap: {
@@ -1045,7 +1045,7 @@ describe('document route', () => {
         },
       },
     };
-    globals.__remdoMockSdkSearchCandidateEmitters?.main?.();
+    globals.__remdoMockSearchCandidateEmitters?.main?.();
 
     await waitFor(() => {
       expect(getActiveSearchResult()?.textContent).toBe('fresh result');
@@ -1055,9 +1055,9 @@ describe('document route', () => {
   it('re-resolves slash scope path when switching documents', async () => {
     (
       globalThis as typeof globalThis & {
-        __remdoMockSdkSearchCandidatesByDoc?: Record<string, TestSdkSearchSnapshot | null>;
+        __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
       }
-    ).__remdoMockSdkSearchCandidatesByDoc = {
+    ).__remdoMockSearchCandidatesByDoc = {
       other: {
         allCandidates: [
           { noteId: 'other1', text: 'other1' },
@@ -1103,8 +1103,8 @@ describe('document route', () => {
 
   it('re-resolves completed slash queries when switching documents', async () => {
     (
-      globalThis as typeof globalThis & MockSdkSearchGlobals
-    ).__remdoMockSdkSearchCandidatesByDoc = {
+      globalThis as typeof globalThis & MockSearchGlobals
+    ).__remdoMockSearchCandidatesByDoc = {
       main: {
         allCandidates: [
           { noteId: 'note6', text: 'note6' },
@@ -1155,8 +1155,8 @@ describe('document route', () => {
   });
 
   it('recomputes completed slash paths when sdk candidates change', async () => {
-    const globals = globalThis as typeof globalThis & MockSdkSearchGlobals;
-    globals.__remdoMockSdkSearchCandidatesByDoc = {
+    const globals = globalThis as typeof globalThis & MockSearchGlobals;
+    globals.__remdoMockSearchCandidatesByDoc = {
       main: {
         allCandidates: [
           { noteId: 'note1', text: 'note1' },
@@ -1182,7 +1182,7 @@ describe('document route', () => {
       expect(getActiveSearchResult()?.textContent).toBe('note2');
     });
 
-    globals.__remdoMockSdkSearchCandidatesByDoc = {
+    globals.__remdoMockSearchCandidatesByDoc = {
       main: {
         allCandidates: [
           { noteId: 'renamed', text: 'renamed' },
@@ -1195,7 +1195,7 @@ describe('document route', () => {
         },
       },
     };
-    globals.__remdoMockSdkSearchCandidateEmitters?.main?.();
+    globals.__remdoMockSearchCandidateEmitters?.main?.();
 
     await screen.findByText('No matches');
     expect(document.querySelectorAll('[data-search-result-item]')).toHaveLength(0);
@@ -1206,8 +1206,8 @@ describe('document route', () => {
   });
 
   it('matches completed slash segments exactly instead of by substring', async () => {
-    const globals = globalThis as typeof globalThis & MockSdkSearchGlobals;
-    globals.__remdoMockSdkSearchCandidatesByDoc = {
+    const globals = globalThis as typeof globalThis & MockSearchGlobals;
+    globals.__remdoMockSearchCandidatesByDoc = {
       main: {
         allCandidates: [
           { noteId: 'barfoo', text: 'barfoo' },

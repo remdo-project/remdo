@@ -8,8 +8,8 @@ import type {
   SyntheticEvent,
 } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/sdk-search-candidates';
-import type { SdkSearchCandidateSnapshot } from '@/editor/search/sdk-search-candidates';
+import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/search-candidates';
+import type { SearchCandidateSnapshot } from '@/editor/search/search-candidates';
 
 interface SearchCandidate {
   noteId: string;
@@ -42,7 +42,7 @@ interface UseDocumentSearchModelResult {
   childCandidateMap: Record<string, SearchCandidate[]>;
   flatResults: SearchCandidate[];
   handleSearchBlur: () => void;
-  handleSearchCandidatesChange: (snapshot: SdkSearchCandidateSnapshot | null) => void;
+  handleSearchCandidatesChange: (snapshot: SearchCandidateSnapshot | null) => void;
   handleSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleSearchCompositionEnd: (event: CompositionEvent<HTMLInputElement>) => void;
   handleSearchCompositionStart: (_event: CompositionEvent<HTMLInputElement>) => void;
@@ -343,7 +343,7 @@ export function useDocumentSearchModel({
     updateSlashScopePath,
   ]);
 
-  const handleSearchCandidatesChange = useCallback((snapshot: SdkSearchCandidateSnapshot | null) => {
+  const handleSearchCandidatesChange = useCallback((snapshot: SearchCandidateSnapshot | null) => {
     if (!snapshot) {
       setCurrentDocumentCandidateState(EMPTY_SEARCH_CANDIDATE_STATE);
       return;

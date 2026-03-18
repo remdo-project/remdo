@@ -18,8 +18,8 @@ describe('search candidates plugin', () => {
       },
       registerRootListener: () => () => {},
     };
-    const collectSearchCandidatesFromSdk = vi.fn(() => [{ noteId: 'note1', text: 'note1' }]);
-    const collectChildCandidateMapFromSdk = vi.fn(() => ({ note1: [] }));
+    const collectSearchCandidates = vi.fn(() => [{ noteId: 'note1', text: 'note1' }]);
+    const collectChildCandidateMap = vi.fn(() => ({ note1: [] }));
 
     vi.doMock('@lexical/react/LexicalComposerContext', () => ({
       // eslint-disable-next-line react/no-unnecessary-use-prefix -- Mock must match Lexical hook export.
@@ -28,9 +28,9 @@ describe('search candidates plugin', () => {
     vi.doMock('@/editor/notes', () => ({
       createLexicalEditorNotes: () => ({}),
     }));
-    vi.doMock('@/editor/search/sdk-search-candidates', () => ({
-      collectSearchCandidatesFromSdk,
-      collectChildCandidateMapFromSdk,
+    vi.doMock('@/editor/search/search-candidates', () => ({
+      collectSearchCandidates,
+      collectChildCandidateMap,
     }));
 
     const { SearchCandidatesPlugin } = await import('@/editor/plugins/SearchCandidatesPlugin');
@@ -38,8 +38,8 @@ describe('search candidates plugin', () => {
     render(<SearchCandidatesPlugin docId="main" />);
 
     await waitFor(() => {
-      expect(collectSearchCandidatesFromSdk).toHaveBeenCalledTimes(1);
-      expect(collectChildCandidateMapFromSdk).toHaveBeenCalledTimes(1);
+      expect(collectSearchCandidates).toHaveBeenCalledTimes(1);
+      expect(collectChildCandidateMap).toHaveBeenCalledTimes(1);
     });
 
     expect(updateListener).not.toBeNull();
@@ -49,8 +49,8 @@ describe('search candidates plugin', () => {
       editorState: { read },
     });
 
-    expect(collectSearchCandidatesFromSdk).toHaveBeenCalledTimes(1);
-    expect(collectChildCandidateMapFromSdk).toHaveBeenCalledTimes(1);
+    expect(collectSearchCandidates).toHaveBeenCalledTimes(1);
+    expect(collectChildCandidateMap).toHaveBeenCalledTimes(1);
   });
 
   it('invalidates candidates on unmount instead of publishing an empty snapshot', async () => {
@@ -70,9 +70,9 @@ describe('search candidates plugin', () => {
     vi.doMock('@/editor/notes', () => ({
       createLexicalEditorNotes: () => ({}),
     }));
-    vi.doMock('@/editor/search/sdk-search-candidates', () => ({
-      collectSearchCandidatesFromSdk: () => [{ noteId: 'note1', text: 'note1' }],
-      collectChildCandidateMapFromSdk: () => ({ note1: [] }),
+    vi.doMock('@/editor/search/search-candidates', () => ({
+      collectSearchCandidates: () => [{ noteId: 'note1', text: 'note1' }],
+      collectChildCandidateMap: () => ({ note1: [] }),
     }));
 
     const { SearchCandidatesPlugin } = await import('@/editor/plugins/SearchCandidatesPlugin');

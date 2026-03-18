@@ -5,10 +5,10 @@ import type { DocumentListNote, DocumentNote, UserConfigNote } from '@/documents
 import type { EditorNote } from '@/editor/notes/contracts';
 import type { Note, NoteKind } from '@/notes/contracts';
 import {
-  collectChildCandidateMapFromSdk,
-  collectSearchCandidatesFromSdk,
+  collectChildCandidateMap,
+  collectSearchCandidates,
   ROOT_SEARCH_SCOPE_ID,
-} from '@/editor/search/sdk-search-candidates';
+} from '@/editor/search/search-candidates';
 
 function createMockNoteAs(noteId: string, kind: () => NoteKind, self: () => Note): Note['as'] {
   function asNote(kindToMatch: 'editor-note'): EditorNote;
@@ -65,7 +65,7 @@ function createDeepChain(depth: number): EditorNote {
   return current;
 }
 
-describe('sdk search candidates', () => {
+describe('search candidates', () => {
   it('flattens root notes and descendants in pre-order', () => {
     const top = createMockEditorNote('top', 'Top', [
       createMockEditorNote('child-a', 'Child A'),
@@ -73,7 +73,7 @@ describe('sdk search candidates', () => {
     ]);
     const sibling = createMockEditorNote('sibling', 'Sibling');
 
-    const candidates = collectSearchCandidatesFromSdk({
+    const candidates = collectSearchCandidates({
       currentDocument: () => createMockDocumentNote([top, sibling]),
     });
 
@@ -87,7 +87,7 @@ describe('sdk search candidates', () => {
   });
 
   it('returns an empty list when there are no root notes', () => {
-    const candidates = collectSearchCandidatesFromSdk({
+    const candidates = collectSearchCandidates({
       currentDocument: () => createMockDocumentNote([]),
     });
 
@@ -100,7 +100,7 @@ describe('sdk search candidates', () => {
     ]);
     const sibling = createMockEditorNote('sibling', 'Sibling');
 
-    const childCandidateMap = collectChildCandidateMapFromSdk({
+    const childCandidateMap = collectChildCandidateMap({
       currentDocument: () => createMockDocumentNote([top, sibling]),
     });
 
@@ -117,7 +117,7 @@ describe('sdk search candidates', () => {
     ]);
     const sibling = createMockEditorNote('sibling', 'Sibling');
 
-    const childCandidateMap = collectChildCandidateMapFromSdk({
+    const childCandidateMap = collectChildCandidateMap({
       currentDocument: () => createMockDocumentNote([top, sibling]),
     });
 
@@ -141,8 +141,8 @@ describe('sdk search candidates', () => {
     const result = remdo.validate(() => {
       const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       return {
-        allCandidates: collectSearchCandidatesFromSdk(sdk),
-        childCandidateMap: collectChildCandidateMapFromSdk(sdk),
+        allCandidates: collectSearchCandidates(sdk),
+        childCandidateMap: collectChildCandidateMap(sdk),
       };
     });
 
@@ -169,8 +169,8 @@ describe('sdk search candidates', () => {
       currentDocument: () => createMockDocumentNote([root]),
     };
 
-    const allCandidates = collectSearchCandidatesFromSdk(sdk);
-    const childCandidateMap = collectChildCandidateMapFromSdk(sdk);
+    const allCandidates = collectSearchCandidates(sdk);
+    const childCandidateMap = collectChildCandidateMap(sdk);
 
     expect(allCandidates).toHaveLength(depth);
     expect(allCandidates[0]).toEqual({ noteId: 'deep-0', text: 'Deep 0' });

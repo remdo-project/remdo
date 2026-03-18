@@ -1,20 +1,20 @@
 import type { EditorNotes } from '@/editor/notes/sdk-contracts';
 
-export interface SdkSearchCandidate {
+export interface SearchCandidate {
   noteId: string;
   text: string;
 }
 
-export interface SdkSearchCandidateSnapshot {
-  allCandidates: SdkSearchCandidate[];
-  childCandidateMap: Record<string, SdkSearchCandidate[]>;
+export interface SearchCandidateSnapshot {
+  allCandidates: SearchCandidate[];
+  childCandidateMap: Record<string, SearchCandidate[]>;
 }
 
 export const ROOT_SEARCH_SCOPE_ID = '__document_root__';
 
-export function collectSearchCandidatesFromSdk(sdk: Pick<EditorNotes, 'currentDocument'>): SdkSearchCandidate[] {
-  const candidates: SdkSearchCandidate[] = [];
-  const stack = sdk.currentDocument().children().toReversed();
+export function collectSearchCandidates(editorNotes: Pick<EditorNotes, 'currentDocument'>): SearchCandidate[] {
+  const candidates: SearchCandidate[] = [];
+  const stack = editorNotes.currentDocument().children().toReversed();
 
   while (stack.length > 0) {
     const note = stack.pop()!;
@@ -32,9 +32,9 @@ export function collectSearchCandidatesFromSdk(sdk: Pick<EditorNotes, 'currentDo
   return candidates;
 }
 
-export function collectChildCandidateMapFromSdk(sdk: Pick<EditorNotes, 'currentDocument'>): Record<string, SdkSearchCandidate[]> {
-  const rootNotes = sdk.currentDocument().children();
-  const childCandidateMap: Record<string, SdkSearchCandidate[]> = {
+export function collectChildCandidateMap(editorNotes: Pick<EditorNotes, 'currentDocument'>): Record<string, SearchCandidate[]> {
+  const rootNotes = editorNotes.currentDocument().children();
+  const childCandidateMap: Record<string, SearchCandidate[]> = {
     [ROOT_SEARCH_SCOPE_ID]: rootNotes.map((note) => ({
       noteId: note.id(),
       text: note.text(),

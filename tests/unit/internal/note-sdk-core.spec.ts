@@ -129,7 +129,7 @@ function createMockAdapterFixture(
   };
 }
 
-describe('note sdk core', () => {
+describe('editor notes core', () => {
   it('narrows notes by kind and throws on mismatches', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createEditorNotes(fixture.adapter);

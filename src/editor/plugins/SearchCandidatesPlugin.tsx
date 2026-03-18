@@ -2,19 +2,19 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { createLexicalEditorNotes } from '@/editor/notes';
 import {
-  collectChildCandidateMapFromSdk,
-  collectSearchCandidatesFromSdk,
-} from '@/editor/search/sdk-search-candidates';
-import type { SdkSearchCandidateSnapshot } from '@/editor/search/sdk-search-candidates';
+  collectChildCandidateMap,
+  collectSearchCandidates,
+} from '@/editor/search/search-candidates';
+import type { SearchCandidateSnapshot } from '@/editor/search/search-candidates';
 
 interface SearchCandidatesPluginProps {
   docId: string;
-  onCandidatesChange?: (snapshot: SdkSearchCandidateSnapshot | null) => void;
+  onCandidatesChange?: (snapshot: SearchCandidateSnapshot | null) => void;
 }
 
 function entriesMatch(
-  leftEntries: SdkSearchCandidateSnapshot['allCandidates'],
-  rightEntries: SdkSearchCandidateSnapshot['allCandidates']
+  leftEntries: SearchCandidateSnapshot['allCandidates'],
+  rightEntries: SearchCandidateSnapshot['allCandidates']
 ): boolean {
   return leftEntries.length === rightEntries.length &&
     leftEntries.every((leftCandidate, index) => {
@@ -26,8 +26,8 @@ function entriesMatch(
 }
 
 function mapsMatch(
-  leftMap: SdkSearchCandidateSnapshot['childCandidateMap'],
-  rightMap: SdkSearchCandidateSnapshot['childCandidateMap']
+  leftMap: SearchCandidateSnapshot['childCandidateMap'],
+  rightMap: SearchCandidateSnapshot['childCandidateMap']
 ): boolean {
   const leftNoteIds = Object.keys(leftMap);
   if (leftNoteIds.length !== Object.keys(rightMap).length) {
@@ -42,14 +42,14 @@ function mapsMatch(
 }
 
 function signaturesMatch(
-  left: SdkSearchCandidateSnapshot,
-  right: SdkSearchCandidateSnapshot
+  left: SearchCandidateSnapshot,
+  right: SearchCandidateSnapshot
 ): boolean {
   return entriesMatch(left.allCandidates, right.allCandidates) &&
     mapsMatch(left.childCandidateMap, right.childCandidateMap);
 }
 
-const emptySnapshot: SdkSearchCandidateSnapshot = {
+const emptySnapshot: SearchCandidateSnapshot = {
   allCandidates: [],
   childCandidateMap: {},
 };
@@ -59,10 +59,10 @@ export function SearchCandidatesPlugin({
   onCandidatesChange,
 }: SearchCandidatesPluginProps) {
   const [editor] = useLexicalComposerContext();
-  const sdk = useMemo(() => createLexicalEditorNotes({ editor, docId }), [docId, editor]);
-  const previousSnapshotRef = useRef<SdkSearchCandidateSnapshot>(emptySnapshot);
+  const editorNotes = useMemo(() => createLexicalEditorNotes({ editor, docId }), [docId, editor]);
+  const previousSnapshotRef = useRef<SearchCandidateSnapshot>(emptySnapshot);
 
-  const emitCandidates = useCallback((snapshot: SdkSearchCandidateSnapshot) => {
+  const emitCandidates = useCallback((snapshot: SearchCandidateSnapshot) => {
     if (signaturesMatch(previousSnapshotRef.current, snapshot)) {
       return;
     }
@@ -73,11 +73,11 @@ export function SearchCandidatesPlugin({
 
   const readAndEmitCandidates = useCallback((editorState = editor.getEditorState()) => {
     const snapshot = editorState.read(() => ({
-      allCandidates: collectSearchCandidatesFromSdk(sdk),
-      childCandidateMap: collectChildCandidateMapFromSdk(sdk),
+      allCandidates: collectSearchCandidates(editorNotes),
+      childCandidateMap: collectChildCandidateMap(editorNotes),
     }));
     emitCandidates(snapshot);
-  }, [editor, emitCandidates, sdk]);
+  }, [editor, editorNotes, emitCandidates]);
 
   useEffect(() => {
     previousSnapshotRef.current = emptySnapshot;
