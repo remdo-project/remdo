@@ -13,12 +13,6 @@ import { NoteNotFoundError } from './errors';
 import { createNoteAs } from './handle-utils';
 
 export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
-  const assertNoteExists = (noteId: NoteId): void => {
-    if (!adapter.hasNote(noteId)) {
-      throw new NoteNotFoundError(noteId);
-    }
-  };
-
   const assertBoundedNoteExists = (noteId: NoteId): void => {
     if (!adapter.isBounded(noteId)) {
       throw new NoteNotFoundError(noteId);
@@ -54,14 +48,8 @@ export function createNoteSdk(adapter: NoteSdkAdapter): NoteSdk {
       id: () => noteId,
       kind,
       attached: () => adapter.isBounded(noteId),
-      text: () => {
-        assertNoteExists(noteId);
-        return adapter.textOf(noteId);
-      },
-      children: () => {
-        assertNoteExists(noteId);
-        return adapter.childrenOf(noteId).map((childId) => createHandle(childId));
-      },
+      text: () => adapter.textOf(noteId),
+      children: () => adapter.childrenOf(noteId).map((childId) => createHandle(childId)),
       as: createNoteAs(noteId, kind, () => handle),
     };
     return handle;
