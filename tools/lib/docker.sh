@@ -28,6 +28,20 @@ remdo_docker_build() {
   docker build -f "${root_dir}/docker/Dockerfile" -t "${image_name}" "${root_dir}"
 }
 
+remdo_docker_daemon_is_rootless() {
+  docker info --format '{{json .SecurityOptions}}' | grep -Fq -e '"rootless"' -e '"name=rootless"'
+}
+
+remdo_require_rootless_docker() {
+  if remdo_docker_daemon_is_rootless; then
+    return 0
+  fi
+
+  echo "Local Docker mode requires a rootless Docker daemon." >&2
+  echo "This launcher no longer supports rootful Docker because it cannot keep repo data user-owned without extra runtime complexity." >&2
+  return 1
+}
+
 remdo_detect_docker_public_host() {
   local detected_host="${HOSTNAME:-}"
 

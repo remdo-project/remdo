@@ -23,6 +23,11 @@ remdo_configure_docker_runtime "${DOCKER_TEST_BROWSER_HOST}"
 CONTAINER_NAME="${IMAGE_NAME}-${PORT}"
 HEALTH_URL="https://${DOCKER_TEST_BROWSER_HOST}:${PORT}/health"
 DATA_CLEANED="false"
+DOCKER_RUN_ARGS=()
+
+if remdo_docker_daemon_is_rootless; then
+  DOCKER_RUN_ARGS+=(--userns=host)
+fi
 
 cleanup_data_dir() {
   if [[ "${DATA_CLEANED}" == "true" ]]; then
@@ -32,7 +37,7 @@ cleanup_data_dir() {
   if ! docker exec "${CONTAINER_NAME}" sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' \
     >/dev/null 2>&1; then
     if docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
-      docker run --rm -v "${TEST_DATA_DIR}:/app/data" "${IMAGE_NAME}" \
+      docker run --rm "${DOCKER_RUN_ARGS[@]}" -v "${TEST_DATA_DIR}:/app/data" "${IMAGE_NAME}" \
         sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' >/dev/null 2>&1 || true
     fi
   fi
@@ -51,7 +56,7 @@ docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
-remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}" -d --name "${CONTAINER_NAME}" \
+remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}" -d --name "${CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
   -e AUTH_USER="${DOCKER_TEST_USER}" \
   -e AUTH_PASSWORD="${DOCKER_TEST_PASSWORD}" \
   -e CADDY_SITE_ADDRESS="${CADDY_SITE_ADDRESS}" \
