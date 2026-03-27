@@ -16,6 +16,7 @@ if [[ -n "${CALLER_PORT}" && -n "${PORT:-}" && "${PORT:-}" != "${CALLER_PORT}" ]
 fi
 
 remdo_load_env_defaults "${ROOT_DIR}"
+remdo_configure_docker_runtime
 
 : "${AUTH_PASSWORD:?Set AUTH_PASSWORD in ${ROOT_DIR}/.env}"
 
@@ -26,11 +27,11 @@ fi
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
-ENV_FILE="${ROOT_DIR}/.env"
-DOCKER_ENV_ARGS=()
-[[ -f "${ENV_FILE}" ]] && DOCKER_ENV_ARGS=(--env-file "${ENV_FILE}")
+echo "Docker local HTTPS target: ${CADDY_SITE_ADDRESS}"
 
-remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" --rm "${DOCKER_ENV_ARGS[@]}" \
+remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" --rm \
+  -e PORT="${PORT}" \
   -e AUTH_USER="${AUTH_USER}" \
   -e AUTH_PASSWORD="${AUTH_PASSWORD}" \
+  -e CADDY_SITE_ADDRESS="${CADDY_SITE_ADDRESS}" \
   -e TINYAUTH_APP_URL="${TINYAUTH_APP_URL}"

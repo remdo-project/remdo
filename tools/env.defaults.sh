@@ -16,7 +16,7 @@ DATA_DIR="${REMDO_ROOT%/}/data"
 # Derive a same-host canonical app base domain when no explicit override is provided.
 # Single-label hostnames map to app.<hostname>.shared; dotted/localhost/unknown map to app.remdo.localhost.
 if [ -z "${PUBLIC_BASE_DOMAIN:-}" ]; then
-  derived_hostname="${REMDO_HOSTNAME:-${HOSTNAME:-}}"
+  derived_hostname="${HOSTNAME:-}"
 
   if [ -z "${derived_hostname}" ] && command -v hostname >/dev/null 2>&1; then
     derived_hostname="$(hostname 2>/dev/null || true)"

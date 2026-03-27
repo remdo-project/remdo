@@ -10,7 +10,8 @@ const { PLAYWRIGHT_WORKERS, E2E_DOCKER } = process.env;
 const workers = PLAYWRIGHT_WORKERS ?? Math.max(2, os.cpus().length - 1);
 const useDocker = E2E_DOCKER === 'true';
 const port = useDocker ? config.env.PORT : config.env.PLAYWRIGHT_WEB_PORT;
-const baseURL = `http://${host}:${port}`;
+const protocol = useDocker ? 'https' : 'http';
+const baseURL = `${protocol}://${host}:${port}`;
 const hmrPort = useDocker ? config.env.HMR_PORT : config.env.PLAYWRIGHT_HMR_PORT;
 
 const webServer = useDocker
@@ -32,6 +33,12 @@ export default defineConfig({
   fullyParallel: true,
   use: {
     baseURL,
+    ignoreHTTPSErrors: useDocker,
+    launchOptions: useDocker
+      ? {
+          args: ['--ignore-certificate-errors'],
+        }
+      : undefined,
   },
   ...(webServer ? { webServer } : {}),
   projects: [
