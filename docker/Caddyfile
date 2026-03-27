@@ -20,7 +20,11 @@
 			respond 200
 		}
 
-		@canonical_host header Host {$CADDY_CANONICAL_HOSTPORT}
+		# HTTPS clients on the default port may omit :443 from Host.
+		@canonical_host {
+			header Host {$CADDY_CANONICAL_HOST}
+			header Host {$CADDY_CANONICAL_HOSTPORT}
+		}
 		handle @canonical_host {
 			@app_favicon path /favicon.ico /favicon.svg
 			handle @app_favicon {
