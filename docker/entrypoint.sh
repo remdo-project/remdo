@@ -60,14 +60,13 @@ COLLAB_DATA_DIR="${DATA_DIR%/}/collab"
 mkdir -p "$COLLAB_DATA_DIR"
 y-sweet serve --host 0.0.0.0 --port "${COLLAB_SERVER_PORT}" "$COLLAB_DATA_DIR" &
 
-TINYAUTH_DATA_DIR="${DATA_DIR%/}/tinyauth"
-mkdir -p "${TINYAUTH_DATA_DIR}"
-
 # 14 days = 14 * 24 * 60 * 60 = 1,209,600 seconds.
 # FIXME: Tinyauth shows an "Invalid Domain" UI warning when the browser host differs
 # from --app-url. We currently disable UI warnings globally to suppress this.
 # A proper fix likely requires forking Tinyauth to support either athena.shared as
 # app-url or per-warning suppression instead of an all-or-nothing toggle.
+TINYAUTH_DATA_DIR="${DATA_DIR%/}/tinyauth"
+mkdir -p "${TINYAUTH_DATA_DIR}"
 tinyauth \
   --app-title "RemDo" \
   --app-url "${TINYAUTH_APP_URL}" \

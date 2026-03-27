@@ -29,7 +29,9 @@ remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
 echo "Docker local HTTPS target: ${CADDY_SITE_ADDRESS}"
 
-remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" --rm \
+remdo_require_rootless_docker
+
+remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" --rm --userns=host \
   -e PORT="${PORT}" \
   -e AUTH_USER="${AUTH_USER}" \
   -e AUTH_PASSWORD="${AUTH_PASSWORD}" \
