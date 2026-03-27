@@ -29,7 +29,7 @@ remdo_docker_build() {
 }
 
 remdo_docker_daemon_is_rootless() {
-  docker info --format '{{json .SecurityOptions}}' | grep -Fq '"name=rootless"'
+  docker info --format '{{json .SecurityOptions}}' | grep -Fq -e '"rootless"' -e '"name=rootless"'
 }
 
 remdo_require_rootless_docker() {
