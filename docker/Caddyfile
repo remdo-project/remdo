@@ -8,76 +8,91 @@
 		copy_headers Remote-User Remote-Name Remote-Email Remote-Groups
 		# Prevent stale browser Basic credentials from being forwarded to Tinyauth.
 		header_up -Authorization
-		header_down Location "{env.TINYAUTH_APP_URL}" "{env.TINYAUTH_APP_SCHEME}://{http.request.hostport}"
+		header_down Location "{env.TINYAUTH_APP_URL}" "https://{http.request.hostport}"
 	}
 }
 
-:{$PORT} {
-	handle_path /health {
-		respond 200
-	}
+{$CADDY_SITE_ADDRESSES} {
+	{$CADDY_TLS_DIRECTIVE}
 
-	@app_favicon path /favicon.ico /favicon.svg
-	handle @app_favicon {
-		root * /srv/remdo
-		rewrite * /favicon.svg
-		file_server
-	}
-
-	@tinyauth_paths {
-		path \
- /login /login/* \
- /authorize /authorize/* \
- /logout /logout/* \
- /continue /continue/* \
- /totp /totp/* \
- /forgot-password /forgot-password/* \
- /unauthorized /unauthorized/* \
- /error /error/* \
- /resources/* \
- /api/user/* \
- /api/oauth/* \
- /api/context/* \
- /api/healthz \
- /api/auth/* \
- /assets/* \
- /background.jpg \
- /favicon-96x96.png \
- /apple-touch-icon.png \
- /site.webmanifest \
- /web-app-manifest-192x192.png \
- /web-app-manifest-512x512.png
-	}
-	handle @tinyauth_paths {
-		reverse_proxy 127.0.0.1:{env.TINYAUTH_PORT} {
-			# Keep Tinyauth independent from cached Basic auth headers.
-			header_up -Authorization
-			# Keep browser-visible redirects on the host users entered (e.g. remdo.com).
-			header_down Location "{env.TINYAUTH_APP_URL}" "{env.TINYAUTH_APP_SCHEME}://{http.request.hostport}"
+	route {
+		handle_path /health {
+			respond 200
 		}
-	}
 
-	@options method OPTIONS
-	handle @options {
-		respond 204
-	}
+		# HTTPS clients on the default port may omit :443 from Host.
+		@canonical_host {
+			header Host {$CADDY_CANONICAL_HOST}
+			header Host {$CADDY_CANONICAL_HOSTPORT}
+		}
+		handle @canonical_host {
+			@app_favicon path /favicon.ico /favicon.svg
+			handle @app_favicon {
+				root * /srv/remdo
+				rewrite * /favicon.svg
+				file_server
+			}
 
-	handle /doc* {
-		import remdo_tinyauth
-		reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
-	}
+			@tinyauth_paths {
+				path \
+	 /login /login/* \
+	 /authorize /authorize/* \
+	 /logout /logout/* \
+	 /continue /continue/* \
+	 /totp /totp/* \
+	 /forgot-password /forgot-password/* \
+	 /unauthorized /unauthorized/* \
+	 /error /error/* \
+	 /resources/* \
+	 /api/user/* \
+	 /api/oauth/* \
+	 /api/context/* \
+	 /api/healthz \
+	 /api/auth/* \
+	 /assets/* \
+	 /background.jpg \
+	 /favicon-96x96.png \
+	 /apple-touch-icon.png \
+	 /site.webmanifest \
+	 /web-app-manifest-192x192.png \
+	 /web-app-manifest-512x512.png
+			}
+			handle @tinyauth_paths {
+				reverse_proxy 127.0.0.1:{env.TINYAUTH_PORT} {
+					# Keep Tinyauth independent from cached Basic auth headers.
+					header_up -Authorization
+					# Keep browser-visible redirects on the host users entered (e.g. remdo.com).
+					header_down Location "{env.TINYAUTH_APP_URL}" "https://{http.request.hostport}"
+				}
+			}
 
-	handle /d/* {
-		import remdo_tinyauth
-		reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
-	}
+			@options method OPTIONS
+			handle @options {
+				respond 204
+			}
 
-	handle {
-		route {
-			import remdo_tinyauth
-			root * /srv/remdo
-			try_files {path} {path}/ /index.html
-			file_server
+			handle /doc* {
+				import remdo_tinyauth
+				reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
+			}
+
+			handle /d/* {
+				import remdo_tinyauth
+				reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
+			}
+
+			handle {
+				route {
+					import remdo_tinyauth
+					root * /srv/remdo
+					try_files {path} {path}/ /index.html
+					file_server
+				}
+			}
+		}
+
+		handle {
+			redir https://{$CADDY_CANONICAL_HOSTPORT}{uri}
 		}
 	}
 }

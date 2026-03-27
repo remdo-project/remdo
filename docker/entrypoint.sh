@@ -8,16 +8,37 @@ export REMDO_ROOT
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/env.defaults.sh
 
+: "${XDG_DATA_HOME:=${DATA_DIR%/}}"
+: "${XDG_CONFIG_HOME:=${DATA_DIR%/}/.config}"
+export XDG_DATA_HOME XDG_CONFIG_HOME
+
 : "${AUTH_USER:?Set AUTH_USER to the username for Tinyauth login}"
 : "${AUTH_PASSWORD:?Set AUTH_PASSWORD to the password for Tinyauth login}"
-: "${TINYAUTH_APP_URL:?Set TINYAUTH_APP_URL to the public Tinyauth URL (for example http://app.remdo.localhost:4000)}"
+: "${TINYAUTH_APP_URL:?Set TINYAUTH_APP_URL to the canonical Tinyauth URL (for example https://app.athena.shared:4000 or https://www.remdo.com)}"
+: "${CADDY_SITE_ADDRESS:=:${PORT}}"
+: "${CADDY_SITE_ADDRESSES:=${CADDY_SITE_ADDRESS}}"
 
-app_url_scheme="${TINYAUTH_APP_URL%%://*}"
-if [ -z "${app_url_scheme}" ] || [ "${app_url_scheme}" = "${TINYAUTH_APP_URL}" ]; then
-  echo "Failed to parse scheme from TINYAUTH_APP_URL=${TINYAUTH_APP_URL}" >&2
-  exit 1
-fi
-export TINYAUTH_APP_SCHEME="${app_url_scheme}"
+case "${CADDY_SITE_ADDRESS}" in
+  https://*)
+    CADDY_TLS_DIRECTIVE="tls internal"
+    canonical_url="${CADDY_SITE_ADDRESS}"
+    CADDY_SITE_ADDRESSES="${CADDY_SITE_ADDRESS}, ${TINYAUTH_APP_URL}"
+    ;;
+  *)
+    CADDY_TLS_DIRECTIVE=""
+    canonical_url="${TINYAUTH_APP_URL}"
+    ;;
+esac
+
+canonical_url_no_scheme="${canonical_url#*://}"
+CADDY_CANONICAL_HOSTPORT="${canonical_url_no_scheme%%/*}"
+CADDY_CANONICAL_HOST="${CADDY_CANONICAL_HOSTPORT%%:*}"
+
+export CADDY_SITE_ADDRESS
+export CADDY_SITE_ADDRESSES
+export CADDY_TLS_DIRECTIVE
+export CADDY_CANONICAL_HOST
+export CADDY_CANONICAL_HOSTPORT
 
 TINYAUTH_USERS="$(
   NO_COLOR=1 tinyauth user create --username "${AUTH_USER}" --password "${AUTH_PASSWORD}" 2>&1 \
@@ -42,12 +63,6 @@ y-sweet serve --host 0.0.0.0 --port "${COLLAB_SERVER_PORT}" "$COLLAB_DATA_DIR" &
 TINYAUTH_DATA_DIR="${DATA_DIR%/}/tinyauth"
 mkdir -p "${TINYAUTH_DATA_DIR}"
 
-tinyauth_secure_cookie_arg=""
-if [ "${TINYAUTH_SECURE_COOKIE:-false}" = "true" ]; then
-  tinyauth_secure_cookie_arg="--secure-cookie"
-fi
-
-# shellcheck disable=SC2086 # optional secure-cookie flag is intentionally word-split.
 # 14 days = 14 * 24 * 60 * 60 = 1,209,600 seconds.
 # FIXME: Tinyauth shows an "Invalid Domain" UI warning when the browser host differs
 # from --app-url. We currently disable UI warnings globally to suppress this.
@@ -64,6 +79,6 @@ tinyauth \
   --resources-dir "${TINYAUTH_DATA_DIR}/resources" \
   --disable-analytics \
   --disable-ui-warnings \
-  ${tinyauth_secure_cookie_arg} &
+  --secure-cookie &
 
 exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile

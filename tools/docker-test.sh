@@ -8,7 +8,7 @@ remdo_load_dotenv "${ROOT_DIR}"
 TEST_DATA_DIR="$(mktemp -d -t remdo-docker-test-XXXXXX)"
 
 : "${PORT:=4000}"
-: "${DOCKER_TEST_APP_HOST:=app.remdo.localhost}"
+: "${DOCKER_TEST_BROWSER_HOST:=remdo.localhost}"
 # TODO: drop these defaults once layered env files + a committed base .env exist.
 : "${IMAGE_NAME:=remdo-test}"
 DOCKER_TEST_USER="ci"
@@ -18,11 +18,10 @@ remdo_load_env_defaults "${ROOT_DIR}"
 
 PORT="${DOCKER_TEST_PORT}"
 COLLAB_DOCUMENT_ID="dockerSmoke"
-# Keep smoke auth routing tied to the active test port, regardless of ambient .env values.
-TINYAUTH_APP_URL="${DOCKER_TEST_TINYAUTH_APP_URL:-http://${DOCKER_TEST_APP_HOST}:${PORT}}"
+remdo_configure_docker_runtime "${DOCKER_TEST_BROWSER_HOST}"
 
 CONTAINER_NAME="${IMAGE_NAME}-${PORT}"
-HEALTH_URL="http://127.0.0.1:${PORT}/health"
+HEALTH_URL="https://${DOCKER_TEST_BROWSER_HOST}:${PORT}/health"
 DATA_CLEANED="false"
 
 cleanup_data_dir() {
@@ -55,12 +54,13 @@ remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}" -d --name "${CONTAINER_NAME}" \
   -e AUTH_USER="${DOCKER_TEST_USER}" \
   -e AUTH_PASSWORD="${DOCKER_TEST_PASSWORD}" \
+  -e CADDY_SITE_ADDRESS="${CADDY_SITE_ADDRESS}" \
   -e TINYAUTH_APP_URL="${TINYAUTH_APP_URL}" \
   -e PORT="${PORT}"
 
 health_ready="false"
 for _ in {1..20}; do
-  if curl -fsS "${HEALTH_URL}" >/dev/null; then
+  if curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PORT}:127.0.0.1" -kfsS "${HEALTH_URL}" >/dev/null; then
     health_ready="true"
     break
   fi
@@ -91,7 +91,7 @@ PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" pnpm exec playwright insta
 if ! E2E_DOCKER=true \
   NODE_ENV=production \
   PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" \
-  HOST="${DOCKER_TEST_APP_HOST}" \
+  HOST="${DOCKER_TEST_BROWSER_HOST}" \
   PORT="${PORT}" \
   COLLAB_ENABLED=true \
   AUTH_USER="${DOCKER_TEST_USER}" \
