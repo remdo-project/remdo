@@ -53,11 +53,11 @@ function createUserConfigHandle(userConfig: UserConfigSource, noteId: NoteId): U
 }
 
 function createUserConfigNote(userConfig: UserConfigSource, noteId: NoteId): Note {
-  const kind = () => userConfig.kindOf(noteId);
-  if (kind() === 'user-config') {
+  const noteKind = userConfig.kindOf(noteId);
+  if (noteKind === 'user-config') {
     return createUserConfigHandle(userConfig, noteId);
   }
-  if (kind() === 'document-list') {
+  if (noteKind === 'document-list') {
     return createDocumentListHandle(userConfig, noteId);
   }
   return createDocumentHandle(userConfig, noteId);
