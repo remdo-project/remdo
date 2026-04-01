@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createUserConfigRootNote } from '@/documents/handles';
+import { createUserConfigRootNote } from '@/documents/user-config-notes';
 import { createEditorNotes } from '@/editor/notes';
 import type { EditorNotesAdapter, NoteRange, PlaceTarget, SelectionSnapshot } from '@/editor/notes/contracts';
 import { NoteNotFoundError } from '@/notes/errors';
-import type { NoteKind } from '@/notes/contracts';
 
 function createMockAdapterFixture(
   adapterSelection?: SelectionSnapshot
@@ -21,12 +20,10 @@ function createMockAdapterFixture(
   ]);
   const placeCalls: Array<{ range: NoteRange; target: PlaceTarget }> = [];
   let nextDraftId = 1;
-  const configNotes = new Map<string, { kind: NoteKind; text: string; children: string[] }>([
-    ['user-config', { kind: 'user-config', text: 'User Config', children: ['document-list'] }],
-    ['document-list', { kind: 'document-list', text: 'Documents', children: ['main', 'flat'] }],
-    ['main', { kind: 'document', text: 'Main', children: [] }],
-    ['flat', { kind: 'document', text: 'Flat', children: [] }],
-  ]);
+  const userConfig = [
+    { id: 'main', title: 'Main' },
+    { id: 'flat', title: 'Flat' },
+  ] as const;
 
   const requireNote = (noteId: string): { text: string; children: string[] } => {
     const note = notes.get(noteId);
@@ -44,30 +41,7 @@ function createMockAdapterFixture(
   return {
     notes,
     placeCalls,
-    userConfig: {
-      rootId: () => 'user-config',
-      kindOf: (noteId) => {
-        const note = configNotes.get(noteId);
-        if (!note) {
-          throw new NoteNotFoundError(noteId);
-        }
-        return note.kind;
-      },
-      textOf: (noteId) => {
-        const note = configNotes.get(noteId);
-        if (!note) {
-          throw new NoteNotFoundError(noteId);
-        }
-        return note.text;
-      },
-      childrenOf: (noteId) => {
-        const note = configNotes.get(noteId);
-        if (!note) {
-          throw new NoteNotFoundError(noteId);
-        }
-        return note.children;
-      },
-    },
+    userConfig,
     adapter: {
       docId: () => 'doc-1',
       currentDocumentChildrenIds: () => ['a'],

@@ -72,7 +72,7 @@ describe('editor notes showcase', () => {
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
-      const userConfig = getUserConfig();
+      const userConfig = await getUserConfig();
 
       remdo.validate(() => {
         const listedDocuments = userConfig.documentList().children().map((document) => ({
@@ -82,9 +82,6 @@ describe('editor notes showcase', () => {
 
         expect(listedDocuments).toEqual([
           { id: 'main', text: 'Main' },
-          { id: 'project', text: 'Project' },
-          { id: 'basic', text: 'Basic' },
-          { id: 'flat', text: 'Flat' },
         ]);
       });
     }
@@ -96,7 +93,7 @@ describe('editor notes showcase', () => {
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
       const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      const userConfig = getUserConfig();
+      const userConfig = await getUserConfig();
 
       remdo.validate(() => {
         const documentList = userConfig.documentList();
