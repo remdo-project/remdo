@@ -49,7 +49,6 @@ function seedDefaultUserConfig(root: Y.Map<Y.Array<Y.Map<unknown>> | number>): v
   entry.set('title', DEFAULT_USER_DOCUMENT.title);
   documents.push([entry]);
   root.set(DOCUMENTS_KEY, documents);
-  root.set('version', 1);
 }
 
 function readUserConfigDocuments(root: Y.Map<Y.Array<Y.Map<unknown>> | number>) {

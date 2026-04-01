@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -52,10 +52,6 @@ export default function DocumentRoute() {
       active = false;
     };
   }, []);
-  const documentOptions = useMemo(
-    () => userConfigRoot?.documentList().children().map((document) => ({ value: document.id(), label: document.text() })) ?? [],
-    [userConfigRoot]
-  );
   const documentPicker = useCombobox({
     onDropdownClose: () => documentPicker.resetSelectedOption(),
   });
@@ -184,6 +180,15 @@ export default function DocumentRoute() {
       document.removeEventListener('pointerdown', handlePointerDownOutsideSearch, true);
     };
   }, [handleSearchDismiss, searchModeActive]);
+
+  if (!userConfigRoot) {
+    return <div className="document-editor-shell" />;
+  }
+
+  const documentOptions = userConfigRoot.documentList().children().map((document) => ({
+    value: document.id(),
+    label: document.text(),
+  }));
 
   const highlightedResultIndex = highlightedResultNoteId
     ? flatResults.findIndex((result) => result.noteId === highlightedResultNoteId)
