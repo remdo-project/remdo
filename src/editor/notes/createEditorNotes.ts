@@ -8,20 +8,57 @@ import type {
   SelectionSnapshot,
 } from '@/editor/notes/contracts';
 import type {
+  ChildPosition,
   NoteId,
 } from '@/notes/contracts';
 import { NoteNotFoundError } from '@/notes/errors';
 import { createNoteAs } from '@/notes/handle-utils';
 
 export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
+  const resolveCreateArgs = (
+    arg1: string | ChildPosition,
+    arg2?: string,
+  ): { position?: ChildPosition; text: string } => {
+    if (typeof arg1 === 'string') {
+      return { text: arg1 };
+    }
+    if (typeof arg2 !== 'string') {
+      throw new TypeError('create(position, text) requires explicit note text.');
+    }
+    return { position: arg1, text: arg2 };
+  };
+
+  const resolveChildTarget = (
+    parentId: NoteId,
+    childIds: () => readonly NoteId[],
+    position?: ChildPosition,
+  ): PlaceTarget => {
+    if (!position) {
+      return { parent: parentId, index: -1 };
+    }
+    if ('index' in position) {
+      return { parent: parentId, index: position.index };
+    }
+    const anchorId = 'before' in position ? position.before : position.after;
+    if (!childIds().includes(anchorId)) {
+      throw new Error(`Note "${anchorId}" is not a child of "${parentId}".`);
+    }
+    return position;
+  };
+
   const createHandle = (noteId: NoteId): EditorNote => {
     const kind = () => 'editor-note' as const;
+    function create(arg1: string | ChildPosition, arg2?: string): EditorNote {
+      const { position, text } = resolveCreateArgs(arg1, arg2);
+      return createHandle(adapter.createNote(resolveChildTarget(noteId, () => adapter.childrenOf(noteId), position), text));
+    }
     const handle: EditorNote = {
       id: () => noteId,
       kind,
       attached: () => adapter.isBounded(noteId),
       text: () => adapter.textOf(noteId),
       children: () => adapter.childrenOf(noteId).map((childId) => createHandle(childId)),
+      create,
       as: createNoteAs(noteId, kind, () => handle),
     };
     return handle;
@@ -30,11 +67,18 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
   const createCurrentDocumentHandle = (): DocumentNote => {
     const currentDocId = adapter.docId();
     const kind = () => 'document' as const;
+    function create(arg1: string | ChildPosition, arg2?: string): EditorNote {
+      const { position, text } = resolveCreateArgs(arg1, arg2);
+      return createHandle(
+        adapter.createNote(resolveChildTarget(currentDocId, adapter.currentDocumentChildrenIds, position), text),
+      );
+    }
     const handle: DocumentNote = {
       id: () => currentDocId,
       kind,
       text: () => currentDocId,
       children: () => adapter.currentDocumentChildrenIds().map((noteId) => createHandle(noteId)),
+      create,
       as: createNoteAs(currentDocId, kind, () => handle),
     };
     return handle;
@@ -69,7 +113,7 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
 
   const ensurePlaceTargetExists = (target: PlaceTarget): void => {
     const noteId = 'parent' in target ? target.parent : 'before' in target ? target.before : target.after;
-    if (!adapter.isBounded(noteId)) {
+    if (noteId !== adapter.docId() && !adapter.isBounded(noteId)) {
       throw new NoteNotFoundError(noteId);
     }
   };
@@ -78,10 +122,6 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
     docId: () => adapter.docId(),
     currentDocument: createCurrentDocumentHandle,
     selection: () => resolveSelection(adapter.selection()),
-    createNote: (target, text) => {
-      ensurePlaceTargetExists(target);
-      return createHandle(adapter.createNote(target, text));
-    },
     note: (noteId) => createHandle(noteId),
     delete: (range) => runRangeMutation(range, adapter.delete),
     place: (range, target) => {

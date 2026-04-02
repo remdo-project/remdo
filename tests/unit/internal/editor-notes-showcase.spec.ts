@@ -8,12 +8,16 @@
  * Proper unit/integration suites remain the source of truth; this file is
  * expected to be removed once the SDK API reaches a stable/final shape.
  */
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { meta, placeCaretAtNote } from '#tests';
-import { getUserConfig } from '@/documents';
 import { createLexicalEditorNotes } from '@/editor/notes';
 
 describe('editor notes showcase', () => {
+  beforeEach(() => {
+    // The in-memory user-config backend keeps module-level state across imports.
+    vi.resetModules();
+  });
+
   it(
     'walks through the main sdk workflow on a flat fixture (select, read, create, place, indent/outdent, move, delete)',
     meta({ fixture: 'flat' }),
@@ -33,27 +37,31 @@ describe('editor notes showcase', () => {
         expect(note2.text()).toBe('note2');
       });
 
-      let sdkNoteId = '';
+      let topNoteId = '';
+      let childNoteId = '';
       await remdo.mutate(() => {
-        const sdkNote = sdk.createNote({ after: 'note2' }, 'sdk note');
-        sdkNoteId = sdkNote.id();
+        const topNote = sdk.currentDocument().create({ after: 'note2' }, 'sdk note');
+        topNoteId = topNote.id();
+        const childNote = sdk.note('note1').create('child note');
+        childNoteId = childNote.id();
         sdk.place({ start: 'note2', end: 'note2' }, { before: 'note1' });
       });
 
       expect(remdo).toMatchOutline([
         { noteId: 'note2', text: 'note2' },
-        { noteId: 'note1', text: 'note1' },
+        { noteId: 'note1', text: 'note1', children: [{ noteId: null, text: 'child note' }] },
         { noteId: null, text: 'sdk note' },
         { noteId: 'note3', text: 'note3' },
       ]);
 
+      remdo.validate(() => {
+        expect(childNoteId.length).toBeGreaterThan(0);
+        expect(sdk.note('note1').children().map((child) => child.text())).toEqual(['child note']);
+      });
+
       await remdo.mutate(() => {
-        sdk.indent({ start: sdkNoteId, end: sdkNoteId });
-        sdk.note('note1').children().map((child) => child.id());
-
-        sdk.outdent({ start: sdkNoteId, end: sdkNoteId });
-        sdk.note('note1').children().map((child) => child.id());
-
+        sdk.indent({ start: topNoteId, end: topNoteId });
+        sdk.outdent({ start: topNoteId, end: topNoteId });
         sdk.moveDown({ start: 'note2', end: 'note2' });
         sdk.moveUp({ start: 'note2', end: 'note2' });
         sdk.delete({ start: 'note3', end: 'note3' });
@@ -61,27 +69,41 @@ describe('editor notes showcase', () => {
 
       expect(remdo).toMatchOutline([
         { noteId: 'note2', text: 'note2' },
-        { noteId: 'note1', text: 'note1' },
+        { noteId: 'note1', text: 'note1', children: [{ noteId: null, text: 'child note' }] },
         { noteId: null, text: 'sdk note' },
       ]);
     }
   );
 
   it(
-    'lists document ids and titles via user-config document-list traversal',
+    'lists and creates documents through user-config document-list traversal',
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
+      // Import after module reset so each test gets a fresh in-memory user-config backend.
+      const { getUserConfig } = await import('@/documents');
       const userConfig = await getUserConfig();
+      const documentList = userConfig.documentList();
 
       remdo.validate(() => {
-        const listedDocuments = userConfig.documentList().children().map((document) => ({
+        expect(documentList.children().map((document) => ({
           id: document.id(),
           text: document.text(),
-        }));
-
-        expect(listedDocuments).toEqual([
+        }))).toEqual([
           { id: 'main', text: 'Main' },
+        ]);
+      });
+
+      const createdDocument = await documentList.create('New Document');
+
+      remdo.validate(() => {
+        expect(createdDocument.kind()).toBe('document');
+        expect(documentList.children().map((document) => ({
+          id: document.id(),
+          text: document.text(),
+        }))).toEqual([
+          { id: 'main', text: 'Main' },
+          { id: createdDocument.id(), text: 'New Document' },
         ]);
       });
     }
@@ -93,6 +115,8 @@ describe('editor notes showcase', () => {
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
       const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      // Import after module reset so each test gets a fresh in-memory user-config backend.
+      const { getUserConfig } = await import('@/documents');
       const userConfig = await getUserConfig();
 
       remdo.validate(() => {

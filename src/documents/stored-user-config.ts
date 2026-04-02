@@ -1,10 +1,15 @@
 import * as Y from 'yjs';
 import { config } from '#config';
 import { CollabSession } from '#lib/collaboration/session';
+import { createUniqueNoteId } from '#lib/editor/note-ids';
 import type { CollaborationProviderInstance } from '#lib/collaboration/runtime';
 import type { UserConfigNote } from './contracts';
-import { DEFAULT_USER_DOCUMENT, createDefaultUserConfig } from './defaults';
-import { createUserConfigRootNote } from './user-config-notes';
+import { DEFAULT_USER_DOCUMENT } from './defaults';
+import {
+  createUserConfigRootNote,
+  resolveListedDocumentInsertIndex,
+} from './user-config-notes';
+import type { ListedDocument } from './user-config-notes';
 
 const USER_CONFIG_DOC_ID = '__remdo_user_config__';
 const USER_CONFIG_ROOT_NOTE_ID = 'user-config';
@@ -13,10 +18,6 @@ const DOCUMENTS_KEY = 'documents';
 let userConfigPromise: Promise<UserConfigNote> | null = null;
 
 export function getUserConfig(): Promise<UserConfigNote> {
-  if (!config.env.COLLAB_ENABLED) {
-    return Promise.resolve(createDefaultUserConfig());
-  }
-
   userConfigPromise ??= loadStoredUserConfig().catch((error) => {
     userConfigPromise = null;
     throw error;
@@ -26,32 +27,52 @@ export function getUserConfig(): Promise<UserConfigNote> {
 
 async function loadStoredUserConfig(): Promise<UserConfigNote> {
   return withUserConfigDoc(async (doc, session) => {
-    const root = doc.getMap<Y.Array<Y.Map<unknown>> | number>(USER_CONFIG_ROOT_NOTE_ID);
-    const documents = root.get(DOCUMENTS_KEY);
+    const root = doc.getMap<Y.Array<Y.Map<unknown>>>(USER_CONFIG_ROOT_NOTE_ID);
+    const documents = ensureDocumentsArray(root);
 
-    if (!(documents instanceof Y.Array) || documents.length === 0) {
-      seedDefaultUserConfig(root);
+    if (documents.length === 0) {
+      documents.push([createDocumentEntry(DEFAULT_USER_DOCUMENT)]);
       await session.awaitSynced();
     }
 
-    return createUserConfigRootNote(readUserConfigDocuments(root));
+    const listedDocuments = readUserConfigDocuments(root);
+    return createUserConfigRootNote(listedDocuments, {
+      createDocument: async (position, title) => {
+        const document = { id: createUniqueNoteId(), title };
+
+        await withUserConfigDoc(async (currentDoc, currentSession) => {
+          const currentRoot = currentDoc.getMap<Y.Array<Y.Map<unknown>>>(USER_CONFIG_ROOT_NOTE_ID);
+          const currentDocuments = ensureDocumentsArray(currentRoot);
+          const insertIndex = resolveListedDocumentInsertIndex(readUserConfigDocuments(currentRoot), position);
+          currentDocuments.insert(insertIndex, [createDocumentEntry(document)]);
+          await currentSession.awaitSynced();
+        });
+
+        return document;
+      },
+    });
   });
 }
 
-function seedDefaultUserConfig(root: Y.Map<Y.Array<Y.Map<unknown>> | number>): void {
-  if (root.has(DOCUMENTS_KEY)) {
-    return;
+function ensureDocumentsArray(root: Y.Map<Y.Array<Y.Map<unknown>>>): Y.Array<Y.Map<unknown>> {
+  const existing = root.get(DOCUMENTS_KEY);
+  if (existing instanceof Y.Array) {
+    return existing;
   }
-
   const documents = new Y.Array<Y.Map<unknown>>();
-  const entry = new Y.Map<unknown>();
-  entry.set('id', DEFAULT_USER_DOCUMENT.id);
-  entry.set('title', DEFAULT_USER_DOCUMENT.title);
-  documents.push([entry]);
+  documents.push([createDocumentEntry(DEFAULT_USER_DOCUMENT)]);
   root.set(DOCUMENTS_KEY, documents);
+  return documents;
 }
 
-function readUserConfigDocuments(root: Y.Map<Y.Array<Y.Map<unknown>> | number>) {
+function createDocumentEntry(document: ListedDocument): Y.Map<unknown> {
+  const entry = new Y.Map<unknown>();
+  entry.set('id', document.id);
+  entry.set('title', document.title);
+  return entry;
+}
+
+function readUserConfigDocuments(root: Y.Map<Y.Array<Y.Map<unknown>>>) {
   const documents = root.get(DOCUMENTS_KEY);
   if (!(documents instanceof Y.Array)) {
     throw new TypeError('User-config document is missing the documents list.');

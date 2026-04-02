@@ -153,7 +153,7 @@ describe('editor notes', () => {
     ]);
   });
 
-  it('creates and places a note, returning an attached note handle', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('creates and places a note through parent-owned create()', meta({ fixture: 'flat' }), async ({ remdo }) => {
     let inserted:
       | {
           placedId: string;
@@ -164,7 +164,7 @@ describe('editor notes', () => {
 
     await remdo.mutate(() => {
       const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      const placed = sdk.createNote({ parent: 'note1', index: 999 }, 'draft');
+      const placed = sdk.note('note1').create({ index: 999 }, 'draft');
       inserted = {
         placedId: placed.id(),
         placedText: placed.text(),

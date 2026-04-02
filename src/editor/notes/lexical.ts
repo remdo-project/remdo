@@ -158,12 +158,15 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
       return { kind: 'after', reference: siblingTail };
     }
 
-    const parent = $requireNoteById(target.parent);
-    if (isInsideMovedSubtree(parent)) {
-      throw new Error('Cannot move notes into their own subtree');
-    }
-
-    const targetList = $getOrCreateChildList(parent);
+    const targetList = target.parent === docId
+      ? $requireRootContentList()
+      : (() => {
+          const parent = $requireNoteById(target.parent);
+          if (isInsideMovedSubtree(parent)) {
+            throw new Error('Cannot move notes into their own subtree');
+          }
+          return $getOrCreateChildList(parent);
+        })();
     const availableSiblings = getContentSiblings(targetList).filter((sibling) => !movedKeys.has(sibling.getKey()));
     const slot = $normalizeInsertionSlot(target.index, availableSiblings.length);
     const anchor = availableSiblings[slot];

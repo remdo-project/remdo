@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
-import { IconChevronDown, IconSearch } from '@tabler/icons-react';
+import { IconChevronDown, IconPlus, IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { UserConfigNote } from '@/documents';
 import { getUserConfig } from '@/documents';
@@ -25,6 +25,8 @@ function isVisibleInCurrentView(element: HTMLElement): boolean {
   }
   return true;
 }
+
+const NEW_DOCUMENT_VALUE = '$new-document';
 
 export default function DocumentRoute() {
   const { docRef } = useParams<{ docRef?: string }>();
@@ -185,6 +187,11 @@ export default function DocumentRoute() {
     return <div className="document-editor-shell" />;
   }
 
+  const createDocument = async () => {
+    const nextDocument = await userConfigRoot.documentList().create('New Document');
+    setDocumentId(nextDocument.id());
+  };
+
   const documentOptions = userConfigRoot.documentList().children().map((document) => ({
     value: document.id(),
     label: document.text(),
@@ -207,8 +214,12 @@ export default function DocumentRoute() {
               <Combobox
                 offset={{ mainAxis: 4, crossAxis: -44 }}
                 onOptionSubmit={(value) => {
-                  setDocumentId(value);
                   documentPicker.closeDropdown();
+                  if (value === NEW_DOCUMENT_VALUE) {
+                    void createDocument();
+                    return;
+                  }
+                  setDocumentId(value);
                 }}
                 position="bottom-start"
                 shadow="md"
@@ -238,6 +249,13 @@ export default function DocumentRoute() {
                         {document.label}
                       </Combobox.Option>
                     ))}
+                    <div aria-hidden="true" className="document-header-doc-divider document-header-doc-divider--dark-5" />
+                    <Combobox.Option value={NEW_DOCUMENT_VALUE}>
+                      <span className="document-header-doc-action">
+                        <IconPlus aria-hidden="true" size={14} />
+                        <span>New</span>
+                      </span>
+                    </Combobox.Option>
                   </Combobox.Options>
                 </Combobox.Dropdown>
               </Combobox>

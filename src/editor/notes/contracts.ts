@@ -1,5 +1,5 @@
 import type { DocumentNote } from '@/documents/contracts';
-import type { Note, NoteId } from '@/notes/contracts';
+import type { ChildPosition, Note, NoteId, RelativePlacement } from '@/notes/contracts';
 
 type DocumentId = string;
 type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
@@ -9,6 +9,11 @@ export interface EditorNote extends Note<'editor-note'> {
   attached: () => boolean;
   /** Returns direct child editor notes. Throws when the note does not exist. */
   children: () => readonly EditorNote[];
+  /** Creates and places a child editor note relative to this note. */
+  create: {
+    (text: string): EditorNote;
+    (position: ChildPosition, text: string): EditorNote;
+  };
 }
 
 export interface NoteRange {
@@ -16,7 +21,7 @@ export interface NoteRange {
   end: NoteId;
 }
 
-export type PlaceTarget = { parent: NoteId; index: number } | { before: NoteId } | { after: NoteId };
+export type PlaceTarget = { parent: NoteId; index: number } | RelativePlacement;
 
 type SelectionWithRangeKind = Exclude<NoteSelectionKind, 'none'>;
 
@@ -46,8 +51,6 @@ interface EditorNotesBase {
 export interface EditorNotes extends EditorNotesBase {
   /** Returns current document note handle. */
   currentDocument: () => DocumentNote;
-  /** Creates and places an editor note at target, then returns attached note handle. */
-  createNote: (target: PlaceTarget, text?: string) => EditorNote;
   /** Returns an editor note handle by id; reads throw when the note does not exist. */
   note: (noteId: NoteId) => EditorNote;
 }

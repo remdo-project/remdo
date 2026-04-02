@@ -23,7 +23,7 @@ function createMockAdapterFixture(
   const userConfig = [
     { id: 'main', title: 'Main' },
     { id: 'flat', title: 'Flat' },
-  ] as const;
+  ];
 
   const requireNote = (noteId: string): { text: string; children: string[] } => {
     const note = notes.get(noteId);
@@ -48,7 +48,9 @@ function createMockAdapterFixture(
       selection: () => resolvedSelection,
       createNote: (target, text = '') => {
         if ('parent' in target) {
-          requireNote(target.parent);
+          if (target.parent !== 'doc-1') {
+            requireNote(target.parent);
+          }
         } else if ('before' in target) {
           requireNote(target.before);
         } else {
@@ -74,7 +76,9 @@ function createMockAdapterFixture(
       place: (range, target) => {
         requireRange(range);
         if ('parent' in target) {
-          requireNote(target.parent);
+          if (target.parent !== 'doc-1') {
+            requireNote(target.parent);
+          }
         } else if ('before' in target) {
           requireNote(target.before);
         } else {
@@ -180,14 +184,21 @@ describe('editor notes core', () => {
     expect(sdk.moveDown({ start: 'b', end: 'b' })).toBe(true);
   });
 
-  it('creates and places a note, returning note handle', () => {
+  it('creates notes through parent-owned create()', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createEditorNotes(fixture.adapter);
 
-    const placed = sdk.createNote({ before: 'b' }, 'Draft');
+    const placed = sdk.note('a').create({ before: 'b' }, 'Draft');
+    const rootPlaced = sdk.currentDocument().create({ index: 0 }, 'Root draft');
 
     expect(placed.id()).toBe('draft-1');
     expect(placed.text()).toBe('Draft');
+    expect(rootPlaced.id()).toBe('draft-2');
+    expect(rootPlaced.text()).toBe('Root draft');
+    expect(fixture.placeCalls).toEqual([
+      { range: { start: 'draft-1', end: 'draft-1' }, target: { before: 'b' } },
+      { range: { start: 'draft-2', end: 'draft-2' }, target: { parent: 'doc-1', index: 0 } },
+    ]);
   });
 
   it('delegates place targets in note-id form', () => {

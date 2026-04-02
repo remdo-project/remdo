@@ -2,6 +2,8 @@ import type { DocumentListNote, DocumentNote, UserConfigNote } from '@/documents
 import type { EditorNote } from '@/editor/notes/contracts';
 
 export type NoteId = string;
+export type RelativePlacement = { before: NoteId } | { after: NoteId };
+export type ChildPosition = RelativePlacement | { index: number };
 export type NoteKind =
   | 'editor-note'
   | 'user-config'

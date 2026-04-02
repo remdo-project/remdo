@@ -38,6 +38,9 @@ function createMockEditorNote(
     attached: () => true,
     text: () => text,
     children: () => children,
+    create: () => {
+      throw new Error('Editor note creation is not used in search candidate tests.');
+    },
     as: createMockNoteAs(id, kind, () => note),
   };
   return note;
@@ -50,6 +53,9 @@ function createMockDocumentNote(children: EditorNote[]): DocumentNote {
     kind,
     text: () => 'Main',
     children: () => children,
+    create: () => {
+      throw new Error('Document note creation is not used in search candidate tests.');
+    },
     as: createMockNoteAs('main', kind, () => note),
   };
   return note;
