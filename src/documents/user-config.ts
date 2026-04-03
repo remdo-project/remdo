@@ -6,8 +6,6 @@ import type { UserConfigNote } from './contracts';
 
 const userConfigApi = config.env.COLLAB_ENABLED ? storedUserConfig : localUserConfig;
 
-export const getUserConfig = userConfigApi.getUserConfig;
-
 export function useUserConfigRoot(): UserConfigNote | null {
   const userConfig = useSyncExternalStore(
     userConfigApi.subscribeUserConfigRuntime,
