@@ -1,1 +1,0 @@
-export { NoteNotFoundError } from './errors';
