@@ -78,19 +78,17 @@ Rules:
   1. Introduce async walker/finder/query helpers for search and note-link
      completion so cross-document traversal does not force raw recursive
      `children()` traversal into callers.
-  2. Keep async behavior out of the raw `Note` handle and keep adapter
-     boundaries internal to the SDK/domain layer.
-  3. Settle long-term `DocumentNote` semantics for non-current documents:
+  2. Settle long-term `DocumentNote` semantics for non-current documents:
      loading model, whether `children()` can hydrate, and which operations are
      allowed before document content is loaded.
-  4. Clarify the remaining query/loading boundary:
+  3. Clarify the remaining query/loading boundary:
      whether cross-document link search should load trees directly or use a
      separate index/search layer.
-  5. Clarify mutation boundaries only as needed by the new traversal/query
+  4. Clarify mutation boundaries only as needed by the new traversal/query
      layer (single-note writes vs transactional/multi-note updates).
-  6. Review the remaining top-level API naming after the note-owned
+  5. Review the remaining top-level API naming after the note-owned
      `create(...)` refactor, especially `createLexicalEditorNotes` and
      `place(...)`.
-  7. Update the durable docs once the traversal/query contract stabilizes:
+  6. Update the durable docs once the traversal/query contract stabilizes:
      `docs/outliner/concepts.md`, `docs/architecture.md`,
      `docs/outliner/search.md`, and `docs/outliner/links.md`.
