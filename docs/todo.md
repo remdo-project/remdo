@@ -57,6 +57,11 @@ Rules:
 
 ## Collaboration architecture roadmap [Future]
 
+- User-config runtime follow-up: observe remote/shared `documents` mutations in
+  `src/documents/stored-user-config.ts` and refresh the local store version so
+  document-switcher state stays current across tabs/sessions. Retry-on-startup
+  recovery can land independently first.
+
 ### Stages and success criteria
 
 1. ✅ Done **Stage 0: single hub, online-first.**

@@ -14,6 +14,7 @@ import type { ListedDocument } from './user-config-notes';
 
 const USER_CONFIG_ROOT_NOTE_ID = 'user-config';
 const DOCUMENTS_KEY = 'documents';
+const STARTUP_RETRY_DELAY_MS = 1000;
 
 interface StoredUserConfigContext {
   session: CollabSession;
@@ -31,11 +32,14 @@ class StoredUserConfigStore {
   private context: StoredUserConfigContext | null = null;
   private contextPromise: Promise<StoredUserConfigContext> | null = null;
   private readyPromise: Promise<void> | null = null;
+  private startupRetryHandle: ReturnType<typeof setTimeout> | null = null;
   private ready = false;
   private version = 0;
 
   start(): void {
-    void this.ensureReady().catch(() => {});
+    void this.ensureReady().catch(() => {
+      this.scheduleStartupRetry();
+    });
   }
 
   subscribe(listener: () => void) {
@@ -67,6 +71,10 @@ class StoredUserConfigStore {
           if (this.readyPromise === readyPromise) {
             this.ready = true;
             this.readyPromise = null;
+            if (this.startupRetryHandle) {
+              clearTimeout(this.startupRetryHandle);
+              this.startupRetryHandle = null;
+            }
             this.bumpVersion();
           }
         })
@@ -143,6 +151,16 @@ class StoredUserConfigStore {
 
   private replaceDocuments(nextDocuments: readonly ListedDocument[]) {
     this.documents.splice(0, this.documents.length, ...nextDocuments);
+  }
+
+  private scheduleStartupRetry() {
+    if (this.ready || this.readyPromise || this.startupRetryHandle) {
+      return;
+    }
+    this.startupRetryHandle = setTimeout(() => {
+      this.startupRetryHandle = null;
+      this.start();
+    }, STARTUP_RETRY_DELAY_MS);
   }
 
   private resetContext(context: StoredUserConfigContext) {
