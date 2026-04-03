@@ -5,53 +5,169 @@ import { createUniqueNoteId } from '#lib/editor/note-ids';
 import type { CollaborationProviderInstance } from '#lib/collaboration/runtime';
 import type { UserConfigNote } from './contracts';
 import { DEFAULT_USER_DOCUMENT } from './defaults';
+import { getUserConfigDocId } from './user-config-doc-id';
 import {
   createUserConfigRootNote,
   resolveListedDocumentInsertIndex,
 } from './user-config-notes';
 import type { ListedDocument } from './user-config-notes';
 
-const USER_CONFIG_DOC_ID = '__remdo_user_config__';
 const USER_CONFIG_ROOT_NOTE_ID = 'user-config';
 const DOCUMENTS_KEY = 'documents';
 
-let userConfigPromise: Promise<UserConfigNote> | null = null;
-
-export function getUserConfig(): Promise<UserConfigNote> {
-  userConfigPromise ??= loadStoredUserConfig().catch((error) => {
-    userConfigPromise = null;
-    throw error;
-  });
-  return userConfigPromise;
+interface StoredUserConfigContext {
+  session: CollabSession;
+  doc: Y.Doc;
 }
 
-async function loadStoredUserConfig(): Promise<UserConfigNote> {
-  return withUserConfigDoc(async (doc, session) => {
-    const root = doc.getMap<Y.Array<Y.Map<unknown>>>(USER_CONFIG_ROOT_NOTE_ID);
+// Tab-scoped store that keeps the live user-config session outside route/component lifecycles.
+class StoredUserConfigStore {
+  private listeners = new Set<() => void>();
+  private documents: ListedDocument[] = [];
+  private userConfig: UserConfigNote | null = null;
+  private context: StoredUserConfigContext | null = null;
+  private contextPromise: Promise<StoredUserConfigContext> | null = null;
+  private loadPromise: Promise<UserConfigNote> | null = null;
+
+  start(): void {
+    if (this.userConfig) {
+      if (!this.context && !this.contextPromise) {
+        void this.getContext().catch(() => {});
+      }
+      return;
+    }
+    void this.getUserConfig().catch(() => {});
+  }
+
+  subscribe(listener: () => void) {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  getCurrentUserConfig(): UserConfigNote | null {
+    return this.userConfig;
+  }
+
+  getUserConfig(): Promise<UserConfigNote> {
+    if (this.userConfig) {
+      this.start();
+      return Promise.resolve(this.userConfig);
+    }
+    if (!this.loadPromise) {
+      const loadPromise = this.loadUserConfig()
+        .then((userConfig) => {
+          if (this.loadPromise === loadPromise) {
+            this.loadPromise = null;
+            this.notifyListeners();
+          }
+          return userConfig;
+        })
+        .catch((error) => {
+          if (this.loadPromise === loadPromise) {
+            this.loadPromise = null;
+            this.notifyListeners();
+          }
+          throw error;
+        });
+      this.loadPromise = loadPromise;
+    }
+    return this.loadPromise;
+  }
+
+  private async loadUserConfig(): Promise<UserConfigNote> {
+    const context = await this.getContext();
+    const root = context.doc.getMap<Y.Array<Y.Map<unknown>>>(USER_CONFIG_ROOT_NOTE_ID);
     const documents = ensureDocumentsArray(root);
 
     if (documents.length === 0) {
       documents.push([createDocumentEntry(DEFAULT_USER_DOCUMENT)]);
-      await session.awaitSynced();
+      await this.awaitContextSync(context);
     }
 
+    this.replaceDocuments(readUserConfigDocuments(root));
+
+    if (!this.userConfig) {
+      this.userConfig = createUserConfigRootNote(this.documents, {
+        createDocument: async (position, title) => this.createDocument(position, title),
+        onChange: () => this.notifyReady(),
+      });
+    }
+
+    return this.userConfig;
+  }
+
+  private async createDocument(position: Parameters<typeof resolveListedDocumentInsertIndex>[1], title: string) {
+    const context = await this.getContext();
+    const root = context.doc.getMap<Y.Array<Y.Map<unknown>>>(USER_CONFIG_ROOT_NOTE_ID);
+    const documents = ensureDocumentsArray(root);
     const listedDocuments = readUserConfigDocuments(root);
-    return createUserConfigRootNote(listedDocuments, {
-      createDocument: async (position, title) => {
-        const document = { id: createUniqueNoteId(), title };
+    this.replaceDocuments(listedDocuments);
 
-        await withUserConfigDoc(async (currentDoc, currentSession) => {
-          const currentRoot = currentDoc.getMap<Y.Array<Y.Map<unknown>>>(USER_CONFIG_ROOT_NOTE_ID);
-          const currentDocuments = ensureDocumentsArray(currentRoot);
-          const insertIndex = resolveListedDocumentInsertIndex(readUserConfigDocuments(currentRoot), position);
-          currentDocuments.insert(insertIndex, [createDocumentEntry(document)]);
-          await currentSession.awaitSynced();
+    const document = { id: createUniqueNoteId(), title };
+    const insertIndex = resolveListedDocumentInsertIndex(listedDocuments, position);
+    documents.insert(insertIndex, [createDocumentEntry(document)]);
+    await this.awaitContextSync(context);
+    return document;
+  }
+
+  private async getContext(): Promise<StoredUserConfigContext> {
+    if (this.context) {
+      return this.context;
+    }
+    if (!this.contextPromise) {
+      const contextPromise = createStoredUserConfigContext()
+        .then((context) => {
+          if (this.contextPromise === contextPromise) {
+            this.context = context;
+          }
+          return context;
+        })
+        .catch((error) => {
+          if (this.contextPromise === contextPromise) {
+            this.contextPromise = null;
+          }
+          throw error;
         });
+      this.contextPromise = contextPromise;
+    }
+    return this.contextPromise;
+  }
 
-        return document;
-      },
-    });
-  });
+  private async awaitContextSync(context: StoredUserConfigContext): Promise<void> {
+    try {
+      await context.session.awaitSynced();
+    } catch (error) {
+      this.resetContext(context);
+      throw error;
+    }
+  }
+
+  private replaceDocuments(nextDocuments: readonly ListedDocument[]) {
+    this.documents.splice(0, this.documents.length, ...nextDocuments);
+  }
+
+  private resetContext(context: StoredUserConfigContext) {
+    if (this.context === context) {
+      this.context = null;
+      this.contextPromise = null;
+    }
+    context.session.destroy();
+  }
+
+  private notifyReady() {
+    if (!this.userConfig) {
+      return;
+    }
+    this.notifyListeners();
+  }
+
+  private notifyListeners() {
+    for (const listener of this.listeners) {
+      listener();
+    }
+  }
 }
 
 function ensureDocumentsArray(root: Y.Map<Y.Array<Y.Map<unknown>>>): Y.Array<Y.Map<unknown>> {
@@ -91,23 +207,25 @@ function readUserConfigDocuments(root: Y.Map<Y.Array<Y.Map<unknown>>>) {
   });
 }
 
-async function withUserConfigDoc<T>(run: (doc: Y.Doc, session: CollabSession) => Promise<T>): Promise<T> {
+async function createStoredUserConfigContext(): Promise<StoredUserConfigContext> {
+  const docId = getUserConfigDocId();
   const origin = resolveCollabOrigin();
   const docMap = new Map<string, Y.Doc>();
-  const session = new CollabSession({ enabled: true, docId: USER_CONFIG_DOC_ID, origin });
-  session.attach(docMap);
-
-  const attached = await waitForSessionAttachment(session, docMap, USER_CONFIG_DOC_ID);
-
+  const session = new CollabSession({ enabled: true, docId, origin });
   try {
+    session.attach(docMap);
+
+    const attached = await waitForSessionAttachment(session, docMap, docId);
+
     void attached.provider.connect();
     await session.awaitSynced();
-    return await run(attached.doc, session);
-  } finally {
+    return {
+      session,
+      doc: attached.doc,
+    };
+  } catch (error) {
     session.destroy();
-    for (const current of docMap.values()) {
-      current.destroy();
-    }
+    throw error;
   }
 }
 
@@ -158,4 +276,22 @@ function resolveCollabOrigin(): string {
     return location.origin;
   }
   return `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
+}
+
+const store = new StoredUserConfigStore();
+
+export function startUserConfigRuntime(): void {
+  store.start();
+}
+
+export function subscribeUserConfigRuntime(listener: () => void) {
+  return store.subscribe(listener);
+}
+
+export function getCurrentUserConfig(): UserConfigNote | null {
+  return store.getCurrentUserConfig();
+}
+
+export function getUserConfig(): Promise<UserConfigNote> {
+  return store.getUserConfig();
 }

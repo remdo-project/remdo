@@ -2,8 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import type { UserConfigNote } from '@/documents';
-import { getUserConfig } from '@/documents';
+import { useUserConfigRoot } from '@/documents/user-config';
 import Editor from '@/editor/Editor';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
@@ -42,18 +41,7 @@ export default function DocumentRoute() {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const searchResultsListboxId = useId();
   const zoomNoteId = parsedRef?.noteId ?? null;
-  const [userConfigRoot, setUserConfigRoot] = useState<UserConfigNote | null>(null);
-  useEffect(() => {
-    let active = true;
-    void getUserConfig().then((nextUserConfig) => {
-      if (active) {
-        setUserConfigRoot(nextUserConfig);
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const userConfigRoot = useUserConfigRoot();
   const documentPicker = useCombobox({
     onDropdownClose: () => documentPicker.resetSelectedOption(),
   });

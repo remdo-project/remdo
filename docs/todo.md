@@ -197,6 +197,11 @@ Rules:
   note-owned `create(...)` refactor, especially `createLexicalEditorNotes`,
   `place(...)`, and `getUserConfig`, and decide whether they should be renamed
   for a more consistent note-level API.
+- E2E isolation follow-up: consider moving Playwright/editor persistence to a
+  dedicated `DATA_DIR` boundary with fresh collab state per run, so test
+  isolation happens at the environment/storage layer and we can drop
+  per-feature workarounds like
+  [src/documents/user-config-doc-id.ts](/home/piotr/projects/remdo/src/documents/user-config-doc-id.ts).
 - Before closing the current note-first SDK/doc-switcher workstream, delete the
   temporary hardcoded adapter file
   `src/editor/outline/sdk/adapters/hardcoded-user-config.ts`.

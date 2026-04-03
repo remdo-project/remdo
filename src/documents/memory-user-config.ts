@@ -5,21 +5,50 @@ import { DEFAULT_USER_DOCUMENT } from './defaults';
 import { createUserConfigRootNote } from './user-config-notes';
 import type { ListedDocument } from './user-config-notes';
 
-let localUserDocuments: ListedDocument[] | null = null;
+const listeners = new Set<() => void>();
+const documents: ListedDocument[] = [DEFAULT_USER_DOCUMENT];
+let userConfig: UserConfigNote | null = null;
 
-export function getUserConfig(): Promise<UserConfigNote> {
-  const documents = getLocalUserDocuments();
-  return Promise.resolve(createUserConfigRootNote(documents, {
+function notifyListeners() {
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
+function createMemoryUserConfig(): UserConfigNote {
+  return createUserConfigRootNote(documents, {
     createDocument: async (position, title) => {
       void position;
       return { id: createUniqueNoteId(), title };
     },
-  }));
+    onChange: notifyListeners,
+  });
 }
 
-function getLocalUserDocuments(): ListedDocument[] {
-  if (!localUserDocuments) {
-    localUserDocuments = [DEFAULT_USER_DOCUMENT];
+function ensureUserConfig(): UserConfigNote {
+  userConfig ??= createMemoryUserConfig();
+  return userConfig;
+}
+
+export function startUserConfigRuntime(): void {
+  if (userConfig) {
+    return;
   }
-  return localUserDocuments;
+  ensureUserConfig();
+  notifyListeners();
+}
+
+export function subscribeUserConfigRuntime(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function getCurrentUserConfig(): UserConfigNote | null {
+  return userConfig;
+}
+
+export function getUserConfig(): Promise<UserConfigNote> {
+  return Promise.resolve(ensureUserConfig());
 }

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { setExpectedConsoleIssues, expect, readOutline, test as base } from '#e2e/fixtures';
 import type { Locator, Page } from '#e2e/fixtures';
 import { config } from '#config';
+import { E2E_USER_CONFIG_DOC_ID_KEY } from '@/documents/user-config-doc-id';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
 import { ensureReady, getEditorState, load, waitForSynced } from './bridge';
 import { editorLocator } from './locators';
@@ -24,9 +25,11 @@ async function createEditorHarness(page: Page, docId: string) {
   await editorLocator(page).locator('.editor-input').first().waitFor();
   await ensureReady(page, { clear: true });
   await editorLocator(page).locator('.editor-input').first().click();
+  const userConfigDocId = await page.evaluate((storageKey) => sessionStorage.getItem(storageKey), E2E_USER_CONFIG_DOC_ID_KEY);
 
   return {
     docId,
+    userConfigDocId,
     load: (name: string, options?: EditorLoadOptions) => {
       const expectedCodes = options?.expectedConsoleIssues;
       if (expectedCodes?.length) {
@@ -48,6 +51,9 @@ export const test = base.extend<{ testDocId: string; editor: EditorHarness }>({
     const editor = await createEditorHarness(page, testDocId);
     await use(editor);
     await waitForSynced(page);
+    if (editor.userConfigDocId) {
+      await removeCollabDocFromDisk(editor.userConfigDocId);
+    }
   },
 });
 

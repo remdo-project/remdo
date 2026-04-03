@@ -14,6 +14,7 @@ export interface ListedDocument {
 
 interface UserConfigNoteActions {
   createDocument?: (position: ChildPosition | undefined, title: string) => Promise<ListedDocument>;
+  onChange?: () => void;
 }
 
 export function resolveListedDocumentInsertIndex(
@@ -87,6 +88,7 @@ function createDocumentListHandle(
     const created = await actions.createDocument(position, text);
     const insertIndex = resolveListedDocumentInsertIndex(documents, position);
     documents.splice(insertIndex, 0, created);
+    actions.onChange?.();
     return createDocumentHandle(created);
   }
 

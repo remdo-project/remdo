@@ -3,6 +3,7 @@ import { createYjsProvider } from '@y-sweet/client';
 import type { ClientToken } from '@y-sweet/sdk';
 import { trace } from '#lib/log';
 import { resolveLoopbackHost } from '#lib/net/loopback';
+import { guardYSweetIndexedDbProviderLifecycle } from './y-sweet-indexeddb-lifecycle';
 import * as Y from 'yjs';
 export type CollaborationProviderInstance = Provider & { destroy: () => void };
 type CollaborationProviderConnectionStatus =
@@ -177,6 +178,9 @@ export function createProviderFactory(origin?: string): ProviderFactory {
       showDebuggerLink: false,
     });
     let destroyed = false;
+    const destroyIndexedDbProvider = guardYSweetIndexedDbProviderLifecycle(
+      provider as unknown as CollaborationProviderInstance & { indexedDBProvider?: unknown }
+    );
 
     const originalDestroy = provider.destroy.bind(provider);
     const destroy = () => {
@@ -188,6 +192,7 @@ export function createProviderFactory(origin?: string): ProviderFactory {
       // otherwise keep Node processes (e.g., snapshot CLI) alive.
       provider.connect = () => Promise.resolve();
       provider.disconnect();
+      destroyIndexedDbProvider();
       originalDestroy();
     };
 
