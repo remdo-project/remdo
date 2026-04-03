@@ -20,12 +20,6 @@ Rules:
   assertions so tests can express “some valid id was created here” without a
   separate manual sanity check. Example trigger:
   `tests/unit/internal/editor-notes-showcase.spec.ts`.
-- Clean up port assignment flow across `tools/env.defaults.sh`, `tools/env.sh`,
-  and Playwright webServer startup so derived ports are always recomputed from a
-  single base without manual `env -u ...` clearing.
-- Use `playwright.config.ts` (`test:e2e:dev` webServer command) as the example:
-  stale exported `HMR_PORT`/derived vars required explicit unsets to avoid
-  collisions when only `PORT` changed.
 - Naming follow-up: consider renaming `boundaryRoot` to `zoomBoundaryRoot` in
   note operation helpers and SDK adapter plumbing where the boundary is always
   zoom-specific.
@@ -108,20 +102,16 @@ Rules:
 
 ### Agreed next steps
 
-1. Define the generic SDK/core contract first, before moving route metadata:
-   `Note` owns sync `text()`, sync `children()`, and throwing `as(kind)`.
-2. Keep async behavior out of the raw `Note` handle for now. Cross-boundary
+1. Keep async behavior out of the raw `Note` handle for now. Cross-boundary
    traversal/search should live in async walker/finder helpers above the note
    API.
-3. Treat adapter boundaries as an SDK implementation detail. Callers should
+2. Treat adapter boundaries as an SDK implementation detail. Callers should
    traverse one note-first API without caring whether edges cross from metadata
    storage into editor-backed notes.
-4. Keep document-specific note kinds on top of the generic note SDK/core rather
-   than baking those mechanics into a document-only module.
-5. Keep one `DocumentNote` kind. Its long-term meaning is the document node in
+3. Keep one `DocumentNote` kind. Its long-term meaning is the document node in
    the unified tree; `document.children()` is intended to expose document body
    root notes.
-6. Defer non-current-document loading behavior instead of baking temporary
+4. Defer non-current-document loading behavior instead of baking temporary
    unloaded/skip semantics into the public note API. If needed during
    transition, keep temporary limitations clearly internal to the SDK layer.
 
@@ -145,24 +135,9 @@ Rules:
 
 ### Incremental implementation order
 
-1. Extract generic note mechanics into SDK/core:
-   base `Note` contract, typed kind narrowing via `as(kind)`, and generic
-   adapter-facing handle construction.
-2. Add document-specific kinds on top of that generic layer:
-   `UserConfigNote`, `DocumentListNote`, `DocumentNote`, plus only the minimal
-   convenience helpers that encode agreed invariants.
-3. Introduce async walker/finder/query helpers intended for search and
+1. Introduce async walker/finder/query helpers intended for search and
    note-link completion so future cross-document traversal does not force raw
    recursive `children()` traversal into callers.
-4. Rewire the hardcoded document list to use the new generic SDK/domain shape
-   in-memory first.
-5. Only then move route/document-picker code off the temporary hardcoded
-   editor-SDK path.
-6. After the new generic shape is in place, remove user-config responsibilities
-   from `src/editor/outline/sdk/adapters/lexical.ts`.
-7. Replace hardcoded metadata storage with persisted metadata storage
-   (for example a dedicated meta Y-Sweet doc) behind the same SDK/domain
-   boundary.
 
 ### Planned doc follow-ups
 
@@ -202,6 +177,3 @@ Rules:
   isolation happens at the environment/storage layer and we can drop
   per-feature workarounds like
   [src/documents/user-config-doc-id.ts](/home/piotr/projects/remdo/src/documents/user-config-doc-id.ts).
-- Before closing the current note-first SDK/doc-switcher workstream, delete the
-  temporary hardcoded adapter file
-  `src/editor/outline/sdk/adapters/hardcoded-user-config.ts`.
