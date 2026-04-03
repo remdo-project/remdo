@@ -61,11 +61,11 @@ const renderShortcutLabel = (label: string, shortcut: string) => {
 
 export function NoteMenuPlugin() {
   const [editor] = useLexicalComposerContext();
-  const rootRef = useRef<HTMLElement | null>(editor.getRootElement());
-  const [rootElement, setRootElement] = useState<HTMLElement | null>(() => editor.getRootElement());
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(() => {
+  const rootRef = useRef(editor.getRootElement());
+  const [rootElement, setRootElement] = useState(() => editor.getRootElement());
+  const [portalRoot, setPortalRoot] = useState(() => {
     const root = editor.getRootElement();
-    return root ? root.closest<HTMLElement>('.editor-container') : null;
+    return root ? root.closest('.editor-container') : null;
   });
   const [menu, setMenu] = useState<NoteMenuState | null>(null);
   const menuRef = useRef<NoteMenuState | null>(null);

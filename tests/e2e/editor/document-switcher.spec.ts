@@ -27,7 +27,7 @@ test.describe('Document switcher', () => {
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
 
     await switcherTrigger.click();
-    await page.getByRole('option', { name: 'New Document', exact: true }).click();
+    await page.getByRole('option', { name: 'New Document', exact: true }).first().click();
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await waitForSynced(page);
@@ -67,9 +67,11 @@ async function seedDocument(page: Parameters<typeof editorLocator>[0], docId: st
 }
 
 async function createListedDocumentFromSwitcher(page: Parameters<typeof editorLocator>[0]): Promise<string> {
+  const previousUrl = page.url();
   const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
   await switcherTrigger.click();
   await page.getByRole('option', { name: 'New', exact: true }).click();
+  await expect(page).not.toHaveURL(previousUrl);
   await editorLocator(page).locator('.editor-input').first().waitFor();
   const match = new URL(page.url()).pathname.match(/\/e2e\/n\/([^/]+)$/);
   if (!match) {

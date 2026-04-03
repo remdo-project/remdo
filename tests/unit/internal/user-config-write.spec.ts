@@ -6,7 +6,7 @@ describe('user config writes', () => {
   });
 
   it('creates a new document in the local user config', async () => {
-    const { getUserConfig } = await import('@/documents');
+    const { getUserConfig } = await import('@/documents/memory-user-config');
 
     const initialUserConfig = await getUserConfig();
     expect(initialUserConfig.documentList().children().map((document) => ({

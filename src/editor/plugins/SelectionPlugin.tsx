@@ -55,7 +55,7 @@ function getStoredStage(result: ProgressivePlanResult): number {
 
 export function SelectionPlugin() {
   const [editor] = useLexicalComposerContext();
-  const progressionRef = useRef<ProgressiveSelectionState>(INITIAL_PROGRESSIVE_STATE);
+  const progressionRef = useRef(INITIAL_PROGRESSIVE_STATE);
   const unlockRef = useRef<ProgressiveUnlockState>({ pending: false, reason: 'external' });
   const pendingSnapPayloadRef = useRef<SnapPayload | null>(null);
   const pendingSnapScheduledRef = useRef(false);

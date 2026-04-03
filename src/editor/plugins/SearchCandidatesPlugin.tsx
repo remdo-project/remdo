@@ -60,7 +60,7 @@ export function SearchCandidatesPlugin({
 }: SearchCandidatesPluginProps) {
   const [editor] = useLexicalComposerContext();
   const editorNotes = useMemo(() => createLexicalEditorNotes({ editor, docId }), [docId, editor]);
-  const previousSnapshotRef = useRef<SearchCandidateSnapshot>(emptySnapshot);
+  const previousSnapshotRef = useRef(emptySnapshot);
 
   const emitCandidates = useCallback((snapshot: SearchCandidateSnapshot) => {
     if (signaturesMatch(previousSnapshotRef.current, snapshot)) {

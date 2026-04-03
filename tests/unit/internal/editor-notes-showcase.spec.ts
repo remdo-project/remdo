@@ -81,7 +81,7 @@ describe('editor notes showcase', () => {
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
       // Import after module reset so each test gets a fresh in-memory user-config backend.
-      const { getUserConfig } = await import('@/documents');
+      const { getUserConfig } = await import('@/documents/memory-user-config');
       const userConfig = await getUserConfig();
       const documentList = userConfig.documentList();
 
@@ -116,7 +116,7 @@ describe('editor notes showcase', () => {
       await placeCaretAtNote(remdo, 'note1');
       const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       // Import after module reset so each test gets a fresh in-memory user-config backend.
-      const { getUserConfig } = await import('@/documents');
+      const { getUserConfig } = await import('@/documents/memory-user-config');
       const userConfig = await getUserConfig();
 
       remdo.validate(() => {

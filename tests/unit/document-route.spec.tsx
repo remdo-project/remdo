@@ -7,6 +7,28 @@ import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/search-candidates';
 import DocumentRoute from '@/routes/DocumentRoute';
 import { createDocumentPath } from '@/routing';
 
+vi.mock('@/documents/user-config', async () => {
+  const React = await import('react');
+  const memoryUserConfig = await import('@/documents/memory-user-config');
+
+  return {
+    getUserConfig: memoryUserConfig.getUserConfig,
+    useUserConfigRoot() {
+      const userConfig = React.useSyncExternalStore(
+        memoryUserConfig.subscribeUserConfigRuntime,
+        memoryUserConfig.getCurrentUserConfig,
+        memoryUserConfig.getCurrentUserConfig,
+      );
+
+      React.useEffect(() => {
+        memoryUserConfig.startUserConfigRuntime();
+      }, []);
+
+      return userConfig;
+    },
+  };
+});
+
 interface TestSearchSnapshot {
   allCandidates: Array<{ noteId: string; text: string }>;
   childCandidateMap: Record<string, Array<{ noteId: string; text: string }>>;
