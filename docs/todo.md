@@ -61,6 +61,10 @@ Rules:
   `src/documents/stored-user-config.ts` and refresh the local store version so
   document-switcher state stays current across tabs/sessions. Retry-on-startup
   recovery can land independently first.
+- User-config route follow-up: handle rejected `documentList().create()` calls
+  from the document picker in `src/routes/DocumentRoute.tsx` so sync/write
+  failures do not surface as unhandled promise rejections and the UI can
+  recover cleanly.
 
 ### Stages and success criteria
 

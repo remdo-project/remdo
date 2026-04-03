@@ -6,6 +6,7 @@ import { DEFAULT_USER_DOCUMENT } from '@/documents/defaults';
 
 describe('stored user config', () => {
   beforeEach(() => {
+    vi.doUnmock('#config');
     vi.resetModules();
   });
 
@@ -32,6 +33,22 @@ describe('stored user config', () => {
     root.set('documents', entries);
     return doc;
   };
+
+  it('seeds the configured default document before the stored session loads', async () => {
+    vi.doMock('#config', () => ({
+      config: {
+        env: {
+          COLLAB_DOCUMENT_ID: 'dockerSmoke',
+        },
+      },
+    }));
+
+    const { getCurrentUserConfig } = await import('@/documents/stored-user-config');
+
+    expect(listDocuments(getCurrentUserConfig())).toEqual([
+      { id: 'dockerSmoke', title: 'Main' },
+    ]);
+  });
 
   it('retries startup loading after an initial sync failure', async () => {
     vi.useFakeTimers();
