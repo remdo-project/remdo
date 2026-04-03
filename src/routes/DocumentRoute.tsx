@@ -171,19 +171,20 @@ export default function DocumentRoute() {
     };
   }, [handleSearchDismiss, searchModeActive]);
 
-  if (!userConfigRoot) {
-    return <div className="document-editor-shell" />;
-  }
-
   const createDocument = async () => {
+    if (!userConfigRoot) {
+      return;
+    }
     const nextDocument = await userConfigRoot.documentList().create('New Document');
     setDocumentId(nextDocument.id());
   };
 
-  const documentOptions = userConfigRoot.documentList().children().map((document) => ({
-    value: document.id(),
-    label: document.text(),
-  }));
+  const documentOptions = userConfigRoot
+    ? userConfigRoot.documentList().children().map((document) => ({
+      value: document.id(),
+      label: document.text(),
+    }))
+    : [];
 
   const highlightedResultIndex = highlightedResultNoteId
     ? flatResults.findIndex((result) => result.noteId === highlightedResultNoteId)
