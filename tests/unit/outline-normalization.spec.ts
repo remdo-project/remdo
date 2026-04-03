@@ -1,9 +1,9 @@
 import { act } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ListItemNode, ListNode } from '@lexical/list';
-import { $getRoot, ParagraphNode, TextNode, createEditor } from 'lexical';
+import { $getRoot, ParagraphNode, TextNode } from 'lexical';
 import { readFixture } from '#tests-common/fixtures';
-import { meta, placeCaretAtNote } from '#tests';
+import { createMountedLexicalEditor, meta, placeCaretAtNote } from '#tests';
 import { REORDER_NOTES_UP_COMMAND } from '@/editor/commands';
 import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '@/editor/outline/normalization';
 
@@ -74,14 +74,10 @@ describe('outline normalization (single pass)', () => {
     }),
     async () => {
     const fixture = await readFixture('editor-schema/wrapper-orphan-nested-wrapper');
-    const root = document.createElement('div');
-    document.body.append(root);
-
-    const editor = createEditor({
+    const { editor, dispose } = createMountedLexicalEditor({
       namespace: 'outline-normalization-single-pass',
       nodes: [ListNode, ListItemNode, ParagraphNode, TextNode],
     });
-    editor.setRootElement(root);
 
     await act(async () => {
       const parsed = editor.parseEditorState(JSON.parse(fixture));
@@ -95,7 +91,7 @@ describe('outline normalization (single pass)', () => {
     });
 
     const needsRepair = editor.getEditorState().read(() => $shouldNormalizeOutlineRoot($getRoot()));
-    root.remove();
+    dispose();
 
       expect(needsRepair).toBe(false);
     }

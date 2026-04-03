@@ -5,6 +5,7 @@ export * from './dom-note';
 export * from './note';
 export * from './dom-selection';
 export * from './selection';
+export * from './lexical';
 export * from './test-meta';
 export * from './editor-props-registry';
 export * from './user-config';

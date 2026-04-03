@@ -13,9 +13,6 @@ Rules:
 
 ## Tooling
 
-- Consolidate repeated unit-test Lexical DOM setup (`document.createElement` +
-  `document.body.append` + `createEditor` + `setRootElement`) into a shared
-  test helper with a single cleanup path.
 - Test matcher follow-up: revisit `toMatchOutline` support for generated note-id
   assertions so tests can express “some valid id was created here” without a
   separate manual sanity check. Example trigger:
