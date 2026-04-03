@@ -26,43 +26,19 @@ Rules:
 
 ## Test doc-id lifecycle hygiene (deferred)
 
-- We currently mix two strategies in tests:
-  random doc IDs (which can leave per-run collab data on disk) and repeatable
-  doc IDs (which require explicit pre-test cleanup and add runtime cost).
-- Plan a unified test doc-id lifecycle approach so data isolation and cleanup
-  are deterministic without ad hoc per-suite behavior.
+- Recent cleanup narrowed the problem:
+  editor E2E now uses per-test random doc IDs plus explicit on-disk cleanup,
+  and user-config gets a per-run E2E doc ID with teardown.
+- Remaining issue: isolation policy is still split across ad hoc helpers
+  (`createUniqueNoteId()`, `sessionStorage`-scoped user-config IDs, and manual
+  `DATA_DIR/collab/<docId>` cleanup) instead of being owned by one
+  environment/storage-level mechanism.
+- Follow up on a single test-runtime strategy so per-run/per-test isolation,
+  cleanup, and any repeatable-ID cases are driven from one place rather than
+  feature-specific hooks.
 
 ## Search architecture
 
-- Search contract cleanup:
-  - Confirmed: runtime `documentId` is host-owned state, injected by the
-    environment, and should not be derived inside search logic. Source:
-    `docs/outliner/note-ids.md`.
-  - Confirmed: search scope is the whole current document. Source:
-    `docs/outliner/search.md`.
-  - Confirmed: internal note-link identity and route-ref syntax are structurally
-    validated before navigation (`docId`/`noteId`, `/n/<docId>`,
-    `/n/<docId>_<noteId>`). Sources: `docs/outliner/links.md`,
-    `docs/outliner/note-ids.md`.
-  - Design contract: routing, links, history, and document pickers produce a
-    **requested document**. A requested document is not automatically the active
-    document for search/editor/zoom.
-  - Design contract: a single document-activation boundary is responsible for
-    turning a requested document into an **active document** or an
-    unavailable/invalid-document outcome.
-  - Design contract: search consumes only the active document identity and its
-    candidate snapshot. Search has no offline/availability awareness and should
-    not branch on document availability signals.
-  - Design contract: invalid document refs are handled before activation;
-    valid-but-unavailable documents are handled by the activation boundary;
-    neither case is represented as a search empty state.
-  - Design contract: `No matches` / `No notes` mean search ran against an active
-    document and found zero matching/all candidates. They must never mean
-    offline, unavailable, invalid, or not-yet-activated.
-  - Design contract: document-switching UI is a requester, not the authority on
-    availability. Even if a picker lists only available docs later, deep links,
-    pasted URLs, stale history, and internal links still resolve through the
-    same activation boundary.
 - Add a document-level SDK visitor/walker API and use it as the shared
   traversal primitive for search snapshot building and note-link candidate
   collection. Keep search/query semantics and note-link ranking/disambiguation
@@ -90,90 +66,29 @@ Rules:
 5. **Stage 4: local vault hub (optional).**
    Success: local-only docs behave like normal docs and remain device-local.
 
-## Note-first SDK model (proposal)
+## Note-first SDK follow-ups
 
-- Make `Note` the core domain primitive across the SDK, not only the editor.
-- Represent documents, user config entries, and content notes as note-like
-  entities with different kinds.
-- Keep SDK usage note-centric (`get`, `children`, traversal, cross-document
-  search), while storage is adapter-based.
-- Start with a simple in-memory adapter now; keep Lexical adapter as-is for
-  editor-backed notes; allow future SQLite adapter without SDK usage changes.
-
-### Agreed next steps
-
-1. Keep async behavior out of the raw `Note` handle for now. Cross-boundary
-   traversal/search should live in async walker/finder helpers above the note
-   API.
-2. Treat adapter boundaries as an SDK implementation detail. Callers should
-   traverse one note-first API without caring whether edges cross from metadata
-   storage into editor-backed notes.
-3. Keep one `DocumentNote` kind. Its long-term meaning is the document node in
-   the unified tree; `document.children()` is intended to expose document body
-   root notes.
-4. Defer non-current-document loading behavior instead of baking temporary
-   unloaded/skip semantics into the public note API. If needed during
-   transition, keep temporary limitations clearly internal to the SDK layer.
-
-### Simplicity requirement
-
-1. Optimize for the simplest solution to use and to implement, not for maximum
-   extensibility up front.
-2. Treat every API surface addition as suspicious until it proves necessary:
-   avoid adding functions, methods, helpers, options, wrappers, or extra
-   abstraction layers unless a current caller clearly needs them.
-3. Avoid speculative flexibility. Do not keep temporary compatibility shims,
-   transitional APIs, or “might be useful later” hooks by default.
-4. Keep validation and runtime branching to the minimum needed to protect real
-   invariants; avoid redundant checks that only defend against shapes the SDK
-   itself constructs.
-5. Prefer one direct path over multiple equivalent entry points. If two APIs
-   solve the same current problem, pick one and delete the other.
-6. When in doubt between a more general design and a narrower one that fully
-   satisfies the current step, choose the narrower design and expand only after
-   a concrete need appears.
-
-### Incremental implementation order
-
-1. Introduce async walker/finder/query helpers intended for search and
-   note-link completion so future cross-document traversal does not force raw
-   recursive `children()` traversal into callers.
-
-### Planned doc follow-ups
-
-- `docs/outliner/concepts.md`: update once `Note` is promoted from outliner
-  concept to the broader SDK/runtime primitive with explicit generic-vs-domain
-  layering.
-- `docs/architecture.md`: update once the repository/query layer and
-  cross-adapter traversal contract are real.
-- `docs/outliner/search.md`: update when search moves onto the async
-  walker/finder contract.
-- `docs/outliner/links.md`: update when note-link completion/search uses the
-  same async traversal/query layer.
-
-### Cautions and open questions
-
-- Avoid forcing one flat note shape too early; keep a minimal `kind` +
-  capabilities model first, and delay deep type hierarchy decisions.
-- Define stable identity semantics now: note IDs scope, parent/child ownership,
-  and cross-document references must stay backend-agnostic.
-- Keep SDK domain API separate from adapter API so in-memory/Lexical/SQLite can
-  swap without changing call sites.
-- Decide whether cross-document link search is powered by loading document trees
-  or by a separate index/search layer (prefer not to require loading all docs).
-- Clarify loading model: what is lazy, what is preloaded, and which SDK calls
-  are allowed to block/asynchronously hydrate data.
-- Clarify mutation boundaries and consistency expectations across adapters
-  (single-note writes vs transactional/multi-note updates).
-- When document-scoped note APIs land, move `createNote`/`note` under a
-  document-level note handle and remove user-config responsibilities from
-  `src/editor/outline/sdk/adapters/lexical.ts` (compose adapters at SDK level).
-- Naming follow-up: review the remaining top-level API surface after the
-  note-owned `create(...)` refactor, especially `createLexicalEditorNotes`,
-  `place(...)`, and `getUserConfig`, and decide whether they should be renamed
-  for a more consistent note-level API.
-- E2E isolation follow-up: consider moving Playwright/editor persistence to a
-  dedicated `DATA_DIR` boundary with fresh collab state per run, so test
-  isolation happens at the environment/storage layer and we can drop
-  per-feature workarounds like
-  [src/documents/user-config-doc-id.ts](/home/piotr/projects/remdo/src/documents/user-config-doc-id.ts).
+- Generic note handles, document-specific note kinds, and persisted user-config
+  storage are in place. Remaining work:
+  1. Introduce async walker/finder/query helpers for search and note-link
+     completion so cross-document traversal does not force raw recursive
+     `children()` traversal into callers.
+  2. Keep async behavior out of the raw `Note` handle and keep adapter
+     boundaries internal to the SDK/domain layer.
+  3. Settle long-term `DocumentNote` semantics for non-current documents:
+     loading model, whether `children()` can hydrate, and which operations are
+     allowed before document content is loaded.
+  4. Clarify the remaining query/loading boundary:
+     whether cross-document link search should load trees directly or use a
+     separate index/search layer.
+  5. Clarify mutation boundaries only as needed by the new traversal/query
+     layer (single-note writes vs transactional/multi-note updates).
+  6. Review the remaining top-level API naming after the note-owned
+     `create(...)` refactor, especially `createLexicalEditorNotes`, `place(...)`,
+     and `getUserConfig`.
+  7. Update the durable docs once the traversal/query contract stabilizes:
+     `docs/outliner/concepts.md`, `docs/architecture.md`,
+     `docs/outliner/search.md`, and `docs/outliner/links.md`.
+  8. Keep the solution narrow:
+     avoid speculative hierarchy/adapter flexibility until a concrete caller
+     needs it.
