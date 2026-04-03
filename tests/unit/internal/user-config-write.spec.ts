@@ -1,14 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { getTestUserConfig, resetTestUserConfig } from '#tests';
 
 describe('user config writes', () => {
   beforeEach(() => {
-    vi.resetModules();
+    resetTestUserConfig();
   });
 
   it('creates a new document in the local user config', async () => {
-    const { getUserConfig } = await import('@/documents/memory-user-config');
-
-    const initialUserConfig = await getUserConfig();
+    const initialUserConfig = await getTestUserConfig();
     expect(initialUserConfig.documentList().children().map((document) => ({
       id: document.id(),
       title: document.text(),
@@ -16,7 +15,7 @@ describe('user config writes', () => {
       { id: 'main', title: 'Main' },
     ]);
 
-    const userConfig = await getUserConfig();
+    const userConfig = await getTestUserConfig();
     const document = await userConfig.documentList().create('New Document');
 
     expect(userConfig.documentList().children().map((document) => ({
@@ -27,7 +26,7 @@ describe('user config writes', () => {
       { id: document.id(), title: 'New Document' },
     ]);
 
-    const reloadedUserConfig = await getUserConfig();
+    const reloadedUserConfig = await getTestUserConfig();
     expect(reloadedUserConfig.documentList().children().map((document) => ({
       id: document.id(),
       title: document.text(),

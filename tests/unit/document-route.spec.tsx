@@ -2,31 +2,15 @@ import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { resetTestUserConfig } from '#tests';
 
 import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/search-candidates';
 import DocumentRoute from '@/routes/DocumentRoute';
 import { createDocumentPath } from '@/routing';
 
 vi.mock('@/documents/user-config', async () => {
-  const React = await import('react');
-  const memoryUserConfig = await import('@/documents/memory-user-config');
-
-  return {
-    getUserConfig: memoryUserConfig.getUserConfig,
-    useUserConfigRoot() {
-      const userConfig = React.useSyncExternalStore(
-        memoryUserConfig.subscribeUserConfigRuntime,
-        memoryUserConfig.getCurrentUserConfig,
-        memoryUserConfig.getCurrentUserConfig,
-      );
-
-      React.useEffect(() => {
-        memoryUserConfig.startUserConfigRuntime();
-      }, []);
-
-      return userConfig;
-    },
-  };
+  const { mockUserConfigModule } = await import('#tests');
+  return mockUserConfigModule();
 });
 
 interface TestSearchSnapshot {
@@ -136,6 +120,7 @@ vi.mock('@/editor/zoom/ZoomBreadcrumbs', () => ({
 
 describe('document route', () => {
   beforeEach(() => {
+    resetTestUserConfig();
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
     globals.__remdoMockSearchCandidatesByDoc = undefined;
     globals.__remdoMockSearchCandidateEmitters = undefined;

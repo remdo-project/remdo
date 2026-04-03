@@ -16,11 +16,6 @@ Rules:
 - Consolidate repeated unit-test Lexical DOM setup (`document.createElement` +
   `document.body.append` + `createEditor` + `setRootElement`) into a shared
   test helper with a single cleanup path.
-- Move the in-memory user-config backend out of app runtime code and into
-  shared test support so `src/documents/user-config.ts` always reflects the
-  supported stored/collab-backed runtime path.
-- Replace ad hoc user-config test mocks/imports with one shared test helper for
-  specs that need an isolated in-memory `UserConfigNote` backend.
 - Test matcher follow-up: revisit `toMatchOutline` support for generated note-id
   assertions so tests can express “some valid id was created here” without a
   separate manual sanity check. Example trigger:
@@ -38,8 +33,6 @@ Rules:
   (`createUniqueNoteId()`, `sessionStorage`-scoped user-config IDs, and manual
   `DATA_DIR/collab/<docId>` cleanup) instead of being owned by one
   environment/storage-level mechanism.
-- Related cleanup: test-only user-config isolation should come from shared
-  harness support rather than feature-local imports/mocks in individual specs.
 - Follow up on a single test-runtime strategy so per-run/per-test isolation,
   cleanup, and any repeatable-ID cases are driven from one place rather than
   feature-specific hooks.
@@ -99,11 +92,8 @@ Rules:
   5. Clarify mutation boundaries only as needed by the new traversal/query
      layer (single-note writes vs transactional/multi-note updates).
   6. Review the remaining top-level API naming after the note-owned
-     `create(...)` refactor, especially `createLexicalEditorNotes`, `place(...)`,
-     and `getUserConfig`.
+     `create(...)` refactor, especially `createLexicalEditorNotes` and
+     `place(...)`.
   7. Update the durable docs once the traversal/query contract stabilizes:
      `docs/outliner/concepts.md`, `docs/architecture.md`,
      `docs/outliner/search.md`, and `docs/outliner/links.md`.
-  8. Keep the solution narrow:
-     avoid speculative hierarchy/adapter flexibility until a concrete caller
-     needs it.

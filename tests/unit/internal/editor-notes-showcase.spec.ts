@@ -8,14 +8,13 @@
  * Proper unit/integration suites remain the source of truth; this file is
  * expected to be removed once the SDK API reaches a stable/final shape.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { meta, placeCaretAtNote } from '#tests';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { getTestUserConfig, meta, placeCaretAtNote, resetTestUserConfig } from '#tests';
 import { createLexicalEditorNotes } from '@/editor/notes';
 
 describe('editor notes showcase', () => {
   beforeEach(() => {
-    // The in-memory user-config backend keeps module-level state across imports.
-    vi.resetModules();
+    resetTestUserConfig();
   });
 
   it(
@@ -80,9 +79,7 @@ describe('editor notes showcase', () => {
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
-      // Import after module reset so each test gets a fresh in-memory user-config backend.
-      const { getUserConfig } = await import('@/documents/memory-user-config');
-      const userConfig = await getUserConfig();
+      const userConfig = await getTestUserConfig();
       const documentList = userConfig.documentList();
 
       remdo.validate(() => {
@@ -115,9 +112,7 @@ describe('editor notes showcase', () => {
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
       const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      // Import after module reset so each test gets a fresh in-memory user-config backend.
-      const { getUserConfig } = await import('@/documents/memory-user-config');
-      const userConfig = await getUserConfig();
+      const userConfig = await getTestUserConfig();
 
       remdo.validate(() => {
         const documentList = userConfig.documentList();
