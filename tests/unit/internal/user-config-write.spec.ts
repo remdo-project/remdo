@@ -7,7 +7,7 @@ describe('user config writes', () => {
   });
 
   it('creates a new document in the local user config', async () => {
-    const initialUserConfig = await getTestUserConfig();
+    const initialUserConfig = getTestUserConfig();
     expect(initialUserConfig.documentList().children().map((document) => ({
       id: document.id(),
       title: document.text(),
@@ -15,7 +15,7 @@ describe('user config writes', () => {
       { id: 'main', title: 'Main' },
     ]);
 
-    const userConfig = await getTestUserConfig();
+    const userConfig = getTestUserConfig();
     const document = await userConfig.documentList().create('New Document');
 
     expect(userConfig.documentList().children().map((document) => ({
@@ -26,7 +26,7 @@ describe('user config writes', () => {
       { id: document.id(), title: 'New Document' },
     ]);
 
-    const reloadedUserConfig = await getTestUserConfig();
+    const reloadedUserConfig = getTestUserConfig();
     expect(reloadedUserConfig.documentList().children().map((document) => ({
       id: document.id(),
       title: document.text(),

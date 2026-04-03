@@ -23,20 +23,19 @@ interface StoredUserConfigContext {
 // Tab-scoped store that keeps the live user-config session outside route/component lifecycles.
 class StoredUserConfigStore {
   private listeners = new Set<() => void>();
-  private documents: ListedDocument[] = [];
-  private userConfig: UserConfigNote | null = null;
+  private documents: ListedDocument[] = [DEFAULT_USER_DOCUMENT];
+  private readonly userConfig = createUserConfigRootNote(this.documents, {
+    createDocument: async (position, title) => this.createDocument(position, title),
+    onChange: () => this.bumpVersion(),
+  });
   private context: StoredUserConfigContext | null = null;
   private contextPromise: Promise<StoredUserConfigContext> | null = null;
-  private loadPromise: Promise<UserConfigNote> | null = null;
+  private readyPromise: Promise<void> | null = null;
+  private ready = false;
+  private version = 0;
 
   start(): void {
-    if (this.userConfig) {
-      if (!this.context && !this.contextPromise) {
-        void this.getContext().catch(() => {});
-      }
-      return;
-    }
-    void this.getUserConfig().catch(() => {});
+    void this.ensureReady().catch(() => {});
   }
 
   subscribe(listener: () => void) {
@@ -46,37 +45,43 @@ class StoredUserConfigStore {
     };
   }
 
-  getCurrentUserConfig(): UserConfigNote | null {
+  getCurrentUserConfig(): UserConfigNote {
     return this.userConfig;
   }
 
   getUserConfig(): Promise<UserConfigNote> {
-    if (this.userConfig) {
-      this.start();
-      return Promise.resolve(this.userConfig);
+    return this.ensureReady().then(() => this.userConfig);
+  }
+
+  getVersion(): number {
+    return this.version;
+  }
+
+  private async ensureReady(): Promise<void> {
+    if (this.ready) {
+      return;
     }
-    if (!this.loadPromise) {
-      const loadPromise = this.loadUserConfig()
-        .then((userConfig) => {
-          if (this.loadPromise === loadPromise) {
-            this.loadPromise = null;
-            this.notifyListeners();
+    if (!this.readyPromise) {
+      const readyPromise = this.loadUserConfig()
+        .then(() => {
+          if (this.readyPromise === readyPromise) {
+            this.ready = true;
+            this.readyPromise = null;
+            this.bumpVersion();
           }
-          return userConfig;
         })
         .catch((error) => {
-          if (this.loadPromise === loadPromise) {
-            this.loadPromise = null;
-            this.notifyListeners();
+          if (this.readyPromise === readyPromise) {
+            this.readyPromise = null;
           }
           throw error;
         });
-      this.loadPromise = loadPromise;
+      this.readyPromise = readyPromise;
     }
-    return this.loadPromise;
+    return this.readyPromise;
   }
 
-  private async loadUserConfig(): Promise<UserConfigNote> {
+  private async loadUserConfig(): Promise<void> {
     const context = await this.getContext();
     const root = context.doc.getMap<Y.Array<Y.Map<unknown>>>(USER_CONFIG_ROOT_NOTE_ID);
     const documents = ensureDocumentsArray(root);
@@ -87,15 +92,6 @@ class StoredUserConfigStore {
     }
 
     this.replaceDocuments(readUserConfigDocuments(root));
-
-    if (!this.userConfig) {
-      this.userConfig = createUserConfigRootNote(this.documents, {
-        createDocument: async (position, title) => this.createDocument(position, title),
-        onChange: () => this.notifyReady(),
-      });
-    }
-
-    return this.userConfig;
   }
 
   private async createDocument(position: Parameters<typeof resolveListedDocumentInsertIndex>[1], title: string) {
@@ -109,6 +105,7 @@ class StoredUserConfigStore {
     const insertIndex = resolveListedDocumentInsertIndex(listedDocuments, position);
     documents.insert(insertIndex, [createDocumentEntry(document)]);
     await this.awaitContextSync(context);
+    this.ready = true;
     return document;
   }
 
@@ -152,14 +149,13 @@ class StoredUserConfigStore {
     if (this.context === context) {
       this.context = null;
       this.contextPromise = null;
+      this.ready = false;
     }
     context.session.destroy();
   }
 
-  private notifyReady() {
-    if (!this.userConfig) {
-      return;
-    }
+  private bumpVersion() {
+    this.version += 1;
     this.notifyListeners();
   }
 
@@ -288,10 +284,14 @@ export function subscribeUserConfigRuntime(listener: () => void) {
   return store.subscribe(listener);
 }
 
-export function getCurrentUserConfig(): UserConfigNote | null {
+export function getCurrentUserConfig(): UserConfigNote {
   return store.getCurrentUserConfig();
 }
 
 export function getUserConfig(): Promise<UserConfigNote> {
   return store.getUserConfig();
+}
+
+export function getUserConfigVersion(): number {
+  return store.getVersion();
 }

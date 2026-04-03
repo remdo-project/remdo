@@ -1,21 +1,22 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import {
   getCurrentUserConfig,
-  startUserConfigRuntime,
   subscribeUserConfigRuntime,
+  getUserConfigVersion,
+  startUserConfigRuntime,
 } from './stored-user-config';
 import type { UserConfigNote } from './contracts';
 
-export function useUserConfigRoot(): UserConfigNote | null {
-  const userConfig = useSyncExternalStore(
+export function startUserConfig(): void {
+  startUserConfigRuntime();
+}
+
+export function useUserConfig(): UserConfigNote {
+  useSyncExternalStore(
     subscribeUserConfigRuntime,
-    getCurrentUserConfig,
-    getCurrentUserConfig,
+    getUserConfigVersion,
+    getUserConfigVersion,
   );
 
-  useEffect(() => {
-    startUserConfigRuntime();
-  }, []);
-
-  return userConfig;
+  return getCurrentUserConfig();
 }

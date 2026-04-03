@@ -79,7 +79,7 @@ describe('editor notes showcase', () => {
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
-      const userConfig = await getTestUserConfig();
+      const userConfig = getTestUserConfig();
       const documentList = userConfig.documentList();
 
       remdo.validate(() => {
@@ -112,7 +112,7 @@ describe('editor notes showcase', () => {
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
       const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      const userConfig = await getTestUserConfig();
+      const userConfig = getTestUserConfig();
 
       remdo.validate(() => {
         const documentList = userConfig.documentList();

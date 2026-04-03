@@ -5,7 +5,7 @@
  * runtime code while still letting unit tests exercise the real user-config
  * note handles and route hook shape without booting the stored/collab runtime.
  */
-import { useEffect, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
 import type { UserConfigNote } from '@/documents/contracts';
 import { DEFAULT_USER_DOCUMENT } from '@/documents/defaults';
@@ -13,8 +13,8 @@ import { createUserConfigRootNote } from '@/documents/user-config-notes';
 import type { ListedDocument } from '@/documents/user-config-notes';
 
 const listeners = new Set<() => void>();
-const documents: ListedDocument[] = [];
-let userConfig: UserConfigNote | null = null;
+const documents: ListedDocument[] = [DEFAULT_USER_DOCUMENT];
+let version = 0;
 
 function notifyListeners() {
   for (const listener of listeners) {
@@ -22,33 +22,22 @@ function notifyListeners() {
   }
 }
 
-function createTestUserConfig(): UserConfigNote {
-  return createUserConfigRootNote(documents, {
-    createDocument: async (position, title) => {
-      void position;
-      return { id: createUniqueNoteId(), title };
-    },
-    onChange: notifyListeners,
-  });
+function bumpVersion() {
+  version += 1;
+  notifyListeners();
 }
 
-function ensureTestUserConfig(): UserConfigNote {
-  userConfig ??= createTestUserConfig();
-  return userConfig;
-}
+const userConfig = createUserConfigRootNote(documents, {
+  createDocument: async (position, title) => {
+    void position;
+    return { id: createUniqueNoteId(), title };
+  },
+  onChange: bumpVersion,
+});
 
 export function resetTestUserConfig(): void {
   documents.splice(0, documents.length, DEFAULT_USER_DOCUMENT);
-  userConfig = null;
-  notifyListeners();
-}
-
-function startTestUserConfigRuntime(): void {
-  if (userConfig) {
-    return;
-  }
-  ensureTestUserConfig();
-  notifyListeners();
+  bumpVersion();
 }
 
 function subscribeTestUserConfigRuntime(listener: () => void) {
@@ -58,32 +47,25 @@ function subscribeTestUserConfigRuntime(listener: () => void) {
   };
 }
 
-function getCurrentTestUserConfig(): UserConfigNote | null {
+export function getTestUserConfig(): UserConfigNote {
   return userConfig;
 }
 
-export function getTestUserConfig(): Promise<UserConfigNote> {
-  return Promise.resolve(ensureTestUserConfig());
+function getTestUserConfigVersion(): number {
+  return version;
 }
 
-function useTestUserConfigRoot(): UserConfigNote | null {
-  const currentUserConfig = useSyncExternalStore(
+function useTestUserConfig(): UserConfigNote {
+  useSyncExternalStore(
     subscribeTestUserConfigRuntime,
-    getCurrentTestUserConfig,
-    getCurrentTestUserConfig,
+    getTestUserConfigVersion,
+    getTestUserConfigVersion,
   );
-
-  useEffect(() => {
-    startTestUserConfigRuntime();
-  }, []);
-
-  return currentUserConfig;
+  return userConfig;
 }
 
 export function mockUserConfigModule() {
   return {
-    useUserConfigRoot: useTestUserConfigRoot,
+    useUserConfig: useTestUserConfig,
   };
 }
-
-resetTestUserConfig();

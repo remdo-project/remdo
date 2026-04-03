@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useUserConfigRoot } from '@/documents/user-config';
+import { useUserConfig } from '@/documents/user-config';
 import Editor from '@/editor/Editor';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
@@ -41,7 +41,7 @@ export default function DocumentRoute() {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const searchResultsListboxId = useId();
   const zoomNoteId = parsedRef?.noteId ?? null;
-  const userConfigRoot = useUserConfigRoot();
+  const userConfig = useUserConfig();
   const documentPicker = useCombobox({
     onDropdownClose: () => documentPicker.resetSelectedOption(),
   });
@@ -172,19 +172,14 @@ export default function DocumentRoute() {
   }, [handleSearchDismiss, searchModeActive]);
 
   const createDocument = async () => {
-    if (!userConfigRoot) {
-      return;
-    }
-    const nextDocument = await userConfigRoot.documentList().create('New Document');
+    const nextDocument = await userConfig.documentList().create('New Document');
     setDocumentId(nextDocument.id());
   };
 
-  const documentOptions = userConfigRoot
-    ? userConfigRoot.documentList().children().map((document) => ({
-      value: document.id(),
-      label: document.text(),
-    }))
-    : [];
+  const documentOptions = userConfig.documentList().children().map((document) => ({
+    value: document.id(),
+    label: document.text(),
+  }));
 
   const highlightedResultIndex = highlightedResultNoteId
     ? flatResults.findIndex((result) => result.noteId === highlightedResultNoteId)

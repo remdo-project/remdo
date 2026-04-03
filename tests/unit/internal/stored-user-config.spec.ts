@@ -60,7 +60,10 @@ describe('stored user config', () => {
       },
     }));
 
-    const { getUserConfig } = await import('@/documents/stored-user-config');
+    const { getCurrentUserConfig, getUserConfig } = await import('@/documents/stored-user-config');
+
+    const eagerUserConfig = getCurrentUserConfig();
+    expect(listDocuments(eagerUserConfig)).toEqual([DEFAULT_USER_DOCUMENT]);
 
     await expect(getUserConfig()).rejects.toThrow('sync failed');
     expect(sessionInstances).toHaveLength(1);
@@ -71,6 +74,7 @@ describe('stored user config', () => {
     const userConfig = await getUserConfig();
 
     expect(sessionInstances).toHaveLength(2);
+    expect(userConfig).toBe(eagerUserConfig);
     expect(sessionInstances[1]!.connect).toHaveBeenCalledTimes(1);
     expect(sessionInstances[1]!.awaitSynced).toHaveBeenCalledTimes(1);
     expect(sessionInstances[1]!.destroy).not.toHaveBeenCalled();
@@ -123,10 +127,12 @@ describe('stored user config', () => {
       },
     }));
 
-    const { getUserConfig } = await import('@/documents/stored-user-config');
+    const { getCurrentUserConfig, getUserConfig } = await import('@/documents/stored-user-config');
 
-    const userConfig = await getUserConfig();
+    const userConfig = getCurrentUserConfig();
     expect(listDocuments(userConfig)).toEqual([DEFAULT_USER_DOCUMENT]);
+
+    await expect(getUserConfig()).resolves.toBe(userConfig);
 
     await expect(userConfig.documentList().create('New Document')).rejects.toThrow('write failed');
     expect(sessionInstances).toHaveLength(1);
