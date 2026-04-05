@@ -46,8 +46,8 @@ const buildVisibleKeys = (root: ListItemNode) => {
 
 export function ZoomVisibilityPlugin({ zoomNoteId }: ZoomVisibilityPluginProps) {
   const [editor] = useLexicalComposerContext();
-  const zoomNoteIdRef = useRef<string | null>(resolveZoomNoteId(zoomNoteId));
-  const flattenedWrapperKeysRef = useRef<Set<string>>(new Set());
+  const zoomNoteIdRef = useRef(resolveZoomNoteId(zoomNoteId));
+  const flattenedWrapperKeysRef = useRef(new Set<string>());
 
   const applyVisibility = useCallback((editorState = editor.getEditorState()) => {
     const result = editorState.read(() => {

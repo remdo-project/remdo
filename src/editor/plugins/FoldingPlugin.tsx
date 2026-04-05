@@ -62,7 +62,7 @@ const $shouldCollapseSelection = (
 
 export function FoldingPlugin() {
   const [editor] = useLexicalComposerContext();
-  const foldedKeysRef = useRef<Set<string>>(new Set());
+  const foldedKeysRef = useRef(new Set<string>());
 
   useEffect(() => {
     installOutlineSelectionHelpers(editor);

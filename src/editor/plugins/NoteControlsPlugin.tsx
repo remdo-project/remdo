@@ -34,10 +34,10 @@ const resolveTargetByY = (root: HTMLElement, clientY: number): HTMLElement | nul
 
 export function NoteControlsPlugin() {
   const [editor] = useLexicalComposerContext();
-  const rootRef = useRef<HTMLElement | null>(editor.getRootElement());
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(() => {
+  const rootRef = useRef(editor.getRootElement());
+  const [portalRoot, setPortalRoot] = useState(() => {
     const root = editor.getRootElement();
-    return root ? root.closest<HTMLElement>('.editor-container') : null;
+    return root ? root.closest('.editor-container') : null;
   });
   const [controls, setControls] = useState<NoteControlsState | null>(null);
   const hoverElementRef = useRef<HTMLElement | null>(null);

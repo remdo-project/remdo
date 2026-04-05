@@ -14,6 +14,15 @@ behavior and the planned slash-prefixed navigation flow.
 - **Inline completion:** a non-committed ghost suggestion shown inside
   the search input that can be accepted as typed text.
 
+## Scope and boundaries
+
+1. Search always runs against the current active document only.
+2. Search empty states (`No matches` / `No notes`) mean the current active
+   document has no matching/all candidates. They do not represent invalid
+   routes, unavailable documents, or offline loading states.
+3. Runtime document-ID ownership and route/link identity are defined in
+   [Note IDs](./note-ids.md) and [Links](./links.md), not in this search spec.
+
 ## Behavior
 
 1. Focusing the search box enters Search Mode (including `Cmd/Ctrl+F`).

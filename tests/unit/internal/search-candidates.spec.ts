@@ -1,25 +1,64 @@
 import { describe, expect, it } from 'vitest';
 import { meta } from '#tests';
-import { createLexicalNoteSdk } from '@/editor/outline/sdk/adapters/lexical';
-import type { EditorNote } from '@/editor/outline/sdk/contracts';
+import { createLexicalEditorNotes } from '@/editor/notes';
+import type { DocumentListNote, DocumentNote, UserConfigNote } from '@/documents/contracts';
+import type { EditorNote } from '@/editor/notes/contracts';
+import type { Note, NoteKind } from '@/notes/contracts';
 import {
-  collectChildCandidateMapFromSdk,
-  collectSearchCandidatesFromSdk,
+  collectChildCandidateMap,
+  collectSearchCandidates,
   ROOT_SEARCH_SCOPE_ID,
-} from '@/editor/search/sdk-search-candidates';
+} from '@/editor/search/search-candidates';
+
+function createMockNoteAs(noteId: string, kind: () => NoteKind, self: () => Note): Note['as'] {
+  function asNote(kindToMatch: 'editor-note'): EditorNote;
+  function asNote(kindToMatch: 'user-config'): UserConfigNote;
+  function asNote(kindToMatch: 'document-list'): DocumentListNote;
+  function asNote(kindToMatch: 'document'): DocumentNote;
+  function asNote(kindToMatch: NoteKind): Note;
+  function asNote(kindToMatch: NoteKind): Note {
+    const actualKind = kind();
+    if (actualKind !== kindToMatch) {
+      throw new Error(`Note "${noteId}" is "${actualKind}", expected "${kindToMatch}".`);
+    }
+    return self();
+  }
+  return asNote;
+}
 
 function createMockEditorNote(
   id: string,
   text: string,
   children: EditorNote[] = []
 ): EditorNote {
-  return {
+  const kind = () => 'editor-note' as const;
+  const note: EditorNote = {
     id: () => id,
-    kind: () => 'editor-note',
+    kind,
     attached: () => true,
     text: () => text,
     children: () => children,
+    create: () => {
+      throw new Error('Editor note creation is not used in search candidate tests.');
+    },
+    as: createMockNoteAs(id, kind, () => note),
   };
+  return note;
+}
+
+function createMockDocumentNote(children: EditorNote[]): DocumentNote {
+  const kind = () => 'document' as const;
+  const note: DocumentNote = {
+    id: () => 'main',
+    kind,
+    text: () => 'Main',
+    children: () => children,
+    create: () => {
+      throw new Error('Document note creation is not used in search candidate tests.');
+    },
+    as: createMockNoteAs('main', kind, () => note),
+  };
+  return note;
 }
 
 function createDeepChain(depth: number): EditorNote {
@@ -32,7 +71,7 @@ function createDeepChain(depth: number): EditorNote {
   return current;
 }
 
-describe('sdk search candidates', () => {
+describe('search candidates', () => {
   it('flattens root notes and descendants in pre-order', () => {
     const top = createMockEditorNote('top', 'Top', [
       createMockEditorNote('child-a', 'Child A'),
@@ -40,13 +79,8 @@ describe('sdk search candidates', () => {
     ]);
     const sibling = createMockEditorNote('sibling', 'Sibling');
 
-    const candidates = collectSearchCandidatesFromSdk({
-      currentDocument: () => ({
-        id: () => 'main',
-        kind: () => 'document',
-        text: () => 'Main',
-        children: () => [top, sibling],
-      }),
+    const candidates = collectSearchCandidates({
+      currentDocument: () => createMockDocumentNote([top, sibling]),
     });
 
     expect(candidates).toEqual([
@@ -59,13 +93,8 @@ describe('sdk search candidates', () => {
   });
 
   it('returns an empty list when there are no root notes', () => {
-    const candidates = collectSearchCandidatesFromSdk({
-      currentDocument: () => ({
-        id: () => 'main',
-        kind: () => 'document',
-        text: () => 'Main',
-        children: () => [],
-      }),
+    const candidates = collectSearchCandidates({
+      currentDocument: () => createMockDocumentNote([]),
     });
 
     expect(candidates).toEqual([]);
@@ -77,13 +106,8 @@ describe('sdk search candidates', () => {
     ]);
     const sibling = createMockEditorNote('sibling', 'Sibling');
 
-    const childCandidateMap = collectChildCandidateMapFromSdk({
-      currentDocument: () => ({
-        id: () => 'main',
-        kind: () => 'document',
-        text: () => 'Main',
-        children: () => [top, sibling],
-      }),
+    const childCandidateMap = collectChildCandidateMap({
+      currentDocument: () => createMockDocumentNote([top, sibling]),
     });
 
     expect(childCandidateMap[ROOT_SEARCH_SCOPE_ID]).toEqual([
@@ -99,13 +123,8 @@ describe('sdk search candidates', () => {
     ]);
     const sibling = createMockEditorNote('sibling', 'Sibling');
 
-    const childCandidateMap = collectChildCandidateMapFromSdk({
-      currentDocument: () => ({
-        id: () => 'main',
-        kind: () => 'document',
-        text: () => 'Main',
-        children: () => [top, sibling],
-      }),
+    const childCandidateMap = collectChildCandidateMap({
+      currentDocument: () => createMockDocumentNote([top, sibling]),
     });
 
     expect(childCandidateMap).toEqual({
@@ -126,10 +145,10 @@ describe('sdk search candidates', () => {
 
   it('reads note-head text only from the real lexical adapter shape', meta({ fixture: 'basic' }), async ({ remdo }) => {
     const result = remdo.validate(() => {
-      const sdk = createLexicalNoteSdk({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
       return {
-        allCandidates: collectSearchCandidatesFromSdk(sdk),
-        childCandidateMap: collectChildCandidateMapFromSdk(sdk),
+        allCandidates: collectSearchCandidates(sdk),
+        childCandidateMap: collectChildCandidateMap(sdk),
       };
     });
 
@@ -153,16 +172,11 @@ describe('sdk search candidates', () => {
     const depth = 12_000;
     const root = createDeepChain(depth);
     const sdk = {
-      currentDocument: () => ({
-        id: () => 'main',
-        kind: () => 'document' as const,
-        text: () => 'Main',
-        children: () => [root],
-      }),
+      currentDocument: () => createMockDocumentNote([root]),
     };
 
-    const allCandidates = collectSearchCandidatesFromSdk(sdk);
-    const childCandidateMap = collectChildCandidateMapFromSdk(sdk);
+    const allCandidates = collectSearchCandidates(sdk);
+    const childCandidateMap = collectChildCandidateMap(sdk);
 
     expect(allCandidates).toHaveLength(depth);
     expect(allCandidates[0]).toEqual({ noteId: 'deep-0', text: 'Deep 0' });

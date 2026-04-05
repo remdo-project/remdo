@@ -45,10 +45,10 @@ export function ZoomPlugin({ zoomNoteId, onZoomNoteIdChange, onZoomPathChange }:
   const [editor] = useLexicalComposerContext();
   const collab = useCollaborationStatus();
   const lastPathRef = useRef<NotePathItem[] | null>(null);
-  const zoomNoteIdRef = useRef<string | null>(resolveZoomNoteId(zoomNoteId));
+  const zoomNoteIdRef = useRef(resolveZoomNoteId(zoomNoteId));
   const lastBulletHoverRef = useRef<HTMLElement | null>(null);
   const lastCheckboxHoverRef = useRef<HTMLElement | null>(null);
-  const rootRef = useRef<HTMLElement | null>(editor.getRootElement());
+  const rootRef = useRef(editor.getRootElement());
   const skipZoomSelectionRef = useRef(false);
   const pendingZoomSelectionRef = useRef<string | null>(null);
   const pendingZoomSelectionTaskRef = useRef(false);

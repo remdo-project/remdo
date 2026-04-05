@@ -7,12 +7,11 @@ import {
   $getSelection,
   $isRangeSelection,
   CONTROLLED_TEXT_INSERTION_COMMAND,
-  createEditor,
   ParagraphNode,
   TextNode,
 } from 'lexical';
 import type { LexicalEditor } from 'lexical';
-import { pressKey, typeText } from '#tests';
+import { createMountedLexicalEditor, pressKey, typeText } from '#tests';
 
 interface EditorHarness {
   editor: LexicalEditor;
@@ -36,19 +35,15 @@ async function setCaret(editor: LexicalEditor, offset: number) {
   });
 }
 
-async function createPlainEditor(
+async function createKeyboardHelperHarness(
   initialText: string
 ): Promise<{ harness: EditorHarness; root: HTMLElement; dispose: () => void }> {
-  const root = document.createElement('div');
-  document.body.append(root);
-
-  const editor = createEditor({
+  const { editor, root, dispose: disposeEditor } = createMountedLexicalEditor({
     namespace: 'keyboard-helper-contract',
     nodes: [ParagraphNode, TextNode],
   });
   root.setAttribute('contenteditable', 'true');
   root.tabIndex = 0;
-  editor.setRootElement(root);
   const unregisterInsert = editor.registerCommand(
     CONTROLLED_TEXT_INSERTION_COMMAND,
     (text: string) => {
@@ -82,15 +77,15 @@ async function createPlainEditor(
     },
     root,
     dispose: () => {
-      root.remove();
       unregisterInsert();
+      disposeEditor();
     },
   };
 }
 
 describe('keyboard helper contract (pure Lexical)', () => {
   it('typeText inserts characters when keydown is allowed', async () => {
-    const { harness, dispose } = await createPlainEditor('note1');
+    const { harness, dispose } = await createKeyboardHelperHarness('note1');
     await setCaret(harness.editor, 5);
 
     await typeText(harness as any, 'xy');
@@ -100,7 +95,7 @@ describe('keyboard helper contract (pure Lexical)', () => {
   });
 
   it('typeText respects a prevented keydown', async () => {
-    const { harness, root, dispose } = await createPlainEditor('note1');
+    const { harness, root, dispose } = await createKeyboardHelperHarness('note1');
     root.addEventListener(
       'keydown',
       (event) => {
@@ -121,7 +116,7 @@ describe('keyboard helper contract (pure Lexical)', () => {
   });
 
   it('pressKey handles non-text keys (Escape no-op with caret)', async () => {
-    const { harness, dispose } = await createPlainEditor('note1');
+    const { harness, dispose } = await createKeyboardHelperHarness('note1');
     await setCaret(harness.editor, 0);
     const before = getText(harness.editor);
 
@@ -134,7 +129,7 @@ describe('keyboard helper contract (pure Lexical)', () => {
   });
 
   it('pressKey rejects plain printable characters', async () => {
-    const { harness, dispose } = await createPlainEditor('note1');
+    const { harness, dispose } = await createKeyboardHelperHarness('note1');
     await setCaret(harness.editor, 0);
 
     await expect(pressKey(harness as any, { key: 'x' })).rejects.toThrow(/use typeText/);
@@ -142,7 +137,7 @@ describe('keyboard helper contract (pure Lexical)', () => {
   });
 
   it('pressKey rejects unsupported non-text chords', async () => {
-    const { harness, dispose } = await createPlainEditor('note1');
+    const { harness, dispose } = await createKeyboardHelperHarness('note1');
     await setCaret(harness.editor, 0);
 
     await expect(pressKey(harness as any, { key: 'F13' })).rejects.toThrow(/does not support/);
@@ -150,7 +145,7 @@ describe('keyboard helper contract (pure Lexical)', () => {
   });
 
   it('pressKey(Delete) only fires keydown; inline delete needs a higher-level helper', async () => {
-    const { harness, dispose } = await createPlainEditor('note1');
+    const { harness, dispose } = await createKeyboardHelperHarness('note1');
     await setCaret(harness.editor, 0);
 
     await pressKey(harness as any, { key: 'Delete' });

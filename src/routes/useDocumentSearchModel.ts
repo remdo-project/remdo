@@ -8,8 +8,8 @@ import type {
   SyntheticEvent,
 } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/sdk-search-candidates';
-import type { SdkSearchCandidateSnapshot } from '@/editor/search/sdk-search-candidates';
+import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/search-candidates';
+import type { SearchCandidateSnapshot } from '@/editor/search/search-candidates';
 
 interface SearchCandidate {
   noteId: string;
@@ -22,16 +22,6 @@ interface SearchCandidateState {
   childCandidateMap: Record<string, SearchCandidate[]>;
 }
 
-interface SlashScopeState {
-  sourceDocId: string;
-  pathNoteIds: string[];
-}
-
-interface SearchInputSelection {
-  start: number;
-  end: number;
-}
-
 interface UseDocumentSearchModelOptions {
   docId: string;
   focusEditorInput: () => boolean;
@@ -42,7 +32,7 @@ interface UseDocumentSearchModelResult {
   childCandidateMap: Record<string, SearchCandidate[]>;
   flatResults: SearchCandidate[];
   handleSearchBlur: () => void;
-  handleSearchCandidatesChange: (snapshot: SdkSearchCandidateSnapshot | null) => void;
+  handleSearchCandidatesChange: (snapshot: SearchCandidateSnapshot | null) => void;
   handleSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleSearchCompositionEnd: (event: CompositionEvent<HTMLInputElement>) => void;
   handleSearchCompositionStart: (_event: CompositionEvent<HTMLInputElement>) => void;
@@ -202,14 +192,14 @@ export function useDocumentSearchModel({
     (_current: string | null, next: string | null) => next,
     null
   );
-  const [currentDocumentCandidateState, setCurrentDocumentCandidateState] = useState<SearchCandidateState>(
+  const [currentDocumentCandidateState, setCurrentDocumentCandidateState] = useState(
     EMPTY_SEARCH_CANDIDATE_STATE
   );
-  const [slashScopeState, setSlashScopeState] = useState<SlashScopeState>({
+  const [slashScopeState, setSlashScopeState] = useState({
     sourceDocId: docId,
     pathNoteIds: EMPTY_NOTE_IDS,
   });
-  const [searchInputSelection, setSearchInputSelection] = useState<SearchInputSelection>({ start: 0, end: 0 });
+  const [searchInputSelection, setSearchInputSelection] = useState({ start: 0, end: 0 });
   const [searchInputComposing, setSearchInputComposing] = useState(false);
   const ignoreNextSearchBlurRef = useRef(false);
   const pendingEditorFocusAfterSearchExitRef = useRef(false);
@@ -343,7 +333,7 @@ export function useDocumentSearchModel({
     updateSlashScopePath,
   ]);
 
-  const handleSearchCandidatesChange = useCallback((snapshot: SdkSearchCandidateSnapshot | null) => {
+  const handleSearchCandidatesChange = useCallback((snapshot: SearchCandidateSnapshot | null) => {
     if (!snapshot) {
       setCurrentDocumentCandidateState(EMPTY_SEARCH_CANDIDATE_STATE);
       return;

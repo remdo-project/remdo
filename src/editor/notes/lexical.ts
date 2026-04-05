@@ -32,31 +32,29 @@ import {
   isContentDescendantOf,
   removeNoteHeads,
 } from '@/editor/outline/selection/tree';
-import { createHardcodedUserConfigAdapter } from './hardcoded-user-config';
-import { createNoteSdk } from '../core';
 import type {
-  AdapterNoteSelection,
+  EditorNotes,
+  EditorNotesAdapter,
   PlaceTarget,
-  NoteId,
   NoteRange,
-  NoteSdk,
-  NoteSdkAdapter,
-} from '../contracts';
-import { NoteNotFoundError } from '../errors';
+  SelectionSnapshot,
+} from '@/editor/notes/contracts';
+import { createEditorNotes } from './createEditorNotes';
+import type { NoteId } from '@/notes/contracts';
+import { NoteNotFoundError } from '@/notes/errors';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 
-interface LexicalNoteSdkAdapterOptions {
+interface LexicalEditorNotesAdapterOptions {
   editor: LexicalEditor;
   docId: string;
 }
 
-function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOptions): NoteSdkAdapter {
+function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAdapterOptions): EditorNotesAdapter {
   type MoveInsertionTarget =
     | { kind: 'before'; reference: LexicalNode }
     | { kind: 'after'; reference: LexicalNode }
     | { kind: 'append'; list: ListNode };
-  const userConfig = createHardcodedUserConfigAdapter();
 
   const $resolveNoteById = (noteId: NoteId) => $findNoteById(noteId);
   const $requireNoteById = (noteId: NoteId): ListItemNode => {
@@ -160,12 +158,15 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
       return { kind: 'after', reference: siblingTail };
     }
 
-    const parent = $requireNoteById(target.parent);
-    if (isInsideMovedSubtree(parent)) {
-      throw new Error('Cannot move notes into their own subtree');
-    }
-
-    const targetList = $getOrCreateChildList(parent);
+    const targetList = target.parent === docId
+      ? $requireRootContentList()
+      : (() => {
+          const parent = $requireNoteById(target.parent);
+          if (isInsideMovedSubtree(parent)) {
+            throw new Error('Cannot move notes into their own subtree');
+          }
+          return $getOrCreateChildList(parent);
+        })();
     const availableSiblings = getContentSiblings(targetList).filter((sibling) => !movedKeys.has(sibling.getKey()));
     const slot = $normalizeInsertionSlot(target.index, availableSiblings.length);
     const anchor = availableSiblings[slot];
@@ -225,7 +226,7 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
     return noteRangeFromOrderedIds(heads);
   };
 
-  const $selectionFallbackFromRange = (): AdapterNoteSelection => {
+  const $selectionFallbackFromRange = (): SelectionSnapshot => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection)) {
       return { kind: 'none', range: null };
@@ -258,7 +259,7 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
     return $requireContentItemNoteId(node);
   };
 
-  const $adapterSelection = (): AdapterNoteSelection => {
+  const $adapterSelection = (): SelectionSnapshot => {
     const outlineSelection = editor.selection.get();
     if (!outlineSelection) {
       return $selectionFallbackFromRange();
@@ -290,11 +291,6 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
         .map((item) => $getNoteId(item))
         .filter((noteId): noteId is NoteId => noteId !== null);
     },
-    userConfigId: () => userConfig.userConfigId(),
-    hasUserConfigNote: (noteId) => userConfig.hasUserConfigNote(noteId),
-    userConfigKindOf: (noteId) => userConfig.userConfigKindOf(noteId),
-    userConfigTextOf: (noteId) => userConfig.userConfigTextOf(noteId),
-    userConfigChildrenOf: (noteId) => userConfig.userConfigChildrenOf(noteId),
     selection: () => $adapterSelection(),
     createNote: (target, text = '') => $createNote(target, text),
     hasNote: (noteId) => Boolean($resolveNoteById(noteId)),
@@ -357,6 +353,6 @@ function createLexicalNoteSdkAdapter({ editor, docId }: LexicalNoteSdkAdapterOpt
   };
 }
 
-export function createLexicalNoteSdk(options: LexicalNoteSdkAdapterOptions): NoteSdk {
-  return createNoteSdk(createLexicalNoteSdkAdapter(options));
+export function createLexicalEditorNotes(options: LexicalEditorNotesAdapterOptions): EditorNotes {
+  return createEditorNotes(createLexicalEditorNotesAdapter(options));
 }

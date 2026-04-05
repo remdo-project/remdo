@@ -71,7 +71,7 @@
     "preview": "./tools/env.sh vite preview",
     "save": "./tools/env.sh tsx ./tools/snapshot.ts save",
     "test": "pnpm run test:unit",
-    "ci": "pnpm install --frozen-lockfile --lockfile-only && pnpm run lint && pnpm run audit:all && pnpm run test:unit:full && pnpm run test:collab:full && pnpm run test:e2e:all",
+    "verify:ci": "pnpm install --frozen-lockfile --lockfile-only && pnpm run lint && pnpm run test:unit:full && pnpm run test:collab:full && pnpm run test:e2e:all && pnpm run audit:all",
     "test:collab": "cross-env NODE_ENV=test ./tools/env.sh timeout ${TEST_TIMEOUT:-120}s pnpm exec vitest run tests/unit/collab/smoke.collab.spec.tsx tests/unit/collab --changed --passWithNoTests",
     "test:collab:full": "cross-env NODE_ENV=test ./tools/env.sh timeout ${TEST_TIMEOUT:-120}s pnpm exec vitest run",
     "test:collab:repeat": "sh -c 'for i in $(seq 1 20); do echo \"===== collab run $i/20 =====\"; pnpm run test:collab:full || exit 1; done'",

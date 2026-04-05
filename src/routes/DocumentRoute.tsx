@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
-import { IconChevronDown, IconSearch } from '@tabler/icons-react';
+import { IconChevronDown, IconPlus, IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useUserConfig } from '@/documents/user-config';
 import Editor from '@/editor/Editor';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
-import { createHardcodedUserConfigNoteSdk } from '@/editor/outline/sdk';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
 import { createDocumentPathForPathname, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
 import { useDocumentSearchModel } from './useDocumentSearchModel';
@@ -25,6 +25,8 @@ function isVisibleInCurrentView(element: HTMLElement): boolean {
   return true;
 }
 
+const NEW_DOCUMENT_VALUE = '$new-document';
+
 export default function DocumentRoute() {
   const { docRef } = useParams<{ docRef?: string }>();
   const parsedRef = parseDocumentRef(docRef);
@@ -39,20 +41,7 @@ export default function DocumentRoute() {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const searchResultsListboxId = useId();
   const zoomNoteId = parsedRef?.noteId ?? null;
-  const sdk = useMemo(() => createHardcodedUserConfigNoteSdk(), []);
-  const documentOptions = useMemo(
-    () => {
-      const documentList = sdk.userConfig().children().find((entry) => entry.kind() === 'document-list');
-      if (!documentList) {
-        return [];
-      }
-      return documentList
-        .children()
-        .filter((entry) => entry.kind() === 'document')
-        .map((document) => ({ value: document.id(), label: document.text() }));
-    },
-    [sdk]
-  );
+  const userConfig = useUserConfig();
   const documentPicker = useCombobox({
     onDropdownClose: () => documentPicker.resetSelectedOption(),
   });
@@ -182,6 +171,16 @@ export default function DocumentRoute() {
     };
   }, [handleSearchDismiss, searchModeActive]);
 
+  const createDocument = async () => {
+    const nextDocument = await userConfig.documentList().create('New Document');
+    setDocumentId(nextDocument.id());
+  };
+
+  const documentOptions = userConfig.documentList().children().map((document) => ({
+    value: document.id(),
+    label: document.text(),
+  }));
+
   const highlightedResultIndex = highlightedResultNoteId
     ? flatResults.findIndex((result) => result.noteId === highlightedResultNoteId)
     : -1;
@@ -199,8 +198,12 @@ export default function DocumentRoute() {
               <Combobox
                 offset={{ mainAxis: 4, crossAxis: -44 }}
                 onOptionSubmit={(value) => {
-                  setDocumentId(value);
                   documentPicker.closeDropdown();
+                  if (value === NEW_DOCUMENT_VALUE) {
+                    void createDocument();
+                    return;
+                  }
+                  setDocumentId(value);
                 }}
                 position="bottom-start"
                 shadow="md"
@@ -230,6 +233,13 @@ export default function DocumentRoute() {
                         {document.label}
                       </Combobox.Option>
                     ))}
+                    <div aria-hidden="true" className="document-header-doc-divider document-header-doc-divider--dark-5" />
+                    <Combobox.Option value={NEW_DOCUMENT_VALUE}>
+                      <span className="document-header-doc-action">
+                        <IconPlus aria-hidden="true" size={14} />
+                        <span>New</span>
+                      </span>
+                    </Combobox.Option>
                   </Combobox.Options>
                 </Combobox.Dropdown>
               </Combobox>
