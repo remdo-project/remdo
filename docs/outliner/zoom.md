@@ -22,8 +22,8 @@ caret/selection state in the editor.
 1. **Document root zoom:** The full document tree is visible. This is the
    default view and the fallback when the zoom target is missing or invalid.
 2. **Subtree zoom:** Only the zoom root and its descendants are visible. The
-   zoom root is rendered at depth 0; its descendants keep their relative
-   indentation within the subtree.
+   zoom root defines the local view heading; its descendants keep their
+   relative indentation within the subtree.
 3. Zoom does not introduce a new note type or structural level. Note identities
    and collaboration semantics are unchanged.
 4. While zoomed, selection expansion (including Select All) is bounded to the
@@ -31,14 +31,27 @@ caret/selection state in the editor.
    [Selection](./selection.md).
 5. While zoomed, edits are bounded to the zoom boundary. Commands must not
    create, merge, move, or target notes outside that boundary.
+6. The zoom root is presented distinctly from ordinary note rows. It remains
+   editable, but it serves as the local title/heading for the zoomed view
+   rather than reading as just another sibling in the list.
+7. If the zoom root has direct children, those children are always visible
+   while zoomed, even when the zoom root's stored fold state is `folded`.
+   Descendants beneath those children still follow their own fold states.
+8. The zoom root's stored fold state is preserved while zoomed. Clearing zoom
+   returns to the parent view with that fold state still in effect there.
 
 ## Entering and changing zoom
 
 1. Clicking a note’s bullet zooms into that note (the clicked note becomes the
    zoom root).
 2. While zoomed, clicking any visible note’s bullet re-zooms on that note.
-3. Zooming into a note sets the caret within the zoom root so editing can
-   proceed immediately there.
+3. When the zoom root has one or more visible direct children, entering zoom
+   places the caret in the first visible child so work continues in the zoomed
+   content immediately.
+4. When the zoom root has no visible direct children, entering zoom places the
+   caret within the zoom root so editing can proceed there.
+5. The zoom root remains directly editable while zoomed; clicking or otherwise
+   targeting the heading enters inline editing for that note.
 
 ## Clearing zoom
 

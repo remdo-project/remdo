@@ -31,4 +31,11 @@ note identities.
    no longer folded.
 7. Zoom defines the outer visible subtree; folding applies inside that view and
    zooming does not reset folding.
-8. Fold command API is state-based: `folded`, `unfolded`, or `toggle`.
+8. Exception: when a folded note is the current zoom root, its own fold state
+   does not hide its direct children in the zoomed view. Those children remain
+   visible there, and deeper visibility is determined by each descendant's own
+   fold state.
+9. The zoom-root exception is presentation-only. The folded state remains saved
+   on the note and takes effect again when the note is shown in a non-zoomed
+   parent context.
+10. Fold command API is state-based: `folded`, `unfolded`, or `toggle`.
