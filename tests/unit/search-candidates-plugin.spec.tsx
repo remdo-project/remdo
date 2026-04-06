@@ -1,9 +1,22 @@
 import { render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+interface MockEditor {
+  getEditorState: () => { read: (callback: () => unknown) => unknown };
+  registerUpdateListener: (listener: ((payload: { dirtyElements: Map<string, boolean>; dirtyLeaves: Set<string>; editorState: { read: (callback: () => unknown) => unknown } }) => void) | null) => () => void;
+  registerRootListener: () => () => void;
+}
+
+let lexicalComposerContextEditor: MockEditor | null = null;
+
+function mockLexicalComposerContext() {
+  return [lexicalComposerContextEditor] as const;
+}
+
 describe('search candidates plugin', () => {
   beforeEach(() => {
     vi.resetModules();
+    lexicalComposerContextEditor = null;
   });
 
   it('skips rebuilding candidates on selection-only updates', async () => {
@@ -20,10 +33,10 @@ describe('search candidates plugin', () => {
     };
     const collectSearchCandidates = vi.fn(() => [{ noteId: 'note1', text: 'note1' }]);
     const collectChildCandidateMap = vi.fn(() => ({ note1: [] }));
+    lexicalComposerContextEditor = mockEditor;
 
     vi.doMock('@lexical/react/LexicalComposerContext', () => ({
-      // eslint-disable-next-line react/no-unnecessary-use-prefix -- Mock must match Lexical hook export.
-      useLexicalComposerContext: () => [mockEditor],
+      useLexicalComposerContext: mockLexicalComposerContext,
     }));
     vi.doMock('@/editor/notes', () => ({
       createLexicalEditorNotes: () => ({}),
@@ -62,10 +75,10 @@ describe('search candidates plugin', () => {
       registerUpdateListener: () => () => {},
       registerRootListener: () => () => {},
     };
+    lexicalComposerContextEditor = mockEditor;
 
     vi.doMock('@lexical/react/LexicalComposerContext', () => ({
-      // eslint-disable-next-line react/no-unnecessary-use-prefix -- Mock must match Lexical hook export.
-      useLexicalComposerContext: () => [mockEditor],
+      useLexicalComposerContext: mockLexicalComposerContext,
     }));
     vi.doMock('@/editor/notes', () => ({
       createLexicalEditorNotes: () => ({}),

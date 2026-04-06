@@ -251,6 +251,30 @@ export default antfu(
       ],
     },
   },
+  // Temporary Antfu 8 migration hold-backs.
+  // Keep these overrides explicit so we can revisit them and try to return to
+  // upstream defaults in the next lint-stack pass.
+  {
+    files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
+    rules: {
+      'e18e/prefer-array-fill': 'off',
+      'e18e/prefer-array-from-map': 'off',
+      'e18e/prefer-object-has-own': 'off',
+      'e18e/prefer-static-regex': 'off',
+    },
+  },
+  {
+    files: ['tests/unit/**/*.{ts,tsx}', 'tests/e2e/**/*.{ts,tsx,js,jsx,mts,cts}'],
+    rules: {
+      'react/purity': 'off',
+    },
+  },
+  {
+    files: ['tests/e2e/**/*.{ts,tsx,js,jsx,mts,cts}'],
+    rules: {
+      'react/rules-of-hooks': 'off',
+    },
+  },
   {
     files: ['tests/unit/_support/setup/_internal/lexical/hooks.tsx'],
     rules: {

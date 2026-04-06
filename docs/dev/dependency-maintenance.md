@@ -54,25 +54,15 @@ upgrade again and rerun the full validation set.
    Dependabot: ignore `>= 8.0.0 < 9.0.0` while this blocker stands.
    Revisit when: `vite-plugin-pwa` supports Vite 8 cleanly.
 
-3. `@antfu/eslint-config` `7.6.1`
-   Held back from: `8.x`
-   Reason: v8 currently crashes during config load in this repo from
-   `antfu/react/setup` expecting a different `react-dom` plugin shape. Staying
-   on the 7.x line also keeps the repo on the smaller, already-absorbed lint
-   surface for refresh turns.
-   Dependabot: ignore `>= 8.0.0 < 9.0.0` while this blocker stands.
-   Revisit when: we are ready to do a dedicated lint-config migration.
+3. `@eslint-react/eslint-plugin` `^3.0.0`
+   Held back from: `4.2.3`
+   Reason: the 4.x line requires `eslint ^10`, while the repo still holds
+   `eslint` on 9 because `@lexical/eslint-plugin` breaks under ESLint 10.
+   Dependabot: ignore `>= 4.0.0 < 5.0.0` while this blocker stands.
+   Revisit when: Lexical supports ESLint 10 and the repo is ready for that
+   wider lint-stack move.
 
-4. `eslint-plugin-unicorn` `^63.0.0`
-   Held back from: `64.0.0`
-   Reason: the current `@antfu/eslint-config 7.6.1` setup is not compatible
-   with `eslint-plugin-unicorn 64` in this repo, so the Antfu hold-back also
-   requires keeping Unicorn on `63.x`.
-   Dependabot: ignore `>= 64.0.0 < 65.0.0` while this blocker stands.
-   Revisit when: the Antfu config moves to a compatible version, or we replace
-   that integration.
-
-5. `typescript` `^5.9.3`
+4. `typescript` `^5.9.3`
    Held back from: `6.0.2`
    Reason: the TypeScript 6 jump still pushes the refresh beyond the skill's
    happy path due to ecosystem peer drift and follow-on tooling fallout.
