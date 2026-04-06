@@ -40,29 +40,24 @@ keeping them is gone.
 Review these during dependency refresh work. If the blocker is gone, try the
 upgrade again and rerun the full validation set.
 
-1. `eslint` `^9.39.3`
-   Held back from: `10.0.3`
-   Reason: `@lexical/eslint-plugin` crashes under ESLint 10 with
-   `context.getSourceCode is not a function`.
-   Dependabot: ignore `>= 10.0.0 < 11.0.0` while this blocker stands.
-   Revisit when: Lexical publishes ESLint 10 support.
-
-2. `vite` `^7.3.1`
+1. `vite` `^7.3.1`
    Held back from: `8.0.0`
    Reason: [vite.shared.ts](../../vite.shared.ts) depends
    on `vite-plugin-pwa`, and `vite-plugin-pwa 1.2.0` does not support Vite 8.
    Dependabot: ignore `>= 8.0.0 < 9.0.0` while this blocker stands.
    Revisit when: `vite-plugin-pwa` supports Vite 8 cleanly.
 
-3. `@eslint-react/eslint-plugin` `^3.0.0`
+2. `@eslint-react/eslint-plugin` `^3.0.0`
    Held back from: `4.2.3`
-   Reason: the 4.x line requires `eslint ^10`, while the repo still holds
-   `eslint` on 9 because `@lexical/eslint-plugin` breaks under ESLint 10.
+   Reason: `@antfu/eslint-config` `8.0.0` still peers
+   `@eslint-react/eslint-plugin ^3.0.0`, and the 4.x line crashes config load
+   through `antfu/react/setup` with `Key "plugins": Key "react-dom":
+   Expected an object.`
    Dependabot: ignore `>= 4.0.0 < 5.0.0` while this blocker stands.
-   Revisit when: Lexical supports ESLint 10 and the repo is ready for that
-   wider lint-stack move.
+   Revisit when: Antfu supports `@eslint-react/eslint-plugin` 4.x cleanly, or
+   the repo replaces/adapts that config layer.
 
-4. `typescript` `^5.9.3`
+3. `typescript` `^5.9.3`
    Held back from: `6.0.2`
    Reason: the TypeScript 6 jump still pushes the refresh beyond the skill's
    happy path due to ecosystem peer drift and follow-on tooling fallout.

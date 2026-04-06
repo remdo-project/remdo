@@ -11,9 +11,11 @@
   ],
   "entry": [
     "tools/**/*.ts",
-    "tests/perf/**/*.bench.ts"
+    "tests/perf/**/*.bench.ts",
+    "vitest.bench.perf.config.mts"
   ],
   "project": [
-    "{src,lib,tests,tools,config}/**/*.{ts,tsx,mts}"
+    "{src,lib,tests,tools,config}/**/*.{ts,tsx,mts}",
+    "*.{ts,mts}"
   ]
 }

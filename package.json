@@ -142,7 +142,6 @@
     "csstree-validator": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-compat": "catalog:",
-    "eslint-plugin-react-hooks": "catalog:",
     "eslint-plugin-react-refresh": "catalog:",
     "eslint-plugin-unicorn": "catalog:",
     "jiti": "catalog:",
