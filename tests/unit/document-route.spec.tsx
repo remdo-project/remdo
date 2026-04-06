@@ -47,6 +47,8 @@ const defaultSnapshot = {
   },
 } satisfies TestSearchSnapshot;
 
+let mockEditorInstanceCounter = 0;
+
 interface MockEditorProps {
   docId: string;
   onSearchCandidatesChange?: (snapshot: TestSearchSnapshot | null) => void;
@@ -88,7 +90,7 @@ function MockEditor({
     };
   }, [docId, onSearchCandidatesChange]);
 
-  const instanceId = React.useId();
+  const instanceId = React.useRef(`instance-${++mockEditorInstanceCounter}`).current;
   return (
     <>
       <div
@@ -122,6 +124,7 @@ vi.mock('@/editor/zoom/ZoomBreadcrumbs', () => ({
 describe('document route', () => {
   beforeEach(() => {
     resetTestUserConfig();
+    mockEditorInstanceCounter = 0;
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
     globals.__remdoMockSearchCandidatesByDoc = undefined;
     globals.__remdoMockSearchCandidateEmitters = undefined;

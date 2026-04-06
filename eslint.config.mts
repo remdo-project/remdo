@@ -6,6 +6,24 @@ import { commandsInCommandsFileRule } from './config/eslint/commandsInCommandsFi
 import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
 
 const { plugins: _unusedUnicornPlugins, ...unicornUnopinionatedConfig } = unicornPlugin.configs.unopinionated;
+const importMetaEnvRestriction = {
+  selector: "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']",
+  message: 'Use #config instead of accessing import.meta.env directly.',
+} as const;
+const checklistStateRestrictions = [
+  {
+    selector: "CallExpression[callee.property.name='getChecked']",
+    message: 'Use $getNoteChecked from #lib/editor/checklist-state instead.',
+  },
+  {
+    selector: "CallExpression[callee.property.name='setChecked']",
+    message: 'Use $setNoteChecked from #lib/editor/checklist-state instead.',
+  },
+  {
+    selector: "CallExpression[callee.property.name='toggleChecked']",
+    message: 'Use $toggleNoteChecked from #lib/editor/checklist-state instead.',
+  },
+] as const;
 
 export default antfu(
   {
@@ -73,7 +91,6 @@ export default antfu(
   },
   {
     files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
-    ignores: ['src/editor/plugins/CheckListPlugin.tsx'],
     rules: {
       semi: ['error', 'always'],
       'node/no-process-env': [
@@ -84,22 +101,8 @@ export default antfu(
       ],
       'no-restricted-syntax': [
         'error',
-        {
-          selector: "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']",
-          message: 'Use #config instead of accessing import.meta.env directly.',
-        },
-        {
-          selector: "CallExpression[callee.property.name='getChecked']",
-          message: 'Use $getNoteChecked from #lib/editor/checklist-state instead.',
-        },
-        {
-          selector: "CallExpression[callee.property.name='setChecked']",
-          message: 'Use $setNoteChecked from #lib/editor/checklist-state instead.',
-        },
-        {
-          selector: "CallExpression[callee.property.name='toggleChecked']",
-          message: 'Use $toggleNoteChecked from #lib/editor/checklist-state instead.',
-        },
+        importMetaEnvRestriction,
+        ...checklistStateRestrictions,
       ],
       'remdo/no-legacy-fallbacks': 'error',
     },
@@ -110,10 +113,7 @@ export default antfu(
       // This plugin is the sanctioned boundary for direct checklist node syncing.
       'no-restricted-syntax': [
         'error',
-        {
-          selector: "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']",
-          message: 'Use #config instead of accessing import.meta.env directly.',
-        },
+        importMetaEnvRestriction,
       ],
     },
   },
