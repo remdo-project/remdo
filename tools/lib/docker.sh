@@ -76,6 +76,11 @@ remdo_configure_docker_runtime() {
     public_host="$(remdo_detect_docker_public_host)"
   fi
 
+  if [[ -z "${PORT-}" ]]; then
+    echo "Error: PORT environment variable must be set before configuring Docker runtime." >&2
+    return 1
+  fi
+
   tinyauth_host="app.${public_host}"
   export CADDY_SITE_ADDRESS="https://${public_host}:${PORT}"
   export TINYAUTH_APP_URL="https://${tinyauth_host}:${PORT}"
