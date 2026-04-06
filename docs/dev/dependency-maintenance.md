@@ -56,11 +56,3 @@ upgrade again and rerun the full validation set.
    Dependabot: ignore `>= 4.0.0 < 5.0.0` while this blocker stands.
    Revisit when: Antfu supports `@eslint-react/eslint-plugin` 4.x cleanly, or
    the repo replaces/adapts that config layer.
-
-3. `typescript` `^5.9.3`
-   Held back from: `6.0.2`
-   Reason: the TypeScript 6 jump still pushes the refresh beyond the skill's
-   happy path due to ecosystem peer drift and follow-on tooling fallout.
-   Dependabot: ignore `>= 6.0.0 < 7.0.0` while this blocker stands.
-   Revisit when: we are ready to absorb the TypeScript 6 upgrade as a dedicated
-   tooling pass.
