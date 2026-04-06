@@ -49,11 +49,16 @@ remdo_detect_docker_public_host() {
     detected_host="$(hostname 2>/dev/null || true)"
   fi
 
+  if [[ -z "${detected_host}" ]]; then
+    echo "Failed to detect a Docker public hostname. Set the VM hostname first." >&2
+    return 1
+  fi
+
   detected_host="$(printf '%s' "${detected_host}" | tr '[:upper:]' '[:lower:]')"
   detected_host="${detected_host%.}"
 
   case "${detected_host}" in
-    ""|localhost|localhost.localdomain|localdomain)
+    localhost|localhost.localdomain|localdomain)
       echo "Failed to detect a Docker public hostname. Set the VM hostname first." >&2
       return 1
       ;;
