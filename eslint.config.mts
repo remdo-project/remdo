@@ -259,7 +259,6 @@ export default antfu(
     rules: {
       'e18e/prefer-array-fill': 'off',
       'e18e/prefer-array-from-map': 'off',
-      'e18e/prefer-object-has-own': 'off',
       'e18e/prefer-static-regex': 'off',
     },
   },

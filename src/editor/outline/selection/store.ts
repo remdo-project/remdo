@@ -11,7 +11,7 @@ export interface OutlineSelectionApi {
 
 export function installOutlineSelectionHelpers(editor: LexicalEditor): void {
   // Avoid clobbering an existing selection API; rely on a runtime own-property check.
-  const hasSelection = Object.prototype.hasOwnProperty.call(editor as unknown as Record<string, unknown>, 'selection');
+  const hasSelection = Object.hasOwn(editor as unknown as Record<string, unknown>, 'selection');
   if (hasSelection) {
     return;
   }

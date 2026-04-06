@@ -52,7 +52,7 @@ export function restoreEditorStateDefaults(editorState: SerializedEditorState): 
 }
 
 function getNodeDefaults(nodeType: string): Record<string, unknown> {
-  const defaultsEntry = Object.prototype.hasOwnProperty.call(NODE_DEFAULTS, nodeType)
+  const defaultsEntry = Object.hasOwn(NODE_DEFAULTS, nodeType)
     ? NODE_DEFAULTS[nodeType as keyof typeof NODE_DEFAULTS]
     : undefined;
   return (defaultsEntry ?? {}) as Record<string, unknown>;
