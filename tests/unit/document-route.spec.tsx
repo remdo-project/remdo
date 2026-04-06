@@ -88,12 +88,12 @@ function MockEditor({
     };
   }, [docId, onSearchCandidatesChange]);
 
-  const instanceIdRef = React.useRef(`instance-${Math.random().toString(36).slice(2)}`);
+  const instanceId = React.useId();
   return (
     <>
       <div
         data-doc-id={docId}
-        data-instance-id={instanceIdRef.current}
+        data-instance-id={instanceId}
         data-search-mode-requested={searchModeRequested ? 'true' : 'false'}
         data-testid="editor-probe"
       />

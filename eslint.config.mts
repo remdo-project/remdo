@@ -264,7 +264,6 @@ export default antfu(
   {
     files: ['tests/unit/**/*.{ts,tsx}', 'tests/e2e/**/*.{ts,tsx,js,jsx,mts,cts}'],
     rules: {
-      'react/purity': 'off',
     },
   },
   {
