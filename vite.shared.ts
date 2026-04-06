@@ -6,13 +6,6 @@ import { onRollupWarning } from './config/_internal/vite/onRollupWarning';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = config.env.VITEST_PREVIEW;
-const NAVIGATION_BLOCKLIST_PATTERNS = [
-  /^\/(?:login|authorize|logout|continue|totp|forgot-password|unauthorized|error)(?:\/|$)/,
-  /^\/resources(?:\/|$)/,
-  /^\/api(?:\/|$)/,
-  /^\/doc(?:\/|$)/,
-  /^\/d(?:\/|$)/,
-];
 
 export function createViteSharedConfig() {
   return {
@@ -44,9 +37,30 @@ export function createViteSharedConfig() {
           navigateFallback: undefined,
           runtimeCaching: [
             {
-              urlPattern: ({ request, url }) =>
-                request.mode === 'navigate' &&
-                !NAVIGATION_BLOCKLIST_PATTERNS.some((pattern) => pattern.test(url.pathname)),
+              // Workbox serializes this callback into sw.js, so keep the
+              // navigation blocklist self-contained instead of closing over
+              // module-scope constants.
+              urlPattern: ({ request, url }) => {
+                if (request.mode !== 'navigate') {
+                  return false;
+                }
+
+                const { pathname } = url;
+                return ![
+                  '/login',
+                  '/authorize',
+                  '/logout',
+                  '/continue',
+                  '/totp',
+                  '/forgot-password',
+                  '/unauthorized',
+                  '/error',
+                  '/resources',
+                  '/api',
+                  '/doc',
+                  '/d',
+                ].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+              },
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'app-shell-navigation',
