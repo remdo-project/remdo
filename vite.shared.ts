@@ -2,12 +2,18 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
 import { config } from './config';
+import { onRollupWarning } from './config/_internal/vite/onRollupWarning';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = config.env.VITEST_PREVIEW;
 
 export function createViteSharedConfig() {
   return {
+    build: {
+      rollupOptions: {
+        onwarn: onRollupWarning,
+      },
+    },
     plugins: [
       VitePWA({
         registerType: 'autoUpdate',
