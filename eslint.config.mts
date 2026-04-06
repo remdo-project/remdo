@@ -73,6 +73,7 @@ export default antfu(
   },
   {
     files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
+    ignores: ['src/editor/plugins/CheckListPlugin.tsx'],
     rules: {
       semi: ['error', 'always'],
       'node/no-process-env': [
@@ -106,6 +107,7 @@ export default antfu(
   {
     files: ['src/editor/plugins/CheckListPlugin.tsx'],
     rules: {
+      // This plugin is the sanctioned boundary for direct checklist node syncing.
       'no-restricted-syntax': [
         'error',
         {
@@ -144,13 +146,6 @@ export default antfu(
           ],
         },
       ],
-    },
-  },
-  {
-    files: ['config/index.ts'],
-    rules: {
-      'node/no-process-env': 'off',
-      'no-restricted-syntax': 'off',
     },
   },
   {
@@ -249,13 +244,6 @@ export default antfu(
           message: 'Use editor-scoped helpers (withinEditor/editorLocator) instead of page.locator in editor specs.',
         },
       ],
-    },
-  },
-  {
-    files: ['tests/unit/_support/setup/_internal/lexical/hooks.tsx'],
-    rules: {
-      'no-restricted-globals': 'off',
-      'no-restricted-syntax': 'off',
     },
   },
   {

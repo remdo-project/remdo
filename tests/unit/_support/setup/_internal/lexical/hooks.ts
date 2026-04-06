@@ -41,17 +41,17 @@ beforeEach<TestContext>(async (ctx) => {
   }
 
   const resolvedEditorProps = meta.editorPropsKey ? getEditorProps(meta.editorPropsKey) ?? meta.editorProps : meta.editorProps;
-  const { api: remdoTest } = await renderRemdoEditor({ docId, editorProps: resolvedEditorProps });
+  const { api: remdoApi } = await renderRemdoEditor({ docId, editorProps: resolvedEditorProps });
 
   if (!config.env.COLLAB_ENABLED && fixtureName) {
     const stateJson = await readFixture(fixtureName);
-    await remdoTest._bridge.applySerializedState(stateJson, fixtureOptions);
+    await remdoApi._bridge.applySerializedState(stateJson, fixtureOptions);
   }
 
-  ctx.remdo = remdoTest;
+  ctx.remdo = remdoApi;
 
   if (fixtureName) {
-    await remdoTest.waitForSynced();
+    await remdoApi.waitForSynced();
   }
 });
 

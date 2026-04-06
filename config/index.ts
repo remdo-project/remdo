@@ -1,4 +1,6 @@
 /* eslint-disable node/prefer-global/process */
+/* eslint-disable node/no-process-env */
+/* eslint-disable no-restricted-syntax */
 import { loadEnv } from './_internal/env/load';
 
 // eslint-disable-next-line ts/no-unnecessary-condition -- in browser process is a stub with no versions
