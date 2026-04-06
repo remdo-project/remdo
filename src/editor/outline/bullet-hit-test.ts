@@ -7,6 +7,7 @@ interface GlyphMetrics {
 }
 
 let measureContext: CanvasRenderingContext2D | null | undefined;
+const CSS_LENGTH_PATTERN = /^(-?(?:\d+(?:\.\d+)?|\.\d+))([a-z%]*)$/i;
 
 const getMeasureContext = () => {
   if (measureContext !== undefined) {
@@ -47,7 +48,7 @@ const resolveLengthPx = (value: string, baseStyle: CSSStyleDeclaration, element:
   if (!trimmed) {
     return null;
   }
-  const match = /^(-?(?:\d+(?:\.\d+)?|\.\d+))([a-z%]*)$/i.exec(trimmed);
+  const match = CSS_LENGTH_PATTERN.exec(trimmed);
   if (!match) {
     return null;
   }

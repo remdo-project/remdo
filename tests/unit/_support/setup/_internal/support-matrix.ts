@@ -6,6 +6,8 @@ interface RemdoSupport {
   tools?: Record<string, string>;
 }
 
+const MINIMUM_NODE_MAJOR_PATTERN = />=\s*(\d+)/;
+
 function readPackageJson() {
   const pkgPath = path.resolve(process.cwd(), 'package.json');
   const raw = readFileSync(pkgPath, 'utf8');
@@ -17,7 +19,7 @@ function isNodeVersionSupported(range: string | undefined): boolean {
     return true;
   }
 
-  const minimumMatch = range.match(/>=\s*(\d+)/);
+  const minimumMatch = range.match(MINIMUM_NODE_MAJOR_PATTERN);
   if (!minimumMatch) {
     return true;
   }

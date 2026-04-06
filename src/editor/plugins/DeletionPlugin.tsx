@@ -46,6 +46,9 @@ import {
   isContentDescendantOf,
 } from '@/editor/outline/selection/tree';
 
+const TRAILING_WHITESPACE_PATTERN = /\s$/;
+const LEADING_WHITESPACE_PATTERN = /^\s/;
+
 function getParentNote(list: ListNode): ListItemNode | null {
   const wrapper = list.getParent();
   if (!$isListItemNode(wrapper)) {
@@ -130,9 +133,9 @@ function $resolveCollapsedSelectionAtEdge(edge: 'start' | 'end'): EdgeSelectionR
 function computeMergeText(left: string, right: string): { merged: string; joinOffset: number } {
   const needsSpace =
     left.length > 0 &&
-    !/\s$/.test(left) &&
+    !TRAILING_WHITESPACE_PATTERN.test(left) &&
     right.length > 0 &&
-    !/^\s/.test(right);
+    !LEADING_WHITESPACE_PATTERN.test(right);
 
   const joinOffset = left.length + (needsSpace ? 1 : 0);
   return { merged: `${left}${needsSpace ? ' ' : ''}${right}`, joinOffset };

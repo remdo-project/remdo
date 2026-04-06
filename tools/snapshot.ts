@@ -24,6 +24,9 @@ import { prepareEditorStateForPersistence, prepareEditorStateForRuntime } from '
 import { createEditorInitialConfig } from '#lib/editor/config';
 import { normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
 
+const PATH_SEPARATOR_PATTERN = /[\\/]+/g;
+const LEADING_DOTS_PATTERN = /^\.+/;
+
 type SharedRootObserver = (
   events: Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
   transaction: Transaction,
@@ -168,7 +171,7 @@ function resolveSnapshotPath(
   const defaultDir = command === 'backup' ? backupDir : fixturesRoot;
 
   const ensureJson = (target: string) => (path.extname(target) ? target : `${target}.json`);
-  const sanitizeName = (name: string) => name.replaceAll(/[\\/]+/g, '_').replace(/^\.+/, '');
+  const sanitizeName = (name: string) => name.replaceAll(PATH_SEPARATOR_PATTERN, '_').replace(LEADING_DOTS_PATTERN, '');
 
   if (!filePath) {
     const base = sanitizeName(docId || 'main');

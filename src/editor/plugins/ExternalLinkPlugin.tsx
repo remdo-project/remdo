@@ -12,6 +12,8 @@ const EXTERNAL_LINK_ATTRIBUTES = {
   rel: 'noopener noreferrer',
   target: '_blank',
 } as const;
+const WWW_PREFIX_PATTERN = /^www\./i;
+const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
 
 const linkify = new LinkifyIt()
   .tlds(tlds)
@@ -34,17 +36,17 @@ interface ExternalLinkifyMatch {
 }
 
 function isSupportedExternalMatch(match: ExternalLinkifyMatch) {
-  return match.schema === 'http:' || match.schema === 'https:' || match.schema === '//' || /^www\./i.test(match.raw);
+  return match.schema === 'http:' || match.schema === 'https:' || match.schema === '//' || WWW_PREFIX_PATTERN.test(match.raw);
 }
 
 function normalizeExternalUrl(url: string): string | null {
-  if (/^www\./i.test(url)) {
+  if (WWW_PREFIX_PATTERN.test(url)) {
     return `https://${url}`;
   }
   if (url.startsWith('//')) {
     return url;
   }
-  if (!/^[a-z][a-z\d+.-]*:/i.test(url)) {
+  if (!URL_SCHEME_PATTERN.test(url)) {
     return url;
   }
   try {

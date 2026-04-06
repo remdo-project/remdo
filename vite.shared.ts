@@ -6,6 +6,13 @@ import { onRollupWarning } from './config/_internal/vite/onRollupWarning';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = config.env.VITEST_PREVIEW;
+const NAVIGATION_BLOCKLIST_PATTERNS = [
+  /^\/(?:login|authorize|logout|continue|totp|forgot-password|unauthorized|error)(?:\/|$)/,
+  /^\/resources(?:\/|$)/,
+  /^\/api(?:\/|$)/,
+  /^\/doc(?:\/|$)/,
+  /^\/d(?:\/|$)/,
+];
 
 export function createViteSharedConfig() {
   return {
@@ -39,17 +46,7 @@ export function createViteSharedConfig() {
             {
               urlPattern: ({ request, url }) =>
                 request.mode === 'navigate' &&
-                ![
-                  // Auth/UI routes served by tinyauth.
-                  /^\/(?:login|authorize|logout|continue|totp|forgot-password|unauthorized|error)(?:\/|$)/,
-                  // Tinyauth static assets.
-                  /^\/resources(?:\/|$)/,
-                  // Server APIs.
-                  /^\/api(?:\/|$)/,
-                  // Collaboration backend routes (not SPA document pages).
-                  /^\/doc(?:\/|$)/,
-                  /^\/d(?:\/|$)/,
-                ].some((pattern) => pattern.test(url.pathname)),
+                !NAVIGATION_BLOCKLIST_PATTERNS.some((pattern) => pattern.test(url.pathname)),
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'app-shell-navigation',

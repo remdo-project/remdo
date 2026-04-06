@@ -7,6 +7,8 @@ import process from 'node:process';
 const AUTH_USER = process.env.AUTH_USER;
 // eslint-disable-next-line node/no-process-env
 const AUTH_PASSWORD = process.env.AUTH_PASSWORD;
+const LOGIN_OR_DOC_URL_PATTERN = /\/(login|n\/)/;
+const DOC_URL_PATTERN = /\/n\//;
 
 function getDockerAuth() {
   if (!AUTH_USER || !AUTH_PASSWORD) {
@@ -19,7 +21,7 @@ function getDockerAuth() {
 }
 
 export async function loginThroughTinyauthIfNeeded(page: Page): Promise<void> {
-  await page.waitForURL(/\/(login|n\/)/, { timeout: 15_000 });
+  await page.waitForURL(LOGIN_OR_DOC_URL_PATTERN, { timeout: 15_000 });
   if (!page.url().includes('/login')) {
     return;
   }
@@ -27,7 +29,7 @@ export async function loginThroughTinyauthIfNeeded(page: Page): Promise<void> {
   await page.fill('input[autocomplete="username"]', dockerAuth.user);
   await page.fill('input[autocomplete="current-password"]', dockerAuth.password);
   await page.click('button[type="submit"]');
-  await page.waitForURL(/\/n\//, { timeout: 15_000 });
+  await page.waitForURL(DOC_URL_PATTERN, { timeout: 15_000 });
 }
 
 export async function waitForServiceWorkerControl(page: Page): Promise<void> {
