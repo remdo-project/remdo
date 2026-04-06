@@ -251,15 +251,6 @@ export default antfu(
       ],
     },
   },
-  // Temporary Antfu 8 migration hold-backs.
-  // Keep these overrides explicit so we can revisit them and try to return to
-  // upstream defaults in the next lint-stack pass.
-  {
-    files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
-    rules: {
-      'e18e/prefer-array-fill': 'off',
-    },
-  },
   {
     files: ['tests/unit/_support/setup/_internal/lexical/hooks.tsx'],
     rules: {
