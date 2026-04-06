@@ -145,7 +145,7 @@ export function attachPageGuards(page: Page): () => void {
     const outstanding = [...outstandingExact, ...outstandingContains];
     if (outstanding.length > 0) {
       const remaining = outstanding.flatMap(([message, count]) =>
-        Array.from({ length: count }, () => message));
+        Array.from({ length: count }).fill(message));
       throw new Error(`Expected console issues not reported: ${remaining.join(', ')}`);
     }
     issueExpectationsByPage.delete(page);

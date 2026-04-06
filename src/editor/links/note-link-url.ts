@@ -14,6 +14,7 @@ interface OwnedNoteLinkUrlOptions {
 // Drop once callers provide normalized absolute note-link input.
 const URL_PARSE_BASE = 'http://localhost';
 const NOTE_LINK_PATH_PATTERN = /^\/n\/([^/]+)$/;
+const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
 
 export function parseNoteLinkUrl(url: string, currentDocId?: string): NoteLink | null {
   let parsedUrl: URL;
@@ -42,7 +43,7 @@ export function parseNoteLinkUrl(url: string, currentDocId?: string): NoteLink |
 
 export function parseOwnedNoteLinkUrl(url: string, options: OwnedNoteLinkUrlOptions = {}): NoteLink | null {
   const { currentDocId, currentOrigin } = options;
-  const hasOwnOrigin = /^[a-z][a-z\d+.-]*:/i.test(url) || url.startsWith('//');
+  const hasOwnOrigin = URL_SCHEME_PATTERN.test(url) || url.startsWith('//');
   if (hasOwnOrigin) {
     if (!currentOrigin) {
       return null;

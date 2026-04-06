@@ -3,6 +3,9 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 
+const NEWLINE_PATTERN = /\r?\n/;
+const RELATIVE_PATH_PREFIX_PATTERN = /^\.\/+/;
+
 interface FileStatsBucket {
   files: number;
   lines: number;
@@ -429,7 +432,7 @@ function countNonEmptyLines(text: string): number {
     return 0;
   }
 
-  const lines = text.split(/\r?\n/);
+  const lines = text.split(NEWLINE_PATTERN);
   let nonEmptyLines = 0;
   for (const line of lines) {
     if (line.trim().length > 0) {
@@ -483,7 +486,7 @@ function runCommand(
 }
 
 function normalizeRelativePath(input: string): string {
-  return input.split(path.sep).join('/').replace(/^\.\/+/, '');
+  return input.split(path.sep).join('/').replace(RELATIVE_PATH_PREFIX_PATTERN, '');
 }
 
 function normalizeTestPath(input: string, baseDir: string): string {

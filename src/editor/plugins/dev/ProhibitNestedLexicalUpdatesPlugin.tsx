@@ -3,17 +3,17 @@ import type { EditorUpdateOptions, LexicalEditor } from 'lexical';
 import { useEffect } from 'react';
 
 const GUARD_KEY = '__remdoProhibitNestedLexicalUpdatesInstalled';
+const APP_FRAME_PATTERN = /[\\/](?:src|lib|tests)[\\/]/;
 
 function isAllowedThirdPartyNestedUpdate(stack: string | undefined): boolean {
   if (!stack) return false;
 
-  const appFramePattern = /[\\/](?:src|lib|tests)[\\/]/;
   const firstRelevantLine = stack
     .split('\n')
     .find((line) => line.includes(' at ') && !line.includes('ProhibitNestedLexicalUpdatesPlugin'));
 
   if (!firstRelevantLine) return false;
-  return !appFramePattern.test(firstRelevantLine);
+  return !APP_FRAME_PATTERN.test(firstRelevantLine);
 }
 
 export function ProhibitNestedLexicalUpdatesPlugin(): null {

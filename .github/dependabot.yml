@@ -9,16 +9,12 @@ updates:
     open-pull-requests-limit: 1
 
     ignore:
-      - dependency-name: eslint
-        versions:
-          - ">= 10.0.0 < 11.0.0"
       - dependency-name: vite
         versions:
           - ">= 8.0.0 < 9.0.0"
-      - dependency-name: "@antfu/eslint-config"
+      - dependency-name: "@eslint-react/eslint-plugin"
         versions:
-          - ">= 7.7.0 < 8.0.0"
-
+          - ">= 4.0.0 < 5.0.0"
     groups:
       weekly-all:
         patterns:

@@ -143,7 +143,8 @@ test('zoom-root split keeps zoom and keeps the caret visible', async ({ page, ed
 
   const longText = Array.from(
     { length: 40 },
-    () => 'note7 is a long note used to force wrapping so scroll behavior is observable in tests'
+  ).fill(
+    'note7 is a long note used to force wrapping so scroll behavior is observable in tests'
   ).join(' ');
 
   await page.evaluate(async (text) => {

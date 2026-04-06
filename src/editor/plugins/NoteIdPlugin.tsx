@@ -62,6 +62,8 @@ import { useCollaborationStatus } from './collaboration';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
 import { NOTE_ID_NORMALIZE_TAG } from '@/editor/update-tags';
 
+const NEWLINE_PATTERN = /\r?\n/;
+
 interface CutMarker {
   markedKeys: Set<string>;
   range: OutlineSelectionRange;
@@ -174,7 +176,7 @@ function $createNoteItemWithText(text: string): ListItemNode {
 }
 
 function buildListItemsFromPlainText(text: string): ListItemNode[] {
-  const lines = text.split(/\r?\n/);
+  const lines = text.split(NEWLINE_PATTERN);
   return lines.map((line) => $createNoteItemWithText(line));
 }
 
@@ -724,7 +726,7 @@ export function NoteIdPlugin() {
           if (isInlineSelection && $isRangeSelection(payload.selection)) {
             const inlineContentItem = resolveContentItemFromNode(payload.selection.anchor.getNode());
             const text = $getPlainTextFromClipboardNodes(payload.nodes);
-            const lines = text.split(/\r?\n/);
+            const lines = text.split(NEWLINE_PATTERN);
             const shouldInsertNotes = lines.length > 1;
 
             if (shouldInsertNotes) {
@@ -783,7 +785,7 @@ export function NoteIdPlugin() {
             return false;
           }
 
-          const lines = plainText.split(/\r?\n/);
+          const lines = plainText.split(NEWLINE_PATTERN);
           if (lines.length === 1) {
             const currentOrigin = globalThis.location.origin;
             const handled = $insertInternalLinkFromPlainText(

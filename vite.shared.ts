@@ -2,12 +2,18 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
 import { config } from './config';
+import { onRollupWarning } from './config/_internal/vite/onRollupWarning';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = config.env.VITEST_PREVIEW;
 
 export function createViteSharedConfig() {
   return {
+    build: {
+      rollupOptions: {
+        onwarn: onRollupWarning,
+      },
+    },
     plugins: [
       VitePWA({
         registerType: 'autoUpdate',
@@ -31,19 +37,30 @@ export function createViteSharedConfig() {
           navigateFallback: undefined,
           runtimeCaching: [
             {
-              urlPattern: ({ request, url }) =>
-                request.mode === 'navigate' &&
-                ![
-                  // Auth/UI routes served by tinyauth.
-                  /^\/(?:login|authorize|logout|continue|totp|forgot-password|unauthorized|error)(?:\/|$)/,
-                  // Tinyauth static assets.
-                  /^\/resources(?:\/|$)/,
-                  // Server APIs.
-                  /^\/api(?:\/|$)/,
-                  // Collaboration backend routes (not SPA document pages).
-                  /^\/doc(?:\/|$)/,
-                  /^\/d(?:\/|$)/,
-                ].some((pattern) => pattern.test(url.pathname)),
+              // Workbox serializes this callback into sw.js, so keep the
+              // navigation blocklist self-contained instead of closing over
+              // module-scope constants.
+              urlPattern: ({ request, url }) => {
+                if (request.mode !== 'navigate') {
+                  return false;
+                }
+
+                const { pathname } = url;
+                return ![
+                  '/login',
+                  '/authorize',
+                  '/logout',
+                  '/continue',
+                  '/totp',
+                  '/forgot-password',
+                  '/unauthorized',
+                  '/error',
+                  '/resources',
+                  '/api',
+                  '/doc',
+                  '/d',
+                ].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+              },
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'app-shell-navigation',

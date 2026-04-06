@@ -72,8 +72,10 @@ const capture = (source: string, pattern: RegExp, description: string): string =
   return value;
 };
 
+const NODE_SERIES_PATTERN = /^(\d+\.\d+)/u;
+
 const normalizeNodeSeries = (raw: string, description: string): string => {
-  const match = raw.trim().match(/^(\d+\.\d+)/u);
+  const match = raw.trim().match(NODE_SERIES_PATTERN);
   const value = match?.[1];
   if (!value) {
     throw new Error(`unsupported ${description}: ${raw}`);

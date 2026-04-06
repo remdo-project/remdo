@@ -5,6 +5,9 @@ import { trace } from '#lib/log';
 import { resolveLoopbackHost } from '#lib/net/loopback';
 import { guardYSweetIndexedDbProviderLifecycle } from './y-sweet-indexeddb-lifecycle';
 import * as Y from 'yjs';
+
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 export type CollaborationProviderInstance = Provider & { destroy: () => void };
 type CollaborationProviderConnectionStatus =
   | 'offline'
@@ -207,7 +210,7 @@ export function createProviderFactory(origin?: string): ProviderFactory {
 
 function createEndpointResolver(origin?: string) {
   const basePath = '/doc';
-  const normalizedOrigin = origin ? origin.replace(/\/$/, '') : '';
+  const normalizedOrigin = origin ? origin.replace(TRAILING_SLASH_PATTERN, '') : '';
   const base = normalizedOrigin ? `${normalizedOrigin}${basePath}` : basePath;
 
   return (docId: string) => {

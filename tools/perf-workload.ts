@@ -4,6 +4,8 @@ import process from 'node:process';
 import type { SerializedEditorState } from 'lexical';
 import { restoreEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 
+const WORKLOAD_SHAPE_PATTERN = /^(\d+)x(\d+)$/;
+
 const workloadArg = process.argv.slice(2).find(arg => arg !== '--');
 // eslint-disable-next-line node/no-process-env -- perf generator intentionally reads direct env override.
 const workloadId = (workloadArg?.trim() || process.env.PERF_WORKLOAD || '8x3').trim();
@@ -23,7 +25,7 @@ fs.writeFileSync(outputPath, `${JSON.stringify(normalized)}\n`);
 console.info(`[perf-workload] generated ${workloadId} -> ${outputPath}`);
 
 function buildBalancedState(shape: string): SerializedEditorState {
-  const match = shape.match(/^(\d+)x(\d+)$/);
+  const match = shape.match(WORKLOAD_SHAPE_PATTERN);
   if (!match) {
     throw new Error(`Unsupported workload "${shape}". Use "<branch>x<depth>" (example: "8x3").`);
   }

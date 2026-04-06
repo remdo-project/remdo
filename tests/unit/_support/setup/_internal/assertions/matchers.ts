@@ -104,7 +104,7 @@ function assertOutlineExpectation(outline: Outline, path: number[] = []) {
       throw new TypeError(`outline[${nodePath.join('>')}].noteId must be a non-empty string or null.`);
     }
 
-    if (Object.prototype.hasOwnProperty.call(node, 'children')) {
+    if (Object.hasOwn(node, 'children')) {
       const children = node.children;
       if (!Array.isArray(children)) {
         throw new TypeError(`outline[${nodePath.join('>')}].children must be an array when provided.`);
