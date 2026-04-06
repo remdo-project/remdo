@@ -69,7 +69,7 @@ describe('note links (docs/outliner/links.md)', () => {
     // Many non-US layouts produce '@' via AltGr (reported as Ctrl+Alt).
     // We enforce this so link-query remains keyboard-accessible on those layouts.
     expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
-    const optionTitles = [...document.querySelectorAll('.note-link-picker__title')].map((node) => node.textContent);
+    const optionTitles = Array.from(document.querySelectorAll('.note-link-picker__title'), (node) => node.textContent);
     expect(optionTitles).toEqual(['note2', 'note3']);
   });
 
@@ -585,7 +585,7 @@ describe('note links (docs/outliner/links.md)', () => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, '@note');
 
-    const optionTitles = [...document.querySelectorAll('.note-link-picker__title')].map((node) => node.textContent);
+    const optionTitles = Array.from(document.querySelectorAll('.note-link-picker__title'), (node) => node.textContent);
     expect(optionTitles).toEqual(['note2', 'note3']);
   });
 
@@ -593,7 +593,7 @@ describe('note links (docs/outliner/links.md)', () => {
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     await typeText(remdo, '@note');
 
-    const optionTitles = [...document.querySelectorAll('.note-link-picker__title')].map((node) => node.textContent);
+    const optionTitles = Array.from(document.querySelectorAll('.note-link-picker__title'), (node) => node.textContent);
     expect(optionTitles).toEqual(['note1', 'note3']);
   });
 

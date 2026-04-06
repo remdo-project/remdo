@@ -258,12 +258,6 @@ export default antfu(
     files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
     rules: {
       'e18e/prefer-array-fill': 'off',
-      'e18e/prefer-array-from-map': 'off',
-    },
-  },
-  {
-    files: ['tests/unit/**/*.{ts,tsx}', 'tests/e2e/**/*.{ts,tsx,js,jsx,mts,cts}'],
-    rules: {
     },
   },
   {

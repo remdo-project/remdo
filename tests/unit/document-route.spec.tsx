@@ -632,7 +632,7 @@ describe('document route', () => {
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
     expect(getActiveSearchResult()?.textContent).toBe('note3');
     expect(searchInput).toHaveValue('/');
-    expect(Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]')).map((item) => item.textContent))
+    expect(Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'), (item) => item.textContent))
       .toEqual(['note1', 'note3', 'note5']);
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
