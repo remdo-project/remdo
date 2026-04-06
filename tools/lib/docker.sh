@@ -24,8 +24,17 @@ remdo_load_env_defaults() {
 remdo_docker_build() {
   local root_dir="$1"
   local image_name="$2"
+  local dockerfile_path="${root_dir}/docker/Dockerfile"
 
-  docker build -f "${root_dir}/docker/Dockerfile" -t "${image_name}" "${root_dir}"
+  set +e
+  docker build -f "${dockerfile_path}" -t "${image_name}" "${root_dir}"
+  local build_status=$?
+  set -e
+
+  if [[ ${build_status} -ne 0 ]]; then
+    echo "Failed to build Docker image '${image_name}' from Dockerfile '${dockerfile_path}'" >&2
+    return "${build_status}"
+  fi
 }
 
 remdo_docker_daemon_is_rootless() {
