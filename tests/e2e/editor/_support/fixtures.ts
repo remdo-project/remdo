@@ -43,13 +43,13 @@ async function createEditorHarness(page: Page, docId: string) {
 
 export const test = base.extend<{ testDocId: string; editor: EditorHarness }>({
   // eslint-disable-next-line no-empty-pattern
-  testDocId: async ({}, use) => {
+  testDocId: async ({}, applyFixture) => {
     const docId = createUniqueNoteId();
-    await use(docId);
+    await applyFixture(docId);
   },
-  editor: async ({ page, testDocId }, use) => {
+  editor: async ({ page, testDocId }, applyFixture) => {
     const editor = await createEditorHarness(page, testDocId);
-    await use(editor);
+    await applyFixture(editor);
     await waitForSynced(page);
     if (editor.userConfigDocId) {
       await removeCollabDocFromDisk(editor.userConfigDocId);

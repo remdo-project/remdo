@@ -267,12 +267,6 @@ export default antfu(
     },
   },
   {
-    files: ['tests/e2e/**/*.{ts,tsx,js,jsx,mts,cts}'],
-    rules: {
-      'react/rules-of-hooks': 'off',
-    },
-  },
-  {
     files: ['tests/unit/_support/setup/_internal/lexical/hooks.tsx'],
     rules: {
       'no-restricted-globals': 'off',
