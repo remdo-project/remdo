@@ -16,7 +16,7 @@ remdo_load_dotenv() {
 remdo_load_env_defaults() {
   local root_dir="$1"
 
-  export REMDO_ROOT="${REMDO_ROOT:-${root_dir}}"
+  export REMDO_ROOT="${root_dir}"
   # shellcheck disable=SC1091 # shared defaults live in the repo.
   . "${root_dir}/tools/env.defaults.sh"
 }
