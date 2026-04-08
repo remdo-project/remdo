@@ -49,8 +49,6 @@ Rules:
 
 ## Dependency simplification follow-ups
 
-- Revisit Lexical `0.42` for places where `$insertNodeIntoLeaf` could simplify
-  current insertion/link-handling code without changing editor behavior.
 - Revisit Vitest `4.1` test helpers (`test.extend`, `aroundEach`,
   `aroundAll`) to see whether they can simplify RemDo fixture typing and shared
   test setup/teardown.
