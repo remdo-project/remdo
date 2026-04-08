@@ -1,9 +1,8 @@
 import { config } from '#config';
 import { createUniqueNoteId, normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
-import { afterEach, beforeEach } from 'vitest';
+import { afterEach, aroundEach } from 'vitest';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tests-common/fixtures';
-import type { EditorViewBindings } from '@/editor/view/EditorViewProvider';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
 import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
 
@@ -17,17 +16,9 @@ async function applyEditorFixture(
   await remdo.waitForSynced();
 }
 
-beforeEach<TestContext>(async (ctx) => {
-  const task = ctx.task as TestContext['task'] | undefined;
-  const meta = (task?.meta ?? {}) as {
-    collabDocId?: string;
-    preserveCollabState?: boolean;
-    fixture?: string;
-    fixtureSchemaBypass?: boolean;
-    expectedConsoleIssues?: string[];
-    viewProps?: EditorViewBindings;
-  };
-  const fixtureName = typeof meta.fixture === 'string' ? meta.fixture : undefined;
+aroundEach<TestContext>(async (run, ctx) => {
+  const meta = ctx.task.meta;
+  const fixtureName = meta.fixture;
   const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
   setExpectedConsoleIssues(meta.expectedConsoleIssues ?? null);
 
@@ -38,13 +29,14 @@ beforeEach<TestContext>(async (ctx) => {
   }
 
   const seedFixtureBeforeMount = Boolean(config.env.COLLAB_ENABLED && fixtureName);
+  const initialFixtureName = fixtureName;
 
-  if (seedFixtureBeforeMount) {
+  if (seedFixtureBeforeMount && initialFixtureName !== undefined) {
     // In collab mode the document must already contain the fixture before the
     // test editor mounts, otherwise the live sync path starts from an empty doc.
     const { api: loader, unmount } = await renderRemdoEditor(docId);
     try {
-      await applyEditorFixture(loader, fixtureName!, fixtureOptions);
+      await applyEditorFixture(loader, initialFixtureName, fixtureOptions);
     } finally {
       unmount();
     }
@@ -57,7 +49,8 @@ beforeEach<TestContext>(async (ctx) => {
   }
 
   ctx.remdo = remdoTest;
-});
+  await run();
+}, config.env.COLLAB_ENABLED ? 15_000 : undefined);
 
 afterEach(async ({ remdo }) => {
   await remdo.waitForSynced();

@@ -47,11 +47,6 @@ Rules:
   link picker (search already uses SDK/Lexical candidates; link picker still
   uses its own traversal/filter pipeline).
 
-## Dependency simplification follow-ups
-
-- Revisit Vitest `4.1` test helpers (`test.extend`, `aroundEach`,
-  `aroundAll`) to see whether they can simplify RemDo fixture typing and shared
-  test setup/teardown.
 
 ## Collaboration architecture roadmap [Future]
 

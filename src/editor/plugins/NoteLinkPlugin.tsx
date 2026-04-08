@@ -226,6 +226,7 @@ export function NoteLinkPlugin() {
       activeQuery.caretOffset
     );
     $setSelection(range);
+    range.insertText('');
 
     closeSession();
     return true;
