@@ -4,8 +4,8 @@ import { IconChevronDown, IconPlus, IconSearch } from '@tabler/icons-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useUserConfig } from '@/documents/user-config';
 import Editor from '@/editor/Editor';
-import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
+import { EditorViewProvider, useEditorViewActions, useZoomPath } from '@/editor/view/EditorViewProvider';
 import { createDocumentPathForPathname, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
 import { useDocumentSearchModel } from './useDocumentSearchModel';
 import './DocumentRoute.css';
@@ -27,26 +27,23 @@ function isVisibleInCurrentView(element: HTMLElement): boolean {
 
 const NEW_DOCUMENT_VALUE = '$new-document';
 
-export default function DocumentRoute() {
-  const { docRef } = useParams<{ docRef?: string }>();
-  const parsedRef = parseDocumentRef(docRef);
-  const docId = parsedRef?.docId ?? DEFAULT_DOC_ID;
+function useDocumentRouteNavigation(docId: string) {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const [zoomPath, setZoomPath] = useState<NotePathItem[]>([]);
-  const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const searchResultsRef = useRef<HTMLElement | null>(null);
-  const shellRef = useRef<HTMLDivElement | null>(null);
-  const searchResultsListboxId = useId();
-  const zoomNoteId = parsedRef?.noteId ?? null;
-  const userConfig = useUserConfig();
-  const documentPicker = useCombobox({
-    onDropdownClose: () => documentPicker.resetSelectedOption(),
-  });
 
-  const setZoomNoteId = useCallback((noteId: string | null) => {
+  const navigateToDocument = useCallback((nextDocId: string) => {
+    if (nextDocId === docId) {
+      return;
+    }
+    const nextSearch = searchParams.toString();
+    void navigate({
+      pathname: createDocumentPathForPathname(location.pathname, nextDocId),
+      search: nextSearch ? `?${nextSearch}` : '',
+    });
+  }, [docId, location.pathname, navigate, searchParams]);
+
+  const navigateToZoomNote = useCallback((noteId: string | null) => {
     const nextSearch = searchParams.toString();
     void navigate(
       {
@@ -57,16 +54,54 @@ export default function DocumentRoute() {
     );
   }, [docId, location.pathname, navigate, searchParams]);
 
-  const setDocumentId = (nextDocId: string) => {
-    if (nextDocId === docId) {
-      return;
-    }
-    const nextSearch = searchParams.toString();
-    void navigate({
-      pathname: createDocumentPathForPathname(location.pathname, nextDocId),
-      search: nextSearch ? `?${nextSearch}` : '',
-    });
-  };
+  return { navigateToDocument, navigateToZoomNote };
+}
+
+export default function DocumentRoute() {
+  const { docRef } = useParams<{ docRef?: string }>();
+  const parsedRef = parseDocumentRef(docRef);
+  const docId = parsedRef?.docId ?? DEFAULT_DOC_ID;
+  const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
+  const zoomNoteId = parsedRef?.noteId ?? null;
+  const { navigateToDocument, navigateToZoomNote } = useDocumentRouteNavigation(docId);
+
+  return (
+    <EditorViewProvider
+      docId={docId}
+      onZoomNoteIdChange={navigateToZoomNote}
+      zoomNoteId={zoomNoteId}
+    >
+      <DocumentRouteContent
+        docId={docId}
+        onSelectDocument={navigateToDocument}
+        setStatusHost={setStatusHost}
+        statusHost={statusHost}
+      />
+    </EditorViewProvider>
+  );
+}
+
+function DocumentRouteContent({
+  docId,
+  onSelectDocument,
+  statusHost,
+  setStatusHost,
+}: {
+  docId: string;
+  onSelectDocument: (docId: string) => void;
+  statusHost: HTMLDivElement | null;
+  setStatusHost: (value: HTMLDivElement | null) => void;
+}) {
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchResultsRef = useRef<HTMLElement | null>(null);
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const searchResultsListboxId = useId();
+  const zoomPath = useZoomPath();
+  const { requestZoomNoteId } = useEditorViewActions();
+  const userConfig = useUserConfig();
+  const documentPicker = useCombobox({
+    onDropdownClose: () => documentPicker.resetSelectedOption(),
+  });
 
   const focusEditorInput = useCallback(() => {
     const editorInput = shellRef.current?.querySelector<HTMLElement>('.editor-input') ?? null;
@@ -105,7 +140,7 @@ export default function DocumentRoute() {
   } = useDocumentSearchModel({
     docId,
     focusEditorInput,
-    setZoomNoteId,
+    setZoomNoteId: requestZoomNoteId,
   });
 
   useEffect(() => {
@@ -173,7 +208,7 @@ export default function DocumentRoute() {
 
   const createDocument = async () => {
     const nextDocument = await userConfig.documentList().create('New Document');
-    setDocumentId(nextDocument.id());
+    onSelectDocument(nextDocument.id());
   };
 
   const documentOptions = userConfig.documentList().children().map((document) => ({
@@ -203,7 +238,7 @@ export default function DocumentRoute() {
                     void createDocument();
                     return;
                   }
-                  setDocumentId(value);
+                  onSelectDocument(value);
                 }}
                 position="bottom-start"
                 shadow="md"
@@ -245,7 +280,7 @@ export default function DocumentRoute() {
               </Combobox>
             )}
             path={zoomPath}
-            onSelectNoteId={setZoomNoteId}
+            onSelectNoteId={requestZoomNoteId}
           />
         </div>
         <div className="document-header-actions">
@@ -342,11 +377,8 @@ export default function DocumentRoute() {
           key={docId}
           docId={docId}
           onSearchCandidatesChange={handleSearchCandidatesChange}
-          onZoomNoteIdChange={setZoomNoteId}
-          onZoomPathChange={setZoomPath}
           searchModeRequested={searchModeRequested}
           statusPortalRoot={statusHost}
-          zoomNoteId={zoomNoteId}
         />
       </div>
     </div>

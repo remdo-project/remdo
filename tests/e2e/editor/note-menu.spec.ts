@@ -195,6 +195,21 @@ test.describe('Note menu', () => {
     await menu.expectOpen();
   });
 
+  test('hides fold action for the current zoom root', async ({ page, editor }) => {
+    await editor.load('tree');
+
+    const zoomIntoNote2 = await openNoteMenu(page, 'note2');
+    await zoomIntoNote2.item('zoom').click();
+    await zoomIntoNote2.expectClosed();
+    await expect(page).toHaveURL(/_note2$/);
+
+    const menu = await openNoteMenu(page, 'note2');
+    await expect(menu.item('toggle-checked')).toHaveCount(1);
+    await expect(menu.item('fold')).toHaveCount(0);
+    await expect(menu.item('zoom')).toHaveCount(1);
+    await menu.expectOpen();
+  });
+
   test('uses Mantine default arrow navigation loop', async ({ page, editor }) => {
     await editor.load('tree');
 

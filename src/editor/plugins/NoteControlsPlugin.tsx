@@ -7,11 +7,13 @@ import { createPortal } from 'react-dom';
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
 import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { $resolveNoteStateFromDOMNode } from '@/editor/plugins/note-state';
+import { useZoomNoteId } from '@/editor/view/EditorViewProvider';
 
 interface NoteControlsState {
   noteKey: string;
   hasChildren: boolean;
   isFolded: boolean;
+  isZoomRoot: boolean;
   left: number;
   top: number;
   fontSize?: string;
@@ -35,11 +37,15 @@ const resolveTargetByY = (root: HTMLElement, clientY: number): HTMLElement | nul
 export function NoteControlsPlugin() {
   const [editor] = useLexicalComposerContext();
   const rootRef = useRef(editor.getRootElement());
+  const zoomNoteId = useZoomNoteId();
+  const zoomNoteIdRef = useRef(zoomNoteId);
+  zoomNoteIdRef.current = zoomNoteId;
   const [portalRoot, setPortalRoot] = useState(() => {
     const root = editor.getRootElement();
     return root ? root.closest('.editor-container') : null;
   });
   const [controls, setControls] = useState<NoteControlsState | null>(null);
+  const syncActiveControlsRef = useRef<(() => void) | null>(null);
   const hoverElementRef = useRef<HTMLElement | null>(null);
   const interactionSourceRef = useRef<InteractionSource>('hover');
 
@@ -64,7 +70,7 @@ export function NoteControlsPlugin() {
   useEffect(() => {
     const resolveNoteState = (
       element: HTMLElement
-    ): { noteKey: string; hasChildren: boolean; isFolded: boolean } | null => {
+    ): { noteKey: string; hasChildren: boolean; isFolded: boolean; isZoomRoot: boolean } | null => {
       return editor.read(() => {
         const resolved = $resolveNoteStateFromDOMNode(element);
         if (!resolved) {
@@ -74,6 +80,7 @@ export function NoteControlsPlugin() {
           noteKey: resolved.noteKey,
           hasChildren: resolved.hasChildren,
           isFolded: resolved.isFolded,
+          isZoomRoot: Boolean(zoomNoteIdRef.current && resolved.noteId === zoomNoteIdRef.current),
         };
       });
     };
@@ -160,6 +167,7 @@ export function NoteControlsPlugin() {
       }
       syncControlsForElement(active, root, anchor);
     };
+    syncActiveControlsRef.current = syncActiveControls;
 
     const setInteractionSource = (source: InteractionSource): boolean => {
       if (interactionSourceRef.current === source) {
@@ -279,6 +287,7 @@ export function NoteControlsPlugin() {
     globalThis.addEventListener('resize', handleResize);
 
     return () => {
+      syncActiveControlsRef.current = null;
       unregisterRootListener();
       unregisterUpdate();
       globalThis.removeEventListener('resize', handleResize);
@@ -290,6 +299,10 @@ export function NoteControlsPlugin() {
       clearControls();
     };
   }, [editor]);
+
+  useEffect(() => {
+    syncActiveControlsRef.current?.();
+  }, [zoomNoteId]);
 
   if (!portalRoot || !controls) {
     return null;
@@ -341,7 +354,7 @@ export function NoteControlsPlugin() {
           onPointerDown={onMenuPointerDown}
           aria-label="Open note menu"
         />
-        {controls.hasChildren ? (
+        {controls.hasChildren && !controls.isZoomRoot ? (
           <button
             type="button"
             className={

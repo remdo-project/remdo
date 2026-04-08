@@ -303,7 +303,7 @@ describe('note ids on paste', () => {
 
       const destinationDocId = createUniqueNoteId();
 
-      const { api: destination, unmount } = await renderRemdoEditor({ docId: destinationDocId });
+      const { api: destination, unmount } = await renderRemdoEditor(destinationDocId);
       try {
         // Cross-browser paste has no shared runtime between editors; destination can only rely on clipboard payload.
         const insertionNoteId = readOutline(destination).at(-1)!.noteId!;
@@ -804,7 +804,7 @@ describe('note ids on paste', () => {
 });
 
 describe('note ids on split', () => {
-  it('keeps text order and unique ids when splitting the zoom root', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+  it('keeps text order and unique ids when splitting the zoom root', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });
 

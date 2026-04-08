@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
@@ -25,95 +24,95 @@ interface MockSearchGlobals {
   __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
 }
 
-const defaultSnapshot = {
-  allCandidates: [
-    { noteId: 'note1', text: 'note1' },
-    { noteId: 'note2', text: 'note2' },
-    { noteId: 'note3', text: 'note3' },
-    { noteId: 'note4', text: 'note4' },
-    { noteId: 'note5', text: 'note5' },
-  ],
-  childCandidateMap: {
-    [ROOT_SEARCH_SCOPE_ID]: [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: 'note5', text: 'note5' },
-    ],
-    note1: [{ noteId: 'note2', text: 'note2' }],
-    note2: [],
-    note3: [{ noteId: 'note4', text: 'note4' }],
-    note4: [],
-    note5: [],
-  },
-} satisfies TestSearchSnapshot;
-
 let mockEditorInstanceCounter = 0;
 
-interface MockEditorProps {
-  docId: string;
-  onSearchCandidatesChange?: (snapshot: TestSearchSnapshot | null) => void;
-  searchModeRequested?: boolean;
-  zoomNoteId?: string | null;
-}
-
-function MockEditor({
-  docId,
-  onSearchCandidatesChange,
-  searchModeRequested,
-  zoomNoteId,
-}: MockEditorProps) {
-  React.useEffect(() => {
-    const globals = globalThis as typeof globalThis & MockSearchGlobals;
-    const emitCurrentSnapshot = () => {
-      const candidateSelection = globals.__remdoMockSearchCandidatesByDoc?.[docId];
-      if (candidateSelection === null) {
-        return;
-      }
-
-      const sdkSnapshot = candidateSelection ?? defaultSnapshot;
-      onSearchCandidatesChange?.(sdkSnapshot);
-    };
-
-    emitCurrentSnapshot();
-    (globals.__remdoMockSearchCandidateEmitters ??= {})[docId] = emitCurrentSnapshot;
-    (globals.__remdoMockSearchCandidateResetters ??= {})[docId] = () => {
-      onSearchCandidatesChange?.(null);
-    };
-    return () => {
-      if (globals.__remdoMockSearchCandidateEmitters?.[docId] === emitCurrentSnapshot) {
-        delete globals.__remdoMockSearchCandidateEmitters[docId];
-      }
-      if (globals.__remdoMockSearchCandidateResetters?.[docId]) {
-        delete globals.__remdoMockSearchCandidateResetters[docId];
-      }
-      onSearchCandidatesChange?.(null);
-    };
-  }, [docId, onSearchCandidatesChange]);
-
-  const instanceId = React.useRef(`instance-${++mockEditorInstanceCounter}`).current;
-  return (
-    <>
-      <div
-        data-doc-id={docId}
-        data-instance-id={instanceId}
-        data-search-mode-requested={searchModeRequested ? 'true' : 'false'}
-        data-testid="editor-probe"
-      />
-      <div data-testid="editor-search-probe" data-zoom-note-id={zoomNoteId ?? ''} />
-      <div className="editor-input" data-testid="editor-input-probe" tabIndex={-1}>
-        <ul>
-          <li className="list-item" data-note-id="note1">note1</li>
-          <li className="list-item zoom-hidden" data-note-id="note2">note2</li>
-          <li className="list-item" data-note-id="note3">note3</li>
-          <li className="list-item" data-note-id="note4" style={{ display: 'none' }}>note4</li>
-          <li className="list-item" data-note-id="note5">note5</li>
-        </ul>
-      </div>
-    </>
-  );
-}
-
 vi.mock('@/editor/Editor', async () => {
+  const React = await import('react');
+  const { useZoomNoteId } = await import('@/editor/view/EditorViewProvider');
+  const defaultSnapshot = {
+    allCandidates: [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note4', text: 'note4' },
+      { noteId: 'note5', text: 'note5' },
+    ],
+    childCandidateMap: {
+      [ROOT_SEARCH_SCOPE_ID]: [
+        { noteId: 'note1', text: 'note1' },
+        { noteId: 'note3', text: 'note3' },
+        { noteId: 'note5', text: 'note5' },
+      ],
+      note1: [{ noteId: 'note2', text: 'note2' }],
+      note2: [],
+      note3: [{ noteId: 'note4', text: 'note4' }],
+      note4: [],
+      note5: [],
+    },
+  } satisfies TestSearchSnapshot;
+  interface MockEditorProps {
+    docId: string;
+    onSearchCandidatesChange?: (snapshot: TestSearchSnapshot | null) => void;
+    searchModeRequested?: boolean;
+  }
+
+  function MockEditor({
+    docId,
+    onSearchCandidatesChange,
+    searchModeRequested,
+  }: MockEditorProps) {
+    const zoomNoteId = useZoomNoteId();
+
+    React.useEffect(() => {
+      const globals = globalThis as typeof globalThis & MockSearchGlobals;
+      const emitCurrentSnapshot = () => {
+        const candidateSelection = globals.__remdoMockSearchCandidatesByDoc?.[docId];
+        if (candidateSelection === null) {
+          return;
+        }
+        const sdkSnapshot = candidateSelection ?? defaultSnapshot;
+        onSearchCandidatesChange?.(sdkSnapshot);
+      };
+
+      emitCurrentSnapshot();
+      (globals.__remdoMockSearchCandidateEmitters ??= {})[docId] = emitCurrentSnapshot;
+      (globals.__remdoMockSearchCandidateResetters ??= {})[docId] = () => {
+        onSearchCandidatesChange?.(null);
+      };
+      return () => {
+        if (globals.__remdoMockSearchCandidateEmitters?.[docId] === emitCurrentSnapshot) {
+          delete globals.__remdoMockSearchCandidateEmitters[docId];
+        }
+        if (globals.__remdoMockSearchCandidateResetters?.[docId]) {
+          delete globals.__remdoMockSearchCandidateResetters[docId];
+        }
+        onSearchCandidatesChange?.(null);
+      };
+    }, [docId, onSearchCandidatesChange]);
+
+    const instanceId = React.useRef(`instance-${++mockEditorInstanceCounter}`).current;
+    return (
+      <>
+        <div
+          data-doc-id={docId}
+          data-instance-id={instanceId}
+          data-search-mode-requested={searchModeRequested ? 'true' : 'false'}
+          data-testid="editor-probe"
+        />
+        <div data-testid="editor-search-probe" data-zoom-note-id={zoomNoteId ?? ''} />
+        <div className="editor-input" data-testid="editor-input-probe" tabIndex={-1}>
+          <ul>
+            <li className="list-item" data-note-id="note1">note1</li>
+            <li className="list-item zoom-hidden" data-note-id="note2">note2</li>
+            <li className="list-item" data-note-id="note3">note3</li>
+            <li className="list-item" data-note-id="note4" style={{ display: 'none' }}>note4</li>
+            <li className="list-item" data-note-id="note5">note5</li>
+          </ul>
+        </div>
+      </>
+    );
+  }
+
   return { default: MockEditor };
 });
 

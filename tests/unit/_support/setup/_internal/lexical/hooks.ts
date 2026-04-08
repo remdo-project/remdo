@@ -3,9 +3,19 @@ import { createUniqueNoteId, normalizeNoteIdOrThrow } from '#lib/editor/note-ids
 import { afterEach, beforeEach } from 'vitest';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tests-common/fixtures';
+import type { EditorViewBindings } from '@/editor/view/EditorViewProvider';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
-import { getEditorProps } from '../../../lib/editor-props-registry';
 import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
+
+async function applyEditorFixture(
+  remdo: TestContext['remdo'],
+  fixtureName: string,
+  fixtureOptions?: { skipSchemaValidationOnce?: boolean }
+): Promise<void> {
+  const stateJson = await readFixture(fixtureName);
+  await remdo._bridge.applySerializedState(stateJson, fixtureOptions);
+  await remdo.waitForSynced();
+}
 
 beforeEach<TestContext>(async (ctx) => {
   const task = ctx.task as TestContext['task'] | undefined;
@@ -15,8 +25,7 @@ beforeEach<TestContext>(async (ctx) => {
     fixture?: string;
     fixtureSchemaBypass?: boolean;
     expectedConsoleIssues?: string[];
-    editorProps?: Parameters<typeof renderRemdoEditor>[0]['editorProps'];
-    editorPropsKey?: string;
+    viewProps?: EditorViewBindings;
   };
   const fixtureName = typeof meta.fixture === 'string' ? meta.fixture : undefined;
   const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
@@ -28,31 +37,26 @@ beforeEach<TestContext>(async (ctx) => {
     docId = createUniqueNoteId();
   }
 
-  // Seed fixtures via a loader before the main editor mounts.
-  if (config.env.COLLAB_ENABLED && fixtureName) {
-    const { api: loader, unmount } = await renderRemdoEditor({ docId });
+  const seedFixtureBeforeMount = Boolean(config.env.COLLAB_ENABLED && fixtureName);
+
+  if (seedFixtureBeforeMount) {
+    // In collab mode the document must already contain the fixture before the
+    // test editor mounts, otherwise the live sync path starts from an empty doc.
+    const { api: loader, unmount } = await renderRemdoEditor(docId);
     try {
-      const stateJson = await readFixture(fixtureName);
-      await loader._bridge.applySerializedState(stateJson, fixtureOptions);
-      await loader.waitForSynced();
+      await applyEditorFixture(loader, fixtureName!, fixtureOptions);
     } finally {
       unmount();
     }
   }
 
-  const resolvedEditorProps = meta.editorPropsKey ? getEditorProps(meta.editorPropsKey) ?? meta.editorProps : meta.editorProps;
-  const { api: remdoApi } = await renderRemdoEditor({ docId, editorProps: resolvedEditorProps });
+  const { api: remdoTest } = await renderRemdoEditor(docId, meta.viewProps);
 
-  if (!config.env.COLLAB_ENABLED && fixtureName) {
-    const stateJson = await readFixture(fixtureName);
-    await remdoApi._bridge.applySerializedState(stateJson, fixtureOptions);
+  if (fixtureName && !seedFixtureBeforeMount) {
+    await applyEditorFixture(remdoTest, fixtureName, fixtureOptions);
   }
 
-  ctx.remdo = remdoApi;
-
-  if (fixtureName) {
-    await remdoApi.waitForSynced();
-  }
+  ctx.remdo = remdoTest;
 });
 
 afterEach(async ({ remdo }) => {

@@ -750,7 +750,7 @@ describe('selection plugin', () => {
 
   it(
     'clamps progressive selection to the zoom root',
-    meta({ fixture: 'tree-complex', editorProps: { zoomNoteId: 'note2' } }),
+    meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note2');
 
@@ -765,7 +765,7 @@ describe('selection plugin', () => {
 
   it(
     'clamps Cmd/Ctrl+A expansion to the zoom root',
-    meta({ fixture: 'tree-complex', editorProps: { zoomNoteId: 'note2' } }),
+    meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note2');
 

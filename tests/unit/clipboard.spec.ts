@@ -147,7 +147,7 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
     expect(readCaretNoteId(remdo)).toBe(focusNote?.noteId);
   });
 
-  it('keeps existing zoom-root descendants as direct children on middle multi-line paste', meta({ fixture: 'tree', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+  it('keeps existing zoom-root descendants as direct children on middle multi-line paste', meta({ fixture: 'tree', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 2);
     await pastePlainText(remdo, 'A\nB');
 
@@ -214,7 +214,7 @@ describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
 
   it(
     'keeps structural paste replacements inside the zoom boundary when the zoom root is selected',
-    meta({ fixture: 'tree-complex', editorProps: { zoomNoteId: 'note2' } }),
+    meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note2');
       await pressKey(remdo, { key: 'a', ctrlOrMeta: true });

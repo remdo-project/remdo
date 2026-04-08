@@ -205,7 +205,7 @@ describe(`editor performance (${selectedWorkloadId})`, () => {
 
     const [workload, mounted] = await Promise.all([
       resolveWorkloadState(selectedWorkloadId),
-      renderRemdoEditor({ docId: 'main' }),
+      renderRemdoEditor('main'),
     ]);
 
     harness = {
