@@ -42,7 +42,7 @@ describe('keyboard reordering (command path)', () => {
     expect(remdo).toMatchOutline(outlineBefore);
   });
 
-  it('reordering the zoom root is a no-op when the fallback would leave the zoom boundary', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+  it('reordering the zoom root is a no-op when the fallback would leave the zoom boundary', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
     const before = readOutline(remdo);
 
     await placeCaretAtNote(remdo, 'note2');
@@ -52,7 +52,7 @@ describe('keyboard reordering (command path)', () => {
     expect(remdo).toMatchOutline(before);
   });
 
-  it('reordering a zoom-subtree tail note is a no-op when fallback steps leave the zoom boundary', meta({ fixture: 'tree-complex', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+  it('reordering a zoom-subtree tail note is a no-op when fallback steps leave the zoom boundary', meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
     const before = readOutline(remdo);
 
     await placeCaretAtNote(remdo, 'note3');

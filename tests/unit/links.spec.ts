@@ -742,7 +742,7 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it(
     'searches the whole document while zoomed',
-    meta({ fixture: 'tree', editorProps: { zoomNoteId: 'note2' } }),
+    meta({ fixture: 'tree', viewProps: { zoomNoteId: 'note2' } }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
       await typeText(remdo, '@note1');

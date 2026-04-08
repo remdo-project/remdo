@@ -47,7 +47,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
-    it('backspace at the start of the zoom root is a no-op', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+    it('backspace at the start of the zoom root is a no-op', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
       const before = remdo.getEditorState();
       await placeCaretAtNote(remdo, 'note2', 0);
 
@@ -57,7 +57,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
     });
 
-    it('delete at the end of the zoom root is a no-op when the next note is outside the zoom boundary', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+    it('delete at the end of the zoom root is a no-op when the next note is outside the zoom boundary', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
       const before = remdo.getEditorState();
       await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
 
@@ -67,7 +67,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
     });
 
-    it('delete at the end of a zoom-subtree tail note does not merge with notes outside the zoom boundary', meta({ fixture: 'tree-complex', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+    it('delete at the end of a zoom-subtree tail note does not merge with notes outside the zoom boundary', meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
       const before = remdo.getEditorState();
       await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
 
@@ -77,7 +77,7 @@ describe('deletion semantics (docs/outliner/deletion.md)', () => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
     });
 
-    it('delete at the end of an empty zoom root at document end is a no-op', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note3' } }), async ({ remdo }) => {
+    it('delete at the end of an empty zoom root at document end is a no-op', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note3' } }), async ({ remdo }) => {
       await remdo.mutate(() => {
         const note3 = $findNoteById('note3')!;
         const textNode = note3.getFirstChild<TextNode>()!;

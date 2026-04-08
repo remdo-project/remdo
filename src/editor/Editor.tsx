@@ -19,7 +19,6 @@ import { NoteIdPlugin } from './plugins/NoteIdPlugin';
 import { ReorderingPlugin } from './plugins/ReorderingPlugin';
 import { KeymapPlugin } from './plugins/KeymapPlugin';
 import { StatusIndicators } from './StatusIndicators';
-import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { ZoomPlugin } from './zoom/ZoomPlugin';
 import { ZoomVisibilityPlugin } from './zoom/ZoomVisibilityPlugin';
 import { FoldingPlugin } from './plugins/FoldingPlugin';
@@ -36,9 +35,6 @@ interface EditorProps {
   onTestBridgeDispose?: () => void;
   statusPortalRoot: HTMLElement | null;
   searchModeRequested?: boolean;
-  zoomNoteId?: string | null;
-  onZoomNoteIdChange?: (noteId: string | null) => void;
-  onZoomPathChange?: (path: NotePathItem[]) => void;
   onSearchCandidatesChange?: (snapshot: SearchCandidateSnapshot | null) => void;
 }
 
@@ -49,9 +45,6 @@ export default function Editor({
   onTestBridgeDispose,
   statusPortalRoot,
   searchModeRequested,
-  zoomNoteId,
-  onZoomNoteIdChange,
-  onZoomPathChange,
   onSearchCandidatesChange,
 }: EditorProps) {
   const editorInitialConfig = createEditorInitialConfig();
@@ -67,9 +60,6 @@ export default function Editor({
             onTestBridgeDispose={onTestBridgeDispose}
             searchModeRequested={searchModeRequested}
             statusPortalRoot={statusPortalRoot}
-            zoomNoteId={zoomNoteId}
-            onZoomNoteIdChange={onZoomNoteIdChange}
-            onZoomPathChange={onZoomPathChange}
             onSearchCandidatesChange={onSearchCandidatesChange}
           />
         </CollaborationPlugin>
@@ -85,9 +75,6 @@ function EditorRuntime({
   onTestBridgeDispose,
   statusPortalRoot,
   searchModeRequested,
-  zoomNoteId,
-  onZoomNoteIdChange,
-  onZoomPathChange,
   onSearchCandidatesChange,
 }: EditorProps) {
   const offlineDocumentUnavailable = useOfflineDocumentUnavailable();
@@ -127,12 +114,8 @@ function EditorRuntime({
               <FoldingPlugin />
               <NoteControlsPlugin />
               <NoteMenuPlugin />
-              <ZoomPlugin
-                zoomNoteId={zoomNoteId}
-                onZoomNoteIdChange={onZoomNoteIdChange}
-                onZoomPathChange={onZoomPathChange}
-              />
-              <ZoomVisibilityPlugin zoomNoteId={zoomNoteId} />
+              <ZoomPlugin />
+              <ZoomVisibilityPlugin />
               {searchModeRequested ? (
                 <SearchCandidatesPlugin
                   docId={docId}

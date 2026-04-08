@@ -21,7 +21,7 @@ it('tab on note1 at start is a no-op (no structure change)', meta({ fixture: 'fl
   expect(remdo).toMatchEditorState(before);
 });
 
-it('tab on the zoom root is a no-op', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+it('tab on the zoom root is a no-op', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
   const before = remdo.getEditorState();
 
   await placeCaretAtNote(remdo, 'note2');
@@ -30,7 +30,7 @@ it('tab on the zoom root is a no-op', meta({ fixture: 'flat', editorProps: { zoo
   expect(remdo).toMatchEditorState(before);
 });
 
-it('shift+tab on a direct child of the zoom root is a no-op', meta({ fixture: 'tree-complex', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+it('shift+tab on a direct child of the zoom root is a no-op', meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
   const before = remdo.getEditorState();
 
   await placeCaretAtNote(remdo, 'note3');

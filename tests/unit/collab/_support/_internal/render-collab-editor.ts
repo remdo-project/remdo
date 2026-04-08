@@ -7,6 +7,6 @@ export async function renderCollabEditor(options?: { docId?: string }): Promise<
   const rawDocId = options?.docId ?? config.env.COLLAB_DOCUMENT_ID;
   const docId = normalizeNoteIdOrThrow(rawDocId, `Invalid collab peer doc id: ${rawDocId}`);
 
-  const { api } = await renderRemdoEditor({ docId });
+  const { api } = await renderRemdoEditor(docId);
   return api;
 }

@@ -10,18 +10,21 @@ import {
 import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { $getNoteId } from '#lib/editor/note-id-state';
 
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import { $resolveContentNoteFromDOMNode } from '@/editor/outline/note-context';
-import { requireContentItemFromNode, $requireContentItemNoteId } from '@/editor/outline/schema';
+import { requireContentItemFromNode } from '@/editor/outline/schema';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { getNestedList } from '@/editor/outline/selection/tree';
 import { $resolveNoteStateFromDOMNode } from '@/editor/plugins/note-state';
+import { useZoomNoteId } from '@/editor/view/EditorViewProvider';
 
 interface NoteMenuState {
   noteKey: string;
   hasChildren: boolean;
   isFolded: boolean;
+  isZoomRoot: boolean;
   childListType: ListType | null;
   left: number;
   top: number;
@@ -62,6 +65,8 @@ const renderShortcutLabel = (label: string, shortcut: string) => {
 export function NoteMenuPlugin() {
   const [editor] = useLexicalComposerContext();
   const rootRef = useRef(editor.getRootElement());
+  const zoomNoteId = useZoomNoteId();
+  const zoomNoteIdRef = useRef(zoomNoteId);
   const [rootElement, setRootElement] = useState(() => editor.getRootElement());
   const [portalRoot, setPortalRoot] = useState(() => {
     const root = editor.getRootElement();
@@ -85,7 +90,7 @@ export function NoteMenuPlugin() {
 
   const triggerFoldToggle = () => {
     const current = menuRef.current;
-    if (!current || !current.hasChildren) {
+    if (!current || !current.hasChildren || current.isZoomRoot) {
       return;
     }
     editor.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: current.noteKey });
@@ -106,6 +111,7 @@ export function NoteMenuPlugin() {
   const triggerZoom = () => {
     const current = menuRef.current;
     if (!current) {
+      closeMenu();
       return;
     }
     const noteId = editor.getEditorState().read(() => {
@@ -114,7 +120,7 @@ export function NoteMenuPlugin() {
         return null;
       }
       const contentItem = requireContentItemFromNode(node);
-      return $requireContentItemNoteId(contentItem);
+      return $getNoteId(contentItem);
     });
     if (!noteId) {
       closeMenu();
@@ -134,7 +140,7 @@ export function NoteMenuPlugin() {
       return false;
     }
     const key = event.key.toLowerCase();
-    if (key === 'f' && current.hasChildren) {
+    if (key === 'f' && current.hasChildren && !current.isZoomRoot) {
       event.preventDefault();
       event.stopPropagation();
       triggerFoldToggle();
@@ -233,7 +239,13 @@ export function NoteMenuPlugin() {
 
     const resolveNoteState = (
       element: HTMLElement
-    ): { noteKey: string; hasChildren: boolean; isFolded: boolean; childListType: ListType | null } | null => {
+    ): {
+      noteKey: string;
+      hasChildren: boolean;
+      isFolded: boolean;
+      isZoomRoot: boolean;
+      childListType: ListType | null;
+    } | null => {
       return editor.read(() => {
         const resolved = $resolveNoteStateFromDOMNode(element);
         if (!resolved) {
@@ -244,6 +256,7 @@ export function NoteMenuPlugin() {
           noteKey: resolved.noteKey,
           hasChildren: resolved.hasChildren,
           isFolded: resolved.isFolded,
+          isZoomRoot: Boolean(zoomNoteIdRef.current && resolved.noteId === zoomNoteIdRef.current),
           childListType,
         };
       });
@@ -413,6 +426,10 @@ export function NoteMenuPlugin() {
     );
   }, [closeMenu, editor, setMenuState, syncMenuPosition]);
 
+  useEffect(() => {
+    zoomNoteIdRef.current = zoomNoteId;
+  }, [zoomNoteId]);
+
   if (!portalRoot || !menu) {
     return null;
   }
@@ -447,7 +464,7 @@ export function NoteMenuPlugin() {
         data-note-menu-note-key={menu.noteKey}
         onKeyDown={(event) => {
           const key = event.key.toLowerCase();
-          if (key === 'f' && menuRef.current?.hasChildren) {
+          if (key === 'f' && menuRef.current?.hasChildren && !menuRef.current.isZoomRoot) {
             event.preventDefault();
             event.stopPropagation();
             triggerFoldToggle();
@@ -463,7 +480,7 @@ export function NoteMenuPlugin() {
         <Menu.Item data-note-menu-item="toggle-checked" onClick={triggerToggleChecked}>
           Toggle checked
         </Menu.Item>
-        {menu.hasChildren ? (
+        {menu.hasChildren && !menu.isZoomRoot ? (
           <Menu.Item data-note-menu-item="fold" onClick={triggerFoldToggle}>
             {renderShortcutLabel(foldLabel, 'F')}
           </Menu.Item>

@@ -1,7 +1,8 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
-import { createEditorDocumentPathRegExp } from './_support/routes';
+import { openNoteMenu } from './_support/menu';
+import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
 
 const getBulletMetrics = async (listItem: Locator) => {
   return listItem.evaluate((element: HTMLElement) => {
@@ -71,6 +72,32 @@ test.describe('Zoom visibility', () => {
     await expect(note1).toBeVisible();
     await expect(editorRoot.locator('li.list-item', { hasText: 'note2' }).first()).toBeVisible();
     await expect(note3).toBeHidden();
+  });
+
+  test('shows direct children of a folded zoom root without clearing the folded state', async ({ page, editor }) => {
+    await editor.load('basic');
+
+    const editorRoot = editorLocator(page);
+    const note1 = editorRoot.locator('li.list-item:not(.list-nested-item)', { hasText: 'note1' }).first();
+    const note2 = editorRoot.locator('li.list-item', { hasText: 'note2' }).first();
+
+    const menu = await openNoteMenu(page, 'note1');
+    await menu.item('fold').click();
+    await menu.expectClosed();
+    await expect(note1).toHaveAttribute('data-folded', 'true');
+    await expect(note2).toBeHidden();
+
+    const metrics = await getBulletMetrics(note1);
+    await page.mouse.click(metrics.x, metrics.y);
+
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
+    await expect(note1).toBeVisible();
+    await expect(note2).toBeVisible();
+
+    await page.getByRole('button', { name: editor.docId }).click();
+    await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
+    await expect(note1).toHaveAttribute('data-folded', 'true');
+    await expect(note2).toBeHidden();
   });
 
   test('keeps zoom and inserts a child when Enter is pressed at the zoom-root end', async ({ page, editor }) => {

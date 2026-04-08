@@ -2,35 +2,36 @@ import { MantineProvider } from '@mantine/core';
 import { configure, render, waitFor } from '@testing-library/react';
 import Editor from '@/editor/Editor';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
+import { EditorViewProvider } from '@/editor/view/EditorViewProvider';
+import type { EditorViewBindings } from '@/editor/view/EditorViewProvider';
 import { COLLAB_LONG_TIMEOUT_MS } from './timeouts';
-import type { ComponentProps } from 'react';
 
 configure({ asyncUtilTimeout: COLLAB_LONG_TIMEOUT_MS });
-
-interface RenderEditorOptions {
-  docId: string;
-  editorProps?: Partial<Omit<ComponentProps<typeof Editor>, 'docId'>>;
-}
 
 /**
  * Renders the RemDo editor for tests and resolves the window remdoTest API.
  * Centralizes collab origin resolution and waiting for bridge readiness.
  */
-export async function renderRemdoEditor({ docId, editorProps }: RenderEditorOptions): Promise<{
+export async function renderRemdoEditor(
+  docId: string,
+  viewProps: EditorViewBindings = {}
+): Promise<{
   api: RemdoTestApi;
   unmount: () => void;
 }> {
-  const { statusPortalRoot, ...resolvedEditorProps } = editorProps ?? {};
   let api: RemdoTestApi | null = null;
 
   const { unmount } = render(
     <MantineProvider>
-      <Editor
-        {...resolvedEditorProps}
-        docId={docId}
-        statusPortalRoot={statusPortalRoot ?? null}
-        onTestBridgeReady={(value) => { api = value as RemdoTestApi; }}
-      />
+      <EditorViewProvider docId={docId} {...viewProps}>
+        <Editor
+          docId={docId}
+          statusPortalRoot={null}
+          onTestBridgeReady={(value) => {
+            api = value as RemdoTestApi;
+          }}
+        />
+      </EditorViewProvider>
     </MantineProvider>
   );
 

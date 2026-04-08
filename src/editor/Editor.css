@@ -229,8 +229,16 @@
   display: none;
 }
 
+.editor-root li.list-item[data-folded='true'][data-zoom-root='true'] + li.list-nested-item {
+  display: list-item;
+}
+
 .editor-root li.list-item[data-folded='true'] {
   --bullet-mask-image: url('/icons/bullet-circle-dot.svg');
+}
+
+.editor-root li.list-item[data-folded='true'][data-zoom-root='true'] {
+  --bullet-mask-image: url('/icons/bullet-circle.svg');
 }
 
 .editor-root li.list-item::before {

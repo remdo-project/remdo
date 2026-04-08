@@ -1,5 +1,6 @@
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
+import { openNoteMenu } from './_support/menu';
 
 test.describe('Fold toggle icons', () => {
   test('shows minus icon on hover for notes with children', async ({ page, editor }) => {
@@ -60,6 +61,23 @@ test.describe('Fold toggle icons', () => {
     });
 
     expect(mask).toContain('menu-2.svg');
+    await expect(editorLocator(page).locator('.note-controls__button--expanded')).toHaveCount(0);
+    await expect(editorLocator(page).locator('.note-controls__button--folded')).toHaveCount(0);
+  });
+
+  test('hides the fold button on the current zoom root', async ({ page, editor }) => {
+    await editor.load('tree');
+
+    const menu = await openNoteMenu(page, 'note2');
+    await menu.item('zoom').click();
+    await menu.expectClosed();
+
+    const zoomRoot = editorLocator(page).locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note2' }).first();
+    const zoomRootBox = (await zoomRoot.boundingBox())!;
+    await page.mouse.move(zoomRootBox.x + zoomRootBox.width / 2, zoomRootBox.y + zoomRootBox.height / 2);
+
+    const menuButton = editorLocator(page).locator('.note-controls__button--menu');
+    await expect(menuButton).toBeVisible();
     await expect(editorLocator(page).locator('.note-controls__button--expanded')).toHaveCount(0);
     await expect(editorLocator(page).locator('.note-controls__button--folded')).toHaveCount(0);
   });

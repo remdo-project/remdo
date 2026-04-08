@@ -102,7 +102,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
-  it('enter at end of the zoom root inserts a first child', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+  it('enter at end of the zoom root inserts a first child', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter' });
     const newNoteId = readCaretNoteId(remdo);
@@ -116,7 +116,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
-  it('enter at start of the zoom root inserts a first child', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+  it('enter at start of the zoom root inserts a first child', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 0);
     await pressKey(remdo, { key: 'Enter' });
     const newNoteId = readCaretNoteId(remdo);
@@ -130,7 +130,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
-  it('enter in the middle of the zoom root splits into a first child and moves focus to that child', meta({ fixture: 'flat', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+  it('enter in the middle of the zoom root splits into a first child and moves focus to that child', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });
     const newChildId = readCaretNoteId(remdo);
@@ -143,7 +143,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: newChildId });
   });
 
-  it('enter in the middle of the zoom root keeps existing descendants as direct children', meta({ fixture: 'tree', editorProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
+  it('enter in the middle of the zoom root keeps existing descendants as direct children', meta({ fixture: 'tree', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });
     const splitChildId = readCaretNoteId(remdo);

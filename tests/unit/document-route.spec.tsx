@@ -1,11 +1,12 @@
-import * as React from 'react';
 import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import * as React from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetTestUserConfig } from '#tests';
 
 import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/search-candidates';
+import { useZoomNoteId } from '@/editor/view/EditorViewProvider';
 import DocumentRoute from '@/routes/DocumentRoute';
 import { createDocumentPath } from '@/routing';
 
@@ -47,21 +48,21 @@ const defaultSnapshot = {
   },
 } satisfies TestSearchSnapshot;
 
-let mockEditorInstanceCounter = 0;
-
 interface MockEditorProps {
   docId: string;
   onSearchCandidatesChange?: (snapshot: TestSearchSnapshot | null) => void;
   searchModeRequested?: boolean;
-  zoomNoteId?: string | null;
 }
+
+let mockEditorInstanceCounter = 0;
 
 function MockEditor({
   docId,
   onSearchCandidatesChange,
   searchModeRequested,
-  zoomNoteId,
 }: MockEditorProps) {
+  const zoomNoteId = useZoomNoteId();
+
   React.useEffect(() => {
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
     const emitCurrentSnapshot = () => {
@@ -69,7 +70,6 @@ function MockEditor({
       if (candidateSelection === null) {
         return;
       }
-
       const sdkSnapshot = candidateSelection ?? defaultSnapshot;
       onSearchCandidatesChange?.(sdkSnapshot);
     };
@@ -113,9 +113,7 @@ function MockEditor({
   );
 }
 
-vi.mock('@/editor/Editor', async () => {
-  return { default: MockEditor };
-});
+vi.mock('@/editor/Editor', () => ({ default: MockEditor }));
 
 vi.mock('@/editor/zoom/ZoomBreadcrumbs', () => ({
   ZoomBreadcrumbs: () => null,
