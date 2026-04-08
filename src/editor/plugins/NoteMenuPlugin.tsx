@@ -10,6 +10,7 @@ import {
 import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { $getNoteId } from '#lib/editor/note-id-state';
 
 import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import { $resolveContentNoteFromDOMNode } from '@/editor/outline/note-context';
@@ -20,7 +21,6 @@ import { $resolveNoteStateFromDOMNode } from '@/editor/plugins/note-state';
 import { useZoomNoteId } from '@/editor/view/EditorViewProvider';
 
 interface NoteMenuState {
-  noteId: string | null;
   noteKey: string;
   hasChildren: boolean;
   isFolded: boolean;
@@ -110,11 +110,23 @@ export function NoteMenuPlugin() {
 
   const triggerZoom = () => {
     const current = menuRef.current;
-    if (!current?.noteId) {
+    if (!current) {
       closeMenu();
       return;
     }
-    editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId: current.noteId });
+    const noteId = editor.getEditorState().read(() => {
+      const node = $getNodeByKey<ListItemNode>(current.noteKey);
+      if (!node) {
+        return null;
+      }
+      const contentItem = requireContentItemFromNode(node);
+      return $getNoteId(contentItem);
+    });
+    if (!noteId) {
+      closeMenu();
+      return;
+    }
+    editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId });
     closeMenu();
     editor.focus();
   };
@@ -228,7 +240,6 @@ export function NoteMenuPlugin() {
     const resolveNoteState = (
       element: HTMLElement
     ): {
-      noteId: string | null;
       noteKey: string;
       hasChildren: boolean;
       isFolded: boolean;
@@ -242,7 +253,6 @@ export function NoteMenuPlugin() {
         }
         const childListType = resolved.hasChildren ? getNestedList(resolved.contentItem)?.getListType() ?? null : null;
         return {
-          noteId: resolved.noteId,
           noteKey: resolved.noteKey,
           hasChildren: resolved.hasChildren,
           isFolded: resolved.isFolded,
