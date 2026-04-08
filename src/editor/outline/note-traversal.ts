@@ -8,6 +8,13 @@ export interface NotePathItem {
   label: string;
 }
 
+export function areNotePathsEqual(next: NotePathItem[], prev: NotePathItem[] | null): boolean {
+  if (!prev || next.length !== prev.length) {
+    return false;
+  }
+  return next.every((item, index) => item.noteId === prev[index]!.noteId && item.label === prev[index]!.label);
+}
+
 // Current implementation scans the outline.
 // Planned direction: indexed note lookup so SDK handle reads built on top of
 // this path become cheap enough for consumers like search to treat note access

@@ -9,8 +9,8 @@ import { setZoomBoundary } from '@/editor/outline/selection/boundary';
 import type { UpdateListenerPayload } from 'lexical';
 import { resolveContentItemFromNode } from '@/editor/outline/schema';
 import { useCollaborationStatus } from '@/editor/plugins/collaboration/CollaborationProvider';
+import { $findNoteById, $getNoteAncestorPath, areNotePathsEqual } from '@/editor/outline/note-traversal';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
-import { $findNoteById, $getNoteAncestorPath } from '@/editor/outline/note-traversal';
 import { isContentDescendantOf } from '@/editor/outline/selection/tree';
 import { ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import { resolveZoomNoteId } from './zoom-note-id';
@@ -18,19 +18,6 @@ import { ZOOM_CARET_TAG, ZOOM_INIT_TAG } from '@/editor/update-tags';
 import { useEditorViewActions, useZoomNoteId } from '@/editor/view/EditorViewProvider';
 import { $placeCaretAtZoomEntry, $placeCaretAtZoomEntryIfOutside } from './zoom-caret';
 import { useZoomBulletInteractions } from './useZoomBulletInteractions';
-
-const isPathEqual = (next: NotePathItem[], prev: NotePathItem[] | null) => {
-  if (!prev || next.length !== prev.length) {
-    return false;
-  }
-  return next.every((item, index) => {
-    const prevItem = prev[index];
-    if (!prevItem) {
-      return false;
-    }
-    return item.noteId === prevItem.noteId && item.label === prevItem.label;
-  });
-};
 
 const EMPTY_ZOOM_STATE = {
   root: null,
@@ -127,7 +114,7 @@ export function ZoomPlugin() {
 
       setZoomBoundary(editor, resolved.zoomBoundaryKey ?? null);
 
-      if (!isPathEqual(resolved.path, lastPathRef.current)) {
+      if (!areNotePathsEqual(resolved.path, lastPathRef.current)) {
         lastPathRef.current = resolved.path;
         setZoomPath(resolved.path);
       }

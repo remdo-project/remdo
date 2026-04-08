@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { createContext, use, useCallback, useMemo, useRef, useState } from 'react';
+import { areNotePathsEqual } from '@/editor/outline/note-traversal';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 
 export interface EditorViewBindings {
@@ -18,11 +19,6 @@ const EditorViewContext = createContext<{
   requestZoomNoteId: (noteId: string | null) => void;
   setZoomPath: (path: NotePathItem[]) => void;
 } | null>(null);
-
-function arePathsEqual(next: NotePathItem[], prev: NotePathItem[]): boolean {
-  return next.length === prev.length &&
-    next.every((item, index) => item.noteId === prev[index]!.noteId && item.label === prev[index]!.label);
-}
 
 export function EditorViewProvider({
   children,
@@ -45,7 +41,7 @@ export function EditorViewProvider({
   onZoomNoteIdChangeRef.current = onZoomNoteIdChange;
 
   const setZoomPath = useCallback((path: NotePathItem[]) => {
-    if (arePathsEqual(path, zoomPathRef.current)) {
+    if (areNotePathsEqual(path, zoomPathRef.current)) {
       return;
     }
     zoomPathRef.current = path;
