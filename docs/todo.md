@@ -43,6 +43,8 @@ Rules:
   4. Keep normal document routing and document-list identity separate from the
      share URL in v1 unless implementation simplicity clearly favors a combined
      shape.
+  5. Add direct routing unit coverage for share-path helpers once the routing
+     API exists as a normal typed surface in `src/routing.ts`.
 - [Future] Reuse a share URL to add a document from another server into the
   local document list once the multi-server model is ready.
 
