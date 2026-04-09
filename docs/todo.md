@@ -24,6 +24,27 @@ Rules:
   link picker (search already uses SDK/Lexical candidates; link picker still
   uses its own traversal/filter pipeline).
 
+## Document sharing
+
+- Durable user-facing behavior lives in [docs/sharing.md](./sharing.md).
+- Initial implementation can optimize for simplicity and may break compatibility
+  during the dev phase if the design changes later.
+- V1 UI/details:
+  1. Add the sharing control to the left of the document search input.
+  2. Default visible state text: `unshared`.
+  3. While creating a link: `Generating`.
+  4. After creation: `shared`.
+  5. In the shared state, the visible status text is also the clickable link
+     target and opens in a new window.
+- V1 runtime/details:
+  1. Use one active share URL per document at a time.
+  2. Turning sharing off invalidates the active URL immediately.
+  3. Turning sharing back on creates a different URL; the previous URL stays invalid.
+  4. Keep normal document routing and document-list identity separate from the
+     share URL in v1 unless implementation simplicity clearly favors a combined
+     shape.
+- [Future] Reuse a share URL to add a document from another server into the
+  local document list once the multi-server model is ready.
 
 ## Collaboration architecture roadmap [Future]
 
