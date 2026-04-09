@@ -13,10 +13,6 @@ Rules:
 
 ## Tooling
 
-- Test matcher follow-up: revisit `toMatchOutline` support for generated note-id
-  assertions so tests can express “some valid id was created here” without a
-  separate manual sanity check. Example trigger:
-  `tests/unit/internal/editor-notes-showcase.spec.ts`.
 - Naming follow-up: consider renaming `boundaryRoot` to `zoomBoundaryRoot` in
   note operation helpers and SDK adapter plumbing where the boundary is always
   zoom-specific.

@@ -37,12 +37,10 @@ describe('editor notes showcase', () => {
       });
 
       let topNoteId = '';
-      let childNoteId = '';
       await remdo.mutate(() => {
         const topNote = sdk.currentDocument().create({ after: 'note2' }, 'sdk note');
         topNoteId = topNote.id();
-        const childNote = sdk.note('note1').create('child note');
-        childNoteId = childNote.id();
+        sdk.note('note1').create('child note');
         sdk.place({ start: 'note2', end: 'note2' }, { before: 'note1' });
       });
 
@@ -54,7 +52,6 @@ describe('editor notes showcase', () => {
       ]);
 
       remdo.validate(() => {
-        expect(childNoteId.length).toBeGreaterThan(0);
         expect(sdk.note('note1').children().map((child) => child.text())).toEqual(['child note']);
       });
 

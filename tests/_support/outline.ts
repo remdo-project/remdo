@@ -13,6 +13,10 @@ export interface OutlineNode {
 
 export type Outline = OutlineNode[];
 
+function isValidOutlineNoteId(noteId: string | null): noteId is string {
+  return typeof noteId === 'string' && noteId.length > 0;
+}
+
 function getChildren(node: SerializedLexicalNode | null | undefined): SerializedLexicalNode[] {
   const children = (node as { children?: unknown } | null | undefined)?.children;
   return Array.isArray(children) ? (children as SerializedLexicalNode[]) : [];
@@ -42,7 +46,7 @@ export function extractOutlineFromEditorState(state: unknown): Outline {
   const readNotes = (items: SerializedOutlineNote[]): Outline =>
     items.map((note) => {
       const text = note.contentNodes.length > 0 ? note.contentNodes.map(collectTextContent).join('') : null;
-      if (typeof note.noteId !== 'string' || note.noteId.length === 0) {
+      if (note.noteId.length === 0) {
         throw new TypeError(`Expected noteId to be a non-empty string at "${note.path.join('.')}".`);
       }
       const node: OutlineNode = { noteId: note.noteId };
@@ -80,7 +84,7 @@ export function flattenOutline(outline: Outline): OutlineNode[] {
 
 export function mutateOutlineNoteIdWildcards(actual: Outline, expected: Outline): void {
   // Normalize actuals before comparison so we keep vitest's diff output while still allowing
-  // `noteId: null` in expected outlines to mean "present but don't care about the value".
+  // `noteId: null` in expected outlines to mean "a valid generated noteId exists here, but don't care about the value".
   //
   // Checked-state expectations are strict by default:
   // - `checked: true` -> strict checked match
@@ -91,6 +95,9 @@ export function mutateOutlineNoteIdWildcards(actual: Outline, expected: Outline)
       const actualNode = actualNodes[index]!;
       const expectedNode = expectedNodes[index];
       if (expectedNode?.noteId === null) {
+        if (!isValidOutlineNoteId(actualNode.noteId)) {
+          throw new TypeError('Expected wildcard noteId matches to resolve against a non-empty string noteId.');
+        }
         actualNode.noteId = null;
       }
       if (expectedNode?.checked === false && actualNode.checked !== true) {
