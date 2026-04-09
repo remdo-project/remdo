@@ -11,12 +11,6 @@ Rules:
 - Move durable decisions/specs into the relevant doc under `docs/`, leaving a
   link behind.
 
-## Tooling
-
-- Naming follow-up: consider renaming `boundaryRoot` to `zoomBoundaryRoot` in
-  note operation helpers and SDK adapter plumbing where the boundary is always
-  zoom-specific.
-
 ## Test doc-id lifecycle hygiene (deferred)
 
 - Recent cleanup narrowed the problem:
