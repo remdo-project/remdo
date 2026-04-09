@@ -17,17 +17,17 @@ export const test = base.extend<
     editor: EditorHarness;
     allocateEditorDocId: () => string;
     captureCreatedDoc: (page: Page, createDoc: () => Promise<void>) => Promise<string>;
+    editorUserConfigDocId: string;
     newEditorContext: () => Promise<BrowserContext>;
-  },
-  { editorUserConfigDocId: string }
+  }
 >({
   // eslint-disable-next-line no-empty-pattern -- Playwright fixture callbacks require object destructuring for dependency discovery.
-  editorUserConfigDocId: [async ({}, applyFixture) => {
+  editorUserConfigDocId: async ({}, applyFixture) => {
     const runtimeScope = createTestRuntimeScope();
     const docId = runtimeScope.allocateDocId('user-config');
     await applyFixture(docId);
     await runtimeScope.cleanupOwnedDocs();
-  }, { scope: 'worker' }],
+  },
   context: async ({ context, editorUserConfigDocId }, applyFixture) => {
     await bindEditorRuntimeContext(context, editorUserConfigDocId);
     await applyFixture(context);
