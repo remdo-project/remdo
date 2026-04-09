@@ -11,29 +11,6 @@ Rules:
 - Move durable decisions/specs into the relevant doc under `docs/`, leaving a
   link behind.
 
-## Tooling
-
-- Test matcher follow-up: revisit `toMatchOutline` support for generated note-id
-  assertions so tests can express “some valid id was created here” without a
-  separate manual sanity check. Example trigger:
-  `tests/unit/internal/editor-notes-showcase.spec.ts`.
-- Naming follow-up: consider renaming `boundaryRoot` to `zoomBoundaryRoot` in
-  note operation helpers and SDK adapter plumbing where the boundary is always
-  zoom-specific.
-
-## Test doc-id lifecycle hygiene (deferred)
-
-- Recent cleanup narrowed the problem:
-  editor E2E now uses per-test random doc IDs plus explicit on-disk cleanup,
-  and user-config gets a per-run E2E doc ID with teardown.
-- Remaining issue: isolation policy is still split across ad hoc helpers
-  (`createUniqueNoteId()`, `sessionStorage`-scoped user-config IDs, and manual
-  `DATA_DIR/collab/<docId>` cleanup) instead of being owned by one
-  environment/storage-level mechanism.
-- Follow up on a single test-runtime strategy so per-run/per-test isolation,
-  cleanup, and any repeatable-ID cases are driven from one place rather than
-  feature-specific hooks.
-
 ## Search architecture
 
 - Add a document-level SDK visitor/walker API and use it as the shared
@@ -47,13 +24,6 @@ Rules:
   link picker (search already uses SDK/Lexical candidates; link picker still
   uses its own traversal/filter pipeline).
 
-## Dependency simplification follow-ups
-
-- Revisit Lexical `0.42` for places where `$insertNodeIntoLeaf` could simplify
-  current insertion/link-handling code without changing editor behavior.
-- Revisit Vitest `4.1` test helpers (`test.extend`, `aroundEach`,
-  `aroundAll`) to see whether they can simplify RemDo fixture typing and shared
-  test setup/teardown.
 
 ## Collaboration architecture roadmap [Future]
 

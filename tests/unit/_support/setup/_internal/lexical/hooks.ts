@@ -1,9 +1,9 @@
 import { config } from '#config';
-import { createUniqueNoteId, normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
-import { afterEach, beforeEach } from 'vitest';
+import { normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
+import { afterEach, aroundEach } from 'vitest';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tests-common/fixtures';
-import type { EditorViewBindings } from '@/editor/view/EditorViewProvider';
+import { cleanupCollabDoc, createTestRuntimeScope } from '#tests-common/runtime-scope';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
 import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
 
@@ -17,24 +17,18 @@ async function applyEditorFixture(
   await remdo.waitForSynced();
 }
 
-beforeEach<TestContext>(async (ctx) => {
-  const task = ctx.task as TestContext['task'] | undefined;
-  const meta = (task?.meta ?? {}) as {
-    collabDocId?: string;
-    preserveCollabState?: boolean;
-    fixture?: string;
-    fixtureSchemaBypass?: boolean;
-    expectedConsoleIssues?: string[];
-    viewProps?: EditorViewBindings;
-  };
-  const fixtureName = typeof meta.fixture === 'string' ? meta.fixture : undefined;
+aroundEach<TestContext>(async (run, ctx) => {
+  const runtimeScope = createTestRuntimeScope();
+  const meta = ctx.task.meta;
+  const fixtureName = meta.fixture;
   const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
   setExpectedConsoleIssues(meta.expectedConsoleIssues ?? null);
 
   const rawDocId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
   let docId = normalizeNoteIdOrThrow(rawDocId, `Invalid collab doc id: ${rawDocId}`);
+  const explicitCollabDocId = config.env.COLLAB_ENABLED && meta.collabDocId != null ? docId : null;
   if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {
-    docId = createUniqueNoteId();
+    docId = runtimeScope.allocateDocId('editor');
   }
 
   const seedFixtureBeforeMount = Boolean(config.env.COLLAB_ENABLED && fixtureName);
@@ -57,7 +51,17 @@ beforeEach<TestContext>(async (ctx) => {
   }
 
   ctx.remdo = remdoTest;
-});
+  try {
+    await run();
+  } finally {
+    if (config.env.COLLAB_ENABLED && meta.preserveCollabState !== true) {
+      if (explicitCollabDocId) {
+        await cleanupCollabDoc(explicitCollabDocId);
+      }
+      await runtimeScope.cleanupOwnedDocs();
+    }
+  }
+}, config.env.COLLAB_ENABLED ? 15_000 : undefined);
 
 afterEach(async ({ remdo }) => {
   await remdo.waitForSynced();

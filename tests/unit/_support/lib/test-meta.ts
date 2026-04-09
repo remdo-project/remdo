@@ -1,9 +1,9 @@
-import type { TestOptions } from 'vitest';
+import type { TaskMeta, TestOptions } from 'vitest';
 
 export const meta = (
-  meta: Record<string, unknown>,
+  meta: TaskMeta,
   options: TestOptions = {}
-): TestOptions & { meta: Record<string, unknown> } => ({
+): TestOptions & { meta: TaskMeta } => ({
   ...options,
   meta,
 });

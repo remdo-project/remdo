@@ -258,16 +258,10 @@ export function NoteLinkPlugin() {
       activeQuery.caretOffset
     );
     $setSelection(range);
-    range.insertText('');
-
-    const insertionSelection = $getSelection();
-    if (!$isRangeSelection(insertionSelection)) {
-      return false;
-    }
 
     const linkNode = $createNoteLinkNode({ docId, noteId: activeOption.noteId }, {});
     linkNode.append($createTextNode(activeOption.title));
-    insertionSelection.insertNodes([linkNode, $createTextNode(' ')]);
+    range.insertNodes([linkNode, $createTextNode(' ')]);
 
     closeSession();
     return true;

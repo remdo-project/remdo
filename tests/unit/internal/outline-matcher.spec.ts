@@ -172,6 +172,14 @@ describe('toMatchOutline smoke coverage', () => {
     ]);
   });
 
+  it('treats noteId: null as a generated noteId assertion in toMatchOutline', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: null, text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
   it('fails checked assertions when expected checked state does not match', meta({ fixture: 'flat' }), async ({ remdo }) => {
     let thrown: unknown;
     try {

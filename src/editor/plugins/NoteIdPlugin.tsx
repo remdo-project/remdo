@@ -739,9 +739,6 @@ export function NoteIdPlugin() {
 
             const inlineNodes = $extractInlineClipboardNodes(payload.nodes);
             if (inlineNodes.length > 0) {
-              if (!payload.selection.isCollapsed()) {
-                payload.selection.insertText('');
-              }
               $insertNodes(inlineNodes);
             } else {
               payload.selection.insertText(text);

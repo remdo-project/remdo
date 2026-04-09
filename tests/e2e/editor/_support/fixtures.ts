@@ -1,59 +1,59 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { setExpectedConsoleIssues, expect, readOutline, test as base } from '#e2e/fixtures';
+import { expect, readOutline, test as base } from '#e2e/fixtures';
 import type { Locator, Page } from '#e2e/fixtures';
-import { config } from '#config';
-import { E2E_USER_CONFIG_DOC_ID_KEY } from '@/documents/user-config-doc-id';
-import { createUniqueNoteId } from '#lib/editor/note-ids';
-import { ensureReady, getEditorState, load, waitForSynced } from './bridge';
-import { editorLocator } from './locators';
-import { createEditorDocumentPath } from './routes';
+import type { BrowserContext } from '@playwright/test';
+import { cleanupCollabDoc, createTestRuntimeScope } from '#tests-common/runtime-scope';
+import { waitForSynced } from './bridge';
+import {
+  bindEditorRuntimeContext,
+  captureCreatedEditorDoc,
+  createIsolatedEditorContext,
+  createEditorHarness,
+} from './runtime';
 
 type EditorHarness = Awaited<ReturnType<typeof createEditorHarness>>;
-interface EditorLoadOptions {
-  expectedConsoleIssues?: string[];
-}
 
-async function removeCollabDocFromDisk(docId: string): Promise<void> {
-  const docPath = path.join(config.env.DATA_DIR, 'collab', docId);
-  await fs.rm(docPath, { recursive: true, force: true });
-}
-
-async function createEditorHarness(page: Page, docId: string) {
-  await removeCollabDocFromDisk(docId);
-  await page.goto(createEditorDocumentPath(docId));
-  await editorLocator(page).locator('.editor-input').first().waitFor();
-  await ensureReady(page, { clear: true });
-  await editorLocator(page).locator('.editor-input').first().click();
-  const userConfigDocId = await page.evaluate((storageKey) => sessionStorage.getItem(storageKey), E2E_USER_CONFIG_DOC_ID_KEY);
-
-  return {
-    docId,
-    userConfigDocId,
-    load: (name: string, options?: EditorLoadOptions) => {
-      const expectedCodes = options?.expectedConsoleIssues;
-      if (expectedCodes?.length) {
-        setExpectedConsoleIssues(page, expectedCodes);
-      }
-      return load(page, name);
-    },
-    getEditorState: () => getEditorState(page),
-  };
-}
-
-export const test = base.extend<{ testDocId: string; editor: EditorHarness }>({
-  // eslint-disable-next-line no-empty-pattern
-  testDocId: async ({}, applyFixture) => {
-    const docId = createUniqueNoteId();
+export const test = base.extend<
+  {
+    editor: EditorHarness;
+    allocateEditorDocId: () => string;
+    captureCreatedDoc: (page: Page, createDoc: () => Promise<void>) => Promise<string>;
+    editorUserConfigDocId: string;
+    newEditorContext: () => Promise<BrowserContext>;
+  }
+>({
+  // eslint-disable-next-line no-empty-pattern -- Playwright fixture callbacks require object destructuring for dependency discovery.
+  editorUserConfigDocId: async ({}, applyFixture) => {
+    const runtimeScope = createTestRuntimeScope();
+    const docId = runtimeScope.allocateDocId('user-config');
     await applyFixture(docId);
+    await runtimeScope.cleanupOwnedDocs();
   },
-  editor: async ({ page, testDocId }, applyFixture) => {
-    const editor = await createEditorHarness(page, testDocId);
+  context: async ({ context, editorUserConfigDocId }, applyFixture) => {
+    await bindEditorRuntimeContext(context, editorUserConfigDocId);
+    await applyFixture(context);
+  },
+  // eslint-disable-next-line no-empty-pattern -- Playwright fixture callbacks require object destructuring for dependency discovery.
+  allocateEditorDocId: async ({}, applyFixture) => {
+    const runtimeScope = createTestRuntimeScope();
+    await applyFixture(() => runtimeScope.allocateDocId('editor'));
+    await runtimeScope.cleanupOwnedDocs();
+  },
+  // eslint-disable-next-line no-empty-pattern -- Playwright fixture callbacks require object destructuring for dependency discovery.
+  captureCreatedDoc: async ({}, applyFixture) => {
+    const ownedDocIds = new Set<string>();
+    const trackDocId = (docId: string) => {
+      ownedDocIds.add(docId);
+    };
+    await applyFixture((page, createDoc) => captureCreatedEditorDoc(page, createDoc, trackDocId));
+    await Promise.all(Array.from(ownedDocIds, (docId) => cleanupCollabDoc(docId)));
+  },
+  newEditorContext: async ({ browser, editorUserConfigDocId }, applyFixture) => {
+    await applyFixture(() => createIsolatedEditorContext(browser, editorUserConfigDocId));
+  },
+  editor: async ({ page, allocateEditorDocId }, applyFixture) => {
+    const editor = await createEditorHarness(page, allocateEditorDocId());
     await applyFixture(editor);
     await waitForSynced(page);
-    if (editor.userConfigDocId) {
-      await removeCollabDocFromDisk(editor.userConfigDocId);
-    }
   },
 });
 

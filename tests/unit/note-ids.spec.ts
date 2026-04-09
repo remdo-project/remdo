@@ -125,7 +125,6 @@ describe('note ids', () => {
     const outline = readOutline(remdo);
     const noteId = outline[0]?.noteId;
     expect(noteId).toEqual(expect.any(String));
-    expect(noteId).not.toBe('');
   });
 
   it('preserves assigned noteIds on programmatic list items', async ({ remdo }) => {
@@ -223,7 +222,6 @@ describe('note ids on paste', () => {
     const noteIds = outline.map((note) => note.noteId);
     const pastedNote = outline.at(-1);
     expect(pastedNote?.text).toBe('note2');
-    expect(pastedNote?.noteId).toBeTruthy();
     expect(pastedNote?.noteId).not.toBe('note2');
     expect(new Set(noteIds).size).toBe(outline.length);
   });
@@ -336,7 +334,6 @@ describe('note ids on paste', () => {
     ]);
 
     const outline = readOutline(remdo);
-    expect(outline[1]?.noteId).toBeTruthy();
     expect(outline[1]?.noteId).not.toBe('note2');
   });
 
@@ -492,8 +489,6 @@ describe('note ids on paste', () => {
     const outline = readOutline(remdo);
     const first = outline[3]?.noteId;
     const second = outline[4]?.noteId;
-    expect(first).toEqual(expect.any(String));
-    expect(second).toEqual(expect.any(String));
     expect(first).not.toBe('note2');
     expect(second).not.toBe('note2');
     expect(first).not.toBe(second);
@@ -522,7 +517,6 @@ describe('note ids on paste', () => {
     ]);
 
     const outline = readOutline(remdo);
-    expect(outline[1]?.noteId).toEqual(expect.any(String));
     expect(outline[1]?.noteId).not.toBe('note2');
   });
 

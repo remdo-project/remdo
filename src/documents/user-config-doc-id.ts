@@ -1,9 +1,10 @@
 import { createUniqueNoteId } from '#lib/editor/note-ids';
+import { getInjectedE2EUserConfigDocId } from '@/testing/e2e-runtime';
 
-const USER_CONFIG_DOC_ID = '__remdo_user_config__';
-export const E2E_USER_CONFIG_DOC_ID_KEY = '__remdo_e2e_user_config_doc_id__';
+export const USER_CONFIG_DOC_ID = '__remdo_user_config__';
 
 let resolvedUserConfigDocId: string | null = null;
+let fallbackE2EUserConfigDocId: string | null = null;
 
 export function getUserConfigDocId(): string {
   resolvedUserConfigDocId ??= resolveUserConfigDocId();
@@ -15,15 +16,11 @@ function resolveUserConfigDocId(): string {
     return USER_CONFIG_DOC_ID;
   }
 
-  try {
-    const existing = sessionStorage.getItem(E2E_USER_CONFIG_DOC_ID_KEY);
-    if (existing) {
-      return existing;
-    }
-    const docId = `${USER_CONFIG_DOC_ID}__${createUniqueNoteId()}`;
-    sessionStorage.setItem(E2E_USER_CONFIG_DOC_ID_KEY, docId);
-    return docId;
-  } catch {
-    return `${USER_CONFIG_DOC_ID}__${createUniqueNoteId()}`;
+  const injectedDocId = getInjectedE2EUserConfigDocId();
+  if (injectedDocId) {
+    return injectedDocId;
   }
+
+  fallbackE2EUserConfigDocId ??= `${USER_CONFIG_DOC_ID}__${createUniqueNoteId()}`;
+  return fallbackE2EUserConfigDocId;
 }
