@@ -11,19 +11,6 @@ Rules:
 - Move durable decisions/specs into the relevant doc under `docs/`, leaving a
   link behind.
 
-## Test doc-id lifecycle hygiene (deferred)
-
-- Recent cleanup narrowed the problem:
-  editor E2E now uses per-test random doc IDs plus explicit on-disk cleanup,
-  and user-config gets a per-run E2E doc ID with teardown.
-- Remaining issue: isolation policy is still split across ad hoc helpers
-  (`createUniqueNoteId()`, `sessionStorage`-scoped user-config IDs, and manual
-  `DATA_DIR/collab/<docId>` cleanup) instead of being owned by one
-  environment/storage-level mechanism.
-- Follow up on a single test-runtime strategy so per-run/per-test isolation,
-  cleanup, and any repeatable-ID cases are driven from one place rather than
-  feature-specific hooks.
-
 ## Search architecture
 
 - Add a document-level SDK visitor/walker API and use it as the shared

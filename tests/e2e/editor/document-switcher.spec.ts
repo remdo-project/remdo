@@ -4,16 +4,20 @@ import { editorLocator } from './_support/locators';
 import { createEditorDocumentPath } from './_support/routes';
 
 test.describe('Document switcher', () => {
-  test('creates a listed document, switches to it, and switches back to main', async ({ page }) => {
+  test('creates a listed document, switches to it, and switches back to main', async ({ page, captureCreatedDoc }) => {
     await seedDocument(page, 'main', 'tree-complex');
 
     await page.goto(createEditorDocumentPath('main'));
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
 
-    const createdDocId = await createListedDocumentFromSwitcher(page);
+    const createdDocId = await captureCreatedDoc(page, async () => {
+      const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
+      await switcherTrigger.click();
+      await page.getByRole('option', { name: 'New', exact: true }).click();
+    });
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
-    await ensureReady(page, { clear: true });
+    await ensureReady(page);
     await load(page, 'flat');
     await waitForSynced(page);
 
@@ -35,7 +39,7 @@ test.describe('Document switcher', () => {
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
   });
 
-  test('creates a new document from the switcher and lists it', async ({ page }) => {
+  test('creates a new document from the switcher and lists it', async ({ page, captureCreatedDoc }) => {
     await page.goto(createEditorDocumentPath('main'));
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await ensureReady(page);
@@ -47,10 +51,9 @@ test.describe('Document switcher', () => {
     const initialOptionCount = await options.count();
     const initialNewDocumentCount = await page.getByRole('option', { name: 'New Document' }).count();
 
-    await page.getByRole('option', { name: 'New', exact: true }).click();
-
-    await expect(page).not.toHaveURL(createEditorDocumentPath('main'));
-    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await captureCreatedDoc(page, async () => {
+      await page.getByRole('option', { name: 'New', exact: true }).click();
+    });
 
     await switcherTrigger.click();
     await expect(page.getByRole('option')).toHaveCount(initialOptionCount + 1);
@@ -64,18 +67,4 @@ async function seedDocument(page: Parameters<typeof editorLocator>[0], docId: st
   await ensureReady(page, { clear: true });
   await load(page, fixtureName);
   await waitForSynced(page);
-}
-
-async function createListedDocumentFromSwitcher(page: Parameters<typeof editorLocator>[0]): Promise<string> {
-  const previousUrl = page.url();
-  const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
-  await switcherTrigger.click();
-  await page.getByRole('option', { name: 'New', exact: true }).click();
-  await expect(page).not.toHaveURL(previousUrl);
-  await editorLocator(page).locator('.editor-input').first().waitFor();
-  const match = new URL(page.url()).pathname.match(/\/e2e\/n\/([^/]+)$/);
-  if (!match) {
-    throw new Error(`Unable to resolve created document id from URL: ${page.url()}`);
-  }
-  return match[1]!;
 }
