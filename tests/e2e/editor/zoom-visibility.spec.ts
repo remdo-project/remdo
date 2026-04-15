@@ -100,6 +100,29 @@ test.describe('Zoom visibility', () => {
     await expect(note2).toBeHidden();
   });
 
+  test('keeps descendants visible when re-zooming from a folded ancestor', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+
+    const editorRoot = editorLocator(page);
+    const note1 = editorRoot.locator('li.list-item:not(.list-nested-item)', { hasText: 'note1' }).first();
+    const note2Text = editorRoot.locator('[data-lexical-text="true"]', { hasText: 'note2' }).first();
+    const note3 = editorRoot.locator('li.list-item', { hasText: 'note3' }).first();
+
+    const menu = await openNoteMenu(page, 'note1');
+    await menu.item('fold').click();
+    await menu.expectClosed();
+
+    let metrics = await getBulletMetrics(note1);
+    await page.mouse.click(metrics.x, metrics.y);
+
+    await expect(note2Text).toBeVisible();
+    metrics = await getBulletMetrics(note2Text);
+    await page.mouse.click(metrics.x, metrics.y);
+
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note2'));
+    await expect(note3).toBeVisible();
+  });
+
   test('keeps zoom and inserts a child when Enter is pressed at the zoom-root end', async ({ page, editor }) => {
     await editor.load('flat');
 

@@ -229,7 +229,8 @@
   display: none;
 }
 
-.editor-root li.list-item[data-folded='true'][data-zoom-root='true'] + li.list-nested-item {
+.editor-root li.list-item[data-folded='true'][data-zoom-root='true'] + li.list-nested-item,
+.editor-root li.list-item[data-folded='true'] + li.list-nested-item[data-zoom-flatten='true'] {
   display: list-item;
 }
 
