@@ -1,21 +1,34 @@
-# Note Menu
+# Quick Action Menu
 
 ## Entry
 
-1. Clicking the menu icon beside a note row opens the menu for that note. The
-   icon appears on hover or when the note is the caret/focus target.
-2. Double-Shift within 500ms opens the menu for the caret note when the editor
-   is focused; any other key between the two Shift presses cancels the gesture.
+1. RemDo exposes a single quick action menu that can be opened from either a
+   note row or the keyboard.
+2. Clicking the menu icon beside a note row opens the quick action menu
+   anchored to that row. The icon appears on hover or when the note is the
+   caret/focus target.
+3. Double-Shift within 500ms opens the same quick action menu for the caret
+   context when the editor is focused; any other key between the two Shift
+   presses cancels the gesture.
 
 ## Actions
 
-1. Toggle checked recursively per `./list-types.md`, shortcut `Cmd/Ctrl+Enter`.
-2. Fold/Unfold per `./folding.md` (`toggle` state), hidden for leaf notes and
-   for the current zoom root, shortcut `F` when menu is open (for the caret
-   note this is `Shift`, `Shift`, then `F`).
-3. Children list type actions per `./list-types.md`, showing only the two
-   non-current options; hidden for leaf notes.
-4. Zoom per `./zoom.md`, shortcut `Z`.
+1. The menu may include actions with three scopes:
+   - **Note:** acts on the current note.
+   - **Children:** acts on the current note's child subtree.
+   - **View:** acts on the current zoom boundary.
+2. Note actions:
+   - Toggle checked recursively per `./list-types.md`, shortcut
+     `Cmd/Ctrl+Enter`.
+   - Fold/Unfold per `./folding.md` (`toggle` state), hidden for leaf notes and
+     for the current zoom root, shortcut `F` when the menu is open.
+   - Zoom per `./zoom.md`, shortcut `Z`.
+3. Children actions:
+   - Child list type actions per `./list-types.md`, showing only the two
+     non-current options; hidden for leaf notes.
+4. View actions:
+   - `Fold View to Level…` per `./folding.md`, shortcut `N`, which opens a
+     `0`-`9` chooser scoped to the current zoom boundary.
 5. Menu labels visually mark shortcut letters where applicable.
 
 ## Behavior
@@ -25,8 +38,15 @@
    executing an action.
 3. Arrow keys move, `Enter` activates, `Escape` closes, and shortcut letters
    activate immediately.
-4. Structural selections never open multi-note menus; only the focus note is
-   targeted.
+4. When opened from a row, the current note is that row's note. When opened
+   from double-Shift, the current note is the caret note.
+5. Structural selections never open multi-note menus; only the focus note is
+   used as note context.
+6. View actions are not limited to the current note. They act on the current
+   zoom boundary even when the menu is opened from a specific row.
+7. After `N` opens the fold-level chooser, digit keys no longer target menu
+   items; `1`-`9` apply the chosen level and `0` fully unfolds the current zoom
+   boundary.
 
 ## Non-goals
 
