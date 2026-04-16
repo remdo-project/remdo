@@ -2,7 +2,8 @@ import type { ListNode } from '@lexical/list';
 import { ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect, useRef } from 'react';
-import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 
 import { $isNoteFolded, $setNoteFolded } from '#lib/editor/fold-state';
 import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
@@ -41,31 +42,25 @@ const $applyFoldViewToLevel = (editor: LexicalEditor, level: number): boolean =>
   let changed = false;
 
   forEachContentItemWithAncestorsInOutline(rootList, (item, ancestors) => {
-    if (boundaryRoot) {
-      if (item.getKey() === boundaryKey) {
-        if ($isNoteFolded(item)) {
-          $setNoteFolded(item, false);
-          changed = true;
-        }
-        return;
-      }
-
-      const boundaryIndex = ancestors.findIndex((ancestor) => ancestor.getKey() === boundaryKey);
-      if (boundaryIndex === -1) {
-        return;
-      }
-
-      const relativeDepth = ancestors.length - boundaryIndex;
-      const nextFolded = level > 0 && relativeDepth === level && noteHasChildren(item);
-      if ($isNoteFolded(item) !== nextFolded) {
-        $setNoteFolded(item, nextFolded);
+    // The zoom root keeps its own children visible while zoomed, regardless of
+    // its stored folded state. Deeper descendants still follow fold-to-level.
+    if (boundaryKey && item.getKey() === boundaryKey) {
+      if ($isNoteFolded(item)) {
+        $setNoteFolded(item, false);
         changed = true;
       }
       return;
     }
 
-    const absoluteDepth = ancestors.length + 1;
-    const nextFolded = level > 0 && absoluteDepth === level && noteHasChildren(item);
+    const boundaryIndex = boundaryKey
+      ? ancestors.findIndex((ancestor) => ancestor.getKey() === boundaryKey)
+      : -1;
+    if (boundaryKey && boundaryIndex === -1) {
+      return;
+    }
+
+    const depth = ancestors.length - boundaryIndex;
+    const nextFolded = level > 0 && depth === level && noteHasChildren(item);
     if ($isNoteFolded(item) !== nextFolded) {
       $setNoteFolded(item, nextFolded);
       changed = true;
