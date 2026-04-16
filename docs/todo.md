@@ -45,6 +45,8 @@ Rules:
      shape.
   5. Add direct routing unit coverage for share-path helpers once the routing
      API exists as a normal typed surface in `src/routing.ts`.
+  6. Update the gateway/auth flow so valid share URLs can open without login,
+     including Docker/Caddy and the corresponding prod e2e coverage.
 - [Future] Reuse a share URL to add a document from another server into the
   local document list once the multi-server model is ready.
 
