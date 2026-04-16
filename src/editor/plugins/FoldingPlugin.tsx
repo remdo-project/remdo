@@ -2,7 +2,7 @@ import type { ListNode } from '@lexical/list';
 import { ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect, useRef } from 'react';
-import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
+import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, LexicalEditor } from 'lexical';
 
 import { $isNoteFolded, $setNoteFolded } from '#lib/editor/fold-state';
 import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
