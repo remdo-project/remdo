@@ -5,8 +5,9 @@ import { useEffect, useRef } from 'react';
 import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 
 import { $isNoteFolded, $setNoteFolded } from '#lib/editor/fold-state';
-import { SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
-import { forEachContentItemInOutline } from '@/editor/outline/list-traversal';
+import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
+import { forEachContentItemInOutline, forEachContentItemWithAncestorsInOutline } from '@/editor/outline/list-traversal';
+import { $resolveZoomBoundaryRoot } from '@/editor/outline/selection/boundary';
 import { $resolveRootContentList, resolveContentItemFromNode } from '@/editor/outline/schema';
 import { isChildrenWrapper } from '@/editor/outline/list-structure';
 import { $selectItemEdge } from '@/editor/outline/selection/caret';
@@ -23,6 +24,55 @@ const collectFoldedKeys = (list: ListNode, keys: Set<string>): void => {
       keys.add(item.getKey());
     }
   });
+};
+
+const $applyFoldViewToLevel = (editor: ReturnType<typeof useLexicalComposerContext>[0], level: number): boolean => {
+  if (!Number.isInteger(level) || level < 0 || level > 9) {
+    return false;
+  }
+
+  const rootList = $resolveRootContentList();
+  if (!rootList) {
+    return false;
+  }
+
+  const boundaryRoot = $resolveZoomBoundaryRoot(editor);
+  const boundaryKey = boundaryRoot?.getKey() ?? null;
+  let changed = false;
+
+  forEachContentItemWithAncestorsInOutline(rootList, (item, ancestors) => {
+    if (boundaryRoot) {
+      if (item.getKey() === boundaryKey) {
+        if ($isNoteFolded(item)) {
+          $setNoteFolded(item, false);
+          changed = true;
+        }
+        return;
+      }
+
+      const boundaryIndex = ancestors.findIndex((ancestor) => ancestor.getKey() === boundaryKey);
+      if (boundaryIndex === -1) {
+        return;
+      }
+
+      const relativeDepth = ancestors.length - boundaryIndex;
+      const nextFolded = level > 0 && relativeDepth === level && noteHasChildren(item);
+      if ($isNoteFolded(item) !== nextFolded) {
+        $setNoteFolded(item, nextFolded);
+        changed = true;
+      }
+      return;
+    }
+
+    const absoluteDepth = ancestors.length + 1;
+    const nextFolded = level > 0 && absoluteDepth === level && noteHasChildren(item);
+    if ($isNoteFolded(item) !== nextFolded) {
+      $setNoteFolded(item, nextFolded);
+      changed = true;
+    }
+  });
+
+  return changed;
 };
 
 const $shouldCollapseSelection = (
@@ -173,7 +223,14 @@ export function FoldingPlugin() {
       COMMAND_PRIORITY_LOW
     );
 
+    const unregisterFoldViewCommand = editor.registerCommand(
+      FOLD_VIEW_TO_LEVEL_COMMAND,
+      ({ level }) => $applyFoldViewToLevel(editor, level),
+      COMMAND_PRIORITY_LOW
+    );
+
     return () => {
+      unregisterFoldViewCommand();
       unregisterRootListener();
       unregisterSetCommand();
       unregisterUpdate();

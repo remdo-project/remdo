@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { $getNoteId } from '#lib/editor/note-id-state';
 
-import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
+import { FOLD_VIEW_TO_LEVEL_COMMAND, OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/editor/commands';
 import { $resolveContentNoteFromDOMNode } from '@/editor/outline/note-context';
 import { requireContentItemFromNode } from '@/editor/outline/schema';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
@@ -32,6 +32,7 @@ interface NoteMenuState {
 
 interface NoteMenuLayout extends Pick<NoteMenuState, 'left' | 'top'> {}
 type NoteMenuAnchor = NoteMenuLayout;
+type MenuShortcutEvent = Pick<KeyboardEvent, 'key' | 'altKey' | 'ctrlKey' | 'metaKey' | 'preventDefault' | 'stopPropagation'>;
 
 const DOUBLE_SHIFT_WINDOW_MS = 500;
 
@@ -131,7 +132,13 @@ export function NoteMenuPlugin() {
     editor.focus();
   };
 
-  menuShortcutHandlerRef.current = (event: KeyboardEvent) => {
+  const triggerFoldViewToLevel = (level: number) => {
+    editor.dispatchCommand(FOLD_VIEW_TO_LEVEL_COMMAND, { level });
+    closeMenu();
+    editor.focus();
+  };
+
+  const handleMenuShortcut = (event: MenuShortcutEvent): boolean => {
     const current = menuRef.current;
     if (!current) {
       return false;
@@ -140,6 +147,12 @@ export function NoteMenuPlugin() {
       return false;
     }
     const key = event.key.toLowerCase();
+    if (key >= '0' && key <= '9') {
+      event.preventDefault();
+      event.stopPropagation();
+      triggerFoldViewToLevel(Number(key));
+      return true;
+    }
     if (key === 'f' && current.hasChildren && !current.isZoomRoot) {
       event.preventDefault();
       event.stopPropagation();
@@ -154,6 +167,8 @@ export function NoteMenuPlugin() {
     }
     return false;
   };
+
+  menuShortcutHandlerRef.current = handleMenuShortcut;
 
   const handleRootFocusOut = useCallback(
     (event: FocusEvent) => {
@@ -462,21 +477,9 @@ export function NoteMenuPlugin() {
         className="note-menu-dropdown"
         data-note-menu
         data-note-menu-note-key={menu.noteKey}
-        onKeyDown={(event) => {
-          const key = event.key.toLowerCase();
-          if (key === 'f' && menuRef.current?.hasChildren && !menuRef.current.isZoomRoot) {
-            event.preventDefault();
-            event.stopPropagation();
-            triggerFoldToggle();
-            return;
-          }
-          if (key === 'z') {
-            event.preventDefault();
-            event.stopPropagation();
-            triggerZoom();
-          }
-        }}
+        onKeyDown={handleMenuShortcut}
       >
+        <Menu.Label data-note-menu-section="note">Note</Menu.Label>
         <Menu.Item data-note-menu-item="toggle-checked" onClick={triggerToggleChecked}>
           Toggle checked
         </Menu.Item>
@@ -490,7 +493,7 @@ export function NoteMenuPlugin() {
         </Menu.Item>
         {listActions.length > 0 ? (
           <>
-            <Menu.Label>Children</Menu.Label>
+            <Menu.Label data-note-menu-section="children">Children</Menu.Label>
             {listActions.map((option) => (
               <Menu.Item
                 key={option.type}
@@ -517,6 +520,14 @@ export function NoteMenuPlugin() {
             ))}
           </>
         ) : null}
+        <Menu.Label data-note-menu-section="view">View</Menu.Label>
+        <Menu.Item data-note-menu-item="view-fold-to-level" onClick={() => triggerFoldViewToLevel(1)}>
+          <span>
+            Fold to level [
+            <span className="note-menu-shortcut">0-9</span>
+            ]
+          </span>
+        </Menu.Item>
       </Menu.Dropdown>
     </Menu>,
     portalRoot

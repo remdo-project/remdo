@@ -40,23 +40,23 @@ note identities.
    parent context.
 10. Fold command API is state-based: `folded`, `unfolded`, or `toggle`.
 
-## Fold View To Level
+## Fold To Level
 
-1. `Shift`, `Shift`, then `N` opens a fold-level chooser.
-2. While the chooser is open, pressing `1` through `9` folds notes inside the
-   current zoom boundary so that only notes up to that level remain visible.
-3. Level is counted from the current view root:
+1. `Shift`, `Shift`, then `1` through `9` folds notes inside the current zoom
+   boundary so that only notes up to that level remain visible.
+2. Level is counted from the current view root:
    - in document-root view, level `1` leaves only top-level notes visible;
    - in subtree zoom, level `1` leaves the zoom root and its direct children
      visible.
-4. Pressing `0` fully unfolds the current zoom boundary.
-5. The command changes existing stored fold state for notes inside the current
+3. Pressing `0` fully unfolds the current zoom boundary.
+4. The command changes existing stored fold state for notes inside the current
    zoom boundary. It is not a separate transient zoom/view mode.
-6. The command appears in the quick action menu's `View` section and applies
-   from the current zoom root (document root or subtree root), regardless of
-   which visible note opened the quick action menu.
-7. Notes outside the current zoom boundary are unaffected.
-8. If applying a fold level would hide the active caret or structural
+5. The command appears as `Fold to level [0-9]` in the quick action menu's
+   `View` section and applies from the current zoom root (document root or
+   subtree root), regardless of which visible note opened the quick action
+   menu. Clicking it applies level `1`.
+6. Notes outside the current zoom boundary are unaffected.
+7. If applying a fold level would hide the active caret or structural
    selection, focus collapses to the nearest still-visible ancestor note.
-9. Existing manual folds inside the scoped subtree may be overwritten by the
+8. Existing manual folds inside the scoped subtree may be overwritten by the
    command. The command does not preserve or later restore a prior fold layout.

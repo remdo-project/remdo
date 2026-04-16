@@ -71,3 +71,16 @@ Rules:
   6. Update the durable docs once the traversal/query contract stabilizes:
      `docs/outliner/concepts.md`, `docs/architecture.md`,
      `docs/outliner/search.md`, and `docs/outliner/links.md`.
+
+## Test harness follow-ups
+
+- Reduce repeated full-outline literals in tests by adding a generic helper
+  that patches a previously-read outline by `noteId`, then still asserts with
+  `toMatchOutline`.
+- Prefer this over property-specific helpers like `setFolded(...)`: tests stay
+  focused on the changed notes while still verifying that untouched notes remain
+  unchanged.
+- Revisit `meta(... viewProps ...)` setup, especially zoom-related state.
+  Prefer simple explicit test actions (for example dispatching the real zoom
+  command, or at most a thin helper around it) over smart harness metadata that
+  adds API surface, hides behavior setup, and cannot be changed mid-test.
