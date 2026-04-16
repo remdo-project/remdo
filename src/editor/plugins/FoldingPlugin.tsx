@@ -26,7 +26,7 @@ const collectFoldedKeys = (list: ListNode, keys: Set<string>): void => {
   });
 };
 
-const $applyFoldViewToLevel = (editor: ReturnType<typeof useLexicalComposerContext>[0], level: number): boolean => {
+const $applyFoldViewToLevel = (editor: LexicalEditor, level: number): boolean => {
   if (!Number.isInteger(level) || level < 0 || level > 9) {
     return false;
   }
