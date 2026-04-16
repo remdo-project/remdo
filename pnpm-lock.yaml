@@ -205,6 +205,8 @@ overrides:
   serialize-javascript: 7.0.5
   table>ajv: 8.18.0
 
+packageExtensionsChecksum: sha256-zl8DYLNKOFD2VSyV8Kqvl6CxA6aolU7BuOLdA+lIoaM=
+
 importers:
 
   .:
@@ -8955,6 +8957,7 @@ snapshots:
       '@mdn/browser-compat-data': 6.1.5
       ast-metadata-inferer: 0.8.1
       browserslist: 4.28.2
+      caniuse-lite: 1.0.30001785
       eslint: 10.2.0(jiti@2.6.1)
       find-up: 5.0.0
       globals: 15.15.0

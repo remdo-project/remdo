@@ -34,8 +34,9 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge/reparent
   rules, spacing.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).
-- `docs/outliner/folding.md` (Short). Note folding behavior, toggle visibility (hover/caret),
-  persistence, and auto-expand rules.
+- `docs/outliner/folding.md` (Medium). Note folding behavior, toggle visibility
+  (hover/caret), persistence, auto-expand rules, and view-scoped
+  fold-to-level commands.
 - `docs/outliner/index.md` (Medium). Entry point with links (including list
   types); single-source invariants rule.
 - `docs/outliner/insertion.md` (Medium). Caret-mode `Enter` behavior, zoom-boundary
@@ -46,8 +47,9 @@ outdated or a doc’s role materially changes.
   internal-vs-external link boundary: `@` query flow, whole-document
   search/ranking, runtime fully qualified link identity, clipboard/persistence
   docId boundaries, and cross-document roadmap limits.
-- `docs/outliner/menu.md` (Short). Note menu entry points, icon visibility (hover/caret),
-  targets, and actions (toggle checked/fold/zoom/child list types).
+- `docs/outliner/menu.md` (Medium). Quick action menu entry points, note vs.
+  children vs. view action scopes, and actions (toggle checked/fold/zoom/child
+  list types/fold view to level).
 - `docs/outliner/note-ids.md` (Medium). Note id invariants, normalization,
   runtime document-id ownership, clipboard identity rules, collab, and
   `noteRef`.

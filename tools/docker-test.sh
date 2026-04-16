@@ -65,7 +65,7 @@ remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}" -d --name "${CONTAINER_NAME}
 
 health_ready="false"
 for _ in {1..20}; do
-  if curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PORT}:127.0.0.1" -kfsS "${HEALTH_URL}" >/dev/null; then
+  if curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${PORT}:127.0.0.1" -kfsS "${HEALTH_URL}" >/dev/null 2>&1; then
     health_ready="true"
     break
   fi

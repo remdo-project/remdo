@@ -14,7 +14,7 @@ details.
 4. **Zoom view:** `./zoom.md` — subtree isolation, zoom-boundary editing scope,
    breadcrumbs, and route state.
 5. **Folding:** `./folding.md` — collapse/expand note subtrees, visibility
-   filtering, and persistence.
+   filtering, persistence, and view-scoped fold-to-level commands.
 6. **List types:** `./list-types.md` — bullet/number/check semantics and checked state.
 7. **Links:** `./links.md` — initial note-linking behavior, picker/query rules, and future boundaries.
 8. **Search mode:** `./search.md` — focused search navigation flow (single
@@ -22,7 +22,8 @@ details.
   filtering, Enter-to-zoom, slash root/depth navigation with non-mutating arrow
   cycling, inline-completion acceptance with `ArrowRight`, combobox/listbox
   accessibility semantics, and non-leaf `/...` result hints.
-9. **Note menu:** `./menu.md` — note-scoped menu entry points, targets, and actions.
+9. **Quick action menu:** `./menu.md` — row/caret entry points plus note,
+   children, and view actions.
 10. **Clipboard:** `./clipboard.md` — cut/copy/paste behavior, caret placement, and move rules.
 11. **Indent/Outdent & structure rules:** `./note-structure-rules.md` — structural invariants and indent/outdent semantics.
 12. **Insertion (Enter):** `./insertion.md` — caret-mode Enter behaviors

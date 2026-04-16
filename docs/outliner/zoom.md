@@ -14,6 +14,8 @@ caret/selection state in the editor.
 - **Zoom root:** The note whose subtree is displayed for the current zoom
   target.
 - **Zoom boundary:** The zoom root plus all of its descendants.
+- **View actions:** Commands that operate on the current zoom boundary rather
+  than on a single note.
 - **Zoom path:** The ordered list of ancestors from the document to the zoom
   root, used for breadcrumbs.
 

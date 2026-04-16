@@ -14,6 +14,7 @@ interface SetNoteFoldPayload {
   noteItemKey: string;
 }
 export const SET_NOTE_FOLD_COMMAND = createCommand<SetNoteFoldPayload>('remdo:set-note-fold');
+export const FOLD_VIEW_TO_LEVEL_COMMAND = createCommand<{ level: number }>('remdo:fold-view-to-level');
 export const OPEN_NOTE_MENU_COMMAND = createCommand<{
   noteItemKey: string;
   anchor?: { left: number; top: number };

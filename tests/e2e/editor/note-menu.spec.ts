@@ -23,6 +23,7 @@ test.describe('Note menu', () => {
     await expect(menu.item('toggle-checked')).toHaveCount(1);
     await expect(menu.item('fold')).toHaveCount(0);
     await expect(menu.item('zoom')).toHaveCount(1);
+    await expect(menu.item('view-fold-to-level')).toHaveCount(1);
     await expect(menu.item('list-number')).toHaveCount(0);
     await expect(menu.item('list-check')).toHaveCount(0);
     await expect(menu.item('list-bullet')).toHaveCount(0);
@@ -112,6 +113,106 @@ test.describe('Note menu', () => {
     await expect(page).toHaveURL(/_note2$/);
   });
 
+  test('applies fold view to level from a digit shortcut', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+
+    const menu = await openNoteMenu(page, 'note4', { anchor: 'caret', openMethod: 'shortcut' });
+    await menu.pressShortcut('1');
+    await menu.expectClosed();
+    await expect(editor).toMatchOutline([
+      {
+        noteId: 'note1',
+        text: 'note1',
+        folded: true,
+        children: [
+          {
+            noteId: 'note2',
+            text: 'note2',
+            children: [{ noteId: 'note3', text: 'note3' }],
+          },
+          { noteId: 'note4', text: 'note4' },
+        ],
+      },
+      { noteId: 'note5', text: 'note5' },
+      {
+        noteId: 'note6',
+        text: 'note6',
+        folded: true,
+        children: [{ noteId: 'note7', text: 'note7' }],
+      },
+    ]);
+  });
+
+  test('applies level 1 when fold to level is clicked', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+
+    const menu = await openNoteMenu(page, 'note4');
+    await menu.item('view-fold-to-level').click();
+    await menu.expectClosed();
+    await expect(editor).toMatchOutline([
+      {
+        noteId: 'note1',
+        text: 'note1',
+        folded: true,
+        children: [
+          {
+            noteId: 'note2',
+            text: 'note2',
+            children: [{ noteId: 'note3', text: 'note3' }],
+          },
+          { noteId: 'note4', text: 'note4' },
+        ],
+      },
+      { noteId: 'note5', text: 'note5' },
+      {
+        noteId: 'note6',
+        text: 'note6',
+        folded: true,
+        children: [{ noteId: 'note7', text: 'note7' }],
+      },
+    ]);
+  });
+
+  test('applies fold view to level to the current zoom boundary regardless of opened note', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+
+    const note6Menu = await openNoteMenu(page, 'note6');
+    await note6Menu.item('fold').click();
+    await note6Menu.expectClosed();
+
+    const zoomMenu = await openNoteMenu(page, 'note1');
+    await zoomMenu.item('zoom').click();
+    await zoomMenu.expectClosed();
+    await expect(page).toHaveURL(/_note1$/);
+
+    const menu = await openNoteMenu(page, 'note4');
+    await menu.pressShortcut('1');
+    await menu.expectClosed();
+
+    await expect(editor).toMatchOutline([
+      {
+        noteId: 'note1',
+        text: 'note1',
+        children: [
+          {
+            noteId: 'note2',
+            text: 'note2',
+            folded: true,
+            children: [{ noteId: 'note3', text: 'note3' }],
+          },
+          { noteId: 'note4', text: 'note4' },
+        ],
+      },
+      { noteId: 'note5', text: 'note5' },
+      {
+        noteId: 'note6',
+        text: 'note6',
+        folded: true,
+        children: [{ noteId: 'note7', text: 'note7' }],
+      },
+    ]);
+  });
+
   test('toggle checked closes the menu and updates note state', async ({ page, editor }) => {
     await editor.load('tree');
 
@@ -189,6 +290,7 @@ test.describe('Note menu', () => {
     await expect(menu.item('toggle-checked')).toHaveCount(1);
     await expect(menu.item('fold')).toHaveCount(0);
     await expect(menu.item('zoom')).toHaveCount(1);
+    await expect(menu.item('view-fold-to-level')).toHaveCount(1);
     await expect(menu.item('list-number')).toHaveCount(0);
     await expect(menu.item('list-check')).toHaveCount(0);
     await expect(menu.item('list-bullet')).toHaveCount(0);
@@ -207,6 +309,7 @@ test.describe('Note menu', () => {
     await expect(menu.item('toggle-checked')).toHaveCount(1);
     await expect(menu.item('fold')).toHaveCount(0);
     await expect(menu.item('zoom')).toHaveCount(1);
+    await expect(menu.item('view-fold-to-level')).toHaveCount(1);
     await menu.expectOpen();
   });
 
@@ -217,9 +320,10 @@ test.describe('Note menu', () => {
 
     const toggleItem = menu.item('toggle-checked');
     const foldItem = menu.item('fold');
+    const zoomItem = menu.item('zoom');
     const numberItem = menu.item('list-number');
     const checkItem = menu.item('list-check');
-    const zoomItem = menu.item('zoom');
+    const viewItem = menu.item('view-fold-to-level');
 
     await toggleItem.focus();
     await expect(toggleItem).toBeFocused();
@@ -231,6 +335,8 @@ test.describe('Note menu', () => {
     await expect(numberItem).toBeFocused();
     await page.keyboard.press('ArrowDown');
     await expect(checkItem).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(viewItem).toBeFocused();
     await page.keyboard.press('ArrowDown');
     await expect(toggleItem).toBeFocused();
   });

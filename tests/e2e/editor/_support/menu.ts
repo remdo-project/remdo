@@ -9,14 +9,21 @@ interface OpenMenuOptions {
   anchor?: 'note' | 'caret';
 }
 
-type MenuItemId = 'toggle-checked' | 'fold' | 'zoom' | 'list-number' | 'list-check' | 'list-bullet';
+type MenuItemId =
+  | 'toggle-checked'
+  | 'fold'
+  | 'zoom'
+  | 'list-number'
+  | 'list-check'
+  | 'list-bullet'
+  | 'view-fold-to-level';
 
 interface MenuHandle {
   listItem: Locator;
   menu: Locator;
   item: (id: MenuItemId) => Locator;
   close: () => Promise<void>;
-  pressShortcut: (key: 'f' | 'z') => Promise<void>;
+  pressShortcut: (key: string) => Promise<void>;
   expectOpen: () => Promise<void>;
   expectClosed: () => Promise<void>;
 }
