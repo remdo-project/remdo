@@ -1,6 +1,6 @@
 ---
 name: "remdo-deps-refresh"
-description: "Use when refreshing RemDo dependencies. Run the workspace dependency refresh script, fix only straightforward fallout, then review runtime/tooling baseline changes and notable release notes for simplification opportunities."
+description: "Use when refreshing RemDo dependencies. Run the workspace dependency refresh script, fix only straightforward fallout, then review CI warnings, tooling freshness, and notable release notes for simplification opportunities."
 ---
 
 # Dependency Refresh
@@ -22,8 +22,15 @@ Happy path only.
 6. Review [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md)
    after dependency or runtime updates. Drop obsolete workarounds and re-check
    whether any held-back versions can now move.
-7. Review runtime/tooling baseline updates separately when relevant:
-   `package.json` (`packageManager`, `engines.node`), `docker/Dockerfile`, and CI runtime pins.
+7. Review CI/tooling follow-ups separately when relevant:
+   1. Check recent CI annotations/log warnings that are not already covered by local checks.
+      Treat each hit as one of:
+      `fix now`, `suppress or ignore intentionally`, `add a deterministic check`, or `track as upstream noise`.
+   2. Review tooling freshness for key non-app surfaces:
+      `package.json` (`packageManager`, `engines.node`), `docker/Dockerfile`, GitHub Actions under `.github/**`,
+      and other tools installed outside the workspace lockfile.
+      Treat each stale item as one of:
+      `upgrade now`, `keep pinned intentionally`, or `defer with reason`.
 8. Use `gh` to reconcile still-open Dependabot PRs and GitHub Dependabot alerts against both the
    current branch and the default branch. Classify each item as:
    `covered here` (fixed on this branch, pending merge),

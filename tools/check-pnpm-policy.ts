@@ -63,6 +63,15 @@ const topLevelKeys = (lines: string[], section: string): Set<string> => {
   return out;
 };
 
+const scalarEntry = (lines: string[], key: string): string => {
+  const prefix = `${key}:`;
+  const line = lines.find((candidate) => candidate.startsWith(prefix));
+  if (!line) {
+    throw new Error(`missing pnpm-workspace.yaml ${key}`);
+  }
+  return unquote(line.slice(prefix.length));
+};
+
 const capture = (source: string, pattern: RegExp, description: string): string => {
   const match = source.match(pattern);
   const value = match?.[1]?.trim();
@@ -72,7 +81,19 @@ const capture = (source: string, pattern: RegExp, description: string): string =
   return value;
 };
 
+const parseBoolean = (raw: string, description: string): boolean => {
+  const value = unquote(raw).trim();
+  if (value === 'true') {
+    return true;
+  }
+  if (value === 'false') {
+    return false;
+  }
+  throw new Error(`unsupported ${description}: ${raw}`);
+};
+
 const NODE_SERIES_PATTERN = /^(\d+\.\d+)/u;
+const EXACT_SEMVER_PATTERN = /^\d+\.\d+\.\d+$/u;
 
 const normalizeNodeSeries = (raw: string, description: string): string => {
   const match = raw.trim().match(NODE_SERIES_PATTERN);
@@ -114,6 +135,31 @@ try {
     throw new Error('missing package.json engines.node');
   }
   const expectedNodeSeries = normalizeNodeSeries(packageNode, 'package.json engines.node');
+
+  const workspaceNodeVersion = scalarEntry(workspace, 'nodeVersion');
+  if (!EXACT_SEMVER_PATTERN.test(workspaceNodeVersion)) {
+    throw new Error(`pnpm-workspace.yaml nodeVersion must be exact semver, got ${workspaceNodeVersion}`);
+  }
+  const workspaceNodeSeries = normalizeNodeSeries(workspaceNodeVersion, 'pnpm-workspace.yaml nodeVersion');
+  if (workspaceNodeSeries !== expectedNodeSeries) {
+    throw new Error(`Node version drift: pnpm-workspace.yaml nodeVersion uses ${workspaceNodeSeries}, package.json expects ${expectedNodeSeries}`);
+  }
+
+  const workspaceEngineStrict = parseBoolean(
+    scalarEntry(workspace, 'engineStrict'),
+    'pnpm-workspace.yaml engineStrict',
+  );
+  if (!workspaceEngineStrict) {
+    throw new Error('pnpm-workspace.yaml engineStrict must be true');
+  }
+
+  const workspaceUpdateNotifier = parseBoolean(
+    scalarEntry(workspace, 'updateNotifier'),
+    'pnpm-workspace.yaml updateNotifier',
+  );
+  if (workspaceUpdateNotifier) {
+    throw new Error('pnpm-workspace.yaml updateNotifier must be false');
+  }
 
   const ciNodeSeries = normalizeNodeSeries(
     capture(setupPnpm, /node-version:\s*([^\n]+)/u, '.github/actions/setup-pnpm/action.yml node-version'),

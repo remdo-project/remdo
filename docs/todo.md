@@ -84,3 +84,38 @@ Rules:
   Prefer simple explicit test actions (for example dispatching the real zoom
   command, or at most a thin helper around it) over smart harness metadata that
   adds API surface, hides behavior setup, and cannot be changed mid-test.
+
+## Warning and drift detection follow-ups
+
+- Pin / drift decisions:
+  1. Decide whether to replace `pnpm dlx esbuild` in `docker/Dockerfile` with a
+     lockfile-backed tool path or at least an exact version; Docker currently
+     pulls a different `esbuild` than the workspace.
+  2. Decide whether `docker/Dockerfile` should keep `y-sweet@^0.9.1` or pin an
+     exact version for deterministic image builds.
+  3. Decide whether to update the pinned `packageManager` version in
+     `package.json` or intentionally keep the current pnpm line and suppress the
+     resulting upgrade notices elsewhere.
+
+- Add more deterministic detection:
+  1. Extend `tools/check-pnpm-policy.ts` to flag floating install surfaces such
+     as committed `pnpm dlx` usage and ranged `npm install -g` in Dockerfiles or
+     scripts.
+  2. Add a plain `pnpm run build` validation surface to CI and/or the dependency
+     refresh flow so build warnings are reviewed explicitly instead of only via
+     Docker logs.
+  3. Revisit pnpm build-script policy: consider moving from
+     `onlyBuiltDependencies` to `allowBuilds` and enabling
+     `strictDepBuilds: true`.
+
+- Warning policy / classify-or-suppress:
+  1. Decide how to handle the Vite large-chunk warning: real size budget,
+     accepted warning, or follow-up chunking work.
+  2. Decide how to handle the `snapshot.mjs` esbuild size warning in Docker:
+     explicit budget, suppression, or accepted noise.
+  3. Decide whether to suppress or just classify the `NO_COLOR` / `FORCE_COLOR`
+     warnings seen during Docker Playwright runs.
+  4. Review current install-time warnings and classify each as `fix`, `track`,
+     or `ignore`, especially:
+     `glob@11.1.0`, `source-map@0.8.0-beta.0`, `sourcemap-codec@1.4.8`, and the
+     `@typescript-eslint/*` peer mismatch against `typescript 6`.

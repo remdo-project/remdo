@@ -1,5 +1,7 @@
 catalogMode: prefer
 
+engineStrict: true
+nodeVersion: 24.12.0
 shellEmulator: true
 
 trustPolicy: no-downgrade
@@ -9,6 +11,8 @@ trustPolicyExclude:
   - serialize-javascript@7.0.5
   - undici-types@6.21.0
   - semver@6.3.1
+
+updateNotifier: false
 
 overrides:
   '@eslint/config-array>minimatch': 3.1.5
@@ -94,3 +98,8 @@ onlyBuiltDependencies:
   - esbuild
   - leveldown
   - y-sweet
+
+packageExtensions:
+  eslint-plugin-compat:
+    dependencies:
+      caniuse-lite: 1.0.30001785
