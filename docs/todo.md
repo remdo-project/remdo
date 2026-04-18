@@ -53,8 +53,7 @@ Rules:
 ## Architecture decision work
 
 - Durable project constraints now live in [docs/principles.md](./principles.md).
-- Evaluate auth, sync, storage, and hosting choices against those principles,
-  not against current implementation inertia.
+- Evaluate auth, sync, storage, and hosting choices against those principles.
 - Keep project assumptions separate from replaceable tooling choices.
 
 ## Collaboration architecture roadmap [Future]

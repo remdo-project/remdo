@@ -26,9 +26,9 @@ outdated or a doc’s role materially changes.
   unshared/generating/shared states, anonymous editable recipient access,
   revocation, replacement on re-share, and future cross-server import
   direction.
-- `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, including
-  single-container Docker deployment flow, same-host auth routing, and
-  backup/CI conventions.
+- `docs/run-modes.md` (Medium). Supported run modes for the current
+  implementation: local dev, test stacks, CI, self-hosted app runtimes,
+  managed cloud, and backup execution.
 - `docs/hints.md` (Short). Backlog of potential UX hint concepts that are not
   yet surfaced in the UI.
 - `docs/index.md` (Medium). Documentation entry point with map, doc workflow, and invariants.
