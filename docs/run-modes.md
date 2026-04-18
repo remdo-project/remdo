@@ -7,8 +7,9 @@ Define the supported ways RemDo is run today.
 A run mode may be a user-facing app runtime, a test harness, CI, or an
 operational task such as backup.
 
-Durable product constraints live in [docs/principles.md](./principles.md). This
-doc records the current implementation shape.
+Durable product constraints live in [docs/principles.md](./principles.md).
+Supported access cases live in [docs/access-model.md](./access-model.md).
+This doc records the current implementation shape.
 
 ## Shared rules
 
