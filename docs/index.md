@@ -14,6 +14,9 @@ line (align continuation lines by two spaces).
 Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
+- `docs/access-model.md` (Short). Supported access cases for RemDo:
+  local-only use, authenticated app access, share links, and future
+  user-to-user and server-to-server access.
 - `docs/architecture.md` (Medium). Cross-cutting architecture vocabulary for
   delivery surfaces, gateway/origin boundaries, collaboration runtime building
   blocks, and `[Future]` multi-hub terms.
