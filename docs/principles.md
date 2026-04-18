@@ -7,18 +7,18 @@ Define the product assumptions that outrank current implementation details.
 ## Non-negotiables
 
 1. RemDo is privacy-first.
-2. Privacy is a design constraint, not a slogan.
+2. Privacy is a design constraint.
 3. RemDo is fully open source.
 4. Transparency comes from code plus simple deployment.
-5. Security should rely on trusted building blocks, not ad hoc auth logic.
+5. Security should rely on trusted building blocks.
 
 ## Data and trust
 
 1. User data should live where the user chooses, including user-controlled
    self-hosting, user-owned third-party hosting, and hosted RemDo.
-2. Open source is not enough if the trust story is still too hard to verify.
-3. Delegate security-critical work when that improves confidence without
-   undermining self-hosting simplicity.
+2. The trust story should stay simple enough to verify.
+3. Delegate security-critical work when that improves confidence and preserves
+   self-hosting simplicity.
 
 ## Deployment targets
 
@@ -30,14 +30,15 @@ RemDo should support all of the following:
    account.
 4. A cloud-hosted offering that feels normal to non-technical users.
 
-These are product goals, not vendor commitments.
+These are product goals with vendor choice left open.
 
 ## Multi-origin direction
 
 1. One client may later use documents from more than one trust domain.
 2. That may include local documents, personally hosted cloud documents, and
    hosted-service documents.
-3. Today's single-server model is an implementation state, not product truth.
+3. The architecture should keep that direction open while the implementation
+   stays simpler today.
 
 ## Architecture test
 
@@ -51,7 +52,7 @@ Prefer solutions that:
 
 ## Replaceable choices
 
-These are implementation choices, not principles:
+Implementation choices include:
 
 1. auth providers or gateways
 2. cloud platforms
@@ -61,5 +62,4 @@ These are implementation choices, not principles:
 
 ## Current-state boundary
 
-Current code is not automatically a durable architecture commitment. If current
-implementation conflicts with these principles, the principles win.
+Current code does not define the long-term architecture. These principles do.
