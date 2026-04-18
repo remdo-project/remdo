@@ -34,15 +34,17 @@ Define user-visible behavior for sharing a document through a reusable URL.
 5. Once generation completes, the document is shared and the share link is
    visible and reusable.
 6. Opening a valid share link loads the shared document.
-7. A recipient can open a valid share link without logging in.
-8. A recipient may be a different user from the one who created the share
-   link.
-9. A user can disable sharing for the current document.
-10. Disabling sharing revokes the current share link immediately.
-11. A revoked share link must no longer open the document.
-12. Re-enabling sharing after revocation creates a new share link.
-13. The newly created share link must differ from the previously revoked one.
-14. At most one share link is active for a document at a time.
+7. A valid share link grants normal access to that document.
+8. A recipient can edit the shared document through a valid share link.
+9. A recipient can open a valid share link without logging in.
+10. A recipient may be a different user from the one who created the share
+    link.
+11. A user can disable sharing for the current document.
+12. Disabling sharing revokes the current share link immediately.
+13. A revoked share link must no longer open the document.
+14. Re-enabling sharing after revocation creates a new share link.
+15. The newly created share link must differ from the previously revoked one.
+16. At most one share link is active for a document at a time.
 
 ## Future
 
