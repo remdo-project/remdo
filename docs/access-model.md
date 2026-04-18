@@ -41,6 +41,9 @@ For each access case, the important questions are:
 - Actor: anyone with a valid share link.
 - Grant: bearer link.
 - Scope: the shared document with read/write access.
+- Login: this case should work without user login.
+- Recipient scope: the recipient may be a different user from the one who
+  created the link.
 - Run modes: self-hosted app server, managed cloud app server.
 
 ## Cross-server authenticated document access
