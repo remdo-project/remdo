@@ -14,9 +14,9 @@ line (align continuation lines by two spaces).
 Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
-- `docs/access-model.md` (Short). Supported access cases for RemDo:
-  local-only use, authenticated app access, share links, and cross-server
-  authenticated document access.
+- `docs/access-model.md` (Medium). Document access model for RemDo:
+  private/public/link-shared modes, share-link lifecycle, authenticated app
+  access, and cross-server authenticated document access.
 - `docs/architecture.md` (Medium). Cross-cutting architecture vocabulary for
   delivery surfaces, gateway/origin boundaries, collaboration runtime building
   blocks, and `[Future]` multi-hub terms.
@@ -25,8 +25,6 @@ outdated or a doc’s role materially changes.
 - `docs/dev/dependency-maintenance.md` (Medium). Temporary dependency/runtime
   workarounds plus intentionally held-back versions, with current rationale and
   revisit conditions for refresh work.
-- `docs/sharing.md` (Short). Share-link lifecycle for one document:
-  unshared/generating/shared states, revocation, and replacement on re-share.
 - `docs/run-modes.md` (Medium). Supported run modes for the current
   implementation: local dev, test stacks, CI, self-hosted app runtimes,
   managed cloud, and backup execution.
