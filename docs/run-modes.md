@@ -61,11 +61,11 @@ For each run mode, the important questions are:
 - Data boundary: runner-local temporary data.
 - Notes: this mode runs RemDo in the CI stack.
 
-## Host OS self-hosted app
+## Local self-hosted app
 
-- Purpose: run RemDo directly on a machine without Docker.
+- Purpose: run RemDo as a local production app on the user's own machine.
 - User: self-hosting operator.
-- Platform: user-controlled host OS.
+- Platform: user-controlled local machine.
 - Data boundary: user-controlled local storage.
 - Notes:
   1. required: `AUTH_PASSWORD`
@@ -73,12 +73,12 @@ For each run mode, the important questions are:
   3. if `TINYAUTH_APP_URL` is overridden, browser access must use that same
      host
 
-## Docker self-hosted app
+## Self-hosted app server
 
-- Purpose: self-hosted app runtime through the local Docker packaging.
+- Purpose: run RemDo as a self-hosted server that can be reached from other machines.
 - User: self-hosting operator.
-- Platform: user-controlled machine with Docker.
-- Data boundary: user-controlled persistent Docker-backed storage.
+- Platform: user-controlled server or machine.
+- Data boundary: user-controlled persistent server storage.
 - Notes:
   1. requires a local rootless Docker daemon
   2. the local launcher supports rootless Docker
@@ -87,7 +87,7 @@ For each run mode, the important questions are:
   5. the script prints the browser URL before startup; use that URL
   6. local Docker uses self-signed HTTPS by default
 
-## Managed cloud app
+## Managed cloud app server
 
 - Purpose: app runtime on a third-party platform account.
 - User: operator with a managed cloud account.
@@ -102,7 +102,7 @@ For each run mode, the important questions are:
   4. preview or staging services must set `TINYAUTH_APP_URL` manually
   5. backup workflow for hosted prod is still undefined
 
-## Backup run
+## Backup/export job
 
 - Purpose: export or back up persisted RemDo data.
 - User: operator.
