@@ -23,8 +23,9 @@ outdated or a doc’s role materially changes.
   workarounds plus intentionally held-back versions, with current rationale and
   revisit conditions for refresh work.
 - `docs/sharing.md` (Short). Share-link behavior for documents:
-  unshared/generating/shared states, anonymous recipient access, revocation,
-  replacement on re-share, and future cross-server import direction.
+  unshared/generating/shared states, anonymous editable recipient access,
+  revocation, replacement on re-share, and future cross-server import
+  direction.
 - `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, including
   single-container Docker deployment flow, same-host auth routing, and
   backup/CI conventions.
@@ -70,6 +71,9 @@ outdated or a doc’s role materially changes.
 - `docs/performance/client-side-perf-tests.md` (Medium). Minimal client-side
   perf baseline spec: median metric and core modes/operations/workloads, plus
   optional experiments (warmups, thresholds, baselines, and gating).
+- `docs/principles.md` (Medium). Durable project assumptions: privacy,
+  transparency, deployment goals, multi-origin direction, and the boundary
+  between principles and replaceable tooling choices.
 - `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs;
   tracks paste-placement e2e follow-up and prod schema recovery decisions.
 Whenever you edit any of these docs, update their summaries/buckets here so the

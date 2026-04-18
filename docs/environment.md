@@ -1,8 +1,12 @@
 # Environment Configuration
 
-This document covers environment requirements by runtime mode.
+This doc covers environment requirements for the current implementation.
 Defaults and derivations live in `tools/env.defaults.sh` and are authoritative.
 Use `.env` only for overrides.
+
+Durable deployment goals live in [docs/principles.md](./principles.md). This
+doc describes the active runtime shape, not a permanent commitment to specific
+vendors or packaging.
 
 ## Dev (local)
 

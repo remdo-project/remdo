@@ -50,6 +50,13 @@ Rules:
 - [Future] Reuse a share URL to add a document from another server into the
   local document list once the multi-server model is ready.
 
+## Architecture decision work
+
+- Durable project constraints now live in [docs/principles.md](./principles.md).
+- Evaluate auth, sync, storage, and hosting choices against those principles,
+  not against current implementation inertia.
+- Keep project assumptions separate from replaceable tooling choices.
+
 ## Collaboration architecture roadmap [Future]
 
 - User-config runtime follow-up: observe remote/shared `documents` mutations in
