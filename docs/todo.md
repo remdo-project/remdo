@@ -26,7 +26,7 @@ Rules:
 
 ## Document sharing
 
-- Durable user-facing behavior lives in [docs/sharing.md](./sharing.md).
+- Durable document access behavior lives in [docs/access-model.md](./access-model.md).
 - Initial implementation can optimize for simplicity and may break compatibility
   during the dev phase if the design changes later.
 - V1 UI/details:
