@@ -95,7 +95,8 @@ For each access case, the important questions are:
   reference on another server.
 - Scope: remote documents hosted on another RemDo server and shown in the
   client alongside local documents.
-- Run modes: self-hosted app server, managed cloud app server.
+- Run modes: local self-hosted app, self-hosted app server, managed cloud
+  app server.
 - Client shape: one client may use documents from more than one RemDo server at
   the same time.
 - Account scope: this may cover one person's accounts on different servers or
