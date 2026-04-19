@@ -50,6 +50,9 @@ For each run mode, the important questions are:
   6. local Docker uses self-signed HTTPS by default
   7. current server runtime runs both the RemDo API process and the Y-Sweet
      collaboration server behind the same authenticated gateway
+  8. browser clients reach collaboration through RemDo API token issuance and
+     the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
+     routes
 
 ### Managed cloud app server
 
@@ -67,6 +70,9 @@ For each run mode, the important questions are:
   5. backup workflow for hosted prod is still undefined
   6. current server runtime runs both the RemDo API process and the Y-Sweet
      collaboration server behind the same authenticated gateway
+  7. browser clients reach collaboration through RemDo API token issuance and
+     the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
+     routes
 
 ## Development and verification modes
 
@@ -78,7 +84,9 @@ For each run mode, the important questions are:
 - Data boundary: local repo-owned development data.
 - Notes: most local runs can stay on defaults; copy `.env.example` to `.env`
   only when overrides are needed. Current dev mode runs the web app, RemDo API
-  server, Y-Sweet collaboration server, and preview helper together.
+  server, Y-Sweet collaboration server, and preview helper together. Browser
+  clients use the RemDo API token path plus `/d/*`; `/doc*` control routes are
+  not routed through the gateway.
 
 ### Unit and collab tests
 

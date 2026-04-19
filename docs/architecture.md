@@ -41,10 +41,18 @@ drift between app and collab endpoints.
 App-owned HTTP surface that sits in front of collaboration infrastructure.
 
 - Current role: issue Y-Sweet collaboration client tokens after a RemDo-owned
-  access decision.
+  access decision through `POST /api/documents/:docId/token`.
 - Current implementation: permissive for all requested documents.
 - Future role: enforce private/public/link-shared document access before token
   issuance.
+
+### Browser-facing collaboration paths
+
+- `POST /api/documents/:docId/token`: browser-facing token issuance path owned
+  by RemDo API.
+- `/d/*`: browser-facing Y-Sweet sync path used by issued client tokens.
+- Y-Sweet document-control routes such as `/doc*` are not routed through the
+  app gateway.
 
 ## Collaboration Runtime Building Blocks
 

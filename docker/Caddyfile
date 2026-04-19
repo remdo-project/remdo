@@ -76,17 +76,13 @@
 				reverse_proxy 127.0.0.1:{env.REMDO_API_PORT}
 			}
 
-			handle /doc* {
-				import remdo_tinyauth
-				reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
-			}
-
 			handle /d/* {
 				import remdo_tinyauth
 				reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
 			}
 
-			handle {
+			@app_routes not path /api/* /d/* /doc*
+			handle @app_routes {
 				route {
 					import remdo_tinyauth
 					root * /srv/remdo
@@ -94,6 +90,8 @@
 					file_server
 				}
 			}
+
+			respond 404
 		}
 
 		handle {

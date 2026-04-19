@@ -20,10 +20,6 @@ const proxy = {
     changeOrigin: true,
     ws: true,
   },
-  '/doc': {
-    target: collabTarget,
-    changeOrigin: true,
-  },
 } as const;
 
 export function createViteSharedConfig() {
@@ -76,7 +72,6 @@ export function createViteSharedConfig() {
                   '/error',
                   '/resources',
                   '/api',
-                  '/doc',
                   '/d',
                 ].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
               },
@@ -90,7 +85,7 @@ export function createViteSharedConfig() {
               },
             },
             {
-              urlPattern: ({ url }) => url.pathname.startsWith('/doc') || url.pathname.startsWith('/d/'),
+              urlPattern: ({ url }) => url.pathname.startsWith('/d/'),
               handler: 'NetworkOnly',
             },
             {
