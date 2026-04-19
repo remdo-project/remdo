@@ -6,6 +6,25 @@ import { onRollupWarning } from './config/_internal/vite/onRollupWarning';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = config.env.VITEST_PREVIEW;
+const host = config.env.HOST;
+const remdoApiTarget = `http://${host}:${config.env.REMDO_API_PORT}`;
+const collabTarget = `http://${host}:${config.env.COLLAB_CLIENT_PORT}`;
+const proxy = {
+  '/api/documents': {
+    target: remdoApiTarget,
+    changeOrigin: true,
+    xfwd: true,
+  },
+  '/d': {
+    target: collabTarget,
+    changeOrigin: true,
+    ws: true,
+  },
+  '/doc': {
+    target: collabTarget,
+    changeOrigin: true,
+  },
+} as const;
 
 export function createViteSharedConfig() {
   return {
@@ -83,33 +102,23 @@ export function createViteSharedConfig() {
       }),
     ],
     server: {
-      host: config.env.HOST,
+      host,
       port: config.env.PORT,
       strictPort: true,
       watch: {
         ignored: ['**/data/**'],
       },
       allowedHosts: true as const,
-      proxy: {
-        '/doc': {
-          target: `http://${config.env.HOST}:${config.env.COLLAB_CLIENT_PORT}`,
-          changeOrigin: true,
-        },
-      },
+      proxy,
       hmr: isPreviewSession ? undefined : {
         port: config.env.HMR_PORT,
       },
     },
     preview: {
-      host: config.env.HOST,
+      host,
       port: config.env.PREVIEW_PORT,
       strictPort: true,
-      proxy: {
-        '/doc': {
-          target: `http://${config.env.HOST}:${config.env.COLLAB_CLIENT_PORT}`,
-          changeOrigin: true,
-        },
-      },
+      proxy,
     },
     assetsInclude: ['**/*.ysweet'],
     define: Object.fromEntries(

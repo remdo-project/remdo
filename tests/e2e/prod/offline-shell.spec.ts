@@ -5,6 +5,7 @@ import {
   allowOfflineDisconnectedConsoleIssue,
   cleanupOfflineTest,
   loginThroughTinyauthIfNeeded,
+  waitForEditableEditor,
   waitForServiceWorkerControl,
 } from './_support/helpers';
 
@@ -68,8 +69,8 @@ test.describe('Offline app shell', () => {
 
     await page.goto(`/n/${docId}`);
     await loginThroughTinyauthIfNeeded(page);
+    await waitForEditableEditor(page);
     const editorInput = page.locator('.editor-input').first();
-    await editorInput.waitFor({ state: 'visible' });
     await editorInput.click();
     await page.keyboard.type(onlineSeedText);
     await expect(page.locator('li.list-item').filter({ hasText: onlineSeedText })).toHaveCount(1);
@@ -86,8 +87,8 @@ test.describe('Offline app shell', () => {
       detachOfflineGuards = attachPageGuards(offlinePage);
       allowOfflineDisconnectedConsoleIssue(offlinePage);
       await offlinePage.goto(`/n/${docId}`);
+      await waitForEditableEditor(offlinePage);
       const offlineEditorInput = offlinePage.locator('.editor-input').first();
-      await expect(offlineEditorInput).toBeVisible();
       await expect(offlinePage.locator('li.list-item').filter({ hasText: onlineSeedText })).toHaveCount(1);
 
       await offlineEditorInput.click();

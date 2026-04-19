@@ -147,14 +147,15 @@ const rawDocId = cliDocId ?? config.env.COLLAB_DOCUMENT_ID;
 const docId = normalizeNoteIdOrThrow(rawDocId, `Invalid document id: ${rawDocId}`);
 const targetFile = resolveSnapshotPath(command, docId, filePath);
 const collabOrigin = `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
+const collabApiOrigin = `http://${config.env.HOST}:${config.env.REMDO_API_PORT}`;
 
 try {
   if (command === 'save') {
-    await runSave(docId, collabOrigin, targetFile, markdownPath, minify);
+    await runSave(docId, collabOrigin, collabApiOrigin, targetFile, markdownPath, minify);
   } else if (command === 'load') {
-    await runLoad(docId, collabOrigin, targetFile);
+    await runLoad(docId, collabOrigin, collabApiOrigin, targetFile);
   } else {
-    await runBackup(docId, collabOrigin, targetFile, markdownPath, minify);
+    await runBackup(docId, collabOrigin, collabApiOrigin, targetFile, markdownPath, minify);
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
@@ -205,11 +206,12 @@ function resolveSnapshotPath(
 async function runSave(
   docId: string,
   collabOrigin: string,
+  collabApiOrigin: string,
   filePath: string,
   markdownPath: string | null,
   minify: boolean
 ): Promise<void> {
-  await withSession(docId, collabOrigin, async (editor) => {
+  await withSession(docId, collabOrigin, collabApiOrigin, async (editor) => {
     const editorState = editor.getEditorState().toJSON();
     const persistedState = prepareEditorStateForPersistence(editorState, docId);
     const payload = minify ? stripEditorStateDefaults(persistedState) : persistedState;
@@ -240,18 +242,24 @@ async function runSave(
 async function runBackup(
   docId: string,
   collabOrigin: string,
+  collabApiOrigin: string,
   filePath: string,
   markdownPath: string | null,
   minify: boolean
 ): Promise<void> {
-  await runSave(docId, collabOrigin, filePath, markdownPath, minify);
+  await runSave(docId, collabOrigin, collabApiOrigin, filePath, markdownPath, minify);
 }
 
-async function runLoad(docId: string, collabOrigin: string, filePath: string): Promise<void> {
+async function runLoad(
+  docId: string,
+  collabOrigin: string,
+  collabApiOrigin: string,
+  filePath: string,
+): Promise<void> {
   const raw = JSON.parse(fs.readFileSync(filePath, 'utf8')) as SerializedEditorState;
   const restored = restoreEditorStateDefaults(raw);
   const data = prepareEditorStateForRuntime(restored, docId);
-  await withSession(docId, collabOrigin, async (editor, { session }) => {
+  await withSession(docId, collabOrigin, collabApiOrigin, async (editor, { session }) => {
     const done = waitForEditorUpdate(editor);
     editor.setEditorState(editor.parseEditorState(data), { tag: 'snapshot-load' });
     await done;
@@ -264,12 +272,13 @@ async function runLoad(docId: string, collabOrigin: string, filePath: string): P
 async function withSession(
   docId: string,
   collabOrigin: string,
+  collabApiOrigin: string,
   run: (editor: LexicalEditor, context: SessionContext) => Promise<void> | void,
   options: SessionOptions = {}
 ): Promise<void> {
   const hydrateFromYjs = options.hydrateFromYjs ?? true;
   const docMap = new Map<string, Doc>();
-  const session = new CollabSession({ enabled: true, docId, origin: collabOrigin });
+  const session = new CollabSession({ enabled: true, docId, origin: collabOrigin, apiOrigin: collabApiOrigin });
   session.attach(docMap);
   const attached = await waitForSessionAttachment(session, docMap, docId);
   const provider = attached.provider as SnapshotProviderWithWebSocket;

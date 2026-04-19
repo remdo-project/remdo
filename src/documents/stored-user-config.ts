@@ -224,8 +224,9 @@ function readUserConfigDocuments(root: Y.Map<Y.Array<Y.Map<unknown>>>) {
 async function createStoredUserConfigContext(): Promise<StoredUserConfigContext> {
   const docId = getUserConfigDocId();
   const origin = resolveCollabOrigin();
+  const apiOrigin = resolveCollabApiOrigin();
   const docMap = new Map<string, Y.Doc>();
-  const session = new CollabSession({ enabled: true, docId, origin });
+  const session = new CollabSession({ enabled: true, docId, origin, apiOrigin });
   try {
     session.attach(docMap);
 
@@ -289,7 +290,14 @@ function resolveCollabOrigin(): string {
   if (typeof location !== 'undefined' && location.origin && location.origin !== 'null') {
     return location.origin;
   }
-  return `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
+  return `http://${config.env.HOST}:${config.env.PORT}`;
+}
+
+function resolveCollabApiOrigin(): string {
+  if (typeof location !== 'undefined' && location.origin && location.origin !== 'null') {
+    return location.origin;
+  }
+  return `http://${config.env.HOST}:${config.env.REMDO_API_PORT}`;
 }
 
 const store = new StoredUserConfigStore();

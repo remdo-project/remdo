@@ -24,12 +24,12 @@ describe('user config doc id', () => {
     (globalThis as typeof globalThis & {
       [REMDO_E2E_TEST_RUNTIME_GLOBAL]?: { userConfigDocId: string };
     })[REMDO_E2E_TEST_RUNTIME_GLOBAL] = {
-      userConfigDocId: '__remdo_user_config__runtimeOwned',
+      userConfigDocId: 'usercfgruntimeOwn',
     };
 
     const { getUserConfigDocId } = await import('@/documents/user-config-doc-id');
 
-    expect(getUserConfigDocId()).toBe('__remdo_user_config__runtimeOwned');
+    expect(getUserConfigDocId()).toBe('usercfgruntimeOwn');
   });
 
   it('falls back to an in-memory e2e doc id without touching sessionStorage', async () => {
@@ -43,7 +43,7 @@ describe('user config doc id', () => {
     const second = getUserConfigDocId();
 
     expect(first).toBe(second);
-    expect(first.startsWith(`${USER_CONFIG_DOC_ID}__`)).toBe(true);
+    expect(first.startsWith(USER_CONFIG_DOC_ID)).toBe(true);
     expect(getItemSpy).not.toHaveBeenCalled();
     expect(setItemSpy).not.toHaveBeenCalled();
   });

@@ -27,11 +27,19 @@ COPY tools ./tools
 RUN pnpm install --frozen-lockfile --prod \
   && NODE_ENV=production ./tools/env.sh pnpm run build
 
-# Bundle snapshot tool for runtime backups (no pnpm dependency in runner).
+# Bundle server tools for runtime use (no pnpm dependency in runner).
 RUN mkdir -p /usr/local/bin \
   && SNAPSHOT_BANNER=$(printf '%s\n%s' \
     '#!/usr/bin/env node' \
     'import { createRequire as __createRequire } from "module"; const require = __createRequire(import.meta.url);') \
+  && pnpm dlx esbuild tools/remdo-api-server.ts \
+    --platform=node \
+    --format=esm \
+    --bundle \
+    --target=node22 \
+    --tsconfig=tsconfig.json \
+    --banner:js="$SNAPSHOT_BANNER" \
+    --outfile=/usr/local/bin/remdo-api-server.mjs \
   && pnpm dlx esbuild tools/snapshot.ts \
     --platform=node \
     --format=esm \
@@ -73,10 +81,12 @@ COPY --from=builder /app/data/dist /srv/remdo
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh
+COPY --from=builder /usr/local/bin/remdo-api-server.mjs /usr/local/bin/remdo-api-server.mjs
 COPY --from=builder /usr/local/bin/snapshot.mjs /usr/local/bin/snapshot.mjs
 COPY --from=tinyauth /tinyauth/tinyauth /usr/local/bin/tinyauth
 
 RUN chmod +x /entrypoint.sh
+RUN chmod +x /usr/local/bin/remdo-api-server.mjs
 RUN chmod +x /usr/local/bin/snapshot.mjs
 RUN chmod +x /usr/local/bin/tinyauth
 

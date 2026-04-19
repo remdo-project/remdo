@@ -64,6 +64,14 @@ export function createEditorDocumentPath(docId: string, noteId: string | null = 
   return createDocumentPathWithPrefix(EDITOR_E2E_DOCUMENT_PATH_PREFIX, docId, noteId);
 }
 
+export function createDocumentTokenApiPath(docId: string): string {
+  const normalizedDocId = normalizeNoteIdOrThrow(
+    docId,
+    'createDocumentTokenApiPath requires a valid document id.',
+  );
+  return `/api/documents/${encodeURIComponent(normalizedDocId)}/token`;
+}
+
 function resolveDocumentPathPrefix(pathname: string): string {
   if (pathname.startsWith(`${EDITOR_E2E_DOCUMENT_PATH_PREFIX}/`)) {
     return EDITOR_E2E_DOCUMENT_PATH_PREFIX;

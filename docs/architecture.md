@@ -29,11 +29,22 @@ Delivery surface choice must not alter outliner semantics.
 Single HTTP entrypoint that can:
 
 1. serve the SPA
-2. proxy collaboration endpoints to the hub
-3. optionally expose auth endpoints
+2. route RemDo API endpoints
+3. proxy collaboration endpoints to the hub
+4. optionally expose auth endpoints
 
 Using a gateway keeps origin/routing behavior simple and reduces CORS/auth
 drift between app and collab endpoints.
+
+### RemDo API boundary
+
+App-owned HTTP surface that sits in front of collaboration infrastructure.
+
+- Current role: issue Y-Sweet collaboration client tokens after a RemDo-owned
+  access decision.
+- Current implementation: permissive for all requested documents.
+- Future role: enforce private/public/link-shared document access before token
+  issuance.
 
 ## Collaboration Runtime Building Blocks
 

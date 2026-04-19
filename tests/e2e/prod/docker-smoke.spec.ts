@@ -1,5 +1,5 @@
 import { expect, test } from '#e2e/fixtures';
-import { loginThroughTinyauthIfNeeded } from './_support/helpers';
+import { loginThroughTinyauthIfNeeded, waitForEditableEditor } from './_support/helpers';
 
 const DOCKER_SMOKE_DOC_ID = 'dockerSmoke';
 
@@ -8,8 +8,8 @@ test('user can enter notes and see them rendered', async ({ page }) => {
   // so we seed content via real typing instead of fixture loads.
   await page.goto(`/n/${DOCKER_SMOKE_DOC_ID}`);
   await loginThroughTinyauthIfNeeded(page);
+  await waitForEditableEditor(page);
   const editorInput = page.locator('.editor-input').first();
-  await editorInput.waitFor({ state: 'visible' });
   await editorInput.click();
 
   await page.keyboard.type('note1');

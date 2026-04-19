@@ -21,7 +21,7 @@ class TestRuntimeScope {
 
   allocateDocId(kind: TestRuntimeDocKind): string {
     const docId = kind === 'user-config'
-      ? `${USER_CONFIG_DOC_ID}__${createUniqueNoteId()}`
+      ? `${USER_CONFIG_DOC_ID}${createUniqueNoteId()}`
       : createUniqueNoteId();
     return this.ownDocId(docId);
   }

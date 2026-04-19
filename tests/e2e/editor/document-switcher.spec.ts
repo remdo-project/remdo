@@ -27,6 +27,7 @@ test.describe('Document switcher', () => {
     await page.getByRole('option', { name: 'Main', exact: true }).click();
     await expect(page).toHaveURL(createEditorDocumentPath('main'));
     await editorLocator(page).locator('.editor-input').first().waitFor();
+    await ensureReady(page);
     await waitForSynced(page);
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
 
@@ -34,6 +35,7 @@ test.describe('Document switcher', () => {
     await page.getByRole('option', { name: 'New Document', exact: true }).first().click();
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
     await editorLocator(page).locator('.editor-input').first().waitFor();
+    await ensureReady(page);
     await waitForSynced(page);
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' })).toHaveCount(0);
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
