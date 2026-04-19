@@ -30,19 +30,19 @@ overrides:
   table>ajv: 8.18.0
 
 catalog:
-  '@antfu/eslint-config': 8.0.0
+  '@antfu/eslint-config': 8.2.0
   '@ast-grep/cli': ^0.42.1
   '@eslint-react/eslint-plugin': ^3.0.0
-  '@lexical/clipboard': ^0.42.0
-  '@lexical/eslint-plugin': ^0.42.0
-  '@lexical/link': ^0.42.0
-  '@lexical/list': ^0.42.0
-  '@lexical/markdown': ^0.42.0
-  '@lexical/react': ^0.42.0
-  '@lexical/utils': ^0.42.0
-  '@lexical/yjs': ^0.42.0
-  '@mantine/core': ^9.0.1
-  '@mantine/hooks': ^9.0.1
+  '@lexical/clipboard': ^0.43.0
+  '@lexical/eslint-plugin': ^0.43.0
+  '@lexical/link': ^0.43.0
+  '@lexical/list': ^0.43.0
+  '@lexical/markdown': ^0.43.0
+  '@lexical/react': ^0.43.0
+  '@lexical/utils': ^0.43.0
+  '@lexical/yjs': ^0.43.0
+  '@mantine/core': ^9.0.2
+  '@mantine/hooks': ^9.0.2
   '@playwright/test': ^1.59.1
   '@tabler/icons-react': ^3.41.1
   '@testing-library/jest-dom': ^6.9.1
@@ -50,42 +50,42 @@ catalog:
   '@types/estree': ^1.0.8
   '@types/jsdom': ^28.0.1
   '@types/linkify-it': ^5.0.0
-  '@types/node': ^25.5.2
+  '@types/node': ^25.6.0
   '@types/react': ^19.2.14
   '@types/react-dom': ^19.2.3
   '@types/ws': ^8.18.1
-  '@vitest/coverage-v8': 4.1.2
-  '@vitest/ui': 4.1.2
+  '@vitest/coverage-v8': 4.1.4
+  '@vitest/ui': 4.1.4
   '@y-sweet/client': ^0.9.1
   '@y-sweet/sdk': ^0.9.1
   chokidar-cli: ^3.0.0
   concurrently: ^9.2.1
   cross-env: ^10.1.0
   csstree-validator: ^4.0.1
-  eslint: ^10.2.0
+  eslint: ^10.2.1
   eslint-plugin-compat: ^7.0.1
   eslint-plugin-react-refresh: ^0.5.2
   eslint-plugin-unicorn: ^64.0.0
   jiti: ^2.6.1
-  jscpd: ^4.0.8
-  jsdom: ^29.0.1
-  knip: ^6.3.0
-  lexical: ^0.42.0
+  jscpd: ^4.0.9
+  jsdom: ^29.0.2
+  knip: ^6.4.1
+  lexical: ^0.43.0
   linkify-it: ^5.0.0
   markdownlint-cli2: ^0.22.0
-  nanoid: ^5.1.7
+  nanoid: ^5.1.9
   playwright: ^1.59.1
-  react: ^19.2.4
-  react-dom: ^19.2.4
-  react-router-dom: ^7.14.0
-  stylelint: ^17.6.0
+  react: ^19.2.5
+  react-dom: ^19.2.5
+  react-router-dom: ^7.14.1
+  stylelint: ^17.8.0
   stylelint-config-recommended: ^18.0.0
   tlds: ^1.261.0
   tsx: ^4.21.0
-  typescript: ^6.0.2
+  typescript: ^6.0.3
   vite: ^7.3.2
   vite-plugin-pwa: ^1.2.0
-  vitest: 4.1.2
+  vitest: 4.1.4
   vitest-preview: ^0.0.3
   workbox-window: ^7.4.0
   ws: 8.20.0
