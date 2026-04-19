@@ -59,6 +59,7 @@ crond -l 2 -L /var/log/cron.log
 COLLAB_DATA_DIR="${DATA_DIR%/}/collab"
 mkdir -p "$COLLAB_DATA_DIR"
 y-sweet serve --host 0.0.0.0 --port "${COLLAB_SERVER_PORT}" "$COLLAB_DATA_DIR" &
+node /usr/local/bin/remdo-api-server.mjs &
 
 # 14 days = 14 * 24 * 60 * 60 = 1,209,600 seconds.
 # FIXME: Tinyauth shows an "Invalid Domain" UI warning when the browser host differs

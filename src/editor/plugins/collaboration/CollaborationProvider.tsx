@@ -55,12 +55,21 @@ function useCollaborationRuntimeValue({ docId }: { docId: string }): Collaborati
     if (location.origin && location.origin !== 'null') {
       return location.origin;
     }
-    return `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
+    return `http://${config.env.HOST}:${config.env.PORT}`;
+  }, []);
+  const resolvedApiOrigin = useMemo(() => {
+    if (config.env.NODE_ENV === 'test') {
+      return `http://${config.env.HOST}:${config.env.REMDO_API_PORT}`;
+    }
+    if (location.origin && location.origin !== 'null') {
+      return location.origin;
+    }
+    return `http://${config.env.HOST}:${config.env.PORT}`;
   }, []);
 
   const session = useMemo(
-    () => new CollabSession({ origin: resolvedOrigin, enabled, docId: resolvedDocId }),
-    [resolvedOrigin, enabled, resolvedDocId]
+    () => new CollabSession({ origin: resolvedOrigin, apiOrigin: resolvedApiOrigin, enabled, docId: resolvedDocId }),
+    [resolvedApiOrigin, resolvedOrigin, enabled, resolvedDocId]
   );
 
   useEffect(() => () => session.destroy(), [session]);

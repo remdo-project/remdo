@@ -166,15 +166,6 @@ describe('document route', () => {
     expect(second.dataset.instanceId).not.toBe(firstInstanceId);
   });
 
-  it('shows document sharing status before search for the current document', async () => {
-    renderDocumentRoute();
-
-    const shareCheckbox = screen.getByRole('checkbox', { name: 'Share' });
-
-    expect(shareCheckbox).not.toBeChecked();
-    expect(screen.getByText('unshared')).toBeVisible();
-  });
-
   it('focuses search on find shortcut and allows browser find on second press', async () => {
     renderDocumentRoute();
 

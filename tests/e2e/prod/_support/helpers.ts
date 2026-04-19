@@ -1,5 +1,5 @@
 import type { Page } from '#e2e/fixtures';
-import { setExpectedConsoleIssues } from '#e2e/fixtures';
+import { expect, setExpectedConsoleIssues } from '#e2e/fixtures';
 import type { BrowserContext } from '@playwright/test';
 import process from 'node:process';
 
@@ -39,6 +39,12 @@ export async function waitForServiceWorkerControl(page: Page): Promise<void> {
   });
   await page.reload();
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+}
+
+export async function waitForEditableEditor(page: Page): Promise<void> {
+  const editorInput = page.locator('.editor-input').first();
+  await editorInput.waitFor({ state: 'visible' });
+  await expect(editorInput).toHaveAttribute('contenteditable', 'true');
 }
 
 export function allowOfflineDisconnectedConsoleIssue(page: Page): void {

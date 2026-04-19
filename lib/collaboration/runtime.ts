@@ -1,6 +1,7 @@
 import type { Provider } from '@lexical/yjs';
 import { createYjsProvider } from '@y-sweet/client';
 import type { ClientToken } from '@y-sweet/sdk';
+import { createDocumentTokenApiPath } from '@/routing';
 import { trace } from '#lib/log';
 import { resolveLoopbackHost } from '#lib/net/loopback';
 import { guardYSweetIndexedDbProviderLifecycle } from './y-sweet-indexeddb-lifecycle';
@@ -57,8 +58,7 @@ export function toCollaborationConnectionStatus(
   return status === 'offline' ? 'disconnected' : status;
 }
 
-const docInitPromises = new Map<string, Promise<void>>();
-const docAuthInFlight = new Map<string, Promise<ClientToken>>();
+const docTokenInFlight = new Map<string, Promise<ClientToken>>();
 
 export interface LocalPersistenceSupportDecision {
   enabled: boolean;
@@ -146,8 +146,16 @@ function tryDeleteIndexedDbProbe(indexedDb: IDBFactory) {
   }
 }
 
-export function createProviderFactory(origin?: string): ProviderFactory {
-  const resolveEndpoints = createEndpointResolver(origin);
+interface CollaborationEndpointOptions {
+  apiOrigin?: string;
+  visibleOrigin?: string;
+}
+
+export function createProviderFactory({
+  apiOrigin,
+  visibleOrigin,
+}: CollaborationEndpointOptions = {}): ProviderFactory {
+  const resolveEndpoints = createEndpointResolver(apiOrigin);
 
   return async (id: string, docMap: Map<string, Y.Doc>) => {
     let doc = docMap.get(id);
@@ -164,7 +172,7 @@ export function createProviderFactory(origin?: string): ProviderFactory {
     const endpoints = resolveEndpoints(id);
 
     const authEndpoint = async () => {
-      const token = await getAuthToken(id, endpoints);
+      const token = await getAuthToken(id, endpoints, visibleOrigin);
       return rewriteTokenHost(token);
     };
 
@@ -209,88 +217,33 @@ export function createProviderFactory(origin?: string): ProviderFactory {
 }
 
 function createEndpointResolver(origin?: string) {
-  const basePath = '/doc';
   const normalizedOrigin = origin ? origin.replace(TRAILING_SLASH_PATTERN, '') : '';
-  const base = normalizedOrigin ? `${normalizedOrigin}${basePath}` : basePath;
+  const base = normalizedOrigin;
 
   return (docId: string) => {
-    const encodedId = encodeURIComponent(docId);
     return {
-      auth: `${base}/${encodedId}/auth`,
-      create: `${base}/new`,
+      token: `${base}${createDocumentTokenApiPath(docId)}`,
     };
   };
 }
 
-const RETRYABLE_HTTP_STATUSES = new Set([429]);
-
-function isRetriableStatus(status: number): boolean {
-  return status >= 500 || RETRYABLE_HTTP_STATUSES.has(status);
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function ensureDocInitialized(docId: string, createEndpoint: string): Promise<void> {
-  const existing = docInitPromises.get(docId);
-  if (existing) {
-    return existing;
-  }
-
-  // TODO: Remove client-side doc creation once the auth endpoint performs getOrCreate server-side.
-  const promise = (async () => {
-    const maxAttempts = 3;
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      const response = await fetch(createEndpoint, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ docId }),
-      });
-      if (response.ok) {
-        return;
-      }
-      const error = new Error(`Failed to create doc ${docId}: ${response.status} ${response.statusText}`);
-      if (!isRetriableStatus(response.status) || attempt === maxAttempts) {
-        throw error;
-      }
-      await sleep(100 * attempt);
-    }
-  })().catch((error) => {
-    docInitPromises.delete(docId);
-    throw error;
-  });
-
-  docInitPromises.set(docId, promise);
-  return promise;
-}
-
-function getAuthToken(docId: string, endpoints: { auth: string; create: string }): Promise<ClientToken> {
-  const existing = docAuthInFlight.get(docId);
+function getAuthToken(
+  docId: string,
+  endpoints: { token: string },
+  visibleOrigin?: string,
+): Promise<ClientToken> {
+  const existing = docTokenInFlight.get(docId);
   if (existing) {
     return existing;
   }
 
   const promise = (async () => {
     trace('collab', 'requesting auth token', { docId });
-    await ensureDocInitialized(docId, endpoints.create);
-
-    const requestAuth = async () =>
-      fetch(endpoints.auth, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ docId }),
-      });
-
-    let response = await requestAuth();
-    if (response.status === 404) {
-      trace('collab', 'doc missing during auth; recreating', { docId });
-      // If the server dropped the doc, ensure we re-run creation instead of reusing
-      // the successful cached init promise.
-      docInitPromises.delete(docId);
-      await ensureDocInitialized(docId, endpoints.create);
-      response = await requestAuth();
-    }
+    const response = await fetch(endpoints.token, {
+      method: 'POST',
+      headers: createTokenRequestHeaders(endpoints.token, visibleOrigin),
+      body: JSON.stringify({ docId }),
+    });
 
     if (!response.ok) {
       trace('collab', 'auth token request failed', { docId, status: response.status });
@@ -301,10 +254,27 @@ function getAuthToken(docId: string, endpoints: { auth: string; create: string }
     return (await response.json()) as ClientToken;
   })();
 
-  docAuthInFlight.set(docId, promise);
+  docTokenInFlight.set(docId, promise);
   return promise.finally(() => {
-    docAuthInFlight.delete(docId);
+    docTokenInFlight.delete(docId);
   });
+}
+
+function createTokenRequestHeaders(endpoint: string, visibleOrigin?: string): HeadersInit {
+  const headers = new Headers({ 'content-type': 'application/json' });
+  if (!visibleOrigin) {
+    return headers;
+  }
+
+  const endpointUrl = new URL(endpoint, typeof location === 'undefined' ? 'http://localhost' : location.origin);
+  const browserVisibleUrl = new URL(visibleOrigin);
+  if (endpointUrl.origin === browserVisibleUrl.origin) {
+    return headers;
+  }
+
+  headers.set('x-forwarded-proto', browserVisibleUrl.protocol.slice(0, -1));
+  headers.set('x-forwarded-host', browserVisibleUrl.host);
+  return headers;
 }
 
 function rewriteTokenHost(token: ClientToken): ClientToken {

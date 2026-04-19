@@ -86,7 +86,7 @@ describe('stored user config', () => {
 
         attach(docMap: Map<string, Y.Doc>) {
           docMap.set(
-            '__remdo_user_config__',
+            'usercfg',
             this.sessionNumber === 1
               ? new Y.Doc()
               : createUserConfigDoc([{ id: 'recovered-doc', title: 'Recovered Document' }]),
@@ -167,7 +167,7 @@ describe('stored user config', () => {
         }
 
         attach(docMap: Map<string, Y.Doc>) {
-          docMap.set('__remdo_user_config__', new Y.Doc());
+          docMap.set('usercfg', new Y.Doc());
         }
 
         getProvider() {
@@ -234,7 +234,7 @@ describe('stored user config', () => {
         }
 
         attach(docMap: Map<string, Y.Doc>) {
-          docMap.set('__remdo_user_config__', new Y.Doc());
+          docMap.set('usercfg', new Y.Doc());
         }
 
         getProvider() {

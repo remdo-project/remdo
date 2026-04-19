@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createDocumentPath,
+  createDocumentTokenApiPath,
   createNoteRef,
   normalizeDocumentId,
   parseDocumentRef,
@@ -12,6 +13,7 @@ import {
 describe('routing note refs', () => {
   it('creates and parses root document refs', () => {
     expect(createDocumentPath('main')).toBe('/n/main');
+    expect(createDocumentTokenApiPath('main')).toBe('/api/documents/main/token');
     expect(parseDocumentRef('main')).toEqual({ docId: 'main', noteId: null });
   });
 
@@ -39,6 +41,7 @@ describe('routing note refs', () => {
 
   it('throws when creating paths from invalid ids', () => {
     expect(() => createDocumentPath('bad doc')).toThrow();
+    expect(() => createDocumentTokenApiPath('bad doc')).toThrow();
     expect(() => createDocumentPath('main', 'bad note')).toThrow();
     expect(() => createDocumentPath('main', '')).toThrow();
   });

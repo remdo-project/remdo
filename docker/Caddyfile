@@ -71,6 +71,11 @@
 				respond 204
 			}
 
+			handle /api/documents/* {
+				import remdo_tinyauth
+				reverse_proxy 127.0.0.1:{env.REMDO_API_PORT}
+			}
+
 			handle /doc* {
 				import remdo_tinyauth
 				reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}

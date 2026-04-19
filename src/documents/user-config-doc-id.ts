@@ -1,7 +1,7 @@
 import { createUniqueNoteId } from '#lib/editor/note-ids';
 import { getInjectedE2EUserConfigDocId } from '@/testing/e2e-runtime';
 
-export const USER_CONFIG_DOC_ID = '__remdo_user_config__';
+export const USER_CONFIG_DOC_ID = 'usercfg';
 
 let resolvedUserConfigDocId: string | null = null;
 let fallbackE2EUserConfigDocId: string | null = null;
@@ -21,6 +21,6 @@ function resolveUserConfigDocId(): string {
     return injectedDocId;
   }
 
-  fallbackE2EUserConfigDocId ??= `${USER_CONFIG_DOC_ID}__${createUniqueNoteId()}`;
+  fallbackE2EUserConfigDocId ??= `${USER_CONFIG_DOC_ID}${createUniqueNoteId()}`;
   return fallbackE2EUserConfigDocId;
 }

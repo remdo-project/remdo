@@ -48,6 +48,8 @@ For each run mode, the important questions are:
   4. optional: `PORT`
   5. the script prints the browser URL before startup; use that URL
   6. local Docker uses self-signed HTTPS by default
+  7. current server runtime runs both the RemDo API process and the Y-Sweet
+     collaboration server behind the same authenticated gateway
 
 ### Managed cloud app server
 
@@ -63,6 +65,8 @@ For each run mode, the important questions are:
   3. the service listens on `:${PORT}` and Render terminates public HTTPS
   4. preview or staging services must set `TINYAUTH_APP_URL` manually
   5. backup workflow for hosted prod is still undefined
+  6. current server runtime runs both the RemDo API process and the Y-Sweet
+     collaboration server behind the same authenticated gateway
 
 ## Development and verification modes
 
@@ -73,7 +77,8 @@ For each run mode, the important questions are:
 - Platform: local machine.
 - Data boundary: local repo-owned development data.
 - Notes: most local runs can stay on defaults; copy `.env.example` to `.env`
-  only when overrides are needed.
+  only when overrides are needed. Current dev mode runs the web app, RemDo API
+  server, Y-Sweet collaboration server, and preview helper together.
 
 ### Unit and collab tests
 
