@@ -64,15 +64,15 @@ For each run mode, the important questions are:
 
 ## Local self-hosted app
 
-- Purpose: run RemDo as a local production app on the user's own machine.
-- User: self-hosting operator.
+- Purpose: run RemDo as an installed local app on the end user's own machine.
+- User: end user.
 - Platform: user-controlled local machine.
-- Data boundary: user-controlled local storage.
+- Data boundary: local documents stay on the user's own machine.
 - Notes:
-  1. required: `AUTH_PASSWORD`
-  2. optional: `PORT`
-  3. if `TINYAUTH_APP_URL` is overridden, browser access must use that same
-     host
+  1. Local document use in this mode does not require cloud access or server-side auth.
+  2. The client may still access remote documents hosted by self-hosted app server
+     or managed cloud app server modes.
+  3. Packaging and installation shape are implementation details for this mode.
 
 ## Self-hosted app server
 
