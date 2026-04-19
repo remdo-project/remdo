@@ -21,48 +21,9 @@ For each run mode, the important questions are:
 4. on what kind of platform
 5. what data boundary it uses
 
-## Local development
+## End-user app modes
 
-- Purpose: interactive development of the app and supporting local services.
-- User: developer.
-- Platform: local machine.
-- Data boundary: local repo-owned development data.
-- Notes: most local runs can stay on defaults; copy `.env.example` to `.env`
-  only when overrides are needed.
-
-## Unit and collab tests
-
-- Purpose: fast automated verification in the local test stack.
-- User: developer.
-- Platform: local machine.
-- Data boundary: local ephemeral or resettable test data.
-- Notes: this mode covers the fast local test stack.
-
-## Browser E2E
-
-- Purpose: browser-level verification against the local app stack.
-- User: developer.
-- Platform: local machine.
-- Data boundary: local runtime and test data.
-- Notes: this mode uses its own browser/runtime stack.
-
-## Docker prod E2E
-
-- Purpose: end-to-end verification against the production-style Docker stack.
-- User: developer.
-- Platform: local machine with Docker.
-- Data boundary: temporary Docker-managed test data.
-- Notes: requires a local Docker daemon.
-
-## CI
-
-- Purpose: automated verification in non-local infrastructure.
-- User: project automation.
-- Platform: CI runner.
-- Data boundary: runner-local temporary data.
-- Notes: this mode runs RemDo in the CI stack.
-
-## Local self-hosted app
+### Local self-hosted app
 
 - Purpose: run RemDo as an installed local app on the end user's own machine.
 - User: end user.
@@ -74,7 +35,7 @@ For each run mode, the important questions are:
      or managed cloud app server modes.
   3. Packaging and installation shape are implementation details for this mode.
 
-## Self-hosted app server
+### Self-hosted app server
 
 - Purpose: run RemDo as a self-hosted server that can be reached from other machines.
 - User: self-hosting operator.
@@ -88,7 +49,7 @@ For each run mode, the important questions are:
   5. the script prints the browser URL before startup; use that URL
   6. local Docker uses self-signed HTTPS by default
 
-## Managed cloud app server
+### Managed cloud app server
 
 - Purpose: app runtime on a third-party platform account.
 - User: operator with a managed cloud account.
@@ -103,7 +64,52 @@ For each run mode, the important questions are:
   4. preview or staging services must set `TINYAUTH_APP_URL` manually
   5. backup workflow for hosted prod is still undefined
 
-## Backup/export job
+## Development and verification modes
+
+### Local development
+
+- Purpose: interactive development of the app and supporting local services.
+- User: developer.
+- Platform: local machine.
+- Data boundary: local repo-owned development data.
+- Notes: most local runs can stay on defaults; copy `.env.example` to `.env`
+  only when overrides are needed.
+
+### Unit and collab tests
+
+- Purpose: fast automated verification in the local test stack.
+- User: developer.
+- Platform: local machine.
+- Data boundary: local ephemeral or resettable test data.
+- Notes: this mode covers the fast local test stack.
+
+### Browser E2E
+
+- Purpose: browser-level verification against the local app stack.
+- User: developer.
+- Platform: local machine.
+- Data boundary: local runtime and test data.
+- Notes: this mode uses its own browser/runtime stack.
+
+### Docker prod E2E
+
+- Purpose: end-to-end verification against the production-style Docker stack.
+- User: developer.
+- Platform: local machine with Docker.
+- Data boundary: temporary Docker-managed test data.
+- Notes: requires a local Docker daemon.
+
+### CI
+
+- Purpose: automated verification in non-local infrastructure.
+- User: project automation.
+- Platform: CI runner.
+- Data boundary: runner-local temporary data.
+- Notes: this mode runs RemDo in the CI stack.
+
+## Operational modes
+
+### Backup/export job
 
 - Purpose: export or back up persisted RemDo data.
 - User: operator.
