@@ -21,6 +21,8 @@ For each access case, the important questions are:
 4. Access mode defines broad exposure.
 5. Explicit authenticated grants define identity-bound access beyond the broad
    access mode.
+6. Access mode is server-owned document metadata stored in the document
+   registry.
 
 ## Local-only app access
 

@@ -1,10 +1,13 @@
 import { Hono } from 'hono';
 import { normalizeDocumentId } from '@/routing';
+import { createDocumentRegistry } from './documents/document-registry';
+import type { DocumentRegistry } from './documents/document-registry';
 import { createDocumentManager, issueDocumentToken } from './collab-token';
 import type { DocumentTokenManager } from './collab-token';
 
 interface ServerAppOptions {
   manager?: DocumentTokenManager;
+  registry?: DocumentRegistry;
   logError?: (error: unknown, details: { docId?: string }) => void;
 }
 
@@ -15,11 +18,16 @@ function defaultLogError(error: unknown, details: { docId?: string }) {
   });
 }
 
-export function createServerApp({ manager = createDocumentManager(), logError = defaultLogError }: ServerAppOptions = {}) {
+export function createServerApp({
+  manager = createDocumentManager(),
+  registry = createDocumentRegistry(),
+  logError = defaultLogError,
+}: ServerAppOptions = {}) {
   const app = new Hono();
 
   app.get('/api/health', (c) =>
     c.json({
+      db: 'ok',
       ok: true,
     }));
 
@@ -30,7 +38,8 @@ export function createServerApp({ manager = createDocumentManager(), logError = 
     }
 
     try {
-      const result = await issueDocumentToken(manager, c.req.raw, normalizedDocId);
+      const document = await registry.ensureDocument(normalizedDocId);
+      const result = await issueDocumentToken(manager, c.req.raw, document);
       if (result.denied) {
         return c.json({ error: 'Document access denied.' }, 403);
       }

@@ -75,6 +75,8 @@ test.describe('Offline app shell', () => {
     await page.keyboard.type(onlineSeedText);
     await expect(page.locator('li.list-item').filter({ hasText: onlineSeedText })).toHaveCount(1);
     await waitForServiceWorkerControl(page);
+    await waitForEditableEditor(page);
+    await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
     await expect(page.locator('li.list-item').filter({ hasText: onlineSeedText })).toHaveCount(1);
     allowOfflineDisconnectedConsoleIssue(page);
     await page.close();
