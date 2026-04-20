@@ -1,6 +1,7 @@
 import { DocumentManager } from '@y-sweet/sdk';
 import type { ClientToken } from '@y-sweet/sdk';
 import { config } from '#config';
+import type { RegisteredDocument } from './documents/document-registry';
 import { rewriteTokenUrlsForRequest } from './token-url-rewrite';
 
 type DocumentAuthorization = 'full' | 'read-only';
@@ -8,6 +9,11 @@ type DocumentAuthorization = 'full' | 'read-only';
 interface DocumentAccessResolution {
   allowed: boolean;
   authorization: DocumentAuthorization;
+}
+
+interface ResolveDocumentAccessArgs {
+  document: RegisteredDocument;
+  request: Request;
 }
 
 export interface DocumentTokenManager {
@@ -25,8 +31,8 @@ function resolveYSweetConnectionString(): string {
   return config.env.YSWEET_CONNECTION_STRING;
 }
 
-async function resolveDocumentAccess(_docId: string): Promise<DocumentAccessResolution> {
-  // TODO: Enforce private/public/link-shared document access here once RemDo owns document ACL decisions.
+async function resolveDocumentAccess(_args: ResolveDocumentAccessArgs): Promise<DocumentAccessResolution> {
+  // TODO: Enforce private/public/link-shared access here.
   return {
     allowed: true,
     authorization: 'full',
@@ -36,14 +42,14 @@ async function resolveDocumentAccess(_docId: string): Promise<DocumentAccessReso
 export async function issueDocumentToken(
   manager: DocumentTokenManager,
   request: Request,
-  docId: string,
+  document: RegisteredDocument,
 ): Promise<{ denied: true } | { denied: false; token: ClientToken }> {
-  const access = await resolveDocumentAccess(docId);
+  const access = await resolveDocumentAccess({ request, document });
   if (!access.allowed) {
     return { denied: true };
   }
 
-  const token = await manager.getOrCreateDocAndToken(docId, {
+  const token = await manager.getOrCreateDocAndToken(document.id, {
     authorization: access.authorization,
   });
 

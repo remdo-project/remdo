@@ -46,6 +46,19 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
 - Future role: enforce private/public/link-shared document access before token
   issuance.
 
+### Document registry
+
+Server-owned document metadata store used by RemDo API before issuing
+collaboration tokens.
+
+- Current role: ensure each requested document has authoritative metadata in
+  the registry before token issuance.
+- Current implementation: SQLite-backed `documents` table with `private`,
+  `public`, and `link-shared` access modes.
+- Data boundary: access-critical document metadata lives in the registry, while
+  collaborative document content and user workspace config may still live in
+  Yjs documents.
+
 ### Browser-facing collaboration paths
 
 - `POST /api/documents/:docId/token`: browser-facing token issuance path owned

@@ -84,9 +84,10 @@ For each run mode, the important questions are:
 - Data boundary: local repo-owned development data.
 - Notes: most local runs can stay on defaults; copy `.env.example` to `.env`
   only when overrides are needed. Current dev mode runs the web app, RemDo API
-  server, Y-Sweet collaboration server, and preview helper together. Browser
-  clients use the RemDo API token path plus `/d/*`; `/doc*` control routes are
-  not routed through the gateway.
+  server, Y-Sweet collaboration server, and preview helper together. Server
+  modes run the RemDo API with a SQLite-backed document registry whose current
+  access checks remain permissive. Browser clients use the RemDo API token path
+  plus `/d/*`; `/doc*` control routes are not routed through the gateway.
 
 ### Unit and collab tests
 

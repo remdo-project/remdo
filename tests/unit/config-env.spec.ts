@@ -24,7 +24,10 @@ describe('config env loading', () => {
   });
 
   it('keeps server-only collaboration env out of client config', () => {
-    const values: Partial<Record<'NODE_ENV' | 'REMDO_API_PORT' | 'YSWEET_CONNECTION_STRING', string>> = {
+    const values: Partial<Record<
+      'NODE_ENV' | 'REMDO_API_PORT' | 'YSWEET_CONNECTION_STRING',
+      string
+    >> = {
       NODE_ENV: 'test',
       REMDO_API_PORT: '4011',
       YSWEET_CONNECTION_STRING: 'ys://127.0.0.1:4004',
