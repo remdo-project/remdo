@@ -1,5 +1,6 @@
 import process from "node:process";
 import { config } from './config';
+import { VITEST_DEFAULT_TEST_TIMEOUT_MS } from './tests/unit/_support/timeouts';
 import { createViteSharedConfig } from './vite.shared';
 import { configDefaults, defineConfig } from 'vitest/config';
 
@@ -30,9 +31,9 @@ export default defineConfig({
       port: config.env.VITEST_PORT,
       strictPort: true,
     } : undefined,
-    testTimeout: 5000,
-    hookTimeout: 5000,
-    teardownTimeout: 5000,
+    testTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
+    hookTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
+    teardownTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
     coverage: {
       provider: 'v8' as const,
       reportsDirectory: 'data/coverage',

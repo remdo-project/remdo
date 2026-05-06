@@ -17,6 +17,8 @@ import { $resolveContentNoteFromDOMNode } from '@/editor/outline/note-context';
 import { requireContentItemFromNode } from '@/editor/outline/schema';
 import { installOutlineSelectionHelpers } from '@/editor/outline/selection/store';
 import { getNestedList } from '@/editor/outline/selection/tree';
+import { handleNoteMenuShortcut } from '@/editor/plugins/note-menu-shortcuts';
+import type { NoteMenuShortcutEvent } from '@/editor/plugins/note-menu-shortcuts';
 import { $resolveNoteStateFromDOMNode } from '@/editor/plugins/note-state';
 import { useZoomNoteId } from '@/editor/view/EditorViewProvider';
 
@@ -32,7 +34,7 @@ interface NoteMenuState {
 
 interface NoteMenuLayout extends Pick<NoteMenuState, 'left' | 'top'> {}
 type NoteMenuAnchor = NoteMenuLayout;
-type MenuShortcutEvent = Pick<KeyboardEvent, 'key' | 'altKey' | 'ctrlKey' | 'metaKey' | 'preventDefault' | 'stopPropagation'>;
+type MenuShortcutEvent = NoteMenuShortcutEvent;
 
 const DOUBLE_SHIFT_WINDOW_MS = 500;
 
@@ -139,33 +141,11 @@ export function NoteMenuPlugin() {
   };
 
   const handleMenuShortcut = (event: MenuShortcutEvent): boolean => {
-    const current = menuRef.current;
-    if (!current) {
-      return false;
-    }
-    if (event.altKey || event.ctrlKey || event.metaKey) {
-      return false;
-    }
-    const key = event.key.toLowerCase();
-    if (key >= '0' && key <= '9') {
-      event.preventDefault();
-      event.stopPropagation();
-      triggerFoldViewToLevel(Number(key));
-      return true;
-    }
-    if (key === 'f' && current.hasChildren && !current.isZoomRoot) {
-      event.preventDefault();
-      event.stopPropagation();
-      triggerFoldToggle();
-      return true;
-    }
-    if (key === 'z') {
-      event.preventDefault();
-      event.stopPropagation();
-      triggerZoom();
-      return true;
-    }
-    return false;
+    return handleNoteMenuShortcut(event, menuRef.current, {
+      foldViewToLevel: triggerFoldViewToLevel,
+      toggleFold: triggerFoldToggle,
+      zoom: triggerZoom,
+    });
   };
 
   menuShortcutHandlerRef.current = handleMenuShortcut;
