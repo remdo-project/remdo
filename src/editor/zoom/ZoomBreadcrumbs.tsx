@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Breadcrumbs } from '@mantine/core';
 import styles from './ZoomBreadcrumbs.module.css';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
+import { formatNavigationLabel } from '@/ui/navigation-label';
 
 interface ZoomBreadcrumbsProps {
   docLabel: string;
@@ -10,17 +11,8 @@ interface ZoomBreadcrumbsProps {
   onSelectNoteId: (noteId: string | null) => void;
 }
 
-const MAX_LABEL_LENGTH = 20;
-
-const truncateLabel = (label: string) => {
-  if (label.length <= MAX_LABEL_LENGTH) {
-    return label;
-  }
-  return `${label.slice(0, MAX_LABEL_LENGTH)}...`;
-};
-
 export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectNoteId }: ZoomBreadcrumbsProps) {
-  const docLabelDisplay = truncateLabel(docLabel);
+  const docLabelDisplay = formatNavigationLabel(docLabel);
 
   return (
     <Breadcrumbs className={styles.breadcrumbs} data-zoom-breadcrumbs>
@@ -50,7 +42,7 @@ export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectNoteI
       )}
       {path.map((item, index) => {
         const isCurrent = index === path.length - 1;
-        const label = truncateLabel(item.label);
+        const label = formatNavigationLabel(item.label);
         if (isCurrent) {
           return (
             <span key={item.noteId} className={styles.crumbCurrent} data-zoom-crumb="current">

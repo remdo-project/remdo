@@ -1,6 +1,7 @@
 import { $getNoteId } from '#lib/editor/note-id-state';
 import { forEachContentItemWithAncestorsInOutline } from '@/editor/outline/list-traversal';
 import { $requireRootContentList } from '@/editor/outline/schema';
+import { getNoteOwnText } from '@/editor/outline/selection/note-body';
 
 interface LinkableNote {
   noteId: string;
@@ -23,11 +24,11 @@ export function $collectLinkableNotesInDocumentOrder(): LinkableNote[] {
       return;
     }
 
-    const title = item.getTextContent();
+    const title = getNoteOwnText(item);
     notes.push({
       noteId,
       title,
-      ancestors: ancestors.map((ancestor) => ancestor.getTextContent()),
+      ancestors: ancestors.map((ancestor) => getNoteOwnText(ancestor)),
     });
   });
   return notes;

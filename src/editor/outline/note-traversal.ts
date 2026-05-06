@@ -2,6 +2,7 @@ import type { ListItemNode } from '@lexical/list';
 import { $requireContentItemNoteId, $requireRootContentList } from './schema';
 import { forEachContentItemInOutline } from './list-traversal';
 import { getParentContentItem } from './selection/tree';
+import { getNoteOwnText } from './selection/note-body';
 
 export interface NotePathItem {
   noteId: string;
@@ -40,7 +41,7 @@ export function $getNoteAncestorPath(target: ListItemNode): NotePathItem[] {
 
   while (current) {
     const noteId = $requireContentItemNoteId(current);
-    path.push({ noteId, label: current.getTextContent() });
+    path.push({ noteId, label: getNoteOwnText(current) });
     current = getParentContentItem(current);
   }
 

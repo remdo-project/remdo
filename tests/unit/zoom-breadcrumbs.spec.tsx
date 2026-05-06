@@ -2,14 +2,13 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
-
-const MAX_LABEL_LENGTH = 20;
+import { NAVIGATION_LABEL_MAX_LENGTH, UNTITLED_LABEL } from '@/ui/navigation-label';
 
 const truncateLabel = (label: string) => {
-  if (label.length <= MAX_LABEL_LENGTH) {
+  if (label.length <= NAVIGATION_LABEL_MAX_LENGTH) {
     return label;
   }
-  return `${label.slice(0, MAX_LABEL_LENGTH)}...`;
+  return `${label.slice(0, NAVIGATION_LABEL_MAX_LENGTH)}...`;
 };
 
 const renderBreadcrumbs = (props: Parameters<typeof ZoomBreadcrumbs>[0]) =>
@@ -57,6 +56,17 @@ describe('zoom breadcrumbs', () => {
 
     expect(onSelect).toHaveBeenNthCalledWith(1, null);
     expect(onSelect).toHaveBeenNthCalledWith(2, 'note1');
+  });
+
+  it('uses shared fallback labels for empty note crumbs', () => {
+    const onSelect = vi.fn();
+    renderBreadcrumbs({
+      docLabel: 'project',
+      path: [{ noteId: 'note1', label: '  \n ' }],
+      onSelectNoteId: onSelect,
+    });
+
+    expect(screen.getByText(UNTITLED_LABEL)).toBeInTheDocument();
   });
 
   it('renders a custom document control instead of the default document button', () => {

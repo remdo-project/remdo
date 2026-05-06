@@ -7,6 +7,10 @@ import Editor from '@/editor/Editor';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
 import { EditorViewProvider, useEditorViewActions, useZoomPath } from '@/editor/view/EditorViewProvider';
 import { createDocumentPathForPathname, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
+import {
+  APP_TITLE,
+  formatNavigationLabel,
+} from '@/ui/navigation-label';
 import { useDocumentSearchModel } from './useDocumentSearchModel';
 import './DocumentRoute.css';
 
@@ -99,6 +103,14 @@ function DocumentRouteContent({
   const zoomPath = useZoomPath();
   const { requestZoomNoteId } = useEditorViewActions();
   const userConfig = useUserConfig();
+  const listedDocuments = userConfig.documentList().children();
+  const currentDocument = listedDocuments.find((document) => document.id() === docId) ?? null;
+  const documentLabelRaw = currentDocument?.text() ?? docId;
+  const documentLabel = formatNavigationLabel(documentLabelRaw);
+  const titleItem = zoomPath.at(-1) ?? null;
+  const pageTitle = titleItem
+    ? `${formatNavigationLabel(titleItem.label)} · ${documentLabel} · ${APP_TITLE}`
+    : `${documentLabel} · ${APP_TITLE}`;
   const documentPicker = useCombobox({
     onDropdownClose: () => documentPicker.resetSelectedOption(),
   });
@@ -142,6 +154,13 @@ function DocumentRouteContent({
     focusEditorInput,
     setZoomNoteId: requestZoomNoteId,
   });
+
+  useEffect(() => {
+    document.title = pageTitle;
+    return () => {
+      document.title = APP_TITLE;
+    };
+  }, [pageTitle]);
 
   useEffect(() => {
     const handleFindShortcut = (event: KeyboardEvent) => {
@@ -211,9 +230,9 @@ function DocumentRouteContent({
     onSelectDocument(nextDocument.id());
   };
 
-  const documentOptions = userConfig.documentList().children().map((document) => ({
+  const documentOptions = listedDocuments.map((document) => ({
     value: document.id(),
-    label: document.text(),
+    label: formatNavigationLabel(document.text()),
   }));
 
   const highlightedResultIndex = highlightedResultNoteId
@@ -228,7 +247,7 @@ function DocumentRouteContent({
       <header className="document-header">
         <div className="document-header-breadcrumbs">
           <ZoomBreadcrumbs
-            docLabel={docId}
+            docLabel={documentLabelRaw}
             documentControl={(
               <Combobox
                 offset={{ mainAxis: 4, crossAxis: -44 }}
@@ -356,7 +375,7 @@ function DocumentRouteContent({
                   }}
                   role="option"
                 >
-                  {result.text.length > 0 ? result.text : '(empty note)'}
+                  {formatNavigationLabel(result.text)}
                 </li>
               );
             }) : (

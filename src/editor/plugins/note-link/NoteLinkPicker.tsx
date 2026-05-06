@@ -2,6 +2,7 @@ import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { LinkPickerState } from './types';
+import { formatNavigationLabel } from '@/ui/navigation-label';
 
 interface NoteLinkPickerProps {
   picker: LinkPickerState;
@@ -64,9 +65,15 @@ export function NoteLinkPicker({
                   onItemMouseDown(index, event);
                 }}
               >
-                <span className="note-link-picker__title">{option.title.length > 0 ? option.title : '(empty)'}</span>
+                <span className="note-link-picker__title">
+                  {formatNavigationLabel(option.title)}
+                </span>
                 {option.context
-                  ? <span className="note-link-picker__context">{option.context}</span>
+                  ? (
+                      <span className="note-link-picker__context">
+                        {formatNavigationLabel(option.context)}
+                      </span>
+                    )
                   : null}
               </div>
             ))}
