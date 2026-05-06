@@ -1,12 +1,9 @@
 import { MantineProvider } from '@mantine/core';
-import { configure, render, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import Editor from '@/editor/Editor';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { EditorViewProvider } from '@/editor/view/EditorViewProvider';
 import type { EditorViewBindings } from '@/editor/view/EditorViewProvider';
-import { COLLAB_LONG_TIMEOUT_MS } from './timeouts';
-
-configure({ asyncUtilTimeout: COLLAB_LONG_TIMEOUT_MS });
 
 /**
  * Renders the RemDo editor for tests and resolves the window remdoTest API.

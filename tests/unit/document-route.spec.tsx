@@ -3,10 +3,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { resetTestUserConfig } from '#tests';
+import { getTestUserConfig, resetTestUserConfig } from '#tests';
 
 import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/search-candidates';
-import { useZoomNoteId } from '@/editor/view/EditorViewProvider';
+import type { NotePathItem } from '@/editor/outline/note-traversal';
+import { useEditorViewActions, useZoomNoteId } from '@/editor/view/EditorViewProvider';
 import DocumentRoute from '@/routes/DocumentRoute';
 import { createDocumentPath } from '@/routing';
 
@@ -24,6 +25,7 @@ interface MockSearchGlobals {
   __remdoMockSearchCandidateEmitters?: Record<string, () => void>;
   __remdoMockSearchCandidateResetters?: Record<string, () => void>;
   __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
+  __remdoMockZoomPathByDoc?: Record<string, Record<string, NotePathItem[]>>;
 }
 
 const defaultSnapshot = {
@@ -62,6 +64,12 @@ function MockEditor({
   searchModeRequested,
 }: MockEditorProps) {
   const zoomNoteId = useZoomNoteId();
+  const { setZoomPath } = useEditorViewActions();
+
+  React.useEffect(() => {
+    const globals = globalThis as typeof globalThis & MockSearchGlobals;
+    setZoomPath(zoomNoteId ? globals.__remdoMockZoomPathByDoc?.[docId]?.[zoomNoteId] ?? [] : []);
+  }, [docId, setZoomPath, zoomNoteId]);
 
   React.useEffect(() => {
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
@@ -127,27 +135,76 @@ describe('document route', () => {
     globals.__remdoMockSearchCandidatesByDoc = undefined;
     globals.__remdoMockSearchCandidateEmitters = undefined;
     globals.__remdoMockSearchCandidateResetters = undefined;
+    globals.__remdoMockZoomPathByDoc = undefined;
+    document.title = 'RemDo';
   });
 
-  const renderDocumentRoute = (initialEntry: string = createDocumentPath('main')) => {
+  const renderDocumentRouteWithResult = (initialEntry: string = createDocumentPath('main')) => {
     const router = createMemoryRouter(
       [{ path: '/n/:docRef', element: <DocumentRoute /> }],
       { initialEntries: [initialEntry] },
     );
 
-    render(
+    const result = render(
       <MantineProvider>
         <RouterProvider router={router} />
       </MantineProvider>
     );
 
-    return router;
+    return { router, result };
   };
+  const renderDocumentRoute = (initialEntry: string = createDocumentPath('main')) =>
+    renderDocumentRouteWithResult(initialEntry).router;
 
   const getActiveSearchResult = () =>
     document.querySelector<HTMLElement>('[data-search-result-item][data-search-result-active="true"]');
   const getInlineCompletion = () =>
     document.querySelector<HTMLElement>('[data-testid="document-search-inline-completion"]');
+
+  it('sets the page title from the current document title at the root', async () => {
+    renderDocumentRoute();
+
+    await waitFor(() => {
+      expect(document.title).toBe('Main · RemDo');
+    });
+  });
+
+  it('uses listed document titles instead of route document ids in the page title', async () => {
+    const createdDocument = await getTestUserConfig().documentList().create('  Project\nNotes  ');
+    renderDocumentRoute(createDocumentPath(createdDocument.id()));
+
+    await waitFor(() => {
+      expect(document.title).toBe('Project Notes · RemDo');
+    });
+  });
+
+  it('sets the page title from the current zoom note when zoomed', async () => {
+    (globalThis as typeof globalThis & MockSearchGlobals).__remdoMockZoomPathByDoc = {
+      main: {
+        note3: [
+          { noteId: 'note1', label: 'Parent' },
+          { noteId: 'note3', label: '  Current\nNote  ' },
+        ],
+      },
+    };
+
+    renderDocumentRoute(createDocumentPath('main', 'note3'));
+
+    await waitFor(() => {
+      expect(document.title).toBe('Current Note · Main · RemDo');
+    });
+  });
+
+  it('resets the page title when the route unmounts', async () => {
+    const { result } = renderDocumentRouteWithResult();
+
+    await waitFor(() => {
+      expect(document.title).toBe('Main · RemDo');
+    });
+    result.unmount();
+
+    expect(document.title).toBe('RemDo');
+  });
 
   it('remounts editor when document id changes via route params', async () => {
     const router = renderDocumentRoute();

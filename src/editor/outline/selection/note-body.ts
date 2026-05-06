@@ -1,7 +1,7 @@
 import type { ListItemNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 
-export function isEmptyNoteBody(item: ListItemNode): boolean {
+export function getNoteOwnText(item: ListItemNode): string {
   const pieces: string[] = [];
 
   for (const child of item.getChildren()) {
@@ -14,5 +14,9 @@ export function isEmptyNoteBody(item: ListItemNode): boolean {
     }
   }
 
-  return pieces.join('').trim().length === 0;
+  return pieces.join('');
+}
+
+export function isEmptyNoteBody(item: ListItemNode): boolean {
+  return getNoteOwnText(item).trim().length === 0;
 }
