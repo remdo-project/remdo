@@ -982,40 +982,6 @@ describe('document route', () => {
     expect(resultItems).toEqual(['sdk result']);
   });
 
-  it('formats search result labels for navigation display', async () => {
-    (
-      globalThis as typeof globalThis & {
-        __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
-      }
-    ).__remdoMockSearchCandidatesByDoc = {
-      main: {
-        allCandidates: [
-          { noteId: 'spaced', text: '  spaced\nresult  ' },
-          { noteId: 'empty', text: '  ' },
-        ],
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [
-            { noteId: 'spaced', text: '  spaced\nresult  ' },
-            { noteId: 'empty', text: '  ' },
-          ],
-          spaced: [],
-          empty: [],
-        },
-      },
-    };
-
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-
-    await screen.findByTestId('document-search-results');
-    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-      .map((item) => item.textContent);
-
-    expect(resultItems).toEqual(['spaced result', 'Untitled']);
-  });
-
   it('keeps no highlight for no-match query and Enter is a no-op', async () => {
     const router = renderDocumentRoute();
 

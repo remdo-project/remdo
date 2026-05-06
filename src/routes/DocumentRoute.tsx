@@ -375,7 +375,7 @@ function DocumentRouteContent({
                   }}
                   role="option"
                 >
-                  {formatNavigationLabel(result.text)}
+                  {result.text.length > 0 ? result.text : '(empty note)'}
                 </li>
               );
             }) : (

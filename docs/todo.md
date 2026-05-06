@@ -23,6 +23,9 @@ Rules:
 - [Future] Evaluate unifying candidate discovery/query logic between search and
   link picker (search already uses SDK/Lexical candidates; link picker still
   uses its own traversal/filter pipeline).
+- [Future] Define shared search/link-query matching semantics before normalizing
+  result labels: whitespace-insensitive lookup (trim/collapse between words),
+  fuzzy matching, and shared ranking/disambiguation rules.
 
 
 ## Collaboration architecture roadmap [Future]
