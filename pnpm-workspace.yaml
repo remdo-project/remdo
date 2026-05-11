@@ -48,6 +48,7 @@ catalog:
   '@tabler/icons-react': ^3.41.1
   '@testing-library/jest-dom': ^6.9.1
   '@testing-library/react': ^16.3.2
+  '@types/better-sqlite3': ^7.6.13
   '@types/estree': ^1.0.8
   '@types/jsdom': ^28.0.1
   '@types/linkify-it': ^5.0.0
@@ -59,6 +60,8 @@ catalog:
   '@vitest/ui': 4.1.2
   '@y-sweet/client': ^0.9.1
   '@y-sweet/sdk': ^0.9.1
+  better-auth: ^1.6.5
+  better-sqlite3: ^12.9.0
   chokidar-cli: ^3.0.0
   concurrently: ^9.2.1
   cross-env: ^10.1.0
@@ -97,6 +100,7 @@ catalog:
 onlyBuiltDependencies:
   - '@ast-grep/cli'
   - '@swc/core'
+  - better-sqlite3
   - esbuild
   - leveldown
   - y-sweet

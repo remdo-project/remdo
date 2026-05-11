@@ -40,11 +40,22 @@ drift between app and collab endpoints.
 
 App-owned HTTP surface that sits in front of collaboration infrastructure.
 
+- Current auth anchor: Better Auth mounted at `/api/auth/*`.
 - Current role: issue Y-Sweet collaboration client tokens after a RemDo-owned
   access decision through `POST /api/documents/:docId/token`.
-- Current implementation: permissive for all requested documents.
+- Current implementation: requires an authenticated Better Auth session, then
+  remains permissive for the authenticated actor.
 - Future role: enforce private/public/link-shared document access before token
   issuance.
+
+### Actor
+
+Server-owned caller identity shape used by RemDo API decisions.
+
+- Current implementation: maps directly to the Better Auth session user.
+- Current role: provide the future anchor for document ownership and grants.
+- Current limitation: authorization still treats every authenticated actor as
+  fully allowed on every registered document.
 
 ### Document registry
 

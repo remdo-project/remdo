@@ -1,6 +1,7 @@
 import { DocumentManager } from '@y-sweet/sdk';
 import type { ClientToken } from '@y-sweet/sdk';
 import { config } from '#config';
+import type { Actor } from './auth/actor';
 import type { RegisteredDocument } from './documents/document-registry';
 import { rewriteTokenUrlsForRequest } from './token-url-rewrite';
 
@@ -12,8 +13,8 @@ interface DocumentAccessResolution {
 }
 
 interface ResolveDocumentAccessArgs {
+  actor: Actor;
   document: RegisteredDocument;
-  request: Request;
 }
 
 export interface DocumentTokenManager {
@@ -41,10 +42,11 @@ async function resolveDocumentAccess(_args: ResolveDocumentAccessArgs): Promise<
 
 export async function issueDocumentToken(
   manager: DocumentTokenManager,
-  request: Request,
+  actor: Actor,
   document: RegisteredDocument,
+  request: Request,
 ): Promise<{ denied: true } | { denied: false; token: ClientToken }> {
-  const access = await resolveDocumentAccess({ request, document });
+  const access = await resolveDocumentAccess({ actor, document });
   if (!access.allowed) {
     return { denied: true };
   }

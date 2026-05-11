@@ -62,15 +62,6 @@ export function createViteSharedConfig() {
 
                 const { pathname } = url;
                 return ![
-                  '/login',
-                  '/authorize',
-                  '/logout',
-                  '/continue',
-                  '/totp',
-                  '/forgot-password',
-                  '/unauthorized',
-                  '/error',
-                  '/resources',
                   '/api',
                   '/d',
                 ].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));

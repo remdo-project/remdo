@@ -70,15 +70,12 @@ remdo_detect_docker_public_host() {
 
 remdo_configure_docker_runtime() {
   local public_host="${1:-}"
-  local tinyauth_host=""
 
   if [[ -z "${public_host}" ]]; then
     public_host="$(remdo_detect_docker_public_host)"
   fi
 
-  tinyauth_host="app.${public_host}"
-  export CADDY_SITE_ADDRESS="https://${public_host}:${PORT}"
-  export TINYAUTH_APP_URL="https://${tinyauth_host}:${PORT}"
+  export APP_PUBLIC_URL="https://${public_host}:${PORT}"
 }
 
 remdo_docker_run() {

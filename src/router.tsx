@@ -1,7 +1,10 @@
 import { createBrowserRouter, redirect } from 'react-router-dom';
 import App from './App';
+import { resolveSessionGateState } from './auth/client';
+import AdminUsersRoute from './routes/AdminUsersRoute';
 import DocumentRoute from './routes/DocumentRoute';
 import EditorE2ERoute from './routes/EditorE2ERoute';
+import LoginRoute from './routes/LoginRoute';
 import { config } from '#config';
 import {
   createDocumentPath,
@@ -19,6 +22,37 @@ const buildSearch = (lexicalDemo: boolean): string => {
   const search = searchParams.toString();
   return search ? `?${search}` : '';
 };
+
+function createNextSearch(request: Request): string {
+  const url = new URL(request.url);
+  return `?next=${encodeURIComponent(`${url.pathname}${url.search}`)}`;
+}
+
+function resolvePostAuthPath(request: Request): string {
+  const next = new URL(request.url).searchParams.get('next');
+  if (typeof next === 'string' && next.startsWith('/')) {
+    return next;
+  }
+  return createDocumentPath(DEFAULT_DOC_ID);
+}
+
+async function requireAuthenticatedRoute(request: Request) {
+  const sessionState = await resolveSessionGateState();
+  if (sessionState.status !== 'unauthenticated') {
+    return null;
+  }
+
+  throw redirect(`/login${createNextSearch(request)}`);
+}
+
+async function requirePublicAuthRoute(request: Request) {
+  const sessionState = await resolveSessionGateState();
+  if (sessionState.status !== 'unauthenticated') {
+    throw redirect(resolvePostAuthPath(request));
+  }
+
+  return null;
+}
 
 const redirectToDoc = (request: Request): string => {
   const url = new URL(request.url);
@@ -49,8 +83,18 @@ const createDocumentLoader = (buildPath: DocumentPathBuilder) => {
 
 const routes = [
   {
+    path: '/login',
+    loader: ({ request }: { request: Request }) => requirePublicAuthRoute(request),
+    element: <LoginRoute />,
+  },
+  {
+    path: '/admin/users/new',
+    element: <AdminUsersRoute />,
+  },
+  {
     path: '/',
     element: <App />,
+    loader: ({ request }: { request: Request }) => requireAuthenticatedRoute(request),
     children: [
       {
         index: true,
@@ -69,7 +113,10 @@ const routes = [
     ? [
         {
           path: '/e2e/n/:docRef',
-          loader: createDocumentLoader(createEditorDocumentPath),
+          loader: async ({ request, params }: { request: Request; params: { docRef?: string } }) => {
+            await requireAuthenticatedRoute(request);
+            return createDocumentLoader(createEditorDocumentPath)({ request, params });
+          },
           element: <EditorE2ERoute />,
         },
       ]

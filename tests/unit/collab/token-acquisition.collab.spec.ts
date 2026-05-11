@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDocumentTokenApiPath } from '@/routing';
+import { getCollabTestSessionCookie, withSessionCookie } from './_support/auth';
 import { renderRemdoEditor } from './_support/render-editor';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
@@ -17,9 +18,10 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
     const requests: RecordedRequest[] = [];
     const originalFetch = globalThis.fetch.bind(globalThis);
     const docId = 'tokenroute';
+    const sessionCookie = await getCollabTestSessionCookie();
 
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      const request = new Request(input, init);
+      const request = withSessionCookie(input, init, sessionCookie);
       requests.push({
         method: request.method,
         url: request.url,

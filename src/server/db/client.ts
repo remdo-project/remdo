@@ -13,7 +13,7 @@ interface ServerDatabaseClientOptions {
   dbPath?: string;
 }
 
-function resolveDefaultDbPath(): string {
+export function resolveServerDatabasePath(): string {
   return path.join(config.env.DATA_DIR, 'remdo.sqlite');
 }
 
@@ -22,7 +22,7 @@ function shouldCreateParentDirectory(dbPath: string): boolean {
 }
 
 export function createServerDatabaseClient({
-  dbPath = resolveDefaultDbPath(),
+  dbPath = resolveServerDatabasePath(),
 }: ServerDatabaseClientOptions = {}): ServerDatabaseClient {
   if (shouldCreateParentDirectory(dbPath)) {
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });

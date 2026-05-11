@@ -1,35 +1,35 @@
 import type { Page } from '#e2e/fixtures';
 import { expect, setExpectedConsoleIssues } from '#e2e/fixtures';
+import { config } from '#config';
 import type { BrowserContext } from '@playwright/test';
-import process from 'node:process';
 
-// eslint-disable-next-line node/no-process-env
-const AUTH_USER = process.env.AUTH_USER;
-// eslint-disable-next-line node/no-process-env
-const AUTH_PASSWORD = process.env.AUTH_PASSWORD;
-const LOGIN_OR_DOC_URL_PATTERN = /\/(login|n\/)/;
 const DOC_URL_PATTERN = /\/n\//;
 
-function getDockerAuth() {
-  if (!AUTH_USER || !AUTH_PASSWORD) {
-    throw new Error('Prod e2e tests require AUTH_USER and AUTH_PASSWORD.');
-  }
-  return {
-    user: AUTH_USER,
-    password: AUTH_PASSWORD,
-  };
-}
+export const PROD_TEST_AUTH = {
+  email: 'ci@example.com',
+  name: 'CI User',
+  password: 'ci-password-1234',
+} as const;
+export const PROD_TEST_ADMIN_SECRET = config.env.ADMIN_SECRET;
 
-export async function loginThroughTinyauthIfNeeded(page: Page): Promise<void> {
-  await page.waitForURL(LOGIN_OR_DOC_URL_PATTERN, { timeout: 15_000 });
-  if (!page.url().includes('/login')) {
+export async function authenticateIfNeeded(page: Page): Promise<void> {
+  const editorShell = page.locator('.document-editor-shell').first();
+  const loginButton = page.getByRole('button', { name: 'Sign in' });
+
+  const currentState = await Promise.race([
+    editorShell.waitFor({ state: 'visible' }).then(() => 'editor' as const),
+    loginButton.waitFor({ state: 'visible' }).then(() => 'login' as const),
+  ]);
+
+  if (currentState === 'editor') {
     return;
   }
-  const dockerAuth = getDockerAuth();
-  await page.fill('input[autocomplete="username"]', dockerAuth.user);
-  await page.fill('input[autocomplete="current-password"]', dockerAuth.password);
+
+  await page.fill('input[autocomplete="email"]', PROD_TEST_AUTH.email);
+  await page.fill('input[autocomplete="current-password"]', PROD_TEST_AUTH.password);
   await page.click('button[type="submit"]');
-  await page.waitForURL(DOC_URL_PATTERN, { timeout: 15_000 });
+  await page.waitForURL(DOC_URL_PATTERN);
+  await editorShell.waitFor({ state: 'visible' });
 }
 
 export async function waitForServiceWorkerControl(page: Page): Promise<void> {
@@ -37,6 +37,7 @@ export async function waitForServiceWorkerControl(page: Page): Promise<void> {
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
+  setExpectedConsoleIssues(page, ['Failed to get client token'], { mode: 'allowContains' });
   await page.reload();
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
 }

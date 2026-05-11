@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
+import { createYjsProvider } from '@y-sweet/client';
+import { DocumentManager } from '@y-sweet/sdk';
 import { $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
 import {
   createBindingV2__EXPERIMENTAL,
@@ -11,6 +13,7 @@ import {
 } from '@lexical/yjs';
 import { createEditor } from 'lexical';
 import WebSocket from 'ws';
+import * as Y from 'yjs';
 import type { Doc, Transaction } from 'yjs';
 import { UndoManager } from 'yjs';
 import type { Provider } from '@lexical/yjs';
@@ -18,7 +21,7 @@ import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lex
 
 import { config } from '#config';
 import { CollabSession } from '#lib/collaboration/session';
-import type { CollaborationProviderInstance } from '#lib/collaboration/runtime';
+import type { CollaborationProviderInstance, CollaborationSessionProvider } from '#lib/collaboration/runtime';
 import { restoreEditorStateDefaults, stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 import { prepareEditorStateForPersistence, prepareEditorStateForRuntime } from '#lib/editor/editor-state-persistence';
 import { createEditorInitialConfig } from '#lib/editor/config';
@@ -60,6 +63,46 @@ interface SessionContext {
 
 interface SessionOptions {
   hydrateFromYjs?: boolean;
+}
+
+function createInternalProviderFactory() {
+  const manager = new DocumentManager(config.env.YSWEET_CONNECTION_STRING);
+
+  return async (docId: string, docMap: Map<string, Doc>) => {
+    let doc = docMap.get(docId);
+    if (!doc) {
+      doc = new Y.Doc();
+      docMap.set(docId, doc);
+    }
+
+    doc.get('root', Y.XmlText);
+
+    const token = await manager.getOrCreateDocAndToken(docId, {
+      authorization: 'full',
+    });
+    const provider = createYjsProvider(doc, docId, async () => token, {
+      connect: false,
+      offlineSupport: false,
+      showDebuggerLink: false,
+    });
+    let destroyed = false;
+    const originalDestroy = provider.destroy.bind(provider);
+
+    return {
+      doc,
+      provider: Object.assign(provider as unknown as Provider, {
+        destroy: () => {
+          if (destroyed) {
+            return;
+          }
+          destroyed = true;
+          provider.connect = () => Promise.resolve();
+          provider.disconnect();
+          originalDestroy();
+        },
+      }) as CollaborationSessionProvider,
+    };
+  };
 }
 
 function parseCliArguments(argv: string[]): CliArguments {
@@ -278,7 +321,13 @@ async function withSession(
 ): Promise<void> {
   const hydrateFromYjs = options.hydrateFromYjs ?? true;
   const docMap = new Map<string, Doc>();
-  const session = new CollabSession({ enabled: true, docId, origin: collabOrigin, apiOrigin: collabApiOrigin });
+  const session = new CollabSession({
+    enabled: true,
+    docId,
+    origin: collabOrigin,
+    apiOrigin: collabApiOrigin,
+    providerFactory: createInternalProviderFactory(),
+  });
   session.attach(docMap);
   const attached = await waitForSessionAttachment(session, docMap, docId);
   const provider = attached.provider as SnapshotProviderWithWebSocket;

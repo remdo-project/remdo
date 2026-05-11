@@ -44,13 +44,15 @@ For each run mode, the important questions are:
 - Notes:
   1. requires a local rootless Docker daemon
   2. the local launcher supports rootless Docker
-  3. required: `AUTH_PASSWORD` in `.env`
+  3. required: `AUTH_SECRET` and `ADMIN_SECRET` in `.env`
   4. optional: `PORT`
   5. the script prints the browser URL before startup; use that URL
   6. local Docker uses self-signed HTTPS by default
   7. current server runtime runs both the RemDo API process and the Y-Sweet
-     collaboration server behind the same authenticated gateway
-  8. browser clients reach collaboration through RemDo API token issuance and
+     collaboration server behind the same gateway
+  8. Better Auth runs inside the RemDo API process and stores users/sessions
+     in the same SQLite database file as the document registry
+  9. browser clients reach collaboration through RemDo API token issuance and
      the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
      routes
 
@@ -63,13 +65,15 @@ For each run mode, the important questions are:
 - Data boundary: provider-hosted persistent storage under the operator's
   account.
 - Notes:
-  1. required in the Render Dashboard: `AUTH_PASSWORD` and `TINYAUTH_APP_URL`
-  2. `AUTH_USER` is fixed to `remdo` in the Blueprint
+  1. required in the Render Dashboard: `AUTH_SECRET`, `ADMIN_SECRET`, and
+     `APP_PUBLIC_URL`
+  2. `ALLOW_SIGNUP` should stay `false`
   3. the service listens on `:${PORT}` and Render terminates public HTTPS
-  4. preview or staging services must set `TINYAUTH_APP_URL` manually
-  5. backup workflow for hosted prod is still undefined
-  6. current server runtime runs both the RemDo API process and the Y-Sweet
-     collaboration server behind the same authenticated gateway
+  4. backup workflow for hosted prod is still undefined
+  5. current server runtime runs both the RemDo API process and the Y-Sweet
+     collaboration server behind the same gateway
+  6. Better Auth users/sessions and the SQLite-backed document registry share
+     the same RemDo-owned DB file
   7. browser clients reach collaboration through RemDo API token issuance and
      the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
      routes
@@ -85,9 +89,11 @@ For each run mode, the important questions are:
 - Notes: most local runs can stay on defaults; copy `.env.example` to `.env`
   only when overrides are needed. Current dev mode runs the web app, RemDo API
   server, Y-Sweet collaboration server, and preview helper together. Server
-  modes run the RemDo API with a SQLite-backed document registry whose current
-  access checks remain permissive. Browser clients use the RemDo API token path
-  plus `/d/*`; `/doc*` control routes are not routed through the gateway.
+  modes run the RemDo API with Better Auth plus a SQLite-backed document
+  registry. Authentication is enforced, but current document access checks
+  remain permissive for authenticated users. Browser clients use the RemDo API
+  token path plus `/d/*`; `/doc*` control routes are not routed through the
+  gateway.
 
 ### Unit and collab tests
 

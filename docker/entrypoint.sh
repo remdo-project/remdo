@@ -12,21 +12,17 @@ export REMDO_ROOT
 : "${XDG_CONFIG_HOME:=${DATA_DIR%/}/.config}"
 export XDG_DATA_HOME XDG_CONFIG_HOME
 
-: "${AUTH_USER:?Set AUTH_USER to the username for Tinyauth login}"
-: "${AUTH_PASSWORD:?Set AUTH_PASSWORD to the password for Tinyauth login}"
-: "${TINYAUTH_APP_URL:?Set TINYAUTH_APP_URL to the canonical Tinyauth URL (for example https://app.athena.shared:4000 or https://www.remdo.com)}"
-: "${CADDY_SITE_ADDRESS:=:${PORT}}"
-: "${CADDY_SITE_ADDRESSES:=${CADDY_SITE_ADDRESS}}"
+: "${APP_PUBLIC_URL:=:${PORT}}"
+: "${CADDY_SITE_ADDRESSES:=${APP_PUBLIC_URL}}"
 
-case "${CADDY_SITE_ADDRESS}" in
+case "${APP_PUBLIC_URL}" in
   https://*)
     CADDY_TLS_DIRECTIVE="tls internal"
-    canonical_url="${CADDY_SITE_ADDRESS}"
-    CADDY_SITE_ADDRESSES="${CADDY_SITE_ADDRESS}, ${TINYAUTH_APP_URL}"
+    canonical_url="${APP_PUBLIC_URL}"
     ;;
   *)
     CADDY_TLS_DIRECTIVE=""
-    canonical_url="${TINYAUTH_APP_URL}"
+    canonical_url="${APP_PUBLIC_URL}"
     ;;
 esac
 
@@ -34,24 +30,11 @@ canonical_url_no_scheme="${canonical_url#*://}"
 CADDY_CANONICAL_HOSTPORT="${canonical_url_no_scheme%%/*}"
 CADDY_CANONICAL_HOST="${CADDY_CANONICAL_HOSTPORT%%:*}"
 
-export CADDY_SITE_ADDRESS
+export APP_PUBLIC_URL
 export CADDY_SITE_ADDRESSES
 export CADDY_TLS_DIRECTIVE
 export CADDY_CANONICAL_HOST
 export CADDY_CANONICAL_HOSTPORT
-
-TINYAUTH_USERS="$(
-  NO_COLOR=1 tinyauth user create --username "${AUTH_USER}" --password "${AUTH_PASSWORD}" 2>&1 \
-    | sed -n 's/.* user=//p' \
-    | tail -n1
-)"
-
-if [ -z "${TINYAUTH_USERS}" ]; then
-  echo "Failed to create runtime Tinyauth credentials." >&2
-  exit 1
-fi
-
-unset AUTH_PASSWORD
 
 # Start cron for periodic backups.
 crond -l 2 -L /var/log/cron.log
@@ -59,26 +42,6 @@ crond -l 2 -L /var/log/cron.log
 COLLAB_DATA_DIR="${DATA_DIR%/}/collab"
 mkdir -p "$COLLAB_DATA_DIR"
 y-sweet serve --host 0.0.0.0 --port "${COLLAB_SERVER_PORT}" "$COLLAB_DATA_DIR" &
-node /usr/local/bin/remdo-api-server.mjs &
-
-# 14 days = 14 * 24 * 60 * 60 = 1,209,600 seconds.
-# FIXME: Tinyauth shows an "Invalid Domain" UI warning when the browser host differs
-# from --app-url. We currently disable UI warnings globally to suppress this.
-# A proper fix likely requires forking Tinyauth to support either athena.shared as
-# app-url or per-warning suppression instead of an all-or-nothing toggle.
-TINYAUTH_DATA_DIR="${DATA_DIR%/}/tinyauth"
-mkdir -p "${TINYAUTH_DATA_DIR}"
-tinyauth \
-  --app-title "RemDo" \
-  --app-url "${TINYAUTH_APP_URL}" \
-  --session-expiry "1209600" \
-  --users "${TINYAUTH_USERS}" \
-  --address 127.0.0.1 \
-  --port "${TINYAUTH_PORT}" \
-  --database-path "${TINYAUTH_DATA_DIR}/tinyauth.db" \
-  --resources-dir "${TINYAUTH_DATA_DIR}/resources" \
-  --disable-analytics \
-  --disable-ui-warnings \
-  --secure-cookie &
+node /app/remdo-api-server.cjs &
 
 exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile

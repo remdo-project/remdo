@@ -1,12 +1,11 @@
-import { Anchor, Container, Group, MantineProvider, Title } from '@mantine/core';
+import { Anchor, Container, Group, Title } from '@mantine/core';
 import { IconBrandVite } from '@tabler/icons-react';
-import type { MouseEvent } from 'react';
+import { useEffect } from 'react';
 import { Link, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import headerStyles from './styles/AppHeader.module.css';
-import { theme } from './theme';
 import { config } from '#config';
-import '@mantine/core/styles.css';
-import './styles/interaction.css';
+import { authClient, forgetAuthenticatedSession } from './auth/client';
+import { startUserConfig } from './documents/user-config';
 import { Icon } from './ui/Icon';
 import { createDocumentPath, DEFAULT_DOC_ID, parseDocumentRef } from './routing';
 import VanillaLexicalEditor from './editor/dev/VanillaLexicalEditor';
@@ -52,75 +51,70 @@ export default function App() {
     : '#lexical';
   const { docRef } = useParams<{ docRef?: string }>();
   const [searchParams] = useSearchParams();
+  useEffect(() => {
+    startUserConfig();
+  }, []);
   const showVanillaLexical = config.isDevOrTest && searchParams.has('lexicalDemo');
   const currentDocId = parseDocumentRef(docRef)?.docId ?? DEFAULT_DOC_ID;
-  const handleLogoutClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
-    void (async () => {
-      try {
-        const response = await fetch('/api/user/logout', { method: 'POST' });
-        if (!response.ok) {
-          throw new Error('Logout request failed.');
-        }
-        globalThis.location.assign('/');
-      } catch {
-        globalThis.location.assign('/logout');
-      }
-    })();
+  const handleLogoutClick = () => {
+    void authClient.signOut({
+      fetchOptions: {
+        onSuccess() {
+          forgetAuthenticatedSession();
+          globalThis.location.assign('/');
+        },
+      },
+    });
   };
 
   return (
-    <MantineProvider theme={theme} defaultColorScheme="dark">
-      <Container size="xl" py="xl">
-        <header className="app-header">
-          <Group gap="md">
-            <Title order={1} className="app-heading-title">
-              <Link
-                to={`${createDocumentPath(currentDocId)}${buildSearch({})}`}
-                className={headerStyles.brandLink}
-              >
-                <span aria-hidden="true" className={headerStyles.brandIcon} />
-                RemDo
-              </Link>
-            </Title>
-          </Group>
-          <nav>
-            <Group gap="md" className="app-header-links">
-              {!config.isDevOrTest && (
-                <Anchor className="app-header-link" href="/logout" onClick={handleLogoutClick}>
-                  Logout
+    <Container size="xl" py="xl">
+      <header className="app-header">
+        <Group gap="md">
+          <Title order={1} className="app-heading-title">
+            <Link
+              to={`${createDocumentPath(currentDocId)}${buildSearch({})}`}
+              className={headerStyles.brandLink}
+            >
+              <span aria-hidden="true" className={headerStyles.brandIcon} />
+              RemDo
+            </Link>
+          </Title>
+        </Group>
+        <nav>
+          <Group gap="md" className="app-header-links">
+            <Anchor className="app-header-link" onClick={handleLogoutClick}>
+              Logout
+            </Anchor>
+            {config.isDev && (
+              <>
+                <Anchor className="app-header-link" href={previewUrl}>
+                  Preview
                 </Anchor>
-              )}
-              {config.isDev && (
-                <>
-                  <Anchor className="app-header-link" href={previewUrl}>
-                    Preview
-                  </Anchor>
-                  <Anchor className="app-header-link" href={vitestUrl}>
-                    <Icon icon={IconBrandVite} />
-                    Vitest
-                  </Anchor>
-                  <Anchor className="app-header-link" href={playwrightUrl}>
-                    Playwright
-                  </Anchor>
-                  <Anchor className="app-header-link" href={lexicalUrl}>
-                    Lexical
-                  </Anchor>
-                  <Link
-                    to={`${createDocumentPath(currentDocId)}${buildSearch({ lexicalDemo: true })}`}
-                    className="app-header-link"
-                  >
-                    Lexical Demo
-                  </Link>
-                </>
-              )}
-            </Group>
-          </nav>
-        </header>
+                <Anchor className="app-header-link" href={vitestUrl}>
+                  <Icon icon={IconBrandVite} />
+                  Vitest
+                </Anchor>
+                <Anchor className="app-header-link" href={playwrightUrl}>
+                  Playwright
+                </Anchor>
+                <Anchor className="app-header-link" href={lexicalUrl}>
+                  Lexical
+                </Anchor>
+                <Link
+                  to={`${createDocumentPath(currentDocId)}${buildSearch({ lexicalDemo: true })}`}
+                  className="app-header-link"
+                >
+                  Lexical Demo
+                </Link>
+              </>
+            )}
+          </Group>
+        </nav>
+      </header>
 
-        {showVanillaLexical && <VanillaLexicalEditor />}
-        <Outlet />
-      </Container>
-    </MantineProvider>
+      {showVanillaLexical && <VanillaLexicalEditor />}
+      <Outlet />
+    </Container>
   );
 }

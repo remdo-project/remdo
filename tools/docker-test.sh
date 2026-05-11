@@ -11,8 +11,8 @@ TEST_DATA_DIR="$(mktemp -d -t remdo-docker-test-XXXXXX)"
 : "${DOCKER_TEST_BROWSER_HOST:=remdo.localhost}"
 # TODO: drop these defaults once layered env files + a committed base .env exist.
 : "${IMAGE_NAME:=remdo-test}"
-DOCKER_TEST_USER="ci"
-DOCKER_TEST_PASSWORD="ci-password-1234"
+DOCKER_TEST_SECRET="ci-better-auth-secret-0123456789"
+DOCKER_TEST_ADMIN_SECRET="ci-admin-secret-0123456789"
 
 remdo_load_env_defaults "${ROOT_DIR}"
 
@@ -57,10 +57,9 @@ docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
 remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}" -d --name "${CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
-  -e AUTH_USER="${DOCKER_TEST_USER}" \
-  -e AUTH_PASSWORD="${DOCKER_TEST_PASSWORD}" \
-  -e CADDY_SITE_ADDRESS="${CADDY_SITE_ADDRESS}" \
-  -e TINYAUTH_APP_URL="${TINYAUTH_APP_URL}" \
+  -e AUTH_SECRET="${DOCKER_TEST_SECRET}" \
+  -e ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
+  -e APP_PUBLIC_URL="${APP_PUBLIC_URL}" \
   -e PORT="${PORT}"
 
 health_ready="false"
@@ -93,15 +92,27 @@ fi
 echo "Ensuring Playwright Chromium is installed (${PLAYWRIGHT_BROWSERS_DIR})..."
 PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" pnpm exec playwright install chromium
 
-if ! E2E_DOCKER=true \
-  NODE_ENV=production \
-  PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" \
-  HOST="${DOCKER_TEST_BROWSER_HOST}" \
-  PORT="${PORT}" \
-  COLLAB_ENABLED=true \
-  AUTH_USER="${DOCKER_TEST_USER}" \
-  AUTH_PASSWORD="${DOCKER_TEST_PASSWORD}" \
-  pnpm exec playwright test -- tests/e2e/prod; then
+PLAYWRIGHT_ENV=(
+  E2E_DOCKER=true
+  NODE_ENV=production
+  PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}"
+  HOST="${DOCKER_TEST_BROWSER_HOST}"
+  PORT="${PORT}"
+  COLLAB_ENABLED=true
+  ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}"
+)
+
+echo "Running admin provisioning flow on a fresh server..."
+if ! env "${PLAYWRIGHT_ENV[@]}" \
+  pnpm exec playwright test --workers=1 -- tests/e2e/prod/setup.spec.ts; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Prod admin provisioning e2e failed: ${HEALTH_URL}" >&2
+  exit 1
+fi
+
+echo "Running remaining Docker prod E2E suite..."
+if ! env "${PLAYWRIGHT_ENV[@]}" \
+  pnpm exec playwright test -- tests/e2e/prod/docker-smoke.spec.ts tests/e2e/prod/offline-shell.spec.ts; then
   docker logs "${CONTAINER_NAME}" || true
   echo "Prod e2e failed: ${HEALTH_URL}" >&2
   exit 1

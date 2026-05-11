@@ -1,5 +1,5 @@
 import { expect, test } from '#e2e/fixtures';
-import { loginThroughTinyauthIfNeeded, waitForEditableEditor } from './_support/helpers';
+import { authenticateIfNeeded, waitForEditableEditor } from './_support/helpers';
 
 const DOCKER_SMOKE_DOC_ID = 'dockerSmoke';
 
@@ -7,7 +7,7 @@ test('user can enter notes and see them rendered', async ({ page }) => {
   // Docker smoke runs against the prod build where the dev TestBridge is absent,
   // so we seed content via real typing instead of fixture loads.
   await page.goto(`/n/${DOCKER_SMOKE_DOC_ID}`);
-  await loginThroughTinyauthIfNeeded(page);
+  await authenticateIfNeeded(page);
   await waitForEditableEditor(page);
   const editorInput = page.locator('.editor-input').first();
   await editorInput.click();
@@ -27,11 +27,29 @@ test('user can enter notes and see them rendered', async ({ page }) => {
   await expect(shell.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
 });
 
-test('collaboration control routes are not routed through the gateway', async ({ page }) => {
+test('token issuance requires auth and collaboration control routes are not routed through the gateway', async ({ page }) => {
   await page.goto(`/n/${DOCKER_SMOKE_DOC_ID}`);
-  await loginThroughTinyauthIfNeeded(page);
-
   const gatewayOrigin = new URL(page.url()).origin;
+  const unauthenticatedTokenResponse = await page.context().request.fetch(`${gatewayOrigin}/api/documents/main/token`, {
+    method: 'POST',
+    failOnStatusCode: false,
+  });
+  expect(unauthenticatedTokenResponse.status()).toBe(401);
+
+  await authenticateIfNeeded(page);
+
+  const authenticatedTokenStatus = await page.evaluate(async () => {
+    const response = await fetch('/api/documents/main/token', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ docId: 'main' }),
+    });
+    return response.status;
+  });
+  expect(authenticatedTokenStatus).toBe(200);
+
   const newRouteResponse = await page.context().request.fetch(`${gatewayOrigin}/doc/new`, {
     method: 'POST',
     failOnStatusCode: false,

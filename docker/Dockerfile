@@ -29,30 +29,24 @@ RUN pnpm install --frozen-lockfile --prod \
 
 # Bundle server tools for runtime use (no pnpm dependency in runner).
 RUN mkdir -p /usr/local/bin \
-  && SNAPSHOT_BANNER=$(printf '%s\n%s' \
-    '#!/usr/bin/env node' \
-    'import { createRequire as __createRequire } from "module"; const require = __createRequire(import.meta.url);') \
   && pnpm dlx esbuild tools/remdo-api-server.ts \
     --platform=node \
-    --format=esm \
+    --format=cjs \
     --bundle \
+    --external:better-sqlite3 \
     --target=node22 \
     --tsconfig=tsconfig.json \
-    --banner:js="$SNAPSHOT_BANNER" \
-    --outfile=/usr/local/bin/remdo-api-server.mjs \
+    --banner:js='#!/usr/bin/env node' \
+    --outfile=/app/remdo-api-server.cjs \
   && pnpm dlx esbuild tools/snapshot.ts \
     --platform=node \
     --format=esm \
     --bundle \
+    --external:ws \
     --target=node22 \
     --tsconfig=tsconfig.json \
-    --banner:js="$SNAPSHOT_BANNER" \
-    --outfile=/usr/local/bin/snapshot.mjs
-
-##################################
-# Auth binary: fetch Tinyauth    #
-##################################
-FROM ghcr.io/steveiliop56/tinyauth:v4 AS tinyauth
+    --banner:js='#!/usr/bin/env node' \
+    --outfile=/app/snapshot.mjs
 
 ############################
 # Runner: serve SPA + YJS  #
@@ -60,6 +54,7 @@ FROM ghcr.io/steveiliop56/tinyauth:v4 AS tinyauth
 FROM node:24.12-alpine AS runner
 
 ENV YSWEET_VERSION=^0.9.1
+ENV NODE_ENV=production
 
 WORKDIR /app
 
@@ -78,17 +73,16 @@ RUN chmod +x /usr/local/bin/backup.sh \
   && touch /var/log/backup.log
 
 COPY --from=builder /app/data/dist /srv/remdo
+COPY --from=builder /app/node_modules /app/node_modules
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh
-COPY --from=builder /usr/local/bin/remdo-api-server.mjs /usr/local/bin/remdo-api-server.mjs
-COPY --from=builder /usr/local/bin/snapshot.mjs /usr/local/bin/snapshot.mjs
-COPY --from=tinyauth /tinyauth/tinyauth /usr/local/bin/tinyauth
+COPY --from=builder /app/remdo-api-server.cjs /app/remdo-api-server.cjs
+COPY --from=builder /app/snapshot.mjs /app/snapshot.mjs
 
 RUN chmod +x /entrypoint.sh
-RUN chmod +x /usr/local/bin/remdo-api-server.mjs
-RUN chmod +x /usr/local/bin/snapshot.mjs
-RUN chmod +x /usr/local/bin/tinyauth
+RUN chmod +x /app/remdo-api-server.cjs
+RUN chmod +x /app/snapshot.mjs
 
 EXPOSE 8080
 

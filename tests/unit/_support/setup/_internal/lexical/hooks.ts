@@ -4,6 +4,7 @@ import { afterEach, aroundEach } from 'vitest';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tests-common/fixtures';
 import { cleanupCollabDoc, createTestRuntimeScope } from '#tests-common/runtime-scope';
+import { installAuthenticatedApiFetch } from '../../../../collab/_support/auth';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
 import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
 
@@ -19,6 +20,7 @@ async function applyEditorFixture(
 
 aroundEach<TestContext>(async (run, ctx) => {
   const runtimeScope = createTestRuntimeScope();
+  const cleanupFetch = config.env.COLLAB_ENABLED ? await installAuthenticatedApiFetch() : () => {};
   const meta = ctx.task.meta;
   const fixtureName = meta.fixture;
   const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
@@ -54,6 +56,7 @@ aroundEach<TestContext>(async (run, ctx) => {
   try {
     await run();
   } finally {
+    cleanupFetch();
     if (config.env.COLLAB_ENABLED && meta.preserveCollabState !== true) {
       if (explicitCollabDocId) {
         await cleanupCollabDoc(explicitCollabDocId);

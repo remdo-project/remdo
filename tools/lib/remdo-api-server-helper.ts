@@ -117,7 +117,11 @@ export async function ensureRemdoApiServer(allowReuse = true): Promise<StopRemdo
     ['exec', 'tsx', './tools/remdo-api-server.ts'],
     {
       env: {
+        AUTH_SECRET: config.env.AUTH_SECRET,
+        ADMIN_SECRET: config.env.ADMIN_SECRET,
+        APP_PUBLIC_URL: config.env.APP_PUBLIC_URL,
         HOST: resolvedHost,
+        ALLOW_SIGNUP: String(config.env.ALLOW_SIGNUP),
         REMDO_API_PORT: String(resolvedPort),
         YSWEET_CONNECTION_STRING: config.env.YSWEET_CONNECTION_STRING,
       },

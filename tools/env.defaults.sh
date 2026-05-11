@@ -13,37 +13,6 @@
 : "${TMPDIR:=${REMDO_ROOT%/}/node_modules/.cache/vitest-tmp}" # Keep Vitest temp files out of repo root and shared with vitest-preview.
 DATA_DIR="${REMDO_ROOT%/}/data"
 
-# Derive a same-host canonical app base domain when no explicit override is provided.
-# Single-label hostnames map to app.<hostname>.shared; dotted/localhost/unknown map to app.remdo.localhost.
-if [ -z "${PUBLIC_BASE_DOMAIN:-}" ]; then
-  derived_hostname="${HOSTNAME:-}"
-
-  if [ -z "${derived_hostname}" ] && command -v hostname >/dev/null 2>&1; then
-    derived_hostname="$(hostname 2>/dev/null || true)"
-  fi
-
-  derived_hostname="$(printf '%s' "${derived_hostname}" | tr '[:upper:]' '[:lower:]')"
-  derived_hostname="${derived_hostname%.}"
-
-  case "${derived_hostname}" in
-    ""|localhost|localhost.localdomain|localdomain|*.*)
-      PUBLIC_BASE_DOMAIN="app.remdo.localhost"
-      ;;
-    *)
-      PUBLIC_BASE_DOMAIN="app.${derived_hostname}.shared"
-      ;;
-  esac
-fi
-
-# Default AUTH_USER to the current shell user.
-if [ -z "${AUTH_USER:-}" ]; then
-  if [ -n "${USER:-}" ]; then
-    AUTH_USER="${USER}"
-  else
-    AUTH_USER="$(id -un)"
-  fi
-fi
-
 # Derive all service/tool ports from the base PORT to keep multi-workdir runs predictable.
 : "${HMR_PORT:=$((PORT + 1))}"
 : "${VITEST_PORT:=$((PORT + 2))}"
@@ -53,13 +22,26 @@ fi
 : "${PREVIEW_PORT:=$((PORT + 5))}"
 : "${PLAYWRIGHT_UI_PORT:=$((PORT + 6))}"
 : "${DOCKER_TEST_PORT:=$((PORT + 7))}"
-: "${TINYAUTH_PORT:=$((PORT + 8))}"
 : "${PLAYWRIGHT_WEB_PORT:=$((PORT + 9))}"
 : "${PLAYWRIGHT_HMR_PORT:=$((PORT + 10))}"
 : "${REMDO_API_PORT:=$((PORT + 11))}"
 : "${YSWEET_CONNECTION_STRING:=ys://127.0.0.1:${COLLAB_SERVER_PORT}}"
-# Tinyauth validates sessions against this canonical app URL/host.
-: "${TINYAUTH_APP_URL:=http://${PUBLIC_BASE_DOMAIN}:${PORT}}"
+
+if [ -z "${AUTH_SECRET:-}" ] && [ "${NODE_ENV}" != "production" ]; then
+  AUTH_SECRET="development-auth-secret-0123456789"
+fi
+if [ -z "${ADMIN_SECRET:-}" ] && [ "${NODE_ENV}" != "production" ]; then
+  ADMIN_SECRET="development-admin-secret-0123456789"
+fi
+
+case "${NODE_ENV}" in
+  production)
+    : "${ALLOW_SIGNUP:=false}"
+    ;;
+  *)
+    : "${ALLOW_SIGNUP:=true}"
+    ;;
+esac
 
 # Chromium blocks these ports; fail fast if base or derived ports land on one.
 restricted_ports="0 1 7 9 11 13 15 17 19 20 21 22 23 25 37 42 43 53 69 77 79 87 95 \
@@ -78,7 +60,6 @@ for derived_port in \
   "${PREVIEW_PORT}" \
   "${PLAYWRIGHT_UI_PORT}" \
   "${DOCKER_TEST_PORT}" \
-  "${TINYAUTH_PORT}" \
   "${PLAYWRIGHT_WEB_PORT}" \
   "${PLAYWRIGHT_HMR_PORT}" \
   "${REMDO_API_PORT}"
@@ -92,7 +73,6 @@ do
 done
 
 export NODE_ENV HOST PORT DATA_DIR COLLAB_ENABLED COLLAB_DOCUMENT_ID CI VITEST_PREVIEW TMPDIR
-export PUBLIC_BASE_DOMAIN
-export AUTH_USER TINYAUTH_PORT TINYAUTH_APP_URL
 export HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT REMDO_API_PORT YSWEET_CONNECTION_STRING
 export COLLAB_CLIENT_PORT PREVIEW_PORT PLAYWRIGHT_UI_PORT DOCKER_TEST_PORT PLAYWRIGHT_WEB_PORT PLAYWRIGHT_HMR_PORT
+export AUTH_SECRET ADMIN_SECRET APP_PUBLIC_URL ALLOW_SIGNUP

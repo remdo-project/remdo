@@ -18,22 +18,19 @@ fi
 remdo_load_env_defaults "${ROOT_DIR}"
 remdo_configure_docker_runtime
 
-: "${AUTH_PASSWORD:?Set AUTH_PASSWORD in ${ROOT_DIR}/.env}"
-
-if (( ${#AUTH_PASSWORD} < 10 )); then
-  echo "Password must be at least 10 characters." >&2
-  exit 1
-fi
-
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
-echo "Docker local HTTPS target: ${CADDY_SITE_ADDRESS}"
+echo "Docker local HTTPS target: ${APP_PUBLIC_URL}"
 
 remdo_require_rootless_docker
 
+DOCKER_ENV_ARGS=(
+  -e AUTH_SECRET="${AUTH_SECRET-}"
+  -e ADMIN_SECRET="${ADMIN_SECRET-}"
+  -e APP_PUBLIC_URL="${APP_PUBLIC_URL}"
+  -e ALLOW_SIGNUP="${ALLOW_SIGNUP}"
+  -e PORT="${PORT}"
+)
+
 remdo_docker_run "${IMAGE_NAME}" "${DATA_DIR}" --rm --userns=host \
-  -e PORT="${PORT}" \
-  -e AUTH_USER="${AUTH_USER}" \
-  -e AUTH_PASSWORD="${AUTH_PASSWORD}" \
-  -e CADDY_SITE_ADDRESS="${CADDY_SITE_ADDRESS}" \
-  -e TINYAUTH_APP_URL="${TINYAUTH_APP_URL}"
+  "${DOCKER_ENV_ARGS[@]}"

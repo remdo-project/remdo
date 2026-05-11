@@ -2,9 +2,9 @@ import { attachPageGuards, expect, test } from '#e2e/fixtures';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
 import type { Page } from '@playwright/test';
 import {
+  authenticateIfNeeded,
   allowOfflineDisconnectedConsoleIssue,
   cleanupOfflineTest,
-  loginThroughTinyauthIfNeeded,
   waitForEditableEditor,
   waitForServiceWorkerControl,
 } from './_support/helpers';
@@ -13,7 +13,7 @@ test.describe('Offline app shell', () => {
   test('opens the app shell while offline after an online warm-up', async ({ page, context }) => {
     const warmedDocId = createUniqueNoteId();
     await page.goto(`/n/${warmedDocId}`);
-    await loginThroughTinyauthIfNeeded(page);
+    await authenticateIfNeeded(page);
     await expect(page.locator('.document-editor-shell')).toBeVisible();
     await waitForServiceWorkerControl(page);
     allowOfflineDisconnectedConsoleIssue(page);
@@ -38,7 +38,7 @@ test.describe('Offline app shell', () => {
   test('shows offline empty state for a document without local cache', async ({ page, context }) => {
     const warmedDocId = createUniqueNoteId();
     await page.goto(`/n/${warmedDocId}`);
-    await loginThroughTinyauthIfNeeded(page);
+    await authenticateIfNeeded(page);
     await waitForServiceWorkerControl(page);
     allowOfflineDisconnectedConsoleIssue(page);
     await page.close();
@@ -68,7 +68,7 @@ test.describe('Offline app shell', () => {
     const offlineEditText = `offline-edit-${docId.slice(0, 8)}`;
 
     await page.goto(`/n/${docId}`);
-    await loginThroughTinyauthIfNeeded(page);
+    await authenticateIfNeeded(page);
     await waitForEditableEditor(page);
     const editorInput = page.locator('.editor-input').first();
     await editorInput.click();

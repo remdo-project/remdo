@@ -13,12 +13,14 @@ services:
   envVars:
     - key: PORT
       value: "8080"
-    - key: AUTH_USER
-      value: remdo
-    - key: AUTH_PASSWORD
+    - key: AUTH_SECRET
       sync: false
-    - key: TINYAUTH_APP_URL
+    - key: ADMIN_SECRET
       sync: false
+    - key: APP_PUBLIC_URL
+      sync: false
+    - key: ALLOW_SIGNUP
+      value: "false"
   disk:
     name: remdo-data
     mountPath: /data

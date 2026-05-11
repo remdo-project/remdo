@@ -58,6 +58,26 @@ Rules:
 - Durable project constraints now live in [docs/principles.md](./principles.md).
 - Evaluate auth, sync, storage, and hosting choices against those principles.
 - Keep project assumptions separate from replaceable tooling choices.
+- Auth/storage follow-up: Better Auth currently uses `better-sqlite3` while the
+  document registry still uses `node:sqlite`. Unify those server-side SQLite
+  paths once the broader DB layer is revisited.
+- Auth/dev follow-up: keep Better Auth enabled in normal local dev because it
+  now participates in app behavior (session resolution, admin provisioning/login
+  flow, token issuance), not just deployment gateway protection. Aim for
+  unification and simplicity across dev and server modes; if local dev friction
+  becomes a problem later, prefer a clearly separate convenience mode over
+  reintroducing a silent auth bypass into the default dev path.
+- Config contract follow-up: clarify whether `config.env` values are the
+  authoritative app/stack runtime contract or only defaults that individual
+  layers may override. Current env values can be derived or changed through
+  shell defaults, Docker scripts, TS config loading, constructor options, and
+  tests, which makes it unclear when `.env` is globally respected versus when a
+  local code path may substitute different behavior. This is especially risky
+  for auth-sensitive values such as signup policy, canonical auth URL, secrets,
+  and server database paths. Consider refactoring config into a more declarative
+  contract that names type, visibility, default source, derivation, validation
+  phase, and requiredness so tests can cover a small set of named policies
+  instead of encoding the contract through ad hoc loader scenarios.
 
 ## Collaboration architecture roadmap [Future]
 

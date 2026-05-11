@@ -14,5 +14,5 @@ BACKUP_DIR="${DATA_DIR%/}/backup"
 
 mkdir -p "$BACKUP_DIR"
 
-snapshot.mjs backup "$BACKUP_DIR" --md
-snapshot.mjs backup "$BACKUP_DIR" --doc project --md
+node /app/snapshot.mjs backup "$BACKUP_DIR" --md
+node /app/snapshot.mjs backup "$BACKUP_DIR" --doc project --md

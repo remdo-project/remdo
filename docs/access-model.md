@@ -41,11 +41,13 @@ For each access case, the important questions are:
 ## Authenticated app access
 
 - Actor: signed-in app user.
-- Grant: login accepted by the target app server.
+- Grant: Better Auth session accepted by the target app server.
 - Scope: the app and the documents exposed by that server.
 - Run modes: self-hosted app server, managed cloud app server.
 - Authentication methods: username/password, OAuth, or other login methods the
   target app server supports.
+- Current server-mode anchor: RemDo `Actor` currently maps directly to the
+  Better Auth user/session identity.
 
 ## Private document access
 
@@ -55,6 +57,8 @@ For each access case, the important questions are:
 - Grant: ownership or explicit authenticated grant.
 - Scope: the private document.
 - Run modes: self-hosted app server, managed cloud app server.
+- Current implementation: no owner/grant checks yet; every authenticated actor
+  is still permitted.
 
 ## Public document access
 
