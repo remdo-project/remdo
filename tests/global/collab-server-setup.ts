@@ -5,12 +5,12 @@ import { request } from '@playwright/test';
 import { config } from '../../config';
 import { HTTP_STATUS } from '../../lib/http/status';
 import { resolveLoopbackHost } from '../../lib/net/loopback';
-import { E2E_AUTH_ACCOUNT, E2E_AUTH_STATE_PATH } from '../e2e/_support/auth-state';
+import { E2E_AUTH_ACCOUNT, E2E_STORAGE_STATE_PATH } from '../e2e/_support/auth-state';
 import { ensureCollabServer } from '../../tools/lib/collab-server-helper';
 import { ensureRemdoApiServer } from '../../tools/lib/remdo-api-server-helper';
 
 async function createE2EAuthState() {
-  const requestHost = resolveLoopbackHost(config.env.HOST, '127.0.0.1');
+  const requestHost = resolveLoopbackHost(config.env.HOST);
   const apiContext = await request.newContext({
     baseURL: `http://${requestHost}:${config.env.REMDO_API_PORT}`,
   });
@@ -38,8 +38,8 @@ async function createE2EAuthState() {
       }
     }
 
-    fs.mkdirSync(path.dirname(E2E_AUTH_STATE_PATH), { recursive: true });
-    await apiContext.storageState({ path: E2E_AUTH_STATE_PATH });
+    fs.mkdirSync(path.dirname(E2E_STORAGE_STATE_PATH), { recursive: true });
+    await apiContext.storageState({ path: E2E_STORAGE_STATE_PATH });
   } finally {
     await apiContext.dispose();
   }

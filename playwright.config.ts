@@ -3,9 +3,9 @@ import process from 'node:process';
 import os from 'node:os';
 import { config } from './config';
 import { resolveLoopbackHost } from './lib/net/loopback';
-import { E2E_AUTH_STATE_PATH } from './tests/e2e/_support/auth-state';
+import { E2E_STORAGE_STATE_PATH } from './tests/e2e/_support/auth-state';
 
-const host = resolveLoopbackHost(config.env.HOST, '127.0.0.1');
+const host = resolveLoopbackHost(config.env.HOST);
 // eslint-disable-next-line node/no-process-env
 const { PLAYWRIGHT_WORKERS, E2E_DOCKER, E2E_STORAGE_STATE } = process.env;
 const workers = PLAYWRIGHT_WORKERS ?? Math.max(2, os.cpus().length - 1);
@@ -32,7 +32,7 @@ export default defineConfig({
   fullyParallel: true,
   use: {
     baseURL,
-    storageState: useDocker ? E2E_STORAGE_STATE : E2E_AUTH_STATE_PATH,
+    storageState: useDocker ? E2E_STORAGE_STATE : E2E_STORAGE_STATE_PATH,
     ignoreHTTPSErrors: useDocker,
     launchOptions: useDocker
       ? {

@@ -9,16 +9,16 @@ TEST_DATA_DIR="$(mktemp -d -t remdo-docker-test-XXXXXX)"
 PROD_E2E_AUTH_STATE_PATH="${TEST_DATA_DIR%/}/prod-e2e-auth-state.json"
 
 : "${PORT:=4000}"
+: "${DOCKER_TEST_PORT:=$((PORT + 7))}"
 : "${DOCKER_TEST_BROWSER_HOST:=remdo.localhost}"
 # TODO: drop these defaults once layered env files + a committed base .env exist.
 : "${IMAGE_NAME:=remdo-test}"
 DOCKER_TEST_SECRET="ci-better-auth-secret-0123456789"
 DOCKER_TEST_ADMIN_SECRET="ci-admin-secret-0123456789"
 
-remdo_load_env_defaults "${ROOT_DIR}"
-
 PORT="${DOCKER_TEST_PORT}"
 COLLAB_DOCUMENT_ID="dockerSmoke"
+remdo_load_env_defaults "${ROOT_DIR}"
 remdo_configure_docker_runtime "${DOCKER_TEST_BROWSER_HOST}"
 
 CONTAINER_NAME="${IMAGE_NAME}-${PORT}"

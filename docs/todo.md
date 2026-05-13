@@ -81,13 +81,6 @@ Rules:
 - Docker prod E2E env follow-up: revisit whether Docker prod E2E should keep
   its separate container-level env handling or share more of the local env
   derivation path.
-- Loopback host cleanup: simplify `resolveLoopbackHost` so `127.0.0.1` is the
-  default fallback instead of repeating it at most call sites. Keep explicit
-  fallback only for the browser-visible token rewrite case, where bind-all
-  hosts should be rewritten to the current page hostname rather than localhost.
-- Next auth cleanup commit: clean up adjacent readability details: make
-  `resolveLoopbackHost` default to `127.0.0.1` and consider renaming
-  `E2E_AUTH_STATE_PATH` to `E2E_STORAGE_STATE_PATH`.
 
 ## Collaboration architecture roadmap [Future]
 

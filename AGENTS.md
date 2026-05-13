@@ -32,6 +32,8 @@ governance (map, workflow, invariants, and update rules), use `docs/index.md`.
   to avoid collisions across dev servers, tests, and collab services.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
+- Do not stage or unstage files unless the user explicitly asks; preserve the
+  existing index state while editing and checking the worktree.
 - The project is in dev phase, do not introduce temporary shims when refactoring
   or fixing bugs; aim for permanent solutions.
 - Always focus on the simplest and shortest possible implementation that meets

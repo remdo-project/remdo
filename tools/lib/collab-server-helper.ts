@@ -60,7 +60,7 @@ export async function ensureCollabServer({
 }: CollabServerOptions = {}): Promise<StopCollabServer> {
   const resolvedHost = config.env.HOST;
   const resolvedPort = port;
-  const probeHost = resolveLoopbackHost(resolvedHost, '127.0.0.1');
+  const probeHost = resolveLoopbackHost(resolvedHost);
 
   if (await isPortOpen(probeHost, resolvedPort)) {
     return reusedServerStop;
