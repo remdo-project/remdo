@@ -10,8 +10,7 @@ const host = resolveLoopbackHost(config.env.HOST);
 const { PLAYWRIGHT_WORKERS, E2E_DOCKER, E2E_STORAGE_STATE } = process.env;
 const workers = PLAYWRIGHT_WORKERS ?? Math.max(2, os.cpus().length - 1);
 const useDocker = E2E_DOCKER === 'true';
-const protocol = useDocker ? 'https' : 'http';
-const baseURL = `${protocol}://${host}:${config.env.PORT}`;
+const baseURL = useDocker ? config.env.APP_PUBLIC_URL : `http://${host}:${config.env.PORT}`;
 
 const webServer = useDocker
   ? undefined
