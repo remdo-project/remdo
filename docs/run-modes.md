@@ -101,7 +101,8 @@ For each run mode, the important questions are:
 - User: developer.
 - Platform: local machine.
 - Data boundary: local ephemeral or resettable test data.
-- Notes: this mode covers the fast local test stack.
+- Notes: collab tests use the configured local stack. They start missing
+  services and reuse already-running services on those ports.
 
 ### Browser E2E
 
@@ -109,7 +110,8 @@ For each run mode, the important questions are:
 - User: developer.
 - Platform: local machine.
 - Data boundary: local runtime and test data.
-- Notes: this mode uses its own browser/runtime stack.
+- Notes: local E2E tests use the configured local stack and follow the same
+  service start/reuse policy as collab tests.
 
 ### Docker prod E2E
 

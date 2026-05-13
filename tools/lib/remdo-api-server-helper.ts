@@ -14,6 +14,7 @@ const MAX_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'remdo-api-server.log');
+const reusedServerStop = () => Promise.resolve();
 
 function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
   if (child.killed) {
@@ -51,13 +52,11 @@ async function waitForPort(host: string, port: number): Promise<void> {
 export type StopRemdoApiServer = () => Promise<void>;
 
 interface RemdoApiServerOptions {
-  appPublicUrl?: string;
   port?: number;
   ySweetConnectionString?: string;
 }
 
 export async function ensureRemdoApiServer({
-  appPublicUrl = config.env.APP_PUBLIC_URL,
   port = config.env.REMDO_API_PORT,
   ySweetConnectionString = config.env.YSWEET_CONNECTION_STRING,
 }: RemdoApiServerOptions = {}): Promise<StopRemdoApiServer> {
@@ -66,7 +65,7 @@ export async function ensureRemdoApiServer({
   const probeHost = resolveLoopbackHost(resolvedHost, '127.0.0.1');
 
   if (await isPortOpen(probeHost, resolvedPort)) {
-    throw new Error(`RemDo API server already running on http://${probeHost}:${resolvedPort}`);
+    return reusedServerStop;
   }
 
   const logStream = ensureLogStream();
@@ -76,7 +75,7 @@ export async function ensureRemdoApiServer({
       env: {
         AUTH_SECRET: config.env.AUTH_SECRET,
         ADMIN_SECRET: config.env.ADMIN_SECRET,
-        APP_PUBLIC_URL: appPublicUrl,
+        APP_PUBLIC_URL: config.env.APP_PUBLIC_URL,
         HOST: resolvedHost,
         ALLOW_SIGNUP: String(config.env.ALLOW_SIGNUP),
         REMDO_API_PORT: String(resolvedPort),

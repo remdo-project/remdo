@@ -1,11 +1,7 @@
 import { config } from '#config';
 import { HTTP_STATUS } from '#lib/http/status';
+import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
 
-const TEST_ACCOUNT = {
-  email: 'collab@example.com',
-  name: 'Collab Test User',
-  password: 'collab-password-1234',
-} as const;
 const SESSION_COOKIE_PATTERN = /better-auth\.session_token=([^;]+)/u;
 
 let sessionCookiePromise: Promise<string> | null = null;
@@ -32,7 +28,7 @@ async function createOrSignInTestUser(): Promise<string> {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      ...TEST_ACCOUNT,
+      ...TEST_AUTH_ACCOUNT,
       adminSecret: config.env.ADMIN_SECRET,
     }),
   });
@@ -49,8 +45,8 @@ async function createOrSignInTestUser(): Promise<string> {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      email: TEST_ACCOUNT.email,
-      password: TEST_ACCOUNT.password,
+      email: TEST_AUTH_ACCOUNT.email,
+      password: TEST_AUTH_ACCOUNT.password,
     }),
   });
   if (signInResponse.ok) {

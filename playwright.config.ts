@@ -10,40 +10,15 @@ const host = resolveLoopbackHost(config.env.HOST, '127.0.0.1');
 const { PLAYWRIGHT_WORKERS, E2E_DOCKER } = process.env;
 const workers = PLAYWRIGHT_WORKERS ?? Math.max(2, os.cpus().length - 1);
 const useDocker = E2E_DOCKER === 'true';
-const target = useDocker
-  ? {
-      collabClientPort: config.env.COLLAB_CLIENT_PORT,
-      hmrPort: config.env.HMR_PORT,
-      port: config.env.PORT,
-      protocol: 'https',
-      remdoApiPort: config.env.REMDO_API_PORT,
-      ySweetConnectionString: config.env.YSWEET_CONNECTION_STRING,
-    }
-  : {
-      collabClientPort: config.env.E2E_COLLAB_CLIENT_PORT,
-      hmrPort: config.env.E2E_HMR_PORT,
-      port: config.env.E2E_PORT,
-      protocol: 'http',
-      remdoApiPort: config.env.E2E_REMDO_API_PORT,
-      ySweetConnectionString: config.env.E2E_YSWEET_CONNECTION_STRING,
-    };
-const port = target.port;
-const protocol = target.protocol;
-const baseURL = `${protocol}://${host}:${port}`;
+const protocol = useDocker ? 'https' : 'http';
+const baseURL = `${protocol}://${host}:${config.env.PORT}`;
 
 const webServer = useDocker
   ? undefined
   : {
       command: 'pnpm exec vite',
-      env: {
-        COLLAB_CLIENT_PORT: String(target.collabClientPort),
-        HMR_PORT: String(target.hmrPort),
-        PORT: String(port),
-        REMDO_API_PORT: String(target.remdoApiPort),
-        YSWEET_CONNECTION_STRING: target.ySweetConnectionString,
-      },
       url: baseURL,
-      // Intentional: reuse an already-running RemDo Vite dev server on PLAYWRIGHT_WEB_PORT
+      // Intentional: reuse an already-running RemDo Vite dev server on the configured port
       // to keep local E2E/debug loops fast. This port is expected to be reserved for the
       // test target; if another app is bound there, E2E results are invalid.
       reuseExistingServer: true,

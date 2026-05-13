@@ -15,6 +15,7 @@ const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'collab-server.log');
 const COLLAB_DATA_DIR = path.join(config.env.DATA_DIR, 'collab');
+const reusedServerStop = () => Promise.resolve();
 
 function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
   if (child.killed) {
@@ -62,7 +63,7 @@ export async function ensureCollabServer({
   const probeHost = resolveLoopbackHost(resolvedHost, '127.0.0.1');
 
   if (await isPortOpen(probeHost, resolvedPort)) {
-    throw new Error(`Collaboration server already running on ws://${probeHost}:${resolvedPort}`);
+    return reusedServerStop;
   }
 
   const logStream = ensureLogStream();

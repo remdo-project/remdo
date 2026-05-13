@@ -6,13 +6,17 @@ const MIN_AUTH_SECRET_LENGTH = 32;
 type ParsedServerEnv = ReturnType<typeof parseEnv<typeof envSpec>>;
 type ResolvedServerEnv = ParsedServerEnv & { AUTH_URL: string };
 
+function resolveLocalAuthHost(host: string): string {
+  return host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host;
+}
+
 function resolveAuthUrl(parsed: ParsedServerEnv): string {
-  if (parsed.APP_PUBLIC_URL.startsWith('http://') || parsed.APP_PUBLIC_URL.startsWith('https://')) {
-    return parsed.APP_PUBLIC_URL;
+  if (parsed.NODE_ENV !== 'production' && parsed.HOST && parsed.PORT > 0) {
+    return `http://${resolveLocalAuthHost(parsed.HOST)}:${parsed.PORT}`;
   }
 
-  if (parsed.NODE_ENV !== 'production' && parsed.HOST && parsed.PORT > 0) {
-    return `http://${parsed.HOST}:${parsed.PORT}`;
+  if (parsed.APP_PUBLIC_URL.startsWith('http://') || parsed.APP_PUBLIC_URL.startsWith('https://')) {
+    return parsed.APP_PUBLIC_URL;
   }
 
   return '';

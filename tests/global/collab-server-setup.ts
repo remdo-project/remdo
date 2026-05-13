@@ -12,7 +12,7 @@ import { ensureRemdoApiServer } from '../../tools/lib/remdo-api-server-helper';
 async function createE2EAuthState() {
   const requestHost = resolveLoopbackHost(config.env.HOST, '127.0.0.1');
   const apiContext = await request.newContext({
-    baseURL: `http://${requestHost}:${config.env.E2E_REMDO_API_PORT}`,
+    baseURL: `http://${requestHost}:${config.env.REMDO_API_PORT}`,
   });
 
   try {
@@ -55,14 +55,12 @@ export default async function collabServerSetup() {
     return;
   }
 
-  const appPublicUrl = `http://${resolveLoopbackHost(config.env.HOST, '127.0.0.1')}:${config.env.E2E_PORT}`;
   const stop = await ensureCollabServer({
-    port: config.env.E2E_COLLAB_SERVER_PORT,
+    port: config.env.COLLAB_SERVER_PORT,
   });
   const stopApi = await ensureRemdoApiServer({
-    appPublicUrl,
-    port: config.env.E2E_REMDO_API_PORT,
-    ySweetConnectionString: config.env.E2E_YSWEET_CONNECTION_STRING,
+    port: config.env.REMDO_API_PORT,
+    ySweetConnectionString: config.env.YSWEET_CONNECTION_STRING,
   });
 
   const stopServices = async () => {

@@ -35,6 +35,27 @@ describe('config env loading', () => {
     expect(loaded.server.AUTH_URL).toBe('http://127.0.0.1:4000');
   });
 
+  it('prefers the local URL outside production when APP_PUBLIC_URL is set', () => {
+    const loaded = loadTestEnv({
+      NODE_ENV: 'test',
+      HOST: '127.0.0.1',
+      PORT: '4000',
+      APP_PUBLIC_URL: 'https://remdo.example.com',
+    });
+
+    expect(loaded.server.AUTH_URL).toBe('http://127.0.0.1:4000');
+  });
+
+  it('uses a browser-reachable auth URL when local services bind all interfaces', () => {
+    const loaded = loadTestEnv({
+      NODE_ENV: 'development',
+      HOST: '0.0.0.0',
+      PORT: '4000',
+    });
+
+    expect(loaded.server.AUTH_URL).toBe('http://127.0.0.1:4000');
+  });
+
   it('reads ALLOW_SIGNUP without accepting the old auth-prefixed key', () => {
     const loaded = loadTestEnv({
       NODE_ENV: 'test',
@@ -74,6 +95,8 @@ describe('config env loading', () => {
   it('keeps server-only collaboration env out of client config', () => {
     const loaded = loadTestEnv({
       NODE_ENV: 'test',
+      HOST: '127.0.0.1',
+      PORT: '4000',
       REMDO_API_PORT: '4011',
       YSWEET_CONNECTION_STRING: 'ys://127.0.0.1:4004',
       AUTH_SECRET: 'test-auth-secret-0123456789',
@@ -86,7 +109,7 @@ describe('config env loading', () => {
     expect(loaded.server.YSWEET_CONNECTION_STRING).toBe('ys://127.0.0.1:4004');
     expect(loaded.server.AUTH_SECRET).toBe('test-auth-secret-0123456789');
     expect(loaded.server.ADMIN_SECRET).toBe('test-admin-secret-0123456789');
-    expect(loaded.server.AUTH_URL).toBe('https://remdo.example.com');
+    expect(loaded.server.AUTH_URL).toBe('http://127.0.0.1:4000');
     expect(loaded.server.ALLOW_SIGNUP).toBe(true);
     expect(loaded.client).not.toHaveProperty('REMDO_API_PORT');
     expect(loaded.client).not.toHaveProperty('YSWEET_CONNECTION_STRING');
