@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createServerApp } from '@/server/app';
 import { createServerAuth } from '@/server/auth/auth';
+import type { DocumentTokenManager } from '@/server/collab-token';
 import { createServerDatabaseClient } from '@/server/db/client';
 import { createDocumentRegistry } from '@/server/documents/document-registry';
 
@@ -13,6 +14,16 @@ const TEST_USER = {
 } as const;
 export const TEST_ADMIN_SECRET = 'test-admin-secret-0123456789';
 const SESSION_COOKIE_PATTERN = /better-auth\.session_token=([^;]+)/u;
+const FAKE_DOCUMENT_TOKEN_MANAGER: DocumentTokenManager = {
+  async getOrCreateDocAndToken(docId, authDocRequest) {
+    return {
+      authorization: authDocRequest?.authorization,
+      baseUrl: `http://collab-token.test.invalid/d/${docId}`,
+      docId,
+      url: `ws://collab-token.test.invalid/d/${docId}`,
+    };
+  },
+};
 
 function extractSessionCookie(response: Response): string {
   const extendedHeaders = response.headers as Headers & { getSetCookie?: () => string[] };
@@ -45,6 +56,7 @@ export function createServerAppHarness({
   const app = createServerApp({
     adminSecret,
     auth,
+    tokenManager: FAKE_DOCUMENT_TOKEN_MANAGER,
     registry,
     logError: () => {},
   });

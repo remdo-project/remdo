@@ -6,6 +6,7 @@ ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "${ROOT_DIR}/tools/lib/docker.sh"
 remdo_load_dotenv "${ROOT_DIR}"
 TEST_DATA_DIR="$(mktemp -d -t remdo-docker-test-XXXXXX)"
+PROD_E2E_AUTH_STATE_PATH="${TEST_DATA_DIR%/}/prod-e2e-auth-state.json"
 
 : "${PORT:=4000}"
 : "${DOCKER_TEST_BROWSER_HOST:=remdo.localhost}"
@@ -103,15 +104,21 @@ PLAYWRIGHT_ENV=(
 )
 
 echo "Running admin provisioning flow on a fresh server..."
-if ! env "${PLAYWRIGHT_ENV[@]}" \
+if ! env "${PLAYWRIGHT_ENV[@]}" E2E_WRITE_STORAGE_STATE="${PROD_E2E_AUTH_STATE_PATH}" \
   pnpm exec playwright test --workers=1 -- tests/e2e/prod/setup.spec.ts; then
   docker logs "${CONTAINER_NAME}" || true
   echo "Prod admin provisioning e2e failed: ${HEALTH_URL}" >&2
   exit 1
 fi
 
+if [[ ! -s "${PROD_E2E_AUTH_STATE_PATH}" ]]; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Prod admin provisioning did not write auth state: ${PROD_E2E_AUTH_STATE_PATH}" >&2
+  exit 1
+fi
+
 echo "Running remaining Docker prod E2E suite..."
-if ! env "${PLAYWRIGHT_ENV[@]}" \
+if ! env "${PLAYWRIGHT_ENV[@]}" E2E_STORAGE_STATE="${PROD_E2E_AUTH_STATE_PATH}" \
   pnpm exec playwright test -- tests/e2e/prod/docker-smoke.spec.ts tests/e2e/prod/offline-shell.spec.ts; then
   docker logs "${CONTAINER_NAME}" || true
   echo "Prod e2e failed: ${HEALTH_URL}" >&2

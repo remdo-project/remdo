@@ -1,6 +1,7 @@
 import { expect, test } from '#e2e/fixtures';
 import { HTTP_STATUS } from '#lib/http/status';
-import { authenticateIfNeeded, waitForEditableEditor } from './_support/helpers';
+import { request } from '@playwright/test';
+import { waitForEditableEditor } from './_support/helpers';
 
 const DOCKER_SMOKE_DOC_ID = 'dockerSmoke';
 
@@ -8,7 +9,6 @@ test('user can enter notes and see them rendered', async ({ page }) => {
   // Docker smoke runs against the prod build where the dev TestBridge is absent,
   // so we seed content via real typing instead of fixture loads.
   await page.goto(`/n/${DOCKER_SMOKE_DOC_ID}`);
-  await authenticateIfNeeded(page);
   await waitForEditableEditor(page);
   const editorInput = page.locator('.editor-input').first();
   await editorInput.click();
@@ -31,14 +31,22 @@ test('user can enter notes and see them rendered', async ({ page }) => {
 test('token issuance requires auth and collaboration control routes are not routed through the gateway', async ({ page }) => {
   await page.goto(`/n/${DOCKER_SMOKE_DOC_ID}`);
   const gatewayOrigin = new URL(page.url()).origin;
-  const unauthenticatedTokenResponse = await page.context().request.fetch(`${gatewayOrigin}/api/documents/main/token`, {
+  const unauthenticatedContext = await request.newContext({
+    baseURL: gatewayOrigin,
+    ignoreHTTPSErrors: true,
+    storageState: {
+      cookies: [],
+      origins: [],
+    },
+  });
+  const unauthenticatedTokenResponse = await unauthenticatedContext.fetch('/api/documents/main/token', {
     method: 'POST',
     failOnStatusCode: false,
   });
-  expect(unauthenticatedTokenResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
+  const unauthenticatedTokenStatus = unauthenticatedTokenResponse.status();
+  await unauthenticatedContext.dispose();
 
-  await authenticateIfNeeded(page);
-
+  expect(unauthenticatedTokenStatus).toBe(HTTP_STATUS.UNAUTHORIZED);
   const authenticatedTokenStatus = await page.evaluate(async () => {
     const response = await fetch('/api/documents/main/token', {
       method: 'POST',

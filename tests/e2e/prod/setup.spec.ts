@@ -1,5 +1,6 @@
 import { expect, test } from '#e2e/fixtures';
 import { createDocumentPath, DEFAULT_DOC_ID } from '@/routing';
+import process from 'node:process';
 import { PROD_TEST_ADMIN_SECRET, PROD_TEST_AUTH } from './_support/helpers';
 
 test('admin provisioning creates a user and opens the editor', async ({ page }) => {
@@ -17,4 +18,10 @@ test('admin provisioning creates a user and opens the editor', async ({ page }) 
   await page.waitForURL(/\/n\//);
   await expect(page.locator('.document-editor-shell')).toBeVisible();
   await expect(page.locator('.editor-input').first()).toHaveAttribute('contenteditable', 'true');
+
+  // eslint-disable-next-line node/no-process-env -- Docker prod setup writes auth state for the remaining prod specs.
+  const storageStatePath = process.env.E2E_WRITE_STORAGE_STATE;
+  if (storageStatePath) {
+    await page.context().storageState({ path: storageStatePath });
+  }
 });

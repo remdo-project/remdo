@@ -3,34 +3,12 @@ import { expect, setExpectedConsoleIssues } from '#e2e/fixtures';
 import { config } from '#config';
 import type { BrowserContext } from '@playwright/test';
 
-const DOC_URL_PATTERN = /\/n\//;
-
 export const PROD_TEST_AUTH = {
   email: 'ci@example.com',
   name: 'CI User',
   password: 'ci-password-1234',
 } as const;
 export const PROD_TEST_ADMIN_SECRET = config.env.ADMIN_SECRET;
-
-export async function authenticateIfNeeded(page: Page): Promise<void> {
-  const editorShell = page.locator('.document-editor-shell').first();
-  const loginButton = page.getByRole('button', { name: 'Sign in' });
-
-  const currentState = await Promise.race([
-    editorShell.waitFor({ state: 'visible' }).then(() => 'editor' as const),
-    loginButton.waitFor({ state: 'visible' }).then(() => 'login' as const),
-  ]);
-
-  if (currentState === 'editor') {
-    return;
-  }
-
-  await page.fill('input[autocomplete="email"]', PROD_TEST_AUTH.email);
-  await page.fill('input[autocomplete="current-password"]', PROD_TEST_AUTH.password);
-  await page.click('button[type="submit"]');
-  await page.waitForURL(DOC_URL_PATTERN);
-  await editorShell.waitFor({ state: 'visible' });
-}
 
 export async function waitForServiceWorkerControl(page: Page): Promise<void> {
   await page.waitForFunction(() => 'serviceWorker' in navigator);

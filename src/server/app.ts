@@ -7,13 +7,13 @@ import { getServerAuth } from './auth/auth';
 import { resolveActor } from './auth/actor';
 import { createDocumentRegistry } from './documents/document-registry';
 import type { DocumentRegistry } from './documents/document-registry';
-import { createDocumentManager, issueDocumentToken } from './collab-token';
+import { createDocumentTokenManager, issueDocumentToken } from './collab-token';
 import type { DocumentTokenManager } from './collab-token';
 
 interface ServerAppOptions {
   adminSecret?: string;
   auth?: ServerAuth;
-  manager?: DocumentTokenManager;
+  tokenManager?: DocumentTokenManager;
   registry?: DocumentRegistry;
   logError?: (error: unknown, details: { docId?: string }) => void;
 }
@@ -28,7 +28,7 @@ function defaultLogError(error: unknown, details: { docId?: string }) {
 export function createServerApp({
   adminSecret = config.env.ADMIN_SECRET,
   auth = getServerAuth(),
-  manager = createDocumentManager(),
+  tokenManager = createDocumentTokenManager(),
   registry = createDocumentRegistry(),
   logError = defaultLogError,
 }: ServerAppOptions = {}) {
@@ -91,7 +91,7 @@ export function createServerApp({
       }
 
       const document = await registry.ensureDocument(normalizedDocId);
-      const result = await issueDocumentToken(manager, actor, document, c.req.raw);
+      const result = await issueDocumentToken(tokenManager, actor, document, c.req.raw);
       if (result.denied) {
         return c.json({ error: 'Document access denied.' }, HTTP_STATUS.FORBIDDEN);
       }

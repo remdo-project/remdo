@@ -24,7 +24,7 @@ export interface DocumentTokenManager {
   ) => Promise<ClientToken>;
 }
 
-export function createDocumentManager(): DocumentTokenManager {
+export function createDocumentTokenManager(): DocumentTokenManager {
   return new DocumentManager(resolveYSweetConnectionString());
 }
 
@@ -41,7 +41,7 @@ async function resolveDocumentAccess(_args: ResolveDocumentAccessArgs): Promise<
 }
 
 export async function issueDocumentToken(
-  manager: DocumentTokenManager,
+  tokenManager: DocumentTokenManager,
   actor: Actor,
   document: RegisteredDocument,
   request: Request,
@@ -51,7 +51,7 @@ export async function issueDocumentToken(
     return { denied: true };
   }
 
-  const token = await manager.getOrCreateDocAndToken(document.id, {
+  const token = await tokenManager.getOrCreateDocAndToken(document.id, {
     authorization: access.authorization,
   });
 

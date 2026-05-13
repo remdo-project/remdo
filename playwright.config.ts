@@ -7,7 +7,7 @@ import { E2E_AUTH_STATE_PATH } from './tests/e2e/_support/auth-state';
 
 const host = resolveLoopbackHost(config.env.HOST, '127.0.0.1');
 // eslint-disable-next-line node/no-process-env
-const { PLAYWRIGHT_WORKERS, E2E_DOCKER } = process.env;
+const { PLAYWRIGHT_WORKERS, E2E_DOCKER, E2E_STORAGE_STATE } = process.env;
 const workers = PLAYWRIGHT_WORKERS ?? Math.max(2, os.cpus().length - 1);
 const useDocker = E2E_DOCKER === 'true';
 const protocol = useDocker ? 'https' : 'http';
@@ -32,7 +32,7 @@ export default defineConfig({
   fullyParallel: true,
   use: {
     baseURL,
-    storageState: useDocker ? undefined : E2E_AUTH_STATE_PATH,
+    storageState: useDocker ? E2E_STORAGE_STATE : E2E_AUTH_STATE_PATH,
     ignoreHTTPSErrors: useDocker,
     launchOptions: useDocker
       ? {
