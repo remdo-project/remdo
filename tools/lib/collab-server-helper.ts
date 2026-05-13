@@ -14,15 +14,7 @@ const MAX_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'collab-server.log');
-const META_PATH = path.join(LOG_DIR, 'collab-server.json');
 const COLLAB_DATA_DIR = path.join(config.env.DATA_DIR, 'collab');
-
-interface CollabServerMeta {
-  dataDir: string;
-  port: number;
-  pid: number | null;
-  startedAt: string;
-}
 
 function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
   if (child.killed) {
@@ -46,32 +38,6 @@ function ensureLogStream(): fs.WriteStream {
   return fs.createWriteStream(LOG_PATH, { flags: 'w' });
 }
 
-function readMeta(): CollabServerMeta | null {
-  try {
-    return JSON.parse(fs.readFileSync(META_PATH, 'utf8')) as CollabServerMeta;
-  } catch {
-    return null;
-  }
-}
-
-function writeMeta(meta: CollabServerMeta): void {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
-  fs.writeFileSync(META_PATH, `${JSON.stringify(meta, null, 2)}\n`);
-}
-
-function clearMeta(): void {
-  fs.rmSync(META_PATH, { force: true });
-}
-
-function isPidRunning(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function waitForPort(host: string, port: number): Promise<void> {
   for (let i = 0; i < MAX_ATTEMPTS; i++) {
     if (await isPortOpen(host, port)) {
@@ -84,32 +50,19 @@ async function waitForPort(host: string, port: number): Promise<void> {
 }
 export type StopCollabServer = () => Promise<void>;
 
-export async function ensureCollabServer(allowReuse = true): Promise<StopCollabServer | undefined> {
+interface CollabServerOptions {
+  port?: number;
+}
+
+export async function ensureCollabServer({
+  port = config.env.COLLAB_SERVER_PORT,
+}: CollabServerOptions = {}): Promise<StopCollabServer> {
   const resolvedHost = config.env.HOST;
-  const resolvedPort = config.env.COLLAB_SERVER_PORT;
+  const resolvedPort = port;
   const probeHost = resolveLoopbackHost(resolvedHost, '127.0.0.1');
 
   if (await isPortOpen(probeHost, resolvedPort)) {
-    if (!allowReuse) {
-      throw new Error(`Collaboration server already running on ws://${probeHost}:${resolvedPort}`);
-    }
-
-    const meta = readMeta();
-    const metaOk = Boolean(
-      meta
-      && meta.port === resolvedPort
-      && meta.dataDir === config.env.DATA_DIR
-      && (!meta.pid || isPidRunning(meta.pid)),
-    );
-    if (metaOk) {
-      return undefined;
-    }
-
-    const metaDetails = meta ? `found ${JSON.stringify(meta)}` : 'no metadata file found';
-    throw new Error(
-      `Collaboration server already running on ws://${probeHost}:${resolvedPort}, but ${metaDetails}. `
-      + `Expected data dir: ${config.env.DATA_DIR}. Stop the existing server or choose a different PORT.`,
-    );
+    throw new Error(`Collaboration server already running on ws://${probeHost}:${resolvedPort}`);
   }
 
   const logStream = ensureLogStream();
@@ -162,17 +115,10 @@ export async function ensureCollabServer(allowReuse = true): Promise<StopCollabS
     terminateProcessGroup(child, 'SIGTERM');
     await once(child, 'exit');
     cleanup();
-    clearMeta();
   };
 
   try {
     await waitForPort(probeHost, resolvedPort);
-    writeMeta({
-      dataDir: config.env.DATA_DIR,
-      port: resolvedPort,
-      pid: child.pid ?? null,
-      startedAt: new Date().toISOString(),
-    });
   } catch (error) {
     await stop();
     throw error;

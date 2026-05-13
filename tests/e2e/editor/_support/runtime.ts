@@ -1,6 +1,7 @@
 import type { Browser, BrowserContext } from '@playwright/test';
 import { expect, setExpectedConsoleIssues } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
+import { E2E_AUTH_STATE_PATH } from '../../_support/auth-state';
 import { parseDocumentRef } from '@/routing';
 import { REMDO_E2E_TEST_RUNTIME_GLOBAL } from '@/testing/e2e-runtime';
 import { ensureReady, getEditorState, load } from './bridge';
@@ -28,7 +29,7 @@ export async function bindEditorRuntimeContext(
 }
 
 export async function createIsolatedEditorContext(browser: Browser, userConfigDocId: string): Promise<BrowserContext> {
-  const context = await browser.newContext();
+  const context = await browser.newContext({ storageState: E2E_AUTH_STATE_PATH });
   await bindEditorRuntimeContext(context, userConfigDocId);
   return context;
 }

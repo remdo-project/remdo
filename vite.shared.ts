@@ -10,7 +10,7 @@ const host = config.env.HOST;
 const remdoApiTarget = `http://${host}:${config.env.REMDO_API_PORT}`;
 const collabTarget = `http://${host}:${config.env.COLLAB_CLIENT_PORT}`;
 const proxy = {
-  '/api/documents': {
+  '/api': {
     target: remdoApiTarget,
     changeOrigin: true,
     xfwd: true,

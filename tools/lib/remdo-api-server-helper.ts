@@ -14,14 +14,6 @@ const MAX_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'remdo-api-server.log');
-const META_PATH = path.join(LOG_DIR, 'remdo-api-server.json');
-
-interface RemdoApiServerMeta {
-  dataDir: string;
-  port: number;
-  pid: number | null;
-  startedAt: string;
-}
 
 function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
   if (child.killed) {
@@ -45,32 +37,6 @@ function ensureLogStream(): fs.WriteStream {
   return fs.createWriteStream(LOG_PATH, { flags: 'w' });
 }
 
-function readMeta(): RemdoApiServerMeta | null {
-  try {
-    return JSON.parse(fs.readFileSync(META_PATH, 'utf8')) as RemdoApiServerMeta;
-  } catch {
-    return null;
-  }
-}
-
-function writeMeta(meta: RemdoApiServerMeta): void {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
-  fs.writeFileSync(META_PATH, `${JSON.stringify(meta, null, 2)}\n`);
-}
-
-function clearMeta(): void {
-  fs.rmSync(META_PATH, { force: true });
-}
-
-function isPidRunning(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function waitForPort(host: string, port: number): Promise<void> {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
     if (await isPortOpen(host, port)) {
@@ -84,32 +50,23 @@ async function waitForPort(host: string, port: number): Promise<void> {
 
 export type StopRemdoApiServer = () => Promise<void>;
 
-export async function ensureRemdoApiServer(allowReuse = true): Promise<StopRemdoApiServer | undefined> {
+interface RemdoApiServerOptions {
+  appPublicUrl?: string;
+  port?: number;
+  ySweetConnectionString?: string;
+}
+
+export async function ensureRemdoApiServer({
+  appPublicUrl = config.env.APP_PUBLIC_URL,
+  port = config.env.REMDO_API_PORT,
+  ySweetConnectionString = config.env.YSWEET_CONNECTION_STRING,
+}: RemdoApiServerOptions = {}): Promise<StopRemdoApiServer> {
   const resolvedHost = config.env.HOST;
-  const resolvedPort = config.env.REMDO_API_PORT;
+  const resolvedPort = port;
   const probeHost = resolveLoopbackHost(resolvedHost, '127.0.0.1');
 
   if (await isPortOpen(probeHost, resolvedPort)) {
-    if (!allowReuse) {
-      throw new Error(`RemDo API server already running on http://${probeHost}:${resolvedPort}`);
-    }
-
-    const meta = readMeta();
-    const metaOk = Boolean(
-      meta
-      && meta.port === resolvedPort
-      && meta.dataDir === config.env.DATA_DIR
-      && (!meta.pid || isPidRunning(meta.pid)),
-    );
-    if (metaOk) {
-      return undefined;
-    }
-
-    const metaDetails = meta ? `found ${JSON.stringify(meta)}` : 'no metadata file found';
-    throw new Error(
-      `RemDo API server already running on http://${probeHost}:${resolvedPort}, but ${metaDetails}. `
-      + `Expected data dir: ${config.env.DATA_DIR}. Stop the existing server or choose a different PORT.`,
-    );
+    throw new Error(`RemDo API server already running on http://${probeHost}:${resolvedPort}`);
   }
 
   const logStream = ensureLogStream();
@@ -119,11 +76,11 @@ export async function ensureRemdoApiServer(allowReuse = true): Promise<StopRemdo
       env: {
         AUTH_SECRET: config.env.AUTH_SECRET,
         ADMIN_SECRET: config.env.ADMIN_SECRET,
-        APP_PUBLIC_URL: config.env.APP_PUBLIC_URL,
+        APP_PUBLIC_URL: appPublicUrl,
         HOST: resolvedHost,
         ALLOW_SIGNUP: String(config.env.ALLOW_SIGNUP),
         REMDO_API_PORT: String(resolvedPort),
-        YSWEET_CONNECTION_STRING: config.env.YSWEET_CONNECTION_STRING,
+        YSWEET_CONNECTION_STRING: ySweetConnectionString,
       },
       detached: true,
       forwardExit: false,
@@ -156,17 +113,10 @@ export async function ensureRemdoApiServer(allowReuse = true): Promise<StopRemdo
     terminateProcessGroup(child, 'SIGTERM');
     await once(child, 'exit');
     cleanup();
-    clearMeta();
   };
 
   try {
     await waitForPort(probeHost, resolvedPort);
-    writeMeta({
-      dataDir: config.env.DATA_DIR,
-      port: resolvedPort,
-      pid: child.pid ?? null,
-      startedAt: new Date().toISOString(),
-    });
   } catch (error) {
     await stop();
     throw error;

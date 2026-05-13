@@ -78,6 +78,26 @@ Rules:
   contract that names type, visibility, default source, derivation, validation
   phase, and requiredness so tests can cover a small set of named policies
   instead of encoding the contract through ad hoc loader scenarios.
+- Run-mode env layering follow-up: evaluate moving mode-specific overrides out
+  of app/tool consumers and into a thin env-layer step. The likely shape is:
+  load `.env`, apply shared defaults, then apply a named run-mode overlay such
+  as browser e2e or Docker prod e2e before TypeScript config is loaded. That
+  would let `playwright.config.ts`, Vite, server helpers, and other tools read
+  normal runtime names (`PORT`, `HMR_PORT`, `REMDO_API_PORT`,
+  `COLLAB_SERVER_PORT`, `YSWEET_CONNECTION_STRING`) without branching on
+  e2e/Docker-specific env families. Keep this as a post-auth cleanup because it
+  cuts across shell scripts, Playwright config, Docker test launch, and config
+  docs.
+- Loopback host cleanup: simplify `resolveLoopbackHost` so `127.0.0.1` is the
+  default fallback instead of repeating it at most call sites. Keep explicit
+  fallback only for the browser-visible token rewrite case, where bind-all
+  hosts should be rewritten to the current page hostname rather than localhost.
+- Next auth cleanup commit: keep backend test services strict/no-reuse, then
+  clean up adjacent readability details: make `resolveLoopbackHost` default to
+  `127.0.0.1`, decide whether Vite `reuseExistingServer` should stay as the
+  only reusable E2E service, replace the targeted local-E2E `APP_PUBLIC_URL`
+  override with proper run-mode env layering, and consider renaming
+  `E2E_AUTH_STATE_PATH` to `E2E_STORAGE_STATE_PATH`.
 
 ## Collaboration architecture roadmap [Future]
 

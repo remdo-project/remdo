@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { config } from '#config';
+import { HTTP_STATUS } from '#lib/http/status';
 import { normalizeDocumentId } from '@/routing';
 import type { ServerAuth } from './auth/auth';
 import { getServerAuth } from './auth/auth';
@@ -56,7 +57,7 @@ export function createServerApp({
       password?: string;
     }>();
     if (!adminSecret || body.adminSecret !== adminSecret) {
-      return c.json({ error: 'Admin secret is invalid.' }, 403);
+      return c.json({ error: 'Admin secret is invalid.' }, HTTP_STATUS.FORBIDDEN);
     }
 
     const trimmedName = typeof body.name === 'string' ? body.name.trim() : '';
@@ -66,7 +67,7 @@ export function createServerApp({
       || trimmedEmail.length === 0
       || typeof body.password !== 'string' || body.password.length === 0
     ) {
-      return c.json({ error: 'Name, email, and password are required.' }, 400);
+      return c.json({ error: 'Name, email, and password are required.' }, HTTP_STATUS.BAD_REQUEST);
     }
 
     return auth.createUser({
@@ -79,26 +80,26 @@ export function createServerApp({
   app.post('/api/documents/:docId/token', async (c) => {
     const normalizedDocId = normalizeDocumentId(c.req.param('docId'));
     if (!normalizedDocId) {
-      return c.json({ error: 'Invalid document id.' }, 400);
+      return c.json({ error: 'Invalid document id.' }, HTTP_STATUS.BAD_REQUEST);
     }
 
     try {
       await auth.ensureReady();
       const actor = await resolveActor(c.req.raw, auth);
       if (!actor) {
-        return c.json({ error: 'Authentication required.' }, 401);
+        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
       }
 
       const document = await registry.ensureDocument(normalizedDocId);
       const result = await issueDocumentToken(manager, actor, document, c.req.raw);
       if (result.denied) {
-        return c.json({ error: 'Document access denied.' }, 403);
+        return c.json({ error: 'Document access denied.' }, HTTP_STATUS.FORBIDDEN);
       }
 
       return c.json(result.token);
     } catch (error) {
       logError(error, { docId: normalizedDocId });
-      return c.json({ error: 'Failed to issue document token.' }, 500);
+      return c.json({ error: 'Failed to issue document token.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });
 

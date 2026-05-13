@@ -1,4 +1,5 @@
 import { config } from '#config';
+import { HTTP_STATUS } from '#lib/http/status';
 
 const TEST_ACCOUNT = {
   email: 'collab@example.com',
@@ -38,7 +39,7 @@ async function createOrSignInTestUser(): Promise<string> {
   if (provisionResponse.ok) {
     return extractSessionCookie(provisionResponse);
   }
-  if (provisionResponse.status !== 422) {
+  if (provisionResponse.status !== HTTP_STATUS.UNPROCESSABLE_ENTITY) {
     throw new Error(`Failed to provision collab test user: ${provisionResponse.status} ${provisionResponse.statusText}`);
   }
 

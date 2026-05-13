@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { HTTP_STATUS } from '#lib/http/status';
 import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';
 
 const harnesses: Array<ReturnType<typeof createServerAppHarness>> = [];
@@ -24,7 +25,7 @@ describe('remdo api app', () => {
       method: 'POST',
     });
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
     await expect(response.json()).resolves.toEqual({ error: 'Invalid document id.' });
     await expect(harness.registry.getDocument('bad doc')).resolves.toBeNull();
   });
@@ -36,7 +37,7 @@ describe('remdo api app', () => {
       method: 'POST',
     });
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(HTTP_STATUS.UNAUTHORIZED);
     await expect(response.json()).resolves.toEqual({ error: 'Authentication required.' });
     await expect(harness.registry.getDocument('main')).resolves.toBeNull();
   });
@@ -51,7 +52,7 @@ describe('remdo api app', () => {
     });
     const token = await response.json();
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(HTTP_STATUS.OK);
     expect(token).toMatchObject({ docId: 'main' });
     expect(token.baseUrl).toContain('/d/main');
     expect(token.url).toContain('/d/main');
@@ -72,7 +73,7 @@ describe('remdo api app', () => {
     });
     const stored = await harness.registry.getDocument('main');
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(HTTP_STATUS.OK);
     expect(stored).not.toBeNull();
     expect(stored).toEqual(existing);
   });
@@ -104,9 +105,9 @@ describe('remdo api app', () => {
       }),
     });
 
-    expect(missingResponse.status).toBe(403);
+    expect(missingResponse.status).toBe(HTTP_STATUS.FORBIDDEN);
     await expect(missingResponse.json()).resolves.toEqual({ error: 'Admin secret is invalid.' });
-    expect(wrongResponse.status).toBe(403);
+    expect(wrongResponse.status).toBe(HTTP_STATUS.FORBIDDEN);
     await expect(wrongResponse.json()).resolves.toEqual({ error: 'Admin secret is invalid.' });
     expect(harness.auth.getUserCount()).toBe(0);
   });
@@ -128,7 +129,7 @@ describe('remdo api app', () => {
       }),
     });
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
     await expect(response.json()).resolves.toEqual({ error: 'Admin secret is invalid.' });
     expect(harness.auth.getUserCount()).toBe(0);
   });
@@ -148,7 +149,7 @@ describe('remdo api app', () => {
       }),
     });
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
     expect(harness.auth.getUserCount()).toBe(0);
   });
 
@@ -186,7 +187,7 @@ describe('remdo api app', () => {
       }),
     }));
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(HTTP_STATUS.OK);
   });
 
   it('allows admin provisioning for additional users', async () => {
@@ -206,7 +207,7 @@ describe('remdo api app', () => {
       }),
     });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(HTTP_STATUS.OK);
     expect(harness.auth.getUserCount()).toBe(2);
   });
 
@@ -215,7 +216,7 @@ describe('remdo api app', () => {
 
     const response = await harness.app.request('/api/health');
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(HTTP_STATUS.OK);
     await expect(response.json()).resolves.toEqual({
       db: 'ok',
       ok: true,

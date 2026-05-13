@@ -15,6 +15,7 @@ trustPolicyExclude:
 updateNotifier: false
 
 overrides:
+  '@babel/plugin-transform-modules-systemjs': '>=7.29.4'
   '@eslint/config-array>minimatch': 3.1.5
   '@eslint/eslintrc>ajv': 6.14.0
   '@eslint/eslintrc>minimatch': 3.1.5
@@ -23,6 +24,7 @@ overrides:
   eslint>ajv: 6.14.0
   eslint>minimatch: 3.1.5
   express: '>=5.2.0'
+  fast-uri: '>=3.1.2'
   glob>minimatch: 10.2.4
   js-yaml: 4.1.1
   qs: 6.14.2

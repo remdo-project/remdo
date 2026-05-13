@@ -6,7 +6,7 @@ import { createServerAuth } from '@/server/auth/auth';
 import { createServerDatabaseClient } from '@/server/db/client';
 import { createDocumentRegistry } from '@/server/documents/document-registry';
 
-export const TEST_USER = {
+const TEST_USER = {
   email: 'server@example.com',
   name: 'Server Test User',
   password: 'server-password-1234',
@@ -14,7 +14,7 @@ export const TEST_USER = {
 export const TEST_ADMIN_SECRET = 'test-admin-secret-0123456789';
 const SESSION_COOKIE_PATTERN = /better-auth\.session_token=([^;]+)/u;
 
-export function extractSessionCookie(response: Response): string {
+function extractSessionCookie(response: Response): string {
   const extendedHeaders = response.headers as Headers & { getSetCookie?: () => string[] };
   const getSetCookie = typeof extendedHeaders.getSetCookie === 'function' ? extendedHeaders.getSetCookie() : [];
   const header = getSetCookie[0] ?? response.headers.get('set-cookie') ?? '';

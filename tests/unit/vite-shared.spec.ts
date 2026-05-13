@@ -7,7 +7,7 @@ describe('vite shared config', () => {
     const serverProxy = config.server.proxy;
     const previewProxy = config.preview.proxy;
 
-    expect(serverProxy['/api/documents']).toMatchObject({
+    expect(serverProxy['/api']).toMatchObject({
       changeOrigin: true,
       xfwd: true,
     });
@@ -17,7 +17,7 @@ describe('vite shared config', () => {
     });
     expect(serverProxy).not.toHaveProperty('/doc');
 
-    expect(previewProxy['/api/documents']).toMatchObject({
+    expect(previewProxy['/api']).toMatchObject({
       changeOrigin: true,
       xfwd: true,
     });

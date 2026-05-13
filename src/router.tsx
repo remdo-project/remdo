@@ -81,20 +81,25 @@ const createDocumentLoader = (buildPath: DocumentPathBuilder) => {
   };
 };
 
+const hydrateFallbackElement = <div aria-hidden="true" />;
+
 const routes = [
   {
     path: '/login',
     loader: ({ request }: { request: Request }) => requirePublicAuthRoute(request),
     element: <LoginRoute />,
+    hydrateFallbackElement,
   },
   {
     path: '/admin/users/new',
     element: <AdminUsersRoute />,
+    hydrateFallbackElement,
   },
   {
     path: '/',
     element: <App />,
     loader: ({ request }: { request: Request }) => requireAuthenticatedRoute(request),
+    hydrateFallbackElement,
     children: [
       {
         index: true,
@@ -118,8 +123,9 @@ const routes = [
             return createDocumentLoader(createEditorDocumentPath)({ request, params });
           },
           element: <EditorE2ERoute />,
+          hydrateFallbackElement,
         },
-      ]
+    ]
     : []),
 ];
 

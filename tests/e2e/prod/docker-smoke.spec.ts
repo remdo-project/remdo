@@ -1,4 +1,5 @@
 import { expect, test } from '#e2e/fixtures';
+import { HTTP_STATUS } from '#lib/http/status';
 import { authenticateIfNeeded, waitForEditableEditor } from './_support/helpers';
 
 const DOCKER_SMOKE_DOC_ID = 'dockerSmoke';
@@ -34,7 +35,7 @@ test('token issuance requires auth and collaboration control routes are not rout
     method: 'POST',
     failOnStatusCode: false,
   });
-  expect(unauthenticatedTokenResponse.status()).toBe(401);
+  expect(unauthenticatedTokenResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
 
   await authenticateIfNeeded(page);
 
@@ -48,7 +49,7 @@ test('token issuance requires auth and collaboration control routes are not rout
     });
     return response.status;
   });
-  expect(authenticatedTokenStatus).toBe(200);
+  expect(authenticatedTokenStatus).toBe(HTTP_STATUS.OK);
 
   const newRouteResponse = await page.context().request.fetch(`${gatewayOrigin}/doc/new`, {
     method: 'POST',
@@ -59,6 +60,6 @@ test('token issuance requires auth and collaboration control routes are not rout
     failOnStatusCode: false,
   });
 
-  expect(newRouteResponse.status()).toBe(404);
-  expect(authRouteResponse.status()).toBe(404);
+  expect(newRouteResponse.status()).toBe(HTTP_STATUS.NOT_FOUND);
+  expect(authRouteResponse.status()).toBe(HTTP_STATUS.NOT_FOUND);
 });

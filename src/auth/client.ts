@@ -7,9 +7,9 @@ export const authClient = createAuthClient({
 });
 
 type SessionResponse = Awaited<ReturnType<typeof authClient.getSession>>;
-export type CurrentSession = Exclude<SessionResponse['data'], null | undefined>;
+type CurrentSession = Exclude<SessionResponse['data'], null | undefined>;
 
-export type SessionGateState =
+type SessionGateState =
   | { status: 'authenticated'; session: CurrentSession }
   | { status: 'offline-fallback' }
   | { status: 'unauthenticated' };
