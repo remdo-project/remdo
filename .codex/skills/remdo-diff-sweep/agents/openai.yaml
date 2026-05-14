@@ -1,0 +1,6 @@
+interface:
+  display_name: RemDo Diff Sweep
+  short_description: Conservative cleanup for RemDo diffs
+  default_prompt: Use $remdo-diff-sweep to review and clean up the current uncommitted RemDo changes.
+policy:
+  allow_implicit_invocation: false
