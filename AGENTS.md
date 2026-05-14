@@ -32,11 +32,13 @@ governance (map, workflow, invariants, and update rules), use `docs/index.md`.
   to avoid collisions across dev servers, tests, and collab services.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
-- The project is in dev phase, do not introduce temporary shims when refactoring
-  or fixing bugs; aim for permanent solutions.
-- Always focus on the simplest and shortest possible implementation that meets
-  the request. Propose any additional guards, optimisations, checks, etc. as
-  follow ups instead of adding them by default.
+- The project is in dev phase. Prefer the simplest permanent implementation
+  that meets the request. Do not add speculative abstractions, feature flags,
+  compatibility shims, or defensive guards unless the task, specs, or supported
+  runtime baseline require them; propose optional hardening as follow-ups.
+- For bug fixes, reproduce the issue with a focused test, command, or browser
+  check when practical, then verify the fix with that focused reproducer plus
+  the required final checks below.
 - The `docs/todo.md` summary in `docs/index.md` should remain as-is and should
   not be automatically updated like other doc entries.
 - When writing tests against known fixtures, assume the fixture shape; avoid
