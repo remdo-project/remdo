@@ -81,6 +81,63 @@ Rules:
 - Docker prod E2E env follow-up: revisit whether Docker prod E2E should keep
   its separate container-level env handling or share more of the local env
   derivation path.
+- Default document naming follow-up: rethink the remaining `default` document
+  terminology after profile-owned home documents. The old name mixed app
+  startup, route fallback, `/n/main`-style URL fixtures, tests, tooling, and
+  configured collab document behavior; revisit the remaining uses, drop the
+  generic default/main naming where it no longer describes the role, and give
+  each context a purpose-specific name.
+- Home route alias follow-up: add an explicit home URL alias that resolves to
+  the authenticated user's current profile home document. Keep this separate
+  from legacy `/n/main`; that path should remain a literal document id until
+  the naming cleanup above removes or renames leftover `main` fixtures.
+- Source layout follow-up: revisit browser/server/shared folder boundaries.
+  Server code was added after the browser app shape was already established, so
+  some document/profile/domain concepts now sit beside browser runtime code.
+  Clarify which modules are client-only, server-only, and shared domain code.
+- E2E profile path follow-up: remove the special injected `usercfg`/config-doc
+  path from E2E helpers. Browser E2E should authenticate and load profile/home
+  resources through the same `/api/profile` path as normal users, with test
+  isolation coming from users/data setup rather than a client-side config-doc
+  override.
+- Routing return-path follow-up: centralize post-auth return-path handling.
+  Replace ad hoc `next` parsing and path safety checks with one tested helper
+  that defines which app-local redirects are allowed.
+- Offline auth/product follow-up: define the offline auth states explicitly.
+  Expected shape: unauthenticated offline users see a fallback message,
+  remembered authenticated sessions may open cached/local routes without
+  re-authenticating, and logout clears remembered auth plus local user data.
+- Dev API DX follow-up: evaluate mounting the Hono RemDo API inside the Vite dev
+  server for `/api/*` instead of proxying to a separate `dev:api` process. Goal:
+  same-origin API behavior in local dev with fewer stale route/process issues,
+  while keeping production/Docker gateway behavior separately covered.
+- Y-Sweet token enforcement follow-up: run the collaboration server with
+  Y-Sweet auth enabled in local, test, Docker, and production-like run modes so
+  RemDo-issued `full` and `read-only` tokens are enforced by the sync server,
+  not just by the RemDo API path.
+- User-config security regression guards: add Docker prod E2E coverage that
+  proves user-config projection docs are persisted through the normal Y-Sweet
+  store, issued as read-only, and cannot be modified through direct sync-token
+  access. Also cover the allowed path: server-validated document creation
+  updates SQL first and then refreshes the user-config projection. These tests
+  should lock the access boundary against future refactors.
+- User/profile/config/document-list model follow-up: redesign the hierarchy and
+  naming so the shape is obvious to read and each layer has a clear role. In
+  particular, clarify where user profile entries, app config, the home document,
+  and the document list live, and make sure access to those entries goes
+  through the note-facing API rather than bypassing it with ad hoc profile
+  structures.
+- Read-only Yjs proxy writer follow-up: replace the current temporary
+  `Y.Doc`/encoded-update projection refresh path with an API-server Yjs client
+  that connects to the Y-Sweet proxy document it owns. Browsers should keep
+  read-only tokens for those proxy docs, while mutations such as creating a
+  document continue to go through explicit API commands that validate and update
+  SQL first.
+- Projection writer lifecycle follow-up: define how server-side proxy writer
+  connections are managed before introducing the live writer path. Decide
+  whether writers connect per update or are cached, what "flushed before API
+  response" means, and how idle connections are cleaned up in local, Docker,
+  and future cloud run modes.
 
 ## Collaboration architecture roadmap [Future]
 
@@ -176,3 +233,11 @@ Rules:
      or `ignore`, especially:
      `glob@11.1.0`, `source-map@0.8.0-beta.0`, `sourcemap-codec@1.4.8`, and the
      `@typescript-eslint/*` peer mismatch against `typescript 6`.
+
+## Later follow-ups
+
+- Revisit client auth/profile state caching once the auth and profile model is
+  more settled. The current lightweight profile cache should eventually be
+  keyed to the active Better Auth session, or invalidated by a clear shared
+  auth-state boundary, so same-tab identity changes cannot reuse stale
+  home/config document ids.

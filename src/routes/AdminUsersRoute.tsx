@@ -2,15 +2,7 @@ import { Alert, Button, Container, Paper, PasswordInput, Stack, Text, TextInput,
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { rememberAuthenticatedSession } from '@/auth/client';
-import { DEFAULT_DOC_ID, createDocumentPath } from '@/routing';
-
-function resolveReturnTo(search: string): string {
-  const value = new URLSearchParams(search).get('next');
-  if (typeof value === 'string' && value.startsWith('/')) {
-    return value;
-  }
-  return createDocumentPath(DEFAULT_DOC_ID);
-}
+import { resolvePostAuthPath } from './post-auth-path';
 
 export default function AdminUsersRoute() {
   const location = useLocation();
@@ -21,7 +13,6 @@ export default function AdminUsersRoute() {
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const returnTo = resolveReturnTo(location.search);
 
   const handleSubmit = async (event: { preventDefault: () => void }) => {
     event.preventDefault();
@@ -48,6 +39,7 @@ export default function AdminUsersRoute() {
       }
 
       rememberAuthenticatedSession();
+      const returnTo = await resolvePostAuthPath(location.search);
       void navigate(returnTo, { replace: true });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to create the user.');

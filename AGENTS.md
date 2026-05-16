@@ -30,6 +30,13 @@ governance (map, workflow, invariants, and update rules), use `docs/index.md`.
   `../remdo-wts/remdo-7000`, `../remdo-wts/remdo-7000-wt-optA`).
 - Assign a unique `PORT` per worktree (for example base `PORT + 100`, `+200`)
   to avoid collisions across dev servers, tests, and collab services.
+- Treat each repo/worktree as owning a 100-port block starting at its assigned
+  `PORT`. Do not run commands with `PORT` outside the current repo/worktree's
+  block unless the user explicitly approves.
+- If a check/debugging run appears to hit a stale RemDo service, identify the
+  process, command, port, and port block first. If it belongs to the current
+  workdir/worktree and blocks the task, restart it instead of adding workaround
+  wiring; report the restart and any follow-up tooling/HMR recommendation.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
 - Do not stage or unstage files unless the user explicitly asks; preserve the

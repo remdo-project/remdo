@@ -4,7 +4,7 @@ import Database from 'better-sqlite3';
 import { betterAuth } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import { config } from '#config';
-import { resolveServerDatabasePath } from '../db/client';
+import { resolveServerDatabasePath } from '@/server/db/client';
 
 interface CreateServerAuthOptions {
   allowSignup?: boolean;
@@ -47,14 +47,17 @@ function createBetterAuthInstance({
 
 type BetterAuthInstance = ReturnType<typeof createBetterAuthInstance>;
 
+export interface CreateAuthUserInput {
+  email: string;
+  name: string;
+  password: string;
+}
+
 export interface ServerAuth {
   allowSignup: boolean;
   auth: BetterAuthInstance;
   close: () => void;
-  createUser: (
-    user: { email: string; name: string; password: string },
-    headers: Headers,
-  ) => Promise<Response>;
+  createUser: (user: CreateAuthUserInput, headers: Headers) => Promise<Response>;
   db: Database.Database;
   ensureReady: () => Promise<void>;
   getSession: (headers: Headers) => Promise<Awaited<ReturnType<BetterAuthInstance['api']['getSession']>>>;

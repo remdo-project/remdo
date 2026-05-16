@@ -8,8 +8,9 @@ import { resolveLoopbackHost } from '../../lib/net/loopback';
 import { E2E_AUTH_ACCOUNT, E2E_STORAGE_STATE_PATH } from '../e2e/_support/auth-state';
 import { ensureCollabServer } from '../../tools/lib/collab-server-helper';
 import { ensureRemdoApiServer } from '../../tools/lib/remdo-api-server-helper';
+import { cleanupTestAuthData } from './test-auth-cleanup';
 
-async function createE2EAuthState() {
+async function createPlaywrightAuthState() {
   const requestHost = resolveLoopbackHost(config.env.HOST);
   const apiContext = await request.newContext({
     baseURL: `http://${requestHost}:${config.env.REMDO_API_PORT}`,
@@ -62,6 +63,7 @@ export default async function collabServerSetup() {
     port: config.env.REMDO_API_PORT,
     ySweetConnectionString: config.env.YSWEET_CONNECTION_STRING,
   });
+  cleanupTestAuthData();
 
   const stopServices = async () => {
     await stopApi();
@@ -69,7 +71,7 @@ export default async function collabServerSetup() {
   };
 
   try {
-    await createE2EAuthState();
+    await createPlaywrightAuthState();
   } catch (error) {
     await stopServices();
     throw error;

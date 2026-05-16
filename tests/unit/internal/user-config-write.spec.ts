@@ -35,4 +35,5 @@ describe('user config writes', () => {
       { id: document.id(), title: 'New Document' },
     ]);
   });
+
 });

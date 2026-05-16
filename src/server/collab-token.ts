@@ -5,12 +5,14 @@ import type { Actor } from './auth/actor';
 import type { RegisteredDocument } from './documents/document-registry';
 import { rewriteTokenUrlsForRequest } from './token-url-rewrite';
 
-type DocumentAuthorization = 'full' | 'read-only';
+// Y-Sweet defines the authorization union internally but does not export it.
+// Deriving it from ClientToken keeps this wrapper tied to Y-Sweet's accepted
+// values without duplicating string literals locally.
+type DocumentAuthorization = NonNullable<ClientToken['authorization']>;
 
-interface DocumentAccessResolution {
-  allowed: boolean;
-  authorization: DocumentAuthorization;
-}
+type DocumentAccessResolution =
+  | { allowed: false }
+  | { allowed: true; authorization: DocumentAuthorization };
 
 interface ResolveDocumentAccessArgs {
   actor: Actor;
@@ -18,10 +20,12 @@ interface ResolveDocumentAccessArgs {
 }
 
 export interface DocumentTokenManager {
+  getDocAsUpdate: (docId: string) => Promise<Uint8Array>;
   getOrCreateDocAndToken: (
     docId: string,
     authDocRequest?: { authorization?: DocumentAuthorization },
   ) => Promise<ClientToken>;
+  updateDoc: (docId: string, update: Uint8Array) => Promise<void>;
 }
 
 export function createDocumentTokenManager(): DocumentTokenManager {
@@ -32,11 +36,14 @@ function resolveYSweetConnectionString(): string {
   return config.env.YSWEET_CONNECTION_STRING;
 }
 
-async function resolveDocumentAccess(_args: ResolveDocumentAccessArgs): Promise<DocumentAccessResolution> {
-  // TODO: Enforce private/public/link-shared access here.
+async function resolveDocumentAccess({ actor, document }: ResolveDocumentAccessArgs): Promise<DocumentAccessResolution> {
+  if (document.accessMode === 'private' && document.ownerUserId !== actor.userId) {
+    return { allowed: false };
+  }
+
   return {
     allowed: true,
-    authorization: 'full',
+    authorization: document.kind === 'user-config' ? 'read-only' : 'full',
   };
 }
 

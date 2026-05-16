@@ -15,11 +15,12 @@ Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
 - `docs/access-model.md` (Medium). Document access model for RemDo:
-  private/public/link-shared modes, share-link lifecycle, authenticated app
-  access, and cross-server authenticated document access.
+  owner-backed private access, private/public/link-shared modes, share-link
+  lifecycle, authenticated app access, and cross-server authenticated document access.
 - `docs/architecture.md` (Medium). Cross-cutting architecture vocabulary for
-  delivery surfaces, gateway/origin boundaries, collaboration runtime building
-  blocks, and `[Future]` multi-hub terms.
+  delivery surfaces, gateway/origin boundaries, Better Auth identity,
+  document-registry ownership, collaboration runtime building blocks, and
+  `[Future]` multi-hub terms.
 - `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch conventions, and
   pre-1.0 compatibility policy (no default migration/back-compat requirements).
 - `docs/dev/dependency-maintenance.md` (Medium). Temporary dependency/runtime

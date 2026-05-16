@@ -1,10 +1,10 @@
 export const REMDO_E2E_TEST_RUNTIME_GLOBAL = '__remdoE2eTestRuntime';
 
-function isE2ERoute(): boolean {
+export function isE2ERoute(): boolean {
   return typeof location !== 'undefined' && location.pathname.startsWith('/e2e/');
 }
 
-function readE2ETestRuntime(): { userConfigDocId?: unknown } | null {
+function readE2ETestRuntime(): { configDocumentId?: unknown } | null {
   if (!isE2ERoute()) {
     return null;
   }
@@ -13,7 +13,7 @@ function readE2ETestRuntime(): { userConfigDocId?: unknown } | null {
   return runtime && typeof runtime === 'object' ? runtime : null;
 }
 
-export function getInjectedE2EUserConfigDocId(): string | null {
-  const docId = readE2ETestRuntime()?.userConfigDocId;
+export function getInjectedE2EConfigDocumentId(): string | null {
+  const docId = readE2ETestRuntime()?.configDocumentId;
   return typeof docId === 'string' && docId.length > 0 ? docId : null;
 }

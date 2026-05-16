@@ -9,11 +9,8 @@ export interface UserConfigNote extends Note<'user-config'> {
 export interface DocumentListNote extends Note<'document-list'> {
   /** Returns all listed documents in display order. */
   children: () => readonly DocumentNote[];
-  /** Creates and places a listed document relative to this document list. */
-  create: {
-    (text: string): Promise<DocumentNote>;
-    (position: ChildPosition, text: string): Promise<DocumentNote>;
-  };
+  /** Creates a listed document. */
+  create: (text: string) => Promise<DocumentNote>;
 }
 
 export interface DocumentNote extends Note<'document'> {

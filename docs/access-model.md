@@ -21,8 +21,8 @@ For each access case, the important questions are:
 4. Access mode defines broad exposure.
 5. Explicit authenticated grants define identity-bound access beyond the broad
    access mode.
-6. Access mode is server-owned document metadata stored in the document
-   registry.
+6. Access mode and owner identity are server-owned document metadata stored in
+   the document registry.
 
 ## Local-only app access
 
@@ -48,17 +48,22 @@ For each access case, the important questions are:
   target app server supports.
 - Current server-mode anchor: RemDo `Actor` currently maps directly to the
   Better Auth user/session identity.
+- Personal app state: the Yjs-backed user-config note exposes the signed-in
+  user's document list and other personal app state through the existing note
+  API. SQL document-registry rows are the durable source for the current
+  document list; `/api/profile` ensures the per-user config projection and
+  home document rows exist, then updates the persisted, read-only Yjs
+  user-config projection.
 
 ## Private document access
 
 - Access mode: `private`.
-- Actor: document owner and any identities covered by explicit authenticated
-  grants.
-- Grant: ownership or explicit authenticated grant.
+- Actor: document owner.
+- Grant: ownership via `documents.owner_user_id`.
 - Scope: the private document.
 - Run modes: self-hosted app server, managed cloud app server.
-- Current implementation: no owner/grant checks yet; every authenticated actor
-  is still permitted.
+- Current implementation: new documents are registered to the current Better
+  Auth user, and private document tokens are issued only to that owner.
 
 ## Public document access
 

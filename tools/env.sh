@@ -6,8 +6,20 @@ ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
 
 if [ -f "${ENV_FILE}" ]; then
-  # shellcheck disable=SC1090 # allow sourcing repo-local .env
-  . "${ENV_FILE}"
+  while IFS= read -r assignment || [ -n "${assignment}" ]; do
+    case "${assignment}" in
+      '' | '#'*) continue ;;
+      export\ *) assignment="${assignment#export }" ;;
+    esac
+
+    key="${assignment%%=*}"
+    case "${key}" in
+      '' | [0-9]* | *[!A-Za-z0-9_]*) continue ;;
+    esac
+
+    eval '[ "${'"${key}"'+x}" = x ]' && continue
+    eval "export ${assignment}"
+  done < "${ENV_FILE}"
 fi
 
 export REMDO_ROOT="${REMDO_ROOT:-${ROOT_DIR}}"

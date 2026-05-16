@@ -2,15 +2,7 @@ import { Alert, Anchor, Button, Container, Paper, PasswordInput, Stack, Text, Te
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { authClient, rememberAuthenticatedSession } from '@/auth/client';
-import { DEFAULT_DOC_ID, createDocumentPath } from '@/routing';
-
-function resolveReturnTo(search: string): string {
-  const value = new URLSearchParams(search).get('next');
-  if (typeof value === 'string' && value.startsWith('/')) {
-    return value;
-  }
-  return createDocumentPath(DEFAULT_DOC_ID);
-}
+import { resolvePostAuthPath } from './post-auth-path';
 
 function readAuthErrorMessage(error: unknown, fallback: string): string {
   if (error && typeof error === 'object') {
@@ -29,10 +21,10 @@ export default function LoginRoute() {
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const returnTo = resolveReturnTo(location.search);
 
-  const completeAuth = () => {
+  const completeAuth = async () => {
     rememberAuthenticatedSession();
+    const returnTo = await resolvePostAuthPath(location.search);
     void navigate(returnTo, { replace: true });
   };
 
@@ -50,7 +42,7 @@ export default function LoginRoute() {
         setErrorMessage(readAuthErrorMessage(result.error, 'Failed to sign in.'));
         return;
       }
-      completeAuth();
+      await completeAuth();
     } catch (error) {
       setErrorMessage(readAuthErrorMessage(error, 'Failed to sign in.'));
     } finally {

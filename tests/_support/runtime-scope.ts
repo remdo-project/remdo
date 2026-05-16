@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { config } from '#config';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
-import { USER_CONFIG_DOC_ID } from '@/documents/user-config-doc-id';
+import { USER_CONFIG_DOC_ID } from '@/documents/user-profile';
 
 type TestRuntimeDocKind = 'editor' | 'user-config';
 

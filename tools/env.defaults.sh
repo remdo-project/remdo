@@ -11,7 +11,7 @@
 : "${CI:=false}"
 : "${VITEST_PREVIEW:=false}"
 : "${TMPDIR:=${REMDO_ROOT%/}/node_modules/.cache/vitest-tmp}" # Keep Vitest temp files out of repo root and shared with vitest-preview.
-DATA_DIR="${REMDO_ROOT%/}/data"
+: "${DATA_DIR:=${REMDO_ROOT%/}/data}"
 
 # Derive all service/tool ports from the base PORT to keep multi-workdir runs predictable.
 : "${HMR_PORT:=$((PORT + 1))}"

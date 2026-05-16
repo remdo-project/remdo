@@ -8,12 +8,12 @@
 import { useSyncExternalStore } from 'react';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
 import type { UserConfigNote } from '@/documents/contracts';
-import { DEFAULT_USER_DOCUMENT } from '@/documents/defaults';
+import { HOME_USER_DOCUMENT } from '@/documents/defaults';
 import { createUserConfigRootNote } from '@/documents/user-config-notes';
 import type { ListedDocument } from '@/documents/user-config-notes';
 
 const listeners = new Set<() => void>();
-const documents: ListedDocument[] = [DEFAULT_USER_DOCUMENT];
+const documents: ListedDocument[] = [HOME_USER_DOCUMENT];
 let version = 0;
 
 function notifyListeners() {
@@ -28,15 +28,14 @@ function bumpVersion() {
 }
 
 const userConfig = createUserConfigRootNote(documents, {
-  createDocument: async (position, title) => {
-    void position;
+  createDocument: async (title) => {
     return { id: createUniqueNoteId(), title };
   },
   onChange: bumpVersion,
 });
 
 export function resetTestUserConfig(): void {
-  documents.splice(0, documents.length, DEFAULT_USER_DOCUMENT);
+  documents.splice(0, documents.length, HOME_USER_DOCUMENT);
   bumpVersion();
 }
 

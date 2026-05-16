@@ -51,7 +51,10 @@ For each run mode, the important questions are:
   7. current server runtime runs both the RemDo API process and the Y-Sweet
      collaboration server behind the same gateway
   8. Better Auth runs inside the RemDo API process and stores users/sessions
-     in the same SQLite database file as the document registry
+     in the same SQLite database file as the document registry; the registry
+     owns document ownership, document titles, and per-user config/home rows,
+     while Y-Sweet persists normal documents and the read-only user-config
+     projection
   9. browser clients reach collaboration through RemDo API token issuance and
      the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
      routes
@@ -73,7 +76,9 @@ For each run mode, the important questions are:
   5. current server runtime runs both the RemDo API process and the Y-Sweet
      collaboration server behind the same gateway
   6. Better Auth users/sessions and the SQLite-backed document registry share
-     the same RemDo-owned DB file
+     the same RemDo-owned DB file; the registry owns document ownership,
+     document titles, and per-user config/home rows, while Y-Sweet persists
+     normal documents and the read-only user-config projection
   7. browser clients reach collaboration through RemDo API token issuance and
      the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
      routes
@@ -87,22 +92,25 @@ For each run mode, the important questions are:
 - Platform: local machine.
 - Data boundary: local repo-owned development data.
 - Notes: most local runs can stay on defaults; copy `.env.example` to `.env`
-  only when overrides are needed. Current dev mode runs the web app, RemDo API
-  server, Y-Sweet collaboration server, and preview helper together. Server
-  modes run the RemDo API with Better Auth plus a SQLite-backed document
-  registry. Authentication is enforced, but current document access checks
-  remain permissive for authenticated users. Browser clients use the RemDo API
-  token path plus `/d/*`; `/doc*` control routes are not routed through the
-  gateway.
+  only when overrides are needed. Process environment values override `.env`,
+  so one-off runs can use inline values such as `PORT=4800 ...` without editing
+  local defaults. Current dev mode runs the web app, RemDo API server, Y-Sweet
+  collaboration server, and preview helper together. Server modes run the
+  RemDo API with Better Auth plus a SQLite-backed document registry.
+  Authentication is enforced, and private document access is limited to the
+  registered document owner. Browser clients use the RemDo API token path plus
+  `/d/*`; `/doc*` control routes are not routed through the gateway.
 
 ### Unit and collab tests
 
 - Purpose: fast automated verification in the local test stack.
 - User: developer.
 - Platform: local machine.
-- Data boundary: local ephemeral or resettable test data.
+- Data boundary: local resettable runtime/test data.
 - Notes: collab tests use the configured local stack. They start missing
-  services and reuse already-running services on those ports.
+  services and reuse already-running services on those ports. Auth test users
+  use a RemDo-specific email prefix, and stale prefixed users/document rows are
+  cleaned at startup.
 
 ### Browser E2E
 

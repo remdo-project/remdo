@@ -3,9 +3,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { createServerApp } from '@/server/app';
 import { createServerAuth } from '@/server/auth/auth';
+import type { CreateAuthUserInput } from '@/server/auth/auth';
 import type { DocumentTokenManager } from '@/server/collab-token';
 import { createServerDatabaseClient } from '@/server/db/client';
 import { createDocumentRegistry } from '@/server/documents/document-registry';
+import * as Y from 'yjs';
 
 const TEST_USER = {
   email: 'server@example.com',
@@ -14,16 +16,6 @@ const TEST_USER = {
 } as const;
 export const TEST_ADMIN_SECRET = 'test-admin-secret-0123456789';
 const SESSION_COOKIE_PATTERN = /better-auth\.session_token=([^;]+)/u;
-const FAKE_DOCUMENT_TOKEN_MANAGER: DocumentTokenManager = {
-  async getOrCreateDocAndToken(docId, authDocRequest) {
-    return {
-      authorization: authDocRequest?.authorization,
-      baseUrl: `http://collab-token.test.invalid/d/${docId}`,
-      docId,
-      url: `ws://collab-token.test.invalid/d/${docId}`,
-    };
-  },
-};
 
 function extractSessionCookie(response: Response): string {
   const extendedHeaders = response.headers as Headers & { getSetCookie?: () => string[] };
@@ -39,9 +31,11 @@ function extractSessionCookie(response: Response): string {
 export function createServerAppHarness({
   adminSecret = TEST_ADMIN_SECRET,
   baseURL = 'http://127.0.0.1:4000',
+  onUpdateDoc,
 }: {
   adminSecret?: string;
   baseURL?: string;
+  onUpdateDoc?: (docId: string, update: Uint8Array) => void | Promise<void>;
 } = {}) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-server-auth-'));
   const dbPath = path.join(tempDir, 'remdo.sqlite');
@@ -53,10 +47,38 @@ export function createServerAppHarness({
   });
   const client = createServerDatabaseClient({ dbPath });
   const registry = createDocumentRegistry({ client });
+  const collabDocuments = new Map<string, Uint8Array>();
+  const tokenManager: DocumentTokenManager = {
+    async getDocAsUpdate(docId) {
+      return collabDocuments.get(docId) ?? Y.encodeStateAsUpdate(new Y.Doc());
+    },
+    async getOrCreateDocAndToken(docId, authDocRequest) {
+      if (!collabDocuments.has(docId)) {
+        collabDocuments.set(docId, Y.encodeStateAsUpdate(new Y.Doc()));
+      }
+      return {
+        authorization: authDocRequest?.authorization,
+        baseUrl: `http://collab-token.test.invalid/d/${docId}`,
+        docId,
+        url: `ws://collab-token.test.invalid/d/${docId}`,
+      };
+    },
+    async updateDoc(docId, update) {
+      await onUpdateDoc?.(docId, update);
+      const doc = new Y.Doc();
+      const existing = collabDocuments.get(docId);
+      if (existing) {
+        Y.applyUpdate(doc, existing);
+      }
+      Y.applyUpdate(doc, update);
+      collabDocuments.set(docId, Y.encodeStateAsUpdate(doc));
+      doc.destroy();
+    },
+  };
   const app = createServerApp({
     adminSecret,
     auth,
-    tokenManager: FAKE_DOCUMENT_TOKEN_MANAGER,
+    tokenManager,
     registry,
     logError: () => {},
   });
@@ -65,33 +87,53 @@ export function createServerAppHarness({
     app,
     auth,
     registry,
-    async createSessionHeaders() {
+    async createSessionHeaders(user: CreateAuthUserInput = TEST_USER) {
       await auth.ensureReady();
-      const response = auth.getUserCount() === 0
-        ? await app.request('/api/admin/users', {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-            },
-            body: JSON.stringify({
-              ...TEST_USER,
-              adminSecret: TEST_ADMIN_SECRET,
-            }),
-          })
+      const provisionResponse = await app.request('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...user,
+          adminSecret: TEST_ADMIN_SECRET,
+        }),
+      });
+      const response = provisionResponse.ok
+        ? provisionResponse
         : await app.request('/api/auth/sign-in/email', {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-            },
-            body: JSON.stringify({
-              email: TEST_USER.email,
-              password: TEST_USER.password,
-            }),
-          });
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: user.email,
+            password: user.password,
+          }),
+        });
 
       return new Headers({
         cookie: extractSessionCookie(response),
       });
+    },
+    async getSessionUserId(headers: Headers) {
+      const session = await auth.getSession(headers);
+      if (!session?.user) {
+        throw new Error('Expected Better Auth session user.');
+      }
+      return session.user.id;
+    },
+    readProjectedDocumentIds(docId: string) {
+      const doc = new Y.Doc();
+      try {
+        Y.applyUpdate(doc, collabDocuments.get(docId) ?? Y.encodeStateAsUpdate(new Y.Doc()));
+        const documents = doc.getMap<Y.Array<Y.Map<unknown>>>('user-config').get('documents');
+        return documents instanceof Y.Array
+          ? documents.toArray().map((entry) => String(entry.get('id')))
+          : [];
+      } finally {
+        doc.destroy();
+      }
     },
     cleanup() {
       client.close();

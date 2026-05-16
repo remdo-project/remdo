@@ -1,16 +1,14 @@
 import * as Y from 'yjs';
 import { config } from '#config';
 import { CollabSession } from '#lib/collaboration/session';
-import { createUniqueNoteId } from '#lib/editor/note-ids';
 import type { CollaborationProviderInstance } from '#lib/collaboration/runtime';
 import type { UserConfigNote } from './contracts';
-import { DEFAULT_USER_DOCUMENT } from './defaults';
-import { getUserConfigDocId } from './user-config-doc-id';
-import {
-  createUserConfigRootNote,
-  resolveListedDocumentInsertIndex,
-} from './user-config-notes';
+import { HOME_USER_DOCUMENT } from './defaults';
+import { getUserProfile } from './user-profile';
+import type { UserProfile } from './user-profile';
+import { createUserConfigRootNote } from './user-config-notes';
 import type { ListedDocument } from './user-config-notes';
+import { normalizeDocumentId } from '@/routing';
 
 const USER_CONFIG_ROOT_NOTE_ID = 'user-config';
 const DOCUMENTS_KEY = 'documents';
@@ -21,12 +19,16 @@ interface StoredUserConfigContext {
   doc: Y.Doc;
 }
 
+function createHomeUserDocument(profile: UserProfile): ListedDocument {
+  return { id: profile.homeDocumentId, title: HOME_USER_DOCUMENT.title };
+}
+
 // Tab-scoped store that keeps the live user-config session outside route/component lifecycles.
 class StoredUserConfigStore {
   private listeners = new Set<() => void>();
-  private documents: ListedDocument[] = [DEFAULT_USER_DOCUMENT];
+  private documents: ListedDocument[] = [HOME_USER_DOCUMENT];
   private readonly userConfig = createUserConfigRootNote(this.documents, {
-    createDocument: async (position, title) => this.createDocument(position, title),
+    createDocument: async (title) => this.createDocument(title),
     onChange: () => this.bumpVersion(),
   });
   private context: StoredUserConfigContext | null = null;
@@ -90,39 +92,26 @@ class StoredUserConfigStore {
   }
 
   private async loadUserConfig(): Promise<void> {
-    const context = await this.getContext();
+    const profile = await getUserProfile();
+    const homeDocument = createHomeUserDocument(profile);
+    const context = await this.getContext(profile.configDocumentId);
     const root = context.doc.getMap<Y.Array<Y.Map<unknown>>>(USER_CONFIG_ROOT_NOTE_ID);
-    const documents = ensureDocumentsArray(root);
-
-    if (documents.length === 0) {
-      documents.push([createDocumentEntry(DEFAULT_USER_DOCUMENT)]);
-      await this.awaitContextSync(context);
-    }
-
-    this.replaceDocuments(readUserConfigDocuments(root));
+    const documents = readUserConfigDocuments(root);
+    this.replaceDocuments(documents.length > 0 ? documents : [homeDocument]);
   }
 
-  private async createDocument(position: Parameters<typeof resolveListedDocumentInsertIndex>[1], title: string) {
-    const context = await this.getContext();
-    const root = context.doc.getMap<Y.Array<Y.Map<unknown>>>(USER_CONFIG_ROOT_NOTE_ID);
-    const documents = ensureDocumentsArray(root);
-    const listedDocuments = readUserConfigDocuments(root);
-    this.replaceDocuments(listedDocuments);
-
-    const document = { id: createUniqueNoteId(), title };
-    const insertIndex = resolveListedDocumentInsertIndex(listedDocuments, position);
-    documents.insert(insertIndex, [createDocumentEntry(document)]);
-    await this.awaitContextSync(context);
-    this.ready = true;
+  private async createDocument(title: string) {
+    await this.ensureReady();
+    const document = await createListedDocument(title);
     return document;
   }
 
-  private async getContext(): Promise<StoredUserConfigContext> {
+  private async getContext(configDocumentId: string): Promise<StoredUserConfigContext> {
     if (this.context) {
       return this.context;
     }
     if (!this.contextPromise) {
-      const contextPromise = createStoredUserConfigContext()
+      const contextPromise = createStoredUserConfigContext(configDocumentId)
         .then((context) => {
           if (this.contextPromise === contextPromise) {
             this.context = context;
@@ -140,15 +129,6 @@ class StoredUserConfigStore {
     return this.contextPromise;
   }
 
-  private async awaitContextSync(context: StoredUserConfigContext): Promise<void> {
-    try {
-      await context.session.awaitSynced();
-    } catch (error) {
-      this.resetContext(context);
-      throw error;
-    }
-  }
-
   private replaceDocuments(nextDocuments: readonly ListedDocument[]) {
     this.documents.splice(0, this.documents.length, ...nextDocuments);
   }
@@ -163,15 +143,6 @@ class StoredUserConfigStore {
     }, STARTUP_RETRY_DELAY_MS);
   }
 
-  private resetContext(context: StoredUserConfigContext) {
-    if (this.context === context) {
-      this.context = null;
-      this.contextPromise = null;
-      this.ready = false;
-    }
-    context.session.destroy();
-  }
-
   private bumpVersion() {
     this.version += 1;
     this.notifyListeners();
@@ -184,28 +155,10 @@ class StoredUserConfigStore {
   }
 }
 
-function ensureDocumentsArray(root: Y.Map<Y.Array<Y.Map<unknown>>>): Y.Array<Y.Map<unknown>> {
-  const existing = root.get(DOCUMENTS_KEY);
-  if (existing instanceof Y.Array) {
-    return existing;
-  }
-  const documents = new Y.Array<Y.Map<unknown>>();
-  documents.push([createDocumentEntry(DEFAULT_USER_DOCUMENT)]);
-  root.set(DOCUMENTS_KEY, documents);
-  return documents;
-}
-
-function createDocumentEntry(document: ListedDocument): Y.Map<unknown> {
-  const entry = new Y.Map<unknown>();
-  entry.set('id', document.id);
-  entry.set('title', document.title);
-  return entry;
-}
-
 function readUserConfigDocuments(root: Y.Map<Y.Array<Y.Map<unknown>>>) {
   const documents = root.get(DOCUMENTS_KEY);
   if (!(documents instanceof Y.Array)) {
-    throw new TypeError('User-config document is missing the documents list.');
+    return [];
   }
 
   return documents.toArray().map((value) => {
@@ -221,8 +174,28 @@ function readUserConfigDocuments(root: Y.Map<Y.Array<Y.Map<unknown>>>) {
   });
 }
 
-async function createStoredUserConfigContext(): Promise<StoredUserConfigContext> {
-  const docId = getUserConfigDocId();
+async function createListedDocument(title: string): Promise<ListedDocument> {
+  const response = await fetch('/api/profile/documents', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ title }),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to create document: ${response.status}`);
+  }
+
+  const body = await response.json() as Partial<ListedDocument>;
+  const id = normalizeDocumentId(body.id);
+  if (!id || typeof body.title !== 'string') {
+    throw new TypeError('Document creation returned an invalid document.');
+  }
+  return { id, title: body.title };
+}
+
+async function createStoredUserConfigContext(docId: string): Promise<StoredUserConfigContext> {
   const origin = resolveCollabOrigin();
   const apiOrigin = resolveCollabApiOrigin();
   const docMap = new Map<string, Y.Doc>();

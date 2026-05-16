@@ -1,21 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { HTTP_STATUS } from '#lib/http/status';
+import { createTestResource } from '../_support/test-resource';
 import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';
 
-const harnesses: Array<ReturnType<typeof createServerAppHarness>> = [];
-
-afterEach(() => {
-  for (const harness of harnesses) {
-    harness.cleanup();
-  }
-  harnesses.length = 0;
-});
-
-function createHarness() {
-  const harness = createServerAppHarness();
-  harnesses.push(harness);
-  return harness;
-}
+const createHarness = createTestResource(createServerAppHarness);
 
 describe('remdo api app', () => {
   it('returns 400 for malformed document ids before token issuance', async () => {
@@ -42,9 +30,19 @@ describe('remdo api app', () => {
     await expect(harness.registry.getDocument('main')).resolves.toBeNull();
   });
 
+  it('returns 401 for profile without a session', async () => {
+    const harness = createHarness();
+
+    const response = await harness.app.request('/api/profile');
+
+    expect(response.status).toBe(HTTP_STATUS.UNAUTHORIZED);
+    await expect(response.json()).resolves.toEqual({ error: 'Authentication required.' });
+  });
+
   it('creates a registry row when issuing a token for a missing document', async () => {
     const harness = createHarness();
     const headers = await harness.createSessionHeaders();
+    const userId = await harness.getSessionUserId(headers);
 
     const response = await harness.app.request('/api/documents/main/token', {
       method: 'POST',
@@ -59,13 +57,19 @@ describe('remdo api app', () => {
     await expect(harness.registry.getDocument('main')).resolves.toMatchObject({
       accessMode: 'private',
       id: 'main',
+      ownerUserId: userId,
     });
   });
 
   it('reuses the existing registry row when issuing a token', async () => {
     const harness = createHarness();
     const headers = await harness.createSessionHeaders();
-    const existing = await harness.registry.ensureDocument('main');
+    const userId = await harness.getSessionUserId(headers);
+    const existing = await harness.registry.insertDocument({
+      id: 'main',
+      ownerUserId: userId,
+      title: 'main',
+    });
 
     const response = await harness.app.request('/api/documents/main/token', {
       method: 'POST',
@@ -76,6 +80,172 @@ describe('remdo api app', () => {
     expect(response.status).toBe(HTTP_STATUS.OK);
     expect(stored).not.toBeNull();
     expect(stored).toEqual(existing);
+  });
+
+  it('returns stable per-user profile document ids and ensures owned registry rows', async () => {
+    const harness = createHarness();
+    const headers = await harness.createSessionHeaders();
+    const userId = await harness.getSessionUserId(headers);
+
+    const firstResponse = await harness.app.request('/api/profile', { headers });
+    const secondResponse = await harness.app.request('/api/profile', { headers });
+    const firstProfile = await firstResponse.json();
+    const secondProfile = await secondResponse.json();
+
+    expect(firstResponse.status).toBe(HTTP_STATUS.OK);
+    expect(secondResponse.status).toBe(HTTP_STATUS.OK);
+    expect(secondProfile).toEqual(firstProfile);
+    await expect(harness.registry.getDocument(firstProfile.configDocumentId)).resolves.toMatchObject({
+      kind: 'user-config',
+      ownerUserId: userId,
+    });
+    await expect(harness.registry.getDocument(firstProfile.homeDocumentId)).resolves.toMatchObject({
+      kind: 'home-document',
+      ownerUserId: userId,
+    });
+    expect(harness.readProjectedDocumentIds(firstProfile.configDocumentId)).toEqual([firstProfile.homeDocumentId]);
+  });
+
+  it('returns different config document ids for different users', async () => {
+    const harness = createHarness();
+    const firstHeaders = await harness.createSessionHeaders({
+      email: 'first@example.com',
+      name: 'First User',
+      password: 'first-password-1234',
+    });
+    const secondHeaders = await harness.createSessionHeaders({
+      email: 'second@example.com',
+      name: 'Second User',
+      password: 'second-password-1234',
+    });
+
+    const firstResponse = await harness.app.request('/api/profile', { headers: firstHeaders });
+    const secondResponse = await harness.app.request('/api/profile', { headers: secondHeaders });
+    const firstProfile = await firstResponse.json();
+    const secondProfile = await secondResponse.json();
+
+    expect(firstResponse.status).toBe(HTTP_STATUS.OK);
+    expect(secondResponse.status).toBe(HTTP_STATUS.OK);
+    expect(secondProfile.configDocumentId).not.toBe(firstProfile.configDocumentId);
+    expect(secondProfile.homeDocumentId).not.toBe(firstProfile.homeDocumentId);
+  });
+
+  it('allows the private document owner to issue a token', async () => {
+    const harness = createHarness();
+    const headers = await harness.createSessionHeaders();
+
+    const response = await harness.app.request('/api/documents/privateDoc/token', {
+      method: 'POST',
+      headers,
+    });
+
+    expect(response.status).toBe(HTTP_STATUS.OK);
+    await expect(response.json()).resolves.toMatchObject({
+      authorization: 'full',
+      docId: 'privateDoc',
+    });
+  });
+
+  it('issues read-only tokens for the projected user config document', async () => {
+    const harness = createHarness();
+    const headers = await harness.createSessionHeaders();
+    const profileResponse = await harness.app.request('/api/profile', { headers });
+    const profile = await profileResponse.json();
+
+    const response = await harness.app.request(`/api/documents/${profile.configDocumentId}/token`, {
+      method: 'POST',
+      headers,
+    });
+
+    expect(response.status).toBe(HTTP_STATUS.OK);
+    await expect(response.json()).resolves.toMatchObject({
+      authorization: 'read-only',
+      docId: profile.configDocumentId,
+    });
+  });
+
+  it('creates listed documents through the validated user document endpoint', async () => {
+    const harness = createHarness();
+    const headers = await harness.createSessionHeaders();
+    const profileResponse = await harness.app.request('/api/profile', { headers });
+    const profile = await profileResponse.json();
+    const requestHeaders = new Headers(headers);
+    requestHeaders.set('content-type', 'application/json');
+
+    const response = await harness.app.request('/api/profile/documents', {
+      method: 'POST',
+      headers: requestHeaders,
+      body: JSON.stringify({ title: 'New Document' }),
+    });
+    const document = await response.json();
+
+    expect(response.status).toBe(HTTP_STATUS.OK);
+    expect(document).toMatchObject({ title: 'New Document' });
+    expect(harness.readProjectedDocumentIds(profile.configDocumentId)).toEqual([
+      profile.homeDocumentId,
+      document.id,
+    ]);
+  });
+
+  it('returns created listed documents when projection refresh fails after registry insert', async () => {
+    let failProjectionRefresh = false;
+    const harness = createHarness({
+      onUpdateDoc: () => {
+        if (failProjectionRefresh) {
+          throw new Error('projection refresh failed');
+        }
+      },
+    });
+    const headers = await harness.createSessionHeaders();
+    const profileResponse = await harness.app.request('/api/profile', { headers });
+    const profile = await profileResponse.json();
+    const requestHeaders = new Headers(headers);
+    requestHeaders.set('content-type', 'application/json');
+
+    failProjectionRefresh = true;
+    const response = await harness.app.request('/api/profile/documents', {
+      method: 'POST',
+      headers: requestHeaders,
+      body: JSON.stringify({ title: 'Projection Failure Document' }),
+    });
+    const document = await response.json();
+
+    expect(response.status).toBe(HTTP_STATUS.OK);
+    expect(document).toMatchObject({ title: 'Projection Failure Document' });
+    await expect(harness.registry.getDocument(document.id)).resolves.toMatchObject({
+      id: document.id,
+      ownerUserId: await harness.getSessionUserId(headers),
+      title: 'Projection Failure Document',
+    });
+    expect(harness.readProjectedDocumentIds(profile.configDocumentId)).toEqual([
+      profile.homeDocumentId,
+    ]);
+  });
+
+  it('rejects private document token issuance for a different user', async () => {
+    const harness = createHarness();
+    const ownerHeaders = await harness.createSessionHeaders({
+      email: 'owner@example.com',
+      name: 'Owner User',
+      password: 'owner-password-1234',
+    });
+    const otherHeaders = await harness.createSessionHeaders({
+      email: 'other@example.com',
+      name: 'Other User',
+      password: 'other-password-1234',
+    });
+    await harness.app.request('/api/documents/privateDoc/token', {
+      method: 'POST',
+      headers: ownerHeaders,
+    });
+
+    const response = await harness.app.request('/api/documents/privateDoc/token', {
+      method: 'POST',
+      headers: otherHeaders,
+    });
+
+    expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
+    await expect(response.json()).resolves.toEqual({ error: 'Document access denied.' });
   });
 
   it('rejects admin provisioning with a missing or wrong admin secret', async () => {
@@ -113,8 +283,7 @@ describe('remdo api app', () => {
   });
 
   it('rejects admin provisioning when no admin secret is configured', async () => {
-    const harness = createServerAppHarness({ adminSecret: '' });
-    harnesses.push(harness);
+    const harness = createHarness({ adminSecret: '' });
 
     const response = await harness.app.request('/api/admin/users', {
       method: 'POST',
@@ -154,10 +323,9 @@ describe('remdo api app', () => {
   });
 
   it('allows proxied sign-in requests against the public auth origin', async () => {
-    const harness = createServerAppHarness({
+    const harness = createHarness({
       baseURL: 'https://remdo.localhost:4007',
     });
-    harnesses.push(harness);
 
     await harness.app.request('/api/admin/users', {
       method: 'POST',

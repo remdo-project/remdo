@@ -13,44 +13,8 @@ export interface ListedDocument {
 }
 
 interface UserConfigNoteActions {
-  createDocument?: (position: ChildPosition | undefined, title: string) => Promise<ListedDocument>;
+  createDocument?: (title: string) => Promise<ListedDocument>;
   onChange?: () => void;
-}
-
-export function resolveListedDocumentInsertIndex(
-  documents: readonly ListedDocument[],
-  position?: ChildPosition,
-): number {
-  if (!position) {
-    return documents.length;
-  }
-
-  if ('index' in position) {
-    if (position.index >= 0) {
-      return Math.min(position.index, documents.length);
-    }
-    return Math.max(0, Math.min(documents.length, documents.length + position.index + 1));
-  }
-
-  const anchorId = 'before' in position ? position.before : position.after;
-  const anchorIndex = documents.findIndex((document) => document.id === anchorId);
-  if (anchorIndex === -1) {
-    throw new Error(`Document "${anchorId}" is not listed in user config.`);
-  }
-  return 'before' in position ? anchorIndex : anchorIndex + 1;
-}
-
-function resolveCreateArgs(
-  arg1: string | ChildPosition,
-  arg2?: string,
-): { position?: ChildPosition; text: string } {
-  if (typeof arg1 === 'string') {
-    return { text: arg1 };
-  }
-  if (typeof arg2 !== 'string') {
-    throw new TypeError('create(position, text) requires explicit document title.');
-  }
-  return { position: arg1, text: arg2 };
 }
 
 function createDocumentHandle(document: ListedDocument): DocumentNote {
@@ -80,14 +44,15 @@ function createDocumentListHandle(
 ): DocumentListNote {
   const noteId = DOCUMENT_LIST_ID;
   const kind = () => 'document-list' as const;
-  async function create(arg1: string | ChildPosition, arg2?: string): Promise<DocumentNote> {
+  async function create(text: string): Promise<DocumentNote> {
     if (!actions.createDocument) {
       throw new Error('Document creation is not available for this user config.');
     }
-    const { position, text } = resolveCreateArgs(arg1, arg2);
-    const created = await actions.createDocument(position, text);
-    const insertIndex = resolveListedDocumentInsertIndex(documents, position);
-    documents.splice(insertIndex, 0, created);
+    if (typeof text !== 'string') {
+      throw new TypeError('documentList.create(text) requires a document title.');
+    }
+    const created = await actions.createDocument(text);
+    documents.push(created);
     actions.onChange?.();
     return createDocumentHandle(created);
   }

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { config } from '#config';
-import { CREATE_DOCUMENTS_TABLE_SQL } from './schema';
+import { CREATE_DOCUMENTS_TABLE_SQL, DOCUMENTS_TABLE_COLUMNS } from './schema';
 
 export interface ServerDatabaseClient {
   close: () => void;
@@ -21,6 +21,41 @@ function shouldCreateParentDirectory(dbPath: string): boolean {
   return dbPath !== ':memory:' && dbPath !== '';
 }
 
+function tableExists(sqlite: DatabaseSync, tableName: string): boolean {
+  const row = sqlite
+    .prepare('SELECT 1 FROM sqlite_master WHERE type = ? AND name = ?')
+    .get('table', tableName);
+  return Boolean(row);
+}
+
+function assertDocumentsTableShape(sqlite: DatabaseSync): void {
+  const rows = sqlite
+    .prepare('PRAGMA table_info(documents)')
+    .all() as Array<{ name: string }>;
+  const expectedColumns = new Set<string>(DOCUMENTS_TABLE_COLUMNS);
+  const columnNames = new Set(rows.map((row) => row.name));
+  const missingColumns = DOCUMENTS_TABLE_COLUMNS.filter((column) => !columnNames.has(column));
+  const unexpectedColumns = [...columnNames].filter((column) => !expectedColumns.has(column));
+  if (missingColumns.length === 0 && unexpectedColumns.length === 0) {
+    return;
+  }
+
+  throw new Error(
+    `Unsupported documents table schema. Reset local SQL data before starting RemDo. Missing columns: ${missingColumns.join(', ') || 'none'}. Unexpected columns: ${unexpectedColumns.join(', ') || 'none'}.`
+  );
+}
+
+function ensureDocumentsTable(sqlite: DatabaseSync): void {
+  const hasDocumentsTable = tableExists(sqlite, 'documents');
+  if (!hasDocumentsTable) {
+    sqlite.exec(CREATE_DOCUMENTS_TABLE_SQL);
+    return;
+  }
+
+  assertDocumentsTableShape(sqlite);
+  sqlite.exec(CREATE_DOCUMENTS_TABLE_SQL);
+}
+
 export function createServerDatabaseClient({
   dbPath = resolveServerDatabasePath(),
 }: ServerDatabaseClientOptions = {}): ServerDatabaseClient {
@@ -29,7 +64,7 @@ export function createServerDatabaseClient({
   }
 
   const sqlite = new DatabaseSync(dbPath);
-  sqlite.exec(CREATE_DOCUMENTS_TABLE_SQL);
+  ensureDocumentsTable(sqlite);
 
   return {
     sqlite,

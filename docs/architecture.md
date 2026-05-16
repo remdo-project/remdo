@@ -43,19 +43,19 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
 - Current auth anchor: Better Auth mounted at `/api/auth/*`.
 - Current role: issue Y-Sweet collaboration client tokens after a RemDo-owned
   access decision through `POST /api/documents/:docId/token`.
-- Current implementation: requires an authenticated Better Auth session, then
-  remains permissive for the authenticated actor.
-- Future role: enforce private/public/link-shared document access before token
-  issuance.
+- Current implementation: requires an authenticated Better Auth session,
+  registers new documents to that user, and denies private-document tokens to
+  non-owners.
+- Future role: expand public/link-shared document access and explicit grants
+  before token issuance.
 
 ### Actor
 
 Server-owned caller identity shape used by RemDo API decisions.
 
 - Current implementation: maps directly to the Better Auth session user.
-- Current role: provide the future anchor for document ownership and grants.
-- Current limitation: authorization still treats every authenticated actor as
-  fully allowed on every registered document.
+- Current role: identify the authenticated user for document ownership and
+  private-document access decisions.
 
 ### Document registry
 
@@ -65,10 +65,15 @@ collaboration tokens.
 - Current role: ensure each requested document has authoritative metadata in
   the registry before token issuance.
 - Current implementation: SQLite-backed `documents` table with `private`,
-  `public`, and `link-shared` access modes.
-- Data boundary: access-critical document metadata lives in the registry, while
-  collaborative document content and user workspace config may still live in
-  Yjs documents.
+  `public`, and `link-shared` access modes plus `owner_user_id`, document kind,
+  and title.
+- Data boundary: the registry is the durable source for document ownership,
+  access-critical metadata, and the current per-user document list. Yjs
+  documents hold collaborative document content plus a persisted, read-only
+  user-config projection for the browser-facing note API.
+- User profile: `/api/profile` uses the Better Auth user id to ensure that the
+  user's config-projection row and home-document row exist in the registry, then
+  updates the Yjs user-config projection.
 
 ### Browser-facing collaboration paths
 

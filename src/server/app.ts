@@ -6,7 +6,8 @@ import type { ServerAuth } from './auth/auth';
 import { getServerAuth } from './auth/auth';
 import { resolveActor } from './auth/actor';
 import { createDocumentRegistry } from './documents/document-registry';
-import type { DocumentRegistry } from './documents/document-registry';
+import type { DocumentRegistry, RegisteredDocument } from './documents/document-registry';
+import { createListedProfileDocument, ensureUserProfile } from './documents/user-profile';
 import { createDocumentTokenManager, issueDocumentToken } from './collab-token';
 import type { DocumentTokenManager } from './collab-token';
 
@@ -23,6 +24,32 @@ function defaultLogError(error: unknown, details: { docId?: string }) {
     ...details,
     message: error instanceof Error ? error.message : String(error),
   });
+}
+
+async function getOrCreateTokenDocument(
+  registry: DocumentRegistry,
+  docId: string,
+  ownerUserId: string,
+): Promise<RegisteredDocument> {
+  const existing = await registry.getDocument(docId);
+  if (existing) {
+    return existing;
+  }
+
+  const inserted = await registry.insertDocument({
+    id: docId,
+    ownerUserId,
+    title: docId,
+  });
+  if (inserted) {
+    return inserted;
+  }
+
+  const racedDocument = await registry.getDocument(docId);
+  if (!racedDocument) {
+    throw new Error(`Document registry row missing after insert conflict for ${docId}.`);
+  }
+  return racedDocument;
 }
 
 export function createServerApp({
@@ -45,6 +72,51 @@ export function createServerApp({
       db: 'ok',
       ok: true,
     });
+  });
+
+  app.get('/api/profile', async (c) => {
+    try {
+      await auth.ensureReady();
+      const actor = await resolveActor(c.req.raw, auth);
+      if (!actor) {
+        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
+      }
+
+      const profile = await ensureUserProfile(registry, tokenManager, actor.userId);
+
+      return c.json(profile);
+    } catch (error) {
+      logError(error, {});
+      return c.json({ error: 'Failed to resolve profile.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
+  });
+
+  app.post('/api/profile/documents', async (c) => {
+    try {
+      await auth.ensureReady();
+      const actor = await resolveActor(c.req.raw, auth);
+      if (!actor) {
+        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
+      }
+
+      const body = await c.req.json<{ title?: string }>();
+      const title = typeof body.title === 'string' ? body.title.trim() : '';
+      if (!title) {
+        return c.json({ error: 'Document title is required.' }, HTTP_STATUS.BAD_REQUEST);
+      }
+
+      const document = await createListedProfileDocument(
+        registry,
+        tokenManager,
+        actor.userId,
+        title,
+      );
+
+      return c.json(document);
+    } catch (error) {
+      logError(error, {});
+      return c.json({ error: 'Failed to create document.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
   });
 
   app.post('/api/admin/users', async (c) => {
@@ -90,7 +162,7 @@ export function createServerApp({
         return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
       }
 
-      const document = await registry.ensureDocument(normalizedDocId);
+      const document = await getOrCreateTokenDocument(registry, normalizedDocId, actor.userId);
       const result = await issueDocumentToken(tokenManager, actor, document, c.req.raw);
       if (result.denied) {
         return c.json({ error: 'Document access denied.' }, HTTP_STATUS.FORBIDDEN);

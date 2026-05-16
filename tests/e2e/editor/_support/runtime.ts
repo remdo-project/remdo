@@ -1,7 +1,7 @@
 import type { Browser, BrowserContext } from '@playwright/test';
 import { expect, setExpectedConsoleIssues } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
-import { E2E_STORAGE_STATE_PATH } from '../../_support/auth-state';
+import { E2E_STORAGE_STATE_PATH } from '#e2e/auth-state';
 import { parseDocumentRef } from '@/routing';
 import { REMDO_E2E_TEST_RUNTIME_GLOBAL } from '@/testing/e2e-runtime';
 import { ensureReady, getEditorState, load } from './bridge';
@@ -14,9 +14,9 @@ interface EditorLoadOptions {
 
 export async function bindEditorRuntimeContext(
   context: BrowserContext,
-  userConfigDocId: string
+  configDocumentId: string
 ): Promise<void> {
-  const runtimeState = { userConfigDocId };
+  const runtimeState = { configDocumentId };
   await context.addInitScript(
     ({ globalKey, injectedRuntime }) => {
       (globalThis as Record<string, unknown>)[globalKey] = injectedRuntime;
@@ -28,9 +28,9 @@ export async function bindEditorRuntimeContext(
   );
 }
 
-export async function createIsolatedEditorContext(browser: Browser, userConfigDocId: string): Promise<BrowserContext> {
+export async function createIsolatedEditorContext(browser: Browser, configDocumentId: string): Promise<BrowserContext> {
   const context = await browser.newContext({ storageState: E2E_STORAGE_STATE_PATH });
-  await bindEditorRuntimeContext(context, userConfigDocId);
+  await bindEditorRuntimeContext(context, configDocumentId);
   return context;
 }
 
