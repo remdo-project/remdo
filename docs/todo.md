@@ -111,16 +111,23 @@ Rules:
   server for `/api/*` instead of proxying to a separate `dev:api` process. Goal:
   same-origin API behavior in local dev with fewer stale route/process issues,
   while keeping production/Docker gateway behavior separately covered.
-- Y-Sweet token enforcement follow-up: run the collaboration server with
+- ✅ Done Y-Sweet token enforcement follow-up: run the collaboration server with
   Y-Sweet auth enabled in local, test, Docker, and production-like run modes so
   RemDo-issued `full` and `read-only` tokens are enforced by the sync server,
   not just by the RemDo API path.
-- User-config security regression guards: add Docker prod E2E coverage that
+- ✅ Done User-config security regression guards: add Docker prod E2E coverage that
   proves user-config projection docs are persisted through the normal Y-Sweet
   store, issued as read-only, and cannot be modified through direct sync-token
   access. Also cover the allowed path: server-validated document creation
   updates SQL first and then refreshes the user-config projection. These tests
   should lock the access boundary against future refactors.
+- Production secret isolation follow-up: harden beyond current Docker env
+  hygiene. The entrypoint now filters unnecessary secrets from child process
+  environments, but it still orchestrates all secrets in one container and
+  passes the Y-Sweet auth key as a `y-sweet serve --auth` argument. Revisit with
+  the production process model: separate services/containers, service users,
+  `/proc` exposure, and whether Y-Sweet can read the auth key from a file/env
+  instead of argv.
 - User/profile/config/document-list model follow-up: redesign the hierarchy and
   naming so the shape is obvious to read and each layer has a clear role. In
   particular, clarify where user profile entries, app config, the home document,

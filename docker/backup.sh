@@ -6,6 +6,8 @@ set -o pipefail 2>/dev/null || true
 : "${REMDO_ROOT:=/app}"
 export REMDO_ROOT
 
+unset AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY
+
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/env.defaults.sh
 

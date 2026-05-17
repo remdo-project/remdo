@@ -19,6 +19,11 @@ interface ResolveDocumentAccessArgs {
   document: RegisteredDocument;
 }
 
+interface ResolveYSweetConnectionStringOptions {
+  connectionString?: string;
+  serverToken?: string;
+}
+
 export interface DocumentTokenManager {
   getDocAsUpdate: (docId: string) => Promise<Uint8Array>;
   getOrCreateDocAndToken: (
@@ -32,8 +37,21 @@ export function createDocumentTokenManager(): DocumentTokenManager {
   return new DocumentManager(resolveYSweetConnectionString());
 }
 
-function resolveYSweetConnectionString(): string {
-  return config.env.YSWEET_CONNECTION_STRING;
+export function resolveYSweetConnectionString({
+  connectionString = config.env.YSWEET_CONNECTION_STRING,
+  serverToken = config.env.YSWEET_SERVER_TOKEN,
+}: ResolveYSweetConnectionStringOptions = {}): string {
+  const parsed = new URL(connectionString);
+  if (parsed.username) {
+    return connectionString;
+  }
+
+  if (!serverToken) {
+    throw new Error('YSWEET_SERVER_TOKEN is required when YSWEET_CONNECTION_STRING does not include server auth.');
+  }
+
+  parsed.username = serverToken;
+  return parsed.toString();
 }
 
 async function resolveDocumentAccess({ actor, document }: ResolveDocumentAccessArgs): Promise<DocumentAccessResolution> {

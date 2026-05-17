@@ -63,7 +63,8 @@ For each access case, the important questions are:
 - Scope: the private document.
 - Run modes: self-hosted app server, managed cloud app server.
 - Current implementation: new documents are registered to the current Better
-  Auth user, and private document tokens are issued only to that owner.
+  Auth user, private document tokens are issued only to that owner, and Y-Sweet
+  auth enforcement applies the issued token authorization on the sync path.
 
 ## Public document access
 

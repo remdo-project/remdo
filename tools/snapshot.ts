@@ -21,6 +21,7 @@ import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lex
 
 import { config } from '#config';
 import { CollabSession } from '#lib/collaboration/session';
+import { resolveYSweetConnectionString } from '@/server/collab-token';
 import type { CollaborationProviderInstance, CollaborationSessionProvider } from '#lib/collaboration/runtime';
 import { restoreEditorStateDefaults, stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 import { prepareEditorStateForPersistence, prepareEditorStateForRuntime } from '#lib/editor/editor-state-persistence';
@@ -66,7 +67,7 @@ interface SessionOptions {
 }
 
 function createInternalProviderFactory() {
-  const manager = new DocumentManager(config.env.YSWEET_CONNECTION_STRING);
+  const manager = new DocumentManager(resolveYSweetConnectionString());
 
   return async (docId: string, docMap: Map<string, Doc>) => {
     let doc = docMap.get(docId);

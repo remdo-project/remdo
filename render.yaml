@@ -17,6 +17,10 @@ services:
       sync: false
     - key: ADMIN_SECRET
       sync: false
+    - key: YSWEET_AUTH_KEY
+      sync: false
+    - key: YSWEET_SERVER_TOKEN
+      sync: false
     - key: APP_PUBLIC_URL
       sync: false
     - key: ALLOW_SIGNUP

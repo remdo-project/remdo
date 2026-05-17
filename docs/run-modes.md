@@ -44,7 +44,8 @@ For each run mode, the important questions are:
 - Notes:
   1. requires a local rootless Docker daemon
   2. the local launcher supports rootless Docker
-  3. required: `AUTH_SECRET` and `ADMIN_SECRET` in `.env`
+  3. required: `AUTH_SECRET`, `ADMIN_SECRET`, `YSWEET_AUTH_KEY`, and
+     `YSWEET_SERVER_TOKEN` in `.env`
   4. optional: `PORT`
   5. the script prints the browser URL before startup; use that URL
   6. local Docker uses self-signed HTTPS by default
@@ -58,6 +59,9 @@ For each run mode, the important questions are:
   9. browser clients reach collaboration through RemDo API token issuance and
      the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
      routes
+  10. the collaboration server runs with Y-Sweet auth enabled; Y-Sweet startup
+      uses `YSWEET_AUTH_KEY`, while the RemDo API uses the matching
+      `YSWEET_SERVER_TOKEN` server token
 
 ### Managed cloud app server
 
@@ -68,8 +72,8 @@ For each run mode, the important questions are:
 - Data boundary: provider-hosted persistent storage under the operator's
   account.
 - Notes:
-  1. required in the Render Dashboard: `AUTH_SECRET`, `ADMIN_SECRET`, and
-     `APP_PUBLIC_URL`
+  1. required in the Render Dashboard: `AUTH_SECRET`, `ADMIN_SECRET`,
+     `YSWEET_AUTH_KEY`, `YSWEET_SERVER_TOKEN`, and `APP_PUBLIC_URL`
   2. `ALLOW_SIGNUP` should stay `false`
   3. the service listens on `:${PORT}` and Render terminates public HTTPS
   4. backup workflow for hosted prod is still undefined
@@ -82,6 +86,9 @@ For each run mode, the important questions are:
   7. browser clients reach collaboration through RemDo API token issuance and
      the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
      routes
+  8. the collaboration server runs with Y-Sweet auth enabled; Y-Sweet startup
+     uses `YSWEET_AUTH_KEY`, while the RemDo API uses the matching
+     `YSWEET_SERVER_TOKEN` server token
 
 ## Development and verification modes
 
@@ -99,7 +106,9 @@ For each run mode, the important questions are:
   RemDo API with Better Auth plus a SQLite-backed document registry.
   Authentication is enforced, and private document access is limited to the
   registered document owner. Browser clients use the RemDo API token path plus
-  `/d/*`; `/doc*` control routes are not routed through the gateway.
+  `/d/*`; `/doc*` control routes are not routed through the gateway. Y-Sweet
+  auth uses a matched development default key/token pair unless
+  `YSWEET_AUTH_KEY` and `YSWEET_SERVER_TOKEN` are set.
 
 ### Unit and collab tests
 

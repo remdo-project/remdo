@@ -45,7 +45,8 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
   access decision through `POST /api/documents/:docId/token`.
 - Current implementation: requires an authenticated Better Auth session,
   registers new documents to that user, and denies private-document tokens to
-  non-owners.
+  non-owners. The API connects to Y-Sweet with the server token and passes
+  only RemDo-issued document client tokens to browsers.
 - Future role: expand public/link-shared document access and explicit grants
   before token issuance.
 
@@ -79,7 +80,8 @@ collaboration tokens.
 
 - `POST /api/documents/:docId/token`: browser-facing token issuance path owned
   by RemDo API.
-- `/d/*`: browser-facing Y-Sweet sync path used by issued client tokens.
+- `/d/*`: browser-facing Y-Sweet sync path used by issued client tokens; the
+  Y-Sweet server enforces each token's authorization.
 - Y-Sweet document-control routes such as `/doc*` are not routed through the
   app gateway.
 

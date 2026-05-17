@@ -36,12 +36,18 @@ export CADDY_TLS_DIRECTIVE
 export CADDY_CANONICAL_HOST
 export CADDY_CANONICAL_HOSTPORT
 
-# Start cron for periodic backups.
-crond -l 2 -L /var/log/cron.log
-
 COLLAB_DATA_DIR="${DATA_DIR%/}/collab"
 mkdir -p "$COLLAB_DATA_DIR"
-y-sweet serve --host 0.0.0.0 --port "${COLLAB_SERVER_PORT}" "$COLLAB_DATA_DIR" &
-node /app/remdo-api-server.cjs &
+: "${YSWEET_AUTH_KEY:?Set YSWEET_AUTH_KEY}"
+: "${YSWEET_SERVER_TOKEN:?Set YSWEET_SERVER_TOKEN}"
 
-exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+# Start cron for periodic backups. Backup needs the Y-Sweet server token, not
+# app auth secrets or the Y-Sweet private auth key.
+env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY crond -l 2 -L /var/log/cron.log
+
+env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_SERVER_TOKEN \
+  y-sweet serve --host 0.0.0.0 --port "${COLLAB_SERVER_PORT}" --auth "${YSWEET_AUTH_KEY}" --prod "$COLLAB_DATA_DIR" &
+env -u YSWEET_AUTH_KEY node /app/remdo-api-server.cjs &
+
+exec env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY -u YSWEET_SERVER_TOKEN \
+  caddy run --config /etc/caddy/Caddyfile --adapter caddyfile

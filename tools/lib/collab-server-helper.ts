@@ -68,22 +68,29 @@ export async function ensureCollabServer({
 
   const logStream = ensureLogStream();
   fs.mkdirSync(COLLAB_DATA_DIR, { recursive: true });
+  const args = [
+    'exec',
+    'y-sweet',
+    'serve',
+    '--host',
+    resolvedHost,
+    '--port',
+    String(resolvedPort),
+  ];
+  if (config.env.YSWEET_AUTH_KEY) {
+    args.push('--auth', config.env.YSWEET_AUTH_KEY);
+  }
+  args.push(COLLAB_DATA_DIR);
+
   const child = spawnPnpm(
-    [
-      'exec',
-      'y-sweet',
-      'serve',
-      '--host',
-      resolvedHost,
-      '--port',
-      String(resolvedPort),
-      COLLAB_DATA_DIR,
-    ],
+    args,
     {
       env: {
         HOST: resolvedHost,
         COLLAB_SERVER_PORT: String(resolvedPort),
         COLLAB_ENABLED: 'true',
+        YSWEET_AUTH_KEY: config.env.YSWEET_AUTH_KEY,
+        YSWEET_SERVER_TOKEN: config.env.YSWEET_SERVER_TOKEN,
       },
       detached: true,
       forwardExit: false,

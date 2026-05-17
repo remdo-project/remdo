@@ -16,6 +16,8 @@ export const envSpec = defineEnvSpec(
     COLLAB_CLIENT_PORT: { default: 0, client: true },
     COLLAB_DOCUMENT_ID: { default: '', client: true },
     YSWEET_CONNECTION_STRING: { default: '' },
+    YSWEET_AUTH_KEY: { default: '' },
+    YSWEET_SERVER_TOKEN: { default: '' },
     AUTH_SECRET: { default: '' },
     ADMIN_SECRET: { default: '' },
     APP_PUBLIC_URL: { default: '' },

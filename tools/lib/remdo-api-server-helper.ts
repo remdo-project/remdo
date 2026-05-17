@@ -80,6 +80,8 @@ export async function ensureRemdoApiServer({
         ALLOW_SIGNUP: String(config.env.ALLOW_SIGNUP),
         REMDO_API_PORT: String(resolvedPort),
         YSWEET_CONNECTION_STRING: ySweetConnectionString,
+        YSWEET_AUTH_KEY: config.env.YSWEET_AUTH_KEY,
+        YSWEET_SERVER_TOKEN: config.env.YSWEET_SERVER_TOKEN,
       },
       detached: true,
       forwardExit: false,

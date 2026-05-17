@@ -17,7 +17,7 @@ outdated or a doc’s role materially changes.
 - `docs/access-model.md` (Medium). Document access model for RemDo:
   owner-backed private access, private/public/link-shared modes, share-link
   lifecycle, authenticated app access, and cross-server authenticated document access.
-- `docs/architecture.md` (Medium). Cross-cutting architecture vocabulary for
+- `docs/architecture.md` (Long). Cross-cutting architecture vocabulary for
   delivery surfaces, gateway/origin boundaries, Better Auth identity,
   document-registry ownership, collaboration runtime building blocks, and
   `[Future]` multi-hub terms.
@@ -26,7 +26,7 @@ outdated or a doc’s role materially changes.
 - `docs/dev/dependency-maintenance.md` (Medium). Temporary dependency/runtime
   workarounds plus intentionally held-back versions, with current rationale and
   revisit conditions for refresh work.
-- `docs/run-modes.md` (Medium). Supported run modes for the current
+- `docs/run-modes.md` (Long). Supported run modes for the current
   implementation: local dev, test stacks, CI, self-hosted app runtimes,
   managed cloud, and backup execution.
 - `docs/hints.md` (Short). Backlog of potential UX hint concepts that are not
