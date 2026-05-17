@@ -95,7 +95,7 @@ Rules:
   Server code was added after the browser app shape was already established, so
   some document/profile/domain concepts now sit beside browser runtime code.
   Clarify which modules are client-only, server-only, and shared domain code.
-- E2E profile path follow-up: remove the special injected `usercfg`/config-doc
+- ✅ Done E2E profile path follow-up: remove the special injected `usercfg`/config-doc
   path from E2E helpers. Browser E2E should authenticate and load profile/home
   resources through the same `/api/profile` path as normal users, with test
   isolation coming from users/data setup rather than a client-side config-doc

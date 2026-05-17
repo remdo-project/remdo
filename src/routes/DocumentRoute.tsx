@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconSearch } from '@tabler/icons-react';
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useUserConfig } from '@/documents/user-config';
 import Editor from '@/editor/Editor';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
 import { EditorViewProvider, useEditorViewActions, useZoomPath } from '@/editor/view/EditorViewProvider';
-import { createDocumentPathForPathname, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
+import { createDocumentPath, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
 import {
   APP_TITLE,
   formatNavigationLabel,
@@ -33,7 +33,6 @@ const NEW_DOCUMENT_VALUE = '$new-document';
 
 function useDocumentRouteNavigation(docId: string) {
   const [searchParams] = useSearchParams();
-  const location = useLocation();
   const navigate = useNavigate();
 
   const navigateToDocument = useCallback((nextDocId: string) => {
@@ -42,21 +41,21 @@ function useDocumentRouteNavigation(docId: string) {
     }
     const nextSearch = searchParams.toString();
     void navigate({
-      pathname: createDocumentPathForPathname(location.pathname, nextDocId),
+      pathname: createDocumentPath(nextDocId),
       search: nextSearch ? `?${nextSearch}` : '',
     });
-  }, [docId, location.pathname, navigate, searchParams]);
+  }, [docId, navigate, searchParams]);
 
   const navigateToZoomNote = useCallback((noteId: string | null) => {
     const nextSearch = searchParams.toString();
     void navigate(
       {
-        pathname: createDocumentPathForPathname(location.pathname, docId, noteId),
+        pathname: createDocumentPath(docId, noteId),
         search: nextSearch ? `?${nextSearch}` : '',
       },
       { replace: true }
     );
-  }, [docId, location.pathname, navigate, searchParams]);
+  }, [docId, navigate, searchParams]);
 
   return { navigateToDocument, navigateToZoomNote };
 }

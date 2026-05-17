@@ -2,7 +2,7 @@ import type { Locator } from '#editor/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
-import { createEditorDocumentPathRegExp } from './_support/routes';
+import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
 
 const SCROLL_STYLES = `
   .editor-input {
@@ -153,10 +153,10 @@ test('zoom-root split keeps zoom and keeps the caret visible', async ({ page, ed
   }, longText);
 
   await expect(note7).toContainText(longText);
-  await page.evaluate((id) => {
-    globalThis.history.pushState({}, '', `/e2e/n/${id}_note7`);
+  await page.evaluate((path) => {
+    globalThis.history.pushState({}, '', path);
     globalThis.dispatchEvent(new PopStateEvent('popstate'));
-  }, docId);
+  }, createEditorDocumentPath(docId, 'note7'));
   await expect(page).toHaveURL(createEditorDocumentPathRegExp(docId, 'note7'));
 
   const noteIsTall = await note7.evaluate((element) => {

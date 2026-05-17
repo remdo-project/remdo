@@ -5,13 +5,10 @@ import { getHomeDocumentId } from './documents/user-profile';
 import { HOME_USER_DOCUMENT } from './documents/defaults';
 import AdminUsersRoute from './routes/AdminUsersRoute';
 import DocumentRoute from './routes/DocumentRoute';
-import EditorE2ERoute from './routes/EditorE2ERoute';
 import LoginRoute from './routes/LoginRoute';
 import { resolvePostAuthPath, resolveRememberedSessionFallbackPath } from './routes/post-auth-path';
-import { config } from '#config';
 import {
   createDocumentPath,
-  createEditorDocumentPath,
   normalizeDocumentId,
   parseDocumentRef,
 } from './routing';
@@ -125,19 +122,6 @@ const routes = [
       },
     ],
   },
-  ...(config.isDevOrTest
-    ? [
-        {
-          path: '/e2e/n/:docRef',
-          loader: async ({ request, params }: { request: Request; params: { docRef?: string } }) => {
-            await requireAuthenticatedRoute(request);
-            return createDocumentLoader(createEditorDocumentPath)({ request, params });
-          },
-          element: <EditorE2ERoute />,
-          hydrateFallbackElement,
-        },
-    ]
-    : []),
 ];
 
 export const router = createBrowserRouter(routes);

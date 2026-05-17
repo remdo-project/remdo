@@ -17,7 +17,6 @@ export const DEFAULT_DOC_ID = resolveDefaultDocId(config.env.COLLAB_DOCUMENT_ID)
 
 const NOTE_REF_SEPARATOR = '_';
 const APP_DOCUMENT_PATH_PREFIX = '/n';
-const EDITOR_E2E_DOCUMENT_PATH_PREFIX = '/e2e/n';
 
 interface NoteRef {
   docId: string;
@@ -60,27 +59,12 @@ export function createDocumentPath(docId: string, noteId: string | null = null):
   return createDocumentPathWithPrefix(APP_DOCUMENT_PATH_PREFIX, docId, noteId);
 }
 
-export function createEditorDocumentPath(docId: string, noteId: string | null = null): string {
-  return createDocumentPathWithPrefix(EDITOR_E2E_DOCUMENT_PATH_PREFIX, docId, noteId);
-}
-
 export function createDocumentTokenApiPath(docId: string): string {
   const normalizedDocId = normalizeNoteIdOrThrow(
     docId,
     'createDocumentTokenApiPath requires a valid document id.',
   );
   return `/api/documents/${encodeURIComponent(normalizedDocId)}/token`;
-}
-
-function resolveDocumentPathPrefix(pathname: string): string {
-  if (pathname.startsWith(`${EDITOR_E2E_DOCUMENT_PATH_PREFIX}/`)) {
-    return EDITOR_E2E_DOCUMENT_PATH_PREFIX;
-  }
-  return APP_DOCUMENT_PATH_PREFIX;
-}
-
-export function createDocumentPathForPathname(pathname: string, docId: string, noteId: string | null = null): string {
-  return createDocumentPathWithPrefix(resolveDocumentPathPrefix(pathname), docId, noteId);
 }
 
 interface ParsedDocumentRef {

@@ -2,9 +2,6 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { config } from '#config';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
-import { USER_CONFIG_DOC_ID } from '@/documents/user-profile';
-
-type TestRuntimeDocKind = 'editor' | 'user-config';
 
 export async function cleanupCollabDoc(docId: string): Promise<void> {
   const docPath = path.join(config.env.DATA_DIR, 'collab', docId);
@@ -19,11 +16,8 @@ class TestRuntimeScope {
     return docId;
   }
 
-  allocateDocId(kind: TestRuntimeDocKind): string {
-    const docId = kind === 'user-config'
-      ? `${USER_CONFIG_DOC_ID}${createUniqueNoteId()}`
-      : createUniqueNoteId();
-    return this.ownDocId(docId);
+  allocateDocId(): string {
+    return this.ownDocId(createUniqueNoteId());
   }
 
   async cleanupOwnedDocs(): Promise<void> {

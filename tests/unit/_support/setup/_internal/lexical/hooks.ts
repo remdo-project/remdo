@@ -30,7 +30,7 @@ aroundEach<TestContext>(async (run, ctx) => {
   let docId = normalizeNoteIdOrThrow(rawDocId, `Invalid collab doc id: ${rawDocId}`);
   const explicitCollabDocId = config.env.COLLAB_ENABLED && meta.collabDocId != null ? docId : null;
   if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {
-    docId = runtimeScope.allocateDocId('editor');
+    docId = runtimeScope.allocateDocId();
   }
 
   const seedFixtureBeforeMount = Boolean(config.env.COLLAB_ENABLED && fixtureName);
