@@ -124,10 +124,9 @@ Rules:
 - Production secret isolation follow-up: harden beyond current Docker env
   hygiene. The entrypoint now filters unnecessary secrets from child process
   environments, but it still orchestrates all secrets in one container and
-  passes the Y-Sweet auth key as a `y-sweet serve --auth` argument. Revisit with
-  the production process model: separate services/containers, service users,
-  `/proc` exposure, and whether Y-Sweet can read the auth key from a file/env
-  instead of argv.
+  passes the Y-Sweet auth key to the Y-Sweet process. Revisit with the
+  production process model: separate services/containers, service users, and
+  `/proc` exposure.
 - User/profile/config/document-list model follow-up: redesign the hierarchy and
   naming so the shape is obvious to read and each layer has a clear role. In
   particular, clarify where user profile entries, app config, the home document,

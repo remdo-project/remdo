@@ -45,8 +45,8 @@ mkdir -p "$COLLAB_DATA_DIR"
 # app auth secrets or the Y-Sweet private auth key.
 env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY crond -l 2 -L /var/log/cron.log
 
-env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_SERVER_TOKEN \
-  y-sweet serve --host 0.0.0.0 --port "${COLLAB_SERVER_PORT}" --auth "${YSWEET_AUTH_KEY}" --prod "$COLLAB_DATA_DIR" &
+env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_SERVER_TOKEN Y_SWEET_AUTH="${YSWEET_AUTH_KEY}" \
+  y-sweet serve --host 0.0.0.0 --port "${COLLAB_SERVER_PORT}" --prod "$COLLAB_DATA_DIR" &
 env -u YSWEET_AUTH_KEY node /app/remdo-api-server.cjs &
 
 exec env -u AUTH_SECRET -u ADMIN_SECRET -u YSWEET_AUTH_KEY -u YSWEET_SERVER_TOKEN \
