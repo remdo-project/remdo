@@ -1,24 +1,24 @@
 {
-  "generatedAt": "2026-04-19T17:25:37.796Z",
+  "generatedAt": "2026-05-17T18:57:33.746Z",
   "files": {
-    "totalFiles": 389,
-    "textFiles": 389,
+    "totalFiles": 421,
+    "textFiles": 421,
     "byType": {
       "ts": {
-        "files": 218,
-        "lines": 21843
+        "files": 245,
+        "lines": 24333
       },
       "tsx": {
-        "files": 55,
-        "lines": 8350
+        "files": 58,
+        "lines": 8906
       },
       "md": {
-        "files": 30,
-        "lines": 2104
+        "files": 31,
+        "lines": 2467
       },
       "json": {
         "files": 29,
-        "lines": 2159
+        "lines": 2163
       },
       "yml": {
         "files": 14,
@@ -26,7 +26,7 @@
       },
       "sh": {
         "files": 11,
-        "lines": 534
+        "lines": 516
       },
       "svg": {
         "files": 8,
@@ -34,23 +34,23 @@
       },
       "css": {
         "files": 7,
-        "lines": 769
+        "lines": 770
       },
       "mts": {
         "files": 4,
-        "lines": 351
+        "lines": 352
+      },
+      "yaml": {
+        "files": 3,
+        "lines": 142
       },
       "jsonc": {
         "files": 2,
         "lines": 52
       },
-      "yaml": {
-        "files": 2,
-        "lines": 117
-      },
       "caddyfile": {
         "files": 1,
-        "lines": 92
+        "lines": 46
       },
       "codeowners": {
         "files": 1,
@@ -58,11 +58,11 @@
       },
       "dockerfile": {
         "files": 1,
-        "lines": 78
+        "lines": 73
       },
       "example": {
         "files": 1,
-        "lines": 29
+        "lines": 33
       },
       "gitignore": {
         "files": 1,
@@ -83,18 +83,18 @@
     }
   },
   "tests": {
-    "unit": 493,
-    "collab": 533,
-    "e2e": 88,
-    "totalUnique": 621
+    "unit": 554,
+    "collab": 595,
+    "e2e": 95,
+    "totalUnique": 690
   },
   "totals": {
     "files": {
-      "files": 388,
-      "lines": 36799
+      "files": 420,
+      "lines": 40174
     },
     "tests": {
-      "totalUnique": 621
+      "totalUnique": 690
     }
   }
 }
