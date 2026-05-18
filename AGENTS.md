@@ -39,8 +39,14 @@ governance (map, workflow, invariants, and update rules), use `docs/index.md`.
   wiring; report the restart and any follow-up tooling/HMR recommendation.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
-- Do not stage or unstage files unless the user explicitly asks; preserve the
-  existing index state while editing and checking the worktree.
+- The Git index may be used by the developer as private review bookkeeping.
+  Treat staged vs unstaged state as semantically invisible: it does not mark
+  files as done, final, approved, protected, or out of scope. When the agreed
+  task requires it, freely edit files regardless of whether their current
+  changes are staged, unstaged, or partially staged.
+- Never stage, unstage, stash, reset, or otherwise rewrite index state unless
+  explicitly asked. Do not mention that you preserved staging state unless the
+  user asks about Git state or an operation cannot proceed without changing it.
 - The project is in dev phase, do not introduce temporary shims when refactoring
   or fixing bugs; aim for permanent solutions.
 - Always focus on the simplest and shortest possible implementation that meets
