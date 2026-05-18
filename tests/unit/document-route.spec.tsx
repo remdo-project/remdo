@@ -9,7 +9,7 @@ import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/search-candidates';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
 import { useEditorViewActions, useZoomNoteId } from '@/editor/view/EditorViewProvider';
 import DocumentRoute from '@/routes/DocumentRoute';
-import { createDocumentPath } from '@/routing';
+import { createDocumentPath, parseDocumentRef } from '@/routing';
 
 vi.mock('@/documents/user-config', async () => {
   const { mockUserConfigModule } = await import('#tests');
@@ -139,9 +139,14 @@ describe('document route', () => {
     document.title = 'RemDo';
   });
 
-  const renderDocumentRouteWithResult = (initialEntry: string = createDocumentPath('main')) => {
+  const renderDocumentRouteWithResult = (initialEntry: string = createDocumentPath('routeDoc')) => {
     const router = createMemoryRouter(
-      [{ path: '/n/:docRef', element: <DocumentRoute /> }],
+      [{
+        path: '/n/:docRef',
+        loader: ({ params }) => parseDocumentRef(params.docRef)!,
+        element: <DocumentRoute />,
+        hydrateFallbackElement: <div aria-hidden="true" />,
+      }],
       { initialEntries: [initialEntry] },
     );
 
@@ -153,7 +158,7 @@ describe('document route', () => {
 
     return { router, result };
   };
-  const renderDocumentRoute = (initialEntry: string = createDocumentPath('main')) =>
+  const renderDocumentRoute = (initialEntry: string = createDocumentPath('routeDoc')) =>
     renderDocumentRouteWithResult(initialEntry).router;
 
   const getActiveSearchResult = () =>
@@ -161,11 +166,11 @@ describe('document route', () => {
   const getInlineCompletion = () =>
     document.querySelector<HTMLElement>('[data-testid="document-search-inline-completion"]');
 
-  it('sets the page title from the current document title at the root', async () => {
+  it('falls back to the route document id in the page title at the root', async () => {
     renderDocumentRoute();
 
     await waitFor(() => {
-      expect(document.title).toBe('Main · RemDo');
+      expect(document.title).toBe('routeDoc · RemDo');
     });
   });
 
@@ -180,7 +185,7 @@ describe('document route', () => {
 
   it('sets the page title from the current zoom note when zoomed', async () => {
     (globalThis as typeof globalThis & MockSearchGlobals).__remdoMockZoomPathByDoc = {
-      main: {
+      routeDoc: {
         note3: [
           { noteId: 'note1', label: 'Parent' },
           { noteId: 'note3', label: '  Current\nNote  ' },
@@ -188,10 +193,10 @@ describe('document route', () => {
       },
     };
 
-    renderDocumentRoute(createDocumentPath('main', 'note3'));
+    renderDocumentRoute(createDocumentPath('routeDoc', 'note3'));
 
     await waitFor(() => {
-      expect(document.title).toBe('Current Note · Main · RemDo');
+      expect(document.title).toBe('Current Note · routeDoc · RemDo');
     });
   });
 
@@ -199,7 +204,7 @@ describe('document route', () => {
     const { result } = renderDocumentRouteWithResult();
 
     await waitFor(() => {
-      expect(document.title).toBe('Main · RemDo');
+      expect(document.title).toBe('routeDoc · RemDo');
     });
     result.unmount();
 
@@ -211,7 +216,7 @@ describe('document route', () => {
 
     const first = await screen.findByTestId('editor-probe');
     const firstInstanceId = first.dataset.instanceId;
-    expect(first.dataset.docId).toBe('main');
+    expect(first.dataset.docId).toBe('routeDoc');
 
     await router.navigate(createDocumentPath('other'));
 
@@ -409,7 +414,7 @@ describe('document route', () => {
     fireEvent.keyDown(searchInput, { key: 'Enter' });
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe(createDocumentPath('main', 'note1'));
+      expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc', 'note1'));
     });
   });
 
@@ -437,12 +442,12 @@ describe('document route', () => {
 
     const result = await screen.findByRole('option', { name: 'note3' });
     fireEvent.pointerDown(result);
-    expect(router.state.location.pathname).toBe(createDocumentPath('main'));
+    expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc'));
     expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
     fireEvent.click(result);
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe(createDocumentPath('main', 'note3'));
+      expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc', 'note3'));
       expect(screen.queryByTestId('document-search-results')).toBeNull();
     });
   });
@@ -463,7 +468,7 @@ describe('document route', () => {
     });
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe(createDocumentPath('main'));
+      expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc'));
       expect(screen.queryByTestId('document-search-results')).toBeNull();
     });
   });
@@ -614,7 +619,7 @@ describe('document route', () => {
     expect(screen.getByRole('option', { name: 'note1' })).toHaveAttribute('aria-selected', 'true');
 
     fireEvent.keyDown(searchInput, { key: 'Enter' });
-    expect(router.state.location.pathname).toBe(createDocumentPath('main'));
+    expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc'));
     expect(screen.getByTestId('editor-search-probe')).toHaveAttribute('data-zoom-note-id', '');
 
     fireEvent.keyDown(searchInput, { key: 'Escape' });
@@ -824,7 +829,7 @@ describe('document route', () => {
         __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
       }
     ).__remdoMockSearchCandidatesByDoc = {
-      main: {
+      routeDoc: {
         allCandidates: [
           { noteId: 'note1', text: 'note1' },
           { noteId: 'note2', text: 'note2' },
@@ -960,7 +965,7 @@ describe('document route', () => {
         __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
       }
     ).__remdoMockSearchCandidatesByDoc = {
-      main: {
+      routeDoc: {
         allCandidates: [{ noteId: 'sdk1', text: 'sdk result' }],
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'sdk1', text: 'sdk result' }],
@@ -993,7 +998,7 @@ describe('document route', () => {
     expect(getActiveSearchResult()).toBeNull();
 
     fireEvent.keyDown(searchInput, { key: 'Enter' });
-    expect(router.state.location.pathname).toBe(createDocumentPath('main'));
+    expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc'));
     expect(searchInput).toHaveFocus();
   });
 
@@ -1003,7 +1008,7 @@ describe('document route', () => {
         __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
       }
     ).__remdoMockSearchCandidatesByDoc = {
-      main: {
+      routeDoc: {
         allCandidates: [{ noteId: 'mainonly', text: 'main only' }],
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'mainonly', text: 'main only' }],
@@ -1040,7 +1045,7 @@ describe('document route', () => {
   it('waits for the first candidate snapshot before showing search results', async () => {
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
     globals.__remdoMockSearchCandidatesByDoc = {
-      main: null,
+      routeDoc: null,
     };
 
     renderDocumentRoute();
@@ -1050,7 +1055,7 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: 'fresh' } });
 
     globals.__remdoMockSearchCandidatesByDoc = {
-      main: {
+      routeDoc: {
         allCandidates: [{ noteId: 'fresh', text: 'fresh result' }],
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
@@ -1064,7 +1069,7 @@ describe('document route', () => {
       expect(screen.queryByText('No notes')).toBeNull();
     });
 
-    globals.__remdoMockSearchCandidateEmitters?.main?.();
+    globals.__remdoMockSearchCandidateEmitters?.routeDoc?.();
 
     await waitFor(() => {
       expect(getActiveSearchResult()?.textContent).toBe('fresh result');
@@ -1074,7 +1079,7 @@ describe('document route', () => {
   it('waits for a fresh snapshot after invalidating current document candidates', async () => {
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
     globals.__remdoMockSearchCandidatesByDoc = {
-      main: {
+      routeDoc: {
         allCandidates: [{ noteId: 'stale', text: 'shared result' }],
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'stale', text: 'shared result' }],
@@ -1094,7 +1099,7 @@ describe('document route', () => {
       expect(getActiveSearchResult()?.textContent).toBe('shared result');
     });
 
-    globals.__remdoMockSearchCandidateResetters?.main?.();
+    globals.__remdoMockSearchCandidateResetters?.routeDoc?.();
 
     await waitFor(() => {
       expect(screen.queryByTestId('document-search-results')).toBeNull();
@@ -1103,7 +1108,7 @@ describe('document route', () => {
     });
 
     globals.__remdoMockSearchCandidatesByDoc = {
-      main: {
+      routeDoc: {
         allCandidates: [{ noteId: 'fresh', text: 'fresh result' }],
         childCandidateMap: {
           [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'fresh', text: 'fresh result' }],
@@ -1111,7 +1116,7 @@ describe('document route', () => {
         },
       },
     };
-    globals.__remdoMockSearchCandidateEmitters?.main?.();
+    globals.__remdoMockSearchCandidateEmitters?.routeDoc?.();
 
     await waitFor(() => {
       expect(getActiveSearchResult()?.textContent).toBe('fresh result');
@@ -1171,7 +1176,7 @@ describe('document route', () => {
     (
       globalThis as typeof globalThis & MockSearchGlobals
     ).__remdoMockSearchCandidatesByDoc = {
-      main: {
+      routeDoc: {
         allCandidates: [
           { noteId: 'note6', text: 'note6' },
           { noteId: 'note7', text: 'note7' },
@@ -1223,7 +1228,7 @@ describe('document route', () => {
   it('recomputes completed slash paths when sdk candidates change', async () => {
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
     globals.__remdoMockSearchCandidatesByDoc = {
-      main: {
+      routeDoc: {
         allCandidates: [
           { noteId: 'note1', text: 'note1' },
           { noteId: 'note2', text: 'note2' },
@@ -1249,7 +1254,7 @@ describe('document route', () => {
     });
 
     globals.__remdoMockSearchCandidatesByDoc = {
-      main: {
+      routeDoc: {
         allCandidates: [
           { noteId: 'renamed', text: 'renamed' },
           { noteId: 'note2', text: 'note2' },
@@ -1261,20 +1266,20 @@ describe('document route', () => {
         },
       },
     };
-    globals.__remdoMockSearchCandidateEmitters?.main?.();
+    globals.__remdoMockSearchCandidateEmitters?.routeDoc?.();
 
     await screen.findByText('No matches');
     expect(document.querySelectorAll('[data-search-result-item]')).toHaveLength(0);
     expect(searchInput).toHaveValue('/note1/');
 
     fireEvent.keyDown(searchInput, { key: 'Enter' });
-    expect(router.state.location.pathname).toBe(createDocumentPath('main'));
+    expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc'));
   });
 
   it('matches completed slash segments exactly instead of by substring', async () => {
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
     globals.__remdoMockSearchCandidatesByDoc = {
-      main: {
+      routeDoc: {
         allCandidates: [
           { noteId: 'barfoo', text: 'barfoo' },
           { noteId: 'barfoo-child', text: 'barfoo child' },
@@ -1309,7 +1314,7 @@ describe('document route', () => {
   });
 
   it('zooms to document root on Enter when query is exactly "/"', async () => {
-    const router = renderDocumentRoute(createDocumentPath('main', 'note3'));
+    const router = renderDocumentRoute(createDocumentPath('routeDoc', 'note3'));
 
     const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
     searchInput.focus();
@@ -1319,7 +1324,7 @@ describe('document route', () => {
     fireEvent.keyDown(searchInput, { key: 'Enter' });
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe(createDocumentPath('main'));
+      expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc'));
     });
     expect(document.activeElement).toHaveClass('editor-input');
   });
@@ -1339,7 +1344,7 @@ describe('document route', () => {
     fireEvent.keyDown(searchInput, { key: 'Enter' });
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe(createDocumentPath('main', 'note3'));
+      expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc', 'note3'));
     });
     expect(document.activeElement).toHaveClass('editor-input');
   });
@@ -1366,7 +1371,7 @@ describe('document route', () => {
     fireEvent.keyDown(searchInput, { key: 'Enter' });
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe(createDocumentPath('main', 'note4'));
+      expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc', 'note4'));
     });
     expect(document.activeElement).toHaveClass('editor-input');
   });

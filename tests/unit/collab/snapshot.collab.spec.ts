@@ -49,7 +49,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('loads data into collaboration doc and writes it back to disk', async () => {
-    const docEnv = { COLLAB_DOCUMENT_ID: 'snapshotBasic' };
+    const docEnv = { DEV_DOCUMENT_ID: 'snapshotBasic' };
     const loadPath = path.resolve('tests/fixtures/basic.json');
     const expected = readEditorState(loadPath);
     const savePath = snapshotOutputPath('snapshot.cli.json');
@@ -66,7 +66,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     'saves the current editor state via snapshot CLI',
     meta({ collabDocId: 'snapshotFlat', fixture: 'flat' }),
     async () => {
-      const docEnv = { COLLAB_DOCUMENT_ID: 'snapshotFlat' };
+      const docEnv = { DEV_DOCUMENT_ID: 'snapshotFlat' };
 
       const savePath = snapshotOutputPath('snapshot.cli.flat.json');
       const expectedState = readEditorState(path.resolve('tests/fixtures/flat.json'));
@@ -82,7 +82,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     'loads a snapshot fixture into the editor',
     meta({ collabDocId: 'snapshotTree' }),
     async ({ remdo }) => {
-      const docEnv = { COLLAB_DOCUMENT_ID: 'snapshotTree' };
+      const docEnv = { DEV_DOCUMENT_ID: 'snapshotTree' };
       const loadPath = path.resolve('tests/fixtures/tree.json');
       runSnapshotCommand('load', [loadPath], docEnv);
 
@@ -120,8 +120,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('keeps browser doc id aligned with CLI default configuration', async ({ remdo }: TestContext) => {
     const defaultDoc = remdo.getCollabDocId();
     const envOverrides = {
-      COLLAB_DOCUMENT_ID: defaultDoc,
-      VITE_COLLAB_DOCUMENT_ID: defaultDoc,
+      DEV_DOCUMENT_ID: defaultDoc,
     } satisfies NodeJS.ProcessEnv;
     const defaultFixture = path.resolve('tests/fixtures/basic.json');
     runSnapshotCommand('load', [defaultFixture], envOverrides);
@@ -137,8 +136,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       const defaultDoc = remdo.getCollabDocId();
       const secondaryDoc = `${defaultDoc}S`;
       const envOverrides = {
-        COLLAB_DOCUMENT_ID: defaultDoc,
-        VITE_COLLAB_DOCUMENT_ID: defaultDoc,
+        DEV_DOCUMENT_ID: defaultDoc,
       } satisfies NodeJS.ProcessEnv;
 
       const defaultFixture = path.resolve('tests/fixtures/basic.json');
@@ -171,8 +169,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('rehydrates same-doc links in runtime after snapshot load while keeping persisted output compact', async ({ remdo }: TestContext) => {
     const docId = remdo.getCollabDocId();
     const envOverrides = {
-      COLLAB_DOCUMENT_ID: docId,
-      VITE_COLLAB_DOCUMENT_ID: docId,
+      DEV_DOCUMENT_ID: docId,
     } satisfies NodeJS.ProcessEnv;
     const fixturePath = path.resolve('tests/fixtures/links.json');
     const outputPath = snapshotOutputPath('snapshot.links.roundtrip.json');

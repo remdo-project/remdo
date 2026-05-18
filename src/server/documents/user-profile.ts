@@ -3,7 +3,7 @@ import type { DocumentKind } from '@/server/db/schema';
 import { syncListedDocumentsMapArray } from '@/server/yjs/projection';
 import type { DocumentRegistry, RegisteredDocument } from './document-registry';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
-import { HOME_USER_DOCUMENT } from '@/documents/defaults';
+import { HOME_DOCUMENT_TITLE } from '@/documents/contracts';
 import * as Y from 'yjs';
 
 interface UserProfile {
@@ -77,7 +77,7 @@ async function ensureUserHomeDocument(
   userId: string,
   { createDocumentId }: { createDocumentId?: () => string },
 ): Promise<RegisteredDocument> {
-  return ensureUserSpecialDocument(registry, userId, 'home-document', HOME_USER_DOCUMENT.title, {
+  return ensureUserSpecialDocument(registry, userId, 'home-document', HOME_DOCUMENT_TITLE, {
     createDocumentId,
   });
 }

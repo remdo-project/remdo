@@ -7,7 +7,7 @@ import { config } from '#config';
 import { authClient, forgetAuthenticatedSession } from './auth/client';
 import { startUserConfig } from './documents/user-config';
 import { Icon } from './ui/Icon';
-import { createDocumentPath, DEFAULT_DOC_ID, parseDocumentRef } from './routing';
+import { createDocumentPath, parseDocumentRef } from './routing';
 import VanillaLexicalEditor from './editor/dev/VanillaLexicalEditor';
 
 interface HostContext {
@@ -55,7 +55,8 @@ export default function App() {
     startUserConfig();
   }, []);
   const showVanillaLexical = config.isDevOrTest && searchParams.has('lexicalDemo');
-  const currentDocId = parseDocumentRef(docRef)?.docId ?? DEFAULT_DOC_ID;
+  const parsedRef = parseDocumentRef(docRef);
+  const currentDocumentPath = parsedRef ? createDocumentPath(parsedRef.docId) : '/home';
   const handleLogoutClick = () => {
     void authClient.signOut({
       fetchOptions: {
@@ -73,7 +74,7 @@ export default function App() {
         <Group gap="md">
           <Title order={1} className="app-heading-title">
             <Link
-              to={`${createDocumentPath(currentDocId)}${buildSearch({})}`}
+              to="/home"
               className={headerStyles.brandLink}
             >
               <span aria-hidden="true" className={headerStyles.brandIcon} />
@@ -102,7 +103,7 @@ export default function App() {
                   Lexical
                 </Anchor>
                 <Link
-                  to={`${createDocumentPath(currentDocId)}${buildSearch({ lexicalDemo: true })}`}
+                  to={`${currentDocumentPath}${buildSearch({ lexicalDemo: true })}`}
                   className="app-header-link"
                 >
                   Lexical Demo

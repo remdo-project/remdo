@@ -19,7 +19,7 @@ DOCKER_TEST_YSWEET_AUTH_KEY="WLo8wx1G1lGKpIDaDjky9npTrV_fW8jCpRVtB8rd"
 DOCKER_TEST_YSWEET_SERVER_TOKEN="AAAgOkIiPro6W2lCzxyW6BDQkuOmTVSfs0MZh-4PGTM_st0"
 
 PORT="${DOCKER_TEST_PORT}"
-COLLAB_DOCUMENT_ID="dockerSmoke"
+DEV_DOCUMENT_ID="dockerSmoke"
 remdo_load_env_defaults "${ROOT_DIR}"
 remdo_configure_docker_runtime "${DOCKER_TEST_BROWSER_HOST}"
 
@@ -129,7 +129,7 @@ if ! env "${PLAYWRIGHT_ENV[@]}" E2E_STORAGE_STATE="${PROD_E2E_AUTH_STATE_PATH}" 
 fi
 
 echo "Docker prod e2e OK: ${HEALTH_URL}"
-COLLAB_DATA_PATH="${TEST_DATA_DIR%/}/collab/${COLLAB_DOCUMENT_ID}/data.ysweet"
+COLLAB_DATA_PATH="${TEST_DATA_DIR%/}/collab/${DEV_DOCUMENT_ID}/data.ysweet"
 collab_ready="false"
 for _ in {1..40}; do
   if [[ -f "${COLLAB_DATA_PATH}" ]]; then
@@ -147,7 +147,7 @@ fi
 
 echo "Running Docker backup..."
 
-if ! docker exec -e HOST="127.0.0.1" -e COLLAB_DOCUMENT_ID="${COLLAB_DOCUMENT_ID}" \
+if ! docker exec -e HOST="127.0.0.1" -e DEV_DOCUMENT_ID="${DEV_DOCUMENT_ID}" \
   "${CONTAINER_NAME}" /usr/local/bin/backup.sh; then
   docker logs "${CONTAINER_NAME}" || true
   echo "Backup failed: ${HEALTH_URL}" >&2
@@ -155,12 +155,12 @@ if ! docker exec -e HOST="127.0.0.1" -e COLLAB_DOCUMENT_ID="${COLLAB_DOCUMENT_ID
 fi
 
 BACKUP_DIR="${TEST_DATA_DIR%/}/backup"
-MAIN_JSON="${BACKUP_DIR}/${COLLAB_DOCUMENT_ID}.json"
-MAIN_MD="${BACKUP_DIR}/${COLLAB_DOCUMENT_ID}.md"
+DEV_DOCUMENT_JSON="${BACKUP_DIR}/${DEV_DOCUMENT_ID}.json"
+DEV_DOCUMENT_MD="${BACKUP_DIR}/${DEV_DOCUMENT_ID}.md"
 PROJECT_JSON="${BACKUP_DIR}/project.json"
 PROJECT_MD="${BACKUP_DIR}/project.md"
 
-for backup_file in "${MAIN_JSON}" "${MAIN_MD}" "${PROJECT_JSON}" "${PROJECT_MD}"; do
+for backup_file in "${DEV_DOCUMENT_JSON}" "${DEV_DOCUMENT_MD}" "${PROJECT_JSON}" "${PROJECT_MD}"; do
   if [[ ! -s "${backup_file}" ]]; then
     docker logs "${CONTAINER_NAME}" || true
     echo "Backup output missing or empty: ${backup_file}" >&2
@@ -188,11 +188,11 @@ check_backup_contains() {
 }
 
 for expected in "note1" "note2" "note3"; do
-  if ! check_backup_contains "${expected}" "${MAIN_JSON}" "JSON"; then
+  if ! check_backup_contains "${expected}" "${DEV_DOCUMENT_JSON}" "JSON"; then
     docker logs "${CONTAINER_NAME}" || true
     exit 1
   fi
-  if ! check_backup_contains "${expected}" "${MAIN_MD}" "markdown"; then
+  if ! check_backup_contains "${expected}" "${DEV_DOCUMENT_MD}" "markdown"; then
     docker logs "${CONTAINER_NAME}" || true
     exit 1
   fi

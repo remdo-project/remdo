@@ -187,7 +187,7 @@ if (command !== 'save' && command !== 'load' && command !== 'backup') {
   );
 }
 
-const rawDocId = cliDocId ?? config.env.COLLAB_DOCUMENT_ID;
+const rawDocId = cliDocId ?? config.env.DEV_DOCUMENT_ID;
 const docId = normalizeNoteIdOrThrow(rawDocId, `Invalid document id: ${rawDocId}`);
 const targetFile = resolveSnapshotPath(command, docId, filePath);
 const collabOrigin = `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
@@ -219,13 +219,13 @@ function resolveSnapshotPath(
   const sanitizeName = (name: string) => name.replaceAll(PATH_SEPARATOR_PATTERN, '_').replace(LEADING_DOTS_PATTERN, '');
 
   if (!filePath) {
-    const base = sanitizeName(docId || 'main');
+    const base = sanitizeName(docId || 'devDoc');
     return path.join(defaultDir, ensureJson(base));
   }
 
   const absolutePath = path.resolve(filePath);
   if (fs.existsSync(absolutePath) && fs.statSync(absolutePath).isDirectory()) {
-    const base = sanitizeName(docId || 'main');
+    const base = sanitizeName(docId || 'devDoc');
     return path.join(absolutePath, ensureJson(base));
   }
 

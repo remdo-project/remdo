@@ -1,6 +1,5 @@
 import { createPath, resolvePath } from 'react-router-dom';
 import { getHomeDocumentId } from '@/documents/user-profile';
-import { HOME_USER_DOCUMENT } from '@/documents/defaults';
 import { createDocumentPath } from '@/routing';
 
 export function createPostAuthNextSearch(request: Request): string {
@@ -42,6 +41,10 @@ export async function resolvePostAuthPath(search: string, currentOrigin: string)
   return resolveExplicitReturnTo(search, currentOrigin) ?? await resolveHomeDocumentPath();
 }
 
-export function resolveRememberedSessionFallbackPath(search: string, currentOrigin: string): string {
-  return resolveExplicitReturnTo(search, currentOrigin) ?? createDocumentPath(HOME_USER_DOCUMENT.id);
+export function resolveRememberedSessionPath(
+  search: string,
+  currentOrigin: string,
+  defaultPath: string,
+): string {
+  return resolveExplicitReturnTo(search, currentOrigin) ?? defaultPath;
 }

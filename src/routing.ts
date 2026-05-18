@@ -5,15 +5,15 @@ export function normalizeDocumentId(value: unknown): string | null {
   return normalizeNoteId(value);
 }
 
-export function resolveDefaultDocId(rawDocId: string): string {
+export function resolveDevDocumentId(rawDocId: string): string {
   const raw = rawDocId;
   if (raw.trim().length === 0) {
-    return 'main';
+    return 'devDoc';
   }
-  return normalizeNoteIdOrThrow(raw, 'COLLAB_DOCUMENT_ID must be a valid note-id-compatible identifier.');
+  return normalizeNoteIdOrThrow(raw, 'DEV_DOCUMENT_ID must be a valid note-id-compatible identifier.');
 }
 
-export const DEFAULT_DOC_ID = resolveDefaultDocId(config.env.COLLAB_DOCUMENT_ID);
+export const DEV_DOCUMENT_ID = resolveDevDocumentId(config.env.DEV_DOCUMENT_ID);
 
 const NOTE_REF_SEPARATOR = '_';
 const APP_DOCUMENT_PATH_PREFIX = '/n';
@@ -67,7 +67,7 @@ export function createDocumentTokenApiPath(docId: string): string {
   return `/api/documents/${encodeURIComponent(normalizedDocId)}/token`;
 }
 
-interface ParsedDocumentRef {
+export interface ParsedDocumentRef {
   docId: string;
   noteId: string | null;
 }

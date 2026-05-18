@@ -3,7 +3,7 @@ import { config } from '#config';
 import { CollabSession } from '#lib/collaboration/session';
 import type { CollaborationProviderInstance } from '#lib/collaboration/runtime';
 import type { UserConfigNote } from './contracts';
-import { HOME_USER_DOCUMENT } from './defaults';
+import { HOME_DOCUMENT_TITLE } from './contracts';
 import { getUserProfile } from './user-profile';
 import type { UserProfile } from './user-profile';
 import { createUserConfigRootNote } from './user-config-notes';
@@ -20,13 +20,13 @@ interface StoredUserConfigContext {
 }
 
 function createHomeUserDocument(profile: UserProfile): ListedDocument {
-  return { id: profile.homeDocumentId, title: HOME_USER_DOCUMENT.title };
+  return { id: profile.homeDocumentId, title: HOME_DOCUMENT_TITLE };
 }
 
 // Tab-scoped store that keeps the live user-config session outside route/component lifecycles.
 class StoredUserConfigStore {
   private listeners = new Set<() => void>();
-  private documents: ListedDocument[] = [HOME_USER_DOCUMENT];
+  private documents: ListedDocument[] = [];
   private readonly userConfig = createUserConfigRootNote(this.documents, {
     createDocument: async (title) => this.createDocument(title),
     onChange: () => this.bumpVersion(),

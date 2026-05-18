@@ -2,9 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
 import type { UserConfigNote } from '@/documents/contracts';
-import { HOME_USER_DOCUMENT } from '@/documents/defaults';
 
-const USER_RUNTIME_DOCUMENT = { id: 'userDefaultDoc', title: 'Main' } as const;
+const USER_RUNTIME_DOCUMENT = { id: 'userHomeDoc', title: 'Home' } as const;
 const USER_CONFIG_DOC_ID = 'userConfigDoc';
 
 describe('stored user config', () => {
@@ -68,20 +67,10 @@ describe('stored user config', () => {
     return { promise, resolve };
   };
 
-  it('seeds the configured home document before the stored session loads', async () => {
-    vi.doMock('#config', () => ({
-      config: {
-        env: {
-          COLLAB_DOCUMENT_ID: 'dockerSmoke',
-        },
-      },
-    }));
-
+  it('starts with an empty document list before the stored session loads', async () => {
     const { getCurrentUserConfig } = await import('@/documents/stored-user-config');
 
-    expect(listDocuments(getCurrentUserConfig())).toEqual([
-      { id: 'dockerSmoke', title: 'Main' },
-    ]);
+    expect(listDocuments(getCurrentUserConfig())).toEqual([]);
   });
 
   it('retries startup loading after an initial sync failure', async () => {
@@ -146,7 +135,7 @@ describe('stored user config', () => {
     } = await import('@/documents/stored-user-config');
 
     const eagerUserConfig = getCurrentUserConfig();
-    expect(listDocuments(eagerUserConfig)).toEqual([HOME_USER_DOCUMENT]);
+    expect(listDocuments(eagerUserConfig)).toEqual([]);
 
     startUserConfigRuntime();
     await vi.advanceTimersByTimeAsync(0);
@@ -160,7 +149,7 @@ describe('stored user config', () => {
     expect(sessionInstances[0]!.awaitSynced).toHaveBeenCalledTimes(1);
     expect(sessionInstances[0]!.destroy).toHaveBeenCalledTimes(1);
     expect(getUserConfigVersion()).toBe(0);
-    expect(listDocuments(eagerUserConfig)).toEqual([HOME_USER_DOCUMENT]);
+    expect(listDocuments(eagerUserConfig)).toEqual([]);
 
     await vi.advanceTimersByTimeAsync(1000);
 
@@ -224,7 +213,7 @@ describe('stored user config', () => {
     const { getCurrentUserConfig, getUserConfig } = await import('@/documents/stored-user-config');
 
     const eagerUserConfig = getCurrentUserConfig();
-    expect(listDocuments(eagerUserConfig)).toEqual([HOME_USER_DOCUMENT]);
+    expect(listDocuments(eagerUserConfig)).toEqual([]);
 
     await expect(getUserConfig()).rejects.toThrow('sync failed');
     expect(sessionInstances).toHaveLength(1);
@@ -309,7 +298,7 @@ describe('stored user config', () => {
     const { getCurrentUserConfig, getUserConfig } = await import('@/documents/stored-user-config');
 
     const userConfig = getCurrentUserConfig();
-    expect(listDocuments(userConfig)).toEqual([HOME_USER_DOCUMENT]);
+    expect(listDocuments(userConfig)).toEqual([]);
 
     await expect(getUserConfig()).resolves.toBe(userConfig);
     expect(listDocuments(userConfig)).toEqual([USER_RUNTIME_DOCUMENT]);
@@ -376,7 +365,7 @@ describe('stored user config', () => {
 
     const fetchMock = vi.mocked(fetch);
     expect(fetchMock.mock.calls.filter(([input]) => String(input) === '/api/profile/documents')).toHaveLength(0);
-    expect(listDocuments(userConfig)).toEqual([HOME_USER_DOCUMENT]);
+    expect(listDocuments(userConfig)).toEqual([]);
 
     sync.resolve();
     const createdDocument = await createdPromise;

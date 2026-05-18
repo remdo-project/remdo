@@ -9,7 +9,13 @@
  * expected to be removed once the SDK API reaches a stable/final shape.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { getTestUserConfig, meta, placeCaretAtNote, resetTestUserConfig } from '#tests';
+import {
+  getTestUserConfig,
+  meta,
+  placeCaretAtNote,
+  resetTestUserConfig,
+  TEST_USER_CONFIG_DOCUMENT,
+} from '#tests';
 import { createLexicalEditorNotes } from '@/editor/notes';
 
 describe('editor notes showcase', () => {
@@ -84,7 +90,7 @@ describe('editor notes showcase', () => {
           id: document.id(),
           text: document.text(),
         }))).toEqual([
-          { id: 'main', text: 'Main' },
+          { id: TEST_USER_CONFIG_DOCUMENT.id, text: TEST_USER_CONFIG_DOCUMENT.title },
         ]);
       });
 
@@ -96,7 +102,7 @@ describe('editor notes showcase', () => {
           id: document.id(),
           text: document.text(),
         }))).toEqual([
-          { id: 'main', text: 'Main' },
+          { id: TEST_USER_CONFIG_DOCUMENT.id, text: TEST_USER_CONFIG_DOCUMENT.title },
           { id: createdDocument.id(), text: 'New Document' },
         ]);
       });
@@ -118,8 +124,8 @@ describe('editor notes showcase', () => {
 
         expect(userConfig.kind()).toBe('user-config');
         expect(documentList.kind()).toBe('document-list');
-        expect(firstDocument.id()).toBe('main');
-        expect(firstDocument.text()).toBe('Main');
+        expect(firstDocument.id()).toBe(TEST_USER_CONFIG_DOCUMENT.id);
+        expect(firstDocument.text()).toBe(TEST_USER_CONFIG_DOCUMENT.title);
         expect(note1.attached()).toBe(true);
         expect(note1.text()).toBe('note1');
       });

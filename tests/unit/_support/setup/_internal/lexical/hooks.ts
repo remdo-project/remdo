@@ -26,7 +26,7 @@ aroundEach<TestContext>(async (run, ctx) => {
   const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
   setExpectedConsoleIssues(meta.expectedConsoleIssues ?? null);
 
-  const rawDocId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
+  const rawDocId = meta.collabDocId ?? config.env.DEV_DOCUMENT_ID;
   let docId = normalizeNoteIdOrThrow(rawDocId, `Invalid collab doc id: ${rawDocId}`);
   const explicitCollabDocId = config.env.COLLAB_ENABLED && meta.collabDocId != null ? docId : null;
   if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {

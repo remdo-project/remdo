@@ -66,7 +66,7 @@ describe('document registry', () => {
       id: 'homeDoc',
       kind: 'home-document',
       ownerUserId: 'user-1',
-      title: 'Main',
+      title: 'Home',
     });
 
     const first = await registry.insertDocument({
@@ -83,7 +83,7 @@ describe('document registry', () => {
     expect(first?.title).toBe('First');
     expect(second?.title).toBe('Second');
     await expect(registry.listUserDocuments('user-1')).resolves.toMatchObject([
-      { id: 'homeDoc', title: 'Main' },
+      { id: 'homeDoc', title: 'Home' },
       { id: 'firstDoc', title: 'First' },
       { id: 'secondDoc', title: 'Second' },
     ]);

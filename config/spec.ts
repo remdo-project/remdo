@@ -14,7 +14,7 @@ export const envSpec = defineEnvSpec(
     COLLAB_SERVER_PORT: { default: 0 },
     REMDO_API_PORT: { default: 0 },
     COLLAB_CLIENT_PORT: { default: 0, client: true },
-    COLLAB_DOCUMENT_ID: { default: '', client: true },
+    DEV_DOCUMENT_ID: { default: '', client: true },
     YSWEET_CONNECTION_STRING: { default: '' },
     YSWEET_AUTH_KEY: { default: '' },
     YSWEET_SERVER_TOKEN: { default: '' },

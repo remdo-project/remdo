@@ -1,10 +1,10 @@
 import { expect, test } from '#e2e/fixtures';
-import { createDocumentPath, DEFAULT_DOC_ID } from '@/routing';
+import { createDocumentPath, DEV_DOCUMENT_ID } from '@/routing';
 import process from 'node:process';
 import { PROD_TEST_ADMIN_SECRET, PROD_TEST_AUTH } from './_support/helpers';
 
 test('admin provisioning creates a user and opens the editor', async ({ page }) => {
-  await page.goto(createDocumentPath(DEFAULT_DOC_ID));
+  await page.goto(createDocumentPath(DEV_DOCUMENT_ID));
 
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   await page.getByRole('link', { name: 'Open admin provisioning' }).click();

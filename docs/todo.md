@@ -67,6 +67,10 @@ Rules:
   unification and simplicity across dev and server modes; if local dev friction
   becomes a problem later, prefer a clearly separate convenience mode over
   reintroducing a silent auth bypass into the default dev path.
+- Dev auth fixture follow-up: add a small local-only helper, likely a CLI, that
+  ensures a pre-agreed development test user exists with stable credentials.
+  It should be explicit tooling for manual/dev verification, not a product auth
+  bypass or automatic production seed.
 - Config contract follow-up: clarify whether `config.env` values are the
   authoritative app/stack runtime contract or only defaults that individual
   layers may override. Current env values can be derived or changed through
@@ -81,16 +85,14 @@ Rules:
 - Docker prod E2E env follow-up: revisit whether Docker prod E2E should keep
   its separate container-level env handling or share more of the local env
   derivation path.
-- Default document naming follow-up: rethink the remaining `default` document
-  terminology after profile-owned home documents. The old name mixed app
-  startup, route fallback, `/n/main`-style URL fixtures, tests, tooling, and
-  configured collab document behavior; revisit the remaining uses, drop the
-  generic default/main naming where it no longer describes the role, and give
-  each context a purpose-specific name.
+- ✅ Done Default/dev/home document naming follow-up: split the profile-owned
+  home document from the dev/tool document id. `DEV_DOCUMENT_ID` now names the
+  temporary dev/test/tool fallback, while profile `homeDocumentId` and `Home`
+  title naming refer only to the authenticated user's owned home document.
 - ✅ Done Home route alias follow-up: add an explicit home URL alias that resolves to
-  the authenticated user's current profile home document. Keep this separate
-  from legacy `/n/main`; that path should remain a literal document id until
-  the naming cleanup above removes or renames leftover `main` fixtures.
+  the authenticated user's current profile home document. This stays separate
+  from literal `/n/main` examples and fixtures, which are ordinary document-id
+  test data rather than a home-document alias.
 - Source layout follow-up: revisit browser/server/shared folder boundaries.
   Server code was added after the browser app shape was already established, so
   some document/profile/domain concepts now sit beside browser runtime code.
@@ -107,6 +109,9 @@ Rules:
   Expected shape: unauthenticated offline users see a fallback message,
   remembered authenticated sessions may open cached/local routes without
   re-authenticating, and logout clears remembered auth plus local user data.
+  As part of this, remove the remaining product-route fallback to
+  `DEV_DOCUMENT_ID`; that id should stay a dev/test/tool target rather than a
+  user-facing home-document substitute.
 - Dev API DX follow-up: evaluate mounting the Hono RemDo API inside the Vite dev
   server for `/api/*` instead of proxying to a separate `dev:api` process. Goal:
   same-origin API behavior in local dev with fewer stale route/process issues,

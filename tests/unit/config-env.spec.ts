@@ -38,6 +38,7 @@ describe('config env loading', () => {
   it('prefers the local URL outside production when APP_PUBLIC_URL is set', () => {
     const loaded = loadTestEnv({
       NODE_ENV: 'test',
+      DEV_DOCUMENT_ID: 'testDevDoc',
       HOST: '127.0.0.1',
       PORT: '4000',
       APP_PUBLIC_URL: 'https://remdo.example.com',
@@ -95,6 +96,7 @@ describe('config env loading', () => {
   it('keeps server-only collaboration env out of client config', () => {
     const loaded = loadTestEnv({
       NODE_ENV: 'test',
+      DEV_DOCUMENT_ID: 'testDevDoc',
       HOST: '127.0.0.1',
       PORT: '4000',
       REMDO_API_PORT: '4011',
@@ -107,6 +109,8 @@ describe('config env loading', () => {
       ALLOW_SIGNUP: 'true',
     });
 
+    expect(loaded.server.DEV_DOCUMENT_ID).toBe('testDevDoc');
+    expect(loaded.client.DEV_DOCUMENT_ID).toBe('testDevDoc');
     expect(loaded.server.REMDO_API_PORT).toBe(4011);
     expect(loaded.server.YSWEET_CONNECTION_STRING).toBe('ys://127.0.0.1:4004');
     expect(loaded.server.YSWEET_AUTH_KEY).toBe('test-ysweet-auth-key');

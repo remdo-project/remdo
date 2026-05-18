@@ -7,7 +7,7 @@ import {
   normalizeDocumentId,
   parseDocumentRef,
   parseNoteRef,
-  resolveDefaultDocId,
+  resolveDevDocumentId,
 } from '@/routing';
 
 describe('routing note refs', () => {
@@ -46,11 +46,11 @@ describe('routing note refs', () => {
     expect(() => createDocumentPath('main', '')).toThrow();
   });
 
-  it('resolves default document id from env input', () => {
-    expect(resolveDefaultDocId('')).toBe('main');
-    expect(resolveDefaultDocId('   ')).toBe('main');
-    expect(resolveDefaultDocId(' main ')).toBe('main');
-    expect(resolveDefaultDocId('otherDoc')).toBe('otherDoc');
-    expect(() => resolveDefaultDocId('other-doc')).toThrow();
+  it('resolves dev document id from env input', () => {
+    expect(resolveDevDocumentId('')).toBe('devDoc');
+    expect(resolveDevDocumentId('   ')).toBe('devDoc');
+    expect(resolveDevDocumentId(' main ')).toBe('main');
+    expect(resolveDevDocumentId('otherDoc')).toBe('otherDoc');
+    expect(() => resolveDevDocumentId('other-doc')).toThrow();
   });
 });

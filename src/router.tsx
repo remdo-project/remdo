@@ -2,17 +2,17 @@ import { createBrowserRouter, redirect } from 'react-router-dom';
 import App from './App';
 import { resolveSessionGateState } from './auth/client';
 import { getHomeDocumentId } from './documents/user-profile';
-import { HOME_USER_DOCUMENT } from './documents/defaults';
 import AdminUsersRoute from './routes/AdminUsersRoute';
 import DocumentRoute from './routes/DocumentRoute';
 import LoginRoute from './routes/LoginRoute';
 import {
   createPostAuthNextSearch,
   resolvePostAuthPath,
-  resolveRememberedSessionFallbackPath,
+  resolveRememberedSessionPath,
 } from './routes/post-auth-path';
 import {
   createDocumentPath,
+  DEV_DOCUMENT_ID,
   normalizeDocumentId,
   parseDocumentRef,
 } from './routing';
@@ -44,7 +44,7 @@ async function requirePublicAuthRoute(request: Request) {
   const url = new URL(request.url);
   const search = url.search;
   if (sessionState.status === 'offline-fallback') {
-    throw redirect(resolveRememberedSessionFallbackPath(search, url.origin));
+    throw redirect(resolveRememberedSessionPath(search, url.origin, createDocumentPath(DEV_DOCUMENT_ID)));
   }
 
   throw redirect(await resolvePostAuthPath(search, url.origin));
@@ -65,7 +65,7 @@ async function resolveRouteHomeDocumentId(request: Request): Promise<string> {
     throw redirect(`/login${createPostAuthNextSearch(request)}`);
   }
   if (sessionState.status === 'offline-fallback') {
-    return HOME_USER_DOCUMENT.id;
+    return DEV_DOCUMENT_ID;
   }
   return getHomeDocumentId();
 }
@@ -85,7 +85,7 @@ const createDocumentLoader = (buildPath: DocumentPathBuilder) => {
       throw redirect(`${canonicalPath}${url.search}`);
     }
 
-    return null;
+    return parsed;
   };
 };
 

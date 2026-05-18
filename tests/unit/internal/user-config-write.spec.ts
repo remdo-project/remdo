@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { getTestUserConfig, resetTestUserConfig } from '#tests';
+import { getTestUserConfig, resetTestUserConfig, TEST_USER_CONFIG_DOCUMENT } from '#tests';
 
 describe('user config writes', () => {
   beforeEach(() => {
@@ -12,7 +12,7 @@ describe('user config writes', () => {
       id: document.id(),
       title: document.text(),
     }))).toEqual([
-      { id: 'main', title: 'Main' },
+      { id: TEST_USER_CONFIG_DOCUMENT.id, title: TEST_USER_CONFIG_DOCUMENT.title },
     ]);
 
     const userConfig = getTestUserConfig();
@@ -22,7 +22,7 @@ describe('user config writes', () => {
       id: document.id(),
       title: document.text(),
     }))).toEqual([
-      { id: 'main', title: 'Main' },
+      { id: TEST_USER_CONFIG_DOCUMENT.id, title: TEST_USER_CONFIG_DOCUMENT.title },
       { id: document.id(), title: 'New Document' },
     ]);
 
@@ -31,7 +31,7 @@ describe('user config writes', () => {
       id: document.id(),
       title: document.text(),
     }))).toEqual([
-      { id: 'main', title: 'Main' },
+      { id: TEST_USER_CONFIG_DOCUMENT.id, title: TEST_USER_CONFIG_DOCUMENT.title },
       { id: document.id(), title: 'New Document' },
     ]);
   });

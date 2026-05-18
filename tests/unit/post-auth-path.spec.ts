@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createPostAuthNextSearch,
   resolvePostAuthTargetPath,
-  resolveRememberedSessionFallbackPath,
+  resolveRememberedSessionPath,
 } from '@/routes/post-auth-path';
 
 const CURRENT_ORIGIN = 'https://remdo.test';
@@ -41,10 +41,11 @@ describe('post-auth paths', () => {
     }
   });
 
-  it('falls back to the offline home path for rejected remembered-session targets', () => {
-    expect(resolveRememberedSessionFallbackPath('?next=%2F%2Fexample.test%2Fn%2Fmain', CURRENT_ORIGIN))
-      .toBe('/n/main');
-    expect(resolveRememberedSessionFallbackPath('?next=%2F%5Cexample.test%2Fn%2Fmain', CURRENT_ORIGIN))
-      .toBe('/n/main');
+  it('uses the caller-provided remembered-session default path when there is no accepted target', () => {
+    expect(resolveRememberedSessionPath('', CURRENT_ORIGIN, '/default')).toBe('/default');
+    expect(resolveRememberedSessionPath('?next=%2F%2Fexample.test%2Fn%2Fmain', CURRENT_ORIGIN, '/default'))
+      .toBe('/default');
+    expect(resolveRememberedSessionPath('?next=%2F%5Cexample.test%2Fn%2Fmain', CURRENT_ORIGIN, '/default'))
+      .toBe('/default');
   });
 });

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconSearch } from '@tabler/icons-react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
 import { useUserConfig } from '@/documents/user-config';
 import Editor from '@/editor/Editor';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
 import { EditorViewProvider, useEditorViewActions, useZoomPath } from '@/editor/view/EditorViewProvider';
-import { createDocumentPath, DEFAULT_DOC_ID, parseDocumentRef } from '@/routing';
+import { createDocumentPath } from '@/routing';
+import type { ParsedDocumentRef } from '@/routing';
 import {
   APP_TITLE,
   formatNavigationLabel,
@@ -61,11 +62,10 @@ function useDocumentRouteNavigation(docId: string) {
 }
 
 export default function DocumentRoute() {
-  const { docRef } = useParams<{ docRef?: string }>();
-  const parsedRef = parseDocumentRef(docRef);
-  const docId = parsedRef?.docId ?? DEFAULT_DOC_ID;
+  const parsedRef = useLoaderData<ParsedDocumentRef>();
+  const docId = parsedRef.docId;
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
-  const zoomNoteId = parsedRef?.noteId ?? null;
+  const zoomNoteId = parsedRef.noteId;
   const { navigateToDocument, navigateToZoomNote } = useDocumentRouteNavigation(docId);
 
   return (

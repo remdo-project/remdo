@@ -1,6 +1,8 @@
 import type { EditorNote } from '@/editor/notes/contracts';
 import type { ChildPosition, Note } from '@/notes/contracts';
 
+export const HOME_DOCUMENT_TITLE = 'Home';
+
 export interface UserConfigNote extends Note<'user-config'> {
   /** Returns the single document-list child note. */
   documentList: () => DocumentListNote;
