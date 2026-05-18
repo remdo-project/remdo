@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { Link, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import headerStyles from './styles/AppHeader.module.css';
 import { config } from '#config';
-import { authClient, forgetAuthenticatedSession } from './auth/client';
+import { logoutCurrentUser } from './auth/logout';
 import { startUserConfig } from './documents/user-config';
 import { Icon } from './ui/Icon';
 import { createDocumentPath, parseDocumentRef } from './routing';
@@ -58,14 +58,9 @@ export default function App() {
   const parsedRef = parseDocumentRef(docRef);
   const currentDocumentPath = parsedRef ? createDocumentPath(parsedRef.docId) : '/home';
   const handleLogoutClick = () => {
-    void authClient.signOut({
-      fetchOptions: {
-        onSuccess() {
-          forgetAuthenticatedSession();
-          globalThis.location.assign('/');
-        },
-      },
-    });
+    void logoutCurrentUser().then(() => {
+      globalThis.location.assign('/login');
+    }, () => null);
   };
 
   return (
@@ -84,7 +79,12 @@ export default function App() {
         </Group>
         <nav>
           <Group gap="md" className="app-header-links">
-            <Anchor className="app-header-link" onClick={handleLogoutClick}>
+            <Anchor
+              className="app-header-link"
+              component="button"
+              onClick={handleLogoutClick}
+              type="button"
+            >
               Logout
             </Anchor>
             {config.isDev && (

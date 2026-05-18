@@ -15,6 +15,10 @@ export async function getUserProfile(): Promise<UserProfile> {
   return profilePromise;
 }
 
+export function clearUserProfileCache(): void {
+  profilePromise = null;
+}
+
 export async function getHomeDocumentId(): Promise<string> {
   const profile = await getUserProfile();
   return profile.homeDocumentId;

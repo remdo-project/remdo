@@ -1,11 +1,8 @@
 import { expect, readOutline, test as base } from '#e2e/fixtures';
 import type { Locator, Page } from '#e2e/fixtures';
-import { request } from '@playwright/test';
-import type { Browser, BrowserContext, BrowserContextOptions } from '@playwright/test';
-import { config } from '#config';
-import { resolveLoopbackHost } from '#lib/net/loopback';
-import { createTestAuthAccount } from '#tests-common/auth-account';
+import type { BrowserContext } from '@playwright/test';
 import { cleanupCollabDoc, createTestRuntimeScope } from '#tests-common/runtime-scope';
+import { createAuthenticatedContext } from '../../_support/auth-context';
 import { waitForSynced } from './bridge';
 import {
   captureCreatedEditorDoc,
@@ -13,34 +10,6 @@ import {
 } from './runtime';
 
 type EditorHarness = Awaited<ReturnType<typeof createEditorHarness>>;
-
-async function createAuthenticatedEditorContext(
-  browser: Browser,
-  contextOptions: BrowserContextOptions,
-): Promise<BrowserContext> {
-  const requestHost = resolveLoopbackHost(config.env.HOST);
-  const apiContext = await request.newContext({
-    baseURL: `http://${requestHost}:${config.env.REMDO_API_PORT}`,
-  });
-
-  try {
-    const response = await apiContext.post('/api/admin/users', {
-      data: {
-        ...createTestAuthAccount(),
-        adminSecret: config.env.ADMIN_SECRET,
-      },
-    });
-    if (!response.ok()) {
-      throw new Error(`Failed to provision editor e2e user: ${response.status()} ${response.statusText()}`);
-    }
-    return browser.newContext({
-      ...contextOptions,
-      storageState: await apiContext.storageState(),
-    });
-  } finally {
-    await apiContext.dispose();
-  }
-}
 
 async function cleanupProfileCollabDocs(context: BrowserContext): Promise<void> {
   const response = await context.request.get('/api/profile');
@@ -68,7 +37,7 @@ export const test = base.extend<
   }
 >({
   context: async ({ browser, contextOptions }, applyFixture) => {
-    const context = await createAuthenticatedEditorContext(browser, contextOptions);
+    const context = await createAuthenticatedContext(browser, contextOptions);
     try {
       await applyFixture(context);
     } finally {

@@ -6,6 +6,12 @@ import type { UserConfigNote } from '@/documents/contracts';
 const USER_RUNTIME_DOCUMENT = { id: 'userHomeDoc', title: 'Home' } as const;
 const USER_CONFIG_DOC_ID = 'userConfigDoc';
 
+interface MockCollabSessionInstance {
+  destroy: ReturnType<typeof vi.fn>;
+  connect: ReturnType<typeof vi.fn>;
+  awaitSynced: ReturnType<typeof vi.fn>;
+}
+
 describe('stored user config', () => {
   beforeEach(() => {
     vi.doUnmock('#config');
@@ -65,6 +71,63 @@ describe('stored user config', () => {
       resolve = promiseResolve;
     });
     return { promise, resolve };
+  };
+
+  const mockCollabSession = ({
+    awaitSynced = () => Promise.resolve(),
+    doc = new Y.Doc(),
+  }: {
+    awaitSynced?: () => Promise<void>;
+    doc?: Y.Doc;
+  } = {}) => {
+    const sessions: MockCollabSessionInstance[] = [];
+
+    vi.doMock('#lib/collaboration/session', () => ({
+      CollabSession: class MockCollabSession {
+        private provider = {
+          connect: vi.fn(),
+        };
+
+        readonly destroy = vi.fn();
+        readonly awaitSynced = vi.fn(awaitSynced);
+        private readonly docId: string;
+
+        constructor(options: { docId: string }) {
+          this.docId = options.docId;
+          sessions.push({
+            destroy: this.destroy,
+            connect: this.provider.connect,
+            awaitSynced: this.awaitSynced,
+          });
+        }
+
+        attach(docMap: Map<string, Y.Doc>) {
+          docMap.set(this.docId, doc);
+        }
+
+        getProvider() {
+          return this.provider;
+        }
+
+        subscribe() {
+          return () => {};
+        }
+      },
+    }));
+
+    return sessions;
+  };
+
+  const waitForSessionAwait = async (sessions: MockCollabSessionInstance[]) => {
+    for (let attempt = 0; attempt < 10 && sessions[0]?.awaitSynced.mock.calls.length !== 1; attempt += 1) {
+      await Promise.resolve();
+    }
+
+    const session = sessions[0]!;
+    expect(sessions).toHaveLength(1);
+    expect(session.connect).toHaveBeenCalledTimes(1);
+    expect(session.awaitSynced).toHaveBeenCalledTimes(1);
+    return session;
   };
 
   it('starts with an empty document list before the stored session loads', async () => {
@@ -411,5 +474,79 @@ describe('stored user config', () => {
     const userConfig = await getUserConfig();
 
     expect(listDocuments(userConfig)).toEqual([USER_RUNTIME_DOCUMENT]);
+  });
+
+  it('destroys a pending config session when reset races with startup sync', async () => {
+    const sync = createDeferred();
+    const sessions = mockCollabSession({ awaitSynced: () => sync.promise });
+
+    const {
+      getUserConfig,
+      resetUserConfigRuntime,
+    } = await import('@/documents/stored-user-config');
+
+    const startupPromise = getUserConfig();
+    const session = await waitForSessionAwait(sessions);
+
+    resetUserConfigRuntime();
+
+    expect(session.destroy).toHaveBeenCalledTimes(1);
+
+    sync.resolve();
+
+    await expect(startupPromise).rejects.toThrow('User config runtime was reset.');
+    expect(session.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it('resets the live config session and document list', async () => {
+    const sessionInstances: Array<{
+      destroy: ReturnType<typeof vi.fn>;
+    }> = [];
+
+    vi.doMock('#lib/collaboration/session', () => ({
+      CollabSession: class MockCollabSession {
+        private provider = {
+          connect: vi.fn(),
+        };
+
+        readonly destroy = vi.fn();
+        readonly awaitSynced = vi.fn<() => Promise<void>>().mockResolvedValue();
+        private readonly docId: string;
+
+        constructor(options: { docId: string }) {
+          this.docId = options.docId;
+          sessionInstances.push({ destroy: this.destroy });
+        }
+
+        attach(docMap: Map<string, Y.Doc>) {
+          docMap.set(this.docId, createUserConfigDoc([USER_RUNTIME_DOCUMENT]));
+        }
+
+        getProvider() {
+          return this.provider;
+        }
+
+        subscribe() {
+          return () => {};
+        }
+      },
+    }));
+
+    const {
+      getCurrentUserConfig,
+      getUserConfig,
+      resetUserConfigRuntime,
+    } = await import('@/documents/stored-user-config');
+
+    const userConfig = await getUserConfig();
+    expect(userConfig).toBe(getCurrentUserConfig());
+    expect(listDocuments(userConfig)).toEqual([USER_RUNTIME_DOCUMENT]);
+
+    resetUserConfigRuntime();
+
+    expect(sessionInstances).toHaveLength(1);
+    expect(sessionInstances[0]!.destroy).toHaveBeenCalledTimes(1);
+    expect(listDocuments(userConfig)).toEqual([]);
+    expect(getCurrentUserConfig()).toBe(userConfig);
   });
 });

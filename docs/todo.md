@@ -111,7 +111,9 @@ Rules:
   re-authenticating, and logout clears remembered auth plus local user data.
   As part of this, remove the remaining product-route fallback to
   `DEV_DOCUMENT_ID`; that id should stay a dev/test/tool target rather than a
-  user-facing home-document substitute.
+  user-facing home-document substitute. The current logout path only clears
+  server session state plus tab-local auth/profile/config runtime state; decide
+  and implement the durable local data wipe here.
 - Dev API DX follow-up: evaluate mounting the Hono RemDo API inside the Vite dev
   server for `/api/*` instead of proxying to a separate `dev:api` process. Goal:
   same-origin API behavior in local dev with fewer stale route/process issues,

@@ -3,13 +3,12 @@ import {
   getCurrentUserConfig,
   subscribeUserConfigRuntime,
   getUserConfigVersion,
-  startUserConfigRuntime,
 } from './stored-user-config';
 import type { UserConfigNote } from './contracts';
-
-export function startUserConfig(): void {
-  startUserConfigRuntime();
-}
+export {
+  resetUserConfigRuntime as resetUserConfig,
+  startUserConfigRuntime as startUserConfig,
+} from './stored-user-config';
 
 export function useUserConfig(): UserConfigNote {
   useSyncExternalStore(

@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 import { betterAuth } from 'better-auth';
@@ -13,8 +14,36 @@ interface CreateServerAuthOptions {
   secret?: string;
 }
 
-function createAuthTrustedOrigins(baseURL: string) {
-  return [new URL(baseURL).origin];
+function appendOrigin(origins: string[], origin: string): void {
+  if (!origins.includes(origin)) {
+    origins.push(origin);
+  }
+}
+
+export function createAuthTrustedOrigins(
+  baseURL: string,
+  options: { mode?: string; machineHostname?: string } = {},
+): string[] {
+  const baseOrigin = new URL(baseURL).origin;
+  const origins = [baseOrigin];
+  const mode = options.mode ?? config.runtime.mode;
+  if (mode === 'production') {
+    return origins;
+  }
+
+  const url = new URL(baseOrigin);
+  const port = url.port;
+  if (!port) {
+    return origins;
+  }
+
+  appendOrigin(origins, `${url.protocol}//localhost:${port}`);
+  appendOrigin(origins, `${url.protocol}//127.0.0.1:${port}`);
+  const hostname = options.machineHostname ?? os.hostname();
+  if (hostname) {
+    appendOrigin(origins, `${url.protocol}//${hostname}:${port}`);
+  }
+  return origins;
 }
 
 function shouldCreateParentDirectory(dbPath: string): boolean {

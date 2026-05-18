@@ -33,15 +33,41 @@ class StoredUserConfigStore {
   });
   private context: StoredUserConfigContext | null = null;
   private contextPromise: Promise<StoredUserConfigContext> | null = null;
+  private pendingContextSession: CollabSession | null = null;
   private readyPromise: Promise<void> | null = null;
   private startupRetryHandle: ReturnType<typeof setTimeout> | null = null;
   private ready = false;
   private version = 0;
+  private generation = 0;
 
   start(): void {
-    void this.ensureReady().catch(() => {
-      this.scheduleStartupRetry();
+    const generation = this.generation;
+    void this.ensureReady(generation).catch(() => {
+      if (this.generation === generation) {
+        this.scheduleStartupRetry();
+      }
     });
+  }
+
+  reset(): void {
+    this.generation += 1;
+    if (this.startupRetryHandle) {
+      clearTimeout(this.startupRetryHandle);
+      this.startupRetryHandle = null;
+    }
+    if (this.pendingContextSession) {
+      this.pendingContextSession.destroy();
+      this.pendingContextSession = null;
+    }
+    if (this.context) {
+      this.context.session.destroy();
+      this.context = null;
+    }
+    this.contextPromise = null;
+    this.readyPromise = null;
+    this.ready = false;
+    this.replaceDocuments([]);
+    this.bumpVersion();
   }
 
   subscribe(listener: () => void) {
@@ -63,14 +89,14 @@ class StoredUserConfigStore {
     return this.version;
   }
 
-  private async ensureReady(): Promise<void> {
+  private async ensureReady(generation = this.generation): Promise<void> {
     if (this.ready) {
       return;
     }
     if (!this.readyPromise) {
-      const readyPromise = this.loadUserConfig()
+      const readyPromise = this.loadUserConfig(generation)
         .then(() => {
-          if (this.readyPromise === readyPromise) {
+          if (this.readyPromise === readyPromise && this.generation === generation) {
             this.ready = true;
             this.readyPromise = null;
             if (this.startupRetryHandle) {
@@ -81,7 +107,7 @@ class StoredUserConfigStore {
           }
         })
         .catch((error) => {
-          if (this.readyPromise === readyPromise) {
+          if (this.readyPromise === readyPromise && this.generation === generation) {
             this.readyPromise = null;
           }
           throw error;
@@ -91,13 +117,18 @@ class StoredUserConfigStore {
     return this.readyPromise;
   }
 
-  private async loadUserConfig(): Promise<void> {
+  private async loadUserConfig(generation: number): Promise<void> {
     const profile = await getUserProfile();
+    if (this.generation !== generation) {
+      return;
+    }
     const homeDocument = createHomeUserDocument(profile);
-    const context = await this.getContext(profile.configDocumentId);
+    const context = await this.getContext(profile.configDocumentId, generation);
     const root = context.doc.getMap<Y.Array<Y.Map<unknown>>>(USER_CONFIG_ROOT_NOTE_ID);
     const documents = readUserConfigDocuments(root);
-    this.replaceDocuments(documents.length > 0 ? documents : [homeDocument]);
+    if (this.generation === generation) {
+      this.replaceDocuments(documents.length > 0 ? documents : [homeDocument]);
+    }
   }
 
   private async createDocument(title: string) {
@@ -106,21 +137,37 @@ class StoredUserConfigStore {
     return document;
   }
 
-  private async getContext(configDocumentId: string): Promise<StoredUserConfigContext> {
+  private async getContext(configDocumentId: string, generation: number): Promise<StoredUserConfigContext> {
     if (this.context) {
       return this.context;
     }
     if (!this.contextPromise) {
-      const contextPromise = createStoredUserConfigContext(configDocumentId)
+      const contextPromise = createStoredUserConfigContext(configDocumentId, (session) => {
+        if (this.generation === generation) {
+          this.pendingContextSession = session;
+        } else {
+          session.destroy();
+        }
+      })
         .then((context) => {
-          if (this.contextPromise === contextPromise) {
+          if (this.contextPromise === contextPromise && this.generation === generation) {
+            if (this.pendingContextSession === context.session) {
+              this.pendingContextSession = null;
+            }
             this.context = context;
+          } else {
+            if (this.pendingContextSession === context.session) {
+              this.pendingContextSession = null;
+              context.session.destroy();
+            }
+            throw new Error('User config runtime was reset.');
           }
           return context;
         })
         .catch((error) => {
-          if (this.contextPromise === contextPromise) {
+          if (this.contextPromise === contextPromise && this.generation === generation) {
             this.contextPromise = null;
+            this.pendingContextSession = null;
           }
           throw error;
         });
@@ -195,11 +242,15 @@ async function createListedDocument(title: string): Promise<ListedDocument> {
   return { id, title: body.title };
 }
 
-async function createStoredUserConfigContext(docId: string): Promise<StoredUserConfigContext> {
+async function createStoredUserConfigContext(
+  docId: string,
+  onSessionCreated: (session: CollabSession) => void,
+): Promise<StoredUserConfigContext> {
   const origin = resolveCollabOrigin();
   const apiOrigin = resolveCollabApiOrigin();
   const docMap = new Map<string, Y.Doc>();
   const session = new CollabSession({ enabled: true, docId, origin, apiOrigin });
+  onSessionCreated(session);
   try {
     session.attach(docMap);
 
@@ -277,6 +328,10 @@ const store = new StoredUserConfigStore();
 
 export function startUserConfigRuntime(): void {
   store.start();
+}
+
+export function resetUserConfigRuntime(): void {
+  store.reset();
 }
 
 export function subscribeUserConfigRuntime(listener: () => void) {
