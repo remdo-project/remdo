@@ -1,54 +1,15 @@
 import { Anchor, Container, Group, Title } from '@mantine/core';
-import { IconBrandVite } from '@tabler/icons-react';
 import { useEffect } from 'react';
 import { Link, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import headerStyles from './styles/AppHeader.module.css';
 import { config } from '#config';
 import { logoutCurrentUser } from './auth/logout';
 import { startUserConfig } from './documents/user-config';
-import { Icon } from './ui/Icon';
 import { createDocumentPath, parseDocumentRef } from './routing';
 import VanillaLexicalEditor from './editor/dev/VanillaLexicalEditor';
-
-interface HostContext {
-  protocol: string;
-  hostname: string;
-  basePort: number;
-}
-
-function resolveHost(): HostContext | null {
-  const { protocol, hostname, port } = globalThis.location;
-  const basePort =
-    port && Number(port) > 0
-      ? Number(port)
-      : protocol === 'https:'
-        ? 443
-        : 80;
-
-  return { protocol, hostname, basePort };
-}
-
-function buildUrl(host: HostContext, portOffset: number, path = ''): string {
-  return `${host.protocol}//${host.hostname}:${host.basePort + portOffset}${path}`;
-}
-
-function buildSearch(params: { lexicalDemo?: boolean }): string {
-  const searchParams = new URLSearchParams();
-  if (params.lexicalDemo) {
-    searchParams.set('lexicalDemo', 'true');
-  }
-  const search = searchParams.toString();
-  return search ? `?${search}` : '';
-}
+import { DevToolbarLinks } from './routes/DevToolbar';
 
 export default function App() {
-  const host = resolveHost();
-  const previewUrl = host ? buildUrl(host, 3) : '#preview';
-  const vitestUrl = host ? buildUrl(host, 2, '/__vitest__/') : '#vitest';
-  const playwrightUrl = host ? buildUrl({ protocol: 'http:', hostname: 'localhost', basePort: host.basePort }, 6, '') : '#playwright';
-  const lexicalUrl = host
-    ? `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`
-    : '#lexical';
   const { docRef } = useParams<{ docRef?: string }>();
   const [searchParams] = useSearchParams();
   useEffect(() => {
@@ -87,29 +48,7 @@ export default function App() {
             >
               Logout
             </Anchor>
-            {config.isDev && (
-              <>
-                <Anchor className="app-header-link" href={previewUrl}>
-                  Preview
-                </Anchor>
-                <Anchor className="app-header-link" href={vitestUrl}>
-                  <Icon icon={IconBrandVite} />
-                  Vitest
-                </Anchor>
-                <Anchor className="app-header-link" href={playwrightUrl}>
-                  Playwright
-                </Anchor>
-                <Anchor className="app-header-link" href={lexicalUrl}>
-                  Lexical
-                </Anchor>
-                <Link
-                  to={`${currentDocumentPath}${buildSearch({ lexicalDemo: true })}`}
-                  className="app-header-link"
-                >
-                  Lexical Demo
-                </Link>
-              </>
-            )}
+            <DevToolbarLinks currentDocumentPath={currentDocumentPath} />
           </Group>
         </nav>
       </header>

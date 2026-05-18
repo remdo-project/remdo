@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { verifyPassword } from 'better-auth/crypto';
 import { config } from '#config';
 import { HTTP_STATUS } from '#lib/http/status';
 import { normalizeDocumentId } from '@/routing';
@@ -17,6 +18,47 @@ interface ServerAppOptions {
   tokenManager?: DocumentTokenManager;
   registry?: DocumentRegistry;
   logError?: (error: unknown, details: { docId?: string }) => void;
+}
+
+const DEV_AUTH_ACCOUNT = {
+  email: 'dev@example.test',
+  name: 'Development User',
+  password: 'dev-password-1234',
+} as const;
+
+async function devAuthAccountMatchesPassword(auth: ServerAuth): Promise<boolean | null> {
+  const existing = auth.db.prepare(`
+    SELECT account.password AS password
+    FROM "user"
+    LEFT JOIN account ON account."userId" = "user".id AND account."providerId" = 'credential'
+    WHERE "user".email = ?
+    LIMIT 1
+  `).get(DEV_AUTH_ACCOUNT.email) as { password: string | null } | undefined;
+  if (!existing) {
+    return null;
+  }
+
+  return Boolean(
+    existing.password
+    && await verifyPassword({
+      hash: existing.password,
+      password: DEV_AUTH_ACCOUNT.password,
+    }),
+  );
+}
+
+function signInDevAuthAccount(auth: ServerAuth, request: Request): Promise<Response> {
+  const headers = new Headers(request.headers);
+  headers.set('content-type', 'application/json');
+  headers.delete('content-length');
+  return auth.auth.handler(new Request(new URL('/api/auth/sign-in/email', request.url), {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      email: DEV_AUTH_ACCOUNT.email,
+      password: DEV_AUTH_ACCOUNT.password,
+    }),
+  }));
 }
 
 function defaultLogError(error: unknown, details: { docId?: string }) {
@@ -72,6 +114,30 @@ export function createServerApp({
       db: 'ok',
       ok: true,
     });
+  });
+
+  app.post('/api/dev/login', async (c) => {
+    if (!config.isDev) {
+      return c.json({ error: 'Development login is unavailable.' }, HTTP_STATUS.FORBIDDEN);
+    }
+
+    await auth.ensureReady();
+    const matchesDevPassword = await devAuthAccountMatchesPassword(auth);
+    if (matchesDevPassword === true) {
+      return signInDevAuthAccount(auth, c.req.raw);
+    }
+    if (matchesDevPassword === false) {
+      return c.json({
+        error: 'Development account already exists with different credentials. Delete or reset the local auth DB.',
+      }, HTTP_STATUS.UNPROCESSABLE_ENTITY);
+    }
+
+    const created = await auth.createUser(DEV_AUTH_ACCOUNT, c.req.raw.headers);
+    if (!created.ok) {
+      return created;
+    }
+
+    return signInDevAuthAccount(auth, c.req.raw);
   });
 
   app.get('/api/profile', async (c) => {

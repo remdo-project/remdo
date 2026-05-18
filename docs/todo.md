@@ -67,10 +67,9 @@ Rules:
   unification and simplicity across dev and server modes; if local dev friction
   becomes a problem later, prefer a clearly separate convenience mode over
   reintroducing a silent auth bypass into the default dev path.
-- Dev auth fixture follow-up: add a small local-only helper, likely a CLI, that
-  ensures a pre-agreed development test user exists with stable credentials.
-  It should be explicit tooling for manual/dev verification, not a product auth
-  bypass or automatic production seed.
+- ✅ Done Dev auth fixture follow-up: add an explicit development shortcut to
+  sign in with a stable test user. The login page now exposes a dev-only button
+  backed by `/api/dev/login`; production rejects the endpoint.
 - Config contract follow-up: clarify whether `config.env` values are the
   authoritative app/stack runtime contract or only defaults that individual
   layers may override. Current env values can be derived or changed through

@@ -2,7 +2,7 @@ import { expect, test } from '#e2e/fixtures';
 import { config } from '#config';
 import type { ClientToken } from '@y-sweet/sdk';
 import { HTTP_STATUS } from '#lib/http/status';
-import { request } from '@playwright/test';
+import { request as playwrightRequest } from '@playwright/test';
 import { Buffer } from 'node:buffer';
 import * as Y from 'yjs';
 import { waitForEditableEditor } from './_support/helpers';
@@ -94,7 +94,7 @@ test('user can enter notes and see them rendered', async ({ page }) => {
 test('token issuance requires auth and collaboration control routes are not routed through the gateway', async ({ page }) => {
   await page.goto(`/n/${DOCKER_SMOKE_DOC_ID}`);
   const gatewayOrigin = new URL(page.url()).origin;
-  const unauthenticatedContext = await request.newContext({
+  const unauthenticatedContext = await playwrightRequest.newContext({
     baseURL: gatewayOrigin,
     ignoreHTTPSErrors: true,
     storageState: {
@@ -133,6 +133,16 @@ test('token issuance requires auth and collaboration control routes are not rout
 
   expect(newRouteResponse.status()).toBe(HTTP_STATUS.NOT_FOUND);
   expect(authRouteResponse.status()).toBe(HTTP_STATUS.NOT_FOUND);
+});
+
+test('development login shortcut is unavailable in production', async ({ request }) => {
+  const response = await request.fetch('/api/dev/login', {
+    method: 'POST',
+    failOnStatusCode: false,
+  });
+
+  expect(response.status()).toBe(HTTP_STATUS.FORBIDDEN);
+  await expect(response.json()).resolves.toEqual({ error: 'Development login is unavailable.' });
 });
 
 test('user config sync token is read-only and API document creation updates the projection', async ({ page }) => {

@@ -2,6 +2,7 @@ import { Alert, Anchor, Button, Container, Paper, PasswordInput, Stack, Text, Te
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { authClient, rememberAuthenticatedSession } from '@/auth/client';
+import { DevToolbar } from './DevToolbar';
 import { resolvePostAuthPath } from './post-auth-path';
 
 function readAuthErrorMessage(error: unknown, fallback: string): string {
@@ -54,6 +55,17 @@ export default function LoginRoute() {
     <Container size="xs" py="xl">
       <Paper withBorder p="xl" radius="md">
         <Stack gap="md">
+          <DevToolbar
+            currentDocumentPath="/home"
+            onDevLoginError={(error) => {
+              setErrorMessage(readAuthErrorMessage(error, 'Failed to use dev account.'));
+            }}
+            onDevLoginSuccess={async () => {
+              setErrorMessage(null);
+              await completeAuth();
+            }}
+          />
+
           <div>
             <Title order={1}>Sign in</Title>
             <Text c="dimmed" size="sm">
