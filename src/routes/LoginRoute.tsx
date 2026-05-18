@@ -24,7 +24,7 @@ export default function LoginRoute() {
 
   const completeAuth = async () => {
     rememberAuthenticatedSession();
-    const returnTo = await resolvePostAuthPath(location.search);
+    const returnTo = await resolvePostAuthPath(location.search, globalThis.location.origin);
     void navigate(returnTo, { replace: true });
   };
 

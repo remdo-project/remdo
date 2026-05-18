@@ -6,7 +6,11 @@ import { HOME_USER_DOCUMENT } from './documents/defaults';
 import AdminUsersRoute from './routes/AdminUsersRoute';
 import DocumentRoute from './routes/DocumentRoute';
 import LoginRoute from './routes/LoginRoute';
-import { resolvePostAuthPath, resolveRememberedSessionFallbackPath } from './routes/post-auth-path';
+import {
+  createPostAuthNextSearch,
+  resolvePostAuthPath,
+  resolveRememberedSessionFallbackPath,
+} from './routes/post-auth-path';
 import {
   createDocumentPath,
   normalizeDocumentId,
@@ -22,18 +26,13 @@ const buildSearch = (lexicalDemo: boolean): string => {
   return search ? `?${search}` : '';
 };
 
-function createNextSearch(request: Request): string {
-  const url = new URL(request.url);
-  return `?next=${encodeURIComponent(`${url.pathname}${url.search}`)}`;
-}
-
 async function requireAuthenticatedRoute(request: Request) {
   const sessionState = await resolveSessionGateState();
   if (sessionState.status !== 'unauthenticated') {
     return null;
   }
 
-  throw redirect(`/login${createNextSearch(request)}`);
+  throw redirect(`/login${createPostAuthNextSearch(request)}`);
 }
 
 async function requirePublicAuthRoute(request: Request) {
@@ -42,12 +41,13 @@ async function requirePublicAuthRoute(request: Request) {
     return null;
   }
 
-  const search = new URL(request.url).search;
+  const url = new URL(request.url);
+  const search = url.search;
   if (sessionState.status === 'offline-fallback') {
-    throw redirect(resolveRememberedSessionFallbackPath(search));
+    throw redirect(resolveRememberedSessionFallbackPath(search, url.origin));
   }
 
-  throw redirect(await resolvePostAuthPath(search));
+  throw redirect(await resolvePostAuthPath(search, url.origin));
 }
 
 const redirectToDoc = async (request: Request): Promise<string> => {
@@ -62,7 +62,7 @@ const redirectToDoc = async (request: Request): Promise<string> => {
 async function resolveRouteHomeDocumentId(request: Request): Promise<string> {
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
-    throw redirect(`/login${createNextSearch(request)}`);
+    throw redirect(`/login${createPostAuthNextSearch(request)}`);
   }
   if (sessionState.status === 'offline-fallback') {
     return HOME_USER_DOCUMENT.id;
@@ -114,6 +114,14 @@ const routes = [
         loader: async ({ request }: { request: Request }) => {
           throw redirect(await redirectToDoc(request));
         },
+      },
+      {
+        path: 'home',
+        loader: async ({ request }: { request: Request }) => {
+          const url = new URL(request.url);
+          throw redirect(`${createDocumentPath(await resolveRouteHomeDocumentId(request))}${url.search}`);
+        },
+        element: hydrateFallbackElement,
       },
       {
         path: 'n/:docRef',

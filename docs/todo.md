@@ -87,7 +87,7 @@ Rules:
   configured collab document behavior; revisit the remaining uses, drop the
   generic default/main naming where it no longer describes the role, and give
   each context a purpose-specific name.
-- Home route alias follow-up: add an explicit home URL alias that resolves to
+- ✅ Done Home route alias follow-up: add an explicit home URL alias that resolves to
   the authenticated user's current profile home document. Keep this separate
   from legacy `/n/main`; that path should remain a literal document id until
   the naming cleanup above removes or renames leftover `main` fixtures.
@@ -100,7 +100,7 @@ Rules:
   resources through the same `/api/profile` path as normal users, with test
   isolation coming from users/data setup rather than a client-side config-doc
   override.
-- Routing return-path follow-up: centralize post-auth return-path handling.
+- ✅ Done Routing return-path follow-up: centralize post-auth return-path handling.
   Replace ad hoc `next` parsing and path safety checks with one tested helper
   that defines which app-local redirects are allowed.
 - Offline auth/product follow-up: define the offline auth states explicitly.

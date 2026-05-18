@@ -39,7 +39,7 @@ export default function AdminUsersRoute() {
       }
 
       rememberAuthenticatedSession();
-      const returnTo = await resolvePostAuthPath(location.search);
+      const returnTo = await resolvePostAuthPath(location.search, globalThis.location.origin);
       void navigate(returnTo, { replace: true });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to create the user.');
