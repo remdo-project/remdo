@@ -101,9 +101,10 @@ For each run mode, the important questions are:
 - Notes: most local runs can stay on defaults; copy `.env.example` to `.env`
   only when overrides are needed. Process environment values override `.env`,
   so one-off runs can use inline values such as `PORT=4800 ...` without editing
-  local defaults. Current dev mode runs the web app, RemDo API server, Y-Sweet
-  collaboration server, and preview helper together. Server modes run the
-  RemDo API with Better Auth plus a SQLite-backed document registry.
+  local defaults. Current dev mode runs the web app with the RemDo API mounted
+  in the Vite dev server, plus the Y-Sweet collaboration server and preview
+  helper. Server modes run the RemDo API with Better Auth plus a SQLite-backed
+  document registry.
   Authentication is enforced, and private document access is limited to the
   registered document owner. Browser clients use the RemDo API token path plus
   `/d/*`; `/doc*` control routes are not routed through the gateway. Y-Sweet

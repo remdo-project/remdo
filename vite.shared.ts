@@ -3,23 +3,27 @@ import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
 import { config } from './config';
 import { onRollupWarning } from './config/_internal/vite/onRollupWarning';
+import { remdoApiDevPlugin } from './tools/vite/remdo-api-dev-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = config.env.VITEST_PREVIEW;
 const host = config.env.HOST;
 const remdoApiTarget = `http://${host}:${config.env.REMDO_API_PORT}`;
 const collabTarget = `http://${host}:${config.env.COLLAB_CLIENT_PORT}`;
-const proxy = {
-  '/api': {
-    target: remdoApiTarget,
-    changeOrigin: true,
-    xfwd: true,
-  },
+const devProxy = {
   '/d': {
     target: collabTarget,
     changeOrigin: true,
     ws: true,
   },
+} as const;
+const previewProxy = {
+  '/api': {
+    target: remdoApiTarget,
+    changeOrigin: true,
+    xfwd: true,
+  },
+  ...devProxy,
 } as const;
 
 export function createViteSharedConfig() {
@@ -30,6 +34,7 @@ export function createViteSharedConfig() {
       },
     },
     plugins: [
+      remdoApiDevPlugin(),
       VitePWA({
         registerType: 'autoUpdate',
         manifest: {
@@ -95,7 +100,7 @@ export function createViteSharedConfig() {
         ignored: ['**/data/**'],
       },
       allowedHosts: true as const,
-      proxy,
+      proxy: devProxy,
       hmr: isPreviewSession ? undefined : {
         port: config.env.HMR_PORT,
       },
@@ -104,7 +109,7 @@ export function createViteSharedConfig() {
       host,
       port: config.env.PREVIEW_PORT,
       strictPort: true,
-      proxy,
+      proxy: previewProxy,
     },
     assetsInclude: ['**/*.ysweet'],
     define: Object.fromEntries(

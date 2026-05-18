@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest';
+import { isApiRequestPath } from '../../tools/vite/remdo-api-dev-plugin';
 import { createViteSharedConfig } from '../../vite.shared';
 
 describe('vite shared config', () => {
-  it('proxies the RemDo API and sync routes but not document control routes', () => {
+  it('mounts the RemDo API in dev and proxies sync routes only', () => {
     const config = createViteSharedConfig();
     const serverProxy = config.server.proxy;
     const previewProxy = config.preview.proxy;
 
-    expect(serverProxy['/api']).toMatchObject({
-      changeOrigin: true,
-      xfwd: true,
-    });
+    expect(config.plugins).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'remdo-api-dev' }),
+    ]));
+    expect(serverProxy).not.toHaveProperty('/api');
     expect(serverProxy['/d']).toMatchObject({
       changeOrigin: true,
       ws: true,
@@ -26,5 +27,14 @@ describe('vite shared config', () => {
       ws: true,
     });
     expect(previewProxy).not.toHaveProperty('/doc');
+  });
+
+  it('recognizes only API request paths for the dev API middleware', () => {
+    expect(isApiRequestPath('/api')).toBe(true);
+    expect(isApiRequestPath('/api/health')).toBe(true);
+    expect(isApiRequestPath('/api/profile?x=1')).toBe(true);
+    expect(isApiRequestPath('/app/api/profile')).toBe(false);
+    expect(isApiRequestPath('/apiary')).toBe(false);
+    expect(isApiRequestPath()).toBe(false);
   });
 });
