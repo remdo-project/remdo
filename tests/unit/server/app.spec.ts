@@ -342,7 +342,7 @@ describe('remdo api app', () => {
     await expect(response.json()).resolves.toEqual({ error: 'Development login is unavailable.' });
   });
 
-  it('redirects development login to home', async () => {
+  it('always redirects development login to home', async () => {
     await withDevMode(async () => {
       const harness = createHarness();
 

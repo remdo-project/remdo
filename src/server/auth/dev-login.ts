@@ -38,6 +38,7 @@ function copySetCookieHeaders(from: Headers, to: Headers): void {
 
 export async function handleDevLoginRequest(auth: ServerAuth, request: Request): Promise<Response> {
   await auth.ensureReady();
+  // Best effort only; sign-in is the success gate.
   await auth.createUser(DEV_AUTH_ACCOUNT, request.headers);
 
   const signInResponse = await signInDevAuthAccount(auth, request);
@@ -46,6 +47,7 @@ export async function handleDevLoginRequest(auth: ServerAuth, request: Request):
   }
 
   const headers = new Headers({
+    // Keep the dev shortcut fixed and predictable.
     location: '/home',
   });
   copySetCookieHeaders(signInResponse.headers, headers);
