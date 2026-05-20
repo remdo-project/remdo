@@ -13,7 +13,7 @@ async function main() {
     {
       fetch: app.fetch,
       hostname: config.env.HOST,
-      port: config.env.REMDO_API_PORT,
+      port: config.env.API_SERVER_PORT,
     },
     (info) => {
       console.info(`[remdo-api] listening on http://${info.address}:${info.port}`);

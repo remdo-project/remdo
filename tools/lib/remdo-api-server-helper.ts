@@ -57,7 +57,7 @@ interface RemdoApiServerOptions {
 }
 
 export async function ensureRemdoApiServer({
-  port = config.env.REMDO_API_PORT,
+  port = config.env.API_SERVER_PORT,
   ySweetConnectionString = config.env.YSWEET_CONNECTION_STRING,
 }: RemdoApiServerOptions = {}): Promise<StopRemdoApiServer> {
   const resolvedHost = config.env.HOST;
@@ -78,7 +78,7 @@ export async function ensureRemdoApiServer({
         APP_PUBLIC_URL: config.env.APP_PUBLIC_URL,
         HOST: resolvedHost,
         ALLOW_SIGNUP: String(config.env.ALLOW_SIGNUP),
-        REMDO_API_PORT: String(resolvedPort),
+        API_SERVER_PORT: String(resolvedPort),
         YSWEET_CONNECTION_STRING: ySweetConnectionString,
         YSWEET_AUTH_KEY: config.env.YSWEET_AUTH_KEY,
         YSWEET_SERVER_TOKEN: config.env.YSWEET_SERVER_TOKEN,

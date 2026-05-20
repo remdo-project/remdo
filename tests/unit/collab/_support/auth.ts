@@ -1,5 +1,6 @@
 import { config } from '#config';
 import { HTTP_STATUS } from '#lib/http/status';
+import { resolveApiServerOrigin } from '#lib/net/origins';
 import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
 
 const SESSION_COOKIE_PATTERN = /better-auth\.session_token=([^;]+)/u;
@@ -7,7 +8,7 @@ const SESSION_COOKIE_PATTERN = /better-auth\.session_token=([^;]+)/u;
 let sessionCookiePromise: Promise<string> | null = null;
 
 function toApiUrl(pathname: string): string {
-  return `http://${config.env.HOST}:${config.env.REMDO_API_PORT}${pathname}`;
+  return `${resolveApiServerOrigin({ loopback: true })}${pathname}`;
 }
 
 function extractSessionCookie(response: Response): string {

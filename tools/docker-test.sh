@@ -97,7 +97,6 @@ echo "Ensuring Playwright Chromium is installed (${PLAYWRIGHT_BROWSERS_DIR})..."
 PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" pnpm exec playwright install chromium
 
 PLAYWRIGHT_ENV=(
-  E2E_DOCKER=true
   NODE_ENV=production
   PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}"
   APP_PUBLIC_URL="${APP_PUBLIC_URL}"
@@ -107,7 +106,7 @@ PLAYWRIGHT_ENV=(
 
 echo "Running admin provisioning flow on a fresh server..."
 if ! env "${PLAYWRIGHT_ENV[@]}" E2E_WRITE_STORAGE_STATE="${PROD_E2E_AUTH_STATE_PATH}" \
-  pnpm exec playwright test --workers=1 -- tests/e2e/prod/setup.spec.ts; then
+  pnpm exec playwright test --config playwright.prod.config.ts --workers=1 -- tests/e2e/prod/setup.spec.ts; then
   docker logs "${CONTAINER_NAME}" || true
   echo "Prod admin provisioning e2e failed: ${HEALTH_URL}" >&2
   exit 1
@@ -121,7 +120,7 @@ fi
 
 echo "Running remaining Docker prod E2E suite..."
 if ! env "${PLAYWRIGHT_ENV[@]}" E2E_STORAGE_STATE="${PROD_E2E_AUTH_STATE_PATH}" \
-  pnpm exec playwright test -- tests/e2e/prod/docker-smoke.spec.ts tests/e2e/prod/offline-shell.spec.ts; then
+  pnpm exec playwright test --config playwright.prod.config.ts -- tests/e2e/prod/docker-smoke.spec.ts tests/e2e/prod/offline-shell.spec.ts; then
   docker logs "${CONTAINER_NAME}" || true
   echo "Prod e2e failed: ${HEALTH_URL}" >&2
   exit 1

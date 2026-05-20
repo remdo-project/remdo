@@ -29,7 +29,7 @@
 			}
 
 			handle /api/* {
-				reverse_proxy 127.0.0.1:{env.REMDO_API_PORT}
+				reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
 			}
 
 			handle /d/* {

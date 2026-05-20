@@ -3,6 +3,7 @@ import { createContext, useMemo, use, useEffect, useSyncExternalStore } from 're
 import { config } from '#config';
 import { CollabSession } from '#lib/collaboration/session';
 import { normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
+import { resolveApiServerOrigin, resolveAppOrigin, resolveCollabServerOrigin } from '#lib/net/origins';
 
 function createCollaborationStatusValue(snapshot: ReturnType<CollabSession['snapshot']>, session: CollabSession) {
   return {
@@ -50,21 +51,21 @@ function useCollaborationRuntimeValue({ docId }: { docId: string }): Collaborati
   const resolvedOrigin = useMemo(() => {
     // Tests run in jsdom without a proxy; target the collab server directly.
     if (config.env.NODE_ENV === 'test') {
-      return `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
+      return resolveCollabServerOrigin({ loopback: true });
     }
     if (location.origin && location.origin !== 'null') {
       return location.origin;
     }
-    return `http://${config.env.HOST}:${config.env.PORT}`;
+    return resolveAppOrigin({ loopback: true });
   }, []);
   const resolvedApiOrigin = useMemo(() => {
     if (config.env.NODE_ENV === 'test') {
-      return `http://${config.env.HOST}:${config.env.REMDO_API_PORT}`;
+      return resolveApiServerOrigin({ loopback: true });
     }
     if (location.origin && location.origin !== 'null') {
       return location.origin;
     }
-    return `http://${config.env.HOST}:${config.env.PORT}`;
+    return resolveAppOrigin({ loopback: true });
   }, []);
 
   const session = useMemo(

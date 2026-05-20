@@ -62,6 +62,7 @@ test.describe('Routing', () => {
     const detachPageGuards = attachPageGuards(page);
     try {
       await page.goto('/home');
+      await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
 
       await page.getByRole('button', { name: 'Logout' }).click();
 

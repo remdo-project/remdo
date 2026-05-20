@@ -99,7 +99,7 @@ describe('config env loading', () => {
       DEV_DOCUMENT_ID: 'testDevDoc',
       HOST: '127.0.0.1',
       PORT: '4000',
-      REMDO_API_PORT: '4011',
+      API_SERVER_PORT: '4011',
       YSWEET_CONNECTION_STRING: 'ys://127.0.0.1:4004',
       YSWEET_AUTH_KEY: 'test-ysweet-auth-key',
       YSWEET_SERVER_TOKEN: 'test-ysweet-server-token',
@@ -111,7 +111,7 @@ describe('config env loading', () => {
 
     expect(loaded.server.DEV_DOCUMENT_ID).toBe('testDevDoc');
     expect(loaded.client.DEV_DOCUMENT_ID).toBe('testDevDoc');
-    expect(loaded.server.REMDO_API_PORT).toBe(4011);
+    expect(loaded.server.API_SERVER_PORT).toBe(4011);
     expect(loaded.server.YSWEET_CONNECTION_STRING).toBe('ys://127.0.0.1:4004');
     expect(loaded.server.YSWEET_AUTH_KEY).toBe('test-ysweet-auth-key');
     expect(loaded.server.YSWEET_SERVER_TOKEN).toBe('test-ysweet-server-token');
@@ -119,7 +119,7 @@ describe('config env loading', () => {
     expect(loaded.server.ADMIN_SECRET).toBe('test-admin-secret-0123456789');
     expect(loaded.server.AUTH_URL).toBe('http://127.0.0.1:4000');
     expect(loaded.server.ALLOW_SIGNUP).toBe(true);
-    expect(loaded.client).not.toHaveProperty('REMDO_API_PORT');
+    expect(loaded.client).not.toHaveProperty('API_SERVER_PORT');
     expect(loaded.client).not.toHaveProperty('YSWEET_CONNECTION_STRING');
     expect(loaded.client).not.toHaveProperty('YSWEET_AUTH_KEY');
     expect(loaded.client).not.toHaveProperty('YSWEET_SERVER_TOKEN');

@@ -103,14 +103,14 @@ For each run mode, the important questions are:
 - Notes: most local runs can stay on defaults; copy `.env.example` to `.env`
   only when overrides are needed. `PORT_BASE` anchors the local dev port range:
   `PORT` uses `+0`, HMR `+1`, Vitest preview `+3`, collaboration `+4`, preview
-  `+5`, Playwright UI `+6`, and the RemDo API `+11`. Process environment values
-  override `.env`, so one-off runs can use inline values such as
-  `PORT_BASE=4800 ...` without editing local defaults. `pnpm run dev:pwa` uses
-  `PORT_BASE + 20` for its range and serves the PWA preview on that shifted
-  `PORT`, so it can run beside `pnpm run dev`. Current dev mode runs the web app
-  with the RemDo API mounted in the Vite dev server, plus the Y-Sweet
-  collaboration server and preview helper. Server modes run the RemDo API with
-  Better Auth plus a SQLite-backed document registry.
+  `+5`, Playwright UI `+6`, and the standalone API server `+11`. Process
+  environment values override `.env`, so one-off runs can use inline values
+  such as `PORT_BASE=4800 ...` without editing local defaults. `pnpm run
+  dev:pwa` uses `PORT_BASE + 20` for its range and serves the PWA preview on
+  that shifted `PORT`, so it can run beside `pnpm run dev`. Current dev mode
+  runs the web app with the RemDo API mounted in the Vite dev server, plus the
+  Y-Sweet collaboration server and preview helper. Server modes run the
+  standalone API server with Better Auth plus a SQLite-backed document registry.
   Authentication is enforced, and private document access is limited to the
   registered document owner. Browser clients use the RemDo API token path plus
   `/d/*`; `/doc*` control routes are not routed through the gateway. Y-Sweet
@@ -134,8 +134,10 @@ For each run mode, the important questions are:
 - User: developer.
 - Platform: local machine.
 - Data boundary: local runtime and test data.
-- Notes: local E2E tests use the configured local stack and follow the same
-  service start/reuse policy as collab tests.
+- Notes: local E2E tests run against the Vite app server with mounted `/api/*`
+  routes plus the collaboration server. They reuse already-running local
+  services on the configured ports, and create browser auth state through the
+  app origin.
 
 ### Docker prod E2E
 
@@ -152,7 +154,8 @@ For each run mode, the important questions are:
 - User: project automation.
 - Platform: CI runner.
 - Data boundary: runner-local temporary data.
-- Notes: this mode runs RemDo in the CI stack.
+- Notes: local-stack E2E starts its required services and does not reuse
+  already-running ports.
 
 ## Operational modes
 

@@ -20,6 +20,7 @@ import type { Provider } from '@lexical/yjs';
 import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lexical';
 
 import { config } from '#config';
+import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#lib/net/origins';
 import { CollabSession } from '#lib/collaboration/session';
 import { resolveYSweetConnectionString } from '@/server/collab-token';
 import type { CollaborationProviderInstance, CollaborationSessionProvider } from '#lib/collaboration/runtime';
@@ -190,8 +191,8 @@ if (command !== 'save' && command !== 'load' && command !== 'backup') {
 const rawDocId = cliDocId ?? config.env.DEV_DOCUMENT_ID;
 const docId = normalizeNoteIdOrThrow(rawDocId, `Invalid document id: ${rawDocId}`);
 const targetFile = resolveSnapshotPath(command, docId, filePath);
-const collabOrigin = `http://${config.env.HOST}:${config.env.COLLAB_SERVER_PORT}`;
-const collabApiOrigin = `http://${config.env.HOST}:${config.env.REMDO_API_PORT}`;
+const collabOrigin = resolveCollabServerOrigin({ loopback: true });
+const collabApiOrigin = resolveApiServerOrigin({ loopback: true });
 
 try {
   if (command === 'save') {

@@ -3,23 +3,24 @@ import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
 import { config } from './config';
 import { onRollupWarning } from './config/_internal/vite/onRollupWarning';
+import { resolveApiServerOrigin, resolveCollabServerOrigin } from './lib/net/origins';
 import { remdoApiDevPlugin } from './tools/vite/remdo-api-dev-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isPreviewSession = config.env.VITEST_PREVIEW;
 const host = config.env.HOST;
-const remdoApiTarget = `http://${host}:${config.env.REMDO_API_PORT}`;
-const collabTarget = `http://${host}:${config.env.COLLAB_CLIENT_PORT}`;
+const apiServerTarget = resolveApiServerOrigin({ loopback: true });
+const collabServerTarget = resolveCollabServerOrigin({ loopback: true });
 const devProxy = {
   '/d': {
-    target: collabTarget,
+    target: collabServerTarget,
     changeOrigin: true,
     ws: true,
   },
 } as const;
 const previewProxy = {
   '/api': {
-    target: remdoApiTarget,
+    target: apiServerTarget,
     changeOrigin: true,
     xfwd: true,
   },

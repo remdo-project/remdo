@@ -1,16 +1,15 @@
 import { request } from '@playwright/test';
 import type { Browser, BrowserContext, BrowserContextOptions } from '@playwright/test';
 import { config } from '#config';
-import { resolveLoopbackHost } from '#lib/net/loopback';
+import { resolveAppOrigin } from '#lib/net/origins';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 
 export async function createAuthenticatedContext(
   browser: Browser,
   contextOptions: BrowserContextOptions,
 ): Promise<BrowserContext> {
-  const requestHost = resolveLoopbackHost(config.env.HOST);
   const apiContext = await request.newContext({
-    baseURL: `http://${requestHost}:${config.env.REMDO_API_PORT}`,
+    baseURL: resolveAppOrigin({ loopback: true }),
   });
 
   try {

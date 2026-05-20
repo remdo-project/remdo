@@ -1,50 +1,53 @@
-import { defineConfig, devices } from '@playwright/test';
-import process from 'node:process';
-import os from 'node:os';
+import { defineConfig } from '@playwright/test';
 import { config } from './config';
-import { resolveLoopbackHost } from './lib/net/loopback';
+import { resolveAppOrigin } from './lib/net/origins';
+import { chromium, playwrightBaseConfig } from './playwright.base';
 import { E2E_STORAGE_STATE_PATH } from './tests/e2e/_support/auth-state';
 
-const host = resolveLoopbackHost(config.env.HOST);
-// eslint-disable-next-line node/no-process-env
-const { PLAYWRIGHT_WORKERS, E2E_DOCKER, E2E_STORAGE_STATE } = process.env;
-const workers = PLAYWRIGHT_WORKERS ?? Math.max(2, os.cpus().length - 1);
-const useDocker = E2E_DOCKER === 'true';
-const baseURL = useDocker ? config.env.APP_PUBLIC_URL : `http://${host}:${config.env.PORT}`;
+const baseURL = resolveAppOrigin({ loopback: true });
+const reuseExistingServer = !config.env.CI;
 
-const webServer = useDocker
-  ? undefined
-  : {
-      command: 'pnpm exec vite',
-      url: baseURL,
-      // Intentional: reuse an already-running RemDo Vite dev server on the configured port
-      // to keep local E2E/debug loops fast. This port is expected to be reserved for the
-      // test target; if another app is bound there, E2E results are invalid.
-      reuseExistingServer: true,
-    };
+const webServer = [
+  {
+    name: 'collab',
+    command: 'pnpm run dev:collab',
+    port: config.env.COLLAB_SERVER_PORT,
+    reuseExistingServer,
+    gracefulShutdown: { signal: 'SIGTERM' as const, timeout: 5000 },
+  },
+  {
+    name: 'app',
+    command: 'pnpm exec vite',
+    url: baseURL,
+    reuseExistingServer,
+  },
+];
 
 export default defineConfig({
-  testDir: 'tests/e2e',
-  outputDir: 'data/test-results/playwright',
-  globalSetup: './tests/global/collab-server-setup.ts',
-  workers,
-  fullyParallel: true,
+  ...playwrightBaseConfig,
   use: {
     baseURL,
-    storageState: useDocker ? E2E_STORAGE_STATE : E2E_STORAGE_STATE_PATH,
-    ignoreHTTPSErrors: useDocker,
-    launchOptions: useDocker
-      ? {
-          args: ['--ignore-certificate-errors'],
-        }
-      : undefined,
+    storageState: E2E_STORAGE_STATE_PATH,
   },
-  ...(webServer ? { webServer } : {}),
+  webServer,
   projects: [
     {
-      name: 'chromium',
+      name: 'setup',
+      testMatch: /setup\/.*\.setup\.ts/u,
       use: {
-        ...devices['Desktop Chrome'],
+        storageState: { cookies: [], origins: [] },
+      },
+    },
+    {
+      name: 'chromium',
+      dependencies: ['setup'],
+      testMatch: [
+        /(^|\/)smoke\.spec\.ts$/u,
+        /app\/.*\.spec\.ts/u,
+        /editor\/.*\.spec\.ts/u,
+      ],
+      use: {
+        ...chromium,
       },
     },
   ],

@@ -3,7 +3,7 @@ export type NoteMenuShortcutEvent = Pick<
   'key' | 'altKey' | 'ctrlKey' | 'metaKey' | 'preventDefault' | 'stopPropagation'
 >;
 
-export interface NoteMenuShortcutState {
+interface NoteMenuShortcutState {
   hasChildren: boolean;
   isZoomRoot: boolean;
 }

@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
-import { config } from '#config';
 import { CollabSession } from '#lib/collaboration/session';
+import { resolveApiServerOrigin, resolveAppOrigin } from '#lib/net/origins';
 import type { CollaborationProviderInstance } from '#lib/collaboration/runtime';
 import type { UserConfigNote } from './contracts';
 import { HOME_DOCUMENT_TITLE } from './contracts';
@@ -314,14 +314,14 @@ function resolveCollabOrigin(): string {
   if (typeof location !== 'undefined' && location.origin && location.origin !== 'null') {
     return location.origin;
   }
-  return `http://${config.env.HOST}:${config.env.PORT}`;
+  return resolveAppOrigin({ loopback: true });
 }
 
 function resolveCollabApiOrigin(): string {
   if (typeof location !== 'undefined' && location.origin && location.origin !== 'null') {
     return location.origin;
   }
-  return `http://${config.env.HOST}:${config.env.REMDO_API_PORT}`;
+  return resolveApiServerOrigin({ loopback: true });
 }
 
 const store = new StoredUserConfigStore();

@@ -26,10 +26,9 @@ RUN_MODE_PORT_SHIFT=0
 : "${VITEST_PORT:=$((run_mode_port_base + 2))}"
 : "${VITEST_PREVIEW_PORT:=$((run_mode_port_base + 3))}"
 : "${COLLAB_SERVER_PORT:=$((run_mode_port_base + 4))}"
-: "${COLLAB_CLIENT_PORT:=${COLLAB_SERVER_PORT}}"
 : "${PREVIEW_PORT:=$((run_mode_port_base + 5))}"
 : "${PLAYWRIGHT_UI_PORT:=$((run_mode_port_base + 6))}"
-: "${REMDO_API_PORT:=$((run_mode_port_base + 11))}"
+: "${API_SERVER_PORT:=$((run_mode_port_base + 11))}"
 : "${YSWEET_CONNECTION_STRING:=ys://127.0.0.1:${COLLAB_SERVER_PORT}}"
 
 if [ -z "${AUTH_SECRET:-}" ] && [ "${NODE_ENV}" != "production" ]; then
@@ -67,10 +66,9 @@ for derived_port in \
   "${VITEST_PORT}" \
   "${VITEST_PREVIEW_PORT}" \
   "${COLLAB_SERVER_PORT}" \
-  "${COLLAB_CLIENT_PORT}" \
   "${PREVIEW_PORT}" \
   "${PLAYWRIGHT_UI_PORT}" \
-  "${REMDO_API_PORT}"
+  "${API_SERVER_PORT}"
 do
   for restricted_port in ${restricted_ports}; do
     if [ "${derived_port}" = "${restricted_port}" ]; then
@@ -81,6 +79,6 @@ do
 done
 
 export NODE_ENV HOST PORT_BASE RUN_MODE_PORT_SHIFT PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI VITEST_PREVIEW TMPDIR
-export HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT REMDO_API_PORT YSWEET_CONNECTION_STRING
-export COLLAB_CLIENT_PORT PREVIEW_PORT PLAYWRIGHT_UI_PORT
+export HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT API_SERVER_PORT YSWEET_CONNECTION_STRING
+export PREVIEW_PORT PLAYWRIGHT_UI_PORT
 export AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_PUBLIC_URL ALLOW_SIGNUP
