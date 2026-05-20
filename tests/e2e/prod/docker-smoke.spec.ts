@@ -137,7 +137,6 @@ test('token issuance requires auth and collaboration control routes are not rout
 
 test('development login shortcut is unavailable in production', async ({ request }) => {
   const response = await request.fetch('/api/dev/login', {
-    method: 'POST',
     failOnStatusCode: false,
   });
 

@@ -1,6 +1,5 @@
 import { Anchor, Button, Group } from '@mantine/core';
 import { IconBrandVite } from '@tabler/icons-react';
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { config } from '#config';
 import { Icon } from '@/ui/Icon';
@@ -13,8 +12,6 @@ interface HostContext {
 
 interface DevToolbarProps {
   currentDocumentPath: string;
-  onDevLoginError?: (error: unknown) => void;
-  onDevLoginSuccess?: () => Promise<void> | void;
 }
 
 function resolveHost(): HostContext | null {
@@ -42,13 +39,7 @@ function buildSearch(params: { lexicalDemo?: boolean }): string {
   return search ? `?${search}` : '';
 }
 
-export function DevToolbarLinks({
-  currentDocumentPath,
-  onDevLoginError,
-  onDevLoginSuccess,
-}: DevToolbarProps) {
-  const [devLoginPending, setDevLoginPending] = useState(false);
-
+export function DevToolbarLinks({ currentDocumentPath }: DevToolbarProps) {
   if (!config.isDev) {
     return null;
   }
@@ -60,41 +51,9 @@ export function DevToolbarLinks({
   const lexicalUrl = host
     ? `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`
     : '#lexical';
-  const handleDevLoginClick = async () => {
-    setDevLoginPending(true);
-
-    try {
-      const response = await fetch('/api/dev/login', {
-        method: 'POST',
-        credentials: 'same-origin',
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => null) as { error?: unknown } | null;
-        throw new Error(typeof body?.error === 'string' ? body.error : `Failed to use dev account: ${response.status}`);
-      }
-      await onDevLoginSuccess?.();
-    } catch (error) {
-      onDevLoginError?.(error);
-    } finally {
-      setDevLoginPending(false);
-    }
-  };
 
   return (
     <>
-      {onDevLoginSuccess && (
-        <Button
-          loading={devLoginPending}
-          onClick={() => {
-            void handleDevLoginClick();
-          }}
-          size="xs"
-          type="button"
-          variant="light"
-        >
-          Use dev account
-        </Button>
-      )}
       <Anchor className="app-header-link" href={previewUrl}>
         Preview
       </Anchor>
@@ -125,6 +84,14 @@ export function DevToolbar(props: DevToolbarProps) {
 
   return (
     <Group gap="md" className="app-header-links">
+      <Button
+        component="a"
+        href="/api/dev/login"
+        size="xs"
+        variant="light"
+      >
+        Use dev account
+      </Button>
       <DevToolbarLinks {...props} />
     </Group>
   );

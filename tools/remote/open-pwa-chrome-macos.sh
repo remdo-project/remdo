@@ -28,9 +28,10 @@ if [[ ! -x "${CHROME}" ]]; then
 fi
 
 ORIGIN="http://${TARGET}"
+APP_URL="${ORIGIN}/api/dev/login"
 PROFILE_DIR="$(mktemp -d -t remdo-pwa-chrome.XXXXXX)"
 
-echo "Opening ${ORIGIN}"
+echo "Opening ${APP_URL}"
 echo "Chrome profile: ${PROFILE_DIR}"
 
 "${CHROME}" \
@@ -38,5 +39,5 @@ echo "Chrome profile: ${PROFILE_DIR}"
   --no-first-run \
   --no-default-browser-check \
   --unsafely-treat-insecure-origin-as-secure="${ORIGIN}" \
-  --app="${ORIGIN}" \
+  --app="${APP_URL}" \
   >/dev/null 2>&1 &

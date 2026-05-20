@@ -336,32 +336,21 @@ describe('remdo api app', () => {
   it('rejects development login outside development mode', async () => {
     const harness = createHarness();
 
-    const response = await harness.app.request('/api/dev/login', {
-      method: 'POST',
-    });
+    const response = await harness.app.request('/api/dev/login');
 
     expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
     await expect(response.json()).resolves.toEqual({ error: 'Development login is unavailable.' });
   });
 
-  it('reports a credential conflict for stale development users', async () => {
+  it('redirects development login to home', async () => {
     await withDevMode(async () => {
       const harness = createHarness();
-      await harness.auth.ensureReady();
-      await harness.auth.createUser({
-        email: 'dev@example.test',
-        name: 'Stale Development User',
-        password: 'stale-dev-password-1234',
-      }, new Headers());
 
-      const response = await harness.app.request('/api/dev/login', {
-        method: 'POST',
-      });
+      const response = await harness.app.request('/api/dev/login');
 
-      expect(response.status).toBe(HTTP_STATUS.UNPROCESSABLE_ENTITY);
-      await expect(response.json()).resolves.toEqual({
-        error: 'Development account already exists with different credentials. Delete or reset the local auth DB.',
-      });
+      expect(response.status).toBe(HTTP_STATUS.SEE_OTHER);
+      expect(response.headers.get('location')).toBe('/home');
+      expect(response.headers.get('set-cookie')).toContain('better-auth.session_token=');
       expect(harness.auth.getUserCount()).toBe(1);
     });
   });

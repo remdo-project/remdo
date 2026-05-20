@@ -57,13 +57,6 @@ export default function LoginRoute() {
         <Stack gap="md">
           <DevToolbar
             currentDocumentPath="/home"
-            onDevLoginError={(error) => {
-              setErrorMessage(readAuthErrorMessage(error, 'Failed to use dev account.'));
-            }}
-            onDevLoginSuccess={async () => {
-              setErrorMessage(null);
-              await completeAuth();
-            }}
           />
 
           <div>
