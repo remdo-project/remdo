@@ -5,12 +5,9 @@ remdo_load_dotenv() {
   local root_dir="$1"
   local env_file="${root_dir}/.env"
 
-  if [[ -f "${env_file}" ]]; then
-    set -a
-    # shellcheck disable=SC1090
-    . "${env_file}"
-    set +a
-  fi
+  # shellcheck disable=SC1091 # shared helper lives in the repo.
+  . "${root_dir}/tools/lib/env-file.sh"
+  remdo_load_dotenv_file "${env_file}"
 }
 
 remdo_load_env_defaults() {

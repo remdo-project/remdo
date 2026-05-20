@@ -5,22 +5,9 @@ set -eu
 ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
 
-if [ -f "${ENV_FILE}" ]; then
-  while IFS= read -r assignment || [ -n "${assignment}" ]; do
-    case "${assignment}" in
-      '' | '#'*) continue ;;
-      export\ *) assignment="${assignment#export }" ;;
-    esac
-
-    key="${assignment%%=*}"
-    case "${key}" in
-      '' | [0-9]* | *[!A-Za-z0-9_]*) continue ;;
-    esac
-
-    eval '[ "${'"${key}"'+x}" = x ]' && continue
-    eval "export ${assignment}"
-  done < "${ENV_FILE}"
-fi
+# shellcheck disable=SC1091 # shared helper lives in the repo.
+. "${ROOT_DIR}/tools/lib/env-file.sh"
+remdo_load_dotenv_file "${ENV_FILE}"
 
 export REMDO_ROOT="${REMDO_ROOT:-${ROOT_DIR}}"
 # shellcheck disable=SC1091 # shared defaults live in the repo.

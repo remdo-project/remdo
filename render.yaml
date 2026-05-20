@@ -13,6 +13,8 @@ services:
   envVars:
     - key: PORT
       value: "8080"
+    - key: PORT_BASE
+      value: "8080"
     - key: AUTH_SECRET
       sync: false
     - key: ADMIN_SECRET

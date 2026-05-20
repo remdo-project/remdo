@@ -28,11 +28,11 @@ governance (map, workflow, invariants, and update rules), use `docs/index.md`.
   under a dedicated sibling directory `../remdo-wts/` and use a predictable
   naming pattern based on base port (for example
   `../remdo-wts/remdo-7000`, `../remdo-wts/remdo-7000-wt-optA`).
-- Assign a unique `PORT` per worktree (for example base `PORT + 100`, `+200`)
-  to avoid collisions across dev servers, tests, and collab services.
+- Assign a unique `PORT_BASE` per worktree (for example `5100`, `5200`) to
+  avoid collisions across dev servers, tests, and collab services.
 - Treat each repo/worktree as owning a 100-port block starting at its assigned
-  `PORT`. Do not run commands with `PORT` outside the current repo/worktree's
-  block unless the user explicitly approves.
+  `PORT_BASE`. Do not run commands with `PORT_BASE` outside the current
+  repo/worktree's block unless the user explicitly approves.
 - If a check/debugging run appears to hit a stale RemDo service, identify the
   process, command, port, and port block first. If it belongs to the current
   workdir/worktree and blocks the task, restart it instead of adding workaround

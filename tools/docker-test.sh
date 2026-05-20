@@ -8,8 +8,6 @@ remdo_load_dotenv "${ROOT_DIR}"
 TEST_DATA_DIR="$(mktemp -d -t remdo-docker-test-XXXXXX)"
 PROD_E2E_AUTH_STATE_PATH="${TEST_DATA_DIR%/}/prod-e2e-auth-state.json"
 
-: "${PORT:=4000}"
-: "${DOCKER_TEST_PORT:=$((PORT + 7))}"
 : "${DOCKER_TEST_BROWSER_HOST:=remdo.localhost}"
 # TODO: drop these defaults once layered env files + a committed base .env exist.
 : "${IMAGE_NAME:=remdo-test}"
@@ -18,7 +16,7 @@ DOCKER_TEST_ADMIN_SECRET="ci-admin-secret-0123456789"
 DOCKER_TEST_YSWEET_AUTH_KEY="WLo8wx1G1lGKpIDaDjky9npTrV_fW8jCpRVtB8rd"
 DOCKER_TEST_YSWEET_SERVER_TOKEN="AAAgOkIiPro6W2lCzxyW6BDQkuOmTVSfs0MZh-4PGTM_st0"
 
-PORT="${DOCKER_TEST_PORT}"
+: "${RUN_MODE_PORT_SHIFT:=7}"
 DEV_DOCUMENT_ID="dockerSmoke"
 remdo_load_env_defaults "${ROOT_DIR}"
 remdo_configure_docker_runtime "${DOCKER_TEST_BROWSER_HOST}"
@@ -65,6 +63,7 @@ remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}" -d --name "${CONTAINER_NAME}
   -e YSWEET_AUTH_KEY="${DOCKER_TEST_YSWEET_AUTH_KEY}" \
   -e YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}" \
   -e APP_PUBLIC_URL="${APP_PUBLIC_URL}" \
+  -e PORT_BASE="${PORT_BASE}" \
   -e PORT="${PORT}"
 
 health_ready="false"

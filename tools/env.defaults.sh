@@ -5,7 +5,15 @@
 
 : "${NODE_ENV:=development}"
 : "${HOST:=127.0.0.1}"
-: "${PORT:=4000}"
+: "${PORT_BASE:=4000}"
+: "${RUN_MODE_PORT_SHIFT:=0}"
+unshifted_port_base="${PORT_BASE}"
+run_mode_port_base=$((PORT_BASE + RUN_MODE_PORT_SHIFT))
+if [ "${RUN_MODE_PORT_SHIFT}" != "0" ] && [ "${PORT:-}" = "${unshifted_port_base}" ]; then
+  unset PORT
+fi
+RUN_MODE_PORT_SHIFT=0
+: "${PORT:=$((run_mode_port_base + 0))}"
 : "${COLLAB_ENABLED:=true}"
 : "${DEV_DOCUMENT_ID:=devDoc}"
 : "${CI:=false}"
@@ -13,15 +21,15 @@
 : "${TMPDIR:=${REMDO_ROOT%/}/node_modules/.cache/vitest-tmp}" # Keep Vitest temp files out of repo root and shared with vitest-preview.
 : "${DATA_DIR:=${REMDO_ROOT%/}/data}"
 
-# Derive all service/tool ports from the base PORT to keep multi-workdir runs predictable.
-: "${HMR_PORT:=$((PORT + 1))}"
-: "${VITEST_PORT:=$((PORT + 2))}"
-: "${VITEST_PREVIEW_PORT:=$((PORT + 3))}"
-: "${COLLAB_SERVER_PORT:=$((PORT + 4))}"
+# Derive service/tool ports from the run-mode port base to keep local runs predictable.
+: "${HMR_PORT:=$((run_mode_port_base + 1))}"
+: "${VITEST_PORT:=$((run_mode_port_base + 2))}"
+: "${VITEST_PREVIEW_PORT:=$((run_mode_port_base + 3))}"
+: "${COLLAB_SERVER_PORT:=$((run_mode_port_base + 4))}"
 : "${COLLAB_CLIENT_PORT:=${COLLAB_SERVER_PORT}}"
-: "${PREVIEW_PORT:=$((PORT + 5))}"
-: "${PLAYWRIGHT_UI_PORT:=$((PORT + 6))}"
-: "${REMDO_API_PORT:=$((PORT + 11))}"
+: "${PREVIEW_PORT:=$((run_mode_port_base + 5))}"
+: "${PLAYWRIGHT_UI_PORT:=$((run_mode_port_base + 6))}"
+: "${REMDO_API_PORT:=$((run_mode_port_base + 11))}"
 : "${YSWEET_CONNECTION_STRING:=ys://127.0.0.1:${COLLAB_SERVER_PORT}}"
 
 if [ -z "${AUTH_SECRET:-}" ] && [ "${NODE_ENV}" != "production" ]; then
@@ -66,13 +74,13 @@ for derived_port in \
 do
   for restricted_port in ${restricted_ports}; do
     if [ "${derived_port}" = "${restricted_port}" ]; then
-      echo "Port ${derived_port} is blocked by Chromium. Pick a different PORT base." >&2
+      echo "Port ${derived_port} is blocked by Chromium. Pick a different PORT_BASE." >&2
       exit 1
     fi
   done
 done
 
-export NODE_ENV HOST PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI VITEST_PREVIEW TMPDIR
+export NODE_ENV HOST PORT_BASE RUN_MODE_PORT_SHIFT PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI VITEST_PREVIEW TMPDIR
 export HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT REMDO_API_PORT YSWEET_CONNECTION_STRING
 export COLLAB_CLIENT_PORT PREVIEW_PORT PLAYWRIGHT_UI_PORT
 export AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_PUBLIC_URL ALLOW_SIGNUP

@@ -46,7 +46,8 @@ For each run mode, the important questions are:
   2. the local launcher supports rootless Docker
   3. required: `AUTH_SECRET`, `ADMIN_SECRET`, `YSWEET_AUTH_KEY`, and
      `YSWEET_SERVER_TOKEN` in `.env`
-  4. optional: `PORT`
+  4. optional: `PORT_BASE`; the launcher uses `PORT_BASE + 40` for the public
+     gateway port unless `PORT` is set
   5. the script prints the browser URL before startup; use that URL
   6. local Docker uses self-signed HTTPS by default
   7. current server runtime runs both the RemDo API process and the Y-Sweet
@@ -75,7 +76,8 @@ For each run mode, the important questions are:
   1. required in the Render Dashboard: `AUTH_SECRET`, `ADMIN_SECRET`,
      `YSWEET_AUTH_KEY`, `YSWEET_SERVER_TOKEN`, and `APP_PUBLIC_URL`
   2. `ALLOW_SIGNUP` should stay `false`
-  3. the service listens on `:${PORT}` and Render terminates public HTTPS
+  3. the service listens on `:${PORT}` and Render terminates public HTTPS;
+     internal service ports derive from `PORT_BASE`
   4. backup workflow for hosted prod is still undefined
   5. current server runtime runs both the RemDo API process and the Y-Sweet
      collaboration server behind the same gateway
@@ -99,12 +101,16 @@ For each run mode, the important questions are:
 - Platform: local machine.
 - Data boundary: local repo-owned development data.
 - Notes: most local runs can stay on defaults; copy `.env.example` to `.env`
-  only when overrides are needed. Process environment values override `.env`,
-  so one-off runs can use inline values such as `PORT=4800 ...` without editing
-  local defaults. Current dev mode runs the web app with the RemDo API mounted
-  in the Vite dev server, plus the Y-Sweet collaboration server and preview
-  helper. Server modes run the RemDo API with Better Auth plus a SQLite-backed
-  document registry.
+  only when overrides are needed. `PORT_BASE` anchors the local dev port range:
+  `PORT` uses `+0`, HMR `+1`, Vitest preview `+3`, collaboration `+4`, preview
+  `+5`, Playwright UI `+6`, and the RemDo API `+11`. Process environment values
+  override `.env`, so one-off runs can use inline values such as
+  `PORT_BASE=4800 ...` without editing local defaults. `pnpm run dev:pwa` uses
+  `PORT_BASE + 20` for its range and serves the PWA preview on that shifted
+  `PORT`, so it can run beside `pnpm run dev`. Current dev mode runs the web app
+  with the RemDo API mounted in the Vite dev server, plus the Y-Sweet
+  collaboration server and preview helper. Server modes run the RemDo API with
+  Better Auth plus a SQLite-backed document registry.
   Authentication is enforced, and private document access is limited to the
   registered document owner. Browser clients use the RemDo API token path plus
   `/d/*`; `/doc*` control routes are not routed through the gateway. Y-Sweet
@@ -137,7 +143,8 @@ For each run mode, the important questions are:
 - User: developer.
 - Platform: local machine with Docker.
 - Data boundary: temporary Docker-managed test data.
-- Notes: requires a local Docker daemon.
+- Notes: requires a local Docker daemon. The Docker test server uses
+  `PORT_BASE + 7` for its public gateway port.
 
 ### CI
 

@@ -48,7 +48,7 @@
     "dev:api": "./tools/env.sh tsx ./tools/remdo-api-server.ts",
     "dev:collab": "./tools/env.sh tsx ./tools/collab-server.ts",
     "dev:init": "./tools/dev-init.sh",
-    "dev:pwa": "./tools/env.sh sh -c 'PREVIEW_PORT=\"$PORT\" pnpm run build && PREVIEW_PORT=\"$PORT\" concurrently \"pnpm run build:watch\" \"pnpm run dev:api\" \"pnpm run dev:collab\" \"pnpm run preview\"'",
+    "dev:pwa": "RUN_MODE_PORT_SHIFT=20 ./tools/env.sh ./tools/dev-pwa.sh",
     "dev:web": "./tools/env.sh vite",
     "lint": "cross-env CI=1 pnpm run typecheck && pnpm run lint:code && pnpm run lint:css && pnpm run lint:md",
     "lint:code": "timeout ${TEST_TIMEOUT:-120}s cross-env CI=1 eslint --max-warnings=0 --cache --cache-location ${ESLINT_CACHE_LOCATION:-data/cache/lint-code}",

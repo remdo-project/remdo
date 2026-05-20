@@ -8,6 +8,7 @@ export const envSpec = defineEnvSpec(
     NODE_ENV: { default: '' },
     DATA_DIR: { default: '' },
     HOST: { default: '' },
+    PORT_BASE: { default: 0 },
     PORT: { default: 0 },
     HMR_PORT: { default: 0 },
     COLLAB_ENABLED: { default: false, client: true },
