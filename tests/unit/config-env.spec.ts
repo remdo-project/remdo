@@ -74,11 +74,37 @@ describe('config env loading', () => {
     })).toThrow('AUTH_SECRET must be at least 32 characters long in production.');
   });
 
+  it('requires production server secrets and canonical public URL', () => {
+    expect(() => loadTestEnv({
+      NODE_ENV: 'production',
+      AUTH_SECRET: 'production-auth-secret-0123456789',
+    })).toThrow('APP_PUBLIC_URL is required in production server config.');
+
+    expect(() => loadTestEnv({
+      NODE_ENV: 'production',
+      APP_PUBLIC_URL: ':8080',
+      AUTH_SECRET: 'production-auth-secret-0123456789',
+      ADMIN_SECRET: 'production-admin-secret-0123456789',
+      YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
+    })).toThrow('APP_PUBLIC_URL must be an absolute http(s) URL in production server config.');
+  });
+
+  it('allows production utility config without app auth secrets', () => {
+    const loaded = loadTestEnv({
+      NODE_ENV: 'production',
+    });
+
+    expect(loaded.runtime.mode).toBe('production');
+    expect(loaded.server.AUTH_URL).toBe('');
+  });
+
   it('derives AUTH_URL from APP_PUBLIC_URL in production server config', () => {
     const loaded = loadTestEnv({
       NODE_ENV: 'production',
       AUTH_SECRET: 'production-auth-secret-0123456789',
+      ADMIN_SECRET: 'production-admin-secret-0123456789',
       APP_PUBLIC_URL: 'https://remdo.example.com',
+      YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
     });
 
     expect(loaded.server.AUTH_URL).toBe('https://remdo.example.com');

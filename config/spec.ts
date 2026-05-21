@@ -16,12 +16,17 @@ export const envSpec = defineEnvSpec(
     API_SERVER_PORT: { default: 0 },
     DEV_DOCUMENT_ID: { default: '', client: true },
     YSWEET_CONNECTION_STRING: { default: '' },
+    // Private key passed to the Y-Sweet process so it can verify document tokens.
     YSWEET_AUTH_KEY: { default: '' },
+    // Server token used by RemDo API and backup tools when calling Y-Sweet.
     YSWEET_SERVER_TOKEN: { default: '' },
+    // Better Auth application secret.
     AUTH_SECRET: { default: '' },
+    // Operator secret for admin provisioning actions.
     ADMIN_SECRET: { default: '' },
+    // Canonical public app URL for server-mode auth and gateway behavior.
     APP_PUBLIC_URL: { default: '' },
-    // Parse fallback only; tools/env.defaults.sh sets true outside production.
+    // Product signup policy. tools/env.defaults.sh sets true outside production.
     ALLOW_SIGNUP: { default: false },
     PREVIEW_PORT: { default: 0 },
     VITEST_PORT: { default: 0 },

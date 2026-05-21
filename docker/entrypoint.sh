@@ -12,7 +12,7 @@ export REMDO_ROOT
 : "${XDG_CONFIG_HOME:=${DATA_DIR%/}/.config}"
 export XDG_DATA_HOME XDG_CONFIG_HOME
 
-: "${APP_PUBLIC_URL:=:${PORT}}"
+: "${APP_PUBLIC_URL:?Set APP_PUBLIC_URL to the canonical public RemDo URL}"
 : "${CADDY_SITE_ADDRESSES:=${APP_PUBLIC_URL}}"
 
 case "${APP_PUBLIC_URL}" in

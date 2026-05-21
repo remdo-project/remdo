@@ -21,6 +21,12 @@ For each run mode, the important questions are:
 4. on what kind of platform
 5. what data boundary it uses
 
+Runtime configuration has one boundary: application code consumes resolved
+`config.env` values. `.env` files, shell defaults, Docker launchers, managed
+platform settings, and tests are inputs or projections around that boundary, not
+separate product contracts. Stable policy belongs in code and tests; this doc
+records the intent that should stay true across implementations.
+
 ## End-user app modes
 
 ### Local self-hosted app

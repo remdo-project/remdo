@@ -69,20 +69,13 @@ Rules:
   reintroducing a silent auth bypass into the default dev path.
 - ✅ Done Dev auth fixture follow-up: `pnpm run dev:user` provisions a stable
   debug user and prints credentials for the normal login form.
-- Config contract follow-up: clarify whether `config.env` values are the
-  authoritative app/stack runtime contract or only defaults that individual
-  layers may override. Current env values can be derived or changed through
-  shell defaults, Docker scripts, TS config loading, constructor options, and
-  tests, which makes it unclear when `.env` is globally respected versus when a
-  local code path may substitute different behavior. This is especially risky
-  for auth-sensitive values such as signup policy, canonical auth URL, secrets,
-  and server database paths. Consider refactoring config into a more declarative
-  contract that names type, visibility, default source, derivation, validation
-  phase, and requiredness so tests can cover a small set of named policies
-  instead of encoding the contract through ad hoc loader scenarios.
-- Docker prod E2E env follow-up: revisit whether Docker prod E2E should keep
-  its separate container-level env handling or share more of the local env
-  derivation path.
+- ✅ Done Config contract follow-up: `config.env` is the resolved application
+  runtime boundary, while `.env`, shell defaults, Docker launchers, platform
+  settings, and tests are inputs or projections. Keep stable config policy in
+  code/tests and document only the high-level boundary.
+- ✅ Done Docker prod E2E env follow-up: keep Docker prod E2E's separate
+  container-level env handling because it owns temporary secrets, data, and
+  public URL setup for the production-style container/gateway boundary.
 - ✅ Done Default/dev/home document naming follow-up: split the profile-owned
   home document from the dev/tool document id. `DEV_DOCUMENT_ID` now names the
   temporary dev/test/tool fallback, while profile `homeDocumentId` and `Home`
