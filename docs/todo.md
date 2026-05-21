@@ -61,12 +61,6 @@ Rules:
 - Auth/storage follow-up: Better Auth currently uses `better-sqlite3` while the
   document registry still uses `node:sqlite`. Unify those server-side SQLite
   paths once the broader DB layer is revisited.
-- Auth/dev follow-up: keep Better Auth enabled in normal local dev because it
-  now participates in app behavior (session resolution, admin provisioning/login
-  flow, token issuance), not just deployment gateway protection. Aim for
-  unification and simplicity across dev and server modes; if local dev friction
-  becomes a problem later, prefer a clearly separate convenience mode over
-  reintroducing a silent auth bypass into the default dev path.
 - ✅ Done Dev auth fixture follow-up: `pnpm run dev:user` provisions a stable
   debug user and prints credentials for the normal login form.
 - ✅ Done Config contract follow-up: `config.env` is the resolved application
@@ -84,10 +78,6 @@ Rules:
   the authenticated user's current bootstrap home document. This stays separate
   from literal `/n/main` examples and fixtures, which are ordinary document-id
   test data rather than a home-document alias.
-- Source layout follow-up: revisit browser/server/shared folder boundaries.
-  Server code was added after the browser app shape was already established, so
-  some document/current-user/domain concepts now sit beside browser runtime code.
-  Clarify which modules are client-only, server-only, and shared domain code.
 - ✅ Done E2E current-user path follow-up: remove the special injected
   `usercfg`/config-doc path from E2E helpers. Browser E2E should authenticate
   and load current-user/home resources through the same `/api/me` path as
@@ -116,12 +106,6 @@ Rules:
   sync-token access. Also cover the allowed path: server-validated document
   creation updates SQL first and then refreshes the user-data projection. These
   tests should lock the access boundary against future refactors.
-- Production secret isolation follow-up: harden beyond current Docker env
-  hygiene. The entrypoint now filters unnecessary secrets from child process
-  environments, but it still orchestrates all secrets in one container and
-  passes the Y-Sweet auth key to the Y-Sweet process. Revisit with the
-  production process model: separate services/containers, service users, and
-  `/proc` exposure.
 - ✅ Done User-data/user-documents model follow-up: redesigned the hierarchy and
   naming around current-user bootstrap, user-data projection, home document,
   and user documents. User-documents access now goes through the note-facing
@@ -137,10 +121,17 @@ Rules:
   whether writers connect per update or are cached, what "flushed before API
   response" means, and how idle connections are cleaned up in local, Docker,
   and future cloud run modes.
+
+## Offline and local persistence follow-ups
+
 - Offline collaboration retry follow-up: reduce token-fetch and websocket
   reconnect noise when the app server or collaboration server is unavailable.
   The editor should keep showing a clear disconnected state, but repeated
   retries should avoid flooding the console and test guards.
+- Unsynced local edits follow-up: expose a reliable "pending local changes"
+  signal from the collaboration/local-persistence layer and show it in the UI.
+  Destructive actions such as logout should warn before clearing local Yjs data
+  when offline edits have not synced to the server.
 - Local data wipe follow-up: add a separate "wipe this device" flow and design
   the related UX, including unsynced local edits, server-offline behavior, and
   open-tab IndexedDB cleanup blockers.
@@ -242,6 +233,10 @@ Rules:
 
 ## Later follow-ups
 
+- Source layout follow-up: revisit browser/server/shared folder boundaries.
+  Server code was added after the browser app shape was already established, so
+  some document/current-user/domain concepts now sit beside browser runtime code.
+  Clarify which modules are client-only, server-only, and shared domain code.
 - Revisit client auth/bootstrap state caching once the auth and current-user
   model is more settled. The current lightweight bootstrap cache should
   eventually be keyed to the active Better Auth session, or invalidated by a
