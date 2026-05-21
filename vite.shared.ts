@@ -11,6 +11,10 @@ const isPreviewSession = config.env.VITEST_PREVIEW;
 const host = config.env.HOST;
 const apiServerTarget = resolveApiServerOrigin({ loopback: true });
 const collabServerTarget = resolveCollabServerOrigin({ loopback: true });
+const pwaNavigationFallbackDenylist = [
+  /^\/api(?:\/|$)/u,
+  /^\/d(?:\/|$)/u,
+];
 const devProxy = {
   '/d': {
     target: collabServerTarget,
@@ -37,6 +41,7 @@ export function createViteSharedConfig() {
     plugins: [
       remdoApiDevPlugin(),
       VitePWA({
+        includeAssets: ['icons/*.svg'],
         registerType: 'autoUpdate',
         manifest: {
           name: 'RemDo',
@@ -53,34 +58,9 @@ export function createViteSharedConfig() {
           ],
         },
         workbox: {
-          // Disable vite-plugin-pwa's default app-shell NavigationRoute so our
-          // custom navigation runtimeCaching blocklist is the source of truth.
-          navigateFallback: undefined,
+          navigateFallback: '/index.html',
+          navigateFallbackDenylist: pwaNavigationFallbackDenylist,
           runtimeCaching: [
-            {
-              // Workbox serializes this callback into sw.js, so keep the
-              // navigation blocklist self-contained instead of closing over
-              // module-scope constants.
-              urlPattern: ({ request, url }) => {
-                if (request.mode !== 'navigate') {
-                  return false;
-                }
-
-                const { pathname } = url;
-                return ![
-                  '/api',
-                  '/d',
-                ].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
-              },
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'app-shell-navigation',
-                networkTimeoutSeconds: 5,
-                precacheFallback: {
-                  fallbackURL: '/index.html',
-                },
-              },
-            },
             {
               urlPattern: ({ url }) => url.pathname.startsWith('/d/'),
               handler: 'NetworkOnly',

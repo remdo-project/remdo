@@ -34,6 +34,14 @@ export function allowOfflineDisconnectedConsoleIssue(page: Page): void {
   );
 }
 
+export function allowServerUnavailableConsoleIssue(page: Page): void {
+  setExpectedConsoleIssues(
+    page,
+    ['net::ERR_FAILED', 'Failed to fetch', 'Failed to get client token'],
+    { mode: 'allowContains' },
+  );
+}
+
 export async function cleanupOfflineTest(
   context: BrowserContext,
   page: Page | undefined,

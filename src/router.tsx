@@ -1,18 +1,19 @@
 import { createBrowserRouter, redirect } from 'react-router-dom';
 import App from './App';
 import { resolveSessionGateState } from './auth/client';
-import { getHomeDocumentId } from './documents/user-profile';
+import { retryPendingLocalUserDataCleanup } from './auth/local-data';
+import { getCachedUserProfile, getHomeDocumentId } from './documents/user-profile';
 import AdminUsersRoute from './routes/AdminUsersRoute';
 import DocumentRoute from './routes/DocumentRoute';
 import LoginRoute from './routes/LoginRoute';
+import OfflineRoute from './routes/OfflineRoute';
 import {
   createPostAuthNextSearch,
+  resolveNextPathOrDefault,
   resolvePostAuthPath,
-  resolveRememberedSessionPath,
 } from './routes/post-auth-path';
 import {
   createDocumentPath,
-  DEV_DOCUMENT_ID,
   normalizeDocumentId,
   parseDocumentRef,
 } from './routing';
@@ -26,8 +27,20 @@ const buildSearch = (lexicalDemo: boolean): string => {
   return search ? `?${search}` : '';
 };
 
+function createOfflinePath(request: Request): string {
+  return `/offline${createPostAuthNextSearch(request)}`;
+}
+
+function resolveCachedHomeDocumentPath(): string | null {
+  const profile = getCachedUserProfile();
+  return profile ? createDocumentPath(profile.homeDocumentId) : null;
+}
+
 async function requireAuthenticatedRoute(request: Request) {
   const sessionState = await resolveSessionGateState();
+  if (sessionState.status === 'offline-unavailable') {
+    throw redirect(createOfflinePath(request));
+  }
   if (sessionState.status !== 'unauthenticated') {
     return null;
   }
@@ -36,6 +49,8 @@ async function requireAuthenticatedRoute(request: Request) {
 }
 
 async function requirePublicAuthRoute(request: Request) {
+  await retryPendingLocalUserDataCleanup();
+
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
     return null;
@@ -43,8 +58,15 @@ async function requirePublicAuthRoute(request: Request) {
 
   const url = new URL(request.url);
   const search = url.search;
-  if (sessionState.status === 'offline-fallback') {
-    throw redirect(resolveRememberedSessionPath(search, url.origin, createDocumentPath(DEV_DOCUMENT_ID)));
+  if (sessionState.status === 'offline-unavailable') {
+    throw redirect(createOfflinePath(request));
+  }
+  if (sessionState.status === 'offline-remembered') {
+    throw redirect(resolveNextPathOrDefault(
+      search,
+      url.origin,
+      resolveCachedHomeDocumentPath() ?? createOfflinePath(request),
+    ));
   }
 
   throw redirect(await resolvePostAuthPath(search, url.origin));
@@ -64,8 +86,15 @@ async function resolveRouteHomeDocumentId(request: Request): Promise<string> {
   if (sessionState.status === 'unauthenticated') {
     throw redirect(`/login${createPostAuthNextSearch(request)}`);
   }
-  if (sessionState.status === 'offline-fallback') {
-    return DEV_DOCUMENT_ID;
+  if (sessionState.status === 'offline-unavailable') {
+    throw redirect(createOfflinePath(request));
+  }
+  if (sessionState.status === 'offline-remembered') {
+    const profile = getCachedUserProfile();
+    if (!profile) {
+      throw redirect(createOfflinePath(request));
+    }
+    return profile.homeDocumentId;
   }
   return getHomeDocumentId();
 }
@@ -92,6 +121,11 @@ const createDocumentLoader = (buildPath: DocumentPathBuilder) => {
 const hydrateFallbackElement = <div aria-hidden="true" />;
 
 const routes = [
+  {
+    path: '/offline',
+    element: <OfflineRoute />,
+    hydrateFallbackElement,
+  },
   {
     path: '/login',
     loader: ({ request }: { request: Request }) => requirePublicAuthRoute(request),

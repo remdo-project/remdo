@@ -3,12 +3,104 @@ import { createUniqueNoteId } from '#lib/editor/note-ids';
 import type { Page } from '@playwright/test';
 import {
   allowOfflineDisconnectedConsoleIssue,
+  allowServerUnavailableConsoleIssue,
   cleanupOfflineTest,
   waitForEditableEditor,
   waitForServiceWorkerControl,
 } from './_support/helpers';
 
 test.describe('Offline app shell', () => {
+  test('opens the cached profile home route while offline', async ({ page, context }) => {
+    await page.goto('/home');
+    await page.waitForURL(/\/n\//u);
+    const homePath = new URL(page.url()).pathname;
+    await waitForServiceWorkerControl(page);
+    allowOfflineDisconnectedConsoleIssue(page);
+    await page.close();
+
+    let offlinePage: Page | undefined;
+    let detachOfflineGuards: (() => void) | undefined;
+    await context.setOffline(true);
+    try {
+      offlinePage = await context.newPage();
+      detachOfflineGuards = attachPageGuards(offlinePage);
+      allowOfflineDisconnectedConsoleIssue(offlinePage);
+      await offlinePage.goto('/home');
+      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe(homePath);
+      await expect(offlinePage.locator('.document-editor-shell')).toBeVisible();
+    } finally {
+      await cleanupOfflineTest(context, offlinePage, detachOfflineGuards);
+    }
+  });
+
+  test('opens the cached profile home route when the API server is unavailable', async ({ page, context }) => {
+    await page.goto('/home');
+    await page.waitForURL(/\/n\//u);
+    const homePath = new URL(page.url()).pathname;
+    await waitForServiceWorkerControl(page);
+    allowServerUnavailableConsoleIssue(page);
+    await page.close();
+
+    let unavailablePage: Page | undefined;
+    let detachUnavailableGuards: (() => void) | undefined;
+    await context.route('**/api/**', (route) => {
+      void route.abort();
+    });
+    try {
+      unavailablePage = await context.newPage();
+      detachUnavailableGuards = attachPageGuards(unavailablePage);
+      allowServerUnavailableConsoleIssue(unavailablePage);
+      await unavailablePage.goto('/home');
+      await expect.poll(() => new URL(unavailablePage!.url()).pathname).toBe(homePath);
+      await expect(unavailablePage.locator('.document-editor-shell')).toBeVisible();
+    } finally {
+      await context.unroute('**/api/**');
+      await cleanupOfflineTest(context, unavailablePage, detachUnavailableGuards);
+    }
+  });
+
+  test('shows a fallback when signed out offline', async ({ browser, contextOptions }) => {
+    const context = await browser.newContext({
+      ...contextOptions,
+      storageState: {
+        cookies: [],
+        origins: [],
+      },
+    });
+    const warmupPage = await context.newPage();
+    let detachWarmupGuards: (() => void) | undefined;
+    let offlinePage: Page | undefined;
+    let detachOfflineGuards: (() => void) | undefined;
+
+    try {
+      detachWarmupGuards = attachPageGuards(warmupPage);
+      await warmupPage.goto('/login');
+      await waitForServiceWorkerControl(warmupPage);
+      detachWarmupGuards();
+      detachWarmupGuards = undefined;
+      await warmupPage.close();
+
+      await context.setOffline(true);
+      offlinePage = await context.newPage();
+      detachOfflineGuards = attachPageGuards(offlinePage);
+      allowOfflineDisconnectedConsoleIssue(offlinePage);
+      await offlinePage.goto('/home');
+      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/offline');
+      await expect(offlinePage.getByRole('heading', { name: 'Offline' })).toBeVisible();
+
+      await context.setOffline(false);
+      await offlinePage.getByRole('button', { name: 'Retry' }).click();
+      await expect.poll(() => new URL(offlinePage!.url()).pathname).toBe('/login');
+      await expect(offlinePage.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+    } finally {
+      if (detachWarmupGuards) {
+        detachWarmupGuards();
+      }
+      await cleanupOfflineTest(context, offlinePage, detachOfflineGuards);
+      await context.close();
+    }
+  });
+
   test('opens the app shell while offline after an online warm-up', async ({ page, context }) => {
     const warmedDocId = createUniqueNoteId();
     await page.goto(`/n/${warmedDocId}`);

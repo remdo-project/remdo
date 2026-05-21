@@ -41,7 +41,7 @@ export async function resolvePostAuthPath(search: string, currentOrigin: string)
   return resolveExplicitReturnTo(search, currentOrigin) ?? await resolveHomeDocumentPath();
 }
 
-export function resolveRememberedSessionPath(
+export function resolveNextPathOrDefault(
   search: string,
   currentOrigin: string,
   defaultPath: string,

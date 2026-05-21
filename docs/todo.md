@@ -103,15 +103,12 @@ Rules:
 - ✅ Done Routing return-path follow-up: centralize post-auth return-path handling.
   Replace ad hoc `next` parsing and path safety checks with one tested helper
   that defines which app-local redirects are allowed.
-- Offline auth/product follow-up: define the offline auth states explicitly.
-  Expected shape: unauthenticated offline users see a fallback message,
-  remembered authenticated sessions may open cached/local routes without
-  re-authenticating, and logout clears remembered auth plus local user data.
-  As part of this, remove the remaining product-route fallback to
-  `DEV_DOCUMENT_ID`; that id should stay a dev/test/tool target rather than a
-  user-facing home-document substitute. The current logout path only clears
-  server session state plus tab-local auth/profile/config runtime state; decide
-  and implement the durable local data wipe here.
+- ✅ Done Offline auth/product follow-up: define offline auth states explicitly.
+  Unauthenticated offline users see a fallback message, remembered
+  authenticated sessions may open cached/local profile routes without
+  re-authenticating when the browser is offline or the app server is
+  unavailable, logout clears remembered auth plus local Yjs offline data, and
+  product routes no longer fall back to `DEV_DOCUMENT_ID`.
 - ✅ Done Dev API DX follow-up: evaluate mounting the Hono RemDo API inside the Vite dev
   server for `/api/*` instead of proxying to a separate `dev:api` process. Goal:
   same-origin API behavior in local dev with fewer stale route/process issues,
@@ -149,6 +146,18 @@ Rules:
   whether writers connect per update or are cached, what "flushed before API
   response" means, and how idle connections are cleaned up in local, Docker,
   and future cloud run modes.
+- Offline collaboration retry follow-up: reduce token-fetch and websocket
+  reconnect noise when the app server or collaboration server is unavailable.
+  The editor should keep showing a clear disconnected state, but repeated
+  retries should avoid flooding the console and test guards.
+- Unsynced local edits follow-up: expose a reliable "pending local changes"
+  signal from the collaboration/local-persistence layer and show it in the UI.
+  Destructive actions such as logout should warn before clearing local Yjs data
+  when offline edits have not synced to the server.
+- Offline server-session logout follow-up: decide how logout should finish when
+  the app server is unavailable. The client can clear remembered auth and local
+  Yjs data immediately, but a server-side Better Auth session may still exist
+  until the server can accept a sign-out request.
 
 ## Collaboration architecture roadmap [Future]
 

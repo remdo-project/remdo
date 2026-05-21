@@ -53,7 +53,10 @@ For each access case, the important questions are:
   API. SQL document-registry rows are the durable source for the current
   document list; `/api/profile` ensures the per-user config projection and
   home document rows exist, then updates the persisted, read-only Yjs
-  user-config projection.
+  user-config projection. Browser clients may cache the last validated profile
+  bootstrap only to reopen local/cached routes while offline or while the app
+  server is unavailable; logout clears that bootstrap together with local Yjs
+  offline data.
 
 ## Private document access
 

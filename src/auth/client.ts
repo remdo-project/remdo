@@ -1,4 +1,5 @@
 import { createAuthClient } from 'better-auth/react';
+import { clearStoredUserProfile } from '@/documents/user-profile-storage';
 
 const KNOWN_SESSION_STORAGE_KEY = 'remdo-authenticated-session';
 
@@ -11,7 +12,8 @@ type CurrentSession = Exclude<SessionResponse['data'], null | undefined>;
 
 type SessionGateState =
   | { status: 'authenticated'; session: CurrentSession }
-  | { status: 'offline-fallback' }
+  | { status: 'offline-remembered' }
+  | { status: 'offline-unavailable' }
   | { status: 'unauthenticated' };
 
 function getSessionStorage(): Storage | null {
@@ -28,10 +30,23 @@ export function rememberAuthenticatedSession() {
 
 export function forgetAuthenticatedSession() {
   getSessionStorage()?.removeItem(KNOWN_SESSION_STORAGE_KEY);
+  clearStoredUserProfile();
 }
 
-function hasRememberedSession() {
+export function hasRememberedSession() {
   return getSessionStorage()?.getItem(KNOWN_SESSION_STORAGE_KEY) === '1';
+}
+
+export function isLikelyFetchUnavailableError(error: unknown): boolean {
+  // Browser fetch failures are exposed as TypeError, but message text varies
+  // across engines, so callers must keep this predicate scoped to fetch paths.
+  return error instanceof TypeError;
+}
+
+function resolveUnavailableSessionGateState(): SessionGateState {
+  return hasRememberedSession()
+    ? { status: 'offline-remembered' }
+    : { status: 'offline-unavailable' };
 }
 
 export async function resolveSessionGateState(): Promise<SessionGateState> {
@@ -45,11 +60,15 @@ export async function resolveSessionGateState(): Promise<SessionGateState> {
       };
     }
 
+    if (!navigator.onLine) {
+      return resolveUnavailableSessionGateState();
+    }
+
     forgetAuthenticatedSession();
     return { status: 'unauthenticated' };
   } catch (error) {
-    if (!navigator.onLine && hasRememberedSession()) {
-      return { status: 'offline-fallback' };
+    if (!navigator.onLine || isLikelyFetchUnavailableError(error)) {
+      return resolveUnavailableSessionGateState();
     }
     throw error;
   }
