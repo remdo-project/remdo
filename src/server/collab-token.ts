@@ -61,7 +61,7 @@ async function resolveDocumentAccess({ actor, document }: ResolveDocumentAccessA
 
   return {
     allowed: true,
-    authorization: document.kind === 'user-config' ? 'read-only' : 'full',
+    authorization: document.kind === 'user-data-projection' ? 'read-only' : 'full',
   };
 }
 

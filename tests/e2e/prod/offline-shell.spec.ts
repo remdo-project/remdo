@@ -10,7 +10,7 @@ import {
 } from './_support/helpers';
 
 test.describe('Offline app shell', () => {
-  test('opens the cached profile home route while offline', async ({ page, context }) => {
+  test('opens the cached bootstrap home route while offline', async ({ page, context }) => {
     await page.goto('/home');
     await page.waitForURL(/\/n\//u);
     const homePath = new URL(page.url()).pathname;
@@ -33,7 +33,7 @@ test.describe('Offline app shell', () => {
     }
   });
 
-  test('opens the cached profile home route when the API server is unavailable', async ({ page, context }) => {
+  test('opens the cached bootstrap home route when the API server is unavailable', async ({ page, context }) => {
     await page.goto('/home');
     await page.waitForURL(/\/n\//u);
     const homePath = new URL(page.url()).pathname;

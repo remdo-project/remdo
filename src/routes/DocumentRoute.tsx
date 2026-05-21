@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconSearch } from '@tabler/icons-react';
 import { useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
-import { useUserConfig } from '@/documents/user-config';
+import { useUserData } from '@/documents/user-data';
 import Editor from '@/editor/Editor';
 import { ZoomBreadcrumbs } from '@/editor/zoom/ZoomBreadcrumbs';
 import { EditorViewProvider, useEditorViewActions, useZoomPath } from '@/editor/view/EditorViewProvider';
@@ -101,8 +101,8 @@ function DocumentRouteContent({
   const searchResultsListboxId = useId();
   const zoomPath = useZoomPath();
   const { requestZoomNoteId } = useEditorViewActions();
-  const userConfig = useUserConfig();
-  const listedDocuments = userConfig.documentList().children();
+  const userData = useUserData();
+  const listedDocuments = userData.documents().children();
   const currentDocument = listedDocuments.find((document) => document.id() === docId) ?? null;
   const documentLabelRaw = currentDocument?.text() ?? docId;
   const documentLabel = formatNavigationLabel(documentLabelRaw);
@@ -225,7 +225,7 @@ function DocumentRouteContent({
   }, [handleSearchDismiss, searchModeActive]);
 
   const createDocument = async () => {
-    const nextDocument = await userConfig.documentList().create('New Document');
+    const nextDocument = await userData.documents().create('New Document');
     onSelectDocument(nextDocument.id());
   };
 

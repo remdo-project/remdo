@@ -3,7 +3,7 @@ import type { Page } from '#e2e/fixtures';
 import { HTTP_STATUS } from '#lib/http/status';
 import { createAuthenticatedContext } from '../_support/auth-context';
 
-interface UserProfileResponse {
+interface CurrentUserBootstrapResponse {
   homeDocumentId: string;
 }
 
@@ -32,14 +32,14 @@ async function hasIndexedDb(page: Page, dbName: string): Promise<boolean> {
 }
 
 test.describe('Routing', () => {
-  test('redirects the home alias to the authenticated profile home document', async ({ page }) => {
-    const profileResponse = await page.request.get('/api/profile');
-    expect(profileResponse.ok()).toBe(true);
-    const profile = await profileResponse.json() as UserProfileResponse;
+  test('redirects the home alias to the authenticated bootstrap home document', async ({ page }) => {
+    const bootstrapResponse = await page.request.get('/api/me');
+    expect(bootstrapResponse.ok()).toBe(true);
+    const bootstrap = await bootstrapResponse.json() as CurrentUserBootstrapResponse;
 
     await page.goto('/home');
 
-    await expectPath(page, `/n/${profile.homeDocumentId}`);
+    await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
   });
 
   test('redirects the home alias to login with a next target when unauthenticated', async ({
@@ -67,13 +67,13 @@ test.describe('Routing', () => {
   });
 
   test('resolves a home next target after login', async ({ page }) => {
-    const profileResponse = await page.request.get('/api/profile');
-    expect(profileResponse.ok()).toBe(true);
-    const profile = await profileResponse.json() as UserProfileResponse;
+    const bootstrapResponse = await page.request.get('/api/me');
+    expect(bootstrapResponse.ok()).toBe(true);
+    const bootstrap = await bootstrapResponse.json() as CurrentUserBootstrapResponse;
 
     await page.goto('/login?next=/home');
 
-    await expectPath(page, `/n/${profile.homeDocumentId}`);
+    await expectPath(page, `/n/${bootstrap.homeDocumentId}`);
   });
 
   test('logs out the active session from the app header', async ({ browser, contextOptions }) => {
@@ -89,8 +89,8 @@ test.describe('Routing', () => {
 
       await expectPath(page, '/login');
       await expect.poll(async () => hasIndexedDb(page, 'y-sweet-logout-test')).toBe(false);
-      const profileResponse = await page.request.get('/api/profile');
-      expect(profileResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
+      const bootstrapResponse = await page.request.get('/api/me');
+      expect(bootstrapResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
     } finally {
       detachPageGuards();
       await context.close();

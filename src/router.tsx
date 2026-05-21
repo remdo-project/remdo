@@ -1,7 +1,7 @@
 import { createBrowserRouter, redirect } from 'react-router-dom';
 import App from './App';
 import { resolveSessionGateState } from './auth/client';
-import { getCachedUserProfile, getHomeDocumentId } from './documents/user-profile';
+import { getCachedCurrentUserBootstrap, getHomeDocumentId } from './documents/current-user-bootstrap';
 import AdminUsersRoute from './routes/AdminUsersRoute';
 import DocumentRoute from './routes/DocumentRoute';
 import LoginRoute from './routes/LoginRoute';
@@ -32,8 +32,8 @@ function createOfflinePath(request: Request): string {
 }
 
 function resolveCachedHomeDocumentPath(): string | null {
-  const profile = getCachedUserProfile();
-  return profile ? createDocumentPath(profile.homeDocumentId) : null;
+  const bootstrap = getCachedCurrentUserBootstrap();
+  return bootstrap ? createDocumentPath(bootstrap.homeDocumentId) : null;
 }
 
 async function requireAuthenticatedRoute(request: Request) {
@@ -88,11 +88,11 @@ async function resolveRouteHomeDocumentId(request: Request): Promise<string> {
     throw redirect(createOfflinePath(request));
   }
   if (sessionState.status === 'offline-remembered') {
-    const profile = getCachedUserProfile();
-    if (!profile) {
+    const bootstrap = getCachedCurrentUserBootstrap();
+    if (!bootstrap) {
       throw redirect(createOfflinePath(request));
     }
-    return profile.homeDocumentId;
+    return bootstrap.homeDocumentId;
   }
   return getHomeDocumentId();
 }

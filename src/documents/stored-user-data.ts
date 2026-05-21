@@ -2,37 +2,39 @@ import * as Y from 'yjs';
 import { CollabSession } from '#lib/collaboration/session';
 import { resolveApiServerOrigin, resolveAppOrigin } from '#lib/net/origins';
 import type { CollaborationProviderInstance } from '#lib/collaboration/runtime';
-import type { UserConfigNote } from './contracts';
+import type { UserDataNote } from './contracts';
 import { HOME_DOCUMENT_TITLE } from './contracts';
-import { getUserProfile } from './user-profile';
-import type { UserProfile } from './user-profile';
-import { createUserConfigRootNote } from './user-config-notes';
-import type { ListedDocument } from './user-config-notes';
+import { getCurrentUserBootstrap } from './current-user-bootstrap';
+import type { CurrentUserBootstrap } from './current-user-bootstrap';
+import { createUserDataRootNote } from './user-data-notes';
+import type { UserDocument } from './user-data-notes';
 import { normalizeDocumentId } from '@/routing';
 
-const USER_CONFIG_ROOT_NOTE_ID = 'user-config';
+const USER_DATA_ROOT_NOTE_ID = 'user-data';
 const DOCUMENTS_KEY = 'documents';
 const STARTUP_RETRY_DELAY_MS = 1000;
 
-interface StoredUserConfigContext {
+interface UserDataStoreContext {
   session: CollabSession;
   doc: Y.Doc;
 }
 
-function createHomeUserDocument(profile: UserProfile): ListedDocument {
-  return { id: profile.homeDocumentId, title: HOME_DOCUMENT_TITLE };
+function createHomeUserDocument(bootstrap: CurrentUserBootstrap): UserDocument {
+  return { id: bootstrap.homeDocumentId, title: HOME_DOCUMENT_TITLE };
 }
 
-// Tab-scoped store that keeps the live user-config session outside route/component lifecycles.
-class StoredUserConfigStore {
+// Tab-scoped store that keeps the live user-data session outside route/component lifecycles.
+class StoredUserDataStore {
   private listeners = new Set<() => void>();
-  private documents: ListedDocument[] = [];
-  private readonly userConfig = createUserConfigRootNote(this.documents, {
+  private homeDocumentId: string | null = null;
+  private documents: UserDocument[] = [];
+  private readonly userData = createUserDataRootNote(this.documents, {
     createDocument: async (title) => this.createDocument(title),
+    homeDocumentId: () => this.homeDocumentId,
     onChange: () => this.bumpVersion(),
   });
-  private context: StoredUserConfigContext | null = null;
-  private contextPromise: Promise<StoredUserConfigContext> | null = null;
+  private context: UserDataStoreContext | null = null;
+  private contextPromise: Promise<UserDataStoreContext> | null = null;
   private pendingContextSession: CollabSession | null = null;
   private readyPromise: Promise<void> | null = null;
   private startupRetryHandle: ReturnType<typeof setTimeout> | null = null;
@@ -66,6 +68,7 @@ class StoredUserConfigStore {
     this.contextPromise = null;
     this.readyPromise = null;
     this.ready = false;
+    this.homeDocumentId = null;
     this.replaceDocuments([]);
     this.bumpVersion();
   }
@@ -77,12 +80,12 @@ class StoredUserConfigStore {
     };
   }
 
-  getCurrentUserConfig(): UserConfigNote {
-    return this.userConfig;
+  getCurrentUserData(): UserDataNote {
+    return this.userData;
   }
 
-  getUserConfig(): Promise<UserConfigNote> {
-    return this.ensureReady().then(() => this.userConfig);
+  getUserData(): Promise<UserDataNote> {
+    return this.ensureReady().then(() => this.userData);
   }
 
   getVersion(): number {
@@ -94,7 +97,7 @@ class StoredUserConfigStore {
       return;
     }
     if (!this.readyPromise) {
-      const readyPromise = this.loadUserConfig(generation)
+      const readyPromise = this.loadUserData(generation)
         .then(() => {
           if (this.readyPromise === readyPromise && this.generation === generation) {
             this.ready = true;
@@ -117,32 +120,33 @@ class StoredUserConfigStore {
     return this.readyPromise;
   }
 
-  private async loadUserConfig(generation: number): Promise<void> {
-    const profile = await getUserProfile();
+  private async loadUserData(generation: number): Promise<void> {
+    const bootstrap = await getCurrentUserBootstrap();
     if (this.generation !== generation) {
       return;
     }
-    const homeDocument = createHomeUserDocument(profile);
-    const context = await this.getContext(profile.configDocumentId, generation);
-    const root = context.doc.getMap<Y.Array<Y.Map<unknown>>>(USER_CONFIG_ROOT_NOTE_ID);
-    const documents = readUserConfigDocuments(root);
+    const homeDocument = createHomeUserDocument(bootstrap);
+    const context = await this.getContext(bootstrap.userDataDocumentId, generation);
+    const root = context.doc.getMap<Y.Array<Y.Map<unknown>>>(USER_DATA_ROOT_NOTE_ID);
+    const documents = readUserDataDocuments(root);
     if (this.generation === generation) {
+      this.homeDocumentId = bootstrap.homeDocumentId;
       this.replaceDocuments(documents.length > 0 ? documents : [homeDocument]);
     }
   }
 
   private async createDocument(title: string) {
     await this.ensureReady();
-    const document = await createListedDocument(title);
+    const document = await createUserDocument(title);
     return document;
   }
 
-  private async getContext(configDocumentId: string, generation: number): Promise<StoredUserConfigContext> {
+  private async getContext(userDataDocumentId: string, generation: number): Promise<UserDataStoreContext> {
     if (this.context) {
       return this.context;
     }
     if (!this.contextPromise) {
-      const contextPromise = createStoredUserConfigContext(configDocumentId, (session) => {
+      const contextPromise = createUserDataStoreContext(userDataDocumentId, (session) => {
         if (this.generation === generation) {
           this.pendingContextSession = session;
         } else {
@@ -160,7 +164,7 @@ class StoredUserConfigStore {
               this.pendingContextSession = null;
               context.session.destroy();
             }
-            throw new Error('User config runtime was reset.');
+            throw new Error('User data runtime was reset.');
           }
           return context;
         })
@@ -176,7 +180,7 @@ class StoredUserConfigStore {
     return this.contextPromise;
   }
 
-  private replaceDocuments(nextDocuments: readonly ListedDocument[]) {
+  private replaceDocuments(nextDocuments: readonly UserDocument[]) {
     this.documents.splice(0, this.documents.length, ...nextDocuments);
   }
 
@@ -202,7 +206,7 @@ class StoredUserConfigStore {
   }
 }
 
-function readUserConfigDocuments(root: Y.Map<Y.Array<Y.Map<unknown>>>) {
+function readUserDataDocuments(root: Y.Map<Y.Array<Y.Map<unknown>>>) {
   const documents = root.get(DOCUMENTS_KEY);
   if (!(documents instanceof Y.Array)) {
     return [];
@@ -210,19 +214,19 @@ function readUserConfigDocuments(root: Y.Map<Y.Array<Y.Map<unknown>>>) {
 
   return documents.toArray().map((value) => {
     if (!(value instanceof Y.Map)) {
-      throw new TypeError('User-config documents list contains an invalid entry.');
+      throw new TypeError('User data documents list contains an invalid entry.');
     }
     const id = value.get('id');
     const title = value.get('title');
     if (typeof id !== 'string' || typeof title !== 'string') {
-      throw new TypeError('User-config document entry is missing id or title.');
+      throw new TypeError('User data document entry is missing id or title.');
     }
     return { id, title };
   });
 }
 
-async function createListedDocument(title: string): Promise<ListedDocument> {
-  const response = await fetch('/api/profile/documents', {
+async function createUserDocument(title: string): Promise<UserDocument> {
+  const response = await fetch('/api/documents', {
     method: 'POST',
     credentials: 'same-origin',
     headers: {
@@ -234,7 +238,7 @@ async function createListedDocument(title: string): Promise<ListedDocument> {
     throw new Error(`Failed to create document: ${response.status}`);
   }
 
-  const body = await response.json() as Partial<ListedDocument>;
+  const body = await response.json() as Partial<UserDocument>;
   const id = normalizeDocumentId(body.id);
   if (!id || typeof body.title !== 'string') {
     throw new TypeError('Document creation returned an invalid document.');
@@ -242,10 +246,10 @@ async function createListedDocument(title: string): Promise<ListedDocument> {
   return { id, title: body.title };
 }
 
-async function createStoredUserConfigContext(
+async function createUserDataStoreContext(
   docId: string,
   onSessionCreated: (session: CollabSession) => void,
-): Promise<StoredUserConfigContext> {
+): Promise<UserDataStoreContext> {
   const origin = resolveCollabOrigin();
   const apiOrigin = resolveCollabApiOrigin();
   const docMap = new Map<string, Y.Doc>();
@@ -324,28 +328,28 @@ function resolveCollabApiOrigin(): string {
   return resolveApiServerOrigin({ loopback: true });
 }
 
-const store = new StoredUserConfigStore();
+const store = new StoredUserDataStore();
 
-export function startUserConfigRuntime(): void {
+export function startUserDataRuntime(): void {
   store.start();
 }
 
-export function resetUserConfigRuntime(): void {
+export function resetUserDataRuntime(): void {
   store.reset();
 }
 
-export function subscribeUserConfigRuntime(listener: () => void) {
+export function subscribeUserDataRuntime(listener: () => void) {
   return store.subscribe(listener);
 }
 
-export function getCurrentUserConfig(): UserConfigNote {
-  return store.getCurrentUserConfig();
+export function getCurrentUserData(): UserDataNote {
+  return store.getCurrentUserData();
 }
 
-export function getUserConfig(): Promise<UserConfigNote> {
-  return store.getUserConfig();
+export function getUserData(): Promise<UserDataNote> {
+  return store.getUserData();
 }
 
-export function getUserConfigVersion(): number {
+export function getUserDataVersion(): number {
   return store.getVersion();
 }

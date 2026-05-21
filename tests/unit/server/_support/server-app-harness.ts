@@ -127,7 +127,7 @@ export function createServerAppHarness({
       const doc = new Y.Doc();
       try {
         Y.applyUpdate(doc, collabDocuments.get(docId) ?? Y.encodeStateAsUpdate(new Y.Doc()));
-        const documents = doc.getMap<Y.Array<Y.Map<unknown>>>('user-config').get('documents');
+        const documents = doc.getMap<Y.Array<Y.Map<unknown>>>('user-data').get('documents');
         return documents instanceof Y.Array
           ? documents.toArray().map((entry) => String(entry.get('id')))
           : [];

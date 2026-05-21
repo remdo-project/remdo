@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
-import type { UserConfigNote } from '@/documents/contracts';
+import type { UserDataNote } from '@/documents/contracts';
 
 const USER_RUNTIME_DOCUMENT = { id: 'userHomeDoc', title: 'Home' } as const;
-const USER_CONFIG_DOC_ID = 'userConfigDoc';
+const USER_DATA_DOC_ID = 'userDataDoc';
 
 interface MockCollabSessionInstance {
   destroy: ReturnType<typeof vi.fn>;
@@ -12,13 +12,13 @@ interface MockCollabSessionInstance {
   awaitSynced: ReturnType<typeof vi.fn>;
 }
 
-describe('stored user config', () => {
+describe('stored user data', () => {
   beforeEach(() => {
     vi.doUnmock('#config');
     vi.resetModules();
     let createdDocumentCount = 0;
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      if (String(input) === '/api/profile/documents') {
+      if (String(input) === '/api/documents') {
         createdDocumentCount += 1;
         const body = JSON.parse(String(init?.body ?? '{}')) as { title?: string };
         return {
@@ -34,7 +34,7 @@ describe('stored user config', () => {
         ok: true,
         json: async () => ({
           homeDocumentId: USER_RUNTIME_DOCUMENT.id,
-          configDocumentId: USER_CONFIG_DOC_ID,
+          userDataDocumentId: USER_DATA_DOC_ID,
         }),
       };
     }));
@@ -45,15 +45,15 @@ describe('stored user config', () => {
     vi.unstubAllGlobals();
   });
 
-  const listDocuments = (userConfig: UserConfigNote) =>
-    userConfig.documentList().children().map((document) => ({
+  const listDocuments = (userData: UserDataNote) =>
+    userData.documents().children().map((document) => ({
       id: document.id(),
       title: document.text(),
     }));
 
-  const createUserConfigDoc = (documents: Array<{ id: string; title: string }>) => {
+  const createUserDataDoc = (documents: Array<{ id: string; title: string }>) => {
     const doc = new Y.Doc();
-    const root = doc.getMap<Y.Array<Y.Map<unknown>>>('user-config');
+    const root = doc.getMap<Y.Array<Y.Map<unknown>>>('user-data');
     const entries = new Y.Array<Y.Map<unknown>>();
     for (const document of documents) {
       const entry = new Y.Map<unknown>();
@@ -131,9 +131,9 @@ describe('stored user config', () => {
   };
 
   it('starts with an empty document list before the stored session loads', async () => {
-    const { getCurrentUserConfig } = await import('@/documents/stored-user-config');
+    const { getCurrentUserData } = await import('@/documents/stored-user-data');
 
-    expect(listDocuments(getCurrentUserConfig())).toEqual([]);
+    expect(listDocuments(getCurrentUserData())).toEqual([]);
   });
 
   it('retries startup loading after an initial sync failure', async () => {
@@ -177,7 +177,7 @@ describe('stored user config', () => {
             this.docId,
             this.sessionNumber === 1
               ? new Y.Doc()
-              : createUserConfigDoc([{ id: 'recovered-doc', title: 'Recovered Document' }]),
+              : createUserDataDoc([{ id: 'recovered-doc', title: 'Recovered Document' }]),
           );
         }
 
@@ -192,15 +192,15 @@ describe('stored user config', () => {
     }));
 
     const {
-      getCurrentUserConfig,
-      getUserConfigVersion,
-      startUserConfigRuntime,
-    } = await import('@/documents/stored-user-config');
+      getCurrentUserData,
+      getUserDataVersion,
+      startUserDataRuntime,
+    } = await import('@/documents/stored-user-data');
 
-    const eagerUserConfig = getCurrentUserConfig();
-    expect(listDocuments(eagerUserConfig)).toEqual([]);
+    const eagerUserData = getCurrentUserData();
+    expect(listDocuments(eagerUserData)).toEqual([]);
 
-    startUserConfigRuntime();
+    startUserDataRuntime();
     await vi.advanceTimersByTimeAsync(0);
     await Promise.resolve();
     await Promise.resolve();
@@ -211,8 +211,8 @@ describe('stored user config', () => {
     expect(sessionInstances[0]!.connect).toHaveBeenCalledTimes(1);
     expect(sessionInstances[0]!.awaitSynced).toHaveBeenCalledTimes(1);
     expect(sessionInstances[0]!.destroy).toHaveBeenCalledTimes(1);
-    expect(getUserConfigVersion()).toBe(0);
-    expect(listDocuments(eagerUserConfig)).toEqual([]);
+    expect(getUserDataVersion()).toBe(0);
+    expect(listDocuments(eagerUserData)).toEqual([]);
 
     await vi.advanceTimersByTimeAsync(1000);
 
@@ -220,8 +220,8 @@ describe('stored user config', () => {
     expect(sessionInstances[1]!.connect).toHaveBeenCalledTimes(1);
     expect(sessionInstances[1]!.awaitSynced).toHaveBeenCalledTimes(1);
     expect(sessionInstances[1]!.destroy).not.toHaveBeenCalled();
-    expect(getUserConfigVersion()).toBe(1);
-    expect(listDocuments(eagerUserConfig)).toEqual([
+    expect(getUserDataVersion()).toBe(1);
+    expect(listDocuments(eagerUserData)).toEqual([
       { id: 'recovered-doc', title: 'Recovered Document' },
     ]);
   });
@@ -273,25 +273,25 @@ describe('stored user config', () => {
       },
     }));
 
-    const { getCurrentUserConfig, getUserConfig } = await import('@/documents/stored-user-config');
+    const { getCurrentUserData, getUserData } = await import('@/documents/stored-user-data');
 
-    const eagerUserConfig = getCurrentUserConfig();
-    expect(listDocuments(eagerUserConfig)).toEqual([]);
+    const eagerUserData = getCurrentUserData();
+    expect(listDocuments(eagerUserData)).toEqual([]);
 
-    await expect(getUserConfig()).rejects.toThrow('sync failed');
+    await expect(getUserData()).rejects.toThrow('sync failed');
     expect(sessionInstances).toHaveLength(1);
     expect(sessionInstances[0]!.connect).toHaveBeenCalledTimes(1);
     expect(sessionInstances[0]!.awaitSynced).toHaveBeenCalledTimes(1);
     expect(sessionInstances[0]!.destroy).toHaveBeenCalledTimes(1);
 
-    const userConfig = await getUserConfig();
+    const userData = await getUserData();
 
     expect(sessionInstances).toHaveLength(2);
-    expect(userConfig).toBe(eagerUserConfig);
+    expect(userData).toBe(eagerUserData);
     expect(sessionInstances[1]!.connect).toHaveBeenCalledTimes(1);
     expect(sessionInstances[1]!.awaitSynced).toHaveBeenCalledTimes(1);
     expect(sessionInstances[1]!.destroy).not.toHaveBeenCalled();
-    expect(listDocuments(userConfig)).toEqual([USER_RUNTIME_DOCUMENT]);
+    expect(listDocuments(userData)).toEqual([USER_RUNTIME_DOCUMENT]);
   });
 
   it('keeps the existing handle after a create-document API failure', async () => {
@@ -301,7 +301,7 @@ describe('stored user config', () => {
       awaitSynced: ReturnType<typeof vi.fn>;
     }> = [];
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      if (String(input) === '/api/profile/documents') {
+      if (String(input) === '/api/documents') {
         const body = JSON.parse(String(init?.body ?? '{}')) as { title?: string };
         if (body.title === 'New Document') {
           return { ok: false, status: 500 };
@@ -319,7 +319,7 @@ describe('stored user config', () => {
         ok: true,
         json: async () => ({
           homeDocumentId: USER_RUNTIME_DOCUMENT.id,
-          configDocumentId: USER_CONFIG_DOC_ID,
+          userDataDocumentId: USER_DATA_DOC_ID,
         }),
       };
     }));
@@ -345,7 +345,7 @@ describe('stored user config', () => {
         }
 
         attach(docMap: Map<string, Y.Doc>) {
-          docMap.set(this.docId, createUserConfigDoc([USER_RUNTIME_DOCUMENT]));
+          docMap.set(this.docId, createUserDataDoc([USER_RUNTIME_DOCUMENT]));
         }
 
         getProvider() {
@@ -358,37 +358,37 @@ describe('stored user config', () => {
       },
     }));
 
-    const { getCurrentUserConfig, getUserConfig } = await import('@/documents/stored-user-config');
+    const { getCurrentUserData, getUserData } = await import('@/documents/stored-user-data');
 
-    const userConfig = getCurrentUserConfig();
-    expect(listDocuments(userConfig)).toEqual([]);
+    const userData = getCurrentUserData();
+    expect(listDocuments(userData)).toEqual([]);
 
-    await expect(getUserConfig()).resolves.toBe(userConfig);
-    expect(listDocuments(userConfig)).toEqual([USER_RUNTIME_DOCUMENT]);
+    await expect(getUserData()).resolves.toBe(userData);
+    expect(listDocuments(userData)).toEqual([USER_RUNTIME_DOCUMENT]);
 
-    await expect(userConfig.documentList().create('New Document')).rejects.toThrow('Failed to create document: 500');
+    await expect(userData.documents().create('New Document')).rejects.toThrow('Failed to create document: 500');
     expect(sessionInstances).toHaveLength(1);
     expect(sessionInstances[0]!.connect).toHaveBeenCalledTimes(1);
     expect(sessionInstances[0]!.awaitSynced).toHaveBeenCalledTimes(1);
     expect(sessionInstances[0]!.destroy).not.toHaveBeenCalled();
 
-    const recoveredDocument = await userConfig.documentList().create('Recovered Document');
+    const recoveredDocument = await userData.documents().create('Recovered Document');
 
     expect(sessionInstances).toHaveLength(1);
     expect(recoveredDocument.text()).toBe('Recovered Document');
-    expect(listDocuments(userConfig)).toEqual([
+    expect(listDocuments(userData)).toEqual([
       USER_RUNTIME_DOCUMENT,
       { id: recoveredDocument.id(), title: 'Recovered Document' },
     ]);
 
-    const reloadedUserConfig = await getUserConfig();
-    expect(listDocuments(reloadedUserConfig)).toEqual([
+    const reloadedUserData = await getUserData();
+    expect(listDocuments(reloadedUserData)).toEqual([
       USER_RUNTIME_DOCUMENT,
       { id: recoveredDocument.id(), title: 'Recovered Document' },
     ]);
   });
 
-  it('waits for initial config loading before creating a document', async () => {
+  it('waits for initial user data loading before creating a document', async () => {
     const sync = createDeferred();
     vi.doMock('#lib/collaboration/session', () => ({
       CollabSession: class MockCollabSession {
@@ -405,7 +405,7 @@ describe('stored user config', () => {
         }
 
         attach(docMap: Map<string, Y.Doc>) {
-          docMap.set(this.docId, createUserConfigDoc([USER_RUNTIME_DOCUMENT]));
+          docMap.set(this.docId, createUserDataDoc([USER_RUNTIME_DOCUMENT]));
         }
 
         getProvider() {
@@ -418,29 +418,29 @@ describe('stored user config', () => {
       },
     }));
 
-    const { getCurrentUserConfig, startUserConfigRuntime } = await import('@/documents/stored-user-config');
-    const userConfig = getCurrentUserConfig();
+    const { getCurrentUserData, startUserDataRuntime } = await import('@/documents/stored-user-data');
+    const userData = getCurrentUserData();
 
-    startUserConfigRuntime();
-    const createdPromise = userConfig.documentList().create('New Document');
+    startUserDataRuntime();
+    const createdPromise = userData.documents().create('New Document');
     await Promise.resolve();
     await Promise.resolve();
 
     const fetchMock = vi.mocked(fetch);
-    expect(fetchMock.mock.calls.filter(([input]) => String(input) === '/api/profile/documents')).toHaveLength(0);
-    expect(listDocuments(userConfig)).toEqual([]);
+    expect(fetchMock.mock.calls.filter(([input]) => String(input) === '/api/documents')).toHaveLength(0);
+    expect(listDocuments(userData)).toEqual([]);
 
     sync.resolve();
     const createdDocument = await createdPromise;
 
-    expect(fetchMock.mock.calls.filter(([input]) => String(input) === '/api/profile/documents')).toHaveLength(1);
-    expect(listDocuments(userConfig)).toEqual([
+    expect(fetchMock.mock.calls.filter(([input]) => String(input) === '/api/documents')).toHaveLength(1);
+    expect(listDocuments(userData)).toEqual([
       USER_RUNTIME_DOCUMENT,
       { id: createdDocument.id(), title: 'New Document' },
     ]);
   });
 
-  it('uses the user-specific home document for an empty stored config projection', async () => {
+  it('uses the user-specific home document for an empty stored user data projection', async () => {
     vi.doMock('#lib/collaboration/session', () => ({
       CollabSession: class MockCollabSession {
         private provider = {
@@ -456,7 +456,7 @@ describe('stored user config', () => {
         }
 
         attach(docMap: Map<string, Y.Doc>) {
-          docMap.set(this.docId, createUserConfigDoc([]));
+          docMap.set(this.docId, createUserDataDoc([]));
         }
 
         getProvider() {
@@ -469,36 +469,36 @@ describe('stored user config', () => {
       },
     }));
 
-    const { getUserConfig } = await import('@/documents/stored-user-config');
+    const { getUserData } = await import('@/documents/stored-user-data');
 
-    const userConfig = await getUserConfig();
+    const userData = await getUserData();
 
-    expect(listDocuments(userConfig)).toEqual([USER_RUNTIME_DOCUMENT]);
+    expect(listDocuments(userData)).toEqual([USER_RUNTIME_DOCUMENT]);
   });
 
-  it('destroys a pending config session when reset races with startup sync', async () => {
+  it('destroys a pending user data session when reset races with startup sync', async () => {
     const sync = createDeferred();
     const sessions = mockCollabSession({ awaitSynced: () => sync.promise });
 
     const {
-      getUserConfig,
-      resetUserConfigRuntime,
-    } = await import('@/documents/stored-user-config');
+      getUserData,
+      resetUserDataRuntime,
+    } = await import('@/documents/stored-user-data');
 
-    const startupPromise = getUserConfig();
+    const startupPromise = getUserData();
     const session = await waitForSessionAwait(sessions);
 
-    resetUserConfigRuntime();
+    resetUserDataRuntime();
 
     expect(session.destroy).toHaveBeenCalledTimes(1);
 
     sync.resolve();
 
-    await expect(startupPromise).rejects.toThrow('User config runtime was reset.');
+    await expect(startupPromise).rejects.toThrow('User data runtime was reset.');
     expect(session.destroy).toHaveBeenCalledTimes(1);
   });
 
-  it('resets the live config session and document list', async () => {
+  it('resets the live user data session and document list', async () => {
     const sessionInstances: Array<{
       destroy: ReturnType<typeof vi.fn>;
     }> = [];
@@ -519,7 +519,7 @@ describe('stored user config', () => {
         }
 
         attach(docMap: Map<string, Y.Doc>) {
-          docMap.set(this.docId, createUserConfigDoc([USER_RUNTIME_DOCUMENT]));
+          docMap.set(this.docId, createUserDataDoc([USER_RUNTIME_DOCUMENT]));
         }
 
         getProvider() {
@@ -533,20 +533,20 @@ describe('stored user config', () => {
     }));
 
     const {
-      getCurrentUserConfig,
-      getUserConfig,
-      resetUserConfigRuntime,
-    } = await import('@/documents/stored-user-config');
+      getCurrentUserData,
+      getUserData,
+      resetUserDataRuntime,
+    } = await import('@/documents/stored-user-data');
 
-    const userConfig = await getUserConfig();
-    expect(userConfig).toBe(getCurrentUserConfig());
-    expect(listDocuments(userConfig)).toEqual([USER_RUNTIME_DOCUMENT]);
+    const userData = await getUserData();
+    expect(userData).toBe(getCurrentUserData());
+    expect(listDocuments(userData)).toEqual([USER_RUNTIME_DOCUMENT]);
 
-    resetUserConfigRuntime();
+    resetUserDataRuntime();
 
     expect(sessionInstances).toHaveLength(1);
     expect(sessionInstances[0]!.destroy).toHaveBeenCalledTimes(1);
-    expect(listDocuments(userConfig)).toEqual([]);
-    expect(getCurrentUserConfig()).toBe(userConfig);
+    expect(listDocuments(userData)).toEqual([]);
+    expect(getCurrentUserData()).toBe(userData);
   });
 });

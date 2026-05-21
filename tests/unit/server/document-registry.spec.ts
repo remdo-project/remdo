@@ -89,13 +89,13 @@ describe('document registry', () => {
     ]);
   });
 
-  it('excludes user config documents from the listed documents', async () => {
+  it('excludes user data documents from the listed documents', async () => {
     const registry = createRegistry();
     await registry.insertDocument({
-      id: 'userConfig',
-      kind: 'user-config',
+      id: 'userData',
+      kind: 'user-data-projection',
       ownerUserId: 'user-1',
-      title: 'User Config',
+      title: 'User Data',
     });
     await registry.insertDocument({
       id: 'visibleDoc',
@@ -124,16 +124,16 @@ describe('document registry', () => {
     const registry = createRegistry();
 
     await registry.insertDocument({
-      id: 'userConfig1',
-      kind: 'user-config',
+      id: 'userData1',
+      kind: 'user-data-projection',
       ownerUserId: 'user-1',
-      title: 'User Config',
+      title: 'User Data',
     });
 
-    await expect(registry.getUserDocumentByKind('user-1', 'user-config')).resolves.toMatchObject({
-      id: 'userConfig1',
-      kind: 'user-config',
-      title: 'User Config',
+    await expect(registry.getUserDocumentByKind('user-1', 'user-data-projection')).resolves.toMatchObject({
+      id: 'userData1',
+      kind: 'user-data-projection',
+      title: 'User Data',
     });
   });
 

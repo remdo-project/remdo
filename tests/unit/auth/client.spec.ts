@@ -81,11 +81,11 @@ describe('auth client session gate', () => {
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'offline-unavailable' });
   });
 
-  it('clears the durable profile cache when the online session is gone', async () => {
+  it('clears the durable bootstrap cache when the online session is gone', async () => {
     getSessionMock.mockResolvedValue({ data: null });
     localStorage.setItem('remdo-authenticated-session', '1');
-    localStorage.setItem('remdo-user-profile', JSON.stringify({
-      configDocumentId: 'oldConfig',
+    localStorage.setItem('remdo-current-user-bootstrap', JSON.stringify({
+      userDataDocumentId: 'oldUserData',
       homeDocumentId: 'oldHome',
     }));
     const { resolveSessionGateState } = await import('@/auth/client');
@@ -93,6 +93,6 @@ describe('auth client session gate', () => {
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
 
     expect(localStorage.getItem('remdo-authenticated-session')).toBeNull();
-    expect(localStorage.getItem('remdo-user-profile')).toBeNull();
+    expect(localStorage.getItem('remdo-current-user-bootstrap')).toBeNull();
   });
 });

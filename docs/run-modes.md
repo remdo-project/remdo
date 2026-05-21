@@ -60,8 +60,8 @@ records the intent that should stay true across implementations.
      collaboration server behind the same gateway
   8. Better Auth runs inside the RemDo API process and stores users/sessions
      in the same SQLite database file as the document registry; the registry
-     owns document ownership, document titles, and per-user config/home rows,
-     while Y-Sweet persists normal documents and the read-only user-config
+     owns document ownership, document titles, and per-user data/home rows,
+     while Y-Sweet persists normal documents and the read-only user-data
      projection
   9. browser clients reach collaboration through RemDo API token issuance and
      the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
@@ -89,8 +89,8 @@ records the intent that should stay true across implementations.
      collaboration server behind the same gateway
   6. Better Auth users/sessions and the SQLite-backed document registry share
      the same RemDo-owned DB file; the registry owns document ownership,
-     document titles, and per-user config/home rows, while Y-Sweet persists
-     normal documents and the read-only user-config projection
+     document titles, and per-user data/home rows, while Y-Sweet persists
+     normal documents and the read-only user-data projection
   7. browser clients reach collaboration through RemDo API token issuance and
      the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
      routes

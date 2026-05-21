@@ -1,73 +1,73 @@
 import type { DocumentTokenManager } from '@/server/collab-token';
 import type { DocumentKind } from '@/server/db/schema';
-import { syncListedDocumentsMapArray } from '@/server/yjs/projection';
+import { syncUserDocumentsMapArray } from '@/server/yjs/projection';
 import type { DocumentRegistry, RegisteredDocument } from './document-registry';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
 import { HOME_DOCUMENT_TITLE } from '@/documents/contracts';
 import * as Y from 'yjs';
 
-interface UserProfile {
+interface CurrentUserBootstrap {
   homeDocumentId: string;
-  configDocumentId: string;
+  userDataDocumentId: string;
 }
 
-interface CreatedProfileDocument {
+interface CreatedUserDocument {
   id: string;
   title: string;
 }
 
-const USER_CONFIG_ROOT_NOTE_ID = 'user-config';
+const USER_DATA_ROOT_NOTE_ID = 'user-data';
 const DOCUMENTS_KEY = 'documents';
-const USER_CONFIG_TITLE = 'User Config';
+const USER_DATA_PROJECTION_TITLE = 'User Data';
 const DOCUMENT_ID_ALLOCATION_ATTEMPTS = 64;
 
 type UserSpecialDocumentKind = Exclude<DocumentKind, 'document'>;
 
-interface UserProfileDocuments {
-  configDocument: RegisteredDocument;
+interface CurrentUserBootstrapDocuments {
+  userDataDocument: RegisteredDocument;
   homeDocument: RegisteredDocument;
 }
 
-function writeUserConfigProjection(
+function writeUserDataProjection(
   doc: Y.Doc,
   documents: readonly Pick<RegisteredDocument, 'id' | 'title'>[],
 ): void {
-  const root = doc.getMap<Y.Array<Y.Map<unknown>>>(USER_CONFIG_ROOT_NOTE_ID);
+  const root = doc.getMap<Y.Array<Y.Map<unknown>>>(USER_DATA_ROOT_NOTE_ID);
   const existing = root.get(DOCUMENTS_KEY);
-  const documentList = existing instanceof Y.Array ? existing : new Y.Array<Y.Map<unknown>>();
+  const userDocuments = existing instanceof Y.Array ? existing : new Y.Array<Y.Map<unknown>>();
 
   doc.transact(() => {
     if (!(existing instanceof Y.Array)) {
-      root.set(DOCUMENTS_KEY, documentList);
+      root.set(DOCUMENTS_KEY, userDocuments);
     }
-    syncListedDocumentsMapArray(documentList, documents);
+    syncUserDocumentsMapArray(userDocuments, documents);
   });
 }
 
-async function refreshUserConfigProjection(
+async function refreshUserDataProjection(
   registry: DocumentRegistry,
   tokenManager: DocumentTokenManager,
   userId: string,
-  configDocumentId: string,
+  userDataDocumentId: string,
 ): Promise<void> {
-  await tokenManager.getOrCreateDocAndToken(configDocumentId, { authorization: 'read-only' });
+  await tokenManager.getOrCreateDocAndToken(userDataDocumentId, { authorization: 'read-only' });
 
   const doc = new Y.Doc();
   try {
-    Y.applyUpdate(doc, await tokenManager.getDocAsUpdate(configDocumentId));
-    writeUserConfigProjection(doc, await registry.listUserDocuments(userId));
-    await tokenManager.updateDoc(configDocumentId, Y.encodeStateAsUpdate(doc));
+    Y.applyUpdate(doc, await tokenManager.getDocAsUpdate(userDataDocumentId));
+    writeUserDataProjection(doc, await registry.listUserDocuments(userId));
+    await tokenManager.updateDoc(userDataDocumentId, Y.encodeStateAsUpdate(doc));
   } finally {
     doc.destroy();
   }
 }
 
-async function ensureUserConfigDocument(
+async function ensureUserDataDocument(
   registry: DocumentRegistry,
   userId: string,
   { createDocumentId }: { createDocumentId?: () => string },
 ): Promise<RegisteredDocument> {
-  return ensureUserSpecialDocument(registry, userId, 'user-config', USER_CONFIG_TITLE, {
+  return ensureUserSpecialDocument(registry, userId, 'user-data-projection', USER_DATA_PROJECTION_TITLE, {
     createDocumentId,
   });
 }
@@ -94,13 +94,13 @@ async function ensureUserSpecialDocument(
     return existing;
   }
 
-  return createProfileDocumentRecord(registry, userId, title, {
+  return createUserDocumentRecord(registry, userId, title, {
     createDocumentId,
     kind,
   });
 }
 
-async function createProfileDocumentRecord(
+async function createUserDocumentRecord(
   registry: DocumentRegistry,
   userId: string,
   title: string,
@@ -130,49 +130,49 @@ async function createProfileDocumentRecord(
   throw new Error(`Failed to allocate ${kind} document for user ${userId}.`);
 }
 
-async function ensureUserProfileDocuments(
+async function ensureCurrentUserBootstrapDocuments(
   registry: DocumentRegistry,
   userId: string,
   { createDocumentId }: { createDocumentId?: () => string } = {},
-): Promise<UserProfileDocuments> {
-  const configDocument = await ensureUserConfigDocument(registry, userId, { createDocumentId });
+): Promise<CurrentUserBootstrapDocuments> {
+  const userDataDocument = await ensureUserDataDocument(registry, userId, { createDocumentId });
   const homeDocument = await ensureUserHomeDocument(registry, userId, { createDocumentId });
 
-  return { configDocument, homeDocument };
+  return { userDataDocument, homeDocument };
 }
 
-export async function ensureUserProfile(
+export async function ensureCurrentUserBootstrap(
   registry: DocumentRegistry,
   tokenManager: DocumentTokenManager,
   userId: string,
   { createDocumentId }: { createDocumentId?: () => string } = {},
-): Promise<UserProfile> {
-  const { configDocument, homeDocument } = await ensureUserProfileDocuments(registry, userId, {
+): Promise<CurrentUserBootstrap> {
+  const { userDataDocument, homeDocument } = await ensureCurrentUserBootstrapDocuments(registry, userId, {
     createDocumentId,
   });
 
-  await refreshUserConfigProjection(registry, tokenManager, userId, configDocument.id);
+  await refreshUserDataProjection(registry, tokenManager, userId, userDataDocument.id);
 
   return {
-    configDocumentId: configDocument.id,
+    userDataDocumentId: userDataDocument.id,
     homeDocumentId: homeDocument.id,
   };
 }
 
-export async function createListedProfileDocument(
+export async function createUserDocument(
   registry: DocumentRegistry,
   tokenManager: DocumentTokenManager,
   userId: string,
   title: string,
   { createDocumentId }: { createDocumentId?: () => string } = {},
-): Promise<CreatedProfileDocument> {
-  const { configDocument } = await ensureUserProfileDocuments(registry, userId, { createDocumentId });
-  const document = await createProfileDocumentRecord(registry, userId, title, { createDocumentId });
+): Promise<CreatedUserDocument> {
+  const { userDataDocument } = await ensureCurrentUserBootstrapDocuments(registry, userId, { createDocumentId });
+  const document = await createUserDocumentRecord(registry, userId, title, { createDocumentId });
   try {
-    await refreshUserConfigProjection(registry, tokenManager, userId, configDocument.id);
+    await refreshUserDataProjection(registry, tokenManager, userId, userDataDocument.id);
   } catch {
-    // The SQL registry is the durable source of truth. A later profile load or
-    // create can repair the derived user-config projection.
+    // The SQL registry is the durable source of truth. A later bootstrap load or
+    // create can repair the derived user-data projection.
   }
   return {
     id: document.id,

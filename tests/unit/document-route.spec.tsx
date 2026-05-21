@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getTestUserConfig, resetTestUserConfig } from '#tests';
+import { getTestUserData, resetTestUserData } from '#tests';
 
 import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/search-candidates';
 import type { NotePathItem } from '@/editor/outline/note-traversal';
@@ -11,9 +11,9 @@ import { useEditorViewActions, useZoomNoteId } from '@/editor/view/EditorViewPro
 import DocumentRoute from '@/routes/DocumentRoute';
 import { createDocumentPath, parseDocumentRef } from '@/routing';
 
-vi.mock('@/documents/user-config', async () => {
-  const { mockUserConfigModule } = await import('#tests');
-  return mockUserConfigModule();
+vi.mock('@/documents/user-data', async () => {
+  const { mockUserDataModule } = await import('#tests');
+  return mockUserDataModule();
 });
 
 interface TestSearchSnapshot {
@@ -129,7 +129,7 @@ vi.mock('@/editor/zoom/ZoomBreadcrumbs', () => ({
 
 describe('document route', () => {
   beforeEach(() => {
-    resetTestUserConfig();
+    resetTestUserData();
     mockEditorInstanceCounter = 0;
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
     globals.__remdoMockSearchCandidatesByDoc = undefined;
@@ -175,7 +175,7 @@ describe('document route', () => {
   });
 
   it('uses listed document titles instead of route document ids in the page title', async () => {
-    const createdDocument = await getTestUserConfig().documentList().create('  Project\nNotes  ');
+    const createdDocument = await getTestUserData().documents().create('  Project\nNotes  ');
     renderDocumentRoute(createDocumentPath(createdDocument.id()));
 
     await waitFor(() => {

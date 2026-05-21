@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authClient, forgetAuthenticatedSession } from '@/auth/client';
 import { logoutCurrentUser } from '@/auth/logout';
-import { resetUserConfig } from '@/documents/user-config';
-import { clearUserProfileCache } from '@/documents/user-profile';
+import { resetUserData } from '@/documents/user-data';
+import { clearCurrentUserBootstrapCache } from '@/documents/current-user-bootstrap';
 
 vi.mock('@/auth/client', () => ({
   authClient: {
@@ -12,12 +12,12 @@ vi.mock('@/auth/client', () => ({
   forgetAuthenticatedSession: vi.fn(),
 }));
 
-vi.mock('@/documents/user-config', () => ({
-  resetUserConfig: vi.fn(),
+vi.mock('@/documents/user-data', () => ({
+  resetUserData: vi.fn(),
 }));
 
-vi.mock('@/documents/user-profile', () => ({
-  clearUserProfileCache: vi.fn(),
+vi.mock('@/documents/current-user-bootstrap', () => ({
+  clearCurrentUserBootstrapCache: vi.fn(),
 }));
 
 describe('logout client state', () => {
@@ -34,8 +34,8 @@ describe('logout client state', () => {
 
     expect(authClient.signOut).toHaveBeenCalledTimes(1);
     expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
-    expect(clearUserProfileCache).toHaveBeenCalledTimes(1);
-    expect(resetUserConfig).toHaveBeenCalledTimes(1);
+    expect(clearCurrentUserBootstrapCache).toHaveBeenCalledTimes(1);
+    expect(resetUserData).toHaveBeenCalledTimes(1);
   });
 
   it('still clears client state when Better Auth rejects logout', async () => {
@@ -47,8 +47,8 @@ describe('logout client state', () => {
     });
 
     expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
-    expect(clearUserProfileCache).toHaveBeenCalledTimes(1);
-    expect(resetUserConfig).toHaveBeenCalledTimes(1);
+    expect(clearCurrentUserBootstrapCache).toHaveBeenCalledTimes(1);
+    expect(resetUserData).toHaveBeenCalledTimes(1);
   });
 
   it('still clears client state when Better Auth sign-out throws', async () => {
@@ -60,7 +60,7 @@ describe('logout client state', () => {
     });
 
     expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
-    expect(clearUserProfileCache).toHaveBeenCalledTimes(1);
-    expect(resetUserConfig).toHaveBeenCalledTimes(1);
+    expect(clearCurrentUserBootstrapCache).toHaveBeenCalledTimes(1);
+    expect(resetUserData).toHaveBeenCalledTimes(1);
   });
 });

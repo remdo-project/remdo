@@ -48,15 +48,16 @@ For each access case, the important questions are:
   target app server supports.
 - Current server-mode anchor: RemDo `Actor` currently maps directly to the
   Better Auth user/session identity.
-- Personal app state: the Yjs-backed user-config note exposes the signed-in
+- Personal app state: the Yjs-backed user-data note exposes the signed-in
   user's document list and other personal app state through the existing note
   API. SQL document-registry rows are the durable source for the current
-  document list; `/api/profile` ensures the per-user config projection and
+  document list; `/api/me` ensures the per-user data projection and
   home document rows exist, then updates the persisted, read-only Yjs
-  user-config projection. Browser clients may cache the last validated profile
-  bootstrap only to reopen local/cached routes while offline or while the app
-  server is unavailable; logout clears that bootstrap together with local Yjs
-  offline data.
+  user-data projection. Browser clients may cache the last validated bootstrap
+  only to reopen local/cached routes while offline or while the app server is
+  unavailable; logout clears that bootstrap together with local Yjs offline
+  data. Future identity entries such as avatar/display name and app settings
+  such as preferences belong under the user-data note API when introduced.
 
 ## Private document access
 

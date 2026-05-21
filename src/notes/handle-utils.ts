@@ -1,4 +1,4 @@
-import type { DocumentListNote, DocumentNote, UserConfigNote } from '@/documents/contracts';
+import type { UserDocumentsNote, DocumentNote, UserDataNote } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
 import type {
   Note,
@@ -8,8 +8,8 @@ import type {
 
 export function createNoteAs(noteId: NoteId, kind: () => NoteKind, self: () => Note): Note['as'] {
   function asNote(kindToMatch: 'editor-note'): EditorNote;
-  function asNote(kindToMatch: 'user-config'): UserConfigNote;
-  function asNote(kindToMatch: 'document-list'): DocumentListNote;
+  function asNote(kindToMatch: 'user-data'): UserDataNote;
+  function asNote(kindToMatch: 'user-documents'): UserDocumentsNote;
   function asNote(kindToMatch: 'document'): DocumentNote;
   function asNote(kindToMatch: NoteKind): Note;
   function asNote(kindToMatch: NoteKind): Note {

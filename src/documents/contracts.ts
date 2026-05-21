@@ -3,15 +3,17 @@ import type { ChildPosition, Note } from '@/notes/contracts';
 
 export const HOME_DOCUMENT_TITLE = 'Home';
 
-export interface UserConfigNote extends Note<'user-config'> {
-  /** Returns the single document-list child note. */
-  documentList: () => DocumentListNote;
+export interface UserDataNote extends Note<'user-data'> {
+  /** Returns the user's home document note. */
+  homeDocument: () => DocumentNote;
+  /** Returns the user-documents child note. */
+  documents: () => UserDocumentsNote;
 }
 
-export interface DocumentListNote extends Note<'document-list'> {
-  /** Returns all listed documents in display order. */
+export interface UserDocumentsNote extends Note<'user-documents'> {
+  /** Returns all user documents in display order. */
   children: () => readonly DocumentNote[];
-  /** Creates a listed document. */
+  /** Creates a user document. */
   create: (text: string) => Promise<DocumentNote>;
 }
 

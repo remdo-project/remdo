@@ -1,5 +1,5 @@
 import { createAuthClient } from 'better-auth/react';
-import { clearStoredUserProfile } from '@/documents/user-profile-storage';
+import { clearStoredCurrentUserBootstrap } from '@/documents/current-user-bootstrap-storage';
 
 const KNOWN_SESSION_STORAGE_KEY = 'remdo-authenticated-session';
 
@@ -30,7 +30,7 @@ export function rememberAuthenticatedSession() {
 
 export function forgetAuthenticatedSession() {
   getSessionStorage()?.removeItem(KNOWN_SESSION_STORAGE_KEY);
-  clearStoredUserProfile();
+  clearStoredCurrentUserBootstrap();
 }
 
 export function hasRememberedSession() {

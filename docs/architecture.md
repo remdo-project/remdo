@@ -71,10 +71,10 @@ collaboration tokens.
 - Data boundary: the registry is the durable source for document ownership,
   access-critical metadata, and the current per-user document list. Yjs
   documents hold collaborative document content plus a persisted, read-only
-  user-config projection for the browser-facing note API.
-- User profile: `/api/profile` uses the Better Auth user id to ensure that the
-  user's config-projection row and home-document row exist in the registry, then
-  updates the Yjs user-config projection.
+  user-data projection for the browser-facing note API.
+- Current user: `/api/me` uses the Better Auth user id to ensure that the
+  user's user-data-projection row and home-document row exist in the registry,
+  then updates the Yjs user-data projection.
 
 ### Browser-facing collaboration paths
 

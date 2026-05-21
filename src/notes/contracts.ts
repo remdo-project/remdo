@@ -1,4 +1,4 @@
-import type { DocumentListNote, DocumentNote, UserConfigNote } from '@/documents/contracts';
+import type { UserDocumentsNote, DocumentNote, UserDataNote } from '@/documents/contracts';
 import type { EditorNote } from '@/editor/notes/contracts';
 
 export type NoteId = string;
@@ -6,8 +6,8 @@ export type RelativePlacement = { before: NoteId } | { after: NoteId };
 export type ChildPosition = RelativePlacement | { index: number };
 export type NoteKind =
   | 'editor-note'
-  | 'user-config'
-  | 'document-list'
+  | 'user-data'
+  | 'user-documents'
   | 'document';
 
 export interface Note<K extends NoteKind = NoteKind> {
@@ -22,8 +22,8 @@ export interface Note<K extends NoteKind = NoteKind> {
   /** Narrows the note by runtime kind; throws when the expected kind does not match. */
   as: {
     (kind: 'editor-note'): EditorNote;
-    (kind: 'user-config'): UserConfigNote;
-    (kind: 'document-list'): DocumentListNote;
+    (kind: 'user-data'): UserDataNote;
+    (kind: 'user-documents'): UserDocumentsNote;
     (kind: 'document'): DocumentNote;
     (kind: NoteKind): Note;
   };

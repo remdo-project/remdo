@@ -11,18 +11,18 @@ import {
 
 type EditorHarness = Awaited<ReturnType<typeof createEditorHarness>>;
 
-async function cleanupProfileCollabDocs(context: BrowserContext): Promise<void> {
-  const response = await context.request.get('/api/profile');
+async function cleanupUserDataCollabDocs(context: BrowserContext): Promise<void> {
+  const response = await context.request.get('/api/me');
   if (!response.ok()) {
     return;
   }
 
-  const profile = await response.json() as Partial<{
-    configDocumentId: string;
+  const bootstrap = await response.json() as Partial<{
+    userDataDocumentId: string;
     homeDocumentId: string;
   }>;
   await Promise.all(
-    [profile.configDocumentId, profile.homeDocumentId]
+    [bootstrap.userDataDocumentId, bootstrap.homeDocumentId]
       .filter((docId): docId is string => typeof docId === 'string' && docId.length > 0)
       .map((docId) => cleanupCollabDoc(docId)),
   );
@@ -41,7 +41,7 @@ export const test = base.extend<
     try {
       await applyFixture(context);
     } finally {
-      await cleanupProfileCollabDocs(context);
+      await cleanupUserDataCollabDocs(context);
       await context.close();
     }
   },

@@ -7,7 +7,7 @@ import { createEditorDocumentPath } from './_support/routes';
 
 test.describe('Document switcher', () => {
   test('creates a listed document, switches to it, and switches back to the source document', async ({ page, captureCreatedDoc }) => {
-    const sourceDocument = await createListedDocument(page, `Switcher Source ${Date.now()}`);
+    const sourceDocument = await createUserDocument(page, `Switcher Source ${Date.now()}`);
     try {
       await seedDocument(page, sourceDocument.id, 'tree-complex');
 
@@ -70,8 +70,8 @@ test.describe('Document switcher', () => {
   });
 });
 
-async function createListedDocument(page: Page, title: string): Promise<{ id: string; title: string }> {
-  const response = await page.request.post('/api/profile/documents', {
+async function createUserDocument(page: Page, title: string): Promise<{ id: string; title: string }> {
+  const response = await page.request.post('/api/documents', {
     data: { title },
   });
   await expect(response).toBeOK();

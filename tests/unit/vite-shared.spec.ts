@@ -32,8 +32,8 @@ describe('vite shared config', () => {
   it('recognizes only API request paths for the dev API middleware', () => {
     expect(isApiRequestPath('/api')).toBe(true);
     expect(isApiRequestPath('/api/health')).toBe(true);
-    expect(isApiRequestPath('/api/profile?x=1')).toBe(true);
-    expect(isApiRequestPath('/app/api/profile')).toBe(false);
+    expect(isApiRequestPath('/api/me?x=1')).toBe(true);
+    expect(isApiRequestPath('/app/api/me')).toBe(false);
     expect(isApiRequestPath('/apiary')).toBe(false);
     expect(isApiRequestPath()).toBe(false);
   });

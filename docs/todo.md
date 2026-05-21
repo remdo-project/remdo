@@ -43,7 +43,7 @@ Rules:
   1. Use one active share URL per document at a time.
   2. Turning sharing off invalidates the active URL immediately.
   3. Turning sharing back on creates a different URL; the previous URL stays invalid.
-  4. Keep normal document routing and document-list identity separate from the
+  4. Keep normal document routing and user-documents identity separate from the
      share URL in v1 unless implementation simplicity clearly favors a combined
      shape.
   5. Add direct routing unit coverage for share-path helpers once the routing
@@ -76,29 +76,29 @@ Rules:
 - ✅ Done Docker prod E2E env follow-up: keep Docker prod E2E's separate
   container-level env handling because it owns temporary secrets, data, and
   public URL setup for the production-style container/gateway boundary.
-- ✅ Done Default/dev/home document naming follow-up: split the profile-owned
+- ✅ Done Default/dev/home document naming follow-up: split the current-user-owned
   home document from the dev/tool document id. `DEV_DOCUMENT_ID` now names the
-  temporary dev/test/tool fallback, while profile `homeDocumentId` and `Home`
+  temporary dev/test/tool fallback, while bootstrap `homeDocumentId` and `Home`
   title naming refer only to the authenticated user's owned home document.
 - ✅ Done Home route alias follow-up: add an explicit home URL alias that resolves to
-  the authenticated user's current profile home document. This stays separate
+  the authenticated user's current bootstrap home document. This stays separate
   from literal `/n/main` examples and fixtures, which are ordinary document-id
   test data rather than a home-document alias.
 - Source layout follow-up: revisit browser/server/shared folder boundaries.
   Server code was added after the browser app shape was already established, so
-  some document/profile/domain concepts now sit beside browser runtime code.
+  some document/current-user/domain concepts now sit beside browser runtime code.
   Clarify which modules are client-only, server-only, and shared domain code.
-- ✅ Done E2E profile path follow-up: remove the special injected `usercfg`/config-doc
-  path from E2E helpers. Browser E2E should authenticate and load profile/home
-  resources through the same `/api/profile` path as normal users, with test
-  isolation coming from users/data setup rather than a client-side config-doc
-  override.
+- ✅ Done E2E current-user path follow-up: remove the special injected
+  `usercfg`/config-doc path from E2E helpers. Browser E2E should authenticate
+  and load current-user/home resources through the same `/api/me` path as
+  normal users, with test isolation coming from users/data setup rather than a
+  client-side config-doc override.
 - ✅ Done Routing return-path follow-up: centralize post-auth return-path handling.
   Replace ad hoc `next` parsing and path safety checks with one tested helper
   that defines which app-local redirects are allowed.
 - ✅ Done Offline auth/product follow-up: define offline auth states explicitly.
   Unauthenticated offline users see a fallback message, remembered
-  authenticated sessions may open cached/local profile routes without
+  authenticated sessions may open cached/local bootstrap routes without
   re-authenticating when the browser is offline or the app server is
   unavailable, logout clears remembered auth plus local Yjs offline data, and
   product routes no longer fall back to `DEV_DOCUMENT_ID`.
@@ -110,24 +110,22 @@ Rules:
   Y-Sweet auth enabled in local, test, Docker, and production-like run modes so
   RemDo-issued `full` and `read-only` tokens are enforced by the sync server,
   not just by the RemDo API path.
-- ✅ Done User-config security regression guards: add Docker prod E2E coverage that
-  proves user-config projection docs are persisted through the normal Y-Sweet
-  store, issued as read-only, and cannot be modified through direct sync-token
-  access. Also cover the allowed path: server-validated document creation
-  updates SQL first and then refreshes the user-config projection. These tests
-  should lock the access boundary against future refactors.
+- ✅ Done User-data security regression guards: add Docker prod E2E coverage
+  that proves user-data-projection docs are persisted through the normal
+  Y-Sweet store, issued as read-only, and cannot be modified through direct
+  sync-token access. Also cover the allowed path: server-validated document
+  creation updates SQL first and then refreshes the user-data projection. These
+  tests should lock the access boundary against future refactors.
 - Production secret isolation follow-up: harden beyond current Docker env
   hygiene. The entrypoint now filters unnecessary secrets from child process
   environments, but it still orchestrates all secrets in one container and
   passes the Y-Sweet auth key to the Y-Sweet process. Revisit with the
   production process model: separate services/containers, service users, and
   `/proc` exposure.
-- User/profile/config/document-list model follow-up: redesign the hierarchy and
-  naming so the shape is obvious to read and each layer has a clear role. In
-  particular, clarify where user profile entries, app config, the home document,
-  and the document list live, and make sure access to those entries goes
-  through the note-facing API rather than bypassing it with ad hoc profile
-  structures.
+- ✅ Done User-data/user-documents model follow-up: redesigned the hierarchy and
+  naming around current-user bootstrap, user-data projection, home document,
+  and user documents. User-documents access now goes through the note-facing
+  `UserDataNote` API instead of ad hoc bootstrap/user-data structures.
 - Read-only Yjs proxy writer follow-up: replace the current temporary
   `Y.Doc`/encoded-update projection refresh path with an API-server Yjs client
   that connects to the Y-Sweet proxy document it owns. Browsers should keep
@@ -149,11 +147,11 @@ Rules:
 
 ## Collaboration architecture roadmap [Future]
 
-- User-config runtime follow-up: observe remote/shared `documents` mutations in
-  `src/documents/stored-user-config.ts` and refresh the local store version so
+- User-data runtime follow-up: observe remote/shared `documents` mutations in
+  `src/documents/stored-user-data.ts` and refresh the local store version so
   document-switcher state stays current across tabs/sessions. Retry-on-startup
   recovery can land independently first.
-- User-config route follow-up: handle rejected `documentList().create()` calls
+- User-data route follow-up: handle rejected `userData.documents().create()` calls
   from the document picker in `src/routes/DocumentRoute.tsx` so sync/write
   failures do not surface as unhandled promise rejections and the UI can
   recover cleanly.
@@ -174,7 +172,7 @@ Rules:
 
 ## Note-first SDK follow-ups
 
-- Generic note handles, document-specific note kinds, and persisted user-config
+- Generic note handles, document-specific note kinds, and persisted user-data
   storage are in place. Remaining work:
   1. Introduce async walker/finder/query helpers for search and note-link
      completion so cross-document traversal does not force raw recursive
@@ -244,8 +242,8 @@ Rules:
 
 ## Later follow-ups
 
-- Revisit client auth/profile state caching once the auth and profile model is
-  more settled. The current lightweight profile cache should eventually be
-  keyed to the active Better Auth session, or invalidated by a clear shared
-  auth-state boundary, so same-tab identity changes cannot reuse stale
-  home/config document ids.
+- Revisit client auth/bootstrap state caching once the auth and current-user
+  model is more settled. The current lightweight bootstrap cache should
+  eventually be keyed to the active Better Auth session, or invalidated by a
+  clear shared auth-state boundary, so same-tab identity changes cannot reuse
+  stale home/user-data document ids.

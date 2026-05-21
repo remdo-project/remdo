@@ -20,7 +20,7 @@ describe('post-auth paths', () => {
     expect(resolvePostAuthTargetPath('/n/main', CURRENT_ORIGIN)).toBe('/n/main');
     expect(resolvePostAuthTargetPath('/n/main_note2?lexicalDemo=true', CURRENT_ORIGIN))
       .toBe('/n/main_note2?lexicalDemo=true');
-    expect(resolvePostAuthTargetPath('/api/profile', CURRENT_ORIGIN)).toBe('/api/profile');
+    expect(resolvePostAuthTargetPath('/api/me', CURRENT_ORIGIN)).toBe('/api/me');
     expect(resolvePostAuthTargetPath('n/main', CURRENT_ORIGIN)).toBe('/n/main');
     expect(resolvePostAuthTargetPath('https://remdo.test/n/main', CURRENT_ORIGIN)).toBe('/n/main');
   });

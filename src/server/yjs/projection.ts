@@ -1,4 +1,4 @@
-import type { ListedDocument } from '@/documents/user-config-notes';
+import type { UserDocument } from '@/documents/user-data-notes';
 import * as Y from 'yjs';
 
 type IdKeyedMapValues = Readonly<Record<string, unknown> & { id: string }>;
@@ -80,9 +80,9 @@ function syncIdKeyedMapArray<T>(
   }
 }
 
-export function syncListedDocumentsMapArray(
+export function syncUserDocumentsMapArray(
   array: Y.Array<Y.Map<unknown>>,
-  documents: readonly ListedDocument[],
+  documents: readonly UserDocument[],
 ): void {
   syncIdKeyedMapArray(array, documents, {
     valuesOf: (document) => ({

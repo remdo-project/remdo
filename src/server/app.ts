@@ -7,7 +7,7 @@ import { getServerAuth } from './auth/auth';
 import { resolveActor } from './auth/actor';
 import { createDocumentRegistry } from './documents/document-registry';
 import type { DocumentRegistry, RegisteredDocument } from './documents/document-registry';
-import { createListedProfileDocument, ensureUserProfile } from './documents/user-profile';
+import { createUserDocument, ensureCurrentUserBootstrap } from './documents/current-user';
 import { createDocumentTokenManager, issueDocumentToken } from './collab-token';
 import type { DocumentTokenManager } from './collab-token';
 
@@ -74,7 +74,7 @@ export function createServerApp({
     });
   });
 
-  app.get('/api/profile', async (c) => {
+  app.get('/api/me', async (c) => {
     try {
       await auth.ensureReady();
       const actor = await resolveActor(c.req.raw, auth);
@@ -82,16 +82,16 @@ export function createServerApp({
         return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
       }
 
-      const profile = await ensureUserProfile(registry, tokenManager, actor.userId);
+      const bootstrap = await ensureCurrentUserBootstrap(registry, tokenManager, actor.userId);
 
-      return c.json(profile);
+      return c.json(bootstrap);
     } catch (error) {
       logError(error, {});
-      return c.json({ error: 'Failed to resolve profile.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+      return c.json({ error: 'Failed to resolve current user.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });
 
-  app.post('/api/profile/documents', async (c) => {
+  app.post('/api/documents', async (c) => {
     try {
       await auth.ensureReady();
       const actor = await resolveActor(c.req.raw, auth);
@@ -105,7 +105,7 @@ export function createServerApp({
         return c.json({ error: 'Document title is required.' }, HTTP_STATUS.BAD_REQUEST);
       }
 
-      const document = await createListedProfileDocument(
+      const document = await createUserDocument(
         registry,
         tokenManager,
         actor.userId,

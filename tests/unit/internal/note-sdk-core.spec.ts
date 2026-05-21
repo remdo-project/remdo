@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createUserConfigRootNote } from '@/documents/user-config-notes';
+import { createUserDataRootNote } from '@/documents/user-data-notes';
 import { createEditorNotes } from '@/editor/notes';
 import type { EditorNotesAdapter, NoteRange, PlaceTarget, SelectionSnapshot } from '@/editor/notes/contracts';
 import { NoteNotFoundError } from '@/notes/errors';
@@ -8,7 +8,7 @@ function createMockAdapterFixture(
   adapterSelection?: SelectionSnapshot
 ): {
   adapter: EditorNotesAdapter;
-  userConfig: Parameters<typeof createUserConfigRootNote>[0];
+  userData: Parameters<typeof createUserDataRootNote>[0];
   notes: Map<string, { text: string; children: string[] }>;
   placeCalls: Array<{ range: NoteRange; target: PlaceTarget }>;
 } {
@@ -20,7 +20,7 @@ function createMockAdapterFixture(
   ]);
   const placeCalls: Array<{ range: NoteRange; target: PlaceTarget }> = [];
   let nextDraftId = 1;
-  const userConfig = [
+  const userData = [
     { id: 'main', title: 'Main' },
     { id: 'flat', title: 'Flat' },
   ];
@@ -41,7 +41,7 @@ function createMockAdapterFixture(
   return {
     notes,
     placeCalls,
-    userConfig,
+    userData,
     adapter: {
       docId: () => 'doc-1',
       currentDocumentChildrenIds: () => ['a'],
@@ -110,21 +110,21 @@ describe('editor notes core', () => {
   it('narrows notes by kind and throws on mismatches', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createEditorNotes(fixture.adapter);
-    const documentList = createUserConfigRootNote(fixture.userConfig).documentList();
+    const documents = createUserDataRootNote(fixture.userData).documents();
     const note = sdk.note('a');
 
-    expect(documentList.kind()).toBe('document-list');
-    expect(documentList.children()[0]!.text()).toBe('Main');
+    expect(documents.kind()).toBe('user-documents');
+    expect(documents.children()[0]!.text()).toBe('Main');
     expect(note.as('editor-note').attached()).toBe(true);
     expect(() => note.as('document')).toThrow('expected "document"');
   });
 
-  it('lists documents through user-config document-list traversal', () => {
+  it('lists documents through user-data user-documents traversal', () => {
     const fixture = createMockAdapterFixture();
-    const documentList = createUserConfigRootNote(fixture.userConfig).documentList();
+    const documents = createUserDataRootNote(fixture.userData).documents();
 
     expect(
-      documentList.children().map((document) => ({
+      documents.children().map((document) => ({
         id: document.id(),
         kind: document.kind(),
         text: document.text(),

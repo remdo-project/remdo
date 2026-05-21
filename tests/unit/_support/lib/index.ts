@@ -7,4 +7,4 @@ export * from './dom-selection';
 export * from './selection';
 export * from './lexical';
 export * from './test-meta';
-export * from './user-config';
+export * from './user-data';

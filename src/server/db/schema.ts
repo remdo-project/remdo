@@ -1,5 +1,5 @@
 export const DOCUMENT_ACCESS_MODES = ['private', 'public', 'link-shared'] as const;
-export const DOCUMENT_KINDS = ['document', 'home-document', 'user-config'] as const;
+export const DOCUMENT_KINDS = ['document', 'home-document', 'user-data-projection'] as const;
 
 export type DocumentAccessMode = (typeof DOCUMENT_ACCESS_MODES)[number];
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
@@ -33,5 +33,5 @@ export const CREATE_DOCUMENTS_TABLE_SQL = `
 
   CREATE UNIQUE INDEX IF NOT EXISTS documents_unique_owner_special_kind
     ON documents(owner_user_id, document_kind)
-    WHERE document_kind IN ('home-document', 'user-config');
+    WHERE document_kind IN ('home-document', 'user-data-projection');
 `;

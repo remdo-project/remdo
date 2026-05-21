@@ -30,10 +30,10 @@ describe('remdo api app', () => {
     await expect(harness.registry.getDocument('main')).resolves.toBeNull();
   });
 
-  it('returns 401 for profile without a session', async () => {
+  it('returns 401 for current user without a session', async () => {
     const harness = createHarness();
 
-    const response = await harness.app.request('/api/profile');
+    const response = await harness.app.request('/api/me');
 
     expect(response.status).toBe(HTTP_STATUS.UNAUTHORIZED);
     await expect(response.json()).resolves.toEqual({ error: 'Authentication required.' });
@@ -82,31 +82,31 @@ describe('remdo api app', () => {
     expect(stored).toEqual(existing);
   });
 
-  it('returns stable per-user profile document ids and ensures owned registry rows', async () => {
+  it('returns stable per-user bootstrap document ids and ensures owned registry rows', async () => {
     const harness = createHarness();
     const headers = await harness.createSessionHeaders();
     const userId = await harness.getSessionUserId(headers);
 
-    const firstResponse = await harness.app.request('/api/profile', { headers });
-    const secondResponse = await harness.app.request('/api/profile', { headers });
-    const firstProfile = await firstResponse.json();
-    const secondProfile = await secondResponse.json();
+    const firstResponse = await harness.app.request('/api/me', { headers });
+    const secondResponse = await harness.app.request('/api/me', { headers });
+    const firstBootstrap = await firstResponse.json();
+    const secondBootstrap = await secondResponse.json();
 
     expect(firstResponse.status).toBe(HTTP_STATUS.OK);
     expect(secondResponse.status).toBe(HTTP_STATUS.OK);
-    expect(secondProfile).toEqual(firstProfile);
-    await expect(harness.registry.getDocument(firstProfile.configDocumentId)).resolves.toMatchObject({
-      kind: 'user-config',
+    expect(secondBootstrap).toEqual(firstBootstrap);
+    await expect(harness.registry.getDocument(firstBootstrap.userDataDocumentId)).resolves.toMatchObject({
+      kind: 'user-data-projection',
       ownerUserId: userId,
     });
-    await expect(harness.registry.getDocument(firstProfile.homeDocumentId)).resolves.toMatchObject({
+    await expect(harness.registry.getDocument(firstBootstrap.homeDocumentId)).resolves.toMatchObject({
       kind: 'home-document',
       ownerUserId: userId,
     });
-    expect(harness.readProjectedDocumentIds(firstProfile.configDocumentId)).toEqual([firstProfile.homeDocumentId]);
+    expect(harness.readProjectedDocumentIds(firstBootstrap.userDataDocumentId)).toEqual([firstBootstrap.homeDocumentId]);
   });
 
-  it('returns different config document ids for different users', async () => {
+  it('returns different user data projection document ids for different users', async () => {
     const harness = createHarness();
     const firstHeaders = await harness.createSessionHeaders({
       email: 'first@example.com',
@@ -119,15 +119,15 @@ describe('remdo api app', () => {
       password: 'second-password-1234',
     });
 
-    const firstResponse = await harness.app.request('/api/profile', { headers: firstHeaders });
-    const secondResponse = await harness.app.request('/api/profile', { headers: secondHeaders });
-    const firstProfile = await firstResponse.json();
-    const secondProfile = await secondResponse.json();
+    const firstResponse = await harness.app.request('/api/me', { headers: firstHeaders });
+    const secondResponse = await harness.app.request('/api/me', { headers: secondHeaders });
+    const firstBootstrap = await firstResponse.json();
+    const secondBootstrap = await secondResponse.json();
 
     expect(firstResponse.status).toBe(HTTP_STATUS.OK);
     expect(secondResponse.status).toBe(HTTP_STATUS.OK);
-    expect(secondProfile.configDocumentId).not.toBe(firstProfile.configDocumentId);
-    expect(secondProfile.homeDocumentId).not.toBe(firstProfile.homeDocumentId);
+    expect(secondBootstrap.userDataDocumentId).not.toBe(firstBootstrap.userDataDocumentId);
+    expect(secondBootstrap.homeDocumentId).not.toBe(firstBootstrap.homeDocumentId);
   });
 
   it('allows the private document owner to issue a token', async () => {
@@ -146,13 +146,13 @@ describe('remdo api app', () => {
     });
   });
 
-  it('issues read-only tokens for the projected user config document', async () => {
+  it('issues read-only tokens for the projected user data document', async () => {
     const harness = createHarness();
     const headers = await harness.createSessionHeaders();
-    const profileResponse = await harness.app.request('/api/profile', { headers });
-    const profile = await profileResponse.json();
+    const bootstrapResponse = await harness.app.request('/api/me', { headers });
+    const bootstrap = await bootstrapResponse.json();
 
-    const response = await harness.app.request(`/api/documents/${profile.configDocumentId}/token`, {
+    const response = await harness.app.request(`/api/documents/${bootstrap.userDataDocumentId}/token`, {
       method: 'POST',
       headers,
     });
@@ -160,19 +160,19 @@ describe('remdo api app', () => {
     expect(response.status).toBe(HTTP_STATUS.OK);
     await expect(response.json()).resolves.toMatchObject({
       authorization: 'read-only',
-      docId: profile.configDocumentId,
+      docId: bootstrap.userDataDocumentId,
     });
   });
 
-  it('creates listed documents through the validated user document endpoint', async () => {
+  it('creates user documents through the validated user document endpoint', async () => {
     const harness = createHarness();
     const headers = await harness.createSessionHeaders();
-    const profileResponse = await harness.app.request('/api/profile', { headers });
-    const profile = await profileResponse.json();
+    const bootstrapResponse = await harness.app.request('/api/me', { headers });
+    const bootstrap = await bootstrapResponse.json();
     const requestHeaders = new Headers(headers);
     requestHeaders.set('content-type', 'application/json');
 
-    const response = await harness.app.request('/api/profile/documents', {
+    const response = await harness.app.request('/api/documents', {
       method: 'POST',
       headers: requestHeaders,
       body: JSON.stringify({ title: 'New Document' }),
@@ -181,13 +181,13 @@ describe('remdo api app', () => {
 
     expect(response.status).toBe(HTTP_STATUS.OK);
     expect(document).toMatchObject({ title: 'New Document' });
-    expect(harness.readProjectedDocumentIds(profile.configDocumentId)).toEqual([
-      profile.homeDocumentId,
+    expect(harness.readProjectedDocumentIds(bootstrap.userDataDocumentId)).toEqual([
+      bootstrap.homeDocumentId,
       document.id,
     ]);
   });
 
-  it('returns created listed documents when projection refresh fails after registry insert', async () => {
+  it('returns created user documents when projection refresh fails after registry insert', async () => {
     let failProjectionRefresh = false;
     const harness = createHarness({
       onUpdateDoc: () => {
@@ -197,13 +197,13 @@ describe('remdo api app', () => {
       },
     });
     const headers = await harness.createSessionHeaders();
-    const profileResponse = await harness.app.request('/api/profile', { headers });
-    const profile = await profileResponse.json();
+    const bootstrapResponse = await harness.app.request('/api/me', { headers });
+    const bootstrap = await bootstrapResponse.json();
     const requestHeaders = new Headers(headers);
     requestHeaders.set('content-type', 'application/json');
 
     failProjectionRefresh = true;
-    const response = await harness.app.request('/api/profile/documents', {
+    const response = await harness.app.request('/api/documents', {
       method: 'POST',
       headers: requestHeaders,
       body: JSON.stringify({ title: 'Projection Failure Document' }),
@@ -217,8 +217,8 @@ describe('remdo api app', () => {
       ownerUserId: await harness.getSessionUserId(headers),
       title: 'Projection Failure Document',
     });
-    expect(harness.readProjectedDocumentIds(profile.configDocumentId)).toEqual([
-      profile.homeDocumentId,
+    expect(harness.readProjectedDocumentIds(bootstrap.userDataDocumentId)).toEqual([
+      bootstrap.homeDocumentId,
     ]);
   });
 

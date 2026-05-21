@@ -10,17 +10,17 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  getTestUserConfig,
+  getTestUserData,
   meta,
   placeCaretAtNote,
-  resetTestUserConfig,
-  TEST_USER_CONFIG_DOCUMENT,
+  resetTestUserData,
+  TEST_USER_DATA_DOCUMENT,
 } from '#tests';
 import { createLexicalEditorNotes } from '@/editor/notes';
 
 describe('editor notes showcase', () => {
   beforeEach(() => {
-    resetTestUserConfig();
+    resetTestUserData();
   });
 
   it(
@@ -78,31 +78,31 @@ describe('editor notes showcase', () => {
   );
 
   it(
-    'lists and creates documents through user-config document-list traversal',
+    'lists and creates documents through user-data user-documents traversal',
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
-      const userConfig = getTestUserConfig();
-      const documentList = userConfig.documentList();
+      const userData = getTestUserData();
+      const documents = userData.documents();
 
       remdo.validate(() => {
-        expect(documentList.children().map((document) => ({
+        expect(documents.children().map((document) => ({
           id: document.id(),
           text: document.text(),
         }))).toEqual([
-          { id: TEST_USER_CONFIG_DOCUMENT.id, text: TEST_USER_CONFIG_DOCUMENT.title },
+          { id: TEST_USER_DATA_DOCUMENT.id, text: TEST_USER_DATA_DOCUMENT.title },
         ]);
       });
 
-      const createdDocument = await documentList.create('New Document');
+      const createdDocument = await documents.create('New Document');
 
       remdo.validate(() => {
         expect(createdDocument.kind()).toBe('document');
-        expect(documentList.children().map((document) => ({
+        expect(documents.children().map((document) => ({
           id: document.id(),
           text: document.text(),
         }))).toEqual([
-          { id: TEST_USER_CONFIG_DOCUMENT.id, text: TEST_USER_CONFIG_DOCUMENT.title },
+          { id: TEST_USER_DATA_DOCUMENT.id, text: TEST_USER_DATA_DOCUMENT.title },
           { id: createdDocument.id(), text: 'New Document' },
         ]);
       });
@@ -115,17 +115,17 @@ describe('editor notes showcase', () => {
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
       const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      const userConfig = getTestUserConfig();
+      const userData = getTestUserData();
 
       remdo.validate(() => {
-        const documentList = userConfig.documentList();
-        const firstDocument = documentList.children()[0]!;
+        const documents = userData.documents();
+        const firstDocument = documents.children()[0]!;
         const note1 = sdk.note('note1').as('editor-note');
 
-        expect(userConfig.kind()).toBe('user-config');
-        expect(documentList.kind()).toBe('document-list');
-        expect(firstDocument.id()).toBe(TEST_USER_CONFIG_DOCUMENT.id);
-        expect(firstDocument.text()).toBe(TEST_USER_CONFIG_DOCUMENT.title);
+        expect(userData.kind()).toBe('user-data');
+        expect(documents.kind()).toBe('user-documents');
+        expect(firstDocument.id()).toBe(TEST_USER_DATA_DOCUMENT.id);
+        expect(firstDocument.text()).toBe(TEST_USER_DATA_DOCUMENT.title);
         expect(note1.attached()).toBe(true);
         expect(note1.text()).toBe('note1');
       });

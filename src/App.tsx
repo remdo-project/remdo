@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Link, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import headerStyles from './styles/AppHeader.module.css';
 import { config } from '#config';
-import { startUserConfig } from './documents/user-config';
+import { startUserData } from './documents/user-data';
 import { createDocumentPath, parseDocumentRef } from './routing';
 import VanillaLexicalEditor from './editor/dev/VanillaLexicalEditor';
 import { DevToolbarLinks } from './routes/DevToolbar';
@@ -12,7 +12,7 @@ export default function App() {
   const { docRef } = useParams<{ docRef?: string }>();
   const [searchParams] = useSearchParams();
   useEffect(() => {
-    startUserConfig();
+    startUserData();
   }, []);
   const showVanillaLexical = config.isDevOrTest && searchParams.has('lexicalDemo');
   const parsedRef = parseDocumentRef(docRef);

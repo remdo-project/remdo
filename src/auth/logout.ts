@@ -1,5 +1,5 @@
-import { resetUserConfig } from '@/documents/user-config';
-import { clearUserProfileCache } from '@/documents/user-profile';
+import { resetUserData } from '@/documents/user-data';
+import { clearCurrentUserBootstrapCache } from '@/documents/current-user-bootstrap';
 import { authClient, forgetAuthenticatedSession } from './client';
 
 interface LogoutResult {
@@ -8,8 +8,8 @@ interface LogoutResult {
 
 function clearAuthenticatedRuntimeState(): void {
   forgetAuthenticatedSession();
-  clearUserProfileCache();
-  resetUserConfig();
+  clearCurrentUserBootstrapCache();
+  resetUserData();
 }
 
 async function signOutOnServer(): Promise<void> {
