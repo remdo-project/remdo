@@ -1,20 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { config } from '#config';
 import { HTTP_STATUS } from '#lib/http/status';
 import { createTestResource } from '../_support/test-resource';
 import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';
 
 const createHarness = createTestResource(createServerAppHarness);
-
-async function withDevMode<T>(run: () => Promise<T>): Promise<T> {
-  const originalIsDev = config.isDev;
-  Object.defineProperty(config, 'isDev', { value: true });
-  try {
-    return await run();
-  } finally {
-    Object.defineProperty(config, 'isDev', { value: originalIsDev });
-  }
-}
 
 describe('remdo api app', () => {
   it('returns 400 for malformed document ids before token issuance', async () => {
@@ -331,28 +320,6 @@ describe('remdo api app', () => {
 
     expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
     expect(harness.auth.getUserCount()).toBe(0);
-  });
-
-  it('rejects development login outside development mode', async () => {
-    const harness = createHarness();
-
-    const response = await harness.app.request('/api/dev/login');
-
-    expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
-    await expect(response.json()).resolves.toEqual({ error: 'Development login is unavailable.' });
-  });
-
-  it('always redirects development login to home', async () => {
-    await withDevMode(async () => {
-      const harness = createHarness();
-
-      const response = await harness.app.request('/api/dev/login');
-
-      expect(response.status).toBe(HTTP_STATUS.SEE_OTHER);
-      expect(response.headers.get('location')).toBe('/home');
-      expect(response.headers.get('set-cookie')).toContain('better-auth.session_token=');
-      expect(harness.auth.getUserCount()).toBe(1);
-    });
   });
 
   it('allows proxied sign-in requests against the public auth origin', async () => {

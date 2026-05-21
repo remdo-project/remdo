@@ -5,7 +5,6 @@ import { normalizeDocumentId } from '@/routing';
 import type { ServerAuth } from './auth/auth';
 import { getServerAuth } from './auth/auth';
 import { resolveActor } from './auth/actor';
-import { handleDevLoginRequest } from './auth/dev-login';
 import { createDocumentRegistry } from './documents/document-registry';
 import type { DocumentRegistry, RegisteredDocument } from './documents/document-registry';
 import { createListedProfileDocument, ensureUserProfile } from './documents/user-profile';
@@ -73,14 +72,6 @@ export function createServerApp({
       db: 'ok',
       ok: true,
     });
-  });
-
-  app.get('/api/dev/login', async (c) => {
-    if (!config.isDev) {
-      return c.json({ error: 'Development login is unavailable.' }, HTTP_STATUS.FORBIDDEN);
-    }
-
-    return handleDevLoginRequest(auth, c.req.raw);
   });
 
   app.get('/api/profile', async (c) => {

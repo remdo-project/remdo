@@ -1,4 +1,4 @@
-import { Anchor, Button, Group } from '@mantine/core';
+import { Anchor, Group } from '@mantine/core';
 import { IconBrandVite } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { config } from '#config';
@@ -84,14 +84,6 @@ export function DevToolbar(props: DevToolbarProps) {
 
   return (
     <Group gap="md" className="app-header-links">
-      <Button
-        component="a"
-        href="/api/dev/login"
-        size="xs"
-        variant="light"
-      >
-        Use dev account
-      </Button>
       <DevToolbarLinks {...props} />
     </Group>
   );

@@ -112,10 +112,12 @@ For each run mode, the important questions are:
   Y-Sweet collaboration server and preview helper. Server modes run the
   standalone API server with Better Auth plus a SQLite-backed document registry.
   Authentication is enforced, and private document access is limited to the
-  registered document owner. Browser clients use the RemDo API token path plus
-  `/d/*`; `/doc*` control routes are not routed through the gateway. Y-Sweet
-  auth uses a matched development default key/token pair unless
-  `YSWEET_AUTH_KEY` and `YSWEET_SERVER_TOKEN` are set.
+  registered document owner. `pnpm run dev:user` provisions a stable debug user
+  in the local auth DB and prints credentials for the normal login form.
+  Browser clients use the RemDo API token path plus `/d/*`; `/doc*` control
+  routes are not routed through the gateway. Y-Sweet auth uses a matched
+  development default key/token pair unless `YSWEET_AUTH_KEY` and
+  `YSWEET_SERVER_TOKEN` are set.
 
 ### Unit and collab tests
 

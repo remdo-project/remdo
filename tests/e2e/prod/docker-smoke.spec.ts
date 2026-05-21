@@ -135,15 +135,6 @@ test('token issuance requires auth and collaboration control routes are not rout
   expect(authRouteResponse.status()).toBe(HTTP_STATUS.NOT_FOUND);
 });
 
-test('development login shortcut is unavailable in production', async ({ request }) => {
-  const response = await request.fetch('/api/dev/login', {
-    failOnStatusCode: false,
-  });
-
-  expect(response.status()).toBe(HTTP_STATUS.FORBIDDEN);
-  await expect(response.json()).resolves.toEqual({ error: 'Development login is unavailable.' });
-});
-
 test('user config sync token is read-only and API document creation updates the projection', async ({ page }) => {
   await page.goto(`/n/${DOCKER_SMOKE_DOC_ID}`);
   const requestContext = page.context().request;
