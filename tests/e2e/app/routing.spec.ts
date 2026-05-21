@@ -7,10 +7,28 @@ interface UserProfileResponse {
   homeDocumentId: string;
 }
 
-const PENDING_LOCAL_USER_DATA_CLEANUP_KEY = 'remdo-pending-local-user-data-cleanup';
-
 async function expectPath(page: Page, pathname: string): Promise<void> {
   await expect.poll(() => new URL(page.url()).pathname).toBe(pathname);
+}
+
+async function createIndexedDb(page: Page, dbName: string): Promise<void> {
+  await page.evaluate(async (name) => {
+    const request = indexedDB.open(name);
+    await new Promise<void>((resolve, reject) => {
+      request.addEventListener('success', () => {
+        request.result.close();
+        resolve();
+      });
+      request.addEventListener('error', () => reject(request.error ?? new Error(`Failed to open ${name}.`)));
+    });
+  }, dbName);
+}
+
+async function hasIndexedDb(page: Page, dbName: string): Promise<boolean> {
+  return page.evaluate(async (name) => {
+    const databases = await indexedDB.databases();
+    return databases.some((database) => database.name === name);
+  }, dbName);
 }
 
 test.describe('Routing', () => {
@@ -58,25 +76,6 @@ test.describe('Routing', () => {
     await expectPath(page, `/n/${profile.homeDocumentId}`);
   });
 
-  test('retries pending local cleanup before login redirects an authenticated user', async ({ page }) => {
-    const profileResponse = await page.request.get('/api/profile');
-    expect(profileResponse.ok()).toBe(true);
-    const profile = await profileResponse.json() as UserProfileResponse;
-
-    await page.goto('/home');
-    await page.evaluate((key) => {
-      localStorage.setItem(key, '1');
-    }, PENDING_LOCAL_USER_DATA_CLEANUP_KEY);
-
-    await page.goto('/login?next=/home');
-
-    await expectPath(page, `/n/${profile.homeDocumentId}`);
-    await expect.poll(async () => page.evaluate(
-      (key) => localStorage.getItem(key),
-      PENDING_LOCAL_USER_DATA_CLEANUP_KEY,
-    )).toBeNull();
-  });
-
   test('logs out the active session from the app header', async ({ browser, contextOptions }) => {
     const context = await createAuthenticatedContext(browser, contextOptions);
     const page = await context.newPage();
@@ -84,10 +83,12 @@ test.describe('Routing', () => {
     try {
       await page.goto('/home');
       await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
+      await createIndexedDb(page, 'y-sweet-logout-test');
 
-      await page.getByRole('button', { name: 'Logout' }).click();
+      await page.getByRole('link', { name: 'Logout' }).click();
 
       await expectPath(page, '/login');
+      await expect.poll(async () => hasIndexedDb(page, 'y-sweet-logout-test')).toBe(false);
       const profileResponse = await page.request.get('/api/profile');
       expect(profileResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
     } finally {

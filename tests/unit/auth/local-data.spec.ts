@@ -1,14 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  clearLocalUserData,
-  markLocalUserDataCleanupPending,
-  retryPendingLocalUserDataCleanup,
-} from '@/auth/local-data';
+import { clearLocalUserData } from '@/auth/local-data';
 
 describe('local user data cleanup', () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
-    localStorage.clear();
   });
 
   it('deletes Y-Sweet IndexedDB databases and offline key cookie', async () => {
@@ -59,63 +54,30 @@ describe('local user data cleanup', () => {
     });
 
     await expect(clearLocalUserData()).rejects.toThrow(
-      'IndexedDB y-sweet-open-doc delete was blocked by an open connection.',
+      'Failed to clear all local user data.',
     );
   });
 
-  it('retries pending local data cleanup and clears the marker after success', async () => {
-    const deleteCookie = vi.fn();
-    const deleteDatabase = vi.fn((name: string) => ({
+  it('still attempts IndexedDB cleanup when cookie cleanup fails', async () => {
+    const deleteDatabase = vi.fn(() => ({
       addEventListener: (event: string, listener: () => void) => {
         if (event === 'success') {
           listener();
         }
       },
-      name,
     }));
     vi.stubGlobal('cookieStore', {
-      delete: deleteCookie,
+      delete: vi.fn().mockRejectedValue(new Error('cookie failed')),
     });
     vi.stubGlobal('indexedDB', {
       databases: async () => [
-        { name: 'y-sweet-retry-doc' },
+        { name: 'y-sweet-doc' },
       ],
       deleteDatabase,
     });
 
-    markLocalUserDataCleanupPending();
-    await retryPendingLocalUserDataCleanup();
+    await expect(clearLocalUserData()).rejects.toThrow('Failed to clear all local user data.');
 
-    expect(deleteDatabase).toHaveBeenCalledWith('y-sweet-retry-doc');
-    expect(deleteCookie).toHaveBeenCalledWith('YSWEET_OFFLINE_KEY');
-    await retryPendingLocalUserDataCleanup();
-    expect(deleteDatabase).toHaveBeenCalledTimes(1);
-  });
-
-  it('keeps pending local data cleanup marked when retry is blocked', async () => {
-    vi.stubGlobal('cookieStore', {
-      delete: vi.fn(),
-    });
-    vi.stubGlobal('indexedDB', {
-      databases: async () => [
-        { name: 'y-sweet-still-open-doc' },
-      ],
-      deleteDatabase: vi.fn(() => ({
-        addEventListener: (event: string, listener: () => void) => {
-          if (event === 'blocked') {
-            listener();
-          }
-        },
-      })),
-    });
-
-    markLocalUserDataCleanupPending();
-    await expect(retryPendingLocalUserDataCleanup()).rejects.toThrow(
-      'IndexedDB y-sweet-still-open-doc delete was blocked by an open connection.',
-    );
-
-    await expect(retryPendingLocalUserDataCleanup()).rejects.toThrow(
-      'IndexedDB y-sweet-still-open-doc delete was blocked by an open connection.',
-    );
+    expect(deleteDatabase).toHaveBeenCalledWith('y-sweet-doc');
   });
 });

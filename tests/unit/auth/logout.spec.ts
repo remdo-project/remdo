@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authClient, forgetAuthenticatedSession } from '@/auth/client';
-import { clearAuthenticatedClientState, logoutCurrentUser } from '@/auth/logout';
+import { logoutCurrentUser } from '@/auth/logout';
 import { resetUserConfig } from '@/documents/user-config';
 import { clearUserProfileCache } from '@/documents/user-profile';
-import { clearLocalUserData, markLocalUserDataCleanupPending } from '@/auth/local-data';
 
 vi.mock('@/auth/client', () => ({
   authClient: {
@@ -21,75 +20,47 @@ vi.mock('@/documents/user-profile', () => ({
   clearUserProfileCache: vi.fn(),
 }));
 
-vi.mock('@/auth/local-data', () => ({
-  clearLocalUserData: vi.fn(),
-  markLocalUserDataCleanupPending: vi.fn(),
-}));
-
 describe('logout client state', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(clearLocalUserData).mockResolvedValue();
   });
 
-  it('clears remembered auth and user-scoped runtime state', async () => {
-    await clearAuthenticatedClientState();
-
-    expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
-    expect(clearUserProfileCache).toHaveBeenCalledTimes(1);
-    expect(resetUserConfig).toHaveBeenCalledTimes(1);
-    expect(clearLocalUserData).toHaveBeenCalledTimes(1);
-    expect(markLocalUserDataCleanupPending).not.toHaveBeenCalled();
-  });
-
-  it('clears client state after Better Auth signs out', async () => {
+  it('clears client state and reports server logout after Better Auth signs out', async () => {
     vi.mocked(authClient.signOut).mockResolvedValue({ data: { success: true }, error: null });
 
-    await logoutCurrentUser();
+    await expect(logoutCurrentUser()).resolves.toEqual({
+      serverSignedOut: true,
+    });
 
     expect(authClient.signOut).toHaveBeenCalledTimes(1);
     expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
     expect(clearUserProfileCache).toHaveBeenCalledTimes(1);
     expect(resetUserConfig).toHaveBeenCalledTimes(1);
-    expect(clearLocalUserData).toHaveBeenCalledTimes(1);
-    expect(markLocalUserDataCleanupPending).not.toHaveBeenCalled();
   });
 
-  it('clears client state when Better Auth rejects logout', async () => {
+  it('still clears client state when Better Auth rejects logout', async () => {
     const error = { message: 'sign-out failed' };
     vi.mocked(authClient.signOut).mockResolvedValue({ data: null, error });
 
-    await logoutCurrentUser();
+    await expect(logoutCurrentUser()).resolves.toEqual({
+      serverSignedOut: false,
+    });
 
     expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
     expect(clearUserProfileCache).toHaveBeenCalledTimes(1);
     expect(resetUserConfig).toHaveBeenCalledTimes(1);
-    expect(clearLocalUserData).toHaveBeenCalledTimes(1);
-    expect(markLocalUserDataCleanupPending).not.toHaveBeenCalled();
   });
 
-  it('clears client state when Better Auth sign-out throws', async () => {
-    vi.mocked(authClient.signOut).mockRejectedValue(new TypeError('offline'));
+  it('still clears client state when Better Auth sign-out throws', async () => {
+    const error = new TypeError('offline');
+    vi.mocked(authClient.signOut).mockRejectedValue(error);
 
-    await logoutCurrentUser();
-
-    expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
-    expect(clearUserProfileCache).toHaveBeenCalledTimes(1);
-    expect(resetUserConfig).toHaveBeenCalledTimes(1);
-    expect(clearLocalUserData).toHaveBeenCalledTimes(1);
-    expect(markLocalUserDataCleanupPending).not.toHaveBeenCalled();
-  });
-
-  it('does not abort logout when local data cleanup is blocked', async () => {
-    vi.mocked(authClient.signOut).mockResolvedValue({ data: { success: true }, error: null });
-    vi.mocked(clearLocalUserData).mockRejectedValue(new Error('blocked'));
-
-    await logoutCurrentUser();
+    await expect(logoutCurrentUser()).resolves.toEqual({
+      serverSignedOut: false,
+    });
 
     expect(forgetAuthenticatedSession).toHaveBeenCalledTimes(1);
     expect(clearUserProfileCache).toHaveBeenCalledTimes(1);
     expect(resetUserConfig).toHaveBeenCalledTimes(1);
-    expect(clearLocalUserData).toHaveBeenCalledTimes(1);
-    expect(markLocalUserDataCleanupPending).toHaveBeenCalledTimes(1);
   });
 });

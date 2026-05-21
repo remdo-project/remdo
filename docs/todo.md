@@ -143,14 +143,9 @@ Rules:
   reconnect noise when the app server or collaboration server is unavailable.
   The editor should keep showing a clear disconnected state, but repeated
   retries should avoid flooding the console and test guards.
-- Unsynced local edits follow-up: expose a reliable "pending local changes"
-  signal from the collaboration/local-persistence layer and show it in the UI.
-  Destructive actions such as logout should warn before clearing local Yjs data
-  when offline edits have not synced to the server.
-- Offline server-session logout follow-up: decide how logout should finish when
-  the app server is unavailable. The client can clear remembered auth and local
-  Yjs data immediately, but a server-side Better Auth session may still exist
-  until the server can accept a sign-out request.
+- Local data wipe follow-up: add a separate "wipe this device" flow and design
+  the related UX, including unsynced local edits, server-offline behavior, and
+  open-tab IndexedDB cleanup blockers.
 
 ## Collaboration architecture roadmap [Future]
 

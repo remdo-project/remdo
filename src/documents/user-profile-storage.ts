@@ -1,6 +1,6 @@
 const USER_PROFILE_STORAGE_KEY = 'remdo-user-profile';
 
-export function getUserProfileStorage(): Storage | null {
+function getUserProfileStorage(): Storage | null {
   try {
     return globalThis.localStorage;
   } catch {

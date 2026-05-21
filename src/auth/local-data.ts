@@ -1,6 +1,5 @@
 const YSWEET_INDEXED_DB_PREFIX = 'y-sweet-';
 const YSWEET_OFFLINE_KEY_COOKIE = 'YSWEET_OFFLINE_KEY';
-const PENDING_LOCAL_USER_DATA_CLEANUP_KEY = 'remdo-pending-local-user-data-cleanup';
 
 interface CookieStoreLike {
   delete: (name: string) => Promise<void>;
@@ -8,28 +7,6 @@ interface CookieStoreLike {
 
 function getIndexedDb(): IDBFactory | undefined {
   return (globalThis as { indexedDB?: IDBFactory }).indexedDB;
-}
-
-function getCleanupStorage(): Storage | null {
-  try {
-    return globalThis.localStorage;
-  } catch {
-    return null;
-  }
-}
-
-export function markLocalUserDataCleanupPending(): void {
-  getCleanupStorage()?.setItem(PENDING_LOCAL_USER_DATA_CLEANUP_KEY, '1');
-}
-
-export async function retryPendingLocalUserDataCleanup(): Promise<void> {
-  const storage = getCleanupStorage();
-  if (storage?.getItem(PENDING_LOCAL_USER_DATA_CLEANUP_KEY) !== '1') {
-    return;
-  }
-
-  await clearLocalUserData();
-  storage.removeItem(PENDING_LOCAL_USER_DATA_CLEANUP_KEY);
 }
 
 async function deleteCookie(name: string): Promise<void> {
@@ -76,6 +53,12 @@ async function deleteYSweetIndexedDbs(): Promise<void> {
 }
 
 export async function clearLocalUserData(): Promise<void> {
-  await deleteCookie(YSWEET_OFFLINE_KEY_COOKIE);
-  await deleteYSweetIndexedDbs();
+  const results = await Promise.allSettled([
+    deleteCookie(YSWEET_OFFLINE_KEY_COOKIE),
+    deleteYSweetIndexedDbs(),
+  ]);
+  const failures = results.filter((result) => result.status === 'rejected');
+  if (failures.length > 0) {
+    throw new Error('Failed to clear all local user data.');
+  }
 }

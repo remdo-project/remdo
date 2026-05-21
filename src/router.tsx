@@ -1,11 +1,11 @@
 import { createBrowserRouter, redirect } from 'react-router-dom';
 import App from './App';
 import { resolveSessionGateState } from './auth/client';
-import { retryPendingLocalUserDataCleanup } from './auth/local-data';
 import { getCachedUserProfile, getHomeDocumentId } from './documents/user-profile';
 import AdminUsersRoute from './routes/AdminUsersRoute';
 import DocumentRoute from './routes/DocumentRoute';
 import LoginRoute from './routes/LoginRoute';
+import LogoutRoute from './routes/LogoutRoute';
 import OfflineRoute from './routes/OfflineRoute';
 import {
   createPostAuthNextSearch,
@@ -49,8 +49,6 @@ async function requireAuthenticatedRoute(request: Request) {
 }
 
 async function requirePublicAuthRoute(request: Request) {
-  await retryPendingLocalUserDataCleanup();
-
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
     return null;
@@ -130,6 +128,11 @@ const routes = [
     path: '/login',
     loader: ({ request }: { request: Request }) => requirePublicAuthRoute(request),
     element: <LoginRoute />,
+    hydrateFallbackElement,
+  },
+  {
+    path: '/logout',
+    element: <LogoutRoute />,
     hydrateFallbackElement,
   },
   {

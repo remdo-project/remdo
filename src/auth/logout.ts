@@ -1,7 +1,10 @@
 import { resetUserConfig } from '@/documents/user-config';
 import { clearUserProfileCache } from '@/documents/user-profile';
 import { authClient, forgetAuthenticatedSession } from './client';
-import { clearLocalUserData, markLocalUserDataCleanupPending } from './local-data';
+
+interface LogoutResult {
+  serverSignedOut: boolean;
+}
 
 function clearAuthenticatedRuntimeState(): void {
   forgetAuthenticatedSession();
@@ -9,22 +12,19 @@ function clearAuthenticatedRuntimeState(): void {
   resetUserConfig();
 }
 
-export async function clearAuthenticatedClientState(): Promise<void> {
-  clearAuthenticatedRuntimeState();
-  await clearLocalUserData();
+async function signOutOnServer(): Promise<void> {
+  const result = await authClient.signOut();
+  if (result.error) {
+    throw result.error;
+  }
 }
 
-export async function logoutCurrentUser(): Promise<void> {
-  try {
-    await authClient.signOut();
-  } catch {
-    // Server sign-out can fail offline; still clear local auth state.
-  }
-
+export async function logoutCurrentUser(): Promise<LogoutResult> {
   clearAuthenticatedRuntimeState();
   try {
-    await clearLocalUserData();
+    await signOutOnServer();
+    return { serverSignedOut: true };
   } catch {
-    markLocalUserDataCleanupPending();
+    return { serverSignedOut: false };
   }
 }

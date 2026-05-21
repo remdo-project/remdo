@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { Link, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import headerStyles from './styles/AppHeader.module.css';
 import { config } from '#config';
-import { logoutCurrentUser } from './auth/logout';
 import { startUserConfig } from './documents/user-config';
 import { createDocumentPath, parseDocumentRef } from './routing';
 import VanillaLexicalEditor from './editor/dev/VanillaLexicalEditor';
@@ -18,11 +17,6 @@ export default function App() {
   const showVanillaLexical = config.isDevOrTest && searchParams.has('lexicalDemo');
   const parsedRef = parseDocumentRef(docRef);
   const currentDocumentPath = parsedRef ? createDocumentPath(parsedRef.docId) : '/home';
-  const handleLogoutClick = () => {
-    void logoutCurrentUser().then(() => {
-      globalThis.location.assign('/login');
-    }, () => null);
-  };
 
   return (
     <Container size="xl" py="xl">
@@ -42,9 +36,7 @@ export default function App() {
           <Group gap="md" className="app-header-links">
             <Anchor
               className="app-header-link"
-              component="button"
-              onClick={handleLogoutClick}
-              type="button"
+              href="/logout"
             >
               Logout
             </Anchor>
