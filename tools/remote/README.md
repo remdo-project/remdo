@@ -9,7 +9,7 @@ Guidelines:
 - Do not add Node/pnpm/TypeScript or other project-runtime dependencies.
 - Prefer baseline shell and common host tools only (for example `ssh`, `scp`,
   `tar`, `git`).
-- `open-pwa-chrome-macos.sh host:port` opens a throwaway macOS Chrome profile
+- `open-pwa-chrome-macos.sh host:port` opens a dedicated macOS Chrome profile
   against a dev server.
 - Use `PROD_APP_ADDR` as the default remote location source (`user@host:/path`).
 - For extra backup hosts, define `PROD_APP_ADDR_<suffix>` vars;
