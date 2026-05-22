@@ -32,6 +32,23 @@ Rules:
 - Durable document access behavior lives in [docs/access-model.md](./access-model.md).
 - Initial implementation can optimize for simplicity and may break compatibility
   during the dev phase if the design changes later.
+- Design inputs:
+  1. Durable project constraints live in [docs/principles.md](./principles.md).
+  2. Evaluate auth, sync, storage, and hosting choices against those principles.
+  3. Keep project assumptions separate from replaceable tooling choices.
+- Planning workflow before implementation:
+  1. List user-visible sharing/access functionality that is incomplete,
+     including partially done behavior.
+  2. Choose the user-visible functionality that belongs in this branch.
+  3. Re-review the chosen scope against docs and code, then recommend technical
+     prerequisites, expensive-to-change design decisions, items to keep out of
+     this branch, and acceptance tests.
+  4. Draft the resulting plan in `docs/access-model.md` and keep fast-moving
+     notes in this section.
+  5. Consult the proposed access-control design materials before finalizing
+     `docs/access-model.md`, and record the sources that influenced decisions.
+  6. Implement the agreed scope.
+  7. Ship this branch with deferred items left explicit.
 - V1 UI/details:
   1. Add the sharing control to the left of the document search input.
   2. Default visible state text: `unshared`.
@@ -46,82 +63,17 @@ Rules:
   4. Keep normal document routing and user-documents identity separate from the
      share URL in v1 unless implementation simplicity clearly favors a combined
      shape.
-  5. Add direct routing unit coverage for share-path helpers once the routing
-     API exists as a normal typed surface in `src/routing.ts`.
+  5. Add share-path helpers in `src/routing.ts` with direct routing unit
+     coverage.
   6. Update the gateway/auth flow so valid share URLs can open without login,
      including Docker/Caddy and the corresponding prod e2e coverage.
 - [Future] Reuse a share URL to add a document from another server into the
   local document list once the multi-server model is ready.
-
-## Architecture decision work
-
-- Durable project constraints now live in [docs/principles.md](./principles.md).
-- Evaluate auth, sync, storage, and hosting choices against those principles.
-- Keep project assumptions separate from replaceable tooling choices.
 - Auth/storage follow-up: Better Auth currently uses `better-sqlite3` while the
   document registry still uses `node:sqlite`. Unify those server-side SQLite
-  paths once the broader DB layer is revisited.
-- ✅ Done Dev auth fixture follow-up: `pnpm run dev:user` provisions a stable
-  debug user and prints credentials for the normal login form.
-- ✅ Done Config contract follow-up: `config.env` is the resolved application
-  runtime boundary, while `.env`, shell defaults, Docker launchers, platform
-  settings, and tests are inputs or projections. Keep stable config policy in
-  code/tests and document only the high-level boundary.
-- ✅ Done Docker prod E2E env follow-up: keep Docker prod E2E's separate
-  container-level env handling because it owns temporary secrets, data, and
-  public URL setup for the production-style container/gateway boundary.
-- ✅ Done Default/dev/home document naming follow-up: split the current-user-owned
-  home document from the dev/tool document id. `DEV_DOCUMENT_ID` now names the
-  temporary dev/test/tool fallback, while bootstrap `homeDocumentId` and `Home`
-  title naming refer only to the authenticated user's owned home document.
-- ✅ Done Home route alias follow-up: add an explicit home URL alias that resolves to
-  the authenticated user's current bootstrap home document. This stays separate
-  from literal `/n/main` examples and fixtures, which are ordinary document-id
-  test data rather than a home-document alias.
-- ✅ Done E2E current-user path follow-up: remove the special injected
-  `usercfg`/config-doc path from E2E helpers. Browser E2E should authenticate
-  and load current-user/home resources through the same `/api/me` path as
-  normal users, with test isolation coming from users/data setup rather than a
-  client-side config-doc override.
-- ✅ Done Routing return-path follow-up: centralize post-auth return-path handling.
-  Replace ad hoc `next` parsing and path safety checks with one tested helper
-  that defines which app-local redirects are allowed.
-- ✅ Done Offline auth/product follow-up: define offline auth states explicitly.
-  Unauthenticated offline users see a fallback message, remembered
-  authenticated sessions may open cached/local bootstrap routes without
-  re-authenticating when the browser is offline or the app server is
-  unavailable, logout clears remembered auth plus local Yjs offline data, and
-  product routes no longer fall back to `DEV_DOCUMENT_ID`.
-- ✅ Done Dev API DX follow-up: evaluate mounting the Hono RemDo API inside the Vite dev
-  server for `/api/*` instead of proxying to a separate `dev:api` process. Goal:
-  same-origin API behavior in local dev with fewer stale route/process issues,
-  while keeping production/Docker gateway behavior separately covered.
-- ✅ Done Y-Sweet token enforcement follow-up: run the collaboration server with
-  Y-Sweet auth enabled in local, test, Docker, and production-like run modes so
-  RemDo-issued `full` and `read-only` tokens are enforced by the sync server,
-  not just by the RemDo API path.
-- ✅ Done User-data security regression guards: add Docker prod E2E coverage
-  that proves user-data-projection docs are persisted through the normal
-  Y-Sweet store, issued as read-only, and cannot be modified through direct
-  sync-token access. Also cover the allowed path: server-validated document
-  creation updates SQL first and then refreshes the user-data projection. These
-  tests should lock the access boundary against future refactors.
-- ✅ Done User-data/user-documents model follow-up: redesigned the hierarchy and
-  naming around current-user bootstrap, user-data projection, home document,
-  and user documents. User-documents access now goes through the note-facing
-  `UserDataNote` API instead of ad hoc bootstrap/user-data structures.
-- ✅ Done Browser user-data projection live updates: keep the stored user-data
-  note handle in sync with later Y-Sweet projection changes so changes from
-  another tab can update the current tab without a reload.
-- Projected note collection model follow-up: make user-data projection
-  collections structurally keyed by note id, with explicit child order, before
-  adding more projected app-state sections. The browser should treat these
-  projected collections as projection-derived state rather than appending local
-  command results into the same list; API commands such as document creation
-  should validate and update SQL first, refresh the read-only projection, and
-  only report success once the projection update is flushed. This should replace
-  the current duplicate-prone `Y.Array` row shape and avoid treating documents as
-  a special case instead of one projected note collection kind.
+  paths once the broader DB layer is revisited. This should be discussed before
+  adding more document-registry tables, but does not have to block the first
+  sharing slice if the chosen schema stays simple.
 
 ## Offline and local persistence follow-ups
 
@@ -177,10 +129,15 @@ Rules:
      separate index/search layer.
   4. Clarify mutation boundaries only as needed by the new traversal/query
      layer (single-note writes vs transactional/multi-note updates).
-  5. Review the remaining top-level API naming after the note-owned
+  5. Redesign projected user-data note collections around note-model
+     invariants: child identity keyed by note id, sibling order owned by the
+     parent, and browser state derived from the projection rather than local
+     command-result appends. Apply this to documents as one projected note
+     collection kind before adding more projected app-state sections.
+  6. Review the remaining top-level API naming after the note-owned
      `create(...)` refactor, especially `createLexicalEditorNotes` and
      `place(...)`.
-  6. Update the durable docs once the traversal/query contract stabilizes:
+  7. Update the durable docs once the traversal/query contract stabilizes:
      `docs/outliner/concepts.md`, `docs/architecture.md`,
      `docs/outliner/search.md`, and `docs/outliner/links.md`.
 
