@@ -27,7 +27,7 @@ Rules:
   result labels: whitespace-insensitive lookup (trim/collapse between words),
   fuzzy matching, and shared ranking/disambiguation rules.
 
-## Document sharing
+## Document access and sharing
 
 - Durable document access behavior lives in [docs/access-model.md](./access-model.md).
 - Initial implementation can optimize for simplicity and may break compatibility
@@ -42,21 +42,32 @@ Rules:
   2. Choose the user-visible functionality that belongs in this branch.
   3. Re-review the chosen scope against docs and code, then recommend technical
      prerequisites, expensive-to-change design decisions, items to keep out of
-     this branch, and acceptance tests.
-  4. Draft the resulting plan in `docs/access-model.md` and keep fast-moving
+     this branch, draft decisions that must be settled now, and acceptance tests.
+  4. Discuss and finalize the branch scope and draft decisions.
+  5. Draft the resulting plan in `docs/access-model.md` and keep fast-moving
      notes in this section.
-  5. Consult the proposed access-control design materials before finalizing
+  6. Consult the proposed access-control design materials before finalizing
      `docs/access-model.md`, and record the sources that influenced decisions.
-  6. Implement the agreed scope.
-  7. Ship this branch with deferred items left explicit.
-- V1 UI/details:
+  7. Implement the agreed scope.
+  8. Ship this branch with deferred items left explicit.
+- Draft decisions to settle during planning:
+  1. Whether V1 needs `public` access, link-shared access, authenticated grants,
+     or only a smaller share-link slice.
+  2. Whether public documents are read-only or read/write.
+  3. Whether link-shared access is modeled as an access mode only, a separate
+     share-link resource, or both.
+  4. Whether shared documents appear in a signed-in user's document list, and if
+     so whether that belongs in V1 or the later multi-server/grants model.
+  5. Whether to unify the server SQLite layer before adding share-link tables or
+     keep the first sharing schema small enough to defer that work.
+- Draft V1 UI/details:
   1. Add the sharing control to the left of the document search input.
   2. Default visible state text: `unshared`.
   3. While creating a link: `Generating`.
   4. After creation: `shared`.
   5. In the shared state, the visible status text is also the clickable link
      target and opens in a new window.
-- V1 runtime/details:
+- Draft V1 runtime/details:
   1. Use one active share URL per document at a time.
   2. Turning sharing off invalidates the active URL immediately.
   3. Turning sharing back on creates a different URL; the previous URL stays invalid.
@@ -91,15 +102,6 @@ Rules:
 
 ## Collaboration architecture roadmap [Future]
 
-- User-data runtime follow-up: observe remote/shared `documents` mutations in
-  `src/documents/stored-user-data.ts` and refresh the local store version so
-  document-switcher state stays current across tabs/sessions. Retry-on-startup
-  recovery can land independently first.
-- User-data route follow-up: handle rejected `userData.documents().create()` calls
-  from the document picker in `src/routes/DocumentRoute.tsx` so sync/write
-  failures do not surface as unhandled promise rejections and the UI can
-  recover cleanly.
-
 ### Stages and success criteria
 
 1. ✅ Done **Stage 0: single hub, online-first.**
@@ -113,6 +115,14 @@ Rules:
    Success: one client can browse/edit docs from multiple trusted hubs.
 5. **Stage 4: local vault hub (optional).**
    Success: local-only docs behave like normal docs and remain device-local.
+
+## User-data follow-ups
+
+- User-data route follow-up: handle rejected `userData.documents().create()` calls
+  from the document picker in `src/routes/DocumentRoute.tsx` so sync/write
+  failures do not surface as unhandled promise rejections and the UI can
+  recover cleanly. This is not required for sharing, but it is the same header
+  area and async-command UX pattern as the sharing control.
 
 ## Note-first SDK follow-ups
 
