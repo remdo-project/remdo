@@ -110,17 +110,18 @@ Rules:
   naming around current-user bootstrap, user-data projection, home document,
   and user documents. User-documents access now goes through the note-facing
   `UserDataNote` API instead of ad hoc bootstrap/user-data structures.
-- Read-only Yjs proxy writer follow-up: replace the current temporary
-  `Y.Doc`/encoded-update projection refresh path with an API-server Yjs client
-  that connects to the Y-Sweet proxy document it owns. Browsers should keep
-  read-only tokens for those proxy docs, while mutations such as creating a
-  document continue to go through explicit API commands that validate and update
-  SQL first.
-- Projection writer lifecycle follow-up: define how server-side proxy writer
-  connections are managed before introducing the live writer path. Decide
-  whether writers connect per update or are cached, what "flushed before API
-  response" means, and how idle connections are cleaned up in local, Docker,
-  and future cloud run modes.
+- ✅ Done Browser user-data projection live updates: keep the stored user-data
+  note handle in sync with later Y-Sweet projection changes so changes from
+  another tab can update the current tab without a reload.
+- Projected note collection model follow-up: make user-data projection
+  collections structurally keyed by note id, with explicit child order, before
+  adding more projected app-state sections. The browser should treat these
+  projected collections as projection-derived state rather than appending local
+  command results into the same list; API commands such as document creation
+  should validate and update SQL first, refresh the read-only projection, and
+  only report success once the projection update is flushed. This should replace
+  the current duplicate-prone `Y.Array` row shape and avoid treating documents as
+  a special case instead of one projected note collection kind.
 
 ## Offline and local persistence follow-ups
 

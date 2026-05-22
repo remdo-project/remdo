@@ -17,6 +17,7 @@ const STARTUP_RETRY_DELAY_MS = 1000;
 interface UserDataStoreContext {
   session: CollabSession;
   doc: Y.Doc;
+  unobserveProjection?: () => void;
 }
 
 function createHomeUserDocument(bootstrap: CurrentUserBootstrap): UserDocument {
@@ -62,7 +63,7 @@ class StoredUserDataStore {
       this.pendingContextSession = null;
     }
     if (this.context) {
-      this.context.session.destroy();
+      destroyUserDataStoreContext(this.context);
       this.context = null;
     }
     this.contextPromise = null;
@@ -127,11 +128,11 @@ class StoredUserDataStore {
     }
     const homeDocument = createHomeUserDocument(bootstrap);
     const context = await this.getContext(bootstrap.userDataDocumentId, generation);
-    const root = context.doc.getMap<Y.Array<Y.Map<unknown>>>(USER_DATA_ROOT_NOTE_ID);
-    const documents = readUserDataDocuments(root);
     if (this.generation === generation) {
       this.homeDocumentId = bootstrap.homeDocumentId;
-      this.replaceDocuments(documents.length > 0 ? documents : [homeDocument]);
+      context.unobserveProjection?.();
+      context.unobserveProjection = this.observeUserDataProjection(context.doc, generation);
+      this.syncDocumentsFromProjection(context.doc, homeDocument);
     }
   }
 
@@ -162,7 +163,7 @@ class StoredUserDataStore {
           } else {
             if (this.pendingContextSession === context.session) {
               this.pendingContextSession = null;
-              context.session.destroy();
+              destroyUserDataStoreContext(context);
             }
             throw new Error('User data runtime was reset.');
           }
@@ -181,7 +182,34 @@ class StoredUserDataStore {
   }
 
   private replaceDocuments(nextDocuments: readonly UserDocument[]) {
+    if (areUserDocumentsEqual(this.documents, nextDocuments)) {
+      return false;
+    }
     this.documents.splice(0, this.documents.length, ...nextDocuments);
+    return true;
+  }
+
+  private observeUserDataProjection(doc: Y.Doc, generation: number): () => void {
+    const handleUpdate = () => {
+      if (this.generation !== generation) {
+        return;
+      }
+      if (this.syncDocumentsFromProjection(doc)) {
+        this.bumpVersion();
+      }
+    };
+    doc.on('update', handleUpdate);
+    return () => doc.off('update', handleUpdate);
+  }
+
+  private syncDocumentsFromProjection(doc: Y.Doc, fallbackDocument = this.createFallbackHomeDocument()): boolean {
+    const root = doc.getMap<Y.Array<Y.Map<unknown>>>(USER_DATA_ROOT_NOTE_ID);
+    const documents = readUserDataDocuments(root);
+    return this.replaceDocuments(documents.length > 0 ? documents : fallbackDocument ? [fallbackDocument] : []);
+  }
+
+  private createFallbackHomeDocument(): UserDocument | null {
+    return this.homeDocumentId ? { id: this.homeDocumentId, title: HOME_DOCUMENT_TITLE } : null;
   }
 
   private scheduleStartupRetry() {
@@ -204,6 +232,22 @@ class StoredUserDataStore {
       listener();
     }
   }
+}
+
+function areUserDocumentsEqual(
+  currentDocuments: readonly UserDocument[],
+  nextDocuments: readonly UserDocument[],
+): boolean {
+  return currentDocuments.length === nextDocuments.length
+    && currentDocuments.every((document, index) => {
+      const nextDocument = nextDocuments[index];
+      return nextDocument?.id === document.id && nextDocument.title === document.title;
+    });
+}
+
+function destroyUserDataStoreContext(context: UserDataStoreContext): void {
+  context.unobserveProjection?.();
+  context.session.destroy();
 }
 
 function readUserDataDocuments(root: Y.Map<Y.Array<Y.Map<unknown>>>) {

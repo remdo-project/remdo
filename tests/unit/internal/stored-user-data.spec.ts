@@ -51,8 +51,7 @@ describe('stored user data', () => {
       title: document.text(),
     }));
 
-  const createUserDataDoc = (documents: Array<{ id: string; title: string }>) => {
-    const doc = new Y.Doc();
+  const writeUserDataProjection = (doc: Y.Doc, documents: Array<{ id: string; title: string }>) => {
     const root = doc.getMap<Y.Array<Y.Map<unknown>>>('user-data');
     const entries = new Y.Array<Y.Map<unknown>>();
     for (const document of documents) {
@@ -62,6 +61,11 @@ describe('stored user data', () => {
       entries.push([entry]);
     }
     root.set('documents', entries);
+  };
+
+  const createUserDataDoc = (documents: Array<{ id: string; title: string }>) => {
+    const doc = new Y.Doc();
+    writeUserDataProjection(doc, documents);
     return doc;
   };
 
@@ -385,6 +389,26 @@ describe('stored user data', () => {
     expect(listDocuments(reloadedUserData)).toEqual([
       USER_RUNTIME_DOCUMENT,
       { id: recoveredDocument.id(), title: 'Recovered Document' },
+    ]);
+  });
+
+  it('updates the existing handle when the stored user data projection changes', async () => {
+    const doc = createUserDataDoc([USER_RUNTIME_DOCUMENT]);
+    mockCollabSession({ doc });
+
+    const { getUserData } = await import('@/documents/stored-user-data');
+
+    const userData = await getUserData();
+    expect(listDocuments(userData)).toEqual([USER_RUNTIME_DOCUMENT]);
+
+    writeUserDataProjection(doc, [
+      USER_RUNTIME_DOCUMENT,
+      { id: 'remoteDoc', title: 'Remote Document' },
+    ]);
+
+    expect(listDocuments(userData)).toEqual([
+      USER_RUNTIME_DOCUMENT,
+      { id: 'remoteDoc', title: 'Remote Document' },
     ]);
   });
 
