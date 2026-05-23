@@ -51,35 +51,35 @@ Rules:
   7. Implement the agreed scope.
   8. Ship this branch with deferred items left explicit.
 - Draft decisions to settle during planning:
-  1. Whether V1 needs `public` access, link-shared access, authenticated grants,
-     or only a smaller share-link slice.
-  2. Whether public documents are read-only or read/write.
-  3. Whether link-shared access is modeled as an access mode only, a separate
-     share-link resource, or both.
-  4. Whether shared documents appear in a signed-in user's document list, and if
-     so whether that belongs in V1 or the later multi-server/grants model.
-  5. Whether to unify the server SQLite layer before adding share-link tables or
-     keep the first sharing schema small enough to defer that work.
-- Draft V1 UI/details:
-  1. Add the sharing control to the left of the document search input.
-  2. Default visible state text: `unshared`.
-  3. While creating a link: `Generating`.
-  4. After creation: `shared`.
-  5. In the shared state, the visible status text is also the clickable link
-     target and opens in a new window.
-- Draft V1 runtime/details:
-  1. Use one active share URL per document at a time.
-  2. Turning sharing off invalidates the active URL immediately.
-  3. Turning sharing back on creates a different URL; the previous URL stays invalid.
-  4. Keep normal document routing and user-documents identity separate from the
-     share URL in v1 unless implementation simplicity clearly favors a combined
-     shape.
-  5. Add share-path helpers in `src/routing.ts` with direct routing unit
-     coverage.
-  6. Update the gateway/auth flow so valid share URLs can open without login,
-     including Docker/Caddy and the corresponding prod e2e coverage.
-- [Future] Reuse a share URL to add a document from another server into the
-  local document list once the multi-server model is ready.
+  1. The branch target is cross-server request-to-access sharing, not anonymous
+     or bearer-link sharing.
+  2. The normal document URL is only a document locator. Possessing it must not
+     grant access.
+  3. The first shipped model may rely on an external human channel to identify
+     the requester, but the approved request must still bind to a credential so
+     later access proves continuity with the requester Alice approved.
+  4. The document should stay `private` with explicit grants. Avoid treating the
+     owner UI's "shared" state as public or bearer-link access.
+  5. Decide whether to unify the server SQLite layer before adding access-request
+     and grant tables, or keep the first schema small enough to defer that work.
+- Branch intention: cross-server request-to-access sharing:
+  1. Alice owns `doc123` on server A.
+  2. Alice enables request-based sharing for `doc123` from a document properties
+     UI, then copies the normal document URL and sends it outside RemDo.
+  3. Bob pastes that URL into server B from a new import/request-access UI.
+  4. Server B sends an access request to server A for that document.
+  5. Alice sees the pending request in the document properties UI on server A.
+  6. Alice can approve the request. Deny/reject can ship later.
+  7. Server A creates an explicit grant bound to the approved request credential.
+  8. Bob sees the remote document listed in his server B UI and can open/edit it.
+  9. Server A remains the document host and enforces access before issuing
+     collaboration tokens.
+- Deferred access cases:
+  1. Anonymous access.
+  2. Bearer/link-based access.
+  3. Public documents.
+  4. Link revocation/regeneration/invalid-link UX.
+  5. Local-only no-login mode.
 - Auth/storage follow-up: Better Auth currently uses `better-sqlite3` while the
   document registry still uses `node:sqlite`. Unify those server-side SQLite
   paths once the broader DB layer is revisited. This should be discussed before
