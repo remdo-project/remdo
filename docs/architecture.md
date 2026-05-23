@@ -5,8 +5,7 @@
 Provide shared architecture vocabulary for RemDo platform delivery, routing, and
 collaboration runtime so implementation docs can reference one stable set of
 terms. It does not define outliner behavior or note/link identity boundaries;
-those remain in outliner docs. Multi-hub/federation terms in this doc are
-`[Future]`.
+those remain in outliner docs.
 
 ## Delivery Surfaces
 
@@ -40,41 +39,32 @@ drift between app and collab endpoints.
 
 App-owned HTTP surface that sits in front of collaboration infrastructure.
 
-- Current auth anchor: Better Auth mounted at `/api/auth/*`.
-- Current role: issue Y-Sweet collaboration client tokens after a RemDo-owned
-  access decision through `POST /api/documents/:docId/token`.
-- Current implementation: requires an authenticated Better Auth session,
-  registers new documents to that user, and denies private-document tokens to
-  non-owners. The API connects to Y-Sweet with the server token and passes
-  only RemDo-issued document client tokens to browsers.
-- Future role: expand public/link-shared document access and explicit grants
-  before token issuance.
+- Auth: Better Auth is mounted at `/api/auth/*`.
+- Token issuance: `POST /api/documents/:docId/token` evaluates document access
+  mode, ownership, and explicit grants before issuing Y-Sweet client tokens.
+- Y-Sweet access: the API connects with the server token and passes only
+  RemDo-issued document client tokens to browsers.
 
 ### Actor
 
 Server-owned caller identity shape used by RemDo API decisions.
 
-- Current implementation: maps directly to the Better Auth session user.
-- Current role: identify the authenticated user for document ownership and
-  private-document access decisions.
+- Mapping: the Better Auth session user is the RemDo actor.
+- Role: identify the user for ownership and access decisions.
 
 ### Document registry
 
 Server-owned document metadata store used by RemDo API before issuing
 collaboration tokens.
 
-- Current role: ensure each requested document has authoritative metadata in
-  the registry before token issuance.
-- Current implementation: SQLite-backed `documents` table with `private`,
-  `public`, and `link-shared` access modes plus `owner_user_id`, document kind,
-  and title.
+- Role: provide authoritative document metadata before token issuance.
+- Metadata: access mode, owner user id, document kind, and title.
 - Data boundary: the registry is the durable source for document ownership,
   access-critical metadata, and the current per-user document list. Yjs
   documents hold collaborative document content plus a persisted, read-only
   user-data projection for the browser-facing note API.
-- Current user: `/api/me` uses the Better Auth user id to ensure that the
-  user's user-data-projection row and home-document row exist in the registry,
-  then updates the Yjs user-data projection.
+- User bootstrap: `/api/me` ensures the user's projection/home rows and updates
+  the Yjs user-data projection.
 
 ### Browser-facing collaboration paths
 
@@ -90,7 +80,7 @@ collaboration tokens.
 ### Collab Hub
 
 Backend service clients connect to for realtime sync and persisted document
-state. Current runtime implementation uses Y-Sweet.
+state. The runtime uses Y-Sweet.
 
 ### Provider
 
@@ -109,7 +99,7 @@ must be intentional.
 Client-side storage for collaboration state.
 
 - Web/webview default: IndexedDB.
-- `[Future]` native desktop options: filesystem or SQLite-backed store.
+- Native desktop options: filesystem or SQLite-backed store.
 
 ### Hydration vs sync
 
@@ -125,15 +115,13 @@ Client-side storage for collaboration state.
   the document behaves as uncached on the next offline open.
 - Reconnect rehydrates from the hub and returns the document to normal editing.
 
-## Multi-Hub Vocabulary [Future]
+## Multi-Hub Vocabulary
 
-The terms below are exploratory and must not be treated as implementation
-contracts until promoted out of `[Future]`.
+The terms below describe the target vocabulary for multi-hub document access.
 
 - **Hub registry:** client-owned hub list (`hubId`, base URL, auth source,
   optional capability flags).
-- **DocRef model:** potential fully qualified document reference including hub
-  context; exact runtime shape is intentionally not fixed yet.
+- **DocRef model:** fully qualified document reference including hub context.
 - **Home hub:** governance term for a document's primary hub; not canonical
   document identity.
 - **Replica:** copy of a document hosted on another hub.
@@ -142,7 +130,7 @@ contracts until promoted out of `[Future]`.
 - **Vault:** user-facing collection that may map to one hub or aggregate
   multiple hubs.
 
-## Future Guardrails [Future]
+## Multi-Hub Guardrails
 
 - Keep identity and location separable so host moves do not redefine document
   identity.

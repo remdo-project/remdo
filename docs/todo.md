@@ -37,54 +37,49 @@ Rules:
   2. Evaluate auth, sync, storage, and hosting choices against those principles.
   3. Keep project assumptions separate from replaceable tooling choices.
 - Planning workflow before implementation:
-  1. List user-visible sharing/access functionality that is incomplete,
+  1. ✅ Done: list user-visible sharing/access functionality that is incomplete,
      including partially done behavior.
-  2. Choose the user-visible functionality that belongs in this branch.
-  3. Re-review the chosen scope against docs and code, then recommend technical
-     prerequisites, expensive-to-change design decisions, items to keep out of
-     this branch, draft decisions that must be settled now, and acceptance tests.
-  4. Discuss and finalize the branch scope and draft decisions.
-  5. Draft the resulting plan in `docs/access-model.md` and keep fast-moving
-     notes in this section.
-  6. Consult the proposed access-control design materials before finalizing
-     `docs/access-model.md`, and record the sources that influenced decisions.
-  7. Implement the agreed scope.
-  8. Ship this branch with deferred items left explicit.
-- Draft decisions to settle during planning:
-  1. The branch target is cross-server request-to-access sharing, not anonymous
-     or bearer-link sharing.
+  2. ✅ Done: choose the user-visible functionality that belongs in this branch.
+  3. ✅ Done: re-review the chosen scope against docs and code, then recommend
+     technical prerequisites, expensive-to-change design decisions, and items to
+     keep out of this branch.
+  4. ✅ Done: finalize the product scope; keep DB unification as an open
+     implementation decision.
+  5. ✅ Done: draft the resulting plan in `docs/access-model.md` and keep
+     fast-moving notes in this section.
+  6. Next: consult the proposed access-control design materials, record the
+     sources that influenced decisions, and add acceptance tests.
+  7. Pending: implement the agreed scope.
+  8. Pending: ship this branch with deferred items left explicit.
+- Settled branch decisions:
+  1. Target cross-server request-to-access sharing, not anonymous or bearer-link
+     sharing.
   2. The normal document URL is only a document locator. Possessing it must not
      grant access.
-  3. The first shipped model may rely on an external human channel to identify
-     the requester, but the approved request must still bind to a credential so
-     later access proves continuity with the requester Alice approved.
-  4. The document should stay `private` with explicit grants. Avoid treating the
-     owner UI's "shared" state as public or bearer-link access.
-  5. Decide whether to unify the server SQLite layer before adding access-request
-     and grant tables, or keep the first schema small enough to defer that work.
+  3. External human channels may identify the requester; approval still binds to
+     a credential for continuity.
+  4. Only `shareable` documents accept access requests; `private` rejects or
+     auto-revokes them before owner review.
+  5. Access mode is owner-controlled, not derived from active grants.
 - Branch intention: cross-server request-to-access sharing:
   1. Alice owns `doc123` on server A.
-  2. Alice enables request-based sharing for `doc123` from a document properties
-     UI, then copies the normal document URL and sends it outside RemDo.
+  2. Alice changes `doc123` access mode to `shareable`, copies its normal URL,
+     and sends it outside RemDo.
   3. Bob pastes that URL into server B from a new import/request-access UI.
-  4. Server B sends an access request to server A for that document.
+  4. Server B sends an access request to server A.
   5. Alice sees the pending request in the document properties UI on server A.
   6. Alice can approve the request. Deny/reject can ship later.
-  7. Server A creates an explicit grant bound to the approved request credential.
-  8. Bob sees the remote document listed in his server B UI and can open/edit it.
-  9. Server A remains the document host and enforces access before issuing
-     collaboration tokens.
+  7. Server A creates a grant bound to the approved request credential.
+  8. Bob sees the remote document in server B and can open/edit it.
+  9. Server A remains the document host and token issuer.
 - Deferred access cases:
   1. Anonymous access.
   2. Bearer/link-based access.
   3. Public documents.
   4. Link revocation/regeneration/invalid-link UX.
   5. Local-only no-login mode.
-- Auth/storage follow-up: Better Auth currently uses `better-sqlite3` while the
-  document registry still uses `node:sqlite`. Unify those server-side SQLite
-  paths once the broader DB layer is revisited. This should be discussed before
-  adding more document-registry tables, but does not have to block the first
-  sharing slice if the chosen schema stays simple.
+- Open implementation decision: unify Better Auth's `better-sqlite3` path with
+  the registry's `node:sqlite` path before adding request/grant tables, or defer.
 
 ## Offline and local persistence follow-ups
 

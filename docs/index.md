@@ -15,29 +15,28 @@ Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
 - `docs/access-model.md` (Medium). Document access model for RemDo:
-  owner-backed private access, private/public/link-shared modes, share-link
-  lifecycle, authenticated app access, and cross-server authenticated document access.
-- `docs/architecture.md` (Long). Cross-cutting architecture vocabulary for
+  owner-backed document access, explicit authenticated grants, cross-server
+  request-to-access sharing, public/link access, and authenticated app access.
+- `docs/architecture.md` (Medium). Cross-cutting architecture vocabulary for
   delivery surfaces, gateway/origin boundaries, Better Auth identity,
   document-registry ownership, collaboration runtime building blocks, and
-  `[Future]` multi-hub terms.
+  multi-hub terms.
 - `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch conventions, and
   pre-1.0 compatibility policy (no default migration/back-compat requirements).
 - `docs/dev/dependency-maintenance.md` (Medium). Temporary dependency/runtime
   workarounds plus intentionally held-back versions, with current rationale and
   revisit conditions for refresh work.
-- `docs/run-modes.md` (Long). Supported run modes for the current
-  implementation: local dev, test stacks, CI, self-hosted app runtimes,
-  managed cloud, and backup execution.
-- `docs/hints.md` (Short). Backlog of potential UX hint concepts that are not
-  yet surfaced in the UI.
+- `docs/run-modes.md` (Long). Supported run modes: local dev, test stacks, CI,
+  self-hosted app runtimes, managed cloud, and backup execution.
+- `docs/hints.md` (Short). UX hint concepts for search, note controls, and
+  structural selection guidance.
 - `docs/index.md` (Medium). Documentation entry point with map, doc workflow, and invariants.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge/reparent
   rules, spacing.
-- `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).
+- `docs/outliner/drag-and-drop.md` (Short). Pointer reordering placement semantics.
 - `docs/outliner/folding.md` (Medium). Note folding behavior, toggle visibility
   (hover/caret), persistence, auto-expand rules, and view-scoped
   fold-to-level commands.
@@ -50,7 +49,7 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/links.md` (Medium). Note-linking behavior and the
   internal-vs-external link boundary: `@` query flow, whole-document
   search/ranking, runtime fully qualified link identity, clipboard/persistence
-  docId boundaries, and cross-document roadmap limits.
+  docId boundaries, and cross-document boundaries.
 - `docs/outliner/menu.md` (Medium). Quick action menu entry points, note vs.
   children vs. view action scopes, and actions (toggle checked/fold/zoom/child
   list types/fold view to level).
@@ -104,11 +103,10 @@ updated like other doc entries.
    external references.
 4. **Coherence checks.** When editing a doc, ensure the change aligns with
    existing resolutions and update related docs/maps if needed.
-5. **Intentional gaps.** Stubs/placeholders are acceptable in dev—mark status
-   clearly when a section is partial.
-6. **[Future] markers.** Sections or bullets tagged `[Future]` are exploratory;
-   do not design, code, or test against them until they are promoted into the
-   main spec.
+5. **Intentional gaps.** Stable docs describe the intended behavior. Track gaps,
+   partial status, and implementation sequencing in `docs/todo.md`.
+6. **Planning boundary.** Stable docs describe target behavior. Put planning
+   status, current-vs-future notes, and deferral decisions in `docs/todo.md`.
 7. **Behavior changes require doc updates.** When behavior changes, update the
    affected docs in the same change. If no doc update is needed, explicitly
    state why.

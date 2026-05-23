@@ -18,11 +18,10 @@ For each access case, the important questions are:
 1. Every document has one access mode.
 2. A document may also have zero or more explicit authenticated grants.
 3. New documents start with access mode `private` and no explicit grants.
-4. Access mode defines broad exposure.
-5. Explicit authenticated grants define identity-bound access beyond the broad
-   access mode.
-6. Access mode and owner identity are server-owned document metadata stored in
-   the document registry.
+4. Only the owner can change access mode.
+5. Explicit grants add identity-bound access.
+6. The document registry stores access mode and owner identity.
+7. A URL grants access only when its access case defines it as a grant.
 
 ## Local-only app access
 
@@ -43,21 +42,15 @@ For each access case, the important questions are:
 - Actor: signed-in app user.
 - Grant: Better Auth session accepted by the target app server.
 - Scope: the app and the documents exposed by that server.
-- Run modes: self-hosted app server, managed cloud app server.
 - Authentication methods: username/password, OAuth, or other login methods the
   target app server supports.
-- Current server-mode anchor: RemDo `Actor` currently maps directly to the
-  Better Auth user/session identity.
+- Identity: the Better Auth session becomes the RemDo `Actor`.
 - Personal app state: the Yjs-backed user-data note exposes the signed-in
-  user's document list and other personal app state through the existing note
-  API. SQL document-registry rows are the durable source for the current
-  document list; `/api/me` ensures the per-user data projection and
-  home document rows exist, then updates the persisted, read-only Yjs
-  user-data projection. Browser clients may cache the last validated bootstrap
-  only to reopen local/cached routes while offline or while the app server is
-  unavailable; logout clears that bootstrap together with local Yjs offline
-  data. Future identity entries such as avatar/display name and app settings
-  such as preferences belong under the user-data note API when introduced.
+  user's document list and app state. SQL document-registry rows are the
+  document-list source; `/api/me` ensures the projection and home rows, then
+  updates the read-only Yjs projection. Browser clients may cache the last
+  validated bootstrap only for offline reopen; logout clears it with local Yjs
+  offline data.
 
 ## Private document access
 
@@ -65,10 +58,17 @@ For each access case, the important questions are:
 - Actor: document owner.
 - Grant: ownership via `documents.owner_user_id`.
 - Scope: the private document.
-- Run modes: self-hosted app server, managed cloud app server.
-- Current implementation: new documents are registered to the current Better
-  Auth user, private document tokens are issued only to that owner, and Y-Sweet
-  auth enforcement applies the issued token authorization on the sync path.
+- Access: owner only; non-owner requests are rejected or auto-revoked.
+- Token: issued only to the owner; Y-Sweet enforces it on the sync path.
+
+## Shareable document access
+
+- Access mode: `shareable`.
+- Actor: document owner and owner-approved authenticated requesters.
+- Grant: ownership via `documents.owner_user_id`, or an explicit authenticated
+  grant created after owner approval.
+- Scope: the shareable document.
+- Access requests may reach the owner for approval.
 
 ## Public document access
 
@@ -76,44 +76,40 @@ For each access case, the important questions are:
 - Actor: anyone.
 - Grant: normal document URL.
 - Scope: the public document.
-- Run modes: self-hosted app server, managed cloud app server.
 
 ## Link-shared document access
 
 - Access mode: `link-shared`.
 - Actor: anyone with a valid share link.
 - Grant: bearer link.
-- Scope: the shared document with read/write access.
-- Login: this case should work without user login.
-- Recipient scope: the recipient may be a different user from the one who
-  created the link.
-- Run modes: self-hosted app server, managed cloud app server.
+- Share links are distinct from normal document URLs.
+- Scope: the link-shared document with read/write access.
 - Lifecycle:
   1. Every document starts with access mode `private`.
-  2. A user can enable sharing for the current document.
-  3. Enabling sharing creates a share link for that document.
-  4. While share-link creation is still in progress, the document is in a
-     generating state.
-  5. Once generation completes, the share link is visible and reusable.
-  6. A user can disable sharing for the current document.
-  7. Disabling sharing revokes the current share link immediately.
-  8. A revoked share link must no longer open the document.
-  9. Re-enabling sharing after revocation creates a new share link.
-  10. The newly created share link must differ from the previously revoked one.
-  11. At most one share link is active for a document at a time.
+  2. Enabling link sharing creates one active reusable share link.
+  3. Disabling link sharing revokes that link immediately.
+  4. Re-enabling creates a different link.
 
-## Cross-server authenticated document access
+## Cross-server request-to-access document access
 
 - Access type: explicit authenticated grant.
-- Actor: signed-in user using a RemDo client that can access more than one
-  server.
-- Grant: authenticated document access bound to a remote identity or auth
-  reference on another server.
-- Scope: remote documents hosted on another RemDo server and shown in the
-  client alongside local documents.
-- Run modes: local self-hosted app, self-hosted app server, managed cloud
-  app server.
-- Client shape: one client may use documents from more than one RemDo server at
-  the same time.
-- Account scope: this may cover one person's accounts on different servers or
-  one person sharing with another person on a different server.
+- Owner actor: signed-in owner of a document hosted on one RemDo server.
+- Requester actor: signed-in user on another RemDo server.
+- Grant: owner approval creates an explicit grant bound to the approved request
+  credential.
+- Scope: the approved remote document.
+- Host: the origin server owns the document and enforces access before issuing
+  collaboration tokens.
+- Mode: request-to-access sharing requires `shareable`. Approval creates a
+  grant; it does not change access mode.
+- URL: the normal document URL is a locator, not a grant.
+- Requester identity: external human channels identify the requester; approval
+  binds to a credential for continuity.
+- Request-to-access lifecycle:
+  1. The owner changes the document access mode to `shareable` and shares the
+     normal document URL outside RemDo.
+  2. The requester pastes that URL into another RemDo server.
+  3. The requester server sends an access request to the origin server.
+  4. The owner approves the request.
+  5. The origin server creates the grant, and the requester sees the remote
+     document in their server UI.
