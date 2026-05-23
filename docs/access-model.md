@@ -103,6 +103,8 @@ For each access case, the important questions are:
 - Mode: request-to-access sharing requires `shareable`. Approval creates a
   grant; it does not change access mode.
 - URL: the normal document URL is a locator, not a grant.
+- Remote URL handling: accept only canonical RemDo document URLs, avoid unsafe
+  redirects and private-network targets, and do not expose raw upstream errors.
 - Requester identity: external human channels identify the requester; approval
   binds to a credential for continuity.
 - Request-to-access lifecycle:
@@ -113,3 +115,20 @@ For each access case, the important questions are:
   4. The owner approves the request.
   5. The origin server creates the grant, and the requester sees the remote
      document in their server UI.
+
+## References
+
+- [OWASP access-control guidance](https://devguide.owasp.org/en/04-design/02-web-app-checklist/07-access-controls/)
+  drives deny-by-default, server-side authorization, least privilege, and
+  access-rule tests.
+- [OWASP API object authorization](https://owasp.org/API-Security/editions/2019/en/0xa1-broken-object-level-authorization/)
+  requires every document-id endpoint to check object-level access.
+- [OWASP SSRF guidance](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)
+  constrains pasted remote URLs.
+- [Google AIP-126](https://google.aip.dev/126) supports `access_mode` as a
+  small enum-like policy, not a lifecycle state.
+- [Google Drive](https://support.google.com/drive/answer/2494822?hl=en-GB)
+  and [Microsoft 365](https://learn.microsoft.com/en-us/sharepoint/shareable-links-anyone-specific-people-organization)
+  sharing models separate named grants, public access, and bearer-link access.
+- [W3C capability URL guidance](https://www.w3.org/TR/capability-urls/)
+  shapes bearer-link revocation, uniqueness, and link/locator separation.

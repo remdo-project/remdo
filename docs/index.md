@@ -15,8 +15,8 @@ Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
 - `docs/access-model.md` (Medium). Document access model for RemDo:
-  owner-backed document access, explicit authenticated grants, cross-server
-  request-to-access sharing, public/link access, and authenticated app access.
+  owner-backed access, explicit authenticated grants, cross-server
+  request-to-access, public/link access, and authenticated app access.
 - `docs/architecture.md` (Medium). Cross-cutting architecture vocabulary for
   delivery surfaces, gateway/origin boundaries, Better Auth identity,
   document-registry ownership, collaboration runtime building blocks, and
@@ -30,7 +30,7 @@ outdated or a doc’s role materially changes.
   self-hosted app runtimes, managed cloud, and backup execution.
 - `docs/hints.md` (Short). UX hint concepts for search, note controls, and
   structural selection guidance.
-- `docs/index.md` (Medium). Documentation entry point with map, doc workflow, and invariants.
+- `docs/index.md` (Medium). Documentation map, workflow, and invariants.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
@@ -99,8 +99,9 @@ updated like other doc entries.
 2. **Top-down linking.** Prefer links from higher-level docs (index, concepts)
    into detailed docs (selection, indent/outdent, reordering); same-level links
    only when they add clear value.
-3. **Self-contained set.** Keep required context inside this doc set; avoid
-   external references.
+3. **Self-contained behavior.** Behavior must be clear without external
+   sources. Put external references in final `References`; keep useful internal
+   links inline.
 4. **Coherence checks.** When editing a doc, ensure the change aligns with
    existing resolutions and update related docs/maps if needed.
 5. **Intentional gaps.** Stable docs describe the intended behavior. Track gaps,

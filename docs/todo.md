@@ -43,13 +43,12 @@ Rules:
   3. ✅ Done: re-review the chosen scope against docs and code, then recommend
      technical prerequisites, expensive-to-change design decisions, and items to
      keep out of this branch.
-  4. ✅ Done: finalize the product scope; keep DB unification as an open
-     implementation decision.
+  4. ✅ Done: finalize product scope and DB direction.
   5. ✅ Done: draft the resulting plan in `docs/access-model.md` and keep
      fast-moving notes in this section.
-  6. Next: consult the proposed access-control design materials, record the
-     sources that influenced decisions, and add acceptance tests.
-  7. Pending: implement the agreed scope.
+  6. ✅ Done: consult access-control design materials, record sources, and add
+     acceptance tests.
+  7. Next: implement the agreed scope.
   8. Pending: ship this branch with deferred items left explicit.
 - Settled branch decisions:
   1. Target cross-server request-to-access sharing, not anonymous or bearer-link
@@ -78,8 +77,24 @@ Rules:
   3. Public documents.
   4. Link revocation/regeneration/invalid-link UX.
   5. Local-only no-login mode.
-- Open implementation decision: unify Better Auth's `better-sqlite3` path with
-  the registry's `node:sqlite` path before adding request/grant tables, or defer.
+- Implementation decision: defer DB-client unification. Add RemDo-owned schema
+  migrations for the `shareable` access mode, request/grant tables, and any
+  `documents.access_mode` CHECK-constraint rewrite.
+- Acceptance tests before implementation:
+  1. Documents default to `private`; migration accepts `shareable`.
+  2. `private` allows owner tokens and rejects non-owner tokens/requests.
+  3. `shareable` accepts requests but denies tokens without an active grant.
+  4. Approval creates a grant bound to requester credential and leaves
+     `access_mode` unchanged.
+  5. Approved grants issue tokens; revoked grants do not.
+  6. Normal document URLs are locators and never auto-create local documents or
+     grant access.
+  7. Remote URL import rejects invalid, non-RemDo, redirecting, or private-network
+     targets without exposing raw upstream errors.
+  8. User-data projection lists approved remote docs and keeps same-id docs from
+     different hosts distinct.
+  9. State-changing sharing endpoints reject cross-site/simple-request abuse.
+  10. Public and bearer-link access remain inactive in this branch.
 
 ## Offline and local persistence follow-ups
 
