@@ -30,10 +30,12 @@ function bumpVersion() {
 
 const userData = createUserDataRootNote(documents, {
   createDocument: async (title) => {
-    return { id: createUniqueNoteId(), title };
+    const document = { id: createUniqueNoteId(), title };
+    documents.push(document);
+    bumpVersion();
+    return document;
   },
   homeDocumentId: () => TEST_USER_DATA_DOCUMENT.id,
-  onChange: bumpVersion,
 });
 
 export function resetTestUserData(): void {

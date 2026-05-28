@@ -299,6 +299,7 @@ describe('stored user data', () => {
   });
 
   it('keeps the existing handle after a create-document API failure', async () => {
+    const doc = createUserDataDoc([USER_RUNTIME_DOCUMENT]);
     const sessionInstances: Array<{
       destroy: ReturnType<typeof vi.fn>;
       connect: ReturnType<typeof vi.fn>;
@@ -310,12 +311,17 @@ describe('stored user data', () => {
         if (body.title === 'New Document') {
           return { ok: false, status: 500 };
         }
+        const document = {
+          id: 'recoveredDoc',
+          title: body.title ?? 'Recovered Document',
+        };
+        writeUserDataProjection(doc, [
+          USER_RUNTIME_DOCUMENT,
+          document,
+        ]);
         return {
           ok: true,
-          json: async () => ({
-            id: 'recoveredDoc',
-            title: body.title ?? 'Recovered Document',
-          }),
+          json: async () => document,
         };
       }
 
@@ -349,7 +355,7 @@ describe('stored user data', () => {
         }
 
         attach(docMap: Map<string, Y.Doc>) {
-          docMap.set(this.docId, createUserDataDoc([USER_RUNTIME_DOCUMENT]));
+          docMap.set(this.docId, doc);
         }
 
         getProvider() {
@@ -412,8 +418,34 @@ describe('stored user data', () => {
     ]);
   });
 
-  it('waits for initial user data loading before creating a document', async () => {
+  it('waits for initial loading and lists created documents from the stored projection', async () => {
     const sync = createDeferred();
+    const doc = createUserDataDoc([USER_RUNTIME_DOCUMENT]);
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input) === '/api/documents') {
+        const body = JSON.parse(String(init?.body ?? '{}')) as { title?: string };
+        const document = {
+          id: 'createdDoc',
+          title: body.title ?? 'Created Document',
+        };
+        writeUserDataProjection(doc, [
+          USER_RUNTIME_DOCUMENT,
+          document,
+        ]);
+        return {
+          ok: true,
+          json: async () => document,
+        };
+      }
+
+      return {
+        ok: true,
+        json: async () => ({
+          homeDocumentId: USER_RUNTIME_DOCUMENT.id,
+          userDataDocumentId: USER_DATA_DOC_ID,
+        }),
+      };
+    }));
     vi.doMock('#lib/collaboration/session', () => ({
       CollabSession: class MockCollabSession {
         private provider = {
@@ -429,7 +461,7 @@ describe('stored user data', () => {
         }
 
         attach(docMap: Map<string, Y.Doc>) {
-          docMap.set(this.docId, createUserDataDoc([USER_RUNTIME_DOCUMENT]));
+          docMap.set(this.docId, doc);
         }
 
         getProvider() {

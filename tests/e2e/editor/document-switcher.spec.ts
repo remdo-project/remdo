@@ -56,8 +56,6 @@ test.describe('Document switcher', () => {
     const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
     await switcherTrigger.click();
 
-    const options = page.getByRole('option');
-    const initialOptionCount = await options.count();
     const initialNewDocumentCount = await page.getByRole('option', { name: 'New Document' }).count();
 
     await captureCreatedDoc(page, async () => {
@@ -65,7 +63,6 @@ test.describe('Document switcher', () => {
     });
 
     await switcherTrigger.click();
-    await expect(page.getByRole('option')).toHaveCount(initialOptionCount + 1);
     await expect(page.getByRole('option', { name: 'New Document' })).toHaveCount(initialNewDocumentCount + 1);
   });
 });

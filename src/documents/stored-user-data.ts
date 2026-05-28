@@ -32,7 +32,6 @@ class StoredUserDataStore {
   private readonly userData = createUserDataRootNote(this.documents, {
     createDocument: async (title) => this.createDocument(title),
     homeDocumentId: () => this.homeDocumentId,
-    onChange: () => this.bumpVersion(),
   });
   private context: UserDataStoreContext | null = null;
   private contextPromise: Promise<UserDataStoreContext> | null = null;

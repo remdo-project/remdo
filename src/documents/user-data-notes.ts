@@ -15,7 +15,6 @@ export interface UserDocument {
 interface UserDataNoteActions {
   createDocument?: (title: string) => Promise<UserDocument>;
   homeDocumentId?: () => NoteId | null;
-  onChange?: () => void;
 }
 
 function createDocumentHandle(document: UserDocument): DocumentNote {
@@ -40,7 +39,7 @@ function createDocumentHandle(document: UserDocument): DocumentNote {
 }
 
 function createUserDocumentsHandle(
-  documents: UserDocument[],
+  documents: readonly UserDocument[],
   actions: UserDataNoteActions,
 ): UserDocumentsNote {
   const noteId = USER_DOCUMENTS_ID;
@@ -53,8 +52,6 @@ function createUserDocumentsHandle(
       throw new TypeError('documents.create(text) requires a document title.');
     }
     const created = await actions.createDocument(text);
-    documents.push(created);
-    actions.onChange?.();
     return createDocumentHandle(created);
   }
 
@@ -71,7 +68,7 @@ function createUserDocumentsHandle(
 }
 
 export function createUserDataRootNote(
-  documents: UserDocument[],
+  documents: readonly UserDocument[],
   actions: UserDataNoteActions = {},
 ): UserDataNote {
   const noteId = USER_DATA_ROOT_ID;
