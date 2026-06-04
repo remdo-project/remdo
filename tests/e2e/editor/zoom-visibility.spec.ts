@@ -1,6 +1,6 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
-import { editorLocator, setCaretAtText } from '#editor/locators';
+import { documentZoomBreadcrumb, editorLocator, setCaretAtText, zoomBreadcrumbs } from '#editor/locators';
 import { openNoteMenu } from './_support/menu';
 import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
 
@@ -94,7 +94,7 @@ test.describe('Zoom visibility', () => {
     await expect(note1).toBeVisible();
     await expect(note2).toBeVisible();
 
-    await page.getByRole('button', { name: editor.docId }).click();
+    await documentZoomBreadcrumb(page).click();
     await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
     await expect(note1).toHaveAttribute('data-folded', 'true');
     await expect(note2).toBeHidden();
@@ -293,9 +293,7 @@ test.describe('Zoom visibility', () => {
     await page.mouse.click(metrics.x, metrics.y);
     await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
 
-    const breadcrumbs = page
-      .getByRole('button', { name: editor.docId })
-      .locator('xpath=ancestor::*[@data-zoom-breadcrumbs]');
+    const breadcrumbs = zoomBreadcrumbs(page);
     const currentCrumb = breadcrumbs.locator('[data-zoom-crumb="current"]').first();
     await currentCrumb.click();
 

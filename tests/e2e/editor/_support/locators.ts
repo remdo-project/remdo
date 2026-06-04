@@ -1,6 +1,8 @@
 import type { Locator, Page } from '#editor/fixtures';
 
 export const editorLocator = (page: Page): Locator => page.locator('.editor-container');
+export const zoomBreadcrumbs = (page: Page): Locator => page.locator('[data-zoom-breadcrumbs]');
+export const documentZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(page).locator('[data-zoom-crumb="document"]');
 
 export async function setCaretAtText(
   page: Page,
