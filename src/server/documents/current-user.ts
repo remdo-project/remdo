@@ -141,7 +141,7 @@ async function ensureCurrentUserBootstrapDocuments(
   return { userDataDocument, homeDocument };
 }
 
-export async function refreshCurrentUserDocumentsProjection(
+async function refreshCurrentUserDocumentsProjection(
   registry: DocumentRegistry,
   tokenManager: DocumentTokenManager,
   userId: string,

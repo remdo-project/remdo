@@ -1,4 +1,3 @@
-import { config } from '#config';
 import { normalizeNoteId, normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
 
 export function normalizeDocumentId(value: unknown): string | null {
@@ -12,8 +11,6 @@ export function resolveDevDocumentId(rawDocId: string): string {
   }
   return normalizeNoteIdOrThrow(raw, 'DEV_DOCUMENT_ID must be a valid note-id-compatible identifier.');
 }
-
-export const DEV_DOCUMENT_ID = resolveDevDocumentId(config.env.DEV_DOCUMENT_ID);
 
 const NOTE_REF_SEPARATOR = '_';
 const APP_DOCUMENT_PATH_PREFIX = '/n';
