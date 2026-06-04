@@ -56,9 +56,12 @@ Rules:
   2. The normal document URL is only a document locator. Possessing it must not
      allow access.
   3. Requesters are normal Better Auth users on the document host.
-  4. Only `shareable` documents accept access requests; `private` rejects or
-     auto-revokes them before owner review.
+  4. Only `shareable` documents accept access requests; `private` rejects them
+     before owner review.
   5. Access mode is owner-controlled, not derived from approved access.
+  6. Approved access is durable but mode-gated: changing a document to
+     `private` hides it from approved requesters and denies their tokens, while
+     changing it back to `shareable` restores that approved access.
 - Branch intention: same-server request-to-access sharing:
   1. Alice owns `doc123` on server A.
   2. Alice changes `doc123` access mode to `shareable`, copies its normal URL,

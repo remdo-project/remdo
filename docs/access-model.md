@@ -49,7 +49,7 @@ Define the access cases RemDo should support.
 - Who: document owner.
 - Allowed by: ownership via `documents.owner_user_id`.
 - Scope: the private document.
-- Access: owner only; non-owner requests are rejected or auto-revoked.
+- Access: owner only; non-owner requests are rejected.
 - Token: issued only to the owner; Y-Sweet enforces it on the sync path.
 
 ## Shareable document access
@@ -90,6 +90,10 @@ Define the access cases RemDo should support.
   collaboration tokens.
 - Mode: request-to-access sharing requires `shareable`. Approval creates a
   user-specific access entry; it does not change access mode.
+- Private transition: changing the document back to `private` hides it from
+  approved requesters and denies their tokens, but keeps their approved access
+  entries. Changing the document back to `shareable` makes those approvals
+  effective again.
 - URL: the normal document URL identifies the document; it does not allow access.
 - Revoked access cannot be reopened by the requester inside RemDo; only the
   owner can approve that user again.
