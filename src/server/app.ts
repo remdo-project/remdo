@@ -10,7 +10,7 @@ import type { DocumentRegistry } from './documents/document-registry';
 import {
   createUserDocument,
   ensureCurrentUserBootstrap,
-  refreshCurrentUserDocumentsProjection,
+  refreshCurrentUserDocumentsProjectionBestEffort,
 } from './documents/current-user';
 import { createDocumentTokenManager, issueDocumentToken } from './collab-token';
 import type { DocumentTokenManager } from './collab-token';
@@ -153,7 +153,15 @@ export function createServerApp({
         return c.json({ error: 'Document cannot be shared.' }, HTTP_STATUS.BAD_REQUEST);
       }
 
+      const affectedRequesterIds = (await registry.listDocumentAccessForOwner(normalizedDocId, actor.userId))
+        .filter((request) => request.status === 'approved')
+        .map((request) => request.requesterUserId);
       const document = await registry.setDocumentAccessMode(normalizedDocId, actor.userId, body.accessMode);
+      if (document) {
+        await Promise.all(affectedRequesterIds.map(async (requesterUserId) => {
+          await refreshCurrentUserDocumentsProjectionBestEffort(registry, tokenManager, requesterUserId);
+        }));
+      }
       return c.json(document);
     } catch (error) {
       logError(error, { docId: normalizedDocId });
@@ -239,12 +247,7 @@ export function createServerApp({
       if (!request) {
         return c.json({ error: 'Access request not found.' }, HTTP_STATUS.NOT_FOUND);
       }
-      try {
-        await refreshCurrentUserDocumentsProjection(registry, tokenManager, requesterUserId);
-      } catch {
-        // SQL is the durable source of truth. A later bootstrap load or document
-        // create can repair the derived requester projection.
-      }
+      await refreshCurrentUserDocumentsProjectionBestEffort(registry, tokenManager, requesterUserId);
       return c.json({ request });
     } catch (error) {
       logError(error, { docId: normalizedDocId });

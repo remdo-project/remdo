@@ -349,6 +349,52 @@ describe('remdo api app', () => {
     await expect(revokedTokenResponse.json()).resolves.toEqual({ error: 'Document access denied.' });
   });
 
+  it('refreshes requester projections when shared document access mode changes', async () => {
+    const harness = createHarness();
+    const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
+    const requesterHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
+    await insertDocumentForSession(harness, ownerHeaders, 'shareDoc');
+    const requesterBootstrapResponse = await harness.app.request('/api/me', { headers: requesterHeaders });
+    const requesterBootstrap = await requesterBootstrapResponse.json();
+    const requesterUserId = await harness.getSessionUserId(requesterHeaders);
+
+    await harness.app.request('/api/documents/shareDoc/access-mode', {
+      method: 'PATCH',
+      headers: createSharingHeaders(ownerHeaders),
+      body: JSON.stringify({ accessMode: 'shareable' }),
+    });
+    await harness.app.request('/api/documents/shareDoc/access-requests', {
+      method: 'POST',
+      headers: createSharingHeaders(requesterHeaders),
+      body: '{}',
+    });
+    await harness.app.request(`/api/documents/shareDoc/access-requests/${requesterUserId}/approve`, {
+      method: 'POST',
+      headers: createSharingHeaders(ownerHeaders),
+      body: '{}',
+    });
+
+    expect(harness.readProjectedDocumentIds(requesterBootstrap.userDataDocumentId)).toContain('shareDoc');
+
+    const privateResponse = await harness.app.request('/api/documents/shareDoc/access-mode', {
+      method: 'PATCH',
+      headers: createSharingHeaders(ownerHeaders),
+      body: JSON.stringify({ accessMode: 'private' }),
+    });
+
+    expect(privateResponse.status).toBe(HTTP_STATUS.OK);
+    expect(harness.readProjectedDocumentIds(requesterBootstrap.userDataDocumentId)).not.toContain('shareDoc');
+
+    const shareableResponse = await harness.app.request('/api/documents/shareDoc/access-mode', {
+      method: 'PATCH',
+      headers: createSharingHeaders(ownerHeaders),
+      body: JSON.stringify({ accessMode: 'shareable' }),
+    });
+
+    expect(shareableResponse.status).toBe(HTTP_STATUS.OK);
+    expect(harness.readProjectedDocumentIds(requesterBootstrap.userDataDocumentId)).toContain('shareDoc');
+  });
+
   it('rejects access requests for private documents', async () => {
     const harness = createHarness();
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);

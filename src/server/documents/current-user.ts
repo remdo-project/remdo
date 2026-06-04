@@ -150,6 +150,19 @@ export async function refreshCurrentUserDocumentsProjection(
   await refreshUserDataProjection(registry, tokenManager, userId, userDataDocument.id);
 }
 
+export async function refreshCurrentUserDocumentsProjectionBestEffort(
+  registry: DocumentRegistry,
+  tokenManager: DocumentTokenManager,
+  userId: string,
+): Promise<void> {
+  try {
+    await refreshCurrentUserDocumentsProjection(registry, tokenManager, userId);
+  } catch {
+    // SQL is the durable source of truth. A later bootstrap load or document
+    // create can repair the derived user-data projection.
+  }
+}
+
 export async function ensureCurrentUserBootstrap(
   registry: DocumentRegistry,
   tokenManager: DocumentTokenManager,
@@ -175,14 +188,9 @@ export async function createUserDocument(
   title: string,
   { createDocumentId }: { createDocumentId?: () => string } = {},
 ): Promise<CreatedUserDocument> {
-  const { userDataDocument } = await ensureCurrentUserBootstrapDocuments(registry, userId, { createDocumentId });
+  await ensureCurrentUserBootstrapDocuments(registry, userId, { createDocumentId });
   const document = await createUserDocumentRecord(registry, userId, title, { createDocumentId });
-  try {
-    await refreshUserDataProjection(registry, tokenManager, userId, userDataDocument.id);
-  } catch {
-    // The SQL registry is the durable source of truth. A later bootstrap load or
-    // create can repair the derived user-data projection.
-  }
+  await refreshCurrentUserDocumentsProjectionBestEffort(registry, tokenManager, userId);
   return {
     id: document.id,
     title: document.title,
