@@ -1,6 +1,7 @@
 import { attachPageGuards, expect, test } from '#e2e/fixtures';
 import { createUniqueNoteId } from '#lib/editor/note-ids';
 import type { Page } from '@playwright/test';
+import { createUserDocument } from '../_support/documents';
 import {
   allowOfflineDisconnectedConsoleIssue,
   allowServerUnavailableConsoleIssue,
@@ -102,7 +103,7 @@ test.describe('Offline app shell', () => {
   });
 
   test('opens the app shell while offline after an online warm-up', async ({ page, context }) => {
-    const warmedDocId = createUniqueNoteId();
+    const { id: warmedDocId } = await createUserDocument(page, 'Offline Warmed Document');
     await page.goto(`/n/${warmedDocId}`);
     await expect(page.locator('.document-editor-shell')).toBeVisible();
     await waitForServiceWorkerControl(page);
@@ -126,7 +127,7 @@ test.describe('Offline app shell', () => {
   });
 
   test('shows offline empty state for a document without local cache', async ({ page, context }) => {
-    const warmedDocId = createUniqueNoteId();
+    const { id: warmedDocId } = await createUserDocument(page, 'Offline Shell Cache Warmup');
     await page.goto(`/n/${warmedDocId}`);
     await waitForServiceWorkerControl(page);
     allowOfflineDisconnectedConsoleIssue(page);
@@ -152,7 +153,7 @@ test.describe('Offline app shell', () => {
   });
 
   test('reopens a cached document offline, accepts edits, and reconnects', async ({ page, context }) => {
-    const docId = createUniqueNoteId();
+    const { id: docId } = await createUserDocument(page, 'Offline Cached Document');
     const onlineSeedText = `online-seed-${docId.slice(0, 8)}`;
     const offlineEditText = `offline-edit-${docId.slice(0, 8)}`;
 

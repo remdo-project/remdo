@@ -15,8 +15,9 @@ Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
 - `docs/access-model.md` (Medium). Document access model for RemDo:
-  owner-backed access, explicit authenticated grants, cross-server
-  request-to-access, public/link access, and authenticated app access.
+  owner-backed access, user-specific access entries, same-server
+  request-to-access, cross-server source linking, public/link access, and
+  authenticated app access.
 - `docs/architecture.md` (Medium). Cross-cutting architecture vocabulary for
   delivery surfaces, gateway/origin boundaries, Better Auth identity,
   document-registry ownership, collaboration runtime building blocks, and
@@ -30,7 +31,7 @@ outdated or a doc’s role materially changes.
   self-hosted app runtimes, managed cloud, and backup execution.
 - `docs/hints.md` (Short). UX hint concepts for search, note controls, and
   structural selection guidance.
-- `docs/index.md` (Medium). Documentation map, workflow, and invariants.
+- `docs/index.md` (Long). Documentation map, workflow, and invariants.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.

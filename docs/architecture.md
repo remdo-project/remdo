@@ -41,16 +41,17 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
 
 - Auth: Better Auth is mounted at `/api/auth/*`.
 - Token issuance: `POST /api/documents/:docId/token` evaluates document access
-  mode, ownership, and explicit grants before issuing Y-Sweet client tokens.
+  mode, ownership, and approved user-specific access before issuing Y-Sweet
+  client tokens.
 - Y-Sweet access: the API connects with the server token and passes only
   RemDo-issued document client tokens to browsers.
 
-### Actor
+### Session User
 
-Server-owned caller identity shape used by RemDo API decisions.
+Signed-in user identity used by RemDo API decisions.
 
-- Mapping: the Better Auth session user is the RemDo actor.
-- Role: identify the user for ownership and access decisions.
+- Mapping: Better Auth resolves the active session user.
+- Role: identify the user for ownership and document access decisions.
 
 ### Document registry
 

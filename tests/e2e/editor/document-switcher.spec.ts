@@ -1,6 +1,6 @@
 import { expect, test } from '#editor/fixtures';
-import type { Page } from '#editor/fixtures';
 import { cleanupCollabDoc } from '#tests-common/runtime-scope';
+import { createUserDocument } from '../_support/documents';
 import { ensureReady, load, waitForSynced } from './_support/bridge';
 import { editorLocator } from './_support/locators';
 import { createEditorDocumentPath } from './_support/routes';
@@ -48,8 +48,9 @@ test.describe('Document switcher', () => {
     }
   });
 
-  test('creates a new document from the switcher and lists it', async ({ page, allocateEditorDocId, captureCreatedDoc }) => {
-    await page.goto(createEditorDocumentPath(allocateEditorDocId()));
+  test('creates a new document from the switcher and lists it', async ({ page, captureCreatedDoc }) => {
+    const sourceDocument = await createUserDocument(page, `Switcher Source ${Date.now()}`);
+    await page.goto(createEditorDocumentPath(sourceDocument.id));
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await ensureReady(page);
 
@@ -66,14 +67,6 @@ test.describe('Document switcher', () => {
     await expect(page.getByRole('option', { name: 'New Document' })).toHaveCount(initialNewDocumentCount + 1);
   });
 });
-
-async function createUserDocument(page: Page, title: string): Promise<{ id: string; title: string }> {
-  const response = await page.request.post('/api/documents', {
-    data: { title },
-  });
-  await expect(response).toBeOK();
-  return response.json() as Promise<{ id: string; title: string }>;
-}
 
 async function seedDocument(page: Parameters<typeof editorLocator>[0], docId: string, fixtureName: string) {
   await page.goto(createEditorDocumentPath(docId));

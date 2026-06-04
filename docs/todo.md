@@ -48,53 +48,59 @@ Rules:
      fast-moving notes in this section.
   6. ✅ Done: consult access-control design materials, record sources, and add
      acceptance tests.
-  7. Next: implement the agreed scope.
-  8. Pending: ship this branch with deferred items left explicit.
+  7. ✅ Done: implement the redesigned same-server request-to-access slice.
+  8. Next: ship this branch with deferred items left explicit.
 - Settled branch decisions:
-  1. Target cross-server request-to-access sharing, not anonymous or bearer-link
-     sharing.
+  1. Target same-server request-to-access sharing as the first slice, not
+     anonymous, bearer-link, or cross-server source-linking sharing.
   2. The normal document URL is only a document locator. Possessing it must not
-     grant access.
-  3. External human channels may identify the requester; approval still binds to
-     a credential for continuity.
+     allow access.
+  3. Requesters are normal Better Auth users on the document host.
   4. Only `shareable` documents accept access requests; `private` rejects or
      auto-revokes them before owner review.
-  5. Access mode is owner-controlled, not derived from active grants.
-- Branch intention: cross-server request-to-access sharing:
+  5. Access mode is owner-controlled, not derived from approved access.
+- Branch intention: same-server request-to-access sharing:
   1. Alice owns `doc123` on server A.
   2. Alice changes `doc123` access mode to `shareable`, copies its normal URL,
      and sends it outside RemDo.
-  3. Bob pastes that URL into server B from a new import/request-access UI.
-  4. Server B sends an access request to server A.
-  5. Alice sees the pending request in the document properties UI on server A.
+  3. Bob creates or uses a normal account on server A.
+  4. Bob requests access to `doc123` from server A's UI.
+  5. Alice sees the pending request in the sharing UI on server A.
   6. Alice can approve the request. Deny/reject can ship later.
-  7. Server A creates a grant bound to the approved request credential.
-  8. Bob sees the remote document in server B and can open/edit it.
-  9. Server A remains the document host and token issuer.
+  7. Server A approves access for Bob's A-local Better Auth user id.
+  8. Bob can open/edit `doc123` on server A.
+  9. A later OAuth source-linking slice may let Bob's home server B list/open
+     A-hosted documents after Bob authorizes B.
 - Deferred access cases:
   1. Anonymous access.
   2. Bearer/link-based access.
   3. Public documents.
   4. Link revocation/regeneration/invalid-link UX.
   5. Local-only no-login mode.
-- Implementation decision: defer DB-client unification. Add RemDo-owned schema
-  migrations for the `shareable` access mode, request/grant tables, and any
-  `documents.access_mode` CHECK-constraint rewrite.
-- Acceptance tests before implementation:
-  1. Documents default to `private`; migration accepts `shareable`.
+  6. OAuth source linking for accessing configured remote RemDo servers through
+     a home server.
+- Implementation decision: defer DB-client unification. This branch introduces
+  the SQL sharing schema from scratch; reset stale local dev databases instead
+  of adding compatibility migrations. Do not add external principal, remote
+  credential, or remote source tables in this slice.
+- Acceptance coverage:
+  1. Documents default to `private`; the schema accepts `shareable`.
   2. `private` allows owner tokens and rejects non-owner tokens/requests.
-  3. `shareable` accepts requests but denies tokens without an active grant.
-  4. Approval creates a grant bound to requester credential and leaves
+  3. `shareable` accepts requests but denies tokens without approved access.
+  4. Approval records access for the requester user id and leaves
      `access_mode` unchanged.
-  5. Approved grants issue tokens; revoked grants do not.
+  5. Approved access issues tokens; revoked access does not.
   6. Normal document URLs are locators and never auto-create local documents or
-     grant access.
-  7. Remote URL import rejects invalid, non-RemDo, redirecting, or private-network
-     targets without exposing raw upstream errors.
-  8. User-data projection lists approved remote docs and keeps same-id docs from
-     different hosts distinct.
-  9. State-changing sharing endpoints reject cross-site/simple-request abuse.
-  10. Public and bearer-link access remain inactive in this branch.
+     allow access.
+  7. State-changing sharing endpoints reject cross-site/simple-request abuse.
+  8. Public and bearer-link access remain inactive in this branch.
+- OAuth source-linking follow-up:
+  1. Implement the configured-source cross-server model described in
+     [docs/access-model.md](./access-model.md#cross-server-source-linking).
+  2. Evaluate Better Auth OAuth/OIDC provider on source servers and generic OAuth
+     configured providers on home servers.
+  3. Decide whether arbitrary user-added RemDo sources are in scope; Better
+     Auth's generic OAuth client is configured-provider oriented.
 
 ## Offline and local persistence follow-ups
 
@@ -211,6 +217,14 @@ Rules:
 
 ## Later follow-ups
 
+- Server routes follow-up: review the API endpoint set before extracting route
+  modules. Revisit endpoint names, grouping, browser-vs-server request
+  boundaries, and whether any routes should move, merge, or be dropped. After
+  the endpoint shape is settled, split `src/server/app.ts` route registration
+  into small Hono route modules mounted with `app.route(...)`, keeping
+  `createServerApp` focused on dependency setup and route overview. Consider a
+  Hono `showRoutes()` dev helper or test for endpoint inventory after the route
+  groups settle.
 - Source layout follow-up: revisit browser/server/shared folder boundaries.
   Server code was added after the browser app shape was already established, so
   some document/current-user/domain concepts now sit beside browser runtime code.

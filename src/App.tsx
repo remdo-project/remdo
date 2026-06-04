@@ -36,6 +36,12 @@ export default function App() {
           <Group gap="md" className="app-header-links">
             <Anchor
               className="app-header-link"
+              href="/sharing"
+            >
+              Sharing
+            </Anchor>
+            <Anchor
+              className="app-header-link"
               href="/logout"
             >
               Logout

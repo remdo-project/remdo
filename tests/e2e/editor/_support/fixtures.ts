@@ -2,6 +2,7 @@ import { expect, readOutline, test as base } from '#e2e/fixtures';
 import type { Locator, Page } from '#e2e/fixtures';
 import type { BrowserContext } from '@playwright/test';
 import { cleanupCollabDoc, createTestRuntimeScope } from '#tests-common/runtime-scope';
+import { createUserDocument } from '../../_support/documents';
 import { createAuthenticatedContext } from '../../_support/auth-context';
 import { waitForSynced } from './bridge';
 import {
@@ -66,10 +67,15 @@ export const test = base.extend<
       storageState: await context.storageState(),
     }));
   },
-  editor: async ({ page, allocateEditorDocId }, applyFixture) => {
-    const editor = await createEditorHarness(page, allocateEditorDocId());
-    await applyFixture(editor);
-    await waitForSynced(page);
+  editor: async ({ page }, applyFixture) => {
+    const document = await createUserDocument(page, `Editor ${Date.now()}`);
+    try {
+      const editor = await createEditorHarness(page, document.id);
+      await applyFixture(editor);
+      await waitForSynced(page);
+    } finally {
+      await cleanupCollabDoc(document.id);
+    }
   },
 });
 

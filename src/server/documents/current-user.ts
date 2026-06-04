@@ -141,6 +141,15 @@ async function ensureCurrentUserBootstrapDocuments(
   return { userDataDocument, homeDocument };
 }
 
+export async function refreshCurrentUserDocumentsProjection(
+  registry: DocumentRegistry,
+  tokenManager: DocumentTokenManager,
+  userId: string,
+): Promise<void> {
+  const { userDataDocument } = await ensureCurrentUserBootstrapDocuments(registry, userId);
+  await refreshUserDataProjection(registry, tokenManager, userId, userDataDocument.id);
+}
+
 export async function ensureCurrentUserBootstrap(
   registry: DocumentRegistry,
   tokenManager: DocumentTokenManager,

@@ -42,7 +42,6 @@ export default defineConfig({
       name: 'chromium',
       dependencies: ['setup'],
       testMatch: [
-        /(^|\/)smoke\.spec\.ts$/u,
         /app\/.*\.spec\.ts/u,
         /editor\/.*\.spec\.ts/u,
       ],

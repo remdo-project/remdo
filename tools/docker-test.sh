@@ -7,6 +7,7 @@ ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 remdo_load_dotenv "${ROOT_DIR}"
 TEST_DATA_DIR="$(mktemp -d -t remdo-docker-test-XXXXXX)"
 PROD_E2E_AUTH_STATE_PATH="${TEST_DATA_DIR%/}/prod-e2e-auth-state.json"
+PROD_E2E_SMOKE_DOCUMENT_ID_PATH="${TEST_DATA_DIR%/}/prod-e2e-smoke-document-id.txt"
 
 : "${DOCKER_TEST_BROWSER_HOST:=remdo.localhost}"
 # TODO: drop these defaults once layered env files + a committed base .env exist.
@@ -17,7 +18,6 @@ DOCKER_TEST_YSWEET_AUTH_KEY="WLo8wx1G1lGKpIDaDjky9npTrV_fW8jCpRVtB8rd"
 DOCKER_TEST_YSWEET_SERVER_TOKEN="AAAgOkIiPro6W2lCzxyW6BDQkuOmTVSfs0MZh-4PGTM_st0"
 
 : "${RUN_MODE_PORT_SHIFT:=7}"
-DEV_DOCUMENT_ID="dockerSmoke"
 remdo_load_env_defaults "${ROOT_DIR}"
 remdo_configure_docker_runtime "${DOCKER_TEST_BROWSER_HOST}"
 
@@ -105,7 +105,9 @@ PLAYWRIGHT_ENV=(
 )
 
 echo "Running admin provisioning flow on a fresh server..."
-if ! env "${PLAYWRIGHT_ENV[@]}" E2E_WRITE_STORAGE_STATE="${PROD_E2E_AUTH_STATE_PATH}" \
+if ! env "${PLAYWRIGHT_ENV[@]}" \
+  E2E_WRITE_STORAGE_STATE="${PROD_E2E_AUTH_STATE_PATH}" \
+  E2E_WRITE_SMOKE_DOCUMENT_ID="${PROD_E2E_SMOKE_DOCUMENT_ID_PATH}" \
   pnpm exec playwright test --config playwright.prod.config.ts --workers=1 -- tests/e2e/prod/setup.spec.ts; then
   docker logs "${CONTAINER_NAME}" || true
   echo "Prod admin provisioning e2e failed: ${HEALTH_URL}" >&2
@@ -118,8 +120,16 @@ if [[ ! -s "${PROD_E2E_AUTH_STATE_PATH}" ]]; then
   exit 1
 fi
 
+if [[ ! -s "${PROD_E2E_SMOKE_DOCUMENT_ID_PATH}" ]]; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Prod admin provisioning did not write smoke document id: ${PROD_E2E_SMOKE_DOCUMENT_ID_PATH}" >&2
+  exit 1
+fi
+
 echo "Running remaining Docker prod E2E suite..."
-if ! env "${PLAYWRIGHT_ENV[@]}" E2E_STORAGE_STATE="${PROD_E2E_AUTH_STATE_PATH}" \
+if ! env "${PLAYWRIGHT_ENV[@]}" \
+  E2E_STORAGE_STATE="${PROD_E2E_AUTH_STATE_PATH}" \
+  E2E_SMOKE_DOCUMENT_ID="${PROD_E2E_SMOKE_DOCUMENT_ID_PATH}" \
   pnpm exec playwright test --config playwright.prod.config.ts -- tests/e2e/prod/docker-smoke.spec.ts tests/e2e/prod/offline-shell.spec.ts; then
   docker logs "${CONTAINER_NAME}" || true
   echo "Prod e2e failed: ${HEALTH_URL}" >&2
@@ -127,6 +137,7 @@ if ! env "${PLAYWRIGHT_ENV[@]}" E2E_STORAGE_STATE="${PROD_E2E_AUTH_STATE_PATH}" 
 fi
 
 echo "Docker prod e2e OK: ${HEALTH_URL}"
+DEV_DOCUMENT_ID="$(tr -d '\r\n' < "${PROD_E2E_SMOKE_DOCUMENT_ID_PATH}")"
 COLLAB_DATA_PATH="${TEST_DATA_DIR%/}/collab/${DEV_DOCUMENT_ID}/data.ysweet"
 collab_ready="false"
 for _ in {1..40}; do

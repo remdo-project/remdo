@@ -108,6 +108,156 @@ describe('document registry', () => {
     ]);
   });
 
+  it('lists approved shared documents after owned documents', async () => {
+    const registry = createRegistry();
+    await registry.insertDocument({
+      id: 'homeDoc',
+      kind: 'home-document',
+      ownerUserId: 'user-1',
+      title: 'Home',
+    });
+    await registry.insertDocument({
+      id: 'ownedDoc',
+      ownerUserId: 'user-1',
+      title: 'Owned',
+    });
+    await registry.insertDocument({
+      id: 'sharedDoc',
+      ownerUserId: 'owner-1',
+      title: 'Shared',
+    });
+    await registry.setDocumentAccessMode('sharedDoc', 'owner-1', 'shareable');
+    await registry.upsertDocumentAccess({
+      documentId: 'sharedDoc',
+      requesterUserId: 'user-1',
+    });
+    await registry.approveDocumentAccess('sharedDoc', 'user-1', 'owner-1');
+
+    await expect(registry.listUserDocuments('user-1')).resolves.toMatchObject([
+      { id: 'homeDoc', title: 'Home' },
+      { id: 'ownedDoc', title: 'Owned' },
+      { id: 'sharedDoc', title: 'Shared' },
+    ]);
+  });
+
+  it('hides approved shared documents after they are made private again', async () => {
+    const registry = createRegistry();
+    await registry.insertDocument({
+      id: 'sharedDoc',
+      ownerUserId: 'owner-1',
+      title: 'Shared',
+    });
+    await registry.setDocumentAccessMode('sharedDoc', 'owner-1', 'shareable');
+    await registry.upsertDocumentAccess({
+      documentId: 'sharedDoc',
+      requesterUserId: 'user-1',
+    });
+    await registry.approveDocumentAccess('sharedDoc', 'user-1', 'owner-1');
+
+    await expect(registry.listUserDocuments('user-1')).resolves.toMatchObject([
+      { id: 'sharedDoc', title: 'Shared' },
+    ]);
+
+    await registry.setDocumentAccessMode('sharedDoc', 'owner-1', 'private');
+
+    await expect(registry.listUserDocuments('user-1')).resolves.toEqual([]);
+  });
+
+  it('updates access mode only for the document owner', async () => {
+    const registry = createRegistry();
+    await registry.insertDocument({
+      id: 'shareDoc',
+      ownerUserId: 'owner-1',
+      title: 'Share',
+    });
+
+    await expect(registry.setDocumentAccessMode('shareDoc', 'other-user', 'shareable')).resolves.toBeNull();
+    await expect(registry.setDocumentAccessMode('shareDoc', 'owner-1', 'shareable')).resolves.toMatchObject({
+      accessMode: 'shareable',
+      id: 'shareDoc',
+    });
+  });
+
+  it('creates, approves, and revokes document access rows', async () => {
+    const registry = createRegistry();
+    await registry.insertDocument({
+      id: 'shareDoc',
+      ownerUserId: 'owner-1',
+      title: 'Share',
+    });
+    await registry.setDocumentAccessMode('shareDoc', 'owner-1', 'shareable');
+
+    await expect(registry.upsertDocumentAccess({
+      documentId: 'shareDoc',
+      requesterUserId: 'user-1',
+    })).resolves.toEqual({
+      documentId: 'shareDoc',
+      requesterUserId: 'user-1',
+      status: 'pending',
+    });
+    await expect(registry.getApprovedAccessForRequester('shareDoc', 'user-1')).resolves.toBeNull();
+    await expect(registry.approveDocumentAccess('shareDoc', 'user-1', 'other-owner')).resolves.toBeNull();
+    await expect(registry.approveDocumentAccess('shareDoc', 'user-1', 'owner-1')).resolves.toEqual({
+      documentId: 'shareDoc',
+      requesterUserId: 'user-1',
+      status: 'approved',
+    });
+    await expect(registry.getApprovedAccessForRequester('shareDoc', 'user-1')).resolves.toMatchObject({
+      status: 'approved',
+    });
+    await expect(registry.revokeDocumentAccess('shareDoc', 'user-1')).resolves.toBe(true);
+    await expect(registry.getApprovedAccessForRequester('shareDoc', 'user-1')).resolves.toBeNull();
+  });
+
+  it('keeps revoked access closed to requester re-requests until owner approval', async () => {
+    const registry = createRegistry();
+    await registry.insertDocument({
+      id: 'shareDoc',
+      ownerUserId: 'owner-1',
+      title: 'Share',
+    });
+    await registry.setDocumentAccessMode('shareDoc', 'owner-1', 'shareable');
+    await registry.upsertDocumentAccess({
+      documentId: 'shareDoc',
+      requesterUserId: 'user-1',
+    });
+    await registry.approveDocumentAccess('shareDoc', 'user-1', 'owner-1');
+    await registry.revokeDocumentAccess('shareDoc', 'user-1');
+
+    await expect(registry.upsertDocumentAccess({
+      documentId: 'shareDoc',
+      requesterUserId: 'user-1',
+    })).resolves.toEqual({
+      documentId: 'shareDoc',
+      requesterUserId: 'user-1',
+      status: 'revoked',
+    });
+    await expect(registry.getApprovedAccessForRequester('shareDoc', 'user-1')).resolves.toBeNull();
+    await expect(registry.approveDocumentAccess('shareDoc', 'user-1', 'owner-1')).resolves.toEqual({
+      documentId: 'shareDoc',
+      requesterUserId: 'user-1',
+      status: 'approved',
+    });
+  });
+
+  it('does not approve pending access after the document is made private', async () => {
+    const registry = createRegistry();
+    await registry.insertDocument({
+      id: 'shareDoc',
+      ownerUserId: 'owner-1',
+      title: 'Share',
+    });
+    await registry.setDocumentAccessMode('shareDoc', 'owner-1', 'shareable');
+    await registry.upsertDocumentAccess({
+      documentId: 'shareDoc',
+      requesterUserId: 'user-1',
+    });
+    await registry.setDocumentAccessMode('shareDoc', 'owner-1', 'private');
+
+    await expect(registry.approveDocumentAccess('shareDoc', 'user-1', 'owner-1')).resolves.toBeNull();
+    await expect(registry.getApprovedAccessForRequester('shareDoc', 'user-1')).resolves.toBeNull();
+  });
+
   it('records the owner for inserted documents', async () => {
     const registry = createRegistry();
 

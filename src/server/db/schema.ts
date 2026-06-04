@@ -1,7 +1,9 @@
-export const DOCUMENT_ACCESS_MODES = ['private', 'public', 'link-shared'] as const;
+export const DOCUMENT_ACCESS_MODES = ['private', 'shareable', 'public', 'link-shared'] as const;
+export const DOCUMENT_ACCESS_STATUSES = ['pending', 'approved', 'revoked'] as const;
 export const DOCUMENT_KINDS = ['document', 'home-document', 'user-data-projection'] as const;
 
 export type DocumentAccessMode = (typeof DOCUMENT_ACCESS_MODES)[number];
+export type DocumentAccessStatus = (typeof DOCUMENT_ACCESS_STATUSES)[number];
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 
 export const DOCUMENTS_TABLE_COLUMNS = [
@@ -34,4 +36,14 @@ export const CREATE_DOCUMENTS_TABLE_SQL = `
   CREATE UNIQUE INDEX IF NOT EXISTS documents_unique_owner_special_kind
     ON documents(owner_user_id, document_kind)
     WHERE document_kind IN ('home-document', 'user-data-projection');
+`;
+
+export const CREATE_DOCUMENT_ACCESS_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS document_access (
+    document_id TEXT NOT NULL,
+    requester_user_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending'
+      CHECK (status IN (${sqlStringList(DOCUMENT_ACCESS_STATUSES)})),
+    PRIMARY KEY(document_id, requester_user_id)
+  );
 `;

@@ -2,7 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { config } from '#config';
-import { CREATE_DOCUMENTS_TABLE_SQL, DOCUMENTS_TABLE_COLUMNS } from './schema';
+import {
+  CREATE_DOCUMENT_ACCESS_TABLE_SQL,
+  CREATE_DOCUMENTS_TABLE_SQL,
+  DOCUMENT_ACCESS_MODES,
+  DOCUMENTS_TABLE_COLUMNS,
+} from './schema';
+
+const SQLITE_BUSY_TIMEOUT_MS = 5000;
 
 export interface ServerDatabaseClient {
   close: () => void;
@@ -37,7 +44,13 @@ function assertDocumentsTableShape(sqlite: DatabaseSync): void {
   const missingColumns = DOCUMENTS_TABLE_COLUMNS.filter((column) => !columnNames.has(column));
   const unexpectedColumns = [...columnNames].filter((column) => !expectedColumns.has(column));
   if (missingColumns.length === 0 && unexpectedColumns.length === 0) {
-    return;
+    const tableSql = sqlite
+      .prepare('SELECT sql FROM sqlite_master WHERE type = ? AND name = ?')
+      .get('table', 'documents') as { sql?: string } | undefined;
+    const unsupportedAccessModes = DOCUMENT_ACCESS_MODES.filter((mode) => !tableSql?.sql?.includes(`'${mode}'`));
+    if (unsupportedAccessModes.length === 0) {
+      return;
+    }
   }
 
   throw new Error(
@@ -56,6 +69,10 @@ function ensureDocumentsTable(sqlite: DatabaseSync): void {
   sqlite.exec(CREATE_DOCUMENTS_TABLE_SQL);
 }
 
+function ensureDocumentAccessTable(sqlite: DatabaseSync): void {
+  sqlite.exec(CREATE_DOCUMENT_ACCESS_TABLE_SQL);
+}
+
 export function createServerDatabaseClient({
   dbPath = resolveServerDatabasePath(),
 }: ServerDatabaseClientOptions = {}): ServerDatabaseClient {
@@ -64,7 +81,9 @@ export function createServerDatabaseClient({
   }
 
   const sqlite = new DatabaseSync(dbPath);
+  sqlite.exec(`PRAGMA busy_timeout = ${SQLITE_BUSY_TIMEOUT_MS}`);
   ensureDocumentsTable(sqlite);
+  ensureDocumentAccessTable(sqlite);
 
   return {
     sqlite,

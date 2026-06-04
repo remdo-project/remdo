@@ -4,10 +4,11 @@ import type { ClientToken } from '@y-sweet/sdk';
 import { HTTP_STATUS } from '#lib/http/status';
 import { request as playwrightRequest } from '@playwright/test';
 import { Buffer } from 'node:buffer';
+import fs from 'node:fs';
+import process from 'node:process';
 import * as Y from 'yjs';
 import { waitForEditableEditor } from './_support/helpers';
 
-const DOCKER_SMOKE_DOC_ID = 'dockerSmoke';
 const USER_DATA_ROOT_NOTE_ID = 'user-data';
 const DOCUMENTS_KEY = 'documents';
 const FORGED_USER_DATA_DOCUMENT_ID = 'forgedUserDataDoc';
@@ -20,6 +21,15 @@ interface CurrentUserBootstrapResponse {
 interface UserDocumentResponse {
   id: string;
   title: string;
+}
+
+function readSmokeDocumentId(): string {
+  // eslint-disable-next-line node/no-process-env -- Docker prod tests consume setup-created smoke document state.
+  const smokeDocumentIdPath = process.env.E2E_SMOKE_DOCUMENT_ID;
+  if (!smokeDocumentIdPath) {
+    throw new Error('E2E_SMOKE_DOCUMENT_ID is required for Docker smoke tests.');
+  }
+  return fs.readFileSync(smokeDocumentIdPath, 'utf8').trim();
 }
 
 function createDocEndpoint(baseUrl: string, path: string): string {
@@ -71,7 +81,8 @@ function readProjectedDocumentIds(update: Uint8Array): string[] {
 test('user can enter notes and see them rendered', async ({ page }) => {
   // Docker smoke runs against the prod build where the dev TestBridge is absent,
   // so we seed content via real typing instead of fixture loads.
-  await page.goto(`/n/${DOCKER_SMOKE_DOC_ID}`);
+  const smokeDocumentId = readSmokeDocumentId();
+  await page.goto(`/n/${smokeDocumentId}`);
   await waitForEditableEditor(page);
   const editorInput = page.locator('.editor-input').first();
   await editorInput.click();
@@ -92,7 +103,8 @@ test('user can enter notes and see them rendered', async ({ page }) => {
 });
 
 test('token issuance requires auth and collaboration control routes are not routed through the gateway', async ({ page }) => {
-  await page.goto(`/n/${DOCKER_SMOKE_DOC_ID}`);
+  const smokeDocumentId = readSmokeDocumentId();
+  await page.goto(`/n/${smokeDocumentId}`);
   const gatewayOrigin = new URL(page.url()).origin;
   const unauthenticatedContext = await playwrightRequest.newContext({
     baseURL: gatewayOrigin,
@@ -102,7 +114,7 @@ test('token issuance requires auth and collaboration control routes are not rout
       origins: [],
     },
   });
-  const unauthenticatedTokenResponse = await unauthenticatedContext.fetch('/api/documents/main/token', {
+  const unauthenticatedTokenResponse = await unauthenticatedContext.fetch(`/api/documents/${smokeDocumentId}/token`, {
     method: 'POST',
     failOnStatusCode: false,
   });
@@ -110,16 +122,16 @@ test('token issuance requires auth and collaboration control routes are not rout
   await unauthenticatedContext.dispose();
 
   expect(unauthenticatedTokenStatus).toBe(HTTP_STATUS.UNAUTHORIZED);
-  const authenticatedTokenStatus = await page.evaluate(async () => {
-    const response = await fetch('/api/documents/main/token', {
+  const authenticatedTokenStatus = await page.evaluate(async (docId) => {
+    const response = await fetch(`/api/documents/${docId}/token`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
       },
-      body: JSON.stringify({ docId: 'main' }),
+      body: '{}',
     });
     return response.status;
-  });
+  }, smokeDocumentId);
   expect(authenticatedTokenStatus).toBe(HTTP_STATUS.OK);
 
   const newRouteResponse = await page.context().request.fetch(`${gatewayOrigin}/doc/new`, {
@@ -136,7 +148,7 @@ test('token issuance requires auth and collaboration control routes are not rout
 });
 
 test('user data sync token is read-only and API document creation updates the projection', async ({ page }) => {
-  await page.goto(`/n/${DOCKER_SMOKE_DOC_ID}`);
+  await page.goto(`/n/${readSmokeDocumentId()}`);
   const requestContext = page.context().request;
 
   const bootstrapResponse = await requestContext.fetch('/api/me');

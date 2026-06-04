@@ -37,8 +37,8 @@ records the intent that should stay true across implementations.
 - Data boundary: local documents stay on the user's own machine.
 - Notes:
   1. Local document use in this mode does not require cloud access or server-side auth.
-  2. The client may still access remote documents hosted by self-hosted app server
-     or managed cloud app server modes.
+  2. The client may still access linked document sources hosted by self-hosted
+     app server or managed cloud app server modes.
   3. Packaging and installation shape are implementation details for this mode.
 
 ### Self-hosted app server
@@ -60,9 +60,9 @@ records the intent that should stay true across implementations.
      collaboration server behind the same gateway
   8. Better Auth runs inside the RemDo API process and stores users/sessions
      in the same SQLite database file as the document registry; the registry
-     owns document ownership, document titles, and per-user data/home rows,
-     while Y-Sweet persists normal documents and the read-only user-data
-     projection
+     owns document ownership, document titles, document access, and per-user
+     data/home rows, while Y-Sweet persists normal documents and the read-only
+     user-data projection
   9. browser clients reach collaboration through RemDo API token issuance and
      the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
      routes
@@ -89,8 +89,8 @@ records the intent that should stay true across implementations.
      collaboration server behind the same gateway
   6. Better Auth users/sessions and the SQLite-backed document registry share
      the same RemDo-owned DB file; the registry owns document ownership,
-     document titles, and per-user data/home rows, while Y-Sweet persists
-     normal documents and the read-only user-data projection
+     document titles, document access, and per-user data/home rows, while
+     Y-Sweet persists normal documents and the read-only user-data projection
   7. browser clients reach collaboration through RemDo API token issuance and
      the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
      routes
@@ -118,8 +118,8 @@ records the intent that should stay true across implementations.
   Y-Sweet collaboration server and preview helper. Server modes run the
   standalone API server with Better Auth plus a SQLite-backed document registry.
   Authentication is enforced, and private document access is limited to the
-  registered document owner. `pnpm run dev:user` provisions a stable debug user
-  in the local auth DB and prints credentials for the normal login form.
+  registered document owner. `pnpm run dev:users` provisions stable Alice/Bob
+  users in the local auth DB and prints credentials for the normal login form.
   Browser clients use the RemDo API token path plus `/d/*`; `/doc*` control
   routes are not routed through the gateway. Y-Sweet auth uses a matched
   development default key/token pair unless `YSWEET_AUTH_KEY` and

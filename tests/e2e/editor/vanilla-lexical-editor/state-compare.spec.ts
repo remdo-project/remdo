@@ -1,7 +1,7 @@
 import { expect, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
-import { createUniqueNoteId } from '#lib/editor/note-ids';
 import { editorLocator, setCaretAtText } from '#editor/locators';
+import { createUserDocument } from '../../_support/documents';
 
 const REMDO_TREE_SELECTOR = '.editor-tree-view-body pre';
 const VANILLA_INPUT_SELECTOR = '.vanilla-lexical-input';
@@ -84,7 +84,8 @@ async function setVanillaCaretToTextStart(page: Page, label: string): Promise<vo
 }
 
 test('compares RemDo vs vanilla state after user-level indentation', async ({ page }) => {
-  const docId = createUniqueNoteId();
+  const userDocument = await createUserDocument(page, `Vanilla Compare ${Date.now()}`);
+  const docId = userDocument.id;
   await page.goto(`/n/${docId}?lexicalDemo=true`);
 
   await page.waitForSelector(VANILLA_TREE_SELECTOR);

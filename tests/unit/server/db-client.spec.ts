@@ -26,6 +26,23 @@ describe('server database client', () => {
     }
   });
 
+  it('creates the document access table when missing', () => {
+    const client = createServerDatabaseClient({ dbPath: ':memory:' });
+    try {
+      const columns = client.sqlite
+        .prepare('PRAGMA table_info(document_access)')
+        .all() as Array<{ name: string }>;
+
+      expect(columns.map((column) => column.name)).toEqual([
+        'document_id',
+        'requester_user_id',
+        'status',
+      ]);
+    } finally {
+      client.close();
+    }
+  });
+
   it('rejects an existing incompatible documents table', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-db-schema-'));
     const dbPath = path.join(tempDir, 'remdo.sqlite');
@@ -77,6 +94,35 @@ describe('server database client', () => {
 
     try {
       expect(() => createServerDatabaseClient({ dbPath })).toThrow('Unexpected columns: list_order');
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects legacy documents access mode constraints', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-db-schema-'));
+    const dbPath = path.join(tempDir, 'remdo.sqlite');
+    const client = createServerDatabaseClient({ dbPath });
+    try {
+      client.sqlite.exec(`
+        DROP TABLE documents;
+        CREATE TABLE documents (
+          id TEXT PRIMARY KEY,
+          owner_user_id TEXT NOT NULL,
+          document_kind TEXT NOT NULL,
+          title TEXT NOT NULL,
+          access_mode TEXT NOT NULL
+            CHECK (access_mode IN ('private', 'public', 'link-shared')),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+      `);
+    } finally {
+      client.close();
+    }
+
+    try {
+      expect(() => createServerDatabaseClient({ dbPath })).toThrow('Unsupported documents table schema');
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

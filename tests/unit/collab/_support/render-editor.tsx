@@ -4,6 +4,7 @@ import Editor from '@/editor/Editor';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { EditorViewProvider } from '@/editor/view/EditorViewProvider';
 import type { EditorViewBindings } from '@/editor/view/EditorViewProvider';
+import { ensureCollabTestDocument } from './documents';
 
 /**
  * Renders the RemDo editor for tests and resolves the window remdoTest API.
@@ -16,6 +17,8 @@ export async function renderRemdoEditor(
   api: RemdoTestApi;
   unmount: () => void;
 }> {
+  await ensureCollabTestDocument(docId);
+
   let api: RemdoTestApi | null = null;
 
   const { unmount } = render(

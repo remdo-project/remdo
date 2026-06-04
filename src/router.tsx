@@ -7,6 +7,7 @@ import DocumentRoute from './routes/DocumentRoute';
 import LoginRoute from './routes/LoginRoute';
 import LogoutRoute from './routes/LogoutRoute';
 import OfflineRoute from './routes/OfflineRoute';
+import SharingRoute from './routes/SharingRoute';
 import {
   createPostAuthNextSearch,
   resolveNextPathOrDefault,
@@ -164,6 +165,10 @@ const routes = [
         path: 'n/:docRef',
         loader: createDocumentLoader(createDocumentPath),
         element: <DocumentRoute />,
+      },
+      {
+        path: 'sharing',
+        element: <SharingRoute />,
       },
     ],
   },
