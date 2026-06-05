@@ -4,8 +4,9 @@ import path from 'node:path';
 import { createServerApp } from '@/server/app';
 import { createServerAuth } from '@/server/auth/auth';
 import type { CreateAuthUserInput } from '@/server/auth/auth';
-import type { DocumentTokenManager } from '@/server/collab-token';
+import type { YSweetDocumentTokenManager } from '@/server/collab-token';
 import { createServerDatabaseClient } from '@/server/db/client';
+import type { LinkableRemdoServer } from '@/server/remdo-oauth/config';
 import { createDocumentRegistry } from '@/server/documents/document-registry';
 import * as Y from 'yjs';
 
@@ -31,10 +32,12 @@ function extractSessionCookie(response: Response): string {
 export function createServerAppHarness({
   adminSecret = TEST_ADMIN_SECRET,
   baseURL = 'http://127.0.0.1:4000',
+  linkableRemdoServers = [],
   onUpdateDoc,
 }: {
   adminSecret?: string;
   baseURL?: string;
+  linkableRemdoServers?: readonly LinkableRemdoServer[];
   onUpdateDoc?: (docId: string, update: Uint8Array) => void | Promise<void>;
 } = {}) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-server-auth-'));
@@ -43,12 +46,13 @@ export function createServerAppHarness({
     allowSignup: false,
     baseURL,
     dbPath,
+    linkableRemdoServers,
     secret: 'test-better-auth-secret-0123456789',
   });
   const client = createServerDatabaseClient({ dbPath });
   const registry = createDocumentRegistry({ client });
   const collabDocuments = new Map<string, Uint8Array>();
-  const tokenManager: DocumentTokenManager = {
+  const tokenManager: YSweetDocumentTokenManager = {
     async getDocAsUpdate(docId) {
       return collabDocuments.get(docId) ?? Y.encodeStateAsUpdate(new Y.Doc());
     },

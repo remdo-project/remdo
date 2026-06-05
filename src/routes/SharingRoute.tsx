@@ -1,6 +1,11 @@
 import { Alert, Button, Group, Select, Stack, Text, TextInput } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import {
+  fetchLinkableRemdoServers,
+  linkRemdoServerAccount,
+} from '@/auth/remdo-server-linking-client';
+import type { LinkableRemdoServerView } from '@/auth/remdo-server-linking-client';
+import {
   approveDocumentAccessRequest,
   fetchAccessRequests,
   requestDocumentAccess,
@@ -55,6 +60,7 @@ export default function SharingRoute() {
   const [selectedDocId, setSelectedDocId] = useState(documentOptions[0]?.value ?? null);
   const [requestInput, setRequestInput] = useState('');
   const [accessRequests, setAccessRequests] = useState<AccessRequestsState | null>(null);
+  const [linkableRemdoServers, setLinkableRemdoServers] = useState<LinkableRemdoServerView[]>([]);
   const [status, setStatus] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const activeDocId = selectedDocId ?? documentOptions[0]?.value ?? null;
@@ -64,6 +70,26 @@ export default function SharingRoute() {
   useEffect(() => {
     activeDocIdRef.current = activeDocId;
   }, [activeDocId]);
+
+  useEffect(() => {
+    let stale = false;
+    void fetchLinkableRemdoServers()
+      .then((servers) => {
+        if (stale) {
+          return;
+        }
+        setLinkableRemdoServers(servers);
+      })
+      .catch((error: unknown) => {
+        if (stale) {
+          return;
+        }
+        setErrorMessage(error instanceof Error ? error.message : 'Failed to load RemDo servers.');
+      });
+    return () => {
+      stale = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!activeDocId) {
@@ -137,6 +163,17 @@ export default function SharingRoute() {
     }
   };
 
+  const linkServer = async (serverId: string) => {
+    try {
+      await linkRemdoServerAccount(serverId);
+      setStatus('RemDo server account linked.');
+      setErrorMessage(null);
+      setLinkableRemdoServers(await fetchLinkableRemdoServers());
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to link RemDo server account.');
+    }
+  };
+
   return (
     <Stack gap="lg">
       {errorMessage && (
@@ -183,6 +220,28 @@ export default function SharingRoute() {
           </Group>
         ))}
       </Stack>
+
+      {linkableRemdoServers.length > 0 && (
+        <Stack gap="xs">
+          <Text fw={600}>Remote RemDo servers</Text>
+          {linkableRemdoServers.map((server) => (
+            <Group key={server.id} justify="space-between">
+              <Stack gap={0}>
+                <Text>{server.label}</Text>
+                <Text c="dimmed" size="sm">{server.baseUrl}</Text>
+              </Stack>
+              <Button
+                disabled={server.linked}
+                size="xs"
+                variant={server.linked ? 'light' : 'filled'}
+                onClick={() => void linkServer(server.id)}
+              >
+                {server.linked ? 'Linked' : 'Link'}
+              </Button>
+            </Group>
+          ))}
+        </Stack>
+      )}
 
       {status && <Text aria-live="polite">{status}</Text>}
     </Stack>

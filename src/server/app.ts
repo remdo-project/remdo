@@ -3,7 +3,7 @@ import { config } from '#config';
 import { HTTP_STATUS } from '#lib/http/status';
 import { normalizeDocumentId } from '@/routing';
 import type { ServerAuth } from './auth/auth';
-import { getServerAuth } from './auth/auth';
+import { REMDO_SERVER_OAUTH_SCOPES, getServerAuth } from './auth/auth';
 import { resolveActor } from './auth/actor';
 import { createDocumentRegistry } from './documents/document-registry';
 import type { DocumentRegistry } from './documents/document-registry';
@@ -12,13 +12,13 @@ import {
   ensureCurrentUserBootstrap,
   refreshCurrentUserDocumentsProjectionBestEffort,
 } from './documents/current-user';
-import { createDocumentTokenManager, issueDocumentToken } from './collab-token';
-import type { DocumentTokenManager } from './collab-token';
+import { createYSweetDocumentTokenManager, issueYSweetDocumentClientToken } from './collab-token';
+import type { YSweetDocumentTokenManager } from './collab-token';
 
 interface ServerAppOptions {
   adminSecret?: string;
   auth?: ServerAuth;
-  tokenManager?: DocumentTokenManager;
+  tokenManager?: YSweetDocumentTokenManager;
   registry?: DocumentRegistry;
   logError?: (error: unknown, details: { docId?: string }) => void;
 }
@@ -58,10 +58,16 @@ function acceptsSharingMutation(request: Request): boolean {
     && isSameOriginMutation(request);
 }
 
+function acceptsRemdoServerMutation(request: Request): boolean {
+  return hasJsonContentType(request)
+    && request.headers.get('x-remdo-action') === 'remdo-server-link'
+    && isSameOriginMutation(request);
+}
+
 export function createServerApp({
   adminSecret = config.env.ADMIN_SECRET,
   auth = getServerAuth(),
-  tokenManager = createDocumentTokenManager(),
+  tokenManager = createYSweetDocumentTokenManager(),
   registry = createDocumentRegistry(),
   logError = defaultLogError,
 }: ServerAppOptions = {}) {
@@ -70,6 +76,16 @@ export function createServerApp({
   app.all('/api/auth/*', async (c) => {
     await auth.ensureReady();
     return auth.auth.handler(c.req.raw);
+  });
+
+  app.get('/.well-known/openid-configuration', async (c) => {
+    await auth.ensureReady();
+    return auth.handleOpenIdConfigMetadata(c.req.raw);
+  });
+
+  app.get('/.well-known/oauth-authorization-server', async (c) => {
+    await auth.ensureReady();
+    return auth.handleAuthServerMetadata(c.req.raw);
   });
 
   app.get('/api/health', async (c) => {
@@ -94,6 +110,61 @@ export function createServerApp({
     } catch (error) {
       logError(error, {});
       return c.json({ error: 'Failed to resolve current user.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
+  });
+
+  app.get('/api/remdo-server-links', async (c) => {
+    try {
+      await auth.ensureReady();
+      const actor = await resolveActor(c.req.raw, auth);
+      if (!actor) {
+        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
+      }
+
+      const linkedServerIds = await auth.listLinkedRemdoServerIds(c.req.raw.headers);
+      return c.json({
+        servers: auth.linkableRemdoServers.map((server) => ({
+          id: server.id,
+          label: server.label,
+          baseUrl: server.baseUrl,
+          linked: linkedServerIds.has(server.id),
+        })),
+      });
+    } catch (error) {
+      logError(error, {});
+      return c.json({ error: 'Failed to list RemDo servers.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
+  });
+
+  app.post('/api/remdo-server-links/:serverId/link', async (c) => {
+    const serverId = c.req.param('serverId');
+    const server = auth.linkableRemdoServers.find((candidate) => candidate.id === serverId);
+    if (!server) {
+      return c.json({ error: 'RemDo server not found.' }, HTTP_STATUS.NOT_FOUND);
+    }
+    if (!acceptsRemdoServerMutation(c.req.raw)) {
+      return c.json({ error: 'Invalid RemDo server link request.' }, HTTP_STATUS.BAD_REQUEST);
+    }
+
+    try {
+      await auth.ensureReady();
+      const actor = await resolveActor(c.req.raw, auth);
+      if (!actor) {
+        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
+      }
+
+      return auth.auth.api.oAuth2LinkAccount({
+        body: {
+          providerId: server.id,
+          callbackURL: '/sharing',
+          scopes: [...REMDO_SERVER_OAUTH_SCOPES],
+        },
+        headers: c.req.raw.headers,
+        asResponse: true,
+      });
+    } catch (error) {
+      logError(error, {});
+      return c.json({ error: 'Failed to link RemDo server account.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });
 
@@ -302,7 +373,7 @@ export function createServerApp({
       if (!document) {
         return c.json({ error: 'Document not found.' }, HTTP_STATUS.NOT_FOUND);
       }
-      const result = await issueDocumentToken(tokenManager, actor, document, c.req.raw, {
+      const result = await issueYSweetDocumentClientToken(tokenManager, actor, document, c.req.raw, {
         hasApprovedAccess: async (documentId, requesterUserId) => (
           await registry.getApprovedAccessForRequester(documentId, requesterUserId)
         ) !== null,
@@ -314,7 +385,7 @@ export function createServerApp({
       return c.json(result.token);
     } catch (error) {
       logError(error, { docId: normalizedDocId });
-      return c.json({ error: 'Failed to issue document token.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+      return c.json({ error: 'Failed to issue Y-Sweet document client token.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });
 

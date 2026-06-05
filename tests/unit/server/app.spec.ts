@@ -26,6 +26,13 @@ function createSharingHeaders(headers: Headers): Headers {
   return requestHeaders;
 }
 
+function createRemdoServerHeaders(headers: Headers): Headers {
+  const requestHeaders = new Headers(headers);
+  requestHeaders.set('content-type', 'application/json');
+  requestHeaders.set('x-remdo-action', 'remdo-server-link');
+  return requestHeaders;
+}
+
 describe('remdo api app', () => {
   it('returns 400 for malformed document ids before token issuance', async () => {
     const harness = createHarness();
@@ -39,7 +46,7 @@ describe('remdo api app', () => {
     await expect(harness.registry.getDocument('bad doc')).resolves.toBeNull();
   });
 
-  it('returns 401 when issuing a document token without a session', async () => {
+  it('returns 401 when issuing a Y-Sweet document client token without a session', async () => {
     const harness = createHarness();
 
     const response = await harness.app.request('/api/documents/main/token', {
@@ -58,6 +65,84 @@ describe('remdo api app', () => {
 
     expect(response.status).toBe(HTTP_STATUS.UNAUTHORIZED);
     await expect(response.json()).resolves.toEqual({ error: 'Authentication required.' });
+  });
+
+  it('lists configured linkable RemDo servers for signed-in users', async () => {
+    const harness = createHarness({
+      linkableRemdoServers: [
+        {
+          id: 'source',
+          label: 'Source Server',
+          baseUrl: 'https://source.example',
+          clientId: 'source-client-id',
+          clientSecret: 'source-client-secret',
+        },
+      ],
+    });
+    const headers = await harness.createSessionHeaders();
+
+    const response = await harness.app.request('/api/remdo-server-links', { headers });
+
+    expect(response.status).toBe(HTTP_STATUS.OK);
+    await expect(response.json()).resolves.toEqual({
+      servers: [
+        {
+          id: 'source',
+          label: 'Source Server',
+          baseUrl: 'https://source.example',
+          linked: false,
+        },
+      ],
+    });
+  });
+
+  it('rejects RemDo server link listing without a session', async () => {
+    const harness = createHarness();
+
+    const response = await harness.app.request('/api/remdo-server-links');
+
+    expect(response.status).toBe(HTTP_STATUS.UNAUTHORIZED);
+    await expect(response.json()).resolves.toEqual({ error: 'Authentication required.' });
+  });
+
+  it('rejects RemDo server link mutations without the link action header', async () => {
+    const harness = createHarness({
+      linkableRemdoServers: [
+        {
+          id: 'source',
+          label: 'Source Server',
+          baseUrl: 'https://source.example',
+          clientId: 'source-client-id',
+          clientSecret: 'source-client-secret',
+        },
+      ],
+    });
+    const headers = await harness.createSessionHeaders();
+    const requestHeaders = new Headers(headers);
+    requestHeaders.set('content-type', 'application/json');
+
+    const response = await harness.app.request('/api/remdo-server-links/source/link', {
+      method: 'POST',
+      headers: requestHeaders,
+      body: '{}',
+    });
+
+    expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
+    await expect(response.json()).resolves.toEqual({ error: 'Invalid RemDo server link request.' });
+  });
+
+  it('rejects unknown RemDo server link requests', async () => {
+    const harness = createHarness();
+    const headers = await harness.createSessionHeaders();
+
+    const response = await harness.app.request('/api/remdo-server-links/source/link', {
+      method: 'POST',
+      headers: createRemdoServerHeaders(headers),
+      body: '{}',
+    });
+
+    expect(response.status).toBe(HTTP_STATUS.NOT_FOUND);
+    await expect(response.json()).resolves.toEqual({ error: 'RemDo server not found.' });
   });
 
   it('does not create a registry row when issuing a token for a missing document', async () => {
@@ -244,7 +329,7 @@ describe('remdo api app', () => {
     ]);
   });
 
-  it('rejects private document token issuance for a different user', async () => {
+  it('rejects private Y-Sweet document client token issuance for a different user', async () => {
     const harness = createHarness();
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     const otherHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);

@@ -14,7 +14,7 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
     vi.restoreAllMocks();
   });
 
-  it('requests document tokens only through the RemDo API endpoint', async () => {
+  it('requests Y-Sweet document client tokens only through the RemDo API endpoint', async () => {
     const requests: RecordedRequest[] = [];
     const originalFetch = globalThis.fetch.bind(globalThis);
     const docId = 'tokenroute';

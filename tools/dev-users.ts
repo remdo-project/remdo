@@ -1,30 +1,95 @@
 #!/usr/bin/env tsx
 import process from 'node:process';
 import { config } from '#config';
+import { REMDO_SERVER_OAUTH_SCOPES, createServerAuth } from '@/server/auth/auth';
 import type { ServerAuth } from '@/server/auth/auth';
-import { createServerAuth } from '@/server/auth/auth';
-import { STABLE_AUTH_USERS } from './lib/stable-auth-users';
+import { STABLE_AUTH_USERS, createStableAuthUserSessionHeaders } from './lib/stable-auth-users';
+import type { StableAuthUser } from './lib/stable-auth-users';
 
-type StableAuthUser = (typeof STABLE_AUTH_USERS)[keyof typeof STABLE_AUTH_USERS];
+const DEV_REMOTE_PROVIDER_ID = 'remote';
 
-function signInDevUser(auth: ServerAuth, user: StableAuthUser): Promise<Response> {
-  return auth.auth.handler(new Request(new URL('/api/auth/sign-in/email', config.env.AUTH_URL), {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      email: user.email,
-      password: user.password,
-    }),
-  }));
+function readDevEnv(value: string, name: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new Error(`${name} is required.`);
+  }
+  return trimmed;
+}
+
+function sameOrigin(left: string, right: string): boolean {
+  return new URL(left).origin === new URL(right).origin;
+}
+
+function oauthClientExists(auth: ServerAuth, clientId: string): boolean {
+  return Boolean(auth.db.prepare('SELECT 1 FROM oauthClient WHERE clientId = ?').get(clientId));
 }
 
 async function provisionDevUser(auth: ServerAuth, user: StableAuthUser): Promise<void> {
   const response = await auth.createUser(user, new Headers());
-  if (response.ok || await signInDevUser(auth, user).then((signInResponse) => signInResponse.ok)) {
+  if (response.ok) {
     return;
+  }
+  try {
+    await createStableAuthUserSessionHeaders(auth, user);
+    return;
+  } catch {
+    // Fall through to the existing actionable error.
   }
 
   throw new Error(`Failed to create or verify ${user.email}. Delete the existing debug user or auth DB.`);
+}
+
+async function provisionDevRemoteOAuthClient(): Promise<void> {
+  if (!sameOrigin(config.env.AUTH_URL, config.env.REMDO_DEV_REMOTE_ORIGIN)) {
+    return;
+  }
+
+  const clientId = readDevEnv(config.env.REMDO_DEV_OAUTH_CLIENT_ID, 'REMDO_DEV_OAUTH_CLIENT_ID');
+  const clientSecret = readDevEnv(config.env.REMDO_DEV_OAUTH_CLIENT_SECRET, 'REMDO_DEV_OAUTH_CLIENT_SECRET');
+  const homeOrigin = readDevEnv(config.env.REMDO_DEV_HOME_ORIGIN, 'REMDO_DEV_HOME_ORIGIN');
+  const redirectUri = `${homeOrigin}/api/auth/oauth2/callback/${DEV_REMOTE_PROVIDER_ID}`;
+  const clientConfig = {
+    client_name: 'RemDo dev home',
+    grant_types: ['authorization_code', 'refresh_token'] as ('authorization_code' | 'refresh_token')[],
+    redirect_uris: [redirectUri],
+    response_types: ['code'] as 'code'[],
+    scope: REMDO_SERVER_OAUTH_SCOPES.join(' '),
+    skip_consent: true,
+  };
+  const auth = createServerAuth({ oauthClientCredentials: { clientId, clientSecret } });
+
+  try {
+    await auth.ensureReady();
+    const headers = await createStableAuthUserSessionHeaders(auth, STABLE_AUTH_USERS.alice);
+    if (oauthClientExists(auth, clientId)) {
+      await auth.auth.api.adminUpdateOAuthClient({
+        body: {
+          client_id: clientId,
+          update: clientConfig,
+        },
+        headers,
+      });
+      await auth.auth.api.rotateClientSecret({
+        body: {
+          client_id: clientId,
+        },
+        headers,
+      });
+    } else {
+      await auth.auth.api.adminCreateOAuthClient({
+        body: {
+          ...clientConfig,
+          require_pkce: true,
+          token_endpoint_auth_method: 'client_secret_basic',
+        },
+        headers,
+      });
+    }
+  } finally {
+    auth.close();
+  }
+
+  console.info(`remote OAuth client: ${redirectUri}`);
 }
 
 async function main(): Promise<void> {
@@ -50,6 +115,7 @@ async function main(): Promise<void> {
     console.info(`  Email: ${user.email}`);
     console.info(`  Password: ${user.password}`);
   }
+  await provisionDevRemoteOAuthClient();
 }
 
 // eslint-disable-next-line unicorn/prefer-top-level-await

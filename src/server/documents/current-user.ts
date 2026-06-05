@@ -1,4 +1,4 @@
-import type { DocumentTokenManager } from '@/server/collab-token';
+import type { YSweetDocumentTokenManager } from '@/server/collab-token';
 import type { DocumentKind } from '@/server/db/schema';
 import { syncUserDocumentsMapArray } from '@/server/yjs/projection';
 import type { DocumentRegistry, RegisteredDocument } from './document-registry';
@@ -46,7 +46,7 @@ function writeUserDataProjection(
 
 async function refreshUserDataProjection(
   registry: DocumentRegistry,
-  tokenManager: DocumentTokenManager,
+  tokenManager: YSweetDocumentTokenManager,
   userId: string,
   userDataDocumentId: string,
 ): Promise<void> {
@@ -143,7 +143,7 @@ async function ensureCurrentUserBootstrapDocuments(
 
 async function refreshCurrentUserDocumentsProjection(
   registry: DocumentRegistry,
-  tokenManager: DocumentTokenManager,
+  tokenManager: YSweetDocumentTokenManager,
   userId: string,
 ): Promise<void> {
   const { userDataDocument } = await ensureCurrentUserBootstrapDocuments(registry, userId);
@@ -152,7 +152,7 @@ async function refreshCurrentUserDocumentsProjection(
 
 export async function refreshCurrentUserDocumentsProjectionBestEffort(
   registry: DocumentRegistry,
-  tokenManager: DocumentTokenManager,
+  tokenManager: YSweetDocumentTokenManager,
   userId: string,
 ): Promise<void> {
   try {
@@ -165,7 +165,7 @@ export async function refreshCurrentUserDocumentsProjectionBestEffort(
 
 export async function ensureCurrentUserBootstrap(
   registry: DocumentRegistry,
-  tokenManager: DocumentTokenManager,
+  tokenManager: YSweetDocumentTokenManager,
   userId: string,
   { createDocumentId }: { createDocumentId?: () => string } = {},
 ): Promise<CurrentUserBootstrap> {
@@ -183,7 +183,7 @@ export async function ensureCurrentUserBootstrap(
 
 export async function createUserDocument(
   registry: DocumentRegistry,
-  tokenManager: DocumentTokenManager,
+  tokenManager: YSweetDocumentTokenManager,
   userId: string,
   title: string,
   { createDocumentId }: { createDocumentId?: () => string } = {},

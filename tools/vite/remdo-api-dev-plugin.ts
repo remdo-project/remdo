@@ -18,7 +18,10 @@ interface LoadedServerApp {
 
 export function isApiRequestPath(url?: string): boolean {
   const pathname = url?.split('?', 1)[0] ?? '';
-  return pathname === '/api' || pathname.startsWith('/api/');
+  return pathname === '/api'
+    || pathname.startsWith('/api/')
+    || pathname === '/.well-known/openid-configuration'
+    || pathname === '/.well-known/oauth-authorization-server';
 }
 
 async function getServerApp(

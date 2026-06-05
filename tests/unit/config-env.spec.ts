@@ -1,3 +1,5 @@
+/* eslint-disable node/no-process-env */
+import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { loadEnv } from '#config/_internal/env/load';
 import { envSpec } from '#config/spec';
@@ -7,6 +9,17 @@ type EnvValues = Partial<Record<EnvKey, string | boolean>>;
 
 function loadTestEnv(values: EnvValues, options?: Parameters<typeof loadEnv>[1]) {
   return loadEnv((key) => values[key], options);
+}
+
+function readEnvShValue(name: string, overrides: NodeJS.ProcessEnv): string {
+  const env = { ...process.env, ...overrides };
+  delete env.AUTH_URL;
+  delete env.REMDO_DEV_HOME_ORIGIN;
+
+  return execFileSync('./tools/env.sh', ['sh', '-c', `printf '%s' "$${name}"`], {
+    env,
+    encoding: 'utf8',
+  });
 }
 
 describe('config env loading', () => {
@@ -47,14 +60,36 @@ describe('config env loading', () => {
     expect(loaded.server.AUTH_URL).toBe('http://127.0.0.1:4000');
   });
 
-  it('uses a browser-reachable auth URL when local services bind all interfaces', () => {
+  it('uses explicit AUTH_URL when provided', () => {
+    const loaded = loadTestEnv({
+      NODE_ENV: 'development',
+      AUTH_URL: 'https://remdo.example.test',
+      HOST: '0.0.0.0',
+      PORT: '4000',
+    });
+
+    expect(loaded.server.AUTH_URL).toBe('https://remdo.example.test');
+  });
+
+  it('uses a browser-reachable localhost auth URL when local services bind all interfaces', () => {
     const loaded = loadTestEnv({
       NODE_ENV: 'development',
       HOST: '0.0.0.0',
       PORT: '4000',
     });
 
-    expect(loaded.server.AUTH_URL).toBe('http://127.0.0.1:4000');
+    expect(loaded.server.AUTH_URL).toBe('http://localhost:4000');
+  });
+
+  it('defaults dev AUTH_URL to the explicit PORT from the shell env', () => {
+    const authUrl = readEnvShValue('AUTH_URL', {
+      NODE_ENV: 'development',
+      PORT_BASE: '4000',
+      PORT: '4500',
+      RUN_MODE_PORT_SHIFT: '0',
+    });
+
+    expect(authUrl).toBe('http://localhost:4500');
   });
 
   it('reads ALLOW_SIGNUP without accepting the old auth-prefixed key', () => {

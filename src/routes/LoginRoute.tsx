@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { authClient, rememberAuthenticatedSession } from '@/auth/client';
 import { DevToolbar } from './DevToolbar';
+import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
 import { resolvePostAuthPath } from './post-auth-path';
 
 function readAuthErrorMessage(error: unknown, fallback: string): string {
@@ -25,6 +26,10 @@ export default function LoginRoute() {
 
   const completeAuth = async () => {
     rememberAuthenticatedSession();
+    if (isOAuthAuthorizeSearch(location.search)) {
+      globalThis.location.assign(`/api/auth/oauth2/authorize${location.search}`);
+      return;
+    }
     const returnTo = await resolvePostAuthPath(location.search, globalThis.location.origin);
     void navigate(returnTo, { replace: true });
   };

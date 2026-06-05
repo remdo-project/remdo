@@ -7,10 +7,14 @@ type ParsedServerEnv = ReturnType<typeof parseEnv<typeof envSpec>>;
 type ResolvedServerEnv = ParsedServerEnv & { AUTH_URL: string };
 
 function resolveLocalAuthHost(host: string): string {
-  return host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host;
+  return host === '0.0.0.0' || host === '::' ? 'localhost' : host;
 }
 
 function resolveAuthUrl(parsed: ParsedServerEnv): string {
+  if (parsed.AUTH_URL.startsWith('http://') || parsed.AUTH_URL.startsWith('https://')) {
+    return parsed.AUTH_URL;
+  }
+
   if (parsed.NODE_ENV !== 'production' && parsed.HOST && parsed.PORT > 0) {
     return `http://${resolveLocalAuthHost(parsed.HOST)}:${parsed.PORT}`;
   }

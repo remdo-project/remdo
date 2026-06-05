@@ -60,8 +60,9 @@ Rules:
      before owner review.
   5. Access mode is owner-controlled, not derived from approved access.
   6. Approved access is durable but mode-gated: changing a document to
-     `private` hides it from approved requesters and denies their tokens, while
-     changing it back to `shareable` restores that approved access.
+     `private` hides it from approved requesters and denies their Y-Sweet
+     document client tokens, while changing it back to `shareable` restores
+     that approved access.
 - Branch intention: same-server request-to-access sharing:
   1. Alice owns `doc123` on server A.
   2. Alice changes `doc123` access mode to `shareable`, copies its normal URL,
@@ -88,11 +89,14 @@ Rules:
   credential, or remote source tables in this slice.
 - Acceptance coverage:
   1. Documents default to `private`; the schema accepts `shareable`.
-  2. `private` allows owner tokens and rejects non-owner tokens/requests.
-  3. `shareable` accepts requests but denies tokens without approved access.
+  2. `private` allows owner Y-Sweet document client tokens and rejects
+     non-owner Y-Sweet document client token requests and access requests.
+  3. `shareable` accepts access requests but denies Y-Sweet document client
+     tokens without approved access.
   4. Approval records access for the requester user id and leaves
      `access_mode` unchanged.
-  5. Approved access issues tokens; revoked access does not.
+  5. Approved access issues Y-Sweet document client tokens; revoked access does
+     not.
   6. Normal document URLs are locators and never auto-create local documents or
      allow access.
   7. State-changing sharing endpoints reject cross-site/simple-request abuse.
@@ -104,13 +108,16 @@ Rules:
      configured providers on home servers.
   3. Decide whether arbitrary user-added RemDo sources are in scope; Better
      Auth's generic OAuth client is configured-provider oriented.
+  4. Replace or complement `dev:remote` with a Docker-home OAuth test flow:
+     normal `pnpm dev` acts as the source server, Docker acts as the HTTPS home
+     server, and a dedicated Chrome profile ignores the local dev certificate.
 
 ## Offline and local persistence follow-ups
 
-- Offline collaboration retry follow-up: reduce token-fetch and websocket
-  reconnect noise when the app server or collaboration server is unavailable.
-  The editor should keep showing a clear disconnected state, but repeated
-  retries should avoid flooding the console and test guards.
+- Offline collaboration retry follow-up: reduce Y-Sweet document client token
+  fetch and websocket reconnect noise when the app server or collaboration
+  server is unavailable. The editor should keep showing a clear disconnected
+  state, but repeated retries should avoid flooding the console and test guards.
 - Unsynced local edits follow-up: expose a reliable "pending local changes"
   signal from the collaboration/local-persistence layer and show it in the UI.
   Destructive actions such as logout should warn before clearing local Yjs data
@@ -213,13 +220,33 @@ Rules:
      explicit budget, suppression, or accepted noise.
   3. Decide whether to suppress or just classify the `NO_COLOR` / `FORCE_COLOR`
      warnings seen during Docker Playwright runs.
-  4. Review current install-time warnings and classify each as `fix`, `track`,
+  4. Decide whether to suppress, classify, or otherwise avoid Node's
+     `ExperimentalWarning` noise from Better Auth's SQLite path in dev/test
+     commands.
+  5. Review current install-time warnings and classify each as `fix`, `track`,
      or `ignore`, especially:
      `glob@11.1.0`, `source-map@0.8.0-beta.0`, `sourcemap-codec@1.4.8`, and the
      `@typescript-eslint/*` peer mismatch against `typescript 6`.
 
 ## Later follow-ups
 
+- Cross-server document sources: after OAuth source linking, read linked source
+  document lists through each source server's user-data Yjs projection and merge
+  them in the browser document list. Avoid adding a parallel HTTP document
+  catalog unless the projection model proves insufficient.
+- Cross-server OAuth setup: add an operator-facing way to register or import
+  RemDo OAuth clients between servers, add the source-server consent UI needed
+  outside trusted dev clients, and add two-server coverage once the
+  client-registration flow is settled.
+- Auth provisioning concepts: revisit user creation, dev fixture users, OAuth
+  client creation restrictions, and server registration as separate flows with
+  clearer boundaries.
+- Add focused e2e coverage for the cross-server OAuth account-linking flow once
+  the two-server dev/test harness is settled.
+- Dev script ergonomics: update normal dev launchers to pre-kill conflicting
+  RemDo services in their own `PORT_BASE` block before starting, instead of
+  adding separate restart scripts. Keep the behavior port-scoped and avoid the
+  shared Chrome DevTools endpoint.
 - Server routes follow-up: review the API endpoint set before extracting route
   modules. Revisit endpoint names, grouping, browser-vs-server request
   boundaries, and whether any routes should move, merge, or be dropped. After

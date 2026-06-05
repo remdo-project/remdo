@@ -49,6 +49,8 @@
     "dev:collab": "./tools/env.sh tsx ./tools/collab-server.ts",
     "dev:init": "./tools/dev-init.sh",
     "dev:pwa": "RUN_MODE_PORT_SHIFT=20 ./tools/env.sh ./tools/dev-pwa.sh",
+    "dev:remote": "pnpm run dev:remote:hint && HOST=127.0.0.1 RUN_MODE_PORT_SHIFT=${REMDO_DEV_REMOTE_PORT_SHIFT:-30} DATA_DIR=data/remote-dev pnpm run dev:users && concurrently \"HOST=127.0.0.1 RUN_MODE_PORT_SHIFT=${REMDO_DEV_REMOTE_PORT_SHIFT:-30} DATA_DIR=data/remote-dev pnpm run dev:web\" \"HOST=127.0.0.1 RUN_MODE_PORT_SHIFT=${REMDO_DEV_REMOTE_PORT_SHIFT:-30} DATA_DIR=data/remote-dev pnpm run dev:collab\"",
+    "dev:remote:hint": "./tools/env.sh tsx ./tools/dev-remote-hint.ts",
     "dev:users": "./tools/env.sh tsx ./tools/dev-users.ts",
     "dev:web": "./tools/env.sh vite",
     "lint": "cross-env CI=1 pnpm run typecheck && pnpm run lint:code && pnpm run lint:css && pnpm run lint:md",
@@ -97,6 +99,7 @@
     "vendor:lexical": "./tools/vendor-lexical.sh"
   },
   "dependencies": {
+    "@better-auth/oauth-provider": "catalog:",
     "@hono/node-server": "catalog:",
     "@lexical/clipboard": "catalog:",
     "@lexical/link": "catalog:",

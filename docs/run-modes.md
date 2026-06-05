@@ -63,9 +63,9 @@ records the intent that should stay true across implementations.
      owns document ownership, document titles, document access, and per-user
      data/home rows, while Y-Sweet persists normal documents and the read-only
      user-data projection
-  9. browser clients reach collaboration through RemDo API token issuance and
-     the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
-     routes
+  9. browser clients reach collaboration through RemDo API Y-Sweet document
+     client token issuance and the proxied Y-Sweet sync path (`/d/*`), not
+     direct Y-Sweet document-control routes
   10. the collaboration server runs with Y-Sweet auth enabled; Y-Sweet startup
       uses `YSWEET_AUTH_KEY`, while the RemDo API uses the matching
       `YSWEET_SERVER_TOKEN` server token
@@ -91,9 +91,9 @@ records the intent that should stay true across implementations.
      the same RemDo-owned DB file; the registry owns document ownership,
      document titles, document access, and per-user data/home rows, while
      Y-Sweet persists normal documents and the read-only user-data projection
-  7. browser clients reach collaboration through RemDo API token issuance and
-     the proxied Y-Sweet sync path (`/d/*`), not direct Y-Sweet document-control
-     routes
+  7. browser clients reach collaboration through RemDo API Y-Sweet document
+     client token issuance and the proxied Y-Sweet sync path (`/d/*`), not
+     direct Y-Sweet document-control routes
   8. the collaboration server runs with Y-Sweet auth enabled; Y-Sweet startup
      uses `YSWEET_AUTH_KEY`, while the RemDo API uses the matching
      `YSWEET_SERVER_TOKEN` server token
@@ -120,10 +120,10 @@ records the intent that should stay true across implementations.
   Authentication is enforced, and private document access is limited to the
   registered document owner. `pnpm run dev:users` provisions stable Alice/Bob
   users in the local auth DB and prints credentials for the normal login form.
-  Browser clients use the RemDo API token path plus `/d/*`; `/doc*` control
-  routes are not routed through the gateway. Y-Sweet auth uses a matched
-  development default key/token pair unless `YSWEET_AUTH_KEY` and
-  `YSWEET_SERVER_TOKEN` are set.
+  Browser clients use the RemDo API Y-Sweet document client token path plus
+  `/d/*`; `/doc*` control routes are not routed through the gateway. Y-Sweet
+  auth uses a matched development default key/server-token pair unless
+  `YSWEET_AUTH_KEY` and `YSWEET_SERVER_TOKEN` are set.
 
 ### Unit and collab tests
 

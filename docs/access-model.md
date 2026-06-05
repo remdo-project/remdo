@@ -43,6 +43,18 @@ Define the access cases RemDo should support.
   validated bootstrap only for offline reopen; logout clears it with local Yjs
   offline data.
 
+## Token vocabulary
+
+- Better Auth session token: browser session credential used by the RemDo API to
+  identify the signed-in user.
+- OAuth account tokens: Better Auth-managed access, refresh, and ID tokens
+  created when a home server links a user's account on a source server.
+- Y-Sweet server token: server credential used by the RemDo API to call
+  Y-Sweet document-control APIs.
+- Y-Sweet document client token: short-lived browser credential issued by the
+  RemDo API after document access checks; Y-Sweet enforces it on `/d/*` sync
+  paths.
+
 ## Private document access
 
 - Access mode: `private`.
@@ -50,7 +62,7 @@ Define the access cases RemDo should support.
 - Allowed by: ownership via `documents.owner_user_id`.
 - Scope: the private document.
 - Access: owner only; non-owner requests are rejected.
-- Token: issued only to the owner; Y-Sweet enforces it on the sync path.
+- Y-Sweet document client token: issued only to the owner.
 
 ## Shareable document access
 
@@ -87,13 +99,13 @@ Define the access cases RemDo should support.
 - Allowed by: owner approval for the requester's Better Auth user.
 - Scope: the requested document.
 - Host: that server owns the document and enforces access before issuing
-  collaboration tokens.
+  Y-Sweet document client tokens.
 - Mode: request-to-access sharing requires `shareable`. Approval creates a
   user-specific access entry; it does not change access mode.
 - Private transition: changing the document back to `private` hides it from
-  approved requesters and denies their tokens, but keeps their approved access
-  entries. Changing the document back to `shareable` makes those approvals
-  effective again.
+  approved requesters and denies their Y-Sweet document client tokens, but keeps
+  their approved access entries. Changing the document back to `shareable` makes
+  those approvals effective again.
 - URL: the normal document URL identifies the document; it does not allow access.
 - Revoked access cannot be reopened by the requester inside RemDo; only the
   owner can approve that user again.
@@ -112,11 +124,13 @@ server user. A home server can list or open those documents only after the user
 links the source server account through OAuth.
 
 - Source server: owns documents, authenticates its users, approves access, and
-  issues collaboration tokens.
-- Home server: stores the user's linked source account tokens and presents the
-  source documents in the user's document list.
-- Token path: the home server uses short-lived source-server access tokens for
-  source catalogs and document tokens.
+  issues Y-Sweet document client tokens.
+- Home server: stores the user's OAuth account tokens for linked source
+  accounts.
+- Source linking: the home server starts OAuth, the user signs in on the source
+  server, and Better Auth stores the resulting linked account.
+- Source documents: once linked, the browser can subscribe to source-owned user
+  data projections and merge those documents into the same document list.
 
 ## References
 

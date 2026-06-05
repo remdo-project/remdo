@@ -33,6 +33,8 @@ describe('vite shared config', () => {
     expect(isApiRequestPath('/api')).toBe(true);
     expect(isApiRequestPath('/api/health')).toBe(true);
     expect(isApiRequestPath('/api/me?x=1')).toBe(true);
+    expect(isApiRequestPath('/.well-known/openid-configuration')).toBe(true);
+    expect(isApiRequestPath('/.well-known/oauth-authorization-server')).toBe(true);
     expect(isApiRequestPath('/app/api/me')).toBe(false);
     expect(isApiRequestPath('/apiary')).toBe(false);
     expect(isApiRequestPath()).toBe(false);

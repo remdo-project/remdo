@@ -1,17 +1,39 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {
+  oauthProvider,
+  oauthProviderAuthServerMetadata,
+  oauthProviderOpenIdConfigMetadata,
+} from '@better-auth/oauth-provider';
 import Database from 'better-sqlite3';
 import { betterAuth } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
+import { genericOAuth, jwt } from 'better-auth/plugins';
 import { config } from '#config';
 import { resolveServerDatabasePath } from '@/server/db/client';
+import type { LinkableRemdoServer } from '@/server/remdo-oauth/config';
+import { getLinkableRemdoServers } from '@/server/remdo-oauth/config';
 
 interface CreateServerAuthOptions {
   allowSignup?: boolean;
   baseURL?: string;
   dbPath?: string;
+  linkableRemdoServers?: readonly LinkableRemdoServer[];
+  oauthClientCredentials?: OAuthClientCredentials;
   secret?: string;
+}
+
+export const REMDO_SERVER_OAUTH_SCOPES = [
+  'openid',
+  'profile',
+  'email',
+  'offline_access',
+] as const;
+
+interface OAuthClientCredentials {
+  clientId: string;
+  clientSecret: string;
 }
 
 function appendOrigin(origins: string[], origin: string): void {
@@ -54,11 +76,15 @@ function createBetterAuthInstance({
   allowSignup,
   baseURL,
   database,
+  linkableRemdoServers,
+  oauthClientCredentials,
   secret,
 }: {
   allowSignup: boolean;
   baseURL: string;
   database: Database.Database;
+  linkableRemdoServers: readonly LinkableRemdoServer[];
+  oauthClientCredentials?: OAuthClientCredentials;
   secret: string;
 }) {
   return betterAuth({
@@ -66,11 +92,51 @@ function createBetterAuthInstance({
     baseURL,
     trustedOrigins: createAuthTrustedOrigins(baseURL),
     secret,
+    logger: config.isProd ? undefined : { level: 'error' },
     database,
     emailAndPassword: {
       enabled: true,
       disableSignUp: !allowSignup,
     },
+    plugins: [
+      jwt({
+        disableSettingJwtHeader: true,
+        jwt: {
+          issuer: baseURL,
+          audience: baseURL,
+        },
+      }),
+      oauthProvider({
+        consentPage: '/oauth/consent',
+        loginPage: '/login',
+        ...(oauthClientCredentials
+          ? {
+              generateClientId: () => oauthClientCredentials.clientId,
+              generateClientSecret: () => oauthClientCredentials.clientSecret,
+            }
+          : {}),
+        silenceWarnings: {
+          oauthAuthServerConfig: true,
+          openidConfig: true,
+        },
+      }),
+      genericOAuth({
+        config: linkableRemdoServers.map((server) => ({
+          providerId: server.id,
+          discoveryUrl: `${server.baseUrl}/.well-known/openid-configuration`,
+          issuer: server.baseUrl,
+          requireIssuerValidation: true,
+          clientId: server.clientId,
+          clientSecret: server.clientSecret,
+          scopes: [...REMDO_SERVER_OAUTH_SCOPES],
+          accessType: 'offline',
+          pkce: true,
+          authorizationUrlParams: {
+            resource: server.baseUrl,
+          },
+        })),
+      }),
+    ],
   });
 }
 
@@ -86,17 +152,23 @@ export interface ServerAuth {
   allowSignup: boolean;
   auth: BetterAuthInstance;
   close: () => void;
+  linkableRemdoServers: readonly LinkableRemdoServer[];
   createUser: (user: CreateAuthUserInput, headers: Headers) => Promise<Response>;
   db: Database.Database;
   ensureReady: () => Promise<void>;
+  handleAuthServerMetadata: (request: Request) => Promise<Response>;
+  handleOpenIdConfigMetadata: (request: Request) => Promise<Response>;
   getSession: (headers: Headers) => Promise<Awaited<ReturnType<BetterAuthInstance['api']['getSession']>>>;
   getUserCount: () => number;
+  listLinkedRemdoServerIds: (headers: Headers) => Promise<Set<string>>;
 }
 
 export function createServerAuth({
   allowSignup = config.env.ALLOW_SIGNUP,
   baseURL = config.env.AUTH_URL,
   dbPath = resolveServerDatabasePath(),
+  linkableRemdoServers = getLinkableRemdoServers(),
+  oauthClientCredentials,
   secret = config.env.AUTH_SECRET,
 }: CreateServerAuthOptions = {}): ServerAuth {
   if (!baseURL) {
@@ -116,6 +188,8 @@ export function createServerAuth({
     allowSignup,
     baseURL,
     database: db,
+    linkableRemdoServers,
+    oauthClientCredentials,
     secret,
   });
   const userProvisioningAuth = allowSignup
@@ -124,8 +198,12 @@ export function createServerAuth({
         allowSignup: true,
         baseURL,
         database: db,
+        linkableRemdoServers,
+        oauthClientCredentials,
         secret,
       });
+  const handleAuthServerMetadata = oauthProviderAuthServerMetadata(auth);
+  const handleOpenIdConfigMetadata = oauthProviderOpenIdConfigMetadata(auth);
 
   let readyPromise: Promise<void> | null = null;
 
@@ -133,6 +211,7 @@ export function createServerAuth({
     allowSignup,
     auth,
     db,
+    linkableRemdoServers,
     close() {
       db.close();
     },
@@ -162,6 +241,16 @@ export function createServerAuth({
     getUserCount() {
       const row = db.prepare('SELECT COUNT(*) AS count FROM "user"').get() as { count: number };
       return row.count;
+    },
+    handleAuthServerMetadata,
+    handleOpenIdConfigMetadata,
+    async listLinkedRemdoServerIds(headers) {
+      const accounts = await auth.api.listUserAccounts({ headers });
+      return new Set(
+        accounts
+          .map((account) => account.providerId)
+          .filter((providerId) => linkableRemdoServers.some((server) => server.id === providerId)),
+      );
     },
   };
 }

@@ -14,11 +14,11 @@ line (align continuation lines by two spaces).
 Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
-- `docs/access-model.md` (Medium). Document access model for RemDo:
+- `docs/access-model.md` (Long). Document access model for RemDo:
   owner-backed access, user-specific access entries, same-server
   request-to-access, cross-server source linking, public/link access, and
   authenticated app access.
-- `docs/architecture.md` (Medium). Cross-cutting architecture vocabulary for
+- `docs/architecture.md` (Long). Cross-cutting architecture vocabulary for
   delivery surfaces, gateway/origin boundaries, Better Auth identity,
   document-registry ownership, collaboration runtime building blocks, and
   multi-hub terms.

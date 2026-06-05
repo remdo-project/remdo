@@ -25,7 +25,7 @@ interface ResolveYSweetConnectionStringOptions {
   serverToken?: string;
 }
 
-export interface DocumentTokenManager {
+export interface YSweetDocumentTokenManager {
   getDocAsUpdate: (docId: string) => Promise<Uint8Array>;
   getOrCreateDocAndToken: (
     docId: string,
@@ -34,7 +34,7 @@ export interface DocumentTokenManager {
   updateDoc: (docId: string, update: Uint8Array) => Promise<void>;
 }
 
-export function createDocumentTokenManager(): DocumentTokenManager {
+export function createYSweetDocumentTokenManager(): YSweetDocumentTokenManager {
   return new DocumentManager(resolveYSweetConnectionString());
 }
 
@@ -81,8 +81,8 @@ async function resolveDocumentAccess({
   return { allowed: false };
 }
 
-export async function issueDocumentToken(
-  tokenManager: DocumentTokenManager,
+export async function issueYSweetDocumentClientToken(
+  tokenManager: YSweetDocumentTokenManager,
   actor: Actor,
   document: RegisteredDocument,
   request: Request,
