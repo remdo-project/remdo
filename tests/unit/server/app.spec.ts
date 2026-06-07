@@ -555,7 +555,7 @@ describe('remdo api app', () => {
     await expect(missingResponse.json()).resolves.toEqual({ error: 'Admin secret is invalid.' });
     expect(wrongResponse.status).toBe(HTTP_STATUS.FORBIDDEN);
     await expect(wrongResponse.json()).resolves.toEqual({ error: 'Admin secret is invalid.' });
-    expect(harness.auth.getUserCount()).toBe(0);
+    await expect(harness.auth.getUserCount()).resolves.toBe(0);
   });
 
   it('rejects admin provisioning when no admin secret is configured', async () => {
@@ -574,7 +574,7 @@ describe('remdo api app', () => {
 
     expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
     await expect(response.json()).resolves.toEqual({ error: 'Admin secret is invalid.' });
-    expect(harness.auth.getUserCount()).toBe(0);
+    await expect(harness.auth.getUserCount()).resolves.toBe(0);
   });
 
   it('keeps public signup disabled when admin provisioning is available', async () => {
@@ -589,7 +589,7 @@ describe('remdo api app', () => {
     });
 
     expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
-    expect(harness.auth.getUserCount()).toBe(0);
+    await expect(harness.auth.getUserCount()).resolves.toBe(0);
   });
 
   it('allows proxied sign-in requests against the public auth origin', async () => {
@@ -642,7 +642,32 @@ describe('remdo api app', () => {
     });
 
     expect(response.status).toBe(HTTP_STATUS.OK);
-    expect(harness.auth.getUserCount()).toBe(2);
+    await expect(harness.auth.getUserCount()).resolves.toBe(2);
+  });
+
+  it('stores auth users and document registry rows in the shared database client', async () => {
+    const harness = createHarness();
+    const headers = await harness.createSessionHeaders();
+    const userId = await harness.getSessionUserId(headers);
+
+    await harness.registry.insertDocument({
+      id: 'sharedStorageDoc',
+      ownerUserId: userId,
+      title: 'Shared Storage',
+    });
+
+    const authUser = await harness.database.db
+      .selectFrom('user')
+      .select('id')
+      .where('id', '=', userId)
+      .executeTakeFirst();
+    const document = await harness.registry.getDocument('sharedStorageDoc');
+
+    expect(authUser).toEqual({ id: userId });
+    expect(document).toMatchObject({
+      id: 'sharedStorageDoc',
+      ownerUserId: userId,
+    });
   });
 
   it('reports database readiness in the health response', async () => {

@@ -115,6 +115,7 @@
     "better-auth": "catalog:",
     "better-sqlite3": "catalog:",
     "hono": "catalog:",
+    "kysely": "catalog:",
     "lexical": "catalog:",
     "linkify-it": "catalog:",
     "nanoid": "catalog:",

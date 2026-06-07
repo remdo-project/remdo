@@ -20,8 +20,8 @@ outdated or a doc’s role materially changes.
   authenticated app access.
 - `docs/architecture.md` (Long). Cross-cutting architecture vocabulary for
   delivery surfaces, gateway/origin boundaries, Better Auth identity,
-  document-registry ownership, collaboration runtime building blocks, and
-  multi-hub terms.
+  Kysely-backed document-registry ownership, collaboration runtime building
+  blocks, and multi-hub terms.
 - `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch conventions, and
   pre-1.0 compatibility policy (no default migration/back-compat requirements).
 - `docs/dev/dependency-maintenance.md` (Medium). Temporary dependency/runtime

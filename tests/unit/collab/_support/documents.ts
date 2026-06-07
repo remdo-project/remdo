@@ -22,7 +22,7 @@ async function insertCollabTestDocument(docId: string): Promise<void> {
       title: docId,
     });
   } finally {
-    client.close();
+    await client.close();
   }
 }
 

@@ -42,14 +42,14 @@ export function createServerAppHarness({
 } = {}) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-server-auth-'));
   const dbPath = path.join(tempDir, 'remdo.sqlite');
+  const client = createServerDatabaseClient({ dbPath });
   const auth = createServerAuth({
     allowSignup: false,
     baseURL,
-    dbPath,
+    database: client,
     linkableRemdoServers,
     secret: 'test-better-auth-secret-0123456789',
   });
-  const client = createServerDatabaseClient({ dbPath });
   const registry = createDocumentRegistry({ client });
   const collabDocuments = new Map<string, Uint8Array>();
   const tokenManager: YSweetDocumentTokenManager = {
@@ -90,6 +90,7 @@ export function createServerAppHarness({
   return {
     app,
     auth,
+    database: client,
     registry,
     async createSessionHeaders(user: CreateAuthUserInput = TEST_USER) {
       await auth.ensureReady();
@@ -139,9 +140,8 @@ export function createServerAppHarness({
         doc.destroy();
       }
     },
-    cleanup() {
-      client.close();
-      auth.close();
+    async cleanup() {
+      await client.close();
       fs.rmSync(tempDir, { recursive: true, force: true });
     },
   };

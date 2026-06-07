@@ -1,19 +1,19 @@
 import { getRequestListener } from '@hono/node-server';
 import type { Plugin, ViteDevServer } from 'vite';
-import type { createServerApp } from '../../src/server/app';
+import type { createServerRuntime } from '../../src/server/runtime';
 
-const API_MODULE_ID = '/src/server/app.ts';
+const API_MODULE_ID = '/src/server/runtime.ts';
 
-type ServerAppFactory = typeof createServerApp;
-type ServerApp = ReturnType<ServerAppFactory>;
+type ServerRuntimeFactory = typeof createServerRuntime;
+type ServerRuntime = ReturnType<ServerRuntimeFactory>;
 
 interface ServerAppModule {
-  createServerApp: ServerAppFactory;
+  createServerRuntime: ServerRuntimeFactory;
 }
 
 interface LoadedServerApp {
-  app: ServerApp;
-  createServerApp: ServerAppFactory;
+  createServerRuntime: ServerRuntimeFactory;
+  runtime: ServerRuntime;
 }
 
 export function isApiRequestPath(url?: string): boolean {
@@ -29,13 +29,15 @@ async function getServerApp(
   loaded: LoadedServerApp | null,
 ): Promise<LoadedServerApp> {
   const mod = await server.ssrLoadModule(API_MODULE_ID) as ServerAppModule;
-  if (loaded?.createServerApp === mod.createServerApp) {
+  if (loaded?.createServerRuntime === mod.createServerRuntime) {
     return loaded;
   }
 
+  await loaded?.runtime.close();
+  const runtime = mod.createServerRuntime();
   return {
-    app: mod.createServerApp(),
-    createServerApp: mod.createServerApp,
+    createServerRuntime: mod.createServerRuntime,
+    runtime,
   };
 }
 
@@ -49,10 +51,14 @@ export function remdoApiDevPlugin(): Plugin {
       const listener = getRequestListener(
         async (request) => {
           loaded = await getServerApp(server, loaded);
-          return loaded.app.fetch(request);
+          return loaded.runtime.app.fetch(request);
         },
         { overrideGlobalObjects: false },
       );
+
+      server.httpServer?.once('close', () => {
+        void loaded?.runtime.close();
+      });
 
       server.middlewares.use((req, res, next) => {
         if (!isApiRequestPath(req.url)) {

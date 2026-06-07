@@ -1,5 +1,4 @@
 import type { ServerAuth } from './auth';
-import { getServerAuth } from './auth';
 
 export interface Actor {
   type: 'local-user';
@@ -8,7 +7,7 @@ export interface Actor {
   name?: string;
 }
 
-export async function resolveActor(request: Request, auth: ServerAuth = getServerAuth()): Promise<Actor | null> {
+export async function resolveActor(request: Request, auth: ServerAuth): Promise<Actor | null> {
   const session = await auth.getSession(request.headers);
   if (!session?.user) {
     return null;

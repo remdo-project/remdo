@@ -83,10 +83,10 @@ Rules:
   5. Local-only no-login mode.
   6. OAuth source linking for accessing configured source RemDo servers through
      a home server.
-- Implementation decision: defer DB-client unification. This branch introduces
-  the SQL sharing schema from scratch; reset stale local dev databases instead
-  of adding compatibility migrations. Do not add external principal, external
-  credential, or source tables in this slice.
+- Implementation decision: this branch introduces the SQL sharing schema from
+  scratch; reset stale local dev databases instead of adding compatibility
+  migrations. Do not add external principal, external credential, or source
+  tables in this slice.
 - Acceptance coverage:
   1. Documents default to `private`; the schema accepts `shareable`.
   2. `private` allows owner Y-Sweet document client tokens and rejects

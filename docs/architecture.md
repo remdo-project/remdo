@@ -63,6 +63,9 @@ document client tokens.
 - Role: provide authoritative document metadata before Y-Sweet document client
   token issuance.
 - Metadata: access mode, owner user id, document kind, and title.
+- Storage: RemDo metadata queries use Kysely inside the server persistence
+  boundary. Route, token, and bootstrap code depend on the `DocumentRegistry`
+  interface, not on SQL or query-builder APIs.
 - Data boundary: the registry is the durable source for document ownership,
   access-critical metadata, and the current per-user document list. Yjs
   documents hold collaborative document content plus a persisted, read-only

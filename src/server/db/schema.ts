@@ -6,6 +6,37 @@ export type DocumentAccessMode = (typeof DOCUMENT_ACCESS_MODES)[number];
 export type DocumentAccessStatus = (typeof DOCUMENT_ACCESS_STATUSES)[number];
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 
+export interface RemdoDatabase {
+  document_access: DocumentAccessTable;
+  documents: DocumentsTable;
+  oauthClient: AuthOauthClientTable;
+  user: AuthUserTable;
+}
+
+export interface AuthOauthClientTable {
+  clientId: string;
+}
+
+export interface AuthUserTable {
+  id: string;
+}
+
+export interface DocumentAccessTable {
+  document_id: string;
+  requester_user_id: string;
+  status: DocumentAccessStatus;
+}
+
+export interface DocumentsTable {
+  access_mode: DocumentAccessMode;
+  created_at: number;
+  document_kind: DocumentKind;
+  id: string;
+  owner_user_id: string;
+  title: string;
+  updated_at: number;
+}
+
 export const DOCUMENTS_TABLE_COLUMNS = [
   'id',
   'owner_user_id',

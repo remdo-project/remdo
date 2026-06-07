@@ -1,17 +1,17 @@
 import process from 'node:process';
 import { serve } from '@hono/node-server';
 import { config } from '#config';
-import { getServerAuth } from '@/server/auth/auth';
-import { createServerApp } from '@/server/app';
+import { createServerRuntime } from '@/server/runtime';
+
+let runtime: ReturnType<typeof createServerRuntime> | null = null;
 
 async function main() {
-  const auth = getServerAuth();
-  await auth.ensureReady();
-  const app = createServerApp({ auth });
+  runtime = createServerRuntime();
+  await runtime.auth.ensureReady();
 
   serve(
     {
-      fetch: app.fetch,
+      fetch: runtime.app.fetch,
       hostname: config.env.HOST,
       port: config.env.API_SERVER_PORT,
     },
@@ -29,5 +29,12 @@ void main().catch((error) => {
   process.exit(1);
 });
 
-process.on('SIGINT', () => process.exit(0));
-process.on('SIGTERM', () => process.exit(0));
+function shutdown(): void {
+  void (runtime?.close() ?? Promise.resolve()).finally(() => {
+    // eslint-disable-next-line unicorn/no-process-exit -- this is the CLI entrypoint
+    process.exit(0);
+  });
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

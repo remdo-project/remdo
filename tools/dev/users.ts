@@ -1,8 +1,10 @@
 #!/usr/bin/env tsx
 import process from 'node:process';
 import { config } from '#config';
-import { REMDO_SERVER_OAUTH_SCOPES, createServerAuth } from '@/server/auth/auth';
+import { REMDO_SERVER_OAUTH_SCOPES } from '@/server/auth/auth';
 import type { ServerAuth } from '@/server/auth/auth';
+import type { SqliteServerDatabaseClient } from '@/server/db/client';
+import { createServerRuntime } from '@/server/runtime';
 import { STABLE_AUTH_USERS, createStableAuthUserSessionHeaders } from '../lib/stable-auth-users';
 import type { StableAuthUser } from '../lib/stable-auth-users';
 
@@ -14,8 +16,13 @@ function readDevEnv(value: string, name: string): string {
   return trimmed;
 }
 
-function oauthClientExists(auth: ServerAuth, clientId: string): boolean {
-  return Boolean(auth.db.prepare('SELECT 1 FROM oauthClient WHERE clientId = ?').get(clientId));
+async function oauthClientExists(database: SqliteServerDatabaseClient, clientId: string): Promise<boolean> {
+  const row = await database.db
+    .selectFrom('oauthClient')
+    .select('clientId')
+    .where('clientId', '=', clientId)
+    .executeTakeFirst();
+  return Boolean(row);
 }
 
 async function provisionDevUser(auth: ServerAuth, user: StableAuthUser): Promise<void> {
@@ -50,12 +57,13 @@ async function provisionDevSourceOAuthClient(): Promise<void> {
     scope: REMDO_SERVER_OAUTH_SCOPES.join(' '),
     skip_consent: true,
   };
-  const auth = createServerAuth({ oauthClientCredentials: { clientId, clientSecret } });
+  const runtime = createServerRuntime({ oauthClientCredentials: { clientId, clientSecret } });
+  const auth = runtime.auth;
 
   try {
     await auth.ensureReady();
     const headers = await createStableAuthUserSessionHeaders(auth, STABLE_AUTH_USERS.alice);
-    if (oauthClientExists(auth, clientId)) {
+    if (await oauthClientExists(runtime.database, clientId)) {
       await auth.auth.api.adminUpdateOAuthClient({
         body: {
           client_id: clientId,
@@ -80,7 +88,7 @@ async function provisionDevSourceOAuthClient(): Promise<void> {
       });
     }
   } finally {
-    auth.close();
+    await runtime.close();
   }
 
   console.info(`source OAuth client: ${redirectUri}`);
@@ -94,14 +102,15 @@ async function main(): Promise<void> {
     throw new Error('dev:users only runs in development.');
   }
 
-  const auth = createServerAuth();
+  const runtime = createServerRuntime();
+  const auth = runtime.auth;
   try {
     await auth.ensureReady();
     for (const user of Object.values(STABLE_AUTH_USERS)) {
       await provisionDevUser(auth, user);
     }
   } finally {
-    auth.close();
+    await runtime.close();
   }
 
   for (const [label, user] of Object.entries(STABLE_AUTH_USERS)) {

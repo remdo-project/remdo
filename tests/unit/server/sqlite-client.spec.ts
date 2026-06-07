@@ -2,11 +2,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { createServerDatabaseClient } from '@/server/db/client';
+import { createSqliteServerDatabaseClient } from '@/server/db/sqlite-client';
 
-describe('server database client', () => {
-  it('creates the documents table when missing', () => {
-    const client = createServerDatabaseClient({ dbPath: ':memory:' });
+describe('sqlite server database client', () => {
+  it('creates the documents table when missing', async () => {
+    const client = createSqliteServerDatabaseClient({ dbPath: ':memory:' });
     try {
       const columns = client.sqlite
         .prepare('PRAGMA table_info(documents)')
@@ -22,12 +22,12 @@ describe('server database client', () => {
         'updated_at',
       ]);
     } finally {
-      client.close();
+      await client.close();
     }
   });
 
-  it('creates the document access table when missing', () => {
-    const client = createServerDatabaseClient({ dbPath: ':memory:' });
+  it('creates the document access table when missing', async () => {
+    const client = createSqliteServerDatabaseClient({ dbPath: ':memory:' });
     try {
       const columns = client.sqlite
         .prepare('PRAGMA table_info(document_access)')
@@ -39,14 +39,14 @@ describe('server database client', () => {
         'status',
       ]);
     } finally {
-      client.close();
+      await client.close();
     }
   });
 
-  it('rejects an existing incompatible documents table', () => {
+  it('rejects an existing incompatible documents table', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-db-schema-'));
     const dbPath = path.join(tempDir, 'remdo.sqlite');
-    const client = createServerDatabaseClient({ dbPath });
+    const client = createSqliteServerDatabaseClient({ dbPath });
     try {
       client.sqlite.exec(`
         DROP TABLE documents;
@@ -58,11 +58,11 @@ describe('server database client', () => {
         );
       `);
     } finally {
-      client.close();
+      await client.close();
     }
 
     try {
-      expect(() => createServerDatabaseClient({ dbPath })).toThrow(
+      expect(() => createSqliteServerDatabaseClient({ dbPath })).toThrow(
         'Unsupported documents table schema'
       );
     } finally {
@@ -70,10 +70,10 @@ describe('server database client', () => {
     }
   });
 
-  it('rejects legacy extra documents table columns', () => {
+  it('rejects legacy extra documents table columns', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-db-schema-'));
     const dbPath = path.join(tempDir, 'remdo.sqlite');
-    const client = createServerDatabaseClient({ dbPath });
+    const client = createSqliteServerDatabaseClient({ dbPath });
     try {
       client.sqlite.exec(`
         DROP TABLE documents;
@@ -89,20 +89,20 @@ describe('server database client', () => {
         );
       `);
     } finally {
-      client.close();
+      await client.close();
     }
 
     try {
-      expect(() => createServerDatabaseClient({ dbPath })).toThrow('Unexpected columns: list_order');
+      expect(() => createSqliteServerDatabaseClient({ dbPath })).toThrow('Unexpected columns: list_order');
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
-  it('rejects legacy documents access mode constraints', () => {
+  it('rejects legacy documents access mode constraints', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-db-schema-'));
     const dbPath = path.join(tempDir, 'remdo.sqlite');
-    const client = createServerDatabaseClient({ dbPath });
+    const client = createSqliteServerDatabaseClient({ dbPath });
     try {
       client.sqlite.exec(`
         DROP TABLE documents;
@@ -118,27 +118,27 @@ describe('server database client', () => {
         );
       `);
     } finally {
-      client.close();
+      await client.close();
     }
 
     try {
-      expect(() => createServerDatabaseClient({ dbPath })).toThrow('Unsupported documents table schema');
+      expect(() => createSqliteServerDatabaseClient({ dbPath })).toThrow('Unsupported documents table schema');
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
-  it('creates the special-document index for an existing compatible table', () => {
+  it('creates the special-document index for an existing compatible table', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-db-schema-'));
     const dbPath = path.join(tempDir, 'remdo.sqlite');
-    const client = createServerDatabaseClient({ dbPath });
+    const client = createSqliteServerDatabaseClient({ dbPath });
     try {
       client.sqlite.exec('DROP INDEX documents_unique_owner_special_kind;');
     } finally {
-      client.close();
+      await client.close();
     }
 
-    const reopenedClient = createServerDatabaseClient({ dbPath });
+    const reopenedClient = createSqliteServerDatabaseClient({ dbPath });
     try {
       const index = reopenedClient.sqlite
         .prepare('SELECT 1 FROM sqlite_master WHERE type = ? AND name = ?')
@@ -146,7 +146,7 @@ describe('server database client', () => {
 
       expect(index).toBeTruthy();
     } finally {
-      reopenedClient.close();
+      await reopenedClient.close();
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });

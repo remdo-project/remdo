@@ -3,7 +3,7 @@ import { createDocumentRegistry } from '@/server/documents/document-registry';
 
 interface DocumentRegistryHarness {
   client: ReturnType<typeof createServerDatabaseClient>;
-  cleanup: () => void;
+  cleanup: () => Promise<void>;
   registry: ReturnType<typeof createDocumentRegistry>;
 }
 
@@ -14,8 +14,8 @@ export function createDocumentRegistryHarness(): DocumentRegistryHarness {
   return {
     client,
     registry,
-    cleanup() {
-      client.close();
+    async cleanup() {
+      await client.close();
     },
   };
 }

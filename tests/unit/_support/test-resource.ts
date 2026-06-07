@@ -1,7 +1,7 @@
 import { afterEach } from 'vitest';
 
 interface TestResource {
-  cleanup: () => void;
+  cleanup: () => Promise<void> | void;
 }
 
 export function createTestResource<TOptions, TResource extends TestResource>(
@@ -9,13 +9,13 @@ export function createTestResource<TOptions, TResource extends TestResource>(
 ): (options?: TOptions) => TResource {
   let currentResource: TResource | null = null;
 
-  afterEach(() => {
-    currentResource?.cleanup();
+  afterEach(async () => {
+    await currentResource?.cleanup();
     currentResource = null;
   });
 
   return (options?: TOptions) => {
-    currentResource?.cleanup();
+    void currentResource?.cleanup();
     currentResource = createResource(options);
     return currentResource;
   };

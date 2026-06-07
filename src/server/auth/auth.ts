@@ -1,24 +1,22 @@
-import fs from 'node:fs';
 import os from 'node:os';
-import path from 'node:path';
 import {
   oauthProvider,
   oauthProviderAuthServerMetadata,
   oauthProviderOpenIdConfigMetadata,
 } from '@better-auth/oauth-provider';
-import Database from 'better-sqlite3';
 import { betterAuth } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
+import type Database from 'better-sqlite3';
 import { genericOAuth, jwt } from 'better-auth/plugins';
 import { config } from '#config';
-import { resolveServerDatabasePath } from '@/server/db/client';
+import type { SqliteServerDatabaseClient } from '@/server/db/client';
 import type { LinkableRemdoServer } from '@/server/remdo-oauth/config';
 import { getLinkableRemdoServers } from '@/server/remdo-oauth/config';
 
 interface CreateServerAuthOptions {
   allowSignup?: boolean;
   baseURL?: string;
-  dbPath?: string;
+  database: SqliteServerDatabaseClient;
   linkableRemdoServers?: readonly LinkableRemdoServer[];
   oauthClientCredentials?: OAuthClientCredentials;
   secret?: string;
@@ -66,10 +64,6 @@ export function createAuthTrustedOrigins(
     appendOrigin(origins, `${url.protocol}//${hostname}:${port}`);
   }
   return origins;
-}
-
-function shouldCreateParentDirectory(dbPath: string): boolean {
-  return dbPath !== ':memory:' && dbPath !== '';
 }
 
 function createBetterAuthInstance({
@@ -155,26 +149,24 @@ export interface CreateAuthUserInput {
 export interface ServerAuth {
   allowSignup: boolean;
   auth: BetterAuthInstance;
-  close: () => void;
   linkableRemdoServers: readonly LinkableRemdoServer[];
   createUser: (user: CreateAuthUserInput, headers: Headers) => Promise<Response>;
-  db: Database.Database;
   ensureReady: () => Promise<void>;
   handleAuthServerMetadata: (request: Request) => Promise<Response>;
   handleOpenIdConfigMetadata: (request: Request) => Promise<Response>;
   getSession: (headers: Headers) => Promise<Awaited<ReturnType<BetterAuthInstance['api']['getSession']>>>;
-  getUserCount: () => number;
+  getUserCount: () => Promise<number>;
   listLinkedRemdoServerIds: (headers: Headers) => Promise<Set<string>>;
 }
 
 export function createServerAuth({
   allowSignup = config.env.ALLOW_SIGNUP,
   baseURL = config.env.AUTH_URL,
-  dbPath = resolveServerDatabasePath(),
+  database,
   linkableRemdoServers = getLinkableRemdoServers(),
   oauthClientCredentials,
   secret = config.env.AUTH_SECRET,
-}: CreateServerAuthOptions = {}): ServerAuth {
+}: CreateServerAuthOptions): ServerAuth {
   if (!baseURL) {
     throw new Error('A canonical public URL is required for auth.');
   }
@@ -183,15 +175,10 @@ export function createServerAuth({
     throw new Error('AUTH_SECRET is required for auth.');
   }
 
-  if (shouldCreateParentDirectory(dbPath)) {
-    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-  }
-
-  const db = new Database(dbPath);
   const auth = createBetterAuthInstance({
     allowSignup,
     baseURL,
-    database: db,
+    database: database.sqlite,
     linkableRemdoServers,
     oauthClientCredentials,
     secret,
@@ -201,7 +188,7 @@ export function createServerAuth({
     : createBetterAuthInstance({
         allowSignup: true,
         baseURL,
-        database: db,
+        database: database.sqlite,
         linkableRemdoServers,
         oauthClientCredentials,
         secret,
@@ -214,11 +201,7 @@ export function createServerAuth({
   return {
     allowSignup,
     auth,
-    db,
     linkableRemdoServers,
-    close() {
-      db.close();
-    },
     createUser(user, headers) {
       return userProvisioningAuth.api.signUpEmail({
         body: user,
@@ -242,8 +225,11 @@ export function createServerAuth({
     getSession(headers) {
       return auth.api.getSession({ headers });
     },
-    getUserCount() {
-      const row = db.prepare('SELECT COUNT(*) AS count FROM "user"').get() as { count: number };
+    async getUserCount() {
+      const row = await database.db
+        .selectFrom('user')
+        .select((eb) => eb.fn.countAll<number>().as('count'))
+        .executeTakeFirstOrThrow();
       return row.count;
     },
     handleAuthServerMetadata,
@@ -257,14 +243,4 @@ export function createServerAuth({
       );
     },
   };
-}
-
-let defaultServerAuth: ServerAuth | null = null;
-
-export function getServerAuth(): ServerAuth {
-  if (!defaultServerAuth) {
-    defaultServerAuth = createServerAuth();
-  }
-
-  return defaultServerAuth;
 }

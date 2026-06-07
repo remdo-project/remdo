@@ -3,9 +3,8 @@ import { config } from '#config';
 import { HTTP_STATUS } from '#lib/http/status';
 import { normalizeDocumentId } from '@/routing';
 import type { ServerAuth } from './auth/auth';
-import { REMDO_SERVER_OAUTH_SCOPES, getServerAuth } from './auth/auth';
+import { REMDO_SERVER_OAUTH_SCOPES } from './auth/auth';
 import { resolveActor } from './auth/actor';
-import { createDocumentRegistry } from './documents/document-registry';
 import type { DocumentRegistry } from './documents/document-registry';
 import {
   createUserDocument,
@@ -17,9 +16,9 @@ import type { YSweetDocumentTokenManager } from './collab-token';
 
 interface ServerAppOptions {
   adminSecret?: string;
-  auth?: ServerAuth;
+  auth: ServerAuth;
   tokenManager?: YSweetDocumentTokenManager;
-  registry?: DocumentRegistry;
+  registry: DocumentRegistry;
   logError?: (error: unknown, details: { docId?: string }) => void;
 }
 
@@ -66,11 +65,11 @@ function acceptsRemdoServerMutation(request: Request): boolean {
 
 export function createServerApp({
   adminSecret = config.env.ADMIN_SECRET,
-  auth = getServerAuth(),
+  auth,
   tokenManager = createYSweetDocumentTokenManager(),
-  registry = createDocumentRegistry(),
+  registry,
   logError = defaultLogError,
-}: ServerAppOptions = {}) {
+}: ServerAppOptions) {
   const app = new Hono();
 
   app.all('/api/auth/*', async (c) => {
