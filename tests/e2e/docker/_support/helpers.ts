@@ -2,13 +2,10 @@ import type { Page } from '#e2e/fixtures';
 import { expect, setExpectedConsoleIssues } from '#e2e/fixtures';
 import { config } from '#config';
 import type { BrowserContext } from '@playwright/test';
+import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 
-export const PROD_TEST_AUTH = {
-  email: 'ci@example.com',
-  name: 'CI User',
-  password: 'ci-password-1234',
-} as const;
-export const PROD_TEST_ADMIN_SECRET = config.env.ADMIN_SECRET;
+export const DOCKER_TEST_AUTH = STABLE_AUTH_USERS.bob;
+export const DOCKER_TEST_ADMIN_SECRET = config.env.ADMIN_SECRET;
 
 export async function waitForServiceWorkerControl(page: Page): Promise<void> {
   await page.waitForFunction(() => 'serviceWorker' in navigator);

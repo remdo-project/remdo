@@ -3,10 +3,8 @@ import process from 'node:process';
 import { config } from '#config';
 import { REMDO_SERVER_OAUTH_SCOPES, createServerAuth } from '@/server/auth/auth';
 import type { ServerAuth } from '@/server/auth/auth';
-import { STABLE_AUTH_USERS, createStableAuthUserSessionHeaders } from './lib/stable-auth-users';
-import type { StableAuthUser } from './lib/stable-auth-users';
-
-const DEV_REMOTE_PROVIDER_ID = 'remote';
+import { STABLE_AUTH_USERS, createStableAuthUserSessionHeaders } from '../lib/stable-auth-users';
+import type { StableAuthUser } from '../lib/stable-auth-users';
 
 function readDevEnv(value: string, name: string): string {
   const trimmed = value.trim();
@@ -14,10 +12,6 @@ function readDevEnv(value: string, name: string): string {
     throw new Error(`${name} is required.`);
   }
   return trimmed;
-}
-
-function sameOrigin(left: string, right: string): boolean {
-  return new URL(left).origin === new URL(right).origin;
 }
 
 function oauthClientExists(auth: ServerAuth, clientId: string): boolean {
@@ -39,17 +33,17 @@ async function provisionDevUser(auth: ServerAuth, user: StableAuthUser): Promise
   throw new Error(`Failed to create or verify ${user.email}. Delete the existing debug user or auth DB.`);
 }
 
-async function provisionDevRemoteOAuthClient(): Promise<void> {
-  if (!sameOrigin(config.env.AUTH_URL, config.env.REMDO_DEV_REMOTE_ORIGIN)) {
+async function provisionDevSourceOAuthClient(): Promise<void> {
+  if (new URL(config.env.AUTH_URL).origin === new URL(config.env.REMDO_DEV_HOME_ORIGIN).origin) {
     return;
   }
 
   const clientId = readDevEnv(config.env.REMDO_DEV_OAUTH_CLIENT_ID, 'REMDO_DEV_OAUTH_CLIENT_ID');
   const clientSecret = readDevEnv(config.env.REMDO_DEV_OAUTH_CLIENT_SECRET, 'REMDO_DEV_OAUTH_CLIENT_SECRET');
   const homeOrigin = readDevEnv(config.env.REMDO_DEV_HOME_ORIGIN, 'REMDO_DEV_HOME_ORIGIN');
-  const redirectUri = `${homeOrigin}/api/auth/oauth2/callback/${DEV_REMOTE_PROVIDER_ID}`;
+  const redirectUri = `${homeOrigin}/api/auth/oauth2/callback/source`;
   const clientConfig = {
-    client_name: 'RemDo dev home',
+    client_name: 'RemDo dev Docker home',
     grant_types: ['authorization_code', 'refresh_token'] as ('authorization_code' | 'refresh_token')[],
     redirect_uris: [redirectUri],
     response_types: ['code'] as 'code'[],
@@ -89,7 +83,7 @@ async function provisionDevRemoteOAuthClient(): Promise<void> {
     auth.close();
   }
 
-  console.info(`remote OAuth client: ${redirectUri}`);
+  console.info(`source OAuth client: ${redirectUri}`);
 }
 
 async function main(): Promise<void> {
@@ -115,7 +109,7 @@ async function main(): Promise<void> {
     console.info(`  Email: ${user.email}`);
     console.info(`  Password: ${user.password}`);
   }
-  await provisionDevRemoteOAuthClient();
+  await provisionDevSourceOAuthClient();
 }
 
 // eslint-disable-next-line unicorn/prefer-top-level-await

@@ -4,6 +4,7 @@ export interface LinkableRemdoServer {
   id: string;
   label: string;
   baseUrl: string;
+  tokenBaseUrl?: string;
   clientId: string;
   clientSecret: string;
 }
@@ -25,12 +26,24 @@ function readString(server: Record<string, unknown>, field: keyof LinkableRemdoS
   return value;
 }
 
-function readBaseUrl(server: Record<string, unknown>): string {
-  const baseUrl = readString(server, 'baseUrl');
-  if (baseUrl !== new URL(baseUrl).origin) {
-    throw new Error('LINKABLE_REMDO_SERVERS_JSON baseUrl must exactly match a URL origin.');
+function readOptionalOrigin(server: Record<string, unknown>, field: 'baseUrl' | 'tokenBaseUrl'): string | undefined {
+  const rawValue = server[field];
+  if (rawValue === undefined) {
+    return undefined;
   }
-  return baseUrl;
+  const value = readString(server, field);
+  if (value !== new URL(value).origin) {
+    throw new Error(`LINKABLE_REMDO_SERVERS_JSON ${field} must exactly match a URL origin.`);
+  }
+  return value;
+}
+
+function readOrigin(server: Record<string, unknown>, field: 'baseUrl' | 'tokenBaseUrl'): string {
+  const value = readOptionalOrigin(server, field);
+  if (!value) {
+    throw new TypeError(`LINKABLE_REMDO_SERVERS_JSON entries require string ${field}.`);
+  }
+  return value;
 }
 
 export function parseLinkableRemdoServers(raw: string): LinkableRemdoServer[] {
@@ -56,10 +69,12 @@ export function parseLinkableRemdoServers(raw: string): LinkableRemdoServer[] {
     }
     usedIds.add(id);
 
+    const tokenBaseUrl = readOptionalOrigin(server, 'tokenBaseUrl');
     return {
       id,
       label: readString(server, 'label'),
-      baseUrl: readBaseUrl(server),
+      baseUrl: readOrigin(server, 'baseUrl'),
+      ...(tokenBaseUrl ? { tokenBaseUrl } : {}),
       clientId: readString(server, 'clientId'),
       clientSecret: readString(server, 'clientSecret'),
     };

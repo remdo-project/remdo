@@ -45,23 +45,14 @@ if [ -z "${YSWEET_SERVER_TOKEN:-}" ] && [ "${NODE_ENV}" != "production" ]; then
   YSWEET_SERVER_TOKEN="AAAgOkIiPro6W2lCzxyW6BDQkuOmTVSfs0MZh-4PGTM_st0"
 fi
 
-: "${REMDO_DEV_REMOTE_PORT_SHIFT:=30}"
 : "${REMDO_DEV_OAUTH_CLIENT_ID:=remdo-home-dev}"
 : "${REMDO_DEV_OAUTH_CLIENT_SECRET:=remdo-dev-client-secret-0123456789}"
-remdo_dev_remote_port=$((PORT_BASE + REMDO_DEV_REMOTE_PORT_SHIFT))
-: "${REMDO_DEV_HOME_ORIGIN:=http://localhost:${PORT}}"
-: "${REMDO_DEV_REMOTE_ORIGIN:=http://127.0.0.1:${remdo_dev_remote_port}}"
+remdo_dev_default_origin="http://localhost:${PORT}"
+: "${REMDO_DEV_HOME_ORIGIN:=${remdo_dev_default_origin}}"
 if [ "${NODE_ENV}" = "development" ] && [ -z "${AUTH_URL+x}" ]; then
   if [ "${requested_run_mode_port_shift}" = "0" ]; then
-    AUTH_URL="${REMDO_DEV_HOME_ORIGIN}"
-  elif [ "${requested_run_mode_port_shift}" = "${REMDO_DEV_REMOTE_PORT_SHIFT}" ]; then
-    AUTH_URL="${REMDO_DEV_REMOTE_ORIGIN}"
+    AUTH_URL="${remdo_dev_default_origin}"
   fi
-fi
-if [ "${NODE_ENV}" = "development" ] \
-  && [ "${requested_run_mode_port_shift}" = "0" ] \
-  && [ -z "${LINKABLE_REMDO_SERVERS_JSON+x}" ]; then
-  LINKABLE_REMDO_SERVERS_JSON='[{"id":"remote","label":"Remote dev server","baseUrl":"'"${REMDO_DEV_REMOTE_ORIGIN}"'","clientId":"'"${REMDO_DEV_OAUTH_CLIENT_ID}"'","clientSecret":"'"${REMDO_DEV_OAUTH_CLIENT_SECRET}"'"}]'
 fi
 
 case "${NODE_ENV}" in
@@ -102,5 +93,5 @@ export NODE_ENV HOST PORT_BASE RUN_MODE_PORT_SHIFT PORT DATA_DIR COLLAB_ENABLED 
 export HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT API_SERVER_PORT YSWEET_CONNECTION_STRING
 export PREVIEW_PORT PLAYWRIGHT_UI_PORT
 export AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_PUBLIC_URL AUTH_URL ALLOW_SIGNUP
-export LINKABLE_REMDO_SERVERS_JSON REMDO_DEV_HOME_ORIGIN REMDO_DEV_REMOTE_ORIGIN
-export REMDO_DEV_REMOTE_PORT_SHIFT REMDO_DEV_OAUTH_CLIENT_ID REMDO_DEV_OAUTH_CLIENT_SECRET
+export LINKABLE_REMDO_SERVERS_JSON REMDO_DEV_HOME_ORIGIN
+export REMDO_DEV_OAUTH_CLIENT_ID REMDO_DEV_OAUTH_CLIENT_SECRET

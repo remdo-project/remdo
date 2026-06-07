@@ -121,20 +121,24 @@ function createBetterAuthInstance({
         },
       }),
       genericOAuth({
-        config: linkableRemdoServers.map((server) => ({
-          providerId: server.id,
-          discoveryUrl: `${server.baseUrl}/.well-known/openid-configuration`,
-          issuer: server.baseUrl,
-          requireIssuerValidation: true,
-          clientId: server.clientId,
-          clientSecret: server.clientSecret,
-          scopes: [...REMDO_SERVER_OAUTH_SCOPES],
-          accessType: 'offline',
-          pkce: true,
-          authorizationUrlParams: {
-            resource: server.baseUrl,
-          },
-        })),
+        config: linkableRemdoServers.map((server) => {
+          const tokenBaseUrl = server.tokenBaseUrl ?? server.baseUrl;
+          return {
+            providerId: server.id,
+            authorizationUrl: `${server.baseUrl}/api/auth/oauth2/authorize`,
+            tokenUrl: `${tokenBaseUrl}/api/auth/oauth2/token`,
+            issuer: server.baseUrl,
+            requireIssuerValidation: true,
+            clientId: server.clientId,
+            clientSecret: server.clientSecret,
+            scopes: [...REMDO_SERVER_OAUTH_SCOPES],
+            accessType: 'offline',
+            pkce: true,
+            authorizationUrlParams: {
+              resource: server.baseUrl,
+            },
+          };
+        }),
       }),
     ],
   });

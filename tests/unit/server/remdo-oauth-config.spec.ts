@@ -26,6 +26,28 @@ describe('remdo oauth server config', () => {
     ]);
   });
 
+  it('parses a separate token endpoint origin for Docker-hosted clients', () => {
+    expect(parseLinkableRemdoServers(JSON.stringify([
+      {
+        id: 'source',
+        label: 'Source Server',
+        baseUrl: 'https://source.example',
+        tokenBaseUrl: 'http://host.docker.internal:5000',
+        clientId: 'source-client-id',
+        clientSecret: 'source-client-secret',
+      },
+    ]))).toEqual([
+      {
+        id: 'source',
+        label: 'Source Server',
+        baseUrl: 'https://source.example',
+        tokenBaseUrl: 'http://host.docker.internal:5000',
+        clientId: 'source-client-id',
+        clientSecret: 'source-client-secret',
+      },
+    ]);
+  });
+
   it('rejects malformed server ids', () => {
     expect(() => parseLinkableRemdoServers(JSON.stringify([
       {

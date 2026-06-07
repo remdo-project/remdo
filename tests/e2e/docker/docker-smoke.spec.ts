@@ -24,7 +24,7 @@ interface UserDocumentResponse {
 }
 
 function readSmokeDocumentId(): string {
-  // eslint-disable-next-line node/no-process-env -- Docker prod tests consume setup-created smoke document state.
+  // eslint-disable-next-line node/no-process-env -- Docker tests consume setup-created smoke document state.
   const smokeDocumentIdPath = process.env.E2E_SMOKE_DOCUMENT_ID;
   if (!smokeDocumentIdPath) {
     throw new Error('E2E_SMOKE_DOCUMENT_ID is required for Docker smoke tests.');

@@ -81,12 +81,12 @@ Rules:
   3. Public documents.
   4. Link revocation/regeneration/invalid-link UX.
   5. Local-only no-login mode.
-  6. OAuth source linking for accessing configured remote RemDo servers through
+  6. OAuth source linking for accessing configured source RemDo servers through
      a home server.
 - Implementation decision: defer DB-client unification. This branch introduces
   the SQL sharing schema from scratch; reset stale local dev databases instead
-  of adding compatibility migrations. Do not add external principal, remote
-  credential, or remote source tables in this slice.
+  of adding compatibility migrations. Do not add external principal, external
+  credential, or source tables in this slice.
 - Acceptance coverage:
   1. Documents default to `private`; the schema accepts `shareable`.
   2. `private` allows owner Y-Sweet document client tokens and rejects
@@ -101,16 +101,11 @@ Rules:
      allow access.
   7. State-changing sharing endpoints reject cross-site/simple-request abuse.
   8. Public and bearer-link access remain inactive in this branch.
-- OAuth source-linking follow-up:
-  1. Implement the configured-source cross-server model described in
-     [docs/access-model.md](./access-model.md#cross-server-source-linking).
-  2. Evaluate Better Auth OAuth/OIDC provider on source servers and generic OAuth
-     configured providers on home servers.
-  3. Decide whether arbitrary user-added RemDo sources are in scope; Better
-     Auth's generic OAuth client is configured-provider oriented.
-  4. Replace or complement `dev:remote` with a Docker-home OAuth test flow:
-     normal `pnpm dev` acts as the source server, Docker acts as the HTTPS home
-     server, and a dedicated Chrome profile ignores the local dev certificate.
+- OAuth source-linking follow-up: decide whether arbitrary user-added RemDo
+  sources are in scope; Better Auth's generic OAuth client is
+  configured-provider oriented.
+- OAuth document-source follow-up: implement reading linked source document
+  lists through source-owned Yjs projections and merging them in the home UI.
 
 ## Offline and local persistence follow-ups
 
@@ -230,19 +225,15 @@ Rules:
 
 ## Later follow-ups
 
-- Cross-server document sources: after OAuth source linking, read linked source
-  document lists through each source server's user-data Yjs projection and merge
-  them in the browser document list. Avoid adding a parallel HTTP document
-  catalog unless the projection model proves insufficient.
 - Cross-server OAuth setup: add an operator-facing way to register or import
   RemDo OAuth clients between servers, add the source-server consent UI needed
-  outside trusted dev clients, and add two-server coverage once the
-  client-registration flow is settled.
+  outside trusted dev clients, and extend two-server coverage once the
+  operator client-registration flow is settled.
 - Auth provisioning concepts: revisit user creation, dev fixture users, OAuth
   client creation restrictions, and server registration as separate flows with
   clearer boundaries.
-- Add focused e2e coverage for the cross-server OAuth account-linking flow once
-  the two-server dev/test harness is settled.
+- Cross-server terminology: standardize OAuth/linking language around home
+  server and source server, and keep "remote" only for unrelated generic cases.
 - Dev script ergonomics: update normal dev launchers to pre-kill conflicting
   RemDo services in their own `PORT_BASE` block before starting, instead of
   adding separate restart scripts. Keep the behavior port-scoped and avoid the

@@ -79,11 +79,13 @@ remdo_docker_run() {
   local image_name="$1"
   local data_dir="$2"
   shift 2
+  local docker_args=("$@")
 
   mkdir -p "${data_dir}"
 
-  docker run "$@" \
+  docker_args+=(-p "${PORT}:${PORT}")
+
+  docker run "${docker_args[@]}" \
     -v "${data_dir}:/app/data" \
-    -p "${PORT}:${PORT}" \
     "${image_name}"
 }

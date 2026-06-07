@@ -28,13 +28,12 @@ export const envSpec = defineEnvSpec(
     APP_PUBLIC_URL: { default: '' },
     // Canonical auth URL. tools/env.defaults.sh derives this for local dev modes.
     AUTH_URL: { default: '' },
-    // JSON array of configured remote RemDo servers available for OAuth account linking.
+    // JSON array of configured source RemDo servers available for OAuth account linking.
     LINKABLE_REMDO_SERVERS_JSON: { default: '' },
-    // Stable dev-only OAuth client used by the home server to link the remote dev server.
+    // Stable dev-only OAuth client used by the Docker home server to link the dev source server.
     REMDO_DEV_OAUTH_CLIENT_ID: { default: '' },
     REMDO_DEV_OAUTH_CLIENT_SECRET: { default: '' },
     REMDO_DEV_HOME_ORIGIN: { default: '' },
-    REMDO_DEV_REMOTE_ORIGIN: { default: '' },
     // Product signup policy. tools/env.defaults.sh sets true outside production.
     ALLOW_SIGNUP: { default: false },
     PREVIEW_PORT: { default: 0 },

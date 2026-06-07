@@ -10,7 +10,7 @@
     "playwright"
   ],
   "entry": [
-    "playwright.prod.config.ts",
+    "playwright.docker.config.ts",
     "tests/e2e/setup/*.setup.ts",
     "tools/**/*.ts",
     "tests/perf/**/*.bench.ts",

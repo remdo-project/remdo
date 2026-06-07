@@ -13,3 +13,10 @@ export const playwrightBaseConfig = {
 };
 
 export const chromium = devices['Desktop Chrome'];
+
+export const dockerBrowserUse = {
+  ignoreHTTPSErrors: true,
+  launchOptions: {
+    args: ['--ignore-certificate-errors'],
+  },
+};

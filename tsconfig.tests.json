@@ -9,6 +9,6 @@
     "vitest.config.ts",
     "playwright.base.ts",
     "playwright.config.ts",
-    "playwright.prod.config.ts"
+    "playwright.docker.config.ts"
   ]
 }

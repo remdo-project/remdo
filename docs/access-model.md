@@ -26,7 +26,7 @@ Define the access cases RemDo should support.
 - Who: developer or CI runner.
 - Allowed by: host-local process access.
 - Scope: development and test runtimes.
-- Run modes: local development, unit and collab tests, browser E2E, Docker prod E2E, CI.
+- Run modes: local development, unit and collab tests, browser E2E, Docker E2E, CI.
 
 ## Authenticated app access
 

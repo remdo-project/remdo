@@ -14,7 +14,11 @@ function loadTestEnv(values: EnvValues, options?: Parameters<typeof loadEnv>[1])
 function readEnvShValue(name: string, overrides: NodeJS.ProcessEnv): string {
   const env = { ...process.env, ...overrides };
   delete env.AUTH_URL;
+  delete env.LINKABLE_REMDO_SERVERS_JSON;
   delete env.REMDO_DEV_HOME_ORIGIN;
+  if (!('PORT' in overrides)) {
+    delete env.PORT;
+  }
 
   return execFileSync('./tools/env.sh', ['sh', '-c', `printf '%s' "$${name}"`], {
     env,
@@ -90,6 +94,27 @@ describe('config env loading', () => {
     });
 
     expect(authUrl).toBe('http://localhost:4500');
+  });
+
+  it('keeps dev AUTH_URL source-local when a Docker home origin is provided', () => {
+    const authUrl = readEnvShValue('AUTH_URL', {
+      NODE_ENV: 'development',
+      PORT_BASE: '4000',
+      REMDO_DEV_HOME_ORIGIN: 'https://localhost:4040',
+      RUN_MODE_PORT_SHIFT: '0',
+    });
+
+    expect(authUrl).toBe('http://localhost:4000');
+  });
+
+  it('does not configure linkable RemDo servers for normal dev by default', () => {
+    const linkableServers = readEnvShValue('LINKABLE_REMDO_SERVERS_JSON', {
+      NODE_ENV: 'development',
+      PORT_BASE: '4000',
+      RUN_MODE_PORT_SHIFT: '0',
+    });
+
+    expect(linkableServers).toBe('');
   });
 
   it('reads ALLOW_SIGNUP without accepting the old auth-prefixed key', () => {

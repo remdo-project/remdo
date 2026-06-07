@@ -48,13 +48,14 @@ records the intent that should stay true across implementations.
 - Platform: user-controlled server or machine.
 - Data boundary: user-controlled persistent server storage.
 - Notes:
-  1. requires a local rootless Docker daemon
-  2. the local launcher supports rootless Docker
+  1. launch with `tools/prod/docker.sh`
+  2. requires a local rootless Docker daemon
   3. required: `AUTH_SECRET`, `ADMIN_SECRET`, `YSWEET_AUTH_KEY`, and
-     `YSWEET_SERVER_TOKEN` in `.env`
-  4. optional: `PORT_BASE`; the launcher uses `PORT_BASE + 40` for the public
-     gateway port unless `PORT` is set
-  5. the script prints the browser URL before startup; use that URL
+     `YSWEET_SERVER_TOKEN` from the environment or `.env`
+  4. optional: `APP_PUBLIC_URL`; when omitted, the launcher uses
+     `https://<detected-host>:(PORT_BASE + 40)`
+  5. the script publishes the port from `APP_PUBLIC_URL` and prints that URL
+     before startup; use that URL
   6. local Docker uses self-signed HTTPS by default
   7. current server runtime runs both the RemDo API process and the Y-Sweet
      collaboration server behind the same gateway
@@ -113,10 +114,15 @@ records the intent that should stay true across implementations.
   environment values override `.env`, so one-off runs can use inline values
   such as `PORT_BASE=4800 ...` without editing local defaults. `pnpm run
   dev:pwa` uses `PORT_BASE + 20` for its range and serves the PWA preview on
-  that shifted `PORT`, so it can run beside `pnpm run dev`. Current dev mode
-  runs the web app with the RemDo API mounted in the Vite dev server, plus the
-  Y-Sweet collaboration server and preview helper. Server modes run the
-  standalone API server with Better Auth plus a SQLite-backed document registry.
+  that shifted `PORT`, so it can run beside `pnpm run dev`. `pnpm run
+  dev:docker` starts a Docker home server at `127.0.0.1:(PORT_BASE + 40)` for
+  manual OAuth linking against the dev server. Start the source dev server with
+  `HOST=0.0.0.0 pnpm run dev` so the Docker home can exchange OAuth tokens with
+  it.
+  Current dev mode runs the web app with the RemDo API mounted in the Vite dev
+  server, plus the Y-Sweet collaboration server and preview helper. Server modes
+  run the standalone API server with Better Auth plus a SQLite-backed document
+  registry.
   Authentication is enforced, and private document access is limited to the
   registered document owner. `pnpm run dev:users` provisions stable Alice/Bob
   users in the local auth DB and prints credentials for the normal login form.
@@ -147,14 +153,15 @@ records the intent that should stay true across implementations.
   services on the configured ports, and create browser auth state through the
   app origin.
 
-### Docker prod E2E
+### Docker E2E
 
 - Purpose: end-to-end verification against the production-style Docker stack.
 - User: developer.
 - Platform: local machine with Docker.
 - Data boundary: temporary Docker-managed test data.
-- Notes: requires a local Docker daemon. The Docker test server uses
-  `PORT_BASE + 7` for its public gateway port.
+- Notes: requires a local Docker daemon. The Docker home server uses
+  `PORT_BASE + 7` for its public gateway port. OAuth source-linking coverage
+  starts a source dev server at `PORT_BASE + 70`.
 
 ### CI
 
