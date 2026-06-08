@@ -5,7 +5,7 @@
   },
   "include": [
     "tests/**/*",
-    "types/**/*.d.ts",
+    "src/client/editor/types/**/*.d.ts",
     "vitest.config.ts",
     "playwright.base.ts",
     "playwright.config.ts",

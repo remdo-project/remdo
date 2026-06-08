@@ -82,7 +82,7 @@ interface ComparisonResult {
 
 const repoRoot = process.cwd();
 const envScript = path.join(repoRoot, 'tools/env.sh');
-const baselinePath = path.resolve(repoRoot, 'repo-stats.json');
+const baselinePath = path.resolve(repoRoot, 'tools/baselines/repo-stats.json');
 const defaultThresholdRatio = 0.1;
 const generatedFilePatterns: RegExp[] = [
   /^pnpm-lock\.yaml$/,
@@ -253,14 +253,14 @@ function collectStats(): RepoStats {
 
 function readBaselineStats(): RepoStats {
   if (!fs.existsSync(baselinePath)) {
-    throw new Error('Missing repo-stats.json. Run "pnpm run audit:stats --update" to create it.');
+    throw new Error('Missing tools/baselines/repo-stats.json. Run "pnpm run audit:stats --update" to create it.');
   }
 
   const content = fs.readFileSync(baselinePath, 'utf8');
   try {
     return JSON.parse(content) as RepoStats;
   } catch {
-    throw new Error('Failed to parse repo-stats.json. Run "pnpm run audit:stats --update" to regenerate it.');
+    throw new Error('Failed to parse tools/baselines/repo-stats.json. Run "pnpm run audit:stats --update" to regenerate it.');
   }
 }
 
