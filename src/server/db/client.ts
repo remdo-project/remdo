@@ -1,4 +1,4 @@
-import { createSqliteServerDatabaseClient, resolveSqliteServerDatabasePath } from './sqlite-client';
+import { createSqliteServerDatabaseClient } from './sqlite-client';
 import type { SqliteServerDatabaseClient } from './sqlite-client';
 import type { ServerDatabaseClient } from './types';
 
@@ -7,10 +7,6 @@ interface ServerDatabaseClientOptions {
 }
 
 export type { ServerDatabaseClient, SqliteServerDatabaseClient };
-
-export function resolveServerDatabasePath(): string {
-  return resolveSqliteServerDatabasePath();
-}
 
 export function createServerDatabaseClient(
   options: ServerDatabaseClientOptions = {},

@@ -351,7 +351,10 @@ function collectVitestCaseKeys(collabEnabled: boolean): string[] {
     ['pnpm', 'exec', 'vitest', 'list', 'tests/unit', '--json', '--run'],
     { NODE_ENV: 'test', COLLAB_ENABLED: collabEnabled ? 'true' : 'false' },
   );
-  const parsed = JSON.parse(stdout) as VitestListItem[];
+  const parsed = parseJsonOutput(
+    `vitest list (${collabEnabled ? 'collab' : 'unit'})`,
+    stdout,
+  ) as VitestListItem[];
   const keys: string[] = [];
   const occurrenceCount = new Map<string, number>();
 
@@ -372,7 +375,10 @@ function collectPlaywrightCaseKeys(): string[] {
     ['pnpm', 'exec', 'playwright', 'test', '--list', '--reporter=json', 'tests/e2e'],
     { NODE_ENV: 'test' },
   );
-  const parsed = JSON.parse(stdout) as PlaywrightListReport;
+  const parsed = parseJsonOutput(
+    'playwright list',
+    stdout,
+  ) as PlaywrightListReport;
   const keys: string[] = [];
   const seenSpecIds = new Set<string>();
   const occurrenceCount = new Map<string, number>();
@@ -483,6 +489,19 @@ function runCommand(
   }
 
   return result.stdout;
+}
+
+function parseJsonOutput(
+  label: string,
+  output: string,
+): unknown {
+  try {
+    return JSON.parse(output) as unknown;
+  } catch (error) {
+    const outputPreview = output.trim().slice(0, 500) || '[empty stdout]';
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to parse JSON from ${label}: ${message}\n${outputPreview}`);
+  }
 }
 
 function normalizeRelativePath(input: string): string {

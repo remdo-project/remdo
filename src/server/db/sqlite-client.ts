@@ -22,7 +22,7 @@ interface SqliteServerDatabaseClientOptions {
   dbPath?: string;
 }
 
-export function resolveSqliteServerDatabasePath(): string {
+function resolveSqliteServerDatabasePath(): string {
   return path.join(config.env.DATA_DIR, 'remdo.sqlite');
 }
 

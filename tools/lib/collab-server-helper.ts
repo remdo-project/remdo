@@ -10,7 +10,7 @@ import { resolveLoopbackHost } from '#lib/net/loopback';
 import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
 
-const MAX_ATTEMPTS = 50;
+const MAX_ATTEMPTS = 150;
 const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'collab-server.log');
@@ -120,8 +120,14 @@ export async function ensureCollabServer({
     logStream.end();
   };
   const stop = async () => {
+    let exited = child.exitCode !== null || child.signalCode !== null;
+    child.once('exit', () => {
+      exited = true;
+    });
     terminateProcessGroup(child, 'SIGTERM');
-    await once(child, 'exit');
+    if (!exited) {
+      await once(child, 'exit');
+    }
     cleanup();
   };
 

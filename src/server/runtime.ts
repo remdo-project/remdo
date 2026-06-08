@@ -26,7 +26,7 @@ interface ServerRuntimeOptions {
   tokenManager?: YSweetDocumentTokenManager;
 }
 
-export interface ServerRuntime {
+interface ServerRuntime {
   app: ReturnType<typeof createServerApp>;
   auth: ServerAuth;
   close: () => Promise<void>;
