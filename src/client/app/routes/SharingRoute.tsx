@@ -24,13 +24,13 @@ export default function SharingRoute() {
     label: document.text(),
     value: document.id(),
   }));
-  const [selectedDocId, setSelectedDocId] = useState(documentOptions[0]?.value ?? null);
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [shareEmail, setShareEmail] = useState('');
   const [documentAccess, setDocumentAccess] = useState<DocumentAccessState | null>(null);
   const [linkableSourceServers, setLinkableSourceServers] = useState<LinkableSourceServerView[]>([]);
   const [status, setStatus] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const activeDocId = selectedDocId ?? documentOptions[0]?.value ?? null;
+  const activeDocId = selectedDocId;
   const activeDocIdRef = useRef(activeDocId);
   const visibleAccess = activeDocId && documentAccess?.docId === activeDocId ? documentAccess.access : [];
 
