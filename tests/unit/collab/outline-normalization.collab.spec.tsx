@@ -3,9 +3,9 @@ import { getNoteKey, meta } from '#tests';
 import { waitFor } from '@testing-library/react';
 import type { ListItemNode } from '@lexical/list';
 import { $getNodeByKey } from 'lexical';
-import { $indentNote } from '@/editor/lexical-helpers';
+import { $indentNote } from '@/client/editor/lexical-helpers';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
-import { assertEditorSchema } from '@/editor/plugins/dev/schema/assertEditorSchema';
+import { assertEditorSchema } from '@/client/editor/plugins/dev/schema/assertEditorSchema';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 

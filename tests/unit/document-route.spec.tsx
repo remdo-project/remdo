@@ -5,13 +5,13 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTestUserData, resetTestUserData } from '#tests';
 
-import { ROOT_SEARCH_SCOPE_ID } from '@/editor/search/search-candidates';
-import type { NotePathItem } from '@/editor/outline/note-traversal';
-import { useEditorViewActions, useZoomNoteId } from '@/editor/view/EditorViewProvider';
-import DocumentRoute from '@/routes/DocumentRoute';
+import { ROOT_SEARCH_SCOPE_ID } from '@/client/editor/search/search-candidates';
+import type { NotePathItem } from '@/client/editor/outline/note-traversal';
+import { useEditorViewActions, useZoomNoteId } from '@/client/editor/view/EditorViewProvider';
+import DocumentRoute from '@/client/app/routes/DocumentRoute';
 import { createDocumentPath, parseDocumentRef } from '@/routing';
 
-vi.mock('@/documents/user-data', async () => {
+vi.mock('@/client/app/documents/user-data', async () => {
   const { mockUserDataModule } = await import('#tests');
   return mockUserDataModule();
 });
@@ -121,9 +121,9 @@ function MockEditor({
   );
 }
 
-vi.mock('@/editor/Editor', () => ({ default: MockEditor }));
+vi.mock('@/client/editor/Editor', () => ({ default: MockEditor }));
 
-vi.mock('@/editor/zoom/ZoomBreadcrumbs', () => ({
+vi.mock('@/client/editor/zoom/ZoomBreadcrumbs', () => ({
   ZoomBreadcrumbs: () => null,
 }));
 

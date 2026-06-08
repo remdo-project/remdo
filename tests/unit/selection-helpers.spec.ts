@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { $getSelection, $isRangeSelection } from 'lexical';
 import type { RangeSelection } from 'lexical';
 
-import { getContiguousSelectionHeads } from '@/editor/outline/selection/heads';
+import { getContiguousSelectionHeads } from '@/client/editor/outline/selection/heads';
 import { $getNoteIdOrThrow, placeCaretAtNote, selectNoteRange, meta } from '#tests';
 
 describe('structural selection helper', () => {

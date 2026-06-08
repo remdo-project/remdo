@@ -108,7 +108,7 @@ export default antfu(
     },
   },
   {
-    files: ['src/editor/plugins/CheckListPlugin.tsx'],
+    files: ['src/client/editor/plugins/CheckListPlugin.tsx'],
     rules: {
       // This plugin is the sanctioned boundary for direct checklist node syncing.
       'no-restricted-syntax': [

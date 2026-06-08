@@ -1,22 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { authClient, forgetAuthenticatedSession } from '@/auth/client';
-import { logoutCurrentUser } from '@/auth/logout';
-import { resetUserData } from '@/documents/user-data';
-import { clearCurrentUserBootstrapCache } from '@/documents/current-user-bootstrap';
+import { authClient, forgetAuthenticatedSession } from '@/client/app/auth/client';
+import { logoutCurrentUser } from '@/client/app/auth/logout';
+import { resetUserData } from '@/client/app/documents/user-data';
+import { clearCurrentUserBootstrapCache } from '@/client/app/documents/current-user-bootstrap';
 
-vi.mock('@/auth/client', () => ({
+vi.mock('@/client/app/auth/client', () => ({
   authClient: {
     signOut: vi.fn(),
   },
   forgetAuthenticatedSession: vi.fn(),
 }));
 
-vi.mock('@/documents/user-data', () => ({
+vi.mock('@/client/app/documents/user-data', () => ({
   resetUserData: vi.fn(),
 }));
 
-vi.mock('@/documents/current-user-bootstrap', () => ({
+vi.mock('@/client/app/documents/current-user-bootstrap', () => ({
   clearCurrentUserBootstrapCache: vi.fn(),
 }));
 

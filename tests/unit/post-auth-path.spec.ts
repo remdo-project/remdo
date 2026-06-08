@@ -3,7 +3,7 @@ import {
   createPostAuthNextSearch,
   resolveNextPathOrDefault,
   resolvePostAuthTargetPath,
-} from '@/routes/post-auth-path';
+} from '@/client/app/routes/post-auth-path';
 
 const CURRENT_ORIGIN = 'https://remdo.test';
 

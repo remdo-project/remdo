@@ -1,6 +1,6 @@
 import { config } from '#config';
 import { normalizeNoteIdOrThrow } from '@/domain/notes/ids';
-import type { RemdoTestApi } from '@/editor/plugins/dev';
+import type { RemdoTestApi } from '@/client/editor/plugins/dev';
 import { renderRemdoEditor } from '../render-editor';
 
 export async function renderCollabEditor(options?: { docId?: string }): Promise<RemdoTestApi> {

@@ -4,9 +4,9 @@ import {
   $resolveContentNoteFromDOMNode,
   $resolveNoteIdFromDOMNode,
   $resolveNoteIdFromNode,
-} from '@/editor/outline/note-context';
-import { resolveContentItemFromNode } from '@/editor/outline/schema';
-import { $findNoteById } from '@/editor/outline/note-traversal';
+} from '@/client/editor/outline/note-context';
+import { resolveContentItemFromNode } from '@/client/editor/outline/schema';
+import { $findNoteById } from '@/client/editor/outline/note-traversal';
 import { getNoteElement, getNoteTextNode, meta } from '#tests';
 
 describe('note context helpers', () => {

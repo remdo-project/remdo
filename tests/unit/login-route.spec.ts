@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isOAuthAuthorizeSearch } from '@/routes/oauth-authorize-search';
+import { isOAuthAuthorizeSearch } from '@/client/app/routes/oauth-authorize-search';
 
 describe('login route OAuth resume detection', () => {
   it('detects OAuth authorize resumes from required authorize fields', () => {

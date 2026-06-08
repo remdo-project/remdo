@@ -1,5 +1,5 @@
 import type { Outline } from '#tests-common/outline';
-import type { RemdoTestApi } from '@/editor/plugins/dev';
+import type { RemdoTestApi } from '@/client/editor/plugins/dev';
 
 declare global {
   // eslint-disable-next-line vars-on-top

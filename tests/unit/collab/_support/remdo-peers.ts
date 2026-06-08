@@ -1,4 +1,4 @@
-import type { RemdoTestApi } from '@/editor/plugins/dev';
+import type { RemdoTestApi } from '@/client/editor/plugins/dev';
 import { renderCollabEditor } from './_internal/render-collab-editor';
 
 export async function createCollabPeer(remdo: RemdoTestApi): Promise<RemdoTestApi> {

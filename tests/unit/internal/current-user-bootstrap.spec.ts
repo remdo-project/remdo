@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hasRememberedSessionMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@/auth/client', () => ({
+vi.mock('@/client/app/auth/client', () => ({
   hasRememberedSession: hasRememberedSessionMock,
   isLikelyFetchUnavailableError: (error: unknown) => error instanceof TypeError,
 }));
@@ -25,7 +25,7 @@ describe('current user bootstrap cache', () => {
       ok: true,
       json: async () => BOOTSTRAP,
     })));
-    const { getCachedCurrentUserBootstrap, getCurrentUserBootstrap } = await import('@/documents/current-user-bootstrap');
+    const { getCachedCurrentUserBootstrap, getCurrentUserBootstrap } = await import('@/client/app/documents/current-user-bootstrap');
 
     await expect(getCurrentUserBootstrap()).resolves.toEqual(BOOTSTRAP);
 
@@ -37,7 +37,7 @@ describe('current user bootstrap cache', () => {
       ok: true,
       json: async () => BOOTSTRAP,
     })));
-    let bootstrapModule = await import('@/documents/current-user-bootstrap');
+    let bootstrapModule = await import('@/client/app/documents/current-user-bootstrap');
     await expect(bootstrapModule.getCurrentUserBootstrap()).resolves.toEqual(BOOTSTRAP);
 
     vi.resetModules();
@@ -45,7 +45,7 @@ describe('current user bootstrap cache', () => {
     vi.stubGlobal('fetch', vi.fn(async () => {
       throw new TypeError('offline');
     }));
-    bootstrapModule = await import('@/documents/current-user-bootstrap');
+    bootstrapModule = await import('@/client/app/documents/current-user-bootstrap');
 
     await expect(bootstrapModule.getHomeDocumentId()).resolves.toBe(BOOTSTRAP.homeDocumentId);
   });
@@ -55,7 +55,7 @@ describe('current user bootstrap cache', () => {
       ok: true,
       json: async () => BOOTSTRAP,
     })));
-    let bootstrapModule = await import('@/documents/current-user-bootstrap');
+    let bootstrapModule = await import('@/client/app/documents/current-user-bootstrap');
     await expect(bootstrapModule.getCurrentUserBootstrap()).resolves.toEqual(BOOTSTRAP);
 
     vi.resetModules();
@@ -63,7 +63,7 @@ describe('current user bootstrap cache', () => {
     vi.stubGlobal('fetch', vi.fn(async () => {
       throw new TypeError('Failed to fetch');
     }));
-    bootstrapModule = await import('@/documents/current-user-bootstrap');
+    bootstrapModule = await import('@/client/app/documents/current-user-bootstrap');
 
     await expect(bootstrapModule.getHomeDocumentId()).resolves.toBe(BOOTSTRAP.homeDocumentId);
   });
@@ -73,7 +73,7 @@ describe('current user bootstrap cache', () => {
       ok: true,
       json: async () => BOOTSTRAP,
     })));
-    let bootstrapModule = await import('@/documents/current-user-bootstrap');
+    let bootstrapModule = await import('@/client/app/documents/current-user-bootstrap');
     await expect(bootstrapModule.getCurrentUserBootstrap()).resolves.toEqual(BOOTSTRAP);
 
     vi.resetModules();
@@ -82,7 +82,7 @@ describe('current user bootstrap cache', () => {
       ok: false,
       status: 500,
     })));
-    bootstrapModule = await import('@/documents/current-user-bootstrap');
+    bootstrapModule = await import('@/client/app/documents/current-user-bootstrap');
 
     await expect(bootstrapModule.getCurrentUserBootstrap()).rejects.toThrow('Failed to load current user bootstrap: 500');
   });
@@ -92,7 +92,7 @@ describe('current user bootstrap cache', () => {
       ok: true,
       json: async () => BOOTSTRAP,
     })));
-    let bootstrapModule = await import('@/documents/current-user-bootstrap');
+    let bootstrapModule = await import('@/client/app/documents/current-user-bootstrap');
     await expect(bootstrapModule.getCurrentUserBootstrap()).resolves.toEqual(BOOTSTRAP);
 
     vi.resetModules();
@@ -100,7 +100,7 @@ describe('current user bootstrap cache', () => {
     vi.stubGlobal('fetch', vi.fn(async () => {
       throw new TypeError('offline');
     }));
-    bootstrapModule = await import('@/documents/current-user-bootstrap');
+    bootstrapModule = await import('@/client/app/documents/current-user-bootstrap');
 
     await expect(bootstrapModule.getCurrentUserBootstrap()).rejects.toThrow('offline');
   });
@@ -110,7 +110,7 @@ describe('current user bootstrap cache', () => {
       ok: true,
       json: async () => BOOTSTRAP,
     })));
-    const { clearCurrentUserBootstrapCache, getCachedCurrentUserBootstrap, getCurrentUserBootstrap } = await import('@/documents/current-user-bootstrap');
+    const { clearCurrentUserBootstrapCache, getCachedCurrentUserBootstrap, getCurrentUserBootstrap } = await import('@/client/app/documents/current-user-bootstrap');
     await expect(getCurrentUserBootstrap()).resolves.toEqual(BOOTSTRAP);
 
     clearCurrentUserBootstrapCache();

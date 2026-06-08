@@ -14,7 +14,7 @@ import type {
 
 import { normalizeNoteIdOrThrow } from '@/domain/notes/ids';
 import { createDocumentPath } from '@/routing';
-import { reportInvariant } from '@/editor/invariant';
+import { reportInvariant } from '@/client/editor/invariant';
 
 interface NoteLinkRef {
   noteId: string;

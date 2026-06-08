@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveOfflineDocumentUnavailable } from '@/editor/plugins/collaboration/useOfflineDocumentUnavailable';
+import { resolveOfflineDocumentUnavailable } from '@/client/editor/plugins/collaboration/useOfflineDocumentUnavailable';
 
 describe('offline document unavailable resolution', () => {
   const base = {

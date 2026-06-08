@@ -3,8 +3,8 @@ import { $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
 
 import { $getNoteChecked } from '#lib/editor/checklist-state';
-import { SET_NOTE_CHECKED_COMMAND } from '@/editor/commands';
-import { $findNoteById } from '@/editor/outline/note-traversal';
+import { SET_NOTE_CHECKED_COMMAND } from '@/client/editor/commands';
+import { $findNoteById } from '@/client/editor/outline/note-traversal';
 import { getNoteElement, meta, placeCaretAtNote, selectNoteRange, setRawNoteCheckedState } from '#tests';
 
 it('stores checked state on bullet list items', meta({ fixture: 'flat' }), async ({ remdo }) => {

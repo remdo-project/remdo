@@ -1,7 +1,7 @@
 /* eslint-disable node/no-process-env */
 import { describe, expect, it } from 'vitest';
 import { meta } from '#tests';
-import { assertEditorSchema } from '@/editor/plugins/dev/schema/assertEditorSchema';
+import { assertEditorSchema } from '@/client/editor/plugins/dev/schema/assertEditorSchema';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('collab main document schema (experimental)', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {

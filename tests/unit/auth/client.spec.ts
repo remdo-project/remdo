@@ -21,7 +21,7 @@ describe('auth client session gate', () => {
   it('remembers authenticated sessions', async () => {
     const session = { user: { id: 'user1' } };
     getSessionMock.mockResolvedValue({ data: session });
-    const { resolveSessionGateState } = await import('@/auth/client');
+    const { resolveSessionGateState } = await import('@/client/app/auth/client');
 
     await expect(resolveSessionGateState()).resolves.toEqual({
       session,
@@ -36,7 +36,7 @@ describe('auth client session gate', () => {
       configurable: true,
       value: false,
     });
-    const { rememberAuthenticatedSession, resolveSessionGateState } = await import('@/auth/client');
+    const { rememberAuthenticatedSession, resolveSessionGateState } = await import('@/client/app/auth/client');
 
     rememberAuthenticatedSession();
 
@@ -45,7 +45,7 @@ describe('auth client session gate', () => {
 
   it('uses remembered auth when the app server is unavailable while the browser is online', async () => {
     getSessionMock.mockRejectedValue(new TypeError('Failed to fetch'));
-    const { rememberAuthenticatedSession, resolveSessionGateState } = await import('@/auth/client');
+    const { rememberAuthenticatedSession, resolveSessionGateState } = await import('@/client/app/auth/client');
 
     rememberAuthenticatedSession();
 
@@ -58,14 +58,14 @@ describe('auth client session gate', () => {
       configurable: true,
       value: false,
     });
-    const { resolveSessionGateState } = await import('@/auth/client');
+    const { resolveSessionGateState } = await import('@/client/app/auth/client');
 
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'offline-unavailable' });
   });
 
   it('reports offline unavailable when the app server is unavailable without remembered auth', async () => {
     getSessionMock.mockRejectedValue(new TypeError('Failed to fetch'));
-    const { resolveSessionGateState } = await import('@/auth/client');
+    const { resolveSessionGateState } = await import('@/client/app/auth/client');
 
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'offline-unavailable' });
   });
@@ -76,7 +76,7 @@ describe('auth client session gate', () => {
       configurable: true,
       value: false,
     });
-    const { resolveSessionGateState } = await import('@/auth/client');
+    const { resolveSessionGateState } = await import('@/client/app/auth/client');
 
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'offline-unavailable' });
   });
@@ -88,7 +88,7 @@ describe('auth client session gate', () => {
       userDataDocumentId: 'oldUserData',
       homeDocumentId: 'oldHome',
     }));
-    const { resolveSessionGateState } = await import('@/auth/client');
+    const { resolveSessionGateState } = await import('@/client/app/auth/client');
 
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
 

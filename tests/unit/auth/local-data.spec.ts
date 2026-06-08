@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearLocalUserData } from '@/auth/local-data';
+import { clearLocalUserData } from '@/client/app/auth/local-data';
 
 describe('local user data cleanup', () => {
   beforeEach(() => {

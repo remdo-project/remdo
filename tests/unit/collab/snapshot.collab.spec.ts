@@ -10,7 +10,7 @@ import { waitFor } from '@testing-library/react';
 import type { Buffer } from 'node:buffer';
 import { $isNoteLinkNode } from '#lib/editor/note-link-node';
 import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
-import { $findNoteById } from '@/editor/outline/note-traversal';
+import { $findNoteById } from '@/client/editor/outline/note-traversal';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
