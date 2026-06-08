@@ -1,8 +1,5 @@
-import { normalizeNoteId, normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
-
-export function normalizeDocumentId(value: unknown): string | null {
-  return normalizeNoteId(value);
-}
+import { normalizeDocumentId } from '@/domain/documents/ids';
+import { normalizeNoteId, normalizeNoteIdOrThrow } from '@/domain/notes/ids';
 
 export function resolveDevDocumentId(rawDocId: string): string {
   const raw = rawDocId;

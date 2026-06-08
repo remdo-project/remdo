@@ -1,9 +1,12 @@
 import type { YSweetDocumentTokenManager } from '@/server/collab-token';
 import type { DocumentKind } from '@/server/db/schema';
-import { syncUserDocumentsMapArray } from '@/server/yjs/projection';
+import {
+  HOME_DOCUMENT_TITLE,
+  USER_DATA_PROJECTION_TITLE,
+} from '@/domain/documents/special-documents';
+import { syncUserDocumentsMapArray } from '@/server/projection/user-data';
 import type { DocumentRegistry, RegisteredDocument } from './document-registry';
-import { createUniqueNoteId } from '#lib/editor/note-ids';
-import { HOME_DOCUMENT_TITLE } from '@/documents/contracts';
+import { createUniqueNoteId } from '@/domain/notes/ids';
 import * as Y from 'yjs';
 
 interface CurrentUserBootstrap {
@@ -18,7 +21,6 @@ interface CreatedUserDocument {
 
 const USER_DATA_ROOT_NOTE_ID = 'user-data';
 const DOCUMENTS_KEY = 'documents';
-const USER_DATA_PROJECTION_TITLE = 'User Data';
 const DOCUMENT_ID_ALLOCATION_ATTEMPTS = 64;
 
 type UserSpecialDocumentKind = Exclude<DocumentKind, 'document'>;

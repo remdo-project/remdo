@@ -1,8 +1,6 @@
 import type { EditorNote } from '@/editor/notes/contracts';
 import type { ChildPosition, Note } from '@/notes/contracts';
 
-export const HOME_DOCUMENT_TITLE = 'Home';
-
 export interface UserDataNote extends Note<'user-data'> {
   /** Returns the user's home document note. */
   homeDocument: () => DocumentNote;

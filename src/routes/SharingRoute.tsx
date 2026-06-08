@@ -13,7 +13,8 @@ import {
 } from '@/documents/sharing-client';
 import type { AccessRequestView } from '@/documents/sharing-client';
 import { useUserData } from '@/documents/user-data';
-import { normalizeDocumentId, parseDocumentRef } from '@/routing';
+import { normalizeDocumentId } from '@/domain/documents/ids';
+import { parseDocumentRef } from '@/routing';
 
 // Match only local whole-document routes; note-level refs are rejected below.
 const DOCUMENT_PATH_PATTERN = /^\/n\/([^/]+)$/u;

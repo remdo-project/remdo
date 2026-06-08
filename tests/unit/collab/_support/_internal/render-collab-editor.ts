@@ -1,5 +1,5 @@
 import { config } from '#config';
-import { normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
+import { normalizeNoteIdOrThrow } from '@/domain/notes/ids';
 import type { RemdoTestApi } from '@/editor/plugins/dev';
 import { renderRemdoEditor } from '../render-editor';
 

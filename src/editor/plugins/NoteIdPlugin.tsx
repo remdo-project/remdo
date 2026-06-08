@@ -24,7 +24,7 @@ import {
 } from 'lexical';
 import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
-import { createUniqueNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
+import { createUniqueNoteId, createNoteIdAvoiding } from '@/domain/notes/ids';
 import { $autoExpandIfFolded } from '#lib/editor/fold-state';
 import { $createNoteLinkNode } from '#lib/editor/note-link-node';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';

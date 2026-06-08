@@ -34,7 +34,7 @@ import {
   typeText,
   meta,
 } from '#tests';
-import { createUniqueNoteId, createNoteIdAvoiding } from '#lib/editor/note-ids';
+import { createUniqueNoteId, createNoteIdAvoiding } from '@/domain/notes/ids';
 import { noteIdState } from '#lib/editor/note-id-state';
 import { renderRemdoEditor } from './collab/_support/render-editor';
 

@@ -1,5 +1,5 @@
 import { attachPageGuards, expect, test } from '#e2e/fixtures';
-import { createUniqueNoteId } from '#lib/editor/note-ids';
+import { createUniqueNoteId } from '@/domain/notes/ids';
 import type { Page } from '@playwright/test';
 import { createUserDocument } from '../_support/documents';
 import {

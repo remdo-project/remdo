@@ -15,9 +15,9 @@ import {
 } from './routes/post-auth-path';
 import {
   createDocumentPath,
-  normalizeDocumentId,
   parseDocumentRef,
 } from './routing';
+import { normalizeDocumentId } from '@/domain/documents/ids';
 
 const buildSearch = (lexicalDemo: boolean): string => {
   const searchParams = new URLSearchParams();

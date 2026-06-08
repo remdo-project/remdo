@@ -3,7 +3,7 @@ import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { RootNode } from 'lexical';
 import { $setState } from 'lexical';
 
-import { createNoteIdAvoiding } from '#lib/editor/note-ids';
+import { createNoteIdAvoiding } from '@/domain/notes/ids';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import { isChildrenWrapper } from '@/editor/outline/list-structure';
 import { reportInvariant } from '@/editor/invariant';

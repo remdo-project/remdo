@@ -1,5 +1,5 @@
 import { hasRememberedSession, isLikelyFetchUnavailableError } from '@/auth/client';
-import { normalizeDocumentId } from '@/routing';
+import { normalizeDocumentId } from '@/domain/documents/ids';
 import {
   clearStoredCurrentUserBootstrap,
   readStoredCurrentUserBootstrap,

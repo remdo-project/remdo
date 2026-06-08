@@ -1,6 +1,6 @@
 import type { LexicalEditor, LexicalNode } from 'lexical';
 import { $createTextNode, $getNodeByKey, $getSelection, $isRangeSelection, $setState } from 'lexical';
-import { createUniqueNoteId } from '#lib/editor/note-ids';
+import { createUniqueNoteId } from '@/domain/notes/ids';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
 import { noteRangeFromNoteId, noteRangeFromOrderedIds } from '@/editor/outline/note-range';
 import {

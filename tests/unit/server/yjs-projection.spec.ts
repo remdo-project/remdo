@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { UserDocument } from '@/documents/user-data-notes';
-import { syncUserDocumentsMapArray } from '@/server/yjs/projection';
+import { syncUserDocumentsMapArray } from '@/server/projection/user-data';
 import * as Y from 'yjs';
 
 function createDocumentArray(): Y.Array<Y.Map<unknown>> {

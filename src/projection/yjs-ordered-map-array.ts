@@ -1,9 +1,8 @@
-import type { UserDocument } from '@/documents/user-data-notes';
 import * as Y from 'yjs';
 
 type IdKeyedMapValues = Readonly<Record<string, unknown> & { id: string }>;
 
-interface IdKeyedMapArrayProjectionOptions<T> {
+interface YjsOrderedMapArrayProjectionOptions<T> {
   valuesOf: (item: T) => IdKeyedMapValues;
 }
 
@@ -36,10 +35,10 @@ function writeMapEntry(entry: Y.Map<unknown>, values: IdKeyedMapValues): void {
   }
 }
 
-function syncIdKeyedMapArray<T>(
+export function syncYjsOrderedMapArray<T>(
   array: Y.Array<Y.Map<unknown>>,
   items: readonly T[],
-  { valuesOf }: IdKeyedMapArrayProjectionOptions<T>,
+  { valuesOf }: YjsOrderedMapArrayProjectionOptions<T>,
 ): void {
   const existingEntries = array.toArray();
   const existingKeys = existingEntries.map(readMapId);
@@ -78,16 +77,4 @@ function syncIdKeyedMapArray<T>(
   if (insertValues.length > 0) {
     array.insert(commonPrefixLength, insertValues.map(createMapEntry));
   }
-}
-
-export function syncUserDocumentsMapArray(
-  array: Y.Array<Y.Map<unknown>>,
-  documents: readonly UserDocument[],
-): void {
-  syncIdKeyedMapArray(array, documents, {
-    valuesOf: (document) => ({
-      id: document.id,
-      title: document.title,
-    }),
-  });
 }

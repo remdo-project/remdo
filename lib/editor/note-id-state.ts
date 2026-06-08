@@ -1,7 +1,7 @@
 import type { ListItemNode } from '@lexical/list';
 import { $getState, createState } from 'lexical';
 import { patchListItemStateConfig } from './list-item-state-config';
-import { normalizeNoteId } from './note-ids';
+import { normalizeNoteId } from '@/domain/notes/ids';
 
 export const noteIdState = createState('noteId', {
   parse: (value) => normalizeNoteId(value) ?? undefined,

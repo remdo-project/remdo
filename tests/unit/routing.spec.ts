@@ -4,11 +4,11 @@ import {
   createDocumentPath,
   createDocumentTokenApiPath,
   createNoteRef,
-  normalizeDocumentId,
   parseDocumentRef,
   parseNoteRef,
   resolveDevDocumentId,
 } from '@/routing';
+import { normalizeDocumentId } from '@/domain/documents/ids';
 
 describe('routing note refs', () => {
   it('creates and parses root document refs', () => {

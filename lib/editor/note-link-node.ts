@@ -12,7 +12,7 @@ import type {
   Spread,
 } from 'lexical';
 
-import { normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
+import { normalizeNoteIdOrThrow } from '@/domain/notes/ids';
 import { createDocumentPath } from '@/routing';
 import { reportInvariant } from '@/editor/invariant';
 
