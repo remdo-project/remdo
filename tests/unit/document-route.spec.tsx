@@ -9,7 +9,7 @@ import { ROOT_SEARCH_SCOPE_ID } from '#client/editor/search/search-candidates';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import { useEditorViewActions, useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 import DocumentRoute from '#client/app/routes/DocumentRoute';
-import { createDocumentPath, parseDocumentRef } from '#routing';
+import { createDocumentPath, parseDocumentRef } from '#document-routes';
 
 vi.mock('#client/app/documents/user-data', async () => {
   const { mockUserDataModule } = await import('#tests');

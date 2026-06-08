@@ -16,7 +16,7 @@ import {
 import {
   createDocumentPath,
   parseDocumentRef,
-} from '#routing';
+} from '#document-routes';
 import { normalizeDocumentId } from '#domain/documents/ids';
 
 const buildSearch = (lexicalDemo: boolean): string => {

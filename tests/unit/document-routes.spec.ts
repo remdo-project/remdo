@@ -7,10 +7,10 @@ import {
   parseDocumentRef,
   parseNoteRef,
   resolveDevDocumentId,
-} from '#routing';
+} from '#document-routes';
 import { normalizeDocumentId } from '#domain/documents/ids';
 
-describe('routing note refs', () => {
+describe('document route refs', () => {
   it('creates and parses root document refs', () => {
     expect(createDocumentPath('main')).toBe('/n/main');
     expect(createDocumentTokenApiPath('main')).toBe('/api/documents/main/token');

@@ -4,7 +4,7 @@ import { Link, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import headerStyles from './styles/AppHeader.module.css';
 import { config } from '#config';
 import { startUserData } from './documents/user-data';
-import { createDocumentPath, parseDocumentRef } from '#routing';
+import { createDocumentPath, parseDocumentRef } from '#document-routes';
 import VanillaLexicalEditor from '#client/editor/dev/VanillaLexicalEditor';
 import { DevToolbarLinks } from './routes/DevToolbar';
 

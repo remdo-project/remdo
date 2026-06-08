@@ -1,6 +1,6 @@
 import { expect, setExpectedConsoleIssues } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
-import { parseDocumentRef } from '#routing';
+import { parseDocumentRef } from '#document-routes';
 import { ensureReady, getEditorState, load } from './bridge';
 import { editorLocator } from './locators';
 import { createEditorDocumentPath } from './routes';

@@ -27,8 +27,8 @@
       "#projection/*": [
         "./src/projection/*"
       ],
-      "#routing": [
-        "./src/routing.ts"
+      "#document-routes": [
+        "./src/document-routes.ts"
       ],
       "#server/*": [
         "./src/server/*"

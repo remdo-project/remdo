@@ -13,7 +13,7 @@ import type {
 } from 'lexical';
 
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
-import { createDocumentPath } from '#routing';
+import { createDocumentPath } from '#document-routes';
 import { reportInvariant } from '#client/editor/invariant';
 
 interface NoteLinkRef {

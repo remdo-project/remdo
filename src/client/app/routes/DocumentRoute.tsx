@@ -6,8 +6,8 @@ import { useUserData } from '#client/app/documents/user-data';
 import Editor from '#client/editor/Editor';
 import { ZoomBreadcrumbs } from '#client/editor/zoom/ZoomBreadcrumbs';
 import { EditorViewProvider, useEditorViewActions, useZoomPath } from '#client/editor/view/EditorViewProvider';
-import { createDocumentPath } from '#routing';
-import type { ParsedDocumentRef } from '#routing';
+import { createDocumentPath } from '#document-routes';
+import type { ParsedDocumentRef } from '#document-routes';
 import {
   APP_TITLE,
   formatNavigationLabel,
