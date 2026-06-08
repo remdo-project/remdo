@@ -264,12 +264,15 @@ export function TestBridgePlugin({
   const api = useMemo(() => createTestBridgeApi(editor, collab), [collab, editor]);
 
   useEffect(() => {
+    const bridgePromise = Promise.resolve(api);
     onTestBridgeReady?.(api);
-    (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<RemdoTestApi> }).__remdoBridgePromise = Promise.resolve(api);
+    (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<RemdoTestApi> }).__remdoBridgePromise = bridgePromise;
 
     return () => {
       onTestBridgeDispose?.();
-      (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<RemdoTestApi> }).__remdoBridgePromise = undefined;
+      if ((globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<RemdoTestApi> }).__remdoBridgePromise === bridgePromise) {
+        (globalThis as typeof globalThis & { __remdoBridgePromise?: Promise<RemdoTestApi> }).__remdoBridgePromise = undefined;
+      }
     };
   }, [api, onTestBridgeReady, onTestBridgeDispose]);
 

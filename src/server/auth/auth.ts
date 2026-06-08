@@ -8,8 +8,10 @@ import { betterAuth } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import type Database from 'better-sqlite3';
 import { genericOAuth, jwt } from 'better-auth/plugins';
+import type { ExpressionBuilder } from 'kysely';
 import { config } from '#config';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
+import type { RemdoDatabase } from '#server/db/schema';
 import type { LinkableRemdoServer } from '#server/remdo-oauth/config';
 import { getLinkableRemdoServers } from '#server/remdo-oauth/config';
 
@@ -228,7 +230,7 @@ export function createServerAuth({
     async getUserCount() {
       const row = await database.db
         .selectFrom('user')
-        .select((eb) => eb.fn.countAll<number>().as('count'))
+        .select((eb: ExpressionBuilder<RemdoDatabase, 'user'>) => eb.fn.countAll<number>().as('count'))
         .executeTakeFirstOrThrow();
       return row.count;
     },
