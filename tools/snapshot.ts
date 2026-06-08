@@ -20,13 +20,13 @@ import type { Provider } from '@lexical/yjs';
 import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lexical';
 
 import { config } from '#config';
-import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#lib/net/origins';
-import { CollabSession } from '#lib/collaboration/session';
+import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
+import { CollabSession } from '#collaboration/session';
 import { resolveYSweetConnectionString } from '#server/collab-token';
-import type { CollaborationProviderInstance, CollaborationSessionProvider } from '#lib/collaboration/runtime';
-import { restoreEditorStateDefaults, stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
-import { prepareEditorStateForPersistence, prepareEditorStateForRuntime } from '#lib/editor/editor-state-persistence';
-import { createEditorInitialConfig } from '#lib/editor/config';
+import type { CollaborationProviderInstance, CollaborationSessionProvider } from '#collaboration/runtime';
+import { restoreEditorStateDefaults, stripEditorStateDefaults } from '#client/editor/runtime/editor-state-defaults';
+import { prepareEditorStateForPersistence, prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
+import { createEditorInitialConfig } from '#client/editor/runtime/config';
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
 
 const PATH_SEPARATOR_PATTERN = /[\\/]+/g;

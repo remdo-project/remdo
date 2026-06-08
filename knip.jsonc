@@ -17,7 +17,7 @@
     "vitest.bench.perf.config.mts"
   ],
   "project": [
-    "{src,lib,tests,tools,config}/**/*.{ts,tsx,mts}",
+    "{src,tests,tools,config}/**/*.{ts,tsx,mts}",
     "*.{ts,mts}"
   ]
 }

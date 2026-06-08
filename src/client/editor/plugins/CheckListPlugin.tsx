@@ -5,7 +5,7 @@ import type { LexicalEditor } from 'lexical';
 import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 import { useEffect } from 'react';
 
-import { $getNoteChecked, $setNoteCheckedRaw } from '#lib/editor/checklist-state';
+import { $getNoteChecked, $setNoteCheckedRaw } from '#client/editor/runtime/checklist-state';
 import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
 import type { SetNoteCheckedPayload } from '#client/editor/commands';
 import { isBulletHit, isCheckboxHit } from '#client/editor/outline/bullet-hit-test';

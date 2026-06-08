@@ -86,7 +86,7 @@ describe('stored user data', () => {
   } = {}) => {
     const sessions: MockCollabSessionInstance[] = [];
 
-    vi.doMock('#lib/collaboration/session', () => ({
+    vi.doMock('#collaboration/session', () => ({
       CollabSession: class MockCollabSession {
         private provider = {
           connect: vi.fn(),
@@ -149,7 +149,7 @@ describe('stored user data', () => {
       awaitSynced: ReturnType<typeof vi.fn>;
     }> = [];
 
-    vi.doMock('#lib/collaboration/session', () => ({
+    vi.doMock('#collaboration/session', () => ({
       CollabSession: class MockCollabSession {
         private provider = {
           connect: vi.fn(),
@@ -238,7 +238,7 @@ describe('stored user data', () => {
       awaitSynced: ReturnType<typeof vi.fn>;
     }> = [];
 
-    vi.doMock('#lib/collaboration/session', () => ({
+    vi.doMock('#collaboration/session', () => ({
       CollabSession: class MockCollabSession {
         private provider = {
           connect: vi.fn(),
@@ -334,7 +334,7 @@ describe('stored user data', () => {
       };
     }));
 
-    vi.doMock('#lib/collaboration/session', () => ({
+    vi.doMock('#collaboration/session', () => ({
       CollabSession: class MockCollabSession {
         private provider = {
           connect: vi.fn(),
@@ -446,7 +446,7 @@ describe('stored user data', () => {
         }),
       };
     }));
-    vi.doMock('#lib/collaboration/session', () => ({
+    vi.doMock('#collaboration/session', () => ({
       CollabSession: class MockCollabSession {
         private provider = {
           connect: vi.fn(),
@@ -497,7 +497,7 @@ describe('stored user data', () => {
   });
 
   it('uses the user-specific home document for an empty stored user data projection', async () => {
-    vi.doMock('#lib/collaboration/session', () => ({
+    vi.doMock('#collaboration/session', () => ({
       CollabSession: class MockCollabSession {
         private provider = {
           connect: vi.fn(),
@@ -559,7 +559,7 @@ describe('stored user data', () => {
       destroy: ReturnType<typeof vi.fn>;
     }> = [];
 
-    vi.doMock('#lib/collaboration/session', () => ({
+    vi.doMock('#collaboration/session', () => ({
       CollabSession: class MockCollabSession {
         private provider = {
           connect: vi.fn(),

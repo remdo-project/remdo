@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HTTP_STATUS } from '#lib/http/status';
+import { HTTP_STATUS } from '#platform/http/status';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 import { createTestResource } from '../_support/test-resource';
 import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';

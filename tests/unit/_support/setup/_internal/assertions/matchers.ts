@@ -12,7 +12,7 @@ import { $getSelection, $isRangeSelection, $getRoot } from 'lexical';
 import type { RangeSelection, LexicalNode } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
-import { $getNoteId } from '#lib/editor/note-id-state';
+import { $getNoteId } from '#client/editor/runtime/note-id-state';
 import { $resolveStructuralItemsFromRange } from '#client/editor/outline/selection/range';
 
 type RemdoTestHelpers = TestContext['remdo'];

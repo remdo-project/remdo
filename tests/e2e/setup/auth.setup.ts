@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { test } from '@playwright/test';
 import { config } from '../../../config';
-import { HTTP_STATUS } from '../../../lib/http/status';
+import { HTTP_STATUS } from '#platform/http/status';
 import { cleanupTestAuthData } from '../../global/test-auth-cleanup';
 import { E2E_AUTH_ACCOUNT, E2E_STORAGE_STATE_PATH } from '../_support/auth-state';
 

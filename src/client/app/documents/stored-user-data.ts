@@ -1,7 +1,7 @@
 import * as Y from 'yjs';
-import { CollabSession } from '#lib/collaboration/session';
-import { resolveApiServerOrigin, resolveAppOrigin } from '#lib/net/origins';
-import type { CollaborationProviderInstance } from '#lib/collaboration/runtime';
+import { CollabSession } from '#collaboration/session';
+import { resolveApiServerOrigin, resolveAppOrigin } from '#platform/net/origins';
+import type { CollaborationProviderInstance } from '#collaboration/runtime';
 import { getCurrentUserBootstrap } from './current-user-bootstrap';
 import type { CurrentUserBootstrap } from './current-user-bootstrap';
 import { normalizeDocumentId } from '#domain/documents/ids';

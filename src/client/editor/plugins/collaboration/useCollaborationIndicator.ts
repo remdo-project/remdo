@@ -3,8 +3,8 @@ import type { IconComponent } from '#client/app/ui/Icon';
 import type { StatusDescriptor } from '#client/editor/StatusIndicators';
 import { useEffect, useState } from 'react';
 import { useCollaborationStatus } from './CollaborationProvider';
-import { getLocalPersistenceSupportDecision } from '#lib/collaboration/runtime';
-import type { CollaborationConnectionStatus } from '#lib/collaboration/runtime';
+import { getLocalPersistenceSupportDecision } from '#collaboration/runtime';
+import type { CollaborationConnectionStatus } from '#collaboration/runtime';
 
 type StatusKey = 'healthy' | 'degraded';
 type LocalPersistenceState = 'enabled' | 'disabled';

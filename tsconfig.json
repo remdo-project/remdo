@@ -15,6 +15,9 @@
       "#client/*": [
         "./src/client/*"
       ],
+      "#collaboration/*": [
+        "./src/collaboration/*"
+      ],
       "#domain/*": [
         "./src/domain/*"
       ],
@@ -26,6 +29,9 @@
       ],
       "#projection/*": [
         "./src/projection/*"
+      ],
+      "#platform/*": [
+        "./src/platform/*"
       ],
       "#document-routes": [
         "./src/document-routes.ts"
@@ -59,9 +65,6 @@
       ],
       "#config/*": [
         "./config/*"
-      ],
-      "#lib/*": [
-        "./lib/*"
       ]
     },
     "resolveJsonModule": true,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCollaborationStatus } from './CollaborationProvider';
-import type { CollaborationConnectionStatus } from '#lib/collaboration/runtime';
+import type { CollaborationConnectionStatus } from '#collaboration/runtime';
 
 interface OfflineDocumentUnavailableSnapshot {
   enabled: boolean;

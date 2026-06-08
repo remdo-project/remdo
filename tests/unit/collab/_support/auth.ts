@@ -1,6 +1,6 @@
 import { config } from '#config';
-import { HTTP_STATUS } from '#lib/http/status';
-import { resolveApiServerOrigin } from '#lib/net/origins';
+import { HTTP_STATUS } from '#platform/http/status';
+import { resolveApiServerOrigin } from '#platform/net/origins';
 import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
 
 const SESSION_COOKIE_PATTERN = /better-auth\.session_token=([^;]+)/u;

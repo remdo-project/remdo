@@ -6,7 +6,7 @@ import { $createParagraphNode, $setState } from 'lexical';
 import { reportInvariant } from '#client/editor/invariant';
 import { getPreviousContentSibling, insertBefore, isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { createUniqueNoteId } from '#domain/notes/ids';
-import { noteIdState } from '#lib/editor/note-id-state';
+import { noteIdState } from '#client/editor/runtime/note-id-state';
 
 export function $normalizeOutlineRoot(
   root: RootNode,

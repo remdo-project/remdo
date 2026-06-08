@@ -1,7 +1,7 @@
 import { request } from '@playwright/test';
 import type { Browser, BrowserContext, BrowserContextOptions } from '@playwright/test';
 import { config } from '#config';
-import { resolveAppOrigin } from '#lib/net/origins';
+import { resolveAppOrigin } from '#platform/net/origins';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 
 export async function createAuthenticatedContext(

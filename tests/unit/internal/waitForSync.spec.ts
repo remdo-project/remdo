@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { waitForSync } from '#lib/collaboration/runtime';
+import { waitForSync } from '#collaboration/runtime';
 import { createMockProvider } from '../collab/_support/mock-provider';
 
 describe('waitForSync', () => {

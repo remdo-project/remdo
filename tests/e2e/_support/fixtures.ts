@@ -1,6 +1,6 @@
 import type { ConsoleMessage, Page, Response } from '@playwright/test';
 import { expect, test as base } from '@playwright/test';
-import { HTTP_STATUS } from '#lib/http/status';
+import { HTTP_STATUS } from '#platform/http/status';
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
 

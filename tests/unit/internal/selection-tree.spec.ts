@@ -4,7 +4,7 @@ import { $createTextNode, $getRoot, $setState, createEditor, TextNode } from 'le
 import type { LexicalEditor, LexicalNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
-import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
+import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import { meta } from '#tests';
 import { $normalizeNoteIdsOnLoad } from '#client/editor/plugins/note-id-normalization';
 import { getLastDescendantListItem, getSubtreeItems, getSubtreeTail } from '#client/editor/outline/selection/tree';

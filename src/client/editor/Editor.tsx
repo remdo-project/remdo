@@ -4,7 +4,7 @@ import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { useCallback, useState } from 'react';
-import { createEditorInitialConfig } from '#lib/editor/config';
+import { createEditorInitialConfig } from '#client/editor/runtime/config';
 import { CollaborationPlugin, useOfflineDocumentUnavailable } from './plugins/collaboration';
 import { CheckListPlugin } from './plugins/CheckListPlugin';
 import { IndentationPlugin } from './plugins/IndentationPlugin';

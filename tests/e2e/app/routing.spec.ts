@@ -1,6 +1,6 @@
 import { attachPageGuards, expect, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
-import { HTTP_STATUS } from '#lib/http/status';
+import { HTTP_STATUS } from '#platform/http/status';
 import { createAuthenticatedContext } from '../_support/auth-context';
 
 interface CurrentUserBootstrapResponse {

@@ -1,7 +1,7 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
-import { transformSerializedEditorState } from '#lib/editor/serialized-editor-state';
+import { transformSerializedEditorState } from '#client/editor/runtime/serialized-editor-state';
 
 interface NoteLinkSerializedNode extends SerializedLexicalNode {
   type: 'note-link';

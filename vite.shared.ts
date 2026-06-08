@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { VitePWA } from 'vite-plugin-pwa';
 import { config } from './config';
 import { onRollupWarning } from './config/_internal/vite/onRollupWarning';
-import { resolveApiServerOrigin, resolveCollabServerOrigin } from './lib/net/origins';
+import { resolveApiServerOrigin, resolveCollabServerOrigin } from './src/platform/net/origins';
 import { remdoApiDevPlugin } from './tools/vite/remdo-api-dev-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -103,13 +103,14 @@ export function createViteSharedConfig() {
       dedupe: ["react", "react-dom"],
       alias: {
         "#client": path.resolve(__dirname, "./src/client"),
+        "#collaboration": path.resolve(__dirname, "./src/collaboration"),
         "#tests": path.resolve(__dirname, "./tests/unit/_support/lib/index.ts"),
         "#tests-common": path.resolve(__dirname, "./tests/_support"),
         "#fixtures": path.resolve(__dirname, "./tests/fixtures"),
         "#config": path.resolve(__dirname, "./config"),
         "#domain": path.resolve(__dirname, "./src/domain"),
-        "#lib": path.resolve(__dirname, "./lib"),
         "#note-sdk": path.resolve(__dirname, "./src/note-sdk/index.ts"),
+        "#platform": path.resolve(__dirname, "./src/platform"),
         "#projection": path.resolve(__dirname, "./src/projection"),
         "#document-routes": path.resolve(__dirname, "./src/document-routes.ts"),
         "#server": path.resolve(__dirname, "./src/server"),

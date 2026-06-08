@@ -2,7 +2,7 @@ import { expect, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { config } from '#config';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
-import { HTTP_STATUS } from '#lib/http/status';
+import { HTTP_STATUS } from '#platform/http/status';
 
 const SOURCE_SERVER_ID = 'source';
 const sourceOrigin = `http://localhost:${config.env.PORT}`;

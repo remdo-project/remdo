@@ -13,21 +13,22 @@ const importMetaEnvRestriction = {
 const checklistStateRestrictions = [
   {
     selector: "CallExpression[callee.property.name='getChecked']",
-    message: 'Use $getNoteChecked from #lib/editor/checklist-state instead.',
+    message: 'Use $getNoteChecked from #client/editor/runtime/checklist-state instead.',
   },
   {
     selector: "CallExpression[callee.property.name='setChecked']",
-    message: 'Use $setNoteChecked from #lib/editor/checklist-state instead.',
+    message: 'Use $setNoteChecked from #client/editor/runtime/checklist-state instead.',
   },
   {
     selector: "CallExpression[callee.property.name='toggleChecked']",
-    message: 'Use $toggleNoteChecked from #lib/editor/checklist-state instead.',
+    message: 'Use $toggleNoteChecked from #client/editor/runtime/checklist-state instead.',
   },
 ] as const;
 const clientImportPattern = String.raw`\#client/*`;
 const serverImportPattern = String.raw`\#server/*`;
 const noteSdkImportPattern = String.raw`\#note-sdk`;
 const noteSdkDeepImportPattern = String.raw`\#note-sdk/*`;
+const collaborationImportPattern = String.raw`\#collaboration/*`;
 
 export default antfu(
   {
@@ -112,6 +113,44 @@ export default antfu(
     },
   },
   {
+    files: ['src/collaboration/**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [clientImportPattern, serverImportPattern, noteSdkImportPattern, noteSdkDeepImportPattern],
+              message: 'Collaboration runtime code must stay independent of client, server, and Note SDK modules.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/platform/**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                clientImportPattern,
+                serverImportPattern,
+                noteSdkImportPattern,
+                noteSdkDeepImportPattern,
+                collaborationImportPattern,
+              ],
+              message: 'Platform utilities must stay independent of client, server, Note SDK, and collaboration runtime modules.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['src/server/**/*.{ts,tsx,mts,cts}'],
     rules: {
       'no-restricted-imports': [
@@ -191,7 +230,6 @@ export default antfu(
   {
     files: [
       'src/**/*.{js,jsx,ts,tsx,mts,cts}',
-      'lib/**/*.{js,jsx,ts,tsx,mts,cts}',
     ],
     rules: {
       'compat/compat': 'error',

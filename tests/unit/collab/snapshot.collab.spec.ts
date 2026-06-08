@@ -8,8 +8,8 @@ import { meta } from '#tests';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import type { Buffer } from 'node:buffer';
-import { $isNoteLinkNode } from '#lib/editor/note-link-node';
-import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
+import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
+import { stripEditorStateDefaults } from '#client/editor/runtime/editor-state-defaults';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 

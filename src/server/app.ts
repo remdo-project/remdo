@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { config } from '#config';
-import { HTTP_STATUS } from '#lib/http/status';
+import { HTTP_STATUS } from '#platform/http/status';
 import { normalizeDocumentId } from '#domain/documents/ids';
 import type { ServerAuth } from './auth/auth';
 import { REMDO_SERVER_OAUTH_SCOPES } from './auth/auth';

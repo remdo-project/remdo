@@ -4,7 +4,7 @@ import type { RootNode } from 'lexical';
 import { $setState } from 'lexical';
 
 import { createNoteIdAvoiding } from '#domain/notes/ids';
-import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
+import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import { isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { reportInvariant } from '#client/editor/invariant';
 

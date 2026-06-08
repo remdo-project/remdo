@@ -20,7 +20,7 @@ import {
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { $createNoteLinkNode } from '#lib/editor/note-link-node';
+import { $createNoteLinkNode } from '#client/editor/runtime/note-link-node';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { useCollaborationStatus } from '#client/editor/plugins/collaboration/CollaborationProvider';
 import { resolveLinkPickerAnchor } from './note-link/anchor';

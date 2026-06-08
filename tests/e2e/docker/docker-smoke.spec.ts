@@ -1,7 +1,7 @@
 import { expect, test } from '#e2e/fixtures';
 import { config } from '#config';
 import type { ClientToken } from '@y-sweet/sdk';
-import { HTTP_STATUS } from '#lib/http/status';
+import { HTTP_STATUS } from '#platform/http/status';
 import { request as playwrightRequest } from '@playwright/test';
 import { Buffer } from 'node:buffer';
 import fs from 'node:fs';

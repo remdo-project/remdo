@@ -6,7 +6,7 @@ import {
   toCollaborationConnectionStatus,
   waitForSync,
 } from './runtime';
-import { trace } from '#lib/log';
+import { trace } from '#platform/log';
 import type {
   CollaborationConnectionStatus,
   CollaborationProviderInstance,

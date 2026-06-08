@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { createContext, useMemo, use, useEffect, useSyncExternalStore } from 'react';
 import { config } from '#config';
-import { CollabSession } from '#lib/collaboration/session';
+import { CollabSession } from '#collaboration/session';
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
-import { resolveApiServerOrigin, resolveAppOrigin, resolveCollabServerOrigin } from '#lib/net/origins';
+import { resolveApiServerOrigin, resolveAppOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
 
 function createCollaborationStatusValue(snapshot: ReturnType<CollabSession['snapshot']>, session: CollabSession) {
   return {

@@ -9,8 +9,8 @@ import { waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { SerializedLexicalNode, SerializedTextNode } from 'lexical';
-import type { SerializedNoteLinkNode } from '#lib/editor/note-link-node';
-import type { SerializedNoteListItemNode } from '#lib/editor/serialized-note-types';
+import type { SerializedNoteLinkNode } from '#client/editor/runtime/note-link-node';
+import type { SerializedNoteListItemNode } from '#client/editor/runtime/serialized-note-types';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { flattenOutline } from '#tests-common/outline';
 import {
@@ -35,7 +35,7 @@ import {
   meta,
 } from '#tests';
 import { createUniqueNoteId, createNoteIdAvoiding } from '#domain/notes/ids';
-import { noteIdState } from '#lib/editor/note-id-state';
+import { noteIdState } from '#client/editor/runtime/note-id-state';
 import { renderRemdoEditor } from './collab/_support/render-editor';
 
 function findSerializedListItem(node: SerializedLexicalNode, noteId: string): SerializedNoteListItemNode | null {

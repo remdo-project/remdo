@@ -6,7 +6,7 @@ import process from 'node:process';
 import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
-import { resolveLoopbackHost } from '#lib/net/loopback';
+import { resolveLoopbackHost } from '#platform/net/loopback';
 import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
 

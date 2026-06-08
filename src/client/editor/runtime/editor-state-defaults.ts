@@ -1,5 +1,5 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
-import { transformSerializedEditorState } from '#lib/editor/serialized-editor-state';
+import { transformSerializedEditorState } from '#client/editor/runtime/serialized-editor-state';
 
 type DefaultEntry = Record<string, unknown>;
 

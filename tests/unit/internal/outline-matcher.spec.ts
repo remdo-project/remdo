@@ -3,8 +3,8 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import type { Outline } from '#tests';
 import { selectStructuralNotes, meta, setRawNoteCheckedState } from '#tests';
-import { stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
-import { prepareEditorStateForPersistence } from '#lib/editor/editor-state-persistence';
+import { stripEditorStateDefaults } from '#client/editor/runtime/editor-state-defaults';
+import { prepareEditorStateForPersistence } from '#client/editor/runtime/editor-state-persistence';
 
 interface OutlineCase {
   fixture: string;

@@ -16,7 +16,7 @@ import {
 } from 'lexical';
 import type { LexicalNode } from 'lexical';
 import { useEffect } from 'react';
-import { $isNoteFolded } from '#lib/editor/fold-state';
+import { $isNoteFolded } from '#client/editor/runtime/fold-state';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $getOrCreateChildList, insertBefore } from '#client/editor/outline/list-structure';
 import { resolveBoundaryPoint } from '#client/editor/outline/selection/caret';

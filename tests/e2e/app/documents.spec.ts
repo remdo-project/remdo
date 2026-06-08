@@ -1,6 +1,6 @@
 import { expect, test } from '#e2e/fixtures';
 import { createUniqueNoteId } from '#domain/notes/ids';
-import { HTTP_STATUS } from '#lib/http/status';
+import { HTTP_STATUS } from '#platform/http/status';
 
 test.describe('Documents API', () => {
   test('does not issue Y-Sweet document client tokens for unregistered ids', async ({ page }) => {
