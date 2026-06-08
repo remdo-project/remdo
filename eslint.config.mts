@@ -25,6 +25,7 @@ const checklistStateRestrictions = [
   },
 ] as const;
 const clientImportPattern = String.raw`\#client/*`;
+const clientAppImportPattern = String.raw`\#client/app/*`;
 const serverImportPattern = String.raw`\#server/*`;
 const noteSdkImportPattern = String.raw`\#note-sdk`;
 const noteSdkDeepImportPattern = String.raw`\#note-sdk/*`;
@@ -211,6 +212,22 @@ export default antfu(
             {
               group: [serverImportPattern],
               message: 'Client code must not import server runtime modules.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/client/editor/**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [clientAppImportPattern],
+              message: 'Editor code must not import app internals; move shared client code under #client/ui or another shared client component.',
             },
           ],
         },

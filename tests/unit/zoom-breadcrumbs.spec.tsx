@@ -2,7 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ZoomBreadcrumbs } from '#client/editor/zoom/ZoomBreadcrumbs';
-import { NAVIGATION_LABEL_MAX_LENGTH, UNTITLED_LABEL } from '#client/app/ui/navigation-label';
+import { NAVIGATION_LABEL_MAX_LENGTH, UNTITLED_LABEL } from '#client/ui/navigation-label';
 
 const truncateLabel = (label: string) => {
   if (label.length <= NAVIGATION_LABEL_MAX_LENGTH) {

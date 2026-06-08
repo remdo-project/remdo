@@ -11,7 +11,7 @@ import type { ParsedDocumentRef } from '#document-routes';
 import {
   APP_TITLE,
   formatNavigationLabel,
-} from '#client/app/ui/navigation-label';
+} from '#client/ui/navigation-label';
 import { useDocumentSearchModel } from './useDocumentSearchModel';
 import './DocumentRoute.css';
 

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Breadcrumbs } from '@mantine/core';
 import styles from './ZoomBreadcrumbs.module.css';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
-import { formatNavigationLabel } from '#client/app/ui/navigation-label';
+import { formatNavigationLabel } from '#client/ui/navigation-label';
 
 interface ZoomBreadcrumbsProps {
   docLabel: string;

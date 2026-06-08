@@ -3,7 +3,7 @@ import {
   formatNavigationLabel,
   NAVIGATION_LABEL_MAX_LENGTH,
   normalizeNavigationLabel,
-} from '#client/app/ui/navigation-label';
+} from '#client/ui/navigation-label';
 
 describe('navigation labels', () => {
   it('trims and collapses whitespace', () => {

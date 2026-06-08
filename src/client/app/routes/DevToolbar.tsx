@@ -2,7 +2,7 @@ import { Anchor, Group } from '@mantine/core';
 import { IconBrandVite } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { config } from '#config';
-import { Icon } from '#client/app/ui/Icon';
+import { Icon } from '#client/ui/Icon';
 
 interface HostContext {
   protocol: string;
