@@ -1,7 +1,7 @@
 import type { BaseSelection } from 'lexical';
 import { $isRangeSelection } from 'lexical';
 
-import { reportInvariant } from '@/client/editor/invariant';
+import { reportInvariant } from '#client/editor/invariant';
 
 import type { OutlineSelection, OutlineSelectionRange } from './model';
 import { getContiguousSelectionHeads, getSelectedNotes } from './heads';

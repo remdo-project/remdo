@@ -2,7 +2,7 @@ import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection } from 'lexical';
 
-import { reportInvariant } from '@/client/editor/invariant';
+import { reportInvariant } from '#client/editor/invariant';
 import { getContentSiblings, isChildrenWrapper } from '../list-structure';
 import { resolveContentItemFromNode } from '../schema';
 import { getNextContentSibling, normalizeContentRange } from './tree';

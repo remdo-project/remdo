@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { resolveActor } from '@/server/auth/actor';
-import { createAuthTrustedOrigins } from '@/server/auth/auth';
+import { resolveActor } from '#server/auth/actor';
+import { createAuthTrustedOrigins } from '#server/auth/auth';
 import { createTestResource } from '../_support/test-resource';
 import { createServerAppHarness } from './_support/server-app-harness';
 

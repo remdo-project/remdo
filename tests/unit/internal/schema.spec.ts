@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { $findNoteById } from '@/client/editor/outline/note-traversal';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
 import {
   requireContentItem,
   requireContentItemFromNode,
   $requireContentItemNoteId,
   $requireRootContentList,
-} from '@/client/editor/outline/schema';
+} from '#client/editor/outline/schema';
 import { meta } from '#tests';
 
 describe('outline schema helpers', () => {

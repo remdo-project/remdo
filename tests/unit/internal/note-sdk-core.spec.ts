@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createEditorNotes, createUserDataRootNote, NoteNotFoundError } from '@/note-sdk';
-import type { EditorNotesAdapter, NoteRange, PlaceTarget, SelectionSnapshot } from '@/note-sdk';
+import { createEditorNotes, createUserDataRootNote, NoteNotFoundError } from '#note-sdk';
+import type { EditorNotesAdapter, NoteRange, PlaceTarget, SelectionSnapshot } from '#note-sdk';
 
 function createMockAdapterFixture(
   adapterSelection?: SelectionSnapshot

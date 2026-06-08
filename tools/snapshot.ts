@@ -22,12 +22,12 @@ import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lex
 import { config } from '#config';
 import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#lib/net/origins';
 import { CollabSession } from '#lib/collaboration/session';
-import { resolveYSweetConnectionString } from '@/server/collab-token';
+import { resolveYSweetConnectionString } from '#server/collab-token';
 import type { CollaborationProviderInstance, CollaborationSessionProvider } from '#lib/collaboration/runtime';
 import { restoreEditorStateDefaults, stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
 import { prepareEditorStateForPersistence, prepareEditorStateForRuntime } from '#lib/editor/editor-state-persistence';
 import { createEditorInitialConfig } from '#lib/editor/config';
-import { normalizeNoteIdOrThrow } from '@/domain/notes/ids';
+import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
 
 const PATH_SEPARATOR_PATTERN = /[\\/]+/g;
 const LEADING_DOTS_PATTERN = /^\.+/;

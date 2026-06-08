@@ -1,9 +1,9 @@
 import { MantineProvider } from '@mantine/core';
 import { render, waitFor } from '@testing-library/react';
-import Editor from '@/client/editor/Editor';
-import type { RemdoTestApi } from '@/client/editor/plugins/dev';
-import { EditorViewProvider } from '@/client/editor/view/EditorViewProvider';
-import type { EditorViewBindings } from '@/client/editor/view/EditorViewProvider';
+import Editor from '#client/editor/Editor';
+import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import { EditorViewProvider } from '#client/editor/view/EditorViewProvider';
+import type { EditorViewBindings } from '#client/editor/view/EditorViewProvider';
 import { ensureCollabTestDocument } from './documents';
 
 /**

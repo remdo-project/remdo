@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveYSweetConnectionString } from '@/server/collab-token';
+import { resolveYSweetConnectionString } from '#server/collab-token';
 
 describe('y-sweet server connection string', () => {
   it('embeds the server token into a bare connection string', () => {

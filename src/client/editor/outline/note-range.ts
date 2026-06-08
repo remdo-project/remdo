@@ -1,4 +1,4 @@
-import type { NoteId, NoteRange } from '@/note-sdk';
+import type { NoteId, NoteRange } from '#note-sdk';
 
 export function noteRangeFromNoteId(noteId: NoteId): NoteRange {
   return { start: noteId, end: noteId };

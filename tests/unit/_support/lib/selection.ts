@@ -1,7 +1,7 @@
 import { $isListItemNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection } from 'lexical';
-import { isChildrenWrapper } from '@/client/editor/outline/list-structure';
+import { isChildrenWrapper } from '#client/editor/outline/list-structure';
 
 export { isChildrenWrapper };
 

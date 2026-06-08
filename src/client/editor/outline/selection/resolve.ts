@@ -3,9 +3,9 @@ import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection } from 'lexical';
 import { $getNodeByKey } from 'lexical';
 
-import { reportInvariant } from '@/client/editor/invariant';
-import { isChildrenWrapper } from '@/client/editor/outline/list-structure';
-import { resolveContentItemFromNode } from '@/client/editor/outline/schema';
+import { reportInvariant } from '#client/editor/invariant';
+import { isChildrenWrapper } from '#client/editor/outline/list-structure';
+import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 
 import { isPointAtBoundary } from './caret';
 import { getContiguousSelectionHeads } from './heads';

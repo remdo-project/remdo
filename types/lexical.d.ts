@@ -1,5 +1,5 @@
 import type { CommandPayloadType, LexicalCommand } from 'lexical';
-import type { OutlineSelectionApi } from '@/client/editor/outline/selection/store';
+import type { OutlineSelectionApi } from '#client/editor/outline/selection/store';
 
 declare module 'lexical' {
   interface LexicalEditor {

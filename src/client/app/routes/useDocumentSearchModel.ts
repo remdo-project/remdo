@@ -8,8 +8,8 @@ import type {
   SyntheticEvent,
 } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { ROOT_SEARCH_SCOPE_ID } from '@/client/editor/search/search-candidates';
-import type { SearchCandidateSnapshot } from '@/client/editor/search/search-candidates';
+import { ROOT_SEARCH_SCOPE_ID } from '#client/editor/search/search-candidates';
+import type { SearchCandidateSnapshot } from '#client/editor/search/search-candidates';
 
 interface SearchCandidate {
   noteId: string;

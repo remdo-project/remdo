@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { LexicalEditor } from 'lexical';
-import { isBulletHit, isCheckboxHit } from '@/client/editor/outline/bullet-hit-test';
+import { isBulletHit, isCheckboxHit } from '#client/editor/outline/bullet-hit-test';
 import {
   $resolveContentNoteFromDOMNode,
   $resolveNoteIdFromDOMNode,
-} from '@/client/editor/outline/note-context';
-import { ZOOM_TO_NOTE_COMMAND } from '@/client/editor/commands';
+} from '#client/editor/outline/note-context';
+import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
 
 export function useZoomBulletInteractions(editor: LexicalEditor) {
   const lastBulletHoverRef = useRef<HTMLElement | null>(null);

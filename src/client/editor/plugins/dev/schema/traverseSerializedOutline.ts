@@ -1,6 +1,6 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
-import { reportInvariant } from '@/client/editor/invariant';
+import { reportInvariant } from '#client/editor/invariant';
 
 interface NodeWithChildren extends SerializedLexicalNode {
   children?: SerializedLexicalNode[];

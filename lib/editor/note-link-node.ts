@@ -12,9 +12,9 @@ import type {
   Spread,
 } from 'lexical';
 
-import { normalizeNoteIdOrThrow } from '@/domain/notes/ids';
-import { createDocumentPath } from '@/routing';
-import { reportInvariant } from '@/client/editor/invariant';
+import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
+import { createDocumentPath } from '#routing';
+import { reportInvariant } from '#client/editor/invariant';
 
 interface NoteLinkRef {
   noteId: string;

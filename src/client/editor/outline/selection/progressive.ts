@@ -3,9 +3,9 @@ import { $isListNode } from '@lexical/list';
 import type { RangeSelection } from 'lexical';
 import { $getNodeByKey, $getRoot, $getSelection, $isRangeSelection } from 'lexical';
 
-import { reportInvariant } from '@/client/editor/invariant';
-import { getPreviousContentSibling } from '@/client/editor/outline/list-structure';
-import { $requireRootContentList } from '@/client/editor/outline/schema';
+import { reportInvariant } from '#client/editor/invariant';
+import { getPreviousContentSibling } from '#client/editor/outline/list-structure';
+import { $requireRootContentList } from '#client/editor/outline/schema';
 
 import type { BoundaryMode } from './apply';
 import { selectInlineContent, selectNoteBody, setSelectionBetweenItems } from './apply';

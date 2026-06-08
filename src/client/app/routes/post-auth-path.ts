@@ -1,6 +1,6 @@
 import { createPath, resolvePath } from 'react-router-dom';
-import { getHomeDocumentId } from '@/client/app/documents/current-user-bootstrap';
-import { createDocumentPath } from '@/routing';
+import { getHomeDocumentId } from '#client/app/documents/current-user-bootstrap';
+import { createDocumentPath } from '#routing';
 
 export function createPostAuthNextSearch(request: Request): string {
   const url = new URL(request.url);

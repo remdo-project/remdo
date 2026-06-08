@@ -6,9 +6,9 @@
  * note handles and route hook shape without booting the stored/collab runtime.
  */
 import { useSyncExternalStore } from 'react';
-import { createUniqueNoteId } from '@/domain/notes/ids';
-import { createUserDataRootNote } from '@/note-sdk';
-import type { UserDataNote, UserDocument } from '@/note-sdk';
+import { createUniqueNoteId } from '#domain/notes/ids';
+import { createUserDataRootNote } from '#note-sdk';
+import type { UserDataNote, UserDocument } from '#note-sdk';
 
 export const TEST_USER_DATA_DOCUMENT = { id: 'testDoc', title: 'Test Document' } as const;
 

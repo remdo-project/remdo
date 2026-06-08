@@ -1,5 +1,5 @@
-import { createServerDatabaseClient } from '@/server/db/client';
-import { createDocumentRegistry } from '@/server/documents/document-registry';
+import { createServerDatabaseClient } from '#server/db/client';
+import { createDocumentRegistry } from '#server/documents/document-registry';
 
 interface DocumentRegistryHarness {
   client: ReturnType<typeof createServerDatabaseClient>;

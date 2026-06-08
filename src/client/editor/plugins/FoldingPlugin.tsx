@@ -6,16 +6,16 @@ import type { LexicalEditor } from 'lexical';
 import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 
 import { $isNoteFolded, $setNoteFolded } from '#lib/editor/fold-state';
-import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '@/client/editor/commands';
-import { forEachContentItemInOutline, forEachContentItemWithAncestorsInOutline } from '@/client/editor/outline/list-traversal';
-import { $resolveZoomBoundaryRoot } from '@/client/editor/outline/selection/boundary';
-import { $resolveRootContentList, resolveContentItemFromNode } from '@/client/editor/outline/schema';
-import { isChildrenWrapper } from '@/client/editor/outline/list-structure';
-import { $selectItemEdge } from '@/client/editor/outline/selection/caret';
-import type { OutlineSelection } from '@/client/editor/outline/selection/model';
-import { $resolveStructuralItemsFromRange } from '@/client/editor/outline/selection/range';
-import { installOutlineSelectionHelpers } from '@/client/editor/outline/selection/store';
-import { isContentDescendantOf, noteHasChildren } from '@/client/editor/outline/selection/tree';
+import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/commands';
+import { forEachContentItemInOutline, forEachContentItemWithAncestorsInOutline } from '#client/editor/outline/list-traversal';
+import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
+import { $resolveRootContentList, resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { isChildrenWrapper } from '#client/editor/outline/list-structure';
+import { $selectItemEdge } from '#client/editor/outline/selection/caret';
+import type { OutlineSelection } from '#client/editor/outline/selection/model';
+import { $resolveStructuralItemsFromRange } from '#client/editor/outline/selection/range';
+import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
+import { isContentDescendantOf, noteHasChildren } from '#client/editor/outline/selection/tree';
 
 const FOLD_ATTR = 'folded';
 

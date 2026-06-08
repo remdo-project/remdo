@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { meta, placeCaretAtNote, selectNoteRange } from '#tests';
 import { $getSelection, $isRangeSelection } from 'lexical';
-import { moveNotesDown, resolveRangeSelectionHeads } from '@/client/editor/outline/note-ops';
-import { $findNoteById } from '@/client/editor/outline/note-traversal';
+import { moveNotesDown, resolveRangeSelectionHeads } from '#client/editor/outline/note-ops';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
 
 describe('note ops', () => {
   it('resolves collapsed caret selection to one root note', meta({ fixture: 'flat' }), async ({ remdo }) => {

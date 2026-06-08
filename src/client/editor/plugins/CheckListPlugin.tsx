@@ -6,14 +6,14 @@ import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelec
 import { useEffect } from 'react';
 
 import { $getNoteChecked, $setNoteCheckedRaw } from '#lib/editor/checklist-state';
-import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/client/editor/commands';
-import type { SetNoteCheckedPayload } from '@/client/editor/commands';
-import { isBulletHit, isCheckboxHit } from '@/client/editor/outline/bullet-hit-test';
-import { $resolveNoteIdFromDOMNode } from '@/client/editor/outline/note-context';
-import { $resolveStructuralItemsFromRange } from '@/client/editor/outline/selection/range';
-import { requireContentItemFromNode, resolveContentItemFromNode } from '@/client/editor/outline/schema';
-import { getParentContentItem, getSubtreeItems } from '@/client/editor/outline/selection/tree';
-import { installOutlineSelectionHelpers } from '@/client/editor/outline/selection/store';
+import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
+import type { SetNoteCheckedPayload } from '#client/editor/commands';
+import { isBulletHit, isCheckboxHit } from '#client/editor/outline/bullet-hit-test';
+import { $resolveNoteIdFromDOMNode } from '#client/editor/outline/note-context';
+import { $resolveStructuralItemsFromRange } from '#client/editor/outline/selection/range';
+import { requireContentItemFromNode, resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { getParentContentItem, getSubtreeItems } from '#client/editor/outline/selection/tree';
+import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 
 const isChecklistItem = (element: HTMLElement): boolean =>
   element.classList.contains('list-item-checked') || element.classList.contains('list-item-unchecked');

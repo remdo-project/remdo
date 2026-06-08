@@ -4,7 +4,7 @@ import {
   subscribeUserDataRuntime,
   getUserDataVersion,
 } from './stored-user-data';
-import type { UserDataNote } from '@/note-sdk';
+import type { UserDataNote } from '#note-sdk';
 export {
   resetUserDataRuntime as resetUserData,
   startUserDataRuntime as startUserData,

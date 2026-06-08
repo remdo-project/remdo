@@ -1,4 +1,4 @@
-import { createDocumentPath } from '@/routing';
+import { createDocumentPath } from '#routing';
 
 function escapeRegExp(value: string): string {
   return value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);

@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import { config } from '#config';
-import { createServerDatabaseClient } from '@/server/db/client';
-import { createDocumentRegistry } from '@/server/documents/document-registry';
+import { createServerDatabaseClient } from '#server/db/client';
+import { createDocumentRegistry } from '#server/documents/document-registry';
 import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
 import { getCollabTestSessionCookie } from './auth';
 

@@ -5,7 +5,7 @@ import {
   readOutline,
   meta,
 } from '#tests';
-import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/client/editor/commands';
+import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '#client/editor/commands';
 
 describe('keyboard reordering (command path)', () => {
   it('move down swaps with next sibling within the same parent', meta({ fixture: 'flat' }), async ({ remdo }) => {

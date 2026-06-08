@@ -1,19 +1,19 @@
 import type { ListItemNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
-import { collapseSelectionToCaret, resolveBoundaryPoint } from '@/client/editor/outline/selection/caret';
-import { $applyCaretEdge } from '@/client/editor/outline/selection/apply';
-import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND, PROGRESSIVE_SELECTION_DIRECTION_COMMAND } from '@/client/editor/commands';
-import { installOutlineSelectionHelpers } from '@/client/editor/outline/selection/store';
-import { getZoomBoundary } from '@/client/editor/outline/selection/boundary';
-import { $shouldBlockHorizontalArrow } from '@/client/editor/outline/selection/navigation';
+import { collapseSelectionToCaret, resolveBoundaryPoint } from '#client/editor/outline/selection/caret';
+import { $applyCaretEdge } from '#client/editor/outline/selection/apply';
+import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND, PROGRESSIVE_SELECTION_DIRECTION_COMMAND } from '#client/editor/commands';
+import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
+import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
+import { $shouldBlockHorizontalArrow } from '#client/editor/outline/selection/navigation';
 import {
   $applyProgressivePlan,
   $computeDirectionalPlan,
   $computeProgressivePlan,
   $isDirectionalBoundary,
   INITIAL_PROGRESSIVE_STATE,
-} from '@/client/editor/outline/selection/progressive';
-import type { ProgressivePlanResult } from '@/client/editor/outline/selection/progressive';
+} from '#client/editor/outline/selection/progressive';
+import type { ProgressivePlanResult } from '#client/editor/outline/selection/progressive';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $getNodeByKey,
@@ -27,16 +27,16 @@ import {
   KEY_ARROW_DOWN_COMMAND,
   SELECT_ALL_COMMAND,
 } from 'lexical';
-import type { OutlineSelectionRange } from '@/client/editor/outline/selection/model';
-import type { ProgressiveSelectionState, SnapPayload } from '@/client/editor/outline/selection/resolve';
-import { $computeOutlineSelectionSnapshot } from '@/client/editor/outline/selection/snapshot';
-import type { ProgressiveUnlockState } from '@/client/editor/outline/selection/snapshot';
-import type { StructuralOverlayConfig } from '@/client/editor/outline/selection/overlay';
-import { clearStructuralOverlay, updateStructuralOverlay } from '@/client/editor/outline/selection/overlay';
+import type { OutlineSelectionRange } from '#client/editor/outline/selection/model';
+import type { ProgressiveSelectionState, SnapPayload } from '#client/editor/outline/selection/resolve';
+import { $computeOutlineSelectionSnapshot } from '#client/editor/outline/selection/snapshot';
+import type { ProgressiveUnlockState } from '#client/editor/outline/selection/snapshot';
+import type { StructuralOverlayConfig } from '#client/editor/outline/selection/overlay';
+import { clearStructuralOverlay, updateStructuralOverlay } from '#client/editor/outline/selection/overlay';
 import { useEffect, useRef } from 'react';
-import { resolveContentItemFromNode } from '@/client/editor/outline/schema';
-import { getContiguousSelectionHeads } from '@/client/editor/outline/selection/heads';
-import { getParentContentItem } from '@/client/editor/outline/selection/tree';
+import { resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { getContiguousSelectionHeads } from '#client/editor/outline/selection/heads';
+import { getParentContentItem } from '#client/editor/outline/selection/tree';
 
 const PROGRESSIVE_SELECTION_TAG = 'selection:progressive-range';
 const SNAP_SELECTION_TAG = 'selection:snap-range';

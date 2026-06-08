@@ -21,8 +21,8 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { $createNoteLinkNode } from '#lib/editor/note-link-node';
-import { installOutlineSelectionHelpers } from '@/client/editor/outline/selection/store';
-import { useCollaborationStatus } from '@/client/editor/plugins/collaboration/CollaborationProvider';
+import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
+import { useCollaborationStatus } from '#client/editor/plugins/collaboration/CollaborationProvider';
 import { resolveLinkPickerAnchor } from './note-link/anchor';
 import { clampActiveIndex, LINK_PICKER_RESULT_LIMIT, $resolveLinkPickerOptions } from './note-link/options';
 import { NoteLinkPicker } from './note-link/NoteLinkPicker';

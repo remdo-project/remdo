@@ -4,10 +4,10 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_FOLD_COMMAND } from '@/client/editor/commands';
-import { resolveContentItemFromNode } from '@/client/editor/outline/schema';
-import { $resolveNoteStateFromDOMNode } from '@/client/editor/plugins/note-state';
-import { useZoomNoteId } from '@/client/editor/view/EditorViewProvider';
+import { OPEN_NOTE_MENU_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/commands';
+import { resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { $resolveNoteStateFromDOMNode } from '#client/editor/plugins/note-state';
+import { useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 
 interface NoteControlsState {
   noteKey: string;

@@ -24,7 +24,7 @@ import {
 } from 'lexical';
 import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
-import { createUniqueNoteId, createNoteIdAvoiding } from '@/domain/notes/ids';
+import { createUniqueNoteId, createNoteIdAvoiding } from '#domain/notes/ids';
 import { $autoExpandIfFolded } from '#lib/editor/fold-state';
 import { $createNoteLinkNode } from '#lib/editor/note-link-node';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
@@ -34,33 +34,33 @@ import {
   insertBefore,
   isChildrenWrapper,
   flattenNoteNodes,
-} from '@/client/editor/outline/list-structure';
-import { resolveContentItemFromNode } from '@/client/editor/outline/schema';
-import { getZoomBoundary } from '@/client/editor/outline/selection/boundary';
-import { $selectItemEdge } from '@/client/editor/outline/selection/caret';
-import { resolveCaretPlacement } from '@/client/editor/outline/selection/caret-placement';
-import { $resolveStructuralDeletionHeads } from '@/client/editor/outline/selection/deletion';
-import type { OutlineSelectionRange } from '@/client/editor/outline/selection/model';
-import { $collectStructuralItemKeysFromRange } from '@/client/editor/outline/selection/range';
+} from '#client/editor/outline/list-structure';
+import { resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
+import { $selectItemEdge } from '#client/editor/outline/selection/caret';
+import { resolveCaretPlacement } from '#client/editor/outline/selection/caret-placement';
+import { $resolveStructuralDeletionHeads } from '#client/editor/outline/selection/deletion';
+import type { OutlineSelectionRange } from '#client/editor/outline/selection/model';
+import { $collectStructuralItemKeysFromRange } from '#client/editor/outline/selection/range';
 import {
   $resolveStructuralRangeFromLexicalSelection,
   $resolveStructuralRangeFromOutlineSelection,
-} from '@/client/editor/outline/selection/structural-range';
-import type { StructuralOverlayConfig } from '@/client/editor/outline/selection/overlay';
-import { updateStructuralOverlay } from '@/client/editor/outline/selection/overlay';
+} from '#client/editor/outline/selection/structural-range';
+import type { StructuralOverlayConfig } from '#client/editor/outline/selection/overlay';
+import { updateStructuralOverlay } from '#client/editor/outline/selection/overlay';
 import {
   getFirstDescendantListItem,
   getNestedList,
   getNextContentSibling,
   noteHasChildren,
   removeNoteHeads,
-} from '@/client/editor/outline/selection/tree';
-import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/client/editor/commands';
-import { parseOwnedNoteLinkUrl } from '@/client/editor/links/note-link-url';
-import { $findNoteById } from '@/client/editor/outline/note-traversal';
+} from '#client/editor/outline/selection/tree';
+import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/commands';
+import { parseOwnedNoteLinkUrl } from '#client/editor/links/note-link-url';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { useCollaborationStatus } from './collaboration';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
-import { NOTE_ID_NORMALIZE_TAG } from '@/client/editor/update-tags';
+import { NOTE_ID_NORMALIZE_TAG } from '#client/editor/update-tags';
 
 const NEWLINE_PATTERN = /\r?\n/;
 

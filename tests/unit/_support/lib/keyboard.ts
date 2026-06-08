@@ -1,7 +1,7 @@
 import type { LexicalEditor } from 'lexical';
 import { act } from '@testing-library/react';
 import { CONTROLLED_TEXT_INSERTION_COMMAND } from 'lexical';
-import type { RemdoTestApi } from '@/client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { getRootElementOrThrow } from './selection';
 
 interface NavigatorWithUAData extends Navigator {

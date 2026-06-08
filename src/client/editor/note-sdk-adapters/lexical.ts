@@ -1,8 +1,8 @@
 import type { LexicalEditor, LexicalNode } from 'lexical';
 import { $createTextNode, $getNodeByKey, $getSelection, $isRangeSelection, $setState } from 'lexical';
-import { createUniqueNoteId } from '@/domain/notes/ids';
+import { createUniqueNoteId } from '#domain/notes/ids';
 import { $getNoteId, noteIdState } from '#lib/editor/note-id-state';
-import { noteRangeFromNoteId, noteRangeFromOrderedIds } from '@/client/editor/outline/note-range';
+import { noteRangeFromNoteId, noteRangeFromOrderedIds } from '#client/editor/outline/note-range';
 import {
   $getOrCreateChildList,
   flattenNoteNodes,
@@ -12,26 +12,26 @@ import {
   insertBefore,
   isChildrenWrapper,
   maybeRemoveEmptyWrapper,
-} from '@/client/editor/outline/list-structure';
-import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '@/client/editor/outline/note-ops';
-import { $findNoteById } from '@/client/editor/outline/note-traversal';
-import { $requireContentItemNoteId, $requireRootContentList, resolveContentItemFromNode } from '@/client/editor/outline/schema';
-import { $resolveZoomBoundaryRoot } from '@/client/editor/outline/selection/boundary';
-import type { OutlineSelectionRange } from '@/client/editor/outline/selection/model';
-import { $resolveStructuralHeadsFromRange } from '@/client/editor/outline/selection/range';
+} from '#client/editor/outline/list-structure';
+import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '#client/editor/outline/note-ops';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { $requireContentItemNoteId, $requireRootContentList, resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
+import type { OutlineSelectionRange } from '#client/editor/outline/selection/model';
+import { $resolveStructuralHeadsFromRange } from '#client/editor/outline/selection/range';
 import {
   resolveContiguousRunIndexes,
   resolveContiguousSiblingRangeBetween,
-} from '@/client/editor/outline/selection/sibling-run';
+} from '#client/editor/outline/selection/sibling-run';
 import {
   $resolveStructuralRangeFromLexicalSelection,
   $resolveStructuralRangeFromOutlineSelection,
-} from '@/client/editor/outline/selection/structural-range';
+} from '#client/editor/outline/selection/structural-range';
 import {
   getNestedList,
   isContentDescendantOf,
   removeNoteHeads,
-} from '@/client/editor/outline/selection/tree';
+} from '#client/editor/outline/selection/tree';
 import type {
   EditorNotes,
   EditorNotesAdapter,
@@ -39,8 +39,8 @@ import type {
   NoteRange,
   SelectionSnapshot,
   NoteId,
-} from '@/note-sdk';
-import { createEditorNotes, NoteNotFoundError } from '@/note-sdk';
+} from '#note-sdk';
+import { createEditorNotes, NoteNotFoundError } from '#note-sdk';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 

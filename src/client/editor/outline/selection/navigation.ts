@@ -1,7 +1,7 @@
 import type { ListItemNode } from '@lexical/list';
 import { $getSelection, $isRangeSelection } from 'lexical';
 
-import { resolveContentItemFromNode } from '@/client/editor/outline/schema';
+import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 
 import { shouldBlockHorizontalExpansion } from './caret';
 

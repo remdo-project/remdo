@@ -1,5 +1,5 @@
 import { config } from '#config';
-import { normalizeNoteIdOrThrow } from '@/domain/notes/ids';
+import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
 import { afterEach, aroundEach } from 'vitest';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tests-common/fixtures';

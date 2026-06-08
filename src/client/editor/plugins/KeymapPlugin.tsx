@@ -3,8 +3,8 @@ import { KEY_DOWN_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect } from 'react';
 import { mergeRegister } from '@lexical/utils';
-import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND, SET_NOTE_CHECKED_COMMAND } from '@/client/editor/commands';
-import { IS_APPLE_PLATFORM } from '@/client/editor/platform';
+import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND, SET_NOTE_CHECKED_COMMAND } from '#client/editor/commands';
+import { IS_APPLE_PLATFORM } from '#client/editor/platform';
 
 interface KeyChord {
   key: string;

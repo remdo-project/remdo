@@ -1,4 +1,4 @@
-import type { LinkPickerOption } from '@/client/editor/links/note-link-index';
+import type { LinkPickerOption } from '#client/editor/links/note-link-index';
 import type { TextNode } from 'lexical';
 
 export interface LinkQuerySession {

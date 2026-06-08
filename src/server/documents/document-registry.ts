@@ -1,17 +1,17 @@
 import type { Selectable } from 'kysely';
-import type { ServerDatabaseClient } from '@/server/db/client';
+import type { ServerDatabaseClient } from '#server/db/client';
 import {
   DOCUMENT_ACCESS_MODES,
   DOCUMENT_ACCESS_STATUSES,
   DOCUMENT_KINDS,
-} from '@/server/db/schema';
+} from '#server/db/schema';
 import type {
   DocumentAccessMode,
   DocumentAccessStatus,
   DocumentAccessTable,
   DocumentKind,
   DocumentsTable,
-} from '@/server/db/schema';
+} from '#server/db/schema';
 
 export interface RegisteredDocument {
   id: string;

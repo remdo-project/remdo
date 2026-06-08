@@ -12,8 +12,26 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "paths": {
-      "@/*": [
-        "./src/*"
+      "#client/*": [
+        "./src/client/*"
+      ],
+      "#domain/*": [
+        "./src/domain/*"
+      ],
+      "#note-sdk": [
+        "./src/note-sdk/index.ts"
+      ],
+      "#note-sdk/*": [
+        "./src/note-sdk/*"
+      ],
+      "#projection/*": [
+        "./src/projection/*"
+      ],
+      "#routing": [
+        "./src/routing.ts"
+      ],
+      "#server/*": [
+        "./src/server/*"
       ],
       "#e2e/*": [
         "./tests/e2e/_support/*"

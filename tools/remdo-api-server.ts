@@ -1,7 +1,7 @@
 import process from 'node:process';
 import { serve } from '@hono/node-server';
 import { config } from '#config';
-import { createServerRuntime } from '@/server/runtime';
+import { createServerRuntime } from '#server/runtime';
 
 let runtime: ReturnType<typeof createServerRuntime> | null = null;
 

@@ -1,7 +1,7 @@
 import type { Provider } from '@lexical/yjs';
 import { createYjsProvider } from '@y-sweet/client';
 import type { ClientToken } from '@y-sweet/sdk';
-import { createDocumentTokenApiPath } from '@/routing';
+import { createDocumentTokenApiPath } from '#routing';
 import { trace } from '#lib/log';
 import { resolveLoopbackHost } from '#lib/net/loopback';
 import { guardYSweetIndexedDbProviderLifecycle } from './y-sweet-indexeddb-lifecycle';

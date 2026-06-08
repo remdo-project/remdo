@@ -16,8 +16,8 @@ import {
 import {
   createDocumentPath,
   parseDocumentRef,
-} from '@/routing';
-import { normalizeDocumentId } from '@/domain/documents/ids';
+} from '#routing';
+import { normalizeDocumentId } from '#domain/documents/ids';
 
 const buildSearch = (lexicalDemo: boolean): string => {
   const searchParams = new URLSearchParams();

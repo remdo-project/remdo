@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createDocumentTokenApiPath } from '@/routing';
+import { createDocumentTokenApiPath } from '#routing';
 import { getCollabTestSessionCookie, withSessionCookie } from './_support/auth';
 import { renderRemdoEditor } from './_support/render-editor';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';

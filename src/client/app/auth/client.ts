@@ -1,5 +1,5 @@
 import { createAuthClient } from 'better-auth/react';
-import { clearStoredCurrentUserBootstrap } from '@/client/app/documents/current-user-bootstrap-storage';
+import { clearStoredCurrentUserBootstrap } from '#client/app/documents/current-user-bootstrap-storage';
 
 const KNOWN_SESSION_STORAGE_KEY = 'remdo-authenticated-session';
 

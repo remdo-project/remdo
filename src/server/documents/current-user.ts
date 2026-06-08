@@ -1,12 +1,12 @@
-import type { YSweetDocumentTokenManager } from '@/server/collab-token';
-import type { DocumentKind } from '@/server/db/schema';
+import type { YSweetDocumentTokenManager } from '#server/collab-token';
+import type { DocumentKind } from '#server/db/schema';
 import {
   HOME_DOCUMENT_TITLE,
   USER_DATA_PROJECTION_TITLE,
-} from '@/domain/documents/special-documents';
-import { syncUserDocumentsMapArray } from '@/server/projection/user-data';
+} from '#domain/documents/special-documents';
+import { syncUserDocumentsMapArray } from '#server/projection/user-data';
 import type { DocumentRegistry, RegisteredDocument } from './document-registry';
-import { createUniqueNoteId } from '@/domain/notes/ids';
+import { createUniqueNoteId } from '#domain/notes/ids';
 import * as Y from 'yjs';
 
 interface CurrentUserBootstrap {

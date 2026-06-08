@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { meta } from '#tests';
-import { createLexicalEditorNotes } from '@/client/editor/note-sdk-adapters';
+import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
 import type {
   DocumentNote,
   EditorNote,
@@ -8,12 +8,12 @@ import type {
   NoteKind,
   UserDataNote,
   UserDocumentsNote,
-} from '@/note-sdk';
+} from '#note-sdk';
 import {
   collectChildCandidateMap,
   collectSearchCandidates,
   ROOT_SEARCH_SCOPE_ID,
-} from '@/client/editor/search/search-candidates';
+} from '#client/editor/search/search-candidates';
 
 function createMockNoteAs(noteId: string, kind: () => NoteKind, self: () => Note): Note['as'] {
   function asNote(kindToMatch: 'editor-note'): EditorNote;

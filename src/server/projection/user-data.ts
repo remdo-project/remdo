@@ -1,4 +1,4 @@
-import { syncYjsOrderedMapArray } from '@/projection/yjs-ordered-map-array';
+import { syncYjsOrderedMapArray } from '#projection/yjs-ordered-map-array';
 import type * as Y from 'yjs';
 
 interface UserDocumentProjection {

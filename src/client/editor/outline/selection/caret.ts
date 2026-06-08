@@ -3,7 +3,7 @@ import { $isListNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection, TextNode } from 'lexical';
 import { $createRangeSelection, $isTextNode, $setSelection } from 'lexical';
 
-import { resolveContentItemFromNode } from '@/client/editor/outline/schema';
+import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 
 type Edge = 'start' | 'end';
 

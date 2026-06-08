@@ -1,4 +1,4 @@
-import type { RemdoTestApi } from '@/client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { getNoteKey } from './note';
 
 export function getNoteElement(remdo: RemdoTestApi, noteId: string) {

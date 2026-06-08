@@ -1,6 +1,6 @@
 import type { SerializedEditorState } from 'lexical';
 
-import { reportInvariant } from '@/client/editor/invariant';
+import { reportInvariant } from '#client/editor/invariant';
 
 import type { SerializedOutlineNote } from './traverseSerializedOutline';
 import { traverseSerializedOutline } from './traverseSerializedOutline';

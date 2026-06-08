@@ -12,8 +12,8 @@ import {
 } from 'lexical';
 import { useEffect } from 'react';
 
-import { installOutlineSelectionHelpers } from '@/client/editor/outline/selection/store';
-import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/client/editor/commands';
+import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
+import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/commands';
 
 function shouldHandlePlainArrow(editor: LexicalEditor, event: KeyboardEvent | null): boolean {
   if (!editor.selection.isStructural()) {

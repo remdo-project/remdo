@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseLinkableRemdoServers } from '@/server/remdo-oauth/config';
+import { parseLinkableRemdoServers } from '#server/remdo-oauth/config';
 
 describe('remdo oauth server config', () => {
   it('returns no servers for an empty config', () => {

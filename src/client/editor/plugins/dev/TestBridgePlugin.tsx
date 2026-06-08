@@ -7,8 +7,8 @@ import { assertEditorSchema } from './schema/assertEditorSchema';
 import { useCollaborationStatus } from '../collaboration';
 import { markSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
 import { $normalizeNoteIdsOnLoad } from '../note-id-normalization';
-import { $findNoteById } from '@/client/editor/outline/note-traversal';
-import { TEST_BRIDGE_LOAD_TAG, TEST_BRIDGE_MUTATE_TAG } from '@/client/editor/update-tags';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { TEST_BRIDGE_LOAD_TAG, TEST_BRIDGE_MUTATE_TAG } from '#client/editor/update-tags';
 
 async function withTimeout<T>(fnOrPromise: (() => Promise<T>) | Promise<T>, ms: number, message: string): Promise<T> {
   const promise = typeof fnOrPromise === 'function' ? fnOrPromise() : fnOrPromise;

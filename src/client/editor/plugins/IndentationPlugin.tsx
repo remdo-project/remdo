@@ -1,8 +1,8 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
 import { useEffect } from 'react';
-import { indentNotesInRange, outdentNotesInRange } from '@/client/editor/outline/note-ops';
-import { $resolveZoomBoundaryRoot } from '@/client/editor/outline/selection/boundary';
+import { indentNotesInRange, outdentNotesInRange } from '#client/editor/outline/note-ops';
+import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
 import { $resolveSelectedNoteRange } from './selected-note-range';
 
 export function IndentationPlugin() {

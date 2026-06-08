@@ -1,5 +1,5 @@
 import { config } from '#config';
-import type { ServerAuth } from '@/server/auth/auth';
+import type { ServerAuth } from '#server/auth/auth';
 
 const SESSION_COOKIE_PATTERN = /((?:__Secure-)?better-auth\.session_token)=([^;]+)/u;
 

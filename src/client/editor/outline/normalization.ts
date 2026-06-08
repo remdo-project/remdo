@@ -3,9 +3,9 @@ import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } fr
 import type { RootNode } from 'lexical';
 import { $createParagraphNode, $setState } from 'lexical';
 
-import { reportInvariant } from '@/client/editor/invariant';
-import { getPreviousContentSibling, insertBefore, isChildrenWrapper } from '@/client/editor/outline/list-structure';
-import { createUniqueNoteId } from '@/domain/notes/ids';
+import { reportInvariant } from '#client/editor/invariant';
+import { getPreviousContentSibling, insertBefore, isChildrenWrapper } from '#client/editor/outline/list-structure';
+import { createUniqueNoteId } from '#domain/notes/ids';
 import { noteIdState } from '#lib/editor/note-id-state';
 
 export function $normalizeOutlineRoot(

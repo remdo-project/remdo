@@ -4,7 +4,7 @@ import { $getRoot } from 'lexical';
 import type { LexicalNode } from 'lexical';
 
 import { $getNoteId } from '#lib/editor/note-id-state';
-import { reportInvariant } from '@/client/editor/invariant';
+import { reportInvariant } from '#client/editor/invariant';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from './list-structure';
 
 function failOutlineInvariant(message: string, context: Record<string, unknown>): never {

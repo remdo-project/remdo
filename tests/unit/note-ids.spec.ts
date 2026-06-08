@@ -11,7 +11,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { SerializedLexicalNode, SerializedTextNode } from 'lexical';
 import type { SerializedNoteLinkNode } from '#lib/editor/note-link-node';
 import type { SerializedNoteListItemNode } from '#lib/editor/serialized-note-types';
-import type { RemdoTestApi } from '@/client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { flattenOutline } from '#tests-common/outline';
 import {
   buildClipboardPayload,
@@ -34,7 +34,7 @@ import {
   typeText,
   meta,
 } from '#tests';
-import { createUniqueNoteId, createNoteIdAvoiding } from '@/domain/notes/ids';
+import { createUniqueNoteId, createNoteIdAvoiding } from '#domain/notes/ids';
 import { noteIdState } from '#lib/editor/note-id-state';
 import { renderRemdoEditor } from './collab/_support/render-editor';
 

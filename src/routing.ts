@@ -1,5 +1,5 @@
-import { normalizeDocumentId } from '@/domain/documents/ids';
-import { normalizeNoteId, normalizeNoteIdOrThrow } from '@/domain/notes/ids';
+import { normalizeDocumentId } from '#domain/documents/ids';
+import { normalizeNoteId, normalizeNoteIdOrThrow } from '#domain/notes/ids';
 
 export function resolveDevDocumentId(rawDocId: string): string {
   const raw = rawDocId;

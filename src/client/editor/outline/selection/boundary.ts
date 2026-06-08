@@ -2,7 +2,7 @@ import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
 import type { LexicalEditor } from 'lexical';
 import { $getNodeByKey } from 'lexical';
-import { isChildrenWrapper } from '@/client/editor/outline/list-structure';
+import { isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { isContentDescendantOf } from './tree';
 
 const zoomBoundaryStore = new WeakMap<LexicalEditor, string | null>();

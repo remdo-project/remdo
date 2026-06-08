@@ -2,16 +2,16 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconSearch } from '@tabler/icons-react';
 import { useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
-import { useUserData } from '@/client/app/documents/user-data';
-import Editor from '@/client/editor/Editor';
-import { ZoomBreadcrumbs } from '@/client/editor/zoom/ZoomBreadcrumbs';
-import { EditorViewProvider, useEditorViewActions, useZoomPath } from '@/client/editor/view/EditorViewProvider';
-import { createDocumentPath } from '@/routing';
-import type { ParsedDocumentRef } from '@/routing';
+import { useUserData } from '#client/app/documents/user-data';
+import Editor from '#client/editor/Editor';
+import { ZoomBreadcrumbs } from '#client/editor/zoom/ZoomBreadcrumbs';
+import { EditorViewProvider, useEditorViewActions, useZoomPath } from '#client/editor/view/EditorViewProvider';
+import { createDocumentPath } from '#routing';
+import type { ParsedDocumentRef } from '#routing';
 import {
   APP_TITLE,
   formatNavigationLabel,
-} from '@/client/app/ui/navigation-label';
+} from '#client/app/ui/navigation-label';
 import { useDocumentSearchModel } from './useDocumentSearchModel';
 import './DocumentRoute.css';
 

@@ -24,6 +24,10 @@ const checklistStateRestrictions = [
     message: 'Use $toggleNoteChecked from #lib/editor/checklist-state instead.',
   },
 ] as const;
+const clientImportPattern = String.raw`\#client/*`;
+const serverImportPattern = String.raw`\#server/*`;
+const noteSdkImportPattern = String.raw`\#note-sdk`;
+const noteSdkDeepImportPattern = String.raw`\#note-sdk/*`;
 
 export default antfu(
   {
@@ -105,6 +109,73 @@ export default antfu(
         ...checklistStateRestrictions,
       ],
       'remdo/no-legacy-fallbacks': 'error',
+    },
+  },
+  {
+    files: ['src/server/**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [clientImportPattern, noteSdkImportPattern, noteSdkDeepImportPattern],
+              message: 'Server runtime code must not import client or Note SDK modules.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/note-sdk/**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [clientImportPattern, serverImportPattern],
+              message: 'Note SDK code must stay independent of client and server runtime modules.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'src/domain/**/*.{ts,tsx,mts,cts}',
+      'src/projection/**/*.{ts,tsx,mts,cts}',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [clientImportPattern, serverImportPattern],
+              message: 'Domain and projection helpers must stay independent of client and server runtime modules.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/client/**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [serverImportPattern],
+              message: 'Client code must not import server runtime modules.',
+            },
+          ],
+        },
+      ],
     },
   },
   {

@@ -102,12 +102,17 @@ export function createViteSharedConfig() {
     resolve: {
       dedupe: ["react", "react-dom"],
       alias: {
-        "@": "/src",
+        "#client": path.resolve(__dirname, "./src/client"),
         "#tests": path.resolve(__dirname, "./tests/unit/_support/lib/index.ts"),
         "#tests-common": path.resolve(__dirname, "./tests/_support"),
         "#fixtures": path.resolve(__dirname, "./tests/fixtures"),
         "#config": path.resolve(__dirname, "./config"),
+        "#domain": path.resolve(__dirname, "./src/domain"),
         "#lib": path.resolve(__dirname, "./lib"),
+        "#note-sdk": path.resolve(__dirname, "./src/note-sdk/index.ts"),
+        "#projection": path.resolve(__dirname, "./src/projection"),
+        "#routing": path.resolve(__dirname, "./src/routing.ts"),
+        "#server": path.resolve(__dirname, "./src/server"),
         "#tools": path.resolve(__dirname, "./tools/lib"),
       },
     },

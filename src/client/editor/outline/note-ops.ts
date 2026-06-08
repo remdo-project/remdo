@@ -1,7 +1,7 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import type { RangeSelection } from 'lexical';
-import { $indentNote, $outdentNote } from '@/client/editor/lexical-helpers';
+import { $indentNote, $outdentNote } from '#client/editor/lexical-helpers';
 import type { OutlineSelectionRange } from './selection/model';
 import { $resolveStructuralHeadsFromRange } from './selection/range';
 import {

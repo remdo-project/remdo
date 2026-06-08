@@ -16,7 +16,7 @@ import {
   resetTestUserData,
   TEST_USER_DATA_DOCUMENT,
 } from '#tests';
-import { createLexicalEditorNotes } from '@/client/editor/note-sdk-adapters';
+import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
 
 describe('editor notes showcase', () => {
   beforeEach(() => {

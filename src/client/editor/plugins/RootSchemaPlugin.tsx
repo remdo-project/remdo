@@ -4,10 +4,10 @@ import type { LexicalEditor } from 'lexical';
 import { useLayoutEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { useCollaborationStatus } from './collaboration';
-import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '@/client/editor/outline/normalization';
+import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '#client/editor/outline/normalization';
 import { markSchemaValidationSkipOnce } from './dev/schema/schemaValidationSkipOnce';
 import { assertEditorSchema } from './dev/schema/assertEditorSchema';
-import { ROOT_SCHEMA_NORMALIZE_TAG } from '@/client/editor/update-tags';
+import { ROOT_SCHEMA_NORMALIZE_TAG } from '#client/editor/update-tags';
 
 interface RootSchemaPluginProps {
   onSchemaReadyChange: (ready: boolean) => void;

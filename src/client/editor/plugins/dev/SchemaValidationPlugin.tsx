@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useCollaborationStatus } from '../collaboration';
 import { assertEditorSchema } from './schema/assertEditorSchema';
 import { consumeSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
-import { SCHEMA_VALIDATE_SYNC_TAG } from '@/client/editor/update-tags';
+import { SCHEMA_VALIDATE_SYNC_TAG } from '#client/editor/update-tags';
 
 export function SchemaValidationPlugin(): null {
   const [editor] = useLexicalComposerContext();

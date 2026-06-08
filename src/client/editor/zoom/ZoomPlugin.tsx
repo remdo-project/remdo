@@ -5,17 +5,17 @@ import {
 } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect, useRef } from 'react';
-import { setZoomBoundary } from '@/client/editor/outline/selection/boundary';
+import { setZoomBoundary } from '#client/editor/outline/selection/boundary';
 import type { UpdateListenerPayload } from 'lexical';
-import { resolveContentItemFromNode } from '@/client/editor/outline/schema';
-import { useCollaborationStatus } from '@/client/editor/plugins/collaboration/CollaborationProvider';
-import { $findNoteById, $getNoteAncestorPath, areNotePathsEqual } from '@/client/editor/outline/note-traversal';
-import type { NotePathItem } from '@/client/editor/outline/note-traversal';
-import { isContentDescendantOf } from '@/client/editor/outline/selection/tree';
-import { ZOOM_TO_NOTE_COMMAND } from '@/client/editor/commands';
+import { resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { useCollaborationStatus } from '#client/editor/plugins/collaboration/CollaborationProvider';
+import { $findNoteById, $getNoteAncestorPath, areNotePathsEqual } from '#client/editor/outline/note-traversal';
+import type { NotePathItem } from '#client/editor/outline/note-traversal';
+import { isContentDescendantOf } from '#client/editor/outline/selection/tree';
+import { ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
 import { resolveZoomNoteId } from './zoom-note-id';
-import { ZOOM_CARET_TAG, ZOOM_INIT_TAG } from '@/client/editor/update-tags';
-import { useEditorViewActions, useZoomNoteId } from '@/client/editor/view/EditorViewProvider';
+import { ZOOM_CARET_TAG, ZOOM_INIT_TAG } from '#client/editor/update-tags';
+import { useEditorViewActions, useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 import { $placeCaretAtZoomEntry, $placeCaretAtZoomEntryIfOutside } from './zoom-caret';
 import { useZoomBulletInteractions } from './useZoomBulletInteractions';
 

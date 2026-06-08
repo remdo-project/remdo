@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rewriteTokenUrlsForRequest } from '@/server/token-url-rewrite';
+import { rewriteTokenUrlsForRequest } from '#server/token-url-rewrite';
 
 describe('token URL rewrite', () => {
   it('prefers forwarded headers and preserves path, search, and hash', () => {

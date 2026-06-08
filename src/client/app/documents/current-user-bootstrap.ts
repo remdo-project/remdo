@@ -1,5 +1,5 @@
-import { hasRememberedSession, isLikelyFetchUnavailableError } from '@/client/app/auth/client';
-import { normalizeDocumentId } from '@/domain/documents/ids';
+import { hasRememberedSession, isLikelyFetchUnavailableError } from '#client/app/auth/client';
+import { normalizeDocumentId } from '#domain/documents/ids';
 import {
   clearStoredCurrentUserBootstrap,
   readStoredCurrentUserBootstrap,

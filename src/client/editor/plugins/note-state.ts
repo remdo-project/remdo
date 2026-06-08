@@ -2,8 +2,8 @@ import type { ListItemNode } from '@lexical/list';
 
 import { $isNoteFolded } from '#lib/editor/fold-state';
 import { $getNoteId } from '#lib/editor/note-id-state';
-import { $resolveContentNoteFromDOMNode } from '@/client/editor/outline/note-context';
-import { noteHasChildren } from '@/client/editor/outline/selection/tree';
+import { $resolveContentNoteFromDOMNode } from '#client/editor/outline/note-context';
+import { noteHasChildren } from '#client/editor/outline/selection/tree';
 
 interface ResolvedNoteState {
   contentItem: ListItemNode;

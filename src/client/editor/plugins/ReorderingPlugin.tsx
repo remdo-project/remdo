@@ -3,9 +3,9 @@ import type { LexicalEditor } from 'lexical';
 import { COMMAND_PRIORITY_LOW } from 'lexical';
 import { mergeRegister } from '@lexical/utils';
 import { useEffect } from 'react';
-import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '@/client/editor/commands';
-import { moveNotesDownInRange, moveNotesUpInRange } from '@/client/editor/outline/note-ops';
-import { $resolveZoomBoundaryRoot } from '@/client/editor/outline/selection/boundary';
+import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '#client/editor/commands';
+import { moveNotesDownInRange, moveNotesUpInRange } from '#client/editor/outline/note-ops';
+import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
 import { $resolveSelectedNoteRange } from './selected-note-range';
 
 type MoveDirection = 'up' | 'down';

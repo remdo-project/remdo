@@ -1,4 +1,4 @@
-import { parseDocumentRef } from '@/routing';
+import { parseDocumentRef } from '#routing';
 
 interface NoteLink {
   noteId: string;

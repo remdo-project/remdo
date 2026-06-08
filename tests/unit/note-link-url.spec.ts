@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseNoteLinkUrl, parseOwnedNoteLinkUrl } from '@/client/editor/links/note-link-url';
+import { parseNoteLinkUrl, parseOwnedNoteLinkUrl } from '#client/editor/links/note-link-url';
 
 describe('note link URL helpers', () => {
   it('parses same-document URL into fully-qualified reference', () => {

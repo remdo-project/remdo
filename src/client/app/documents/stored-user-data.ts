@@ -4,10 +4,10 @@ import { resolveApiServerOrigin, resolveAppOrigin } from '#lib/net/origins';
 import type { CollaborationProviderInstance } from '#lib/collaboration/runtime';
 import { getCurrentUserBootstrap } from './current-user-bootstrap';
 import type { CurrentUserBootstrap } from './current-user-bootstrap';
-import { normalizeDocumentId } from '@/domain/documents/ids';
-import { HOME_DOCUMENT_TITLE } from '@/domain/documents/special-documents';
-import { createUserDataRootNote } from '@/note-sdk';
-import type { UserDataNote, UserDocument } from '@/note-sdk';
+import { normalizeDocumentId } from '#domain/documents/ids';
+import { HOME_DOCUMENT_TITLE } from '#domain/documents/special-documents';
+import { createUserDataRootNote } from '#note-sdk';
+import type { UserDataNote, UserDocument } from '#note-sdk';
 
 const USER_DATA_ROOT_NOTE_ID = 'user-data';
 const DOCUMENTS_KEY = 'documents';

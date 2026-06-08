@@ -1,11 +1,11 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { createLexicalEditorNotes } from '@/client/editor/note-sdk-adapters';
+import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
 import {
   collectChildCandidateMap,
   collectSearchCandidates,
-} from '@/client/editor/search/search-candidates';
-import type { SearchCandidateSnapshot } from '@/client/editor/search/search-candidates';
+} from '#client/editor/search/search-candidates';
+import type { SearchCandidateSnapshot } from '#client/editor/search/search-candidates';
 
 interface SearchCandidatesPluginProps {
   docId: string;

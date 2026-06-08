@@ -27,7 +27,7 @@ import {
   $setSelection,
   PASTE_COMMAND,
 } from 'lexical';
-import { $findNoteById } from '@/client/editor/outline/note-traversal';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
 
 describe('clipboard paste placement (docs/outliner/clipboard.md)', () => {
   it('pastes single-line plain text inline', meta({ fixture: 'flat' }), async ({ remdo }) => {

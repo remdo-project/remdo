@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { config } from '#config';
-import { createUniqueNoteId } from '@/domain/notes/ids';
+import { createUniqueNoteId } from '#domain/notes/ids';
 
 export async function cleanupCollabDoc(docId: string): Promise<void> {
   const docPath = path.join(config.env.DATA_DIR, 'collab', docId);

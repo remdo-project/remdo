@@ -1,9 +1,9 @@
 import { $getSelection, $isRangeSelection } from 'lexical';
 import type { ListItemNode } from '@lexical/list';
-import { $selectItemEdge } from '@/client/editor/outline/selection/caret';
-import { resolveContentItemFromNode } from '@/client/editor/outline/schema';
-import { getFirstDescendantListItem, getNestedList, isContentDescendantOf } from '@/client/editor/outline/selection/tree';
-import { $findNoteById } from '@/client/editor/outline/note-traversal';
+import { $selectItemEdge } from '#client/editor/outline/selection/caret';
+import { resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { getFirstDescendantListItem, getNestedList, isContentDescendantOf } from '#client/editor/outline/selection/tree';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
 
 type ZoomCaretPlacementResult = 'missing' | 'already-inside' | 'placed';
 

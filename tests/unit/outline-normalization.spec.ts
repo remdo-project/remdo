@@ -4,8 +4,8 @@ import { ListItemNode, ListNode } from '@lexical/list';
 import { $getRoot, ParagraphNode, TextNode } from 'lexical';
 import { readFixture } from '#tests-common/fixtures';
 import { createMountedLexicalEditor, meta, placeCaretAtNote } from '#tests';
-import { REORDER_NOTES_UP_COMMAND } from '@/client/editor/commands';
-import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '@/client/editor/outline/normalization';
+import { REORDER_NOTES_UP_COMMAND } from '#client/editor/commands';
+import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '#client/editor/outline/normalization';
 
 describe('outline normalization on load', () => {
   it(

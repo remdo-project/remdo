@@ -140,7 +140,7 @@ Rules:
 ## User-data follow-ups
 
 - User-data route follow-up: handle rejected `userData.documents().create()` calls
-  from the document picker in `src/routes/DocumentRoute.tsx` so sync/write
+  from the document picker in `src/client/app/routes/DocumentRoute.tsx` so sync/write
   failures do not surface as unhandled promise rejections and the UI can
   recover cleanly. This is not required for sharing, but it is the same header
   area and async-command UX pattern as the sharing control.

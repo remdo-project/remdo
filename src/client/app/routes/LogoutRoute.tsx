@@ -1,7 +1,7 @@
 import { Alert, Button, Container, Paper, Stack, Text, Title } from '@mantine/core';
 import { useCallback, useEffect, useState } from 'react';
-import { clearLocalUserData } from '@/client/app/auth/local-data';
-import { logoutCurrentUser } from '@/client/app/auth/logout';
+import { clearLocalUserData } from '#client/app/auth/local-data';
+import { logoutCurrentUser } from '#client/app/auth/logout';
 
 type LogoutStatus = 'clearing-local' | 'local-failed' | 'server-failed' | 'signing-out';
 

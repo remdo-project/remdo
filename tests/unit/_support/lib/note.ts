@@ -1,5 +1,5 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
-import type { RemdoTestApi } from '@/client/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { waitFor } from '@testing-library/react';
 import type { TextNode } from 'lexical';
 import {
@@ -17,7 +17,7 @@ import { findNearestListItem, getRootElementOrThrow } from './selection';
 import { $getNoteId } from '#lib/editor/note-id-state';
 import { $setNoteCheckedRaw } from '#lib/editor/checklist-state';
 import { expect } from 'vitest';
-import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '@/client/editor/commands';
+import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/commands';
 export type { Outline, OutlineNode } from '#tests-common/outline';
 export type SelectionSnapshot =
   | { state: 'none' }

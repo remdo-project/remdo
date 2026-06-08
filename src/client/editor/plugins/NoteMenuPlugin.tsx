@@ -12,15 +12,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { $getNoteId } from '#lib/editor/note-id-state';
 
-import { FOLD_VIEW_TO_LEVEL_COMMAND, OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '@/client/editor/commands';
-import { $resolveContentNoteFromDOMNode } from '@/client/editor/outline/note-context';
-import { requireContentItemFromNode } from '@/client/editor/outline/schema';
-import { installOutlineSelectionHelpers } from '@/client/editor/outline/selection/store';
-import { getNestedList } from '@/client/editor/outline/selection/tree';
-import { handleNoteMenuShortcut } from '@/client/editor/plugins/note-menu-shortcuts';
-import type { NoteMenuShortcutEvent } from '@/client/editor/plugins/note-menu-shortcuts';
-import { $resolveNoteStateFromDOMNode } from '@/client/editor/plugins/note-state';
-import { useZoomNoteId } from '@/client/editor/view/EditorViewProvider';
+import { FOLD_VIEW_TO_LEVEL_COMMAND, OPEN_NOTE_MENU_COMMAND, SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/commands';
+import { $resolveContentNoteFromDOMNode } from '#client/editor/outline/note-context';
+import { requireContentItemFromNode } from '#client/editor/outline/schema';
+import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
+import { getNestedList } from '#client/editor/outline/selection/tree';
+import { handleNoteMenuShortcut } from '#client/editor/plugins/note-menu-shortcuts';
+import type { NoteMenuShortcutEvent } from '#client/editor/plugins/note-menu-shortcuts';
+import { $resolveNoteStateFromDOMNode } from '#client/editor/plugins/note-state';
+import { useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 
 interface NoteMenuState {
   noteKey: string;

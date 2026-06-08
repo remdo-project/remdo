@@ -3,8 +3,8 @@ import {
   $isListItemNode,
   $isListNode,
 } from '@lexical/list';
-import { reportInvariant } from '@/client/editor/invariant';
-import { $getOrCreateChildList, getPreviousContentSibling, isChildrenWrapper } from '@/client/editor/outline/list-structure';
+import { reportInvariant } from '#client/editor/invariant';
+import { $getOrCreateChildList, getPreviousContentSibling, isChildrenWrapper } from '#client/editor/outline/list-structure';
 
 function getNodesToMove(noteItem: ListItemNode): ListItemNode[] {
   const childWrapper = noteItem.getNextSibling();

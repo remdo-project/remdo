@@ -1,7 +1,7 @@
 import { Alert, Button, Container, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { rememberAuthenticatedSession } from '@/client/app/auth/client';
+import { rememberAuthenticatedSession } from '#client/app/auth/client';
 import { resolvePostAuthPath } from './post-auth-path';
 
 export default function AdminUsersRoute() {

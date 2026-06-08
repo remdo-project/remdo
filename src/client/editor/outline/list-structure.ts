@@ -3,7 +3,7 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
 import { $autoExpandIfFolded } from '#lib/editor/fold-state';
-import { reportInvariant } from '@/client/editor/invariant';
+import { reportInvariant } from '#client/editor/invariant';
 
 type ChildListItemNode = ListItemNode & { getFirstChild: () => ListNode };
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
-import type { UserDataNote } from '@/note-sdk';
+import type { UserDataNote } from '#note-sdk';
 
 const USER_RUNTIME_DOCUMENT = { id: 'userHomeDoc', title: 'Home' } as const;
 const USER_DATA_DOC_ID = 'userDataDoc';
@@ -135,7 +135,7 @@ describe('stored user data', () => {
   };
 
   it('starts with an empty document list before the stored session loads', async () => {
-    const { getCurrentUserData } = await import('@/client/app/documents/stored-user-data');
+    const { getCurrentUserData } = await import('#client/app/documents/stored-user-data');
 
     expect(listDocuments(getCurrentUserData())).toEqual([]);
   });
@@ -199,7 +199,7 @@ describe('stored user data', () => {
       getCurrentUserData,
       getUserDataVersion,
       startUserDataRuntime,
-    } = await import('@/client/app/documents/stored-user-data');
+    } = await import('#client/app/documents/stored-user-data');
 
     const eagerUserData = getCurrentUserData();
     expect(listDocuments(eagerUserData)).toEqual([]);
@@ -277,7 +277,7 @@ describe('stored user data', () => {
       },
     }));
 
-    const { getCurrentUserData, getUserData } = await import('@/client/app/documents/stored-user-data');
+    const { getCurrentUserData, getUserData } = await import('#client/app/documents/stored-user-data');
 
     const eagerUserData = getCurrentUserData();
     expect(listDocuments(eagerUserData)).toEqual([]);
@@ -368,7 +368,7 @@ describe('stored user data', () => {
       },
     }));
 
-    const { getCurrentUserData, getUserData } = await import('@/client/app/documents/stored-user-data');
+    const { getCurrentUserData, getUserData } = await import('#client/app/documents/stored-user-data');
 
     const userData = getCurrentUserData();
     expect(listDocuments(userData)).toEqual([]);
@@ -402,7 +402,7 @@ describe('stored user data', () => {
     const doc = createUserDataDoc([USER_RUNTIME_DOCUMENT]);
     mockCollabSession({ doc });
 
-    const { getUserData } = await import('@/client/app/documents/stored-user-data');
+    const { getUserData } = await import('#client/app/documents/stored-user-data');
 
     const userData = await getUserData();
     expect(listDocuments(userData)).toEqual([USER_RUNTIME_DOCUMENT]);
@@ -474,7 +474,7 @@ describe('stored user data', () => {
       },
     }));
 
-    const { getCurrentUserData, startUserDataRuntime } = await import('@/client/app/documents/stored-user-data');
+    const { getCurrentUserData, startUserDataRuntime } = await import('#client/app/documents/stored-user-data');
     const userData = getCurrentUserData();
 
     startUserDataRuntime();
@@ -525,7 +525,7 @@ describe('stored user data', () => {
       },
     }));
 
-    const { getUserData } = await import('@/client/app/documents/stored-user-data');
+    const { getUserData } = await import('#client/app/documents/stored-user-data');
 
     const userData = await getUserData();
 
@@ -539,7 +539,7 @@ describe('stored user data', () => {
     const {
       getUserData,
       resetUserDataRuntime,
-    } = await import('@/client/app/documents/stored-user-data');
+    } = await import('#client/app/documents/stored-user-data');
 
     const startupPromise = getUserData();
     const session = await waitForSessionAwait(sessions);
@@ -592,7 +592,7 @@ describe('stored user data', () => {
       getCurrentUserData,
       getUserData,
       resetUserDataRuntime,
-    } = await import('@/client/app/documents/stored-user-data');
+    } = await import('#client/app/documents/stored-user-data');
 
     const userData = await getUserData();
     expect(userData).toBe(getCurrentUserData());

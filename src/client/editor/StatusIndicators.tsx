@@ -1,7 +1,7 @@
 import { Group, Text } from '@mantine/core';
 import { createPortal } from 'react-dom';
-import { Icon } from '@/client/app/ui/Icon';
-import type { IconComponent } from '@/client/app/ui/Icon';
+import { Icon } from '#client/app/ui/Icon';
+import type { IconComponent } from '#client/app/ui/Icon';
 import { useInvariantIndicator } from './invariant';
 import { useCollaborationIndicator } from './plugins/collaboration';
 

@@ -3,18 +3,18 @@ import { useEffect, useRef, useState } from 'react';
 import {
   fetchLinkableRemdoServers,
   linkRemdoServerAccount,
-} from '@/client/app/auth/remdo-server-linking-client';
-import type { LinkableRemdoServerView } from '@/client/app/auth/remdo-server-linking-client';
+} from '#client/app/auth/remdo-server-linking-client';
+import type { LinkableRemdoServerView } from '#client/app/auth/remdo-server-linking-client';
 import {
   approveDocumentAccessRequest,
   fetchAccessRequests,
   requestDocumentAccess,
   setDocumentAccessMode,
-} from '@/client/app/documents/sharing-client';
-import type { AccessRequestView } from '@/client/app/documents/sharing-client';
-import { useUserData } from '@/client/app/documents/user-data';
-import { normalizeDocumentId } from '@/domain/documents/ids';
-import { parseDocumentRef } from '@/routing';
+} from '#client/app/documents/sharing-client';
+import type { AccessRequestView } from '#client/app/documents/sharing-client';
+import { useUserData } from '#client/app/documents/user-data';
+import { normalizeDocumentId } from '#domain/documents/ids';
+import { parseDocumentRef } from '#routing';
 
 // Match only local whole-document routes; note-level refs are rejected below.
 const DOCUMENT_PATH_PATTERN = /^\/n\/([^/]+)$/u;

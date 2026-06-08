@@ -22,19 +22,19 @@ import {
   getPreviousContentSibling,
   insertBefore,
   isChildrenWrapper,
-} from '@/client/editor/outline/list-structure';
+} from '#client/editor/outline/list-structure';
 import {
   $requireRootContentList,
   $resolveRootContentList,
   resolveContentItemFromNode,
-} from '@/client/editor/outline/schema';
-import { $normalizeOutlineRoot } from '@/client/editor/outline/normalization';
-import { $resolveZoomBoundaryRoot } from '@/client/editor/outline/selection/boundary';
-import { $selectItemEdge } from '@/client/editor/outline/selection/caret';
+} from '#client/editor/outline/schema';
+import { $normalizeOutlineRoot } from '#client/editor/outline/normalization';
+import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
+import { $selectItemEdge } from '#client/editor/outline/selection/caret';
 import {
   $resolveStructuralDeletionTargets,
   applyStructuralDeletionTargets,
-} from '@/client/editor/outline/selection/deletion';
+} from '#client/editor/outline/selection/deletion';
 import {
   getFirstDescendantListItem,
   getNestedList,
@@ -44,7 +44,7 @@ import {
   getSubtreeTail,
   removeNoteSubtree,
   isContentDescendantOf,
-} from '@/client/editor/outline/selection/tree';
+} from '#client/editor/outline/selection/tree';
 
 const TRAILING_WHITESPACE_PATTERN = /\s$/;
 const LEADING_WHITESPACE_PATTERN = /^\s/;

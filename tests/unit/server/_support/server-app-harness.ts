@@ -1,13 +1,13 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { createServerApp } from '@/server/app';
-import { createServerAuth } from '@/server/auth/auth';
-import type { CreateAuthUserInput } from '@/server/auth/auth';
-import type { YSweetDocumentTokenManager } from '@/server/collab-token';
-import { createServerDatabaseClient } from '@/server/db/client';
-import type { LinkableRemdoServer } from '@/server/remdo-oauth/config';
-import { createDocumentRegistry } from '@/server/documents/document-registry';
+import { createServerApp } from '#server/app';
+import { createServerAuth } from '#server/auth/auth';
+import type { CreateAuthUserInput } from '#server/auth/auth';
+import type { YSweetDocumentTokenManager } from '#server/collab-token';
+import { createServerDatabaseClient } from '#server/db/client';
+import type { LinkableRemdoServer } from '#server/remdo-oauth/config';
+import { createDocumentRegistry } from '#server/documents/document-registry';
 import * as Y from 'yjs';
 
 const TEST_USER = {

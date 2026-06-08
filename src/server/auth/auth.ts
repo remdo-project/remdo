@@ -9,9 +9,9 @@ import { getMigrations } from 'better-auth/db/migration';
 import type Database from 'better-sqlite3';
 import { genericOAuth, jwt } from 'better-auth/plugins';
 import { config } from '#config';
-import type { SqliteServerDatabaseClient } from '@/server/db/client';
-import type { LinkableRemdoServer } from '@/server/remdo-oauth/config';
-import { getLinkableRemdoServers } from '@/server/remdo-oauth/config';
+import type { SqliteServerDatabaseClient } from '#server/db/client';
+import type { LinkableRemdoServer } from '#server/remdo-oauth/config';
+import { getLinkableRemdoServers } from '#server/remdo-oauth/config';
 
 interface CreateServerAuthOptions {
   allowSignup?: boolean;

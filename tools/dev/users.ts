@@ -1,10 +1,10 @@
 #!/usr/bin/env tsx
 import process from 'node:process';
 import { config } from '#config';
-import { REMDO_SERVER_OAUTH_SCOPES } from '@/server/auth/auth';
-import type { ServerAuth } from '@/server/auth/auth';
-import type { SqliteServerDatabaseClient } from '@/server/db/client';
-import { createServerRuntime } from '@/server/runtime';
+import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
+import type { ServerAuth } from '#server/auth/auth';
+import type { SqliteServerDatabaseClient } from '#server/db/client';
+import { createServerRuntime } from '#server/runtime';
 import { STABLE_AUTH_USERS, createStableAuthUserSessionHeaders } from '../lib/stable-auth-users';
 import type { StableAuthUser } from '../lib/stable-auth-users';
 

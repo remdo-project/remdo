@@ -1,7 +1,7 @@
 import { Alert, Anchor, Button, Container, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { authClient, rememberAuthenticatedSession } from '@/client/app/auth/client';
+import { authClient, rememberAuthenticatedSession } from '#client/app/auth/client';
 import { DevToolbar } from './DevToolbar';
 import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
 import { resolvePostAuthPath } from './post-auth-path';

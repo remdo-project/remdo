@@ -17,12 +17,12 @@ import {
 import type { LexicalNode } from 'lexical';
 import { useEffect } from 'react';
 import { $isNoteFolded } from '#lib/editor/fold-state';
-import { resolveContentItemFromNode } from '@/client/editor/outline/schema';
-import { $getOrCreateChildList, insertBefore } from '@/client/editor/outline/list-structure';
-import { resolveBoundaryPoint } from '@/client/editor/outline/selection/caret';
-import { resolveCaretPlacement } from '@/client/editor/outline/selection/caret-placement';
-import { getZoomBoundary } from '@/client/editor/outline/selection/boundary';
-import { getNestedList, noteHasChildren } from '@/client/editor/outline/selection/tree';
+import { resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { $getOrCreateChildList, insertBefore } from '#client/editor/outline/list-structure';
+import { resolveBoundaryPoint } from '#client/editor/outline/selection/caret';
+import { resolveCaretPlacement } from '#client/editor/outline/selection/caret-placement';
+import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
+import { getNestedList, noteHasChildren } from '#client/editor/outline/selection/tree';
 
 function $createNote(text: string): ListItemNode {
   const item = $createListItemNode();
