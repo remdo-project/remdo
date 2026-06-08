@@ -1,32 +1,32 @@
 {
-  "generatedAt": "2026-05-17T18:57:33.746Z",
+  "generatedAt": "2026-06-08T09:43:36.413Z",
   "files": {
-    "totalFiles": 421,
-    "textFiles": 421,
+    "totalFiles": 455,
+    "textFiles": 455,
     "byType": {
       "ts": {
-        "files": 245,
-        "lines": 24333
+        "files": 273,
+        "lines": 27267
       },
       "tsx": {
-        "files": 58,
-        "lines": 8906
+        "files": 61,
+        "lines": 9273
       },
       "md": {
         "files": 31,
-        "lines": 2467
+        "lines": 2549
       },
       "json": {
         "files": 29,
-        "lines": 2163
+        "lines": 2174
+      },
+      "sh": {
+        "files": 14,
+        "lines": 655
       },
       "yml": {
         "files": 14,
         "lines": 251
-      },
-      "sh": {
-        "files": 11,
-        "lines": 516
       },
       "svg": {
         "files": 8,
@@ -42,11 +42,11 @@
       },
       "yaml": {
         "files": 3,
-        "lines": 142
+        "lines": 146
       },
       "jsonc": {
         "files": 2,
-        "lines": 52
+        "lines": 54
       },
       "caddyfile": {
         "files": 1,
@@ -62,7 +62,7 @@
       },
       "example": {
         "files": 1,
-        "lines": 33
+        "lines": 35
       },
       "gitignore": {
         "files": 1,
@@ -83,18 +83,18 @@
     }
   },
   "tests": {
-    "unit": 554,
-    "collab": 595,
-    "e2e": 95,
-    "totalUnique": 690
+    "unit": 618,
+    "collab": 659,
+    "e2e": 93,
+    "totalUnique": 752
   },
   "totals": {
     "files": {
-      "files": 420,
-      "lines": 40174
+      "files": 454,
+      "lines": 43715
     },
     "tests": {
-      "totalUnique": 690
+      "totalUnique": 752
     }
   }
 }
