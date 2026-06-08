@@ -1,5 +1,5 @@
-import type { UserDocumentsNote, DocumentNote, UserDataNote } from '@/documents/contracts';
-import type { EditorNote } from '@/editor/notes/contracts';
+import type { UserDocumentsNote, DocumentNote, UserDataNote } from './documents';
+import type { EditorNote } from './editor';
 
 export type NoteId = string;
 export type RelativePlacement = { before: NoteId } | { after: NoteId };

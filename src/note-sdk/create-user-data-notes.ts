@@ -1,6 +1,6 @@
-import type { UserDocumentsNote, DocumentNote, UserDataNote } from './contracts';
-import type { ChildPosition, NoteId } from '@/notes/contracts';
-import { createNoteAs } from '@/notes/handle-utils';
+import type { UserDocumentsNote, DocumentNote, UserDataNote } from './documents';
+import type { ChildPosition, NoteId } from './notes';
+import { createNoteAs } from './handle-utils';
 
 const USER_DATA_ROOT_ID = 'user-data';
 const USER_DOCUMENTS_ID = 'user-documents';

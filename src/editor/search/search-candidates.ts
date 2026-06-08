@@ -1,4 +1,4 @@
-import type { EditorNotes } from '@/editor/notes/contracts';
+import type { EditorNotes } from '@/note-sdk';
 
 export interface SearchCandidate {
   noteId: string;

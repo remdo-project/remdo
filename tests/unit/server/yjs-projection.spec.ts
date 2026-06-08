@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { UserDocument } from '@/documents/user-data-notes';
+import type { UserDocument } from '@/note-sdk';
 import { syncUserDocumentsMapArray } from '@/server/projection/user-data';
 import * as Y from 'yjs';
 

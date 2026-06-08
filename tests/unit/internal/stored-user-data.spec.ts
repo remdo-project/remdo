@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
-import type { UserDataNote } from '@/documents/contracts';
+import type { UserDataNote } from '@/note-sdk';
 
 const USER_RUNTIME_DOCUMENT = { id: 'userHomeDoc', title: 'Home' } as const;
 const USER_DATA_DOC_ID = 'userDataDoc';

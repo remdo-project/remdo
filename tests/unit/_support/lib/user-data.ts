@@ -7,9 +7,8 @@
  */
 import { useSyncExternalStore } from 'react';
 import { createUniqueNoteId } from '@/domain/notes/ids';
-import type { UserDataNote } from '@/documents/contracts';
-import { createUserDataRootNote } from '@/documents/user-data-notes';
-import type { UserDocument } from '@/documents/user-data-notes';
+import { createUserDataRootNote } from '@/note-sdk';
+import type { UserDataNote, UserDocument } from '@/note-sdk';
 
 export const TEST_USER_DATA_DOCUMENT = { id: 'testDoc', title: 'Test Document' } as const;
 

@@ -1,4 +1,4 @@
-import type { NoteId } from './contracts';
+import type { NoteId } from './notes';
 
 export class NoteNotFoundError extends Error {
   readonly noteId: NoteId;

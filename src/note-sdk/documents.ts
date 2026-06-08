@@ -1,5 +1,5 @@
-import type { EditorNote } from '@/editor/notes/contracts';
-import type { ChildPosition, Note } from '@/notes/contracts';
+import type { EditorNote } from './editor';
+import type { ChildPosition, Note } from './notes';
 
 export interface UserDataNote extends Note<'user-data'> {
   /** Returns the user's home document note. */

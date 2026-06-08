@@ -1,5 +1,5 @@
-import type { DocumentNote } from '@/documents/contracts';
-import type { ChildPosition, Note, NoteId, RelativePlacement } from '@/notes/contracts';
+import type { DocumentNote } from './documents';
+import type { ChildPosition, Note, NoteId, RelativePlacement } from './notes';
 
 type DocumentId = string;
 type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';

@@ -38,10 +38,9 @@ import type {
   PlaceTarget,
   NoteRange,
   SelectionSnapshot,
-} from '@/editor/notes/contracts';
-import { createEditorNotes } from './createEditorNotes';
-import type { NoteId } from '@/notes/contracts';
-import { NoteNotFoundError } from '@/notes/errors';
+  NoteId,
+} from '@/note-sdk';
+import { createEditorNotes, NoteNotFoundError } from '@/note-sdk';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list';
 

@@ -2,13 +2,12 @@ import * as Y from 'yjs';
 import { CollabSession } from '#lib/collaboration/session';
 import { resolveApiServerOrigin, resolveAppOrigin } from '#lib/net/origins';
 import type { CollaborationProviderInstance } from '#lib/collaboration/runtime';
-import type { UserDataNote } from './contracts';
 import { getCurrentUserBootstrap } from './current-user-bootstrap';
 import type { CurrentUserBootstrap } from './current-user-bootstrap';
-import { createUserDataRootNote } from './user-data-notes';
-import type { UserDocument } from './user-data-notes';
 import { normalizeDocumentId } from '@/domain/documents/ids';
 import { HOME_DOCUMENT_TITLE } from '@/domain/documents/special-documents';
+import { createUserDataRootNote } from '@/note-sdk';
+import type { UserDataNote, UserDocument } from '@/note-sdk';
 
 const USER_DATA_ROOT_NOTE_ID = 'user-data';
 const DOCUMENTS_KEY = 'documents';

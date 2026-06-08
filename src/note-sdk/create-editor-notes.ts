@@ -1,4 +1,4 @@
-import type { DocumentNote } from '@/documents/contracts';
+import type { DocumentNote } from './documents';
 import type {
   EditorNote,
   EditorNotes,
@@ -6,13 +6,13 @@ import type {
   NoteRange,
   PlaceTarget,
   SelectionSnapshot,
-} from '@/editor/notes/contracts';
+} from './editor';
 import type {
   ChildPosition,
   NoteId,
-} from '@/notes/contracts';
-import { NoteNotFoundError } from '@/notes/errors';
-import { createNoteAs } from '@/notes/handle-utils';
+} from './notes';
+import { NoteNotFoundError } from './errors';
+import { createNoteAs } from './handle-utils';
 
 export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
   const resolveCreateArgs = (

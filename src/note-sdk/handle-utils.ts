@@ -1,10 +1,10 @@
-import type { UserDocumentsNote, DocumentNote, UserDataNote } from '@/documents/contracts';
-import type { EditorNote } from '@/editor/notes/contracts';
+import type { UserDocumentsNote, DocumentNote, UserDataNote } from './documents';
+import type { EditorNote } from './editor';
 import type {
   Note,
   NoteId,
   NoteKind,
-} from './contracts';
+} from './notes';
 
 export function createNoteAs(noteId: NoteId, kind: () => NoteKind, self: () => Note): Note['as'] {
   function asNote(kindToMatch: 'editor-note'): EditorNote;
