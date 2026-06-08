@@ -17,6 +17,10 @@ const LOG_PATH = path.join(LOG_DIR, 'collab-server.log');
 const COLLAB_DATA_DIR = path.join(config.env.DATA_DIR, 'collab');
 const reusedServerStop = () => Promise.resolve();
 
+function resolveYSweetBindHost(host: string): string {
+  return host === 'localhost' ? '127.0.0.1' : host;
+}
+
 function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
   if (child.killed) {
     return;
@@ -49,6 +53,14 @@ async function waitForPort(host: string, port: number): Promise<void> {
 
   throw new Error(`Collaboration websocket failed to start on ws://${host}:${port}`);
 }
+
+function readRecentLog(): string {
+  try {
+    return fs.readFileSync(LOG_PATH, 'utf8').trim().slice(-2000);
+  } catch {
+    return '';
+  }
+}
 export type StopCollabServer = () => Promise<void>;
 
 interface CollabServerOptions {
@@ -59,8 +71,9 @@ export async function ensureCollabServer({
   port = config.env.COLLAB_SERVER_PORT,
 }: CollabServerOptions = {}): Promise<StopCollabServer> {
   const resolvedHost = config.env.HOST;
+  const bindHost = resolveYSweetBindHost(resolvedHost);
   const resolvedPort = port;
-  const probeHost = resolveLoopbackHost(resolvedHost);
+  const probeHost = resolveLoopbackHost(bindHost);
 
   if (await isPortOpen(probeHost, resolvedPort)) {
     return reusedServerStop;
@@ -73,7 +86,7 @@ export async function ensureCollabServer({
     'y-sweet',
     'serve',
     '--host',
-    resolvedHost,
+    bindHost,
     '--port',
     String(resolvedPort),
   ];
@@ -135,6 +148,10 @@ export async function ensureCollabServer({
     await waitForPort(probeHost, resolvedPort);
   } catch (error) {
     await stop();
+    const recentLog = readRecentLog();
+    if (recentLog) {
+      throw new Error(`${error instanceof Error ? error.message : String(error)}\n${recentLog}`);
+    }
     throw error;
   }
 
