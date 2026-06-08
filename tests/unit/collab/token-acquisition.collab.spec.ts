@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createDocumentTokenApiPath } from '#document-routes';
+import { createDocumentSyncTokenApiPath } from '#document-routes';
 import { getCollabTestSessionCookie, withSessionCookie } from './_support/auth';
 import { renderRemdoEditor } from './_support/render-editor';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
@@ -36,7 +36,7 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
         expect.arrayContaining([
           expect.objectContaining({
             method: 'POST',
-            url: expect.stringContaining(createDocumentTokenApiPath(docId)),
+            url: expect.stringContaining(createDocumentSyncTokenApiPath(docId)),
           }),
         ])
       );

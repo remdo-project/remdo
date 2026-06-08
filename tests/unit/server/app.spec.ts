@@ -1,3 +1,4 @@
+import { inspectRoutes } from 'hono/dev';
 import { describe, expect, it } from 'vitest';
 import { HTTP_STATUS } from '#platform/http/status';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
@@ -26,18 +27,39 @@ function createSharingHeaders(headers: Headers): Headers {
   return requestHeaders;
 }
 
-function createRemdoServerHeaders(headers: Headers): Headers {
+function createSourceServerHeaders(headers: Headers): Headers {
   const requestHeaders = new Headers(headers);
   requestHeaders.set('content-type', 'application/json');
-  requestHeaders.set('x-remdo-action', 'remdo-server-link');
+  requestHeaders.set('x-remdo-action', 'source-server-link');
   return requestHeaders;
 }
 
 describe('remdo api app', () => {
+  it('registers the browser-facing API route inventory', () => {
+    const harness = createHarness();
+
+    expect(inspectRoutes(harness.app).map(({ method, path }) => `${method} ${path}`)).toEqual([
+      'ALL /api/auth/*',
+      'GET /.well-known/openid-configuration',
+      'GET /.well-known/oauth-authorization-server',
+      'GET /api/health',
+      'GET /api/current-user',
+      'GET /api/current-user/source-servers',
+      'POST /api/current-user/source-servers/:serverId/account-links',
+      'POST /api/documents',
+      'PATCH /api/documents/:docId/sharing',
+      'GET /api/documents/:docId/access-requests',
+      'POST /api/documents/:docId/access-requests',
+      'POST /api/documents/:docId/access-requests/:requesterUserId/approval',
+      'POST /api/documents/:docId/sync-tokens',
+      'POST /api/admin/users',
+    ]);
+  });
+
   it('returns 400 for malformed document ids before token issuance', async () => {
     const harness = createHarness();
 
-    const response = await harness.app.request('/api/documents/bad%20doc/token', {
+    const response = await harness.app.request('/api/documents/bad%20doc/sync-tokens', {
       method: 'POST',
     });
 
@@ -49,7 +71,7 @@ describe('remdo api app', () => {
   it('returns 401 when issuing a Y-Sweet document client token without a session', async () => {
     const harness = createHarness();
 
-    const response = await harness.app.request('/api/documents/main/token', {
+    const response = await harness.app.request('/api/documents/main/sync-tokens', {
       method: 'POST',
     });
 
@@ -61,13 +83,13 @@ describe('remdo api app', () => {
   it('returns 401 for current user without a session', async () => {
     const harness = createHarness();
 
-    const response = await harness.app.request('/api/me');
+    const response = await harness.app.request('/api/current-user');
 
     expect(response.status).toBe(HTTP_STATUS.UNAUTHORIZED);
     await expect(response.json()).resolves.toEqual({ error: 'Authentication required.' });
   });
 
-  it('lists configured linkable RemDo servers for signed-in users', async () => {
+  it('lists configured source servers for signed-in users', async () => {
     const harness = createHarness({
       linkableRemdoServers: [
         {
@@ -81,7 +103,7 @@ describe('remdo api app', () => {
     });
     const headers = await harness.createSessionHeaders();
 
-    const response = await harness.app.request('/api/remdo-server-links', { headers });
+    const response = await harness.app.request('/api/current-user/source-servers', { headers });
 
     expect(response.status).toBe(HTTP_STATUS.OK);
     await expect(response.json()).resolves.toEqual({
@@ -96,16 +118,16 @@ describe('remdo api app', () => {
     });
   });
 
-  it('rejects RemDo server link listing without a session', async () => {
+  it('rejects source server listing without a session', async () => {
     const harness = createHarness();
 
-    const response = await harness.app.request('/api/remdo-server-links');
+    const response = await harness.app.request('/api/current-user/source-servers');
 
     expect(response.status).toBe(HTTP_STATUS.UNAUTHORIZED);
     await expect(response.json()).resolves.toEqual({ error: 'Authentication required.' });
   });
 
-  it('rejects RemDo server link mutations without the link action header', async () => {
+  it('rejects source server link mutations without the link action header', async () => {
     const harness = createHarness({
       linkableRemdoServers: [
         {
@@ -121,35 +143,35 @@ describe('remdo api app', () => {
     const requestHeaders = new Headers(headers);
     requestHeaders.set('content-type', 'application/json');
 
-    const response = await harness.app.request('/api/remdo-server-links/source/link', {
+    const response = await harness.app.request('/api/current-user/source-servers/source/account-links', {
       method: 'POST',
       headers: requestHeaders,
       body: '{}',
     });
 
     expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
-    await expect(response.json()).resolves.toEqual({ error: 'Invalid RemDo server link request.' });
+    await expect(response.json()).resolves.toEqual({ error: 'Invalid source server link request.' });
   });
 
-  it('rejects unknown RemDo server link requests', async () => {
+  it('rejects unknown source server link requests', async () => {
     const harness = createHarness();
     const headers = await harness.createSessionHeaders();
 
-    const response = await harness.app.request('/api/remdo-server-links/source/link', {
+    const response = await harness.app.request('/api/current-user/source-servers/source/account-links', {
       method: 'POST',
-      headers: createRemdoServerHeaders(headers),
+      headers: createSourceServerHeaders(headers),
       body: '{}',
     });
 
     expect(response.status).toBe(HTTP_STATUS.NOT_FOUND);
-    await expect(response.json()).resolves.toEqual({ error: 'RemDo server not found.' });
+    await expect(response.json()).resolves.toEqual({ error: 'Source server not found.' });
   });
 
   it('does not create a registry row when issuing a token for a missing document', async () => {
     const harness = createHarness();
     const headers = await harness.createSessionHeaders();
 
-    const response = await harness.app.request('/api/documents/main/token', {
+    const response = await harness.app.request('/api/documents/main/sync-tokens', {
       method: 'POST',
       headers,
     });
@@ -169,7 +191,7 @@ describe('remdo api app', () => {
       title: 'main',
     });
 
-    const response = await harness.app.request('/api/documents/main/token', {
+    const response = await harness.app.request('/api/documents/main/sync-tokens', {
       method: 'POST',
       headers,
     });
@@ -185,8 +207,8 @@ describe('remdo api app', () => {
     const headers = await harness.createSessionHeaders();
     const userId = await harness.getSessionUserId(headers);
 
-    const firstResponse = await harness.app.request('/api/me', { headers });
-    const secondResponse = await harness.app.request('/api/me', { headers });
+    const firstResponse = await harness.app.request('/api/current-user', { headers });
+    const secondResponse = await harness.app.request('/api/current-user', { headers });
     const firstBootstrap = await firstResponse.json();
     const secondBootstrap = await secondResponse.json();
 
@@ -209,8 +231,8 @@ describe('remdo api app', () => {
     const aliceHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     const bobHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
 
-    const aliceResponse = await harness.app.request('/api/me', { headers: aliceHeaders });
-    const bobResponse = await harness.app.request('/api/me', { headers: bobHeaders });
+    const aliceResponse = await harness.app.request('/api/current-user', { headers: aliceHeaders });
+    const bobResponse = await harness.app.request('/api/current-user', { headers: bobHeaders });
     const aliceBootstrap = await aliceResponse.json();
     const bobBootstrap = await bobResponse.json();
 
@@ -225,7 +247,7 @@ describe('remdo api app', () => {
     const headers = await harness.createSessionHeaders();
     await insertDocumentForSession(harness, headers, 'privateDoc');
 
-    const response = await harness.app.request('/api/documents/privateDoc/token', {
+    const response = await harness.app.request('/api/documents/privateDoc/sync-tokens', {
       method: 'POST',
       headers,
     });
@@ -240,10 +262,10 @@ describe('remdo api app', () => {
   it('issues read-only tokens for the projected user data document', async () => {
     const harness = createHarness();
     const headers = await harness.createSessionHeaders();
-    const bootstrapResponse = await harness.app.request('/api/me', { headers });
+    const bootstrapResponse = await harness.app.request('/api/current-user', { headers });
     const bootstrap = await bootstrapResponse.json();
 
-    const response = await harness.app.request(`/api/documents/${bootstrap.userDataDocumentId}/token`, {
+    const response = await harness.app.request(`/api/documents/${bootstrap.userDataDocumentId}/sync-tokens`, {
       method: 'POST',
       headers,
     });
@@ -258,10 +280,10 @@ describe('remdo api app', () => {
   it('rejects making projected user data documents shareable', async () => {
     const harness = createHarness();
     const headers = await harness.createSessionHeaders();
-    const bootstrapResponse = await harness.app.request('/api/me', { headers });
+    const bootstrapResponse = await harness.app.request('/api/current-user', { headers });
     const bootstrap = await bootstrapResponse.json();
 
-    const response = await harness.app.request(`/api/documents/${bootstrap.userDataDocumentId}/access-mode`, {
+    const response = await harness.app.request(`/api/documents/${bootstrap.userDataDocumentId}/sharing`, {
       method: 'PATCH',
       headers: createSharingHeaders(headers),
       body: JSON.stringify({ accessMode: 'shareable' }),
@@ -274,7 +296,7 @@ describe('remdo api app', () => {
   it('creates user documents through the validated user document endpoint', async () => {
     const harness = createHarness();
     const headers = await harness.createSessionHeaders();
-    const bootstrapResponse = await harness.app.request('/api/me', { headers });
+    const bootstrapResponse = await harness.app.request('/api/current-user', { headers });
     const bootstrap = await bootstrapResponse.json();
     const requestHeaders = new Headers(headers);
     requestHeaders.set('content-type', 'application/json');
@@ -304,7 +326,7 @@ describe('remdo api app', () => {
       },
     });
     const headers = await harness.createSessionHeaders();
-    const bootstrapResponse = await harness.app.request('/api/me', { headers });
+    const bootstrapResponse = await harness.app.request('/api/current-user', { headers });
     const bootstrap = await bootstrapResponse.json();
     const requestHeaders = new Headers(headers);
     requestHeaders.set('content-type', 'application/json');
@@ -335,7 +357,7 @@ describe('remdo api app', () => {
     const otherHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
     await insertDocumentForSession(harness, ownerHeaders, 'privateDoc');
 
-    const response = await harness.app.request('/api/documents/privateDoc/token', {
+    const response = await harness.app.request('/api/documents/privateDoc/sync-tokens', {
       method: 'POST',
       headers: otherHeaders,
     });
@@ -348,7 +370,7 @@ describe('remdo api app', () => {
     const harness = createHarness();
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     const requesterHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
-    const bootstrapResponse = await harness.app.request('/api/me', { headers: ownerHeaders });
+    const bootstrapResponse = await harness.app.request('/api/current-user', { headers: ownerHeaders });
     const bootstrap = await bootstrapResponse.json();
     const ownerUserId = await harness.getSessionUserId(ownerHeaders);
     const requesterUserId = await harness.getSessionUserId(requesterHeaders);
@@ -359,7 +381,7 @@ describe('remdo api app', () => {
     });
     await harness.registry.approveDocumentAccess(bootstrap.userDataDocumentId, requesterUserId, ownerUserId);
 
-    const response = await harness.app.request(`/api/documents/${bootstrap.userDataDocumentId}/token`, {
+    const response = await harness.app.request(`/api/documents/${bootstrap.userDataDocumentId}/sync-tokens`, {
       method: 'POST',
       headers: requesterHeaders,
     });
@@ -373,10 +395,10 @@ describe('remdo api app', () => {
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     const requesterHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
     await insertDocumentForSession(harness, ownerHeaders, 'shareDoc');
-    const requesterBootstrapResponse = await harness.app.request('/api/me', { headers: requesterHeaders });
+    const requesterBootstrapResponse = await harness.app.request('/api/current-user', { headers: requesterHeaders });
     const requesterBootstrap = await requesterBootstrapResponse.json();
 
-    const modeResponse = await harness.app.request('/api/documents/shareDoc/access-mode', {
+    const modeResponse = await harness.app.request('/api/documents/shareDoc/sharing', {
       method: 'PATCH',
       headers: createSharingHeaders(ownerHeaders),
       body: JSON.stringify({ accessMode: 'shareable' }),
@@ -392,19 +414,19 @@ describe('remdo api app', () => {
     });
     const requesterUserId = await harness.getSessionUserId(requesterHeaders);
     const approveResponse = await harness.app.request(
-      `/api/documents/shareDoc/access-requests/${requesterUserId}/approve`,
+      `/api/documents/shareDoc/access-requests/${requesterUserId}/approval`,
       {
         method: 'POST',
         headers: createSharingHeaders(ownerHeaders),
         body: '{}',
       },
     );
-    const tokenResponse = await harness.app.request('/api/documents/shareDoc/token', {
+    const tokenResponse = await harness.app.request('/api/documents/shareDoc/sync-tokens', {
       method: 'POST',
       headers: requesterHeaders,
     });
     await harness.registry.revokeDocumentAccess('shareDoc', requesterUserId);
-    const revokedTokenResponse = await harness.app.request('/api/documents/shareDoc/token', {
+    const revokedTokenResponse = await harness.app.request('/api/documents/shareDoc/sync-tokens', {
       method: 'POST',
       headers: requesterHeaders,
     });
@@ -439,11 +461,11 @@ describe('remdo api app', () => {
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     const requesterHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
     await insertDocumentForSession(harness, ownerHeaders, 'shareDoc');
-    const requesterBootstrapResponse = await harness.app.request('/api/me', { headers: requesterHeaders });
+    const requesterBootstrapResponse = await harness.app.request('/api/current-user', { headers: requesterHeaders });
     const requesterBootstrap = await requesterBootstrapResponse.json();
     const requesterUserId = await harness.getSessionUserId(requesterHeaders);
 
-    await harness.app.request('/api/documents/shareDoc/access-mode', {
+    await harness.app.request('/api/documents/shareDoc/sharing', {
       method: 'PATCH',
       headers: createSharingHeaders(ownerHeaders),
       body: JSON.stringify({ accessMode: 'shareable' }),
@@ -453,7 +475,7 @@ describe('remdo api app', () => {
       headers: createSharingHeaders(requesterHeaders),
       body: '{}',
     });
-    await harness.app.request(`/api/documents/shareDoc/access-requests/${requesterUserId}/approve`, {
+    await harness.app.request(`/api/documents/shareDoc/access-requests/${requesterUserId}/approval`, {
       method: 'POST',
       headers: createSharingHeaders(ownerHeaders),
       body: '{}',
@@ -461,7 +483,7 @@ describe('remdo api app', () => {
 
     expect(harness.readProjectedDocumentIds(requesterBootstrap.userDataDocumentId)).toContain('shareDoc');
 
-    const privateResponse = await harness.app.request('/api/documents/shareDoc/access-mode', {
+    const privateResponse = await harness.app.request('/api/documents/shareDoc/sharing', {
       method: 'PATCH',
       headers: createSharingHeaders(ownerHeaders),
       body: JSON.stringify({ accessMode: 'private' }),
@@ -470,7 +492,7 @@ describe('remdo api app', () => {
     expect(privateResponse.status).toBe(HTTP_STATUS.OK);
     expect(harness.readProjectedDocumentIds(requesterBootstrap.userDataDocumentId)).not.toContain('shareDoc');
 
-    const shareableResponse = await harness.app.request('/api/documents/shareDoc/access-mode', {
+    const shareableResponse = await harness.app.request('/api/documents/shareDoc/sharing', {
       method: 'PATCH',
       headers: createSharingHeaders(ownerHeaders),
       body: JSON.stringify({ accessMode: 'shareable' }),
@@ -503,7 +525,7 @@ describe('remdo api app', () => {
     const requestHeaders = new Headers(ownerHeaders);
     requestHeaders.set('content-type', 'application/json');
 
-    const response = await harness.app.request('/api/documents/shareDoc/access-mode', {
+    const response = await harness.app.request('/api/documents/shareDoc/sharing', {
       method: 'PATCH',
       headers: requestHeaders,
       body: JSON.stringify({ accessMode: 'shareable' }),
@@ -520,7 +542,7 @@ describe('remdo api app', () => {
     requestHeaders.set('origin', 'https://evil.example');
     requestHeaders.set('x-remdo-action', 'sharing');
 
-    const response = await harness.app.fetch(new Request('https://remdo.example/api/documents/shareDoc/access-mode', {
+    const response = await harness.app.fetch(new Request('https://remdo.example/api/documents/shareDoc/sharing', {
       method: 'PATCH',
       headers: requestHeaders,
       body: JSON.stringify({ accessMode: 'shareable' }),
@@ -670,15 +692,12 @@ describe('remdo api app', () => {
     });
   });
 
-  it('reports database readiness in the health response', async () => {
+  it('reports API readiness in the health response', async () => {
     const harness = createHarness();
 
     const response = await harness.app.request('/api/health');
 
     expect(response.status).toBe(HTTP_STATUS.OK);
-    await expect(response.json()).resolves.toEqual({
-      db: 'ok',
-      ok: true,
-    });
+    await expect(response.json()).resolves.toEqual({ ok: true });
   });
 });

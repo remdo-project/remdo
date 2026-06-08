@@ -38,10 +38,10 @@ Define the access cases RemDo should support.
 - Identity: the Better Auth session identifies the current user.
 - Personal app state: the Yjs-backed user-data note exposes the signed-in
   user's document list and app state. SQL document-registry rows are the
-  document-list source; `/api/me` ensures the projection and home rows, then
-  updates the read-only Yjs projection. Browser clients may cache the last
-  validated bootstrap only for offline reopen; logout clears it with local Yjs
-  offline data.
+  document-list source; `/api/current-user` ensures the projection and home
+  rows, then updates the read-only Yjs projection. Browser clients may cache the
+  last validated bootstrap only for offline reopen; logout clears it with local
+  Yjs offline data.
 
 ## Token vocabulary
 

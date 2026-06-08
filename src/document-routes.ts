@@ -53,12 +53,12 @@ export function createDocumentPath(docId: string, noteId: string | null = null):
   return createDocumentPathWithPrefix(APP_DOCUMENT_PATH_PREFIX, docId, noteId);
 }
 
-export function createDocumentTokenApiPath(docId: string): string {
+export function createDocumentSyncTokenApiPath(docId: string): string {
   const normalizedDocId = normalizeNoteIdOrThrow(
     docId,
-    'createDocumentTokenApiPath requires a valid document id.',
+    'createDocumentSyncTokenApiPath requires a valid document id.',
   );
-  return `/api/documents/${encodeURIComponent(normalizedDocId)}/token`;
+  return `/api/documents/${encodeURIComponent(normalizedDocId)}/sync-tokens`;
 }
 
 export interface ParsedDocumentRef {

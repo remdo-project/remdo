@@ -114,7 +114,7 @@ test('token issuance requires auth and collaboration control routes are not rout
       origins: [],
     },
   });
-  const unauthenticatedTokenResponse = await unauthenticatedContext.fetch(`/api/documents/${smokeDocumentId}/token`, {
+  const unauthenticatedTokenResponse = await unauthenticatedContext.fetch(`/api/documents/${smokeDocumentId}/sync-tokens`, {
     method: 'POST',
     failOnStatusCode: false,
   });
@@ -123,7 +123,7 @@ test('token issuance requires auth and collaboration control routes are not rout
 
   expect(unauthenticatedTokenStatus).toBe(HTTP_STATUS.UNAUTHORIZED);
   const authenticatedTokenStatus = await page.evaluate(async (docId) => {
-    const response = await fetch(`/api/documents/${docId}/token`, {
+    const response = await fetch(`/api/documents/${docId}/sync-tokens`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -151,11 +151,11 @@ test('user data sync token is read-only and API document creation updates the pr
   await page.goto(`/n/${readSmokeDocumentId()}`);
   const requestContext = page.context().request;
 
-  const bootstrapResponse = await requestContext.fetch('/api/me');
+  const bootstrapResponse = await requestContext.fetch('/api/current-user');
   expect(bootstrapResponse.status()).toBe(HTTP_STATUS.OK);
   const bootstrap = await bootstrapResponse.json() as CurrentUserBootstrapResponse;
 
-  const tokenResponse = await requestContext.fetch(`/api/documents/${bootstrap.userDataDocumentId}/token`, {
+  const tokenResponse = await requestContext.fetch(`/api/documents/${bootstrap.userDataDocumentId}/sync-tokens`, {
     method: 'POST',
     failOnStatusCode: false,
   });

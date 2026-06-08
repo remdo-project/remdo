@@ -13,7 +13,7 @@ import {
 type EditorHarness = Awaited<ReturnType<typeof createEditorHarness>>;
 
 async function cleanupUserDataCollabDocs(context: BrowserContext): Promise<void> {
-  const response = await context.request.get('/api/me');
+  const response = await context.request.get('/api/current-user');
   if (!response.ok()) {
     return;
   }

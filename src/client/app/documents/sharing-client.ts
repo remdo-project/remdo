@@ -38,7 +38,7 @@ export async function approveDocumentAccessRequest(docId: string, requesterUserI
   await requireOk(
     await sendSharingAction(
       'POST',
-      `/api/documents/${encodeURIComponent(docId)}/access-requests/${encodeURIComponent(requesterUserId)}/approve`,
+      `/api/documents/${encodeURIComponent(docId)}/access-requests/${encodeURIComponent(requesterUserId)}/approval`,
       {},
     ),
     'Failed to approve access.',
@@ -65,7 +65,7 @@ export async function requestDocumentAccess(docId: string): Promise<void> {
 
 export async function setDocumentAccessMode(docId: string, accessMode: 'private' | 'shareable'): Promise<void> {
   await requireOk(
-    await sendSharingAction('PATCH', `/api/documents/${encodeURIComponent(docId)}/access-mode`, { accessMode }),
+    await sendSharingAction('PATCH', `/api/documents/${encodeURIComponent(docId)}/sharing`, { accessMode }),
     'Failed to update access mode.',
   );
 }

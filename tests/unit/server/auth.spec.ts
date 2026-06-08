@@ -10,7 +10,7 @@ describe('server auth actor resolution', () => {
   it('returns null without a valid session', async () => {
     const harness = createHarness();
 
-    const actor = await resolveActor(new Request('http://127.0.0.1/api/documents/main/token'), harness.auth);
+    const actor = await resolveActor(new Request('http://127.0.0.1/api/documents/main/sync-tokens'), harness.auth);
 
     expect(actor).toBeNull();
   });
@@ -20,7 +20,7 @@ describe('server auth actor resolution', () => {
 
     const headers = await harness.createSessionHeaders();
     const actor = await resolveActor(
-      new Request('http://127.0.0.1/api/documents/main/token', { headers }),
+      new Request('http://127.0.0.1/api/documents/main/sync-tokens', { headers }),
       harness.auth,
     );
 

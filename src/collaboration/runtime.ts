@@ -1,7 +1,7 @@
 import type { Provider } from '@lexical/yjs';
 import { createYjsProvider } from '@y-sweet/client';
 import type { ClientToken } from '@y-sweet/sdk';
-import { createDocumentTokenApiPath } from '#document-routes';
+import { createDocumentSyncTokenApiPath } from '#document-routes';
 import { trace } from '#platform/log';
 import { resolveLoopbackHost } from '#platform/net/loopback';
 import { guardYSweetIndexedDbProviderLifecycle } from './y-sweet-indexeddb-lifecycle';
@@ -222,7 +222,7 @@ function createEndpointResolver(origin?: string) {
 
   return (docId: string) => {
     return {
-      token: `${base}${createDocumentTokenApiPath(docId)}`,
+      token: `${base}${createDocumentSyncTokenApiPath(docId)}`,
     };
   };
 }

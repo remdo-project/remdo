@@ -34,7 +34,7 @@ export async function getHomeDocumentId(): Promise<string> {
 async function fetchCurrentUserBootstrap(): Promise<CurrentUserBootstrap> {
   let response: Response;
   try {
-    response = await fetch('/api/me', {
+    response = await fetch('/api/current-user', {
       credentials: 'same-origin',
     });
   } catch (error) {

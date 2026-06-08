@@ -10,7 +10,7 @@ const homeOrigin = config.env.APP_PUBLIC_URL;
 
 type StableUser = (typeof STABLE_AUTH_USERS)[keyof typeof STABLE_AUTH_USERS];
 
-interface RemdoServerLinkResponse {
+interface SourceServerLinkResponse {
   servers: {
     id: string;
     label: string;
@@ -40,10 +40,10 @@ async function expectPageUrl(page: Page, expected: { origin: string; pathname: s
   }).toEqual(expected);
 }
 
-async function readSourceServerLink(page: Page): Promise<RemdoServerLinkResponse['servers'][number]> {
-  const response = await page.context().request.get(buildUrl(homeOrigin, '/api/remdo-server-links'));
+async function readSourceServerLink(page: Page): Promise<SourceServerLinkResponse['servers'][number]> {
+  const response = await page.context().request.get(buildUrl(homeOrigin, '/api/current-user/source-servers'));
   expect(response.status()).toBe(HTTP_STATUS.OK);
-  const body = await response.json() as RemdoServerLinkResponse;
+  const body = await response.json() as SourceServerLinkResponse;
   const server = body.servers.find((candidate) => candidate.id === SOURCE_SERVER_ID);
   expect(server).toBeDefined();
   return server!;

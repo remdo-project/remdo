@@ -40,7 +40,7 @@ drift between app and collab endpoints.
 App-owned HTTP surface that sits in front of collaboration infrastructure.
 
 - Auth: Better Auth is mounted at `/api/auth/*`.
-- Y-Sweet document client token issuance: `POST /api/documents/:docId/token`
+- Y-Sweet document client token issuance: `POST /api/documents/:docId/sync-tokens`
   evaluates document access mode, ownership, and approved user-specific access
   before issuing browser credentials for Y-Sweet sync.
 - Y-Sweet access: the API connects with the Y-Sweet server token and passes only
@@ -70,8 +70,8 @@ document client tokens.
   access-critical metadata, and the current per-user document list. Yjs
   documents hold collaborative document content plus a persisted, read-only
   user-data projection for the browser-facing note API.
-- User bootstrap: `/api/me` ensures the user's projection/home rows and updates
-  the Yjs user-data projection.
+- User bootstrap: `/api/current-user` ensures the user's projection/home rows
+  and updates the Yjs user-data projection.
 
 ### Token vocabulary
 
@@ -80,11 +80,11 @@ document client tokens.
   accounts, stored by Better Auth.
 - Y-Sweet server token: RemDo API credential for Y-Sweet document-control calls.
 - Y-Sweet document client token: browser credential returned by
-  `POST /api/documents/:docId/token` and enforced by Y-Sweet on sync paths.
+  `POST /api/documents/:docId/sync-tokens` and enforced by Y-Sweet on sync paths.
 
 ### Browser-facing collaboration paths
 
-- `POST /api/documents/:docId/token`: browser-facing Y-Sweet document client
+- `POST /api/documents/:docId/sync-tokens`: browser-facing Y-Sweet document client
   token issuance path owned by RemDo API.
 - `/d/*`: browser-facing Y-Sweet sync path used by issued Y-Sweet document
   client tokens; the Y-Sweet server enforces each client token's authorization.

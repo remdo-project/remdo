@@ -33,7 +33,7 @@ async function hasIndexedDb(page: Page, dbName: string): Promise<boolean> {
 
 test.describe('Routing', () => {
   test('redirects the home alias to the authenticated bootstrap home document', async ({ page }) => {
-    const bootstrapResponse = await page.request.get('/api/me');
+    const bootstrapResponse = await page.request.get('/api/current-user');
     expect(bootstrapResponse.ok()).toBe(true);
     const bootstrap = await bootstrapResponse.json() as CurrentUserBootstrapResponse;
 
@@ -67,7 +67,7 @@ test.describe('Routing', () => {
   });
 
   test('resolves a home next target after login', async ({ page }) => {
-    const bootstrapResponse = await page.request.get('/api/me');
+    const bootstrapResponse = await page.request.get('/api/current-user');
     expect(bootstrapResponse.ok()).toBe(true);
     const bootstrap = await bootstrapResponse.json() as CurrentUserBootstrapResponse;
 
@@ -89,7 +89,7 @@ test.describe('Routing', () => {
 
       await expectPath(page, '/login');
       await expect.poll(async () => hasIndexedDb(page, 'y-sweet-logout-test')).toBe(false);
-      const bootstrapResponse = await page.request.get('/api/me');
+      const bootstrapResponse = await page.request.get('/api/current-user');
       expect(bootstrapResponse.status()).toBe(HTTP_STATUS.UNAUTHORIZED);
     } finally {
       detachPageGuards();

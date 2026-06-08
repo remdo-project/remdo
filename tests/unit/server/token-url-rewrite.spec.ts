@@ -3,7 +3,7 @@ import { rewriteTokenUrlsForRequest } from '#server/token-url-rewrite';
 
 describe('token URL rewrite', () => {
   it('prefers forwarded headers and preserves path, search, and hash', () => {
-    const request = new Request('http://127.0.0.1:4011/api/documents/main/token', {
+    const request = new Request('http://127.0.0.1:4011/api/documents/main/sync-tokens', {
       method: 'POST',
       headers: {
         'x-forwarded-proto': 'https',
@@ -25,7 +25,7 @@ describe('token URL rewrite', () => {
   });
 
   it('falls back to the request URL origin when forwarded headers are absent', () => {
-    const request = new Request('http://app.remdo.localhost:4000/api/documents/main/token', {
+    const request = new Request('http://app.remdo.localhost:4000/api/documents/main/sync-tokens', {
       method: 'POST',
     });
 
