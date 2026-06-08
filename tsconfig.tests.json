@@ -7,7 +7,7 @@
     "tests/**/*",
     "src/client/editor/types/**/*.d.ts",
     "vitest.config.ts",
-    "playwright.base.ts",
+    "config/playwright/base.ts",
     "playwright.config.ts",
     "playwright.docker.config.ts"
   ]

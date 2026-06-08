@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import { createViteSharedConfig } from './vite.shared';
+import { createViteSharedConfig } from './config/vite/shared';
 
 const sharedConfig = createViteSharedConfig();
 

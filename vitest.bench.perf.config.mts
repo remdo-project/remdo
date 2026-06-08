@@ -1,4 +1,4 @@
-import { createViteSharedConfig } from './vite.shared';
+import { createViteSharedConfig } from './config/vite/shared';
 import { defineConfig } from 'vitest/config';
 
 const PERF_TIMEOUT_MS = 4 * 60 * 1000;

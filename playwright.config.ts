@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 import { config } from './config';
 import { resolveAppOrigin } from './src/platform/net/origins';
-import { chromium, playwrightBaseConfig } from './playwright.base';
+import { chromium, playwrightBaseConfig } from './config/playwright/base';
 import { E2E_STORAGE_STATE_PATH } from './tests/e2e/_support/auth-state';
 
 const baseURL = resolveAppOrigin({ loopback: true });

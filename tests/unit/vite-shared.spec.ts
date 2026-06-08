@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isApiRequestPath } from '../../tools/vite/remdo-api-dev-plugin';
-import { createViteSharedConfig } from '../../vite.shared';
+import { createViteSharedConfig } from '../../config/vite/shared';
 
 describe('vite shared config', () => {
   it('mounts the RemDo API in dev and proxies sync routes only', () => {

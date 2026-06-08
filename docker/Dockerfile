@@ -14,7 +14,6 @@ COPY \
   pnpm-workspace.yaml \
   tsconfig.json \
   vite.config.mts \
-  vite.shared.ts \
   index.html \
   ./
 

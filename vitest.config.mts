@@ -1,7 +1,7 @@
 import process from "node:process";
 import { config } from './config';
 import { VITEST_DEFAULT_TEST_TIMEOUT_MS } from './tests/unit/_support/timeouts';
-import { createViteSharedConfig } from './vite.shared';
+import { createViteSharedConfig } from './config/vite/shared';
 import { configDefaults, defineConfig } from 'vitest/config';
 
 const isVitestUi = process.argv.includes('--ui');

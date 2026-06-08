@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 import process from 'node:process';
 import { config } from './config';
-import { chromium, dockerBrowserUse, playwrightBaseConfig } from './playwright.base';
+import { chromium, dockerBrowserUse, playwrightBaseConfig } from './config/playwright/base';
 
 // eslint-disable-next-line node/no-process-env
 const { E2E_STORAGE_STATE } = process.env;
