@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { config } from '../index';
 import { onRollupWarning } from '../_internal/vite/onRollupWarning';
 import { resolveApiServerOrigin, resolveCollabServerOrigin } from '../../src/platform/net/origins';
-import { remdoApiDevPlugin } from '../../tools/vite/remdo-api-dev-plugin';
+import { remdoApiDevPlugin } from './remdo-api-dev-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isApiRequestPath } from '../../tools/vite/remdo-api-dev-plugin';
+import { isApiRequestPath } from '../../config/vite/remdo-api-dev-plugin';
 import { createViteSharedConfig } from '../../config/vite/shared';
 
 describe('vite shared config', () => {
