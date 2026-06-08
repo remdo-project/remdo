@@ -19,7 +19,6 @@ COPY \
   ./
 
 COPY src ./src
-COPY lib ./lib
 COPY config ./config
 COPY public ./public
 COPY tools ./tools
