@@ -10,6 +10,13 @@ import {
 import { acceptsSharingMutation } from './request-guards';
 import type { ServerRouteDependencies } from './types';
 
+interface DocumentAccessView {
+  documentId: string;
+  email: string;
+  granteeUserId: string;
+  name: string | null;
+}
+
 export function createDocumentRoutes({
   auth,
   logError,
@@ -46,13 +53,10 @@ export function createDocumentRoutes({
     }
   });
 
-  routes.patch('/:docId/sharing', async (c) => {
+  routes.get('/:docId/access', async (c) => {
     const normalizedDocId = normalizeDocumentId(c.req.param('docId'));
     if (!normalizedDocId) {
       return c.json({ error: 'Invalid document id.' }, HTTP_STATUS.BAD_REQUEST);
-    }
-    if (!acceptsSharingMutation(c.req.raw)) {
-      return c.json({ error: 'Invalid sharing request.' }, HTTP_STATUS.BAD_REQUEST);
     }
 
     try {
@@ -61,56 +65,38 @@ export function createDocumentRoutes({
       if (!actor) {
         return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
       }
-      const body = await c.req.json<{ accessMode?: string }>();
-      if (body.accessMode !== 'private' && body.accessMode !== 'shareable') {
-        return c.json({ error: 'Invalid access mode.' }, HTTP_STATUS.BAD_REQUEST);
-      }
 
-      const existingDocument = await registry.getDocument(normalizedDocId);
-      if (!existingDocument || existingDocument.ownerUserId !== actor.userId) {
+      const document = await registry.getDocument(normalizedDocId);
+      if (!document || document.ownerUserId !== actor.userId) {
         return c.json({ error: 'Document not found.' }, HTTP_STATUS.NOT_FOUND);
       }
-      if (existingDocument.kind !== 'document' && body.accessMode === 'shareable') {
+      if (document.kind !== 'document') {
         return c.json({ error: 'Document cannot be shared.' }, HTTP_STATUS.BAD_REQUEST);
       }
 
-      const affectedRequesterIds = (await registry.listDocumentAccessForOwner(normalizedDocId, actor.userId))
-        .filter((request) => request.status === 'approved')
-        .map((request) => request.requesterUserId);
-      const document = await registry.setDocumentAccessMode(normalizedDocId, actor.userId, body.accessMode);
-      if (document) {
-        await Promise.all(affectedRequesterIds.map(async (requesterUserId) => {
-          await refreshCurrentUserDocumentsProjectionBestEffort(registry, tokenManager, requesterUserId);
-        }));
-      }
-      return c.json(document);
+      const grants = await registry.listDocumentAccessForOwner(normalizedDocId, actor.userId);
+      const users = await auth.listUsersByIds(grants.map((grant) => grant.granteeUserId));
+      const usersById = new Map(users.map((user) => [user.id, user]));
+      const access = grants.flatMap<DocumentAccessView>((grant) => {
+        const user = usersById.get(grant.granteeUserId);
+        if (!user) {
+          return [];
+        }
+        return [{
+          documentId: grant.documentId,
+          email: user.email,
+          granteeUserId: grant.granteeUserId,
+          name: user.name,
+        }];
+      });
+      return c.json({ access });
     } catch (error) {
       logError(error, { docId: normalizedDocId });
-      return c.json({ error: 'Failed to update document access mode.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+      return c.json({ error: 'Failed to list document access.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });
 
-  routes.get('/:docId/access-requests', async (c) => {
-    const normalizedDocId = normalizeDocumentId(c.req.param('docId'));
-    if (!normalizedDocId) {
-      return c.json({ error: 'Invalid document id.' }, HTTP_STATUS.BAD_REQUEST);
-    }
-
-    try {
-      await auth.ensureReady();
-      const actor = await resolveActor(c.req.raw, auth);
-      if (!actor) {
-        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
-      }
-      const requests = await registry.listDocumentAccessForOwner(normalizedDocId, actor.userId);
-      return c.json({ requests });
-    } catch (error) {
-      logError(error, { docId: normalizedDocId });
-      return c.json({ error: 'Failed to list document access requests.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-    }
-  });
-
-  routes.post('/:docId/access-requests', async (c) => {
+  routes.post('/:docId/access', async (c) => {
     const normalizedDocId = normalizeDocumentId(c.req.param('docId'));
     if (!normalizedDocId) {
       return c.json({ error: 'Invalid document id.' }, HTTP_STATUS.BAD_REQUEST);
@@ -126,53 +112,41 @@ export function createDocumentRoutes({
         return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
       }
       const document = await registry.getDocument(normalizedDocId);
-      if (!document || document.accessMode !== 'shareable') {
-        return c.json({ error: 'Document access denied.' }, HTTP_STATUS.FORBIDDEN);
+      if (!document || document.ownerUserId !== actor.userId) {
+        return c.json({ error: 'Document not found.' }, HTTP_STATUS.NOT_FOUND);
       }
-      if (document.ownerUserId === actor.userId) {
-        return c.json({ error: 'Owners do not need access requests.' }, HTTP_STATUS.BAD_REQUEST);
+      if (document.kind !== 'document') {
+        return c.json({ error: 'Document cannot be shared.' }, HTTP_STATUS.BAD_REQUEST);
+      }
+      const body = await c.req.json<{ email?: string }>();
+      const email = typeof body.email === 'string' ? body.email.trim() : '';
+      if (!email) {
+        return c.json({ error: 'Email is required.' }, HTTP_STATUS.BAD_REQUEST);
+      }
+      const user = await auth.findUserByEmail(email);
+      if (!user) {
+        return c.json({ error: 'User not found.' }, HTTP_STATUS.NOT_FOUND);
+      }
+      if (user.id === actor.userId) {
+        return c.json({ error: 'Owners cannot share documents with themselves.' }, HTTP_STATUS.BAD_REQUEST);
       }
 
-      const request = await registry.upsertDocumentAccess({
-        documentId: document.id,
-        requesterUserId: actor.userId,
+      const grant = await registry.grantDocumentAccess(document.id, actor.userId, user.id);
+      if (!grant) {
+        return c.json({ error: 'Document not found.' }, HTTP_STATUS.NOT_FOUND);
+      }
+      await refreshCurrentUserDocumentsProjectionBestEffort(registry, tokenManager, user.id);
+      return c.json({
+        access: {
+          documentId: grant.documentId,
+          email: user.email,
+          granteeUserId: grant.granteeUserId,
+          name: user.name,
+        },
       });
-      return c.json({ request, title: document.title });
     } catch (error) {
       logError(error, { docId: normalizedDocId });
-      return c.json({ error: 'Failed to create document access request.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-    }
-  });
-
-  routes.post('/:docId/access-requests/:requesterUserId/approval', async (c) => {
-    const normalizedDocId = normalizeDocumentId(c.req.param('docId'));
-    const requesterUserId = c.req.param('requesterUserId');
-    if (!normalizedDocId || !requesterUserId) {
-      return c.json({ error: 'Invalid access request.' }, HTTP_STATUS.BAD_REQUEST);
-    }
-    if (!acceptsSharingMutation(c.req.raw)) {
-      return c.json({ error: 'Invalid sharing request.' }, HTTP_STATUS.BAD_REQUEST);
-    }
-
-    try {
-      await auth.ensureReady();
-      const actor = await resolveActor(c.req.raw, auth);
-      if (!actor) {
-        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
-      }
-      const request = await registry.approveDocumentAccess(
-        normalizedDocId,
-        requesterUserId,
-        actor.userId,
-      );
-      if (!request) {
-        return c.json({ error: 'Access request not found.' }, HTTP_STATUS.NOT_FOUND);
-      }
-      await refreshCurrentUserDocumentsProjectionBestEffort(registry, tokenManager, requesterUserId);
-      return c.json({ request });
-    } catch (error) {
-      logError(error, { docId: normalizedDocId });
-      return c.json({ error: 'Failed to approve document access request.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+      return c.json({ error: 'Failed to share document.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });
 
@@ -194,8 +168,8 @@ export function createDocumentRoutes({
         return c.json({ error: 'Document not found.' }, HTTP_STATUS.NOT_FOUND);
       }
       const result = await issueYSweetDocumentClientToken(tokenManager, actor, document, c.req.raw, {
-        hasApprovedAccess: async (documentId, requesterUserId) => (
-          await registry.getApprovedAccessForRequester(documentId, requesterUserId)
+        hasDocumentAccess: async (documentId, granteeUserId) => (
+          await registry.getDocumentAccessForGrantee(documentId, granteeUserId)
         ) !== null,
       });
       if (result.denied) {

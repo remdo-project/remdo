@@ -6,7 +6,6 @@ import { config } from '#config';
 import {
   CREATE_DOCUMENT_ACCESS_TABLE_SQL,
   CREATE_DOCUMENTS_TABLE_SQL,
-  DOCUMENT_ACCESS_MODES,
   DOCUMENTS_TABLE_COLUMNS,
 } from './schema';
 import type { RemdoDatabase } from './schema';
@@ -46,17 +45,28 @@ function assertDocumentsTableShape(sqlite: Database.Database): void {
   const missingColumns = DOCUMENTS_TABLE_COLUMNS.filter((column) => !columnNames.has(column));
   const unexpectedColumns = [...columnNames].filter((column) => !expectedColumns.has(column));
   if (missingColumns.length === 0 && unexpectedColumns.length === 0) {
-    const tableSql = sqlite
-      .prepare('SELECT sql FROM sqlite_master WHERE type = ? AND name = ?')
-      .get('table', 'documents') as { sql?: string } | undefined;
-    const unsupportedAccessModes = DOCUMENT_ACCESS_MODES.filter((mode) => !tableSql?.sql?.includes(`'${mode}'`));
-    if (unsupportedAccessModes.length === 0) {
-      return;
-    }
+    return;
   }
 
   throw new Error(
     `Unsupported documents table schema. Reset local SQL data before starting RemDo. Missing columns: ${missingColumns.join(', ') || 'none'}. Unexpected columns: ${unexpectedColumns.join(', ') || 'none'}.`
+  );
+}
+
+function assertDocumentAccessTableShape(sqlite: Database.Database): void {
+  const rows = sqlite
+    .prepare('PRAGMA table_info(document_access)')
+    .all() as Array<{ name: string }>;
+  const expectedColumns = new Set(['document_id', 'grantee_user_id']);
+  const columnNames = new Set(rows.map((row) => row.name));
+  const missingColumns = [...expectedColumns].filter((column) => !columnNames.has(column));
+  const unexpectedColumns = [...columnNames].filter((column) => !expectedColumns.has(column));
+  if (missingColumns.length === 0 && unexpectedColumns.length === 0) {
+    return;
+  }
+
+  throw new Error(
+    `Unsupported document_access table schema. Reset local SQL data before starting RemDo. Missing columns: ${missingColumns.join(', ') || 'none'}. Unexpected columns: ${unexpectedColumns.join(', ') || 'none'}.`
   );
 }
 
@@ -72,6 +82,10 @@ function ensureDocumentsTable(sqlite: Database.Database): void {
 }
 
 function ensureDocumentAccessTable(sqlite: Database.Database): void {
+  const hasDocumentAccessTable = tableExists(sqlite, 'document_access');
+  if (hasDocumentAccessTable) {
+    assertDocumentAccessTableShape(sqlite);
+  }
   sqlite.exec(CREATE_DOCUMENT_ACCESS_TABLE_SQL);
 }
 

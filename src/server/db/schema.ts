@@ -1,9 +1,5 @@
-export const DOCUMENT_ACCESS_MODES = ['private', 'shareable', 'public', 'link-shared'] as const;
-export const DOCUMENT_ACCESS_STATUSES = ['pending', 'approved', 'revoked'] as const;
 export const DOCUMENT_KINDS = ['document', 'home-document', 'user-data-projection'] as const;
 
-export type DocumentAccessMode = (typeof DOCUMENT_ACCESS_MODES)[number];
-export type DocumentAccessStatus = (typeof DOCUMENT_ACCESS_STATUSES)[number];
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 
 export interface RemdoDatabase {
@@ -18,17 +14,17 @@ export interface AuthOauthClientTable {
 }
 
 export interface AuthUserTable {
+  email: string;
   id: string;
+  name: string | null;
 }
 
 export interface DocumentAccessTable {
   document_id: string;
-  requester_user_id: string;
-  status: DocumentAccessStatus;
+  grantee_user_id: string;
 }
 
 export interface DocumentsTable {
-  access_mode: DocumentAccessMode;
   created_at: number;
   document_kind: DocumentKind;
   id: string;
@@ -42,7 +38,6 @@ export const DOCUMENTS_TABLE_COLUMNS = [
   'owner_user_id',
   'document_kind',
   'title',
-  'access_mode',
   'created_at',
   'updated_at',
 ] as const;
@@ -58,8 +53,6 @@ export const CREATE_DOCUMENTS_TABLE_SQL = `
     document_kind TEXT NOT NULL DEFAULT 'document'
       CHECK (document_kind IN (${sqlStringList(DOCUMENT_KINDS)})),
     title TEXT NOT NULL,
-    access_mode TEXT NOT NULL DEFAULT 'private'
-      CHECK (access_mode IN (${sqlStringList(DOCUMENT_ACCESS_MODES)})),
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
@@ -72,9 +65,7 @@ export const CREATE_DOCUMENTS_TABLE_SQL = `
 export const CREATE_DOCUMENT_ACCESS_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS document_access (
     document_id TEXT NOT NULL,
-    requester_user_id TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending'
-      CHECK (status IN (${sqlStringList(DOCUMENT_ACCESS_STATUSES)})),
-    PRIMARY KEY(document_id, requester_user_id)
+    grantee_user_id TEXT NOT NULL,
+    PRIMARY KEY(document_id, grantee_user_id)
   );
 `;

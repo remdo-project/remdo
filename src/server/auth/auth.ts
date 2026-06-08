@@ -148,16 +148,24 @@ export interface CreateAuthUserInput {
   password: string;
 }
 
+export interface ServerAuthUser {
+  email: string;
+  id: string;
+  name: string | null;
+}
+
 export interface ServerAuth {
   allowSignup: boolean;
   auth: BetterAuthInstance;
   linkableRemdoServers: readonly LinkableRemdoServer[];
   createUser: (user: CreateAuthUserInput, headers: Headers) => Promise<Response>;
   ensureReady: () => Promise<void>;
+  findUserByEmail: (email: string) => Promise<ServerAuthUser | null>;
   handleAuthServerMetadata: (request: Request) => Promise<Response>;
   handleOpenIdConfigMetadata: (request: Request) => Promise<Response>;
   getSession: (headers: Headers) => Promise<Awaited<ReturnType<BetterAuthInstance['api']['getSession']>>>;
   getUserCount: () => Promise<number>;
+  listUsersByIds: (userIds: readonly string[]) => Promise<ServerAuthUser[]>;
   listLinkedRemdoServerIds: (headers: Headers) => Promise<Set<string>>;
 }
 
@@ -224,6 +232,19 @@ export function createServerAuth({
 
       return readyPromise;
     },
+    async findUserByEmail(email) {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail) {
+        return null;
+      }
+      const row = await database.db
+        .selectFrom('user')
+        .select(['email', 'id', 'name'])
+        .where('email', '=', normalizedEmail)
+        .limit(1)
+        .executeTakeFirst();
+      return row ?? null;
+    },
     getSession(headers) {
       return auth.api.getSession({ headers });
     },
@@ -236,6 +257,17 @@ export function createServerAuth({
     },
     handleAuthServerMetadata,
     handleOpenIdConfigMetadata,
+    async listUsersByIds(userIds) {
+      const uniqueUserIds = [...new Set(userIds)];
+      if (uniqueUserIds.length === 0) {
+        return [];
+      }
+      return database.db
+        .selectFrom('user')
+        .select(['email', 'id', 'name'])
+        .where('id', 'in', uniqueUserIds)
+        .execute();
+    },
     async listLinkedRemdoServerIds(headers) {
       const accounts = await auth.api.listUserAccounts({ headers });
       return new Set(

@@ -1,7 +1,8 @@
-export interface AccessRequestView {
+export interface DocumentAccessView {
   documentId: string;
-  requesterUserId: string;
-  status: string;
+  email: string;
+  granteeUserId: string;
+  name: string | null;
 }
 
 const SHARING_ACTION_HEADER = 'x-remdo-action';
@@ -16,56 +17,33 @@ async function readError(response: Response, fallback: string): Promise<string> 
   }
 }
 
-async function sendSharingAction(method: 'PATCH' | 'POST', path: string, body: unknown): Promise<Response> {
-  return fetch(path, {
-    method,
+export async function fetchDocumentAccess(docId: string): Promise<DocumentAccessView[]> {
+  const response = await fetch(`/api/documents/${encodeURIComponent(docId)}/access`, {
+    credentials: 'same-origin',
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response, 'Failed to load document access.'));
+  }
+  const body = await response.json() as { access?: DocumentAccessView[] };
+  return body.access ?? [];
+}
+
+export async function shareDocumentWithUser(docId: string, email: string): Promise<DocumentAccessView> {
+  const response = await fetch(`/api/documents/${encodeURIComponent(docId)}/access`, {
+    method: 'POST',
     credentials: 'same-origin',
     headers: {
       'content-type': 'application/json',
       [SHARING_ACTION_HEADER]: SHARING_ACTION_VALUE,
     },
-    body: JSON.stringify(body),
-  });
-}
-
-async function requireOk(response: Response, fallback: string): Promise<void> {
-  if (!response.ok) {
-    throw new Error(await readError(response, fallback));
-  }
-}
-
-export async function approveDocumentAccessRequest(docId: string, requesterUserId: string): Promise<void> {
-  await requireOk(
-    await sendSharingAction(
-      'POST',
-      `/api/documents/${encodeURIComponent(docId)}/access-requests/${encodeURIComponent(requesterUserId)}/approval`,
-      {},
-    ),
-    'Failed to approve access.',
-  );
-}
-
-export async function fetchAccessRequests(docId: string): Promise<AccessRequestView[]> {
-  const response = await fetch(`/api/documents/${encodeURIComponent(docId)}/access-requests`, {
-    credentials: 'same-origin',
+    body: JSON.stringify({ email }),
   });
   if (!response.ok) {
-    throw new Error(await readError(response, 'Failed to load access requests.'));
+    throw new Error(await readError(response, 'Failed to share document.'));
   }
-  const body = await response.json() as { requests?: AccessRequestView[] };
-  return body.requests ?? [];
-}
-
-export async function requestDocumentAccess(docId: string): Promise<void> {
-  await requireOk(
-    await sendSharingAction('POST', `/api/documents/${encodeURIComponent(docId)}/access-requests`, {}),
-    'Failed to request access.',
-  );
-}
-
-export async function setDocumentAccessMode(docId: string, accessMode: 'private' | 'shareable'): Promise<void> {
-  await requireOk(
-    await sendSharingAction('PATCH', `/api/documents/${encodeURIComponent(docId)}/sharing`, { accessMode }),
-    'Failed to update access mode.',
-  );
+  const body = await response.json() as { access?: DocumentAccessView };
+  if (!body.access) {
+    throw new TypeError('Document sharing returned an invalid access grant.');
+  }
+  return body.access;
 }

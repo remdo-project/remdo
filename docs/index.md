@@ -15,9 +15,8 @@ Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
 - `docs/access-model.md` (Long). Document access model for RemDo:
-  owner-backed access, user-specific access entries, same-server
-  request-to-access, cross-server source linking, public/link access, and
-  authenticated app access.
+  owner-backed access, direct local-user grants, cross-server source linking,
+  deferred public/link access, and authenticated app access.
 - `docs/architecture.md` (Long). Cross-cutting architecture vocabulary for
   delivery surfaces, gateway/origin boundaries, Better Auth identity,
   Kysely-backed document-registry ownership, collaboration runtime building

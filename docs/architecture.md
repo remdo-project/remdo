@@ -41,8 +41,8 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
 
 - Auth: Better Auth is mounted at `/api/auth/*`.
 - Y-Sweet document client token issuance: `POST /api/documents/:docId/sync-tokens`
-  evaluates document access mode, ownership, and approved user-specific access
-  before issuing browser credentials for Y-Sweet sync.
+  evaluates ownership and direct user-specific access grants before issuing
+  browser credentials for Y-Sweet sync.
 - Y-Sweet access: the API connects with the Y-Sweet server token and passes only
   RemDo-issued Y-Sweet document client tokens to browsers.
 - OAuth source linking: Better Auth stores OAuth account tokens for configured
@@ -62,7 +62,8 @@ document client tokens.
 
 - Role: provide authoritative document metadata before Y-Sweet document client
   token issuance.
-- Metadata: access mode, owner user id, document kind, and title.
+- Metadata: owner user id, document kind, title, and user-specific access
+  grants.
 - Storage: RemDo metadata queries use Kysely inside the server persistence
   boundary. Route, token, and bootstrap code depend on the `DocumentRegistry`
   interface, not on SQL or query-builder APIs.

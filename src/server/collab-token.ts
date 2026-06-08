@@ -17,7 +17,7 @@ type DocumentAccessResolution =
 interface ResolveDocumentAccessArgs {
   actor: Actor;
   document: RegisteredDocument;
-  hasApprovedAccess?: (documentId: string, requesterUserId: string) => Promise<boolean>;
+  hasDocumentAccess?: (documentId: string, granteeUserId: string) => Promise<boolean>;
 }
 
 interface ResolveYSweetConnectionStringOptions {
@@ -58,7 +58,7 @@ export function resolveYSweetConnectionString({
 async function resolveDocumentAccess({
   actor,
   document,
-  hasApprovedAccess,
+  hasDocumentAccess,
 }: ResolveDocumentAccessArgs): Promise<DocumentAccessResolution> {
   if (document.ownerUserId === actor.userId) {
     return {
@@ -69,8 +69,7 @@ async function resolveDocumentAccess({
 
   if (
     document.kind === 'document'
-    && document.accessMode === 'shareable'
-    && await hasApprovedAccess?.(document.id, actor.userId)
+    && await hasDocumentAccess?.(document.id, actor.userId)
   ) {
     return {
       allowed: true,
@@ -86,7 +85,7 @@ export async function issueYSweetDocumentClientToken(
   actor: Actor,
   document: RegisteredDocument,
   request: Request,
-  options: Pick<ResolveDocumentAccessArgs, 'hasApprovedAccess'> = {},
+  options: Pick<ResolveDocumentAccessArgs, 'hasDocumentAccess'> = {},
 ): Promise<{ denied: true } | { denied: false; token: ClientToken }> {
   const access = await resolveDocumentAccess({ actor, document, ...options });
   if (!access.allowed) {

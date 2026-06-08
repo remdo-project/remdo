@@ -48,32 +48,23 @@ Rules:
      fast-moving notes in this section.
   6. ✅ Done: consult access-control design materials, record sources, and add
      acceptance tests.
-  7. ✅ Done: implement the redesigned same-server request-to-access slice.
+  7. ✅ Done: implement the same-server document sharing slice.
   8. Next: ship this branch with deferred items left explicit.
 - Settled branch decisions:
-  1. Target same-server request-to-access sharing as the first slice, not
-     anonymous, bearer-link, or cross-server source-linking sharing.
+  1. Target same-server direct user sharing as the first slice, not anonymous,
+     bearer-link, or cross-server source-linking sharing.
   2. The normal document URL is only a document locator. Possessing it must not
      allow access.
-  3. Requesters are normal Better Auth users on the document host.
-  4. Only `shareable` documents accept access requests; `private` rejects them
-     before owner review.
-  5. Access mode is owner-controlled, not derived from approved access.
-  6. Approved access is durable but mode-gated: changing a document to
-     `private` hides it from approved requesters and denies their Y-Sweet
-     document client tokens, while changing it back to `shareable` restores
-     that approved access.
-- Branch intention: same-server request-to-access sharing:
+  3. Grantees are normal Better Auth users on the document host.
+  4. The owner grants access by entering a grantee email address.
+  5. Access grants are not gated by a document access mode.
+- Branch intention: same-server direct user sharing:
   1. Alice owns `doc123` on server A.
-  2. Alice changes `doc123` access mode to `shareable`, copies its normal URL,
-     and sends it outside RemDo.
-  3. Bob creates or uses a normal account on server A.
-  4. Bob requests access to `doc123` from server A's UI.
-  5. Alice sees the pending request in the sharing UI on server A.
-  6. Alice can approve the request. Deny/reject can ship later.
-  7. Server A approves access for Bob's A-local Better Auth user id.
-  8. Bob can open/edit `doc123` on server A.
-  9. A later OAuth source-linking slice may let Bob's home server B list/open
+  2. Bob creates or uses a normal account on server A.
+  3. Alice enters Bob's email address in the sharing UI for `doc123`.
+  4. Server A creates access for Bob's A-local Better Auth user id.
+  5. Bob can open/edit `doc123` on server A.
+  6. A later OAuth source-linking slice may let Bob's home server B list/open
      A-hosted documents after Bob authorizes B.
 - Deferred access cases:
   1. Anonymous access.
@@ -88,15 +79,13 @@ Rules:
   migrations. Do not add external principal, external credential, or source
   tables in this slice.
 - Acceptance coverage:
-  1. Documents default to `private`; the schema accepts `shareable`.
-  2. `private` allows owner Y-Sweet document client tokens and rejects
-     non-owner Y-Sweet document client token requests and access requests.
-  3. `shareable` accepts access requests but denies Y-Sweet document client
-     tokens without approved access.
-  4. Approval records access for the requester user id and leaves
-     `access_mode` unchanged.
-  5. Approved access issues Y-Sweet document client tokens; revoked access does
-     not.
+  1. Owner Y-Sweet document client tokens work.
+  2. Non-owner Y-Sweet document client token requests are rejected without a
+     direct grant.
+  3. Owner sharing by an existing local user email creates a direct grant.
+  4. Unknown emails, self-sharing, non-owner grants, and special-document
+     grants are rejected.
+  5. Direct grants issue Y-Sweet document client tokens.
   6. Normal document URLs are locators and never auto-create local documents or
      allow access.
   7. State-changing sharing endpoints reject cross-site/simple-request abuse.

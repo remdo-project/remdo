@@ -17,7 +17,6 @@ describe('sqlite server database client', () => {
         'owner_user_id',
         'document_kind',
         'title',
-        'access_mode',
         'created_at',
         'updated_at',
       ]);
@@ -35,8 +34,7 @@ describe('sqlite server database client', () => {
 
       expect(columns.map((column) => column.name)).toEqual([
         'document_id',
-        'requester_user_id',
-        'status',
+        'grantee_user_id',
       ]);
     } finally {
       await client.close();
@@ -52,7 +50,6 @@ describe('sqlite server database client', () => {
         DROP TABLE documents;
         CREATE TABLE documents (
           id TEXT PRIMARY KEY,
-          access_mode TEXT NOT NULL,
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
         );
@@ -83,7 +80,6 @@ describe('sqlite server database client', () => {
           document_kind TEXT NOT NULL,
           title TEXT NOT NULL,
           list_order INTEGER NOT NULL,
-          access_mode TEXT NOT NULL,
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
         );
@@ -99,22 +95,18 @@ describe('sqlite server database client', () => {
     }
   });
 
-  it('rejects legacy documents access mode constraints', async () => {
+  it('rejects legacy document access table columns', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-db-schema-'));
     const dbPath = path.join(tempDir, 'remdo.sqlite');
     const client = createSqliteServerDatabaseClient({ dbPath });
     try {
       client.sqlite.exec(`
-        DROP TABLE documents;
-        CREATE TABLE documents (
-          id TEXT PRIMARY KEY,
-          owner_user_id TEXT NOT NULL,
-          document_kind TEXT NOT NULL,
-          title TEXT NOT NULL,
-          access_mode TEXT NOT NULL
-            CHECK (access_mode IN ('private', 'public', 'link-shared')),
-          created_at INTEGER NOT NULL,
-          updated_at INTEGER NOT NULL
+        DROP TABLE document_access;
+        CREATE TABLE document_access (
+          document_id TEXT NOT NULL,
+          requester_user_id TEXT NOT NULL,
+          status TEXT NOT NULL,
+          PRIMARY KEY (document_id, requester_user_id)
         );
       `);
     } finally {
@@ -122,7 +114,7 @@ describe('sqlite server database client', () => {
     }
 
     try {
-      expect(() => createSqliteServerDatabaseClient({ dbPath })).toThrow('Unsupported documents table schema');
+      expect(() => createSqliteServerDatabaseClient({ dbPath })).toThrow('Unsupported document_access table schema');
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
