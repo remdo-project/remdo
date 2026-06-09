@@ -7,7 +7,7 @@ import type {
   UserDataNote,
   UserDocumentsNote,
 } from './documents';
-import type { ChildPosition, NoteId } from './notes';
+import type { ChildPosition, CollectionNote, Note, NoteId } from './notes';
 import { createNoteAs } from './handle-utils';
 
 const USER_DATA_ROOT_ID = 'user-data';
@@ -47,7 +47,7 @@ function createUserDocumentsHandle(
   actions: UserDataNoteActions,
 ): UserDocumentsNote {
   const noteId = USER_DOCUMENTS_ID;
-  const kind = () => 'user-documents' as const;
+  const kind = () => 'collection' as const;
   async function create(text: string): Promise<DocumentNote> {
     if (!actions.createDocument) {
       throw new Error('Document creation is not available for this user data.');
@@ -64,7 +64,38 @@ function createUserDocumentsHandle(
     kind,
     text: () => USER_DOCUMENTS_TITLE,
     children: () => documents.map((document) => createDocumentHandle(document)),
+    byId: (documentId) => {
+      const document = documents.find((candidate) => candidate.id === documentId);
+      return document ? createDocumentHandle(document) : null;
+    },
     create,
+    as: createNoteAs(noteId, kind, () => handle),
+  };
+
+  return handle;
+}
+
+function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends Note>({
+  createItemNote,
+  items,
+  noteId,
+  text,
+}: {
+  createItemNote: (item: Item) => ItemNote;
+  items: readonly Item[];
+  noteId: NoteId;
+  text: string;
+}): CollectionNote<ItemNote> {
+  const kind = () => 'collection' as const;
+  const handle: CollectionNote<ItemNote> = {
+    id: () => noteId,
+    kind,
+    text: () => text,
+    children: () => items.map((item) => createItemNote(item)),
+    byId: (itemId) => {
+      const item = items.find((candidate) => candidate.id === itemId);
+      return item ? createItemNote(item) : null;
+    },
     as: createNoteAs(noteId, kind, () => handle),
   };
 
@@ -100,21 +131,12 @@ function createSourceServersHandle(
   sourceServers: readonly SourceServer[],
   actions: UserDataNoteActions,
 ): SourceServersNote {
-  const noteId = 'source-servers';
-  const kind = () => 'source-servers' as const;
-  const handle: SourceServersNote = {
-    id: () => noteId,
-    kind,
-    text: () => 'Source Servers',
-    children: () => sourceServers.map((sourceServer) => createSourceServerHandle(sourceServer, actions)),
-    byId: (sourceServerId) => {
-      const sourceServer = sourceServers.find((candidate) => candidate.id === sourceServerId);
-      return sourceServer ? createSourceServerHandle(sourceServer, actions) : null;
-    },
-    as: createNoteAs(noteId, kind, () => handle),
-  };
-
-  return handle;
+  return createCollectionHandle({
+    createItemNote: (sourceServer) => createSourceServerHandle(sourceServer, actions),
+    items: sourceServers,
+    noteId: 'source-servers',
+    text: 'Source Servers',
+  });
 }
 
 export function createUserDataRootNote(

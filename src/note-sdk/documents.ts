@@ -1,5 +1,5 @@
 import type { EditorNote } from './editor';
-import type { ChildPosition, Note } from './notes';
+import type { ChildPosition, CollectionNote, Note } from './notes';
 
 export interface UserDataNote extends Note<'user-data'> {
   /** Returns the user's home document note. */
@@ -10,9 +10,7 @@ export interface UserDataNote extends Note<'user-data'> {
   sourceServers: () => SourceServersNote;
 }
 
-export interface UserDocumentsNote extends Note<'user-documents'> {
-  /** Returns all user documents in display order. */
-  children: () => readonly DocumentNote[];
+export interface UserDocumentsNote extends CollectionNote<DocumentNote> {
   /** Creates a user document. */
   create: (text: string) => Promise<DocumentNote>;
 }
@@ -27,12 +25,7 @@ export interface DocumentNote extends Note<'document'> {
   };
 }
 
-export interface SourceServersNote extends Note<'source-servers'> {
-  /** Returns all source servers in display order. */
-  children: () => readonly SourceServerNote[];
-  /** Returns the source server with the given id, if present. */
-  byId: (sourceServerId: string) => SourceServerNote | null;
-}
+export type SourceServersNote = CollectionNote<SourceServerNote>;
 
 export interface SourceServerNote extends Note<'source-server'> {
   /** Returns the source server origin. */

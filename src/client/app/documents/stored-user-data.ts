@@ -22,6 +22,15 @@ interface UserDataStoreContext {
   unobserveProjection?: () => void;
 }
 
+interface ProjectedCollectionSyncOptions<T> {
+  fallback?: readonly T[];
+  isEqual: (current: T, next: T) => boolean;
+  key: string;
+  readEntry: (entry: Y.Map<unknown>) => T;
+  root: Y.Map<Y.Array<Y.Map<unknown>>>;
+  target: T[];
+}
+
 function createHomeUserDocument(bootstrap: CurrentUserBootstrap): UserDocument {
   return { id: bootstrap.homeDocumentId, title: HOME_DOCUMENT_TITLE };
 }
@@ -73,8 +82,8 @@ class StoredUserDataStore {
     this.readyPromise = null;
     this.ready = false;
     this.homeDocumentId = null;
-    this.replaceDocuments([]);
-    this.replaceSourceServers([]);
+    replaceProjectedItems(this.documents, [], areUserDocumentEqual);
+    replaceProjectedItems(this.sourceServers, [], areUserSourceServerEqual);
     this.bumpVersion();
   }
 
@@ -136,7 +145,7 @@ class StoredUserDataStore {
       this.homeDocumentId = bootstrap.homeDocumentId;
       context.unobserveProjection?.();
       context.unobserveProjection = this.observeUserDataProjection(context.doc, generation);
-      this.syncDocumentsFromProjection(context.doc, homeDocument);
+      this.syncUserDataFromProjection(context.doc, homeDocument);
     }
   }
 
@@ -185,28 +194,12 @@ class StoredUserDataStore {
     return this.contextPromise;
   }
 
-  private replaceDocuments(nextDocuments: readonly UserDocument[]) {
-    if (areUserDocumentsEqual(this.documents, nextDocuments)) {
-      return false;
-    }
-    this.documents.splice(0, this.documents.length, ...nextDocuments);
-    return true;
-  }
-
-  private replaceSourceServers(nextSourceServers: readonly SourceServer[]) {
-    if (areUserSourceServersEqual(this.sourceServers, nextSourceServers)) {
-      return false;
-    }
-    this.sourceServers.splice(0, this.sourceServers.length, ...nextSourceServers);
-    return true;
-  }
-
   private observeUserDataProjection(doc: Y.Doc, generation: number): () => void {
     const handleUpdate = () => {
       if (this.generation !== generation) {
         return;
       }
-      if (this.syncDocumentsFromProjection(doc)) {
+      if (this.syncUserDataFromProjection(doc)) {
         this.bumpVersion();
       }
     };
@@ -214,12 +207,23 @@ class StoredUserDataStore {
     return () => doc.off('update', handleUpdate);
   }
 
-  private syncDocumentsFromProjection(doc: Y.Doc, fallbackDocument = this.createFallbackHomeDocument()): boolean {
+  private syncUserDataFromProjection(doc: Y.Doc, fallbackDocument = this.createFallbackHomeDocument()): boolean {
     const root = doc.getMap<Y.Array<Y.Map<unknown>>>(USER_DATA_ROOT_NOTE_ID);
-    const documents = readUserDataDocuments(root);
-    const sourceServers = readUserSourceServers(root);
-    const documentsChanged = this.replaceDocuments(documents.length > 0 ? documents : fallbackDocument ? [fallbackDocument] : []);
-    const sourceServersChanged = this.replaceSourceServers(sourceServers);
+    const documentsChanged = syncProjectedCollection({
+      fallback: fallbackDocument ? [fallbackDocument] : [],
+      isEqual: areUserDocumentEqual,
+      key: DOCUMENTS_KEY,
+      readEntry: readUserDocumentProjectionEntry,
+      root,
+      target: this.documents,
+    });
+    const sourceServersChanged = syncProjectedCollection({
+      isEqual: areUserSourceServerEqual,
+      key: SOURCE_SERVERS_KEY,
+      readEntry: readUserSourceServerProjectionEntry,
+      root,
+      target: this.sourceServers,
+    });
     return documentsChanged || sourceServersChanged;
   }
 
@@ -249,79 +253,94 @@ class StoredUserDataStore {
   }
 }
 
-function areUserDocumentsEqual(
-  currentDocuments: readonly UserDocument[],
-  nextDocuments: readonly UserDocument[],
-): boolean {
-  return currentDocuments.length === nextDocuments.length
-    && currentDocuments.every((document, index) => {
-      const nextDocument = nextDocuments[index];
-      return nextDocument?.id === document.id && nextDocument.title === document.title;
-    });
+function syncProjectedCollection<T>({
+  fallback = [],
+  isEqual,
+  key,
+  readEntry,
+  root,
+  target,
+}: ProjectedCollectionSyncOptions<T>): boolean {
+  const projectedItems = readProjectedCollection(root, key, readEntry);
+  const nextItems = projectedItems.length > 0 ? projectedItems : fallback;
+  return replaceProjectedItems(target, nextItems, isEqual);
 }
 
-function areUserSourceServersEqual(
-  currentSourceServers: readonly SourceServer[],
-  nextSourceServers: readonly SourceServer[],
+function readProjectedCollection<T>(
+  root: Y.Map<Y.Array<Y.Map<unknown>>>,
+  key: string,
+  readEntry: (entry: Y.Map<unknown>) => T,
+): T[] {
+  const collection = root.get(key);
+  if (!(collection instanceof Y.Array)) {
+    return [];
+  }
+
+  return collection.toArray().map((value) => {
+    if (!(value instanceof Y.Map)) {
+      throw new TypeError(`Projection collection "${key}" contains an invalid entry.`);
+    }
+    return readEntry(value);
+  });
+}
+
+function replaceProjectedItems<T>(
+  target: T[],
+  nextItems: readonly T[],
+  isEqual: (current: T, next: T) => boolean,
 ): boolean {
-  return currentSourceServers.length === nextSourceServers.length
-    && currentSourceServers.every((sourceServer, index) => {
-      const nextSourceServer = nextSourceServers[index];
-      return nextSourceServer?.id === sourceServer.id
-        && nextSourceServer.label === sourceServer.label
-        && nextSourceServer.baseUrl === sourceServer.baseUrl
-        && nextSourceServer.linked === sourceServer.linked;
-    });
+  if (
+    target.length === nextItems.length
+    && target.every((item, index) => {
+      const nextItem = nextItems[index];
+      return nextItem !== undefined && isEqual(item, nextItem);
+    })
+  ) {
+    return false;
+  }
+  target.splice(0, target.length, ...nextItems);
+  return true;
+}
+
+function areUserDocumentEqual(document: UserDocument, nextDocument: UserDocument): boolean {
+  return nextDocument.id === document.id && nextDocument.title === document.title;
+}
+
+function areUserSourceServerEqual(sourceServer: SourceServer, nextSourceServer: SourceServer): boolean {
+  return nextSourceServer.id === sourceServer.id
+    && nextSourceServer.label === sourceServer.label
+    && nextSourceServer.baseUrl === sourceServer.baseUrl
+    && nextSourceServer.linked === sourceServer.linked;
+}
+
+function readUserDocumentProjectionEntry(value: Y.Map<unknown>): UserDocument {
+  const id = value.get('id');
+  const title = value.get('title');
+  if (typeof id !== 'string' || typeof title !== 'string') {
+    throw new TypeError('User data document entry is missing id or title.');
+  }
+  return { id, title };
+}
+
+function readUserSourceServerProjectionEntry(value: Y.Map<unknown>): SourceServer {
+  const id = value.get('id');
+  const label = value.get('label');
+  const baseUrl = value.get('baseUrl');
+  const linked = value.get('linked');
+  if (
+    typeof id !== 'string'
+    || typeof label !== 'string'
+    || typeof baseUrl !== 'string'
+    || typeof linked !== 'boolean'
+  ) {
+    throw new TypeError('Source server entry is missing id, label, baseUrl, or linked.');
+  }
+  return { id, label, baseUrl, linked };
 }
 
 function destroyUserDataStoreContext(context: UserDataStoreContext): void {
   context.unobserveProjection?.();
   context.session.destroy();
-}
-
-function readUserDataDocuments(root: Y.Map<Y.Array<Y.Map<unknown>>>) {
-  const documents = root.get(DOCUMENTS_KEY);
-  if (!(documents instanceof Y.Array)) {
-    return [];
-  }
-
-  return documents.toArray().map((value) => {
-    if (!(value instanceof Y.Map)) {
-      throw new TypeError('User data documents list contains an invalid entry.');
-    }
-    const id = value.get('id');
-    const title = value.get('title');
-    if (typeof id !== 'string' || typeof title !== 'string') {
-      throw new TypeError('User data document entry is missing id or title.');
-    }
-    return { id, title };
-  });
-}
-
-function readUserSourceServers(root: Y.Map<Y.Array<Y.Map<unknown>>>) {
-  const sourceServers = root.get(SOURCE_SERVERS_KEY);
-  if (!(sourceServers instanceof Y.Array)) {
-    return [];
-  }
-
-  return sourceServers.toArray().map((value) => {
-    if (!(value instanceof Y.Map)) {
-      throw new TypeError('User data source servers list contains an invalid entry.');
-    }
-    const id = value.get('id');
-    const label = value.get('label');
-    const baseUrl = value.get('baseUrl');
-    const linked = value.get('linked');
-    if (
-      typeof id !== 'string'
-      || typeof label !== 'string'
-      || typeof baseUrl !== 'string'
-      || typeof linked !== 'boolean'
-    ) {
-      throw new TypeError('Source server entry is missing id, label, baseUrl, or linked.');
-    }
-    return { id, label, baseUrl, linked };
-  });
 }
 
 async function createUserDocument(title: string): Promise<UserDocument> {

@@ -8,7 +8,7 @@
  * Proper unit/integration suites remain the source of truth; this file is
  * expected to be removed once the SDK API reaches a stable/final shape.
  */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getTestUserData,
   meta,
@@ -17,6 +17,7 @@ import {
   TEST_USER_DATA_DOCUMENT,
 } from '#tests';
 import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
+import { createUserDataRootNote } from '#note-sdk';
 
 describe('editor notes showcase', () => {
   beforeEach(() => {
@@ -78,7 +79,7 @@ describe('editor notes showcase', () => {
   );
 
   it(
-    'lists and creates documents through user-data user-documents traversal',
+    'lists and creates documents through a projected user-data collection',
     meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note1');
@@ -86,6 +87,9 @@ describe('editor notes showcase', () => {
       const documents = userData.documents();
 
       remdo.validate(() => {
+        expect(documents.id()).toBe('user-documents');
+        expect(documents.kind()).toBe('collection');
+        expect(documents.byId(TEST_USER_DATA_DOCUMENT.id)?.text()).toBe(TEST_USER_DATA_DOCUMENT.title);
         expect(documents.children().map((document) => ({
           id: document.id(),
           text: document.text(),
@@ -109,6 +113,39 @@ describe('editor notes showcase', () => {
     }
   );
 
+  it('reads source servers through the same projected collection shape', async () => {
+    const linkSourceServer = vi.fn(async () => {});
+    const userData = createUserDataRootNote([], [{
+      id: 'source',
+      label: 'Source Server',
+      baseUrl: 'https://source.example',
+      linked: false,
+    }], {
+      linkSourceServer,
+    });
+
+    const sourceServers = userData.sourceServers();
+    const source = sourceServers.byId('source')!;
+
+    expect(sourceServers.id()).toBe('source-servers');
+    expect(sourceServers.kind()).toBe('collection');
+    expect(sourceServers.children().map((server) => ({
+      id: server.id(),
+      text: server.text(),
+      baseUrl: server.baseUrl(),
+      linked: server.linked(),
+    }))).toEqual([{
+      id: 'source',
+      text: 'Source Server',
+      baseUrl: 'https://source.example',
+      linked: false,
+    }]);
+
+    await source.link();
+
+    expect(linkSourceServer).toHaveBeenCalledWith('source');
+  });
+
   it(
     'shows explicit note narrowing with as(kind)',
     meta({ fixture: 'flat' }),
@@ -123,7 +160,7 @@ describe('editor notes showcase', () => {
         const note1 = sdk.note('note1').as('editor-note');
 
         expect(userData.kind()).toBe('user-data');
-        expect(documents.kind()).toBe('user-documents');
+        expect(documents.kind()).toBe('collection');
         expect(firstDocument.id()).toBe(TEST_USER_DATA_DOCUMENT.id);
         expect(firstDocument.text()).toBe(TEST_USER_DATA_DOCUMENT.title);
         expect(note1.attached()).toBe(true);

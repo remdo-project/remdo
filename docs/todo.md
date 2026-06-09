@@ -146,13 +146,13 @@ Rules:
   source-server `GET` route is retained for transition and existing route/e2e
   coverage.
 - Next note-resource cleanup:
-  1. Introduce a generic collection-note role for ordered projected
+  1. ✅ Done: introduce a generic collection-note role for ordered projected
      collections keyed by stable child note id.
-  2. Make `documents()` and `sourceServers()` return typed collection facades
-     instead of adding one SDK note kind per collection.
+  2. ✅ Done: make `documents()` and `sourceServers()` return typed collection
+     facades instead of adding one SDK note kind per collection.
   3. Keep entity note kinds explicit where they carry entity-specific behavior:
      `DocumentNote` for documents and `SourceServerNote` for source servers.
-  4. Let collection note ids identify resource sections such as
+  4. Collection note ids identify resource sections such as
      `user-documents` and `source-servers`; avoid a separate resource-key API
      unless a later slice needs it.
   5. Keep projected collection invariants consistent: child identity keyed by
@@ -160,7 +160,10 @@ Rules:
      from projections rather than local command-result appends.
   6. After the collection role lands, use it as the default shape for future
      current-user resources before adding sharing/access-grant resources.
-  7. Remove duplicate `GET` read routes once projection-backed UI and e2e
+  7. Replace per-resource client arrays with a projection-backed collection
+     adapter so note-sdk handles can read from Yjs containers while preserving
+     the public note API and HTTP-only mutation boundary.
+  8. Remove duplicate `GET` read routes once projection-backed UI and e2e
      coverage no longer depend on them, keeping `/api/current-user` as the
      bootstrap endpoint.
 - Generic note handles, document-specific note kinds, and persisted user-data

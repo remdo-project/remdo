@@ -2,14 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { meta } from '#tests';
 import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
 import type {
+  CollectionNote,
   DocumentNote,
   EditorNote,
   Note,
   NoteKind,
   SourceServerNote,
-  SourceServersNote,
   UserDataNote,
-  UserDocumentsNote,
 } from '#note-sdk';
 import {
   collectChildCandidateMap,
@@ -20,9 +19,8 @@ import {
 function createMockNoteAs(noteId: string, kind: () => NoteKind, self: () => Note): Note['as'] {
   function asNote(kindToMatch: 'editor-note'): EditorNote;
   function asNote(kindToMatch: 'user-data'): UserDataNote;
-  function asNote(kindToMatch: 'user-documents'): UserDocumentsNote;
   function asNote(kindToMatch: 'document'): DocumentNote;
-  function asNote(kindToMatch: 'source-servers'): SourceServersNote;
+  function asNote(kindToMatch: 'collection'): CollectionNote;
   function asNote(kindToMatch: 'source-server'): SourceServerNote;
   function asNote(kindToMatch: NoteKind): Note;
   function asNote(kindToMatch: NoteKind): Note {

@@ -1,9 +1,7 @@
 import type {
   DocumentNote,
   SourceServerNote,
-  SourceServersNote,
   UserDataNote,
-  UserDocumentsNote,
 } from './documents';
 import type { EditorNote } from './editor';
 
@@ -13,9 +11,8 @@ export type ChildPosition = RelativePlacement | { index: number };
 export type NoteKind =
   | 'editor-note'
   | 'user-data'
-  | 'user-documents'
   | 'document'
-  | 'source-servers'
+  | 'collection'
   | 'source-server';
 
 export interface Note<K extends NoteKind = NoteKind> {
@@ -31,10 +28,16 @@ export interface Note<K extends NoteKind = NoteKind> {
   as: {
     (kind: 'editor-note'): EditorNote;
     (kind: 'user-data'): UserDataNote;
-    (kind: 'user-documents'): UserDocumentsNote;
     (kind: 'document'): DocumentNote;
-    (kind: 'source-servers'): SourceServersNote;
+    (kind: 'collection'): CollectionNote;
     (kind: 'source-server'): SourceServerNote;
     (kind: NoteKind): Note;
   };
+}
+
+export interface CollectionNote<Item extends Note = Note> extends Note<'collection'> {
+  /** Returns the projected collection entries in display order. */
+  children: () => readonly Item[];
+  /** Returns the projected collection entry with the given id, if present. */
+  byId: (noteId: NoteId) => Item | null;
 }

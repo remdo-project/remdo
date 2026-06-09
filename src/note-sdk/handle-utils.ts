@@ -1,13 +1,12 @@
 import type {
   DocumentNote,
   SourceServerNote,
-  SourceServersNote,
   UserDataNote,
-  UserDocumentsNote,
 } from './documents';
 import type { EditorNote } from './editor';
 import type {
   Note,
+  CollectionNote,
   NoteId,
   NoteKind,
 } from './notes';
@@ -15,9 +14,8 @@ import type {
 export function createNoteAs(noteId: NoteId, kind: () => NoteKind, self: () => Note): Note['as'] {
   function asNote(kindToMatch: 'editor-note'): EditorNote;
   function asNote(kindToMatch: 'user-data'): UserDataNote;
-  function asNote(kindToMatch: 'user-documents'): UserDocumentsNote;
   function asNote(kindToMatch: 'document'): DocumentNote;
-  function asNote(kindToMatch: 'source-servers'): SourceServersNote;
+  function asNote(kindToMatch: 'collection'): CollectionNote;
   function asNote(kindToMatch: 'source-server'): SourceServerNote;
   function asNote(kindToMatch: NoteKind): Note;
   function asNote(kindToMatch: NoteKind): Note {

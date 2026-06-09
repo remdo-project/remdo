@@ -127,16 +127,17 @@ describe('editor notes core', () => {
     const documents = createUserDataRootNote(fixture.userData).documents();
     const note = sdk.note('a');
 
-    expect(documents.kind()).toBe('user-documents');
+    expect(documents.kind()).toBe('collection');
     expect(documents.children()[0]!.text()).toBe('Main');
     expect(note.as('editor-note').attached()).toBe(true);
     expect(() => note.as('document')).toThrow('expected "document"');
   });
 
-  it('lists documents through user-data user-documents traversal', () => {
+  it('lists documents through user-data documents collection traversal', () => {
     const fixture = createMockAdapterFixture();
     const documents = createUserDataRootNote(fixture.userData).documents();
 
+    expect(documents.byId('flat')?.text()).toBe('Flat');
     expect(
       documents.children().map((document) => ({
         id: document.id(),
@@ -158,7 +159,7 @@ describe('editor notes core', () => {
 
     const sourceServer = sourceServers.byId('source')!;
 
-    expect(sourceServers.kind()).toBe('source-servers');
+    expect(sourceServers.kind()).toBe('collection');
     expect(sourceServers.children().map((server) => ({
       id: server.id(),
       kind: server.kind(),

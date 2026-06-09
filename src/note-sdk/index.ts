@@ -1,5 +1,6 @@
 export type {
   ChildPosition,
+  CollectionNote,
   Note,
   NoteId,
   NoteKind,
