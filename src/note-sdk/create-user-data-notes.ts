@@ -21,6 +21,38 @@ interface UserDataNoteActions {
   linkSourceServer?: (sourceServerId: NoteId) => Promise<void>;
 }
 
+export interface CollectionSource<Item extends { id: NoteId }> {
+  children: () => readonly Item[];
+  byId: (itemId: NoteId) => Item | null;
+}
+
+type CollectionSourceInput<Item extends { id: NoteId }> = readonly Item[] | CollectionSource<Item>;
+
+function createArrayCollectionSource<Item extends { id: NoteId }>(items: readonly Item[]): CollectionSource<Item> {
+  return {
+    children: () => items,
+    byId: (itemId) => items.find((item) => item.id === itemId) ?? null,
+  };
+}
+
+function isCollectionSource<Item extends { id: NoteId }>(value: unknown): value is CollectionSource<Item> {
+  return typeof value === 'object'
+    && value !== null
+    && 'children' in value
+    && typeof value.children === 'function'
+    && 'byId' in value
+    && typeof value.byId === 'function';
+}
+
+function resolveCollectionSource<Item extends { id: NoteId }>(
+  input: CollectionSourceInput<Item>,
+): CollectionSource<Item> {
+  if (isCollectionSource<Item>(input)) {
+    return input;
+  }
+  return createArrayCollectionSource(input);
+}
+
 function createDocumentHandle(document: UserDocument): DocumentNote {
   const noteId = document.id;
   const kind = () => 'document' as const;
@@ -43,7 +75,7 @@ function createDocumentHandle(document: UserDocument): DocumentNote {
 }
 
 function createUserDocumentsHandle(
-  documents: readonly UserDocument[],
+  documents: CollectionSource<UserDocument>,
   actions: UserDataNoteActions,
 ): UserDocumentsNote {
   const noteId = USER_DOCUMENTS_ID;
@@ -63,9 +95,9 @@ function createUserDocumentsHandle(
     id: () => noteId,
     kind,
     text: () => USER_DOCUMENTS_TITLE,
-    children: () => documents.map((document) => createDocumentHandle(document)),
+    children: () => documents.children().map((document) => createDocumentHandle(document)),
     byId: (documentId) => {
-      const document = documents.find((candidate) => candidate.id === documentId);
+      const document = documents.byId(documentId);
       return document ? createDocumentHandle(document) : null;
     },
     create,
@@ -82,7 +114,7 @@ function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends No
   text,
 }: {
   createItemNote: (item: Item) => ItemNote;
-  items: readonly Item[];
+  items: CollectionSource<Item>;
   noteId: NoteId;
   text: string;
 }): CollectionNote<ItemNote> {
@@ -91,9 +123,9 @@ function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends No
     id: () => noteId,
     kind,
     text: () => text,
-    children: () => items.map((item) => createItemNote(item)),
+    children: () => items.children().map((item) => createItemNote(item)),
     byId: (itemId) => {
-      const item = items.find((candidate) => candidate.id === itemId);
+      const item = items.byId(itemId);
       return item ? createItemNote(item) : null;
     },
     as: createNoteAs(noteId, kind, () => handle),
@@ -128,7 +160,7 @@ function createSourceServerHandle(
 }
 
 function createSourceServersHandle(
-  sourceServers: readonly SourceServer[],
+  sourceServers: CollectionSource<SourceServer>,
   actions: UserDataNoteActions,
 ): SourceServersNote {
   return createCollectionHandle({
@@ -140,27 +172,28 @@ function createSourceServersHandle(
 }
 
 export function createUserDataRootNote(
-  documents: readonly UserDocument[],
-  sourceServersOrActions: readonly SourceServer[] | UserDataNoteActions = [],
+  documents: CollectionSourceInput<UserDocument>,
+  sourceServersOrActions: CollectionSourceInput<SourceServer> | UserDataNoteActions = [],
   actions: UserDataNoteActions = {},
 ): UserDataNote {
   const noteId = USER_DATA_ROOT_ID;
   const kind = () => 'user-data' as const;
-  let sourceServers: readonly SourceServer[] = [];
+  const userDocumentsSource = resolveCollectionSource(documents);
+  let sourceServers: CollectionSource<SourceServer> = createArrayCollectionSource([]);
   let resolvedActions: UserDataNoteActions = actions;
-  if (Array.isArray(sourceServersOrActions)) {
-    sourceServers = sourceServersOrActions;
+  if (Array.isArray(sourceServersOrActions) || isCollectionSource<SourceServer>(sourceServersOrActions)) {
+    sourceServers = resolveCollectionSource(sourceServersOrActions);
   } else {
     resolvedActions = sourceServersOrActions as UserDataNoteActions;
   }
-  const userDocuments = createUserDocumentsHandle(documents, resolvedActions);
+  const userDocuments = createUserDocumentsHandle(userDocumentsSource, resolvedActions);
   const userSourceServers = createSourceServersHandle(sourceServers, resolvedActions);
 
   function homeDocument(): DocumentNote {
     const homeDocumentId = resolvedActions.homeDocumentId?.() ?? null;
     const document = homeDocumentId
-      ? documents.find((candidate) => candidate.id === homeDocumentId)
-      : documents[0];
+      ? userDocumentsSource.byId(homeDocumentId)
+      : userDocumentsSource.children()[0];
     if (!document) {
       throw new Error('Home document is not available.');
     }

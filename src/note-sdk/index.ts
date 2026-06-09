@@ -25,4 +25,5 @@ export type {
 } from './editor';
 export { createEditorNotes } from './create-editor-notes';
 export { createUserDataRootNote } from './create-user-data-notes';
+export type { CollectionSource } from './create-user-data-notes';
 export { NoteNotFoundError } from './errors';

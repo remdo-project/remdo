@@ -160,9 +160,9 @@ Rules:
      from projections rather than local command-result appends.
   6. After the collection role lands, use it as the default shape for future
      current-user resources before adding sharing/access-grant resources.
-  7. Replace per-resource client arrays with a projection-backed collection
-     adapter so note-sdk handles can read from Yjs containers while preserving
-     the public note API and HTTP-only mutation boundary.
+  7. ✅ Done: replace per-resource client arrays with a projection-backed
+     collection adapter so note-sdk handles can read from Yjs containers while
+     preserving the public note API and HTTP-only mutation boundary.
   8. Remove duplicate `GET` read routes once projection-backed UI and e2e
      coverage no longer depend on them, keeping `/api/current-user` as the
      bootstrap endpoint.

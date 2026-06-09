@@ -9,7 +9,7 @@ import type { CurrentUserBootstrap } from './current-user-bootstrap';
 import { normalizeDocumentId } from '#domain/documents/ids';
 import { HOME_DOCUMENT_TITLE } from '#domain/documents/special-documents';
 import { createUserDataRootNote } from '#note-sdk';
-import type { UserDataNote, UserDocument } from '#note-sdk';
+import type { CollectionSource, UserDataNote, UserDocument } from '#note-sdk';
 
 const USER_DATA_ROOT_NOTE_ID = 'user-data';
 const DOCUMENTS_KEY = 'documents';
@@ -22,13 +22,9 @@ interface UserDataStoreContext {
   unobserveProjection?: () => void;
 }
 
-interface ProjectedCollectionSyncOptions<T> {
-  fallback?: readonly T[];
-  isEqual: (current: T, next: T) => boolean;
+interface ProjectedCollectionSourceOptions<T extends { id: string }> {
   key: string;
   readEntry: (entry: Y.Map<unknown>) => T;
-  root: Y.Map<Y.Array<Y.Map<unknown>>>;
-  target: T[];
 }
 
 function createHomeUserDocument(bootstrap: CurrentUserBootstrap): UserDocument {
@@ -39,8 +35,14 @@ function createHomeUserDocument(bootstrap: CurrentUserBootstrap): UserDocument {
 class StoredUserDataStore {
   private listeners = new Set<() => void>();
   private homeDocumentId: string | null = null;
-  private documents: UserDocument[] = [];
-  private sourceServers: SourceServer[] = [];
+  private readonly documents = createProjectedCollectionSource<UserDocument>({
+    key: DOCUMENTS_KEY,
+    readEntry: readUserDocumentProjectionEntry,
+  });
+  private readonly sourceServers = createProjectedCollectionSource<SourceServer>({
+    key: SOURCE_SERVERS_KEY,
+    readEntry: readUserSourceServerProjectionEntry,
+  });
   private readonly userData = createUserDataRootNote(this.documents, this.sourceServers, {
     createDocument: async (title) => this.createDocument(title),
     homeDocumentId: () => this.homeDocumentId,
@@ -82,8 +84,8 @@ class StoredUserDataStore {
     this.readyPromise = null;
     this.ready = false;
     this.homeDocumentId = null;
-    replaceProjectedItems(this.documents, [], areUserDocumentEqual);
-    replaceProjectedItems(this.sourceServers, [], areUserSourceServerEqual);
+    this.documents.clear();
+    this.sourceServers.clear();
     this.bumpVersion();
   }
 
@@ -209,21 +211,8 @@ class StoredUserDataStore {
 
   private syncUserDataFromProjection(doc: Y.Doc, fallbackDocument = this.createFallbackHomeDocument()): boolean {
     const root = doc.getMap<Y.Array<Y.Map<unknown>>>(USER_DATA_ROOT_NOTE_ID);
-    const documentsChanged = syncProjectedCollection({
-      fallback: fallbackDocument ? [fallbackDocument] : [],
-      isEqual: areUserDocumentEqual,
-      key: DOCUMENTS_KEY,
-      readEntry: readUserDocumentProjectionEntry,
-      root,
-      target: this.documents,
-    });
-    const sourceServersChanged = syncProjectedCollection({
-      isEqual: areUserSourceServerEqual,
-      key: SOURCE_SERVERS_KEY,
-      readEntry: readUserSourceServerProjectionEntry,
-      root,
-      target: this.sourceServers,
-    });
+    const documentsChanged = this.documents.syncFrom(root, fallbackDocument ? [fallbackDocument] : []);
+    const sourceServersChanged = this.sourceServers.syncFrom(root);
     return documentsChanged || sourceServersChanged;
   }
 
@@ -253,29 +242,56 @@ class StoredUserDataStore {
   }
 }
 
-function syncProjectedCollection<T>({
-  fallback = [],
-  isEqual,
+interface ProjectedCollectionSource<T extends { id: string }> extends CollectionSource<T> {
+  clear: () => boolean;
+  syncFrom: (
+    root: Y.Map<Y.Array<Y.Map<unknown>>>,
+    fallback?: readonly T[],
+  ) => boolean;
+}
+
+function createProjectedCollectionSource<T extends { id: string }>({
   key,
   readEntry,
-  root,
-  target,
-}: ProjectedCollectionSyncOptions<T>): boolean {
-  const projectedItems = readProjectedCollection(root, key, readEntry);
-  const nextItems = projectedItems.length > 0 ? projectedItems : fallback;
-  return replaceProjectedItems(target, nextItems, isEqual);
+}: ProjectedCollectionSourceOptions<T>): ProjectedCollectionSource<T> {
+  let collection: Y.Array<Y.Map<unknown>> | null = null;
+  let fallbackItems: readonly T[] = [];
+  let lastSnapshot: readonly T[] = [];
+
+  const children = () => {
+    const projectedItems = collection ? readProjectedCollection(collection, key, readEntry) : [];
+    return projectedItems.length > 0 ? projectedItems : fallbackItems;
+  };
+
+  const updateSnapshot = () => {
+    const nextSnapshot = children();
+    const changed = !areProjectedItemsEqual(lastSnapshot, nextSnapshot);
+    lastSnapshot = nextSnapshot;
+    return changed;
+  };
+
+  return {
+    byId: (itemId) => children().find((item) => item.id === itemId) ?? null,
+    children,
+    clear: () => {
+      collection = null;
+      fallbackItems = [];
+      return updateSnapshot();
+    },
+    syncFrom: (root, fallback = []) => {
+      const nextCollection = root.get(key);
+      collection = nextCollection instanceof Y.Array ? nextCollection : null;
+      fallbackItems = fallback;
+      return updateSnapshot();
+    },
+  };
 }
 
 function readProjectedCollection<T>(
-  root: Y.Map<Y.Array<Y.Map<unknown>>>,
+  collection: Y.Array<Y.Map<unknown>>,
   key: string,
   readEntry: (entry: Y.Map<unknown>) => T,
 ): T[] {
-  const collection = root.get(key);
-  if (!(collection instanceof Y.Array)) {
-    return [];
-  }
-
   return collection.toArray().map((value) => {
     if (!(value instanceof Y.Map)) {
       throw new TypeError(`Projection collection "${key}" contains an invalid entry.`);
@@ -284,33 +300,19 @@ function readProjectedCollection<T>(
   });
 }
 
-function replaceProjectedItems<T>(
-  target: T[],
-  nextItems: readonly T[],
-  isEqual: (current: T, next: T) => boolean,
-): boolean {
-  if (
-    target.length === nextItems.length
-    && target.every((item, index) => {
+function areProjectedItemsEqual<T extends { id: string }>(currentItems: readonly T[], nextItems: readonly T[]): boolean {
+  return currentItems.length === nextItems.length
+    && currentItems.every((item, index) => {
       const nextItem = nextItems[index];
-      return nextItem !== undefined && isEqual(item, nextItem);
-    })
-  ) {
-    return false;
-  }
-  target.splice(0, target.length, ...nextItems);
-  return true;
+      return nextItem !== undefined && areProjectedRecordsEqual(item, nextItem);
+    });
 }
 
-function areUserDocumentEqual(document: UserDocument, nextDocument: UserDocument): boolean {
-  return nextDocument.id === document.id && nextDocument.title === document.title;
-}
-
-function areUserSourceServerEqual(sourceServer: SourceServer, nextSourceServer: SourceServer): boolean {
-  return nextSourceServer.id === sourceServer.id
-    && nextSourceServer.label === sourceServer.label
-    && nextSourceServer.baseUrl === sourceServer.baseUrl
-    && nextSourceServer.linked === sourceServer.linked;
+function areProjectedRecordsEqual(currentRecord: Record<string, unknown>, nextRecord: Record<string, unknown>): boolean {
+  const currentKeys = Object.keys(currentRecord);
+  const nextKeys = Object.keys(nextRecord);
+  return currentKeys.length === nextKeys.length
+    && currentKeys.every((key) => currentRecord[key] === nextRecord[key]);
 }
 
 function readUserDocumentProjectionEntry(value: Y.Map<unknown>): UserDocument {
