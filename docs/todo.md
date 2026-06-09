@@ -152,6 +152,12 @@ Rules:
   expose well-shaped note kinds instead of flattened DTO-shaped records. Start
   with document access: consider modeling access as a relationship note with
   `document()` and `grantee()` where the grantee is a public user/person note.
+- Projection backing-store follow-up: after the sharing branch is merged,
+  revisit whether app-resource projections should stay on Yjs. The likely
+  target is a graph-shaped SDK backed by a simpler server-state graph/cache
+  mechanism with live invalidation or patches, while keeping Yjs focused on
+  collaborative document content. Do not choose or introduce that tool in this
+  branch.
 - Next note-resource cleanup:
   1. ✅ Done: introduce a generic collection-note role for ordered projected
      collections keyed by stable child note id.
