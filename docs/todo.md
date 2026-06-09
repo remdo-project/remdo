@@ -142,9 +142,7 @@ Rules:
   explicit HTTP commands. The SDK should mirror the conceptual resource tree,
   not raw route syntax.
 - Current source-server slice status: projection-backed source-server SDK/UI
-  reads are in place, and account linking remains an HTTP command. The legacy
-  source-server `GET` route is retained for transition and existing route/e2e
-  coverage.
+  reads are in place, and account linking remains an HTTP command.
 - Next note-resource cleanup:
   1. ✅ Done: introduce a generic collection-note role for ordered projected
      collections keyed by stable child note id.
@@ -163,8 +161,8 @@ Rules:
   7. ✅ Done: replace per-resource client arrays with a projection-backed
      collection adapter so note-sdk handles can read from Yjs containers while
      preserving the public note API and HTTP-only mutation boundary.
-  8. Remove duplicate `GET` read routes once projection-backed UI and e2e
-     coverage no longer depend on them, keeping `/api/current-user` as the
+  8. ✅ Done: remove duplicate `GET` read routes once projection-backed UI and
+     e2e coverage no longer depend on them, keeping `/api/current-user` as the
      bootstrap endpoint.
 - Generic note handles, document-specific note kinds, and persisted user-data
   storage are in place. Remaining work:

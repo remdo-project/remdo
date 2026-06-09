@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { HTTP_STATUS } from '#platform/http/status';
 import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
 import { resolveActor } from '#server/auth/actor';
-import { listCurrentUserSourceServers } from '#server/documents/source-servers';
 import { acceptsSourceServerLinkMutation } from './request-guards';
 import type { ServerRouteDependencies } from './types';
 
@@ -11,23 +10,6 @@ export function createSourceServerRoutes({
   logError,
 }: ServerRouteDependencies) {
   const routes = new Hono();
-
-  routes.get('/', async (c) => {
-    try {
-      await auth.ensureReady();
-      const actor = await resolveActor(c.req.raw, auth);
-      if (!actor) {
-        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
-      }
-
-      return c.json({
-        servers: await listCurrentUserSourceServers(auth, c.req.raw.headers),
-      });
-    } catch (error) {
-      logError(error, {});
-      return c.json({ error: 'Failed to list source servers.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-    }
-  });
 
   routes.post('/:serverId/account-links', async (c) => {
     const serverId = c.req.param('serverId');

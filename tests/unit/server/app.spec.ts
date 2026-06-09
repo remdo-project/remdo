@@ -44,7 +44,6 @@ describe('remdo api app', () => {
       'GET /.well-known/oauth-authorization-server',
       'GET /api/health',
       'GET /api/current-user',
-      'GET /api/current-user/source-servers',
       'POST /api/current-user/source-servers/:serverId/account-links',
       'POST /api/documents',
       'GET /api/documents/:docId/access',
@@ -82,44 +81,6 @@ describe('remdo api app', () => {
     const harness = createHarness();
 
     const response = await harness.app.request('/api/current-user');
-
-    expect(response.status).toBe(HTTP_STATUS.UNAUTHORIZED);
-    await expect(response.json()).resolves.toEqual({ error: 'Authentication required.' });
-  });
-
-  it('lists configured source servers for signed-in users', async () => {
-    const harness = createHarness({
-      linkableRemdoServers: [
-        {
-          id: 'source',
-          label: 'Source Server',
-          baseUrl: 'https://source.example',
-          clientId: 'source-client-id',
-          clientSecret: 'source-client-secret',
-        },
-      ],
-    });
-    const headers = await harness.createSessionHeaders();
-
-    const response = await harness.app.request('/api/current-user/source-servers', { headers });
-
-    expect(response.status).toBe(HTTP_STATUS.OK);
-    await expect(response.json()).resolves.toEqual({
-      servers: [
-        {
-          id: 'source',
-          label: 'Source Server',
-          baseUrl: 'https://source.example',
-          linked: false,
-        },
-      ],
-    });
-  });
-
-  it('rejects source server listing without a session', async () => {
-    const harness = createHarness();
-
-    const response = await harness.app.request('/api/current-user/source-servers');
 
     expect(response.status).toBe(HTTP_STATUS.UNAUTHORIZED);
     await expect(response.json()).resolves.toEqual({ error: 'Authentication required.' });

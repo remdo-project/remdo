@@ -2,22 +2,11 @@ import { expect, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { config } from '#config';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
-import { HTTP_STATUS } from '#platform/http/status';
 
-const SOURCE_SERVER_ID = 'source';
 const sourceOrigin = `http://localhost:${config.env.PORT}`;
 const homeOrigin = config.env.APP_PUBLIC_URL;
 
 type StableUser = (typeof STABLE_AUTH_USERS)[keyof typeof STABLE_AUTH_USERS];
-
-interface SourceServerLinkResponse {
-  servers: {
-    id: string;
-    label: string;
-    baseUrl: string;
-    linked: boolean;
-  }[];
-}
 
 function buildUrl(origin: string, path: string): string {
   return new URL(path, origin).toString();
@@ -40,15 +29,6 @@ async function expectPageUrl(page: Page, expected: { origin: string; pathname: s
   }).toEqual(expected);
 }
 
-async function readSourceServerLink(page: Page): Promise<SourceServerLinkResponse['servers'][number]> {
-  const response = await page.context().request.get(buildUrl(homeOrigin, '/api/current-user/source-servers'));
-  expect(response.status()).toBe(HTTP_STATUS.OK);
-  const body = await response.json() as SourceServerLinkResponse;
-  const server = body.servers.find((candidate) => candidate.id === SOURCE_SERVER_ID);
-  expect(server).toBeDefined();
-  return server!;
-}
-
 test('links a source account from the Docker home sharing page', async ({ page }) => {
   await page.goto('/sharing');
 
@@ -64,9 +44,4 @@ test('links a source account from the Docker home sharing page', async ({ page }
 
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/sharing'));
   await expect(page.getByRole('button', { name: 'Linked' })).toBeVisible();
-  await expect.poll(async () => readSourceServerLink(page)).toMatchObject({
-    id: SOURCE_SERVER_ID,
-    baseUrl: sourceOrigin,
-    linked: true,
-  });
 });
