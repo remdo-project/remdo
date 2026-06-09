@@ -1,6 +1,8 @@
+import type { DocumentAccessView } from '#domain/documents/access';
 import type { SourceServer } from '#domain/source-servers';
 import type { UserDocument } from '#domain/documents/user-data';
 import type {
+  DocumentAccessNote,
   DocumentNote,
   SourceServerNote,
   SourceServersNote,
@@ -19,6 +21,11 @@ interface UserDataNoteActions {
   createDocument?: (title: string) => Promise<UserDocument>;
   homeDocumentId?: () => NoteId | null;
   linkSourceServer?: (sourceServerId: NoteId) => Promise<void>;
+  shareDocument?: (documentId: NoteId, email: string) => Promise<DocumentAccessView>;
+}
+
+interface DocumentAccessItem extends DocumentAccessView {
+  id: NoteId;
 }
 
 export interface CollectionSource<Item extends { id: NoteId }> {
@@ -53,7 +60,44 @@ function resolveCollectionSource<Item extends { id: NoteId }>(
   return createArrayCollectionSource(input);
 }
 
-function createDocumentHandle(document: UserDocument): DocumentNote {
+function toDocumentAccessItem(access: DocumentAccessView): DocumentAccessItem {
+  return {
+    ...access,
+    id: access.granteeUserId,
+  };
+}
+
+function createDocumentAccessNoteHandle(access: DocumentAccessItem): DocumentAccessNote {
+  const noteId = access.id;
+  const kind = () => 'document-access' as const;
+  const handle: DocumentAccessNote = {
+    id: () => noteId,
+    kind,
+    text: () => access.name ?? access.email,
+    children: () => [],
+    email: () => access.email,
+    granteeUserId: () => access.granteeUserId,
+    name: () => access.name,
+    as: createNoteAs(noteId, kind, () => handle),
+  };
+
+  return handle;
+}
+
+function createDocumentAccessHandle(document: UserDocument): CollectionNote<DocumentAccessNote> {
+  const access = createArrayCollectionSource((document.access ?? []).map(toDocumentAccessItem));
+  return createCollectionHandle({
+    createItemNote: createDocumentAccessNoteHandle,
+    items: access,
+    noteId: `${document.id}/access`,
+    text: 'Access',
+  });
+}
+
+function createProjectedDocumentHandle(
+  document: UserDocument,
+  actions: UserDataNoteActions,
+): DocumentNote {
   const noteId = document.id;
   const kind = () => 'document' as const;
   function create(_text: string): never;
@@ -62,12 +106,24 @@ function createDocumentHandle(document: UserDocument): DocumentNote {
     throw new Error('Only the current document supports editor note creation.');
   }
 
+  async function shareWith(email: string): Promise<DocumentAccessNote> {
+    if (!actions.shareDocument) {
+      throw new Error('Document sharing is not available for this document.');
+    }
+    if (typeof email !== 'string') {
+      throw new TypeError('document.shareWith(email) requires a user email.');
+    }
+    return createDocumentAccessNoteHandle(toDocumentAccessItem(await actions.shareDocument(noteId, email)));
+  }
+
   const handle: DocumentNote = {
     id: () => noteId,
     kind,
     text: () => document.title,
+    access: () => createDocumentAccessHandle(document),
     children: () => [],
     create,
+    shareWith,
     as: createNoteAs(noteId, kind, () => handle),
   };
 
@@ -88,17 +144,17 @@ function createUserDocumentsHandle(
       throw new TypeError('documents.create(text) requires a document title.');
     }
     const created = await actions.createDocument(text);
-    return createDocumentHandle(created);
+    return createProjectedDocumentHandle(created, actions);
   }
 
   const handle: UserDocumentsNote = {
     id: () => noteId,
     kind,
     text: () => USER_DOCUMENTS_TITLE,
-    children: () => documents.children().map((document) => createDocumentHandle(document)),
+    children: () => documents.children().map((document) => createProjectedDocumentHandle(document, actions)),
     byId: (documentId) => {
       const document = documents.byId(documentId);
-      return document ? createDocumentHandle(document) : null;
+      return document ? createProjectedDocumentHandle(document, actions) : null;
     },
     create,
     as: createNoteAs(noteId, kind, () => handle),
@@ -197,7 +253,7 @@ export function createUserDataRootNote(
     if (!document) {
       throw new Error('Home document is not available.');
     }
-    return createDocumentHandle(document);
+    return createProjectedDocumentHandle(document, resolvedActions);
   }
 
   const handle: UserDataNote = {

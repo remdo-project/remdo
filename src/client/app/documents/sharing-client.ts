@@ -14,17 +14,6 @@ async function readError(response: Response, fallback: string): Promise<string> 
   }
 }
 
-export async function fetchDocumentAccess(docId: string): Promise<DocumentAccessView[]> {
-  const response = await fetch(`/api/documents/${encodeURIComponent(docId)}/access`, {
-    credentials: 'same-origin',
-  });
-  if (!response.ok) {
-    throw new Error(await readError(response, 'Failed to load document access.'));
-  }
-  const body = await response.json() as { access?: DocumentAccessView[] };
-  return body.access ?? [];
-}
-
 export async function shareDocumentWithUser(docId: string, email: string): Promise<DocumentAccessView> {
   const response = await fetch(`/api/documents/${encodeURIComponent(docId)}/access`, {
     method: 'POST',

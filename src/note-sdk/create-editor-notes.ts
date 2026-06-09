@@ -1,4 +1,4 @@
-import type { DocumentNote } from './documents';
+import type { DocumentAccessNote, DocumentNote } from './documents';
 import type {
   EditorNote,
   EditorNotes,
@@ -9,6 +9,7 @@ import type {
 } from './editor';
 import type {
   ChildPosition,
+  CollectionNote,
   NoteId,
 } from './notes';
 import { NoteNotFoundError } from './errors';
@@ -77,8 +78,12 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
       id: () => currentDocId,
       kind,
       text: () => currentDocId,
+      access: () => createEmptyDocumentAccessCollection(currentDocId),
       children: () => adapter.currentDocumentChildrenIds().map((noteId) => createHandle(noteId)),
       create,
+      shareWith: async () => {
+        throw new Error('Document sharing is not available for the current editor document.');
+      },
       as: createNoteAs(currentDocId, kind, () => handle),
     };
     return handle;
@@ -133,4 +138,18 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
     moveUp: (range) => runRangeMutation(range, adapter.moveUp),
     moveDown: (range) => runRangeMutation(range, adapter.moveDown),
   };
+}
+
+function createEmptyDocumentAccessCollection(documentId: NoteId): CollectionNote<DocumentAccessNote> {
+  const noteId = `${documentId}/access`;
+  const kind = () => 'collection' as const;
+  const handle: CollectionNote<DocumentAccessNote> = {
+    id: () => noteId,
+    kind,
+    text: () => 'Access',
+    children: () => [],
+    byId: () => null,
+    as: createNoteAs(noteId, kind, () => handle),
+  };
+  return handle;
 }

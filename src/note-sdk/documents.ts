@@ -16,6 +16,8 @@ export interface UserDocumentsNote extends CollectionNote<DocumentNote> {
 }
 
 export interface DocumentNote extends Note<'document'> {
+  /** Returns direct access grants for this document. */
+  access: () => CollectionNote<DocumentAccessNote>;
   /** Returns direct document-root editor notes in display order. */
   children: () => readonly EditorNote[];
   /** Creates and places a direct child note relative to this document. */
@@ -23,6 +25,17 @@ export interface DocumentNote extends Note<'document'> {
     (text: string): EditorNote;
     (position: ChildPosition, text: string): EditorNote;
   };
+  /** Grants document access to a user email. */
+  shareWith: (email: string) => Promise<DocumentAccessNote>;
+}
+
+export interface DocumentAccessNote extends Note<'document-access'> {
+  /** Returns the shared user's email address. */
+  email: () => string;
+  /** Returns the shared user's local auth user id. */
+  granteeUserId: () => string;
+  /** Returns the shared user's display name, when available. */
+  name: () => string | null;
 }
 
 export type SourceServersNote = CollectionNote<SourceServerNote>;

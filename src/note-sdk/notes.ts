@@ -1,4 +1,5 @@
 import type {
+  DocumentAccessNote,
   DocumentNote,
   SourceServerNote,
   UserDataNote,
@@ -12,6 +13,7 @@ export type NoteKind =
   | 'editor-note'
   | 'user-data'
   | 'document'
+  | 'document-access'
   | 'collection'
   | 'source-server';
 
@@ -29,6 +31,7 @@ export interface Note<K extends NoteKind = NoteKind> {
     (kind: 'editor-note'): EditorNote;
     (kind: 'user-data'): UserDataNote;
     (kind: 'document'): DocumentNote;
+    (kind: 'document-access'): DocumentAccessNote;
     (kind: 'collection'): CollectionNote;
     (kind: 'source-server'): SourceServerNote;
     (kind: NoteKind): Note;

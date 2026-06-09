@@ -1,69 +1,27 @@
 import { Alert, Button, Group, Select, Stack, Text, TextInput } from '@mantine/core';
-import { useEffect, useRef, useState } from 'react';
-import {
-  fetchDocumentAccess,
-  shareDocumentWithUser,
-} from '#client/app/documents/sharing-client';
-import type { DocumentAccessView } from '#client/app/documents/sharing-client';
+import { useState } from 'react';
 import { useUserData } from '#client/app/documents/user-data';
 import type { SourceServerNote } from '#note-sdk';
-
-interface DocumentAccessState {
-  docId: string;
-  access: DocumentAccessView[];
-}
 
 export default function SharingRoute() {
   const userData = useUserData();
   const documents = userData.documents().children();
   const sourceServers = userData.sourceServers().children();
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  const activeDocument = selectedDocId
+    ? documents.find((document) => document.id() === selectedDocId) ?? null
+    : null;
   const documentOptions = documents.map((document) => ({
     label: document.text(),
     value: document.id(),
   }));
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [shareEmail, setShareEmail] = useState('');
-  const [documentAccess, setDocumentAccess] = useState<DocumentAccessState | null>(null);
   const [status, setStatus] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const activeDocId = selectedDocId;
-  const activeDocIdRef = useRef(activeDocId);
-  const visibleAccess = activeDocId && documentAccess?.docId === activeDocId ? documentAccess.access : [];
-
-  useEffect(() => {
-    activeDocIdRef.current = activeDocId;
-  }, [activeDocId]);
-
-  useEffect(() => {
-    if (!activeDocId) {
-      return;
-    }
-    let stale = false;
-    void fetchDocumentAccess(activeDocId)
-      .then((nextAccess) => {
-        if (stale) {
-          return;
-        }
-        setDocumentAccess({ docId: activeDocId, access: nextAccess });
-        setErrorMessage(null);
-      })
-      .catch((error: unknown) => {
-        if (stale) {
-          return;
-        }
-        setDocumentAccess({ docId: activeDocId, access: [] });
-        if (error instanceof Error && error.message === 'Document cannot be shared.') {
-          return;
-        }
-        setErrorMessage(error instanceof Error ? error.message : 'Failed to load document access.');
-      });
-    return () => {
-      stale = true;
-    };
-  }, [activeDocId]);
+  const visibleAccess = activeDocument?.access().children() ?? [];
 
   const shareDocument = async () => {
-    if (!activeDocId) {
+    if (!activeDocument) {
       return;
     }
     const email = shareEmail.trim();
@@ -73,12 +31,7 @@ export default function SharingRoute() {
     }
 
     try {
-      const sharedDocId = activeDocId;
-      await shareDocumentWithUser(sharedDocId, email);
-      const nextAccess = await fetchDocumentAccess(sharedDocId);
-      if (activeDocIdRef.current === sharedDocId) {
-        setDocumentAccess({ docId: sharedDocId, access: nextAccess });
-      }
+      await activeDocument.shareWith(email);
       setShareEmail('');
       setStatus('Document shared.');
       setErrorMessage(null);
@@ -109,7 +62,7 @@ export default function SharingRoute() {
         <Select
           data={documentOptions}
           label="Document"
-          value={activeDocId}
+          value={selectedDocId}
           onChange={setSelectedDocId}
         />
         <TextInput
@@ -123,10 +76,10 @@ export default function SharingRoute() {
 
       <Stack gap="xs">
         {visibleAccess.map((access) => (
-          <Group key={access.granteeUserId} justify="space-between">
+          <Group key={access.granteeUserId()} justify="space-between">
             <Stack gap={0}>
-              <Text>{access.name || access.email}</Text>
-              {access.name && <Text c="dimmed" size="sm">{access.email}</Text>}
+              <Text>{access.name() || access.email()}</Text>
+              {access.name() && <Text c="dimmed" size="sm">{access.email()}</Text>}
             </Stack>
           </Group>
         ))}

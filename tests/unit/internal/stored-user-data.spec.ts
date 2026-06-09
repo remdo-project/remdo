@@ -65,9 +65,21 @@ describe('stored user data', () => {
       linked: sourceServer.linked(),
     }));
 
+  const listDocumentAccess = (userData: UserDataNote, documentId: string) =>
+    userData.documents().byId(documentId)?.access().children().map((access) => ({
+      email: access.email(),
+      granteeUserId: access.granteeUserId(),
+      name: access.name(),
+      text: access.text(),
+    })) ?? [];
+
   const writeUserDataProjection = (
     doc: Y.Doc,
-    documents: Array<{ id: string; title: string }>,
+    documents: Array<{
+      access?: Array<{ documentId: string; email: string; granteeUserId: string; name: string | null }>;
+      id: string;
+      title: string;
+    }>,
     sourceServers: Array<{ id: string; label: string; baseUrl: string; linked: boolean }> = [],
   ) => {
     const root = doc.getMap<Y.Array<Y.Map<unknown>>>('user-data');
@@ -76,6 +88,19 @@ describe('stored user data', () => {
       const entry = new Y.Map<unknown>();
       entry.set('id', document.id);
       entry.set('title', document.title);
+      if (document.access) {
+        const accessEntries = new Y.Array<Y.Map<unknown>>();
+        for (const access of document.access) {
+          const accessEntry = new Y.Map<unknown>();
+          accessEntry.set('id', access.granteeUserId);
+          accessEntry.set('documentId', access.documentId);
+          accessEntry.set('email', access.email);
+          accessEntry.set('granteeUserId', access.granteeUserId);
+          accessEntry.set('name', access.name);
+          accessEntries.push([accessEntry]);
+        }
+        entry.set('access', accessEntries);
+      }
       entries.push([entry]);
     }
     root.set('documents', entries);
@@ -93,7 +118,11 @@ describe('stored user data', () => {
   };
 
   const createUserDataDoc = (
-    documents: Array<{ id: string; title: string }>,
+    documents: Array<{
+      access?: Array<{ documentId: string; email: string; granteeUserId: string; name: string | null }>;
+      id: string;
+      title: string;
+    }>,
     sourceServers: Array<{ id: string; label: string; baseUrl: string; linked: boolean }> = [],
   ) => {
     const doc = new Y.Doc();
@@ -452,6 +481,30 @@ describe('stored user data', () => {
       { id: 'remoteDoc', title: 'Remote Document' },
     ]);
     expect(listSourceServers(userData)).toEqual([USER_SOURCE_SERVER]);
+  });
+
+  it('reads document access through the projected document handle', async () => {
+    const doc = createUserDataDoc([{
+      ...USER_RUNTIME_DOCUMENT,
+      access: [{
+        documentId: USER_RUNTIME_DOCUMENT.id,
+        email: 'bob@example.test',
+        granteeUserId: 'bob',
+        name: 'Bob',
+      }],
+    }]);
+    mockCollabSession({ doc });
+
+    const { getUserData } = await import('#client/app/documents/stored-user-data');
+
+    const userData = await getUserData();
+
+    expect(listDocumentAccess(userData, USER_RUNTIME_DOCUMENT.id)).toEqual([{
+      email: 'bob@example.test',
+      granteeUserId: 'bob',
+      name: 'Bob',
+      text: 'Bob',
+    }]);
   });
 
   it('links source servers through the projected handle without optimistic local changes', async () => {

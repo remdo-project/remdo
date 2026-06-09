@@ -7,6 +7,7 @@ export type {
   RelativePlacement,
 } from './notes';
 export type {
+  DocumentAccessNote,
   DocumentNote,
   SourceServerNote,
   SourceServersNote,

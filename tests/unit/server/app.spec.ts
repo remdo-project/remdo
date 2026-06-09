@@ -46,7 +46,6 @@ describe('remdo api app', () => {
       'GET /api/current-user',
       'POST /api/current-user/source-servers/:serverId/account-links',
       'POST /api/documents',
-      'GET /api/documents/:docId/access',
       'POST /api/documents/:docId/access',
       'POST /api/documents/:docId/sync-tokens',
       'POST /api/admin/users',
@@ -358,6 +357,8 @@ describe('remdo api app', () => {
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     const granteeHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
     await insertDocumentForSession(harness, ownerHeaders, 'shareDoc');
+    const ownerBootstrapResponse = await harness.app.request('/api/current-user', { headers: ownerHeaders });
+    const ownerBootstrap = await ownerBootstrapResponse.json();
     const granteeBootstrapResponse = await harness.app.request('/api/current-user', { headers: granteeHeaders });
     const granteeBootstrap = await granteeBootstrapResponse.json();
     const granteeUserId = await harness.getSessionUserId(granteeHeaders);
@@ -366,9 +367,6 @@ describe('remdo api app', () => {
       method: 'POST',
       headers: createSharingHeaders(ownerHeaders),
       body: JSON.stringify({ email: STABLE_AUTH_USERS.bob.email }),
-    });
-    const listResponse = await harness.app.request('/api/documents/shareDoc/access', {
-      headers: ownerHeaders,
     });
     const tokenResponse = await harness.app.request('/api/documents/shareDoc/sync-tokens', {
       method: 'POST',
@@ -384,15 +382,14 @@ describe('remdo api app', () => {
         name: STABLE_AUTH_USERS.bob.name,
       },
     });
-    expect(listResponse.status).toBe(HTTP_STATUS.OK);
-    await expect(listResponse.json()).resolves.toEqual({
-      access: [{
+    expect(harness.readProjectedDocumentAccess(ownerBootstrap.userDataDocumentId, 'shareDoc')).toEqual([
+      {
         documentId: 'shareDoc',
         email: STABLE_AUTH_USERS.bob.email,
         granteeUserId,
         name: STABLE_AUTH_USERS.bob.name,
-      }],
-    });
+      },
+    ]);
     expect(harness.readProjectedDocumentIds(granteeBootstrap.userDataDocumentId)).toContain('shareDoc');
     expect(tokenResponse.status).toBe(HTTP_STATUS.OK);
     await expect(tokenResponse.json()).resolves.toMatchObject({
@@ -455,23 +452,18 @@ describe('remdo api app', () => {
     await expect(response.json()).resolves.toEqual({ error: 'Owners cannot share documents with themselves.' });
   });
 
-  it('rejects document access listing and grants for non-owners', async () => {
+  it('rejects document access grants for non-owners', async () => {
     const harness = createHarness();
     const ownerHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
     const otherHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.bob);
     await insertDocumentForSession(harness, ownerHeaders, 'shareDoc');
 
-    const listResponse = await harness.app.request('/api/documents/shareDoc/access', {
-      headers: otherHeaders,
-    });
     const grantResponse = await harness.app.request('/api/documents/shareDoc/access', {
       method: 'POST',
       headers: createSharingHeaders(otherHeaders),
       body: JSON.stringify({ email: STABLE_AUTH_USERS.alice.email }),
     });
 
-    expect(listResponse.status).toBe(HTTP_STATUS.NOT_FOUND);
-    await expect(listResponse.json()).resolves.toEqual({ error: 'Document not found.' });
     expect(grantResponse.status).toBe(HTTP_STATUS.NOT_FOUND);
     await expect(grantResponse.json()).resolves.toEqual({ error: 'Document not found.' });
   });

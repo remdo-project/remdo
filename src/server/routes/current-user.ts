@@ -24,6 +24,7 @@ export function createCurrentUserRoutes(dependencies: ServerRouteDependencies) {
       }
 
       const bootstrap = await ensureCurrentUserBootstrap(registry, tokenManager, actor.userId, {
+        auth,
         sourceServers: await listCurrentUserSourceServers(auth, c.req.raw.headers),
       });
 

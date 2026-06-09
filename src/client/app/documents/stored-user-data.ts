@@ -4,6 +4,8 @@ import { CollabSession } from '#collaboration/session';
 import { resolveApiServerOrigin, resolveAppOrigin } from '#platform/net/origins';
 import type { CollaborationProviderInstance } from '#collaboration/runtime';
 import { linkSourceServerAccount } from '#client/app/auth/source-server-linking-client';
+import { shareDocumentWithUser } from '#client/app/documents/sharing-client';
+import type { DocumentAccessView } from '#domain/documents/access';
 import { getCurrentUserBootstrap } from './current-user-bootstrap';
 import type { CurrentUserBootstrap } from './current-user-bootstrap';
 import { normalizeDocumentId } from '#domain/documents/ids';
@@ -12,6 +14,7 @@ import { createUserDataRootNote } from '#note-sdk';
 import type { CollectionSource, UserDataNote, UserDocument } from '#note-sdk';
 
 const USER_DATA_ROOT_NOTE_ID = 'user-data';
+const ACCESS_KEY = 'access';
 const DOCUMENTS_KEY = 'documents';
 const SOURCE_SERVERS_KEY = 'source-servers';
 const STARTUP_RETRY_DELAY_MS = 1000;
@@ -47,6 +50,7 @@ class StoredUserDataStore {
     createDocument: async (title) => this.createDocument(title),
     homeDocumentId: () => this.homeDocumentId,
     linkSourceServer: async (sourceServerId) => linkSourceServerAccount(sourceServerId),
+    shareDocument: async (documentId, email) => shareDocumentWithUser(documentId, email),
   });
   private context: UserDataStoreContext | null = null;
   private contextPromise: Promise<UserDataStoreContext> | null = null;
@@ -312,7 +316,25 @@ function areProjectedRecordsEqual(currentRecord: Record<string, unknown>, nextRe
   const currentKeys = Object.keys(currentRecord);
   const nextKeys = Object.keys(nextRecord);
   return currentKeys.length === nextKeys.length
-    && currentKeys.every((key) => currentRecord[key] === nextRecord[key]);
+    && currentKeys.every((key) => areProjectedValuesEqual(currentRecord[key], nextRecord[key]));
+}
+
+function areProjectedValuesEqual(currentValue: unknown, nextValue: unknown): boolean {
+  if (currentValue === nextValue) {
+    return true;
+  }
+  if (Array.isArray(currentValue) && Array.isArray(nextValue)) {
+    return currentValue.length === nextValue.length
+      && currentValue.every((item, index) => areProjectedValuesEqual(item, nextValue[index]));
+  }
+  if (isRecord(currentValue) && isRecord(nextValue)) {
+    return areProjectedRecordsEqual(currentValue, nextValue);
+  }
+  return false;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function readUserDocumentProjectionEntry(value: Y.Map<unknown>): UserDocument {
@@ -321,7 +343,46 @@ function readUserDocumentProjectionEntry(value: Y.Map<unknown>): UserDocument {
   if (typeof id !== 'string' || typeof title !== 'string') {
     throw new TypeError('User data document entry is missing id or title.');
   }
-  return { id, title };
+  return {
+    access: readDocumentAccessProjection(value),
+    id,
+    title,
+  };
+}
+
+function readDocumentAccessProjection(value: Y.Map<unknown>): DocumentAccessView[] {
+  const access = value.get(ACCESS_KEY);
+  if (!(access instanceof Y.Array)) {
+    return [];
+  }
+
+  return access.toArray().map((entry) => {
+    if (!(entry instanceof Y.Map)) {
+      throw new TypeError('Document access projection contains an invalid entry.');
+    }
+    return readDocumentAccessProjectionEntry(entry);
+  });
+}
+
+function readDocumentAccessProjectionEntry(value: Y.Map<unknown>): DocumentAccessView {
+  const documentId = value.get('documentId');
+  const email = value.get('email');
+  const granteeUserId = value.get('granteeUserId');
+  const name = value.get('name');
+  if (
+    typeof documentId !== 'string'
+    || typeof email !== 'string'
+    || typeof granteeUserId !== 'string'
+    || !(typeof name === 'string' || name === null)
+  ) {
+    throw new TypeError('Document access entry is missing documentId, email, granteeUserId, or name.');
+  }
+  return {
+    documentId,
+    email,
+    granteeUserId,
+    name,
+  };
 }
 
 function readUserSourceServerProjectionEntry(value: Y.Map<unknown>): SourceServer {

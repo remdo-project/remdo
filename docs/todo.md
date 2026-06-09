@@ -143,6 +143,15 @@ Rules:
   not raw route syntax.
 - Current source-server slice status: projection-backed source-server SDK/UI
   reads are in place, and account linking remains an HTTP command.
+- Current sharing/access slice status: document access reads are exposed as
+  `document.access()` from the user-data projection, and `document.shareWith()`
+  remains an HTTP command. The duplicate document-access `GET` read route is
+  removed.
+- Projection/note mapping review follow-up: review server-side projection
+  builders plus SDK-level mapping and helper logic so projected app resources
+  expose well-shaped note kinds instead of flattened DTO-shaped records. Start
+  with document access: consider modeling access as a relationship note with
+  `document()` and `grantee()` where the grantee is a public user/person note.
 - Next note-resource cleanup:
   1. ✅ Done: introduce a generic collection-note role for ordered projected
      collections keyed by stable child note id.

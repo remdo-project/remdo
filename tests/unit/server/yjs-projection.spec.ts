@@ -25,6 +25,18 @@ function readSourceServers(array: Y.Array<Y.Map<unknown>>): SourceServer[] {
   }));
 }
 
+function readDocumentAccess(entry: Y.Map<unknown>) {
+  const access = entry.get('access');
+  return access instanceof Y.Array
+    ? access.toArray().map((accessEntry) => ({
+      documentId: String(accessEntry.get('documentId')),
+      email: String(accessEntry.get('email')),
+      granteeUserId: String(accessEntry.get('granteeUserId')),
+      name: accessEntry.get('name') === null ? null : String(accessEntry.get('name')),
+    }))
+    : [];
+}
+
 describe('yjs projection helpers', () => {
   it('updates existing map entries in place when keys are stable', () => {
     const array = createDocumentArray();
@@ -98,6 +110,70 @@ describe('yjs projection helpers', () => {
       label: 'Source Server',
       baseUrl: 'https://source.example',
       linked: true,
+    }]);
+  });
+
+  it('syncs nested document access when access is supplied', () => {
+    const array = createDocumentArray();
+
+    syncUserDocumentsMapArray(array, [{
+      id: 'shareDoc',
+      title: 'Shared',
+      access: [{
+        documentId: 'shareDoc',
+        email: 'bob@example.test',
+        granteeUserId: 'bob',
+        name: 'Bob',
+      }],
+    }]);
+    const documentEntry = array.get(0);
+    const access = documentEntry.get('access');
+    if (!(access instanceof Y.Array)) {
+      throw new TypeError('Expected projected access array.');
+    }
+    const accessEntry = access.get(0);
+
+    syncUserDocumentsMapArray(array, [{
+      id: 'shareDoc',
+      title: 'Shared',
+      access: [{
+        documentId: 'shareDoc',
+        email: 'bob@example.test',
+        granteeUserId: 'bob',
+        name: 'Robert',
+      }],
+    }]);
+
+    expect(array.get(0)).toBe(documentEntry);
+    expect(access.get(0)).toBe(accessEntry);
+    expect(readDocumentAccess(documentEntry)).toEqual([{
+      documentId: 'shareDoc',
+      email: 'bob@example.test',
+      granteeUserId: 'bob',
+      name: 'Robert',
+    }]);
+  });
+
+  it('preserves nested document access when access is omitted', () => {
+    const array = createDocumentArray();
+    syncUserDocumentsMapArray(array, [{
+      id: 'shareDoc',
+      title: 'Shared',
+      access: [{
+        documentId: 'shareDoc',
+        email: 'bob@example.test',
+        granteeUserId: 'bob',
+        name: 'Bob',
+      }],
+    }]);
+
+    syncUserDocumentsMapArray(array, [{ id: 'shareDoc', title: 'Renamed' }]);
+
+    expect(readDocumentAccess(array.get(0))).toEqual([{
+      documentId: 'shareDoc',
+      email: 'bob@example.test',
+      granteeUserId: 'bob',
+      name: 'Bob',
     }]);
   });
 });

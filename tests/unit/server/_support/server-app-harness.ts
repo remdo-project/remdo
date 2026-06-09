@@ -140,6 +140,34 @@ export function createServerAppHarness({
         doc.destroy();
       }
     },
+    readProjectedDocumentAccess(docId: string, targetDocumentId: string) {
+      const doc = new Y.Doc();
+      try {
+        Y.applyUpdate(doc, collabDocuments.get(docId) ?? Y.encodeStateAsUpdate(new Y.Doc()));
+        const documents = doc.getMap<Y.Array<Y.Map<unknown>>>('user-data').get('documents');
+        if (!(documents instanceof Y.Array)) {
+          return [];
+        }
+        let document: Y.Map<unknown> | undefined;
+        for (const entry of documents) {
+          if (entry.get('id') === targetDocumentId) {
+            document = entry;
+            break;
+          }
+        }
+        const access = document?.get('access');
+        return access instanceof Y.Array
+          ? access.toArray().map((entry) => ({
+            documentId: String(entry.get('documentId')),
+            email: String(entry.get('email')),
+            granteeUserId: String(entry.get('granteeUserId')),
+            name: entry.get('name') === null ? null : String(entry.get('name')),
+          }))
+          : [];
+      } finally {
+        doc.destroy();
+      }
+    },
     readProjectedSourceServers(docId: string) {
       const doc = new Y.Doc();
       try {

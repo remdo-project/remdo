@@ -3,6 +3,7 @@ import * as Y from 'yjs';
 type IdKeyedMapValues = Readonly<Record<string, unknown> & { id: string }>;
 
 interface YjsOrderedMapArrayProjectionOptions<T> {
+  preserveKeys?: readonly string[];
   valuesOf: (item: T) => IdKeyedMapValues;
 }
 
@@ -19,11 +20,12 @@ function readMapId(entry: Y.Map<unknown>): string | null {
   return typeof value === 'string' ? value : null;
 }
 
-function writeMapEntry(entry: Y.Map<unknown>, values: IdKeyedMapValues): void {
+function writeMapEntry(entry: Y.Map<unknown>, values: IdKeyedMapValues, preserveKeys: readonly string[]): void {
   const nextKeys = new Set(Object.keys(values));
+  const preservedKeys = new Set(preserveKeys);
 
   for (const key of entry.keys()) {
-    if (!nextKeys.has(key)) {
+    if (!nextKeys.has(key) && !preservedKeys.has(key)) {
       entry.delete(key);
     }
   }
@@ -38,7 +40,7 @@ function writeMapEntry(entry: Y.Map<unknown>, values: IdKeyedMapValues): void {
 export function syncYjsOrderedMapArray<T>(
   array: Y.Array<Y.Map<unknown>>,
   items: readonly T[],
-  { valuesOf }: YjsOrderedMapArrayProjectionOptions<T>,
+  { preserveKeys = [], valuesOf }: YjsOrderedMapArrayProjectionOptions<T>,
 ): void {
   const existingEntries = array.toArray();
   const existingKeys = existingEntries.map(readMapId);
@@ -51,7 +53,7 @@ export function syncYjsOrderedMapArray<T>(
     && commonPrefixLength < nextKeys.length
     && existingKeys[commonPrefixLength] === nextKeys[commonPrefixLength]
   ) {
-    writeMapEntry(existingEntries[commonPrefixLength]!, nextValues[commonPrefixLength]!);
+    writeMapEntry(existingEntries[commonPrefixLength]!, nextValues[commonPrefixLength]!, preserveKeys);
     commonPrefixLength += 1;
   }
 
@@ -64,7 +66,7 @@ export function syncYjsOrderedMapArray<T>(
   ) {
     const existingIndex = existingKeys.length - commonSuffixLength - 1;
     const nextIndex = nextKeys.length - commonSuffixLength - 1;
-    writeMapEntry(existingEntries[existingIndex]!, nextValues[nextIndex]!);
+    writeMapEntry(existingEntries[existingIndex]!, nextValues[nextIndex]!, preserveKeys);
     commonSuffixLength += 1;
   }
 

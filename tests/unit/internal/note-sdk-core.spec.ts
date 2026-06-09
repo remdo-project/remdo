@@ -26,7 +26,16 @@ function createMockAdapterFixture(
   const placeCalls: Array<{ range: NoteRange; target: PlaceTarget }> = [];
   let nextDraftId = 1;
   const userData = [
-    { id: 'main', title: 'Main' },
+    {
+      id: 'main',
+      title: 'Main',
+      access: [{
+        documentId: 'main',
+        email: 'bob@example.test',
+        granteeUserId: 'bob',
+        name: 'Bob',
+      }],
+    },
     { id: 'flat', title: 'Flat' },
   ];
   const sourceServers = [
@@ -148,6 +157,41 @@ describe('editor notes core', () => {
       { id: 'main', kind: 'document', text: 'Main' },
       { id: 'flat', kind: 'document', text: 'Flat' },
     ]);
+  });
+
+  it('shares documents through document-level user-data handles', async () => {
+    const fixture = createMockAdapterFixture();
+    const shareDocument = vi.fn(async (documentId: string, email: string) => ({
+      documentId,
+      email,
+      granteeUserId: 'carol',
+      name: 'Carol',
+    }));
+    const documents = createUserDataRootNote(fixture.userData, {
+      shareDocument,
+    }).documents();
+    const document = documents.byId('main')!;
+
+    expect(document.access().children().map((access) => ({
+      id: access.id(),
+      kind: access.kind(),
+      text: access.text(),
+      email: access.email(),
+      granteeUserId: access.granteeUserId(),
+      name: access.name(),
+    }))).toEqual([{
+      id: 'bob',
+      kind: 'document-access',
+      text: 'Bob',
+      email: 'bob@example.test',
+      granteeUserId: 'bob',
+      name: 'Bob',
+    }]);
+
+    const access = await document.shareWith('carol@example.test');
+
+    expect(shareDocument).toHaveBeenCalledWith('main', 'carol@example.test');
+    expect(access.text()).toBe('Carol');
   });
 
   it('lists source servers through user-data source-server traversal', async () => {

@@ -113,6 +113,47 @@ describe('editor notes showcase', () => {
     }
   );
 
+  it('manages sharing through document-level user-data handles', async () => {
+    const shareDocument = vi.fn(async (documentId: string, email: string) => ({
+      documentId,
+      email,
+      granteeUserId: 'bob',
+      name: 'Bob',
+    }));
+    const userData = createUserDataRootNote([{
+      id: 'doc',
+      title: 'Document',
+      access: [{
+        documentId: 'doc',
+        email: 'alice@example.test',
+        granteeUserId: 'alice',
+        name: 'Alice',
+      }],
+    }], {
+      shareDocument,
+    });
+
+    const document = userData.documents().byId('doc')!;
+    const access = document.access();
+
+    expect(access.kind()).toBe('collection');
+    expect(access.children().map((person) => ({
+      id: person.id(),
+      text: person.text(),
+      email: person.email(),
+    }))).toEqual([{
+      id: 'alice',
+      text: 'Alice',
+      email: 'alice@example.test',
+    }]);
+
+    const shared = await document.shareWith('bob@example.test');
+
+    expect(shareDocument).toHaveBeenCalledWith('doc', 'bob@example.test');
+    expect(shared.kind()).toBe('document-access');
+    expect(shared.text()).toBe('Bob');
+  });
+
   it('reads source servers through the same projected collection shape', async () => {
     const linkSourceServer = vi.fn(async () => {});
     const userData = createUserDataRootNote([], [{

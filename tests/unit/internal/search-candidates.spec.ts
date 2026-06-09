@@ -4,6 +4,7 @@ import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
 import type {
   CollectionNote,
   DocumentNote,
+  DocumentAccessNote,
   EditorNote,
   Note,
   NoteKind,
@@ -20,6 +21,7 @@ function createMockNoteAs(noteId: string, kind: () => NoteKind, self: () => Note
   function asNote(kindToMatch: 'editor-note'): EditorNote;
   function asNote(kindToMatch: 'user-data'): UserDataNote;
   function asNote(kindToMatch: 'document'): DocumentNote;
+  function asNote(kindToMatch: 'document-access'): DocumentAccessNote;
   function asNote(kindToMatch: 'collection'): CollectionNote;
   function asNote(kindToMatch: 'source-server'): SourceServerNote;
   function asNote(kindToMatch: NoteKind): Note;
@@ -55,13 +57,26 @@ function createMockEditorNote(
 
 function createMockDocumentNote(children: EditorNote[]): DocumentNote {
   const kind = () => 'document' as const;
+  const accessKind = () => 'collection' as const;
+  const access: CollectionNote<DocumentAccessNote> = {
+    id: () => 'main/access',
+    kind: accessKind,
+    text: () => 'Access',
+    children: () => [],
+    byId: () => null,
+    as: createMockNoteAs('main/access', accessKind, () => access),
+  };
   const note: DocumentNote = {
     id: () => 'main',
     kind,
     text: () => 'Main',
+    access: () => access,
     children: () => children,
     create: () => {
       throw new Error('Document note creation is not used in search candidate tests.');
+    },
+    shareWith: async () => {
+      throw new Error('Document sharing is not used in search candidate tests.');
     },
     as: createMockNoteAs('main', kind, () => note),
   };

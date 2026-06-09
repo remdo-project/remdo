@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import type { DocumentAccessView } from '#domain/documents/access';
 import { normalizeDocumentId } from '#domain/documents/ids';
 import { HTTP_STATUS } from '#platform/http/status';
 import { resolveActor } from '#server/auth/actor';
@@ -47,49 +46,6 @@ export function createDocumentRoutes({
     }
   });
 
-  routes.get('/:docId/access', async (c) => {
-    const normalizedDocId = normalizeDocumentId(c.req.param('docId'));
-    if (!normalizedDocId) {
-      return c.json({ error: 'Invalid document id.' }, HTTP_STATUS.BAD_REQUEST);
-    }
-
-    try {
-      await auth.ensureReady();
-      const actor = await resolveActor(c.req.raw, auth);
-      if (!actor) {
-        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
-      }
-
-      const document = await registry.getDocument(normalizedDocId);
-      if (!document || document.ownerUserId !== actor.userId) {
-        return c.json({ error: 'Document not found.' }, HTTP_STATUS.NOT_FOUND);
-      }
-      if (document.kind !== 'document') {
-        return c.json({ error: 'Document cannot be shared.' }, HTTP_STATUS.BAD_REQUEST);
-      }
-
-      const grants = await registry.listDocumentAccessForOwner(normalizedDocId, actor.userId);
-      const users = await auth.listUsersByIds(grants.map((grant) => grant.granteeUserId));
-      const usersById = new Map(users.map((user) => [user.id, user]));
-      const access = grants.flatMap<DocumentAccessView>((grant) => {
-        const user = usersById.get(grant.granteeUserId);
-        if (!user) {
-          return [];
-        }
-        return [{
-          documentId: grant.documentId,
-          email: user.email,
-          granteeUserId: grant.granteeUserId,
-          name: user.name,
-        }];
-      });
-      return c.json({ access });
-    } catch (error) {
-      logError(error, { docId: normalizedDocId });
-      return c.json({ error: 'Failed to list document access.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-    }
-  });
-
   routes.post('/:docId/access', async (c) => {
     const normalizedDocId = normalizeDocumentId(c.req.param('docId'));
     if (!normalizedDocId) {
@@ -129,7 +85,8 @@ export function createDocumentRoutes({
       if (!grant) {
         return c.json({ error: 'Document not found.' }, HTTP_STATUS.NOT_FOUND);
       }
-      await refreshCurrentUserDocumentsProjectionBestEffort(registry, tokenManager, user.id);
+      await refreshCurrentUserDocumentsProjectionBestEffort(registry, tokenManager, actor.userId, auth);
+      await refreshCurrentUserDocumentsProjectionBestEffort(registry, tokenManager, user.id, auth);
       return c.json({
         access: {
           documentId: grant.documentId,

@@ -2,11 +2,13 @@ import type { YSweetDocumentTokenManager } from '#server/collab-token';
 import type { DocumentKind } from '#server/db/schema';
 import type { CurrentUserBootstrap, UserDocument } from '#domain/documents/user-data';
 import type { SourceServer } from '#domain/source-servers';
+import type { ServerAuth } from '#server/auth/auth';
 import {
   HOME_DOCUMENT_TITLE,
   USER_DATA_PROJECTION_TITLE,
 } from '#domain/documents/special-documents';
 import { syncSourceServersMapArray, syncUserDocumentsMapArray } from '#server/projection/user-data';
+import { listDocumentAccessViewsForOwner } from './access';
 import type { DocumentRegistry, RegisteredDocument } from './document-registry';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import * as Y from 'yjs';
@@ -55,18 +57,39 @@ async function refreshUserDataProjection(
   tokenManager: YSweetDocumentTokenManager,
   userId: string,
   userDataDocumentId: string,
-  sourceServers?: readonly SourceServer[],
+  {
+    auth,
+    sourceServers,
+  }: {
+    auth?: ServerAuth;
+    sourceServers?: readonly SourceServer[];
+  } = {},
 ): Promise<void> {
   await tokenManager.getOrCreateDocAndToken(userDataDocumentId, { authorization: 'read-only' });
 
   const doc = new Y.Doc();
   try {
     Y.applyUpdate(doc, await tokenManager.getDocAsUpdate(userDataDocumentId));
-    writeUserDataProjection(doc, await registry.listUserDocuments(userId), sourceServers);
+    writeUserDataProjection(doc, await listProjectedUserDocuments(registry, userId, auth), sourceServers);
     await tokenManager.updateDoc(userDataDocumentId, Y.encodeStateAsUpdate(doc));
   } finally {
     doc.destroy();
   }
+}
+
+async function listProjectedUserDocuments(
+  registry: DocumentRegistry,
+  userId: string,
+  auth?: ServerAuth,
+): Promise<UserDocument[]> {
+  const documents = await registry.listUserDocuments(userId);
+  return Promise.all(documents.map(async (document) => ({
+    id: document.id,
+    title: document.title,
+    ...(auth && document.kind === 'document' && document.ownerUserId === userId
+      ? { access: await listDocumentAccessViewsForOwner(registry, auth, document.id, userId) }
+      : {}),
+  })));
 }
 
 async function ensureUserDataDocument(
@@ -152,18 +175,20 @@ async function refreshCurrentUserDocumentsProjection(
   registry: DocumentRegistry,
   tokenManager: YSweetDocumentTokenManager,
   userId: string,
+  auth?: ServerAuth,
 ): Promise<void> {
   const { userDataDocument } = await ensureCurrentUserBootstrapDocuments(registry, userId);
-  await refreshUserDataProjection(registry, tokenManager, userId, userDataDocument.id);
+  await refreshUserDataProjection(registry, tokenManager, userId, userDataDocument.id, { auth });
 }
 
 export async function refreshCurrentUserDocumentsProjectionBestEffort(
   registry: DocumentRegistry,
   tokenManager: YSweetDocumentTokenManager,
   userId: string,
+  auth?: ServerAuth,
 ): Promise<void> {
   try {
-    await refreshCurrentUserDocumentsProjection(registry, tokenManager, userId);
+    await refreshCurrentUserDocumentsProjection(registry, tokenManager, userId, auth);
   } catch {
     // SQL is the durable source of truth. A later bootstrap load or document
     // create can repair the derived user-data projection.
@@ -177,7 +202,9 @@ export async function ensureCurrentUserBootstrap(
   {
     createDocumentId,
     sourceServers,
+    auth,
   }: {
+    auth?: ServerAuth;
     createDocumentId?: () => string;
     sourceServers?: readonly SourceServer[];
   } = {},
@@ -186,7 +213,10 @@ export async function ensureCurrentUserBootstrap(
     createDocumentId,
   });
 
-  await refreshUserDataProjection(registry, tokenManager, userId, userDataDocument.id, sourceServers);
+  await refreshUserDataProjection(registry, tokenManager, userId, userDataDocument.id, {
+    auth,
+    sourceServers,
+  });
 
   return {
     userDataDocumentId: userDataDocument.id,
