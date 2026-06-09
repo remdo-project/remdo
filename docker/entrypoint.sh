@@ -26,15 +26,12 @@ case "${APP_PUBLIC_URL}" in
     ;;
 esac
 
-canonical_url_no_scheme="${canonical_url#*://}"
-CADDY_CANONICAL_HOSTPORT="${canonical_url_no_scheme%%/*}"
-CADDY_CANONICAL_HOST="${CADDY_CANONICAL_HOSTPORT%%:*}"
+CADDY_CANONICAL_HOST="$(node -e 'console.log(new URL(process.argv[1]).hostname)' "${canonical_url}")"
 
 export APP_PUBLIC_URL
 export CADDY_SITE_ADDRESSES
 export CADDY_TLS_DIRECTIVE
 export CADDY_CANONICAL_HOST
-export CADDY_CANONICAL_HOSTPORT
 
 COLLAB_DATA_DIR="${DATA_DIR%/}/collab"
 mkdir -p "$COLLAB_DATA_DIR"

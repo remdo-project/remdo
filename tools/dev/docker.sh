@@ -17,6 +17,7 @@ fi
 SOURCE_TOKEN_ORIGIN="http://${SOURCE_TOKEN_HOST}:${PORT}"
 HOME_PORT="$((PORT_BASE + 40))"
 HOME_ORIGIN="http://127.0.0.1:${HOME_PORT}"
+HOME_LOCALHOST_ORIGIN="http://localhost:${HOME_PORT}"
 HOME_DATA_DIR="${DATA_DIR%/}/docker-home"
 HOME_CONTAINER_NAME="remdo-dev-docker-${HOME_PORT}"
 LINKABLE_REMDO_SERVERS_JSON='[{"id":"source","label":"Local dev server","baseUrl":"'"${SOURCE_ORIGIN}"'","tokenBaseUrl":"'"${SOURCE_TOKEN_ORIGIN}"'","clientId":"'"${REMDO_DEV_OAUTH_CLIENT_ID}"'","clientSecret":"'"${REMDO_DEV_OAUTH_CLIENT_SECRET}"'"}]'
@@ -41,6 +42,7 @@ env \
   pnpm run dev:users
 
 echo "Starting OAuth home: ${HOME_ORIGIN}"
+echo "OAuth home alias: ${HOME_LOCALHOST_ORIGIN}"
 echo "OAuth source: ${SOURCE_ORIGIN}"
 echo "Tunnel from a remote browser host: tools/remote/open-remdo-tunnel.sh <user>@<host>:${PORT_BASE}"
 
@@ -50,6 +52,7 @@ env \
   AUTH_SECRET="${AUTH_SECRET}" \
   ADMIN_SECRET="${ADMIN_SECRET}" \
   DATA_DIR="${HOME_DATA_DIR}" \
+  CADDY_SITE_ADDRESSES="${HOME_ORIGIN} ${HOME_LOCALHOST_ORIGIN}" \
   LINKABLE_REMDO_SERVERS_JSON="${LINKABLE_REMDO_SERVERS_JSON}" \
   YSWEET_AUTH_KEY="${YSWEET_AUTH_KEY}" \
   YSWEET_SERVER_TOKEN="${YSWEET_SERVER_TOKEN}" \

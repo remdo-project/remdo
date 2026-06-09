@@ -116,7 +116,8 @@ records the intent that should stay true across implementations.
   dev:pwa` uses `PORT_BASE + 20` for its range and serves the PWA preview on
   that shifted `PORT`, so it can run beside `pnpm run dev`. `pnpm run
   dev:docker` starts a Docker home server at `127.0.0.1:(PORT_BASE + 40)` for
-  manual OAuth linking against the dev server. Start the source dev server with
+  manual OAuth linking against the dev server, and redirects the matching
+  `localhost` URL to that canonical browser origin. Start the source dev server with
   `HOST=0.0.0.0 pnpm run dev` so the Docker home can exchange OAuth tokens with
   it.
   Current dev mode runs the web app with the RemDo API mounted in the Vite dev

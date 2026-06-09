@@ -12,8 +12,7 @@
 
 		# HTTPS clients on the default port may omit :443 from Host.
 		@canonical_host {
-			header Host {$CADDY_CANONICAL_HOST}
-			header Host {$CADDY_CANONICAL_HOSTPORT}
+			host {$CADDY_CANONICAL_HOST}
 		}
 		handle @canonical_host {
 			@app_favicon path /favicon.ico /favicon.svg
@@ -49,7 +48,7 @@
 		}
 
 		handle {
-			redir https://{$CADDY_CANONICAL_HOSTPORT}{uri}
+			redir {$APP_PUBLIC_URL}{uri}
 		}
 	}
 }
