@@ -1,11 +1,8 @@
 import { attachPageGuards, expect, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
+import type { CurrentUserBootstrap } from '#domain/documents/user-data';
 import { HTTP_STATUS } from '#platform/http/status';
 import { createAuthenticatedContext } from '../_support/auth-context';
-
-interface CurrentUserBootstrapResponse {
-  homeDocumentId: string;
-}
 
 async function expectPath(page: Page, pathname: string): Promise<void> {
   await expect.poll(() => new URL(page.url()).pathname).toBe(pathname);
@@ -35,7 +32,7 @@ test.describe('Routing', () => {
   test('redirects the home alias to the authenticated bootstrap home document', async ({ page }) => {
     const bootstrapResponse = await page.request.get('/api/current-user');
     expect(bootstrapResponse.ok()).toBe(true);
-    const bootstrap = await bootstrapResponse.json() as CurrentUserBootstrapResponse;
+    const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
 
     await page.goto('/home');
 
@@ -69,7 +66,7 @@ test.describe('Routing', () => {
   test('resolves a home next target after login', async ({ page }) => {
     const bootstrapResponse = await page.request.get('/api/current-user');
     expect(bootstrapResponse.ok()).toBe(true);
-    const bootstrap = await bootstrapResponse.json() as CurrentUserBootstrapResponse;
+    const bootstrap = await bootstrapResponse.json() as Pick<CurrentUserBootstrap, 'homeDocumentId'>;
 
     await page.goto('/login?next=/home');
 

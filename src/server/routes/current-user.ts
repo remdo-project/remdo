@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { HTTP_STATUS } from '#platform/http/status';
 import { resolveActor } from '#server/auth/actor';
 import { ensureCurrentUserBootstrap } from '#server/documents/current-user';
+import { listCurrentUserSourceServers } from '#server/documents/source-servers';
 import { createSourceServerRoutes } from './source-servers';
 import type { ServerRouteDependencies } from './types';
 
@@ -22,7 +23,9 @@ export function createCurrentUserRoutes(dependencies: ServerRouteDependencies) {
         return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
       }
 
-      const bootstrap = await ensureCurrentUserBootstrap(registry, tokenManager, actor.userId);
+      const bootstrap = await ensureCurrentUserBootstrap(registry, tokenManager, actor.userId, {
+        sourceServers: await listCurrentUserSourceServers(auth, c.req.raw.headers),
+      });
 
       return c.json(bootstrap);
     } catch (error) {

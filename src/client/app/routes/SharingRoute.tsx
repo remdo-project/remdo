@@ -1,16 +1,12 @@
 import { Alert, Button, Group, Select, Stack, Text, TextInput } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import {
-  fetchLinkableSourceServers,
-  linkSourceServerAccount,
-} from '#client/app/auth/source-server-linking-client';
-import type { LinkableSourceServerView } from '#client/app/auth/source-server-linking-client';
-import {
   fetchDocumentAccess,
   shareDocumentWithUser,
 } from '#client/app/documents/sharing-client';
 import type { DocumentAccessView } from '#client/app/documents/sharing-client';
 import { useUserData } from '#client/app/documents/user-data';
+import type { SourceServerNote } from '#note-sdk';
 
 interface DocumentAccessState {
   docId: string;
@@ -20,6 +16,7 @@ interface DocumentAccessState {
 export default function SharingRoute() {
   const userData = useUserData();
   const documents = userData.documents().children();
+  const sourceServers = userData.sourceServers().children();
   const documentOptions = documents.map((document) => ({
     label: document.text(),
     value: document.id(),
@@ -27,7 +24,6 @@ export default function SharingRoute() {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [shareEmail, setShareEmail] = useState('');
   const [documentAccess, setDocumentAccess] = useState<DocumentAccessState | null>(null);
-  const [linkableSourceServers, setLinkableSourceServers] = useState<LinkableSourceServerView[]>([]);
   const [status, setStatus] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const activeDocId = selectedDocId;
@@ -37,26 +33,6 @@ export default function SharingRoute() {
   useEffect(() => {
     activeDocIdRef.current = activeDocId;
   }, [activeDocId]);
-
-  useEffect(() => {
-    let stale = false;
-    void fetchLinkableSourceServers()
-      .then((servers) => {
-        if (stale) {
-          return;
-        }
-        setLinkableSourceServers(servers);
-      })
-      .catch((error: unknown) => {
-        if (stale) {
-          return;
-        }
-        setErrorMessage(error instanceof Error ? error.message : 'Failed to load source servers.');
-      });
-    return () => {
-      stale = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (!activeDocId) {
@@ -111,12 +87,11 @@ export default function SharingRoute() {
     }
   };
 
-  const linkServer = async (serverId: string) => {
+  const linkServer = async (sourceServer: SourceServerNote) => {
     try {
-      await linkSourceServerAccount(serverId);
+      await sourceServer.link();
       setStatus('Source server account linked.');
       setErrorMessage(null);
-      setLinkableSourceServers(await fetchLinkableSourceServers());
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to link source server account.');
     }
@@ -157,22 +132,22 @@ export default function SharingRoute() {
         ))}
       </Stack>
 
-      {linkableSourceServers.length > 0 && (
+      {sourceServers.length > 0 && (
         <Stack gap="xs">
           <Text fw={600}>Remote RemDo servers</Text>
-          {linkableSourceServers.map((server) => (
-            <Group key={server.id} justify="space-between">
+          {sourceServers.map((server) => (
+            <Group key={server.id()} justify="space-between">
               <Stack gap={0}>
-                <Text>{server.label}</Text>
-                <Text c="dimmed" size="sm">{server.baseUrl}</Text>
+                <Text>{server.text()}</Text>
+                <Text c="dimmed" size="sm">{server.baseUrl()}</Text>
               </Stack>
               <Button
-                disabled={server.linked}
+                disabled={server.linked()}
                 size="xs"
-                variant={server.linked ? 'light' : 'filled'}
-                onClick={() => void linkServer(server.id)}
+                variant={server.linked() ? 'light' : 'filled'}
+                onClick={() => void linkServer(server)}
               >
-                {server.linked ? 'Linked' : 'Link'}
+                {server.linked() ? 'Linked' : 'Link'}
               </Button>
             </Group>
           ))}

@@ -224,6 +224,34 @@ describe('remdo api app', () => {
     expect(harness.readProjectedDocumentIds(firstBootstrap.userDataDocumentId)).toEqual([firstBootstrap.homeDocumentId]);
   });
 
+  it('projects configured source servers during current-user bootstrap', async () => {
+    const harness = createHarness({
+      linkableRemdoServers: [
+        {
+          id: 'source',
+          label: 'Source Server',
+          baseUrl: 'https://source.example',
+          clientId: 'source-client-id',
+          clientSecret: 'source-client-secret',
+        },
+      ],
+    });
+    const headers = await harness.createSessionHeaders();
+
+    const response = await harness.app.request('/api/current-user', { headers });
+    const bootstrap = await response.json();
+
+    expect(response.status).toBe(HTTP_STATUS.OK);
+    expect(harness.readProjectedSourceServers(bootstrap.userDataDocumentId)).toEqual([
+      {
+        id: 'source',
+        label: 'Source Server',
+        baseUrl: 'https://source.example',
+        linked: false,
+      },
+    ]);
+  });
+
   it('returns different user data projection document ids for different users', async () => {
     const harness = createHarness();
     const aliceHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);

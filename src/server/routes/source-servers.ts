@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { HTTP_STATUS } from '#platform/http/status';
 import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
 import { resolveActor } from '#server/auth/actor';
+import { listCurrentUserSourceServers } from '#server/documents/source-servers';
 import { acceptsSourceServerLinkMutation } from './request-guards';
 import type { ServerRouteDependencies } from './types';
 
@@ -19,14 +20,8 @@ export function createSourceServerRoutes({
         return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
       }
 
-      const linkedServerIds = await auth.listLinkedRemdoServerIds(c.req.raw.headers);
       return c.json({
-        servers: auth.linkableRemdoServers.map((server) => ({
-          id: server.id,
-          label: server.label,
-          baseUrl: server.baseUrl,
-          linked: linkedServerIds.has(server.id),
-        })),
+        servers: await listCurrentUserSourceServers(auth, c.req.raw.headers),
       });
     } catch (error) {
       logError(error, {});

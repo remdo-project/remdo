@@ -1,14 +1,3 @@
-export interface LinkableSourceServerView {
-  id: string;
-  label: string;
-  baseUrl: string;
-  linked: boolean;
-}
-
-interface LinkableSourceServersResponse {
-  servers: LinkableSourceServerView[];
-}
-
 interface LinkSourceServerResponse {
   redirect: boolean;
   url: string;
@@ -20,14 +9,6 @@ async function readJsonResponse<T>(response: Response): Promise<T> {
     throw new Error(body.error ?? 'Source server link request failed.');
   }
   return body;
-}
-
-export async function fetchLinkableSourceServers(): Promise<LinkableSourceServerView[]> {
-  const response = await fetch('/api/current-user/source-servers', {
-    credentials: 'same-origin',
-  });
-  const body = await readJsonResponse<LinkableSourceServersResponse>(response);
-  return body.servers;
 }
 
 export async function linkSourceServerAccount(serverId: string): Promise<void> {

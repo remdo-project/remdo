@@ -1,26 +1,19 @@
 import type { YSweetDocumentTokenManager } from '#server/collab-token';
 import type { DocumentKind } from '#server/db/schema';
+import type { CurrentUserBootstrap, UserDocument } from '#domain/documents/user-data';
+import type { SourceServer } from '#domain/source-servers';
 import {
   HOME_DOCUMENT_TITLE,
   USER_DATA_PROJECTION_TITLE,
 } from '#domain/documents/special-documents';
-import { syncUserDocumentsMapArray } from '#server/projection/user-data';
+import { syncSourceServersMapArray, syncUserDocumentsMapArray } from '#server/projection/user-data';
 import type { DocumentRegistry, RegisteredDocument } from './document-registry';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import * as Y from 'yjs';
 
-interface CurrentUserBootstrap {
-  homeDocumentId: string;
-  userDataDocumentId: string;
-}
-
-interface CreatedUserDocument {
-  id: string;
-  title: string;
-}
-
 const USER_DATA_ROOT_NOTE_ID = 'user-data';
 const DOCUMENTS_KEY = 'documents';
+const SOURCE_SERVERS_KEY = 'source-servers';
 const DOCUMENT_ID_ALLOCATION_ATTEMPTS = 64;
 
 type UserSpecialDocumentKind = Exclude<DocumentKind, 'document'>;
@@ -33,16 +26,27 @@ interface CurrentUserBootstrapDocuments {
 function writeUserDataProjection(
   doc: Y.Doc,
   documents: readonly Pick<RegisteredDocument, 'id' | 'title'>[],
+  sourceServers?: readonly SourceServer[],
 ): void {
   const root = doc.getMap<Y.Array<Y.Map<unknown>>>(USER_DATA_ROOT_NOTE_ID);
   const existing = root.get(DOCUMENTS_KEY);
   const userDocuments = existing instanceof Y.Array ? existing : new Y.Array<Y.Map<unknown>>();
+  const existingSourceServers = root.get(SOURCE_SERVERS_KEY);
+  const userSourceServers = existingSourceServers instanceof Y.Array
+    ? existingSourceServers
+    : new Y.Array<Y.Map<unknown>>();
 
   doc.transact(() => {
     if (!(existing instanceof Y.Array)) {
       root.set(DOCUMENTS_KEY, userDocuments);
     }
     syncUserDocumentsMapArray(userDocuments, documents);
+    if (sourceServers) {
+      if (!(existingSourceServers instanceof Y.Array)) {
+        root.set(SOURCE_SERVERS_KEY, userSourceServers);
+      }
+      syncSourceServersMapArray(userSourceServers, sourceServers);
+    }
   });
 }
 
@@ -51,13 +55,14 @@ async function refreshUserDataProjection(
   tokenManager: YSweetDocumentTokenManager,
   userId: string,
   userDataDocumentId: string,
+  sourceServers?: readonly SourceServer[],
 ): Promise<void> {
   await tokenManager.getOrCreateDocAndToken(userDataDocumentId, { authorization: 'read-only' });
 
   const doc = new Y.Doc();
   try {
     Y.applyUpdate(doc, await tokenManager.getDocAsUpdate(userDataDocumentId));
-    writeUserDataProjection(doc, await registry.listUserDocuments(userId));
+    writeUserDataProjection(doc, await registry.listUserDocuments(userId), sourceServers);
     await tokenManager.updateDoc(userDataDocumentId, Y.encodeStateAsUpdate(doc));
   } finally {
     doc.destroy();
@@ -169,13 +174,19 @@ export async function ensureCurrentUserBootstrap(
   registry: DocumentRegistry,
   tokenManager: YSweetDocumentTokenManager,
   userId: string,
-  { createDocumentId }: { createDocumentId?: () => string } = {},
+  {
+    createDocumentId,
+    sourceServers,
+  }: {
+    createDocumentId?: () => string;
+    sourceServers?: readonly SourceServer[];
+  } = {},
 ): Promise<CurrentUserBootstrap> {
   const { userDataDocument, homeDocument } = await ensureCurrentUserBootstrapDocuments(registry, userId, {
     createDocumentId,
   });
 
-  await refreshUserDataProjection(registry, tokenManager, userId, userDataDocument.id);
+  await refreshUserDataProjection(registry, tokenManager, userId, userDataDocument.id, sourceServers);
 
   return {
     userDataDocumentId: userDataDocument.id,
@@ -189,7 +200,7 @@ export async function createUserDocument(
   userId: string,
   title: string,
   { createDocumentId }: { createDocumentId?: () => string } = {},
-): Promise<CreatedUserDocument> {
+): Promise<UserDocument> {
   await ensureCurrentUserBootstrapDocuments(registry, userId, { createDocumentId });
   const document = await createUserDocumentRecord(registry, userId, title, { createDocumentId });
   await refreshCurrentUserDocumentsProjectionBestEffort(registry, tokenManager, userId);

@@ -136,6 +136,33 @@ Rules:
 
 ## Note-first SDK follow-ups
 
+- App-resource SDK direction: model current-user app resources as projected
+  note collections plus HTTP commands. Reads should come from the
+  server-written current-user Yjs projection after bootstrap; writes should stay
+  explicit HTTP commands. The SDK should mirror the conceptual resource tree,
+  not raw route syntax.
+- Current source-server slice status: projection-backed source-server SDK/UI
+  reads are in place, and account linking remains an HTTP command. The legacy
+  source-server `GET` route is retained for transition and existing route/e2e
+  coverage.
+- Next note-resource cleanup:
+  1. Introduce a generic collection-note role for ordered projected
+     collections keyed by stable child note id.
+  2. Make `documents()` and `sourceServers()` return typed collection facades
+     instead of adding one SDK note kind per collection.
+  3. Keep entity note kinds explicit where they carry entity-specific behavior:
+     `DocumentNote` for documents and `SourceServerNote` for source servers.
+  4. Let collection note ids identify resource sections such as
+     `user-documents` and `source-servers`; avoid a separate resource-key API
+     unless a later slice needs it.
+  5. Keep projected collection invariants consistent: child identity keyed by
+     note id, sibling order owned by the collection, and browser state derived
+     from projections rather than local command-result appends.
+  6. After the collection role lands, use it as the default shape for future
+     current-user resources before adding sharing/access-grant resources.
+  7. Remove duplicate `GET` read routes once projection-backed UI and e2e
+     coverage no longer depend on them, keeping `/api/current-user` as the
+     bootstrap endpoint.
 - Generic note handles, document-specific note kinds, and persisted user-data
   storage are in place. Remaining work:
   1. Introduce async walker/finder/query helpers for search and note-link

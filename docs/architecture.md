@@ -69,8 +69,8 @@ document client tokens.
   interface, not on SQL or query-builder APIs.
 - Data boundary: the registry is the durable source for document ownership,
   access-critical metadata, and the current per-user document list. Yjs
-  documents hold collaborative document content plus a persisted, read-only
-  user-data projection for the browser-facing note API.
+  documents hold collaborative document content plus persisted, read-only
+  user-data projections for browser-facing app-resource note APIs.
 - User bootstrap: `/api/current-user` ensures the user's projection/home rows
   and updates the Yjs user-data projection.
 

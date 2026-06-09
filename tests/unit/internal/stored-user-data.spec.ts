@@ -4,6 +4,12 @@ import * as Y from 'yjs';
 import type { UserDataNote } from '#note-sdk';
 
 const USER_RUNTIME_DOCUMENT = { id: 'userHomeDoc', title: 'Home' } as const;
+const USER_SOURCE_SERVER = {
+  id: 'source',
+  label: 'Source Server',
+  baseUrl: 'https://source.example',
+  linked: false,
+} as const;
 const USER_DATA_DOC_ID = 'userDataDoc';
 
 interface MockCollabSessionInstance {
@@ -51,7 +57,19 @@ describe('stored user data', () => {
       title: document.text(),
     }));
 
-  const writeUserDataProjection = (doc: Y.Doc, documents: Array<{ id: string; title: string }>) => {
+  const listSourceServers = (userData: UserDataNote) =>
+    userData.sourceServers().children().map((sourceServer) => ({
+      id: sourceServer.id(),
+      label: sourceServer.text(),
+      baseUrl: sourceServer.baseUrl(),
+      linked: sourceServer.linked(),
+    }));
+
+  const writeUserDataProjection = (
+    doc: Y.Doc,
+    documents: Array<{ id: string; title: string }>,
+    sourceServers: Array<{ id: string; label: string; baseUrl: string; linked: boolean }> = [],
+  ) => {
     const root = doc.getMap<Y.Array<Y.Map<unknown>>>('user-data');
     const entries = new Y.Array<Y.Map<unknown>>();
     for (const document of documents) {
@@ -61,11 +79,25 @@ describe('stored user data', () => {
       entries.push([entry]);
     }
     root.set('documents', entries);
+
+    const sourceServerEntries = new Y.Array<Y.Map<unknown>>();
+    for (const sourceServer of sourceServers) {
+      const entry = new Y.Map<unknown>();
+      entry.set('id', sourceServer.id);
+      entry.set('label', sourceServer.label);
+      entry.set('baseUrl', sourceServer.baseUrl);
+      entry.set('linked', sourceServer.linked);
+      sourceServerEntries.push([entry]);
+    }
+    root.set('source-servers', sourceServerEntries);
   };
 
-  const createUserDataDoc = (documents: Array<{ id: string; title: string }>) => {
+  const createUserDataDoc = (
+    documents: Array<{ id: string; title: string }>,
+    sourceServers: Array<{ id: string; label: string; baseUrl: string; linked: boolean }> = [],
+  ) => {
     const doc = new Y.Doc();
-    writeUserDataProjection(doc, documents);
+    writeUserDataProjection(doc, documents, sourceServers);
     return doc;
   };
 
@@ -406,16 +438,39 @@ describe('stored user data', () => {
 
     const userData = await getUserData();
     expect(listDocuments(userData)).toEqual([USER_RUNTIME_DOCUMENT]);
+    expect(listSourceServers(userData)).toEqual([]);
 
     writeUserDataProjection(doc, [
       USER_RUNTIME_DOCUMENT,
       { id: 'remoteDoc', title: 'Remote Document' },
+    ], [
+      USER_SOURCE_SERVER,
     ]);
 
     expect(listDocuments(userData)).toEqual([
       USER_RUNTIME_DOCUMENT,
       { id: 'remoteDoc', title: 'Remote Document' },
     ]);
+    expect(listSourceServers(userData)).toEqual([USER_SOURCE_SERVER]);
+  });
+
+  it('links source servers through the projected handle without optimistic local changes', async () => {
+    const doc = createUserDataDoc([USER_RUNTIME_DOCUMENT], [USER_SOURCE_SERVER]);
+    const linkSourceServerAccount = vi.fn(async () => {});
+    vi.doMock('#client/app/auth/source-server-linking-client', () => ({
+      linkSourceServerAccount,
+    }));
+    mockCollabSession({ doc });
+
+    const { getUserData } = await import('#client/app/documents/stored-user-data');
+
+    const userData = await getUserData();
+    const sourceServer = userData.sourceServers().byId('source')!;
+
+    await sourceServer.link();
+
+    expect(linkSourceServerAccount).toHaveBeenCalledWith('source');
+    expect(listSourceServers(userData)).toEqual([USER_SOURCE_SERVER]);
   });
 
   it('waits for initial loading and lists created documents from the stored projection', async () => {

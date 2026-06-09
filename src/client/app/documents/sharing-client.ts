@@ -1,9 +1,6 @@
-export interface DocumentAccessView {
-  documentId: string;
-  email: string;
-  granteeUserId: string;
-  name: string | null;
-}
+import type { DocumentAccessView } from '#domain/documents/access';
+
+export type { DocumentAccessView } from '#domain/documents/access';
 
 const SHARING_ACTION_HEADER = 'x-remdo-action';
 const SHARING_ACTION_VALUE = 'sharing';

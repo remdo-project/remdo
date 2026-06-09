@@ -7,10 +7,13 @@ export type {
 } from './notes';
 export type {
   DocumentNote,
+  SourceServerNote,
+  SourceServersNote,
   UserDataNote,
   UserDocumentsNote,
 } from './documents';
-export type { UserDocument } from './create-user-data-notes';
+export type { SourceServer } from '#domain/source-servers';
+export type { UserDocument } from '#domain/documents/user-data';
 export type {
   EditorNote,
   EditorNotes,

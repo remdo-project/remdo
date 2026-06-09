@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { DocumentAccessView } from '#domain/documents/access';
 import { normalizeDocumentId } from '#domain/documents/ids';
 import { HTTP_STATUS } from '#platform/http/status';
 import { resolveActor } from '#server/auth/actor';
@@ -9,13 +10,6 @@ import {
 } from '#server/documents/current-user';
 import { acceptsSharingMutation } from './request-guards';
 import type { ServerRouteDependencies } from './types';
-
-interface DocumentAccessView {
-  documentId: string;
-  email: string;
-  granteeUserId: string;
-  name: string | null;
-}
 
 export function createDocumentRoutes({
   auth,

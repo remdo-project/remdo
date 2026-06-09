@@ -1,7 +1,9 @@
+import type { SourceServer } from '#domain/source-servers';
 import * as Y from 'yjs';
 import { CollabSession } from '#collaboration/session';
 import { resolveApiServerOrigin, resolveAppOrigin } from '#platform/net/origins';
 import type { CollaborationProviderInstance } from '#collaboration/runtime';
+import { linkSourceServerAccount } from '#client/app/auth/source-server-linking-client';
 import { getCurrentUserBootstrap } from './current-user-bootstrap';
 import type { CurrentUserBootstrap } from './current-user-bootstrap';
 import { normalizeDocumentId } from '#domain/documents/ids';
@@ -11,6 +13,7 @@ import type { UserDataNote, UserDocument } from '#note-sdk';
 
 const USER_DATA_ROOT_NOTE_ID = 'user-data';
 const DOCUMENTS_KEY = 'documents';
+const SOURCE_SERVERS_KEY = 'source-servers';
 const STARTUP_RETRY_DELAY_MS = 1000;
 
 interface UserDataStoreContext {
@@ -28,9 +31,11 @@ class StoredUserDataStore {
   private listeners = new Set<() => void>();
   private homeDocumentId: string | null = null;
   private documents: UserDocument[] = [];
-  private readonly userData = createUserDataRootNote(this.documents, {
+  private sourceServers: SourceServer[] = [];
+  private readonly userData = createUserDataRootNote(this.documents, this.sourceServers, {
     createDocument: async (title) => this.createDocument(title),
     homeDocumentId: () => this.homeDocumentId,
+    linkSourceServer: async (sourceServerId) => linkSourceServerAccount(sourceServerId),
   });
   private context: UserDataStoreContext | null = null;
   private contextPromise: Promise<UserDataStoreContext> | null = null;
@@ -69,6 +74,7 @@ class StoredUserDataStore {
     this.ready = false;
     this.homeDocumentId = null;
     this.replaceDocuments([]);
+    this.replaceSourceServers([]);
     this.bumpVersion();
   }
 
@@ -187,6 +193,14 @@ class StoredUserDataStore {
     return true;
   }
 
+  private replaceSourceServers(nextSourceServers: readonly SourceServer[]) {
+    if (areUserSourceServersEqual(this.sourceServers, nextSourceServers)) {
+      return false;
+    }
+    this.sourceServers.splice(0, this.sourceServers.length, ...nextSourceServers);
+    return true;
+  }
+
   private observeUserDataProjection(doc: Y.Doc, generation: number): () => void {
     const handleUpdate = () => {
       if (this.generation !== generation) {
@@ -203,7 +217,10 @@ class StoredUserDataStore {
   private syncDocumentsFromProjection(doc: Y.Doc, fallbackDocument = this.createFallbackHomeDocument()): boolean {
     const root = doc.getMap<Y.Array<Y.Map<unknown>>>(USER_DATA_ROOT_NOTE_ID);
     const documents = readUserDataDocuments(root);
-    return this.replaceDocuments(documents.length > 0 ? documents : fallbackDocument ? [fallbackDocument] : []);
+    const sourceServers = readUserSourceServers(root);
+    const documentsChanged = this.replaceDocuments(documents.length > 0 ? documents : fallbackDocument ? [fallbackDocument] : []);
+    const sourceServersChanged = this.replaceSourceServers(sourceServers);
+    return documentsChanged || sourceServersChanged;
   }
 
   private createFallbackHomeDocument(): UserDocument | null {
@@ -243,6 +260,20 @@ function areUserDocumentsEqual(
     });
 }
 
+function areUserSourceServersEqual(
+  currentSourceServers: readonly SourceServer[],
+  nextSourceServers: readonly SourceServer[],
+): boolean {
+  return currentSourceServers.length === nextSourceServers.length
+    && currentSourceServers.every((sourceServer, index) => {
+      const nextSourceServer = nextSourceServers[index];
+      return nextSourceServer?.id === sourceServer.id
+        && nextSourceServer.label === sourceServer.label
+        && nextSourceServer.baseUrl === sourceServer.baseUrl
+        && nextSourceServer.linked === sourceServer.linked;
+    });
+}
+
 function destroyUserDataStoreContext(context: UserDataStoreContext): void {
   context.unobserveProjection?.();
   context.session.destroy();
@@ -264,6 +295,32 @@ function readUserDataDocuments(root: Y.Map<Y.Array<Y.Map<unknown>>>) {
       throw new TypeError('User data document entry is missing id or title.');
     }
     return { id, title };
+  });
+}
+
+function readUserSourceServers(root: Y.Map<Y.Array<Y.Map<unknown>>>) {
+  const sourceServers = root.get(SOURCE_SERVERS_KEY);
+  if (!(sourceServers instanceof Y.Array)) {
+    return [];
+  }
+
+  return sourceServers.toArray().map((value) => {
+    if (!(value instanceof Y.Map)) {
+      throw new TypeError('User data source servers list contains an invalid entry.');
+    }
+    const id = value.get('id');
+    const label = value.get('label');
+    const baseUrl = value.get('baseUrl');
+    const linked = value.get('linked');
+    if (
+      typeof id !== 'string'
+      || typeof label !== 'string'
+      || typeof baseUrl !== 'string'
+      || typeof linked !== 'boolean'
+    ) {
+      throw new TypeError('Source server entry is missing id, label, baseUrl, or linked.');
+    }
+    return { id, label, baseUrl, linked };
   });
 }
 

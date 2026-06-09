@@ -1,12 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createEditorNotes, createUserDataRootNote, NoteNotFoundError } from '#note-sdk';
-import type { EditorNotesAdapter, NoteRange, PlaceTarget, SelectionSnapshot } from '#note-sdk';
+import type {
+  EditorNotesAdapter,
+  NoteRange,
+  PlaceTarget,
+  SelectionSnapshot,
+} from '#note-sdk';
+import type { SourceServer } from '#domain/source-servers';
 
 function createMockAdapterFixture(
   adapterSelection?: SelectionSnapshot
 ): {
   adapter: EditorNotesAdapter;
   userData: Parameters<typeof createUserDataRootNote>[0];
+  sourceServers: SourceServer[];
   notes: Map<string, { text: string; children: string[] }>;
   placeCalls: Array<{ range: NoteRange; target: PlaceTarget }>;
 } {
@@ -21,6 +28,14 @@ function createMockAdapterFixture(
   const userData = [
     { id: 'main', title: 'Main' },
     { id: 'flat', title: 'Flat' },
+  ];
+  const sourceServers = [
+    {
+      id: 'source',
+      label: 'Source Server',
+      baseUrl: 'https://source.example',
+      linked: false,
+    },
   ];
 
   const requireNote = (noteId: string): { text: string; children: string[] } => {
@@ -40,6 +55,7 @@ function createMockAdapterFixture(
     notes,
     placeCalls,
     userData,
+    sourceServers,
     adapter: {
       docId: () => 'doc-1',
       currentDocumentChildrenIds: () => ['a'],
@@ -131,6 +147,36 @@ describe('editor notes core', () => {
       { id: 'main', kind: 'document', text: 'Main' },
       { id: 'flat', kind: 'document', text: 'Flat' },
     ]);
+  });
+
+  it('lists source servers through user-data source-server traversal', async () => {
+    const fixture = createMockAdapterFixture();
+    const linkSourceServer = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const sourceServers = createUserDataRootNote(fixture.userData, fixture.sourceServers, {
+      linkSourceServer,
+    }).sourceServers();
+
+    const sourceServer = sourceServers.byId('source')!;
+
+    expect(sourceServers.kind()).toBe('source-servers');
+    expect(sourceServers.children().map((server) => ({
+      id: server.id(),
+      kind: server.kind(),
+      text: server.text(),
+      baseUrl: server.baseUrl(),
+      linked: server.linked(),
+    }))).toEqual([{
+      id: 'source',
+      kind: 'source-server',
+      text: 'Source Server',
+      baseUrl: 'https://source.example',
+      linked: false,
+    }]);
+    expect(sourceServer.as('source-server')).toBe(sourceServer);
+
+    await sourceServer.link();
+
+    expect(linkSourceServer).toHaveBeenCalledWith('source');
   });
 
   it('reads note data from adapter', () => {

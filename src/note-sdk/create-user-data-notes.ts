@@ -1,4 +1,12 @@
-import type { UserDocumentsNote, DocumentNote, UserDataNote } from './documents';
+import type { SourceServer } from '#domain/source-servers';
+import type { UserDocument } from '#domain/documents/user-data';
+import type {
+  DocumentNote,
+  SourceServerNote,
+  SourceServersNote,
+  UserDataNote,
+  UserDocumentsNote,
+} from './documents';
 import type { ChildPosition, NoteId } from './notes';
 import { createNoteAs } from './handle-utils';
 
@@ -7,14 +15,10 @@ const USER_DOCUMENTS_ID = 'user-documents';
 const USER_DATA_TITLE = 'User Data';
 const USER_DOCUMENTS_TITLE = 'Documents';
 
-export interface UserDocument {
-  id: NoteId;
-  title: string;
-}
-
 interface UserDataNoteActions {
   createDocument?: (title: string) => Promise<UserDocument>;
   homeDocumentId?: () => NoteId | null;
+  linkSourceServer?: (sourceServerId: NoteId) => Promise<void>;
 }
 
 function createDocumentHandle(document: UserDocument): DocumentNote {
@@ -67,16 +71,71 @@ function createUserDocumentsHandle(
   return handle;
 }
 
+function createSourceServerHandle(
+  sourceServer: SourceServer,
+  actions: UserDataNoteActions,
+): SourceServerNote {
+  const noteId = sourceServer.id;
+  const kind = () => 'source-server' as const;
+  const handle: SourceServerNote = {
+    id: () => noteId,
+    kind,
+    text: () => sourceServer.label,
+    children: () => [],
+    baseUrl: () => sourceServer.baseUrl,
+    linked: () => sourceServer.linked,
+    link: async () => {
+      if (!actions.linkSourceServer) {
+        throw new Error('Source server linking is not available for this user data.');
+      }
+      await actions.linkSourceServer(noteId);
+    },
+    as: createNoteAs(noteId, kind, () => handle),
+  };
+
+  return handle;
+}
+
+function createSourceServersHandle(
+  sourceServers: readonly SourceServer[],
+  actions: UserDataNoteActions,
+): SourceServersNote {
+  const noteId = 'source-servers';
+  const kind = () => 'source-servers' as const;
+  const handle: SourceServersNote = {
+    id: () => noteId,
+    kind,
+    text: () => 'Source Servers',
+    children: () => sourceServers.map((sourceServer) => createSourceServerHandle(sourceServer, actions)),
+    byId: (sourceServerId) => {
+      const sourceServer = sourceServers.find((candidate) => candidate.id === sourceServerId);
+      return sourceServer ? createSourceServerHandle(sourceServer, actions) : null;
+    },
+    as: createNoteAs(noteId, kind, () => handle),
+  };
+
+  return handle;
+}
+
 export function createUserDataRootNote(
   documents: readonly UserDocument[],
+  sourceServersOrActions: readonly SourceServer[] | UserDataNoteActions = [],
   actions: UserDataNoteActions = {},
 ): UserDataNote {
   const noteId = USER_DATA_ROOT_ID;
   const kind = () => 'user-data' as const;
-  const userDocuments = createUserDocumentsHandle(documents, actions);
+  let sourceServers: readonly SourceServer[] = [];
+  let resolvedActions: UserDataNoteActions = actions;
+  if (Array.isArray(sourceServersOrActions)) {
+    sourceServers = sourceServersOrActions;
+  } else {
+    resolvedActions = sourceServersOrActions as UserDataNoteActions;
+  }
+  const userDocuments = createUserDocumentsHandle(documents, resolvedActions);
+  const userSourceServers = createSourceServersHandle(sourceServers, resolvedActions);
 
   function homeDocument(): DocumentNote {
-    const homeDocumentId = actions.homeDocumentId?.() ?? null;
+    const homeDocumentId = resolvedActions.homeDocumentId?.() ?? null;
     const document = homeDocumentId
       ? documents.find((candidate) => candidate.id === homeDocumentId)
       : documents[0];
@@ -90,9 +149,10 @@ export function createUserDataRootNote(
     id: () => noteId,
     kind,
     text: () => USER_DATA_TITLE,
-    children: () => [userDocuments],
+    children: () => [userDocuments, userSourceServers],
     homeDocument,
     documents: () => userDocuments,
+    sourceServers: () => userSourceServers,
     as: createNoteAs(noteId, kind, () => handle),
   };
 

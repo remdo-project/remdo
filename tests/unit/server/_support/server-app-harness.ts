@@ -140,6 +140,23 @@ export function createServerAppHarness({
         doc.destroy();
       }
     },
+    readProjectedSourceServers(docId: string) {
+      const doc = new Y.Doc();
+      try {
+        Y.applyUpdate(doc, collabDocuments.get(docId) ?? Y.encodeStateAsUpdate(new Y.Doc()));
+        const sourceServers = doc.getMap<Y.Array<Y.Map<unknown>>>('user-data').get('source-servers');
+        return sourceServers instanceof Y.Array
+          ? sourceServers.toArray().map((entry) => ({
+            id: String(entry.get('id')),
+            label: String(entry.get('label')),
+            baseUrl: String(entry.get('baseUrl')),
+            linked: entry.get('linked') === true,
+          }))
+          : [];
+      } finally {
+        doc.destroy();
+      }
+    },
     async cleanup() {
       await client.close();
       fs.rmSync(tempDir, { recursive: true, force: true });

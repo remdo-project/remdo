@@ -1,4 +1,10 @@
-import type { UserDocumentsNote, DocumentNote, UserDataNote } from './documents';
+import type {
+  DocumentNote,
+  SourceServerNote,
+  SourceServersNote,
+  UserDataNote,
+  UserDocumentsNote,
+} from './documents';
 import type { EditorNote } from './editor';
 
 export type NoteId = string;
@@ -8,7 +14,9 @@ export type NoteKind =
   | 'editor-note'
   | 'user-data'
   | 'user-documents'
-  | 'document';
+  | 'document'
+  | 'source-servers'
+  | 'source-server';
 
 export interface Note<K extends NoteKind = NoteKind> {
   /** Stable id for a note. */
@@ -25,6 +33,8 @@ export interface Note<K extends NoteKind = NoteKind> {
     (kind: 'user-data'): UserDataNote;
     (kind: 'user-documents'): UserDocumentsNote;
     (kind: 'document'): DocumentNote;
+    (kind: 'source-servers'): SourceServersNote;
+    (kind: 'source-server'): SourceServerNote;
     (kind: NoteKind): Note;
   };
 }

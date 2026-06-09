@@ -1,15 +1,13 @@
 import { hasRememberedSession, isLikelyFetchUnavailableError } from '#client/app/auth/client';
 import { normalizeDocumentId } from '#domain/documents/ids';
+import type { CurrentUserBootstrap } from '#domain/documents/user-data';
 import {
   clearStoredCurrentUserBootstrap,
   readStoredCurrentUserBootstrap,
   writeStoredCurrentUserBootstrap,
 } from './current-user-bootstrap-storage';
 
-export interface CurrentUserBootstrap {
-  homeDocumentId: string;
-  userDataDocumentId: string;
-}
+export type { CurrentUserBootstrap } from '#domain/documents/user-data';
 
 let bootstrapPromise: Promise<CurrentUserBootstrap> | null = null;
 

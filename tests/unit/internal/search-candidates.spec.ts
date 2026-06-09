@@ -6,6 +6,8 @@ import type {
   EditorNote,
   Note,
   NoteKind,
+  SourceServerNote,
+  SourceServersNote,
   UserDataNote,
   UserDocumentsNote,
 } from '#note-sdk';
@@ -20,6 +22,8 @@ function createMockNoteAs(noteId: string, kind: () => NoteKind, self: () => Note
   function asNote(kindToMatch: 'user-data'): UserDataNote;
   function asNote(kindToMatch: 'user-documents'): UserDocumentsNote;
   function asNote(kindToMatch: 'document'): DocumentNote;
+  function asNote(kindToMatch: 'source-servers'): SourceServersNote;
+  function asNote(kindToMatch: 'source-server'): SourceServerNote;
   function asNote(kindToMatch: NoteKind): Note;
   function asNote(kindToMatch: NoteKind): Note {
     const actualKind = kind();

@@ -1,5 +1,6 @@
 import { expect, test } from '#e2e/fixtures';
 import { config } from '#config';
+import type { CurrentUserBootstrap, UserDocument } from '#domain/documents/user-data';
 import type { ClientToken } from '@y-sweet/sdk';
 import { HTTP_STATUS } from '#platform/http/status';
 import { request as playwrightRequest } from '@playwright/test';
@@ -12,16 +13,6 @@ import { waitForEditableEditor } from './_support/helpers';
 const USER_DATA_ROOT_NOTE_ID = 'user-data';
 const DOCUMENTS_KEY = 'documents';
 const FORGED_USER_DATA_DOCUMENT_ID = 'forgedUserDataDoc';
-
-interface CurrentUserBootstrapResponse {
-  userDataDocumentId: string;
-  homeDocumentId: string;
-}
-
-interface UserDocumentResponse {
-  id: string;
-  title: string;
-}
 
 function readSmokeDocumentId(): string {
   // eslint-disable-next-line node/no-process-env -- Docker tests consume setup-created smoke document state.
@@ -153,7 +144,7 @@ test('user data sync token is read-only and API document creation updates the pr
 
   const bootstrapResponse = await requestContext.fetch('/api/current-user');
   expect(bootstrapResponse.status()).toBe(HTTP_STATUS.OK);
-  const bootstrap = await bootstrapResponse.json() as CurrentUserBootstrapResponse;
+  const bootstrap = await bootstrapResponse.json() as CurrentUserBootstrap;
 
   const tokenResponse = await requestContext.fetch(`/api/documents/${bootstrap.userDataDocumentId}/sync-tokens`, {
     method: 'POST',
@@ -184,7 +175,7 @@ test('user data sync token is read-only and API document creation updates the pr
     },
   });
   expect(createResponse.status()).toBe(HTTP_STATUS.OK);
-  const createdDocument = await createResponse.json() as UserDocumentResponse;
+  const createdDocument = await createResponse.json() as UserDocument;
 
   await expect.poll(async () => {
     const updateResponse = await requestContext.fetch(createServerDocEndpoint(token.baseUrl, 'as-update'), {
