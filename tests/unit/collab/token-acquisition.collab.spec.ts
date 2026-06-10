@@ -50,4 +50,16 @@ describe('collaboration token acquisition', { timeout: COLLAB_LONG_TIMEOUT_MS },
       unmount();
     }
   });
+
+  it('adds the session cookie to relative API requests', () => {
+    const request = withSessionCookie(
+      createDocumentSyncTokenApiPath('tokenroute'),
+      { method: 'POST' },
+      'better-auth.session_token=test-session',
+    );
+
+    expect(request.url).toContain(createDocumentSyncTokenApiPath('tokenroute'));
+    expect(request.headers.get('cookie')).toBe('better-auth.session_token=test-session');
+    expect(request.method).toBe('POST');
+  });
 });

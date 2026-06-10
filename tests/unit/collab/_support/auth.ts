@@ -67,10 +67,17 @@ export async function getCollabTestSessionCookie(): Promise<string> {
   return sessionCookiePromise;
 }
 
+function createApiRequest(input: RequestInfo | URL, init: RequestInit | undefined): Request {
+  return typeof input === 'string'
+    ? new Request(new URL(input, toApiUrl('/')), init)
+    : new Request(input, init);
+}
+
 export function withSessionCookie(input: RequestInfo | URL, init: RequestInit | undefined, sessionCookie: string): Request {
-  const request = new Request(input, init);
-  const url = new URL(request.url, toApiUrl('/'));
-  if (url.origin !== new URL(toApiUrl('/')).origin || !url.pathname.startsWith('/api/')) {
+  const request = createApiRequest(input, init);
+  const apiOrigin = new URL(toApiUrl('/')).origin;
+  const url = new URL(request.url);
+  if (url.origin !== apiOrigin || !url.pathname.startsWith('/api/')) {
     return request;
   }
 
