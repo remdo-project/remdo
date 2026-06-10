@@ -32,6 +32,13 @@ const NODE_DEFAULTS = {
     mode: 'normal',
     style: '',
   },
+  date: {
+    version: 1,
+    detail: 0,
+    format: 0,
+    mode: 'token',
+    style: '',
+  },
   'note-link': {
     version: 1,
     format: '',

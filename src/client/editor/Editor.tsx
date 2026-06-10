@@ -13,6 +13,7 @@ import { SelectionPlugin, SelectionInputPlugin } from './plugins/SelectionPlugin
 import { SelectionCollapsePlugin } from './plugins/SelectionCollapsePlugin';
 import { InsertionPlugin } from './plugins/InsertionPlugin';
 import { DeletionPlugin } from './plugins/DeletionPlugin';
+import { DatePlugin } from './plugins/DatePlugin';
 import { LinksPlugin } from './plugins/LinksPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import { NoteIdPlugin } from './plugins/NoteIdPlugin';
@@ -117,6 +118,7 @@ function EditorRuntime({
               <SelectionPlugin />
               <SelectionCollapsePlugin />
               <LinksPlugin />
+              <DatePlugin />
               <InsertionPlugin />
               <DeletionPlugin />
               <SelectionInputPlugin />
