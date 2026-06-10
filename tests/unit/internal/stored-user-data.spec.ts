@@ -147,6 +147,17 @@ describe('stored user data', () => {
     return doc;
   };
 
+  const createMalformedUserDataDoc = () => {
+    const doc = new Y.Doc();
+    const root = doc.getMap<Y.Array<Y.Map<unknown>>>('user-data');
+    const entries = new Y.Array<Y.Map<unknown>>();
+    const entry = new Y.Map<unknown>();
+    entry.set('id', 'sourceDoc');
+    entries.push([entry]);
+    root.set('documents', entries);
+    return doc;
+  };
+
   const createDeferred = () => {
     let resolve!: () => void;
     const promise = new Promise<void>((promiseResolve) => {
@@ -603,7 +614,12 @@ describe('stored user data', () => {
     const {
       getDocumentSourcesLoading,
       getUserData,
+      subscribeUserDataRuntime,
     } = await import('#client/app/documents/stored-user-data');
+    const observedLoadingStates: boolean[] = [];
+    const unsubscribe = subscribeUserDataRuntime(() => {
+      observedLoadingStates.push(getDocumentSourcesLoading());
+    });
 
     const userData = await getUserData();
     for (
@@ -620,6 +636,7 @@ describe('stored user data', () => {
     expect(failedSourceSessions[0]!.awaitSynced).toHaveBeenCalledTimes(1);
     expect(failedSourceSessions[0]!.destroy).toHaveBeenCalledTimes(1);
     expect(getDocumentSourcesLoading()).toBe(true);
+    expect(observedLoadingStates).not.toContain(false);
     expect(listDocumentSources(userData)[1]?.documents).toEqual([]);
 
     await vi.advanceTimersByTimeAsync(1000);
@@ -640,6 +657,35 @@ describe('stored user data', () => {
     expect(listDocumentSources(userData)[1]?.documents).toEqual([
       { id: 'sourceDoc', title: 'Source Document' },
     ]);
+    unsubscribe();
+  });
+
+  it('destroys a linked source session after malformed projection loading fails', async () => {
+    vi.useFakeTimers();
+    const collab = mockLinkedSourceProjection({
+      remoteDoc: createMalformedUserDataDoc(),
+    });
+
+    const {
+      getDocumentSourcesLoading,
+      getUserData,
+    } = await import('#client/app/documents/stored-user-data');
+
+    await getUserData();
+    for (
+      let attempt = 0;
+      attempt < 10 && collab.byDocId('sourceUserDataDoc')[0]?.destroy.mock.calls.length !== 1;
+      attempt += 1
+    ) {
+      await Promise.resolve();
+    }
+
+    const failedSourceSessions = collab.byDocId('sourceUserDataDoc');
+    expect(failedSourceSessions).toHaveLength(1);
+    expect(failedSourceSessions[0]!.connect).toHaveBeenCalledTimes(1);
+    expect(failedSourceSessions[0]!.awaitSynced).toHaveBeenCalledTimes(1);
+    expect(failedSourceSessions[0]!.destroy).toHaveBeenCalledTimes(1);
+    expect(getDocumentSourcesLoading()).toBe(true);
   });
 
   it('destroys a pending linked source session when the source is unlinked', async () => {

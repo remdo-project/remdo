@@ -364,8 +364,8 @@ class StoredUserDataStore {
           runtime.contextPromise = null;
           runtime.pendingContextSession = null;
           runtime.documents.clear();
-          this.bumpVersion();
           this.scheduleRemoteSourceRetry(runtime, generation);
+          this.bumpVersion();
         }
         throw new Error('Source user data runtime failed.');
       });
@@ -400,9 +400,17 @@ class StoredUserDataStore {
       }
       throw new Error('Source user data runtime was reset.');
     }
-    context.unobserveProjection = this.observeRemoteUserDataProjection(sourceId, context.doc, generation);
-    if (this.syncRemoteUserDataFromProjection(runtime, context.doc)) {
-      this.bumpVersion();
+    try {
+      context.unobserveProjection = this.observeRemoteUserDataProjection(sourceId, context.doc, generation);
+      if (this.syncRemoteUserDataFromProjection(runtime, context.doc)) {
+        this.bumpVersion();
+      }
+    } catch (error) {
+      if (runtime.pendingContextSession === context.session) {
+        runtime.pendingContextSession = null;
+      }
+      destroyUserDataStoreContext(context);
+      throw error;
     }
     return context;
   }
