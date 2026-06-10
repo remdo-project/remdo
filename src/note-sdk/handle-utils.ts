@@ -1,5 +1,6 @@
 import type {
   DocumentAccessNote,
+  DocumentSourceNote,
   DocumentNote,
   SourceServerNote,
   UserDataNote,
@@ -17,6 +18,7 @@ export function createNoteAs(noteId: NoteId, kind: () => NoteKind, self: () => N
   function asNote(kindToMatch: 'user-data'): UserDataNote;
   function asNote(kindToMatch: 'document'): DocumentNote;
   function asNote(kindToMatch: 'document-access'): DocumentAccessNote;
+  function asNote(kindToMatch: 'document-source'): DocumentSourceNote;
   function asNote(kindToMatch: 'collection'): CollectionNote;
   function asNote(kindToMatch: 'source-server'): SourceServerNote;
   function asNote(kindToMatch: NoteKind): Note;

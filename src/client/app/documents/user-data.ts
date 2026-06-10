@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import {
+  getDocumentSourcesLoading,
   getCurrentUserData,
   subscribeUserDataRuntime,
   getUserDataVersion,
@@ -18,4 +19,12 @@ export function useUserData(): UserDataNote {
   );
 
   return getCurrentUserData();
+}
+
+export function useDocumentSourcesLoading(): boolean {
+  return useSyncExternalStore(
+    subscribeUserDataRuntime,
+    getDocumentSourcesLoading,
+    getDocumentSourcesLoading,
+  );
 }

@@ -8,13 +8,35 @@
 import { useSyncExternalStore } from 'react';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { createUserDataRootNote } from '#note-sdk';
-import type { UserDataNote, UserDocument } from '#note-sdk';
+import type { CollectionSource, DocumentSource, UserDataNote, UserDocument } from '#note-sdk';
 
 export const TEST_USER_DATA_DOCUMENT = { id: 'testDoc', title: 'Test Document' } as const;
 
 const listeners = new Set<() => void>();
 const documents: UserDocument[] = [TEST_USER_DATA_DOCUMENT];
+const extraDocumentSources: DocumentSource[] = [];
+let documentSourcesLoading = false;
 let version = 0;
+
+const localDocumentSource: DocumentSource = {
+  baseUrl: null,
+  documents: createMutableCollectionSource(documents),
+  id: 'local',
+  label: 'Current Server',
+  local: true,
+};
+
+const documentSources: CollectionSource<DocumentSource> = {
+  children: () => [localDocumentSource, ...extraDocumentSources],
+  byId: (sourceId) => documentSources.children().find((source) => source.id === sourceId) ?? null,
+};
+
+function createMutableCollectionSource<Item extends { id: string }>(items: readonly Item[]): CollectionSource<Item> {
+  return {
+    children: () => items,
+    byId: (itemId) => items.find((item) => item.id === itemId) ?? null,
+  };
+}
 
 function notifyListeners() {
   for (const listener of listeners) {
@@ -34,11 +56,25 @@ const userData = createUserDataRootNote(documents, {
     bumpVersion();
     return document;
   },
+  documentSources,
   homeDocumentId: () => TEST_USER_DATA_DOCUMENT.id,
 });
 
 export function resetTestUserData(): void {
   documents.splice(0, documents.length, TEST_USER_DATA_DOCUMENT);
+  extraDocumentSources.splice(0);
+  documentSourcesLoading = false;
+  bumpVersion();
+}
+
+export function setTestDocumentSources(sources: readonly DocumentSource[]): void {
+  extraDocumentSources.splice(0);
+  extraDocumentSources.push(...sources);
+  bumpVersion();
+}
+
+export function setTestDocumentSourcesLoading(loading: boolean): void {
+  documentSourcesLoading = loading;
   bumpVersion();
 }
 
@@ -57,6 +93,10 @@ function getTestUserDataVersion(): number {
   return version;
 }
 
+function getTestDocumentSourcesLoading(): boolean {
+  return documentSourcesLoading;
+}
+
 function useTestUserData(): UserDataNote {
   useSyncExternalStore(
     subscribeTestUserDataRuntime,
@@ -66,8 +106,17 @@ function useTestUserData(): UserDataNote {
   return userData;
 }
 
+function useTestDocumentSourcesLoading(): boolean {
+  return useSyncExternalStore(
+    subscribeTestUserDataRuntime,
+    getTestDocumentSourcesLoading,
+    getTestDocumentSourcesLoading,
+  );
+}
+
 export function mockUserDataModule() {
   return {
+    useDocumentSourcesLoading: useTestDocumentSourcesLoading,
     useUserData: useTestUserData,
   };
 }

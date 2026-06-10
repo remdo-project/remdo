@@ -60,6 +60,18 @@ describe('remdo oauth server config', () => {
     ]))).toThrow('letters, numbers, underscores, or hyphens');
   });
 
+  it('rejects the reserved local server id', () => {
+    expect(() => parseLinkableRemdoServers(JSON.stringify([
+      {
+        id: 'local',
+        label: 'Source Server',
+        baseUrl: 'https://source.example',
+        clientId: 'source-client-id',
+        clientSecret: 'source-client-secret',
+      },
+    ]))).toThrow('reserved ids');
+  });
+
   it('rejects non-exact server origins', () => {
     expect(() => parseLinkableRemdoServers(JSON.stringify([
       {

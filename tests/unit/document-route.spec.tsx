@@ -1,15 +1,20 @@
 import { MantineProvider } from '@mantine/core';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getTestUserData, resetTestUserData } from '#tests';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  getTestUserData,
+  resetTestUserData,
+  setTestDocumentSources,
+  setTestDocumentSourcesLoading,
+} from '#tests';
 
 import { ROOT_SEARCH_SCOPE_ID } from '#client/editor/search/search-candidates';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import { useEditorViewActions, useZoomNoteId } from '#client/editor/view/EditorViewProvider';
 import DocumentRoute from '#client/app/routes/DocumentRoute';
-import { createDocumentPath, parseDocumentRef } from '#document-routes';
+import { createDocumentPath, createDocumentSyncTokenApiPath, parseDocumentRef } from '#document-routes';
 
 vi.mock('#client/app/documents/user-data', async () => {
   const { mockUserDataModule } = await import('#tests');
@@ -54,6 +59,8 @@ interface MockEditorProps {
   docId: string;
   onSearchCandidatesChange?: (snapshot: TestSearchSnapshot | null) => void;
   searchModeRequested?: boolean;
+  sourceId?: string | null;
+  sourceOrigin?: string | null;
 }
 
 let mockEditorInstanceCounter = 0;
@@ -62,6 +69,8 @@ function MockEditor({
   docId,
   onSearchCandidatesChange,
   searchModeRequested,
+  sourceId = null,
+  sourceOrigin = null,
 }: MockEditorProps) {
   const zoomNoteId = useZoomNoteId();
   const { setZoomPath } = useEditorViewActions();
@@ -105,6 +114,8 @@ function MockEditor({
         data-doc-id={docId}
         data-instance-id={instanceId}
         data-search-mode-requested={searchModeRequested ? 'true' : 'false'}
+        data-source-id={sourceId ?? ''}
+        data-source-origin={sourceOrigin ?? ''}
         data-testid="editor-probe"
       />
       <div data-testid="editor-search-probe" data-zoom-note-id={zoomNoteId ?? ''} />
@@ -121,10 +132,14 @@ function MockEditor({
   );
 }
 
+function MockZoomBreadcrumbs({ documentControl }: { documentControl: React.ReactNode }) {
+  return <>{documentControl}</>;
+}
+
 vi.mock('#client/editor/Editor', () => ({ default: MockEditor }));
 
 vi.mock('#client/editor/zoom/ZoomBreadcrumbs', () => ({
-  ZoomBreadcrumbs: () => null,
+  ZoomBreadcrumbs: MockZoomBreadcrumbs,
 }));
 
 describe('document route', () => {
@@ -137,6 +152,10 @@ describe('document route', () => {
     globals.__remdoMockSearchCandidateResetters = undefined;
     globals.__remdoMockZoomPathByDoc = undefined;
     document.title = 'RemDo';
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   const renderDocumentRouteWithResult = (initialEntry: string = createDocumentPath('routeDoc')) => {
@@ -166,6 +185,11 @@ describe('document route', () => {
   const getInlineCompletion = () =>
     document.querySelector<HTMLElement>('[data-testid="document-search-inline-completion"]');
 
+  const createDocumentCollectionSource = (documents: Array<{ id: string; title: string }>) => ({
+    children: () => documents,
+    byId: (documentId: string) => documents.find((document) => document.id === documentId) ?? null,
+  });
+
   it('falls back to the route document id in the page title at the root', async () => {
     renderDocumentRoute();
 
@@ -181,6 +205,76 @@ describe('document route', () => {
     await waitFor(() => {
       expect(document.title).toBe('Project Notes · RemDo');
     });
+  });
+
+  it('opens linked source documents through plain document routes', async () => {
+    setTestDocumentSources([{
+      baseUrl: 'https://source.example',
+      documents: createDocumentCollectionSource([{ id: 'sourceDoc', title: 'Source Document' }]),
+      id: 'source',
+      label: 'Source Server',
+      local: false,
+    }]);
+    const router = renderDocumentRoute(createDocumentPath('testDoc'));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Source Document' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(createDocumentPath('sourceDoc'));
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'sourceDoc');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', 'source');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-origin', 'https://source.example');
+    });
+  });
+
+  it('waits for source resolution before opening a source-only plain document route', async () => {
+    setTestDocumentSourcesLoading(true);
+
+    renderDocumentRoute(createDocumentPath('sourceDoc'));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Loading document');
+    expect(screen.queryByTestId('editor-probe')).toBeNull();
+
+    act(() => {
+      setTestDocumentSources([{
+        baseUrl: 'https://source.example',
+        documents: createDocumentCollectionSource([{ id: 'sourceDoc', title: 'Source Document' }]),
+        id: 'source',
+        label: 'Source Server',
+        local: false,
+      }]);
+      setTestDocumentSourcesLoading(false);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'sourceDoc');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', 'source');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-origin', 'https://source.example');
+    });
+  });
+
+  it('opens an authorized local document while source resolution is loading', async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    setTestDocumentSourcesLoading(true);
+
+    renderDocumentRoute(createDocumentPath('sharedDoc'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'sharedDoc');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', '');
+      expect(screen.queryByRole('status')).toBeNull();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      createDocumentSyncTokenApiPath('sharedDoc'),
+      expect.objectContaining({
+        body: JSON.stringify({ docId: 'sharedDoc' }),
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      }),
+    );
   });
 
   it('sets the page title from the current zoom note when zoomed', async () => {

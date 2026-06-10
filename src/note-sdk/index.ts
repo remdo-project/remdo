@@ -8,6 +8,8 @@ export type {
 } from './notes';
 export type {
   DocumentAccessNote,
+  DocumentSourceNote,
+  DocumentSourcesNote,
   DocumentNote,
   SourceServerNote,
   SourceServersNote,
@@ -26,5 +28,5 @@ export type {
 } from './editor';
 export { createEditorNotes } from './create-editor-notes';
 export { createUserDataRootNote } from './create-user-data-notes';
-export type { CollectionSource } from './create-user-data-notes';
+export type { CollectionSource, DocumentSource } from './create-user-data-notes';
 export { NoteNotFoundError } from './errors';

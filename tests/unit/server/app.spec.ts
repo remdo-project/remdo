@@ -1,11 +1,29 @@
 import { inspectRoutes } from 'hono/dev';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HTTP_STATUS } from '#platform/http/status';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 import { createTestResource } from '../_support/test-resource';
 import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';
 
 const createHarness = createTestResource(createServerAppHarness);
+const TEST_SOURCE_SERVER = {
+  id: 'source',
+  label: 'Source Server',
+  baseUrl: 'https://source.example',
+  tokenBaseUrl: 'https://source-token.example',
+  clientId: 'source-client-id',
+  clientSecret: 'source-client-secret',
+} as const;
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+function createHarnessWithSourceServer() {
+  return createHarness({
+    linkableRemdoServers: [TEST_SOURCE_SERVER],
+  });
+}
 
 async function insertDocumentForSession(
   harness: ReturnType<typeof createServerAppHarness>,
@@ -44,6 +62,8 @@ describe('remdo api app', () => {
       'GET /.well-known/oauth-authorization-server',
       'GET /api/health',
       'GET /api/current-user',
+      'GET /api/current-user/source-servers/:serverId/current-user',
+      'POST /api/current-user/source-servers/:serverId/documents/:docId/sync-tokens',
       'POST /api/current-user/source-servers/:serverId/account-links',
       'POST /api/documents',
       'POST /api/documents/:docId/access',
@@ -85,18 +105,32 @@ describe('remdo api app', () => {
     await expect(response.json()).resolves.toEqual({ error: 'Authentication required.' });
   });
 
-  it('rejects source server link mutations without the link action header', async () => {
-    const harness = createHarness({
-      linkableRemdoServers: [
-        {
-          id: 'source',
-          label: 'Source Server',
-          baseUrl: 'https://source.example',
-          clientId: 'source-client-id',
-          clientSecret: 'source-client-secret',
-        },
-      ],
+  it('accepts bearer tokens for document mutations', async () => {
+    const harness = createHarness();
+    harness.auth.resolveBearerUser = vi.fn(async () => ({
+      email: STABLE_AUTH_USERS.bob.email,
+      id: 'source-user',
+      name: STABLE_AUTH_USERS.bob.name,
+    }));
+
+    const response = await harness.app.request('/api/documents', {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer source-token',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ title: 'Bearer-created document' }),
     });
+
+    expect(response.status).toBe(HTTP_STATUS.OK);
+    await expect(response.json()).resolves.toMatchObject({
+      title: 'Bearer-created document',
+    });
+    expect(harness.auth.resolveBearerUser).toHaveBeenCalledWith('Bearer source-token');
+  });
+
+  it('rejects source server link mutations without the link action header', async () => {
+    const harness = createHarnessWithSourceServer();
     const headers = await harness.createSessionHeaders();
     const requestHeaders = new Headers(headers);
     requestHeaders.set('content-type', 'application/json');
@@ -123,6 +157,73 @@ describe('remdo api app', () => {
 
     expect(response.status).toBe(HTTP_STATUS.NOT_FOUND);
     await expect(response.json()).resolves.toEqual({ error: 'Source server not found.' });
+  });
+
+  it('proxies linked source current-user bootstrap with the stored source token', async () => {
+    const harness = createHarnessWithSourceServer();
+    harness.auth.getLinkedRemdoServerAccessToken = vi.fn(async () => 'source-token');
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        homeDocumentId: 'sourceHome',
+        userDataDocumentId: 'sourceUserData',
+      }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const headers = await harness.createSessionHeaders();
+
+    const response = await harness.app.request('/api/current-user/source-servers/source/current-user', {
+      headers,
+    });
+
+    expect(response.status).toBe(HTTP_STATUS.OK);
+    await expect(response.json()).resolves.toEqual({
+      homeDocumentId: 'sourceHome',
+      userDataDocumentId: 'sourceUserData',
+    });
+    expect(fetchMock).toHaveBeenCalledWith('https://source-token.example/api/current-user', {
+      headers: {
+        authorization: 'Bearer source-token',
+      },
+    });
+  });
+
+  it('proxies linked source sync token requests with the stored source token', async () => {
+    const harness = createHarnessWithSourceServer();
+    harness.auth.getLinkedRemdoServerAccessToken = vi.fn(async () => 'source-token');
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        baseUrl: 'https://source.example/d/sourceDoc/api',
+        docId: 'sourceDoc',
+        url: 'wss://source.example/d/sourceDoc',
+      }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const headers = await harness.createSessionHeaders();
+
+    const response = await harness.app.request('/api/current-user/source-servers/source/documents/sourceDoc/sync-tokens', {
+      method: 'POST',
+      headers,
+      body: '{}',
+    });
+
+    expect(response.status).toBe(HTTP_STATUS.OK);
+    await expect(response.json()).resolves.toEqual({
+      baseUrl: 'https://source.example/d/sourceDoc/api',
+      docId: 'sourceDoc',
+      url: 'wss://source.example/d/sourceDoc',
+    });
+    expect(fetchMock).toHaveBeenCalledWith('https://source-token.example/api/documents/sourceDoc/sync-tokens', {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer source-token',
+        'content-type': 'application/json',
+        'x-forwarded-host': 'source.example',
+        'x-forwarded-proto': 'https',
+      },
+      body: JSON.stringify({ docId: 'sourceDoc' }),
+    });
   });
 
   it('does not create a registry row when issuing a token for a missing document', async () => {
@@ -212,6 +313,52 @@ describe('remdo api app', () => {
     ]);
   });
 
+  it('does not recurse into source server discovery or clear projected source servers for bearer current-user bootstrap', async () => {
+    const harness = createHarness({
+      linkableRemdoServers: [
+        {
+          id: 'source',
+          label: 'Source Server',
+          baseUrl: 'https://source.example',
+          clientId: 'source-client-id',
+          clientSecret: 'source-client-secret',
+        },
+      ],
+    });
+    const headers = await harness.createSessionHeaders();
+    const sessionUserId = await harness.getSessionUserId(headers);
+    const initialResponse = await harness.app.request('/api/current-user', { headers });
+    const initialBootstrap = await initialResponse.json();
+    const projectedSourceServers = [{
+      id: 'source',
+      label: 'Source Server',
+      baseUrl: 'https://source.example',
+      linked: false,
+    }];
+    expect(initialResponse.status).toBe(HTTP_STATUS.OK);
+    expect(harness.readProjectedSourceServers(initialBootstrap.userDataDocumentId)).toEqual(projectedSourceServers);
+
+    harness.auth.resolveBearerUser = vi.fn(async () => ({
+      email: 'server@example.com',
+      id: sessionUserId,
+      name: 'Server Test User',
+    }));
+    harness.auth.listLinkedRemdoServerIds = vi.fn(async () => {
+      throw new Error('session-only linked account lookup should not run for bearer bootstrap');
+    });
+
+    const response = await harness.app.request('/api/current-user', {
+      headers: {
+        authorization: 'Bearer source-token',
+      },
+    });
+    const bootstrap = await response.json();
+
+    expect(response.status).toBe(HTTP_STATUS.OK);
+    expect(bootstrap.userDataDocumentId).toBe(initialBootstrap.userDataDocumentId);
+    expect(harness.readProjectedSourceServers(bootstrap.userDataDocumentId)).toEqual(projectedSourceServers);
+  });
+
   it('returns different user data projection document ids for different users', async () => {
     const harness = createHarness();
     const aliceHeaders = await harness.createSessionHeaders(STABLE_AUTH_USERS.alice);
@@ -243,6 +390,34 @@ describe('remdo api app', () => {
       authorization: 'full',
       docId: 'privateDoc',
     });
+  });
+
+  it('allows bearer actors to issue source document sync tokens', async () => {
+    const harness = createHarness();
+    harness.auth.resolveBearerUser = vi.fn(async () => ({
+      email: STABLE_AUTH_USERS.bob.email,
+      id: 'source-user',
+      name: STABLE_AUTH_USERS.bob.name,
+    }));
+    await harness.registry.insertDocument({
+      id: 'sourceDoc',
+      ownerUserId: 'source-user',
+      title: 'Source document',
+    });
+
+    const response = await harness.app.request('/api/documents/sourceDoc/sync-tokens', {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer source-token',
+      },
+    });
+
+    expect(response.status).toBe(HTTP_STATUS.OK);
+    await expect(response.json()).resolves.toMatchObject({
+      authorization: 'full',
+      docId: 'sourceDoc',
+    });
+    expect(harness.auth.resolveBearerUser).toHaveBeenCalledWith('Bearer source-token');
   });
 
   it('issues read-only tokens for the projected user data document', async () => {

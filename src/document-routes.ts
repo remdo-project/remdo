@@ -1,5 +1,6 @@
 import { normalizeDocumentId } from '#domain/documents/ids';
 import { normalizeNoteId, normalizeNoteIdOrThrow } from '#domain/notes/ids';
+import { normalizeSourceServerId } from '#domain/source-servers';
 
 export function resolveDevDocumentId(rawDocId: string): string {
   const raw = rawDocId;
@@ -59,6 +60,20 @@ export function createDocumentSyncTokenApiPath(docId: string): string {
     'createDocumentSyncTokenApiPath requires a valid document id.',
   );
   return `/api/documents/${encodeURIComponent(normalizedDocId)}/sync-tokens`;
+}
+
+export function createSourceDocumentSyncTokenApiPath(sourceId: string, docId: string): string {
+  const normalizedSourceId = normalizeSourceServerId(sourceId);
+  if (!normalizedSourceId) {
+    throw new Error('createSourceDocumentSyncTokenApiPath requires a valid source id.');
+  }
+  const normalizedDocId = normalizeNoteIdOrThrow(
+    docId,
+    'createSourceDocumentSyncTokenApiPath requires a valid document id.',
+  );
+  return `/api/current-user/source-servers/${encodeURIComponent(normalizedSourceId)}/documents/${
+    encodeURIComponent(normalizedDocId)
+  }/sync-tokens`;
 }
 
 export interface ParsedDocumentRef {

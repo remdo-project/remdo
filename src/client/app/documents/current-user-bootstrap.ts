@@ -19,6 +19,20 @@ export async function getCurrentUserBootstrap(): Promise<CurrentUserBootstrap> {
   return bootstrapPromise;
 }
 
+export async function getSourceCurrentUserBootstrap(sourceServerId: string): Promise<CurrentUserBootstrap> {
+  const response = await fetch(`/api/current-user/source-servers/${
+    encodeURIComponent(sourceServerId)
+  }/current-user`, {
+    credentials: 'same-origin',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to load source current user bootstrap: ${response.status}`);
+  }
+
+  return parseCurrentUserBootstrap(await response.json() as Partial<CurrentUserBootstrap>);
+}
+
 export function clearCurrentUserBootstrapCache(): void {
   bootstrapPromise = null;
   clearStoredCurrentUserBootstrap();

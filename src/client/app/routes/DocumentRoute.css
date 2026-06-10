@@ -126,6 +126,11 @@
   background: transparent;
 }
 
+.document-editor-loading {
+  color: var(--mantine-color-dark-2);
+  padding: var(--mantine-spacing-md) var(--mantine-spacing-xl);
+}
+
 .document-editor-pane--hidden {
   display: none;
 }

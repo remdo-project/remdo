@@ -65,10 +65,12 @@ export type StopCollabServer = () => Promise<void>;
 
 interface CollabServerOptions {
   port?: number;
+  reuseExisting?: boolean;
 }
 
 export async function ensureCollabServer({
   port = config.env.COLLAB_SERVER_PORT,
+  reuseExisting = true,
 }: CollabServerOptions = {}): Promise<StopCollabServer> {
   const resolvedHost = config.env.HOST;
   const bindHost = resolveYSweetBindHost(resolvedHost);
@@ -76,7 +78,10 @@ export async function ensureCollabServer({
   const probeHost = resolveLoopbackHost(bindHost);
 
   if (await isPortOpen(probeHost, resolvedPort)) {
-    return reusedServerStop;
+    if (reuseExisting) {
+      return reusedServerStop;
+    }
+    throw new Error(`Collaboration websocket already running on ws://${probeHost}:${resolvedPort}`);
   }
 
   const logStream = ensureLogStream();

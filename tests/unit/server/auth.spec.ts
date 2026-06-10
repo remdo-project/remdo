@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveActor } from '#server/auth/actor';
+import { resolveActor, resolveActorResolution } from '#server/auth/actor';
 import { createAuthTrustedOrigins } from '#server/auth/auth';
 import { createTestResource } from '../_support/test-resource';
 import { createServerAppHarness } from './_support/server-app-harness';
@@ -30,6 +30,50 @@ describe('server auth actor resolution', () => {
       type: 'local-user',
     });
     expect(actor?.userId).toBeTypeOf('string');
+  });
+
+  it('resolves bearer actors without requiring a cookie session', async () => {
+    const harness = createHarness();
+    harness.auth.getSession = async () => {
+      throw new Error('session lookup should not run for bearer requests');
+    };
+    harness.auth.resolveBearerUser = async () => ({
+      email: 'source@example.test',
+      id: 'source-user',
+      name: 'Source User',
+    });
+
+    const resolution = await resolveActorResolution(
+      new Request('http://127.0.0.1/api/current-user', {
+        headers: {
+          authorization: 'Bearer source-token',
+        },
+      }),
+      harness.auth,
+    );
+
+    expect(resolution).toEqual({
+      actor: {
+        email: 'source@example.test',
+        name: 'Source User',
+        type: 'local-user',
+        userId: 'source-user',
+      },
+      credential: 'bearer',
+    });
+    await expect(resolveActor(
+      new Request('http://127.0.0.1/api/current-user', {
+        headers: {
+          authorization: 'Bearer source-token',
+        },
+      }),
+      harness.auth,
+    )).resolves.toEqual({
+      email: 'source@example.test',
+      name: 'Source User',
+      type: 'local-user',
+      userId: 'source-user',
+    });
   });
 });
 

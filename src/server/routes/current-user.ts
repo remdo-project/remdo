@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { HTTP_STATUS } from '#platform/http/status';
-import { resolveActor } from '#server/auth/actor';
+import { resolveActorResolution } from '#server/auth/actor';
 import { ensureCurrentUserBootstrap } from '#server/documents/current-user';
 import { listCurrentUserSourceServers } from '#server/documents/source-servers';
 import { createSourceServerRoutes } from './source-servers';
@@ -18,14 +18,16 @@ export function createCurrentUserRoutes(dependencies: ServerRouteDependencies) {
   routes.get('/', async (c) => {
     try {
       await auth.ensureReady();
-      const actor = await resolveActor(c.req.raw, auth);
-      if (!actor) {
+      const actorResolution = await resolveActorResolution(c.req.raw, auth);
+      if (!actorResolution) {
         return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
       }
 
-      const bootstrap = await ensureCurrentUserBootstrap(registry, tokenManager, actor.userId, {
+      const bootstrap = await ensureCurrentUserBootstrap(registry, tokenManager, actorResolution.actor.userId, {
         auth,
-        sourceServers: await listCurrentUserSourceServers(auth, c.req.raw.headers),
+        sourceServers: actorResolution.credential === 'bearer'
+          ? undefined
+          : await listCurrentUserSourceServers(auth, c.req.raw.headers),
       });
 
       return c.json(bootstrap);

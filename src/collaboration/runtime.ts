@@ -148,14 +148,16 @@ function tryDeleteIndexedDbProbe(indexedDb: IDBFactory) {
 
 interface CollaborationEndpointOptions {
   apiOrigin?: string;
+  createSyncTokenPath?: (docId: string) => string;
   visibleOrigin?: string;
 }
 
 export function createProviderFactory({
   apiOrigin,
+  createSyncTokenPath = createDocumentSyncTokenApiPath,
   visibleOrigin,
 }: CollaborationEndpointOptions = {}): ProviderFactory {
-  const resolveEndpoints = createEndpointResolver(apiOrigin);
+  const resolveEndpoints = createEndpointResolver(apiOrigin, createSyncTokenPath);
 
   return async (id: string, docMap: Map<string, Y.Doc>) => {
     let doc = docMap.get(id);
@@ -173,7 +175,7 @@ export function createProviderFactory({
 
     const authEndpoint = async () => {
       const token = await getAuthToken(id, endpoints, visibleOrigin);
-      return rewriteTokenHost(token);
+      return rewriteTokenHost(token, visibleOrigin);
     };
 
     const localPersistenceSupport = await getLocalPersistenceSupportDecision();
@@ -216,13 +218,13 @@ export function createProviderFactory({
   };
 }
 
-function createEndpointResolver(origin?: string) {
+function createEndpointResolver(origin: string | undefined, createSyncTokenPath: (docId: string) => string) {
   const normalizedOrigin = origin ? origin.replace(TRAILING_SLASH_PATTERN, '') : '';
   const base = normalizedOrigin;
 
   return (docId: string) => {
     return {
-      token: `${base}${createDocumentSyncTokenApiPath(docId)}`,
+      token: `${base}${createSyncTokenPath(docId)}`,
     };
   };
 }
@@ -232,7 +234,8 @@ function getAuthToken(
   endpoints: { token: string },
   visibleOrigin?: string,
 ): Promise<ClientToken> {
-  const existing = docTokenInFlight.get(docId);
+  const cacheKey = `${endpoints.token}\0${docId}`;
+  const existing = docTokenInFlight.get(cacheKey);
   if (existing) {
     return existing;
   }
@@ -254,9 +257,9 @@ function getAuthToken(
     return (await response.json()) as ClientToken;
   })();
 
-  docTokenInFlight.set(docId, promise);
+  docTokenInFlight.set(cacheKey, promise);
   return promise.finally(() => {
-    docTokenInFlight.delete(docId);
+    docTokenInFlight.delete(cacheKey);
   });
 }
 
@@ -277,12 +280,13 @@ function createTokenRequestHeaders(endpoint: string, visibleOrigin?: string): He
   return headers;
 }
 
-function rewriteTokenHost(token: ClientToken): ClientToken {
+function rewriteTokenHost(token: ClientToken, visibleOrigin?: string): ClientToken {
   if (typeof location === 'undefined') {
     return token;
   }
 
-  const { hostname, protocol } = location;
+  const browserVisibleUrl = new URL(visibleOrigin ?? location.origin, location.origin);
+  const { hostname, protocol } = browserVisibleUrl;
   if (hostname.length === 0) {
     return token;
   }

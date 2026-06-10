@@ -4,6 +4,8 @@ import type { ChildPosition, CollectionNote, Note } from './notes';
 export interface UserDataNote extends Note<'user-data'> {
   /** Returns the user's home document note. */
   homeDocument: () => DocumentNote;
+  /** Returns document lists grouped by current and linked source servers. */
+  documentSources: () => DocumentSourcesNote;
   /** Returns the user-documents child note. */
   documents: () => UserDocumentsNote;
   /** Returns the user's linkable source-server notes. */
@@ -13,6 +15,17 @@ export interface UserDataNote extends Note<'user-data'> {
 export interface UserDocumentsNote extends CollectionNote<DocumentNote> {
   /** Creates a user document. */
   create: (text: string) => Promise<DocumentNote>;
+}
+
+export type DocumentSourcesNote = CollectionNote<DocumentSourceNote>;
+
+export interface DocumentSourceNote extends Note<'document-source'> {
+  /** Returns the source server origin, when the source is remote. */
+  baseUrl: () => string | null;
+  /** Returns documents projected by this source. */
+  documents: () => CollectionNote<DocumentNote>;
+  /** Returns whether this source is the current/home server. */
+  local: () => boolean;
 }
 
 export interface DocumentNote extends Note<'document'> {

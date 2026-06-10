@@ -187,6 +187,61 @@ describe('editor notes showcase', () => {
     expect(linkSourceServer).toHaveBeenCalledWith('source');
   });
 
+  it('reads grouped document sources as collection notes', () => {
+    const localDocuments = [{
+      id: 'localDoc',
+      title: 'Local Document',
+    }];
+    const remoteDocuments = [{
+      id: 'sourceDoc',
+      title: 'Source Document',
+    }];
+    const userData = createUserDataRootNote(localDocuments, [], {
+      documentSources: {
+        byId: (sourceId) => sourceId === 'source'
+          ? {
+              baseUrl: 'https://source.example',
+              documents: {
+                byId: (documentId) => remoteDocuments.find((document) => document.id === documentId) ?? null,
+                children: () => remoteDocuments,
+              },
+              id: 'source',
+              label: 'Source Server',
+              local: false,
+            }
+          : null,
+        children: () => [{
+          baseUrl: null,
+          documents: {
+            byId: (documentId) => localDocuments.find((document) => document.id === documentId) ?? null,
+            children: () => localDocuments,
+          },
+          id: 'local',
+          label: 'Current Server',
+          local: true,
+        }, {
+          baseUrl: 'https://source.example',
+          documents: {
+            byId: (documentId) => remoteDocuments.find((document) => document.id === documentId) ?? null,
+            children: () => remoteDocuments,
+          },
+          id: 'source',
+          label: 'Source Server',
+          local: false,
+        }],
+      },
+    });
+
+    expect(userData.documentSources().children().map((source) => ({
+      documents: source.documents().children().map((document) => document.text()),
+      id: source.id(),
+      text: source.text(),
+    }))).toEqual([
+      { id: 'local', text: 'Current Server', documents: ['Local Document'] },
+      { id: 'source', text: 'Source Server', documents: ['Source Document'] },
+    ]);
+  });
+
   it(
     'shows explicit note narrowing with as(kind)',
     meta({ fixture: 'flat' }),

@@ -3,6 +3,8 @@ import type { SourceServer } from '#domain/source-servers';
 import type { UserDocument } from '#domain/documents/user-data';
 import type {
   DocumentAccessNote,
+  DocumentSourceNote,
+  DocumentSourcesNote,
   DocumentNote,
   SourceServerNote,
   SourceServersNote,
@@ -13,15 +15,27 @@ import type { ChildPosition, CollectionNote, Note, NoteId } from './notes';
 import { createNoteAs } from './handle-utils';
 
 const USER_DATA_ROOT_ID = 'user-data';
+const USER_DOCUMENT_SOURCES_ID = 'document-sources';
+const LOCAL_DOCUMENT_SOURCE_ID = 'local';
 const USER_DOCUMENTS_ID = 'user-documents';
 const USER_DATA_TITLE = 'User Data';
+const USER_DOCUMENT_SOURCES_TITLE = 'Document Sources';
 const USER_DOCUMENTS_TITLE = 'Documents';
 
 interface UserDataNoteActions {
   createDocument?: (title: string) => Promise<UserDocument>;
+  documentSources?: CollectionSource<DocumentSource>;
   homeDocumentId?: () => NoteId | null;
   linkSourceServer?: (sourceServerId: NoteId) => Promise<void>;
   shareDocument?: (documentId: NoteId, email: string) => Promise<DocumentAccessView>;
+}
+
+export interface DocumentSource {
+  baseUrl: string | null;
+  documents: CollectionSource<UserDocument>;
+  id: NoteId;
+  label: string;
+  local: boolean;
 }
 
 interface DocumentAccessItem extends DocumentAccessView {
@@ -163,6 +177,45 @@ function createUserDocumentsHandle(
   return handle;
 }
 
+function createDocumentSourceHandle(
+  source: DocumentSource,
+  actions: UserDataNoteActions,
+): DocumentSourceNote {
+  const noteId = source.id;
+  const kind = () => 'document-source' as const;
+  const documentActions = source.local ? actions : {};
+  const documents = createCollectionHandle({
+    createItemNote: (document) => createProjectedDocumentHandle(document, documentActions),
+    items: source.documents,
+    noteId: `${noteId}/documents`,
+    text: USER_DOCUMENTS_TITLE,
+  });
+  const handle: DocumentSourceNote = {
+    id: () => noteId,
+    kind,
+    text: () => source.label,
+    children: () => [documents],
+    baseUrl: () => source.baseUrl,
+    documents: () => documents,
+    local: () => source.local,
+    as: createNoteAs(noteId, kind, () => handle),
+  };
+
+  return handle;
+}
+
+function createDocumentSourcesHandle(
+  sources: CollectionSource<DocumentSource>,
+  actions: UserDataNoteActions,
+): DocumentSourcesNote {
+  return createCollectionHandle({
+    createItemNote: (source) => createDocumentSourceHandle(source, actions),
+    items: sources,
+    noteId: USER_DOCUMENT_SOURCES_ID,
+    text: USER_DOCUMENT_SOURCES_TITLE,
+  });
+}
+
 function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends Note>({
   createItemNote,
   items,
@@ -243,6 +296,16 @@ export function createUserDataRootNote(
     resolvedActions = sourceServersOrActions as UserDataNoteActions;
   }
   const userDocuments = createUserDocumentsHandle(userDocumentsSource, resolvedActions);
+  const documentSources = createDocumentSourcesHandle(
+    resolvedActions.documentSources ?? createArrayCollectionSource([{
+      baseUrl: null,
+      documents: userDocumentsSource,
+      id: LOCAL_DOCUMENT_SOURCE_ID,
+      label: 'Current Server',
+      local: true,
+    }]),
+    resolvedActions,
+  );
   const userSourceServers = createSourceServersHandle(sourceServers, resolvedActions);
 
   function homeDocument(): DocumentNote {
@@ -260,8 +323,9 @@ export function createUserDataRootNote(
     id: () => noteId,
     kind,
     text: () => USER_DATA_TITLE,
-    children: () => [userDocuments, userSourceServers],
+    children: () => [documentSources, userDocuments, userSourceServers],
     homeDocument,
+    documentSources: () => documentSources,
     documents: () => userDocuments,
     sourceServers: () => userSourceServers,
     as: createNoteAs(noteId, kind, () => handle),

@@ -1,4 +1,5 @@
 import { config } from '#config';
+import { normalizeSourceServerId } from '#domain/source-servers';
 
 export interface LinkableRemdoServer {
   id: string;
@@ -8,8 +9,6 @@ export interface LinkableRemdoServer {
   clientId: string;
   clientSecret: string;
 }
-
-const SERVER_ID_PATTERN = /^[\w-]+$/u;
 
 function readServer(entry: unknown): Record<string, unknown> {
   if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
@@ -60,9 +59,9 @@ export function parseLinkableRemdoServers(raw: string): LinkableRemdoServer[] {
   const usedIds = new Set<string>();
   return parsed.map((entry) => {
     const server = readServer(entry);
-    const id = readString(server, 'id');
-    if (!SERVER_ID_PATTERN.test(id)) {
-      throw new Error('LINKABLE_REMDO_SERVERS_JSON entries require id to contain only letters, numbers, underscores, or hyphens.');
+    const id = normalizeSourceServerId(readString(server, 'id'));
+    if (!id) {
+      throw new Error('LINKABLE_REMDO_SERVERS_JSON entries require id to contain only letters, numbers, underscores, or hyphens, and not use reserved ids.');
     }
     if (usedIds.has(id)) {
       throw new Error(`LINKABLE_REMDO_SERVERS_JSON contains duplicate server id ${id}.`);

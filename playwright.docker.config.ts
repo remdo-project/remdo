@@ -18,7 +18,7 @@ export default defineConfig({
   webServer: [
     {
       name: 'source',
-      command: `AUTH_URL=${sourceOrigin} pnpm exec vite --host 0.0.0.0`,
+      command: `AUTH_URL=${sourceOrigin} pnpm exec tsx ./tools/e2e/docker-source-server.ts`,
       url: sourceOrigin,
     },
   ],

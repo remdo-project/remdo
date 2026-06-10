@@ -97,6 +97,11 @@ document's server.
   accounts.
 - Source linking: the home server starts OAuth, the user signs in on the source
   server, and Better Auth stores the resulting linked account.
+- Delegation scope: a linked source OAuth token is currently treated as the
+  linking user's full delegate on that source server. The home server may call
+  authenticated RemDo APIs as that source user, subject to the same owner/grant
+  checks the source server applies to the user's normal session. This is an
+  account-delegation model, not a cross-user grant.
 - Source documents: once linked, the browser can subscribe to source-owned user
   data projections and merge those documents into the same document list.
 

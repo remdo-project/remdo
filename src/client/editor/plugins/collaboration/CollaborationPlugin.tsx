@@ -11,12 +11,16 @@ import { CollaborationProvider, useCollaborationStatus } from './CollaborationPr
 export function CollaborationPlugin({
   children,
   docId,
+  sourceOrigin = null,
+  sourceId = null,
 }: {
   children?: ReactNode;
   docId: string;
+  sourceOrigin?: string | null;
+  sourceId?: string | null;
 }) {
   return (
-    <CollaborationProvider docId={docId}>
+    <CollaborationProvider docId={docId} sourceOrigin={sourceOrigin} sourceId={sourceId}>
       {children}
       <CollaborationRuntimePlugin />
     </CollaborationProvider>

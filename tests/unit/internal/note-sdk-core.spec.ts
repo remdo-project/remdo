@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createEditorNotes, createUserDataRootNote, NoteNotFoundError } from '#note-sdk';
 import type {
+  CollectionSource,
+  DocumentSource,
   EditorNotesAdapter,
   NoteRange,
   PlaceTarget,
   SelectionSnapshot,
+  UserDocument,
 } from '#note-sdk';
 import type { SourceServer } from '#domain/source-servers';
 
@@ -157,6 +160,64 @@ describe('editor notes core', () => {
       { id: 'main', kind: 'document', text: 'Main' },
       { id: 'flat', kind: 'document', text: 'Flat' },
     ]);
+  });
+
+  it('lists documents through grouped document source traversal', async () => {
+    const fixture = createMockAdapterFixture();
+    const fixtureDocuments = fixture.userData as UserDocument[];
+    const localDocuments = {
+      byId: (documentId: string) => fixtureDocuments.find((document) => document.id === documentId) ?? null,
+      children: () => fixtureDocuments,
+    };
+    const remoteDocuments = {
+      byId: (documentId: string) => documentId === 'remote' ? { id: 'remote', title: 'Remote' } : null,
+      children: () => [{ id: 'remote', title: 'Remote' }],
+    };
+    const documentSources: CollectionSource<DocumentSource> = {
+      byId: (sourceId: string) => documentSources.children().find((source) => source.id === sourceId) ?? null,
+      children: () => [{
+        baseUrl: null,
+        documents: localDocuments,
+        id: 'local',
+        label: 'Current Server',
+        local: true,
+      }, {
+        baseUrl: 'https://source.example',
+        documents: remoteDocuments,
+        id: 'source',
+        label: 'Source Server',
+        local: false,
+      }],
+    };
+    const userData = createUserDataRootNote(fixture.userData, fixture.sourceServers, {
+      documentSources,
+    });
+
+    expect(userData.documentSources().children().map((source) => ({
+      documents: source.documents().children().map((document) => document.text()),
+      id: source.id(),
+      kind: source.kind(),
+      local: source.local(),
+      text: source.text(),
+    }))).toEqual([
+      {
+        documents: ['Main', 'Flat'],
+        id: 'local',
+        kind: 'document-source',
+        local: true,
+        text: 'Current Server',
+      },
+      {
+        documents: ['Remote'],
+        id: 'source',
+        kind: 'document-source',
+        local: false,
+        text: 'Source Server',
+      },
+    ]);
+    expect(() => userData.documentSources().byId('source')!.as('document-source')).not.toThrow();
+    await expect(userData.documentSources().byId('source')!.documents().byId('remote')!
+      .shareWith('bob@example.test')).rejects.toThrow('Document sharing is not available for this document.');
   });
 
   it('shares documents through document-level user-data handles', async () => {

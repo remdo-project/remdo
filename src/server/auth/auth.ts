@@ -164,9 +164,11 @@ export interface ServerAuth {
   handleAuthServerMetadata: (request: Request) => Promise<Response>;
   handleOpenIdConfigMetadata: (request: Request) => Promise<Response>;
   getSession: (headers: Headers) => Promise<Awaited<ReturnType<BetterAuthInstance['api']['getSession']>>>;
+  getLinkedRemdoServerAccessToken: (userId: string, serverId: string) => Promise<string | null>;
   getUserCount: () => Promise<number>;
   listUsersByIds: (userIds: readonly string[]) => Promise<ServerAuthUser[]>;
   listLinkedRemdoServerIds: (headers: Headers) => Promise<Set<string>>;
+  resolveBearerUser: (authorization: string | null) => Promise<ServerAuthUser | null>;
 }
 
 export function createServerAuth({
@@ -248,6 +250,22 @@ export function createServerAuth({
     getSession(headers) {
       return auth.api.getSession({ headers });
     },
+    async getLinkedRemdoServerAccessToken(userId, serverId) {
+      if (!linkableRemdoServers.some((server) => server.id === serverId)) {
+        return null;
+      }
+      try {
+        const token = await auth.api.getAccessToken({
+          body: {
+            providerId: serverId,
+            userId,
+          },
+        });
+        return token.accessToken;
+      } catch {
+        return null;
+      }
+    },
     async getUserCount() {
       const row = await database.db
         .selectFrom('user')
@@ -275,6 +293,34 @@ export function createServerAuth({
           .map((account) => account.providerId)
           .filter((providerId) => linkableRemdoServers.some((server) => server.id === providerId)),
       );
+    },
+    async resolveBearerUser(authorization) {
+      if (!authorization?.startsWith('Bearer ')) {
+        return null;
+      }
+      try {
+        const response = await auth.handler(new Request(new URL('/api/auth/oauth2/userinfo', baseURL), {
+          headers: new Headers({ authorization }),
+        }));
+        if (!response.ok) {
+          return null;
+        }
+        const userInfo = await response.json() as {
+          email?: string | null;
+          name?: string | null;
+          sub?: string;
+        };
+        if (!userInfo.sub) {
+          return null;
+        }
+        return {
+          email: userInfo.email ?? '',
+          id: userInfo.sub,
+          name: userInfo.name ?? null,
+        };
+      } catch {
+        return null;
+      }
     },
   };
 }

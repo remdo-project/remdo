@@ -34,6 +34,8 @@ interface EditorProps {
   onTestBridgeReady?: (api: unknown) => void;
   onTestBridgeDispose?: () => void;
   statusPortalRoot: HTMLElement | null;
+  sourceOrigin?: string | null;
+  sourceId?: string | null;
   searchModeRequested?: boolean;
   onSearchCandidatesChange?: (snapshot: SearchCandidateSnapshot | null) => void;
 }
@@ -44,6 +46,8 @@ export default function Editor({
   onTestBridgeReady,
   onTestBridgeDispose,
   statusPortalRoot,
+  sourceOrigin = null,
+  sourceId = null,
   searchModeRequested,
   onSearchCandidatesChange,
 }: EditorProps) {
@@ -52,7 +56,7 @@ export default function Editor({
   return (
     <div className="editor-container">
       <LexicalComposer initialConfig={editorInitialConfig}>
-        <CollaborationPlugin docId={docId}>
+        <CollaborationPlugin docId={docId} sourceOrigin={sourceOrigin} sourceId={sourceId}>
           <EditorRuntime
             children={children}
             docId={docId}

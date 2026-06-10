@@ -64,16 +64,14 @@ Rules:
   3. Alice enters Bob's email address in the sharing UI for `doc123`.
   4. Server A creates access for Bob's A-local Better Auth user id.
   5. Bob can open/edit `doc123` on server A.
-  6. A later OAuth source-linking slice may let Bob's home server B list/open
-     A-hosted documents after Bob authorizes B.
+  6. OAuth source-linking can let Bob's home server B list/open A-hosted
+     documents after Bob authorizes B.
 - Deferred access cases:
   1. Anonymous access.
   2. Bearer/link-based access.
   3. Public documents.
   4. Link revocation/regeneration/invalid-link UX.
   5. Local-only no-login mode.
-  6. OAuth source linking for accessing configured source RemDo servers through
-     a home server.
 - Implementation decision: this branch introduces the SQL sharing schema from
   scratch; reset stale local dev databases instead of adding compatibility
   migrations. Do not add external principal, external credential, or source
@@ -90,11 +88,14 @@ Rules:
      allow access.
   7. State-changing sharing endpoints reject cross-site/simple-request abuse.
   8. Public and bearer-link access remain inactive in this branch.
+  9. Linked configured source servers can expose source-owned document lists
+     through source projections after OAuth linking.
 - OAuth source-linking follow-up: decide whether arbitrary user-added RemDo
   sources are in scope; Better Auth's generic OAuth client is
   configured-provider oriented.
-- OAuth document-source follow-up: implement reading linked source document
-  lists through source-owned Yjs projections and merging them in the home UI.
+- OAuth source-linking privilege follow-up: review whether linked source OAuth
+  tokens should remain full account delegates, or require narrower RemDo scopes
+  before remote servers can use document mutation APIs.
 
 ## Offline and local persistence follow-ups
 

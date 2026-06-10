@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { createContext, useMemo, use, useEffect, useSyncExternalStore } from 'react';
 import { config } from '#config';
 import { CollabSession } from '#collaboration/session';
+import { createSourceDocumentSyncTokenApiPath } from '#document-routes';
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
 import { resolveApiServerOrigin, resolveAppOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
 
@@ -33,16 +34,28 @@ export function useCollaborationStatus(): CollaborationStatusValue {
 export function CollaborationProvider({
   children,
   docId,
+  sourceOrigin = null,
+  sourceId = null,
 }: {
   children: ReactNode;
   docId: string;
+  sourceOrigin?: string | null;
+  sourceId?: string | null;
 }) {
-  const value = useCollaborationRuntimeValue({ docId });
+  const value = useCollaborationRuntimeValue({ docId, sourceOrigin, sourceId });
 
   return <CollaborationStatusContext value={value}>{children}</CollaborationStatusContext>;
 }
 
-function useCollaborationRuntimeValue({ docId }: { docId: string }): CollaborationStatusValue {
+function useCollaborationRuntimeValue({
+  docId,
+  sourceOrigin,
+  sourceId,
+}: {
+  docId: string;
+  sourceOrigin: string | null;
+  sourceId: string | null;
+}): CollaborationStatusValue {
   const enabled = config.env.COLLAB_ENABLED;
   const resolvedDocId = useMemo(
     () => normalizeNoteIdOrThrow(docId, 'CollaborationProvider requires a valid docId.'),
@@ -69,8 +82,16 @@ function useCollaborationRuntimeValue({ docId }: { docId: string }): Collaborati
   }, []);
 
   const session = useMemo(
-    () => new CollabSession({ origin: resolvedOrigin, apiOrigin: resolvedApiOrigin, enabled, docId: resolvedDocId }),
-    [resolvedApiOrigin, resolvedOrigin, enabled, resolvedDocId]
+    () => new CollabSession({
+      origin: sourceOrigin ?? resolvedOrigin,
+      apiOrigin: resolvedApiOrigin,
+      createSyncTokenPath: sourceId
+        ? (tokenDocId) => createSourceDocumentSyncTokenApiPath(sourceId, tokenDocId)
+        : undefined,
+      enabled,
+      docId: resolvedDocId,
+    }),
+    [resolvedApiOrigin, resolvedOrigin, enabled, resolvedDocId, sourceOrigin, sourceId]
   );
 
   useEffect(() => () => session.destroy(), [session]);

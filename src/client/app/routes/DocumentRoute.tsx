@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconSearch } from '@tabler/icons-react';
 import { useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
-import { useUserData } from '#client/app/documents/user-data';
+import { useDocumentSourcesLoading, useUserData } from '#client/app/documents/user-data';
 import Editor from '#client/editor/Editor';
 import { ZoomBreadcrumbs } from '#client/editor/zoom/ZoomBreadcrumbs';
 import { EditorViewProvider, useEditorViewActions, useZoomPath } from '#client/editor/view/EditorViewProvider';
-import { createDocumentPath } from '#document-routes';
+import { createDocumentPath, createDocumentSyncTokenApiPath, parseDocumentRef } from '#document-routes';
 import type { ParsedDocumentRef } from '#document-routes';
+import type { DocumentSourceNote } from '#note-sdk';
 import {
   APP_TITLE,
   formatNavigationLabel,
@@ -32,17 +33,23 @@ function isVisibleInCurrentView(element: HTMLElement): boolean {
 
 const NEW_DOCUMENT_VALUE = '$new-document';
 
+interface DocumentLocator {
+  docId: string;
+}
+
+type LocalDocumentAccessProbe = 'idle' | 'checking' | 'authorized' | 'rejected';
+
 function useDocumentRouteNavigation(docId: string) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const navigateToDocument = useCallback((nextDocId: string) => {
-    if (nextDocId === docId) {
+  const navigateToDocument = useCallback((nextDocument: DocumentLocator) => {
+    if (nextDocument.docId === docId) {
       return;
     }
     const nextSearch = searchParams.toString();
     void navigate({
-      pathname: createDocumentPath(nextDocId),
+      pathname: createDocumentPath(nextDocument.docId),
       search: nextSearch ? `?${nextSearch}` : '',
     });
   }, [docId, navigate, searchParams]);
@@ -59,6 +66,55 @@ function useDocumentRouteNavigation(docId: string) {
   }, [docId, navigate, searchParams]);
 
   return { navigateToDocument, navigateToZoomNote };
+}
+
+function findDocumentSourceByDocumentId(
+  documentSources: readonly DocumentSourceNote[],
+  docId: string
+): DocumentSourceNote | null {
+  return documentSources.find((source) => source.documents().byId(docId)) ?? null;
+}
+
+function useLocalDocumentAccessProbe(docId: string, enabled: boolean): LocalDocumentAccessProbe {
+  const [result, setResult] = useState<{ docId: string; status: LocalDocumentAccessProbe }>({
+    docId: '',
+    status: 'checking',
+  });
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    const abortController = new AbortController();
+    void fetch(createDocumentSyncTokenApiPath(docId), {
+      body: JSON.stringify({ docId }),
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+      signal: abortController.signal,
+    })
+      .then((response) => {
+        setResult({ docId, status: response.ok ? 'authorized' : 'rejected' });
+      })
+      .catch(() => {
+        if (!abortController.signal.aborted) {
+          setResult({ docId, status: 'rejected' });
+        }
+      });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [docId, enabled]);
+
+  if (!enabled) {
+    return 'idle';
+  }
+  if (result.docId !== docId) {
+    return 'checking';
+  }
+  return result.status;
 }
 
 export default function DocumentRoute() {
@@ -91,7 +147,7 @@ function DocumentRouteContent({
   setStatusHost,
 }: {
   docId: string;
-  onSelectDocument: (docId: string) => void;
+  onSelectDocument: (document: DocumentLocator) => void;
   statusHost: HTMLDivElement | null;
   setStatusHost: (value: HTMLDivElement | null) => void;
 }) {
@@ -102,8 +158,18 @@ function DocumentRouteContent({
   const zoomPath = useZoomPath();
   const { requestZoomNoteId } = useEditorViewActions();
   const userData = useUserData();
-  const listedDocuments = userData.documents().children();
-  const currentDocument = listedDocuments.find((document) => document.id() === docId) ?? null;
+  const documentSourcesLoading = useDocumentSourcesLoading();
+  const documentSources = userData.documentSources().children();
+  const currentDocumentSource = findDocumentSourceByDocumentId(documentSources, docId);
+  const localDocumentSource = documentSources.find((source) => source.local()) ?? null;
+  const localDocumentExists = Boolean(localDocumentSource?.documents().byId(docId));
+  const sourceResolutionAmbiguous = documentSourcesLoading && !localDocumentExists && !currentDocumentSource;
+  const localDocumentAccessProbe = useLocalDocumentAccessProbe(docId, sourceResolutionAmbiguous);
+  const documentSourceResolutionPending = sourceResolutionAmbiguous && localDocumentAccessProbe !== 'authorized';
+  const currentDocument = currentDocumentSource?.documents().children()
+    .find((document) => document.id() === docId) ?? null;
+  const currentDocumentSourceOrigin = currentDocumentSource?.baseUrl() ?? null;
+  const currentDocumentSourceId = currentDocumentSource?.local() === false ? currentDocumentSource.id() : null;
   const documentLabelRaw = currentDocument?.text() ?? docId;
   const documentLabel = formatNavigationLabel(documentLabelRaw);
   const titleItem = zoomPath.at(-1) ?? null;
@@ -226,13 +292,19 @@ function DocumentRouteContent({
 
   const createDocument = async () => {
     const nextDocument = await userData.documents().create('New Document');
-    onSelectDocument(nextDocument.id());
+    onSelectDocument({ docId: nextDocument.id() });
   };
 
-  const documentOptions = listedDocuments.map((document) => ({
-    value: document.id(),
-    label: formatNavigationLabel(document.text()),
-  }));
+  const documentGroups = useMemo(() => documentSources.map((source) => ({
+    id: source.id(),
+    label: source.text(),
+    options: source.documents().children().map((document) => ({
+      active: document.id() === docId && source.id() === currentDocumentSource?.id(),
+      label: formatNavigationLabel(document.text()),
+      value: document.id(),
+    })),
+  })).filter((source) => source.options.length > 0), [currentDocumentSource, docId, documentSources]);
+  const documentOptionsCount = documentGroups.reduce((count, group) => count + group.options.length, 0);
 
   const highlightedResultIndex = highlightedResultNoteId
     ? flatResults.findIndex((result) => result.noteId === highlightedResultNoteId)
@@ -256,7 +328,10 @@ function DocumentRouteContent({
                     void createDocument();
                     return;
                   }
-                  onSelectDocument(value);
+                  const selected = parseDocumentRef(value);
+                  if (selected) {
+                    onSelectDocument({ docId: selected.docId });
+                  }
                 }}
                 position="bottom-start"
                 shadow="md"
@@ -267,7 +342,7 @@ function DocumentRouteContent({
                   <ActionIcon
                     aria-label="Choose document"
                     className="document-header-doc-menu remdo-interaction-surface"
-                    disabled={documentOptions.length === 0}
+                    disabled={documentOptionsCount === 0}
                     onClick={() => documentPicker.toggleDropdown()}
                     size="sm"
                     variant="subtle"
@@ -277,14 +352,23 @@ function DocumentRouteContent({
                 </Combobox.Target>
                 <Combobox.Dropdown className="document-header-doc-dropdown">
                   <Combobox.Options>
-                    {documentOptions.map((document) => (
-                      <Combobox.Option
-                        active={document.value === docId}
-                        key={document.value}
-                        value={document.value}
+                    {documentGroups.map((group) => (
+                      <Combobox.Group
+                        data-document-source-id={group.id}
+                        key={group.id}
+                        label={group.label}
                       >
-                        {document.label}
-                      </Combobox.Option>
+                        {group.options.map((document) => (
+                          <Combobox.Option
+                            active={document.active}
+                            data-document-ref={document.value}
+                            key={`${group.id}:${document.value}`}
+                            value={document.value}
+                          >
+                            {document.label}
+                          </Combobox.Option>
+                        ))}
+                      </Combobox.Group>
                     ))}
                     <div aria-hidden="true" className="document-header-doc-divider document-header-doc-divider--dark-5" />
                     <Combobox.Option value={NEW_DOCUMENT_VALUE}>
@@ -390,15 +474,25 @@ function DocumentRouteContent({
           </ol>
         </section>
       ) : null}
-      <div className={searchModeActive ? 'document-editor-pane document-editor-pane--hidden' : 'document-editor-pane'}>
-        <Editor
-          key={docId}
-          docId={docId}
-          onSearchCandidatesChange={handleSearchCandidatesChange}
-          searchModeRequested={searchModeRequested}
-          statusPortalRoot={statusHost}
-        />
-      </div>
+      {documentSourceResolutionPending ? (
+        <div className={searchModeActive ? 'document-editor-pane document-editor-pane--hidden' : 'document-editor-pane'}>
+          <section className="document-editor-loading" role="status">
+            Loading document
+          </section>
+        </div>
+      ) : (
+        <div className={searchModeActive ? 'document-editor-pane document-editor-pane--hidden' : 'document-editor-pane'}>
+          <Editor
+            key={`${currentDocumentSourceId ?? 'local'}:${docId}`}
+            docId={docId}
+            sourceOrigin={currentDocumentSourceOrigin}
+            sourceId={currentDocumentSourceId}
+            onSearchCandidatesChange={handleSearchCandidatesChange}
+            searchModeRequested={searchModeRequested}
+            statusPortalRoot={statusHost}
+          />
+        </div>
+      )}
     </div>
   );
 }

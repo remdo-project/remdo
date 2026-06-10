@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createDocumentPath,
   createDocumentSyncTokenApiPath,
+  createSourceDocumentSyncTokenApiPath,
   createNoteRef,
   parseDocumentRef,
   parseNoteRef,
@@ -22,11 +23,19 @@ describe('document route refs', () => {
     expect(parseDocumentRef('main_note2')).toEqual({ docId: 'main', noteId: 'note2' });
   });
 
+  it('keeps source ids out of browser document refs', () => {
+    expect(createDocumentPath('main')).toBe('/n/main');
+    expect(createDocumentPath('main', 'note2')).toBe('/n/main_note2');
+    expect(createSourceDocumentSyncTokenApiPath('source-server', 'main'))
+      .toBe('/api/current-user/source-servers/source-server/documents/main/sync-tokens');
+  });
+
   it('rejects refs with additional separators or invalid characters', () => {
     expect(createNoteRef('main', 'note2')).toBe('main_note2');
     expect(parseNoteRef('main')).toBeNull();
     expect(parseNoteRef('main_note2_extra')).toBeNull();
     expect(parseDocumentRef('main_note2_extra')).toBeNull();
+    expect(parseDocumentRef('source~main')).toBeNull();
     expect(parseDocumentRef('bad doc')).toBeNull();
     expect(parseDocumentRef('main_note 2')).toBeNull();
   });
@@ -42,6 +51,8 @@ describe('document route refs', () => {
   it('throws when creating paths from invalid ids', () => {
     expect(() => createDocumentPath('bad doc')).toThrow();
     expect(() => createDocumentSyncTokenApiPath('bad doc')).toThrow();
+    expect(() => createSourceDocumentSyncTokenApiPath('bad source', 'main')).toThrow();
+    expect(() => createSourceDocumentSyncTokenApiPath('local', 'main')).toThrow();
     expect(() => createDocumentPath('main', 'bad note')).toThrow();
     expect(() => createDocumentPath('main', '')).toThrow();
   });

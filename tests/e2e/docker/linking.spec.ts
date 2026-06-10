@@ -2,9 +2,11 @@ import { expect, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { config } from '#config';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
+import { waitForEditableEditor } from './_support/helpers';
 
 const sourceOrigin = `http://localhost:${config.env.PORT}`;
 const homeOrigin = config.env.APP_PUBLIC_URL;
+const SOURCE_SERVER_ID = 'source';
 
 type StableUser = (typeof STABLE_AUTH_USERS)[keyof typeof STABLE_AUTH_USERS];
 
@@ -29,7 +31,7 @@ async function expectPageUrl(page: Page, expected: { origin: string; pathname: s
   }).toEqual(expected);
 }
 
-test('links a source account from the Docker home sharing page', async ({ page }) => {
+test('links a source account and opens its Home document from the Docker home switcher', async ({ page }) => {
   await page.goto('/sharing');
 
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/sharing'));
@@ -44,4 +46,22 @@ test('links a source account from the Docker home sharing page', async ({ page }
 
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/sharing'));
   await expect(page.getByRole('button', { name: 'Linked' })).toBeVisible();
+
+  await page.goto('/home');
+  await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/n\/[\dA-Za-z]+$/u);
+  const homePathname = new URL(page.url()).pathname;
+
+  const switcherTrigger = page.getByRole('button', { name: 'Choose document' });
+  await expect(switcherTrigger).toBeVisible();
+  await switcherTrigger.click();
+
+  const dropdown = page.locator('.document-header-doc-dropdown');
+  await expect(dropdown.locator('[data-document-source-id="local"]')).toContainText('Current Server');
+  const sourceGroup = dropdown.locator(`[data-document-source-id="${SOURCE_SERVER_ID}"]`);
+  await expect(sourceGroup).toContainText('Local dev server');
+  await sourceGroup.getByRole('option', { name: 'Home', exact: true }).click();
+
+  await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/n\/[\dA-Za-z]+$/u);
+  expect(new URL(page.url()).pathname).not.toBe(homePathname);
+  await waitForEditableEditor(page);
 });
