@@ -49,6 +49,14 @@ function resolveUnavailableSessionGateState(): SessionGateState {
     : { status: 'offline-unavailable' };
 }
 
+function readAuthErrorStatus(error: unknown): number | null {
+  if (typeof error !== 'object' || error === null || !('status' in error)) {
+    return null;
+  }
+  const status = (error as { status: unknown }).status;
+  return typeof status === 'number' ? status : null;
+}
+
 export async function resolveSessionGateState(): Promise<SessionGateState> {
   try {
     const result = await authClient.getSession();
@@ -58,6 +66,15 @@ export async function resolveSessionGateState(): Promise<SessionGateState> {
         status: 'authenticated',
         session: result.data,
       };
+    }
+
+    if (result.error) {
+      const status = readAuthErrorStatus(result.error);
+      if (status === 401 || status === 403) {
+        forgetAuthenticatedSession();
+        return { status: 'unauthenticated' };
+      }
+      return resolveUnavailableSessionGateState();
     }
 
     if (!navigator.onLine) {

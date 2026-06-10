@@ -22,4 +22,11 @@ describe('y-sweet server connection string', () => {
       serverToken: '',
     })).toThrow('YSWEET_SERVER_TOKEN is required');
   });
+
+  it('rejects empty connection strings with a configuration error', () => {
+    expect(() => resolveYSweetConnectionString({
+      connectionString: '',
+      serverToken: 'fake-server-token',
+    })).toThrow('YSWEET_CONNECTION_STRING is required');
+  });
 });

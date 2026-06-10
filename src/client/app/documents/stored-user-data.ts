@@ -542,12 +542,19 @@ function readProjectedCollection<T>(
   key: string,
   readEntry: (entry: Y.Map<unknown>) => T,
 ): T[] {
-  return collection.toArray().map((value) => {
+  const items: T[] = [];
+  for (const value of collection) {
     if (!(value instanceof Y.Map)) {
-      throw new TypeError(`Projection collection "${key}" contains an invalid entry.`);
+      console.error(`Projection collection "${key}" contains an invalid entry.`);
+      continue;
     }
-    return readEntry(value);
-  });
+    try {
+      items.push(readEntry(value));
+    } catch (error) {
+      console.error(`Failed to read projection collection "${key}" entry.`, error);
+    }
+  }
+  return items;
 }
 
 function areProjectedItemsEqual<T extends { id: string }>(currentItems: readonly T[], nextItems: readonly T[]): boolean {

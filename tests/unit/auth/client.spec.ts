@@ -52,6 +52,16 @@ describe('auth client session gate', () => {
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'offline-remembered' });
   });
 
+  it('uses remembered auth when the auth API returns a server error', async () => {
+    getSessionMock.mockResolvedValue({ data: null, error: { status: 503 } });
+    const { rememberAuthenticatedSession, resolveSessionGateState } = await import('#client/app/auth/client');
+
+    rememberAuthenticatedSession();
+
+    await expect(resolveSessionGateState()).resolves.toEqual({ status: 'offline-remembered' });
+    expect(localStorage.getItem('remdo-authenticated-session')).toBe('1');
+  });
+
   it('reports offline unavailable when no remembered auth exists', async () => {
     getSessionMock.mockRejectedValue(new TypeError('network unavailable'));
     Object.defineProperty(navigator, 'onLine', {
@@ -68,6 +78,21 @@ describe('auth client session gate', () => {
     const { resolveSessionGateState } = await import('#client/app/auth/client');
 
     await expect(resolveSessionGateState()).resolves.toEqual({ status: 'offline-unavailable' });
+  });
+
+  it('clears the remembered session when the auth API rejects it', async () => {
+    getSessionMock.mockResolvedValue({ data: null, error: { status: 401 } });
+    localStorage.setItem('remdo-authenticated-session', '1');
+    localStorage.setItem('remdo-current-user-bootstrap', JSON.stringify({
+      userDataDocumentId: 'oldUserData',
+      homeDocumentId: 'oldHome',
+    }));
+    const { resolveSessionGateState } = await import('#client/app/auth/client');
+
+    await expect(resolveSessionGateState()).resolves.toEqual({ status: 'unauthenticated' });
+
+    expect(localStorage.getItem('remdo-authenticated-session')).toBeNull();
+    expect(localStorage.getItem('remdo-current-user-bootstrap')).toBeNull();
   });
 
   it('keeps signed-out offline in the offline state when the auth client resolves locally', async () => {

@@ -16,6 +16,7 @@ const TEST_SOURCE_SERVER = {
 } as const;
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -479,6 +480,7 @@ describe('remdo api app', () => {
 
   it('returns created user documents when projection refresh fails after registry insert', async () => {
     let failProjectionRefresh = false;
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const harness = createHarness({
       onUpdateDoc: () => {
         if (failProjectionRefresh) {
@@ -510,6 +512,10 @@ describe('remdo api app', () => {
     expect(harness.readProjectedDocumentIds(bootstrap.userDataDocumentId)).toEqual([
       bootstrap.homeDocumentId,
     ]);
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining('[remdo-api] Failed to refresh user data projection for user '),
+      expect.any(Error),
+    );
   });
 
   it('rejects private Y-Sweet document client token issuance for a different user', async () => {

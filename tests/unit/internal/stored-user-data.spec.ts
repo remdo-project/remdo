@@ -54,6 +54,7 @@ describe('stored user data', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -660,8 +661,9 @@ describe('stored user data', () => {
     unsubscribe();
   });
 
-  it('destroys a linked source session after malformed projection loading fails', async () => {
+  it('skips malformed linked source projection entries without stopping the source session', async () => {
     vi.useFakeTimers();
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const collab = mockLinkedSourceProjection({
       remoteDoc: createMalformedUserDataDoc(),
     });
@@ -671,21 +673,24 @@ describe('stored user data', () => {
       getUserData,
     } = await import('#client/app/documents/stored-user-data');
 
-    await getUserData();
-    for (
-      let attempt = 0;
-      attempt < 10 && collab.byDocId('sourceUserDataDoc')[0]?.destroy.mock.calls.length !== 1;
-      attempt += 1
-    ) {
+    const userData = await getUserData();
+    for (let attempt = 0; attempt < 10 && getDocumentSourcesLoading(); attempt += 1) {
       await Promise.resolve();
     }
 
-    const failedSourceSessions = collab.byDocId('sourceUserDataDoc');
-    expect(failedSourceSessions).toHaveLength(1);
-    expect(failedSourceSessions[0]!.connect).toHaveBeenCalledTimes(1);
-    expect(failedSourceSessions[0]!.awaitSynced).toHaveBeenCalledTimes(1);
-    expect(failedSourceSessions[0]!.destroy).toHaveBeenCalledTimes(1);
-    expect(getDocumentSourcesLoading()).toBe(true);
+    const sourceSessions = collab.byDocId('sourceUserDataDoc');
+    expect(sourceSessions).toHaveLength(1);
+    expect(sourceSessions[0]!.connect).toHaveBeenCalledTimes(1);
+    expect(sourceSessions[0]!.awaitSynced).toHaveBeenCalledTimes(1);
+    expect(sourceSessions[0]!.destroy).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(
+      'Failed to read projection collection "documents" entry.',
+      expect.any(TypeError),
+    );
+    expect(getDocumentSourcesLoading()).toBe(false);
+    expect(listDocumentSources(userData)[1]?.documents).toEqual([
+      { id: 'sourceHome', title: 'Home' },
+    ]);
   });
 
   it('destroys a pending linked source session when the source is unlinked', async () => {

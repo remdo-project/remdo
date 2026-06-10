@@ -31,11 +31,15 @@
 				reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
 			}
 
+			handle /.well-known/* {
+				reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
+			}
+
 			handle /d/* {
 				reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
 			}
 
-			@app_routes not path /api/* /d/* /doc*
+			@app_routes not path /api/* /.well-known/* /d/* /doc*
 			handle @app_routes {
 				route {
 					root * /srv/remdo

@@ -42,6 +42,9 @@ export function resolveYSweetConnectionString({
   connectionString = config.env.YSWEET_CONNECTION_STRING,
   serverToken = config.env.YSWEET_SERVER_TOKEN,
 }: ResolveYSweetConnectionStringOptions = {}): string {
+  if (!connectionString) {
+    throw new Error('YSWEET_CONNECTION_STRING is required.');
+  }
   const parsed = new URL(connectionString);
   if (parsed.username) {
     return connectionString;

@@ -189,9 +189,10 @@ export async function refreshCurrentUserDocumentsProjectionBestEffort(
 ): Promise<void> {
   try {
     await refreshCurrentUserDocumentsProjection(registry, tokenManager, userId, auth);
-  } catch {
+  } catch (error) {
     // SQL is the durable source of truth. A later bootstrap load or document
     // create can repair the derived user-data projection.
+    console.error(`[remdo-api] Failed to refresh user data projection for user ${userId}.`, error);
   }
 }
 

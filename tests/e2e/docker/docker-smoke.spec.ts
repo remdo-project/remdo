@@ -138,6 +138,26 @@ test('token issuance requires auth and collaboration control routes are not rout
   expect(authRouteResponse.status()).toBe(HTTP_STATUS.NOT_FOUND);
 });
 
+test('well-known OAuth metadata is served by the API through the Docker gateway', async ({ page }) => {
+  await page.goto(`/n/${readSmokeDocumentId()}`);
+  const gatewayOrigin = new URL(page.url()).origin;
+  const requestContext = page.context().request;
+
+  for (const path of [
+    '/.well-known/openid-configuration',
+    '/.well-known/oauth-authorization-server',
+  ]) {
+    const response = await requestContext.fetch(`${gatewayOrigin}${path}`);
+
+    expect(response.status()).toBe(HTTP_STATUS.OK);
+    expect(response.headers()['content-type']).toContain('application/json');
+    expect(await response.json() as Record<string, unknown>).toEqual(expect.objectContaining({
+      authorization_endpoint: `${gatewayOrigin}/api/auth/oauth2/authorize`,
+      token_endpoint: `${gatewayOrigin}/api/auth/oauth2/token`,
+    }));
+  }
+});
+
 test('user data sync token is read-only and API document creation updates the projection', async ({ page }) => {
   await page.goto(`/n/${readSmokeDocumentId()}`);
   const requestContext = page.context().request;
