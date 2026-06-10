@@ -7,31 +7,14 @@ export REMDO_ROOT
 
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/env.defaults.sh
+# shellcheck disable=SC1091 # provided by the image build.
+. /usr/local/share/remdo/entrypoint-env.sh
 
 : "${XDG_DATA_HOME:=${DATA_DIR%/}}"
 : "${XDG_CONFIG_HOME:=${DATA_DIR%/}/.config}"
 export XDG_DATA_HOME XDG_CONFIG_HOME
 
-: "${APP_PUBLIC_URL:?Set APP_PUBLIC_URL to the canonical public RemDo URL}"
-: "${CADDY_SITE_ADDRESSES:=${APP_PUBLIC_URL}}"
-
-case "${APP_PUBLIC_URL}" in
-  https://*)
-    CADDY_TLS_DIRECTIVE="tls internal"
-    canonical_url="${APP_PUBLIC_URL}"
-    ;;
-  *)
-    CADDY_TLS_DIRECTIVE=""
-    canonical_url="${APP_PUBLIC_URL}"
-    ;;
-esac
-
-CADDY_CANONICAL_HOST="$(node -e 'console.log(new URL(process.argv[1]).hostname)' "${canonical_url}")"
-
-export APP_PUBLIC_URL
-export CADDY_SITE_ADDRESSES
-export CADDY_TLS_DIRECTIVE
-export CADDY_CANONICAL_HOST
+remdo_configure_caddy_env
 
 COLLAB_DATA_DIR="${DATA_DIR%/}/collab"
 mkdir -p "$COLLAB_DATA_DIR"

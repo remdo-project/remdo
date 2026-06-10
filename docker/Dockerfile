@@ -75,6 +75,7 @@ COPY --from=builder /app/node_modules /app/node_modules
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh
+COPY docker/entrypoint-env.sh /usr/local/share/remdo/entrypoint-env.sh
 COPY --from=builder /app/remdo-api-server.cjs /app/remdo-api-server.cjs
 COPY --from=builder /app/snapshot.mjs /app/snapshot.mjs
 
