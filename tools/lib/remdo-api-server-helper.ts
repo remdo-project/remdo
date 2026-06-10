@@ -111,8 +111,14 @@ export async function ensureRemdoApiServer({
     logStream.end();
   };
   const stop = async () => {
+    let exited = child.exitCode !== null || child.signalCode !== null;
+    child.once('exit', () => {
+      exited = true;
+    });
     terminateProcessGroup(child, 'SIGTERM');
-    await once(child, 'exit');
+    if (!exited) {
+      await once(child, 'exit');
+    }
     cleanup();
   };
 
