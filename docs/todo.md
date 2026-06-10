@@ -29,70 +29,6 @@ Rules:
 
 ## Document access and sharing
 
-- Durable document access behavior lives in [docs/access-model.md](./access-model.md).
-- Initial implementation can optimize for simplicity and may break compatibility
-  during the dev phase if the design changes later.
-- Design inputs:
-  1. Durable project constraints live in [docs/principles.md](./principles.md).
-  2. Evaluate auth, sync, storage, and hosting choices against those principles.
-  3. Keep project assumptions separate from replaceable tooling choices.
-- Planning workflow before implementation:
-  1. ✅ Done: list user-visible sharing/access functionality that is incomplete,
-     including partially done behavior.
-  2. ✅ Done: choose the user-visible functionality that belongs in this branch.
-  3. ✅ Done: re-review the chosen scope against docs and code, then recommend
-     technical prerequisites, expensive-to-change design decisions, and items to
-     keep out of this branch.
-  4. ✅ Done: finalize product scope and DB direction.
-  5. ✅ Done: draft the resulting plan in `docs/access-model.md` and keep
-     fast-moving notes in this section.
-  6. ✅ Done: consult access-control design materials, record sources, and add
-     acceptance tests.
-  7. ✅ Done: implement the same-server document sharing slice.
-  8. Next: ship this branch with deferred items left explicit.
-- Settled branch decisions:
-  1. Target same-server direct user sharing as the first slice, not anonymous,
-     bearer-link, or cross-server source-linking sharing.
-  2. The normal document URL is only a document locator. Possessing it must not
-     allow access.
-  3. Grantees are normal Better Auth users on the document host.
-  4. The owner grants access by entering a grantee email address.
-  5. Access grants are not gated by a document access mode.
-- Branch intention: same-server direct user sharing:
-  1. Alice owns `doc123` on server A.
-  2. Bob creates or uses a normal account on server A.
-  3. Alice enters Bob's email address in the sharing UI for `doc123`.
-  4. Server A creates access for Bob's A-local Better Auth user id.
-  5. Bob can open/edit `doc123` on server A.
-  6. OAuth source-linking can let Bob's home server B list/open A-hosted
-     documents after Bob authorizes B.
-- Deferred access cases:
-  1. Anonymous access.
-  2. Bearer/link-based access.
-  3. Public documents.
-  4. Link revocation/regeneration/invalid-link UX.
-  5. Local-only no-login mode.
-- Implementation decision: this branch introduces the SQL sharing schema from
-  scratch; reset stale local dev databases instead of adding compatibility
-  migrations. Do not add external principal, external credential, or source
-  tables in this slice.
-- Acceptance coverage:
-  1. Owner Y-Sweet document client tokens work.
-  2. Non-owner Y-Sweet document client token requests are rejected without a
-     direct grant.
-  3. Owner sharing by an existing local user email creates a direct grant.
-  4. Unknown emails, self-sharing, non-owner grants, and special-document
-     grants are rejected.
-  5. Direct grants issue Y-Sweet document client tokens.
-  6. Normal document URLs are locators and never auto-create local documents or
-     allow access.
-  7. State-changing sharing endpoints reject cross-site/simple-request abuse.
-  8. Public and bearer-link access remain inactive in this branch.
-  9. Linked configured source servers can expose source-owned document lists
-     through source projections after OAuth linking.
-- OAuth source-linking follow-up: decide whether arbitrary user-added RemDo
-  sources are in scope; Better Auth's generic OAuth client is
-  configured-provider oriented.
 - OAuth source-linking privilege follow-up: review whether linked source OAuth
   tokens should remain full account delegates, or require narrower RemDo scopes
   before remote servers can use document mutation APIs.
@@ -110,22 +46,6 @@ Rules:
 - Local data wipe follow-up: add a separate "wipe this device" flow and design
   the related UX, including unsynced local edits, server-offline behavior, and
   open-tab IndexedDB cleanup blockers.
-
-## Collaboration architecture roadmap [Future]
-
-### Stages and success criteria
-
-1. ✅ Done **Stage 0: single hub, online-first.**
-   Success: one server is the single collaboration backend for docs.
-2. ✅ Done **Stage 1: offline doc persistence.**
-   Success: an already-opened doc can be edited offline and syncs on reconnect.
-3. ✅ Done **Stage 2: offline app-shell loading.**
-   Success: the app shell can open offline (for example via PWA caching), even
-   before document data sync is available.
-4. **Stage 3: multi-hub client.**
-   Success: one client can browse/edit docs from multiple trusted hubs.
-5. **Stage 4: local vault hub (optional).**
-   Success: local-only docs behave like normal docs and remain device-local.
 
 ## User-data follow-ups
 
