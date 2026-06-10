@@ -36,6 +36,7 @@ Read:
 
 - `AGENTS.md`
 - `docs/index.md`
+- `docs/contributing.md`
 
 Then use `docs/index.md` as the navigation source for any directly relevant
 docs. Do not reread unrelated docs.
