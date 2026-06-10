@@ -155,6 +155,7 @@ describe('document route', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -275,6 +276,22 @@ describe('document route', () => {
         method: 'POST',
       }),
     );
+  });
+
+  it('opens the editor offline while source resolution is loading', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(globalThis.navigator, 'onLine', 'get').mockReturnValue(false);
+    setTestDocumentSourcesLoading(true);
+
+    renderDocumentRoute(createDocumentPath('offlineDoc'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'offlineDoc');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-source-id', '');
+      expect(screen.queryByRole('status')).toBeNull();
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('sets the page title from the current zoom note when zoomed', async () => {

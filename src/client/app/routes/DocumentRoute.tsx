@@ -39,6 +39,29 @@ interface DocumentLocator {
 
 type LocalDocumentAccessProbe = 'idle' | 'checking' | 'authorized' | 'rejected';
 
+function readOnlineState(): boolean {
+  return globalThis.navigator.onLine;
+}
+
+function useOnlineState(): boolean {
+  const [online, setOnline] = useState(readOnlineState);
+
+  useEffect(() => {
+    const handleOnlineStateChange = () => {
+      setOnline(readOnlineState());
+    };
+
+    globalThis.addEventListener('online', handleOnlineStateChange);
+    globalThis.addEventListener('offline', handleOnlineStateChange);
+    return () => {
+      globalThis.removeEventListener('online', handleOnlineStateChange);
+      globalThis.removeEventListener('offline', handleOnlineStateChange);
+    };
+  }, []);
+
+  return online;
+}
+
 function useDocumentRouteNavigation(docId: string) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -159,11 +182,12 @@ function DocumentRouteContent({
   const { requestZoomNoteId } = useEditorViewActions();
   const userData = useUserData();
   const documentSourcesLoading = useDocumentSourcesLoading();
+  const online = useOnlineState();
   const documentSources = userData.documentSources().children();
   const currentDocumentSource = findDocumentSourceByDocumentId(documentSources, docId);
   const localDocumentSource = documentSources.find((source) => source.local()) ?? null;
   const localDocumentExists = Boolean(localDocumentSource?.documents().byId(docId));
-  const sourceResolutionAmbiguous = documentSourcesLoading && !localDocumentExists && !currentDocumentSource;
+  const sourceResolutionAmbiguous = online && documentSourcesLoading && !localDocumentExists && !currentDocumentSource;
   const localDocumentAccessProbe = useLocalDocumentAccessProbe(docId, sourceResolutionAmbiguous);
   const documentSourceResolutionPending = sourceResolutionAmbiguous && localDocumentAccessProbe !== 'authorized';
   const currentDocument = currentDocumentSource?.documents().children()
