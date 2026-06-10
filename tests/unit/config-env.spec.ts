@@ -100,6 +100,7 @@ describe('config env loading', () => {
     const authUrl = readEnvShValue('AUTH_URL', {
       NODE_ENV: 'development',
       PORT_BASE: '4000',
+      PORT: '4000',
       REMDO_DEV_HOME_ORIGIN: 'https://localhost:4040',
       RUN_MODE_PORT_SHIFT: '0',
     });
