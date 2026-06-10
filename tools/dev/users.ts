@@ -116,6 +116,8 @@ async function main(): Promise<void> {
   for (const [label, user] of Object.entries(STABLE_AUTH_USERS)) {
     console.info(`${label}:`);
     console.info(`  Email: ${user.email}`);
+    // Public dev fixture credentials; this command is dev-only and prints them intentionally.
+    // codeql[js/clear-text-logging]
     console.info(`  Password: ${user.password}`);
   }
   await provisionDevSourceOAuthClient();
