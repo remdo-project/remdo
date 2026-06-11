@@ -1,7 +1,7 @@
 import { Alert, Button, Container, Paper, Stack, Text, Title } from '@mantine/core';
 import { useCallback, useEffect, useState } from 'react';
-import { clearLocalUserData } from '#client/app/auth/local-data';
 import { logoutCurrentUser } from '#client/app/auth/logout';
+import { clearLocalLogoutData } from './logout-local-data';
 
 type LogoutStatus = 'clearing-local' | 'local-failed' | 'server-failed' | 'signing-out';
 
@@ -11,7 +11,7 @@ export default function LogoutRoute() {
   const runLogout = useCallback(async () => {
     setStatus('clearing-local');
     try {
-      await clearLocalUserData();
+      await clearLocalLogoutData();
     } catch {
       // Do not sign out server-side while private local Yjs data remains on this device.
       setStatus('local-failed');
