@@ -15,4 +15,5 @@ Thumbs.db
 
 # local files
 *.local
+.claude/settings.local.json
 .env
