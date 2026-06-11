@@ -66,6 +66,17 @@ Default policy:
 See `docs/index.md` for documentation navigation and maintenance rules:
 documentation map, doc workflow, and documentation invariants.
 
+## Editor Feature Modules
+
+Use `src/client/editor/features/<feature>/` for cohesive editor features that
+own their plugin entry points plus related nodes, helper modules, UI, and unit
+tests. Colocated `*.spec.ts` and `*.spec.tsx` files in these feature folders are
+part of the unit test inventory and should follow the same test rules as
+`tests/unit`.
+
+Keep durable product behavior in `docs/`; source feature folders should not
+replace the stable behavior specs.
+
 ## Environment
 
 See `docs/run-modes.md` for the canonical environment setup across dev, tests,

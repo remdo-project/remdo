@@ -84,6 +84,7 @@ const repoRoot = process.cwd();
 const envScript = path.join(repoRoot, 'tools/env.sh');
 const baselinePath = path.resolve(repoRoot, 'tools/baselines/repo-stats.json');
 const defaultThresholdRatio = 0.1;
+const vitestUnitTestTargets = ['tests/unit', 'src/client/editor/features'];
 const generatedFilePatterns: RegExp[] = [
   /^pnpm-lock\.yaml$/,
   /^package-lock\.json$/,
@@ -352,7 +353,7 @@ function isExcludedGeneratedFile(relativePath: string): boolean {
 function collectVitestCaseKeys(collabEnabled: boolean): string[] {
   const stdout = runCommand(
     envScript,
-    ['pnpm', 'exec', 'vitest', 'list', 'tests/unit', '--json', '--run'],
+    ['pnpm', 'exec', 'vitest', 'list', ...vitestUnitTestTargets, '--json', '--run'],
     { NODE_ENV: 'test', COLLAB_ENABLED: collabEnabled ? 'true' : 'false' },
   );
   const parsed = parseJsonOutput(
@@ -519,7 +520,7 @@ function normalizeTestPath(input: string, baseDir: string): string {
     return normalizeRelativePath(relative);
   }
 
-  if (normalizedInput.startsWith('tests/')) {
+  if (normalizedInput.startsWith('tests/') || normalizedInput.startsWith('src/')) {
     return normalizeRelativePath(normalizedInput);
   }
 

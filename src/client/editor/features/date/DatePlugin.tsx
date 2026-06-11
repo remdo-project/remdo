@@ -21,14 +21,14 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
-import { $createDateNode, $isDateNode } from '#client/editor/runtime/date-node';
+import { $createDateNode, $isDateNode } from './date-node';
 import {
   resolveDatePickerElementAnchor,
   resolveDatePickerSelectionAnchor,
-} from './date/anchor';
-import { DatePickerPopover } from './date/DatePickerPopover';
-import { $resolveDateQuerySession } from './date/session';
-import type { ActiveDateQuery, DatePickerState, DateQuerySession } from './date/types';
+} from './anchor';
+import { DatePickerPopover } from './DatePickerPopover';
+import { $resolveDateQuerySession } from './session';
+import type { ActiveDateQuery, DatePickerState, DateQuerySession } from './types';
 
 function isTypingTrigger(event: KeyboardEvent): boolean {
   if (event.key !== '!' || event.metaKey || event.ctrlKey || event.altKey) {

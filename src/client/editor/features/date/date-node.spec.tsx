@@ -3,9 +3,9 @@ import type { SerializedLexicalNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import type { SerializedDateNode } from '#client/editor/runtime/date-node';
-import { $createDateNode, $isDateNode } from '#client/editor/runtime/date-node';
 import { findSerializedNode, meta, placeCaretAtNote, pressKey, typeText } from '#tests';
+import type { SerializedDateNode } from './date-node';
+import { $createDateNode, $isDateNode } from './date-node';
 
 function findSerializedDateNode(nodes: SerializedLexicalNode[] | undefined): SerializedDateNode | null {
   return findSerializedNode(nodes, (node): node is SerializedDateNode => node.type === 'date');

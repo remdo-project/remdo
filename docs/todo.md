@@ -27,6 +27,13 @@ Rules:
   result labels: whitespace-insensitive lookup (trim/collapse between words),
   fuzzy matching, and shared ranking/disambiguation rules.
 
+## Editor feature module follow-ups
+
+- [Future] Audit existing editor capabilities for migration into
+  `src/client/editor/features/<feature>/` when they own a cohesive plugin plus
+  related nodes, helpers, UI, and focused unit tests. Likely candidates include
+  note links and search, but keep migrations incremental and behavior-neutral.
+
 ## Document access and sharing
 
 - OAuth source-linking privilege follow-up: review whether linked source OAuth
