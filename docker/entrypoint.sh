@@ -15,6 +15,7 @@ export REMDO_ROOT
 export XDG_DATA_HOME XDG_CONFIG_HOME
 
 remdo_configure_caddy_env
+remdo_require_api_secrets
 
 COLLAB_DATA_DIR="${DATA_DIR%/}/collab"
 mkdir -p "$COLLAB_DATA_DIR"

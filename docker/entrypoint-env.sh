@@ -42,3 +42,8 @@ remdo_configure_caddy_env() {
   export CADDY_TLS_DIRECTIVE
   export CADDY_CANONICAL_HOST
 }
+
+remdo_require_api_secrets() {
+  : "${AUTH_SECRET:?Set AUTH_SECRET}"
+  : "${ADMIN_SECRET:?Set ADMIN_SECRET}"
+}

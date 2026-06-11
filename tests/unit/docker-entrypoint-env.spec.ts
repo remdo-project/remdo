@@ -1,6 +1,26 @@
 /* eslint-disable node/no-process-env */
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
+
+function runEntryPointEnv(command: string, overrides: NodeJS.ProcessEnv): ReturnType<typeof spawnSync> {
+  return spawnSync(
+    'sh',
+    [
+      '-c',
+      [
+        '. ./docker/entrypoint-env.sh',
+        command,
+      ].join('; '),
+    ],
+    {
+      encoding: 'utf8',
+      env: {
+        PATH: process.env.PATH,
+        ...overrides,
+      },
+    }
+  );
+}
 
 function readCaddyEnv(overrides: NodeJS.ProcessEnv): {
   canonicalHost: string;
@@ -62,5 +82,27 @@ describe('docker entrypoint Caddy environment', () => {
       siteAddresses: ':8080',
       tlsDirective: '',
     });
+  });
+});
+
+describe('docker entrypoint API secret validation', () => {
+  it('requires AUTH_SECRET', () => {
+    const result = runEntryPointEnv('remdo_require_api_secrets', {
+      ADMIN_SECRET: 'production-admin-secret-0123456789',
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('AUTH_SECRET');
+    expect(result.stderr).toContain('Set AUTH_SECRET');
+  });
+
+  it('requires ADMIN_SECRET', () => {
+    const result = runEntryPointEnv('remdo_require_api_secrets', {
+      AUTH_SECRET: 'production-auth-secret-0123456789',
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('ADMIN_SECRET');
+    expect(result.stderr).toContain('Set ADMIN_SECRET');
   });
 });
