@@ -1,6 +1,6 @@
-import { addClassNamesToElement } from '@lexical/utils';
 import dayjs from 'dayjs';
 import { $applyNodeReplacement, DecoratorNode } from 'lexical';
+import { createElement } from 'react';
 import type {
   DOMConversionMap,
   DOMExportOutput,
@@ -11,6 +11,9 @@ import type {
   SerializedLexicalNode,
   Spread,
 } from 'lexical';
+import type { ReactNode } from 'react';
+
+import { DateToken } from './DateToken';
 
 export type SerializedDateNode = Spread<
   {
@@ -20,7 +23,6 @@ export type SerializedDateNode = Spread<
   SerializedLexicalNode
 >;
 
-const DATE_NODE_CLASS = 'date-node';
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const INVALID_DATE_ERROR = 'DateNode isoDate must be a valid YYYY-MM-DD date.';
 
@@ -44,7 +46,7 @@ export function formatDateNodeLabel(isoDate: string): string {
   return dayjs(normalizeIsoDateOrThrow(isoDate)).format('MMM D, YYYY');
 }
 
-export class DateNode extends DecoratorNode<null> {
+export class DateNode extends DecoratorNode<ReactNode> {
   __isoDate: string;
 
   static getType(): string {
@@ -82,15 +84,10 @@ export class DateNode extends DecoratorNode<null> {
   }
 
   createDOM(_config: EditorConfig): HTMLElement {
-    const element = document.createElement('span');
-    this.updateDateDOM(null, element);
-    addClassNamesToElement(element, DATE_NODE_CLASS);
-    element.spellcheck = false;
-    return element;
+    return document.createElement('span');
   }
 
-  updateDOM(prevNode: this, dom: HTMLElement, _config: EditorConfig): boolean {
-    this.updateDateDOM(prevNode, dom);
+  updateDOM(_prevNode: this, _dom: HTMLElement, _config: EditorConfig): boolean {
     return false;
   }
 
@@ -100,16 +97,6 @@ export class DateNode extends DecoratorNode<null> {
     element.dataset.isoDate = this.getIsoDate();
     element.textContent = this.getTextContent();
     return { element };
-  }
-
-  updateDateDOM(prevNode: this | null, element: HTMLElement): void {
-    const isoDate = this.getIsoDate();
-    if (!prevNode || prevNode.__isoDate !== isoDate) {
-      element.dataset.isoDate = isoDate;
-      element.textContent = formatDateNodeLabel(isoDate);
-    }
-    element.dataset.dateNode = 'true';
-    element.dataset.dateNodeKey = this.getKey();
   }
 
   getTextContent(): string {
@@ -127,8 +114,11 @@ export class DateNode extends DecoratorNode<null> {
     return writable;
   }
 
-  decorate(): null {
-    return null;
+  decorate(): ReactNode {
+    return createElement(DateToken, {
+      isoDate: this.getIsoDate(),
+      nodeKey: this.getKey(),
+    });
   }
 }
 

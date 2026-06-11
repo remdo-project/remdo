@@ -152,7 +152,7 @@ describe('date nodes', () => {
       type: 'date',
     });
     expect(dateNode).not.toHaveProperty('mode');
-    expect((getDateElement() as HTMLElement).contentEditable).toBe('false');
+    expect((getDateElement().closest('[data-lexical-decorator]') as HTMLElement).contentEditable).toBe('false');
   });
 
   it('inserts a date node from the ! picker', meta({ fixture: 'flat' }), async ({ remdo }) => {

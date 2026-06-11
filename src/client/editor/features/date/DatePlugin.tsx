@@ -39,8 +39,6 @@ interface SelectedDateToken {
   side: DateTokenSelectionSide;
 }
 
-const DATE_TOKEN_SELECTED_ATTR = 'data-date-token-selected';
-
 function isPlainKeyboardEvent(event: KeyboardEvent | null): boolean {
   return !event || !(event.shiftKey || event.altKey || event.metaKey || event.ctrlKey);
 }
@@ -153,7 +151,6 @@ export function DatePlugin() {
   const [picker, setPicker] = useState<DatePickerState | null>(null);
 
   const pickerRef = useRef<DatePickerState | null>(null);
-  const selectedDateNodeKeyRef = useRef<string | null>(null);
   const selectedDateTokenSideRef = useRef<DateTokenSelectionSide>('after');
 
   const setPickerState = useCallback((next: DatePickerState | null) => {
@@ -164,26 +161,6 @@ export function DatePlugin() {
   const closePicker = useCallback(() => {
     setPickerState(null);
   }, [setPickerState]);
-
-  const syncSelectedDateTokenDOM = useCallback(() => {
-    const selectedNodeKey = editor.getEditorState().read(() => $getSingleSelectedDateNode()?.getKey() ?? null);
-    const previousNodeKey = selectedDateNodeKeyRef.current;
-    if (previousNodeKey && previousNodeKey !== selectedNodeKey) {
-      editor.getElementByKey(previousNodeKey)?.removeAttribute(DATE_TOKEN_SELECTED_ATTR);
-    }
-    if (selectedNodeKey) {
-      editor.getElementByKey(selectedNodeKey)?.setAttribute(DATE_TOKEN_SELECTED_ATTR, 'true');
-    }
-    selectedDateNodeKeyRef.current = selectedNodeKey;
-  }, [editor]);
-
-  const clearSelectedDateTokenDOM = useCallback(() => {
-    const selectedNodeKey = selectedDateNodeKeyRef.current;
-    if (selectedNodeKey) {
-      editor.getElementByKey(selectedNodeKey)?.removeAttribute(DATE_TOKEN_SELECTED_ATTR);
-      selectedDateNodeKeyRef.current = null;
-    }
-  }, [editor]);
 
   const $confirmDate = useCallback((isoDate: string): boolean => {
     const currentPicker = pickerRef.current;
@@ -331,7 +308,6 @@ export function DatePlugin() {
 
   useEffect(() => {
     installOutlineSelectionHelpers(editor);
-    syncSelectedDateTokenDOM();
 
     return mergeRegister(
       editor.registerRootListener((nextRoot, previousRoot) => {
@@ -339,9 +315,6 @@ export function DatePlugin() {
           return;
         }
         setPortalRoot(nextRoot ? nextRoot.closest<HTMLElement>('.editor-container') : null);
-      }),
-      editor.registerUpdateListener(() => {
-        syncSelectedDateTokenDOM();
       }),
       editor.registerCommand(
         KEY_ARROW_LEFT_COMMAND,
@@ -428,19 +401,16 @@ export function DatePlugin() {
       ),
       () => {
         closePicker();
-        clearSelectedDateTokenDOM();
       }
     );
   }, [
     closePicker,
-    clearSelectedDateTokenDOM,
     $clearSelectedDateToken,
     $confirmDate,
     $deleteSelectedOrAdjacentDateToken,
     $openSelectedDateTokenPicker,
     $selectAdjacentDateToken,
     editor,
-    syncSelectedDateTokenDOM,
   ]);
 
   useEffect(() => {
