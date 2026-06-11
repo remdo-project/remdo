@@ -77,6 +77,7 @@ function createMockDocumentNote(children: EditorNote[]): DocumentNote {
     create: () => {
       throw new Error('Document note creation is not used in search candidate tests.');
     },
+    shareable: () => false,
     shareWith: async () => {
       throw new Error('Document sharing is not used in search candidate tests.');
     },

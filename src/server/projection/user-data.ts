@@ -34,6 +34,7 @@ export function syncUserDocumentsMapArray(
     preserveKeys: [ACCESS_KEY],
     valuesOf: (document) => ({
       id: document.id,
+      ...(document.shareable === undefined ? {} : { shareable: document.shareable }),
       title: document.title,
     }),
   });

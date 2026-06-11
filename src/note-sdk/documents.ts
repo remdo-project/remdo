@@ -38,6 +38,8 @@ export interface DocumentNote extends Note<'document'> {
     (text: string): EditorNote;
     (position: ChildPosition, text: string): EditorNote;
   };
+  /** Returns whether this document can grant direct local-user access. */
+  shareable: () => boolean;
   /** Grants document access to a user email. */
   shareWith: (email: string) => Promise<DocumentAccessNote>;
 }

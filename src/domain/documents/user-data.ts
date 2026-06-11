@@ -8,5 +8,6 @@ export interface CurrentUserBootstrap {
 export interface UserDocument {
   access?: readonly DocumentAccessView[];
   id: string;
+  shareable?: boolean;
   title: string;
 }

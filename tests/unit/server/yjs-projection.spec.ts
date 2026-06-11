@@ -113,6 +113,25 @@ describe('yjs projection helpers', () => {
     }]);
   });
 
+  it('projects document shareability when supplied', () => {
+    const array = createDocumentArray();
+
+    syncUserDocumentsMapArray(array, [
+      { id: 'home', shareable: false, title: 'Home' },
+      { id: 'owned', shareable: true, title: 'Owned' },
+      { id: 'shared', shareable: false, title: 'Shared' },
+    ]);
+
+    expect(array.toArray().map((entry) => ({
+      id: entry.get('id'),
+      shareable: entry.get('shareable'),
+    }))).toEqual([
+      { id: 'home', shareable: false },
+      { id: 'owned', shareable: true },
+      { id: 'shared', shareable: false },
+    ]);
+  });
+
   it('syncs nested document access when access is supplied', () => {
     const array = createDocumentArray();
 

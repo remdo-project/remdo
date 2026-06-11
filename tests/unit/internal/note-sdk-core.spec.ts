@@ -31,6 +31,7 @@ function createMockAdapterFixture(
   const userData = [
     {
       id: 'main',
+      shareable: true,
       title: 'Main',
       access: [{
         documentId: 'main',
@@ -39,7 +40,7 @@ function createMockAdapterFixture(
         name: 'Bob',
       }],
     },
-    { id: 'flat', title: 'Flat' },
+    { id: 'flat', shareable: false, title: 'Flat' },
   ];
   const sourceServers = [
     {
@@ -154,11 +155,12 @@ describe('editor notes core', () => {
       documents.children().map((document) => ({
         id: document.id(),
         kind: document.kind(),
+        shareable: document.shareable(),
         text: document.text(),
       }))
     ).toEqual([
-      { id: 'main', kind: 'document', text: 'Main' },
-      { id: 'flat', kind: 'document', text: 'Flat' },
+      { id: 'main', kind: 'document', shareable: true, text: 'Main' },
+      { id: 'flat', kind: 'document', shareable: false, text: 'Flat' },
     ]);
   });
 
@@ -170,8 +172,10 @@ describe('editor notes core', () => {
       children: () => fixtureDocuments,
     };
     const remoteDocuments = {
-      byId: (documentId: string) => documentId === 'remote' ? { id: 'remote', title: 'Remote' } : null,
-      children: () => [{ id: 'remote', title: 'Remote' }],
+      byId: (documentId: string) => documentId === 'remote'
+        ? { id: 'remote', shareable: false, title: 'Remote' }
+        : null,
+      children: () => [{ id: 'remote', shareable: false, title: 'Remote' }],
     };
     const documentSources: CollectionSource<DocumentSource> = {
       byId: (sourceId: string) => documentSources.children().find((source) => source.id === sourceId) ?? null,

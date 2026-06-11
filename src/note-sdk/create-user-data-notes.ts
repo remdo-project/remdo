@@ -137,6 +137,7 @@ function createProjectedDocumentHandle(
     access: () => createDocumentAccessHandle(document),
     children: () => [],
     create,
+    shareable: () => document.shareable === true,
     shareWith,
     as: createNoteAs(noteId, kind, () => handle),
   };

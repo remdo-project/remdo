@@ -42,7 +42,7 @@ interface ProjectedCollectionSourceOptions<T extends { id: string }> {
 }
 
 function createHomeUserDocument(bootstrap: CurrentUserBootstrap): UserDocument {
-  return { id: bootstrap.homeDocumentId, title: HOME_DOCUMENT_TITLE };
+  return { id: bootstrap.homeDocumentId, shareable: false, title: HOME_DOCUMENT_TITLE };
 }
 
 class DelayedRetry {
@@ -382,7 +382,7 @@ class StoredUserDataStore {
     if (this.generation !== generation || this.remoteSources.get(sourceId) !== runtime) {
       throw new Error('Source user data runtime was reset.');
     }
-    runtime.homeDocument = { id: bootstrap.homeDocumentId, title: HOME_DOCUMENT_TITLE };
+    runtime.homeDocument = { id: bootstrap.homeDocumentId, shareable: false, title: HOME_DOCUMENT_TITLE };
     const context = await createUserDataStoreContext(bootstrap.userDataDocumentId, (session) => {
       if (this.generation !== generation || this.remoteSources.get(sourceId) !== runtime) {
         session.destroy();
@@ -456,7 +456,7 @@ class StoredUserDataStore {
   }
 
   private createFallbackHomeDocument(): UserDocument | null {
-    return this.homeDocumentId ? { id: this.homeDocumentId, title: HOME_DOCUMENT_TITLE } : null;
+    return this.homeDocumentId ? { id: this.homeDocumentId, shareable: false, title: HOME_DOCUMENT_TITLE } : null;
   }
 
   private scheduleStartupRetry() {
@@ -592,13 +592,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readUserDocumentProjectionEntry(value: Y.Map<unknown>): UserDocument {
   const id = value.get('id');
+  const shareable = value.get('shareable');
   const title = value.get('title');
-  if (typeof id !== 'string' || typeof title !== 'string') {
-    throw new TypeError('User data document entry is missing id or title.');
+  if (typeof id !== 'string' || !(typeof shareable === 'boolean' || shareable === undefined) || typeof title !== 'string') {
+    throw new TypeError('User data document entry is missing id, shareable, or title.');
   }
   return {
     access: readDocumentAccessProjection(value),
     id,
+    shareable: shareable ?? false,
     title,
   };
 }
@@ -677,7 +679,7 @@ async function createUserDocument(title: string): Promise<UserDocument> {
   if (!id || typeof body.title !== 'string') {
     throw new TypeError('Document creation returned an invalid document.');
   }
-  return { id, title: body.title };
+  return { id, shareable: true, title: body.title };
 }
 
 async function createUserDataStoreContext(

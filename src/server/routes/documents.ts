@@ -37,6 +37,7 @@ export function createDocumentRoutes({
         tokenManager,
         actor.userId,
         title,
+        { auth },
       );
 
       return c.json(document);

@@ -81,6 +81,7 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
       access: () => createEmptyDocumentAccessCollection(currentDocId),
       children: () => adapter.currentDocumentChildrenIds().map((noteId) => createHandle(noteId)),
       create,
+      shareable: () => false,
       shareWith: async () => {
         throw new Error('Document sharing is not available for the current editor document.');
       },

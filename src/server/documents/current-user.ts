@@ -27,7 +27,7 @@ interface CurrentUserBootstrapDocuments {
 
 function writeUserDataProjection(
   doc: Y.Doc,
-  documents: readonly Pick<RegisteredDocument, 'id' | 'title'>[],
+  documents: readonly UserDocument[],
   sourceServers?: readonly SourceServer[],
 ): void {
   const root = doc.getMap<Y.Array<Y.Map<unknown>>>(USER_DATA_ROOT_NOTE_ID);
@@ -85,6 +85,7 @@ async function listProjectedUserDocuments(
   const documents = await registry.listUserDocuments(userId);
   return Promise.all(documents.map(async (document) => ({
     id: document.id,
+    shareable: auth !== undefined && document.kind === 'document' && document.ownerUserId === userId,
     title: document.title,
     ...(auth && document.kind === 'document' && document.ownerUserId === userId
       ? { access: await listDocumentAccessViewsForOwner(registry, auth, document.id, userId) }
@@ -230,13 +231,14 @@ export async function createUserDocument(
   tokenManager: YSweetDocumentTokenManager,
   userId: string,
   title: string,
-  { createDocumentId }: { createDocumentId?: () => string } = {},
+  { auth, createDocumentId }: { auth?: ServerAuth; createDocumentId?: () => string } = {},
 ): Promise<UserDocument> {
   await ensureCurrentUserBootstrapDocuments(registry, userId, { createDocumentId });
   const document = await createUserDocumentRecord(registry, userId, title, { createDocumentId });
-  await refreshCurrentUserDocumentsProjectionBestEffort(registry, tokenManager, userId);
+  await refreshCurrentUserDocumentsProjectionBestEffort(registry, tokenManager, userId, auth);
   return {
     id: document.id,
+    shareable: true,
     title: document.title,
   };
 }

@@ -1,6 +1,7 @@
 import { Alert, Button, Group, Select, Stack, Text, TextInput } from '@mantine/core';
 import { useState } from 'react';
 import { useUserData } from '#client/app/documents/user-data';
+import { createShareableDocumentOptions } from './sharing-documents';
 import type { SourceServerNote } from '#note-sdk';
 
 export default function SharingRoute() {
@@ -8,13 +9,11 @@ export default function SharingRoute() {
   const documents = userData.documents().children();
   const sourceServers = userData.sourceServers().children();
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  const documentOptions = createShareableDocumentOptions(documents);
+  const shareableDocumentIds = new Set(documentOptions.map((option) => option.value));
   const activeDocument = selectedDocId
-    ? documents.find((document) => document.id() === selectedDocId) ?? null
+    ? documents.find((document) => document.id() === selectedDocId && shareableDocumentIds.has(document.id())) ?? null
     : null;
-  const documentOptions = documents.map((document) => ({
-    label: document.text(),
-    value: document.id(),
-  }));
   const [shareEmail, setShareEmail] = useState('');
   const [status, setStatus] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
