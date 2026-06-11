@@ -449,10 +449,10 @@ describe('date nodes', () => {
     ]);
   });
 
-  it('clears selected date token focus on Escape without changing the date', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('clears selected date token focus after the date on Escape without changing the date', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setupInlineDate(remdo);
-    await placeCaretNextToDate(remdo, 'after');
-    await pressKey(remdo, { key: 'ArrowLeft' });
+    await placeCaretNextToDate(remdo, 'before');
+    await pressKey(remdo, { key: 'ArrowRight' });
 
     await pressKey(remdo, { key: 'Escape' });
 

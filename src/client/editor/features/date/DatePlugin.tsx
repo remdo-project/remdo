@@ -34,15 +34,9 @@ import './date.css';
 
 type DateTokenSelectionSide = 'after' | 'before';
 
-interface SelectedDateToken {
-  node: DateNode;
-  side: DateTokenSelectionSide;
-}
-
 interface DatePointerTarget {
   element: HTMLElement;
   nodeKey: string;
-  side: DateTokenSelectionSide;
 }
 
 function isPlainKeyboardEvent(event: KeyboardEvent | null): boolean {
@@ -100,7 +94,7 @@ function $removeSelectedDateToken(node: DateNode): void {
 
 function $resolveAdjacentDateToken(
   direction: DateTokenSelectionSide
-): SelectedDateToken | null {
+): DateNode | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
     return null;
@@ -115,12 +109,7 @@ function $resolveAdjacentDateToken(
       direction === 'before'
         ? $getElementChildAt(anchorNode, offset - 1)
         : $getElementChildAt(anchorNode, offset);
-    return $isDateNode(candidate)
-      ? {
-          node: candidate,
-          side: direction === 'before' ? 'after' : 'before',
-        }
-      : null;
+    return $isDateNode(candidate) ? candidate : null;
   }
 
   if (!$isTextNode(anchorNode)) {
@@ -129,23 +118,15 @@ function $resolveAdjacentDateToken(
 
   if (direction === 'before' && anchorNode.getTextContent().slice(0, anchor.offset).trim() === '') {
     const previousSibling = anchorNode.getPreviousSibling();
-    return $isDateNode(previousSibling) ? { node: previousSibling, side: 'after' } : null;
+    return $isDateNode(previousSibling) ? previousSibling : null;
   }
 
   if (direction === 'after' && anchorNode.getTextContent().slice(anchor.offset).trim() === '') {
     const nextSibling = anchorNode.getNextSibling();
-    return $isDateNode(nextSibling) ? { node: nextSibling, side: 'before' } : null;
+    return $isDateNode(nextSibling) ? nextSibling : null;
   }
 
   return null;
-}
-
-function resolvePointerDateTokenSide(
-  element: HTMLElement,
-  clientX: number
-): DateTokenSelectionSide {
-  const bounds = element.getBoundingClientRect();
-  return clientX < bounds.left + bounds.width / 2 ? 'before' : 'after';
 }
 
 function resolveDatePointerTarget(event: MouseEvent): DatePointerTarget | null {
@@ -163,7 +144,6 @@ function resolveDatePointerTarget(event: MouseEvent): DatePointerTarget | null {
   return {
     element,
     nodeKey,
-    side: resolvePointerDateTokenSide(element, event.clientX),
   };
 }
 
@@ -176,7 +156,6 @@ export function DatePlugin() {
   const [picker, setPicker] = useState<DatePickerState | null>(null);
 
   const pickerRef = useRef<DatePickerState | null>(null);
-  const selectedDateTokenSideRef = useRef<DateTokenSelectionSide>('after');
 
   const setPickerState = useCallback((next: DatePickerState | null) => {
     pickerRef.current = next;
@@ -210,13 +189,12 @@ export function DatePlugin() {
     return completeKeyboardCommand(event);
   }, [$confirmDate]);
 
-  const $selectDateTokenByKey = useCallback((nodeKey: string, side: DateTokenSelectionSide): DateNode | null => {
+  const $selectDateTokenByKey = useCallback((nodeKey: string): DateNode | null => {
     const node = $getNodeByKey(nodeKey);
     if (!$isDateNode(node)) {
       return null;
     }
 
-    selectedDateTokenSideRef.current = side;
     $selectDateToken(node);
     return node;
   }, []);
@@ -247,7 +225,6 @@ export function DatePlugin() {
       const selectedDateNode = $getSingleSelectedDateNode();
       if (selectedDateNode) {
         const side = direction === 'before' ? 'before' : 'after';
-        selectedDateTokenSideRef.current = side;
         $collapseDateTokenSelection(selectedDateNode, side);
         return completeKeyboardCommand(event);
       }
@@ -257,8 +234,7 @@ export function DatePlugin() {
         return false;
       }
 
-      selectedDateTokenSideRef.current = resolved.side;
-      $selectDateToken(resolved.node);
+      $selectDateToken(resolved);
       return completeKeyboardCommand(event);
     },
     []
@@ -296,8 +272,7 @@ export function DatePlugin() {
         return false;
       }
 
-      selectedDateTokenSideRef.current = resolved.side;
-      $selectDateToken(resolved.node);
+      $selectDateToken(resolved);
       return completeKeyboardCommand(event);
     },
     []
@@ -346,7 +321,7 @@ export function DatePlugin() {
       return false;
     }
 
-    $collapseDateTokenSelection(selectedDateNode, selectedDateTokenSideRef.current);
+    $collapseDateTokenSelection(selectedDateNode, 'after');
     return completeKeyboardCommand(event);
   }, []);
 
@@ -445,7 +420,7 @@ export function DatePlugin() {
       event.stopPropagation();
       editor.getRootElement()?.focus({ preventScroll: true });
       editor.update(() => {
-        $selectDateTokenByKey(target.nodeKey, target.side);
+        $selectDateTokenByKey(target.nodeKey);
       });
     };
 
@@ -471,7 +446,7 @@ export function DatePlugin() {
       event.preventDefault();
       event.stopPropagation();
       editor.update(() => {
-        $selectDateTokenByKey(target.nodeKey, target.side);
+        $selectDateTokenByKey(target.nodeKey);
       });
       setPickerState({
         anchor,

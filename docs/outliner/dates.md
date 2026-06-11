@@ -40,9 +40,8 @@ Define RemDo-owned inline date behavior in the outliner.
    next `ArrowRight` moves the caret after it.
 5. `Enter` or `Space` on a selected/focused date token opens the date picker in
    edit mode.
-6. `Escape` from a selected/focused date token clears the token focus and
-   returns to the side where token selection was entered without changing the
-   date.
+6. `Escape` from a selected/focused date token clears the token focus and places
+   the caret after the date without changing it.
 7. `Backspace` immediately after a date selects the whole date token without
    deleting it; pressing `Backspace` again deletes the selected date.
 8. `Delete` immediately before a date selects the whole date token without
