@@ -1,6 +1,6 @@
 import { addClassNamesToElement } from '@lexical/utils';
 import dayjs from 'dayjs';
-import { $applyNodeReplacement, TextNode } from 'lexical';
+import { $applyNodeReplacement, DecoratorNode } from 'lexical';
 import type {
   DOMConversionMap,
   DOMExportOutput,
@@ -8,15 +8,16 @@ import type {
   LexicalNode,
   LexicalUpdateJSON,
   NodeKey,
-  SerializedTextNode,
+  SerializedLexicalNode,
   Spread,
 } from 'lexical';
 
 export type SerializedDateNode = Spread<
   {
     isoDate?: string;
+    text?: string;
   },
-  SerializedTextNode
+  SerializedLexicalNode
 >;
 
 const DATE_NODE_CLASS = 'date-node';
@@ -43,7 +44,7 @@ export function formatDateNodeLabel(isoDate: string): string {
   return dayjs(normalizeIsoDateOrThrow(isoDate)).format('MMM D, YYYY');
 }
 
-export class DateNode extends TextNode {
+export class DateNode extends DecoratorNode<null> {
   __isoDate: string;
 
   static getType(): string {
@@ -51,11 +52,11 @@ export class DateNode extends TextNode {
   }
 
   static clone(node: DateNode): DateNode {
-    return new DateNode(node.__isoDate, node.__text, node.__key);
+    return new DateNode(node.__isoDate, node.__key);
   }
 
-  constructor(isoDate = '', text?: string, key?: NodeKey) {
-    super(text ?? (isoDate ? formatDateNodeLabel(isoDate) : ''), key);
+  constructor(isoDate = '', key?: NodeKey) {
+    super(key);
     this.__isoDate = isoDate;
   }
 
@@ -76,23 +77,21 @@ export class DateNode extends TextNode {
     return {
       ...super.exportJSON(),
       isoDate: this.getIsoDate(),
+      text: this.getTextContent(),
     };
   }
 
-  createDOM(config: EditorConfig): HTMLElement {
-    const element = super.createDOM(config);
+  createDOM(_config: EditorConfig): HTMLElement {
+    const element = document.createElement('span');
     this.updateDateDOM(null, element);
     addClassNamesToElement(element, DATE_NODE_CLASS);
-    element.contentEditable = 'false';
-    element.setAttribute('contenteditable', 'false');
     element.spellcheck = false;
     return element;
   }
 
-  updateDOM(prevNode: this, dom: HTMLElement, config: EditorConfig): boolean {
-    const shouldReplace = super.updateDOM(prevNode, dom, config);
+  updateDOM(prevNode: this, dom: HTMLElement, _config: EditorConfig): boolean {
     this.updateDateDOM(prevNode, dom);
-    return shouldReplace;
+    return false;
   }
 
   exportDOM(): DOMExportOutput {
@@ -107,9 +106,14 @@ export class DateNode extends TextNode {
     const isoDate = this.getIsoDate();
     if (!prevNode || prevNode.__isoDate !== isoDate) {
       element.dataset.isoDate = isoDate;
+      element.textContent = formatDateNodeLabel(isoDate);
     }
     element.dataset.dateNode = 'true';
     element.dataset.dateNodeKey = this.getKey();
+  }
+
+  getTextContent(): string {
+    return formatDateNodeLabel(this.getIsoDate());
   }
 
   getIsoDate(): string {
@@ -120,27 +124,16 @@ export class DateNode extends TextNode {
     const normalized = normalizeIsoDateOrThrow(isoDate);
     const writable = this.getWritable();
     writable.__isoDate = normalized;
-    writable.__text = formatDateNodeLabel(normalized);
     return writable;
   }
 
-  isTextEntity(): true {
-    return true;
-  }
-
-  canInsertTextBefore(): boolean {
-    return false;
-  }
-
-  canInsertTextAfter(): boolean {
-    return false;
+  decorate(): null {
+    return null;
   }
 }
 
 export function $createDateNode(isoDate: string): DateNode {
-  const node = new DateNode(normalizeIsoDateOrThrow(isoDate));
-  node.setMode('token').toggleDirectionless();
-  return $applyNodeReplacement(node);
+  return $applyNodeReplacement(new DateNode(normalizeIsoDateOrThrow(isoDate)));
 }
 
 export function $isDateNode(node: LexicalNode | null | undefined): node is DateNode {

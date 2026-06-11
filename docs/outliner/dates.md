@@ -6,8 +6,8 @@ Define RemDo-owned inline date behavior in the outliner.
 
 ## Core behavior
 
-1. Dates are inline RemDo nodes with a stored ISO date (`YYYY-MM-DD`) and a
-   readable local label such as `Jun 10, 2026`.
+1. Dates are non-text inline RemDo nodes with a stored ISO date (`YYYY-MM-DD`)
+   and a readable local label such as `Jun 10, 2026`.
 2. Typing `!` opens the date picker only at a typeahead boundary: the start of
    note text, after whitespace, or after opening punctuation (`(`, `[`, `{`).
 3. Typing `!` after non-whitespace prose does not open the picker, so ordinary
@@ -82,7 +82,7 @@ Define RemDo-owned inline date behavior in the outliner.
 
 1. Lexical React typeahead plugin:
    <https://lexical.dev/docs/react/plugins>
-2. Lexical node modes:
+2. Lexical custom nodes:
    <https://lexical.dev/docs/concepts/nodes>
 3. WAI-ARIA Authoring Practices Guide, combobox pattern:
    <https://www.w3.org/WAI/ARIA/apg/patterns/combobox/>

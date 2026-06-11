@@ -23,6 +23,9 @@
 .date-picker-anchor {
   position: absolute;
   z-index: 4;
+}
+
+.date-picker-panel {
   border: 1px solid var(--mantine-color-dark-4);
   border-radius: var(--mantine-radius-sm);
   background: var(--mantine-color-dark-7);

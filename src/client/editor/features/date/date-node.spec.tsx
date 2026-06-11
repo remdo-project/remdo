@@ -1,6 +1,6 @@
 import { act } from '@testing-library/react';
 import dayjs from 'dayjs';
-import { $createTextNode, $getSelection, $isNodeSelection, $isRangeSelection, $isTextNode, SELECTION_CHANGE_COMMAND } from 'lexical';
+import { $createTextNode, $getSelection, $isNodeSelection, $isRangeSelection, $isTextNode } from 'lexical';
 import type { SerializedLexicalNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
@@ -64,18 +64,20 @@ async function pressKeyOnActiveElement(remdo: RemdoTestApi, key: string) {
   await remdo.waitForSynced();
 }
 
-async function dispatchSelectionChange(remdo: RemdoTestApi) {
-  await act(async () => {
-    remdo.editor.dispatchCommand(SELECTION_CHANGE_COMMAND, void 0);
-  });
-  await remdo.waitForSynced();
-}
-
 async function setupInlineDate(remdo: RemdoTestApi) {
   await remdo.mutate(() => {
     const note = $findNoteById('note1')!;
     note.clear();
     note.append($createTextNode('before '), $createDateNode('2026-06-10'), $createTextNode(' after'));
+  });
+}
+
+async function placeCaretNextToDate(remdo: RemdoTestApi, side: 'after' | 'before') {
+  await remdo.mutate(() => {
+    const note = $findNoteById('note1')!;
+    const dateNode = note.getChildren().find($isDateNode)!;
+    const offset = dateNode.getIndexWithinParent() + (side === 'after' ? 1 : 0);
+    note.select(offset, offset);
   });
 }
 
@@ -107,7 +109,6 @@ function expectDateBoundarySelection(remdo: RemdoTestApi, side: 'after' | 'befor
       return;
     }
     const offset = side === 'before' ? dateNode.getIndexWithinParent() : dateNode.getIndexWithinParent() + 1;
-    const dateOffset = side === 'before' ? 0 : dateNode.getTextContentSize();
     expect(selection.isCollapsed()).toBe(true);
     if (selection.anchor.type === 'element') {
       expect(selection.anchor.getNode().getKey()).toBe(note.getKey());
@@ -120,20 +121,11 @@ function expectDateBoundarySelection(remdo: RemdoTestApi, side: 'after' | 'befor
     const adjacentTextNode = side === 'before' ? dateNode.getPreviousSibling() : dateNode.getNextSibling();
     const adjacentOffset = side === 'before' && $isTextNode(adjacentTextNode) ? adjacentTextNode.getTextContentSize() : 0;
 
-    const isDateBoundary = anchorNode.getKey() === dateNode.getKey() && selection.anchor.offset === dateOffset;
     const isAdjacentTextBoundary =
       $isTextNode(adjacentTextNode) &&
       anchorNode.getKey() === adjacentTextNode.getKey() &&
       selection.anchor.offset === adjacentOffset;
-    expect(isDateBoundary || isAdjacentTextBoundary).toBe(true);
-  });
-}
-
-async function placeCaretInsideDate(remdo: RemdoTestApi, offset: number) {
-  await remdo.mutate(() => {
-    const note = $findNoteById('note1')!;
-    const dateNode = note.getChildren().find($isDateNode)!;
-    dateNode.select(offset, offset);
+    expect(isAdjacentTextBoundary).toBe(true);
   });
 }
 
@@ -150,17 +142,17 @@ describe('date nodes', () => {
       const dateNode = note.getChildren().find($isDateNode)!;
       expect(dateNode.getIsoDate()).toBe('2026-06-10');
       expect(dateNode.getTextContent()).toBe('Jun 10, 2026');
-      expect(dateNode.isToken()).toBe(true);
+      expect($isTextNode(dateNode)).toBe(false);
     });
 
     const dateNode = findSerializedDateNode(remdo.getEditorState().root.children);
     expect(dateNode).toMatchObject({
       isoDate: '2026-06-10',
-      mode: 'token',
       text: 'Jun 10, 2026',
       type: 'date',
     });
-    expect(getDateElement()).toHaveAttribute('contenteditable', 'false');
+    expect(dateNode).not.toHaveProperty('mode');
+    expect((getDateElement() as HTMLElement).contentEditable).toBe('false');
   });
 
   it('inserts a date node from the ! picker', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -274,7 +266,7 @@ describe('date nodes', () => {
 
   it('selects a whole date token on ArrowLeft from after it, then moves before it', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setupInlineDate(remdo);
-    await placeCaretAtNoteTextNode(remdo, 'note1', 2, 0);
+    await placeCaretNextToDate(remdo, 'after');
 
     await pressKey(remdo, { key: 'ArrowLeft' });
     expectDateTokenSelected(remdo);
@@ -285,7 +277,7 @@ describe('date nodes', () => {
 
   it('does not reselect a date token when ArrowLeft continues moving away from it', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setupInlineDate(remdo);
-    await placeCaretAtNoteTextNode(remdo, 'note1', 2, 0);
+    await placeCaretNextToDate(remdo, 'after');
 
     await pressKey(remdo, { key: 'ArrowLeft' });
     expectDateTokenSelected(remdo);
@@ -299,7 +291,7 @@ describe('date nodes', () => {
 
   it('selects a whole date token on ArrowRight from before it, then moves after it', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setupInlineDate(remdo);
-    await placeCaretAtNoteTextNode(remdo, 'note1', 0, Number.POSITIVE_INFINITY);
+    await placeCaretNextToDate(remdo, 'before');
 
     await pressKey(remdo, { key: 'ArrowRight' });
     expectDateTokenSelected(remdo);
@@ -310,7 +302,7 @@ describe('date nodes', () => {
 
   it('does not reselect a date token when ArrowRight continues moving away from it', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setupInlineDate(remdo);
-    await placeCaretAtNoteTextNode(remdo, 'note1', 0, Number.POSITIVE_INFINITY);
+    await placeCaretNextToDate(remdo, 'before');
 
     await pressKey(remdo, { key: 'ArrowRight' });
     expectDateTokenSelected(remdo);
@@ -320,19 +312,11 @@ describe('date nodes', () => {
 
     await pressKey(remdo, { key: 'ArrowRight' });
     expectDateBoundarySelection(remdo, 'after');
-  });
-
-  it('normalizes caret positions inside a date token to whole-token selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await setupInlineDate(remdo);
-    await placeCaretInsideDate(remdo, 4);
-
-    await pressKey(remdo, { key: 'ArrowLeft' });
-    expectDateTokenSelected(remdo);
   });
 
   it('selects a whole date token on ArrowLeft from leading whitespace after it', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setupInlineDate(remdo);
-    await placeCaretAtNoteTextNode(remdo, 'note1', 2, 1);
+    await placeCaretAtNoteTextNode(remdo, 'note1', 1, 1);
 
     await pressKey(remdo, { key: 'ArrowLeft' });
     expectDateTokenSelected(remdo);
@@ -344,28 +328,6 @@ describe('date nodes', () => {
 
     await pressKey(remdo, { key: 'ArrowRight' });
     expectDateTokenSelected(remdo);
-  });
-
-  it('normalizes a left-side interior caret inside a date token to whole-token selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await setupInlineDate(remdo);
-    await placeCaretInsideDate(remdo, 1);
-
-    await dispatchSelectionChange(remdo);
-    expectDateTokenSelected(remdo);
-
-    await pressKey(remdo, { key: 'Escape' });
-    expectDateBoundarySelection(remdo, 'before');
-  });
-
-  it('normalizes a right-side interior caret inside a date token to whole-token selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await setupInlineDate(remdo);
-    await placeCaretInsideDate(remdo, 11);
-
-    await dispatchSelectionChange(remdo);
-    expectDateTokenSelected(remdo);
-
-    await pressKey(remdo, { key: 'Escape' });
-    expectDateBoundarySelection(remdo, 'after');
   });
 
   it('selects a clicked date token while opening the edit picker', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -457,7 +419,7 @@ describe('date nodes', () => {
 
   it('opens the edit picker with Enter on a selected date token', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setupInlineDate(remdo);
-    await placeCaretAtNoteTextNode(remdo, 'note1', 2, 0);
+    await placeCaretNextToDate(remdo, 'after');
     await pressKey(remdo, { key: 'ArrowLeft' });
 
     await pressKey(remdo, { key: 'Enter' });
@@ -474,7 +436,7 @@ describe('date nodes', () => {
 
   it('opens the edit picker with Space on a selected date token without inserting text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setupInlineDate(remdo);
-    await placeCaretAtNoteTextNode(remdo, 'note1', 2, 0);
+    await placeCaretNextToDate(remdo, 'after');
     await pressKey(remdo, { key: 'ArrowLeft' });
 
     await pressSpaceKey(remdo);
@@ -489,7 +451,7 @@ describe('date nodes', () => {
 
   it('clears selected date token focus on Escape without changing the date', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setupInlineDate(remdo);
-    await placeCaretAtNoteTextNode(remdo, 'note1', 2, 0);
+    await placeCaretNextToDate(remdo, 'after');
     await pressKey(remdo, { key: 'ArrowLeft' });
 
     await pressKey(remdo, { key: 'Escape' });
@@ -504,7 +466,7 @@ describe('date nodes', () => {
 
   it('selects a date token before deleting it with Backspace', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setupInlineDate(remdo);
-    await placeCaretAtNoteTextNode(remdo, 'note1', 2, 0);
+    await placeCaretNextToDate(remdo, 'after');
 
     await pressKey(remdo, { key: 'Backspace' });
     expectDateTokenSelected(remdo);

@@ -1,10 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { mergeRegister } from '@lexical/utils';
-import dayjs from 'dayjs';
 import {
   $createNodeSelection,
-  $createRangeSelection,
-  $createTextNode,
   $getNodeByKey,
   $getSelection,
   $isElementNode,
@@ -13,32 +10,26 @@ import {
   $isTextNode,
   $setSelection,
   COMMAND_PRIORITY_CRITICAL,
-  COMMAND_PRIORITY_LOW,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
-  KEY_DOWN_COMMAND,
   KEY_ENTER_COMMAND,
   KEY_ESCAPE_COMMAND,
   KEY_SPACE_COMMAND,
   KEY_TAB_COMMAND,
-  SELECTION_CHANGE_COMMAND,
 } from 'lexical';
 import type { LexicalNode } from 'lexical';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
-import { $createDateNode, $isDateNode } from './date-node';
+import { $isDateNode } from './date-node';
 import type { DateNode } from './date-node';
-import {
-  resolveDatePickerElementAnchor,
-  resolveDatePickerSelectionAnchor,
-} from './anchor';
+import { resolveDatePickerElementAnchor } from './anchor';
 import { DatePickerPopover } from './DatePickerPopover';
-import { $resolveDateQuerySession } from './session';
-import type { ActiveDateQuery, DatePickerState, DateQuerySession } from './types';
+import { DateTypeaheadPlugin } from './DateTypeaheadPlugin';
+import type { DatePickerState } from './types';
 import './date.css';
 
 type DateTokenSelectionSide = 'after' | 'before';
@@ -50,13 +41,6 @@ interface SelectedDateToken {
 
 const DATE_TOKEN_SELECTED_ATTR = 'data-date-token-selected';
 
-function isTypingTrigger(event: KeyboardEvent): boolean {
-  if (event.key !== '!' || event.metaKey || event.ctrlKey || event.altKey) {
-    return false;
-  }
-  return !event.isComposing;
-}
-
 function isPlainKeyboardEvent(event: KeyboardEvent | null): boolean {
   return !event || !(event.shiftKey || event.altKey || event.metaKey || event.ctrlKey);
 }
@@ -65,10 +49,6 @@ function completeKeyboardCommand(event: KeyboardEvent | null): true {
   event?.preventDefault();
   event?.stopPropagation();
   return true;
-}
-
-function getTodayIsoDate(): string {
-  return dayjs().format('YYYY-MM-DD');
 }
 
 function $getElementChildAt(parent: LexicalNode, index: number): LexicalNode | null {
@@ -102,11 +82,7 @@ function $collapseDateTokenSelection(node: DateNode, side: DateTokenSelectionSid
     const index = node.getIndexWithinParent();
     const offset = side === 'before' ? index : index + 1;
     parent.select(offset, offset);
-    return;
   }
-
-  const offset = side === 'before' ? 0 : node.getTextContentSize();
-  node.select(offset, offset);
 }
 
 function $removeSelectedDateToken(node: DateNode): void {
@@ -128,21 +104,6 @@ function $resolveAdjacentDateToken(
 
   const anchor = selection.anchor;
   const anchorNode = anchor.getNode();
-
-  if ($isDateNode(anchorNode)) {
-    if (direction === 'before' && anchor.offset === 0) {
-      return null;
-    }
-
-    if (direction === 'after' && anchor.offset === anchorNode.getTextContentSize()) {
-      return null;
-    }
-
-    return {
-      node: anchorNode,
-      side: direction === 'before' ? 'after' : 'before',
-    };
-  }
 
   if (anchor.type === 'element') {
     const offset = anchor.offset;
@@ -183,29 +144,6 @@ function resolvePointerDateTokenSide(
   return clientX < bounds.left + bounds.width / 2 ? 'before' : 'after';
 }
 
-function $resolveInnerDateTokenSelection(): SelectedDateToken | null {
-  const selection = $getSelection();
-  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-    return null;
-  }
-
-  const anchor = selection.anchor;
-  const anchorNode = anchor.getNode();
-  if (!$isDateNode(anchorNode)) {
-    return null;
-  }
-
-  const textSize = anchorNode.getTextContentSize();
-  if (anchor.offset <= 0 || anchor.offset >= textSize) {
-    return null;
-  }
-
-  return {
-    node: anchorNode,
-    side: anchor.offset < textSize / 2 ? 'before' : 'after',
-  };
-}
-
 export function DatePlugin() {
   const [editor] = useLexicalComposerContext();
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(() => {
@@ -215,8 +153,6 @@ export function DatePlugin() {
   const [picker, setPicker] = useState<DatePickerState | null>(null);
 
   const pickerRef = useRef<DatePickerState | null>(null);
-  const sessionRef = useRef<DateQuerySession | null>(null);
-  const pendingTriggerRef = useRef(false);
   const selectedDateNodeKeyRef = useRef<string | null>(null);
   const selectedDateTokenSideRef = useRef<DateTokenSelectionSide>('after');
 
@@ -226,8 +162,6 @@ export function DatePlugin() {
   }, []);
 
   const closePicker = useCallback(() => {
-    sessionRef.current = null;
-    pendingTriggerRef.current = false;
     setPickerState(null);
   }, [setPickerState]);
 
@@ -251,166 +185,20 @@ export function DatePlugin() {
     }
   }, [editor]);
 
-  const syncPickerFromSelection = useCallback(() => {
-    const nextState = editor.getEditorState().read((): {
-      kind: 'update';
-    } | { kind: 'keep' } | { kind: 'close' } => {
-      if (pickerRef.current?.kind === 'edit') {
-        return { kind: 'keep' };
-      }
-
-      if (editor.selection.isStructural()) {
-        return { kind: 'close' };
-      }
-
-      const selection = $getSelection();
-      if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-        return sessionRef.current ? { kind: 'keep' } : { kind: 'close' };
-      }
-
-      const anchorNode = selection.anchor.getNode();
-      if (!$isTextNode(anchorNode)) {
-        return sessionRef.current ? { kind: 'keep' } : { kind: 'close' };
-      }
-
-      const caretOffset = selection.anchor.offset;
-      const pendingTrigger = pendingTriggerRef.current;
-      pendingTriggerRef.current = false;
-
-      const currentSession = sessionRef.current;
-      if (!pendingTrigger && !currentSession) {
-        return { kind: 'close' };
-      }
-
-      const seededSession = pendingTrigger
-        ? {
-            textNodeKey: anchorNode.getKey(),
-            triggerOffset: caretOffset - 1,
-          }
-        : currentSession;
-
-      const resolved = $resolveDateQuerySession(anchorNode, caretOffset, seededSession);
-      if (!resolved) {
-        sessionRef.current = null;
-        return { kind: 'close' };
-      }
-
-      if (resolved.query.length > 0) {
-        sessionRef.current = null;
-        return { kind: 'close' };
-      }
-
-      sessionRef.current = resolved.session;
-      return { kind: 'update' };
-    });
-
-    if (nextState.kind === 'close') {
-      closePicker();
-      return;
-    }
-
-    if (nextState.kind === 'keep') {
-      return;
-    }
-
-    const anchor = resolveDatePickerSelectionAnchor(editor);
-    if (!anchor) {
-      closePicker();
-      return;
-    }
-
-    setPickerState({
-      anchor,
-      isoDate: pickerRef.current?.isoDate ?? getTodayIsoDate(),
-      kind: 'insert',
-    });
-  }, [closePicker, editor, setPickerState]);
-
-  const $resolveActiveQuery = useCallback((): ActiveDateQuery | null => {
-    const selection = $getSelection();
-    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-      return null;
-    }
-
-    const anchorNode = selection.anchor.getNode();
-    if (!$isTextNode(anchorNode)) {
-      return null;
-    }
-
-    const currentSession = sessionRef.current;
-    if (!currentSession) {
-      return null;
-    }
-
-    const caretOffset = selection.anchor.offset;
-    const resolved = $resolveDateQuerySession(anchorNode, caretOffset, currentSession);
-    if (!resolved) {
-      sessionRef.current = null;
-      return null;
-    }
-
-    sessionRef.current = resolved.session;
-    return {
-      triggerNode: resolved.triggerNode,
-      anchorNode,
-      caretOffset,
-      query: resolved.query,
-    };
-  }, []);
-
-  const $deleteActiveQueryToken = useCallback((): boolean => {
-    const activeQuery = $resolveActiveQuery();
-    if (!activeQuery || !sessionRef.current) {
-      return false;
-    }
-
-    const range = $createRangeSelection();
-    range.setTextNodeRange(
-      activeQuery.triggerNode,
-      sessionRef.current.triggerOffset,
-      activeQuery.anchorNode,
-      activeQuery.caretOffset
-    );
-    $setSelection(range);
-    range.insertText('');
-
-    closePicker();
-    return true;
-  }, [$resolveActiveQuery, closePicker]);
-
   const $confirmDate = useCallback((isoDate: string): boolean => {
     const currentPicker = pickerRef.current;
     if (!currentPicker) {
       return false;
     }
 
-    if (currentPicker.kind === 'edit') {
-      const node = $getNodeByKey(currentPicker.nodeKey);
-      if ($isDateNode(node)) {
-        node.setIsoDate(isoDate);
-      }
-      closePicker();
-      return true;
+    const node = $getNodeByKey(currentPicker.nodeKey);
+    if ($isDateNode(node)) {
+      node.setIsoDate(isoDate);
     }
-
-    const activeQuery = $resolveActiveQuery();
-    if (!activeQuery || !sessionRef.current) {
-      return false;
-    }
-
-    const range = $createRangeSelection();
-    range.setTextNodeRange(
-      activeQuery.triggerNode,
-      sessionRef.current.triggerOffset,
-      activeQuery.anchorNode,
-      activeQuery.caretOffset
-    );
-    $setSelection(range);
-    range.insertNodes([$createDateNode(isoDate), $createTextNode(' ')]);
 
     closePicker();
     return true;
-  }, [$resolveActiveQuery, closePicker]);
+  }, [closePicker]);
 
   const handlePickerMouseDown = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -516,8 +304,6 @@ export function DatePlugin() {
         return false;
       }
 
-      sessionRef.current = null;
-      pendingTriggerRef.current = false;
       setPickerState({
         anchor,
         isoDate: selectedDateNode.getIsoDate(),
@@ -543,20 +329,8 @@ export function DatePlugin() {
     return completeKeyboardCommand(event);
   }, []);
 
-  const $normalizeInnerDateTokenSelection = useCallback((): boolean => {
-    const resolved = $resolveInnerDateTokenSelection();
-    if (!resolved) {
-      return false;
-    }
-
-    selectedDateTokenSideRef.current = resolved.side;
-    $selectDateToken(resolved.node);
-    return false;
-  }, []);
-
   useEffect(() => {
     installOutlineSelectionHelpers(editor);
-    syncPickerFromSelection();
     syncSelectedDateTokenDOM();
 
     return mergeRegister(
@@ -567,7 +341,6 @@ export function DatePlugin() {
         setPortalRoot(nextRoot ? nextRoot.closest<HTMLElement>('.editor-container') : null);
       }),
       editor.registerUpdateListener(() => {
-        syncPickerFromSelection();
         syncSelectedDateTokenDOM();
       }),
       editor.registerCommand(
@@ -579,28 +352,6 @@ export function DatePlugin() {
         KEY_ARROW_RIGHT_COMMAND,
         (event: KeyboardEvent | null) => $selectAdjacentDateToken('after', event),
         COMMAND_PRIORITY_CRITICAL
-      ),
-      editor.registerCommand(
-        SELECTION_CHANGE_COMMAND,
-        () => $normalizeInnerDateTokenSelection(),
-        COMMAND_PRIORITY_CRITICAL
-      ),
-      editor.registerCommand(
-        KEY_DOWN_COMMAND,
-        (event: KeyboardEvent | null) => {
-          if (!event || sessionRef.current || pickerRef.current) {
-            return false;
-          }
-          if (editor.selection.isStructural()) {
-            return false;
-          }
-          if (!isTypingTrigger(event)) {
-            return false;
-          }
-          pendingTriggerRef.current = true;
-          return false;
-        },
-        COMMAND_PRIORITY_LOW
       ),
       editor.registerCommand(
         KEY_ENTER_COMMAND,
@@ -667,27 +418,6 @@ export function DatePlugin() {
       ),
       editor.registerCommand(
         KEY_BACKSPACE_COMMAND,
-        (event: KeyboardEvent | null) => {
-          const currentPicker = pickerRef.current;
-          if (!sessionRef.current || !currentPicker || currentPicker.kind !== 'insert') {
-            return false;
-          }
-          const activeQuery = $resolveActiveQuery();
-          if (!activeQuery || activeQuery.query.length > 0) {
-            return false;
-          }
-          const handled = $deleteActiveQueryToken();
-          if (!handled) {
-            return false;
-          }
-          event?.preventDefault();
-          event?.stopPropagation();
-          return true;
-        },
-        COMMAND_PRIORITY_CRITICAL
-      ),
-      editor.registerCommand(
-        KEY_BACKSPACE_COMMAND,
         (event: KeyboardEvent | null) => $deleteSelectedOrAdjacentDateToken('before', event),
         COMMAND_PRIORITY_CRITICAL
       ),
@@ -706,14 +436,10 @@ export function DatePlugin() {
     clearSelectedDateTokenDOM,
     $clearSelectedDateToken,
     $confirmDate,
-    $deleteActiveQueryToken,
     $deleteSelectedOrAdjacentDateToken,
-    $normalizeInnerDateTokenSelection,
     $openSelectedDateTokenPicker,
-    $resolveActiveQuery,
     $selectAdjacentDateToken,
     editor,
-    syncPickerFromSelection,
     syncSelectedDateTokenDOM,
   ]);
 
@@ -786,8 +512,6 @@ export function DatePlugin() {
           $selectDateToken(node);
         }
       });
-      sessionRef.current = null;
-      pendingTriggerRef.current = false;
       setPickerState({
         anchor,
         isoDate,
@@ -839,16 +563,17 @@ export function DatePlugin() {
     };
   }, [closePicker, editor, setPickerState]);
 
-  if (!picker || !portalRoot) {
-    return null;
-  }
-
   return (
-    <DatePickerPopover
-      picker={picker}
-      portalRoot={portalRoot}
-      onChange={handlePickerChange}
-      onMouseDown={handlePickerMouseDown}
-    />
+    <>
+      <DateTypeaheadPlugin />
+      {picker && portalRoot ? (
+        <DatePickerPopover
+          picker={picker}
+          portalRoot={portalRoot}
+          onChange={handlePickerChange}
+          onMouseDown={handlePickerMouseDown}
+        />
+      ) : null}
+    </>
   );
 }
