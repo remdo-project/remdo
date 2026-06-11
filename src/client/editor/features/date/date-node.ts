@@ -83,6 +83,8 @@ export class DateNode extends TextNode {
     const element = super.createDOM(config);
     this.updateDateDOM(null, element);
     addClassNamesToElement(element, DATE_NODE_CLASS);
+    element.contentEditable = 'false';
+    element.setAttribute('contenteditable', 'false');
     element.spellcheck = false;
     return element;
   }

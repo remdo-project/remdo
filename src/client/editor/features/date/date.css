@@ -1,0 +1,31 @@
+.date-node {
+  color: var(--mantine-color-teal-2);
+  cursor: pointer;
+  background: color-mix(in srgb, var(--mantine-color-teal-8) 45%, transparent);
+  border-radius: var(--mantine-radius-xs);
+  padding: 0.05rem 0.3rem;
+  white-space: nowrap;
+}
+
+.date-node:hover,
+.date-node:focus-visible {
+  background: color-mix(in srgb, var(--mantine-color-teal-7) 60%, transparent);
+  color: var(--mantine-color-teal-1);
+}
+
+.date-node[data-date-token-selected='true'] {
+  background: var(--remdo-selection-color);
+  color: var(--mantine-color-gray-0);
+  outline: 1px solid var(--mantine-color-blue-3);
+  outline-offset: 1px;
+}
+
+.date-picker-anchor {
+  position: absolute;
+  z-index: 4;
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-dark-7);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+  padding: 0.5rem;
+}

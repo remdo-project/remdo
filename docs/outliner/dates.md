@@ -28,29 +28,27 @@ Define RemDo-owned inline date behavior in the outliner.
 11. Clicking an existing date opens the picker in edit mode; choosing a new date
     updates the same date node.
 
-## Future atomic token keyboard behavior
+## Atomic token keyboard behavior
 
-1. [Future] A date node should behave as one atomic inline token. The caret
-   should not appear inside the rendered date label while date-as-text editing
-   is unsupported.
-2. [Future] Arrow navigation across a date should enter a whole-token
-   selected/focused state instead of placing the caret inside the label.
-3. [Future] `ArrowLeft` from immediately after a date should select the whole
-   date token; the next `ArrowLeft` should move the caret before it.
-4. [Future] `ArrowRight` from immediately before a date should select the whole
-   date token; the next `ArrowRight` should move the caret after it.
-5. [Future] `Enter` or `Space` on a selected/focused date token should open the
-   date picker in edit mode.
-6. [Future] `Escape` from a selected/focused date token should clear the token
-   focus and return to the nearest caret position without changing the date.
-7. [Future] `Backspace` immediately after a date should select the whole date
-   token without deleting it; pressing `Backspace` again should delete the
-   selected date.
-8. [Future] `Delete` immediately before a date should select the whole date
-   token without deleting it; pressing `Delete` again should delete the selected
+1. A date node behaves as one atomic inline token. The caret must not appear
+   inside the rendered date label while date-as-text editing is unsupported.
+2. Arrow navigation across a date enters a whole-token selected/focused state
+   instead of placing the caret inside the label.
+3. `ArrowLeft` from immediately after a date selects the whole date token; the
+   next `ArrowLeft` moves the caret before it.
+4. `ArrowRight` from immediately before a date selects the whole date token; the
+   next `ArrowRight` moves the caret after it.
+5. `Enter` or `Space` on a selected/focused date token opens the date picker in
+   edit mode.
+6. `Escape` from a selected/focused date token clears the token focus and
+   returns to the side where token selection was entered without changing the
    date.
-9. [Future] `Backspace` or `Delete` on an already selected/focused date token
-   should delete the whole date node.
+7. `Backspace` immediately after a date selects the whole date token without
+   deleting it; pressing `Backspace` again deletes the selected date.
+8. `Delete` immediately before a date selects the whole date token without
+   deleting it; pressing `Delete` again deletes the selected date.
+9. `Backspace` or `Delete` on an already selected/focused date token deletes
+   the whole date node.
 
 ## Non-goals / future
 
@@ -58,6 +56,27 @@ Define RemDo-owned inline date behavior in the outliner.
    identity when possible.
 2. [Future] Support typed date queries or natural-language date parsing after
    `!`.
+3. [Future] When the date picker is open, let the picker own calendar
+   navigation keys instead of letting arrow keys move the editor caret or date
+   token. The intended direction is: arrow keys move the active day, `Enter` or
+   `Space` chooses it, `Escape` closes without changing the date, and
+   `Backspace`/`Delete` do not mutate editor content while picker interaction is
+   active.
+4. [Future] Decide whether the RemDo picker is modeled as a dialog-style date
+   picker or a combobox grid popup, then align focus management and `Tab`
+   behavior with that chosen pattern.
+
+## Guideline notes
+
+1. WAI-ARIA APG date picker dialog says opening the picker moves focus to the
+   selected or current date, and in the date grid: "`Right Arrow` Moves focus to
+   the next day."
+2. The same APG date picker example says "`ESC` Closes the dialog" and
+   "`Space`, `Enter`" select the date and close the dialog.
+3. WAI-ARIA APG grid pattern says grid widgets use "directional navigation
+   keys" and that `Right Arrow` / `Left Arrow` move focus between cells.
+4. WAI-ARIA APG combobox grid popup says `Enter` accepts the selected value,
+   `Escape` closes the popup, and arrow keys move focus in the grid.
 
 ## References
 
@@ -71,7 +90,9 @@ Define RemDo-owned inline date behavior in the outliner.
    <https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/>
 5. WAI-ARIA Authoring Practices Guide, date picker combobox example:
    <https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-datepicker/>
-6. U.S. Web Design System date picker:
+6. WAI-ARIA Authoring Practices Guide, grid pattern:
+   <https://www.w3.org/WAI/ARIA/apg/patterns/grid/>
+7. U.S. Web Design System date picker:
    <https://designsystem.digital.gov/components/date-picker/>
-7. Material UI chip accessibility:
+8. Material UI chip accessibility:
    <https://mui.com/material-ui/react-chip/>

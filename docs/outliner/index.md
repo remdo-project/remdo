@@ -17,8 +17,8 @@ details.
    filtering, persistence, and view-scoped fold-to-level commands.
 6. **List types:** `./list-types.md` — bullet/number/check semantics and checked state.
 7. **Dates:** `./dates.md` — inline date node behavior, `!` picker trigger
-   rules, insertion/editing interactions, future atomic token keyboard
-   behavior, and future editable-date boundaries.
+   rules, insertion/editing interactions, atomic token keyboard behavior, and
+   future editable-date and picker-keyboard boundaries.
 8. **Links:** `./links.md` — initial note-linking behavior, picker/query rules, and future boundaries.
 9. **Search mode:** `./search.md` — focused search navigation flow (single
   highlight, always-flat results (empty query shows all notes), text-match
