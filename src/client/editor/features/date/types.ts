@@ -6,6 +6,5 @@ export interface PickerAnchor {
 export interface DatePickerState {
   anchor: PickerAnchor;
   isoDate: string;
-  kind: 'edit';
   nodeKey: string;
 }

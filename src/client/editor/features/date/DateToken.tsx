@@ -1,6 +1,8 @@
 import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection';
-import dayjs from 'dayjs';
 import type { NodeKey } from 'lexical';
+import { useMemo } from 'react';
+
+import { formatDateNodeLabel } from './date-node';
 
 interface DateTokenProps {
   isoDate: string;
@@ -9,6 +11,7 @@ interface DateTokenProps {
 
 export function DateToken({ isoDate, nodeKey }: DateTokenProps) {
   const [isSelected] = useLexicalNodeSelection(nodeKey);
+  const label = useMemo(() => formatDateNodeLabel(isoDate), [isoDate]);
 
   return (
     <span
@@ -20,7 +23,7 @@ export function DateToken({ isoDate, nodeKey }: DateTokenProps) {
       data-iso-date={isoDate}
       spellCheck={false}
     >
-      {dayjs(isoDate).format('MMM D, YYYY')}
+      {label}
     </span>
   );
 }

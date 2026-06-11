@@ -28,6 +28,9 @@ import { DatePickerPanel } from './DatePickerPopover';
 const OPENING_BOUNDARY_CHARS = new Set(['(', '[', '{']);
 const WHITESPACE_PATTERN = /\s/u;
 
+// The typeahead always shows a single "today" option, so query text is ignored.
+const noopQueryChange = (): void => {};
+
 class DateTypeaheadOption extends MenuOption {
   isoDate: string;
 
@@ -129,10 +132,6 @@ export function DateTypeaheadPlugin() {
     event.preventDefault();
   }, []);
 
-  const handleQueryChange = useCallback((matchingString: string | null) => {
-    void matchingString;
-  }, []);
-
   const handleTypeaheadOpen = useCallback(() => {
     typeaheadOpenRef.current = true;
     setDefaultOption(new DateTypeaheadOption(getTodayIsoDate()));
@@ -174,7 +173,7 @@ export function DateTypeaheadPlugin() {
 
       return createPortal(
         <DatePickerPanel
-          isoDate={options[0]!.isoDate}
+          isoDate={defaultOption.isoDate}
           mode="insert"
           onChange={(isoDate) => {
             if (isoDate) {
@@ -186,7 +185,7 @@ export function DateTypeaheadPlugin() {
         anchorElementRef.current
       );
     },
-    [handlePickerMouseDown, options]
+    [defaultOption, handlePickerMouseDown]
   );
 
   useEffect(() => {
@@ -226,7 +225,7 @@ export function DateTypeaheadPlugin() {
         typeaheadOpenRef.current = false;
       }}
       onOpen={handleTypeaheadOpen}
-      onQueryChange={handleQueryChange}
+      onQueryChange={noopQueryChange}
       onSelectOption={$handleSelectOption}
       options={options}
       preselectFirstItem={true}

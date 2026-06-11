@@ -224,8 +224,7 @@ export function DatePlugin() {
 
       const selectedDateNode = $getSingleSelectedDateNode();
       if (selectedDateNode) {
-        const side = direction === 'before' ? 'before' : 'after';
-        $collapseDateTokenSelection(selectedDateNode, side);
+        $collapseDateTokenSelection(selectedDateNode, direction);
         return completeKeyboardCommand(event);
       }
 
@@ -247,21 +246,13 @@ export function DatePlugin() {
       }
 
       const currentPicker = pickerRef.current;
-      const selectedDateNode = $getSingleSelectedDateNode();
-      if (currentPicker?.kind === 'edit') {
-        if (
-          selectedDateNode?.getKey() === currentPicker.nodeKey ||
-          $isDateNode($getNodeByKey(currentPicker.nodeKey))
-        ) {
-          return completeKeyboardCommand(event);
-        }
-        return false;
-      }
-
       if (currentPicker) {
-        return false;
+        return $isDateNode($getNodeByKey(currentPicker.nodeKey))
+          ? completeKeyboardCommand(event)
+          : false;
       }
 
+      const selectedDateNode = $getSingleSelectedDateNode();
       if (selectedDateNode) {
         $removeSelectedDateToken(selectedDateNode);
         return completeKeyboardCommand(event);
@@ -303,7 +294,6 @@ export function DatePlugin() {
       setPickerState({
         anchor,
         isoDate: selectedDateNode.getIsoDate(),
-        kind: 'edit',
         nodeKey,
       });
       return completeKeyboardCommand(event);
@@ -373,9 +363,7 @@ export function DatePlugin() {
           }
 
           closePicker();
-          event?.preventDefault();
-          event?.stopPropagation();
-          return true;
+          return completeKeyboardCommand(event);
         },
         COMMAND_PRIORITY_CRITICAL
       ),
@@ -451,7 +439,6 @@ export function DatePlugin() {
       setPickerState({
         anchor,
         isoDate,
-        kind: 'edit',
         nodeKey: target.nodeKey,
       });
     };

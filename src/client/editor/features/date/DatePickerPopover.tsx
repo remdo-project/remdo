@@ -47,7 +47,7 @@ export function DatePickerPopover({ picker, portalRoot, onChange, onMouseDown }:
 
   return createPortal(
     <div className="date-picker-anchor" style={anchorStyle}>
-      <DatePickerPanel isoDate={picker.isoDate} mode={picker.kind} onChange={onChange} onMouseDown={onMouseDown} />
+      <DatePickerPanel isoDate={picker.isoDate} mode="edit" onChange={onChange} onMouseDown={onMouseDown} />
     </div>,
     portalRoot
   );
