@@ -148,9 +148,9 @@ describe('date nodes', () => {
     const dateNode = findSerializedDateNode(remdo.getEditorState().root.children);
     expect(dateNode).toMatchObject({
       isoDate: '2026-06-10',
-      text: 'Jun 10, 2026',
       type: 'date',
     });
+    expect(dateNode).not.toHaveProperty('text');
     expect(dateNode).not.toHaveProperty('mode');
     expect((getDateElement().closest('[data-lexical-decorator]') as HTMLElement).contentEditable).toBe('false');
   });

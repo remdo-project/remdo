@@ -18,7 +18,6 @@ import { DateToken } from './DateToken';
 export type SerializedDateNode = Spread<
   {
     isoDate?: string;
-    text?: string;
   },
   SerializedLexicalNode
 >;
@@ -79,7 +78,6 @@ export class DateNode extends DecoratorNode<ReactNode> {
     return {
       ...super.exportJSON(),
       isoDate: this.getIsoDate(),
-      text: this.getTextContent(),
     };
   }
 

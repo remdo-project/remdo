@@ -423,23 +423,19 @@ export function DatePlugin() {
         return;
       }
 
-      const isoDate = editor.getEditorState().read(() => {
-        const node = $getNodeByKey(target.nodeKey);
-        return $isDateNode(node) ? node.getIsoDate() : null;
-      });
-      if (!isoDate) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
       editor.update(() => {
-        $selectDateTokenByKey(target.nodeKey);
-      });
-      setPickerState({
-        anchor,
-        isoDate,
-        nodeKey: target.nodeKey,
+        const node = $selectDateTokenByKey(target.nodeKey);
+        if (!node) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        setPickerState({
+          anchor,
+          isoDate: node.getIsoDate(),
+          nodeKey: target.nodeKey,
+        });
       });
     };
 
