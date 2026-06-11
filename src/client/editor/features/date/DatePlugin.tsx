@@ -39,6 +39,12 @@ interface SelectedDateToken {
   side: DateTokenSelectionSide;
 }
 
+interface DatePointerTarget {
+  element: HTMLElement;
+  nodeKey: string;
+  side: DateTokenSelectionSide;
+}
+
 function isPlainKeyboardEvent(event: KeyboardEvent | null): boolean {
   return !event || !(event.shiftKey || event.altKey || event.metaKey || event.ctrlKey);
 }
@@ -142,6 +148,25 @@ function resolvePointerDateTokenSide(
   return clientX < bounds.left + bounds.width / 2 ? 'before' : 'after';
 }
 
+function resolveDatePointerTarget(event: MouseEvent): DatePointerTarget | null {
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return null;
+  }
+
+  const element = target.closest<HTMLElement>('[data-date-node-key]');
+  const nodeKey = element?.dataset.dateNodeKey;
+  if (!element || !nodeKey) {
+    return null;
+  }
+
+  return {
+    element,
+    nodeKey,
+    side: resolvePointerDateTokenSide(element, event.clientX),
+  };
+}
+
 export function DatePlugin() {
   const [editor] = useLexicalComposerContext();
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(() => {
@@ -177,13 +202,32 @@ export function DatePlugin() {
     return true;
   }, [closePicker]);
 
+  const $confirmCurrentPicker = useCallback((event: KeyboardEvent | null): boolean => {
+    const currentPicker = pickerRef.current;
+    if (!currentPicker || !$confirmDate(currentPicker.isoDate)) {
+      return false;
+    }
+    return completeKeyboardCommand(event);
+  }, [$confirmDate]);
+
+  const $selectDateTokenByKey = useCallback((nodeKey: string, side: DateTokenSelectionSide): DateNode | null => {
+    const node = $getNodeByKey(nodeKey);
+    if (!$isDateNode(node)) {
+      return null;
+    }
+
+    selectedDateTokenSideRef.current = side;
+    $selectDateToken(node);
+    return node;
+  }, []);
+
   const handlePickerMouseDown = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
     event.preventDefault();
   }, []);
 
   const handlePickerChange = useCallback(
     (isoDate: string | null) => {
-      if (!isoDate) {
+      if (isoDate === null) {
         return;
       }
 
@@ -328,19 +372,7 @@ export function DatePlugin() {
       ),
       editor.registerCommand(
         KEY_ENTER_COMMAND,
-        (event: KeyboardEvent | null) => {
-          const currentPicker = pickerRef.current;
-          if (!currentPicker) {
-            return false;
-          }
-          const handled = $confirmDate(currentPicker.isoDate);
-          if (!handled) {
-            return false;
-          }
-          event?.preventDefault();
-          event?.stopPropagation();
-          return true;
-        },
+        (event: KeyboardEvent | null) => $confirmCurrentPicker(event),
         COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
@@ -355,19 +387,7 @@ export function DatePlugin() {
       ),
       editor.registerCommand(
         KEY_TAB_COMMAND,
-        (event: KeyboardEvent | null) => {
-          const currentPicker = pickerRef.current;
-          if (!currentPicker) {
-            return false;
-          }
-          const handled = $confirmDate(currentPicker.isoDate);
-          if (!handled) {
-            return false;
-          }
-          event?.preventDefault();
-          event?.stopPropagation();
-          return true;
-        },
+        (event: KeyboardEvent | null) => $confirmCurrentPicker(event),
         COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
@@ -407,6 +427,7 @@ export function DatePlugin() {
     closePicker,
     $clearSelectedDateToken,
     $confirmDate,
+    $confirmCurrentPicker,
     $deleteSelectedOrAdjacentDateToken,
     $openSelectedDateTokenPicker,
     $selectAdjacentDateToken,
@@ -415,58 +436,32 @@ export function DatePlugin() {
 
   useEffect(() => {
     const handleRootMouseDown = (event: MouseEvent) => {
-      const target = event.target;
-      if (!(target instanceof Element)) {
+      const target = resolveDatePointerTarget(event);
+      if (!target) {
         return;
       }
 
-      const dateElement = target.closest<HTMLElement>('[data-date-node-key]');
-      if (!dateElement) {
-        return;
-      }
-
-      const nodeKey = dateElement.dataset.dateNodeKey;
-      if (!nodeKey) {
-        return;
-      }
-
-      const tokenSide = resolvePointerDateTokenSide(dateElement, event.clientX);
       event.preventDefault();
       event.stopPropagation();
       editor.getRootElement()?.focus({ preventScroll: true });
       editor.update(() => {
-        const node = $getNodeByKey(nodeKey);
-        if ($isDateNode(node)) {
-          selectedDateTokenSideRef.current = tokenSide;
-          $selectDateToken(node);
-        }
+        $selectDateTokenByKey(target.nodeKey, target.side);
       });
     };
 
     const handleRootClick = (event: MouseEvent) => {
-      const target = event.target;
-      if (!(target instanceof Element)) {
+      const target = resolveDatePointerTarget(event);
+      if (!target) {
         return;
       }
 
-      const dateElement = target.closest<HTMLElement>('[data-date-node-key]');
-      if (!dateElement) {
-        return;
-      }
-
-      const nodeKey = dateElement.dataset.dateNodeKey;
-      if (!nodeKey) {
-        return;
-      }
-
-      const tokenSide = resolvePointerDateTokenSide(dateElement, event.clientX);
-      const anchor = resolveDatePickerElementAnchor(editor, dateElement);
+      const anchor = resolveDatePickerElementAnchor(editor, target.element);
       if (!anchor) {
         return;
       }
 
       const isoDate = editor.getEditorState().read(() => {
-        const node = $getNodeByKey(nodeKey);
+        const node = $getNodeByKey(target.nodeKey);
         return $isDateNode(node) ? node.getIsoDate() : null;
       });
       if (!isoDate) {
@@ -476,17 +471,13 @@ export function DatePlugin() {
       event.preventDefault();
       event.stopPropagation();
       editor.update(() => {
-        const node = $getNodeByKey(nodeKey);
-        if ($isDateNode(node)) {
-          selectedDateTokenSideRef.current = tokenSide;
-          $selectDateToken(node);
-        }
+        $selectDateTokenByKey(target.nodeKey, target.side);
       });
       setPickerState({
         anchor,
         isoDate,
         kind: 'edit',
-        nodeKey,
+        nodeKey: target.nodeKey,
       });
     };
 
@@ -531,7 +522,7 @@ export function DatePlugin() {
       root?.removeEventListener('click', handleRootClick, true);
       document.removeEventListener('mousedown', handleDocumentMouseDown, true);
     };
-  }, [closePicker, editor, setPickerState]);
+  }, [$selectDateTokenByKey, closePicker, editor, setPickerState]);
 
   return (
     <>
