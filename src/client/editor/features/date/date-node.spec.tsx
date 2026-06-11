@@ -155,6 +155,56 @@ describe('date nodes', () => {
     expect((getDateElement().closest('[data-lexical-decorator]') as HTMLElement).contentEditable).toBe('false');
   });
 
+  it('round-trips date identity through editor JSON import and export', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      note.clear();
+      note.append($createTextNode('before '), $createDateNode('2026-06-10'), $createTextNode(' after'));
+    });
+
+    const serialized = remdo.getEditorState();
+    expect(findSerializedDateNode(serialized.root.children)).toMatchObject({
+      isoDate: '2026-06-10',
+      type: 'date',
+    });
+
+    await act(async () => {
+      const parsed = remdo.editor.parseEditorState(JSON.stringify(serialized));
+      remdo.editor.setEditorState(parsed);
+    });
+    await remdo.waitForSynced();
+
+    const roundTrippedDateNode = findSerializedDateNode(remdo.getEditorState().root.children);
+    expect(roundTrippedDateNode).toMatchObject({
+      isoDate: '2026-06-10',
+      type: 'date',
+    });
+    expect(roundTrippedDateNode).not.toHaveProperty('text');
+
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      const dateNode = note.getChildren().find($isDateNode)!;
+      expect(dateNode.getIsoDate()).toBe('2026-06-10');
+      expect(dateNode.getTextContent()).toBe('Jun 10, 2026');
+    });
+  });
+
+  it('rejects invalid dates when importing editor JSON', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      note.clear();
+      note.append($createDateNode('2026-06-10'));
+    });
+
+    const serialized = remdo.getEditorState();
+    const dateNode = findSerializedDateNode(serialized.root.children)!;
+    dateNode.isoDate = '2026-02-30';
+
+    expect(() => {
+      remdo.editor.parseEditorState(JSON.stringify(serialized));
+    }).toThrow('DateNode isoDate must be a valid YYYY-MM-DD date.');
+  });
+
   it('inserts a date node from the ! picker', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const isoDate = getTodayIsoDate();
     const label = formatDateLabel(isoDate);
@@ -177,6 +227,34 @@ describe('date nodes', () => {
       expect(dateNode.getIsoDate()).toBe(isoDate);
       expect(dateNode.getTextContent()).toBe(label);
     });
+  });
+
+  it('confirms the ! picker with Tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2031-01-02T12:00:00'));
+
+      await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+      await typeText(remdo, ' !');
+
+      expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
+      await pressKey(remdo, { key: 'Tab' });
+
+      expect(document.querySelector('[data-date-picker]')).toBeNull();
+      expect(remdo).toMatchOutline([
+        { noteId: 'note1', text: 'note1 Jan 2, 2031 ' },
+        { noteId: 'note2', text: 'note2' },
+        { noteId: 'note3', text: 'note3' },
+      ]);
+
+      remdo.validate(() => {
+        const note = $findNoteById('note1')!;
+        const dateNode = note.getChildren().find($isDateNode)!;
+        expect(dateNode.getIsoDate()).toBe('2031-01-02');
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('uses the current local date when a long-lived editor opens the ! picker again', meta({ fixture: 'flat' }), async ({ remdo }) => {
