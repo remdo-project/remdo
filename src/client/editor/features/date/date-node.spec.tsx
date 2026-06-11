@@ -2,7 +2,7 @@ import { act } from '@testing-library/react';
 import dayjs from 'dayjs';
 import { $createTextNode, $getSelection, $isNodeSelection, $isRangeSelection, $isTextNode } from 'lexical';
 import type { SerializedLexicalNode } from 'lexical';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
@@ -177,6 +177,36 @@ describe('date nodes', () => {
       expect(dateNode.getIsoDate()).toBe(isoDate);
       expect(dateNode.getTextContent()).toBe(label);
     });
+  });
+
+  it('uses the current local date when a long-lived editor opens the ! picker again', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2031-01-01T12:00:00'));
+      await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+      await typeText(remdo, ' !');
+      expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
+      await pressKey(remdo, { key: 'Escape' });
+
+      vi.setSystemTime(new Date('2031-01-02T12:00:00'));
+      await typeText(remdo, ' !');
+      expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
+      await pressKey(remdo, { key: 'Enter' });
+
+      expect(remdo).toMatchOutline([
+        { noteId: 'note1', text: 'note1 ! Jan 2, 2031 ' },
+        { noteId: 'note2', text: 'note2' },
+        { noteId: 'note3', text: 'note3' },
+      ]);
+
+      remdo.validate(() => {
+        const note = $findNoteById('note1')!;
+        const dateNode = note.getChildren().find($isDateNode)!;
+        expect(dateNode.getIsoDate()).toBe('2031-01-02');
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not open the picker when ! follows non-whitespace text', meta({ fixture: 'flat' }), async ({ remdo }) => {

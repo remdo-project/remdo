@@ -19,7 +19,7 @@ import type {
   TriggerFn,
 } from '@lexical/react/LexicalTypeaheadMenuPlugin';
 import type { MouseEvent as ReactMouseEvent } from 'react';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { $createDateNode } from './date-node';
@@ -109,8 +109,9 @@ function $deleteOpenTrigger(): boolean {
 export function DateTypeaheadPlugin() {
   const [editor] = useLexicalComposerContext();
   const typeaheadOpenRef = useRef(false);
+  const [defaultOption, setDefaultOption] = useState(() => new DateTypeaheadOption(getTodayIsoDate()));
 
-  const options = useMemo(() => [new DateTypeaheadOption(getTodayIsoDate())], []);
+  const options = useMemo(() => [defaultOption], [defaultOption]);
   const $triggerFn = useCallback<TriggerFn>((text) => $matchDateTrigger(text), []);
 
   const closeTypeahead = useCallback(() => {
@@ -130,6 +131,11 @@ export function DateTypeaheadPlugin() {
 
   const handleQueryChange = useCallback((matchingString: string | null) => {
     void matchingString;
+  }, []);
+
+  const handleTypeaheadOpen = useCallback(() => {
+    typeaheadOpenRef.current = true;
+    setDefaultOption(new DateTypeaheadOption(getTodayIsoDate()));
   }, []);
 
   const $handleSelectOption = useCallback(
@@ -219,9 +225,7 @@ export function DateTypeaheadPlugin() {
       onClose={() => {
         typeaheadOpenRef.current = false;
       }}
-      onOpen={() => {
-        typeaheadOpenRef.current = true;
-      }}
+      onOpen={handleTypeaheadOpen}
       onQueryChange={handleQueryChange}
       onSelectOption={$handleSelectOption}
       options={options}
