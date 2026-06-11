@@ -187,12 +187,12 @@ if ! docker exec -e HOST="127.0.0.1" -e DEV_DOCUMENT_ID="${DEV_DOCUMENT_ID}" \
 fi
 
 BACKUP_DIR="${DOCKER_HOME_DATA_DIR%/}/backup"
-DEV_DOCUMENT_JSON="${BACKUP_DIR}/${DEV_DOCUMENT_ID}.json"
-DEV_DOCUMENT_MD="${BACKUP_DIR}/${DEV_DOCUMENT_ID}.md"
-PROJECT_JSON="${BACKUP_DIR}/project.json"
-PROJECT_MD="${BACKUP_DIR}/project.md"
+BACKUP_SQLITE="${BACKUP_DIR}/remdo.sqlite"
+BACKUP_INDEX="${BACKUP_DIR}/documents/index.json"
+DEV_DOCUMENT_JSON="${BACKUP_DIR}/documents/${DEV_DOCUMENT_ID}.json"
+DEV_DOCUMENT_MD="${BACKUP_DIR}/documents/${DEV_DOCUMENT_ID}.md"
 
-for backup_file in "${DEV_DOCUMENT_JSON}" "${DEV_DOCUMENT_MD}" "${PROJECT_JSON}" "${PROJECT_MD}"; do
+for backup_file in "${BACKUP_SQLITE}" "${BACKUP_INDEX}" "${DEV_DOCUMENT_JSON}" "${DEV_DOCUMENT_MD}"; do
   if [[ ! -s "${backup_file}" ]]; then
     docker logs "${CONTAINER_NAME}" || true
     echo "Backup output missing or empty: ${backup_file}" >&2
@@ -218,6 +218,11 @@ check_backup_contains() {
   echo "grep failed (${status}) while checking ${target_file}" >&2
   return "${status}"
 }
+
+if ! check_backup_contains "${DEV_DOCUMENT_ID}" "${BACKUP_INDEX}" "index"; then
+  docker logs "${CONTAINER_NAME}" || true
+  exit 1
+fi
 
 for expected in "note1" "note2" "note3"; do
   if ! check_backup_contains "${expected}" "${DEV_DOCUMENT_JSON}" "JSON"; then

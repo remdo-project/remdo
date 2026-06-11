@@ -11,10 +11,4 @@ unset AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/env.defaults.sh
 
-# Local derived paths (script-specific).
-BACKUP_DIR="${DATA_DIR%/}/backup"
-
-mkdir -p "$BACKUP_DIR"
-
-node /app/snapshot.mjs backup "$BACKUP_DIR" --md
-node /app/snapshot.mjs backup "$BACKUP_DIR" --doc project --md
+node /app/backup.mjs --md

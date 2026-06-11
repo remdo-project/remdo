@@ -36,7 +36,7 @@ RUN mkdir -p /usr/local/bin \
     --tsconfig=tsconfig.json \
     --banner:js='#!/usr/bin/env node' \
     --outfile=/app/remdo-api-server.cjs \
-  && pnpm dlx esbuild tools/snapshot.ts \
+  && pnpm dlx esbuild tools/snapshot/cli.ts \
     --platform=node \
     --format=esm \
     --bundle \
@@ -44,7 +44,17 @@ RUN mkdir -p /usr/local/bin \
     --target=node22 \
     --tsconfig=tsconfig.json \
     --banner:js='#!/usr/bin/env node' \
-    --outfile=/app/snapshot.mjs
+    --outfile=/app/snapshot.mjs \
+  && pnpm dlx esbuild tools/snapshot/backup.ts \
+    --platform=node \
+    --format=esm \
+    --bundle \
+    --external:better-sqlite3 \
+    --external:ws \
+    --target=node22 \
+    --tsconfig=tsconfig.json \
+    --banner:js='#!/usr/bin/env node' \
+    --outfile=/app/backup.mjs
 
 ############################
 # Runner: serve SPA + YJS  #
@@ -78,10 +88,12 @@ COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh
 COPY docker/entrypoint-env.sh /usr/local/share/remdo/entrypoint-env.sh
 COPY --from=builder /app/remdo-api-server.cjs /app/remdo-api-server.cjs
 COPY --from=builder /app/snapshot.mjs /app/snapshot.mjs
+COPY --from=builder /app/backup.mjs /app/backup.mjs
 
 RUN chmod +x /entrypoint.sh
 RUN chmod +x /app/remdo-api-server.cjs
 RUN chmod +x /app/snapshot.mjs
+RUN chmod +x /app/backup.mjs
 
 EXPOSE 8080
 

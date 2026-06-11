@@ -182,9 +182,9 @@ if (globalWithOptionalDocument.document === undefined) {
 }
 
 const { command, filePath, docId: cliDocId, markdownPath, minify } = parseCliArguments(process.argv.slice(2));
-if (command !== 'save' && command !== 'load' && command !== 'backup') {
+if (command !== 'save' && command !== 'load') {
   throw new Error(
-    'Usage: snapshot.ts [--doc <id>] <load|save|backup> [filePath] [--minify] [--md[=<file>]]'
+    'Usage: snapshot/cli.ts [--doc <id>] <load|save> [filePath] [--minify] [--md[=<file>]]'
   );
 }
 
@@ -195,12 +195,11 @@ const collabOrigin = resolveCollabServerOrigin({ loopback: true });
 const collabApiOrigin = resolveApiServerOrigin({ loopback: true });
 
 try {
+  // eslint-disable-next-line unicorn/prefer-ternary
   if (command === 'save') {
     await runSave(docId, collabOrigin, collabApiOrigin, targetFile, markdownPath, minify);
-  } else if (command === 'load') {
-    await runLoad(docId, collabOrigin, collabApiOrigin, targetFile);
   } else {
-    await runBackup(docId, collabOrigin, collabApiOrigin, targetFile, markdownPath, minify);
+    await runLoad(docId, collabOrigin, collabApiOrigin, targetFile);
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
@@ -213,8 +212,7 @@ function resolveSnapshotPath(
   filePath: CliArguments['filePath'],
 ): string {
   const fixturesRoot = path.resolve('tests/fixtures');
-  const backupDir = path.join(config.env.DATA_DIR, 'backup');
-  const defaultDir = command === 'backup' ? backupDir : fixturesRoot;
+  const defaultDir = fixturesRoot;
 
   const ensureJson = (target: string) => (path.extname(target) ? target : `${target}.json`);
   const sanitizeName = (name: string) => name.replaceAll(PATH_SEPARATOR_PATTERN, '_').replace(LEADING_DOTS_PATTERN, '');
@@ -282,17 +280,6 @@ async function runSave(
     }
   });
   await waitForPersistedData(docId);
-}
-
-async function runBackup(
-  docId: string,
-  collabOrigin: string,
-  collabApiOrigin: string,
-  filePath: string,
-  markdownPath: string | null,
-  minify: boolean
-): Promise<void> {
-  await runSave(docId, collabOrigin, collabApiOrigin, filePath, markdownPath, minify);
 }
 
 async function runLoad(

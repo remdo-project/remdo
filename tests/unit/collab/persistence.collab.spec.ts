@@ -18,7 +18,7 @@ describe('collab persistence', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
 
   it('writes collaboration data to disk via y-sweet', async () => {
-    await runPnpm(['exec', 'tsx', 'tools/snapshot.ts', 'save', '--doc', docId, snapshotPath]);
+    await runPnpm(['exec', 'tsx', 'tools/snapshot/cli.ts', 'save', '--doc', docId, snapshotPath]);
     await waitFor(() => {
       expect(existsSync(dataFile)).toBe(true);
       expect(statSync(dataFile).size).toBeGreaterThan(0);
