@@ -34,9 +34,10 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
-- `docs/outliner/dates.md` (Short). Inline date node behavior: `!` picker
-  trigger boundaries, insert/edit interactions, dismissal keys, outside-click
-  handling, and future editable-date boundaries.
+- `docs/outliner/dates.md` (Medium). Inline date node behavior: `!` picker
+  trigger boundaries, insert/edit interactions, default date handling, dismissal
+  keys, outside-click handling, future atomic token keyboard behavior, and
+  future editable-date boundaries.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge/reparent
   rules, spacing.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering placement semantics.
