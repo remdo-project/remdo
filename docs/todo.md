@@ -32,6 +32,12 @@ Rules:
 - OAuth source-linking privilege follow-up: review whether linked source OAuth
   tokens should remain full account delegates, or require narrower RemDo scopes
   before remote servers can use document mutation APIs.
+- Cross-server document-id collision guard follow-up: source-link bootstrap,
+  projection merge, and import flows should detect a source document whose
+  `docId` collides with an already-known local or linked-source document and
+  reject or quarantine it before opening. This is a defensive guard around the
+  documented base mechanism: every server must generate random document IDs with
+  enough entropy for cross-server uniqueness.
 
 ## Offline and local persistence follow-ups
 

@@ -18,9 +18,9 @@ outdated or a doc’s role materially changes.
   owner-backed access, direct local-user grants, cross-server source linking,
   deferred public/link access, and authenticated app access.
 - `docs/architecture.md` (Long). Cross-cutting architecture vocabulary for
-  delivery surfaces, gateway/origin boundaries, Better Auth identity,
-  Kysely-backed document-registry ownership, collaboration runtime building
-  blocks, and multi-hub terms.
+  delivery surfaces, gateway/origin boundaries, Better Auth identity, document
+  identity, Kysely-backed document-registry ownership, collaboration runtime
+  building blocks, and multi-hub terms.
 - `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch conventions, and
   pre-1.0 compatibility policy (no default migration/back-compat requirements).
 - `docs/dev/dependency-maintenance.md` (Medium). Temporary dependency/runtime

@@ -2,10 +2,10 @@
 
 ## Purpose
 
-Provide shared architecture vocabulary for RemDo platform delivery, routing, and
-collaboration runtime so implementation docs can reference one stable set of
-terms. It does not define outliner behavior or note/link identity boundaries;
-those remain in outliner docs.
+Provide shared architecture vocabulary for RemDo platform delivery, routing,
+document identity, and collaboration runtime so implementation docs can
+reference one stable set of terms. It does not define outliner behavior or
+note/link identity boundaries; those remain in outliner docs.
 
 ## Delivery Surfaces
 
@@ -54,6 +54,24 @@ Signed-in user identity used by RemDo API decisions.
 
 - Mapping: Better Auth resolves the active session user.
 - Role: identify the user for ownership and document access decisions.
+
+### Document identity
+
+`docId` is RemDo's canonical document identity. It is intended to be globally
+unique across RemDo servers and hubs. Server, source-server, and hub context
+select where a document is located and which authority issues access, but they
+are not part of canonical document identity.
+
+Each server that creates document IDs must allocate random IDs with enough
+entropy to make cross-server collisions negligible without coordination with
+other servers. Local registries still reject collisions within one server.
+Cross-server collision detection at source-link, import, or projection
+boundaries is an extra guard for malformed, legacy, or imported data; it is not
+the base namespacing mechanism.
+
+Collaboration and local-persistence layers may key document state by canonical
+`docId`. Source-prefixed aliases should not be used as substitute document
+identity for ordinary source linking.
 
 ### Document registry
 
@@ -138,7 +156,8 @@ The terms below describe the target vocabulary for multi-hub document access.
 
 - **Hub registry:** client-owned hub list (`hubId`, base URL, auth source,
   optional capability flags).
-- **DocRef model:** fully qualified document reference including hub context.
+- **DocRef model:** runtime locator that carries canonical `docId` plus the
+  active hub/source context needed to route and authorize the open.
 - **Home hub:** governance term for a document's primary hub; not canonical
   document identity.
 - **Replica:** copy of a document hosted on another hub.

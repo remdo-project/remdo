@@ -103,7 +103,9 @@ document's server.
   checks the source server applies to the user's normal session. This is an
   account-delegation model, not a cross-user grant.
 - Source documents: once linked, the browser can subscribe to source-owned user
-  data projections and merge those documents into the same document list.
+  data projections and merge those documents into the same document list. Source
+  documents keep the source server's canonical globally unique document IDs;
+  source context controls routing and authorization, not document identity.
 
 ## Deferred Access Cases
 
