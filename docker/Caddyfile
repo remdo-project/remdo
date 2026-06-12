@@ -6,8 +6,9 @@
 	{$CADDY_TLS_DIRECTIVE}
 
 	route {
-		handle_path /health {
-			respond 200
+		handle /health {
+			rewrite * /api/health
+			reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
 		}
 
 		# HTTPS clients on the default port may omit :443 from Host.
@@ -27,19 +28,22 @@
 				respond 204
 			}
 
-			handle /api/* {
+			@api path /api /api/*
+			handle @api {
 				reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
 			}
 
-			handle /.well-known/* {
+			@well_known path /.well-known /.well-known/*
+			handle @well_known {
 				reverse_proxy 127.0.0.1:{env.API_SERVER_PORT}
 			}
 
-			handle /d/* {
+			@collab path /d /d/*
+			handle @collab {
 				reverse_proxy 127.0.0.1:{env.COLLAB_SERVER_PORT}
 			}
 
-			@app_routes not path /api/* /.well-known/* /d/* /doc*
+			@app_routes not path /api /api/* /.well-known /.well-known/* /d /d/* /doc*
 			handle @app_routes {
 				route {
 					root * /srv/remdo

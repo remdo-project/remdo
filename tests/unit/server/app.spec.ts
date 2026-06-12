@@ -61,6 +61,7 @@ describe('remdo api app', () => {
       'ALL /api/auth/*',
       'GET /.well-known/openid-configuration',
       'GET /.well-known/oauth-authorization-server',
+      'ALL /api',
       'GET /api/health',
       'GET /api/current-user',
       'GET /api/current-user/source-servers/:serverId/current-user',
@@ -852,5 +853,15 @@ describe('remdo api app', () => {
 
     expect(response.status).toBe(HTTP_STATUS.OK);
     await expect(response.json()).resolves.toEqual({ ok: true });
+  });
+
+  it('returns the API not found response for the bare API root', async () => {
+    const harness = createHarness();
+
+    const response = await harness.app.request('/api');
+
+    expect(response.status).toBe(HTTP_STATUS.NOT_FOUND);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    await expect(response.json()).resolves.toEqual({ error: 'API route not found.' });
   });
 });

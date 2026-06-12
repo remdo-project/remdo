@@ -158,6 +158,24 @@ test('well-known OAuth metadata is served by the API through the Docker gateway'
   }
 });
 
+test('health and bare API root are served by the API through the Docker gateway', async ({ page }) => {
+  await page.goto(`/n/${readSmokeDocumentId()}`);
+  const gatewayOrigin = new URL(page.url()).origin;
+  const requestContext = page.context().request;
+
+  const healthResponse = await requestContext.fetch(`${gatewayOrigin}/health`);
+  expect(healthResponse.status()).toBe(HTTP_STATUS.OK);
+  expect(healthResponse.headers()['content-type']).toContain('application/json');
+  await expect(healthResponse.json()).resolves.toEqual({ ok: true });
+
+  const apiRootResponse = await requestContext.fetch(`${gatewayOrigin}/api`, {
+    failOnStatusCode: false,
+  });
+  expect(apiRootResponse.status()).toBe(HTTP_STATUS.NOT_FOUND);
+  expect(apiRootResponse.headers()['content-type']).toContain('application/json');
+  await expect(apiRootResponse.json()).resolves.toEqual({ error: 'API route not found.' });
+});
+
 test('user data sync token is read-only and API document creation updates the projection', async ({ page }) => {
   await page.goto(`/n/${readSmokeDocumentId()}`);
   const requestContext = page.context().request;

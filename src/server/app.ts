@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { config } from '#config';
+import { HTTP_STATUS } from '#platform/http/status';
 import type { ServerAuth } from './auth/auth';
 import { createYSweetDocumentTokenManager } from './collab-token';
 import type { YSweetDocumentTokenManager } from './collab-token';
@@ -41,6 +42,7 @@ export function createServerApp({
 
   app.route('/api/auth', createAuthRoutes(dependencies));
   app.route('/.well-known', createWellKnownRoutes(dependencies));
+  app.all('/api', (c) => c.json({ error: 'API route not found.' }, HTTP_STATUS.NOT_FOUND));
   app.route('/api', createApiRoutes(dependencies));
 
   return app;
