@@ -16,19 +16,27 @@ Never stage or commit changes.
 
 ## Inspect The Diff
 
-Start by running:
+Start with the cheap overview commands:
 
 ```sh
 git status --short
 git diff --stat HEAD
 git diff --name-status HEAD
-git diff HEAD
 git diff --check HEAD
 git ls-files --others --exclude-standard
 ```
 
 Use these outputs to identify the changed feature area and the exact cleanup
 surface.
+
+Then read the diff contents, sized by the `--stat` totals: for a small diff
+(roughly a few hundred changed lines or less), run `git diff HEAD` once; for
+anything larger, read it per file with `git diff HEAD -- <path>`, prioritizing
+the files most relevant to the changed feature area.
+
+Read any untracked files listed by `git ls-files --others --exclude-standard`
+and judge whether they belong to the change; flag them only if they look
+accidental.
 
 ## Read Guidance
 
