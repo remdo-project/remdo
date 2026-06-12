@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isApiRequestPath } from '../../config/vite/remdo-api-dev-plugin';
-import { createViteSharedConfig } from '../../config/vite/shared';
+import { createViteSharedConfig, pwaNavigationFallbackDenylist } from '../../config/vite/shared';
 
 describe('vite shared config', () => {
   it('mounts the RemDo API in dev and proxies sync routes only', () => {
@@ -18,6 +18,10 @@ describe('vite shared config', () => {
     });
     expect(serverProxy).not.toHaveProperty('/doc');
 
+    expect(previewProxy['/.well-known']).toMatchObject({
+      changeOrigin: true,
+      xfwd: true,
+    });
     expect(previewProxy['/api']).toMatchObject({
       changeOrigin: true,
       xfwd: true,
@@ -27,6 +31,16 @@ describe('vite shared config', () => {
       ws: true,
     });
     expect(previewProxy).not.toHaveProperty('/doc');
+  });
+
+  it('keeps API-backed preview routes out of the PWA navigation fallback', () => {
+    const isDenied = (path: string) => pwaNavigationFallbackDenylist.some((pattern) => pattern.test(path));
+
+    expect(isDenied('/.well-known/openid-configuration')).toBe(true);
+    expect(isDenied('/.well-known/oauth-authorization-server')).toBe(true);
+    expect(isDenied('/api/current-user')).toBe(true);
+    expect(isDenied('/d/document-id')).toBe(true);
+    expect(isDenied('/documents')).toBe(false);
   });
 
   it('recognizes only API request paths for the dev API middleware', () => {

@@ -12,7 +12,8 @@ const isPreviewSession = config.env.VITEST_PREVIEW;
 const host = config.env.HOST;
 const apiServerTarget = resolveApiServerOrigin({ loopback: true });
 const collabServerTarget = resolveCollabServerOrigin({ loopback: true });
-const pwaNavigationFallbackDenylist = [
+export const pwaNavigationFallbackDenylist = [
+  /^\/\.well-known(?:\/|$)/u,
   /^\/api(?:\/|$)/u,
   /^\/d(?:\/|$)/u,
 ];
@@ -24,6 +25,11 @@ const devProxy = {
   },
 } as const;
 const previewProxy = {
+  '/.well-known': {
+    target: apiServerTarget,
+    changeOrigin: true,
+    xfwd: true,
+  },
   '/api': {
     target: apiServerTarget,
     changeOrigin: true,
