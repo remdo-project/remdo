@@ -5,6 +5,7 @@ import process from 'node:process';
 
 import Database from 'better-sqlite3';
 import { config } from '#config';
+import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
 
 interface BackupDocumentRow {
   id: string;
@@ -178,6 +179,7 @@ async function main(): Promise<void> {
     writeDocumentIndex(documentsDir, documents);
 
     for (const document of documents) {
+      normalizeNoteIdOrThrow(document.id, `Invalid document id in registry: ${document.id}`);
       runSnapshotSave(document.id, documentsDir, markdown);
     }
     publishStagedBackup(stagingDir, backupDir);

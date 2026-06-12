@@ -17,15 +17,15 @@ import * as Y from 'yjs';
 import type { Doc, Transaction } from 'yjs';
 import { UndoManager } from 'yjs';
 import type { Provider } from '@lexical/yjs';
-import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lexical';
+import type { CreateEditorArgs, LexicalEditor } from 'lexical';
 
 import { config } from '#config';
 import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
 import { CollabSession } from '#collaboration/session';
 import { resolveYSweetConnectionString } from '#server/collab-token';
 import type { CollaborationProviderInstance, CollaborationSessionProvider } from '#collaboration/runtime';
-import { restoreEditorStateDefaults, stripEditorStateDefaults } from '#client/editor/runtime/editor-state-defaults';
-import { prepareEditorStateForPersistence, prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
+import { stripEditorStateDefaults } from '#client/editor/runtime/editor-state-defaults';
+import { prepareEditorStateForPersistence } from '#client/editor/runtime/editor-state-persistence';
 import { createEditorInitialConfig } from '#client/editor/runtime/config';
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
 
@@ -61,10 +61,6 @@ type SnapshotProviderWithWebSocket = SnapshotProvider & { _WS?: typeof globalThi
 interface SessionContext {
   provider: SnapshotProvider;
   session: CollabSession;
-}
-
-interface SessionOptions {
-  hydrateFromYjs?: boolean;
 }
 
 function createInternalProviderFactory() {
@@ -182,37 +178,32 @@ if (globalWithOptionalDocument.document === undefined) {
 }
 
 const { command, filePath, docId: cliDocId, markdownPath, minify } = parseCliArguments(process.argv.slice(2));
-if (command !== 'save' && command !== 'load') {
+if (command !== 'save') {
   throw new Error(
-    'Usage: snapshot/cli.ts [--doc <id>] <load|save> [filePath] [--minify] [--md[=<file>]]'
+    'Usage: snapshot/cli.ts --doc <id> save [filePath] [--minify] [--md[=<file>]]'
   );
 }
+if (!cliDocId) {
+  throw new Error('snapshot/cli.ts save requires --doc <id>.');
+}
 
-const rawDocId = cliDocId ?? config.env.DEV_DOCUMENT_ID;
-const docId = normalizeNoteIdOrThrow(rawDocId, `Invalid document id: ${rawDocId}`);
-const targetFile = resolveSnapshotPath(command, docId, filePath);
+const docId = normalizeNoteIdOrThrow(cliDocId, `Invalid document id: ${cliDocId}`);
+const targetFile = resolveSnapshotPath(docId, filePath);
 const collabOrigin = resolveCollabServerOrigin({ loopback: true });
 const collabApiOrigin = resolveApiServerOrigin({ loopback: true });
 
 try {
-  // eslint-disable-next-line unicorn/prefer-ternary
-  if (command === 'save') {
-    await runSave(docId, collabOrigin, collabApiOrigin, targetFile, markdownPath, minify);
-  } else {
-    await runLoad(docId, collabOrigin, collabApiOrigin, targetFile);
-  }
+  await runSave(docId, collabOrigin, collabApiOrigin, targetFile, markdownPath, minify);
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
 }
 
 function resolveSnapshotPath(
-  command: NonNullable<CliArguments['command']>,
   docId: string,
   filePath: CliArguments['filePath'],
 ): string {
-  const fixturesRoot = path.resolve('tests/fixtures');
-  const defaultDir = fixturesRoot;
+  const defaultDir = path.resolve('tests/fixtures');
 
   const ensureJson = (target: string) => (path.extname(target) ? target : `${target}.json`);
   const sanitizeName = (name: string) => name.replaceAll(PATH_SEPARATOR_PATTERN, '_').replace(LEADING_DOTS_PATTERN, '');
@@ -229,20 +220,6 @@ function resolveSnapshotPath(
   }
 
   const withExt = ensureJson(absolutePath);
-
-  if (command === 'load' && !fs.existsSync(withExt)) {
-    const posixPath = filePath.split(path.win32.sep).join(path.posix.sep);
-    const candidates = [
-      path.join(fixturesRoot, ensureJson(posixPath)),
-      path.join(fixturesRoot, ensureJson(path.basename(posixPath))),
-    ];
-    for (const candidate of candidates) {
-      if (fs.existsSync(candidate)) {
-        return candidate;
-      }
-    }
-  }
-
   return withExt;
 }
 
@@ -282,33 +259,12 @@ async function runSave(
   await waitForPersistedData(docId);
 }
 
-async function runLoad(
-  docId: string,
-  collabOrigin: string,
-  collabApiOrigin: string,
-  filePath: string,
-): Promise<void> {
-  const raw = JSON.parse(fs.readFileSync(filePath, 'utf8')) as SerializedEditorState;
-  const restored = restoreEditorStateDefaults(raw);
-  const data = prepareEditorStateForRuntime(restored, docId);
-  await withSession(docId, collabOrigin, collabApiOrigin, async (editor, { session }) => {
-    const done = waitForEditorUpdate(editor);
-    editor.setEditorState(editor.parseEditorState(data), { tag: 'snapshot-load' });
-    await done;
-    await session.awaitSynced();
-  }, { hydrateFromYjs: false });
-  await waitForPersistedData(docId);
-  console.info(`[snapshot] load <- ${filePath}`);
-}
-
 async function withSession(
   docId: string,
   collabOrigin: string,
   collabApiOrigin: string,
   run: (editor: LexicalEditor, context: SessionContext) => Promise<void> | void,
-  options: SessionOptions = {}
 ): Promise<void> {
-  const hydrateFromYjs = options.hydrateFromYjs ?? true;
   const docMap = new Map<string, Doc>();
   const session = new CollabSession({
     enabled: true,
@@ -339,9 +295,7 @@ async function withSession(
       transaction.origin instanceof UndoManager
     );
   };
-  if (hydrateFromYjs) {
-    sharedRoot.observeDeep(observer);
-  }
+  sharedRoot.observeDeep(observer);
   const removeUpdateListener = editor.registerUpdateListener((payload) => {
     const { prevEditorState, editorState, dirtyElements, normalizedNodes, tags } = payload;
     syncLexicalUpdateToYjsV2__EXPERIMENTAL(
@@ -358,17 +312,13 @@ async function withSession(
   try {
     void provider.connect();
     await session.awaitSynced();
-    if (hydrateFromYjs) {
-      const initialUpdate = waitForEditorUpdate(editor);
-      syncYjsStateToLexicalV2__EXPERIMENTAL(binding, provider);
-      await initialUpdate;
-    }
+    const initialUpdate = waitForEditorUpdate(editor);
+    syncYjsStateToLexicalV2__EXPERIMENTAL(binding, provider);
+    await initialUpdate;
 
     return await run(editor, { provider, session });
   } finally {
-    if (hydrateFromYjs) {
-      sharedRoot.unobserveDeep(observer);
-    }
+    sharedRoot.unobserveDeep(observer);
     removeUpdateListener();
     session.destroy();
     for (const doc of docMap.values()) {

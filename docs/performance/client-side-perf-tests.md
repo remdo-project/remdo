@@ -23,9 +23,6 @@ This is the minimal baseline we should run first.
    - Run larger bench: `pnpm run perf:bench:8x5`
    - Run a single operation (useful for fast experiments):
      `pnpm run perf:generate && pnpm exec vitest bench -c vitest.bench.perf.config.mts --run -t "add note"`
-7. Manual interactive mode:
-   - Load default perf workload into collab doc: `pnpm run perf:load`
-   - Load larger workload into collab doc: `pnpm run perf:load:8x5`
 
 ## Current Repository Note
 
@@ -34,7 +31,6 @@ The current implementation is a fixture-only Vitest Bench runner in
 
 1. `PERF_WORKLOAD=<workloadId> pnpm run perf:bench` (auto-runs `perf:generate`
    first)
-2. `pnpm run perf:load` / `pnpm run perf:load:8x5` for manual collab repro
 
 ## Typing-Latency Optimizations
 
