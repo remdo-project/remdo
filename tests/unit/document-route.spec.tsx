@@ -208,6 +208,46 @@ describe('document route', () => {
     });
   });
 
+  const clickNewDocument = async () => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'New' }));
+  };
+
+  it('surfaces an alert when creating a new document fails', async () => {
+    const userData = getTestUserData();
+    const realDocuments = userData.documents.bind(userData);
+    vi.spyOn(userData, 'documents').mockImplementation(() => ({
+      ...realDocuments(),
+      create: vi.fn().mockRejectedValue(new Error('offline')),
+    }));
+
+    renderDocumentRoute();
+    await clickNewDocument();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Could not create document');
+    expect(alert).toHaveTextContent('offline');
+  });
+
+  it('dismisses the creation error alert via its close button', async () => {
+    const userData = getTestUserData();
+    const realDocuments = userData.documents.bind(userData);
+    vi.spyOn(userData, 'documents').mockImplementation(() => ({
+      ...realDocuments(),
+      create: vi.fn().mockRejectedValue(new Error('offline')),
+    }));
+
+    renderDocumentRoute();
+    await clickNewDocument();
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+  });
+
   it('opens linked source documents through plain document routes', async () => {
     setTestDocumentSources([{
       baseUrl: 'https://source.example',

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { ActionIcon, Combobox, TextInput, useCombobox } from '@mantine/core';
+import { ActionIcon, Alert, Combobox, TextInput, useCombobox } from '@mantine/core';
 import { IconChevronDown, IconPlus, IconSearch } from '@tabler/icons-react';
 import { useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocumentSourcesLoading, useUserData } from '#client/app/documents/user-data';
@@ -183,6 +183,7 @@ function DocumentRouteContent({
   const userData = useUserData();
   const documentSourcesLoading = useDocumentSourcesLoading();
   const online = useOnlineState();
+  const [createDocumentError, setCreateDocumentError] = useState<string | null>(null);
   const documentSources = userData.documentSources().children();
   const currentDocumentSource = findDocumentSourceByDocumentId(documentSources, docId);
   const localDocumentSource = documentSources.find((source) => source.local()) ?? null;
@@ -315,8 +316,13 @@ function DocumentRouteContent({
   }, [handleSearchDismiss, searchModeActive]);
 
   const createDocument = async () => {
-    const nextDocument = await userData.documents().create('New Document');
-    onSelectDocument({ docId: nextDocument.id() });
+    try {
+      const nextDocument = await userData.documents().create('New Document');
+      setCreateDocumentError(null);
+      onSelectDocument({ docId: nextDocument.id() });
+    } catch (error) {
+      setCreateDocumentError(error instanceof Error ? error.message : 'Failed to create document.');
+    }
   };
 
   const documentGroups = useMemo(() => documentSources.map((source) => ({
@@ -450,6 +456,17 @@ function DocumentRouteContent({
           <div className="document-header-status" ref={setStatusHost} />
         </div>
       </header>
+      {createDocumentError && (
+        <Alert
+          closeButtonLabel="Dismiss"
+          color="red"
+          onClose={() => setCreateDocumentError(null)}
+          title="Could not create document"
+          withCloseButton
+        >
+          {createDocumentError}
+        </Alert>
+      )}
       {searchModeActive ? (
         <section
           className="document-search-results"
