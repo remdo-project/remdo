@@ -204,6 +204,10 @@ function collectStats(): RepoStats {
     const bucket = getOrCreateFileBucket(fileBuckets, type);
     bucket.files += 1;
 
+    if (!fs.lstatSync(absolutePath).isFile()) {
+      continue;
+    }
+
     const fileBuffer = fs.readFileSync(absolutePath);
     if (isBinary(fileBuffer)) {
       binaryFiles += 1;
