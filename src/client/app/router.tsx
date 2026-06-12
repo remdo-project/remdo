@@ -1,4 +1,4 @@
-import { createBrowserRouter, redirect } from 'react-router-dom';
+import { createBrowserRouter, redirect, redirectDocument } from 'react-router-dom';
 import App from './App';
 import { resolveSessionGateState } from './auth/client';
 import { getCachedCurrentUserBootstrap, getHomeDocumentId } from './documents/current-user-bootstrap';
@@ -11,8 +11,8 @@ import SharingRoute from './routes/SharingRoute';
 import {
   createPostAuthNextSearch,
   resolveNextPathOrDefault,
-  resolvePostAuthPath,
 } from './routes/post-auth-path';
+import { resolveAuthenticatedLoginRedirect } from './routes/login-redirect';
 import {
   createDocumentPath,
   parseDocumentRef,
@@ -68,7 +68,10 @@ async function requirePublicAuthRoute(request: Request) {
     ));
   }
 
-  throw redirect(await resolvePostAuthPath(search, url.origin));
+  const redirectTarget = await resolveAuthenticatedLoginRedirect(search, url.origin);
+  throw redirectTarget.kind === 'document-redirect'
+    ? redirectDocument(redirectTarget.href)
+    : redirect(redirectTarget.path);
 }
 
 const redirectToDoc = async (request: Request): Promise<string> => {
