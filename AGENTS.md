@@ -95,6 +95,11 @@ When editing docs, keep external references in a final `References` section.
 - The shared test harness treats console warnings/errors as failures; if you
   need temporary instrumentation during debugging, prefer `console.log` or
   `console.info` and remove the statements before finishing a task.
+- Code review: silently drop any finding already flagged in `docs/todo.md`
+  (match only when the entry names the same file, symbol, or specific behavior,
+  not just a topical overlap); add one tail line `Suppressed N finding(s)
+  already tracked in docs/todo.md` (omit when `N` is 0). Forward this rule to any
+  finder/reviewer subagents you spawn.
 
 ## Agent mode
 
