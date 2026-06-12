@@ -24,7 +24,6 @@ import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net
 import { CollabSession } from '#collaboration/session';
 import { resolveYSweetConnectionString } from '#server/collab-token';
 import type { CollaborationProviderInstance, CollaborationSessionProvider } from '#collaboration/runtime';
-import { stripEditorStateDefaults } from '#client/editor/runtime/editor-state-defaults';
 import { prepareEditorStateForPersistence } from '#client/editor/runtime/editor-state-persistence';
 import { createEditorInitialConfig } from '#client/editor/runtime/config';
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
@@ -46,8 +45,7 @@ interface CliArguments {
   command?: string;
   filePath?: string;
   docId?: string;
-  markdownPath: string | null;
-  minify: boolean;
+  writeMarkdown: boolean;
 }
 
 type SnapshotProvider = Provider & {
@@ -104,7 +102,7 @@ function createInternalProviderFactory() {
 }
 
 function parseCliArguments(argv: string[]): CliArguments {
-  const result: CliArguments = { markdownPath: null, minify: false };
+  const result: CliArguments = { writeMarkdown: false };
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]!;
@@ -121,23 +119,8 @@ function parseCliArguments(argv: string[]): CliArguments {
       continue;
     }
 
-    if (arg === '--minify') {
-      result.minify = true;
-      continue;
-    }
-
     if (arg === '--md') {
-      const next = argv[i + 1];
-      const hasValue = next && !next.startsWith('--');
-      result.markdownPath = hasValue ? next : '';
-      if (hasValue) {
-        i += 1;
-      }
-      continue;
-    }
-
-    if (arg.startsWith('--md=')) {
-      result.markdownPath = arg.slice(5);
+      result.writeMarkdown = true;
       continue;
     }
 
@@ -177,10 +160,10 @@ if (globalWithOptionalDocument.document === undefined) {
   } as unknown as Document;
 }
 
-const { command, filePath, docId: cliDocId, markdownPath, minify } = parseCliArguments(process.argv.slice(2));
+const { command, filePath, docId: cliDocId, writeMarkdown } = parseCliArguments(process.argv.slice(2));
 if (command !== 'save') {
   throw new Error(
-    'Usage: snapshot/cli.ts --doc <id> save [filePath] [--minify] [--md[=<file>]]'
+    'Usage: snapshot/cli.ts save [filePath] --doc <id> [--md]'
   );
 }
 if (!cliDocId) {
@@ -193,7 +176,7 @@ const collabOrigin = resolveCollabServerOrigin({ loopback: true });
 const collabApiOrigin = resolveApiServerOrigin({ loopback: true });
 
 try {
-  await runSave(docId, collabOrigin, collabApiOrigin, targetFile, markdownPath, minify);
+  await runSave(docId, collabOrigin, collabApiOrigin, targetFile, writeMarkdown);
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
@@ -228,32 +211,21 @@ async function runSave(
   collabOrigin: string,
   collabApiOrigin: string,
   filePath: string,
-  markdownPath: string | null,
-  minify: boolean
+  writeMarkdown: boolean
 ): Promise<void> {
   await withSession(docId, collabOrigin, collabApiOrigin, async (editor) => {
     const editorState = editor.getEditorState().toJSON();
     const persistedState = prepareEditorStateForPersistence(editorState, docId);
-    const payload = minify ? stripEditorStateDefaults(persistedState) : persistedState;
-    writeJson(filePath, payload);
+    writeJson(filePath, persistedState);
     console.info(`[snapshot] save -> ${filePath}`);
 
-    const shouldWriteMarkdown = markdownPath !== null;
-    if (shouldWriteMarkdown) {
-      const inferredPath = (() => {
-        if (markdownPath && markdownPath.length > 0) {
-          return markdownPath;
-        }
-        const base = filePath.endsWith('.json') ? filePath.slice(0, -5) : filePath;
-        return `${base}.md`;
-      })();
-      const absoluteMarkdownPath = path.isAbsolute(inferredPath)
-        ? inferredPath
-        : path.resolve(inferredPath);
+    if (writeMarkdown) {
+      const base = filePath.endsWith('.json') ? filePath.slice(0, -5) : filePath;
+      const markdownPath = `${base}.md`;
       const markdown = editor.getEditorState().read(() => $convertToMarkdownString(TRANSFORMERS));
-      fs.mkdirSync(path.dirname(absoluteMarkdownPath), { recursive: true });
-      fs.writeFileSync(absoluteMarkdownPath, `${markdown}\n`);
-      console.info(`[snapshot] markdown -> ${absoluteMarkdownPath}`);
+      fs.mkdirSync(path.dirname(markdownPath), { recursive: true });
+      fs.writeFileSync(markdownPath, `${markdown}\n`);
+      console.info(`[snapshot] markdown -> ${markdownPath}`);
     }
   });
   await waitForPersistedData(docId);
