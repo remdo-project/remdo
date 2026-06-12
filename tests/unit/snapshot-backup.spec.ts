@@ -126,7 +126,7 @@ describe('snapshot backup CLI', () => {
     expect(fs.existsSync(path.join(backupDir, 'remdo.sqlite'))).toBe(false);
   });
 
-  it('recovers from stale staged output', () => {
+  it('fails without deleting stale staged output', () => {
     const dataDir = createTempDataDir();
     tempDirs.push(dataDir);
     const backupDir = path.join(dataDir, 'backup');
@@ -137,10 +137,11 @@ describe('snapshot backup CLI', () => {
 
     const result = runBackup(dataDir, ['--md']);
 
-    expect(result.status).toBe(0);
-    expect(result.stderr).toContain('removing stale staging directory');
-    expect(fs.existsSync(path.join(backupDir, 'remdo.sqlite'))).toBe(true);
-    expect(fs.existsSync(stagingDir)).toBe(false);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('Backup staging directory is stale');
+    expect(result.stderr).toContain(stagingDir);
+    expect(fs.readFileSync(path.join(stagingDir, 'stale.tmp'), 'utf8')).toBe('stale\n');
+    expect(fs.existsSync(path.join(backupDir, 'remdo.sqlite'))).toBe(false);
   });
 
   it('rejects positional backup destinations', () => {

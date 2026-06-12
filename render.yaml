@@ -15,6 +15,8 @@ services:
       value: "8080"
     - key: PORT_BASE
       value: "8080"
+    - key: DATA_DIR
+      value: /data
     - key: AUTH_SECRET
       sync: false
     - key: ADMIN_SECRET

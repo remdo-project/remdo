@@ -149,9 +149,9 @@ function acquireStagingDir(stagingDir: string): boolean {
       return false;
     }
 
-    console.warn(`[backup] removing stale staging directory: ${stagingDir}`);
-    fs.rmSync(stagingDir, { force: true, recursive: true });
-    fs.mkdirSync(stagingDir);
+    throw new Error(
+      `Backup staging directory is stale; remove it manually after confirming no backup is running: ${stagingDir}`
+    );
   }
 
   fs.writeFileSync(path.join(stagingDir, STAGING_STARTED_AT_FILE), `${Date.now()}\n`);
