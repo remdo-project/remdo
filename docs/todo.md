@@ -52,6 +52,11 @@ Rules:
 - Local data wipe follow-up: add a separate "wipe this device" flow and design
   the related UX, including unsynced local edits, server-offline behavior, and
   open-tab IndexedDB cleanup blockers.
+- Logout cleanup follow-up: keep server sign-out available even when local
+  cleanup is incomplete, then design a user-visible warning/retry path for cases
+  where IndexedDB enumeration or deletion cannot confirm that Y-Sweet offline
+  data was removed. Until that UI exists, avoid silently claiming complete local
+  cleanup in unsupported browser storage environments.
 
 ## User-data follow-ups
 
