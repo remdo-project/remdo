@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { HTTP_STATUS } from '#platform/http/status';
+import { secretsMatch } from '#server/auth/secret';
 import type { ServerRouteDependencies } from './types';
 
 export function createAdminRoutes({
@@ -17,7 +18,7 @@ export function createAdminRoutes({
       name?: string;
       password?: string;
     }>();
-    if (!adminSecret || body.adminSecret !== adminSecret) {
+    if (!adminSecret || typeof body.adminSecret !== 'string' || !secretsMatch(adminSecret, body.adminSecret)) {
       return c.json({ error: 'Admin secret is invalid.' }, HTTP_STATUS.FORBIDDEN);
     }
 

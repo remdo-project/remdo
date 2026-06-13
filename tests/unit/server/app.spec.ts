@@ -228,6 +228,46 @@ describe('remdo api app', () => {
     });
   });
 
+  it('forwards a source server access denial as its own status, not 500', async () => {
+    const harness = createHarnessWithSourceServer();
+    harness.auth.getLinkedRemdoServerAccessToken = vi.fn(async () => 'source-token');
+    const fetchMock = vi.fn(async () => ({
+      ok: false,
+      status: HTTP_STATUS.FORBIDDEN,
+      json: async () => ({ error: 'Document access denied.' }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const headers = await harness.createSessionHeaders();
+
+    const response = await harness.app.request('/api/current-user/source-servers/source/documents/sourceDoc/sync-tokens', {
+      method: 'POST',
+      headers,
+      body: '{}',
+    });
+
+    expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
+  });
+
+  it('maps an unexpected source server failure to 500', async () => {
+    const harness = createHarnessWithSourceServer();
+    harness.auth.getLinkedRemdoServerAccessToken = vi.fn(async () => 'source-token');
+    const fetchMock = vi.fn(async () => ({
+      ok: false,
+      status: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      json: async () => ({ error: 'boom' }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const headers = await harness.createSessionHeaders();
+
+    const response = await harness.app.request('/api/current-user/source-servers/source/documents/sourceDoc/sync-tokens', {
+      method: 'POST',
+      headers,
+      body: '{}',
+    });
+
+    expect(response.status).toBe(HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  });
+
   it('does not create a registry row when issuing a token for a missing document', async () => {
     const harness = createHarness();
     const headers = await harness.createSessionHeaders();

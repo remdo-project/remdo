@@ -6,6 +6,21 @@ import { resolveActor } from '#server/auth/actor';
 import { acceptsSourceServerLinkMutation } from './request-guards';
 import type { ServerRouteDependencies } from './types';
 
+// Upstream auth/access/not-found responses describe a recoverable user state
+// (re-link, no grant, unknown doc), not a home-server fault. Forward those
+// statuses so the browser can tell them apart; map anything else to 500.
+const FORWARDED_SOURCE_ERROR_STATUSES = new Set<number>([
+  HTTP_STATUS.UNAUTHORIZED,
+  HTTP_STATUS.FORBIDDEN,
+  HTTP_STATUS.NOT_FOUND,
+]);
+
+function resolveSourceErrorStatus(upstreamStatus: number): 401 | 403 | 404 | 500 {
+  return FORWARDED_SOURCE_ERROR_STATUSES.has(upstreamStatus)
+    ? (upstreamStatus as 401 | 403 | 404)
+    : HTTP_STATUS.INTERNAL_SERVER_ERROR;
+}
+
 function resolveSourceServerApiOrigin(server: { baseUrl: string; tokenBaseUrl?: string }): string {
   return server.tokenBaseUrl ?? server.baseUrl;
 }
@@ -61,7 +76,10 @@ export function createSourceServerRoutes({
         },
       });
       if (!response.ok) {
-        return c.json({ error: `Source server bootstrap failed: ${response.status}` }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+        return c.json(
+          { error: `Source server bootstrap failed: ${response.status}` },
+          resolveSourceErrorStatus(response.status),
+        );
       }
       return c.json(await response.json());
     } catch (error) {
@@ -99,7 +117,10 @@ export function createSourceServerRoutes({
         body: JSON.stringify({ docId: normalizedDocId }),
       });
       if (!response.ok) {
-        return c.json({ error: `Source server sync token failed: ${response.status}` }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+        return c.json(
+          { error: `Source server sync token failed: ${response.status}` },
+          resolveSourceErrorStatus(response.status),
+        );
       }
       return c.json(await response.json());
     } catch (error) {
