@@ -45,6 +45,17 @@ Define the access cases RemDo should support.
   last validated bootstrap only for offline reopen; logout clears it with local
   Yjs offline data.
 
+## CSRF Protection
+
+- Session cookies are SameSite=Lax; app routes use Hono's CSRF middleware to
+  reject cross-site form-style browser mutations before route handlers run, and
+  the app-owned `/api` mutation routes centrally require `application/json`.
+  Browser app mutations use JSON fetch requests to same-origin `/api` routes.
+  Better Auth owns CSRF/origin handling for `/api/auth/*`. Introducing
+  cross-origin credentialed app APIs, cross-subdomain mutation flows, non-JSON
+  mutation bodies, or `SameSite=None` cookies requires re-auditing this
+  boundary.
+
 ## Token Vocabulary
 
 - Better Auth session token: browser session credential used by the RemDo API to
@@ -126,6 +137,8 @@ document's server.
   supports the source-server authorization role.
 - [Better Auth generic OAuth](https://better-auth.com/docs/plugins/generic-oauth)
   supports configured OAuth client providers for the home-server role.
+- [Hono CSRF middleware](https://hono.dev/docs/middleware/builtin/csrf)
+  provides the app route CSRF protection for form-style browser mutations.
 - [Google Drive](https://support.google.com/drive/answer/2494822?hl=en-GB)
   and [Microsoft 365](https://learn.microsoft.com/en-us/sharepoint/shareable-links-anyone-specific-people-organization)
   sharing models separate named access, public access, and bearer-link access.

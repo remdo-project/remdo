@@ -107,6 +107,7 @@ test('token issuance requires auth and collaboration control routes are not rout
   });
   const unauthenticatedTokenResponse = await unauthenticatedContext.fetch(`/api/documents/${smokeDocumentId}/sync-tokens`, {
     method: 'POST',
+    data: {},
     failOnStatusCode: false,
   });
   const unauthenticatedTokenStatus = unauthenticatedTokenResponse.status();
@@ -186,6 +187,7 @@ test('user data sync token is read-only and API document creation updates the pr
 
   const tokenResponse = await requestContext.fetch(`/api/documents/${bootstrap.userDataDocumentId}/sync-tokens`, {
     method: 'POST',
+    data: {},
     failOnStatusCode: false,
   });
   expect(tokenResponse.status()).toBe(HTTP_STATUS.OK);

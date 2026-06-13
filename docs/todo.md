@@ -182,7 +182,10 @@ Rules:
   4. Decide whether to suppress, classify, or otherwise avoid Node's
      `ExperimentalWarning` noise from Better Auth's SQLite path in dev/test
      commands.
-  5. Review current install-time warnings and classify each as `fix`, `track`,
+  5. Classify or suppress the source-server Vite websocket proxy `EPIPE` noise
+     seen during Docker linked-source E2E teardown; if it keeps recurring,
+     consider avoiding Vite's `/d` websocket proxy in that source test server.
+  6. Review current install-time warnings and classify each as `fix`, `track`,
      or `ignore`, especially:
      `glob@11.1.0`, `source-map@0.8.0-beta.0`, `sourcemap-codec@1.4.8`, and the
      `@typescript-eslint/*` peer mismatch against `typescript 6`.

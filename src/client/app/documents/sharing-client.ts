@@ -2,9 +2,6 @@ import type { DocumentAccessView } from '#domain/documents/access';
 
 export type { DocumentAccessView } from '#domain/documents/access';
 
-const SHARING_ACTION_HEADER = 'x-remdo-action';
-const SHARING_ACTION_VALUE = 'sharing';
-
 async function readError(response: Response, fallback: string): Promise<string> {
   try {
     const body = await response.json() as { error?: string };
@@ -20,7 +17,6 @@ export async function shareDocumentWithUser(docId: string, email: string): Promi
     credentials: 'same-origin',
     headers: {
       'content-type': 'application/json',
-      [SHARING_ACTION_HEADER]: SHARING_ACTION_VALUE,
     },
     body: JSON.stringify({ email }),
   });

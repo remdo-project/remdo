@@ -17,7 +17,6 @@ export async function linkSourceServerAccount(serverId: string): Promise<void> {
     credentials: 'same-origin',
     headers: {
       'content-type': 'application/json',
-      'x-remdo-action': 'source-server-link',
     },
     body: '{}',
   });

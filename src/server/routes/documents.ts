@@ -7,7 +7,6 @@ import {
   createUserDocument,
   refreshCurrentUserDocumentsProjectionBestEffort,
 } from '#server/documents/current-user';
-import { acceptsSharingMutation } from './request-guards';
 import type { ServerRouteDependencies } from './types';
 
 export function createDocumentRoutes({
@@ -52,10 +51,6 @@ export function createDocumentRoutes({
     if (!normalizedDocId) {
       return c.json({ error: 'Invalid document id.' }, HTTP_STATUS.BAD_REQUEST);
     }
-    if (!acceptsSharingMutation(c.req.raw)) {
-      return c.json({ error: 'Invalid sharing request.' }, HTTP_STATUS.BAD_REQUEST);
-    }
-
     try {
       await auth.ensureReady();
       const actor = await resolveActor(c.req.raw, auth);
@@ -107,7 +102,6 @@ export function createDocumentRoutes({
     if (!normalizedDocId) {
       return c.json({ error: 'Invalid document id.' }, HTTP_STATUS.BAD_REQUEST);
     }
-
     try {
       await auth.ensureReady();
       const actor = await resolveActor(c.req.raw, auth);

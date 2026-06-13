@@ -6,6 +6,8 @@ import { createTestResource } from '../_support/test-resource';
 import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';
 
 const createHarness = createTestResource(createServerAppHarness);
+
+const SAFE_HTTP_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const TEST_SOURCE_SERVER = {
   id: 'source',
   label: 'Source Server',
@@ -39,17 +41,9 @@ async function insertDocumentForSession(
   });
 }
 
-function createSharingHeaders(headers: Headers): Headers {
+function createJsonHeaders(headers: Headers = new Headers()): Headers {
   const requestHeaders = new Headers(headers);
   requestHeaders.set('content-type', 'application/json');
-  requestHeaders.set('x-remdo-action', 'sharing');
-  return requestHeaders;
-}
-
-function createSourceServerHeaders(headers: Headers): Headers {
-  const requestHeaders = new Headers(headers);
-  requestHeaders.set('content-type', 'application/json');
-  requestHeaders.set('x-remdo-action', 'source-server-link');
   return requestHeaders;
 }
 
@@ -62,6 +56,8 @@ describe('remdo api app', () => {
       'GET /.well-known/openid-configuration',
       'GET /.well-known/oauth-authorization-server',
       'ALL /api',
+      'ALL /api/*',
+      'ALL /api/*',
       'GET /api/health',
       'GET /api/current-user',
       'GET /api/current-user/source-servers/:serverId/current-user',
@@ -74,11 +70,74 @@ describe('remdo api app', () => {
     ]);
   });
 
+  it('rejects cross-site form-style browser mutations with Hono CSRF protection', async () => {
+    const harness = createHarnessWithSourceServer();
+    const headers = await harness.createSessionHeaders();
+    const mutatingRoutes = inspectRoutes(harness.app)
+      .filter(({ method }) => !SAFE_HTTP_METHODS.has(method))
+      .map(({ method, path }) => ({ key: `${method} ${path}`, method, path }));
+
+    expect(mutatingRoutes.length).toBeGreaterThan(0);
+    for (const { key, method, path } of mutatingRoutes) {
+      if (key === 'ALL /api/auth/*' || key === 'ALL /api') {
+        continue;
+      }
+      // Resolve params to real, existing values so each request reaches the
+      // middleware rather than short-circuiting on a not-found resource.
+      const requestPath = path
+        .replace(':serverId', TEST_SOURCE_SERVER.id)
+        .replaceAll(/:[^/]+/gu, 'placeholder');
+      const requestHeaders = new Headers(headers);
+      requestHeaders.set('content-type', 'text/plain');
+      requestHeaders.set('origin', 'https://evil.example');
+      requestHeaders.set('sec-fetch-site', 'cross-site');
+      const response = await harness.app.request(requestPath, {
+        method,
+        headers: requestHeaders,
+        body: '{}',
+      });
+      expect(response.status, `${key} accepted a cross-site form-style mutation`)
+        .toBe(HTTP_STATUS.FORBIDDEN);
+      await expect(response.text()).resolves.toBe('Forbidden');
+    }
+  });
+
+  it('requires JSON content type for same-origin browser mutations', async () => {
+    const harness = createHarnessWithSourceServer();
+    const headers = await harness.createSessionHeaders();
+    const mutatingRoutes = inspectRoutes(harness.app)
+      .filter(({ method }) => !SAFE_HTTP_METHODS.has(method))
+      .map(({ method, path }) => ({ key: `${method} ${path}`, method, path }));
+
+    expect(mutatingRoutes.length).toBeGreaterThan(0);
+    for (const { key, method, path } of mutatingRoutes) {
+      if (key === 'ALL /api/auth/*' || key === 'ALL /api') {
+        continue;
+      }
+      const requestPath = path
+        .replace(':serverId', TEST_SOURCE_SERVER.id)
+        .replaceAll(/:[^/]+/gu, 'placeholder');
+      const requestHeaders = new Headers(headers);
+      requestHeaders.set('content-type', 'text/plain');
+      requestHeaders.set('origin', 'https://remdo.example');
+      requestHeaders.set('sec-fetch-site', 'same-origin');
+      const response = await harness.app.request(requestPath, {
+        method,
+        headers: requestHeaders,
+        body: '{}',
+      });
+      expect(response.status, `${key} accepted a non-JSON mutation`)
+        .toBe(HTTP_STATUS.UNSUPPORTED_MEDIA_TYPE);
+      await expect(response.json()).resolves.toEqual({ error: 'JSON content type required.' });
+    }
+  });
+
   it('returns 400 for malformed document ids before token issuance', async () => {
     const harness = createHarness();
 
     const response = await harness.app.request('/api/documents/bad%20doc/sync-tokens', {
       method: 'POST',
+      headers: createJsonHeaders(),
     });
 
     expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
@@ -91,6 +150,7 @@ describe('remdo api app', () => {
 
     const response = await harness.app.request('/api/documents/main/sync-tokens', {
       method: 'POST',
+      headers: createJsonHeaders(),
     });
 
     expect(response.status).toBe(HTTP_STATUS.UNAUTHORIZED);
@@ -131,29 +191,13 @@ describe('remdo api app', () => {
     expect(harness.auth.resolveBearerUser).toHaveBeenCalledWith('Bearer source-token');
   });
 
-  it('rejects source server link mutations without the link action header', async () => {
-    const harness = createHarnessWithSourceServer();
-    const headers = await harness.createSessionHeaders();
-    const requestHeaders = new Headers(headers);
-    requestHeaders.set('content-type', 'application/json');
-
-    const response = await harness.app.request('/api/current-user/source-servers/source/account-links', {
-      method: 'POST',
-      headers: requestHeaders,
-      body: '{}',
-    });
-
-    expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
-    await expect(response.json()).resolves.toEqual({ error: 'Invalid source server link request.' });
-  });
-
   it('rejects unknown source server link requests', async () => {
     const harness = createHarness();
     const headers = await harness.createSessionHeaders();
 
     const response = await harness.app.request('/api/current-user/source-servers/source/account-links', {
       method: 'POST',
-      headers: createSourceServerHeaders(headers),
+      headers: createJsonHeaders(headers),
       body: '{}',
     });
 
@@ -202,13 +246,17 @@ describe('remdo api app', () => {
       }),
     }));
     vi.stubGlobal('fetch', fetchMock);
-    const headers = await harness.createSessionHeaders();
+    const sessionHeaders = await harness.createSessionHeaders();
+    // Send the request as a same-origin browser mutation so it also exercises
+    // the CSRF middleware allowing legitimate same-origin linked-source calls.
+    const requestHeaders = createJsonHeaders(sessionHeaders);
+    requestHeaders.set('origin', 'https://remdo.example');
+    requestHeaders.set('sec-fetch-site', 'same-origin');
 
-    const response = await harness.app.request('/api/current-user/source-servers/source/documents/sourceDoc/sync-tokens', {
-      method: 'POST',
-      headers,
-      body: '{}',
-    });
+    const response = await harness.app.fetch(new Request(
+      'https://remdo.example/api/current-user/source-servers/source/documents/sourceDoc/sync-tokens',
+      { method: 'POST', headers: requestHeaders, body: '{}' },
+    ));
 
     expect(response.status).toBe(HTTP_STATUS.OK);
     await expect(response.json()).resolves.toEqual({
@@ -241,7 +289,7 @@ describe('remdo api app', () => {
 
     const response = await harness.app.request('/api/current-user/source-servers/source/documents/sourceDoc/sync-tokens', {
       method: 'POST',
-      headers,
+      headers: createJsonHeaders(headers),
       body: '{}',
     });
 
@@ -261,7 +309,7 @@ describe('remdo api app', () => {
 
     const response = await harness.app.request('/api/current-user/source-servers/source/documents/sourceDoc/sync-tokens', {
       method: 'POST',
-      headers,
+      headers: createJsonHeaders(headers),
       body: '{}',
     });
 
@@ -274,7 +322,7 @@ describe('remdo api app', () => {
 
     const response = await harness.app.request('/api/documents/main/sync-tokens', {
       method: 'POST',
-      headers,
+      headers: createJsonHeaders(headers),
     });
 
     expect(response.status).toBe(HTTP_STATUS.NOT_FOUND);
@@ -294,7 +342,7 @@ describe('remdo api app', () => {
 
     const response = await harness.app.request('/api/documents/main/sync-tokens', {
       method: 'POST',
-      headers,
+      headers: createJsonHeaders(headers),
     });
     const stored = await harness.registry.getDocument('main');
 
@@ -424,7 +472,7 @@ describe('remdo api app', () => {
 
     const response = await harness.app.request('/api/documents/privateDoc/sync-tokens', {
       method: 'POST',
-      headers,
+      headers: createJsonHeaders(headers),
     });
 
     expect(response.status).toBe(HTTP_STATUS.OK);
@@ -451,6 +499,7 @@ describe('remdo api app', () => {
       method: 'POST',
       headers: {
         authorization: 'Bearer source-token',
+        'content-type': 'application/json',
       },
     });
 
@@ -470,7 +519,7 @@ describe('remdo api app', () => {
 
     const response = await harness.app.request(`/api/documents/${bootstrap.userDataDocumentId}/sync-tokens`, {
       method: 'POST',
-      headers,
+      headers: createJsonHeaders(headers),
     });
 
     expect(response.status).toBe(HTTP_STATUS.OK);
@@ -488,7 +537,7 @@ describe('remdo api app', () => {
 
     const response = await harness.app.request(`/api/documents/${bootstrap.userDataDocumentId}/access`, {
       method: 'POST',
-      headers: createSharingHeaders(headers),
+      headers: createJsonHeaders(headers),
       body: JSON.stringify({ email: STABLE_AUTH_USERS.bob.email }),
     });
 
@@ -501,12 +550,10 @@ describe('remdo api app', () => {
     const headers = await harness.createSessionHeaders();
     const bootstrapResponse = await harness.app.request('/api/current-user', { headers });
     const bootstrap = await bootstrapResponse.json();
-    const requestHeaders = new Headers(headers);
-    requestHeaders.set('content-type', 'application/json');
 
     const response = await harness.app.request('/api/documents', {
       method: 'POST',
-      headers: requestHeaders,
+      headers: createJsonHeaders(headers),
       body: JSON.stringify({ title: 'New Document' }),
     });
     const document = await response.json();
@@ -532,13 +579,11 @@ describe('remdo api app', () => {
     const headers = await harness.createSessionHeaders();
     const bootstrapResponse = await harness.app.request('/api/current-user', { headers });
     const bootstrap = await bootstrapResponse.json();
-    const requestHeaders = new Headers(headers);
-    requestHeaders.set('content-type', 'application/json');
 
     failProjectionRefresh = true;
     const response = await harness.app.request('/api/documents', {
       method: 'POST',
-      headers: requestHeaders,
+      headers: createJsonHeaders(headers),
       body: JSON.stringify({ title: 'Projection Failure Document' }),
     });
     const document = await response.json();
@@ -567,7 +612,7 @@ describe('remdo api app', () => {
 
     const response = await harness.app.request('/api/documents/privateDoc/sync-tokens', {
       method: 'POST',
-      headers: otherHeaders,
+      headers: createJsonHeaders(otherHeaders),
     });
 
     expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
@@ -587,12 +632,12 @@ describe('remdo api app', () => {
 
     const shareResponse = await harness.app.request('/api/documents/shareDoc/access', {
       method: 'POST',
-      headers: createSharingHeaders(ownerHeaders),
+      headers: createJsonHeaders(ownerHeaders),
       body: JSON.stringify({ email: STABLE_AUTH_USERS.bob.email }),
     });
     const tokenResponse = await harness.app.request('/api/documents/shareDoc/sync-tokens', {
       method: 'POST',
-      headers: granteeHeaders,
+      headers: createJsonHeaders(granteeHeaders),
     });
 
     expect(shareResponse.status).toBe(HTTP_STATUS.OK);
@@ -629,7 +674,7 @@ describe('remdo api app', () => {
 
     const response = await harness.app.request('/api/documents/mixedCaseShareDoc/access', {
       method: 'POST',
-      headers: createSharingHeaders(ownerHeaders),
+      headers: createJsonHeaders(ownerHeaders),
       body: JSON.stringify({ email: 'Bob@Example.test' }),
     });
 
@@ -651,7 +696,7 @@ describe('remdo api app', () => {
 
     const response = await harness.app.request('/api/documents/shareDoc/access', {
       method: 'POST',
-      headers: createSharingHeaders(ownerHeaders),
+      headers: createJsonHeaders(ownerHeaders),
       body: JSON.stringify({ email: 'missing@example.test' }),
     });
 
@@ -666,7 +711,7 @@ describe('remdo api app', () => {
 
     const response = await harness.app.request('/api/documents/shareDoc/access', {
       method: 'POST',
-      headers: createSharingHeaders(ownerHeaders),
+      headers: createJsonHeaders(ownerHeaders),
       body: JSON.stringify({ email: STABLE_AUTH_USERS.alice.email }),
     });
 
@@ -682,7 +727,7 @@ describe('remdo api app', () => {
 
     const grantResponse = await harness.app.request('/api/documents/shareDoc/access', {
       method: 'POST',
-      headers: createSharingHeaders(otherHeaders),
+      headers: createJsonHeaders(otherHeaders),
       body: JSON.stringify({ email: STABLE_AUTH_USERS.alice.email }),
     });
 
@@ -704,46 +749,12 @@ describe('remdo api app', () => {
     );
     const response = await harness.app.request(`/api/documents/${bootstrap.userDataDocumentId}/sync-tokens`, {
       method: 'POST',
-      headers: requesterHeaders,
+      headers: createJsonHeaders(requesterHeaders),
     });
 
     expect(grant).toBeNull();
     expect(response.status).toBe(HTTP_STATUS.FORBIDDEN);
     await expect(response.json()).resolves.toEqual({ error: 'Document access denied.' });
-  });
-
-  it('rejects sharing mutations without the sharing action header', async () => {
-    const harness = createHarness();
-    const ownerHeaders = await harness.createSessionHeaders();
-    await insertDocumentForSession(harness, ownerHeaders, 'shareDoc');
-    const requestHeaders = new Headers(ownerHeaders);
-    requestHeaders.set('content-type', 'application/json');
-
-    const response = await harness.app.request('/api/documents/shareDoc/access', {
-      method: 'POST',
-      headers: requestHeaders,
-      body: JSON.stringify({ email: STABLE_AUTH_USERS.bob.email }),
-    });
-
-    expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
-    await expect(response.json()).resolves.toEqual({ error: 'Invalid sharing request.' });
-  });
-
-  it('rejects cross-origin sharing mutations', async () => {
-    const harness = createHarness();
-    const requestHeaders = new Headers();
-    requestHeaders.set('content-type', 'application/json');
-    requestHeaders.set('origin', 'https://evil.example');
-    requestHeaders.set('x-remdo-action', 'sharing');
-
-    const response = await harness.app.fetch(new Request('https://remdo.example/api/documents/shareDoc/access', {
-      method: 'POST',
-      headers: requestHeaders,
-      body: JSON.stringify({ email: STABLE_AUTH_USERS.bob.email }),
-    }));
-
-    expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
-    await expect(response.json()).resolves.toEqual({ error: 'Invalid sharing request.' });
   });
 
   it('rejects admin provisioning with a missing or wrong admin secret', async () => {

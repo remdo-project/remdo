@@ -3,7 +3,6 @@ import { createYjsProvider } from '@y-sweet/client';
 import type { ClientToken } from '@y-sweet/sdk';
 import { createDocumentSyncTokenApiPath } from '#document-routes';
 import { trace } from '#platform/log';
-import { resolveLoopbackHost } from '#platform/net/loopback';
 import { guardYSweetIndexedDbProviderLifecycle } from './y-sweet-indexeddb-lifecycle';
 import * as Y from 'yjs';
 
@@ -174,7 +173,7 @@ export function createProviderFactory({
     const endpoints = resolveEndpoints(id);
 
     const authEndpoint = async () => {
-      const token = await getAuthToken(id, endpoints, visibleOrigin);
+      const token = await getAuthToken(id, endpoints);
       return rewriteTokenHost(token, visibleOrigin);
     };
 
@@ -232,7 +231,6 @@ function createEndpointResolver(origin: string | undefined, createSyncTokenPath:
 function getAuthToken(
   docId: string,
   endpoints: { token: string },
-  visibleOrigin?: string,
 ): Promise<ClientToken> {
   const cacheKey = `${endpoints.token}\0${docId}`;
   const existing = docTokenInFlight.get(cacheKey);
@@ -244,10 +242,9 @@ function getAuthToken(
     trace('collab', 'requesting auth token', { docId });
     const response = await fetch(endpoints.token, {
       method: 'POST',
-      headers: createTokenRequestHeaders(endpoints.token, visibleOrigin),
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ docId }),
     });
-
     if (!response.ok) {
       trace('collab', 'auth token request failed', { docId, status: response.status });
       throw new Error(`Failed to auth doc ${docId}: ${response.status} ${response.statusText}`);
@@ -263,38 +260,23 @@ function getAuthToken(
   });
 }
 
-function createTokenRequestHeaders(endpoint: string, visibleOrigin?: string): HeadersInit {
-  const headers = new Headers({ 'content-type': 'application/json' });
-  if (!visibleOrigin) {
-    return headers;
-  }
-
-  const endpointUrl = new URL(endpoint, typeof location === 'undefined' ? 'http://localhost' : location.origin);
-  const browserVisibleUrl = new URL(visibleOrigin);
-  if (endpointUrl.origin === browserVisibleUrl.origin) {
-    return headers;
-  }
-
-  headers.set('x-forwarded-proto', browserVisibleUrl.protocol.slice(0, -1));
-  headers.set('x-forwarded-host', browserVisibleUrl.host);
-  return headers;
-}
-
 function rewriteTokenHost(token: ClientToken, visibleOrigin?: string): ClientToken {
-  if (typeof location === 'undefined') {
+  const baseOrigin = typeof location === 'undefined' ? undefined : location.origin;
+  const targetOrigin = visibleOrigin ?? baseOrigin;
+  if (!targetOrigin) {
     return token;
   }
 
-  const browserVisibleUrl = new URL(visibleOrigin ?? location.origin, location.origin);
-  const { hostname, protocol } = browserVisibleUrl;
-  if (hostname.length === 0) {
+  const browserVisibleUrl = new URL(targetOrigin, baseOrigin);
+  if (browserVisibleUrl.hostname.length === 0) {
     return token;
   }
 
   const rewrite = (raw: string) => {
     const url = new URL(raw);
-    url.hostname = resolveLoopbackHost(url.hostname, hostname);
-    const needsUpgrade = protocol === 'https:' && (url.protocol === 'ws:' || url.protocol === 'http:');
+    url.hostname = browserVisibleUrl.hostname;
+    url.port = browserVisibleUrl.port;
+    const needsUpgrade = browserVisibleUrl.protocol === 'https:' && (url.protocol === 'ws:' || url.protocol === 'http:');
     if (needsUpgrade) {
       url.protocol = url.protocol === 'ws:' ? 'wss:' : 'https:';
     }

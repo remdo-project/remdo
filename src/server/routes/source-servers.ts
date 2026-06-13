@@ -3,7 +3,6 @@ import { normalizeDocumentId } from '#domain/documents/ids';
 import { HTTP_STATUS } from '#platform/http/status';
 import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
 import { resolveActor } from '#server/auth/actor';
-import { acceptsSourceServerLinkMutation } from './request-guards';
 import type { ServerRouteDependencies } from './types';
 
 // Upstream auth/access/not-found responses describe a recoverable user state
@@ -134,9 +133,6 @@ export function createSourceServerRoutes({
     const server = auth.linkableRemdoServers.find((candidate) => candidate.id === serverId);
     if (!server) {
       return c.json({ error: 'Source server not found.' }, HTTP_STATUS.NOT_FOUND);
-    }
-    if (!acceptsSourceServerLinkMutation(c.req.raw)) {
-      return c.json({ error: 'Invalid source server link request.' }, HTTP_STATUS.BAD_REQUEST);
     }
 
     try {
