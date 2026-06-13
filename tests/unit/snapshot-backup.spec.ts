@@ -110,6 +110,92 @@ describe('snapshot backup CLI', () => {
     expect(fs.existsSync(path.join(backupDir, '.next'))).toBe(false);
   });
 
+  it('rolls back to the previous documents when the publish step fails partway', () => {
+    // No documents inserted, so the per-document snapshot loop is empty and the
+    // run reaches publishStagedBackup without needing a live collab export.
+    // The documents are swapped into place first and the sqlite rename last;
+    // here the sqlite rename fails (renaming over a directory throws) AFTER the
+    // new documents are already in place, so this exercises the rollback that
+    // restores the previous documents instead of leaving a half-published
+    // backup. (The previous, sqlite-first implementation deleted the old
+    // documents before the replacement was committed, which this ordering plus
+    // rollback removes.)
+    const dataDir = createTempDataDir();
+    tempDirs.push(dataDir);
+    const backupDir = path.join(dataDir, 'backup');
+    const documentsDir = path.join(backupDir, 'documents');
+    fs.mkdirSync(documentsDir, { recursive: true });
+    fs.writeFileSync(path.join(documentsDir, 'index.json'), 'previous index\n');
+    fs.writeFileSync(path.join(documentsDir, 'previous-doc.json'), 'previous doc\n');
+    fs.mkdirSync(path.join(backupDir, 'remdo.sqlite'));
+    fs.writeFileSync(path.join(backupDir, 'remdo.sqlite', 'blocker'), 'blocks rename\n');
+
+    const result = runBackup(dataDir);
+
+    expect(result.status).toBe(1);
+    // The previous documents are restored intact -- never left missing while a
+    // backup exists -- and the rollback scratch dir is cleaned up.
+    expect(fs.readFileSync(path.join(documentsDir, 'index.json'), 'utf8')).toBe('previous index\n');
+    expect(fs.readFileSync(path.join(documentsDir, 'previous-doc.json'), 'utf8')).toBe('previous doc\n');
+    expect(fs.existsSync(path.join(backupDir, 'documents.prev'))).toBe(false);
+    expect(fs.existsSync(path.join(backupDir, '.next'))).toBe(false);
+  });
+
+  it('restores previous documents when a prior publish died before sqlite was committed', () => {
+    const dataDir = createTempDataDir();
+    tempDirs.push(dataDir);
+    insertDocument(dataDir, 'bad/doc');
+    const backupDir = path.join(dataDir, 'backup');
+    const documentsDir = path.join(backupDir, 'documents');
+    const previousDocumentsDir = path.join(backupDir, 'documents.prev');
+    const stagingDir = path.join(backupDir, '.next');
+    fs.mkdirSync(documentsDir, { recursive: true });
+    fs.mkdirSync(previousDocumentsDir, { recursive: true });
+    fs.mkdirSync(stagingDir, { recursive: true });
+    fs.writeFileSync(path.join(backupDir, 'remdo.sqlite'), 'previous sqlite\n');
+    fs.writeFileSync(path.join(documentsDir, 'index.json'), 'interrupted new index\n');
+    fs.writeFileSync(path.join(previousDocumentsDir, 'index.json'), 'previous index\n');
+    fs.writeFileSync(path.join(stagingDir, 'remdo.sqlite'), 'staged sqlite\n');
+    fs.writeFileSync(path.join(stagingDir, 'started-at'), `${STALE_STAGING_STARTED_AT}\n`);
+    fs.writeFileSync(path.join(stagingDir, 'pid'), '999999\n');
+
+    const result = runBackup(dataDir, ['--md']);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain('restored previous documents after interrupted publish');
+    expect(fs.readFileSync(path.join(backupDir, 'remdo.sqlite'), 'utf8')).toBe('previous sqlite\n');
+    expect(fs.readFileSync(path.join(documentsDir, 'index.json'), 'utf8')).toBe('previous index\n');
+    expect(fs.existsSync(previousDocumentsDir)).toBe(false);
+    expect(fs.existsSync(stagingDir)).toBe(false);
+  });
+
+  it('keeps committed documents when only publish cleanup was interrupted', () => {
+    const dataDir = createTempDataDir();
+    tempDirs.push(dataDir);
+    insertDocument(dataDir, 'bad/doc');
+    const backupDir = path.join(dataDir, 'backup');
+    const documentsDir = path.join(backupDir, 'documents');
+    const previousDocumentsDir = path.join(backupDir, 'documents.prev');
+    const stagingDir = path.join(backupDir, '.next');
+    fs.mkdirSync(documentsDir, { recursive: true });
+    fs.mkdirSync(previousDocumentsDir, { recursive: true });
+    fs.mkdirSync(stagingDir, { recursive: true });
+    fs.writeFileSync(path.join(backupDir, 'remdo.sqlite'), 'committed sqlite\n');
+    fs.writeFileSync(path.join(documentsDir, 'index.json'), 'committed index\n');
+    fs.writeFileSync(path.join(previousDocumentsDir, 'index.json'), 'previous index\n');
+    fs.writeFileSync(path.join(stagingDir, 'started-at'), `${STALE_STAGING_STARTED_AT}\n`);
+    fs.writeFileSync(path.join(stagingDir, 'pid'), '999999\n');
+
+    const result = runBackup(dataDir, ['--md']);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain('cleaned up completed publish recovery state');
+    expect(fs.readFileSync(path.join(backupDir, 'remdo.sqlite'), 'utf8')).toBe('committed sqlite\n');
+    expect(fs.readFileSync(path.join(documentsDir, 'index.json'), 'utf8')).toBe('committed index\n');
+    expect(fs.existsSync(previousDocumentsDir)).toBe(false);
+    expect(fs.existsSync(stagingDir)).toBe(false);
+  });
+
   it('skips when another backup is already staging output', () => {
     const dataDir = createTempDataDir();
     tempDirs.push(dataDir);
@@ -117,6 +203,7 @@ describe('snapshot backup CLI', () => {
     const stagingDir = path.join(backupDir, '.next');
     fs.mkdirSync(stagingDir, { recursive: true });
     fs.writeFileSync(path.join(stagingDir, 'started-at'), `${Date.now()}\n`);
+    fs.writeFileSync(path.join(stagingDir, 'pid'), `${process.pid}\n`);
 
     const result = runBackup(dataDir, ['--md']);
 

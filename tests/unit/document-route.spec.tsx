@@ -248,6 +248,26 @@ describe('document route', () => {
     });
   });
 
+  it('clears the creation error when navigating to another document', async () => {
+    const userData = getTestUserData();
+    const realDocuments = userData.documents.bind(userData);
+    vi.spyOn(userData, 'documents').mockImplementation(() => ({
+      ...realDocuments(),
+      create: vi.fn().mockRejectedValue(new Error('offline')),
+    }));
+
+    const router = renderDocumentRoute(createDocumentPath('routeDoc'));
+    await clickNewDocument();
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+
+    await router.navigate(createDocumentPath('other'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe').dataset.docId).toBe('other');
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+  });
+
   it('opens linked source documents through plain document routes', async () => {
     setTestDocumentSources([{
       baseUrl: 'https://source.example',

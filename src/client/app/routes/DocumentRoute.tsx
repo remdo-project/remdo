@@ -184,6 +184,7 @@ function DocumentRouteContent({
   const documentSourcesLoading = useDocumentSourcesLoading();
   const online = useOnlineState();
   const [createDocumentError, setCreateDocumentError] = useState<string | null>(null);
+  const [createDocumentErrorDocId, setCreateDocumentErrorDocId] = useState(docId);
   const documentSources = userData.documentSources().children();
   const currentDocumentSource = findDocumentSourceByDocumentId(documentSources, docId);
   const localDocumentSource = documentSources.find((source) => source.local()) ?? null;
@@ -251,6 +252,14 @@ function DocumentRouteContent({
       document.title = APP_TITLE;
     };
   }, [pageTitle]);
+
+  // Drop a stale create-document error when the route switches documents, so it
+  // never lingers on an unrelated document. Adjusting state during render (vs an
+  // effect) is the React-recommended way to reset state on a prop change.
+  if (createDocumentErrorDocId !== docId) {
+    setCreateDocumentErrorDocId(docId);
+    setCreateDocumentError(null);
+  }
 
   useEffect(() => {
     const handleFindShortcut = (event: KeyboardEvent) => {

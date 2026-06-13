@@ -21,6 +21,7 @@ interface BackupOptions {
 }
 
 const STAGING_DIR_STALE_MS = 30 * 60 * 1000;
+const STAGING_PID_FILE = 'pid';
 const STAGING_STARTED_AT_FILE = 'started-at';
 
 function parseBackupOptions(argv: string[]): BackupOptions {
@@ -122,9 +123,49 @@ function writeDocumentIndex(documentsDir: string, documents: BackupDocumentRow[]
 
 function publishStagedBackup(stagingDir: string, backupDir: string): void {
   const documentsDir = path.join(backupDir, 'documents');
-  fs.renameSync(path.join(stagingDir, 'remdo.sqlite'), path.join(backupDir, 'remdo.sqlite'));
-  fs.rmSync(documentsDir, { force: true, recursive: true });
-  fs.renameSync(path.join(stagingDir, 'documents'), documentsDir);
+  const previousDocumentsDir = path.join(backupDir, 'documents.prev');
+
+  // Swap the new documents into place before touching the published sqlite, and
+  // keep the previous documents aside until the sqlite rename commits the new
+  // generation. If the process dies between those renames, the next backup run
+  // restores `documents.prev` before removing the abandoned staging directory.
+  // `stagingDir` is a child of `backupDir`, so every rename stays on one
+  // filesystem and is atomic.
+  fs.rmSync(previousDocumentsDir, { force: true, recursive: true });
+  const hadPreviousDocuments = fs.existsSync(documentsDir);
+  if (hadPreviousDocuments) {
+    fs.renameSync(documentsDir, previousDocumentsDir);
+  }
+
+  try {
+    fs.renameSync(path.join(stagingDir, 'documents'), documentsDir);
+    fs.renameSync(path.join(stagingDir, 'remdo.sqlite'), path.join(backupDir, 'remdo.sqlite'));
+  } catch (error) {
+    // Roll back to the previous documents so the published backup stays consistent.
+    fs.rmSync(documentsDir, { force: true, recursive: true });
+    if (hadPreviousDocuments) {
+      fs.renameSync(previousDocumentsDir, documentsDir);
+    }
+    throw error;
+  }
+
+  fs.rmSync(previousDocumentsDir, { force: true, recursive: true });
+}
+
+function readStagingPid(stagingDir: string): number | null {
+  const pidPath = path.join(stagingDir, STAGING_PID_FILE);
+  const raw = fs.existsSync(pidPath) ? fs.readFileSync(pidPath, 'utf8').trim() : '';
+  const pid = Number.parseInt(raw, 10);
+  return Number.isSafeInteger(pid) && pid > 0 ? pid : null;
+}
+
+function isProcessRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code !== 'ESRCH';
+  }
 }
 
 function readStagingStartedAt(stagingDir: string): number {
@@ -136,7 +177,31 @@ function readStagingStartedAt(stagingDir: string): number {
   return Number.isFinite(startedAt) ? startedAt : fs.statSync(stagingDir).mtimeMs;
 }
 
-function acquireStagingDir(stagingDir: string): boolean {
+function recoverInterruptedPublish(stagingDir: string, backupDir: string): boolean {
+  const documentsDir = path.join(backupDir, 'documents');
+  const previousDocumentsDir = path.join(backupDir, 'documents.prev');
+  if (!fs.existsSync(previousDocumentsDir)) {
+    return false;
+  }
+
+  if (fs.existsSync(path.join(stagingDir, 'remdo.sqlite'))) {
+    fs.rmSync(documentsDir, { force: true, recursive: true });
+    fs.renameSync(previousDocumentsDir, documentsDir);
+    console.info('[backup] restored previous documents after interrupted publish');
+  } else {
+    fs.rmSync(previousDocumentsDir, { force: true, recursive: true });
+    console.info('[backup] cleaned up completed publish recovery state');
+  }
+
+  return true;
+}
+
+function writeStagingMetadata(stagingDir: string): void {
+  fs.writeFileSync(path.join(stagingDir, STAGING_STARTED_AT_FILE), `${Date.now()}\n`);
+  fs.writeFileSync(path.join(stagingDir, STAGING_PID_FILE), `${process.pid}\n`);
+}
+
+function acquireStagingDir(stagingDir: string, backupDir: string): boolean {
   try {
     fs.mkdirSync(stagingDir);
   } catch (error) {
@@ -144,9 +209,20 @@ function acquireStagingDir(stagingDir: string): boolean {
       throw error;
     }
 
-    if (Date.now() - readStagingStartedAt(stagingDir) <= STAGING_DIR_STALE_MS) {
+    const stagingPid = readStagingPid(stagingDir);
+    if (
+      (stagingPid !== null && isProcessRunning(stagingPid))
+      || (stagingPid === null && Date.now() - readStagingStartedAt(stagingDir) <= STAGING_DIR_STALE_MS)
+    ) {
       console.info('[backup] already running; skipping');
       return false;
+    }
+
+    if (recoverInterruptedPublish(stagingDir, backupDir)) {
+      fs.rmSync(stagingDir, { force: true, recursive: true });
+      fs.mkdirSync(stagingDir);
+      writeStagingMetadata(stagingDir);
+      return true;
     }
 
     throw new Error(
@@ -154,7 +230,7 @@ function acquireStagingDir(stagingDir: string): boolean {
     );
   }
 
-  fs.writeFileSync(path.join(stagingDir, STAGING_STARTED_AT_FILE), `${Date.now()}\n`);
+  writeStagingMetadata(stagingDir);
   return true;
 }
 
@@ -167,7 +243,7 @@ async function main(): Promise<void> {
   const documentsDir = path.join(stagingDir, 'documents');
 
   fs.mkdirSync(backupDir, { recursive: true });
-  if (!acquireStagingDir(stagingDir)) {
+  if (!acquireStagingDir(stagingDir, backupDir)) {
     return;
   }
 
