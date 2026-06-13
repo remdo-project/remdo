@@ -1,4 +1,4 @@
-import { expect, test } from '#e2e/fixtures';
+import { expect, setExpectedConsoleIssues, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { config } from '#config';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
@@ -59,9 +59,11 @@ test('links a source account and opens its Home document from the Docker home sw
   await expect(dropdown.locator('[data-document-source-id="local"]')).toContainText('Current Server');
   const sourceGroup = dropdown.locator(`[data-document-source-id="${SOURCE_SERVER_ID}"]`);
   await expect(sourceGroup).toContainText('Local dev server');
+  setExpectedConsoleIssues(page, ['Failed to get client token'], { mode: 'allowContains' });
   await sourceGroup.getByRole('option', { name: 'Home', exact: true }).click();
 
   await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/n\/[\dA-Za-z]+$/u);
   expect(new URL(page.url()).pathname).not.toBe(homePathname);
   await waitForEditableEditor(page);
+  await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/i);
 });
