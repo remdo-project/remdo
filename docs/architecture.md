@@ -45,6 +45,8 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
   browser credentials for Y-Sweet sync.
 - Y-Sweet access: the API connects with the Y-Sweet server token and passes only
   RemDo-issued Y-Sweet document client tokens to browsers.
+- Browser-visible collaboration URLs are derived from the server's configured
+  canonical public origin, not from request forwarding headers.
 - OAuth source linking: Better Auth stores OAuth account tokens for configured
   source servers after the user links a source account.
 

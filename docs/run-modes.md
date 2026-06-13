@@ -129,8 +129,9 @@ records the intent that should stay true across implementations.
   users in the local auth DB and prints credentials for the normal login form.
   Browser clients use the RemDo API Y-Sweet document client token path plus
   `/d/*`; `/doc*` control routes are not routed through the gateway. Y-Sweet
-  auth uses a matched development default key/server-token pair unless
-  `YSWEET_AUTH_KEY` and `YSWEET_SERVER_TOKEN` are set.
+  token URLs use the resolved `AUTH_URL` origin and ignore request forwarding
+  headers. Y-Sweet auth uses a matched development default key/server-token pair
+  unless `YSWEET_AUTH_KEY` and `YSWEET_SERVER_TOKEN` are set.
 
 ### Unit and collab tests
 

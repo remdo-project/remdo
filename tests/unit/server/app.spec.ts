@@ -1,5 +1,6 @@
 import { inspectRoutes } from 'hono/dev';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { config } from '#config';
 import { HTTP_STATUS } from '#platform/http/status';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 import { createTestResource } from '../_support/test-resource';
@@ -269,8 +270,6 @@ describe('remdo api app', () => {
       headers: {
         authorization: 'Bearer source-token',
         'content-type': 'application/json',
-        'x-forwarded-host': 'source.example',
-        'x-forwarded-proto': 'https',
       },
       body: JSON.stringify({ docId: 'sourceDoc' }),
     });
@@ -349,6 +348,31 @@ describe('remdo api app', () => {
     expect(response.status).toBe(HTTP_STATUS.OK);
     expect(stored).not.toBeNull();
     expect(stored).toEqual(existing);
+  });
+
+  it('ignores forwarded headers when issuing browser-visible token URLs', async () => {
+    const harness = createHarness();
+    const headers = await harness.createSessionHeaders();
+    const userId = await harness.getSessionUserId(headers);
+    await harness.registry.insertDocument({
+      id: 'main',
+      ownerUserId: userId,
+      title: 'main',
+    });
+    const requestHeaders = createJsonHeaders(headers);
+    requestHeaders.set('x-forwarded-host', 'attacker.example');
+    requestHeaders.set('x-forwarded-proto', 'https');
+
+    const response = await harness.app.request('/api/documents/main/sync-tokens', {
+      method: 'POST',
+      headers: requestHeaders,
+    });
+    const token = await response.json();
+    const expectedOrigin = new URL(config.env.AUTH_URL).origin;
+
+    expect(response.status).toBe(HTTP_STATUS.OK);
+    expect(new URL(token.url).origin).toBe(expectedOrigin.replace(/^http/u, 'ws'));
+    expect(new URL(token.baseUrl).origin).toBe(expectedOrigin);
   });
 
   it('returns stable per-user bootstrap document ids and ensures owned registry rows', async () => {

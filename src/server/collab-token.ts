@@ -3,7 +3,7 @@ import type { ClientToken } from '@y-sweet/sdk';
 import { config } from '#config';
 import type { Actor } from './auth/actor';
 import type { RegisteredDocument } from './documents/document-registry';
-import { rewriteTokenUrlsForRequest } from './token-url-rewrite';
+import { rewriteTokenUrlsForOrigin } from './token-url-rewrite';
 
 // Y-Sweet defines the authorization union internally but does not export it.
 // Deriving it from ClientToken keeps this wrapper tied to Y-Sweet's accepted
@@ -25,6 +25,10 @@ interface ResolveYSweetConnectionStringOptions {
   serverToken?: string;
 }
 
+interface IssueYSweetDocumentClientTokenOptions extends Pick<ResolveDocumentAccessArgs, 'hasDocumentAccess'> {
+  browserVisibleOrigin?: URL;
+}
+
 export interface YSweetDocumentTokenManager {
   getDocAsUpdate: (docId: string) => Promise<Uint8Array>;
   getOrCreateDocAndToken: (
@@ -36,6 +40,13 @@ export interface YSweetDocumentTokenManager {
 
 export function createYSweetDocumentTokenManager(): YSweetDocumentTokenManager {
   return new DocumentManager(resolveYSweetConnectionString());
+}
+
+function resolveBrowserVisibleOrigin(): URL {
+  if (!config.env.AUTH_URL) {
+    throw new Error('AUTH_URL is required to issue browser-visible Y-Sweet document client tokens.');
+  }
+  return new URL(config.env.AUTH_URL);
 }
 
 export function resolveYSweetConnectionString({
@@ -87,8 +98,7 @@ export async function issueYSweetDocumentClientToken(
   tokenManager: YSweetDocumentTokenManager,
   actor: Actor,
   document: RegisteredDocument,
-  request: Request,
-  options: Pick<ResolveDocumentAccessArgs, 'hasDocumentAccess'> = {},
+  options: IssueYSweetDocumentClientTokenOptions = {},
 ): Promise<{ denied: true } | { denied: false; token: ClientToken }> {
   const access = await resolveDocumentAccess({ actor, document, ...options });
   if (!access.allowed) {
@@ -101,6 +111,6 @@ export async function issueYSweetDocumentClientToken(
 
   return {
     denied: false,
-    token: rewriteTokenUrlsForRequest(token, request),
+    token: rewriteTokenUrlsForOrigin(token, options.browserVisibleOrigin ?? resolveBrowserVisibleOrigin()),
   };
 }

@@ -24,15 +24,6 @@ function resolveSourceServerApiOrigin(server: { baseUrl: string; tokenBaseUrl?: 
   return server.tokenBaseUrl ?? server.baseUrl;
 }
 
-function createSourceServerBrowserOriginHeaders(server: { baseUrl: string }): HeadersInit {
-  const browserVisibleUrl = new URL(server.baseUrl);
-  return {
-    'content-type': 'application/json',
-    'x-forwarded-host': browserVisibleUrl.host,
-    'x-forwarded-proto': browserVisibleUrl.protocol.slice(0, -1),
-  };
-}
-
 export function createSourceServerRoutes({
   auth,
   logError,
@@ -111,7 +102,7 @@ export function createSourceServerRoutes({
         method: 'POST',
         headers: {
           authorization: `Bearer ${access.accessToken}`,
-          ...createSourceServerBrowserOriginHeaders(access.server),
+          'content-type': 'application/json',
         },
         body: JSON.stringify({ docId: normalizedDocId }),
       });

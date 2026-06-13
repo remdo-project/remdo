@@ -113,7 +113,7 @@ export function createDocumentRoutes({
       if (!document) {
         return c.json({ error: 'Document not found.' }, HTTP_STATUS.NOT_FOUND);
       }
-      const result = await issueYSweetDocumentClientToken(tokenManager, actor, document, c.req.raw, {
+      const result = await issueYSweetDocumentClientToken(tokenManager, actor, document, {
         hasDocumentAccess: async (documentId, granteeUserId) => (
           await registry.getDocumentAccessForGrantee(documentId, granteeUserId)
         ) !== null,
