@@ -195,6 +195,12 @@ Remaining issues to fold in or fix directly:
 
 ## Test harness follow-ups
 
+- Redesign `toMatchOutline` note content expectations from flattened text into
+  node-level content. Target shape:
+  `{ noteId: 'note1', content: [{ text: 'before ' }, { date: '2026-06-10' }, { text: ' after' }] }`.
+  Until then, flattened outline text stays readable/user-facing, while
+  node-specific identity such as date ISO values stays covered by focused
+  feature tests.
 - Reduce repeated full-outline literals in tests by adding a generic helper
   that patches a previously-read outline by `noteId`, then still asserts with
   `toMatchOutline`.
