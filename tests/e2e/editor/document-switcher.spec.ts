@@ -83,6 +83,9 @@ test.describe('Document switcher', () => {
     });
 
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await ensureReady(page);
+    await waitForSynced(page);
     await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
 
     await page.getByRole('button', { name: 'Choose document' }).click();
