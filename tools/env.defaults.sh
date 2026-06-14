@@ -10,7 +10,9 @@
 requested_run_mode_port_shift="${RUN_MODE_PORT_SHIFT}"
 unshifted_port_base="${PORT_BASE}"
 run_mode_port_base=$((PORT_BASE + requested_run_mode_port_shift))
-if [ "${requested_run_mode_port_shift}" != "0" ] && [ "${PORT:-}" = "${unshifted_port_base}" ]; then
+if [ "${requested_run_mode_port_shift}" != "0" ] \
+  && [ "${REMDO_PRESERVE_PORT:-false}" != "true" ] \
+  && [ "${PORT:-}" = "${unshifted_port_base}" ]; then
   unset PORT
 fi
 RUN_MODE_PORT_SHIFT=0
@@ -64,30 +66,46 @@ case "${NODE_ENV}" in
     ;;
 esac
 
-# Chromium blocks these ports; fail fast if base or derived ports land on one.
-restricted_ports="0 1 7 9 11 13 15 17 19 20 21 22 23 25 37 42 43 53 69 77 79 87 95 \
+# Chromium refuses to connect to these ports (ERR_UNSAFE_PORT). Exposed as a
+# function so callers that resolve the public port later (e.g. the prod launcher
+# deriving PORT from APP_PUBLIC_URL) can re-validate it.
+# Variables are _rbsp_-prefixed because POSIX sh has no `local`; this avoids
+# leaking them into the global scope of every script that sources this file.
+remdo_assert_browser_safe_port() {
+  _rbsp_port="$1"
+  _rbsp_restricted_ports="0 1 7 9 11 13 15 17 19 20 21 22 23 25 37 42 43 53 69 77 79 87 95 \
 101 102 103 104 109 110 111 113 115 117 119 123 135 137 139 143 161 179 389 427 \
 465 512 513 514 515 526 530 531 532 540 548 554 556 563 587 601 636 989 990 993 \
 995 1719 1720 1723 2049 3659 4045 5060 5061 6000 6566 6665 6666 6667 6668 6669 \
 6697 10080"
-
-for derived_port in \
-  "${PORT}" \
-  "${HMR_PORT}" \
-  "${VITEST_PORT}" \
-  "${VITEST_PREVIEW_PORT}" \
-  "${COLLAB_SERVER_PORT}" \
-  "${PREVIEW_PORT}" \
-  "${PLAYWRIGHT_UI_PORT}" \
-  "${API_SERVER_PORT}"
-do
-  for restricted_port in ${restricted_ports}; do
-    if [ "${derived_port}" = "${restricted_port}" ]; then
-      echo "Port ${derived_port} is blocked by Chromium. Pick a different PORT_BASE." >&2
+  for _rbsp_restricted_port in ${_rbsp_restricted_ports}; do
+    if [ "${_rbsp_port}" = "${_rbsp_restricted_port}" ]; then
+      echo "Port ${_rbsp_port} is blocked by Chromium (ERR_UNSAFE_PORT). Pick a different PORT or PORT_BASE." >&2
       exit 1
     fi
   done
-done
+}
+
+# The public PORT is browser-facing in every mode, so always validate it.
+remdo_assert_browser_safe_port "${PORT}"
+
+# In dev/test there is no Caddy in front: the browser connects directly to the
+# Vite/HMR/preview/Playwright servers and (for collaboration) to the collab and
+# API servers, so each derived port must be browser-safe too. The prod container
+# routes everything through Caddy, so only PORT above is browser-facing there.
+if [ "${NODE_ENV}" != "production" ]; then
+  for derived_port in \
+    "${HMR_PORT}" \
+    "${VITEST_PORT}" \
+    "${VITEST_PREVIEW_PORT}" \
+    "${COLLAB_SERVER_PORT}" \
+    "${PREVIEW_PORT}" \
+    "${PLAYWRIGHT_UI_PORT}" \
+    "${API_SERVER_PORT}"
+  do
+    remdo_assert_browser_safe_port "${derived_port}"
+  done
+fi
 
 export NODE_ENV HOST PORT_BASE RUN_MODE_PORT_SHIFT PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI VITEST_PREVIEW TMPDIR
 export HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT API_SERVER_PORT YSWEET_CONNECTION_STRING

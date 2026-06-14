@@ -9,21 +9,29 @@ IMAGE_NAME="${IMAGE_NAME:-remdo}"
 remdo_load_dotenv "${ROOT_DIR}"
 NODE_ENV=production
 export NODE_ENV
+
+if [[ -n "${APP_PUBLIC_URL:-}" ]]; then
+  if ! PORT="$(node -e '
+    const url = new URL(process.argv[1]);
+    const port = url.port || (url.protocol === "https:" ? "443" : url.protocol === "http:" ? "80" : "");
+    if (!port) process.exit(1);
+    console.log(port);
+  ' "${APP_PUBLIC_URL}")"; then
+    echo "APP_PUBLIC_URL must be an absolute http(s) URL." >&2
+    exit 1
+  fi
+  # shellcheck disable=SC2034 # consumed by the sourced tools/env.defaults.sh.
+  REMDO_PRESERVE_PORT=true
+  export PORT
+fi
+
 : "${RUN_MODE_PORT_SHIFT:=40}"
 remdo_load_env_defaults "${ROOT_DIR}"
 if [[ -z "${APP_PUBLIC_URL:-}" ]]; then
   remdo_configure_docker_runtime
 fi
-if ! PORT="$(node -e '
-  const url = new URL(process.argv[1]);
-  const port = url.port || (url.protocol === "https:" ? "443" : url.protocol === "http:" ? "80" : "");
-  if (!port) process.exit(1);
-  console.log(port);
-' "${APP_PUBLIC_URL}")"; then
-  echo "APP_PUBLIC_URL must be an absolute http(s) URL." >&2
-  exit 1
-fi
-export PORT
+# PORT is already validated by remdo_load_env_defaults above; remdo_configure_docker_runtime
+# only derives APP_PUBLIC_URL from it and never changes it.
 
 : "${AUTH_SECRET:?Set AUTH_SECRET in .env}"
 : "${ADMIN_SECRET:?Set ADMIN_SECRET in .env}"
