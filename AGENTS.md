@@ -121,10 +121,22 @@ Determine agent mode in this order:
 - E2E (Playwright): run `pnpm test:e2e`. In sandboxed environments, accessing
   the local dev server (localhost) may require network escalation; without it,
   Playwright can’t reach the server and will fail to start.
-  If Playwright reports a missing browser executable, first try the standard
-  browser install locations by swapping `PLAYWRIGHT_BROWSERS_PATH` between the
-  system-wide and user-level caches (for example `/opt/playwright-browsers` and
-  `$HOME/.cache/ms-playwright`) before reinstalling browsers.
+  The dev bootstrap (`dev-init.sh`) does not install browsers by default, so
+  resolve them on demand before running `test:e2e:*`:
+  1. If `PLAYWRIGHT_BROWSERS_PATH` is set and already contains the required
+     chromium build, use it as-is—do nothing.
+  2. Otherwise, check the standard cache locations (`/opt/playwright-browsers`,
+     `$HOME/.cache/ms-playwright`); if a build is present, point
+     `PLAYWRIGHT_BROWSERS_PATH` at it.
+  3. If no browser is found anywhere, install into a writable cache. If
+     `PLAYWRIGHT_BROWSERS_PATH` points at a read-only or missing-cache location
+     such as `/opt/playwright-browsers`, unset it or override it with
+     `$HOME/.cache/ms-playwright` before running
+     `pnpm exec playwright install chromium`; then export
+     `PLAYWRIGHT_BROWSERS_PATH` to the cache that received the install.
+
+  `playwright install` is idempotent, so re-running it when a browser already
+  exists is a cheap no-op.
 
 ### Scoped check runs (prefer these during iteration)
 
