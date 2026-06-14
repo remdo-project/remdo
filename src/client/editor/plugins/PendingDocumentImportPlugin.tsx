@@ -26,7 +26,7 @@ function waitForEditorUpdate(editor: ReturnType<typeof useLexicalComposerContext
 
 export function PendingDocumentImportPlugin({ onError }: PendingDocumentImportPluginProps): null {
   const [editor] = useLexicalComposerContext();
-  const { awaitSynced, docId, hydrated } = useCollaborationStatus();
+  const { docId, hydrated, session } = useCollaborationStatus();
 
   useEffect(() => {
     if (!hydrated) {
@@ -60,7 +60,7 @@ export function PendingDocumentImportPlugin({ onError }: PendingDocumentImportPl
         }, { tag: NOTE_ID_NORMALIZE_TAG });
         await normalizeUpdate;
 
-        await awaitSynced();
+        await session.awaitSynced();
       } catch (error) {
         if (!lifecycle.cancelled) {
           onError(error instanceof Error ? error : new Error('Failed to upload document.'));
@@ -71,7 +71,7 @@ export function PendingDocumentImportPlugin({ onError }: PendingDocumentImportPl
     return () => {
       lifecycle.cancelled = true;
     };
-  }, [awaitSynced, docId, editor, hydrated, onError]);
+  }, [docId, editor, hydrated, onError, session]);
 
   return null;
 }
