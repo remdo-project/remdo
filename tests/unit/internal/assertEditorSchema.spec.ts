@@ -1,7 +1,7 @@
 import type { SerializedEditorState } from 'lexical';
 import { describe, expect, it } from 'vitest';
 import { meta } from '#tests';
-import { assertEditorSchema } from '@/editor/plugins/dev/schema/assertEditorSchema';
+import { assertEditorSchema } from '#client/editor/plugins/dev/schema/assertEditorSchema';
 import duplicateNoteId from '#fixtures/editor-schema/duplicate-note-id.json';
 import emptyText from '#fixtures/editor-schema/empty-text.json';
 import indentJump from '#fixtures/editor-schema/indent-jump.json';

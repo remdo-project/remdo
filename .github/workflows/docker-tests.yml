@@ -28,5 +28,5 @@ jobs:
           PLAYWRIGHT_INSTALL: "true"
         run: pnpm run dev:init
 
-      - name: Run Docker smoke tests
-        run: pnpm run test:e2e:prod
+      - name: Run Docker E2E suite
+        run: pnpm run test:e2e:docker

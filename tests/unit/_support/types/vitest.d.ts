@@ -1,6 +1,6 @@
 import type { Outline, SelectionSnapshot } from '#tests';
-import type { RemdoTestApi } from '@/editor/plugins/dev';
-import type { EditorViewBindings } from '@/editor/view/EditorViewProvider';
+import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import type { EditorViewBindings } from '#client/editor/view/EditorViewProvider';
 
 interface RemdoTaskMeta {
   collabDocId?: string;

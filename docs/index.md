@@ -14,26 +14,29 @@ line (align continuation lines by two spaces).
 Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
-- `docs/architecture.md` (Medium). Cross-cutting architecture vocabulary for
-  delivery surfaces, gateway/origin boundaries, collaboration runtime building
-  blocks, and `[Future]` multi-hub terms.
+- `docs/access-model.md` (Long). Document access model for RemDo:
+  owner-backed access, direct local-user grants, cross-server source linking,
+  deferred public/link access, and authenticated app access.
+- `docs/architecture.md` (Long). Cross-cutting architecture vocabulary for
+  delivery surfaces, gateway/origin boundaries, Better Auth identity, document
+  identity, Kysely-backed document-registry ownership, collaboration runtime
+  building blocks, and multi-hub terms.
 - `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch conventions, and
   pre-1.0 compatibility policy (no default migration/back-compat requirements).
 - `docs/dev/dependency-maintenance.md` (Medium). Temporary dependency/runtime
   workarounds plus intentionally held-back versions, with current rationale and
   revisit conditions for refresh work.
-- `docs/environment.md` (Medium). Env setup for dev/test/prod/CI, including
-  single-container Docker deployment flow, same-host auth routing, and
-  backup/CI conventions.
-- `docs/hints.md` (Short). Backlog of potential UX hint concepts that are not
-  yet surfaced in the UI.
-- `docs/index.md` (Medium). Documentation entry point with map, doc workflow, and invariants.
+- `docs/run-modes.md` (Long). Supported run modes: local dev, test stacks, CI,
+  self-hosted app runtimes, managed cloud, and backup execution.
+- `docs/hints.md` (Short). UX hint concepts for search, note controls, and
+  structural selection guidance.
+- `docs/index.md` (Long). Documentation map, workflow, and invariants.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge/reparent
   rules, spacing.
-- `docs/outliner/drag-and-drop.md` (Short). Pointer reordering plan (not implemented).
+- `docs/outliner/drag-and-drop.md` (Short). Pointer reordering placement semantics.
 - `docs/outliner/folding.md` (Medium). Note folding behavior, toggle visibility
   (hover/caret), persistence, auto-expand rules, and view-scoped
   fold-to-level commands.
@@ -46,7 +49,7 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/links.md` (Medium). Note-linking behavior and the
   internal-vs-external link boundary: `@` query flow, whole-document
   search/ranking, runtime fully qualified link identity, clipboard/persistence
-  docId boundaries, and cross-document roadmap limits.
+  docId boundaries, and cross-document boundaries.
 - `docs/outliner/menu.md` (Medium). Quick action menu entry points, note vs.
   children vs. view action scopes, and actions (toggle checked/fold/zoom/child
   list types/fold view to level).
@@ -69,6 +72,9 @@ outdated or a doc’s role materially changes.
 - `docs/performance/client-side-perf-tests.md` (Medium). Minimal client-side
   perf baseline spec: median metric and core modes/operations/workloads, plus
   optional experiments (warmups, thresholds, baselines, and gating).
+- `docs/principles.md` (Medium). Durable project assumptions: privacy,
+  transparency, deployment goals, multi-origin direction, and the boundary
+  between principles and replaceable tooling choices.
 - `docs/todo.md` (Medium). Active work scratchpad; move durable specs into docs;
   tracks paste-placement e2e follow-up and prod schema recovery decisions.
 Whenever you edit any of these docs, update their summaries/buckets here so the
@@ -93,15 +99,15 @@ updated like other doc entries.
 2. **Top-down linking.** Prefer links from higher-level docs (index, concepts)
    into detailed docs (selection, indent/outdent, reordering); same-level links
    only when they add clear value.
-3. **Self-contained set.** Keep required context inside this doc set; avoid
-   external references.
+3. **Self-contained behavior.** Behavior must be clear without external
+   sources. Put external references in final `References`; keep useful internal
+   links inline.
 4. **Coherence checks.** When editing a doc, ensure the change aligns with
    existing resolutions and update related docs/maps if needed.
-5. **Intentional gaps.** Stubs/placeholders are acceptable in dev—mark status
-   clearly when a section is partial.
-6. **[Future] markers.** Sections or bullets tagged `[Future]` are exploratory;
-   do not design, code, or test against them until they are promoted into the
-   main spec.
+5. **Intentional gaps.** Stable docs describe the intended behavior. Track gaps,
+   partial status, and implementation sequencing in `docs/todo.md`.
+6. **Planning boundary.** Stable docs describe target behavior. Put planning
+   status, current-vs-future notes, and deferral decisions in `docs/todo.md`.
 7. **Behavior changes require doc updates.** When behavior changes, update the
    affected docs in the same change. If no doc update is needed, explicitly
    state why.

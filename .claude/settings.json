@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; cd \"$CLAUDE_PROJECT_DIR\"; V=$(jq -r .engines.node package.json); nvm install \"${V%.x}\"; nvm alias default \"${V%.x}\"; pnpm run dev:init'"
+          }
+        ]
+      }
+    ]
+  }
+}

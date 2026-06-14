@@ -1,51 +1,52 @@
-import { defineConfig, devices } from '@playwright/test';
-import process from 'node:process';
-import os from 'node:os';
+import { defineConfig } from '@playwright/test';
 import { config } from './config';
-import { resolveLoopbackHost } from './lib/net/loopback';
+import { resolveAppOrigin } from './src/platform/net/origins';
+import { chromium, playwrightBaseConfig } from './config/playwright/base';
+import { E2E_STORAGE_STATE_PATH } from './tests/e2e/_support/auth-state';
 
-const host = resolveLoopbackHost(config.env.HOST, '127.0.0.1');
-// eslint-disable-next-line node/no-process-env
-const { PLAYWRIGHT_WORKERS, E2E_DOCKER } = process.env;
-const workers = PLAYWRIGHT_WORKERS ?? Math.max(2, os.cpus().length - 1);
-const useDocker = E2E_DOCKER === 'true';
-const port = useDocker ? config.env.PORT : config.env.PLAYWRIGHT_WEB_PORT;
-const protocol = useDocker ? 'https' : 'http';
-const baseURL = `${protocol}://${host}:${port}`;
-const hmrPort = useDocker ? config.env.HMR_PORT : config.env.PLAYWRIGHT_HMR_PORT;
+const baseURL = resolveAppOrigin({ loopback: true });
+const reuseExistingServer = !config.env.CI;
 
-const webServer = useDocker
-  ? undefined
-  : {
-      command: `./tools/env.sh env PORT=${port} HMR_PORT=${hmrPort} pnpm exec vite`,
-      url: baseURL,
-      // Intentional: reuse an already-running RemDo Vite dev server on PLAYWRIGHT_WEB_PORT
-      // to keep local E2E/debug loops fast. This port is expected to be reserved for the
-      // test target; if another app is bound there, E2E results are invalid.
-      reuseExistingServer: true,
-    };
+const webServer = [
+  {
+    name: 'collab',
+    command: 'pnpm run dev:collab',
+    port: config.env.COLLAB_SERVER_PORT,
+    reuseExistingServer,
+    gracefulShutdown: { signal: 'SIGTERM' as const, timeout: 5000 },
+  },
+  {
+    name: 'app',
+    command: 'pnpm exec vite',
+    url: baseURL,
+    reuseExistingServer,
+  },
+];
 
 export default defineConfig({
-  testDir: 'tests/e2e',
-  outputDir: 'data/test-results/playwright',
-  globalSetup: './tests/global/collab-server-setup.ts',
-  workers,
-  fullyParallel: true,
+  ...playwrightBaseConfig,
   use: {
     baseURL,
-    ignoreHTTPSErrors: useDocker,
-    launchOptions: useDocker
-      ? {
-          args: ['--ignore-certificate-errors'],
-        }
-      : undefined,
+    storageState: E2E_STORAGE_STATE_PATH,
   },
-  ...(webServer ? { webServer } : {}),
+  webServer,
   projects: [
     {
-      name: 'chromium',
+      name: 'setup',
+      testMatch: /setup\/.*\.setup\.ts/u,
       use: {
-        ...devices['Desktop Chrome'],
+        storageState: { cookies: [], origins: [] },
+      },
+    },
+    {
+      name: 'chromium',
+      dependencies: ['setup'],
+      testMatch: [
+        /app\/.*\.spec\.ts/u,
+        /editor\/.*\.spec\.ts/u,
+      ],
+      use: {
+        ...chromium,
       },
     },
   ],

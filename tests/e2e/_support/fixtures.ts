@@ -1,5 +1,6 @@
 import type { ConsoleMessage, Page, Response } from '@playwright/test';
 import { expect, test as base } from '@playwright/test';
+import { HTTP_STATUS } from '#platform/http/status';
 import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
 
@@ -105,7 +106,7 @@ export function attachPageGuards(page: Page): () => void {
   const allowResponse = (response: Response) => {
     const url = response.url();
     if (url.startsWith('data:')) return true;
-    if (url.includes('favicon') && response.status() === 404) return true;
+    if (url.includes('favicon') && response.status() === HTTP_STATUS.NOT_FOUND) return true;
     return false;
   };
 
@@ -129,7 +130,7 @@ export function attachPageGuards(page: Page): () => void {
 
   const onResponse = (response: Response) => {
     const status = response.status();
-    if (status >= 400 && !allowResponse(response)) {
+    if (status >= HTTP_STATUS.BAD_REQUEST && !allowResponse(response)) {
       throw new Error(`response ${status}: ${response.url()}`);
     }
   };

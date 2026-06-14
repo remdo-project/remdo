@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 async function loadRuntime() {
   vi.resetModules();
-  return import('#lib/collaboration/runtime');
+  return import('#collaboration/runtime');
 }
 
 function createOpenSuccessRequest(): IDBOpenDBRequest {

@@ -1,9 +1,9 @@
 import { $createTextNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
-import { $createNoteLinkNode, $isNoteLinkNode, NoteLinkNode } from '#lib/editor/note-link-node';
+import { $createNoteLinkNode, $isNoteLinkNode, NoteLinkNode } from '#client/editor/runtime/note-link-node';
 import { meta } from '#tests';
-import { $findNoteById } from '@/editor/outline/note-traversal';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
 
 describe('note link node (NoteLinkNode)', () => {
   it(

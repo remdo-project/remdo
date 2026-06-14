@@ -4,7 +4,7 @@ import type {
   MinimalProviderEvents,
   ProviderFactory,
   ProviderFactoryResult,
-} from '#lib/collaboration/runtime';
+} from '#collaboration/runtime';
 
 type Handler = (payload: unknown) => void;
 

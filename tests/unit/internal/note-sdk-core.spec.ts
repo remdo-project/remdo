@@ -1,14 +1,22 @@
-import { describe, expect, it } from 'vitest';
-import { createUserConfigRootNote } from '@/documents/user-config-notes';
-import { createEditorNotes } from '@/editor/notes';
-import type { EditorNotesAdapter, NoteRange, PlaceTarget, SelectionSnapshot } from '@/editor/notes/contracts';
-import { NoteNotFoundError } from '@/notes/errors';
+import { describe, expect, it, vi } from 'vitest';
+import { createEditorNotes, createUserDataRootNote, NoteNotFoundError } from '#note-sdk';
+import type {
+  CollectionSource,
+  DocumentSource,
+  EditorNotesAdapter,
+  NoteRange,
+  PlaceTarget,
+  SelectionSnapshot,
+  UserDocument,
+} from '#note-sdk';
+import type { SourceServer } from '#domain/source-servers';
 
 function createMockAdapterFixture(
   adapterSelection?: SelectionSnapshot
 ): {
   adapter: EditorNotesAdapter;
-  userConfig: Parameters<typeof createUserConfigRootNote>[0];
+  userData: Parameters<typeof createUserDataRootNote>[0];
+  sourceServers: SourceServer[];
   notes: Map<string, { text: string; children: string[] }>;
   placeCalls: Array<{ range: NoteRange; target: PlaceTarget }>;
 } {
@@ -20,9 +28,27 @@ function createMockAdapterFixture(
   ]);
   const placeCalls: Array<{ range: NoteRange; target: PlaceTarget }> = [];
   let nextDraftId = 1;
-  const userConfig = [
-    { id: 'main', title: 'Main' },
-    { id: 'flat', title: 'Flat' },
+  const userData = [
+    {
+      id: 'main',
+      shareable: true,
+      title: 'Main',
+      access: [{
+        documentId: 'main',
+        email: 'bob@example.test',
+        granteeUserId: 'bob',
+        name: 'Bob',
+      }],
+    },
+    { id: 'flat', shareable: false, title: 'Flat' },
+  ];
+  const sourceServers = [
+    {
+      id: 'source',
+      label: 'Source Server',
+      baseUrl: 'https://source.example',
+      linked: false,
+    },
   ];
 
   const requireNote = (noteId: string): { text: string; children: string[] } => {
@@ -41,7 +67,8 @@ function createMockAdapterFixture(
   return {
     notes,
     placeCalls,
-    userConfig,
+    userData,
+    sourceServers,
     adapter: {
       docId: () => 'doc-1',
       currentDocumentChildrenIds: () => ['a'],
@@ -110,29 +137,156 @@ describe('editor notes core', () => {
   it('narrows notes by kind and throws on mismatches', () => {
     const fixture = createMockAdapterFixture();
     const sdk = createEditorNotes(fixture.adapter);
-    const documentList = createUserConfigRootNote(fixture.userConfig).documentList();
+    const documents = createUserDataRootNote(fixture.userData).documents();
     const note = sdk.note('a');
 
-    expect(documentList.kind()).toBe('document-list');
-    expect(documentList.children()[0]!.text()).toBe('Main');
+    expect(documents.kind()).toBe('collection');
+    expect(documents.children()[0]!.text()).toBe('Main');
     expect(note.as('editor-note').attached()).toBe(true);
     expect(() => note.as('document')).toThrow('expected "document"');
   });
 
-  it('lists documents through user-config document-list traversal', () => {
+  it('lists documents through user-data documents collection traversal', () => {
     const fixture = createMockAdapterFixture();
-    const documentList = createUserConfigRootNote(fixture.userConfig).documentList();
+    const documents = createUserDataRootNote(fixture.userData).documents();
 
+    expect(documents.byId('flat')?.text()).toBe('Flat');
     expect(
-      documentList.children().map((document) => ({
+      documents.children().map((document) => ({
         id: document.id(),
         kind: document.kind(),
+        shareable: document.shareable(),
         text: document.text(),
       }))
     ).toEqual([
-      { id: 'main', kind: 'document', text: 'Main' },
-      { id: 'flat', kind: 'document', text: 'Flat' },
+      { id: 'main', kind: 'document', shareable: true, text: 'Main' },
+      { id: 'flat', kind: 'document', shareable: false, text: 'Flat' },
     ]);
+  });
+
+  it('lists documents through grouped document source traversal', async () => {
+    const fixture = createMockAdapterFixture();
+    const fixtureDocuments = fixture.userData as UserDocument[];
+    const localDocuments = {
+      byId: (documentId: string) => fixtureDocuments.find((document) => document.id === documentId) ?? null,
+      children: () => fixtureDocuments,
+    };
+    const remoteDocuments = {
+      byId: (documentId: string) => documentId === 'remote'
+        ? { id: 'remote', shareable: false, title: 'Remote' }
+        : null,
+      children: () => [{ id: 'remote', shareable: false, title: 'Remote' }],
+    };
+    const documentSources: CollectionSource<DocumentSource> = {
+      byId: (sourceId: string) => documentSources.children().find((source) => source.id === sourceId) ?? null,
+      children: () => [{
+        baseUrl: null,
+        documents: localDocuments,
+        id: 'local',
+        label: 'Current Server',
+        local: true,
+      }, {
+        baseUrl: 'https://source.example',
+        documents: remoteDocuments,
+        id: 'source',
+        label: 'Source Server',
+        local: false,
+      }],
+    };
+    const userData = createUserDataRootNote(fixture.userData, fixture.sourceServers, {
+      documentSources,
+    });
+
+    expect(userData.documentSources().children().map((source) => ({
+      documents: source.documents().children().map((document) => document.text()),
+      id: source.id(),
+      kind: source.kind(),
+      local: source.local(),
+      text: source.text(),
+    }))).toEqual([
+      {
+        documents: ['Main', 'Flat'],
+        id: 'local',
+        kind: 'document-source',
+        local: true,
+        text: 'Current Server',
+      },
+      {
+        documents: ['Remote'],
+        id: 'source',
+        kind: 'document-source',
+        local: false,
+        text: 'Source Server',
+      },
+    ]);
+    expect(() => userData.documentSources().byId('source')!.as('document-source')).not.toThrow();
+    await expect(userData.documentSources().byId('source')!.documents().byId('remote')!
+      .shareWith('bob@example.test')).rejects.toThrow('Document sharing is not available for this document.');
+  });
+
+  it('shares documents through document-level user-data handles', async () => {
+    const fixture = createMockAdapterFixture();
+    const shareDocument = vi.fn(async (documentId: string, email: string) => ({
+      documentId,
+      email,
+      granteeUserId: 'carol',
+      name: 'Carol',
+    }));
+    const documents = createUserDataRootNote(fixture.userData, {
+      shareDocument,
+    }).documents();
+    const document = documents.byId('main')!;
+
+    expect(document.access().children().map((access) => ({
+      id: access.id(),
+      kind: access.kind(),
+      text: access.text(),
+      email: access.email(),
+      granteeUserId: access.granteeUserId(),
+      name: access.name(),
+    }))).toEqual([{
+      id: 'bob',
+      kind: 'document-access',
+      text: 'Bob',
+      email: 'bob@example.test',
+      granteeUserId: 'bob',
+      name: 'Bob',
+    }]);
+
+    const access = await document.shareWith('carol@example.test');
+
+    expect(shareDocument).toHaveBeenCalledWith('main', 'carol@example.test');
+    expect(access.text()).toBe('Carol');
+  });
+
+  it('lists source servers through user-data source-server traversal', async () => {
+    const fixture = createMockAdapterFixture();
+    const linkSourceServer = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const sourceServers = createUserDataRootNote(fixture.userData, fixture.sourceServers, {
+      linkSourceServer,
+    }).sourceServers();
+
+    const sourceServer = sourceServers.byId('source')!;
+
+    expect(sourceServers.kind()).toBe('collection');
+    expect(sourceServers.children().map((server) => ({
+      id: server.id(),
+      kind: server.kind(),
+      text: server.text(),
+      baseUrl: server.baseUrl(),
+      linked: server.linked(),
+    }))).toEqual([{
+      id: 'source',
+      kind: 'source-server',
+      text: 'Source Server',
+      baseUrl: 'https://source.example',
+      linked: false,
+    }]);
+    expect(sourceServer.as('source-server')).toBe(sourceServer);
+
+    await sourceServer.link();
+
+    expect(linkSourceServer).toHaveBeenCalledWith('source');
   });
 
   it('reads note data from adapter', () => {

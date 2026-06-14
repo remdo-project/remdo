@@ -12,8 +12,32 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "paths": {
-      "@/*": [
-        "./src/*"
+      "#client/*": [
+        "./src/client/*"
+      ],
+      "#collaboration/*": [
+        "./src/collaboration/*"
+      ],
+      "#domain/*": [
+        "./src/domain/*"
+      ],
+      "#note-sdk": [
+        "./src/note-sdk/index.ts"
+      ],
+      "#note-sdk/*": [
+        "./src/note-sdk/*"
+      ],
+      "#projection/*": [
+        "./src/projection/*"
+      ],
+      "#platform/*": [
+        "./src/platform/*"
+      ],
+      "#document-routes": [
+        "./src/document-routes.ts"
+      ],
+      "#server/*": [
+        "./src/server/*"
       ],
       "#e2e/*": [
         "./tests/e2e/_support/*"
@@ -41,9 +65,6 @@
       ],
       "#config/*": [
         "./config/*"
-      ],
-      "#lib/*": [
-        "./lib/*"
       ]
     },
     "resolveJsonModule": true,

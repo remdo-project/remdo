@@ -1,22 +1,26 @@
-import process from 'node:process';
 import { config } from '../../config';
 import { ensureCollabServer } from '../../tools/lib/collab-server-helper';
+import { ensureRemdoApiServer } from '../../tools/lib/remdo-api-server-helper';
+import { cleanupTestAuthData } from './test-auth-cleanup';
 
 export default async function collabServerSetup() {
-  // eslint-disable-next-line node/no-process-env -- docker E2E uses env-only flag
-  if (process.env.E2E_DOCKER === 'true') {
-    return;
-  }
-
   if (!config.env.COLLAB_ENABLED) {
     return;
   }
 
-  const stop = await ensureCollabServer(true);
+  const stop = await ensureCollabServer({
+    port: config.env.COLLAB_SERVER_PORT,
+  });
+  const stopApi = await ensureRemdoApiServer({
+    port: config.env.API_SERVER_PORT,
+    ySweetConnectionString: config.env.YSWEET_CONNECTION_STRING,
+  });
+  cleanupTestAuthData();
 
-  return async () => {
-    if (stop) {
-      await stop();
-    }
+  const stopServices = async () => {
+    await stopApi();
+    await stop();
   };
+
+  return stopServices;
 }

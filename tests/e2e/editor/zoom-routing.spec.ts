@@ -1,6 +1,6 @@
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
-import { editorLocator } from '#editor/locators';
+import { documentZoomBreadcrumb, editorLocator, zoomBreadcrumbs } from '#editor/locators';
 import { waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath, createEditorDocumentPathRegExp } from './_support/routes';
 
@@ -62,7 +62,7 @@ test.describe('Zoom routing', () => {
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await editor.load('basic');
 
-    await page.getByRole('button', { name: editor.docId }).click();
+    await documentZoomBreadcrumb(page).click();
     await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));
   });
 
@@ -74,13 +74,11 @@ test.describe('Zoom routing', () => {
     const metrics = await getBulletMetrics(note1);
     await page.mouse.click(metrics.x, metrics.y);
 
-    const breadcrumbs = page
-      .getByRole('button', { name: editor.docId })
-      .locator('xpath=ancestor::*[@data-zoom-breadcrumbs]');
+    const breadcrumbs = zoomBreadcrumbs(page);
     const currentCrumb = breadcrumbs.locator('[data-zoom-crumb="current"]');
     await expect(currentCrumb).toHaveText('note1');
 
-    await page.getByRole('button', { name: editor.docId }).click();
+    await documentZoomBreadcrumb(page).click();
     await expect(currentCrumb).toHaveCount(0);
   });
 

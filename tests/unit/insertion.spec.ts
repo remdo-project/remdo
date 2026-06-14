@@ -7,8 +7,8 @@ import {
   typeText,
   meta,
 } from '#tests';
-import { $setNoteFolded } from '#lib/editor/fold-state';
-import { $findNoteById } from '@/editor/outline/note-traversal';
+import { $setNoteFolded } from '#client/editor/runtime/fold-state';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
 
 describe('insertion semantics (docs/insertion.md)', () => {
   it('enter at start inserts a previous sibling and keeps children with the original', meta({ fixture: 'basic' }), async ({ remdo }) => {

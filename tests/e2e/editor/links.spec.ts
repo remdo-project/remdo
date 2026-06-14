@@ -1,6 +1,7 @@
 import { expect, test } from '#editor/fixtures';
 import { ensureReady, waitForSynced } from '#editor/bridge';
 import { editorLocator, setCaretAtText } from '#editor/locators';
+import { createUserDocument } from '../_support/documents';
 import { createEditorDocumentPath } from './_support/routes';
 
 test.describe('note links', () => {
@@ -183,7 +184,7 @@ test.describe('note links', () => {
     await expect(editorLocator(page).getByRole('link', { name: 'note1' })).toHaveCount(1);
   });
 
-  test('cross-document paste keeps link target doc from clipboard payload across isolated browser contexts', async ({ page, editor, allocateEditorDocId, newEditorContext }) => {
+  test('cross-document paste keeps link target doc from clipboard payload across isolated browser contexts', async ({ page, editor, newEditorContext }) => {
     await editor.load('links');
     await setCaretAtText(page, 'same ', 0);
     await page.keyboard.press('Shift+ArrowDown');
@@ -192,10 +193,11 @@ test.describe('note links', () => {
     const copyCombo = process.platform === 'darwin' ? 'Meta+C' : 'Control+C';
     await page.keyboard.press(copyCombo);
 
-    const destinationDocId = allocateEditorDocId();
     const destinationContext = await newEditorContext();
     const destinationPage = await destinationContext.newPage();
     try {
+      const destinationDocument = await createUserDocument(destinationPage, `Destination ${Date.now()}`);
+      const destinationDocId = destinationDocument.id;
       await destinationPage.goto(createEditorDocumentPath(destinationDocId));
       await editorLocator(destinationPage).locator('.editor-input').first().waitFor();
       await ensureReady(destinationPage);

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { $getNodeByKey, $getSelection, $isRangeSelection, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
 import type { TextNode } from 'lexical';
 
-import type { RemdoTestApi } from '@/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import {
   findNearestListItem,
   getNoteKey,
@@ -16,7 +16,7 @@ import {
   typeText,
   meta,
 } from '#tests';
-import { $findNoteById } from '@/editor/outline/note-traversal';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
 
 // Coverage gaps (handled in e2e instead of unit tests):
 // - Inline Backspace/Delete inside a note: jsdom doesn’t emulate native deletion

@@ -3,9 +3,9 @@ import { act } from '@testing-library/react';
 import { $createTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 
-import { $isNoteLinkNode } from '#lib/editor/note-link-node';
-import type { RemdoTestApi } from '@/editor/plugins/dev';
-import { $findNoteById } from '@/editor/outline/note-traversal';
+import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
+import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { createDataTransfer, meta, placeCaretAtNote, pressKey, selectEntireNote, typeText } from '#tests';
 
 async function pastePlainText(remdo: RemdoTestApi, text: string) {

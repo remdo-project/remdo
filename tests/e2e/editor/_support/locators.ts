@@ -1,6 +1,8 @@
 import type { Locator, Page } from '#editor/fixtures';
 
 export const editorLocator = (page: Page): Locator => page.locator('.editor-container');
+export const zoomBreadcrumbs = (page: Page): Locator => page.locator('[data-zoom-breadcrumbs]');
+export const documentZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(page).locator('[data-zoom-crumb="document"]');
 
 export async function setCaretAtText(
   page: Page,
@@ -54,21 +56,49 @@ export async function selectInlineRange(page: Page, label: string, startOffset: 
     return;
   }
 
-  await setCaretAtText(page, label, start);
-  const steps = end - start;
-  for (let i = 0; i < steps; i += 1) {
-    await page.keyboard.press('Shift+ArrowRight');
-  }
+  const text = editorLocator(page).locator('[data-lexical-text="true"]').filter({ hasText: label }).first();
+  const inputHandle = await text.evaluateHandle((el) => el.closest('.editor-input'));
+  const input = inputHandle.asElement()!;
+  const expectedText = label.slice(start, end);
+  await input.evaluate((el) => {
+    if (el instanceof HTMLElement) {
+      el.focus();
+    }
+  });
+  await text.evaluate((el, offsets) => {
+    const target = el.firstChild;
+    if (!(target instanceof Text)) {
+      throw new TypeError('Expected inline selection target to be a text node');
+    }
+    const length = target.length;
+    const resolvedStart = Math.min(Math.max(offsets.start, 0), length);
+    const resolvedEnd = Math.min(Math.max(offsets.end, 0), length);
+
+    const selection = globalThis.getSelection();
+    if (!selection) throw new Error('No selection available');
+    const range = document.createRange();
+    range.setStart(target, resolvedStart);
+    range.setEnd(target, resolvedEnd);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.dispatchEvent(new Event('selectionchange'));
+  }, { start, end });
 
   await page.waitForFunction(
-    ({ expectedLength }) => {
+    ({ input, expectedText }) => {
       const sel = globalThis.getSelection();
       if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return false;
+      const anchorNode = sel.anchorNode;
+      const focusNode = sel.focusNode;
+      if (!anchorNode || !focusNode || !input.contains(anchorNode) || !input.contains(focusNode)) {
+        return false;
+      }
       const range = sel.getRangeAt(0);
-      return range.toString().length >= expectedLength;
+      return range.toString() === expectedText;
     },
-    { expectedLength: steps }
+    { input, expectedText }
   );
+  await input.dispose();
 }
 
 export async function setCaretAtNoteTextNode(

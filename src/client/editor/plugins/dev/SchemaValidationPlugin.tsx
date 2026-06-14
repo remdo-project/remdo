@@ -1,0 +1,50 @@
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { useCallback, useEffect, useRef } from 'react';
+import { useCollaborationStatus } from '../collaboration';
+import { assertEditorSchema } from './schema/assertEditorSchema';
+import { consumeSchemaValidationSkipOnce } from './schema/schemaValidationSkipOnce';
+import { SCHEMA_VALIDATE_SYNC_TAG } from '#client/editor/update-tags';
+
+export function SchemaValidationPlugin(): null {
+  const [editor] = useLexicalComposerContext();
+  const { hydrated, docEpoch, synced } = useCollaborationStatus();
+  const wasSyncedRef = useRef(synced);
+
+  const validateSchema = useCallback((): boolean => {
+    if (consumeSchemaValidationSkipOnce(editor)) {
+      return false;
+    }
+    const state = editor.getEditorState().toJSON();
+    assertEditorSchema(state);
+    return true;
+  }, [editor]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    return editor.registerUpdateListener(() => {
+      if (!synced) {
+        return;
+      }
+      validateSchema();
+    });
+  }, [editor, hydrated, docEpoch, synced, validateSchema]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      wasSyncedRef.current = synced;
+      return;
+    }
+
+    if (synced && !wasSyncedRef.current) {
+      // Trigger a no-op update so the update listener validates within Lexical's cycle.
+      editor.update(() => {}, { tag: SCHEMA_VALIDATE_SYNC_TAG });
+    }
+
+    wasSyncedRef.current = synced;
+  }, [editor, hydrated, docEpoch, synced, validateSchema]);
+
+  return null;
+}

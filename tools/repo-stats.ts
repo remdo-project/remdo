@@ -82,7 +82,7 @@ interface ComparisonResult {
 
 const repoRoot = process.cwd();
 const envScript = path.join(repoRoot, 'tools/env.sh');
-const baselinePath = path.resolve(repoRoot, 'repo-stats.json');
+const baselinePath = path.resolve(repoRoot, 'tools/baselines/repo-stats.json');
 const defaultThresholdRatio = 0.1;
 const generatedFilePatterns: RegExp[] = [
   /^pnpm-lock\.yaml$/,
@@ -204,6 +204,10 @@ function collectStats(): RepoStats {
     const bucket = getOrCreateFileBucket(fileBuckets, type);
     bucket.files += 1;
 
+    if (!fs.lstatSync(absolutePath).isFile()) {
+      continue;
+    }
+
     const fileBuffer = fs.readFileSync(absolutePath);
     if (isBinary(fileBuffer)) {
       binaryFiles += 1;
@@ -253,14 +257,14 @@ function collectStats(): RepoStats {
 
 function readBaselineStats(): RepoStats {
   if (!fs.existsSync(baselinePath)) {
-    throw new Error('Missing repo-stats.json. Run "pnpm run audit:stats --update" to create it.');
+    throw new Error('Missing tools/baselines/repo-stats.json. Run "pnpm run audit:stats --update" to create it.');
   }
 
   const content = fs.readFileSync(baselinePath, 'utf8');
   try {
     return JSON.parse(content) as RepoStats;
   } catch {
-    throw new Error('Failed to parse repo-stats.json. Run "pnpm run audit:stats --update" to regenerate it.');
+    throw new Error('Failed to parse tools/baselines/repo-stats.json. Run "pnpm run audit:stats --update" to regenerate it.');
   }
 }
 
@@ -351,7 +355,10 @@ function collectVitestCaseKeys(collabEnabled: boolean): string[] {
     ['pnpm', 'exec', 'vitest', 'list', 'tests/unit', '--json', '--run'],
     { NODE_ENV: 'test', COLLAB_ENABLED: collabEnabled ? 'true' : 'false' },
   );
-  const parsed = JSON.parse(stdout) as VitestListItem[];
+  const parsed = parseJsonOutput(
+    `vitest list (${collabEnabled ? 'collab' : 'unit'})`,
+    stdout,
+  ) as VitestListItem[];
   const keys: string[] = [];
   const occurrenceCount = new Map<string, number>();
 
@@ -372,7 +379,10 @@ function collectPlaywrightCaseKeys(): string[] {
     ['pnpm', 'exec', 'playwright', 'test', '--list', '--reporter=json', 'tests/e2e'],
     { NODE_ENV: 'test' },
   );
-  const parsed = JSON.parse(stdout) as PlaywrightListReport;
+  const parsed = parseJsonOutput(
+    'playwright list',
+    stdout,
+  ) as PlaywrightListReport;
   const keys: string[] = [];
   const seenSpecIds = new Set<string>();
   const occurrenceCount = new Map<string, number>();
@@ -483,6 +493,19 @@ function runCommand(
   }
 
   return result.stdout;
+}
+
+function parseJsonOutput(
+  label: string,
+  output: string,
+): unknown {
+  try {
+    return JSON.parse(output) as unknown;
+  } catch (error) {
+    const outputPreview = output.trim().slice(0, 500) || '[empty stdout]';
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to parse JSON from ${label}: ${message}\n${outputPreview}`);
+  }
 }
 
 function normalizeRelativePath(input: string): string {

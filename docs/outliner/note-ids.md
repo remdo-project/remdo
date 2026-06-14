@@ -21,7 +21,9 @@ environment, not persisted as a root `noteId`.
 - **noteId:** an opaque identifier that uniquely identifies a note within a
   single document.
 - **documentId:** a runtime identifier for the active document, injected by the
-  environment (for example browser routing or snapshot CLI).
+  environment (for example browser routing or snapshot CLI). Document identity
+  is globally unique as defined in
+  [Architecture Terms](../architecture.md#document-identity).
 - **noteRef:** a globally unique reference composed from a document ID and a
   noteId.
 - **Addressable note:** any non-root note that appears as a content list item in
@@ -117,7 +119,8 @@ Behavioral clipboard rules (placement, move validation, focus) live in
 
 ## Global references
 
-- `noteRef` is composed as `documentId_noteId`.
+- `noteRef` is composed as `documentId_noteId`; it is globally unique because
+  `documentId` is globally unique and `noteId` is unique within that document.
 - Direct-link URLs use the form `/n/<noteRef>` for non-root notes.
 - The document root uses `/n/<documentId>` as its canonical URL.
 - A `noteRef` is valid only while the referenced note exists in the referenced

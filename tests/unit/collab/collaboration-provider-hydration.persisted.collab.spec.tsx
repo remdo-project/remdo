@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
 
-import { CollabSession } from '#lib/collaboration/session';
+import { CollabSession } from '#collaboration/session';
 import { createMockProvider, createMockProviderFactory } from './_support/mock-provider';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 

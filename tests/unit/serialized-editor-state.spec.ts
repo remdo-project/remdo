@@ -8,7 +8,7 @@ import {
   getSerializedNodeChildren,
   getSerializedRootNodes,
 } from '#tests';
-import { transformSerializedEditorState } from '#lib/editor/serialized-editor-state';
+import { transformSerializedEditorState } from '#client/editor/runtime/serialized-editor-state';
 
 type NodeWithChildren = SerializedLexicalNode & { children: SerializedLexicalNode[] };
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '@/editor/commands';
-import { $findNoteById } from '@/editor/outline/note-traversal';
-import { removeNoteSubtree } from '@/editor/outline/selection/tree';
+import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/commands';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
 import { getNoteKey, meta, placeCaretAtNote, pressKey, readCaretNoteId } from '#tests';
 
 describe('folding (docs/outliner/folding.md)', () => {

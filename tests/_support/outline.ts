@@ -1,7 +1,7 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
-import type { SerializedOutlineNote } from '@/editor/plugins/dev/schema/traverseSerializedOutline';
-import { traverseSerializedOutline } from '@/editor/plugins/dev/schema/traverseSerializedOutline';
+import type { SerializedOutlineNote } from '#client/editor/plugins/dev/schema/traverseSerializedOutline';
+import { traverseSerializedOutline } from '#client/editor/plugins/dev/schema/traverseSerializedOutline';
 
 export interface OutlineNode {
   noteId: string | null;

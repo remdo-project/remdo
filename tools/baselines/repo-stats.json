@@ -1,0 +1,100 @@
+{
+  "generatedAt": "2026-06-08T09:43:36.413Z",
+  "files": {
+    "totalFiles": 455,
+    "textFiles": 455,
+    "byType": {
+      "ts": {
+        "files": 273,
+        "lines": 27267
+      },
+      "tsx": {
+        "files": 61,
+        "lines": 9273
+      },
+      "md": {
+        "files": 31,
+        "lines": 2549
+      },
+      "json": {
+        "files": 29,
+        "lines": 2174
+      },
+      "sh": {
+        "files": 14,
+        "lines": 655
+      },
+      "yml": {
+        "files": 14,
+        "lines": 251
+      },
+      "svg": {
+        "files": 8,
+        "lines": 21
+      },
+      "css": {
+        "files": 7,
+        "lines": 770
+      },
+      "mts": {
+        "files": 4,
+        "lines": 352
+      },
+      "yaml": {
+        "files": 3,
+        "lines": 146
+      },
+      "jsonc": {
+        "files": 2,
+        "lines": 54
+      },
+      "caddyfile": {
+        "files": 1,
+        "lines": 46
+      },
+      "codeowners": {
+        "files": 1,
+        "lines": 1
+      },
+      "dockerfile": {
+        "files": 1,
+        "lines": 73
+      },
+      "example": {
+        "files": 1,
+        "lines": 35
+      },
+      "gitignore": {
+        "files": 1,
+        "lines": 15
+      },
+      "html": {
+        "files": 1,
+        "lines": 13
+      },
+      "license": {
+        "files": 1,
+        "lines": 17
+      },
+      "mjs": {
+        "files": 1,
+        "lines": 3
+      }
+    }
+  },
+  "tests": {
+    "unit": 618,
+    "collab": 659,
+    "e2e": 93,
+    "totalUnique": 752
+  },
+  "totals": {
+    "files": {
+      "files": 454,
+      "lines": 43715
+    },
+    "tests": {
+      "totalUnique": 752
+    }
+  }
+}

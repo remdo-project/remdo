@@ -5,10 +5,9 @@ set -eu
 ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
 
-if [ -f "${ENV_FILE}" ]; then
-  # shellcheck disable=SC1090 # allow sourcing repo-local .env
-  . "${ENV_FILE}"
-fi
+# shellcheck disable=SC1091 # shared helper lives in the repo.
+. "${ROOT_DIR}/tools/lib/env-file.sh"
+remdo_load_dotenv_file "${ENV_FILE}"
 
 export REMDO_ROOT="${REMDO_ROOT:-${ROOT_DIR}}"
 # shellcheck disable=SC1091 # shared defaults live in the repo.

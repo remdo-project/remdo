@@ -5,12 +5,9 @@ remdo_load_dotenv() {
   local root_dir="$1"
   local env_file="${root_dir}/.env"
 
-  if [[ -f "${env_file}" ]]; then
-    set -a
-    # shellcheck disable=SC1090
-    . "${env_file}"
-    set +a
-  fi
+  # shellcheck disable=SC1091 # shared helper lives in the repo.
+  . "${root_dir}/tools/lib/env-file.sh"
+  remdo_load_dotenv_file "${env_file}"
 }
 
 remdo_load_env_defaults() {
@@ -70,26 +67,25 @@ remdo_detect_docker_public_host() {
 
 remdo_configure_docker_runtime() {
   local public_host="${1:-}"
-  local tinyauth_host=""
 
   if [[ -z "${public_host}" ]]; then
     public_host="$(remdo_detect_docker_public_host)"
   fi
 
-  tinyauth_host="app.${public_host}"
-  export CADDY_SITE_ADDRESS="https://${public_host}:${PORT}"
-  export TINYAUTH_APP_URL="https://${tinyauth_host}:${PORT}"
+  export APP_PUBLIC_URL="https://${public_host}:${PORT}"
 }
 
 remdo_docker_run() {
   local image_name="$1"
   local data_dir="$2"
   shift 2
+  local docker_args=("$@")
 
   mkdir -p "${data_dir}"
 
-  docker run "$@" \
+  docker_args+=(-p "${PORT}:${PORT}")
+
+  docker run "${docker_args[@]}" \
     -v "${data_dir}:/app/data" \
-    -p "${PORT}:${PORT}" \
     "${image_name}"
 }

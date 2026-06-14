@@ -10,12 +10,14 @@
     "playwright"
   ],
   "entry": [
+    "playwright.docker.config.ts",
+    "tests/e2e/setup/*.setup.ts",
     "tools/**/*.ts",
     "tests/perf/**/*.bench.ts",
     "vitest.bench.perf.config.mts"
   ],
   "project": [
-    "{src,lib,tests,tools,config}/**/*.{ts,tsx,mts}",
+    "{src,tests,tools,config}/**/*.{ts,tsx,mts}",
     "*.{ts,mts}"
   ]
 }

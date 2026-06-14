@@ -68,5 +68,5 @@ documentation map, doc workflow, and documentation invariants.
 
 ## Environment
 
-See `docs/environment.md` for the canonical environment setup across dev, tests,
+See `docs/run-modes.md` for the canonical environment setup across dev, tests,
 prod, backup machines, and CI.

@@ -31,8 +31,6 @@ rule:
 files:
   - src/**/*.ts
   - src/**/*.tsx
-  - lib/**/*.ts
-  - lib/**/*.tsx
   - tools/**/*.ts
   - tests/**/*.ts
   - tests/**/*.tsx

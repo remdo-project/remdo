@@ -2,7 +2,7 @@ import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { collectSerializedNodes, getSerializedRootNodes } from '#tests';
-import { restoreEditorStateDefaults, stripEditorStateDefaults } from '#lib/editor/editor-state-defaults';
+import { restoreEditorStateDefaults, stripEditorStateDefaults } from '#client/editor/runtime/editor-state-defaults';
 
 interface DeepListItemNode extends SerializedLexicalNode {
   type: 'listitem';

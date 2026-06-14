@@ -1,7 +1,7 @@
 import { act, waitFor } from '@testing-library/react';
 import { expect } from 'vitest';
 
-import type { RemdoTestApi } from '@/editor/plugins/dev';
+import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { readOutline, placeCaretAtNote, selectNoteRange } from './note';
 import { pressKey } from './keyboard';
 import { getNoteElement } from './dom-note';

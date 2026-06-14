@@ -42,7 +42,7 @@ upgrade again and rerun the full validation set.
 
 1. `vite` `^7.3.1`
    Held back from: `8.0.0`
-   Reason: [vite.shared.ts](../../vite.shared.ts) depends
+   Reason: [config/vite/shared.ts](../../config/vite/shared.ts) depends
    on `vite-plugin-pwa`, and `vite-plugin-pwa 1.2.0` does not support Vite 8.
    Dependabot: ignore `>= 8.0.0 < 9.0.0` while this blocker stands.
    Revisit when: `vite-plugin-pwa` supports Vite 8 cleanly.

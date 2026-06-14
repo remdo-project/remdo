@@ -27,35 +27,122 @@ Rules:
   result labels: whitespace-insensitive lookup (trim/collapse between words),
   fuzzy matching, and shared ranking/disambiguation rules.
 
+## Document access and sharing
 
-## Collaboration architecture roadmap [Future]
+- OAuth source-linking privilege follow-up: review whether linked source OAuth
+  tokens should remain full account delegates, or require narrower RemDo scopes
+  before remote servers can use document mutation APIs.
+- Cross-server document-id collision guard follow-up: source-link bootstrap,
+  projection merge, and import flows should detect a source document whose
+  `docId` collides with an already-known local or linked-source document and
+  reject or quarantine it before opening. This is a defensive guard around the
+  documented base mechanism: every server must generate random document IDs with
+  enough entropy for cross-server uniqueness.
 
-- User-config runtime follow-up: observe remote/shared `documents` mutations in
-  `src/documents/stored-user-config.ts` and refresh the local store version so
-  document-switcher state stays current across tabs/sessions. Retry-on-startup
-  recovery can land independently first.
-- User-config route follow-up: handle rejected `documentList().create()` calls
-  from the document picker in `src/routes/DocumentRoute.tsx` so sync/write
+## Offline and local persistence follow-ups
+
+- Offline collaboration retry follow-up: reduce Y-Sweet document client token
+  fetch and websocket reconnect noise when the app server or collaboration
+  server is unavailable. The editor should keep showing a clear disconnected
+  state, but repeated retries should avoid flooding the console and test guards.
+- Unsynced local edits follow-up: expose a reliable "pending local changes"
+  signal from the collaboration/local-persistence layer and show it in the UI.
+  Destructive actions such as logout should warn before clearing local Yjs data
+  when offline edits have not synced to the server.
+- Local data wipe follow-up: add a separate "wipe this device" flow and design
+  the related UX, including unsynced local edits, server-offline behavior, and
+  open-tab IndexedDB cleanup blockers.
+- Logout cleanup follow-up: keep server sign-out available even when local
+  cleanup is incomplete, then design a user-visible warning/retry path for cases
+  where IndexedDB enumeration or deletion cannot confirm that Y-Sweet offline
+  data was removed. Until that UI exists, avoid silently claiming complete local
+  cleanup in unsupported browser storage environments.
+
+## User-data follow-ups
+
+- User-data route follow-up: handle rejected `userData.documents().create()` calls
+  from the document picker in `src/client/app/routes/DocumentRoute.tsx` so sync/write
   failures do not surface as unhandled promise rejections and the UI can
-  recover cleanly.
+  recover cleanly. This is not required for sharing, but it is the same header
+  area and async-command UX pattern as the sharing control.
 
-### Stages and success criteria
+## Document import / upload follow-ups
 
-1. ✅ Done **Stage 0: single hub, online-first.**
-   Success: one server is the single collaboration backend for docs.
-2. ✅ Done **Stage 1: offline doc persistence.**
-   Success: an already-opened doc can be edited offline and syncs on reconnect.
-3. ✅ Done **Stage 2: offline app-shell loading.**
-   Success: the app shell can open offline (for example via PWA caching), even
-   before document data sync is available.
-4. **Stage 3: multi-hub client.**
-   Success: one client can browse/edit docs from multiple trusted hubs.
-5. **Stage 4: local vault hub (optional).**
-   Success: local-only docs behave like normal docs and remain device-local.
+The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
+`pending-document-import.ts`).
+
+- Silent failure: parseable-but-non-Lexical JSON (`{}`, `{"foo":1}`, `[]`)
+  creates an empty doc with no alert in prod — `parseEditorState` routes the
+  error to `onError`, which only `console.error`s in prod, so the plugin's
+  `catch` never fires. Validate/reject at the upload boundary.
+- Review/refactor the shipping commit for self-containment: it's spread across a
+  module-level `Map` hand-off, a divergent copy of `TestBridgePlugin`'s load
+  sequence, a borrowed test-only tag, and duplicate route error state. May need
+  an architecture pass (shared hardened load primitive, intent via router/React
+  state, import-then-commit so a failed import leaves no empty doc).
+
+Remaining issues to fold in or fix directly:
+
+- `await normalizeUpdate` / `await awaitSynced()` can hang forever: no
+  timeout/noop guard, so a no-op normalize (clean backup) or a never-syncing
+  provider leaves the import pending with no error.
+- Effect re-run race: it depends on `awaitSynced`, whose identity changes per
+  collab snapshot; a mid-import snapshot re-runs the effect and cancels the
+  import after the file was already claimed, abandoning it silently.
+- No `cancelled` recheck after `await loadUpdate` / before `awaitSynced` → a
+  doc switch mid-import writes into the stale editor for the old `docId`.
+- Stacked/mislabeled error alerts: a create failure during upload uses the
+  "create" alert, and the two error states don't clear each other.
+- File-dialog cancel leaves focus detached (no return to the trigger).
+- Map leak: entries evict only on successful claim, so abandoned uploads retain
+  the `File` for the session.
 
 ## Note-first SDK follow-ups
 
-- Generic note handles, document-specific note kinds, and persisted user-config
+- App-resource SDK direction: model current-user app resources as projected
+  note collections plus HTTP commands. Reads should come from the
+  server-written current-user Yjs projection after bootstrap; writes should stay
+  explicit HTTP commands. The SDK should mirror the conceptual resource tree,
+  not raw route syntax.
+- Current source-server slice status: projection-backed source-server SDK/UI
+  reads are in place, and account linking remains an HTTP command.
+- Current sharing/access slice status: document access reads are exposed as
+  `document.access()` from the user-data projection, and `document.shareWith()`
+  remains an HTTP command. The duplicate document-access `GET` read route is
+  removed.
+- Projection/note mapping review follow-up: review server-side projection
+  builders plus SDK-level mapping and helper logic so projected app resources
+  expose well-shaped note kinds instead of flattened DTO-shaped records. Start
+  with document access: consider modeling access as a relationship note with
+  `document()` and `grantee()` where the grantee is a public user/person note.
+- Projection backing-store follow-up: after the sharing branch is merged,
+  revisit whether app-resource projections should stay on Yjs. The likely
+  target is a graph-shaped SDK backed by a simpler server-state graph/cache
+  mechanism with live invalidation or patches, while keeping Yjs focused on
+  collaborative document content. Do not choose or introduce that tool in this
+  branch.
+- Next note-resource cleanup:
+  1. ✅ Done: introduce a generic collection-note role for ordered projected
+     collections keyed by stable child note id.
+  2. ✅ Done: make `documents()` and `sourceServers()` return typed collection
+     facades instead of adding one SDK note kind per collection.
+  3. Keep entity note kinds explicit where they carry entity-specific behavior:
+     `DocumentNote` for documents and `SourceServerNote` for source servers.
+  4. Collection note ids identify resource sections such as
+     `user-documents` and `source-servers`; avoid a separate resource-key API
+     unless a later slice needs it.
+  5. Keep projected collection invariants consistent: child identity keyed by
+     note id, sibling order owned by the collection, and browser state derived
+     from projections rather than local command-result appends.
+  6. After the collection role lands, use it as the default shape for future
+     current-user resources before adding sharing/access-grant resources.
+  7. ✅ Done: replace per-resource client arrays with a projection-backed
+     collection adapter so note-sdk handles can read from Yjs containers while
+     preserving the public note API and HTTP-only mutation boundary.
+  8. ✅ Done: remove duplicate `GET` read routes once projection-backed UI and
+     e2e coverage no longer depend on them, keeping `/api/current-user` as the
+     bootstrap endpoint.
+- Generic note handles, document-specific note kinds, and persisted user-data
   storage are in place. Remaining work:
   1. Introduce async walker/finder/query helpers for search and note-link
      completion so cross-document traversal does not force raw recursive
@@ -68,10 +155,15 @@ Rules:
      separate index/search layer.
   4. Clarify mutation boundaries only as needed by the new traversal/query
      layer (single-note writes vs transactional/multi-note updates).
-  5. Review the remaining top-level API naming after the note-owned
+  5. Redesign projected user-data note collections around note-model
+     invariants: child identity keyed by note id, sibling order owned by the
+     parent, and browser state derived from the projection rather than local
+     command-result appends. Apply this to documents as one projected note
+     collection kind before adding more projected app-state sections.
+  6. Review the remaining top-level API naming after the note-owned
      `create(...)` refactor, especially `createLexicalEditorNotes` and
      `place(...)`.
-  6. Update the durable docs once the traversal/query contract stabilizes:
+  7. Update the durable docs once the traversal/query contract stabilizes:
      `docs/outliner/concepts.md`, `docs/architecture.md`,
      `docs/outliner/search.md`, and `docs/outliner/links.md`.
 
@@ -118,7 +210,46 @@ Rules:
      explicit budget, suppression, or accepted noise.
   3. Decide whether to suppress or just classify the `NO_COLOR` / `FORCE_COLOR`
      warnings seen during Docker Playwright runs.
-  4. Review current install-time warnings and classify each as `fix`, `track`,
+  4. Decide whether to suppress, classify, or otherwise avoid Node's
+     `ExperimentalWarning` noise from Better Auth's SQLite path in dev/test
+     commands.
+  5. Classify or suppress the source-server Vite websocket proxy `EPIPE` noise
+     seen during Docker linked-source E2E teardown; if it keeps recurring,
+     consider avoiding Vite's `/d` websocket proxy in that source test server.
+  6. Review current install-time warnings and classify each as `fix`, `track`,
      or `ignore`, especially:
      `glob@11.1.0`, `source-map@0.8.0-beta.0`, `sourcemap-codec@1.4.8`, and the
      `@typescript-eslint/*` peer mismatch against `typescript 6`.
+
+## Later follow-ups
+
+- Cross-server OAuth setup: add an operator-facing way to register or import
+  RemDo OAuth clients between servers, add the source-server consent UI needed
+  outside trusted dev clients, and extend two-server coverage once the
+  operator client-registration flow is settled.
+- Auth provisioning concepts: revisit user creation, dev fixture users, OAuth
+  client creation restrictions, and server registration as separate flows with
+  clearer boundaries.
+- Cross-server terminology: standardize OAuth/linking language around home
+  server and source server, and keep "remote" only for unrelated generic cases.
+- Dev script ergonomics: update normal dev launchers to pre-kill conflicting
+  RemDo services in their own `PORT_BASE` block before starting, instead of
+  adding separate restart scripts. Keep the behavior port-scoped and avoid the
+  shared Chrome DevTools endpoint.
+- Server routes follow-up: review the API endpoint set before extracting route
+  modules. Revisit endpoint names, grouping, browser-vs-server request
+  boundaries, and whether any routes should move, merge, or be dropped. After
+  the endpoint shape is settled, split `src/server/app.ts` route registration
+  into small Hono route modules mounted with `app.route(...)`, keeping
+  `createServerApp` focused on dependency setup and route overview. Consider a
+  Hono `showRoutes()` dev helper or test for endpoint inventory after the route
+  groups settle.
+- Source layout follow-up: revisit browser/server/shared folder boundaries.
+  Server code was added after the browser app shape was already established, so
+  some document/current-user/domain concepts now sit beside browser runtime code.
+  Clarify which modules are client-only, server-only, and shared domain code.
+- Revisit client auth/bootstrap state caching once the auth and current-user
+  model is more settled. The current lightweight bootstrap cache should
+  eventually be keyed to the active Better Auth session, or invalidated by a
+  clear shared auth-state boundary, so same-tab identity changes cannot reuse
+  stale home/user-data document ids.

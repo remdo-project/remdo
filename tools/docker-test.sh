@@ -5,23 +5,39 @@ ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck disable=SC1091 # shared helper lives in the repo.
 . "${ROOT_DIR}/tools/lib/docker.sh"
 remdo_load_dotenv "${ROOT_DIR}"
-TEST_DATA_DIR="$(mktemp -d -t remdo-docker-test-XXXXXX)"
-
-: "${PORT:=4000}"
 : "${DOCKER_TEST_BROWSER_HOST:=remdo.localhost}"
-# TODO: drop these defaults once layered env files + a committed base .env exist.
 : "${IMAGE_NAME:=remdo-test}"
-DOCKER_TEST_USER="ci"
-DOCKER_TEST_PASSWORD="ci-password-1234"
+DOCKER_TEST_SECRET="ci-better-auth-secret-0123456789"
+DOCKER_TEST_ADMIN_SECRET="ci-admin-secret-0123456789"
+DOCKER_TEST_YSWEET_AUTH_KEY="WLo8wx1G1lGKpIDaDjky9npTrV_fW8jCpRVtB8rd"
+DOCKER_TEST_YSWEET_SERVER_TOKEN="AAAgOkIiPro6W2lCzxyW6BDQkuOmTVSfs0MZh-4PGTM_st0"
 
+TEST_DATA_DIR="$(mktemp -d -t remdo-docker-test-XXXXXX)"
+DOCKER_E2E_AUTH_STATE_PATH="${TEST_DATA_DIR%/}/docker-e2e-auth-state.json"
+DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH="${TEST_DATA_DIR%/}/docker-e2e-smoke-document-id.txt"
+DOCKER_HOME_DATA_DIR="${TEST_DATA_DIR%/}/home"
+SOURCE_DATA_DIR="${TEST_DATA_DIR%/}/source"
+SOURCE_RUN_MODE_PORT_SHIFT=70
+
+: "${RUN_MODE_PORT_SHIFT:=7}"
 remdo_load_env_defaults "${ROOT_DIR}"
+APP_PUBLIC_URL="http://${DOCKER_TEST_BROWSER_HOST}:${PORT}"
 
-PORT="${DOCKER_TEST_PORT}"
-COLLAB_DOCUMENT_ID="dockerSmoke"
-remdo_configure_docker_runtime "${DOCKER_TEST_BROWSER_HOST}"
+SOURCE_PORT="$((PORT_BASE + SOURCE_RUN_MODE_PORT_SHIFT))"
+SOURCE_COLLAB_SERVER_PORT="$((PORT_BASE + SOURCE_RUN_MODE_PORT_SHIFT + 4))"
+SOURCE_API_SERVER_PORT="$((PORT_BASE + SOURCE_RUN_MODE_PORT_SHIFT + 11))"
+SOURCE_YSWEET_CONNECTION_STRING="ys://127.0.0.1:${SOURCE_COLLAB_SERVER_PORT}"
+SOURCE_ORIGIN="http://localhost:${SOURCE_PORT}"
+source_token_host="$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9.]*\).*/\1/p')"
+if [[ -z "${source_token_host}" ]]; then
+  echo "Failed to detect a source token host address." >&2
+  exit 1
+fi
+SOURCE_TOKEN_ORIGIN="http://${source_token_host}:${SOURCE_PORT}"
+LINKABLE_REMDO_SERVERS_JSON='[{"id":"source","label":"Local dev server","baseUrl":"'"${SOURCE_ORIGIN}"'","tokenBaseUrl":"'"${SOURCE_TOKEN_ORIGIN}"'","clientId":"'"${REMDO_DEV_OAUTH_CLIENT_ID}"'","clientSecret":"'"${REMDO_DEV_OAUTH_CLIENT_SECRET}"'"}]'
 
 CONTAINER_NAME="${IMAGE_NAME}-${PORT}"
-HEALTH_URL="https://${DOCKER_TEST_BROWSER_HOST}:${PORT}/health"
+HEALTH_URL="${APP_PUBLIC_URL%/}/health"
 DATA_CLEANED="false"
 DOCKER_RUN_ARGS=()
 
@@ -37,7 +53,7 @@ cleanup_data_dir() {
   if ! docker exec "${CONTAINER_NAME}" sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' \
     >/dev/null 2>&1; then
     if docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
-      docker run --rm "${DOCKER_RUN_ARGS[@]}" -v "${TEST_DATA_DIR}:/app/data" "${IMAGE_NAME}" \
+      docker run --rm "${DOCKER_RUN_ARGS[@]}" -v "${DOCKER_HOME_DATA_DIR}:/app/data" "${IMAGE_NAME}" \
         sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' >/dev/null 2>&1 || true
     fi
   fi
@@ -54,14 +70,26 @@ trap cleanup EXIT
 
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 
+echo "Provisioning source OAuth client for ${APP_PUBLIC_URL}..."
+env \
+  AUTH_URL="${SOURCE_ORIGIN}" \
+  DATA_DIR="${SOURCE_DATA_DIR}" \
+  PORT="${SOURCE_PORT}" \
+  REMDO_DEV_HOME_ORIGIN="${APP_PUBLIC_URL}" \
+  pnpm run dev:users
+
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
-remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}" -d --name "${CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
-  -e AUTH_USER="${DOCKER_TEST_USER}" \
-  -e AUTH_PASSWORD="${DOCKER_TEST_PASSWORD}" \
-  -e CADDY_SITE_ADDRESS="${CADDY_SITE_ADDRESS}" \
-  -e TINYAUTH_APP_URL="${TINYAUTH_APP_URL}" \
-  -e PORT="${PORT}"
+remdo_docker_run "${IMAGE_NAME}" "${DOCKER_HOME_DATA_DIR}" -d --name "${CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
+  -e AUTH_SECRET="${DOCKER_TEST_SECRET}" \
+  -e ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
+  -e YSWEET_AUTH_KEY="${DOCKER_TEST_YSWEET_AUTH_KEY}" \
+  -e YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}" \
+  -e APP_PUBLIC_URL="${APP_PUBLIC_URL}" \
+  -e HOST=127.0.0.1 \
+  -e PORT_BASE="${PORT_BASE}" \
+  -e PORT="${PORT}" \
+  -e LINKABLE_REMDO_SERVERS_JSON="${LINKABLE_REMDO_SERVERS_JSON}"
 
 health_ready="false"
 for _ in {1..20}; do
@@ -79,7 +107,7 @@ if [[ "${health_ready}" != "true" ]]; then
 fi
 
 echo "Docker health check OK: ${HEALTH_URL}"
-echo "Running Playwright prod E2E suite against Docker server (tests/e2e/prod)..."
+echo "Running Playwright Docker E2E suite..."
 
 PLAYWRIGHT_BROWSERS_DIR="${PLAYWRIGHT_BROWSERS_PATH:-}"
 if [[ -n "${PLAYWRIGHT_BROWSERS_DIR}" ]]; then
@@ -93,22 +121,47 @@ fi
 echo "Ensuring Playwright Chromium is installed (${PLAYWRIGHT_BROWSERS_DIR})..."
 PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" pnpm exec playwright install chromium
 
-if ! E2E_DOCKER=true \
-  NODE_ENV=production \
-  PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" \
-  HOST="${DOCKER_TEST_BROWSER_HOST}" \
-  PORT="${PORT}" \
-  COLLAB_ENABLED=true \
-  AUTH_USER="${DOCKER_TEST_USER}" \
-  AUTH_PASSWORD="${DOCKER_TEST_PASSWORD}" \
-  pnpm exec playwright test -- tests/e2e/prod; then
+PLAYWRIGHT_ENV=(
+  PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}"
+  APP_PUBLIC_URL="${APP_PUBLIC_URL}"
+  ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}"
+  YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}"
+)
+
+if ! env "${PLAYWRIGHT_ENV[@]}" \
+  DATA_DIR="${SOURCE_DATA_DIR}" \
+  HOST=0.0.0.0 \
+  PORT="${SOURCE_PORT}" \
+  COLLAB_SERVER_PORT="${SOURCE_COLLAB_SERVER_PORT}" \
+  API_SERVER_PORT="${SOURCE_API_SERVER_PORT}" \
+  YSWEET_CONNECTION_STRING="${SOURCE_YSWEET_CONNECTION_STRING}" \
+  RUN_MODE_PORT_SHIFT="${SOURCE_RUN_MODE_PORT_SHIFT}" \
+  E2E_WRITE_STORAGE_STATE="${DOCKER_E2E_AUTH_STATE_PATH}" \
+  E2E_STORAGE_STATE="${DOCKER_E2E_AUTH_STATE_PATH}" \
+  E2E_WRITE_SMOKE_DOCUMENT_ID="${DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH}" \
+  E2E_SMOKE_DOCUMENT_ID="${DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH}" \
+  "${ROOT_DIR}/tools/env.sh" timeout "${TEST_TIMEOUT:-300}s" \
+  pnpm exec playwright test --config playwright.docker.config.ts; then
   docker logs "${CONTAINER_NAME}" || true
-  echo "Prod e2e failed: ${HEALTH_URL}" >&2
+  echo "Docker e2e failed: ${HEALTH_URL}" >&2
   exit 1
 fi
 
-echo "Docker prod e2e OK: ${HEALTH_URL}"
-COLLAB_DATA_PATH="${TEST_DATA_DIR%/}/collab/${COLLAB_DOCUMENT_ID}/data.ysweet"
+if [[ ! -s "${DOCKER_E2E_AUTH_STATE_PATH}" ]]; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Docker e2e did not write auth state: ${DOCKER_E2E_AUTH_STATE_PATH}" >&2
+  exit 1
+fi
+
+if [[ ! -s "${DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH}" ]]; then
+  docker logs "${CONTAINER_NAME}" || true
+  echo "Docker e2e did not write smoke document id: ${DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH}" >&2
+  exit 1
+fi
+
+echo "Docker e2e OK: ${HEALTH_URL}"
+DEV_DOCUMENT_ID="$(tr -d '\r\n' < "${DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH}")"
+COLLAB_DATA_PATH="${DOCKER_HOME_DATA_DIR%/}/collab/${DEV_DOCUMENT_ID}/data.ysweet"
 collab_ready="false"
 for _ in {1..40}; do
   if [[ -f "${COLLAB_DATA_PATH}" ]]; then
@@ -126,20 +179,20 @@ fi
 
 echo "Running Docker backup..."
 
-if ! docker exec -e HOST="127.0.0.1" -e COLLAB_DOCUMENT_ID="${COLLAB_DOCUMENT_ID}" \
+if ! docker exec -e HOST="127.0.0.1" -e DEV_DOCUMENT_ID="${DEV_DOCUMENT_ID}" \
   "${CONTAINER_NAME}" /usr/local/bin/backup.sh; then
   docker logs "${CONTAINER_NAME}" || true
   echo "Backup failed: ${HEALTH_URL}" >&2
   exit 1
 fi
 
-BACKUP_DIR="${TEST_DATA_DIR%/}/backup"
-MAIN_JSON="${BACKUP_DIR}/${COLLAB_DOCUMENT_ID}.json"
-MAIN_MD="${BACKUP_DIR}/${COLLAB_DOCUMENT_ID}.md"
-PROJECT_JSON="${BACKUP_DIR}/project.json"
-PROJECT_MD="${BACKUP_DIR}/project.md"
+BACKUP_DIR="${DOCKER_HOME_DATA_DIR%/}/backup"
+BACKUP_SQLITE="${BACKUP_DIR}/remdo.sqlite"
+BACKUP_INDEX="${BACKUP_DIR}/documents/index.json"
+DEV_DOCUMENT_JSON="${BACKUP_DIR}/documents/${DEV_DOCUMENT_ID}.json"
+DEV_DOCUMENT_MD="${BACKUP_DIR}/documents/${DEV_DOCUMENT_ID}.md"
 
-for backup_file in "${MAIN_JSON}" "${MAIN_MD}" "${PROJECT_JSON}" "${PROJECT_MD}"; do
+for backup_file in "${BACKUP_SQLITE}" "${BACKUP_INDEX}" "${DEV_DOCUMENT_JSON}" "${DEV_DOCUMENT_MD}"; do
   if [[ ! -s "${backup_file}" ]]; then
     docker logs "${CONTAINER_NAME}" || true
     echo "Backup output missing or empty: ${backup_file}" >&2
@@ -166,12 +219,17 @@ check_backup_contains() {
   return "${status}"
 }
 
+if ! check_backup_contains "${DEV_DOCUMENT_ID}" "${BACKUP_INDEX}" "index"; then
+  docker logs "${CONTAINER_NAME}" || true
+  exit 1
+fi
+
 for expected in "note1" "note2" "note3"; do
-  if ! check_backup_contains "${expected}" "${MAIN_JSON}" "JSON"; then
+  if ! check_backup_contains "${expected}" "${DEV_DOCUMENT_JSON}" "JSON"; then
     docker logs "${CONTAINER_NAME}" || true
     exit 1
   fi
-  if ! check_backup_contains "${expected}" "${MAIN_MD}" "markdown"; then
+  if ! check_backup_contains "${expected}" "${DEV_DOCUMENT_MD}" "markdown"; then
     docker logs "${CONTAINER_NAME}" || true
     exit 1
   fi

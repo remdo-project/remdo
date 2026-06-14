@@ -7,8 +7,6 @@ rule:
 files:
   - src/**/*.ts
   - src/**/*.tsx
-  - lib/**/*.ts
-  - lib/**/*.tsx
   - tools/**/*.ts
   - config/**/*.ts
   - tests/**/*.ts

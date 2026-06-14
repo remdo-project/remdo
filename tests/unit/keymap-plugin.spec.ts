@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { __testCreateKeyHandler, setKeymapOverrides, clearKeymapOverrides } from '@/editor/plugins/KeymapPlugin';
-import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND, SET_NOTE_CHECKED_COMMAND } from '@/editor/commands';
+import { __testCreateKeyHandler, setKeymapOverrides, clearKeymapOverrides } from '#client/editor/plugins/KeymapPlugin';
+import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND, SET_NOTE_CHECKED_COMMAND } from '#client/editor/commands';
 
 const altChordDown = { key: 'ArrowDown', alt: true, shift: true } as const;
 const altChordUp = { key: 'ArrowUp', alt: true, shift: true } as const;

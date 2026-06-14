@@ -1,0 +1,363 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+
+import { createYjsProvider } from '@y-sweet/client';
+import { DocumentManager } from '@y-sweet/sdk';
+import { $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
+import {
+  createBindingV2__EXPERIMENTAL,
+  syncLexicalUpdateToYjsV2__EXPERIMENTAL,
+  syncYjsChangesToLexicalV2__EXPERIMENTAL,
+  syncYjsStateToLexicalV2__EXPERIMENTAL,
+} from '@lexical/yjs';
+import { createEditor } from 'lexical';
+import WebSocket from 'ws';
+import * as Y from 'yjs';
+import type { Doc, Transaction } from 'yjs';
+import { UndoManager } from 'yjs';
+import type { Provider } from '@lexical/yjs';
+import type { CreateEditorArgs, LexicalEditor } from 'lexical';
+
+import { config } from '#config';
+import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
+import { CollabSession } from '#collaboration/session';
+import { resolveYSweetConnectionString } from '#server/collab-token';
+import type { CollaborationProviderInstance, CollaborationSessionProvider } from '#collaboration/runtime';
+import { prepareEditorStateForPersistence } from '#client/editor/runtime/editor-state-persistence';
+import { createEditorInitialConfig } from '#client/editor/runtime/config';
+import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
+
+const PATH_SEPARATOR_PATTERN = /[\\/]+/g;
+const LEADING_DOTS_PATTERN = /^\.+/;
+
+type SharedRootObserver = (
+  events: Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
+  transaction: Transaction,
+) => void;
+
+interface SharedRoot {
+  observeDeep: (callback: SharedRootObserver) => void;
+  unobserveDeep: (callback: SharedRootObserver) => void;
+}
+
+interface CliArguments {
+  command?: string;
+  filePath?: string;
+  docId?: string;
+  writeMarkdown: boolean;
+}
+
+type SnapshotProvider = Provider & {
+  connect: () => void;
+  destroy: () => void;
+  on: (event: string, handler: (payload: unknown) => void) => void;
+  off: (event: string, handler: (payload: unknown) => void) => void;
+};
+type SnapshotProviderWithWebSocket = SnapshotProvider & { _WS?: typeof globalThis.WebSocket };
+
+interface SessionContext {
+  provider: SnapshotProvider;
+  session: CollabSession;
+}
+
+function createInternalProviderFactory() {
+  const manager = new DocumentManager(resolveYSweetConnectionString());
+
+  return async (docId: string, docMap: Map<string, Doc>) => {
+    let doc = docMap.get(docId);
+    if (!doc) {
+      doc = new Y.Doc();
+      docMap.set(docId, doc);
+    }
+
+    doc.get('root', Y.XmlText);
+
+    const token = await manager.getOrCreateDocAndToken(docId, {
+      authorization: 'full',
+    });
+    const provider = createYjsProvider(doc, docId, async () => token, {
+      connect: false,
+      offlineSupport: false,
+      showDebuggerLink: false,
+    });
+    let destroyed = false;
+    const originalDestroy = provider.destroy.bind(provider);
+
+    return {
+      doc,
+      provider: Object.assign(provider as unknown as Provider, {
+        destroy: () => {
+          if (destroyed) {
+            return;
+          }
+          destroyed = true;
+          provider.connect = () => Promise.resolve();
+          provider.disconnect();
+          originalDestroy();
+        },
+      }) as CollaborationSessionProvider,
+    };
+  };
+}
+
+function parseCliArguments(argv: string[]): CliArguments {
+  const result: CliArguments = { writeMarkdown: false };
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i]!;
+
+    if (arg === '--doc' || arg.startsWith('--doc=')) {
+      const value = arg === '--doc' ? argv[i + 1] : arg.slice(6);
+      if (!value || (arg === '--doc' && value.startsWith('--'))) {
+        throw new Error('Missing value for --doc');
+      }
+      result.docId = value;
+      if (arg === '--doc') {
+        i += 1;
+      }
+      continue;
+    }
+
+    if (arg === '--md') {
+      result.writeMarkdown = true;
+      continue;
+    }
+
+    if (!result.command) {
+      result.command = arg;
+    } else if (!result.filePath) {
+      result.filePath = arg;
+    }
+  }
+
+  return result;
+}
+
+function writeJson(filePath: string, data: unknown): void {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`);
+}
+
+type GlobalWithOptionalDocument = Omit<typeof globalThis, 'document'> & { document?: Document };
+
+const globalWithOptionalDocument = globalThis as GlobalWithOptionalDocument;
+
+if (globalWithOptionalDocument.document === undefined) {
+  const createStubElement = (tagName: string) => {
+    const element: any = {
+      tagName,
+      style: {},
+      appendChild() {},
+      removeChild() {},
+      textContent: '',
+    };
+    return element;
+  };
+
+  globalWithOptionalDocument.document = {
+    createElement: createStubElement,
+  } as unknown as Document;
+}
+
+const { command, filePath, docId: cliDocId, writeMarkdown } = parseCliArguments(process.argv.slice(2));
+if (command !== 'save') {
+  throw new Error(
+    'Usage: snapshot/cli.ts save [filePath] --doc <id> [--md]'
+  );
+}
+if (!cliDocId) {
+  throw new Error('snapshot/cli.ts save requires --doc <id>.');
+}
+
+const docId = normalizeNoteIdOrThrow(cliDocId, `Invalid document id: ${cliDocId}`);
+const targetFile = resolveSnapshotPath(docId, filePath);
+const collabOrigin = resolveCollabServerOrigin({ loopback: true });
+const collabApiOrigin = resolveApiServerOrigin({ loopback: true });
+
+try {
+  await runSave(docId, collabOrigin, collabApiOrigin, targetFile, writeMarkdown);
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+}
+
+function resolveSnapshotPath(
+  docId: string,
+  filePath: CliArguments['filePath'],
+): string {
+  const defaultDir = path.resolve('tests/fixtures');
+
+  const ensureJson = (target: string) => (path.extname(target) ? target : `${target}.json`);
+  const sanitizeName = (name: string) => name.replaceAll(PATH_SEPARATOR_PATTERN, '_').replace(LEADING_DOTS_PATTERN, '');
+
+  if (!filePath) {
+    const base = sanitizeName(docId || 'devDoc');
+    return path.join(defaultDir, ensureJson(base));
+  }
+
+  const absolutePath = path.resolve(filePath);
+  if (fs.existsSync(absolutePath) && fs.statSync(absolutePath).isDirectory()) {
+    const base = sanitizeName(docId || 'devDoc');
+    return path.join(absolutePath, ensureJson(base));
+  }
+
+  const withExt = ensureJson(absolutePath);
+  return withExt;
+}
+
+async function runSave(
+  docId: string,
+  collabOrigin: string,
+  collabApiOrigin: string,
+  filePath: string,
+  writeMarkdown: boolean
+): Promise<void> {
+  await withSession(docId, collabOrigin, collabApiOrigin, async (editor) => {
+    const editorState = editor.getEditorState().toJSON();
+    const persistedState = prepareEditorStateForPersistence(editorState, docId);
+    writeJson(filePath, persistedState);
+    console.info(`[snapshot] save -> ${filePath}`);
+
+    if (writeMarkdown) {
+      const base = filePath.endsWith('.json') ? filePath.slice(0, -5) : filePath;
+      const markdownPath = `${base}.md`;
+      const markdown = editor.getEditorState().read(() => $convertToMarkdownString(TRANSFORMERS));
+      fs.mkdirSync(path.dirname(markdownPath), { recursive: true });
+      fs.writeFileSync(markdownPath, `${markdown}\n`);
+      console.info(`[snapshot] markdown -> ${markdownPath}`);
+    }
+  });
+  await waitForPersistedData(docId);
+}
+
+async function withSession(
+  docId: string,
+  collabOrigin: string,
+  collabApiOrigin: string,
+  run: (editor: LexicalEditor, context: SessionContext) => Promise<void> | void,
+): Promise<void> {
+  const docMap = new Map<string, Doc>();
+  const session = new CollabSession({
+    enabled: true,
+    docId,
+    origin: collabOrigin,
+    apiOrigin: collabApiOrigin,
+    providerFactory: createInternalProviderFactory(),
+  });
+  session.attach(docMap);
+  const attached = await waitForSessionAttachment(session, docMap, docId);
+  const provider = attached.provider as SnapshotProviderWithWebSocket;
+  provider._WS = WebSocket as unknown as typeof globalThis.WebSocket;
+  const syncDoc = attached.doc;
+  const editor = createEditor(
+    createEditorInitialConfig() as CreateEditorArgs
+  );
+  const binding = createBindingV2__EXPERIMENTAL(editor, docId, syncDoc, docMap);
+  const sharedRoot = binding.root as SharedRoot;
+  const observer: SharedRootObserver = (events, transaction) => {
+    if (transaction.origin === binding) {
+      return;
+    }
+    syncYjsChangesToLexicalV2__EXPERIMENTAL(
+      binding,
+      provider,
+      events,
+      transaction,
+      transaction.origin instanceof UndoManager
+    );
+  };
+  sharedRoot.observeDeep(observer);
+  const removeUpdateListener = editor.registerUpdateListener((payload) => {
+    const { prevEditorState, editorState, dirtyElements, normalizedNodes, tags } = payload;
+    syncLexicalUpdateToYjsV2__EXPERIMENTAL(
+      binding,
+      provider,
+      prevEditorState,
+      editorState,
+      dirtyElements,
+      normalizedNodes,
+      tags,
+    );
+  });
+
+  try {
+    void provider.connect();
+    await session.awaitSynced();
+    const initialUpdate = waitForEditorUpdate(editor);
+    syncYjsStateToLexicalV2__EXPERIMENTAL(binding, provider);
+    await initialUpdate;
+
+    return await run(editor, { provider, session });
+  } finally {
+    sharedRoot.unobserveDeep(observer);
+    removeUpdateListener();
+    session.destroy();
+    for (const doc of docMap.values()) {
+      doc.destroy();
+    }
+  }
+}
+
+async function waitForSessionAttachment(
+  session: CollabSession,
+  docMap: Map<string, Doc>,
+  docId: string,
+  timeoutMs = 5000
+): Promise<{ provider: CollaborationProviderInstance; doc: Doc }> {
+  const resolveAttachment = () => {
+    const provider = session.getProvider();
+    const doc = docMap.get(docId);
+    if (!provider || !doc) {
+      return null;
+    }
+    return { provider, doc };
+  };
+
+  const immediate = resolveAttachment();
+  if (immediate) {
+    return immediate;
+  }
+
+  return new Promise((resolve, reject) => {
+    let unsubscribe = () => {};
+    const timeoutHandle = setTimeout(() => {
+      unsubscribe();
+      reject(new Error(`Timed out waiting for collaboration provider for ${docId}`));
+    }, timeoutMs);
+
+    const onUpdate = () => {
+      const attached = resolveAttachment();
+      if (!attached) {
+        return;
+      }
+      clearTimeout(timeoutHandle);
+      unsubscribe();
+      resolve(attached);
+    };
+
+    unsubscribe = session.subscribe(onUpdate);
+    onUpdate();
+  });
+}
+
+function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {
+  return new Promise((resolve) => {
+    const unregister = editor.registerUpdateListener(() => {
+      unregister();
+      resolve();
+    });
+  });
+}
+
+async function waitForPersistedData(docId: string, timeoutMs = 15_000): Promise<void> {
+  const target = path.join(config.env.DATA_DIR, 'collab', docId, 'data.ysweet');
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (fs.existsSync(target)) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`Timed out waiting for ${target}`);
+}

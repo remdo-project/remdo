@@ -2,7 +2,7 @@ import type { TestContext } from 'vitest';
 import { meta } from '#tests';
 import { describe, expect, it } from 'vitest';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
-import { normalizeDocumentId } from '@/routing';
+import { normalizeDocumentId } from '#domain/documents/ids';
 
 describe('collaboration document id resolution', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('generates a unique document id by default', async ({ remdo }: TestContext) => {

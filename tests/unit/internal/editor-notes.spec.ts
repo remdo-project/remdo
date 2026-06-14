@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { meta, placeCaretAtNote, readOutline, selectNoteRange } from '#tests';
-import { createLexicalEditorNotes } from '@/editor/notes';
-import { NoteNotFoundError } from '@/notes/errors';
-import { $findNoteById } from '@/editor/outline/note-traversal';
-import { removeNoteSubtree } from '@/editor/outline/selection/tree';
+import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
+import { NoteNotFoundError } from '#note-sdk';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
 
 describe('editor notes', () => {
   it('resolves note reads and document context', meta({ fixture: 'tree' }), async ({ remdo }) => {

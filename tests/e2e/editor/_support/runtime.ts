@@ -1,8 +1,6 @@
-import type { Browser, BrowserContext } from '@playwright/test';
 import { expect, setExpectedConsoleIssues } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
-import { parseDocumentRef } from '@/routing';
-import { REMDO_E2E_TEST_RUNTIME_GLOBAL } from '@/testing/e2e-runtime';
+import { parseDocumentRef } from '#document-routes';
 import { ensureReady, getEditorState, load } from './bridge';
 import { editorLocator } from './locators';
 import { createEditorDocumentPath } from './routes';
@@ -11,31 +9,9 @@ interface EditorLoadOptions {
   expectedConsoleIssues?: string[];
 }
 
-export async function bindEditorRuntimeContext(
-  context: BrowserContext,
-  userConfigDocId: string
-): Promise<void> {
-  const runtimeState = { userConfigDocId };
-  await context.addInitScript(
-    ({ globalKey, injectedRuntime }) => {
-      (globalThis as Record<string, unknown>)[globalKey] = injectedRuntime;
-    },
-    {
-      globalKey: REMDO_E2E_TEST_RUNTIME_GLOBAL,
-      injectedRuntime: runtimeState,
-    }
-  );
-}
-
-export async function createIsolatedEditorContext(browser: Browser, userConfigDocId: string): Promise<BrowserContext> {
-  const context = await browser.newContext();
-  await bindEditorRuntimeContext(context, userConfigDocId);
-  return context;
-}
-
 function resolveEditorDocIdFromUrl(url: string): string {
   const pathname = new URL(url).pathname;
-  const prefix = '/e2e/n/';
+  const prefix = '/n/';
   if (!pathname.startsWith(prefix)) {
     throw new Error(`Unable to resolve editor document id from URL: ${url}`);
   }

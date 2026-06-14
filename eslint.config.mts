@@ -13,17 +13,23 @@ const importMetaEnvRestriction = {
 const checklistStateRestrictions = [
   {
     selector: "CallExpression[callee.property.name='getChecked']",
-    message: 'Use $getNoteChecked from #lib/editor/checklist-state instead.',
+    message: 'Use $getNoteChecked from #client/editor/runtime/checklist-state instead.',
   },
   {
     selector: "CallExpression[callee.property.name='setChecked']",
-    message: 'Use $setNoteChecked from #lib/editor/checklist-state instead.',
+    message: 'Use $setNoteChecked from #client/editor/runtime/checklist-state instead.',
   },
   {
     selector: "CallExpression[callee.property.name='toggleChecked']",
-    message: 'Use $toggleNoteChecked from #lib/editor/checklist-state instead.',
+    message: 'Use $toggleNoteChecked from #client/editor/runtime/checklist-state instead.',
   },
 ] as const;
+const clientImportPattern = String.raw`\#client/*`;
+const clientAppImportPattern = String.raw`\#client/app/*`;
+const serverImportPattern = String.raw`\#server/*`;
+const noteSdkImportPattern = String.raw`\#note-sdk`;
+const noteSdkDeepImportPattern = String.raw`\#note-sdk/*`;
+const collaborationImportPattern = String.raw`\#collaboration/*`;
 
 export default antfu(
   {
@@ -108,7 +114,128 @@ export default antfu(
     },
   },
   {
-    files: ['src/editor/plugins/CheckListPlugin.tsx'],
+    files: ['src/collaboration/**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [clientImportPattern, serverImportPattern, noteSdkImportPattern, noteSdkDeepImportPattern],
+              message: 'Collaboration runtime code must stay independent of client, server, and Note SDK modules.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/platform/**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                clientImportPattern,
+                serverImportPattern,
+                noteSdkImportPattern,
+                noteSdkDeepImportPattern,
+                collaborationImportPattern,
+              ],
+              message: 'Platform utilities must stay independent of client, server, Note SDK, and collaboration runtime modules.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/server/**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [clientImportPattern, noteSdkImportPattern, noteSdkDeepImportPattern],
+              message: 'Server runtime code must not import client or Note SDK modules.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/note-sdk/**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [clientImportPattern, serverImportPattern],
+              message: 'Note SDK code must stay independent of client and server runtime modules.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'src/domain/**/*.{ts,tsx,mts,cts}',
+      'src/projection/**/*.{ts,tsx,mts,cts}',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [clientImportPattern, serverImportPattern],
+              message: 'Domain and projection helpers must stay independent of client and server runtime modules.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/client/**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [serverImportPattern],
+              message: 'Client code must not import server runtime modules.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/client/editor/**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [clientAppImportPattern],
+              message: 'Editor code must not import app internals; move shared client code under #client/ui or another shared client component.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/client/editor/plugins/CheckListPlugin.tsx'],
     rules: {
       // This plugin is the sanctioned boundary for direct checklist node syncing.
       'no-restricted-syntax': [
@@ -120,7 +247,6 @@ export default antfu(
   {
     files: [
       'src/**/*.{js,jsx,ts,tsx,mts,cts}',
-      'lib/**/*.{js,jsx,ts,tsx,mts,cts}',
     ],
     rules: {
       'compat/compat': 'error',

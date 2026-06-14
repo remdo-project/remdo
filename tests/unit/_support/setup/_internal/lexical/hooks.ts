@@ -1,9 +1,10 @@
 import { config } from '#config';
-import { normalizeNoteIdOrThrow } from '#lib/editor/note-ids';
+import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
 import { afterEach, aroundEach } from 'vitest';
 import type { TestContext } from 'vitest';
 import { readFixture } from '#tests-common/fixtures';
 import { cleanupCollabDoc, createTestRuntimeScope } from '#tests-common/runtime-scope';
+import { installAuthenticatedApiFetch } from '../../../../collab/_support/auth';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
 import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
 
@@ -19,16 +20,17 @@ async function applyEditorFixture(
 
 aroundEach<TestContext>(async (run, ctx) => {
   const runtimeScope = createTestRuntimeScope();
+  const cleanupFetch = config.env.COLLAB_ENABLED ? await installAuthenticatedApiFetch() : () => {};
   const meta = ctx.task.meta;
   const fixtureName = meta.fixture;
   const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
   setExpectedConsoleIssues(meta.expectedConsoleIssues ?? null);
 
-  const rawDocId = meta.collabDocId ?? config.env.COLLAB_DOCUMENT_ID;
+  const rawDocId = meta.collabDocId ?? config.env.DEV_DOCUMENT_ID;
   let docId = normalizeNoteIdOrThrow(rawDocId, `Invalid collab doc id: ${rawDocId}`);
   const explicitCollabDocId = config.env.COLLAB_ENABLED && meta.collabDocId != null ? docId : null;
   if (config.env.COLLAB_ENABLED && meta.collabDocId == null) {
-    docId = runtimeScope.allocateDocId('editor');
+    docId = runtimeScope.allocateDocId();
   }
 
   const seedFixtureBeforeMount = Boolean(config.env.COLLAB_ENABLED && fixtureName);
@@ -54,6 +56,7 @@ aroundEach<TestContext>(async (run, ctx) => {
   try {
     await run();
   } finally {
+    cleanupFetch();
     if (config.env.COLLAB_ENABLED && meta.preserveCollabState !== true) {
       if (explicitCollabDocId) {
         await cleanupCollabDoc(explicitCollabDocId);

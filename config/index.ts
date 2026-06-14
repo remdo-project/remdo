@@ -18,7 +18,7 @@ const loaded = (() => {
 
     const viteKey = `VITE_${key}`;
     return viteKey in import.meta.env ? import.meta.env[viteKey] : import.meta.env[key];
-  });
+  }, { server: false });
 })();
 
 const runtime = loaded.runtime;

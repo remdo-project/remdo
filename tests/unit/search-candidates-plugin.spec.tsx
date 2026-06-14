@@ -38,15 +38,15 @@ describe('search candidates plugin', () => {
     vi.doMock('@lexical/react/LexicalComposerContext', () => ({
       useLexicalComposerContext: mockLexicalComposerContext,
     }));
-    vi.doMock('@/editor/notes', () => ({
+    vi.doMock('#client/editor/note-sdk-adapters', () => ({
       createLexicalEditorNotes: () => ({}),
     }));
-    vi.doMock('@/editor/search/search-candidates', () => ({
+    vi.doMock('#client/editor/search/search-candidates', () => ({
       collectSearchCandidates,
       collectChildCandidateMap,
     }));
 
-    const { SearchCandidatesPlugin } = await import('@/editor/plugins/SearchCandidatesPlugin');
+    const { SearchCandidatesPlugin } = await import('#client/editor/plugins/SearchCandidatesPlugin');
 
     render(<SearchCandidatesPlugin docId="main" />);
 
@@ -80,15 +80,15 @@ describe('search candidates plugin', () => {
     vi.doMock('@lexical/react/LexicalComposerContext', () => ({
       useLexicalComposerContext: mockLexicalComposerContext,
     }));
-    vi.doMock('@/editor/notes', () => ({
+    vi.doMock('#client/editor/note-sdk-adapters', () => ({
       createLexicalEditorNotes: () => ({}),
     }));
-    vi.doMock('@/editor/search/search-candidates', () => ({
+    vi.doMock('#client/editor/search/search-candidates', () => ({
       collectSearchCandidates: () => [{ noteId: 'note1', text: 'note1' }],
       collectChildCandidateMap: () => ({ note1: [] }),
     }));
 
-    const { SearchCandidatesPlugin } = await import('@/editor/plugins/SearchCandidatesPlugin');
+    const { SearchCandidatesPlugin } = await import('#client/editor/plugins/SearchCandidatesPlugin');
 
     const { unmount } = render(
       <SearchCandidatesPlugin

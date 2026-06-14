@@ -13,6 +13,7 @@ AGENTS.md is the only doc you must read at the start of every session. Do one
 full pass through the `docs/` folder when you onboard, then revisit only the
 sections relevant to your current task. For documentation navigation and
 governance (map, workflow, invariants, and update rules), use `docs/index.md`.
+When editing docs, keep external references in a final `References` section.
 
 ## Safety & Process
 
@@ -28,10 +29,25 @@ governance (map, workflow, invariants, and update rules), use `docs/index.md`.
   under a dedicated sibling directory `../remdo-wts/` and use a predictable
   naming pattern based on base port (for example
   `../remdo-wts/remdo-7000`, `../remdo-wts/remdo-7000-wt-optA`).
-- Assign a unique `PORT` per worktree (for example base `PORT + 100`, `+200`)
-  to avoid collisions across dev servers, tests, and collab services.
+- Assign a unique `PORT_BASE` per worktree (for example `5100`, `5200`) to
+  avoid collisions across dev servers, tests, and collab services.
+- Treat each repo/worktree as owning a 100-port block starting at its assigned
+  `PORT_BASE`. Do not run commands with `PORT_BASE` outside the current
+  repo/worktree's block unless the user explicitly approves.
+- If a check/debugging run appears to hit a stale RemDo service, identify the
+  process, command, port, and port block first. If it belongs to the current
+  workdir/worktree and blocks the task, restart it instead of adding workaround
+  wiring; report the restart and any follow-up tooling/HMR recommendation.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
+- The Git index may be used by the developer as private review bookkeeping.
+  Treat staged vs unstaged state as semantically invisible: it does not mark
+  files as done, final, approved, protected, or out of scope. When the agreed
+  task requires it, freely edit files regardless of whether their current
+  changes are staged, unstaged, or partially staged.
+- Never stage, unstage, stash, reset, or otherwise rewrite index state unless
+  explicitly asked. Do not mention that you preserved staging state unless the
+  user asks about Git state or an operation cannot proceed without changing it.
 - The project is in dev phase. Prefer the simplest permanent implementation
   that meets the request. Do not add speculative abstractions, feature flags,
   compatibility shims, or defensive guards unless the task, specs, or supported
@@ -79,6 +95,11 @@ governance (map, workflow, invariants, and update rules), use `docs/index.md`.
 - The shared test harness treats console warnings/errors as failures; if you
   need temporary instrumentation during debugging, prefer `console.log` or
   `console.info` and remove the statements before finishing a task.
+- Code review: silently drop any finding already flagged in `docs/todo.md`
+  (match only when the entry names the same file, symbol, or specific behavior,
+  not just a topical overlap); add one tail line `Suppressed N finding(s)
+  already tracked in docs/todo.md` (omit when `N` is 0). Forward this rule to any
+  finder/reviewer subagents you spawn.
 
 ## Agent mode
 
@@ -100,6 +121,10 @@ Determine agent mode in this order:
 - E2E (Playwright): run `pnpm test:e2e`. In sandboxed environments, accessing
   the local dev server (localhost) may require network escalation; without it,
   Playwright can’t reach the server and will fail to start.
+  If Playwright reports a missing browser executable, first try the standard
+  browser install locations by swapping `PLAYWRIGHT_BROWSERS_PATH` between the
+  system-wide and user-level caches (for example `/opt/playwright-browsers` and
+  `$HOME/.cache/ms-playwright`) before reinstalling browsers.
 
 ### Scoped check runs (prefer these during iteration)
 
