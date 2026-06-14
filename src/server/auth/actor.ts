@@ -7,9 +7,9 @@ export interface Actor {
   name?: string;
 }
 
-export type ActorCredential = 'bearer' | 'session';
+type ActorCredential = 'bearer' | 'session';
 
-export interface ActorResolution {
+interface ActorResolution {
   actor: Actor;
   credential: ActorCredential;
 }

@@ -34,7 +34,7 @@ function isValidIsoDate(value: string): boolean {
   return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
 }
 
-export function normalizeIsoDateOrThrow(value: unknown): string {
+function normalizeIsoDateOrThrow(value: unknown): string {
   if (typeof value !== 'string' || !isValidIsoDate(value)) {
     throw new Error(INVALID_DATE_ERROR);
   }

@@ -1,7 +1,7 @@
 import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
 import { resolvePostAuthPath } from './post-auth-path';
 
-export type AdminUsersPostCreateDestination =
+type AdminUsersPostCreateDestination =
   | { kind: 'assign'; href: string }
   | { kind: 'navigate'; path: string };
 
