@@ -75,7 +75,7 @@ catalog:
   eslint-plugin-compat: ^7.0.1
   eslint-plugin-react-refresh: ^0.5.2
   eslint-plugin-unicorn: ^64.0.0
-  hono: ^4.10.4
+  hono: ^4.12.21
   jiti: ^2.6.1
   jscpd: ^4.0.8
   jsdom: ^29.0.1
