@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ActionIcon, Alert, Combobox, TextInput, useCombobox } from '@mantine/core';
-import { IconChevronDown, IconPlus, IconSearch } from '@tabler/icons-react';
+import { IconChevronDown, IconPlus, IconSearch, IconUpload } from '@tabler/icons-react';
 import { useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocumentSourcesLoading, useUserData } from '#client/app/documents/user-data';
 import Editor from '#client/editor/Editor';
 import { ZoomBreadcrumbs } from '#client/editor/zoom/ZoomBreadcrumbs';
 import { EditorViewProvider, useEditorViewActions, useZoomPath } from '#client/editor/view/EditorViewProvider';
+import { registerPendingDocumentImport } from '#client/editor/runtime/pending-document-import';
 import { createDocumentPath, createDocumentSyncTokenApiPath, parseDocumentRef } from '#document-routes';
 import type { ParsedDocumentRef } from '#document-routes';
 import type { DocumentSourceNote } from '#note-sdk';
@@ -32,6 +33,9 @@ function isVisibleInCurrentView(element: HTMLElement): boolean {
 }
 
 const NEW_DOCUMENT_VALUE = '$new-document';
+const UPLOAD_DOCUMENT_VALUE = '$upload-document';
+const UPLOADED_JSON_EXTENSION = '.json';
+const WHITESPACE_PATTERN = /\s+/gu;
 
 interface DocumentLocator {
   docId: string;
@@ -60,6 +64,14 @@ function useOnlineState(): boolean {
   }, []);
 
   return online;
+}
+
+function resolveUploadedDocumentTitle(fileName: string): string {
+  const withoutExtension = fileName.toLowerCase().endsWith(UPLOADED_JSON_EXTENSION)
+    ? fileName.slice(0, -UPLOADED_JSON_EXTENSION.length)
+    : fileName;
+  const normalized = withoutExtension.trim().replaceAll(WHITESPACE_PATTERN, ' ');
+  return normalized.length > 0 ? normalized : 'Imported Document';
 }
 
 function useDocumentRouteNavigation(docId: string) {
@@ -175,6 +187,7 @@ function DocumentRouteContent({
   setStatusHost: (value: HTMLDivElement | null) => void;
 }) {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const searchResultsRef = useRef<HTMLElement | null>(null);
   const shellRef = useRef<HTMLDivElement | null>(null);
   const searchResultsListboxId = useId();
@@ -184,6 +197,7 @@ function DocumentRouteContent({
   const documentSourcesLoading = useDocumentSourcesLoading();
   const online = useOnlineState();
   const [createDocumentError, setCreateDocumentError] = useState<string | null>(null);
+  const [uploadDocumentError, setUploadDocumentError] = useState<string | null>(null);
   const [createDocumentErrorDocId, setCreateDocumentErrorDocId] = useState(docId);
   const documentSources = userData.documentSources().children();
   const currentDocumentSource = findDocumentSourceByDocumentId(documentSources, docId);
@@ -259,6 +273,7 @@ function DocumentRouteContent({
   if (createDocumentErrorDocId !== docId) {
     setCreateDocumentErrorDocId(docId);
     setCreateDocumentError(null);
+    setUploadDocumentError(null);
   }
 
   useEffect(() => {
@@ -328,11 +343,37 @@ function DocumentRouteContent({
     try {
       const nextDocument = await userData.documents().create('New Document');
       setCreateDocumentError(null);
+      setUploadDocumentError(null);
       onSelectDocument({ docId: nextDocument.id() });
     } catch (error) {
       setCreateDocumentError(error instanceof Error ? error.message : 'Failed to create document.');
     }
   };
+
+  const uploadDocument = async (file: File) => {
+    try {
+      const nextDocument = await userData.documents().create(resolveUploadedDocumentTitle(file.name));
+      registerPendingDocumentImport(nextDocument.id(), file);
+      setCreateDocumentError(null);
+      setUploadDocumentError(null);
+      onSelectDocument({ docId: nextDocument.id() });
+    } catch (error) {
+      setCreateDocumentError(error instanceof Error ? error.message : 'Failed to create document.');
+    }
+  };
+
+  const handleUploadInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0] ?? null;
+    event.currentTarget.value = '';
+    if (!file) {
+      return;
+    }
+    void uploadDocument(file);
+  };
+
+  const handlePendingDocumentImportError = useCallback((error: Error) => {
+    setUploadDocumentError(error.message);
+  }, []);
 
   const documentGroups = useMemo(() => documentSources.map((source) => ({
     id: source.id(),
@@ -365,6 +406,10 @@ function DocumentRouteContent({
                   documentPicker.closeDropdown();
                   if (value === NEW_DOCUMENT_VALUE) {
                     void createDocument();
+                    return;
+                  }
+                  if (value === UPLOAD_DOCUMENT_VALUE) {
+                    uploadInputRef.current?.click();
                     return;
                   }
                   const selected = parseDocumentRef(value);
@@ -416,6 +461,12 @@ function DocumentRouteContent({
                         <span>New</span>
                       </span>
                     </Combobox.Option>
+                    <Combobox.Option value={UPLOAD_DOCUMENT_VALUE}>
+                      <span className="document-header-doc-action">
+                        <IconUpload aria-hidden="true" size={14} />
+                        <span>Upload</span>
+                      </span>
+                    </Combobox.Option>
                   </Combobox.Options>
                 </Combobox.Dropdown>
               </Combobox>
@@ -464,6 +515,14 @@ function DocumentRouteContent({
           </div>
           <div className="document-header-status" ref={setStatusHost} />
         </div>
+        <input
+          accept="application/json,.json"
+          aria-label="Upload document backup"
+          className="document-header-upload-input"
+          onChange={handleUploadInputChange}
+          ref={uploadInputRef}
+          type="file"
+        />
       </header>
       {createDocumentError && (
         <Alert
@@ -474,6 +533,17 @@ function DocumentRouteContent({
           withCloseButton
         >
           {createDocumentError}
+        </Alert>
+      )}
+      {uploadDocumentError && (
+        <Alert
+          closeButtonLabel="Dismiss"
+          color="red"
+          onClose={() => setUploadDocumentError(null)}
+          title="Could not upload document"
+          withCloseButton
+        >
+          {uploadDocumentError}
         </Alert>
       )}
       {searchModeActive ? (
@@ -540,6 +610,7 @@ function DocumentRouteContent({
             onSearchCandidatesChange={handleSearchCandidatesChange}
             searchModeRequested={searchModeRequested}
             statusPortalRoot={statusHost}
+            onPendingDocumentImportError={handlePendingDocumentImportError}
           />
         </div>
       )}

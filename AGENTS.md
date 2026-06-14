@@ -121,6 +121,10 @@ Determine agent mode in this order:
 - E2E (Playwright): run `pnpm test:e2e`. In sandboxed environments, accessing
   the local dev server (localhost) may require network escalation; without it,
   Playwright can’t reach the server and will fail to start.
+  If Playwright reports a missing browser executable, first try the standard
+  browser install locations by swapping `PLAYWRIGHT_BROWSERS_PATH` between the
+  system-wide and user-level caches (for example `/opt/playwright-browsers` and
+  `$HOME/.cache/ms-playwright`) before reinstalling browsers.
 
 ### Scoped check runs (prefer these during iteration)
 

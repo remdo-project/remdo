@@ -66,6 +66,37 @@ Rules:
   recover cleanly. This is not required for sharing, but it is the same header
   area and async-command UX pattern as the sharing control.
 
+## Document import / upload follow-ups
+
+The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
+`pending-document-import.ts`).
+
+- Silent failure: parseable-but-non-Lexical JSON (`{}`, `{"foo":1}`, `[]`)
+  creates an empty doc with no alert in prod — `parseEditorState` routes the
+  error to `onError`, which only `console.error`s in prod, so the plugin's
+  `catch` never fires. Validate/reject at the upload boundary.
+- Review/refactor the shipping commit for self-containment: it's spread across a
+  module-level `Map` hand-off, a divergent copy of `TestBridgePlugin`'s load
+  sequence, a borrowed test-only tag, and duplicate route error state. May need
+  an architecture pass (shared hardened load primitive, intent via router/React
+  state, import-then-commit so a failed import leaves no empty doc).
+
+Remaining issues to fold in or fix directly:
+
+- `await normalizeUpdate` / `await awaitSynced()` can hang forever: no
+  timeout/noop guard, so a no-op normalize (clean backup) or a never-syncing
+  provider leaves the import pending with no error.
+- Effect re-run race: it depends on `awaitSynced`, whose identity changes per
+  collab snapshot; a mid-import snapshot re-runs the effect and cancels the
+  import after the file was already claimed, abandoning it silently.
+- No `cancelled` recheck after `await loadUpdate` / before `awaitSynced` → a
+  doc switch mid-import writes into the stale editor for the old `docId`.
+- Stacked/mislabeled error alerts: a create failure during upload uses the
+  "create" alert, and the two error states don't clear each other.
+- File-dialog cancel leaves focus detached (no return to the trigger).
+- Map leak: entries evict only on successful claim, so abandoned uploads retain
+  the `File` for the session.
+
 ## Note-first SDK follow-ups
 
 - App-resource SDK direction: model current-user app resources as projected

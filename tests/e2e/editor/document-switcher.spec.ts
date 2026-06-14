@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { expect, test } from '#editor/fixtures';
 import { cleanupCollabDoc } from '#tests-common/runtime-scope';
 import { createUserDocument } from '../_support/documents';
@@ -65,6 +66,51 @@ test.describe('Document switcher', () => {
 
     await switcherTrigger.click();
     await expect(page.getByRole('option', { name: 'New Document' })).toHaveCount(initialNewDocumentCount + 1);
+  });
+
+  test('uploads a lexical JSON backup into a newly created document', async ({ page, captureCreatedDoc }) => {
+    const sourceDocument = await createUserDocument(page, `Switcher Source ${Date.now()}`);
+    await page.goto(createEditorDocumentPath(sourceDocument.id));
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await ensureReady(page);
+
+    const createdDocId = await captureCreatedDoc(page, async () => {
+      await page.getByRole('button', { name: 'Choose document' }).click();
+      const fileChooserPromise = page.waitForEvent('filechooser');
+      await page.getByRole('option', { name: 'Upload', exact: true }).click();
+      const fileChooser = await fileChooserPromise;
+      await fileChooser.setFiles('tests/fixtures/tree-complex.json');
+    });
+
+    await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
+    await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
+
+    await page.getByRole('button', { name: 'Choose document' }).click();
+    await expect(page.getByRole('option', { name: 'tree-complex', exact: true })).toBeVisible();
+  });
+
+  test('keeps the created document and reports invalid uploaded JSON', async ({ page, captureCreatedDoc }) => {
+    const sourceDocument = await createUserDocument(page, `Switcher Source ${Date.now()}`);
+    await page.goto(createEditorDocumentPath(sourceDocument.id));
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await ensureReady(page);
+
+    const createdDocId = await captureCreatedDoc(page, async () => {
+      await page.getByRole('button', { name: 'Choose document' }).click();
+      const fileChooserPromise = page.waitForEvent('filechooser');
+      await page.getByRole('option', { name: 'Upload', exact: true }).click();
+      const fileChooser = await fileChooserPromise;
+      await fileChooser.setFiles({
+        buffer: Buffer.from('{'),
+        mimeType: 'application/json',
+        name: 'broken.json',
+      });
+    });
+
+    await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
+    await expect(page.getByRole('alert')).toContainText('Could not upload document');
+    await page.getByRole('button', { name: 'Choose document' }).click();
+    await expect(page.getByRole('option', { name: 'broken', exact: true })).toBeVisible();
   });
 });
 

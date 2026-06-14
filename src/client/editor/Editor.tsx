@@ -25,6 +25,7 @@ import { FoldingPlugin } from './plugins/FoldingPlugin';
 import { NoteControlsPlugin } from './plugins/NoteControlsPlugin';
 import { NoteMenuPlugin } from './plugins/NoteMenuPlugin';
 import { SearchCandidatesPlugin } from './plugins/SearchCandidatesPlugin';
+import { PendingDocumentImportPlugin } from './plugins/PendingDocumentImportPlugin';
 import type { SearchCandidateSnapshot } from './search/search-candidates';
 import './Editor.css';
 
@@ -38,6 +39,7 @@ interface EditorProps {
   sourceId?: string | null;
   searchModeRequested?: boolean;
   onSearchCandidatesChange?: (snapshot: SearchCandidateSnapshot | null) => void;
+  onPendingDocumentImportError?: (error: Error) => void;
 }
 
 export default function Editor({
@@ -50,6 +52,7 @@ export default function Editor({
   sourceId = null,
   searchModeRequested,
   onSearchCandidatesChange,
+  onPendingDocumentImportError,
 }: EditorProps) {
   const editorInitialConfig = createEditorInitialConfig();
 
@@ -65,6 +68,7 @@ export default function Editor({
             searchModeRequested={searchModeRequested}
             statusPortalRoot={statusPortalRoot}
             onSearchCandidatesChange={onSearchCandidatesChange}
+            onPendingDocumentImportError={onPendingDocumentImportError}
           />
         </CollaborationPlugin>
       </LexicalComposer>
@@ -80,6 +84,7 @@ function EditorRuntime({
   statusPortalRoot,
   searchModeRequested,
   onSearchCandidatesChange,
+  onPendingDocumentImportError,
 }: EditorProps) {
   const offlineDocumentUnavailable = useOfflineDocumentUnavailable();
   const [schemaReady, setSchemaReady] = useState(false);
@@ -128,6 +133,9 @@ function EditorRuntime({
               ) : null}
               <CheckListPlugin />
               <ListPlugin hasStrictIndent />
+              {onPendingDocumentImportError ? (
+                <PendingDocumentImportPlugin onError={onPendingDocumentImportError} />
+              ) : null}
               <DevPlugin onTestBridgeReady={onTestBridgeReady} onTestBridgeDispose={onTestBridgeDispose}>
                 {children}
               </DevPlugin>

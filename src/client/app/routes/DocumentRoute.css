@@ -99,6 +99,10 @@
   gap: 0.35rem;
 }
 
+.document-header-upload-input {
+  display: none;
+}
+
 .document-header-search .mantine-Input-input:focus,
 .document-header-search .mantine-Input-input:focus-visible {
   border-color: var(--mantine-color-dark-4);
