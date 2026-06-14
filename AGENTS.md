@@ -128,10 +128,12 @@ Determine agent mode in this order:
   2. Otherwise, check the standard cache locations (`/opt/playwright-browsers`,
      `$HOME/.cache/ms-playwright`); if a build is present, point
      `PLAYWRIGHT_BROWSERS_PATH` at it.
-  3. If no browser is found anywhere, run `pnpm exec playwright install
-     chromium`. It installs into the preset `PLAYWRIGHT_BROWSERS_PATH` when set
-     (so later sessions reuse it); if that path isn't writable, install into
-     `$HOME/.cache/ms-playwright` and export `PLAYWRIGHT_BROWSERS_PATH` to match.
+  3. If no browser is found anywhere, install into a writable cache. If
+     `PLAYWRIGHT_BROWSERS_PATH` points at a read-only or missing-cache location
+     such as `/opt/playwright-browsers`, unset it or override it with
+     `$HOME/.cache/ms-playwright` before running
+     `pnpm exec playwright install chromium`; then export
+     `PLAYWRIGHT_BROWSERS_PATH` to the cache that received the install.
 
   `playwright install` is idempotent, so re-running it when a browser already
   exists is a cheap no-op.
