@@ -64,7 +64,7 @@ catalog:
   '@vitest/ui': 4.1.2
   '@y-sweet/client': ^0.9.1
   '@y-sweet/sdk': ^0.9.1
-  better-auth: ^1.6.5
+  better-auth: ^1.6.11
   better-sqlite3: ^12.9.0
   chokidar-cli: ^3.0.0
   concurrently: ^9.2.1
