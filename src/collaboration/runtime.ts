@@ -301,15 +301,30 @@ function mergeSignals(...sources: (AbortSignal | undefined)[]): AbortSignal {
 interface WaitForSyncOptions {
   signal?: AbortSignal;
   /**
-   * Optional timeout in milliseconds. Defaults to 5000. Pass null to disable.
+   * Optional total timeout in milliseconds. Defaults to 5000. Pass null to disable.
    */
   timeoutMs?: number | null;
+  /**
+   * Optional deadline, in milliseconds, for the connection to recover after a socket close.
+   * Armed on `connection-close` and disarmed once the provider reports `connected` again, so a
+   * healthy-but-slow sync (which never closes) is never capped. Defaults to 30000. Pass null to
+   * wait indefinitely across closes.
+   */
+  reconnectTimeoutMs?: number | null;
   drainLocalChanges?: boolean;
 }
 
+const DEFAULT_RECONNECT_TIMEOUT_MS = 30_000;
+
 /**
  * Wait until a collaboration provider reports `synced`, and optionally until it has no pending
- * local changes (hasLocalChanges === false). Rejects on connection errors or abort/timeout.
+ * local changes (hasLocalChanges === false).
+ *
+ * A socket close is normal on a reconnecting transport, so it does not fail the wait on its own:
+ * the provider reconnects and we resolve on the next sync. Failures are a terminal connection
+ * error, the caller's abort/`timeoutMs`, or a close that fails to reconnect within
+ * `reconnectTimeoutMs`. The reconnect deadline only runs while disconnected, so a legitimately
+ * slow initial sync over a live connection is never capped.
  *
  * Used by:
  * - CollaborationProvider (awaitSynced)
@@ -317,7 +332,12 @@ interface WaitForSyncOptions {
  */
 export function waitForSync(
   provider: MinimalProviderEvents,
-  { timeoutMs = 5000, signal, drainLocalChanges = true }: WaitForSyncOptions = {}
+  {
+    timeoutMs = 5000,
+    reconnectTimeoutMs = DEFAULT_RECONNECT_TIMEOUT_MS,
+    signal,
+    drainLocalChanges = true,
+  }: WaitForSyncOptions = {}
 ): Promise<void> {
   const requiresLocalClear = drainLocalChanges;
   const ready = () => provider.synced === true && (!requiresLocalClear || provider.hasLocalChanges !== true);
@@ -334,7 +354,11 @@ export function waitForSync(
     return Promise.reject(toAbortError(mergedSignal.reason));
   }
 
+  const tracksReconnect = typeof reconnectTimeoutMs === 'number';
+
   return new Promise<void>((resolve, reject) => {
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
     function onAbort() {
       finish(() => reject(toAbortError(mergedSignal.reason)));
     }
@@ -349,10 +373,39 @@ export function waitForSync(
       }
     }
 
+    // Arm a recovery deadline on close; if the provider reports `connected` again before it
+    // expires (onConnectionStatus), the close was transient and we keep waiting for the resync.
+    function onClose(payload: unknown) {
+      if (reconnectTimer) {
+        return;
+      }
+      reconnectTimer = setTimeout(() => {
+        finish(() => reject(createConnectionError(payload)));
+      }, reconnectTimeoutMs as number);
+    }
+
+    function onConnectionStatus(payload: unknown) {
+      if (payload === 'connected') {
+        clearReconnectTimer();
+      }
+    }
+
+    function clearReconnectTimer() {
+      if (!reconnectTimer) {
+        return;
+      }
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+
     function cleanup() {
+      clearReconnectTimer();
       provider.off('sync', onSyncLike);
-      provider.off('connection-close', onError);
       provider.off('connection-error', onError);
+      if (tracksReconnect) {
+        provider.off('connection-close', onClose);
+        provider.off('connection-status', onConnectionStatus);
+      }
       if (requiresLocalClear) {
         provider.off('local-changes', onSyncLike);
       }
@@ -366,8 +419,11 @@ export function waitForSync(
 
     mergedSignal.addEventListener('abort', onAbort, { once: true });
     provider.on('sync', onSyncLike);
-    provider.on('connection-close', onError);
     provider.on('connection-error', onError);
+    if (tracksReconnect) {
+      provider.on('connection-close', onClose);
+      provider.on('connection-status', onConnectionStatus);
+    }
     if (requiresLocalClear) {
       provider.on('local-changes', onSyncLike);
     }

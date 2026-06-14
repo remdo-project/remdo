@@ -39,6 +39,11 @@ interface SessionOptions {
 
 type ManagedProvider = (CollaborationSessionProvider & MinimalProviderEvents) | null;
 
+// How long to wait for the connection to come back after a socket close before treating the
+// sync as failed. This bounds an unrecoverable connection without capping a healthy-but-slow
+// initial sync, which keeps a live connection and so never arms this deadline.
+const AWAIT_SYNC_RECONNECT_TIMEOUT_MS = 30_000;
+
 function isLocalCacheHydratedDoc(doc: Y.Doc): boolean {
   return doc.store.clients.size > 0;
 }
@@ -292,7 +297,11 @@ export class CollabSession {
     if (!this.provider || !this.awaitController) {
       throw new Error('Collaboration provider unavailable');
     }
-    return waitForSync(this.provider, { signal: this.awaitController.signal, timeoutMs: null });
+    return waitForSync(this.provider, {
+      signal: this.awaitController.signal,
+      timeoutMs: null,
+      reconnectTimeoutMs: AWAIT_SYNC_RECONNECT_TIMEOUT_MS,
+    });
   }
 
   destroy() {
