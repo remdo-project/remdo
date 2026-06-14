@@ -7,8 +7,8 @@ rule:
 files:
   - tests/**/*.ts
   - tests/**/*.tsx
-  - src/client/editor/features/**/*.spec.ts
-  - src/client/editor/features/**/*.spec.tsx
+  - src/**/*.spec.ts
+  - src/**/*.spec.tsx
 ignores:
   - tests/perf/**/*.ts
   - tests/perf/**/*.tsx
