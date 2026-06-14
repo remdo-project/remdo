@@ -30,7 +30,7 @@ const serverImportPattern = String.raw`\#server/*`;
 const noteSdkImportPattern = String.raw`\#note-sdk`;
 const noteSdkDeepImportPattern = String.raw`\#note-sdk/*`;
 const collaborationImportPattern = String.raw`\#collaboration/*`;
-const colocatedEditorFeatureSpecGlob = 'src/client/editor/features/**/*.spec.{ts,tsx}';
+const colocatedSpecGlob = 'src/**/*.spec.{ts,tsx}';
 
 export default antfu(
   {
@@ -276,7 +276,7 @@ export default antfu(
     },
   },
   {
-    files: ['tests/**/*.{ts,tsx}', colocatedEditorFeatureSpecGlob],
+    files: ['tests/**/*.{ts,tsx}', colocatedSpecGlob],
     languageOptions: {
       parserOptions: {
         projectService: false,
@@ -304,7 +304,7 @@ export default antfu(
     },
   },
   {
-    files: ['tests/unit/**/*.{ts,tsx}', colocatedEditorFeatureSpecGlob],
+    files: ['tests/unit/**/*.{ts,tsx}', colocatedSpecGlob],
     rules: {
       'no-restricted-globals': [
         'error',
