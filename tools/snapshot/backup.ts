@@ -141,10 +141,15 @@ function publishStagedBackup(stagingDir: string, backupDir: string): void {
     fs.renameSync(path.join(stagingDir, 'documents'), documentsDir);
     fs.renameSync(path.join(stagingDir, 'remdo.sqlite'), path.join(backupDir, 'remdo.sqlite'));
   } catch (error) {
-    // Roll back to the previous documents so the published backup stays consistent.
-    fs.rmSync(documentsDir, { force: true, recursive: true });
-    if (hadPreviousDocuments) {
-      fs.renameSync(previousDocumentsDir, documentsDir);
+    // Roll back to the previous documents so the published backup stays
+    // consistent. A failure here must not shadow the original publish error.
+    try {
+      fs.rmSync(documentsDir, { force: true, recursive: true });
+      if (hadPreviousDocuments) {
+        fs.renameSync(previousDocumentsDir, documentsDir);
+      }
+    } catch (rollbackError) {
+      console.error('[backup] rollback after failed publish also failed', rollbackError);
     }
     throw error;
   }

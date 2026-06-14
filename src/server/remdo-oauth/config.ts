@@ -31,7 +31,13 @@ function readOptionalOrigin(server: Record<string, unknown>, field: 'baseUrl' | 
     return undefined;
   }
   const value = readString(server, field);
-  if (value !== new URL(value).origin) {
+  let origin: string;
+  try {
+    origin = new URL(value).origin;
+  } catch {
+    throw new Error(`LINKABLE_REMDO_SERVERS_JSON ${field} must be a valid URL origin.`);
+  }
+  if (value !== origin) {
     throw new Error(`LINKABLE_REMDO_SERVERS_JSON ${field} must exactly match a URL origin.`);
   }
   return value;
@@ -51,7 +57,12 @@ export function parseLinkableRemdoServers(raw: string): LinkableRemdoServer[] {
     return [];
   }
 
-  const parsed = JSON.parse(trimmed) as unknown[];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    throw new TypeError('LINKABLE_REMDO_SERVERS_JSON must be valid JSON.');
+  }
   if (!Array.isArray(parsed)) {
     throw new TypeError('LINKABLE_REMDO_SERVERS_JSON must be a JSON array.');
   }

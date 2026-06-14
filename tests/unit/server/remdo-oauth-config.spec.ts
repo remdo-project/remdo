@@ -84,6 +84,22 @@ describe('remdo oauth server config', () => {
     ]))).toThrow('exactly match a URL origin');
   });
 
+  it('rejects unparseable server origins with an actionable error', () => {
+    expect(() => parseLinkableRemdoServers(JSON.stringify([
+      {
+        id: 'source',
+        label: 'Source Server',
+        baseUrl: 'not a url',
+        clientId: 'source-client-id',
+        clientSecret: 'source-client-secret',
+      },
+    ]))).toThrow('valid URL origin');
+  });
+
+  it('rejects malformed JSON with an actionable error', () => {
+    expect(() => parseLinkableRemdoServers('[{ not valid json }]')).toThrow('valid JSON');
+  });
+
   it('rejects non-string fields', () => {
     expect(() => parseLinkableRemdoServers(JSON.stringify([
       {
