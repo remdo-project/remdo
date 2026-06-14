@@ -41,8 +41,10 @@ export function normalizeIsoDateOrThrow(value: unknown): string {
   return value;
 }
 
+// isoDate is validated at every mutation boundary (setIsoDate / importJSON /
+// $createDateNode), so the stored value is always a valid YYYY-MM-DD here.
 export function formatDateNodeLabel(isoDate: string): string {
-  return dayjs(normalizeIsoDateOrThrow(isoDate)).format('MMM D, YYYY');
+  return dayjs(isoDate).format('MMM D, YYYY');
 }
 
 export class DateNode extends DecoratorNode<ReactNode> {

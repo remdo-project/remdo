@@ -34,10 +34,6 @@ const NODE_DEFAULTS = {
   },
   date: {
     version: 1,
-    detail: 0,
-    format: 0,
-    mode: 'token',
-    style: '',
   },
   'note-link': {
     version: 1,

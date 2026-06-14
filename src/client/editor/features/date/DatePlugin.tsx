@@ -20,14 +20,15 @@ import {
   KEY_TAB_COMMAND,
 } from 'lexical';
 import type { LexicalNode } from 'lexical';
-import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { $isDateNode } from './date-node';
 import type { DateNode } from './date-node';
 import { resolveDatePickerElementAnchor } from './anchor';
-import { DatePickerPopover } from './DatePickerPopover';
+import { DatePickerPanel } from './DatePickerPopover';
+import { isInsideDatePicker } from './picker-dom';
 import { DateTypeaheadPlugin } from './DateTypeaheadPlugin';
 import type { DatePickerState } from './types';
 import './date.css';
@@ -183,10 +184,9 @@ export function DatePlugin() {
 
   const $confirmCurrentPicker = useCallback((event: KeyboardEvent | null): boolean => {
     const currentPicker = pickerRef.current;
-    if (!currentPicker || !$confirmDate(currentPicker.isoDate)) {
-      return false;
-    }
-    return completeKeyboardCommand(event);
+    return currentPicker !== null && $confirmDate(currentPicker.isoDate)
+      ? completeKeyboardCommand(event)
+      : false;
   }, [$confirmDate]);
 
   const $selectDateTokenByKey = useCallback((nodeKey: string): DateNode | null => {
@@ -197,10 +197,6 @@ export function DatePlugin() {
 
     $selectDateToken(node);
     return node;
-  }, []);
-
-  const handlePickerMouseDown = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
-    event.preventDefault();
   }, []);
 
   const handlePickerChange = useCallback(
@@ -389,7 +385,6 @@ export function DatePlugin() {
   }, [
     closePicker,
     $clearSelectedDateToken,
-    $confirmDate,
     $confirmCurrentPicker,
     $deleteSelectedOrAdjacentDateToken,
     $openSelectedDateTokenPicker,
@@ -456,21 +451,9 @@ export function DatePlugin() {
     });
 
     const handleDocumentMouseDown = (event: MouseEvent) => {
-      if (!pickerRef.current) {
-        return;
+      if (pickerRef.current && !isInsideDatePicker(event)) {
+        closePicker();
       }
-
-      const target = event.target;
-      if (!(target instanceof Node)) {
-        return;
-      }
-
-      const targetElement = target instanceof Element ? target : target.parentElement;
-      if (targetElement?.closest('[data-date-picker]')) {
-        return;
-      }
-
-      closePicker();
     };
     document.addEventListener('mousedown', handleDocumentMouseDown, true);
 
@@ -485,14 +468,14 @@ export function DatePlugin() {
   return (
     <>
       <DateTypeaheadPlugin />
-      {picker && portalRoot ? (
-        <DatePickerPopover
-          picker={picker}
-          portalRoot={portalRoot}
-          onChange={handlePickerChange}
-          onMouseDown={handlePickerMouseDown}
-        />
-      ) : null}
+      {picker && portalRoot
+        ? createPortal(
+            <div className="date-picker-anchor" style={{ left: picker.anchor.left, top: picker.anchor.top }}>
+              <DatePickerPanel isoDate={picker.isoDate} mode="edit" onChange={handlePickerChange} />
+            </div>,
+            portalRoot
+          )
+        : null}
     </>
   );
 }

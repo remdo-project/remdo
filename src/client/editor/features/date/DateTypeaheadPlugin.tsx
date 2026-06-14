@@ -18,12 +18,12 @@ import type {
   MenuTextMatch,
   TriggerFn,
 } from '@lexical/react/LexicalTypeaheadMenuPlugin';
-import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { $createDateNode } from './date-node';
 import { DatePickerPanel } from './DatePickerPopover';
+import { isInsideDatePicker } from './picker-dom';
 
 const OPENING_BOUNDARY_CHARS = new Set(['(', '[', '{']);
 const WHITESPACE_PATTERN = /\s/u;
@@ -128,10 +128,6 @@ export function DateTypeaheadPlugin() {
     );
   }, [editor]);
 
-  const handlePickerMouseDown = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
-    event.preventDefault();
-  }, []);
-
   const handleTypeaheadOpen = useCallback(() => {
     typeaheadOpenRef.current = true;
     setDefaultOption(new DateTypeaheadOption(getTodayIsoDate()));
@@ -180,12 +176,11 @@ export function DateTypeaheadPlugin() {
               selectOptionAndCleanUp(new DateTypeaheadOption(isoDate));
             }
           }}
-          onMouseDown={handlePickerMouseDown}
         />,
         anchorElementRef.current
       );
     },
-    [defaultOption, handlePickerMouseDown]
+    [defaultOption]
   );
 
   useEffect(() => {
@@ -194,21 +189,9 @@ export function DateTypeaheadPlugin() {
 
   useEffect(() => {
     const handleDocumentMouseDown = (event: MouseEvent) => {
-      if (!typeaheadOpenRef.current) {
-        return;
+      if (typeaheadOpenRef.current && !isInsideDatePicker(event)) {
+        closeTypeahead();
       }
-
-      const target = event.target;
-      if (!(target instanceof Node)) {
-        return;
-      }
-
-      const targetElement = target instanceof Element ? target : target.parentElement;
-      if (targetElement?.closest('[data-date-picker]')) {
-        return;
-      }
-
-      closeTypeahead();
     };
 
     document.addEventListener('mousedown', handleDocumentMouseDown, true);
