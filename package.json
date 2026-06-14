@@ -38,6 +38,7 @@
     "audit:security": "timeout ${TEST_TIMEOUT:-120}s pnpm audit --audit-level=high --prod",
     "audit:stats": "tsx ./tools/repo-stats.ts",
     "audit:stats:strict": "pnpm run audit:stats -- --threshold-ratio 0.05",
+    "audit:stats:update": "pnpm run audit:stats -- --update",
     "audit:unused": "timeout ${TEST_TIMEOUT:-120}s ./tools/env.sh pnpm exec knip -c knip.jsonc --no-progress --max-issues 25",
     "audit:unused:zero": "timeout ${TEST_TIMEOUT:-120}s ./tools/env.sh pnpm exec knip -c knip.jsonc --no-progress --max-issues 0",
     "backup": "./tools/env.sh tsx ./tools/snapshot/backup.ts --md",
