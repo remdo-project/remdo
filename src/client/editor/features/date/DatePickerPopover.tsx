@@ -1,4 +1,5 @@
 import { DatePicker } from '@mantine/dates';
+import '@mantine/dates/styles.css';
 
 import { preventPickerMouseDown } from './picker-dom';
 

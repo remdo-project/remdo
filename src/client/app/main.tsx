@@ -6,7 +6,6 @@ import { registerSW } from 'virtual:pwa-register';
 import { config } from '#config';
 import { theme } from './theme';
 import '@mantine/core/styles.css';
-import '@mantine/dates/styles.css';
 import './styles/interaction.css';
 
 if ('serviceWorker' in navigator) {
