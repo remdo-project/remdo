@@ -80,7 +80,7 @@ catalog:
   jscpd: ^4.0.8
   jsdom: ^29.0.1
   knip: ^6.3.0
-  kysely: ^0.28.16
+  kysely: ^0.28.17
   lexical: ^0.42.0
   linkify-it: ^5.0.0
   markdownlint-cli2: ^0.22.0
