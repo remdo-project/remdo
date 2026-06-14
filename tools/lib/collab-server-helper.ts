@@ -149,9 +149,7 @@ export async function ensureCollabServer({
     const exited = child.exitCode !== null || child.signalCode !== null;
     const exitPromise = exited ? Promise.resolve() : once(child, 'exit');
     terminateProcessGroup(child, 'SIGTERM');
-    if (!exited) {
-      await exitPromise;
-    }
+    await exitPromise;
     if (!(await waitForPortClosed(probeHost, resolvedPort))) {
       terminateProcessGroup(child, 'SIGKILL');
       await waitForPortClosed(probeHost, resolvedPort);
