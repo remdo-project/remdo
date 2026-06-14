@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import type { SerializedEditorState } from 'lexical';
-import { restoreEditorStateDefaults } from '#client/editor/runtime/editor-state-defaults';
+import { restoreEditorStateDefaults } from '#tests-common/editor-state-defaults';
 
 const WORKLOAD_SHAPE_PATTERN = /^(\d+)x(\d+)$/;
 
@@ -22,7 +22,7 @@ const normalized = restoreEditorStateDefaults(stateDraft);
 fs.mkdirSync(outputDir, { recursive: true });
 fs.writeFileSync(outputPath, `${JSON.stringify(normalized)}\n`);
 
-console.info(`[perf-workload] generated ${workloadId} -> ${outputPath}`);
+process.stdout.write(`[test:perf:generate] generated ${workloadId} -> ${outputPath}\n`);
 
 function buildBalancedState(shape: string): SerializedEditorState {
   const match = shape.match(WORKLOAD_SHAPE_PATTERN);

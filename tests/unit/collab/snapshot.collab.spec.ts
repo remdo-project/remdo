@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import type { Buffer } from 'node:buffer';
 import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
-import { stripEditorStateDefaults } from '#client/editor/runtime/editor-state-defaults';
+import { stripEditorStateDefaults } from '#tests-common/editor-state-defaults';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 

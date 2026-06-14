@@ -66,6 +66,20 @@ Rules:
   recover cleanly. This is not required for sharing, but it is the same header
   area and async-command UX pattern as the sharing control.
 
+## Production environment secrets follow-ups
+
+- Reduce the number of required production secret env vars where possible.
+  `AUTH_SECRET`, `ADMIN_SECRET`, `YSWEET_AUTH_KEY`, and `YSWEET_SERVER_TOKEN`
+  are all currently operator-provided, which makes first-run setup easy to get
+  wrong.
+- Consider a production bootstrap/generation flow for secrets that can safely be
+  created by RemDo itself. Keep generated values stable after first run, make
+  rotation explicit, and do not hide secrets that operators must back up or move
+  between hosts.
+- Decide which secrets must remain distinct product concepts. For example,
+  session/auth signing, admin provisioning, and Y-Sweet auth may deserve
+  separate keys even if generation is automated.
+
 ## Document import / upload follow-ups
 
 The "Upload" document-switcher action (`PendingDocumentImportPlugin` +
