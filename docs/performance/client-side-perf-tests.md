@@ -19,18 +19,18 @@ This is the minimal baseline we should run first.
    - type character (end)
 6. Workflow:
    - Run bench (auto-generates selected workload first):
-     `PERF_WORKLOAD=8x3 pnpm run perf:bench`
-   - Run larger bench: `pnpm run perf:bench:8x5`
+     `PERF_WORKLOAD=8x3 pnpm run test:perf:bench`
+   - Run larger bench: `pnpm run test:perf:bench:8x5`
    - Run a single operation (useful for fast experiments):
-     `pnpm run perf:generate && pnpm exec vitest bench -c vitest.bench.perf.config.mts --run -t "add note"`
+     `pnpm run test:perf:generate && pnpm exec vitest bench -c vitest.bench.perf.config.mts --run -t "add note"`
 
 ## Current Repository Note
 
-The current implementation is a fixture-only Vitest Bench runner in
-`tests/perf/**`, plus a separate workload generator:
+The current implementation is a fixture-only Vitest Bench runner and workload
+generator in `tests/perf/**`:
 
-1. `PERF_WORKLOAD=<workloadId> pnpm run perf:bench` (auto-runs `perf:generate`
-   first)
+1. `PERF_WORKLOAD=<workloadId> pnpm run test:perf:bench` (auto-runs
+   `test:perf:generate` first)
 
 ## Typing-Latency Optimizations
 

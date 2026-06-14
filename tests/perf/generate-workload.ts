@@ -22,7 +22,7 @@ const normalized = restoreEditorStateDefaults(stateDraft);
 fs.mkdirSync(outputDir, { recursive: true });
 fs.writeFileSync(outputPath, `${JSON.stringify(normalized)}\n`);
 
-console.info(`[perf-workload] generated ${workloadId} -> ${outputPath}`);
+process.stdout.write(`[test:perf:generate] generated ${workloadId} -> ${outputPath}\n`);
 
 function buildBalancedState(shape: string): SerializedEditorState {
   const match = shape.match(WORKLOAD_SHAPE_PATTERN);

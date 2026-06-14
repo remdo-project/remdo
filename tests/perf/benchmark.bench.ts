@@ -109,7 +109,7 @@ async function resolveWorkloadState(workloadId: WorkloadId): Promise<{ stateJson
       throw new Error(
         [
           `Missing perf workload file: ${workloadPath}`,
-          `Generate it with: pnpm run perf:generate -- ${workloadId}`,
+          `Generate it with: pnpm run test:perf:generate -- ${workloadId}`,
         ].join('\n')
       );
     }
