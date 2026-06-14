@@ -11,6 +11,7 @@ import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
 
 const MAX_ATTEMPTS = 150;
+const STOP_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'collab-server.log');
@@ -22,10 +23,6 @@ function resolveYSweetBindHost(host: string): string {
 }
 
 function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
-  if (child.killed) {
-    return;
-  }
-
   if (child.pid && process.platform !== 'win32') {
     try {
       process.kill(-child.pid, signal);
@@ -52,6 +49,17 @@ async function waitForPort(host: string, port: number): Promise<void> {
   }
 
   throw new Error(`Collaboration websocket failed to start on ws://${host}:${port}`);
+}
+
+async function waitForPortClosed(host: string, port: number): Promise<boolean> {
+  for (let attempt = 0; attempt < STOP_ATTEMPTS; attempt += 1) {
+    if (!(await isPortOpen(host, port))) {
+      return true;
+    }
+    await wait(POLL_INTERVAL);
+  }
+
+  return false;
 }
 
 function readRecentLog(): string {
@@ -138,13 +146,15 @@ export async function ensureCollabServer({
     logStream.end();
   };
   const stop = async () => {
-    let exited = child.exitCode !== null || child.signalCode !== null;
-    child.once('exit', () => {
-      exited = true;
-    });
+    const exited = child.exitCode !== null || child.signalCode !== null;
+    const exitPromise = exited ? Promise.resolve() : once(child, 'exit');
     terminateProcessGroup(child, 'SIGTERM');
     if (!exited) {
-      await once(child, 'exit');
+      await exitPromise;
+    }
+    if (!(await waitForPortClosed(probeHost, resolvedPort))) {
+      terminateProcessGroup(child, 'SIGKILL');
+      await waitForPortClosed(probeHost, resolvedPort);
     }
     cleanup();
   };
