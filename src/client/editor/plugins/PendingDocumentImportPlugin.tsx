@@ -6,7 +6,6 @@ import { useEffect } from 'react';
 import { useCollaborationStatus } from './collaboration';
 import { markSchemaValidationSkipOnce } from './dev/schema/schemaValidationSkipOnce';
 import { $normalizeNoteIdsOnLoad } from './note-id-normalization';
-import { restoreEditorStateDefaults } from '#client/editor/runtime/editor-state-defaults';
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
 import { claimPendingDocumentImport } from '#client/editor/runtime/pending-document-import';
 import { NOTE_ID_NORMALIZE_TAG, TEST_BRIDGE_LOAD_TAG } from '#client/editor/update-tags';
@@ -45,7 +44,7 @@ export function PendingDocumentImportPlugin({ onError }: PendingDocumentImportPl
         if (lifecycle.cancelled) {
           return;
         }
-        const persistedState = restoreEditorStateDefaults(JSON.parse(input) as SerializedEditorState);
+        const persistedState = JSON.parse(input) as SerializedEditorState;
         const runtimeState = prepareEditorStateForRuntime(persistedState, docId);
         const parsed = editor.parseEditorState(runtimeState);
 

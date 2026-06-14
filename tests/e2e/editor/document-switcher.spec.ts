@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { expect, test } from '#editor/fixtures';
+import { readFixture } from '#tests-common/fixtures';
 import { cleanupCollabDoc } from '#tests-common/runtime-scope';
 import { createUserDocument } from '../_support/documents';
 import { ensureReady, load, waitForSynced } from './_support/bridge';
@@ -79,7 +80,11 @@ test.describe('Document switcher', () => {
       const fileChooserPromise = page.waitForEvent('filechooser');
       await page.getByRole('option', { name: 'Upload', exact: true }).click();
       const fileChooser = await fileChooserPromise;
-      await fileChooser.setFiles('tests/fixtures/tree-complex.json');
+      await fileChooser.setFiles({
+        buffer: Buffer.from(await readFixture('tree-complex')),
+        mimeType: 'application/json',
+        name: 'tree-complex.json',
+      });
     });
 
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
