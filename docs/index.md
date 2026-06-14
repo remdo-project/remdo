@@ -21,8 +21,9 @@ outdated or a doc’s role materially changes.
   delivery surfaces, gateway/origin boundaries, Better Auth identity, document
   identity, Kysely-backed document-registry ownership, collaboration runtime
   building blocks, and multi-hub terms.
-- `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch conventions, and
-  pre-1.0 compatibility policy (no default migration/back-compat requirements).
+- `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch
+  conventions, editor feature module layout, and pre-1.0 compatibility policy
+  (no default migration/back-compat requirements).
 - `docs/dev/dependency-maintenance.md` (Medium). Temporary dependency/runtime
   workarounds plus intentionally held-back versions, with current rationale and
   revisit conditions for refresh work.
@@ -34,14 +35,18 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
+- `docs/outliner/dates.md` (Medium). Inline date node behavior: `!` picker
+  trigger boundaries, insert/edit interactions, default date handling, dismissal
+  keys, outside-click handling, atomic token keyboard behavior, and future
+  editable-date and picker-keyboard boundaries.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge/reparent
   rules, spacing.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering placement semantics.
 - `docs/outliner/folding.md` (Medium). Note folding behavior, toggle visibility
   (hover/caret), persistence, auto-expand rules, and view-scoped
   fold-to-level commands.
-- `docs/outliner/index.md` (Medium). Entry point with links (including list
-  types); single-source invariants rule.
+- `docs/outliner/index.md` (Medium). Entry point with links (including dates and
+  list types); single-source invariants rule.
 - `docs/outliner/insertion.md` (Medium). Caret-mode `Enter` behavior, zoom-boundary
   insertion rules, focus rules, and paste placement pointer.
 - `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,

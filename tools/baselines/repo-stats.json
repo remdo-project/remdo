@@ -1,48 +1,48 @@
 {
-  "generatedAt": "2026-06-08T09:43:36.413Z",
+  "generatedAt": "2026-06-14T17:43:32.488Z",
   "files": {
-    "totalFiles": 455,
-    "textFiles": 455,
+    "totalFiles": 502,
+    "textFiles": 501,
     "byType": {
       "ts": {
-        "files": 273,
-        "lines": 27267
+        "files": 308,
+        "lines": 30393
       },
       "tsx": {
-        "files": 61,
-        "lines": 9273
+        "files": 68,
+        "lines": 10883
       },
       "md": {
-        "files": 31,
-        "lines": 2549
+        "files": 32,
+        "lines": 2591
       },
       "json": {
-        "files": 29,
-        "lines": 2174
+        "files": 30,
+        "lines": 2211
       },
       "sh": {
-        "files": 14,
-        "lines": 655
+        "files": 15,
+        "lines": 725
       },
       "yml": {
         "files": 14,
-        "lines": 251
+        "lines": 245
+      },
+      "css": {
+        "files": 8,
+        "lines": 807
       },
       "svg": {
         "files": 8,
         "lines": 21
       },
-      "css": {
-        "files": 7,
-        "lines": 770
-      },
       "mts": {
         "files": 4,
-        "lines": 352
+        "lines": 480
       },
       "yaml": {
         "files": 3,
-        "lines": 146
+        "lines": 150
       },
       "jsonc": {
         "files": 2,
@@ -50,7 +50,7 @@
       },
       "caddyfile": {
         "files": 1,
-        "lines": 46
+        "lines": 52
       },
       "codeowners": {
         "files": 1,
@@ -58,7 +58,7 @@
       },
       "dockerfile": {
         "files": 1,
-        "lines": 73
+        "lines": 84
       },
       "example": {
         "files": 1,
@@ -66,7 +66,7 @@
       },
       "gitignore": {
         "files": 1,
-        "lines": 15
+        "lines": 16
       },
       "html": {
         "files": 1,
@@ -83,18 +83,18 @@
     }
   },
   "tests": {
-    "unit": 618,
-    "collab": 659,
-    "e2e": 93,
-    "totalUnique": 752
+    "unit": 723,
+    "collab": 761,
+    "e2e": 95,
+    "totalUnique": 856
   },
   "totals": {
     "files": {
-      "files": 454,
-      "lines": 43715
+      "files": 500,
+      "lines": 48781
     },
     "tests": {
-      "totalUnique": 752
+      "totalUnique": 856
     }
   }
 }

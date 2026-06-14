@@ -5,6 +5,8 @@
   },
   "include": [
     "tests/**/*",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
     "src/client/editor/types/**/*.d.ts",
     "vitest.config.ts",
     "config/playwright/base.ts",

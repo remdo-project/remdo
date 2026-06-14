@@ -29,6 +29,14 @@ if (typeof Range !== 'undefined' && !Range.prototype.getBoundingClientRect) {
   });
 }
 
+const MockResizeObserver = class MockResizeObserver {
+  disconnect = vi.fn();
+  observe = vi.fn();
+  unobserve = vi.fn();
+};
+(globalThis as typeof globalThis & { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
+  MockResizeObserver as unknown as typeof ResizeObserver;
+
 // Lexical's clipboard helpers reference DragEvent for instance checks; jsdom doesn't provide it.
 if (typeof DragEvent === 'undefined') {
   const MockDragEvent = class MockDragEvent extends Event {};

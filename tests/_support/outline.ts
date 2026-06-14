@@ -1,5 +1,6 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
+import { formatDateNodeLabel } from '#client/editor/features/date/date-node';
 import type { SerializedOutlineNote } from '#client/editor/plugins/dev/schema/traverseSerializedOutline';
 import { traverseSerializedOutline } from '#client/editor/plugins/dev/schema/traverseSerializedOutline';
 
@@ -24,6 +25,11 @@ function getChildren(node: SerializedLexicalNode | null | undefined): Serialized
 
 function collectTextContent(node: SerializedLexicalNode | null | undefined): string {
   if (!node) return '';
+
+  if (node.type === 'date') {
+    const isoDate = (node as { isoDate?: unknown }).isoDate;
+    return typeof isoDate === 'string' ? formatDateNodeLabel(isoDate) : '';
+  }
 
   const maybeText: unknown = (node as { text?: unknown }).text;
   const text = typeof maybeText === 'string' ? maybeText : '';

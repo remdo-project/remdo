@@ -46,6 +46,7 @@ catalog:
   '@lexical/utils': ^0.42.0
   '@lexical/yjs': ^0.42.0
   '@mantine/core': ^9.0.1
+  '@mantine/dates': 9.0.1
   '@mantine/hooks': ^9.0.1
   '@playwright/test': ^1.59.1
   '@tabler/icons-react': ^3.41.1
@@ -69,6 +70,7 @@ catalog:
   concurrently: ^9.2.1
   cross-env: ^10.1.0
   csstree-validator: ^4.0.1
+  dayjs: ^1.11.21
   eslint: ^10.2.0
   eslint-plugin-compat: ^7.0.1
   eslint-plugin-react-refresh: ^0.5.2

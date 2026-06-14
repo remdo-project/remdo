@@ -27,6 +27,18 @@ Rules:
   result labels: whitespace-insensitive lookup (trim/collapse between words),
   fuzzy matching, and shared ranking/disambiguation rules.
 
+## Editor feature module follow-ups
+
+- [Future] Audit existing editor capabilities for migration into
+  `src/client/editor/features/<feature>/` when they own a cohesive plugin plus
+  related nodes, helpers, UI, and focused unit tests. Likely candidates include
+  note links and search, but keep migrations incremental and behavior-neutral.
+- Pressing a hot key just after a node with text content (for example `!` right
+  after an existing date node) fails to trigger, because the boundary check
+  reads the previous node's rendered text and sees a non-boundary character.
+  Fix should treat inline non-text nodes as boundaries and consider common,
+  related UX guidelines.
+
 ## Document access and sharing
 
 - OAuth source-linking privilege follow-up: review whether linked source OAuth
@@ -183,6 +195,12 @@ Remaining issues to fold in or fix directly:
 
 ## Test harness follow-ups
 
+- Redesign `toMatchOutline` note content expectations from flattened text into
+  node-level content. Target shape:
+  `{ noteId: 'note1', content: [{ text: 'before ' }, { date: '2026-06-10' }, { text: ' after' }] }`.
+  Until then, flattened outline text stays readable/user-facing, while
+  node-specific identity such as date ISO values stays covered by focused
+  feature tests.
 - Reduce repeated full-outline literals in tests by adding a generic helper
   that patches a previously-read outline by `noteId`, then still asserts with
   `toMatchOutline`.
