@@ -97,7 +97,7 @@ catalog:
   vitest: 4.1.2
   vitest-preview: ^0.0.3
   workbox-window: ^7.4.0
-  ws: 8.20.0
+  ws: 8.20.1
   y-sweet: ^0.9.1
   yjs: ^13.6.30
 
