@@ -3,15 +3,17 @@ import { transformSerializedEditorState } from '#client/editor/runtime/serialize
 
 type DefaultEntry = Record<string, unknown>;
 
+const COMMON_NODE_DEFAULTS = {
+  version: 1,
+} as const satisfies DefaultEntry;
+
 const NODE_DEFAULTS = {
   root: {
-    version: 1,
     format: '',
     indent: 0,
     direction: null,
   },
   list: {
-    version: 1,
     format: '',
     indent: 0,
     direction: null,
@@ -20,23 +22,17 @@ const NODE_DEFAULTS = {
     tag: 'ul',
   },
   listitem: {
-    version: 1,
     format: '',
     indent: 0,
     direction: null,
   },
   text: {
-    version: 1,
     detail: 0,
     format: 0,
     mode: 'normal',
     style: '',
   },
-  date: {
-    version: 1,
-  },
   'note-link': {
-    version: 1,
     format: '',
     indent: 0,
     direction: null,
@@ -58,7 +54,10 @@ function getNodeDefaults(nodeType: string): Record<string, unknown> {
   const defaultsEntry = Object.hasOwn(NODE_DEFAULTS, nodeType)
     ? NODE_DEFAULTS[nodeType as keyof typeof NODE_DEFAULTS]
     : undefined;
-  return (defaultsEntry ?? {}) as Record<string, unknown>;
+  return {
+    ...COMMON_NODE_DEFAULTS,
+    ...defaultsEntry,
+  };
 }
 
 function minifyNode(node: SerializedLexicalNode): SerializedLexicalNode {
