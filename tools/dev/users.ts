@@ -41,13 +41,13 @@ async function provisionDevUser(auth: ServerAuth, user: StableAuthUser): Promise
 }
 
 async function provisionDevSourceOAuthClient(): Promise<void> {
-  if (new URL(config.env.AUTH_URL).origin === new URL(config.env.REMDO_DEV_HOME_ORIGIN).origin) {
+  const homeOrigin = config.env.REMDO_DEV_HOME_ORIGIN.trim();
+  if (!homeOrigin || new URL(config.env.AUTH_URL).origin === new URL(homeOrigin).origin) {
     return;
   }
 
   const clientId = readDevEnv(config.env.REMDO_DEV_OAUTH_CLIENT_ID, 'REMDO_DEV_OAUTH_CLIENT_ID');
   const clientSecret = readDevEnv(config.env.REMDO_DEV_OAUTH_CLIENT_SECRET, 'REMDO_DEV_OAUTH_CLIENT_SECRET');
-  const homeOrigin = readDevEnv(config.env.REMDO_DEV_HOME_ORIGIN, 'REMDO_DEV_HOME_ORIGIN');
   const redirectUri = `${homeOrigin}/api/auth/oauth2/callback/source`;
   const clientConfig = {
     client_name: 'RemDo dev Docker home',
