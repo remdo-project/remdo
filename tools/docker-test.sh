@@ -191,8 +191,24 @@ BACKUP_SQLITE="${BACKUP_DIR}/remdo.sqlite"
 BACKUP_INDEX="${BACKUP_DIR}/documents/index.json"
 DEV_DOCUMENT_JSON="${BACKUP_DIR}/documents/${DEV_DOCUMENT_ID}.json"
 DEV_DOCUMENT_MD="${BACKUP_DIR}/documents/${DEV_DOCUMENT_ID}.md"
+backup_files=("${BACKUP_SQLITE}" "${BACKUP_INDEX}" "${DEV_DOCUMENT_JSON}" "${DEV_DOCUMENT_MD}")
 
-for backup_file in "${BACKUP_SQLITE}" "${BACKUP_INDEX}" "${DEV_DOCUMENT_JSON}" "${DEV_DOCUMENT_MD}"; do
+backup_ready="false"
+for _ in {1..80}; do
+  backup_ready="true"
+  for backup_file in "${backup_files[@]}"; do
+    if [[ ! -s "${backup_file}" ]]; then
+      backup_ready="false"
+      break
+    fi
+  done
+  if [[ "${backup_ready}" == "true" ]]; then
+    break
+  fi
+  sleep 0.25
+done
+
+for backup_file in "${backup_files[@]}"; do
   if [[ ! -s "${backup_file}" ]]; then
     docker logs "${CONTAINER_NAME}" || true
     echo "Backup output missing or empty: ${backup_file}" >&2
