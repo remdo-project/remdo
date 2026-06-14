@@ -32,6 +32,8 @@ async function expectPageUrl(page: Page, expected: { origin: string; pathname: s
 }
 
 test('links a source account and opens its Home document from the Docker home switcher', async ({ page }) => {
+  setExpectedConsoleIssues(page, ['Failed to get client token'], { mode: 'allowContains' });
+
   await page.goto('/sharing');
 
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/sharing'));
@@ -59,7 +61,6 @@ test('links a source account and opens its Home document from the Docker home sw
   await expect(dropdown.locator('[data-document-source-id="local"]')).toContainText('Current Server');
   const sourceGroup = dropdown.locator(`[data-document-source-id="${SOURCE_SERVER_ID}"]`);
   await expect(sourceGroup).toContainText('Local dev server');
-  setExpectedConsoleIssues(page, ['Failed to get client token'], { mode: 'allowContains' });
   await sourceGroup.getByRole('option', { name: 'Home', exact: true }).click();
 
   await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/n\/[\dA-Za-z]+$/u);
