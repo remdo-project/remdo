@@ -146,6 +146,36 @@ describe('prod Docker launcher', () => {
     expect(dockerCalls).toContain('-p 8080:8080');
   });
 
+  it('forwards AUTH_SECRET and the Y-Sweet pair to the container when set', () => {
+    // runLauncher passes all three secrets by default; assert they reach docker.
+    const { result, dockerCalls } = runLauncher({
+      PORT_BASE: '4000',
+    });
+
+    expect(result.status).toBe(0);
+    expect(dockerCalls).toContain('-e ADMIN_SECRET=production-admin-secret-0123456789');
+    expect(dockerCalls).toContain('-e AUTH_SECRET=production-auth-secret-0123456789');
+    expect(dockerCalls).toContain('-e YSWEET_AUTH_KEY=production-ysweet-auth-key');
+    expect(dockerCalls).toContain('-e YSWEET_SERVER_TOKEN=production-ysweet-server-token');
+  });
+
+  it('omits the bootstrap-managed secrets when unset, so the in-container bootstrap runs', () => {
+    // Empty values count as unset; only ADMIN_SECRET (required) is forwarded, the
+    // rest are left for the container to bootstrap from its persistent DATA_DIR.
+    const { result, dockerCalls } = runLauncher({
+      PORT_BASE: '4000',
+      AUTH_SECRET: '',
+      YSWEET_AUTH_KEY: '',
+      YSWEET_SERVER_TOKEN: '',
+    });
+
+    expect(result.status).toBe(0);
+    expect(dockerCalls).toContain('-e ADMIN_SECRET=production-admin-secret-0123456789');
+    expect(dockerCalls).not.toContain('-e AUTH_SECRET=');
+    expect(dockerCalls).not.toContain('-e YSWEET_AUTH_KEY=');
+    expect(dockerCalls).not.toContain('-e YSWEET_SERVER_TOKEN=');
+  });
+
   it('aborts when the browser-facing PORT is a Chromium-blocked port', () => {
     // 6666 is on Chromium's blocked list; serving the public site there would
     // give real users ERR_UNSAFE_PORT, so the launcher must refuse to start.
