@@ -203,7 +203,6 @@ describe('config env resolve', () => {
       NODE_ENV: 'development',
       PORT_BASE: '4000',
       PORT: '4000',
-      RUN_MODE_PORT_SHIFT: '0',
     });
 
     expect(collabPort).toBe('4004');
