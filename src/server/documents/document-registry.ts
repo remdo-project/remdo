@@ -16,14 +16,14 @@ export interface RegisteredDocument {
   updatedAt: Date;
 }
 
-export interface InsertDocumentInput {
+interface InsertDocumentInput {
   id: string;
   ownerUserId: string;
   kind?: DocumentKind;
   title: string;
 }
 
-export interface DocumentAccess {
+interface DocumentAccess {
   documentId: string;
   granteeUserId: string;
 }

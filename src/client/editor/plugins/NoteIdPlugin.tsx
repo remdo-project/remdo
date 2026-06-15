@@ -632,33 +632,31 @@ export function NoteIdPlugin() {
       editor.registerCommand(
         CUT_COMMAND,
         (event) => {
-          const result = editor.getEditorState().read(() => {
-            const selection = $getSelection();
-            const selectionRange =
-              $resolveStructuralRangeFromOutlineSelection(editor.selection.get())
-              ?? $resolveStructuralRangeFromLexicalSelection(selection, { requireMultipleHeads: true });
+          // Runs inside Lexical's command update context. Populate the clipboard,
+          // then collapse in the same update so the committed selection (and the
+          // outline-selection snapshot derived from it) is observed atomically.
+          const selection = $getSelection();
+          const selectionRange =
+            $resolveStructuralRangeFromOutlineSelection(editor.selection.get())
+            ?? $resolveStructuralRangeFromLexicalSelection(selection, { requireMultipleHeads: true });
 
-            if (!selectionRange) {
-              return { handled: false, marker: null };
-            }
-
-            const heads = $resolveStructuralDeletionHeads(selectionRange, selection);
-            if (heads.length === 0) {
-              return { handled: false, marker: null };
-            }
-
-            const marker: CutMarker = {
-              markedKeys: $collectStructuralItemKeysFromRange(selectionRange),
-              range: selectionRange,
-            };
-            $populateClipboardFromSelection(editor, selection, event);
-            return { handled: true, marker };
-          });
-          setCutMarker(result.marker);
-          if (result.marker) {
-            editor.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'start' });
+          if (!selectionRange) {
+            return false;
           }
-          return result.handled;
+
+          const heads = $resolveStructuralDeletionHeads(selectionRange, selection);
+          if (heads.length === 0) {
+            return false;
+          }
+
+          const marker: CutMarker = {
+            markedKeys: $collectStructuralItemKeysFromRange(selectionRange),
+            range: selectionRange,
+          };
+          $populateClipboardFromSelection(editor, selection, event);
+          setCutMarker(marker);
+          editor.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'start' });
+          return true;
         },
         COMMAND_PRIORITY_CRITICAL
       ),

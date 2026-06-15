@@ -236,10 +236,9 @@ export function SelectionPlugin() {
       const outlineSelection = editor.selection.get();
       const range = outlineSelection?.range ?? null;
       const hasStructuralSelection = outlineSelection?.kind === 'structural';
-      const hasCollapsibleSelection = editor.getEditorState().read(() => {
-        const selection = $getSelection();
-        return $isRangeSelection(selection) && (!selection.isCollapsed() || hasStructuralSelection);
-      });
+      const initialSelection = $getSelection();
+      const hasCollapsibleSelection =
+        $isRangeSelection(initialSelection) && (!initialSelection.isCollapsed() || hasStructuralSelection);
 
       if (!hasCollapsibleSelection) {
         return false;

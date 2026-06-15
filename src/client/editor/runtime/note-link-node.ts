@@ -120,7 +120,7 @@ export class NoteLinkNode extends LinkNode {
       docId,
       noteId,
     };
-    return serialized as unknown as SerializedLinkNode;
+    return serialized;
   }
 
   createDOM(config: EditorConfig): HTMLElement {

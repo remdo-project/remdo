@@ -443,9 +443,9 @@ export function DatePlugin() {
       }
       previousRoot?.removeEventListener('mousedown', handleRootMouseDown, true);
       previousRoot?.removeEventListener('click', handleRootClick, true);
-      // eslint-disable-next-line react-web-api/no-leaked-event-listener -- removed on the next root change and in effect cleanup.
+      // eslint-disable-next-line react/web-api-no-leaked-event-listener -- removed on the next root change and in effect cleanup.
       nextRoot?.addEventListener('mousedown', handleRootMouseDown, true);
-      // eslint-disable-next-line react-web-api/no-leaked-event-listener -- removed on the next root change and in effect cleanup.
+      // eslint-disable-next-line react/web-api-no-leaked-event-listener -- removed on the next root change and in effect cleanup.
       nextRoot?.addEventListener('click', handleRootClick, true);
       root = nextRoot;
     });

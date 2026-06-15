@@ -1,11 +1,9 @@
 import antfu from '@antfu/eslint-config';
 import compatPlugin from 'eslint-plugin-compat';
 import lexicalPlugin from '@lexical/eslint-plugin';
-import unicornPlugin from 'eslint-plugin-unicorn';
 import { commandsInCommandsFileRule } from './config/eslint/commandsInCommandsFile';
 import { noLegacyFallbacksRule } from './config/eslint/noLegacyFallbacks';
 
-const { plugins: _unusedUnicornPlugins, ...unicornUnopinionatedConfig } = unicornPlugin.configs.unopinionated;
 const importMetaEnvRestriction = {
   selector: "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']",
   message: 'Use #config instead of accessing import.meta.env directly.',
@@ -50,7 +48,6 @@ export default antfu(
       'no-unreachable': 'error',
     },
   },
-  unicornUnopinionatedConfig,
   {
     files: ['**/*.md'],
     rules: {

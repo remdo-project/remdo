@@ -56,9 +56,9 @@ export function BlankTargetLinkInterceptorPlugin() {
       if (rootElement !== null) {
         // Capture-phase interception is intentional so Lexical's clickable-link plugin
         // never gets a chance to reopen _blank links without noopener.
-        // eslint-disable-next-line react-web-api/no-leaked-event-listener
+        // eslint-disable-next-line react/web-api-no-leaked-event-listener
         rootElement.addEventListener('click', onClick, true);
-        // eslint-disable-next-line react-web-api/no-leaked-event-listener
+        // eslint-disable-next-line react/web-api-no-leaked-event-listener
         rootElement.addEventListener('mouseup', onMouseUp, true);
       }
       currentRootElement = rootElement;

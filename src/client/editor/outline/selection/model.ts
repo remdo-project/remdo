@@ -1,4 +1,4 @@
-export type OutlineSelectionKind = 'caret' | 'inline' | 'structural';
+type OutlineSelectionKind = 'caret' | 'inline' | 'structural';
 
 export interface OutlineSelectionRange {
   headStartKey: string;

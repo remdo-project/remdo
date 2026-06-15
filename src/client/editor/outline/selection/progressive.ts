@@ -36,7 +36,7 @@ export const INITIAL_PROGRESSIVE_STATE: ProgressiveSelectionState = {
   lastDirection: null,
 };
 
-export type ProgressivePlan =
+type ProgressivePlan =
   | {
       type: 'inline';
       itemKey: string;
