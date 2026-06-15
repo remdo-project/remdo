@@ -29,6 +29,7 @@ import { createEditorInitialConfig } from '#client/editor/runtime/config';
 import type { ServerAuth } from '#server/auth/auth';
 import { createServerRuntime } from '#server/runtime';
 import type { DocumentRegistry, RegisteredDocument } from '#server/documents/document-registry';
+import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { createUserDocument } from '#server/documents/current-user';
 import type { YSweetDocumentTokenManager } from '#server/collab-token';
 import { restoreEditorStateDefaults } from '#tests-common/editor-state-defaults';
@@ -225,22 +226,43 @@ async function readFixtureState(name: string): Promise<SerializedEditorState> {
   return restoreEditorStateDefaults(JSON.parse(raw) as SerializedEditorState);
 }
 
+async function deleteSeededDocument(
+  database: SqliteServerDatabaseClient,
+  document: RegisteredDocument,
+): Promise<void> {
+  await database.db.deleteFrom('document_access').where('document_id', '=', document.id).execute();
+  await database.db.deleteFrom('documents').where('id', '=', document.id).execute();
+  const collabDir = path.join(config.env.DATA_DIR, 'collab', document.id);
+  await fs.rm(collabDir, { force: true, recursive: true });
+}
+
 async function seedUserFixtures(
   registry: DocumentRegistry,
+  database: SqliteServerDatabaseClient,
   tokenManager: YSweetDocumentTokenManager,
   auth: ServerAuth,
   user: StableAuthUser,
   fixtureNames: string[],
   collabOrigin: string,
   collabApiOrigin: string,
+  fresh: boolean,
 ): Promise<number> {
   const authUser = await auth.findUserByEmail(user.email);
   if (!authUser) {
     throw new Error(`User ${user.email} not found after provisioning.`);
   }
   const existing = await registry.listUserDocuments(authUser.id);
+  const seededDocs = listSeededDocuments(existing, authUser.id);
+
+  if (fresh) {
+    for (const document of seededDocs) {
+      await deleteSeededDocument(database, document);
+    }
+    console.info(`  ${user.email}: removed ${seededDocs.length} existing fixture docs (--fresh)`);
+  }
+
   const seededByTitle = new Map(
-    listSeededDocuments(existing, authUser.id).map((document) => [document.title, document]),
+    (fresh ? [] : seededDocs).map((document) => [document.title, document]),
   );
 
   let count = 0;
@@ -278,12 +300,14 @@ async function main(): Promise<void> {
     for (const user of Object.values(STABLE_AUTH_USERS)) {
       total += await seedUserFixtures(
         runtime.registry,
+        runtime.database,
         runtime.tokenManager,
         runtime.auth,
         user,
         fixtureNames,
         collabOrigin,
         collabApiOrigin,
+        options.fresh,
       );
     }
     console.info(`Seeded ${total} documents across ${Object.keys(STABLE_AUTH_USERS).length} users.`);
