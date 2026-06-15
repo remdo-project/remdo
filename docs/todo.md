@@ -15,6 +15,30 @@ Rules:
 - Move durable decisions/specs into the relevant doc under `docs/`, leaving a
   link behind.
 
+## Selection ladder redesign
+
+Target behavior is specified in [docs/outliner/selection.md](./outliner/selection.md);
+the design rationale and decisions live in
+[docs/superpowers/specs/2026-06-15-selection-ladder-redesign-design.md](./superpowers/specs/2026-06-15-selection-ladder-redesign-design.md)
+and the code refactor steps in
+[docs/superpowers/plans/2026-06-15-selection-ladder-redesign-plan.md](./superpowers/plans/2026-06-15-selection-ladder-redesign-plan.md).
+
+- Replace the geometry-reconstructing `progressive.ts` state
+  (`{anchor, stage, locked, lastDirection}` plus `inferSiblingStage` /
+  `$buildDirectionalShrinkPlan`) with an anchored stack of replayable rungs;
+  reversal pops a rung instead of re-deriving the stage from selection geometry.
+- Collaboration reshaping tiers: tiers 1–2 (re-resolve / auto-reshape) are the
+  design target and fall out of intent-replay. Tiers 3–4 (truncate to deepest
+  valid rung; collapse to caret when the anchor is gone) are also the target,
+  but the initial implementation may collapse to a caret on any rung/anchor loss
+  and refine later.
+- Pointer-seeded ladder: define how `Shift+Click`/drag selections seed the
+  anchor + rung stack so subsequent `Shift+Up/Down` reversal still pops
+  correctly (current `inferPointerProgressionState` fakes a stage without a real
+  stack).
+- Stack lifetime across blur/refocus: decide whether the rung stack resets on
+  blur (proposed default) or persists.
+
 ## Search architecture
 
 - Add a document-level SDK visitor/walker API and use it as the shared
