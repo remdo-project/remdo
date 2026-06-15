@@ -1,3 +1,5 @@
+import type { Context } from 'hono';
+import { HTTP_STATUS } from '#platform/http/status';
 import type { ServerAuth, ServerAuthUser } from './auth';
 
 export interface Actor {
@@ -46,4 +48,22 @@ export async function resolveActorResolution(request: Request, auth: ServerAuth)
 
 export async function resolveActor(request: Request, auth: ServerAuth): Promise<Actor | null> {
   return (await resolveActorResolution(request, auth))?.actor ?? null;
+}
+
+/**
+ * Resolves the request actor resolution or returns the shared 401 response used
+ * by every authenticated route.
+ */
+export async function requireActorResolution(c: Context, auth: ServerAuth): Promise<ActorResolution | Response> {
+  await auth.ensureReady();
+  const actorResolution = await resolveActorResolution(c.req.raw, auth);
+  if (!actorResolution) {
+    return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
+  }
+  return actorResolution;
+}
+
+export async function requireActor(c: Context, auth: ServerAuth): Promise<Actor | Response> {
+  const resolution = await requireActorResolution(c, auth);
+  return resolution instanceof Response ? resolution : resolution.actor;
 }

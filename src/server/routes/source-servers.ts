@@ -3,7 +3,7 @@ import type { Context } from 'hono';
 import { normalizeDocumentId } from '#domain/documents/ids';
 import { HTTP_STATUS } from '#platform/http/status';
 import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
-import { resolveActor } from '#server/auth/actor';
+import { requireActor, resolveActor } from '#server/auth/actor';
 import type { ServerRouteDependencies } from './types';
 
 // Upstream auth/access/not-found responses describe a recoverable user state
@@ -138,10 +138,9 @@ export function createSourceServerRoutes({
     }
 
     try {
-      await auth.ensureReady();
-      const actor = await resolveActor(c.req.raw, auth);
-      if (!actor) {
-        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
+      const actor = await requireActor(c, auth);
+      if (actor instanceof Response) {
+        return actor;
       }
 
       return auth.auth.api.oAuth2LinkAccount({

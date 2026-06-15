@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { normalizeDocumentId } from '#domain/documents/ids';
 import { HTTP_STATUS } from '#platform/http/status';
-import { resolveActor } from '#server/auth/actor';
+import { requireActor } from '#server/auth/actor';
 import type { Actor } from '#server/auth/actor';
 import { issueYSweetDocumentClientToken } from '#server/collab-token';
 import {
@@ -19,17 +19,6 @@ export function createDocumentRoutes({
 }: ServerRouteDependencies) {
   const routes = new Hono();
 
-  // Resolves the request actor or returns the shared 401 response used by every
-  // authenticated document route.
-  async function requireActor(c: Context): Promise<Actor | Response> {
-    await auth.ensureReady();
-    const actor = await resolveActor(c.req.raw, auth);
-    if (!actor) {
-      return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
-    }
-    return actor;
-  }
-
   // Validates the `:docId` param and resolves the actor, returning the shared
   // 400/401 responses used by per-document routes.
   async function requireDocIdAndActor(c: Context): Promise<{ normalizedDocId: string; actor: Actor } | Response> {
@@ -37,7 +26,7 @@ export function createDocumentRoutes({
     if (!normalizedDocId) {
       return c.json({ error: 'Invalid document id.' }, HTTP_STATUS.BAD_REQUEST);
     }
-    const actor = await requireActor(c);
+    const actor = await requireActor(c, auth);
     if (actor instanceof Response) {
       return actor;
     }
@@ -46,7 +35,7 @@ export function createDocumentRoutes({
 
   routes.post('/', async (c) => {
     try {
-      const actor = await requireActor(c);
+      const actor = await requireActor(c, auth);
       if (actor instanceof Response) {
         return actor;
       }
