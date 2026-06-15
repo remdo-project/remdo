@@ -46,6 +46,10 @@ interface CliOptions {
 function parseArgs(argv: string[]): CliOptions {
   const options: CliOptions = { fresh: false };
   for (const arg of argv) {
+    if (arg === '--') {
+      // End-of-options separator forwarded by `pnpm run ... -- --fresh`; ignore it.
+      continue;
+    }
     if (arg === '--fresh') {
       options.fresh = true;
     } else {
