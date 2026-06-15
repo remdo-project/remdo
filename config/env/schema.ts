@@ -53,4 +53,3 @@ export type EnvKey = keyof typeof envSchema;
 // Browser-exposed keys (mirrors the previous spec's client:true flags). Keep in sync with envSchema above.
 export const CLIENT_KEY_LIST = ['COLLAB_ENABLED', 'DEV_DOCUMENT_ID'] as const satisfies readonly EnvKey[];
 export type ClientKey = (typeof CLIENT_KEY_LIST)[number];
-export const CLIENT_KEYS = new Set<ClientKey>(CLIENT_KEY_LIST);

@@ -326,15 +326,21 @@ if ! bootstrap_wait_healthy; then
 fi
 echo "Bootstrap scenario healthy: ${BOOTSTRAP_HEALTH_URL}"
 
-# (b) The generated secret files exist with the expected restrictive modes. We
-# inspect via `docker exec stat` (the container user owns them); modes only, no
-# secret values are read into the log.
+# (b) The generated secret files exist with the expected restrictive modes. One
+# `docker exec stat` over all targets (modes only, no secret values logged)
+# yields "<path> <mode>" lines we assert against the expected map.
+bootstrap_modes="$(docker exec "${BOOTSTRAP_CONTAINER_NAME}" \
+  stat -c '%n %a' \
+  /app/data/secrets \
+  /app/data/secrets/auth-secret \
+  /app/data/secrets/ysweet.json 2>/dev/null || true)"
+
 assert_bootstrap_mode() {
   local target="$1"
   local expected="$2"
   local label="$3"
   local actual
-  actual="$(docker exec "${BOOTSTRAP_CONTAINER_NAME}" stat -c '%a' "${target}" 2>/dev/null || true)"
+  actual="$(awk -v t="${target}" '$1 == t { print $2 }' <<<"${bootstrap_modes}")"
   if [[ "${actual}" != "${expected}" ]]; then
     bootstrap_fail "${label} expected mode ${expected} but got '${actual}' (${target})"
   fi

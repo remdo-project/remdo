@@ -1,6 +1,7 @@
 import type { z } from 'zod';
+import { resolveLoopbackHost } from '../../src/platform/net/loopback';
 import type { ClientKey, EnvKey } from './schema';
-import { CLIENT_KEYS, envSchema } from './schema';
+import { CLIENT_KEY_LIST, envSchema } from './schema';
 
 type EnvGetter = (key: EnvKey) => string | boolean | undefined;
 
@@ -15,10 +16,6 @@ const MIN_AUTH_SECRET_LENGTH = 32;
 
 function isAbsoluteHttpUrl(value: string): boolean {
   return value.startsWith('http://') || value.startsWith('https://');
-}
-
-function resolveLocalAuthHost(host: string): string {
-  return host === '0.0.0.0' || host === '::' ? 'localhost' : host;
 }
 
 function parseValue(schema: (typeof envSchema)[EnvKey], raw: string | boolean | undefined) {
@@ -40,7 +37,7 @@ function resolveAuthUrl(parsed: ParsedEnv): string {
   }
 
   if (parsed.NODE_ENV !== 'production' && parsed.HOST && parsed.PORT > 0) {
-    return `http://${resolveLocalAuthHost(parsed.HOST)}:${parsed.PORT}`;
+    return `http://${resolveLoopbackHost(parsed.HOST, 'localhost')}:${parsed.PORT}`;
   }
 
   if (isAbsoluteHttpUrl(parsed.APP_PUBLIC_URL)) {
@@ -79,8 +76,7 @@ function validateProdServer(parsed: ParsedEnv): void {
 }
 
 function pickClientEnv(server: ServerEnv): ClientEnv {
-  const keys = [...CLIENT_KEYS] as ClientKey[];
-  const entries = keys.map((key) => [key, server[key]] as const);
+  const entries = CLIENT_KEY_LIST.map((key) => [key, server[key]] as const);
   return Object.fromEntries(entries) as ClientEnv;
 }
 

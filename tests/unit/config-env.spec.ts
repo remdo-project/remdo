@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { resolveConfig } from '#config/env/resolve';
 import type { EnvKey } from '#config/env/schema';
-import { CLIENT_KEYS } from '#config/env/schema';
+import { CLIENT_KEY_LIST } from '#config/env/schema';
 
 type EnvValues = Partial<Record<EnvKey, string | boolean>>;
 
@@ -183,7 +183,7 @@ describe('config env resolve', () => {
       APP_PUBLIC_URL: 'https://remdo.example.com',
     });
 
-    expect(new Set(Object.keys(resolved.client))).toEqual(CLIENT_KEYS);
+    expect(Object.keys(resolved.client).sort()).toEqual([...CLIENT_KEY_LIST].sort());
     expect(resolved.client.DEV_DOCUMENT_ID).toBe('testDevDoc');
     expect(resolved.client.COLLAB_ENABLED).toBe(true);
     expect(resolved.client).not.toHaveProperty('AUTH_SECRET');
