@@ -50,7 +50,7 @@ catalog:
   '@mantine/core': ^9.3.1
   '@mantine/dates': 9.3.1
   '@mantine/hooks': ^9.3.1
-  '@playwright/test': ^1.60.0
+  '@playwright/test': ^1.61.0
   '@tabler/icons-react': ^3.44.0
   '@testing-library/jest-dom': ^6.9.1
   '@testing-library/react': ^16.3.2
@@ -86,7 +86,7 @@ catalog:
   linkify-it: ^5.0.1
   markdownlint-cli2: ^0.22.1
   nanoid: ^5.1.11
-  playwright: ^1.60.0
+  playwright: ^1.61.0
   react: ^19.2.7
   react-dom: ^19.2.7
   react-router-dom: ^7.17.0
