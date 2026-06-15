@@ -1,7 +1,6 @@
 import { config } from '#config';
 import type { ServerAuth } from '#server/auth/auth';
-
-const SESSION_COOKIE_PATTERN = /((?:__Secure-)?better-auth\.session_token)=([^;]+)/u;
+import { extractSessionCookie } from '#server/auth/session-cookie';
 
 export const STABLE_AUTH_USERS = {
   alice: {
@@ -17,17 +16,6 @@ export const STABLE_AUTH_USERS = {
 } as const;
 
 export type StableAuthUser = (typeof STABLE_AUTH_USERS)[keyof typeof STABLE_AUTH_USERS];
-
-function extractSessionCookie(response: Response): string {
-  const extendedHeaders = response.headers as Headers & { getSetCookie?: () => string[] };
-  const getSetCookie = typeof extendedHeaders.getSetCookie === 'function' ? extendedHeaders.getSetCookie() : [];
-  const header = getSetCookie[0] ?? response.headers.get('set-cookie') ?? '';
-  const match = header.match(SESSION_COOKIE_PATTERN);
-  if (!match) {
-    throw new Error('Better Auth session cookie missing from response.');
-  }
-  return `${match[1]}=${match[2]}`;
-}
 
 export async function createStableAuthUserSessionHeaders(
   auth: ServerAuth,

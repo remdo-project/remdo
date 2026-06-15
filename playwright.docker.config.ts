@@ -20,6 +20,8 @@ export default defineConfig({
       name: 'source',
       command: `AUTH_URL=${sourceOrigin} pnpm exec tsx ./tools/e2e/docker-source-server.ts`,
       url: sourceOrigin,
+      reuseExistingServer: false,
+      gracefulShutdown: { signal: 'SIGTERM', timeout: 5000 },
     },
   ],
   projects: [

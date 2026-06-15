@@ -187,8 +187,7 @@ export async function selectEntireNote(remdo: RemdoTestApi, noteId: string): Pro
     rangeSelection.setTextNodeRange(anchorTextNode, 0, anchorTextNode, length);
   });
 }
-export function readCaretNoteKey(remdo: RemdoTestApi): string {
-  // Reads the note key from a collapsed caret selection.
+function readFromCaretListItem<T>(remdo: RemdoTestApi, read: (item: ListItemNode) => T): T {
   return remdo.validate(() => {
     const selection = $getSelection();
     expect($isRangeSelection(selection)).toBe(true);
@@ -197,22 +196,18 @@ export function readCaretNoteKey(remdo: RemdoTestApi): string {
 
     const item = findNearestListItem(rangeSelection.anchor.getNode()) ?? findNearestListItem(rangeSelection.focus.getNode())!;
 
-    return item.getKey();
+    return read(item);
   });
+}
+
+export function readCaretNoteKey(remdo: RemdoTestApi): string {
+  // Reads the note key from a collapsed caret selection.
+  return readFromCaretListItem(remdo, (item) => item.getKey());
 }
 
 export function readCaretNoteId(remdo: RemdoTestApi): string {
   // Reads the note id from a collapsed caret selection.
-  return remdo.validate(() => {
-    const selection = $getSelection();
-    expect($isRangeSelection(selection)).toBe(true);
-    const rangeSelection = selection as ReturnType<typeof $createRangeSelection>;
-    expect(rangeSelection.isCollapsed()).toBe(true);
-
-    const item = findNearestListItem(rangeSelection.anchor.getNode()) ?? findNearestListItem(rangeSelection.focus.getNode())!;
-
-    return $getNoteIdOrThrow(item, 'Expected caret note to have a noteId');
-  });
+  return readFromCaretListItem(remdo, (item) => $getNoteIdOrThrow(item, 'Expected caret note to have a noteId'));
 }
 
 function getNodePath(node: any): number[] {

@@ -1,16 +1,16 @@
-import type { ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import fs from 'node:fs';
 import path from 'node:path';
-import process from 'node:process';
 import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
 import { resolveLoopbackHost } from '#platform/net/loopback';
+import { attachManagedProcess, terminateProcessGroup } from './managed-process';
 import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
 
 const MAX_ATTEMPTS = 150;
+const STOP_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'collab-server.log');
@@ -19,23 +19,6 @@ const reusedServerStop = () => Promise.resolve();
 
 function resolveYSweetBindHost(host: string): string {
   return host === 'localhost' ? '127.0.0.1' : host;
-}
-
-function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
-  if (child.killed) {
-    return;
-  }
-
-  if (child.pid && process.platform !== 'win32') {
-    try {
-      process.kill(-child.pid, signal);
-      return;
-    } catch {
-      // Fallback to direct child kill when group signaling fails.
-    }
-  }
-
-  child.kill(signal);
 }
 
 function ensureLogStream(): fs.WriteStream {
@@ -52,6 +35,17 @@ async function waitForPort(host: string, port: number): Promise<void> {
   }
 
   throw new Error(`Collaboration websocket failed to start on ws://${host}:${port}`);
+}
+
+async function waitForPortClosed(host: string, port: number): Promise<boolean> {
+  for (let attempt = 0; attempt < STOP_ATTEMPTS; attempt += 1) {
+    if (!(await isPortOpen(host, port))) {
+      return true;
+    }
+    await wait(POLL_INTERVAL);
+  }
+
+  return false;
 }
 
 function readRecentLog(): string {
@@ -116,35 +110,15 @@ export async function ensureCollabServer({
     },
   );
 
-  if (child.stdout) {
-    child.stdout.pipe(logStream, { end: false });
-  }
-  if (child.stderr) {
-    child.stderr.pipe(logStream, { end: false });
-  }
-
-  const teardownSignals = ['exit', 'SIGINT', 'SIGTERM'] as const;
-  const onSignal = () => {
-    terminateProcessGroup(child, 'SIGTERM');
-  };
-  for (const event of teardownSignals) {
-    process.on(event, onSignal);
-  }
-
-  const cleanup = () => {
-    for (const event of teardownSignals) {
-      process.off(event, onSignal);
-    }
-    logStream.end();
-  };
+  const cleanup = attachManagedProcess(child, logStream);
   const stop = async () => {
-    let exited = child.exitCode !== null || child.signalCode !== null;
-    child.once('exit', () => {
-      exited = true;
-    });
+    const exited = child.exitCode !== null || child.signalCode !== null;
+    const exitPromise = exited ? Promise.resolve() : once(child, 'exit');
     terminateProcessGroup(child, 'SIGTERM');
-    if (!exited) {
-      await once(child, 'exit');
+    await exitPromise;
+    if (!(await waitForPortClosed(probeHost, resolvedPort))) {
+      terminateProcessGroup(child, 'SIGKILL');
+      await waitForPortClosed(probeHost, resolvedPort);
     }
     cleanup();
   };

@@ -1,13 +1,17 @@
 {
   "path": [
-    "src/editor",
-    "lib"
+    "src",
+    "tools",
+    "config",
+    "tests"
   ],
   "ignore": [
     "**/node_modules/**",
     "**/data/**",
     "**/output/**",
-    "**/tests/**",
+    "**/tests/fixtures/**",
+    "**/*.spec.*",
+    "**/*.test.*",
     "**/*.snap",
     "**/*-snapshots/**",
     "**/.vendor/**"
