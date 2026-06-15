@@ -44,6 +44,18 @@ HEALTH_URL="${APP_PUBLIC_URL%/}/health"
 DATA_CLEANED="false"
 DOCKER_RUN_ARGS=()
 
+# Second scenario: a fresh, ADMIN_SECRET-only container that forces the
+# in-container bootstrap-secrets.ts to GENERATE and PERSIST AUTH_SECRET and the
+# Y-Sweet pair. Distinct port (PORT_BASE+8) so it cannot collide with the main
+# gateway (PORT_BASE+7) or the source dev range (PORT_BASE+70). Its data dir is a
+# fresh empty mount so the persistence guard does not fire on first boot.
+BOOTSTRAP_PORT="$((PORT_BASE + 8))"
+remdo_assert_browser_safe_port "${BOOTSTRAP_PORT}"
+BOOTSTRAP_CONTAINER_NAME="${IMAGE_NAME}-${BOOTSTRAP_PORT}"
+BOOTSTRAP_APP_PUBLIC_URL="http://${DOCKER_TEST_BROWSER_HOST}:${BOOTSTRAP_PORT}"
+BOOTSTRAP_HEALTH_URL="${BOOTSTRAP_APP_PUBLIC_URL%/}/health"
+BOOTSTRAP_DATA_DIR="${TEST_DATA_DIR%/}/bootstrap-home"
+
 if remdo_docker_daemon_is_rootless; then
   DOCKER_RUN_ARGS+=(--userns=host)
 fi
@@ -68,10 +80,12 @@ cleanup_data_dir() {
 cleanup() {
   cleanup_data_dir
   docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+  docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
 
 echo "Provisioning source OAuth client for ${APP_PUBLIC_URL}..."
 env \
@@ -261,4 +275,132 @@ for expected in "note1" "note2" "note3"; do
 done
 
 echo "Docker backup OK: ${BACKUP_DIR}"
+
+# ---------------------------------------------------------------------------
+# Scenario 2: ADMIN_SECRET-only bootstrap (secret generation + persistence).
+#
+# The main suite above passes every secret explicitly, exercising only the
+# "env-provided" branch of tools/bootstrap-secrets.ts. This scenario closes the
+# integration gap: it runs a fresh container with ONLY ADMIN_SECRET (no
+# AUTH_SECRET, no Y-Sweet pair) against an empty data mount, so the entrypoint's
+# bootstrap GENERATES and PERSISTS AUTH_SECRET and the Y-Sweet pair, then proves
+# a restart reuses them without rotation and that the self-generated AUTH_SECRET
+# drives a working app.
+echo "Running ADMIN_SECRET-only bootstrap scenario on ${BOOTSTRAP_APP_PUBLIC_URL}..."
+
+bootstrap_fail() {
+  docker logs "${BOOTSTRAP_CONTAINER_NAME}" || true
+  echo "ADMIN_SECRET-only bootstrap scenario failed: $1" >&2
+  exit 1
+}
+
+bootstrap_wait_healthy() {
+  local ready="false"
+  local _
+  for _ in {1..20}; do
+    if curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${BOOTSTRAP_PORT}:127.0.0.1" \
+      -kfsS "${BOOTSTRAP_HEALTH_URL}" >/dev/null 2>&1; then
+      ready="true"
+      break
+    fi
+    sleep 0.5
+  done
+  [[ "${ready}" == "true" ]]
+}
+
+# Override PORT so remdo_docker_run publishes the distinct bootstrap port. Pass
+# ONLY ADMIN_SECRET (+ APP_PUBLIC_URL, HOST, PORT_BASE, PORT). AUTH_SECRET and the
+# Y-Sweet pair are intentionally absent so the entrypoint bootstrap generates and
+# persists them under the mounted /app/data/secrets.
+PORT="${BOOTSTRAP_PORT}" remdo_docker_run "${IMAGE_NAME}" "${BOOTSTRAP_DATA_DIR}" \
+  -d --name "${BOOTSTRAP_CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
+  -e ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
+  -e APP_PUBLIC_URL="${BOOTSTRAP_APP_PUBLIC_URL}" \
+  -e HOST=127.0.0.1 \
+  -e PORT_BASE="${PORT_BASE}" \
+  -e PORT="${BOOTSTRAP_PORT}"
+
+# (a) The ADMIN_SECRET-only container boots healthy.
+if ! bootstrap_wait_healthy; then
+  bootstrap_fail "container did not become healthy at ${BOOTSTRAP_HEALTH_URL}"
+fi
+echo "Bootstrap scenario healthy: ${BOOTSTRAP_HEALTH_URL}"
+
+# (b) The generated secret files exist with the expected restrictive modes. We
+# inspect via `docker exec stat` (the container user owns them); modes only, no
+# secret values are read into the log.
+assert_bootstrap_mode() {
+  local target="$1"
+  local expected="$2"
+  local label="$3"
+  local actual
+  actual="$(docker exec "${BOOTSTRAP_CONTAINER_NAME}" stat -c '%a' "${target}" 2>/dev/null || true)"
+  if [[ "${actual}" != "${expected}" ]]; then
+    bootstrap_fail "${label} expected mode ${expected} but got '${actual}' (${target})"
+  fi
+}
+
+assert_bootstrap_mode "/app/data/secrets" "700" "secrets dir"
+assert_bootstrap_mode "/app/data/secrets/auth-secret" "600" "auth-secret file"
+assert_bootstrap_mode "/app/data/secrets/ysweet.json" "600" "ysweet.json file"
+echo "Bootstrap scenario generated secrets with 0700 dir / 0600 files."
+
+# (c) Restart reuses the persisted secrets without rotation. Capture the file
+# digests BEFORE restart (sha256 inside the container so secret values never
+# leave it), restart with the SAME data dir, and assert the digests are
+# unchanged AND the container still boots healthy (proving the persistence guard
+# did NOT fire — a fired guard exits non-zero and the container would crash-loop
+# instead of becoming healthy).
+bootstrap_digests() {
+  docker exec "${BOOTSTRAP_CONTAINER_NAME}" sh -c \
+    'sha256sum /app/data/secrets/auth-secret /app/data/secrets/ysweet.json' 2>/dev/null \
+    | awk '{ print $1 }'
+}
+
+digests_before="$(bootstrap_digests)"
+if [[ -z "${digests_before}" ]]; then
+  bootstrap_fail "could not read secret digests before restart"
+fi
+
+docker restart "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 \
+  || bootstrap_fail "docker restart failed"
+
+if ! bootstrap_wait_healthy; then
+  bootstrap_fail "container did not become healthy after restart (persistence guard may have fired)"
+fi
+
+digests_after="$(bootstrap_digests)"
+if [[ "${digests_before}" != "${digests_after}" ]]; then
+  bootstrap_fail "secret files rotated across restart (expected reuse)"
+fi
+echo "Bootstrap scenario reused persisted secrets across restart (no rotation)."
+
+# (d) Smoke: prove the self-generated AUTH_SECRET drives a working app.
+#
+# Choice: POST /api/admin/users with the ADMIN_SECRET. This is the lightest
+# scriptable check that genuinely exercises the generated secret: the route
+# authorizes with ADMIN_SECRET and then calls Better Auth's createUser, and
+# Better Auth is initialized with the bootstrapped AUTH_SECRET. If AUTH_SECRET
+# were missing or non-functional the container would not have started (the
+# entrypoint asserts it) and user creation would not succeed, so a 2xx here
+# proves ADMIN_SECRET + the generated AUTH_SECRET work end to end. We do not
+# assert the generated Y-Sweet token value (the host cannot know it). Omitting
+# the Origin header keeps Hono's CSRF middleware satisfied (it only rejects a
+# present, mismatched Origin), matching how the Playwright API context provisions
+# users.
+bootstrap_smoke_status="$(curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${BOOTSTRAP_PORT}:127.0.0.1" \
+  -ksS -o /dev/null -w '%{http_code}' \
+  -X POST "${BOOTSTRAP_APP_PUBLIC_URL%/}/api/admin/users" \
+  -H 'content-type: application/json' \
+  --data '{"adminSecret":"'"${DOCKER_TEST_ADMIN_SECRET}"'","name":"Bootstrap Smoke","email":"bootstrap-smoke@example.com","password":"bootstrap-smoke-password"}' \
+  2>/dev/null || true)"
+
+if [[ "${bootstrap_smoke_status}" != 2?? ]]; then
+  bootstrap_fail "admin provisioning smoke returned HTTP ${bootstrap_smoke_status} (expected 2xx)"
+fi
+echo "Bootstrap scenario admin provisioning OK (HTTP ${bootstrap_smoke_status})."
+
+docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
+echo "ADMIN_SECRET-only bootstrap scenario OK."
+
 cleanup_data_dir

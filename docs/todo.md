@@ -81,11 +81,7 @@ Rules:
 ## Env wiring redesign
 
 The implementation is done; the contract lives in
-[docs/config.md](./config.md). Remaining follow-up:
-
-- Docker E2E: add an ADMIN_SECRET-only scenario that exercises the in-container
-  secret generate+persist path (current E2E passes secrets explicitly, covering
-  only the env-provided branch).
+[docs/config.md](./config.md). No remaining active follow-ups.
 
 ### Deferred follow-up
 
