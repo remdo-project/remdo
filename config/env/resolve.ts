@@ -71,13 +71,11 @@ function validateProdServer(parsed: ParsedEnv): void {
     throw new Error('ADMIN_SECRET is required in production server config.');
   }
 
-  if (!parsed.YSWEET_SERVER_TOKEN) {
-    throw new Error('YSWEET_SERVER_TOKEN is required in production server config.');
-  }
-
-  if (!parsed.YSWEET_AUTH_KEY) {
-    throw new Error('YSWEET_AUTH_KEY is required in production server config.');
-  }
+  // The Y-Sweet auth_key/server_token pair is auto-bootstrapped (never an operator
+  // input), so it is not validated here. The Docker entrypoint asserts the
+  // bootstrap produced both before splitting them across processes — and the API
+  // process is deliberately started without YSWEET_AUTH_KEY (it only needs the
+  // server token), so requiring either key at this boundary would be wrong.
 
   if (!isAbsoluteHttpUrl(parsed.APP_PUBLIC_URL)) {
     throw new Error('APP_PUBLIC_URL must be an absolute http(s) URL in production server config.');

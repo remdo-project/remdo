@@ -109,8 +109,6 @@ describe('config env resolve', () => {
       AUTH_SECRET: 'production-auth-secret-0123456789',
       ADMIN_SECRET: 'production-admin-secret-0123456789',
       APP_PUBLIC_URL: 'https://remdo.example.com',
-      YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
-      YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
     });
 
     expect(resolved.server.AUTH_URL).toBe('https://remdo.example.com');
@@ -137,27 +135,24 @@ describe('config env resolve', () => {
 
     expect(() => resolveTestConfig({
       NODE_ENV: 'production',
-      AUTH_SECRET: 'production-auth-secret-0123456789',
-      ADMIN_SECRET: 'production-admin-secret-0123456789',
-      APP_PUBLIC_URL: 'https://remdo.example.com',
-    })).toThrow('YSWEET_SERVER_TOKEN is required in production server config.');
-
-    expect(() => resolveTestConfig({
-      NODE_ENV: 'production',
-      AUTH_SECRET: 'production-auth-secret-0123456789',
-      ADMIN_SECRET: 'production-admin-secret-0123456789',
-      APP_PUBLIC_URL: 'https://remdo.example.com',
-      YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
-    })).toThrow('YSWEET_AUTH_KEY is required in production server config.');
-
-    expect(() => resolveTestConfig({
-      NODE_ENV: 'production',
       APP_PUBLIC_URL: ':8080',
       AUTH_SECRET: 'production-auth-secret-0123456789',
       ADMIN_SECRET: 'production-admin-secret-0123456789',
-      YSWEET_SERVER_TOKEN: 'production-ysweet-server-token',
-      YSWEET_AUTH_KEY: 'production-ysweet-auth-key',
     })).toThrow('APP_PUBLIC_URL must be an absolute http(s) URL in production server config.');
+  });
+
+  it('does not require the auto-bootstrapped Y-Sweet pair in production server config', () => {
+    // Both Y-Sweet secrets are bootstrapped, and the API process is started
+    // without YSWEET_AUTH_KEY, so neither is validated at the config boundary.
+    const resolved = resolveTestConfig({
+      NODE_ENV: 'production',
+      AUTH_SECRET: 'production-auth-secret-0123456789',
+      ADMIN_SECRET: 'production-admin-secret-0123456789',
+      APP_PUBLIC_URL: 'https://remdo.example.com',
+    });
+
+    expect(resolved.server.YSWEET_AUTH_KEY).toBe('');
+    expect(resolved.server.YSWEET_SERVER_TOKEN).toBe('');
   });
 
   it('allows production utility config without app auth secrets', () => {
