@@ -1,7 +1,5 @@
 import type { DocumentAccessView } from '#domain/documents/access';
 
-export type { DocumentAccessView } from '#domain/documents/access';
-
 async function readError(response: Response, fallback: string): Promise<string> {
   try {
     const body = await response.json() as { error?: string };

@@ -1,25 +1,13 @@
 import { config } from '#config';
 import { HTTP_STATUS } from '#platform/http/status';
 import { resolveApiServerOrigin } from '#platform/net/origins';
+import { extractSessionCookie } from '#server/auth/session-cookie';
 import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
-
-const SESSION_COOKIE_PATTERN = /better-auth\.session_token=([^;]+)/u;
 
 let sessionCookiePromise: Promise<string> | null = null;
 
 function toApiUrl(pathname: string): string {
   return `${resolveApiServerOrigin({ loopback: true })}${pathname}`;
-}
-
-function extractSessionCookie(response: Response): string {
-  const extendedHeaders = response.headers as Headers & { getSetCookie?: () => string[] };
-  const getSetCookie = typeof extendedHeaders.getSetCookie === 'function' ? extendedHeaders.getSetCookie() : [];
-  const header = getSetCookie[0] ?? response.headers.get('set-cookie') ?? '';
-  const match = header.match(SESSION_COOKIE_PATTERN);
-  if (!match) {
-    throw new Error('Collab test session cookie missing from response.');
-  }
-  return `better-auth.session_token=${match[1]}`;
 }
 
 async function createOrSignInTestUser(): Promise<string> {

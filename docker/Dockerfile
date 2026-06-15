@@ -70,7 +70,14 @@ ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
 
 # hadolint ignore=DL3018
 RUN apk add --no-cache caddy \
-  && npm install -g "y-sweet@${YSWEET_VERSION}" \
+  && attempt=1 \
+  && until npm install -g "y-sweet@${YSWEET_VERSION}"; do \
+    [ "$attempt" -ge 3 ] && exit 1; \
+    delay=$((attempt * 5)); \
+    echo "y-sweet install failed; retrying in ${delay}s"; \
+    sleep "$delay"; \
+    attempt=$((attempt + 1)); \
+  done \
   && mkdir -p /app/data /etc/caddy /srv/remdo /var/log /usr/local/share/remdo
 
 # Install backup script and cron schedule (runs every minute).

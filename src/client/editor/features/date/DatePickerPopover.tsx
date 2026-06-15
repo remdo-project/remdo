@@ -3,7 +3,7 @@ import '@mantine/dates/styles.css';
 
 import { preventPickerMouseDown } from './picker-dom';
 
-export type DatePickerMode = 'edit' | 'insert';
+type DatePickerMode = 'edit' | 'insert';
 
 interface DatePickerPanelProps {
   isoDate: string;

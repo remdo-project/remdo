@@ -1,22 +1,16 @@
 export type {
-  ChildPosition,
   CollectionNote,
   Note,
   NoteId,
   NoteKind,
-  RelativePlacement,
 } from './notes';
 export type {
   DocumentAccessNote,
   DocumentSourceNote,
-  DocumentSourcesNote,
   DocumentNote,
   SourceServerNote,
-  SourceServersNote,
   UserDataNote,
-  UserDocumentsNote,
 } from './documents';
-export type { SourceServer } from '#domain/source-servers';
 export type { UserDocument } from '#domain/documents/user-data';
 export type {
   EditorNote,

@@ -1,7 +1,7 @@
 import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
 import { resolvePostAuthPath } from './post-auth-path';
 
-export type AuthenticatedLoginRedirect =
+type AuthenticatedLoginRedirect =
   | { href: string; kind: 'document-redirect' }
   | { kind: 'route-redirect'; path: string };
 

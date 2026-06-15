@@ -4,6 +4,7 @@ import path from 'node:path';
 import { createServerApp } from '#server/app';
 import { createServerAuth } from '#server/auth/auth';
 import type { CreateAuthUserInput } from '#server/auth/auth';
+import { extractSessionCookie } from '#server/auth/session-cookie';
 import type { YSweetDocumentTokenManager } from '#server/collab-token';
 import { createServerDatabaseClient } from '#server/db/client';
 import type { LinkableRemdoServer } from '#server/remdo-oauth/config';
@@ -16,18 +17,6 @@ const TEST_USER = {
   password: 'server-password-1234',
 } as const;
 export const TEST_ADMIN_SECRET = 'test-admin-secret-0123456789';
-const SESSION_COOKIE_PATTERN = /better-auth\.session_token=([^;]+)/u;
-
-function extractSessionCookie(response: Response): string {
-  const extendedHeaders = response.headers as Headers & { getSetCookie?: () => string[] };
-  const getSetCookie = typeof extendedHeaders.getSetCookie === 'function' ? extendedHeaders.getSetCookie() : [];
-  const header = getSetCookie[0] ?? response.headers.get('set-cookie') ?? '';
-  const match = header.match(SESSION_COOKIE_PATTERN);
-  if (!match) {
-    throw new Error('Better Auth session cookie missing from response.');
-  }
-  return `better-auth.session_token=${match[1]}`;
-}
 
 export function createServerAppHarness({
   adminSecret = TEST_ADMIN_SECRET,
