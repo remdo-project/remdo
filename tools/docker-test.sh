@@ -131,10 +131,19 @@ PLAYWRIGHT_ENV=(
   YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}"
 )
 
-if ! env "${PLAYWRIGHT_ENV[@]}" \
+# Sourcing env.defaults.sh at the top of this script exported the gateway PORT
+# and every PORT_BASE-derived service port (COLLAB_SERVER_PORT, API_SERVER_PORT,
+# HMR_PORT, ...) into this process. Those exports would leak into the source
+# server below and win over its shifted PORT_BASE, so clear them and let
+# env.defaults.sh re-derive the source range from PORT_BASE+SOURCE_PORT_SHIFT.
+# PORT and YSWEET_CONNECTION_STRING stay explicit as the source's pinned inputs.
+if ! env -u HMR_PORT -u VITEST_PORT -u VITEST_PREVIEW_PORT -u COLLAB_SERVER_PORT \
+  -u PREVIEW_PORT -u PLAYWRIGHT_UI_PORT -u API_SERVER_PORT \
+  "${PLAYWRIGHT_ENV[@]}" \
   DATA_DIR="${SOURCE_DATA_DIR}" \
   HOST=0.0.0.0 \
   PORT_BASE="$((PORT_BASE + SOURCE_PORT_SHIFT))" \
+  PORT="${SOURCE_PORT}" \
   YSWEET_CONNECTION_STRING="${SOURCE_YSWEET_CONNECTION_STRING}" \
   E2E_WRITE_STORAGE_STATE="${DOCKER_E2E_AUTH_STATE_PATH}" \
   E2E_STORAGE_STATE="${DOCKER_E2E_AUTH_STATE_PATH}" \
