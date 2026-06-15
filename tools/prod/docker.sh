@@ -24,19 +24,16 @@ fi
 # only derives APP_PUBLIC_URL from it (URL-from-PORT) and never changes it. When
 # APP_PUBLIC_URL is set, it is used as-is and PORT is left untouched.
 
-: "${AUTH_SECRET:?Set AUTH_SECRET in .env}"
+# Operators set only ADMIN_SECRET (never auto-generated). AUTH_SECRET and the
+# Y-Sweet auth_key/server_token pair are bootstrapped inside the container from
+# the persistent DATA_DIR mount; pass them through only when explicitly provided.
 : "${ADMIN_SECRET:?Set ADMIN_SECRET in .env}"
-: "${YSWEET_AUTH_KEY:?Set YSWEET_AUTH_KEY in .env}"
-: "${YSWEET_SERVER_TOKEN:?Set YSWEET_SERVER_TOKEN in .env}"
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 remdo_require_rootless_docker
 
 DOCKER_ENV_ARGS=(
-  -e AUTH_SECRET="${AUTH_SECRET}"
   -e ADMIN_SECRET="${ADMIN_SECRET}"
-  -e YSWEET_AUTH_KEY="${YSWEET_AUTH_KEY}"
-  -e YSWEET_SERVER_TOKEN="${YSWEET_SERVER_TOKEN}"
   -e APP_PUBLIC_URL="${APP_PUBLIC_URL}"
   -e ALLOW_SIGNUP="${ALLOW_SIGNUP}"
   -e LINKABLE_REMDO_SERVERS_JSON="${LINKABLE_REMDO_SERVERS_JSON:-}"
@@ -45,6 +42,18 @@ DOCKER_ENV_ARGS=(
   -e PORT_BASE="${PORT_BASE}"
   -e PORT="${PORT}"
 )
+
+# Forward bootstrap-managed secrets only when the operator set them explicitly,
+# so empty values never shadow the in-container bootstrap.
+if [[ -n "${AUTH_SECRET:-}" ]]; then
+  DOCKER_ENV_ARGS+=(-e AUTH_SECRET="${AUTH_SECRET}")
+fi
+if [[ -n "${YSWEET_AUTH_KEY:-}" ]]; then
+  DOCKER_ENV_ARGS+=(-e YSWEET_AUTH_KEY="${YSWEET_AUTH_KEY}")
+fi
+if [[ -n "${YSWEET_SERVER_TOKEN:-}" ]]; then
+  DOCKER_ENV_ARGS+=(-e YSWEET_SERVER_TOKEN="${YSWEET_SERVER_TOKEN}")
+fi
 
 echo "Docker target: ${APP_PUBLIC_URL}"
 DOCKER_RUN_ARGS=(--rm --userns=host)
