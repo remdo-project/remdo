@@ -110,6 +110,7 @@
     "@mantine/core": "catalog:",
     "@mantine/dates": "catalog:",
     "@mantine/hooks": "catalog:",
+    "@t3-oss/env-core": "catalog:",
     "@tabler/icons-react": "catalog:",
     "@y-sweet/client": "catalog:",
     "@y-sweet/sdk": "catalog:",
@@ -129,7 +130,8 @@
     "vite-plugin-pwa": "catalog:",
     "workbox-window": "catalog:",
     "ws": "catalog:",
-    "yjs": "catalog:"
+    "yjs": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",

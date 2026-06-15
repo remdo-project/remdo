@@ -57,6 +57,9 @@ catalogs:
     '@playwright/test':
       specifier: ^1.60.0
       version: 1.60.0
+    '@t3-oss/env-core':
+      specifier: ^0.13.11
+      version: 0.13.11
     '@tabler/icons-react':
       specifier: ^3.44.0
       version: 3.44.0
@@ -213,6 +216,9 @@ catalogs:
     yjs:
       specifier: ^13.6.31
       version: 13.6.31
+    zod:
+      specifier: ^4.4.3
+      version: 4.4.3
 
 overrides:
   '@babel/plugin-transform-modules-systemjs': '>=7.29.4'
@@ -273,6 +279,9 @@ importers:
       '@mantine/hooks':
         specifier: 'catalog:'
         version: 9.3.1(react@19.2.7)
+      '@t3-oss/env-core':
+        specifier: 'catalog:'
+        version: 0.13.11(typescript@6.0.3)(zod@4.4.3)
       '@tabler/icons-react':
         specifier: 'catalog:'
         version: 3.44.0(react@19.2.7)
@@ -333,6 +342,9 @@ importers:
       yjs:
         specifier: 'catalog:'
         version: 13.6.31
+      zod:
+        specifier: 'catalog:'
+        version: 4.4.3
     devDependencies:
       '@antfu/eslint-config':
         specifier: 'catalog:'
@@ -2631,6 +2643,23 @@ packages:
 
   '@surma/rollup-plugin-off-main-thread@2.2.3':
     resolution: {integrity: sha512-lR8q/9W7hZpMWweNiAKU7NQerBnzQQLvi8qnTDU/fxItPhtZVMbPV3lbCwjhIlNBe9Bbr5V+KHshvWmVSG9cxQ==}
+
+  '@t3-oss/env-core@0.13.11':
+    resolution: {integrity: sha512-sM7GYY+KL7H/Hl0BE0inWfk3nRHZOLhmVn7sHGxaZt9FAR6KqREXAE+6TqKfiavfXmpRxO/OZ2QgKRd+oiBYRQ==}
+    peerDependencies:
+      arktype: ^2.1.0
+      typescript: '>=5.0.0'
+      valibot: ^1.0.0-beta.7 || ^1.0.0
+      zod: ^3.24.0 || ^4.0.0
+    peerDependenciesMeta:
+      arktype:
+        optional: true
+      typescript:
+        optional: true
+      valibot:
+        optional: true
+      zod:
+        optional: true
 
   '@tabler/icons-react@3.44.0':
     resolution: {integrity: sha512-8+rvzBbVm/1Z3sG3x7GUNAaxIKxwgz8xaMhRs23nrCnMTKRFAhEC+82zAIFeAA0seXdrAGX5HFCkaLpGK2rVHg==}
@@ -8593,6 +8622,11 @@ snapshots:
       json5: 2.2.3
       magic-string: 0.25.9
       string.prototype.matchall: 4.0.12
+
+  '@t3-oss/env-core@0.13.11(typescript@6.0.3)(zod@4.4.3)':
+    optionalDependencies:
+      typescript: 6.0.3
+      zod: 4.4.3
 
   '@tabler/icons-react@3.44.0(react@19.2.7)':
     dependencies:
