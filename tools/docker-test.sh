@@ -45,6 +45,26 @@ if remdo_docker_daemon_is_rootless; then
   DOCKER_RUN_ARGS+=(--userns=host)
 fi
 
+# Playwright's request context resolves the browser host via the host OS rather
+# than Chromium, so the app host must map to loopback for `page.request`. This is
+# a no-op where *.localhost already resolves (systemd-resolved / nss-myhostname)
+# and warns when it cannot self-provision (e.g. a read-only /etc/hosts).
+ensure_browser_host_resolves() {
+  local host="$1"
+
+  if getent hosts "${host}" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if [[ -w /etc/hosts ]]; then
+    printf '127.0.0.1 %s\n' "${host}" >> /etc/hosts
+    echo "Mapped ${host} -> 127.0.0.1 in /etc/hosts for Playwright."
+  else
+    echo "WARNING: ${host} does not resolve and /etc/hosts is not writable." >&2
+    echo "         Add '127.0.0.1 ${host}' to /etc/hosts before running test:e2e:docker." >&2
+  fi
+}
+
 cleanup_data_dir() {
   if [[ "${DATA_CLEANED}" == "true" ]]; then
     return
@@ -67,6 +87,8 @@ cleanup() {
   docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
+
+ensure_browser_host_resolves "${DOCKER_TEST_BROWSER_HOST}"
 
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 
