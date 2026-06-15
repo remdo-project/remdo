@@ -15,6 +15,21 @@ export REMDO_ROOT
 export XDG_DATA_HOME XDG_CONFIG_HOME
 
 remdo_configure_caddy_env
+
+# Bootstrap secrets (production only). Resolves AUTH_SECRET and the Y-Sweet
+# auth_key/server_token pair from env -> persisted DATA_DIR/secrets -> generate,
+# so operators only set ADMIN_SECRET (+ APP_PUBLIC_URL). The tool emits
+# `export VAR='...'` lines on stdout only; we eval them so secrets never reach a
+# log. ADMIN_SECRET is never generated and is still asserted below.
+if [ "${NODE_ENV}" = "production" ]; then
+  # Capture into a variable first so a non-zero exit (e.g. the persistence
+  # guard) aborts the entrypoint; `eval "$(...)"` would swallow the status.
+  bootstrap_exports="$(node /app/bootstrap-secrets.cjs)"
+  eval "${bootstrap_exports}"
+  unset bootstrap_exports
+  export AUTH_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN
+fi
+
 remdo_require_api_secrets
 
 COLLAB_DATA_DIR="${DATA_DIR%/}/collab"
