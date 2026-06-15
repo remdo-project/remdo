@@ -17,6 +17,26 @@ export const STABLE_AUTH_USERS = {
 
 export type StableAuthUser = (typeof STABLE_AUTH_USERS)[keyof typeof STABLE_AUTH_USERS];
 
+/**
+ * Create the stable dev users (Alice/Bob) if missing, else verify each by
+ * signing in. SQL-only; the caller must pass an already-`ensureReady()` auth.
+ */
+export async function provisionDevUsers(auth: ServerAuth): Promise<void> {
+  for (const user of Object.values(STABLE_AUTH_USERS)) {
+    const response = await auth.createUser(user, new Headers());
+    if (response.ok) {
+      continue;
+    }
+    try {
+      await createStableAuthUserSessionHeaders(auth, user);
+    } catch {
+      throw new Error(
+        `Failed to create or verify ${user.email}. Delete the existing debug user or auth DB.`,
+      );
+    }
+  }
+}
+
 export async function createStableAuthUserSessionHeaders(
   auth: ServerAuth,
   user: StableAuthUser,

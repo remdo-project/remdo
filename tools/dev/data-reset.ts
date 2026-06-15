@@ -3,38 +3,20 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
-import { createYjsProvider } from '@y-sweet/client';
-import { DocumentManager } from '@y-sweet/sdk';
-import {
-  createBindingV2__EXPERIMENTAL,
-  syncLexicalUpdateToYjsV2__EXPERIMENTAL,
-  syncYjsChangesToLexicalV2__EXPERIMENTAL,
-  syncYjsStateToLexicalV2__EXPERIMENTAL,
-} from '@lexical/yjs';
-import { createEditor } from 'lexical';
-import WebSocket from 'ws';
-import * as Y from 'yjs';
-import type { Doc, Transaction } from 'yjs';
-import type { Provider } from '@lexical/yjs';
-import type { CreateEditorArgs, LexicalEditor, SerializedEditorState } from 'lexical';
+import type { SerializedEditorState } from 'lexical';
 
 import { config } from '#config';
-import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
-import { CollabSession } from '#collaboration/session';
-import { waitForSessionAttachment } from '#collaboration/wait-for-session-attachment';
-import { resolveYSweetConnectionString } from '#server/collab-token';
-import type { CollaborationSessionProvider } from '#collaboration/runtime';
-import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
-import { createEditorInitialConfig } from '#client/editor/runtime/config';
 import type { ServerAuth } from '#server/auth/auth';
 import { createServerRuntime } from '#server/runtime';
 import type { DocumentRegistry, RegisteredDocument } from '#server/documents/document-registry';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { createUserDocument } from '#server/documents/current-user';
 import type { YSweetDocumentTokenManager } from '#server/collab-token';
+import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
 import { restoreEditorStateDefaults } from '#tests-common/editor-state-defaults';
-import { STABLE_AUTH_USERS, createStableAuthUserSessionHeaders } from '../lib/stable-auth-users';
+import { STABLE_AUTH_USERS, provisionDevUsers } from '../lib/stable-auth-users';
 import type { StableAuthUser } from '../lib/stable-auth-users';
+import { waitForEditorUpdate, withHeadlessCollabSession } from '../lib/headless-collab-session';
 
 const FIXTURE_DIR = path.resolve('tests/fixtures');
 const FIXTURE_TITLE_PREFIX = 'fixture: ';
@@ -59,157 +41,12 @@ function parseArgs(argv: string[]): CliOptions {
   return options;
 }
 
-// Mirrors tools/dev/users.ts provisionDevUser: create, else verify by signing in.
-async function provisionDevUser(auth: ServerAuth, user: StableAuthUser): Promise<void> {
-  const response = await auth.createUser(user, new Headers());
-  if (response.ok) {
-    return;
-  }
-  try {
-    await createStableAuthUserSessionHeaders(auth, user);
-    return;
-  } catch {
-    // Fall through to actionable error.
-  }
-  throw new Error(`Failed to create or verify ${user.email}. Delete the existing debug user or auth DB.`);
-}
-
 async function listFixtureNames(): Promise<string[]> {
   const entries = await fs.readdir(FIXTURE_DIR);
   return entries
     .filter((entry) => entry.endsWith('.json'))
     .map((entry) => entry.slice(0, -'.json'.length))
     .sort();
-}
-
-type SharedRootObserver = (
-  events: Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
-  transaction: Transaction,
-) => void;
-interface SharedRoot {
-  observeDeep: (callback: SharedRootObserver) => void;
-  unobserveDeep: (callback: SharedRootObserver) => void;
-}
-type SnapshotProvider = Provider & { connect: () => void; destroy: () => void };
-type SnapshotProviderWithWebSocket = SnapshotProvider & { _WS?: typeof globalThis.WebSocket };
-
-function createInternalProviderFactory() {
-  const manager = new DocumentManager(resolveYSweetConnectionString());
-  return async (docId: string, docMap: Map<string, Doc>) => {
-    let doc = docMap.get(docId);
-    if (!doc) {
-      doc = new Y.Doc();
-      docMap.set(docId, doc);
-    }
-    doc.get('root', Y.XmlText);
-    const token = await manager.getOrCreateDocAndToken(docId, { authorization: 'full' });
-    const provider = createYjsProvider(doc, docId, async () => token, {
-      connect: false,
-      offlineSupport: false,
-      showDebuggerLink: false,
-    });
-    let destroyed = false;
-    const originalDestroy = provider.destroy.bind(provider);
-    return {
-      doc,
-      provider: Object.assign(provider as unknown as Provider, {
-        destroy: () => {
-          if (destroyed) {
-            return;
-          }
-          destroyed = true;
-          provider.connect = () => Promise.resolve();
-          provider.disconnect();
-          originalDestroy();
-        },
-      }) as CollaborationSessionProvider,
-    };
-  };
-}
-
-function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {
-  return new Promise((resolve) => {
-    const unregister = editor.registerUpdateListener(() => {
-      unregister();
-      resolve();
-    });
-  });
-}
-
-async function waitForPersistedData(docId: string, timeoutMs = 15_000): Promise<void> {
-  const target = path.join(config.env.DATA_DIR, 'collab', docId, 'data.ysweet');
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    try {
-      await fs.access(target);
-      return;
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    }
-  }
-  throw new Error(`Timed out waiting for ${target}`);
-}
-
-async function seedDocumentContent(
-  docId: string,
-  serialized: SerializedEditorState,
-  collabOrigin: string,
-  collabApiOrigin: string,
-): Promise<void> {
-  const docMap = new Map<string, Doc>();
-  const session = new CollabSession({
-    enabled: true,
-    docId,
-    origin: collabOrigin,
-    apiOrigin: collabApiOrigin,
-    providerFactory: createInternalProviderFactory(),
-  });
-  session.attach(docMap);
-  const attached = await waitForSessionAttachment(session, docMap, docId);
-  const provider = attached.provider as SnapshotProviderWithWebSocket;
-  provider._WS = WebSocket as unknown as typeof globalThis.WebSocket;
-  const syncDoc = attached.doc;
-  const editor = createEditor(createEditorInitialConfig() as CreateEditorArgs);
-  const binding = createBindingV2__EXPERIMENTAL(editor, docId, syncDoc, docMap);
-  const sharedRoot = binding.root as SharedRoot;
-  const observer: SharedRootObserver = (events, transaction) => {
-    if (transaction.origin === binding) {
-      return;
-    }
-    syncYjsChangesToLexicalV2__EXPERIMENTAL(
-      binding, provider, events, transaction, transaction.origin instanceof Y.UndoManager,
-    );
-  };
-  sharedRoot.observeDeep(observer);
-  const removeUpdateListener = editor.registerUpdateListener((payload) => {
-    const { prevEditorState, editorState, dirtyElements, normalizedNodes, tags } = payload;
-    syncLexicalUpdateToYjsV2__EXPERIMENTAL(
-      binding, provider, prevEditorState, editorState, dirtyElements, normalizedNodes, tags,
-    );
-  });
-
-  try {
-    void (provider as SnapshotProvider).connect();
-    await session.awaitSynced();
-    const initialUpdate = waitForEditorUpdate(editor);
-    syncYjsStateToLexicalV2__EXPERIMENTAL(binding, provider);
-    await initialUpdate;
-
-    const runtimeState = prepareEditorStateForRuntime(serialized, docId);
-    const parsed = editor.parseEditorState(JSON.stringify(runtimeState));
-    const loadUpdate = waitForEditorUpdate(editor);
-    editor.setEditorState(parsed);
-    await loadUpdate;
-    await session.awaitSynced();
-  } finally {
-    sharedRoot.unobserveDeep(observer);
-    removeUpdateListener();
-    session.destroy();
-    for (const doc of docMap.values()) {
-      doc.destroy();
-    }
-  }
-  await waitForPersistedData(docId);
 }
 
 function fixtureTitle(name: string): string {
@@ -230,6 +67,16 @@ async function readFixtureState(name: string): Promise<SerializedEditorState> {
   return restoreEditorStateDefaults(JSON.parse(raw) as SerializedEditorState);
 }
 
+async function seedDocumentContent(docId: string, serialized: SerializedEditorState): Promise<void> {
+  await withHeadlessCollabSession(docId, (editor) => {
+    const runtimeState = prepareEditorStateForRuntime(serialized, docId);
+    const parsed = editor.parseEditorState(JSON.stringify(runtimeState));
+    const loaded = waitForEditorUpdate(editor);
+    editor.setEditorState(parsed);
+    return loaded;
+  });
+}
+
 async function deleteSeededDocument(
   database: SqliteServerDatabaseClient,
   document: RegisteredDocument,
@@ -247,8 +94,6 @@ async function seedUserFixtures(
   auth: ServerAuth,
   user: StableAuthUser,
   fixtureNames: string[],
-  collabOrigin: string,
-  collabApiOrigin: string,
   fresh: boolean,
 ): Promise<number> {
   const authUser = await auth.findUserByEmail(user.email);
@@ -277,7 +122,7 @@ async function seedUserFixtures(
     const docId = reuse
       ? reuse.id
       : (await createUserDocument(registry, tokenManager, authUser.id, title, { auth })).id;
-    await seedDocumentContent(docId, serialized, collabOrigin, collabApiOrigin);
+    await seedDocumentContent(docId, serialized);
     count += 1;
     console.info(`  ${user.email}: ${reuse ? 'updated' : 'created'} "${title}" -> ${docId}`);
   }
@@ -295,11 +140,7 @@ async function main(): Promise<void> {
   const runtime = createServerRuntime();
   try {
     await runtime.auth.ensureReady();
-    for (const user of Object.values(STABLE_AUTH_USERS)) {
-      await provisionDevUser(runtime.auth, user);
-    }
-    const collabOrigin = resolveCollabServerOrigin({ loopback: true });
-    const collabApiOrigin = resolveApiServerOrigin({ loopback: true });
+    await provisionDevUsers(runtime.auth);
     let total = 0;
     for (const user of Object.values(STABLE_AUTH_USERS)) {
       total += await seedUserFixtures(
@@ -309,8 +150,6 @@ async function main(): Promise<void> {
         runtime.auth,
         user,
         fixtureNames,
-        collabOrigin,
-        collabApiOrigin,
         options.fresh,
       );
     }
