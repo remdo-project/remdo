@@ -54,7 +54,15 @@ RUN mkdir -p /usr/local/bin \
     --target=node22 \
     --tsconfig=tsconfig.json \
     --banner:js='#!/usr/bin/env node' \
-    --outfile=/app/backup.mjs
+    --outfile=/app/backup.mjs \
+  && pnpm dlx esbuild tools/bootstrap-secrets.ts \
+    --platform=node \
+    --format=cjs \
+    --bundle \
+    --target=node22 \
+    --tsconfig=tsconfig.json \
+    --banner:js='#!/usr/bin/env node' \
+    --outfile=/app/bootstrap-secrets.cjs
 
 ############################
 # Runner: serve SPA + YJS  #
@@ -96,11 +104,13 @@ COPY docker/entrypoint-env.sh /usr/local/share/remdo/entrypoint-env.sh
 COPY --from=builder /app/remdo-api-server.cjs /app/remdo-api-server.cjs
 COPY --from=builder /app/snapshot.mjs /app/snapshot.mjs
 COPY --from=builder /app/backup.mjs /app/backup.mjs
+COPY --from=builder /app/bootstrap-secrets.cjs /app/bootstrap-secrets.cjs
 
 RUN chmod +x /entrypoint.sh
 RUN chmod +x /app/remdo-api-server.cjs
 RUN chmod +x /app/snapshot.mjs
 RUN chmod +x /app/backup.mjs
+RUN chmod +x /app/bootstrap-secrets.cjs
 
 EXPOSE 8080
 
