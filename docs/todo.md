@@ -78,19 +78,36 @@ Rules:
   recover cleanly. This is not required for sharing, but it is the same header
   area and async-command UX pattern as the sharing control.
 
-## Production environment secrets follow-ups
+## Env wiring redesign
 
-- Reduce the number of required production secret env vars where possible.
-  `AUTH_SECRET`, `ADMIN_SECRET`, `YSWEET_AUTH_KEY`, and `YSWEET_SERVER_TOKEN`
-  are all currently operator-provided, which makes first-run setup easy to get
-  wrong.
-- Consider a production bootstrap/generation flow for secrets that can safely be
-  created by RemDo itself. Keep generated values stable after first run, make
-  rotation explicit, and do not hide secrets that operators must back up or move
-  between hosts.
-- Decide which secrets must remain distinct product concepts. For example,
-  session/auth signing, admin provisioning, and Y-Sweet auth may deserve
-  separate keys even if generation is automated.
+Target behavior is specified in [docs/config.md](./config.md): one config owner,
+a small set of inputs with everything else derived, `PORT_BASE` offsets confined
+to dev with fixed prod ports, `APP_PUBLIC_URL` as link-generation identity
+decoupled from the bind `PORT`, and `env -> DATA_DIR file -> generate+persist`
+secret bootstrap so operators set only `ADMIN_SECRET`. Implementation sequencing:
+
+- Collapse the three derivation layers into the `config/env` owner: move port
+  derivation out of `tools/env.defaults.sh`, fold the `AUTH_URL` and prod
+  validation in `config/_internal/env/load.ts` into the one resolver, and delete
+  the `RUN_MODE_PORT_SHIFT` / `REMDO_PRESERVE_PORT` / `+40` machinery.
+- Stop deriving the listen `PORT` from `APP_PUBLIC_URL` in
+  `tools/prod/docker.sh`; pass raw inputs only and resolve inside the container
+  entrypoint.
+- Add the secret bootstrap (including `y-sweet gen-auth` for the matched pair)
+  and the loud `DATA_DIR`-not-persistent failure guard.
+- Update `.env.example`, `render.yaml`, and `docs/run-modes.md` to the reduced
+  input surface; collab/auth token paths change, so unit + collab + Docker E2E
+  are all in scope.
+
+### Deferred follow-up
+
+- One-service-per-container split. Docker treats running the client, API, and
+  Y-Sweet collaboration server in a single image as a multiple-services-per-
+  container anti-pattern, and that shape is what forces the multi-port machinery.
+  Splitting into separate containers (compose / managed multi-service) would let
+  each service bind a fixed port and delete most of the config module, but it is
+  a larger deployment/Dockerfile/Caddy change and is out of scope for the env
+  wiring redesign above.
 
 ## Document import / upload follow-ups
 

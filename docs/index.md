@@ -21,6 +21,9 @@ outdated or a doc’s role materially changes.
   delivery surfaces, gateway/origin boundaries, Better Auth identity, document
   identity, Kysely-backed document-registry ownership, collaboration runtime
   building blocks, and multi-hub terms.
+- `docs/config.md` (Medium). Configuration boundary: the single config owner,
+  the settable input variables vs. derived values, dev/prod port regimes,
+  `APP_PUBLIC_URL`-vs-bind-`PORT` separation, and the secret bootstrap contract.
 - `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch
   conventions, editor feature module layout, and pre-1.0 compatibility policy
   (no default migration/back-compat requirements).
@@ -103,7 +106,8 @@ updated like other doc entries.
    to it; eliminate duplicates and replace any extra copies with pointers.
 2. **Top-down linking.** Prefer links from higher-level docs (index, concepts)
    into detailed docs (selection, indent/outdent, reordering); same-level links
-   only when they add clear value.
+   only when they add clear value. Point to another doc once per section, not in
+   every note — a single deferral covers the section.
 3. **Self-contained behavior.** Behavior must be clear without external
    sources. Put external references in final `References`; keep useful internal
    links inline.
@@ -119,3 +123,9 @@ updated like other doc entries.
 8. **Move/rename hygiene.** When moving or renaming docs, update all inbound
    links and the documentation map in the same change; do not leave temporary
    broken references.
+9. **Minimal by default.** State the rule, not the inventory. Cut a clause unless
+   its absence would let someone misuse the contract. This removes: things the
+   reader can confirm in code (component lists, constants/offsets, accessor or
+   file names, "where X lives" pointers — good design makes that findable),
+   rationale (why-not justifications, prior-art name-drops), and how-to-use steps
+   (a feature one would reach through the app, not the docs).
