@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 const boolish = z
-  .union([z.boolean(), z.enum(['true', 'false'])])
-  .transform((v) => (typeof v === 'boolean' ? v : v === 'true'))
+  .enum(['true', 'false'])
+  .transform((v) => v === 'true')
   .default(false);
 
 const port = z.coerce.number().int().min(0).max(65_535).default(0);
@@ -20,16 +20,25 @@ export const envSchema = {
   API_SERVER_PORT: port,
   DEV_DOCUMENT_ID: str,
   YSWEET_CONNECTION_STRING: str,
+  // Private key passed to Y-Sweet so it can verify document client tokens.
   YSWEET_AUTH_KEY: str,
+  // Y-Sweet server token used by RemDo API and backup tools.
   YSWEET_SERVER_TOKEN: str,
+  // Better Auth application secret.
   AUTH_SECRET: str,
+  // Operator secret for admin provisioning actions.
   ADMIN_SECRET: str,
+  // Canonical public app URL for server-mode auth and gateway behavior.
   APP_PUBLIC_URL: str,
+  // Canonical auth URL. tools/env.defaults.sh derives this for local dev modes.
   AUTH_URL: str,
+  // JSON array of configured source RemDo servers available for OAuth account linking.
   LINKABLE_REMDO_SERVERS_JSON: str,
+  // Stable dev-only OAuth client used by the Docker home server to link the dev source server.
   REMDO_DEV_OAUTH_CLIENT_ID: str,
   REMDO_DEV_OAUTH_CLIENT_SECRET: str,
   REMDO_DEV_HOME_ORIGIN: str,
+  // Product signup policy. tools/env.defaults.sh sets true outside production.
   ALLOW_SIGNUP: boolish,
   PREVIEW_PORT: port,
   VITEST_PORT: port,
@@ -41,4 +50,5 @@ export const envSchema = {
 
 export type EnvKey = keyof typeof envSchema;
 
+// Browser-exposed keys (mirrors the previous spec's client:true flags). Keep in sync with envSchema above.
 export const CLIENT_KEYS = new Set<EnvKey>(['COLLAB_ENABLED', 'DEV_DOCUMENT_ID']);
