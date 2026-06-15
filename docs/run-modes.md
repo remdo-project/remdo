@@ -57,19 +57,19 @@ per-mode facts.
   4. set `APP_PUBLIC_URL` to the canonical public URL; the launcher prints it
      before startup, use that URL
   5. local Docker uses self-signed HTTPS by default
-  7. current server runtime runs both the RemDo API process and the Y-Sweet
+  6. current server runtime runs both the RemDo API process and the Y-Sweet
      collaboration server behind the same gateway
-  8. Better Auth runs inside the RemDo API process and stores users/sessions
+  7. Better Auth runs inside the RemDo API process and stores users/sessions
      in the same SQLite database file as the document registry; the registry
      owns document ownership, document titles, document access, and per-user
      data/home rows, while Y-Sweet persists normal documents and the read-only
      user-data projection
-  9. browser clients reach collaboration through RemDo API Y-Sweet document
+  8. browser clients reach collaboration through RemDo API Y-Sweet document
      client token issuance and the proxied Y-Sweet sync path (`/d/*`), not
      direct Y-Sweet document-control routes
-  10. the collaboration server runs with Y-Sweet auth enabled; Y-Sweet startup
-      uses the bootstrapped auth key, while the RemDo API uses the matching
-      server token from the same pair
+  9. the collaboration server runs with Y-Sweet auth enabled; Y-Sweet startup
+     uses the bootstrapped auth key, while the RemDo API uses the matching
+     server token from the same pair
 
 ### Managed cloud app server
 
