@@ -72,6 +72,17 @@ describe('bootstrap-secrets', () => {
       expect(fs.existsSync(path.join(dataDir, 'secrets', 'auth-secret'))).toBe(true);
     });
 
+    it('treats a present-but-empty persisted file as unset and generates instead', () => {
+      const dataDir = tempDataDir();
+      const secretsDir = path.join(dataDir, 'secrets');
+      fs.mkdirSync(secretsDir, { recursive: true });
+      fs.writeFileSync(path.join(secretsDir, 'auth-secret'), '   \n');
+      const result = resolveAuthSecret({ dataDir, envValue: undefined });
+      expect(result.length).toBeGreaterThanOrEqual(32);
+      // The blank file is overwritten with the freshly generated secret.
+      expect(fs.readFileSync(path.join(secretsDir, 'auth-secret'), 'utf8')).toBe(result);
+    });
+
     it('fails loudly when generating a fresh secret against an existing dataset (remdo.sqlite)', () => {
       const dataDir = tempDataDir();
       fs.writeFileSync(path.join(dataDir, 'remdo.sqlite'), 'pretend-db');
@@ -176,6 +187,24 @@ describe('bootstrap-secrets', () => {
         envServerToken: undefined,
         generate,
       })).toThrow(/not valid JSON/);
+      expect(generate).not.toHaveBeenCalled();
+    });
+
+    it('throws a clear error (not a TypeError) when a persisted field is a non-string', () => {
+      const dataDir = tempDataDir();
+      const secretsDir = path.join(dataDir, 'secrets');
+      fs.mkdirSync(secretsDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(secretsDir, 'ysweet.json'),
+        JSON.stringify({ privateKey: 123, serverToken: 456 }),
+      );
+      const generate = vi.fn(fakeGenerator);
+      expect(() => resolveYSweetPair({
+        dataDir,
+        envAuthKey: undefined,
+        envServerToken: undefined,
+        generate,
+      })).toThrow(/missing privateKey\/serverToken/);
       expect(generate).not.toHaveBeenCalled();
     });
 

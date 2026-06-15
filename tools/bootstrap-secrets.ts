@@ -39,8 +39,8 @@ export interface YSweetPair {
 
 export type YSweetGenerator = () => YSweetPair;
 
-function isPresent(value: string | undefined): value is string {
-  return value !== undefined && value.trim() !== '';
+function isPresent(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
 }
 
 function secretsDir(dataDir: string): string {
@@ -107,7 +107,12 @@ export function resolveAuthSecret({ dataDir, envValue }: ResolveAuthSecretArgs):
 
   const filePath = path.join(secretsDir(dataDir), AUTH_SECRET_FILE);
   if (fs.existsSync(filePath)) {
-    return fs.readFileSync(filePath, 'utf8').trim();
+    const persisted = fs.readFileSync(filePath, 'utf8').trim();
+    if (persisted !== '') {
+      return persisted;
+    }
+    // A present-but-empty file is treated as absent: fall through to generate
+    // (guarded by the persistence check below) rather than return ''.
   }
 
   // About to generate fresh: refuse if an existing dataset is present.
@@ -138,16 +143,17 @@ export function resolveYSweetPair({
 
   const filePath = path.join(secretsDir(dataDir), YSWEET_FILE);
   if (fs.existsSync(filePath)) {
-    let parsed: Partial<YSweetPair>;
+    let parsed: unknown;
     try {
-      parsed = JSON.parse(fs.readFileSync(filePath, 'utf8')) as Partial<YSweetPair>;
+      parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     } catch {
       throw new Error('persisted ysweet.json is not valid JSON');
     }
-    if (!isPresent(parsed.privateKey) || !isPresent(parsed.serverToken)) {
+    const fields = (typeof parsed === 'object' && parsed !== null ? parsed : {}) as Record<string, unknown>;
+    if (!isPresent(fields.privateKey) || !isPresent(fields.serverToken)) {
       throw new Error('persisted ysweet.json is missing privateKey/serverToken');
     }
-    return { privateKey: parsed.privateKey, serverToken: parsed.serverToken };
+    return { privateKey: fields.privateKey, serverToken: fields.serverToken };
   }
 
   // About to generate fresh: refuse if an existing dataset is present, so an
@@ -218,16 +224,17 @@ export function bootstrapSecrets({ dataDir, env, generateYSweet }: BootstrapArgs
  */
 function generateYSweetPairFromBinary(): YSweetPair {
   const output = execFileSync('y-sweet', ['gen-auth', '--json'], { encoding: 'utf8' });
-  let parsed: { private_key?: string; server_token?: string };
+  let parsed: unknown;
   try {
     parsed = JSON.parse(output);
   } catch {
     throw new Error('y-sweet gen-auth did not return valid JSON');
   }
-  if (!isPresent(parsed.private_key) || !isPresent(parsed.server_token)) {
+  const fields = (typeof parsed === 'object' && parsed !== null ? parsed : {}) as Record<string, unknown>;
+  if (!isPresent(fields.private_key) || !isPresent(fields.server_token)) {
     throw new Error('y-sweet gen-auth output missing private_key/server_token');
   }
-  return { privateKey: parsed.private_key, serverToken: parsed.server_token };
+  return { privateKey: fields.private_key, serverToken: fields.server_token };
 }
 
 function main(): void {

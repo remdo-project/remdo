@@ -75,6 +75,10 @@ function validateProdServer(parsed: ParsedEnv): void {
     throw new Error('YSWEET_SERVER_TOKEN is required in production server config.');
   }
 
+  if (!parsed.YSWEET_AUTH_KEY) {
+    throw new Error('YSWEET_AUTH_KEY is required in production server config.');
+  }
+
   if (!isAbsoluteHttpUrl(parsed.APP_PUBLIC_URL)) {
     throw new Error('APP_PUBLIC_URL must be an absolute http(s) URL in production server config.');
   }

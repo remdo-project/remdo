@@ -11,12 +11,15 @@ ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)"
 
 # First env.sh pass resolves PORT_BASE from process env and .env. The inner pass
 # re-derives every port from the shifted base; clear the already-derived ports so
-# they recompute instead of being inherited from the outer pass.
+# they recompute instead of being inherited from the outer pass. PORT is pinned
+# explicitly rather than `env -u`-cleared: the inner env.sh re-sources .env, which
+# would re-apply a `.env`-pinned PORT and defeat the +20 shift, so we set it.
 exec "${ROOT_DIR}/tools/env.sh" sh -c '
   env \
-    -u PORT -u HMR_PORT -u VITEST_PORT -u VITEST_PREVIEW_PORT \
+    -u HMR_PORT -u VITEST_PORT -u VITEST_PREVIEW_PORT \
     -u COLLAB_SERVER_PORT -u PREVIEW_PORT -u PLAYWRIGHT_UI_PORT -u API_SERVER_PORT \
     PORT_BASE="$((PORT_BASE + 20))" \
+    PORT="$((PORT_BASE + 20))" \
     "'"${ROOT_DIR}"'/tools/env.sh" sh -c '\''
       PREVIEW_PORT="$PORT" pnpm run build \
         && PREVIEW_PORT="$PORT" concurrently \
