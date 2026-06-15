@@ -121,11 +121,15 @@ fi
 echo "Ensuring Playwright Chromium is installed (${PLAYWRIGHT_BROWSERS_DIR})..."
 PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}" pnpm exec playwright install chromium
 
+# Playwright resolves `page.request` hosts via the host OS, not Chromium, so the
+# *.localhost app host must map to loopback. Patch it in-process for this run
+# (and inherited worker/webServer processes) instead of touching /etc/hosts.
 PLAYWRIGHT_ENV=(
   PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_DIR}"
   APP_PUBLIC_URL="${APP_PUBLIC_URL}"
   ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}"
   YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}"
+  NODE_OPTIONS="${NODE_OPTIONS:+${NODE_OPTIONS} }--require ${ROOT_DIR}/tools/e2e/localhost-dns.cjs"
 )
 
 if ! env "${PLAYWRIGHT_ENV[@]}" \
