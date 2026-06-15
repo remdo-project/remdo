@@ -190,12 +190,14 @@ describe('config env resolve', () => {
     expect(resolved.client).not.toHaveProperty('AUTH_URL');
   });
 
-  it('rejects a non-boolean COLLAB_ENABLED', () => {
-    expect(() => resolveTestConfig({ NODE_ENV: 'test', COLLAB_ENABLED: 'yes' })).toThrow();
+  it('rejects a non-boolean COLLAB_ENABLED and names the variable', () => {
+    expect(() => resolveTestConfig({ NODE_ENV: 'test', COLLAB_ENABLED: 'yes' })).toThrow(
+      /COLLAB_ENABLED/,
+    );
   });
 
-  it('rejects a non-numeric PORT', () => {
-    expect(() => resolveTestConfig({ NODE_ENV: 'test', PORT: 'abc' })).toThrow();
+  it('rejects a non-numeric PORT and names the variable', () => {
+    expect(() => resolveTestConfig({ NODE_ENV: 'test', PORT: 'abc' })).toThrow(/PORT/);
   });
 
   it('matches tools/env.sh for derived collab port in dev', () => {

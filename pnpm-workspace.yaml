@@ -51,7 +51,6 @@ catalog:
   '@mantine/dates': 9.3.1
   '@mantine/hooks': ^9.3.1
   '@playwright/test': ^1.60.0
-  '@t3-oss/env-core': ^0.13.11
   '@tabler/icons-react': ^3.44.0
   '@testing-library/jest-dom': ^6.9.1
   '@testing-library/react': ^16.3.2

@@ -18,16 +18,21 @@ function isAbsoluteHttpUrl(value: string): boolean {
   return value.startsWith('http://') || value.startsWith('https://');
 }
 
-function parseValue(schema: (typeof envSchema)[EnvKey], raw: string | boolean | undefined) {
+function parseValue(key: EnvKey, raw: string | boolean | undefined) {
   // Empty strings fall back to the schema default, matching the legacy loader.
   const normalized =
     raw === '' || raw === undefined ? undefined : typeof raw === 'boolean' ? String(raw) : raw;
-  return schema.parse(normalized);
+  const result = envSchema[key].safeParse(normalized);
+  if (!result.success) {
+    // Name the offending variable; Zod's default message omits it.
+    throw new Error(`Invalid value for ${key}: ${result.error.issues[0]?.message ?? 'invalid'}`);
+  }
+  return result.data;
 }
 
 function parseEnv(getValue: EnvGetter): ParsedEnv {
   const keys = Object.keys(envSchema) as EnvKey[];
-  const entries = keys.map((key) => [key, parseValue(envSchema[key], getValue(key))] as const);
+  const entries = keys.map((key) => [key, parseValue(key, getValue(key))] as const);
   return Object.fromEntries(entries) as ParsedEnv;
 }
 

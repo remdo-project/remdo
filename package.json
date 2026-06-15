@@ -111,7 +111,6 @@
     "@mantine/core": "catalog:",
     "@mantine/dates": "catalog:",
     "@mantine/hooks": "catalog:",
-    "@t3-oss/env-core": "catalog:",
     "@tabler/icons-react": "catalog:",
     "@y-sweet/client": "catalog:",
     "@y-sweet/sdk": "catalog:",
