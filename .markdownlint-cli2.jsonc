@@ -6,8 +6,7 @@
   ],
   "ignores": [
     "node_modules",
-    "data",
-    "docs/superpowers/plans"
+    "data"
   ],
   "config": {
     "default": true,

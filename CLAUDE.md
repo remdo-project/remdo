@@ -15,6 +15,13 @@ user-level store is shared across all of them, stays out of version control, and
 is disposable — safe to lose on machine reinstall and not transferred between dev
 machines. Override any default that points memory at a per-project path.
 
+## Superpowers plan output location
+
+When the `superpowers:writing-plans` skill (or any planning workflow) saves an
+implementation plan, write it to `.agent/plans/<YYYY-MM-DD>-<feature>.md` in the
+current working dir, not the skill's default `docs/superpowers/plans/`. Plans are
+per-WD scratch (see the `.agent/` rule in AGENTS.md), not versioned docs.
+
 ## `/code-review` output format (Claude Code)
 
 Interactive runs (no `--comment`, no `--fix`) render findings as the readable
