@@ -78,20 +78,14 @@ Rules:
   recover cleanly. This is not required for sharing, but it is the same header
   area and async-command UX pattern as the sharing control.
 
-## Env wiring redesign
+## One-service-per-container split
 
-The implementation is done; the contract lives in
-[docs/config.md](./config.md). No remaining active follow-ups.
-
-### Deferred follow-up
-
-- One-service-per-container split. Docker treats running the client, API, and
-  Y-Sweet collaboration server in a single image as a multiple-services-per-
-  container anti-pattern, and that shape is what forces the multi-port machinery.
-  Splitting into separate containers (compose / managed multi-service) would let
-  each service bind a fixed port and delete most of the config module, but it is
-  a larger deployment/Dockerfile/Caddy change and is out of scope for the env
-  wiring redesign above.
+- Docker treats running the client, API, and Y-Sweet collaboration server in a
+  single image as a multiple-services-per-container anti-pattern, and that shape
+  is what forces the multi-port machinery. Splitting into separate containers
+  (compose / managed multi-service) would let each service bind a fixed port and
+  delete most of the config module (see [docs/config.md](./config.md)), but it is
+  a larger deployment/Dockerfile/Caddy change.
 
 ## Document import / upload follow-ups
 
