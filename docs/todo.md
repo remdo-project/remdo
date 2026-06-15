@@ -80,24 +80,12 @@ Rules:
 
 ## Env wiring redesign
 
-Target behavior is specified in [docs/config.md](./config.md): one config owner,
-a small set of inputs with everything else derived, `PORT_BASE` offsets confined
-to dev with fixed prod ports, `APP_PUBLIC_URL` as link-generation identity
-decoupled from the bind `PORT`, and `env -> DATA_DIR file -> generate+persist`
-secret bootstrap so operators set only `ADMIN_SECRET`. Implementation sequencing:
+The implementation is done; the contract lives in
+[docs/config.md](./config.md). Remaining follow-up:
 
-- Collapse the three derivation layers into the `config/env` owner: move port
-  derivation out of `tools/env.defaults.sh`, fold the `AUTH_URL` and prod
-  validation in `config/_internal/env/load.ts` into the one resolver, and delete
-  the `RUN_MODE_PORT_SHIFT` / `REMDO_PRESERVE_PORT` / `+40` machinery.
-- Stop deriving the listen `PORT` from `APP_PUBLIC_URL` in
-  `tools/prod/docker.sh`; pass raw inputs only and resolve inside the container
-  entrypoint.
-- Add the secret bootstrap (including `y-sweet gen-auth` for the matched pair)
-  and the loud `DATA_DIR`-not-persistent failure guard.
-- Update `.env.example`, `render.yaml`, and `docs/run-modes.md` to the reduced
-  input surface; collab/auth token paths change, so unit + collab + Docker E2E
-  are all in scope.
+- Docker E2E: add an ADMIN_SECRET-only scenario that exercises the in-container
+  secret generate+persist path (current E2E passes secrets explicitly, covering
+  only the env-provided branch).
 
 ### Deferred follow-up
 
