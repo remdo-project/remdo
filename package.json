@@ -53,7 +53,7 @@
     "dev:api": "./tools/env.sh tsx ./tools/remdo-api-server.ts",
     "dev:collab": "./tools/env.sh tsx ./tools/collab-server.ts",
     "dev:init": "./tools/dev-init.sh",
-    "dev:pwa": "RUN_MODE_PORT_SHIFT=20 ./tools/env.sh sh -c 'PREVIEW_PORT=\"$PORT\" pnpm run build && PREVIEW_PORT=\"$PORT\" concurrently \"pnpm run build:watch\" \"pnpm run dev:api\" \"pnpm run dev:collab\" \"pnpm run preview\"'",
+    "dev:pwa": "./tools/dev/pwa.sh",
     "dev:docker": "./tools/dev/docker.sh",
     "dev:users": "./tools/env.sh tsx ./tools/dev/users.ts",
     "dev:web": "./tools/env.sh vite",
