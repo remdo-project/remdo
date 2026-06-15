@@ -40,8 +40,8 @@ disagree.
 
 **Ports.** In dev/test `PORT_BASE` is the only port input; `PORT` and every
 secondary service port derive from it by fixed offset. In server/prod the
-secondary ports are fixed constants and `PORT` is an independent input: a
-platform-injected value, else `8080`.
+secondary ports are internal-only (behind the gateway) and `PORT` is an
+independent input: a platform-injected value, else `8080`.
 
 **Public identity vs. bind port.** `APP_PUBLIC_URL` is the canonical public origin
 and the single source for link generation, `AUTH_URL`, cookies, and CORS. Its
