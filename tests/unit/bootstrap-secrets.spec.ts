@@ -158,20 +158,33 @@ describe('bootstrap-secrets', () => {
       expect(modeOf(path.join(dataDir, 'secrets', 'ysweet.json'))).toBe(0o600);
     });
 
-    it('does NOT apply the dataset guard to the Y-Sweet pair (collab data depends on the token, but regenerating the token is the only failure mode and is covered by the auth-secret guard sharing the dir)', () => {
-      // The Y-Sweet pair has no persistence guard of its own: an existing dataset
-      // with no persisted pair file is a real misconfiguration, but the auth-secret
-      // guard already fails first in that scenario. This test documents that the
-      // pair resolver itself does not throw when a dataset exists.
+    it('fails loudly when generating a fresh pair against an existing dataset (remdo.sqlite)', () => {
+      // The Y-Sweet pair carries its own persistence guard: an existing dataset
+      // with no persisted pair file means regenerating the pair would rotate the
+      // collab auth token against existing data, so the resolver must refuse.
       const dataDir = tempDataDir();
       fs.writeFileSync(path.join(dataDir, 'remdo.sqlite'), 'pretend-db');
-      const result = resolveYSweetPair({
+      const generate = vi.fn(fakeGenerator);
+      expect(() => resolveYSweetPair({
+        dataDir,
+        envAuthKey: undefined,
+        envServerToken: undefined,
+        generate,
+      })).toThrow(/persistent|dataset|regenerat/i);
+      expect(generate).not.toHaveBeenCalled();
+    });
+
+    it('fails loudly when generating a fresh pair against an existing collab dir', () => {
+      const dataDir = tempDataDir();
+      const collabDir = path.join(dataDir, 'collab');
+      fs.mkdirSync(collabDir, { recursive: true });
+      fs.writeFileSync(path.join(collabDir, 'doc'), 'data');
+      expect(() => resolveYSweetPair({
         dataDir,
         envAuthKey: undefined,
         envServerToken: undefined,
         generate: fakeGenerator,
-      });
-      expect(result.privateKey).toBe('fake-private-key');
+      })).toThrow(/persistent|dataset|regenerat/i);
     });
   });
 
@@ -218,6 +231,38 @@ describe('bootstrap-secrets', () => {
       expect(resolved.authSecret).toBe('env-auth-secret-aaaaaaaaaaaaaaaaaaaa');
       expect(resolved.ysweetAuthKey).toBe('env-key');
       expect(resolved.ysweetServerToken).toBe('env-token');
+    });
+
+    it('refuses to generate a fresh Y-Sweet pair when AUTH_SECRET comes from env but a dataset exists', () => {
+      // Regression: an env-supplied AUTH_SECRET short-circuits the auth path, so
+      // the auth guard never runs. With the pair absent from env AND disk and a
+      // real dataset present, bootstrap must still refuse — otherwise it would
+      // silently rotate the Y-Sweet pair against existing collab data.
+      const dataDir = tempDataDir();
+      fs.writeFileSync(path.join(dataDir, 'remdo.sqlite'), 'pretend-db');
+      const generateYSweet = vi.fn(() => ({ privateKey: 'pk', serverToken: 'st' }));
+      expect(() => bootstrapSecrets({
+        dataDir,
+        env: { AUTH_SECRET: 'env-auth-secret-aaaaaaaaaaaaaaaaaaaa' },
+        generateYSweet,
+      })).toThrow(/persistent|dataset|regenerat/i);
+      expect(generateYSweet).not.toHaveBeenCalled();
+      expect(fs.existsSync(path.join(dataDir, 'secrets', 'ysweet.json'))).toBe(false);
+    });
+
+    it('generates+persists the Y-Sweet pair on a true first run even with AUTH_SECRET from env', () => {
+      // env-auth + empty DATA_DIR is a valid first run: no dataset exists, so the
+      // guard must NOT trip and the pair is generated and persisted normally.
+      const dataDir = tempDataDir();
+      const { resolved } = bootstrapSecrets({
+        dataDir,
+        env: { AUTH_SECRET: 'env-auth-secret-aaaaaaaaaaaaaaaaaaaa' },
+        generateYSweet: () => ({ privateKey: 'pk', serverToken: 'st' }),
+      });
+      expect(resolved.authSecret).toBe('env-auth-secret-aaaaaaaaaaaaaaaaaaaa');
+      expect(resolved.ysweetAuthKey).toBe('pk');
+      expect(resolved.ysweetServerToken).toBe('st');
+      expect(fs.existsSync(path.join(dataDir, 'secrets', 'ysweet.json'))).toBe(true);
     });
   });
 });

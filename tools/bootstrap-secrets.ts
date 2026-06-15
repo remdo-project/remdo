@@ -63,16 +63,19 @@ function writeSecretFile(filePath: string, contents: string): void {
 
 /**
  * Persistence guard. In production DATA_DIR must be a persistent mount. If we
- * are about to generate a *fresh* AUTH_SECRET (no env, no persisted file) but
- * the dataset already exists, DATA_DIR is almost certainly an ephemeral
- * container FS that lost the secrets directory — regenerating would invalidate
- * every existing session and break collaboration auth against existing data.
- * Fail loudly instead.
+ * are about to generate a *fresh* secret (the AUTH_SECRET or the Y-Sweet pair —
+ * no env, no persisted file) but the dataset already exists, DATA_DIR is almost
+ * certainly an ephemeral container FS that lost the secrets directory —
+ * regenerating either secret would invalidate every existing session and break
+ * collaboration auth against existing data. Fail loudly instead.
+ *
+ * Call this immediately before any fresh generation (auth OR Y-Sweet pair); the
+ * env-set and file-load paths must NOT trigger it.
  *
  * "Dataset exists" is detected via the registry sqlite db or a non-empty collab
  * directory under DATA_DIR.
  */
-function assertNoExistingDataset(dataDir: string): void {
+function assertNoExistingDataset(dataDir: string, secretLabel: string): void {
   const sqlitePath = path.join(dataDir, 'remdo.sqlite');
   const collabDir = path.join(dataDir, 'collab');
 
@@ -83,10 +86,10 @@ function assertNoExistingDataset(dataDir: string): void {
 
   if (hasSqlite || hasCollabData) {
     throw new Error(
-      `Refusing to generate a new AUTH_SECRET: DATA_DIR (${dataDir}) already holds a dataset `
+      `Refusing to generate a new ${secretLabel}: DATA_DIR (${dataDir}) already holds a dataset `
       + `(${hasSqlite ? 'remdo.sqlite' : 'collab/'}) but no persisted secret. This usually means `
       + 'DATA_DIR is not a persistent mount, so the generated secret would invalidate existing '
-      + 'sessions and break collaboration. Mount DATA_DIR persistently, or supply AUTH_SECRET '
+      + 'sessions and break collaboration. Mount DATA_DIR persistently, or supply the secret '
       + 'via the environment.',
     );
   }
@@ -108,7 +111,7 @@ export function resolveAuthSecret({ dataDir, envValue }: ResolveAuthSecretArgs):
   }
 
   // About to generate fresh: refuse if an existing dataset is present.
-  assertNoExistingDataset(dataDir);
+  assertNoExistingDataset(dataDir, 'AUTH_SECRET');
 
   const generated = randomBytes(32).toString('base64url');
   ensureSecretsDir(dataDir);
@@ -138,6 +141,11 @@ export function resolveYSweetPair({
     const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8')) as YSweetPair;
     return { privateKey: parsed.privateKey, serverToken: parsed.serverToken };
   }
+
+  // About to generate fresh: refuse if an existing dataset is present, so an
+  // env-supplied AUTH_SECRET cannot let us silently rotate the Y-Sweet pair
+  // against existing collab data.
+  assertNoExistingDataset(dataDir, 'Y-Sweet auth pair');
 
   const pair = generate();
   ensureSecretsDir(dataDir);
