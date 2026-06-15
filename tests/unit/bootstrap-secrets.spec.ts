@@ -146,6 +146,39 @@ describe('bootstrap-secrets', () => {
       expect(generate).not.toHaveBeenCalled();
     });
 
+    it('throws when a persisted pair file is missing a field', () => {
+      const dataDir = tempDataDir();
+      const secretsDir = path.join(dataDir, 'secrets');
+      fs.mkdirSync(secretsDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(secretsDir, 'ysweet.json'),
+        JSON.stringify({ privateKey: 'disk-key' }),
+      );
+      const generate = vi.fn(fakeGenerator);
+      expect(() => resolveYSweetPair({
+        dataDir,
+        envAuthKey: undefined,
+        envServerToken: undefined,
+        generate,
+      })).toThrow(/missing privateKey\/serverToken/);
+      expect(generate).not.toHaveBeenCalled();
+    });
+
+    it('throws when a persisted pair file is not valid JSON', () => {
+      const dataDir = tempDataDir();
+      const secretsDir = path.join(dataDir, 'secrets');
+      fs.mkdirSync(secretsDir, { recursive: true });
+      fs.writeFileSync(path.join(secretsDir, 'ysweet.json'), '{ not valid json');
+      const generate = vi.fn(fakeGenerator);
+      expect(() => resolveYSweetPair({
+        dataDir,
+        envAuthKey: undefined,
+        envServerToken: undefined,
+        generate,
+      })).toThrow(/not valid JSON/);
+      expect(generate).not.toHaveBeenCalled();
+    });
+
     it('generates+persists a fresh pair when nothing is available', () => {
       const dataDir = tempDataDir();
       const result = resolveYSweetPair({

@@ -138,7 +138,15 @@ export function resolveYSweetPair({
 
   const filePath = path.join(secretsDir(dataDir), YSWEET_FILE);
   if (fs.existsSync(filePath)) {
-    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8')) as YSweetPair;
+    let parsed: Partial<YSweetPair>;
+    try {
+      parsed = JSON.parse(fs.readFileSync(filePath, 'utf8')) as Partial<YSweetPair>;
+    } catch {
+      throw new Error('persisted ysweet.json is not valid JSON');
+    }
+    if (!isPresent(parsed.privateKey) || !isPresent(parsed.serverToken)) {
+      throw new Error('persisted ysweet.json is missing privateKey/serverToken');
+    }
     return { privateKey: parsed.privateKey, serverToken: parsed.serverToken };
   }
 
