@@ -107,7 +107,7 @@ Keep this order: do not start Task 5 until 1–4 are green.
 - [ ] **Step 1: Write the failing test** for the rung type and push/pop against
   a fixture tree.
 
-```ts
+```text
 // tests/unit/internal/selection-rungs.spec.ts
 import { describe, expect, it } from 'vitest';
 import { emptyLadder, pushStep, popStep } from '#client/editor/outline/selection/rungs';
@@ -147,7 +147,7 @@ Expected: FAIL — `rungs` module / exports not found.
   tree-agnostic: push/pop only manipulate the stack and `direction`; replay
   (Task 2) consumes the tree.
 
-```ts
+```text
 // src/client/editor/outline/selection/rungs.ts
 export type Direction = 'up' | 'down';
 
@@ -231,7 +231,7 @@ startKey, endKey, startMode, endMode }` or `{ type: 'inline', itemKey }`). Reuse
   `tests/unit/selection.spec.ts` for `tree-complex`. Follow the fixture-loading
   pattern from `tests/unit/internal/selection-tree.spec.ts`.
 
-```ts
+```text
 // add to tests/unit/internal/selection-rungs.spec.ts
 // Build a ladder for note2 in tree-complex and assert replay yields:
 //   subtree -> note2 + subtree
@@ -398,7 +398,7 @@ ladder against the new tree instead of re-deriving from selection geometry.
   the deepest still-valid rung (anchor subtree `note2`). Tier-4: a remote peer
   deletes the anchor `note2`; assert the selection collapses to a caret.
 
-```tsx
+```text
 // tests/unit/collab/selection-reshape.collab.spec.tsx — sketch; follow the
 // structural-delete.collab.spec.tsx setup for two synced editors.
 it('reshapes a structural selection when a remote peer grows a swept subtree', async ({ collab }) => {
@@ -507,7 +507,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
   multi-note range, reverse all the way back to the caret, then press the same
   reverse direction once more and assert it expands the *other* way.
 
-```ts
+```text
 it('flips and re-expands the other way after popping back to the caret',
   meta({ fixture: 'flat' }), async ({ remdo }) => {
   await placeCaretAtNote(remdo, 'note2');
