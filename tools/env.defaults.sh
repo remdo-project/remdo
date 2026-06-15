@@ -39,11 +39,10 @@ fi
 
 : "${REMDO_DEV_OAUTH_CLIENT_ID:=remdo-home-dev}"
 : "${REMDO_DEV_OAUTH_CLIENT_SECRET:=remdo-dev-client-secret-0123456789}"
-remdo_dev_default_origin="http://localhost:${PORT}"
-: "${REMDO_DEV_HOME_ORIGIN:=${remdo_dev_default_origin}}"
-if [ "${NODE_ENV}" = "development" ] && [ -z "${AUTH_URL+x}" ]; then
-  AUTH_URL="${remdo_dev_default_origin}"
-fi
+: "${REMDO_DEV_HOME_ORIGIN:=http://localhost:${PORT}}"
+# AUTH_URL is not derived here: the TS config owner (config/env/resolve.ts)
+# computes the identical dev value (http://<host>:<PORT>) and is the single
+# source every consumer reads through config.env.AUTH_URL.
 
 case "${NODE_ENV}" in
   production)
@@ -98,6 +97,6 @@ fi
 export NODE_ENV HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI VITEST_PREVIEW TMPDIR
 export HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT API_SERVER_PORT YSWEET_CONNECTION_STRING
 export PREVIEW_PORT PLAYWRIGHT_UI_PORT
-export AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_PUBLIC_URL AUTH_URL ALLOW_SIGNUP
+export AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_PUBLIC_URL ALLOW_SIGNUP
 export LINKABLE_REMDO_SERVERS_JSON REMDO_DEV_HOME_ORIGIN
 export REMDO_DEV_OAUTH_CLIENT_ID REMDO_DEV_OAUTH_CLIENT_SECRET
