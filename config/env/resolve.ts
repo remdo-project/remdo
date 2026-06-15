@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import type { EnvKey } from './schema';
+import type { ClientKey, EnvKey } from './schema';
 import { CLIENT_KEYS, envSchema } from './schema';
 
 type EnvGetter = (key: EnvKey) => string | boolean | undefined;
@@ -8,7 +8,6 @@ type ParsedEnv = {
   [K in EnvKey]: z.infer<(typeof envSchema)[K]>;
 };
 
-type ClientKey = (typeof CLIENT_KEYS) extends Set<infer T> ? T : never;
 type ServerEnv = ParsedEnv & { AUTH_URL: string };
 type ClientEnv = Pick<ParsedEnv, ClientKey>;
 
