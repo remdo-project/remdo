@@ -2,7 +2,7 @@ import { createCommand } from 'lexical';
 
 export const REORDER_NOTES_UP_COMMAND = createCommand<undefined>('remdo:reorder-notes-up');
 export const REORDER_NOTES_DOWN_COMMAND = createCommand<undefined>('remdo:reorder-notes-down');
-export type NoteCheckedState = 'checked' | 'unchecked' | 'toggle';
+type NoteCheckedState = 'checked' | 'unchecked' | 'toggle';
 export interface SetNoteCheckedPayload {
   state: NoteCheckedState;
   noteItemKey?: string;

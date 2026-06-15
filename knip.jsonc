@@ -9,6 +9,11 @@
     // Invoked as a CLI binary from package scripts and tooling (`pnpm exec playwright ...`).
     "playwright"
   ],
+  "ignoreUnresolved": [
+    // Shell scripts invoked at runtime via spawnSync/execFileSync from specs, not module imports.
+    "./tools/env.sh",
+    "./tools/prod/docker.sh"
+  ],
   "entry": [
     "playwright.docker.config.ts",
     "tests/e2e/setup/*.setup.ts",

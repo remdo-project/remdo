@@ -35,7 +35,7 @@ const MockResizeObserver = class MockResizeObserver {
   unobserve = vi.fn();
 };
 (globalThis as typeof globalThis & { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
-  MockResizeObserver as unknown as typeof ResizeObserver;
+  MockResizeObserver;
 
 // Lexical's clipboard helpers reference DragEvent for instance checks; jsdom doesn't provide it.
 if (typeof DragEvent === 'undefined') {

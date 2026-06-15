@@ -72,6 +72,9 @@ function patchIndexedDbProvider(value: unknown): IndexedDbProviderLike | null {
   let activeUpdates = 0;
   const doc = candidate.doc;
   const originalHandleUpdate = candidate.handleUpdate;
+  // Drop the `Promise<void>` arm so the listener type matches `doc.off`'s void-returning
+  // signature; without it, ts/no-misused-promises flags the removal below.
+  // eslint-disable-next-line ts/no-unnecessary-type-assertion -- the assertion narrows void | Promise<void> to void; the two rules conflict here.
   const originalHandleUpdateListener = originalHandleUpdate as (update: Uint8Array, origin: unknown) => void;
   const originalDestroy = candidate.destroy.bind(candidate);
 

@@ -68,6 +68,10 @@ export function traverseSerializedOutline(state: SerializedEditorState): Travers
     }
 
     const nested = nestedLists[0];
+    // `children?` is optional, so every SerializedLexicalNode is structurally a
+    // NodeWithChildren and TS treats the guard as redundant; it still enforces the
+    // runtime invariant that this wrapper actually carries a children array.
+    // eslint-disable-next-line ts/no-unnecessary-condition -- runtime shape check the type cannot express.
     if (!nested || !isNodeWithChildren(nested)) {
       fail(`wrapper-list-item-list-invalid path=${pathStr}`);
       return null;
@@ -184,6 +188,9 @@ export function traverseSerializedOutline(state: SerializedEditorState): Travers
   }
 
   const rootChildren = getChildren(root);
+  // See note above: the NodeWithChildren guard is structurally redundant but still
+  // performs a runtime children-array check the type system cannot express.
+  // eslint-disable-next-line ts/no-unnecessary-condition -- runtime shape check the type cannot express.
   const listNode = rootChildren.find((child): child is NodeWithChildren => isNodeWithChildren(child) && child.type === LIST_TYPE);
   if (!listNode) {
     return { notes: [], valid: true };

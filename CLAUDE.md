@@ -1,5 +1,20 @@
 @AGENTS.md
 
+## Agent memory location (per-VM cache, not repo content)
+
+Cross-session "memory" notes — derived facts, gotchas, hold-back rationale, and
+anything written via the memory/remember workflows — are a per-machine cache,
+**not** repository content. Store and read them under `~/.claude/memory/`
+(create it if missing), and treat that directory as the memory root (it holds
+`MEMORY.md` plus one file per memory). Do **not** write them under this repo's
+`.claude/` (e.g. `.claude/projects/.../memory/`) or under any worktree.
+
+Rationale: this project is developed from several working dirs and git worktrees
+on the same dev VM (e.g. `remdo-5000`, `remdo-7000`, `../remdo-wts/*`). A single
+user-level store is shared across all of them, stays out of version control, and
+is disposable — safe to lose on machine reinstall and not transferred between dev
+machines. Override any default that points memory at a per-project path.
+
 ## `/code-review` output format (Claude Code)
 
 Interactive runs (no `--comment`, no `--fix`) render findings as the readable

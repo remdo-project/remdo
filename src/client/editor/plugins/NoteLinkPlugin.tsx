@@ -429,7 +429,7 @@ export function NoteLinkPlugin() {
         closeSession();
       };
 
-      // eslint-disable-next-line react-web-api/no-leaked-event-listener -- removed in returned cleanup.
+      // eslint-disable-next-line react/web-api-no-leaked-event-listener -- removed in returned cleanup.
       root.addEventListener('blur', handleRootBlur, true);
       return () => {
         root.removeEventListener('blur', handleRootBlur, true);

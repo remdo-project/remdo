@@ -35,7 +35,7 @@ export function ProhibitNestedLexicalUpdatesPlugin(): null {
       }
 
       return previousUpdate.call(editor, updateFn, options);
-    }) as LexicalEditor['update'];
+    });
 
     return () => {
       internalEditor[GUARD_KEY] = false;

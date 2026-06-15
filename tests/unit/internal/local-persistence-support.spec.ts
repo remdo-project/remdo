@@ -70,7 +70,7 @@ describe('local persistence support decision', () => {
       {
         open: vi.fn(() => createOpenSuccessRequest()),
         deleteDatabase: vi.fn(() => createDeleteRequest()),
-      } as unknown as IDBFactory
+      }
     );
     vi.stubGlobal('crypto', {
       getRandomValues: vi.fn(),
@@ -90,7 +90,7 @@ describe('local persistence support decision', () => {
       {
         open: vi.fn(() => createOpenSuccessRequest()),
         deleteDatabase: vi.fn(() => createDeleteRequest()),
-      } as unknown as IDBFactory
+      }
     );
     vi.stubGlobal('crypto', {
       getRandomValues: vi.fn(),
@@ -113,7 +113,7 @@ describe('local persistence support decision', () => {
           throw new Error('indexedDB blocked');
         },
         deleteDatabase: vi.fn(() => createDeleteRequest()),
-      } as unknown as IDBFactory
+      }
     );
 
     const { getLocalPersistenceSupportDecision } = await loadRuntime();
@@ -132,7 +132,7 @@ describe('local persistence support decision', () => {
       {
         open,
         deleteDatabase,
-      } as unknown as IDBFactory
+      }
     );
 
     const { getLocalPersistenceSupportDecision } = await loadRuntime();

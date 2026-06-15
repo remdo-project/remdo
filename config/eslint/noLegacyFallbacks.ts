@@ -88,7 +88,7 @@ export const noLegacyFallbacksRule: Rule.RuleModule = {
   create(context) {
     return {
       MemberExpression(node) {
-        const name = getMemberName(node as MemberExpression);
+        const name = getMemberName(node);
         if (name && LEGACY_PROPERTIES.has(name)) {
           context.report({ node, messageId: 'legacyFallback', data: { name } });
         }

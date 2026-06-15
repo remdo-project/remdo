@@ -123,7 +123,6 @@ async function main(): Promise<void> {
   await provisionDevSourceOAuthClient();
 }
 
-// eslint-disable-next-line unicorn/prefer-top-level-await
 void main().catch((error) => {
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);

@@ -108,7 +108,7 @@ export class CollabSession {
   }
 
   getProvider(): CollaborationProviderInstance | null {
-    return this.provider as CollaborationProviderInstance | null;
+    return this.provider;
   }
 
   subscribe(listener: Listener): () => void {

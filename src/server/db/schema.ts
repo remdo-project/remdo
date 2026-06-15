@@ -9,11 +9,11 @@ export interface RemdoDatabase {
   user: AuthUserTable;
 }
 
-export interface AuthOauthClientTable {
+interface AuthOauthClientTable {
   clientId: string;
 }
 
-export interface AuthUserTable {
+interface AuthUserTable {
   email: string;
   id: string;
   name: string | null;

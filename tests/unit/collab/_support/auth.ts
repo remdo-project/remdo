@@ -80,7 +80,7 @@ export async function installAuthenticatedApiFetch(): Promise<() => void> {
 
   globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
     return originalFetch(withSessionCookie(input, init, sessionCookie));
-  }) as typeof globalThis.fetch;
+  });
 
   return () => {
     globalThis.fetch = originalFetch;

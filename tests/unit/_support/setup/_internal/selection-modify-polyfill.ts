@@ -6,4 +6,4 @@ if (typeof proto.modify === 'function') {
   );
 }
 
-(proto as Selection & { modify?: () => void }).modify = () => {};
+(proto).modify = () => {};

@@ -179,7 +179,7 @@ describe('serialized editor state helper', () => {
 
     const transformed = transformSerializedEditorState(stateWithMalformedChildren, (node) => node);
     const rootChildren = getSerializedRootNodes(transformed);
-    const nestedChildren = getSerializedNodeChildren(rootChildren[0]! as SerializedLexicalNode & { children: unknown[] });
+    const nestedChildren = getSerializedNodeChildren(rootChildren[0]);
 
     const rawNestedChildren = (rootChildren[0]! as SerializedLexicalNode & { children: unknown[] }).children;
     expect(Array.isArray(rawNestedChildren[0])).toBe(true);

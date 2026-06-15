@@ -62,7 +62,6 @@ export default function Editor({
       <LexicalComposer initialConfig={editorInitialConfig}>
         <CollaborationPlugin docId={docId} sourceOrigin={sourceOrigin} sourceId={sourceId}>
           <EditorRuntime
-            children={children}
             docId={docId}
             onTestBridgeReady={onTestBridgeReady}
             onTestBridgeDispose={onTestBridgeDispose}
@@ -70,7 +69,9 @@ export default function Editor({
             statusPortalRoot={statusPortalRoot}
             onSearchCandidatesChange={onSearchCandidatesChange}
             onPendingDocumentImportError={onPendingDocumentImportError}
-          />
+          >
+            {children}
+          </EditorRuntime>
         </CollaborationPlugin>
       </LexicalComposer>
     </div>

@@ -10,8 +10,8 @@ keeping them is gone.
 
 1. [websocket-shim.ts](../../tests/unit/_support/setup/_internal/env/collab/websocket-shim.ts)
    Reason: jsdom/Node `WebSocket` still breaks collab tests with an `Event`
-   realm mismatch. Rechecked on `vitest 4.1.0` and `jsdom 29.0.0`; still
-   needed.
+   realm mismatch. Rechecked on `vitest 4.1.9` and `jsdom 29.1.1`; still
+   needed because disabling it causes broad collab-suite timeouts.
    Revisit when: `pnpm run test:collab:full` stays green with
    `REMDO_DISABLE_COLLAB_WEBSOCKET_SHIM=1`.
 
@@ -35,24 +35,16 @@ keeping them is gone.
    Reason: jsdom still lacks a usable `ClipboardEvent` with `clipboardData`.
    Revisit when: jsdom provides enough native support for these tests.
 
+6. `vite-plugin-pwa` peer `workbox-build@^7.4.1`
+   Reason: adding `workbox-build 7.4.1` directly fails pnpm trust policy
+   because `@trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1` has a
+   provenance trust downgrade. Keep the peer warning rather than weakening the
+   workspace trust policy.
+   Revisit when: the peer can be satisfied without a trust downgrade.
+
 ## Held-Back Versions
 
 Review these during dependency refresh work. If the blocker is gone, try the
 upgrade again and rerun the full validation set.
 
-1. `vite` `^7.3.1`
-   Held back from: `8.0.0`
-   Reason: [config/vite/shared.ts](../../config/vite/shared.ts) depends
-   on `vite-plugin-pwa`, and `vite-plugin-pwa 1.2.0` does not support Vite 8.
-   Dependabot: ignore `>= 8.0.0 < 9.0.0` while this blocker stands.
-   Revisit when: `vite-plugin-pwa` supports Vite 8 cleanly.
-
-2. `@eslint-react/eslint-plugin` `^3.0.0`
-   Held back from: `4.2.3`
-   Reason: `@antfu/eslint-config` `8.0.0` still peers
-   `@eslint-react/eslint-plugin ^3.0.0`, and the 4.x line crashes config load
-   through `antfu/react/setup` with `Key "plugins": Key "react-dom":
-   Expected an object.`
-   Dependabot: ignore `>= 4.0.0 < 5.0.0` while this blocker stands.
-   Revisit when: Antfu supports `@eslint-react/eslint-plugin` 4.x cleanly, or
-   the repo replaces/adapts that config layer.
+None currently.

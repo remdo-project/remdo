@@ -53,7 +53,7 @@ function readAuthErrorStatus(error: unknown): number | null {
   if (typeof error !== 'object' || error === null || !('status' in error)) {
     return null;
   }
-  const status = (error as { status: unknown }).status;
+  const status = (error).status;
   return typeof status === 'number' ? status : null;
 }
 

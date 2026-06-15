@@ -17,9 +17,7 @@ async function deleteCookie(name: string): Promise<void> {
   }
 
   const expired = `${name}=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-  // eslint-disable-next-line unicorn/no-document-cookie -- Y-Sweet stores its offline key in a cookie.
   document.cookie = expired;
-  // eslint-disable-next-line unicorn/no-document-cookie -- Clear cookies written with Y-Sweet's secure attribute too.
   document.cookie = `${expired};secure`;
 }
 

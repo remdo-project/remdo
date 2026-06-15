@@ -1,6 +1,6 @@
 import type { ListItemNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
-import type { RangeSelection, TextNode } from 'lexical';
+import type { RangeSelection } from 'lexical';
 import { $createRangeSelection, $getNodeByKey, $setSelection } from 'lexical';
 
 import { resolveBoundaryPoint, resolveContentBoundaryPoint } from './caret';
@@ -14,37 +14,18 @@ export function $applyCaretEdge(itemKey: string, edge: 'start' | 'end'): boolean
     return false;
   }
 
-  const contentItem = targetItem;
-  const selectableContent = contentItem as ListItemNode & {
-    selectStart?: () => RangeSelection;
-    selectEnd?: () => RangeSelection;
-  };
-  const selectEdge = edge === 'start' ? selectableContent.selectStart : selectableContent.selectEnd;
-
-  if (typeof selectEdge === 'function') {
-    selectEdge.call(selectableContent);
-    return true;
-  }
-
-  const boundary = resolveContentBoundaryPoint(contentItem, edge) ?? resolveBoundaryPoint(contentItem, edge);
-  if (!boundary) {
-    const selection = $createRangeSelection();
-    selection.anchor.set(contentItem.getKey(), 0, 'element');
-    selection.focus.set(contentItem.getKey(), 0, 'element');
-    selection.dirty = true;
-    $setSelection(selection);
-    return true;
-  }
-
-  const selectable = boundary.node as TextNode & { select?: (anchor: number, focus: number) => void };
-  if (typeof selectable.select === 'function') {
-    const offset = boundary.offset;
-    selectable.select(offset, offset);
-    return true;
-  }
-
+  // Always install a fresh RangeSelection rather than mutating the active one:
+  // the committed selection's Points are frozen during a Lexical update, so
+  // node.selectStart()/TextNode.select() would throw when they mutate them.
+  const boundary = resolveContentBoundaryPoint(targetItem, edge) ?? resolveBoundaryPoint(targetItem, edge);
   const selection = $createRangeSelection();
-  selection.setTextNodeRange(boundary.node, boundary.offset, boundary.node, boundary.offset);
+  if (boundary) {
+    selection.setTextNodeRange(boundary.node, boundary.offset, boundary.node, boundary.offset);
+  } else {
+    selection.anchor.set(targetItem.getKey(), 0, 'element');
+    selection.focus.set(targetItem.getKey(), 0, 'element');
+    selection.dirty = true;
+  }
   $setSelection(selection);
   return true;
 }
