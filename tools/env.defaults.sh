@@ -15,6 +15,9 @@
 : "${DATA_DIR:=${REMDO_ROOT%/}/data}"
 
 # Derive service/tool ports directly from PORT_BASE to keep local runs predictable.
+# Offsets +7..+10 are intentionally reserved for the Docker E2E containers
+# (tools/docker-test.sh runs its gateway at +7 and bootstrap scenario at +8); do
+# not assign them to a derived service port here.
 : "${HMR_PORT:=$((PORT_BASE + 1))}"
 : "${VITEST_PORT:=$((PORT_BASE + 2))}"
 : "${VITEST_PREVIEW_PORT:=$((PORT_BASE + 3))}"
