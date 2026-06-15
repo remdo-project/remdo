@@ -1,9 +1,8 @@
 # Selection
 
-This document defines the cursor-driven selection model used throughout RemDo.
-Structural commands depend on these guarantees, so they are the contract for
-both UX and implementation. The structural outcomes are detailed in
-[Note Structure Rules](./note-structure-rules.md).
+This document defines the cursor-driven selection model used throughout RemDo
+and is the contract structural commands rely on. The structural outcomes are
+detailed in [Note Structure Rules](./note-structure-rules.md).
 
 ## Selection states
 
@@ -14,22 +13,21 @@ A selection is always exactly one of:
    commands treat the caret's note (and its subtree) as their target even with
    no visible range.
 2. **Note range** — a contiguous slice of the outline covering one or more whole
-   notes, each with its entire subtree, stored in tree order.
+   notes, each with its entire subtree, in document order.
 
 There is no non-contiguous selection.
 
 **Mode switch.** Typing inserts characters only in state 1. As soon as the
 selection covers any whole note (state 2), the editor is in structural mode:
-typing and `Enter` are no-ops and only structural commands respond. `Esc`, or
-clicking into a note's text, collapses back to a caret.
+keystrokes that would type become no-ops and structural commands take over.
+`Esc`, or clicking into a note's text, returns to a caret.
 
 ## Whole-note snapping
 
 A selection can never partially cross a note boundary. The moment a text
 selection extends beyond one note's content, it snaps to a **contiguous run of
 sibling notes, each including its entire subtree** — nothing in that slice is
-skipped or partially selected (selecting `note6` includes its child `note7`).
-This lets every structural command assume it operates on whole subtrees.
+skipped or partially selected.
 
 ## The selection ladder
 
@@ -41,25 +39,31 @@ The ladder is anchored and replayable:
 
 - **One anchor.** The note where structural selection began. It is fixed for the
   life of the ladder and is cleared only when the selection collapses to a caret.
-- **Rungs.** Each step is a semantic instruction, not a stored range. The
-  selection is always the anchor plus the current rungs, re-resolved against the
-  live tree. The recurrence is:
-  1. the anchor note's inline body (skipped when the body is empty);
+- **Rungs.** Each step is a semantic instruction, not a stored range, so the
+  selection is the anchor plus the current rungs re-resolved against the live
+  tree. The recurrence is:
+  1. the anchor note's inline body — a distinct first rung (skipped when the
+     body is empty, so the first press lands on rung 2);
   2. the anchor note plus its subtree — the first structural rung,
      direction-neutral;
   3. one more contiguous sibling (with its subtree) in the sweep direction;
   4. when siblings in that direction are exhausted, the parent note (with its
      subtree), then resume sibling steps at the parent's level;
-  5. repeat to the document root (or the [zoom](./zoom.md) boundary).
+  5. repeat to the document root (or the [zoom](./zoom.md) boundary). Hoisting
+     stops at the deepest note still inside the zoom root; the zoom root itself
+     is never a rung.
 
 Direction and reversal:
 
 - The first structural rung is direction-neutral. The press that first extends
   past the anchor's subtree establishes the sweep direction.
 - Pressing the sweep direction pushes the next rung; pressing the opposite
-  direction pops the last rung.
+  direction pops the top rung — exactly the rung that was last pushed. Because a
+  `Cmd/Ctrl+A` sibling rung adds a whole sibling slab at once, one reverse press
+  retracts that whole slab.
 - When the ladder pops fully back to the caret, the next press in the same
-  (now opposite) direction begins a fresh ladder in that direction.
+  (now opposite) direction begins a fresh ladder in that direction, clamped to
+  the same document or zoom boundary.
 - A press that would extend past the document or zoom boundary is a no-op.
 
 Because the selection is replayed from intent, a collaboration edit reshapes it
@@ -73,7 +77,7 @@ in place where possible; the disturbance tiers are defined in
 | `Shift+Left/Right` | Inline-only text selection inside the active note; a no-op at the note boundary. |
 | `Shift+Up/Down` | Walk the selection ladder one note at a time in that direction (push the next rung, or pop on reversal). |
 | `Cmd/Ctrl+A` | Walk the same ladder one rung per press, adding the whole sibling slab of a sibling rung at once. |
-| `Shift+Click` | Extend from the anchor to the clicked note, producing a contiguous note range on the same ladder. |
+| `Shift+Click` | Extend to the clicked note, producing a contiguous note range; the anchor is the click origin and the resulting range seeds the ladder so later `Shift+Up/Down` can pop it. |
 | Drag | Highlights text until it crosses a note boundary, then snaps to whole notes. |
 | Long-press (touch) | Enters caret selection; dragging handles behaves like text selection until it crosses a boundary, then snaps to whole notes. |
 | `Esc` | Collapses any note range to a caret without changing the document. |
@@ -83,18 +87,21 @@ in place where possible; the disturbance tiers are defined in
 
 ## Collaboration reshaping
 
-The ladder stores intent, so a disturbance (a remote edit, undo/redo) is graded
-by how much it perturbs the replay:
+The ladder stores intent, so a disturbance — a remote edit, or an undo/redo
+(which is itself a document edit, never a ladder step) — is graded by how much
+it perturbs the replay, evaluated from the anchor outward:
 
 1. Anchor and rungs still resolve → the selection re-resolves and follows the new
    shape, including subtree growth/shrink of swept notes. No visible disruption.
-2. A rung's target was deleted or re-parented out → the ladder truncates to the
-   deepest still-valid rung.
-3. The anchor itself is gone → the selection collapses to a caret near the former
-   anchor.
+2. A rung no longer resolves (its target was deleted, or re-parented so the rung
+   can no longer reach it) → the ladder truncates at that rung and drops every
+   rung above it, keeping the rungs below.
+3. The anchor note no longer exists → the selection collapses to a caret near
+   the former anchor. (An anchor that still exists but moved is not gone; the
+   ladder re-replays from its new location.)
 
-[Folding](./folding.md) and [zoom](./zoom.md) define what happens when a view
-change hides the active selection.
+[Folding](./folding.md) defines what happens when folding hides the active
+selection.
 
 ## Command compatibility
 

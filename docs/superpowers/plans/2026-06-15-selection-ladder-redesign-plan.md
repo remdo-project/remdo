@@ -419,10 +419,12 @@ recompute.
   ladder.stack)`:
   - anchor resolves and replay returns a range → tier 1/2: set that range as the
     structural selection.
-  - replay returns null at some rung → tier 3: truncate the stack to the longest
-    prefix that resolves; re-replay; set that.
-  - anchor key no longer resolves → tier 4: reset to `emptyLadder` and collapse
-    to a caret near the former anchor (reuse `collapseSelectionToCaret`).
+  - replay returns null at some rung → tier 3: evaluating rungs anchor-outward,
+    keep the longest prefix that resolves (drop the first failing rung and every
+    rung above it); re-replay; set that.
+  - anchor id no longer resolves → tier 4: reset to `emptyLadder` and collapse
+    to a caret near the former anchor (reuse `collapseSelectionToCaret`). A
+    moved-but-alive anchor is tier 1–2, not tier 4.
 
   Coarse fallback is acceptable per the spec/todo: if tier-3 truncation is
   risky, collapse to caret on any replay failure, leave a `// TODO(selection

@@ -135,11 +135,16 @@ perturbs the replay. Target tiers, cheapest to most disruptive:
    gained a child). Replay still works and the selection naturally grows/shrinks
    to the new subtree. This is the "always adjust to the new shape in the
    expected way" outcome, and it is automatic with intent-based rungs.
-3. **A rung's target was deleted or re-parented out.** Truncate the stack at the
-   first rung that no longer resolves; keep the rungs below it. Selection
-   collapses to the deepest still-valid rung rather than to a caret.
-4. **The anchor itself is gone.** Collapse to a caret near the former anchor (or
-   the surviving range edge).
+3. **A rung no longer resolves** (its target was deleted, or re-parented so the
+   rung can no longer reach it). Evaluating rungs from the anchor outward,
+   truncate at the first rung that fails and drop every rung above it, keeping
+   the rungs below. (This is well-defined even when the break is mid-stack: a
+   higher rung that would independently resolve is still dropped, so the stack
+   never has a hole.)
+4. **The anchor note no longer exists.** Collapse to a caret near the former
+   anchor. An anchor that still exists but moved is *not* gone — "gone" means the
+   note id no longer resolves; a moved anchor re-replays from its new location
+   (tier 1/2).
 
 Tiers 1–2 are the design target and fall out of the model for free. **Tiers 3–4
 are the target but may be implemented coarser at first** (initial implementation
@@ -173,24 +178,41 @@ Each confirmed with the user during brainstorming on 2026-06-15:
 5. **Caret is an implicit single-note structural target.**
 6. **Spec the ideal collab tiers; defer hard tiers 3–4 to todo.**
 
+Resolved during the post-rewrite review (autonomous judgment per the agreed
+working mode; flagged for confirmation in the handoff):
+
+7. **Slab reversal pops the whole slab.** A `Cmd/Ctrl+A` sibling rung adds a
+   whole sibling slab as one rung, so one reverse `Shift+Arrow` press retracts
+   the whole slab. This keeps "the opposite key exactly inverts the previous
+   step" literally true rather than special-casing a slab-to-single split.
+8. **The inline body is a distinct first rung** (not folded into the
+   note+subtree press). Empty bodies skip it, so the first press on an empty
+   note lands on note+subtree. This matches the existing keyboard tests.
+9. **Pointer selections seed the ladder**: the anchor is the click/drag origin
+   and the resulting range is reproduced as a synthesized rung set, so keyboard
+   reversal pops nearest-to-anchor last. (Promoted from the open questions
+   below.)
+10. **Truncation rule is anchor-outward and drops everything above the first
+    failing rung** (see tier 3 above), resolving the earlier "deepest valid"
+    vs "first failing" ambiguity.
+11. **The ladder is not on the undo stack.** Undo/redo are document edits and
+    are handled as tier 1–4 disturbances; growing/shrinking the ladder is not
+    itself undoable.
+
 ## Open questions
 
-- **Pointer-driven anchor (`Shift+Click`, drag).** Pointer selection currently
-  infers a progression state without a real rung stack
-  (`inferPointerProgressionState`). The redesign must define how a
-  pointer-created selection seeds the stack so subsequent `Shift+Up/Down`
-  reversal still pops correctly. Proposed default: a pointer selection seeds the
-  anchor at the click origin and synthesizes the minimal rung set that reproduces
-  the current range, so keyboard reversal can pop it. Confirm during
-  implementation.
-- **Interaction with folding/zoom hiding the active selection.** Folding and
-  zoom already specify that hiding the active selection collapses it to the
-  folded/visible ancestor. Under the stack model this is a tier-3/4 disturbance
-  (a rung target becomes unreachable). The selection doc should point to
-  folding/zoom for the collapse rule rather than restating it.
+These remain genuinely open for the user; decisions 7–11 above resolved the rest.
+
 - **Persistence of the stack across blur/refocus.** Whether the rung stack
   survives the editor losing and regaining focus, or resets to caret. Proposed
-  default: reset on blur (stack is ephemeral UI state), matching most editors.
+  default: reset on blur (the stack is ephemeral UI state), matching most
+  editors; the implementation plan's reset-on-collapse subsumes this in
+  practice. Confirm if a different lifetime is wanted.
+- **Folding-hidden selection.** Folding owns the rule that hiding the active
+  selection collapses it to the folded ancestor (`folding.md`); under the stack
+  model this is a tier-3 disturbance. The selection doc points to folding for it.
+  Zoom only constrains *expansion* to the zoom root and does not define a
+  selection-hiding collapse, so the doc no longer attributes that rule to zoom.
 
 ## References
 

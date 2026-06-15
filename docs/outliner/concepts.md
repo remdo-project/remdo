@@ -149,4 +149,4 @@ Notes can be restructured via indent/outdent or reordering actions; see
 ### Selection Overview
 
 Selection behavior is defined in [Selection](./selection.md), which describes
-whole-note snapping, progressive expansion, and shortcut coverage.
+whole-note snapping, the selection ladder, and shortcut coverage.
