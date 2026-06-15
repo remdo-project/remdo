@@ -38,6 +38,10 @@ When editing docs, keep external references in a final `References` section.
   process, command, port, and port block first. If it belongs to the current
   workdir/worktree and blocks the task, restart it instead of adding workaround
   wiring; report the restart and any follow-up tooling/HMR recommendation.
+- If you cannot log in as a stable dev user (Alice/Bob), run
+  `pnpm run dev:data-reset` to (re)provision them and seed the fixture
+  documents. It is idempotent and dev-only; either of us may run it, but not
+  while the other is mid-task. Pass `--fresh` to reset the seeded fixture docs.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
 - The Git index may be used by the developer as private review bookkeeping.
