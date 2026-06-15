@@ -167,11 +167,7 @@ function shellSingleQuote(value: string): string {
   return `'${value.replaceAll("'", String.raw`'\''`)}'`;
 }
 
-export function formatExportLines(resolved: {
-  authSecret: string;
-  ysweetAuthKey: string;
-  ysweetServerToken: string;
-}): string {
+export function formatExportLines(resolved: ResolvedSecrets): string {
   return [
     `export AUTH_SECRET=${shellSingleQuote(resolved.authSecret)}`,
     `export YSWEET_AUTH_KEY=${shellSingleQuote(resolved.ysweetAuthKey)}`,
@@ -214,7 +210,15 @@ export function bootstrapSecrets({ dataDir, env, generateYSweet }: BootstrapArgs
  */
 function generateYSweetPairFromBinary(): YSweetPair {
   const output = execFileSync('y-sweet', ['gen-auth', '--json'], { encoding: 'utf8' });
-  const parsed = JSON.parse(output) as { private_key: string; server_token: string };
+  let parsed: { private_key?: string; server_token?: string };
+  try {
+    parsed = JSON.parse(output);
+  } catch {
+    throw new Error('y-sweet gen-auth did not return valid JSON');
+  }
+  if (!isPresent(parsed.private_key) || !isPresent(parsed.server_token)) {
+    throw new Error('y-sweet gen-auth output missing private_key/server_token');
+  }
   return { privateKey: parsed.private_key, serverToken: parsed.server_token };
 }
 
