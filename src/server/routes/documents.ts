@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { normalizeDocumentId } from '#domain/documents/ids';
 import { HTTP_STATUS } from '#platform/http/status';
 import { resolveActor } from '#server/auth/actor';
+import type { Actor } from '#server/auth/actor';
 import { issueYSweetDocumentClientToken } from '#server/collab-token';
 import {
   createUserDocument,
@@ -17,12 +19,36 @@ export function createDocumentRoutes({
 }: ServerRouteDependencies) {
   const routes = new Hono();
 
+  // Resolves the request actor or returns the shared 401 response used by every
+  // authenticated document route.
+  async function requireActor(c: Context): Promise<Actor | Response> {
+    await auth.ensureReady();
+    const actor = await resolveActor(c.req.raw, auth);
+    if (!actor) {
+      return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
+    }
+    return actor;
+  }
+
+  // Validates the `:docId` param and resolves the actor, returning the shared
+  // 400/401 responses used by per-document routes.
+  async function requireDocIdAndActor(c: Context): Promise<{ normalizedDocId: string; actor: Actor } | Response> {
+    const normalizedDocId = normalizeDocumentId(c.req.param('docId'));
+    if (!normalizedDocId) {
+      return c.json({ error: 'Invalid document id.' }, HTTP_STATUS.BAD_REQUEST);
+    }
+    const actor = await requireActor(c);
+    if (actor instanceof Response) {
+      return actor;
+    }
+    return { normalizedDocId, actor };
+  }
+
   routes.post('/', async (c) => {
     try {
-      await auth.ensureReady();
-      const actor = await resolveActor(c.req.raw, auth);
-      if (!actor) {
-        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
+      const actor = await requireActor(c);
+      if (actor instanceof Response) {
+        return actor;
       }
 
       const body = await c.req.json<{ title?: string }>();
@@ -47,16 +73,12 @@ export function createDocumentRoutes({
   });
 
   routes.post('/:docId/access', async (c) => {
-    const normalizedDocId = normalizeDocumentId(c.req.param('docId'));
-    if (!normalizedDocId) {
-      return c.json({ error: 'Invalid document id.' }, HTTP_STATUS.BAD_REQUEST);
-    }
     try {
-      await auth.ensureReady();
-      const actor = await resolveActor(c.req.raw, auth);
-      if (!actor) {
-        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
+      const resolved = await requireDocIdAndActor(c);
+      if (resolved instanceof Response) {
+        return resolved;
       }
+      const { normalizedDocId, actor } = resolved;
       const document = await registry.getDocument(normalizedDocId);
       if (!document || document.ownerUserId !== actor.userId) {
         return c.json({ error: 'Document not found.' }, HTTP_STATUS.NOT_FOUND);
@@ -92,22 +114,18 @@ export function createDocumentRoutes({
         },
       });
     } catch (error) {
-      logError(error, { docId: normalizedDocId });
+      logError(error, { docId: c.req.param('docId') });
       return c.json({ error: 'Failed to share document.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });
 
   routes.post('/:docId/sync-tokens', async (c) => {
-    const normalizedDocId = normalizeDocumentId(c.req.param('docId'));
-    if (!normalizedDocId) {
-      return c.json({ error: 'Invalid document id.' }, HTTP_STATUS.BAD_REQUEST);
-    }
     try {
-      await auth.ensureReady();
-      const actor = await resolveActor(c.req.raw, auth);
-      if (!actor) {
-        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
+      const resolved = await requireDocIdAndActor(c);
+      if (resolved instanceof Response) {
+        return resolved;
       }
+      const { normalizedDocId, actor } = resolved;
 
       const document = await registry.getDocument(normalizedDocId);
       if (!document) {
@@ -124,7 +142,7 @@ export function createDocumentRoutes({
 
       return c.json(result.token);
     } catch (error) {
-      logError(error, { docId: normalizedDocId });
+      logError(error, { docId: c.req.param('docId') });
       return c.json({ error: 'Failed to issue Y-Sweet document client token.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   });

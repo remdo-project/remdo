@@ -22,8 +22,9 @@ import type { CreateEditorArgs, LexicalEditor } from 'lexical';
 import { config } from '#config';
 import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
 import { CollabSession } from '#collaboration/session';
+import { waitForSessionAttachment } from '#collaboration/wait-for-session-attachment';
 import { resolveYSweetConnectionString } from '#server/collab-token';
-import type { CollaborationProviderInstance, CollaborationSessionProvider } from '#collaboration/runtime';
+import type { CollaborationSessionProvider } from '#collaboration/runtime';
 import { prepareEditorStateForPersistence } from '#client/editor/runtime/editor-state-persistence';
 import { createEditorInitialConfig } from '#client/editor/runtime/config';
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
@@ -297,48 +298,6 @@ async function withSession(
       doc.destroy();
     }
   }
-}
-
-async function waitForSessionAttachment(
-  session: CollabSession,
-  docMap: Map<string, Doc>,
-  docId: string,
-  timeoutMs = 5000
-): Promise<{ provider: CollaborationProviderInstance; doc: Doc }> {
-  const resolveAttachment = () => {
-    const provider = session.getProvider();
-    const doc = docMap.get(docId);
-    if (!provider || !doc) {
-      return null;
-    }
-    return { provider, doc };
-  };
-
-  const immediate = resolveAttachment();
-  if (immediate) {
-    return immediate;
-  }
-
-  return new Promise((resolve, reject) => {
-    let unsubscribe = () => {};
-    const timeoutHandle = setTimeout(() => {
-      unsubscribe();
-      reject(new Error(`Timed out waiting for collaboration provider for ${docId}`));
-    }, timeoutMs);
-
-    const onUpdate = () => {
-      const attached = resolveAttachment();
-      if (!attached) {
-        return;
-      }
-      clearTimeout(timeoutHandle);
-      unsubscribe();
-      resolve(attached);
-    };
-
-    unsubscribe = session.subscribe(onUpdate);
-    onUpdate();
-  });
 }
 
 function waitForEditorUpdate(editor: LexicalEditor): Promise<void> {

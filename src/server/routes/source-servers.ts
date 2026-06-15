@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { normalizeDocumentId } from '#domain/documents/ids';
 import { HTTP_STATUS } from '#platform/http/status';
 import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
@@ -47,17 +48,33 @@ export function createSourceServerRoutes({
     return { accessToken, kind: 'ready' as const, server };
   }
 
+  type SourceAccess = Awaited<ReturnType<typeof resolveSourceAccess>>;
+  type ReadySourceAccess = Extract<SourceAccess, { kind: 'ready' }>;
+
+  // Resolves access and either returns the ready grant or sends the matching
+  // error response for the non-ready states shared across source routes.
+  async function requireSourceAccess(
+    c: Context,
+    serverId: string,
+  ): Promise<ReadySourceAccess | Response> {
+    const access = await resolveSourceAccess(c.req.raw, serverId);
+    switch (access.kind) {
+      case 'not-found':
+        return c.json({ error: 'Source server not found.' }, HTTP_STATUS.NOT_FOUND);
+      case 'unauthorized':
+        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
+      case 'forbidden':
+        return c.json({ error: 'Source server account is not linked.' }, HTTP_STATUS.FORBIDDEN);
+      default:
+        return access;
+    }
+  }
+
   routes.get('/:serverId/current-user', async (c) => {
     try {
-      const access = await resolveSourceAccess(c.req.raw, c.req.param('serverId'));
-      if (access.kind === 'not-found') {
-        return c.json({ error: 'Source server not found.' }, HTTP_STATUS.NOT_FOUND);
-      }
-      if (access.kind === 'unauthorized') {
-        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
-      }
-      if (access.kind === 'forbidden') {
-        return c.json({ error: 'Source server account is not linked.' }, HTTP_STATUS.FORBIDDEN);
+      const access = await requireSourceAccess(c, c.req.param('serverId'));
+      if (access instanceof Response) {
+        return access;
       }
 
       const response = await fetch(`${resolveSourceServerApiOrigin(access.server)}/api/current-user`, {
@@ -85,15 +102,9 @@ export function createSourceServerRoutes({
     }
 
     try {
-      const access = await resolveSourceAccess(c.req.raw, c.req.param('serverId'));
-      if (access.kind === 'not-found') {
-        return c.json({ error: 'Source server not found.' }, HTTP_STATUS.NOT_FOUND);
-      }
-      if (access.kind === 'unauthorized') {
-        return c.json({ error: 'Authentication required.' }, HTTP_STATUS.UNAUTHORIZED);
-      }
-      if (access.kind === 'forbidden') {
-        return c.json({ error: 'Source server account is not linked.' }, HTTP_STATUS.FORBIDDEN);
+      const access = await requireSourceAccess(c, c.req.param('serverId'));
+      if (access instanceof Response) {
+        return access;
       }
 
       const response = await fetch(`${resolveSourceServerApiOrigin(access.server)}/api/documents/${

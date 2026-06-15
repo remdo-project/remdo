@@ -1,12 +1,11 @@
-import type { ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import fs from 'node:fs';
 import path from 'node:path';
-import process from 'node:process';
 import { setTimeout as wait } from 'node:timers/promises';
 
 import { config } from '#config';
 import { resolveLoopbackHost } from '#platform/net/loopback';
+import { attachManagedProcess, terminateProcessGroup } from './managed-process';
 import { isPortOpen } from './net';
 import { spawnPnpm } from './process';
 
@@ -15,23 +14,6 @@ const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'remdo-api-server.log');
 const reusedServerStop = () => Promise.resolve();
-
-function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
-  if (child.killed) {
-    return;
-  }
-
-  if (child.pid && process.platform !== 'win32') {
-    try {
-      process.kill(-child.pid, signal);
-      return;
-    } catch {
-      // Fallback to direct child kill when group signaling fails.
-    }
-  }
-
-  child.kill(signal);
-}
 
 function ensureLogStream(): fs.WriteStream {
   fs.mkdirSync(LOG_DIR, { recursive: true });
@@ -89,27 +71,7 @@ export async function ensureRemdoApiServer({
     },
   );
 
-  if (child.stdout) {
-    child.stdout.pipe(logStream, { end: false });
-  }
-  if (child.stderr) {
-    child.stderr.pipe(logStream, { end: false });
-  }
-
-  const teardownSignals = ['exit', 'SIGINT', 'SIGTERM'] as const;
-  const onSignal = () => {
-    terminateProcessGroup(child, 'SIGTERM');
-  };
-  for (const event of teardownSignals) {
-    process.on(event, onSignal);
-  }
-
-  const cleanup = () => {
-    for (const event of teardownSignals) {
-      process.off(event, onSignal);
-    }
-    logStream.end();
-  };
+  const cleanup = attachManagedProcess(child, logStream);
   const stop = async () => {
     let exited = child.exitCode !== null || child.signalCode !== null;
     child.once('exit', () => {
