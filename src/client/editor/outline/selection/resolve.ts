@@ -210,13 +210,14 @@ export function computeStructuralRangeFromHeads(heads: ListItemNode[]): OutlineS
 }
 
 /**
- * Shim: synthesize a ladder from a pointer-created (or pointer-tweaked)
- * structural selection so a subsequent Shift+Arrow continues the sweep from the
- * right place. We start at the anchor's subtree and replay one sweep step at a
- * time (reusing $replayLadder so no traversal is duplicated) until the replayed
- * range reaches the far edge of the live selection. Full pointer-driven rung
- * synthesis (mid-slab anchors, mixed directions) is Task 6; this covers the
- * contiguous single-direction slabs the current tests exercise.
+ * Seed a rung ladder from a pointer-created (or pointer-tweaked) structural
+ * selection so a subsequent Shift+Arrow continues — or reverses — the sweep from
+ * the right place. We anchor at the selection's anchor note, then replay one
+ * sweep step at a time (reusing $replayLadder so no traversal is duplicated)
+ * until the replayed range reaches the far edge of the live selection. The
+ * resulting stack is `[subtree, sibling×N]` in the inferred sweep direction, so
+ * a following Shift+Arrow pops the last sibling exactly. Pointer slabs are
+ * always structural, so the inline rung (rung 1) is irrelevant and omitted.
  */
 export function $inferPointerProgressionState(
   selection: RangeSelection,
