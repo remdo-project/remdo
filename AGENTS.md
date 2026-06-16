@@ -111,41 +111,12 @@ When editing docs, keep external references in a final `References` section.
 - Use DevTools snapshots, screenshots, and in-page inspection as the primary source
   of truth when checking “what this looks like” or confirming browser-side
   changes.
-- DevTools bootstrap (Playwright Chromium):
-  1. Health check:
-     `curl -fsS http://127.0.0.1:9222/json/version >/dev/null`
-  2. If down, run (resolve the newest installed Chromium build; do not hardcode
-     the build number — it changes on Playwright bumps):
-
-     ```sh
-     mkdir -p /tmp/pw-devtools-home/.config /tmp/pw-devtools-home/.cache /tmp/pw-cdp-profile
-     PW_DIR="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
-     CHROME=$(ls -d "$PW_DIR"/chromium-*/chrome-linux/chrome | sort -V | tail -1)
-     setsid env HOME=/tmp/pw-devtools-home \
-       XDG_CONFIG_HOME=/tmp/pw-devtools-home/.config \
-       XDG_CACHE_HOME=/tmp/pw-devtools-home/.cache \
-       "$CHROME" \
-       --headless=new --no-sandbox --disable-dev-shm-usage --disable-breakpad \
-       --disable-crash-reporter --disable-background-networking \
-       --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 \
-       --user-data-dir=/tmp/pw-cdp-profile --no-first-run \
-       --no-default-browser-check about:blank >/tmp/pw-cdp.log 2>&1 < /dev/null &
-     ```
-
-  3. The `chrome-devtools` MCP server (project `.mcp.json`) attaches to this
-     endpoint via `--browserUrl http://127.0.0.1:9222`; the bundled
-     `chrome-devtools-mcp` plugin is disabled in this project's local settings
-     because it would otherwise launch its own (missing) Chrome. A newly added
-     MCP server only loads on a Claude Code restart.
-  4. App flow: open `http://127.0.0.1:5000/`. The shared CDP profile
-     (`/tmp/pw-cdp-profile`) persists the session, so it is usually already
-     logged in. If it lands on `/login`, sign in with a stable dev user
-     (`alice@example.test` / `alice-password-1234`, or `bob@example.test` /
-     `bob-password-1234`; defined in `tools/lib/stable-auth-users.ts`). If those
-     users or their docs are missing, run `pnpm run dev:data-reset`. Fixtures are
-     seeded as documents titled `fixture: <name>` (e.g. `fixture: tree-complex`),
-     opened via the document chooser.
-  5. If this flow fails or drifts, report it.
+- DevTools bootstrap: the `chrome-devtools` MCP attaches to a shared headless
+  CDP endpoint on `127.0.0.1:9222` (configured in project `.mcp.json`). If the
+  endpoint is down, run `ensure-cdp` (host script) to start it; the MCP itself
+  loads only on a Claude Code restart. To reach the app, open
+  `http://127.0.0.1:5000/` and sign in as a dev user / open a fixture doc per
+  [docs/run-modes.md](docs/run-modes.md). If this flow fails or drifts, report it.
 - When presenting multiple options or a list of questions, format them as a
   numbered list.
 - The shared test harness treats console warnings/errors as failures; if you
