@@ -42,13 +42,10 @@ When editing docs, keep external references in a final `References` section.
   `pnpm run dev:data-reset` to (re)provision them and seed the fixture
   documents. It is idempotent and dev-only; either of us may run it, but not
   while the other is mid-task. Pass `--fresh` to reset the seeded fixture docs.
-- `.agent/` is a per-working-dir agent scratch directory: transient artifacts
-  such as implementation plans and mid-task coordination notes. It is
-  self-gitignored (`.agent/.gitignore` is `*`) and excluded from linting, so its
-  contents never enter version control and may be purged between tasks. Write
-  throwaway working files here, not under versioned paths like `docs/`. It is
-  per-WD (not shared across worktrees); cross-WD agent state belongs under
-  `~/.claude/` instead.
+- `.agent/` is per-working-dir agent scratch (plans, mid-task notes). It is
+  gitignored and excluded from linting, so write throwaway working files here
+  rather than under versioned paths like `docs/`. It is per-WD (not shared across
+  worktrees); cross-WD agent state belongs under `~/.claude/` instead.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
 - The Git index may be used by the developer as private review bookkeeping.

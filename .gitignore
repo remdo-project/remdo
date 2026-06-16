@@ -17,3 +17,6 @@ Thumbs.db
 *.local
 .claude/settings.local.json
 .env
+
+# per-working-dir agent scratch (plans, mid-task notes); never versioned
+/.agent/
