@@ -92,7 +92,7 @@ Keep this order: do not start Task 5 until 1–4 are green.
   instead of `progressionRef`; push/pop on directional command; reset on
   collapse.
 - **Test** `tests/unit/selection.spec.ts` (existing; keep green; add
-  flip-past-empty case), `tests/unit/internal/selection-rungs.spec.ts` (new),
+  stop-at-anchor case), `tests/unit/internal/selection-rungs.spec.ts` (new),
   `tests/unit/collab/selection-reshape.collab.spec.tsx` (new).
 
 ---
@@ -299,8 +299,12 @@ Expected: PASS (baseline before refactor).
 
 - [ ] **Step 3: Rewrite `$computeDirectionalPlan`** to: resolve the anchor item;
   if continuing, `pushStep` for the requested direction when it matches the
-  current sweep (or when below the sweep rungs), else `popStep` when the request
-  opposes the current sweep direction; then `$replayLadder` to produce the plan.
+  current sweep (or when still below the sweep rungs), else `popStep` when the
+  request opposes the current sweep direction; then `$replayLadder` to produce
+  the plan. **Stop-at-anchor (no flip):** once the stack is empty (collapsed to
+  the caret), a further press in the contract direction is a no-op — it must not
+  start a fresh push the other way. The only way to grow after reaching the
+  caret is a press in the opposite (grow) direction, which seeds a new ladder.
   Delete `$buildDirectionalShrinkPlan` and `inferSiblingStage` usage from this
   path. Keep `$isDirectionalBoundary` (it gates the no-op) but reimplement it as
   "replay of a hypothetical push returns null".
@@ -495,36 +499,45 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 ---
 
-### Task 7: Add the flip-past-empty test and remove dead code
+### Task 7: Add the stop-at-anchor test and remove dead code
 
 **Files:**
 
-- Modify: `tests/unit/selection.spec.ts` (add flip-past-empty case)
+- Modify: `tests/unit/selection.spec.ts` (add stop-at-anchor case)
 - Modify: `src/client/editor/outline/selection/progressive.ts` (delete
   now-unused reconstruction)
 
-- [ ] **Step 1: Add the flip-past-empty test.** From a caret, build down to a
-  multi-note range, reverse all the way back to the caret, then press the same
-  reverse direction once more and assert it expands the *other* way.
+- [ ] **Step 1: Add the stop-at-anchor test.** From a caret, build down to a
+  multi-note range, reverse all the way back to the anchor and caret, then press
+  the same reverse direction once more and assert it is a no-op (no flip — the
+  ladder does not re-expand the other way).
 
 ```text
-it('flips and re-expands the other way after popping back to the caret',
+it('stops at the anchor and does not flip when over-contracting',
   meta({ fixture: 'flat' }), async ({ remdo }) => {
   await placeCaretAtNote(remdo, 'note2');
-  await pressKey(remdo, { key: 'ArrowDown', shift: true }); // inline
+  await pressKey(remdo, { key: 'ArrowDown', shift: true }); // inline body
   await pressKey(remdo, { key: 'ArrowDown', shift: true }); // note2 subtree
   await pressKey(remdo, { key: 'ArrowDown', shift: true }); // note2..note3
-  await pressKey(remdo, { key: 'ArrowUp', shift: true });   // back to note2
-  await pressKey(remdo, { key: 'ArrowUp', shift: true });   // back to inline/caret
-  await pressKey(remdo, { key: 'ArrowUp', shift: true });   // flip: expand upward
-  expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+  await pressKey(remdo, { key: 'ArrowUp', shift: true });   // back to note2 subtree
+  await pressKey(remdo, { key: 'ArrowUp', shift: true });   // back to inline body
+  await pressKey(remdo, { key: 'ArrowUp', shift: true });   // collapse to caret
+  await pressKey(remdo, { key: 'ArrowUp', shift: true });   // no-op (no flip)
+  expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+  // Growing the other way requires the other key:
+  await pressKey(remdo, { key: 'ArrowDown', shift: true }); // fresh ladder downward
+  expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
 });
 ```
 
+(Use whatever caret/inline matcher shape `toMatchSelection` already supports in
+the suite; the assertion intent is "still at note2, no upward selection".)
+
 - [ ] **Step 2: Run it.**
 
-Run: `pnpm run test:unit:full tests/unit/selection.spec.ts -t "flips and re-expands"`
-Expected: PASS (the ladder already supports this; this locks it in).
+Run: `pnpm run test:unit:full tests/unit/selection.spec.ts -t "stops at the anchor"`
+Expected: PASS (the stop-at-anchor floor is the model's default; this locks it
+in and guards against a regression to flip behavior).
 
 - [ ] **Step 3: Delete dead code.** Remove `$buildDirectionalShrinkPlan`,
   `inferSiblingStage`, `getLevelsUpToParent`, `isAncestorOfAnchor`,
@@ -543,7 +556,7 @@ Expected: all PASS.
 
 ```bash
 git add -A
-git commit -m "refactor(selection): drop geometry-reconstruction shrink path; lock flip-past-empty
+git commit -m "refactor(selection): drop geometry-reconstruction shrink path; lock stop-at-anchor
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -556,7 +569,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
   grow/shrink via push/pop (Task 3, existing tests), `Cmd/Ctrl+A` slab on the
   same ladder (Task 4), collaboration reshape tiers (Task 5), caret-as-target
   and mode-switch (unchanged behavior, already covered by existing tests),
-  flip-past-empty (Task 7), pointer-seeding open question resolved (Task 6).
+  stop-at-anchor (Task 7), pointer-seeding open question resolved (Task 6).
 - **Deferred per spec/todo:** collab tiers 3–4 may ship as a coarse
   collapse-to-caret first (Task 5 Step 3) — flagged for the handoff. Stack
   lifetime across blur/refocus is not implemented here; default

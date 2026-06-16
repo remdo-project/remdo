@@ -1,6 +1,6 @@
 # Selection Ladder Redesign — Design Spec
 
-Date: 2026-06-15
+Date: 2026-06-15 (model converged 2026-06-16)
 Status: Approved at the principles level; docs + implementation plan to follow.
 Owner: Piotr (review), drafted with Claude.
 
@@ -54,6 +54,29 @@ descendant?). That ambiguity is exactly what the current re-derivation code
 fights. The expansion-history stack resolves it by recording intent, so the
 chosen model is the **stack**.
 
+### Why the ladder is forced, not chosen
+
+A flat anchor+focus model (the text-editor default) is **disqualified for an
+outliner**, and this is the principle the whole design rests on.
+
+A structural selection must always be a contiguous run of **whole notes, each
+including its entire subtree** ([Note Structure Rules](../../outliner/note-structure-rules.md)
+"Subtree Atomic Move"); every structural command (indent, outdent, reorder,
+delete) assumes it. A flat focus extends by document-order *position* (the next
+visible row), but the outliner requires extension by whole *subtrees*. Those
+coincide only in a flat document. The moment a selected note has children
+below the focus edge, flat extension yields a parent without its descendants —
+an illegal selection, and one that then feeds `Tab`/reorder/etc., propagating
+the breakage into structural operations.
+
+So the extension unit cannot be a flat row; it must be a whole subtree. This
+forces a hierarchy-aware ladder. The organizing principle that follows:
+
+> **The rungs are the legal selection states.** Each rung is, by construction, a
+> contiguous whole-subtree run, so there is no representable illegal
+> intermediate selection. The test for any rule is simply: *does every rung
+> remain a contiguous whole-subtree run?*
+
 ## Core model
 
 ### Selection is rebuilt, never stored
@@ -85,9 +108,13 @@ Rungs are pushed in this recurrence:
    parent's level.
 5. Repeat sibling-step / hoist up to the document root (or the zoom boundary).
 
-`Cmd/Ctrl+A` pushes one *rung kind* per press but collapses the repeatable
-sibling step into "all remaining siblings at this level at once".
-`Shift+Up/Down` pushes one sibling at a time. Both walk the same rungs.
+**One ladder, two speeds.** `Cmd/Ctrl+A` and `Shift+Up/Down` walk the *same*
+rungs from the *same* anchor; they differ only in step size. `Cmd/Ctrl+A`
+advances one rung kind per press and collapses the repeatable sibling step into
+"all remaining siblings at this level at once" (one slab = one rung).
+`Shift+Up/Down` steps one sibling at a time. Whichever gesture starts the
+selection sets the anchor; the other can continue or reverse on the same stack.
+The inline-body rung (rung 1) and the empty-body skip apply identically to both.
 
 ### Anchor and direction rules
 
@@ -98,16 +125,21 @@ sibling step into "all remaining siblings at this level at once".
   anchor note (inline body, then note+subtree). Direction does not matter yet.
 - **Direction is established by the first sweep.** The press that first extends
   past the anchor's subtree sets the sweep direction (up or down).
-- **Same direction pushes; opposite direction pops.** Reversing pops the last
-  rung and re-replays — exact, never re-derived.
-- **Flip past empty.** When the stack pops fully back to the caret, the next
-  press in the same (now opposite) direction begins a fresh ladder in that
-  direction on the same single stack.
-- **Boundary press is a no-op.** If a push would extend past the document (or
-  zoom) boundary, the press does nothing. Consequently, holding one direction to
-  the boundary and then pressing the other direction shrinks normally; the only
-  no-op corner case is when the first push was already a boundary no-op (e.g. the
-  ladder already covers the whole document).
+- **Same direction pushes; opposite direction pops.** Reversing pops the top
+  rung and re-replays — exact, never re-derived. A slab rung pushed by
+  `Cmd/Ctrl+A` is one rung, so one reverse press retracts the whole slab.
+- **The anchor is the floor; contraction stops there.** Popping bottoms out at
+  the anchor (rung 1, or rung 2 for an empty body) and then collapses to the
+  caret; once at the caret, further presses in the same direction are no-ops.
+  There is no "flip" — to grow the other way the user presses the other
+  direction key, which starts a fresh ladder. (This is the VS Code / JetBrains
+  shrink convention; the earlier flip idea is dropped because it re-anchors
+  mid-gesture and has no precedent.)
+- **Boundary push is a no-op.** A push that would extend past the document (or
+  zoom) boundary does nothing. So holding one direction to the boundary and then
+  pressing the other direction shrinks normally; the only no-op corner case is
+  when the first push was already a boundary no-op (the ladder already covers
+  the whole document).
 
 ### Caret is a valid structural target
 
@@ -158,50 +190,54 @@ explicit and gives one mechanism for both expansion and recovery.
 ## Naming
 
 - **Selection ladder** — the ordered sequence of rungs.
-- **Rung** — one semantic expansion step.
-- **Anchor** — the fixed note where structural selection began.
+- **Rung** — one semantic expansion step; every rung is a legal whole-subtree
+  selection.
+- **Anchor** — the fixed note where the selection started (by either gesture).
 - **Symmetric grow/shrink** — the invariant that the opposite key exactly
   inverts the previous step (the user's "clear order").
 
 ## Decisions
 
-Each confirmed with the user during brainstorming on 2026-06-15:
+Confirmed with the user during brainstorming on 2026-06-15 and refined in a
+follow-up discussion on 2026-06-16.
 
-1. **Core model = expansion-history stack** (not linear anchor+edge, not hybrid),
-   because subtree/hoist makes contraction geometrically ambiguous.
-2. **Rungs store intent, not geometry.** Selection = `replay(anchor, stack)`
-   against the live tree.
-3. **First structural rung is direction-neutral** (anchor note + subtree);
-   direction is set by the first sweep.
-4. **Flip-and-re-expand past empty**: popping fully to caret, then pressing the
-   same direction again, begins a fresh ladder the other way on one stack.
-5. **Caret is an implicit single-note structural target.**
-6. **Spec the ideal collab tiers; defer hard tiers 3–4 to todo.**
-
-Resolved during the post-rewrite review (autonomous judgment per the agreed
-working mode; flagged for confirmation in the handoff):
-
-7. **Slab reversal pops the whole slab.** A `Cmd/Ctrl+A` sibling rung adds a
-   whole sibling slab as one rung, so one reverse `Shift+Arrow` press retracts
-   the whole slab. This keeps "the opposite key exactly inverts the previous
-   step" literally true rather than special-casing a slab-to-single split.
-8. **The inline body is a distinct first rung** (not folded into the
-   note+subtree press). Empty bodies skip it, so the first press on an empty
-   note lands on note+subtree. This matches the existing keyboard tests.
-9. **Pointer selections seed the ladder**: the anchor is the click/drag origin
-   and the resulting range is reproduced as a synthesized rung set, so keyboard
-   reversal pops nearest-to-anchor last. (Promoted from the open questions
-   below.)
-10. **Truncation rule is anchor-outward and drops everything above the first
-    failing rung** (see tier 3 above), resolving the earlier "deepest valid"
-    vs "first failing" ambiguity.
-11. **The ladder is not on the undo stack.** Undo/redo are document edits and
-    are handled as tier 1–4 disturbances; growing/shrinking the ladder is not
-    itself undoable.
+1. **The ladder is forced by atomicity, not chosen.** A flat anchor+focus model
+   is disqualified for an outliner; the extension unit must be a whole subtree,
+   so the ladder is hierarchy-aware. The rungs are the legal selection states —
+   no illegal intermediate selection is representable.
+2. **Core model = expansion-history stack of intent.** Selection =
+   `replay(anchor, stack)` against the live tree; rungs store intent, not
+   geometry.
+3. **One ladder, two speeds, one anchor.** `Cmd/Ctrl+A` and `Shift+Up/Down` walk
+   the same rungs from the same anchor; `Cmd/Ctrl+A` jumps a rung per press
+   (whole slab at once), arrows step one sibling at a time. The anchor is the
+   note where the selection started, by *either* gesture, fixed until full
+   collapse.
+4. **Inline body is rung 1 on both gestures** (required for `Cmd/Ctrl+A`, kept on
+   arrows for coherence). Empty bodies skip it on both, so the first press lands
+   on note+subtree. The first structural rung (note+subtree) is
+   direction-neutral; the first sweep past it sets the sweep direction.
+5. **Contraction stops at the anchor — no flip.** Popping bottoms out at the
+   anchor and collapses to the caret; further same-direction presses are no-ops.
+   To grow the other way the user presses the other direction key. (Replaces the
+   earlier flip-past-empty idea, which re-anchored mid-gesture.)
+6. **Slab reversal pops the whole slab.** A `Cmd/Ctrl+A` sibling rung is one
+   rung, so one reverse press retracts the whole slab — the literal inverse of
+   the push.
+7. **Caret is an implicit single-note structural target.**
+8. **Pointer selections seed the ladder**: anchor = click/drag origin; the range
+   is reproduced as a synthesized rung set so keyboard reversal pops
+   nearest-to-anchor last.
+9. **Collaboration tiers:** spec the ideal (auto-reshape → truncate → collapse);
+   truncation is anchor-outward (drop the first failing rung and everything
+   above it); "anchor gone" means its note id no longer resolves (a moved anchor
+   re-replays). Hard tiers 3–4 may ship coarse first (see `docs/todo.md`).
+10. **The ladder is not on the undo stack.** Undo/redo are document edits handled
+    as disturbances; growing/shrinking the ladder is not itself undoable.
 
 ## Open questions
 
-These remain genuinely open for the user; decisions 7–11 above resolved the rest.
+These remain genuinely open for the user; the decisions above resolved the rest.
 
 - **Persistence of the stack across blur/refocus.** Whether the rung stack
   survives the editor losing and regaining focus, or resets to caret. Proposed

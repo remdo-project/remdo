@@ -27,11 +27,13 @@ and the code refactor steps in
   (`{anchor, stage, locked, lastDirection}` plus `inferSiblingStage` /
   `$buildDirectionalShrinkPlan`) with an anchored stack of replayable rungs;
   reversal pops a rung instead of re-deriving the stage from selection geometry.
+  One anchor and one ladder are shared by `Shift+Up/Down` and `Cmd/Ctrl+A`
+  (two speeds). Contraction stops at the anchor (no flip past empty).
 - Collaboration reshaping tiers: tiers 1–2 (re-resolve / auto-reshape) are the
-  design target and fall out of intent-replay. Tiers 3–4 (truncate to deepest
-  valid rung; collapse to caret when the anchor is gone) are also the target,
-  but the initial implementation may collapse to a caret on any rung/anchor loss
-  and refine later.
+  design target and fall out of intent-replay. Tiers 3–4 (truncate anchor-outward
+  to the first failing rung; collapse to caret when the anchor's note id is gone)
+  are also the target, but the initial implementation may collapse to a caret on
+  any rung/anchor loss and refine later.
 - Pointer-seeded ladder: define how `Shift+Click`/drag selections seed the
   anchor + rung stack so subsequent `Shift+Up/Down` reversal still pops
   correctly (current `inferPointerProgressionState` fakes a stage without a real

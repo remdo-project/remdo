@@ -31,14 +31,18 @@ skipped or partially selected.
 
 ## The selection ladder
 
-Structural selection grows and shrinks along a single ordered ladder. Its
-defining property is **symmetric grow/shrink**: pressing the opposite direction
-*exactly inverts* the previous step — it undoes, it never re-derives.
+Because a structural selection is always whole notes with their subtrees (see
+[Whole-note snapping](#whole-note-snapping)), it cannot grow by single rows; it
+grows and shrinks along a single ordered ladder whose every rung is itself a
+legal whole-subtree selection. Its defining property is **symmetric
+grow/shrink**: pressing the opposite direction *exactly inverts* the previous
+step — it undoes, it never re-derives.
 
 The ladder is anchored and replayable:
 
-- **One anchor.** The note where structural selection began. It is fixed for the
-  life of the ladder and is cleared only when the selection collapses to a caret.
+- **One anchor.** The note where the selection started — by `Shift+Up/Down` or
+  `Cmd/Ctrl+A`. It is fixed for the life of the ladder and is cleared only when
+  the selection collapses to a caret.
 - **Rungs.** Each step is a semantic instruction, not a stored range, so the
   selection is the anchor plus the current rungs re-resolved against the live
   tree. The recurrence is:
@@ -61,9 +65,10 @@ Direction and reversal:
   direction pops the top rung — exactly the rung that was last pushed. Because a
   `Cmd/Ctrl+A` sibling rung adds a whole sibling slab at once, one reverse press
   retracts that whole slab.
-- When the ladder pops fully back to the caret, the next press in the same
-  (now opposite) direction begins a fresh ladder in that direction, clamped to
-  the same document or zoom boundary.
+- Contraction bottoms out at the anchor and then collapses to the caret; once
+  there, further presses in the same direction are no-ops. There is no
+  direction flip — to grow the other way, press the other direction key, which
+  starts a fresh ladder.
 - A press that would extend past the document or zoom boundary is a no-op.
 
 Because the selection is replayed from intent, a collaboration edit reshapes it
