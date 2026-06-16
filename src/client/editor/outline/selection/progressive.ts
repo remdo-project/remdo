@@ -7,13 +7,13 @@ import { reportInvariant } from '#client/editor/invariant';
 import { getPreviousContentSibling } from '#client/editor/outline/list-structure';
 import { $requireRootContentList } from '#client/editor/outline/schema';
 
-import type { BoundaryMode } from './apply';
 import { selectInlineContent, selectNoteBody, setSelectionBetweenItems } from './apply';
-import { resolveContentBoundaryPoint } from './caret';
 import { getContiguousSelectionHeads } from './heads';
 import { isEmptyNoteBody } from './note-body';
 import type { ProgressiveSelectionState } from './resolve';
 import { resolveSelectionPointItem } from './resolve';
+import { $createInlinePlan, $createSubtreePlan } from './rungs';
+import type { ProgressivePlan } from './rungs';
 import {
   getContentSiblingsForItem,
   getFirstDescendantListItem,
@@ -35,19 +35,6 @@ export const INITIAL_PROGRESSIVE_STATE: ProgressiveSelectionState = {
   locked: false,
   lastDirection: null,
 };
-
-type ProgressivePlan =
-  | {
-      type: 'inline';
-      itemKey: string;
-    }
-  | {
-      type: 'range';
-      startKey: string;
-      endKey: string;
-      startMode: BoundaryMode;
-      endMode: BoundaryMode;
-    };
 
 export interface ProgressivePlanResult {
   anchorKey: string;
@@ -512,13 +499,6 @@ function $buildDirectionalAncestorPlan(
   };
 }
 
-function $createInlinePlan(item: ListItemNode): ProgressivePlan | null {
-  if (isEmptyNoteBody(item)) {
-    return null;
-  }
-  return $hasInlineBoundary(item) ? { type: 'inline', itemKey: item.getKey() } : null;
-}
-
 function $createNoteBodyPlan(item: ListItemNode): ProgressivePlan | null {
   return {
     type: 'range',
@@ -526,18 +506,6 @@ function $createNoteBodyPlan(item: ListItemNode): ProgressivePlan | null {
     endKey: item.getKey(),
     startMode: 'content',
     endMode: 'content',
-  };
-}
-
-function $createSubtreePlan(item: ListItemNode): ProgressivePlan | null {
-  const tail = getSubtreeTail(item);
-  const isLeaf = tail.getKey() === item.getKey();
-  return {
-    type: 'range',
-    startKey: item.getKey(),
-    endKey: tail.getKey(),
-    startMode: 'content',
-    endMode: isLeaf ? 'content' : 'subtree',
   };
 }
 
@@ -574,10 +542,6 @@ function $createDocumentPlan(): ProgressivePlan | null {
     startMode: 'content',
     endMode: 'subtree',
   };
-}
-
-function $hasInlineBoundary(item: ListItemNode): boolean {
-  return Boolean(resolveContentBoundaryPoint(item, 'start') && resolveContentBoundaryPoint(item, 'end'));
 }
 
 function ascendContentItem(item: ListItemNode, levels: number): ListItemNode | null {
