@@ -112,8 +112,8 @@ When editing docs, keep external references in a final `References` section.
   of truth when checking “what this looks like” or confirming browser-side
   changes.
 - DevTools bootstrap: the `chrome-devtools` MCP attaches to a shared headless
-  CDP endpoint on `127.0.0.1:9222` (configured in project `.mcp.json`). If the
-  endpoint is down, run `ensure-cdp` (host script) to start it; the MCP itself
+  CDP endpoint on `127.0.0.1:9222` (host/user-level MCP config, not in this
+  repo). If the endpoint is down, run `ensure-cdp` to start it; the MCP itself
   loads only on a Claude Code restart. To reach the app, open
   `http://127.0.0.1:5000/` and sign in as a dev user / open a fixture doc per
   [docs/run-modes.md](docs/run-modes.md). If this flow fails or drifts, report it.
