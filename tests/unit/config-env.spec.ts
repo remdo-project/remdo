@@ -2,6 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { resolveConfig } from '#config/env/resolve';
+import { CLIENT_KEY_LIST, envSchema } from '#config/env/schema';
 import type { EnvKey } from '#config/env/schema';
 
 type EnvValues = Partial<Record<EnvKey, string | boolean>>;
@@ -193,17 +194,13 @@ describe('config env resolve', () => {
     expect(Object.keys(resolved.client).sort()).toEqual(['COLLAB_ENABLED', 'DEV_DOCUMENT_ID']);
     expect(resolved.client.DEV_DOCUMENT_ID).toBe('testDevDoc');
     expect(resolved.client.COLLAB_ENABLED).toBe(true);
-    // No server-only value may reach the client config (it feeds the browser bundle).
-    for (const serverKey of [
-      'AUTH_SECRET',
-      'ADMIN_SECRET',
-      'YSWEET_AUTH_KEY',
-      'YSWEET_SERVER_TOKEN',
-      'AUTH_URL',
-      'APP_PUBLIC_URL',
-      'API_SERVER_PORT',
-      'ALLOW_SIGNUP',
-    ]) {
+    // No server-only value may reach the client config (it feeds the browser
+    // bundle). Derive the server keys from the schema so this can't drift: every
+    // schema key that is not a client key must be absent from the client.
+    const clientKeys = new Set<string>(CLIENT_KEY_LIST);
+    const serverOnlyKeys = Object.keys(envSchema).filter((key) => !clientKeys.has(key));
+    expect(serverOnlyKeys).toContain('AUTH_SECRET'); // sanity: the filter found server keys
+    for (const serverKey of serverOnlyKeys) {
       expect(resolved.client).not.toHaveProperty(serverKey);
     }
   });
@@ -235,5 +232,20 @@ describe('config env resolve', () => {
     });
 
     expect(collabPort).toBe('4004');
+  });
+
+  it('does not configure linkable RemDo servers for normal dev by default', () => {
+    const linkable = readEnvShValue('LINKABLE_REMDO_SERVERS_JSON', {
+      NODE_ENV: 'development',
+      PORT_BASE: '4000',
+      PORT: '4000',
+    });
+
+    expect(linkable).toBe('');
+  });
+
+  it('uses the un-prefixed ALLOW_SIGNUP key (no auth-prefixed variant)', () => {
+    expect(envSchema).toHaveProperty('ALLOW_SIGNUP');
+    expect(envSchema).not.toHaveProperty('AUTH_ALLOW_SIGNUP');
   });
 });
