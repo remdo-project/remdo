@@ -746,10 +746,7 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
-  it.skip('keeps the anchor when reversing Shift+Arrow after Cmd/Ctrl+A expansion', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    // re-enabled in Task 4 (Cmd+A slab): Cmd/Ctrl+A still rides the legacy
-    // stage-based machinery, so a Shift+Arrow reversal after Cmd+A cannot yet
-    // round-trip cleanly through the ladder's push/pop contraction.
+  it('keeps the anchor when reversing Shift+Arrow after Cmd/Ctrl+A expansion', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2');
 
     // Stage 1: inline text only.

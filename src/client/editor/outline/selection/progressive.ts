@@ -1,32 +1,20 @@
 import type { ListItemNode } from '@lexical/list';
-import { $isListNode } from '@lexical/list';
 import type { RangeSelection } from 'lexical';
-import { $getNodeByKey, $getRoot, $getSelection, $isRangeSelection } from 'lexical';
+import { $getNodeByKey, $getSelection, $isRangeSelection } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
-import { $requireRootContentList } from '#client/editor/outline/schema';
 
 import { selectInlineContent, selectNoteBody, setSelectionBetweenItems } from './apply';
-import { isEmptyNoteBody } from './note-body';
 import type { ProgressiveSelectionState } from './resolve';
 import { resolveSelectionPointItem } from './resolve';
 import {
-  $createInlinePlan,
   $createSubtreePlan,
   $replayLadder,
   emptyLadder,
   popStep,
   pushStep,
 } from './rungs';
-import type { LadderState, ProgressivePlan, Rung } from './rungs';
-import {
-  getContentSiblingsForItem,
-  getFirstDescendantListItem,
-  getLastDescendantListItem,
-  getParentContentItem,
-  getSubtreeTail,
-  isContentDescendantOf,
-} from './tree';
+import type { ProgressivePlan } from './rungs';
 
 interface ProgressiveSelectionRef {
   current: ProgressiveSelectionState;
@@ -59,28 +47,6 @@ export interface DirectionalNoopResult {
   noop: true;
 }
 
-/**
- * Synthesize a ladder whose stack length encodes a Cmd/Ctrl+A stage so the
- * shared ref can stay a single LadderState while Task 4 still drives Cmd+A by
- * stage number. Rung kinds are chosen only so structural-intent derivation
- * (any non-inline rung) matches the stage: 0 -> inline, 1 -> subtree,
- * >=2 -> sibling. The stack is not replayed for Cmd+A. TODO(Task 4): route
- * Cmd+A through the ladder so this synthesis can go away.
- */
-function ladderForStage(anchorKey: string, stage: number): LadderState {
-  const stack: Rung[] = [];
-  for (let depth = 0; depth < stage; depth += 1) {
-    if (depth === 0) {
-      stack.push({ kind: 'inline' });
-    } else if (depth === 1) {
-      stack.push({ kind: 'subtree' });
-    } else {
-      stack.push({ kind: 'sibling', direction: 'down' });
-    }
-  }
-  return { anchorKey, stack, direction: null };
-}
-
 function $resolveBoundaryRoot(boundaryKey: string | null | undefined): ListItemNode | null {
   if (!boundaryKey) {
     return null;
@@ -90,13 +56,6 @@ function $resolveBoundaryRoot(boundaryKey: string | null | undefined): ListItemN
     return null;
   }
   return node;
-}
-
-function $resolveDocumentPlan(boundaryRoot: ListItemNode | null): ProgressivePlan | null {
-  if (boundaryRoot) {
-    return $createSubtreePlan(boundaryRoot);
-  }
-  return $createDocumentPlan();
 }
 
 function $resolveProgressionAnchorContent(
@@ -164,24 +123,39 @@ export function $computeProgressivePlan(
 
   const anchorKey = anchorContent.getKey();
   const isContinuing = progressionRef.current.anchorKey === anchorKey;
-  const nextStage = isContinuing ? progressionRef.current.stack.length + 1 : 1;
-
   const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
-  const planEntry = $buildPlanForStage(anchorContent, nextStage, boundaryRoot);
-  if (!planEntry) {
-    progressionRef.current = initialProgression;
+  const boundaryReplayKey = boundaryRoot ? boundaryRoot.getKey() : null;
+
+  // Build the next rung: start from an empty ladder on a fresh anchor, or push
+  // one more step on the existing ladder when continuing. Cmd+A only ever grows.
+  const base = isContinuing ? progressionRef.current : emptyLadder(anchorKey);
+  const direction = progressionRef.current.direction ?? 'down';
+  let ladder = pushStep(base, direction);
+  let plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, true);
+
+  // Skip an empty inline rung: if the anchor note has no inline boundary (empty
+  // body), push one more rung to reach subtree, matching Shift+Arrow behaviour.
+  if (!plan && ladder.stack.length === 1) {
+    ladder = pushStep(ladder, direction);
+    plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, true);
+  }
+
+  if (!plan) {
+    // Replay blocked by the zoom boundary or document root. Clamp to the zoom
+    // root's subtree so the handler stays at the maximum reachable selection
+    // instead of falling through to the default browser Cmd+A. Leave the ladder
+    // unchanged (don't persist the blocked rung).
+    if (boundaryRoot) {
+      const clampedPlan = $createSubtreePlan(boundaryRoot);
+      if (clampedPlan) {
+        return { anchorKey, stage: progressionRef.current.stack.length, plan: clampedPlan };
+      }
+    }
     return null;
   }
 
-  // Encode the Cmd/Ctrl+A stage into the ladder so the shared ref stays a
-  // single LadderState. TODO(Task 4): route Cmd+A through the ladder directly.
-  progressionRef.current = ladderForStage(anchorKey, planEntry.stage);
-
-  return {
-    anchorKey,
-    stage: planEntry.stage,
-    plan: planEntry.plan,
-  };
+  progressionRef.current = ladder;
+  return { anchorKey, stage: ladder.stack.length, plan };
 }
 
 /**
@@ -311,126 +285,3 @@ export function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
   return setSelectionBetweenItems(selection, startItem, endItem, result.plan.startMode, result.plan.endMode);
 }
 
-function $buildPlanForStage(
-  anchorContent: ListItemNode,
-  stage: number,
-  boundaryRoot: ListItemNode | null
-): { plan: ProgressivePlan; stage: number } | null {
-  if (stage <= 1) {
-    const inlinePlan = $createInlinePlan(anchorContent);
-    if (inlinePlan) {
-      return { plan: inlinePlan, stage: 1 };
-    }
-    if (isEmptyNoteBody(anchorContent)) {
-      const subtreePlan = $createSubtreePlan(anchorContent);
-      return subtreePlan ? { plan: subtreePlan, stage: 2 } : null;
-    }
-    const notePlan = $createNoteBodyPlan(anchorContent);
-    return notePlan ? { plan: notePlan, stage: 2 } : null;
-  }
-
-  if (stage === 2) {
-    const subtreePlan = $createSubtreePlan(anchorContent);
-    return subtreePlan ? { plan: subtreePlan, stage: 2 } : null;
-  }
-
-  const relative = stage - 3;
-  const levelsUp = Math.floor((relative + 1) / 2);
-  const includeSiblings = relative % 2 === 0;
-
-  const targetContent = ascendContentItem(anchorContent, levelsUp);
-  if (!targetContent || (boundaryRoot && !isContentDescendantOf(targetContent, boundaryRoot))) {
-    const docPlan = $resolveDocumentPlan(boundaryRoot);
-    return docPlan ? { plan: docPlan, stage } : null;
-  }
-
-  if (includeSiblings) {
-    if (boundaryRoot && targetContent.getKey() === boundaryRoot.getKey()) {
-      const docPlan = $resolveDocumentPlan(boundaryRoot);
-      return docPlan ? { plan: docPlan, stage } : null;
-    }
-    const parentList = targetContent.getParent();
-    if ($isListNode(parentList)) {
-      const parentParent = parentList.getParent();
-      if (parentParent && parentParent === $getRoot()) {
-        const docPlan = $resolveDocumentPlan(boundaryRoot);
-        if (docPlan) {
-          return { plan: docPlan, stage };
-        }
-      }
-    }
-
-    const siblingPlan = $createSiblingRangePlan(targetContent);
-    if (siblingPlan) {
-      return { plan: siblingPlan, stage };
-    }
-
-    return $buildPlanForStage(anchorContent, stage + 1, boundaryRoot);
-  }
-
-  const subtreePlan = $createSubtreePlan(targetContent);
-  if (subtreePlan) {
-    return { plan: subtreePlan, stage };
-  }
-
-  return $buildPlanForStage(anchorContent, stage + 1, boundaryRoot);
-}
-
-
-function $createNoteBodyPlan(item: ListItemNode): ProgressivePlan | null {
-  return {
-    type: 'range',
-    startKey: item.getKey(),
-    endKey: item.getKey(),
-    startMode: 'content',
-    endMode: 'content',
-  };
-}
-
-function $createSiblingRangePlan(item: ListItemNode): ProgressivePlan | null {
-  const siblings = getContentSiblingsForItem(item);
-  if (siblings.length <= 1) {
-    return null;
-  }
-
-  const lastSibling = siblings.at(-1)!;
-  const tail = getSubtreeTail(lastSibling);
-  return {
-    type: 'range',
-    startKey: siblings[0]!.getKey(),
-    endKey: tail.getKey(),
-    startMode: 'content',
-    endMode: 'subtree',
-  };
-}
-
-function $createDocumentPlan(): ProgressivePlan | null {
-  const rootList = $requireRootContentList();
-  const firstItem = getFirstDescendantListItem(rootList);
-  const lastItem = getLastDescendantListItem(rootList);
-  if (!firstItem || !lastItem) {
-    return null;
-  }
-
-  const tail = getSubtreeTail(lastItem);
-  return {
-    type: 'range',
-    startKey: firstItem.getKey(),
-    endKey: tail.getKey(),
-    startMode: 'content',
-    endMode: 'subtree',
-  };
-}
-
-function ascendContentItem(item: ListItemNode, levels: number): ListItemNode | null {
-  let current: ListItemNode | null = item;
-
-  for (let i = 0; i < levels; i += 1) {
-    current = getParentContentItem(current);
-    if (!current) {
-      return null;
-    }
-  }
-
-  return current;
-}

@@ -6,7 +6,7 @@ import { getPreviousContentSibling } from '#client/editor/outline/list-structure
 import type { BoundaryMode } from './apply';
 import { resolveContentBoundaryPoint } from './caret';
 import { isEmptyNoteBody } from './note-body';
-import { getNextContentSibling, getParentContentItem, getSubtreeTail, isContentDescendantOf } from './tree';
+import { getContentSiblingsForItem, getNextContentSibling, getParentContentItem, getSubtreeTail, isContentDescendantOf } from './tree';
 
 export type Direction = 'up' | 'down';
 
@@ -101,11 +101,17 @@ export function $hasInlineBoundary(item: ListItemNode): boolean {
  * @param anchorItem  The anchor content ListItemNode.
  * @param stack       Ordered list of rungs to replay.
  * @param boundaryKey Optional zoom boundary: never extend outside that root's subtree.
+ * @param slab        When true, a `sibling` rung extends the range all the way to the
+ *                    last sibling in its direction at the current level (instead of
+ *                    advancing one position). Used by Cmd/Ctrl+A to select the whole
+ *                    remaining sibling slab in one press. Hoist behaviour (when no
+ *                    sibling exists at the current level) is unchanged.
  */
 export function $replayLadder(
   anchorItem: ListItemNode,
   stack: Rung[],
-  boundaryKey: string | null = null
+  boundaryKey: string | null = null,
+  slab = false
 ): ProgressivePlan | null {
   const boundaryRoot = boundaryKey ? $getNodeByKey<ListItemNode>(boundaryKey) : null;
 
@@ -160,13 +166,42 @@ export function $replayLadder(
     // hoist to the parent level and take the parent's whole subtree (the hoist
     // itself is the step). A step that can neither advance nor hoist (past the
     // document/zoom root) is unresolvable.
+    //
+    // In slab mode the range extends to the LAST sibling in the direction
+    // (instead of just one), selecting the entire remaining slab in one press.
+    // Hoist behaviour is unchanged.
     const sibling =
       rung.direction === 'down' ? getNextContentSibling(contextItem) : getPreviousContentSibling(contextItem);
 
     const withinBoundary = (item: ListItemNode): boolean =>
       !boundaryRoot || isContentDescendantOf(item, boundaryRoot) || item.getKey() === boundaryRoot.getKey();
 
-    if (sibling && withinBoundary(sibling)) {
+    if (slab) {
+      // Slab mode: extend the range to ALL siblings at the current level
+      // (first to last), advancing contextItem to the last one. This selects
+      // the entire sibling group in one press, regardless of sweep direction.
+      //
+      // Hoist (fall through) when either:
+      //   - There are no siblings at this level (only one item in the list), or
+      //   - The range already covers the full slab (detected by startHead/endHead
+      //     already pinned to first/last), meaning a previous slab rung consumed
+      //     this level. The next rung should escalate to the parent.
+      const allSiblings = getContentSiblingsForItem(contextItem).filter(withinBoundary);
+      const firstSib = allSiblings[0];
+      const lastSib = allSiblings.at(-1);
+      const alreadyFullSlab =
+        firstSib &&
+        lastSib &&
+        startHead?.getKey() === firstSib.getKey() &&
+        endHead?.getKey() === lastSib.getKey();
+      if (firstSib && lastSib && allSiblings.length > 1 && !alreadyFullSlab) {
+        startHead = firstSib;
+        endHead = lastSib;
+        contextItem = lastSib;
+        continue;
+      }
+      // Single-item sibling list or already covering the full slab: fall through to hoist.
+    } else if (sibling && withinBoundary(sibling)) {
       contextItem = sibling;
       if (rung.direction === 'down') {
         endHead = sibling;
