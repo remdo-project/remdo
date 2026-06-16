@@ -137,7 +137,15 @@ When editing docs, keep external references in a final `References` section.
      `chrome-devtools-mcp` plugin is disabled in this project's local settings
      because it would otherwise launch its own (missing) Chrome. A newly added
      MCP server only loads on a Claude Code restart.
-  4. If this flow fails or drifts, report it.
+  4. App flow: open `http://127.0.0.1:5000/`. The shared CDP profile
+     (`/tmp/pw-cdp-profile`) persists the session, so it is usually already
+     logged in. If it lands on `/login`, sign in with a stable dev user
+     (`alice@example.test` / `alice-password-1234`, or `bob@example.test` /
+     `bob-password-1234`; defined in `tools/lib/stable-auth-users.ts`). If those
+     users or their docs are missing, run `pnpm run dev:data-reset`. Fixtures are
+     seeded as documents titled `fixture: <name>` (e.g. `fixture: tree-complex`),
+     opened via the document chooser.
+  5. If this flow fails or drifts, report it.
 - When presenting multiple options or a list of questions, format them as a
   numbered list.
 - The shared test harness treats console warnings/errors as failures; if you
