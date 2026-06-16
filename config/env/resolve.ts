@@ -19,9 +19,10 @@ function isAbsoluteHttpUrl(value: string): boolean {
 }
 
 function parseValue(key: EnvKey, raw: string | boolean | undefined) {
-  // Empty strings fall back to the schema default, matching the legacy loader.
-  const normalized =
-    raw === '' || raw === undefined ? undefined : typeof raw === 'boolean' ? String(raw) : raw;
+  // Empty (or whitespace-only) strings fall back to the schema default, so a
+  // stray-whitespace value can't silently coerce (e.g. a ' ' PORT -> 0).
+  const isBlank = raw === undefined || (typeof raw === 'string' && raw.trim() === '');
+  const normalized = isBlank ? undefined : typeof raw === 'boolean' ? String(raw) : raw;
   const result = envSchema[key].safeParse(normalized);
   if (!result.success) {
     // Name the offending variable; Zod's default message omits it.

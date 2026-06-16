@@ -44,6 +44,16 @@ HEALTH_URL="${APP_PUBLIC_URL%/}/health"
 DATA_CLEANED="false"
 DOCKER_RUN_ARGS=()
 
+# Sourcing env.defaults.sh at the top exported the gateway PORT_BASE-derived
+# service ports into this process. Any child that re-derives from a shifted
+# PORT_BASE (the source dev server) must clear them first, or the inherited
+# gateway-range values win. Keep this list in sync with the derived ports in
+# tools/env.defaults.sh (PORT is passed explicitly per child, so it is not here).
+CLEAR_DERIVED_PORTS=(
+  -u HMR_PORT -u VITEST_PORT -u VITEST_PREVIEW_PORT -u COLLAB_SERVER_PORT
+  -u PREVIEW_PORT -u PLAYWRIGHT_UI_PORT -u API_SERVER_PORT
+)
+
 # Second scenario: a fresh, ADMIN_SECRET-only container that forces the
 # in-container bootstrap-secrets.ts to GENERATE and PERSIST AUTH_SECRET and the
 # Y-Sweet pair. Distinct port (PORT_BASE+8) so it cannot collide with the main
@@ -60,18 +70,30 @@ if remdo_docker_daemon_is_rootless; then
   DOCKER_RUN_ARGS+=(--userns=host)
 fi
 
+# Wipe a host-mounted data dir from inside the container so container-owned
+# (often root-owned, on a rootful daemon) files are removed by a process with the
+# right uid; fall back to a throwaway container if the live one is already gone.
+wipe_container_data() {
+  local container_name="$1"
+  local host_data_dir="$2"
+
+  if docker exec "${container_name}" sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' \
+    >/dev/null 2>&1; then
+    return
+  fi
+  if docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
+    docker run --rm "${DOCKER_RUN_ARGS[@]}" -v "${host_data_dir}:/app/data" "${IMAGE_NAME}" \
+      sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' >/dev/null 2>&1 || true
+  fi
+}
+
 cleanup_data_dir() {
   if [[ "${DATA_CLEANED}" == "true" ]]; then
     return
   fi
 
-  if ! docker exec "${CONTAINER_NAME}" sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' \
-    >/dev/null 2>&1; then
-    if docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
-      docker run --rm "${DOCKER_RUN_ARGS[@]}" -v "${DOCKER_HOME_DATA_DIR}:/app/data" "${IMAGE_NAME}" \
-        sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' >/dev/null 2>&1 || true
-    fi
-  fi
+  wipe_container_data "${CONTAINER_NAME}" "${DOCKER_HOME_DATA_DIR}"
+  wipe_container_data "${BOOTSTRAP_CONTAINER_NAME}" "${BOOTSTRAP_DATA_DIR}"
 
   rm -rf "${TEST_DATA_DIR}" >/dev/null 2>&1 || true
   DATA_CLEANED="true"
@@ -88,6 +110,8 @@ docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
 
 echo "Provisioning source OAuth client for ${APP_PUBLIC_URL}..."
+# dev:users only reads AUTH_URL + the OAuth client vars (not the derived service
+# ports), so the gateway port exports do not need clearing here.
 env \
   AUTH_URL="${SOURCE_ORIGIN}" \
   DATA_DIR="${SOURCE_DATA_DIR}" \
@@ -145,14 +169,11 @@ PLAYWRIGHT_ENV=(
   YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}"
 )
 
-# Sourcing env.defaults.sh at the top of this script exported the gateway PORT
-# and every PORT_BASE-derived service port (COLLAB_SERVER_PORT, API_SERVER_PORT,
-# HMR_PORT, ...) into this process. Those exports would leak into the source
-# server below and win over its shifted PORT_BASE, so clear them and let
-# env.defaults.sh re-derive the source range from PORT_BASE+SOURCE_PORT_SHIFT.
-# PORT and YSWEET_CONNECTION_STRING stay explicit as the source's pinned inputs.
-if ! env -u HMR_PORT -u VITEST_PORT -u VITEST_PREVIEW_PORT -u COLLAB_SERVER_PORT \
-  -u PREVIEW_PORT -u PLAYWRIGHT_UI_PORT -u API_SERVER_PORT \
+# The source dev server re-derives its range from a shifted PORT_BASE, so clear
+# the inherited gateway-range derived ports (see CLEAR_DERIVED_PORTS) and let
+# env.defaults.sh recompute them. PORT and YSWEET_CONNECTION_STRING stay explicit
+# as the source's pinned inputs.
+if ! env "${CLEAR_DERIVED_PORTS[@]}" \
   "${PLAYWRIGHT_ENV[@]}" \
   DATA_DIR="${SOURCE_DATA_DIR}" \
   HOST=0.0.0.0 \

@@ -218,6 +218,15 @@ describe('config env resolve', () => {
     expect(() => resolveTestConfig({ NODE_ENV: 'test', PORT: 'abc' })).toThrow(/PORT/);
   });
 
+  it('treats a whitespace-only value as unset and falls back to the schema default', () => {
+    // A whitespace-only string must resolve to the default, not pass through
+    // (a string key keeps '' rather than '   '; a port key stays unset, not 0
+    // from Number('   ')). DATA_DIR is a string key that makes this observable.
+    const resolved = resolveTestConfig({ NODE_ENV: 'test', DATA_DIR: '   ', HOST: '  ' });
+    expect(resolved.server.DATA_DIR).toBe('');
+    expect(resolved.server.HOST).toBe('');
+  });
+
   it('matches tools/env.sh for derived collab port in dev', () => {
     const collabPort = readEnvShValue('COLLAB_SERVER_PORT', {
       NODE_ENV: 'development',

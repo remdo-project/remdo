@@ -24,6 +24,22 @@ fi
 # only derives APP_PUBLIC_URL from it (URL-from-PORT) and never changes it. When
 # APP_PUBLIC_URL is set, it is used as-is and PORT is left untouched.
 
+# The launcher publishes only -p ${PORT}:${PORT}. If APP_PUBLIC_URL advertises a
+# different explicit port, a directly-exposed (un-proxied) deploy is unreachable
+# at that URL. This is fine behind a TLS-terminating proxy (Render, Caddy) that
+# forwards :443 -> PORT, so warn rather than fail.
+if [[ -n "${APP_PUBLIC_URL:-}" ]]; then
+  app_public_url_port="$(node -e '
+    const url = new URL(process.argv[1]);
+    process.stdout.write(url.port);
+  ' "${APP_PUBLIC_URL}" 2>/dev/null || true)"
+  if [[ -n "${app_public_url_port}" && "${app_public_url_port}" != "${PORT}" ]]; then
+    echo "Warning: APP_PUBLIC_URL port (${app_public_url_port}) differs from the published PORT (${PORT})." >&2
+    echo "         A directly-exposed container will not be reachable at ${APP_PUBLIC_URL};" >&2
+    echo "         this is only correct behind a proxy that forwards to PORT ${PORT}." >&2
+  fi
+fi
+
 # Operators set only ADMIN_SECRET (never auto-generated). AUTH_SECRET and the
 # Y-Sweet auth_key/server_token pair are bootstrapped inside the container from
 # the persistent DATA_DIR mount; pass them through only when explicitly provided.

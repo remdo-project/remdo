@@ -146,6 +146,28 @@ describe('prod Docker launcher', () => {
     expect(dockerCalls).toContain('-p 8080:8080');
   });
 
+  it('warns (without failing) when APP_PUBLIC_URL advertises a port != the bind PORT', () => {
+    const { result } = runLauncher({
+      PORT_BASE: '4000',
+      PORT: '8080',
+      APP_PUBLIC_URL: 'https://remdo.example.com:8443',
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toContain('APP_PUBLIC_URL port (8443) differs from the published PORT (8080)');
+  });
+
+  it('does not warn for a default-port (proxy-fronted) APP_PUBLIC_URL', () => {
+    const { result } = runLauncher({
+      PORT_BASE: '4000',
+      PORT: '8080',
+      APP_PUBLIC_URL: 'https://remdo.example.com',
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).not.toContain('differs from the published PORT');
+  });
+
   it('forwards AUTH_SECRET and the Y-Sweet pair to the container when set', () => {
     // runLauncher passes all three secrets by default; assert they reach docker.
     const { result, dockerCalls } = runLauncher({
