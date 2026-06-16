@@ -13,7 +13,7 @@ import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { createUserDocument } from '#server/documents/current-user';
 import type { YSweetDocumentTokenManager } from '#server/collab-token';
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
-import { readFixtureState } from '#tests-common/fixtures';
+import { readFixtureState } from '#tools/fixtures';
 import { STABLE_AUTH_USERS, provisionDevUsers } from '../lib/stable-auth-users';
 import type { StableAuthUser } from '../lib/stable-auth-users';
 import { waitForEditorUpdate, withHeadlessCollabSession } from '../lib/headless-collab-session';

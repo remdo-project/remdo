@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { SerializedEditorState } from 'lexical';
-import { restoreEditorStateDefaults } from '#tests-common/editor-state-defaults';
+import { restoreEditorStateDefaults } from './editor-state-defaults';
 
 export async function readFixtureState(name: string): Promise<SerializedEditorState> {
   const abs = path.resolve('tests/fixtures', `${name}.json`);

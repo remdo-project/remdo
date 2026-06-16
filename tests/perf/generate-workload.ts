@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import type { SerializedEditorState } from 'lexical';
-import { restoreEditorStateDefaults } from '#tests-common/editor-state-defaults';
+import { restoreEditorStateDefaults } from '#tools/editor-state-defaults';
 
 const WORKLOAD_SHAPE_PATTERN = /^(\d+)x(\d+)$/;
 

@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { expect, test } from '#editor/fixtures';
-import { readFixture } from '#tests-common/fixtures';
+import { readFixture } from '#tools/fixtures';
 import { cleanupCollabDoc } from '#tests-common/runtime-scope';
 import { createUserDocument } from '../_support/documents';
 import { ensureReady, load, waitForSynced } from './_support/bridge';

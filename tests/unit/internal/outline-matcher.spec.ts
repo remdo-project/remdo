@@ -3,7 +3,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import type { Outline } from '#tests';
 import { selectStructuralNotes, meta, setRawNoteCheckedState } from '#tests';
-import { stripEditorStateDefaults } from '#tests-common/editor-state-defaults';
+import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
 import { prepareEditorStateForPersistence } from '#client/editor/runtime/editor-state-persistence';
 
 interface OutlineCase {
