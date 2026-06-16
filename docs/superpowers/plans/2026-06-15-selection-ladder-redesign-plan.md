@@ -311,8 +311,11 @@ Expected: PASS (baseline before refactor).
 
 - [ ] **Step 4: Update `SelectionPlugin.tsx`.** Rename `progressionRef` to
   `ladderRef`, store `LadderState`, and remove `getStoredStage` /
-  `$inferSelectionDirection` (direction now lives in the ladder). On
-  collapse-to-caret, reset to `emptyLadder`.
+  `$inferSelectionDirection` (direction now lives in the ladder). Reset to
+  `emptyLadder` only on an explicit collapse (`Esc`, click into text, unmodified
+  navigation) — **not** on blur. Do not add a blur/focus-out reset handler; the
+  ladder must survive focus loss and keep re-replaying on collaboration updates
+  (the update listener is not focus-gated).
 
 - [ ] **Step 5: Run the existing ladder tests; they must still pass.**
 

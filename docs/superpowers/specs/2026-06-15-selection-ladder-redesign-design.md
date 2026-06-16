@@ -234,21 +234,22 @@ follow-up discussion on 2026-06-16.
    re-replays). Hard tiers 3–4 may ship coarse first (see `docs/todo.md`).
 10. **The ladder is not on the undo stack.** Undo/redo are document edits handled
     as disturbances; growing/shrinking the ladder is not itself undoable.
+11. **Blur does not drop the selection.** Losing editor focus keeps the ladder
+    intact; it survives refocus. While blurred it still re-replays on
+    collaboration updates through the same tiers (the update listener is not
+    focus-gated), so it is correct on return. The ladder is cleared only by an
+    explicit collapse (`Esc`, click into text, unmodified navigation) or by a
+    tier-4 disturbance.
 
-## Open questions
+## Notes
 
-These remain genuinely open for the user; the decisions above resolved the rest.
-
-- **Persistence of the stack across blur/refocus.** Whether the rung stack
-  survives the editor losing and regaining focus, or resets to caret. Proposed
-  default: reset on blur (the stack is ephemeral UI state), matching most
-  editors; the implementation plan's reset-on-collapse subsumes this in
-  practice. Confirm if a different lifetime is wanted.
 - **Folding-hidden selection.** Folding owns the rule that hiding the active
   selection collapses it to the folded ancestor (`folding.md`); under the stack
   model this is a tier-3 disturbance. The selection doc points to folding for it.
   Zoom only constrains *expansion* to the zoom root and does not define a
   selection-hiding collapse, so the doc no longer attributes that rule to zoom.
+
+No open questions remain; the decisions above settle the design.
 
 ## References
 

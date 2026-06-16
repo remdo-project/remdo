@@ -38,8 +38,9 @@ and the code refactor steps in
   anchor + rung stack so subsequent `Shift+Up/Down` reversal still pops
   correctly (current `inferPointerProgressionState` fakes a stage without a real
   stack).
-- Stack lifetime across blur/refocus: decide whether the rung stack resets on
-  blur (proposed default) or persists.
+- Blur does not drop the ladder: it survives focus loss/refocus and keeps
+  re-replaying on collaboration updates while blurred (the update listener is
+  not focus-gated). Cleared only by explicit collapse or a tier-4 disturbance.
 
 ## Search architecture
 

@@ -42,7 +42,8 @@ The ladder is anchored and replayable:
 
 - **One anchor.** The note where the selection started — by `Shift+Up/Down` or
   `Cmd/Ctrl+A`. It is fixed for the life of the ladder and is cleared only when
-  the selection collapses to a caret.
+  the selection collapses to a caret. Losing editor focus does not collapse it;
+  the ladder survives blur and refocus.
 - **Rungs.** Each step is a semantic instruction, not a stored range, so the
   selection is the anchor plus the current rungs re-resolved against the live
   tree. The recurrence is:
