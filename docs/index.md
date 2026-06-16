@@ -2,8 +2,9 @@
 
 ## Purpose
 
-Provide the entry point for RemDo documentation navigation and documentation
-maintenance rules (map, workflow, and invariants).
+Provide the entry point for RemDo documentation navigation: the map of every
+doc and its summary. Doc workflow and the documentation invariants live in
+`docs/contributing.md#documentation`.
 
 ## Documentation Map
 
@@ -26,8 +27,9 @@ outdated or a doc’s role materially changes.
   `APP_PUBLIC_URL`-vs-bind-`PORT` separation, and the secret bootstrap contract.
 - `docs/contributing.md` (Medium). Runtime baselines, Git workflow (local topic
   branches off the `origin/main` baseline, marked with the `wip-base` tag) and
-  branch-prefix conventions, editor feature module layout, and pre-1.0
-  compatibility policy (no default migration/back-compat requirements).
+  branch-prefix conventions, editor feature module layout, pre-1.0 compatibility
+  policy (no default migration/back-compat requirements), and the doc
+  workflow + documentation invariants.
 - `docs/dev/dependency-maintenance.md` (Medium). Temporary dependency/runtime
   workarounds plus intentionally held-back versions, with current rationale and
   revisit conditions for refresh work.
@@ -35,7 +37,8 @@ outdated or a doc’s role materially changes.
   self-hosted app runtimes, managed cloud, and backup execution.
 - `docs/hints.md` (Short). UX hint concepts for search, note controls, and
   structural selection guidance.
-- `docs/index.md` (Long). Documentation map, workflow, and invariants.
+- `docs/index.md` (Medium). Documentation map: every doc plus its summary and
+  length bucket. Doc workflow and invariants live in `docs/contributing.md`.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
@@ -90,43 +93,3 @@ Whenever you edit any of these docs, update their summaries/buckets here so the
 map stays trustworthy.
 The `docs/todo.md` summary should remain as-is and should not be automatically
 updated like other doc entries.
-
-## Doc Workflow
-
-1. Before coding, identify the feature area and read the matching sections from
-   the map above; do not reread unrelated docs.
-2. While working, deep-link to the authoritative doc (e.g.,
-   `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
-   source of truth.
-3. After modifying documentation, refresh this map so the pointers stay current.
-   Do not add update-tracking sections to AGENTS.md.
-
-### Documentation invariants
-
-1. **Single source per topic.** Define each behavior once in the doc best suited
-   to it; eliminate duplicates and replace any extra copies with pointers.
-2. **Top-down linking.** Prefer links from higher-level docs (index, concepts)
-   into detailed docs (selection, indent/outdent, reordering); same-level links
-   only when they add clear value. Point to another doc once per section, not in
-   every note — a single deferral covers the section.
-3. **Self-contained behavior.** Behavior must be clear without external
-   sources. Put external references in final `References`; keep useful internal
-   links inline.
-4. **Coherence checks.** When editing a doc, ensure the change aligns with
-   existing resolutions and update related docs/maps if needed.
-5. **Intentional gaps.** Stable docs describe the intended behavior. Track gaps,
-   partial status, and implementation sequencing in `docs/todo.md`.
-6. **Planning boundary.** Stable docs describe target behavior. Put planning
-   status, current-vs-future notes, and deferral decisions in `docs/todo.md`.
-7. **Behavior changes require doc updates.** When behavior changes, update the
-   affected docs in the same change. If no doc update is needed, explicitly
-   state why.
-8. **Move/rename hygiene.** When moving or renaming docs, update all inbound
-   links and the documentation map in the same change; do not leave temporary
-   broken references.
-9. **Minimal by default.** State the rule, not the inventory. Cut a clause unless
-   its absence would let someone misuse the contract. This removes: things the
-   reader can confirm in code (component lists, constants/offsets, accessor or
-   file names, "where X lives" pointers — good design makes that findable),
-   rationale (why-not justifications, prior-art name-drops), and how-to-use steps
-   (a feature one would reach through the app, not the docs).

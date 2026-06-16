@@ -12,7 +12,8 @@ on those baselines—no legacy browser shims.
 AGENTS.md is the only doc you must read at the start of every session. Do one
 full pass through the `docs/` folder when you onboard, then revisit only the
 sections relevant to your current task. For documentation navigation and
-governance (map, workflow, invariants, and update rules), use `docs/index.md`.
+navigation (the map), use `docs/index.md`; for the doc workflow and invariants,
+see `docs/contributing.md#documentation`.
 When editing docs, keep external references in a final `References` section.
 
 ## Safety & Process

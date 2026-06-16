@@ -69,11 +69,11 @@ docs that clearly match the existing structure — to describe the design as the
 new reality. Track any not-yet-built parts, gaps, or sequencing in `docs/todo.md`
 (invariants 5–6), not as caveats in the prose.
 
-Comply with the existing doc governance so static checks and `docs/index.md`
-rules are satisfied (no wasted rework): single source per topic, top-down
-linking, self-contained behavior with external refs in a final `References`
-section, and **refresh the `docs/index.md` map for any doc edited** — except the
-`docs/todo.md` summary, which stays as-is. Aim for a minimal, coherent,
+Comply with the existing doc governance (the invariants in
+`docs/contributing.md#documentation`) so static checks are satisfied (no wasted
+rework): single source per topic, top-down linking, self-contained behavior with
+external refs in a final `References` section, and **refresh the `docs/index.md`
+map for any doc edited** — except the `docs/todo.md` summary, which stays as-is. Aim for a minimal, coherent,
 non-redundant end state, even at the cost of larger doc edits.
 
 `.agent/specs/...` is **not** a review surface — it is your own scratch/cache for
@@ -256,8 +256,9 @@ Choose by the *activity*, not the phase number:
   `superpowers:using-git-worktrees`, `superpowers:requesting-code-review`,
   `superpowers:verification-before-completion`, `/simplify`, `/code-review`.
 - Fork-point detection: `.codex/skills/remdo-sweep/SKILL.md`.
-- Doc governance (map, workflow, invariants — spec-as-docs must comply):
-  `docs/index.md`. Deferral/todo rules: `docs/todo.md`.
+- Doc map (navigation): `docs/index.md`. Doc workflow + invariants (spec-as-docs
+  must comply): `docs/contributing.md#documentation`. Deferral/todo rules:
+  `docs/todo.md`.
 - Git workflow / branch prefixes: `docs/contributing.md`.
 - Global commit/index defaults: `AGENTS.md` ("Safety & Process").
 - Checks and timings: `AGENTS.md` ("Checks").
