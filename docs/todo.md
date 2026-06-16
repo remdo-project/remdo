@@ -17,11 +17,9 @@ Rules:
 
 ## Selection ladder redesign
 
-Target behavior is specified in [docs/outliner/selection.md](./outliner/selection.md);
-the design rationale and decisions live in
-[docs/superpowers/specs/2026-06-15-selection-ladder-redesign-design.md](./superpowers/specs/2026-06-15-selection-ladder-redesign-design.md)
-and the code refactor steps in
-[docs/superpowers/plans/2026-06-15-selection-ladder-redesign-plan.md](./superpowers/plans/2026-06-15-selection-ladder-redesign-plan.md).
+Target behavior is specified in
+[docs/outliner/selection.md](./outliner/selection.md). Remaining implementation
+work:
 
 - Replace the geometry-reconstructing `progressive.ts` state
   (`{anchor, stage, locked, lastDirection}` plus `inferSiblingStage` /
