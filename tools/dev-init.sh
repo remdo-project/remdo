@@ -9,5 +9,3 @@ if [[ "${PLAYWRIGHT_INSTALL}" == "true" ]]; then
 else
   echo "Skipping Playwright browser install (PLAYWRIGHT_INSTALL=${PLAYWRIGHT_INSTALL})"
 fi
-
-./tools/vendor-lexical.sh

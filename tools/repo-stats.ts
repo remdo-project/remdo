@@ -90,7 +90,6 @@ const generatedFilePatterns: RegExp[] = [
   /^package-lock\.json$/,
   /^yarn\.lock$/,
   /^bun\.lockb$/,
-  /^data\/\.vendor\/.+/,
 ];
 
 const thresholdMetricIds = new Set([

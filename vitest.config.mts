@@ -1,4 +1,5 @@
 import process from "node:process";
+import path from "node:path";
 import { config } from './config';
 import { VITEST_DEFAULT_TEST_TIMEOUT_MS } from './tests/unit/_support/timeouts';
 import { createViteSharedConfig } from './config/vite/shared';
@@ -16,6 +17,17 @@ export default defineConfig({
     include: [
       ...configDefaults.include,
       'tests/unit/**/*.spec.{ts,tsx}',
+    ],
+    // Root config/manifest edits affect every test but aren't imported by any
+    // test file, so `--changed` would otherwise find nothing and false-pass.
+    // `--changed` matches these against absolute paths, so patterns need a `**/`
+    // prefix and no trailing `/**` (the vitest defaults assume config is a dir).
+    forceRerunTriggers: [
+      ...configDefaults.forceRerunTriggers,
+      '**/vitest.config.*',
+      '**/package.json',
+      '**/pnpm-lock.yaml',
+      '**/tsconfig*.json',
     ],
     exclude: [
       ...configDefaults.exclude,
@@ -37,7 +49,7 @@ export default defineConfig({
     teardownTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
     coverage: {
       provider: 'v8' as const,
-      reportsDirectory: 'data/coverage',
+      reportsDirectory: path.join(config.env.DATA_DIR || 'data', 'coverage'),
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/main.tsx'],
     },

@@ -13,8 +13,7 @@
     "**/*.spec.*",
     "**/*.test.*",
     "**/*.snap",
-    "**/*-snapshots/**",
-    "**/.vendor/**"
+    "**/*-snapshots/**"
   ],
   "minLines": 8,
   "minTokens": 80,

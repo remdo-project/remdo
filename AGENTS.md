@@ -12,7 +12,8 @@ on those baselines—no legacy browser shims.
 AGENTS.md is the only doc you must read at the start of every session. Do one
 full pass through the `docs/` folder when you onboard, then revisit only the
 sections relevant to your current task. For documentation navigation and
-governance (map, workflow, invariants, and update rules), use `docs/index.md`.
+navigation (the map), use `docs/index.md`; for the doc workflow and invariants,
+see `docs/contributing.md#documentation`.
 When editing docs, keep external references in a final `References` section.
 
 ## Safety & Process
@@ -25,10 +26,21 @@ When editing docs, keep external references in a final `References` section.
   unless the user asks, or troubleshooting requires a restart.
 - Background processes started from worktrees (by their unique ports) can be
   started or stopped by coding agents as needed without asking.
-- For parallel option exploration, keep worktrees outside the main repo tree
-  under a dedicated sibling directory `../remdo-wts/` and use a predictable
-  naming pattern based on base port (for example
-  `../remdo-wts/remdo-7000`, `../remdo-wts/remdo-7000-wt-optA`).
+- Git worktrees are the standard tool for isolating parallel work (separate
+  `data/`, separate `PORT_BASE` block) without colliding on the shared working
+  dir; a fresh worktree gets a clean empty `data/` automatically. Keep them
+  outside the main repo tree. The coordinating agent fully owns the worktrees it
+  creates for the current working dir — create, modify, and drop them freely as
+  useful. Their on-disk location and naming are machine-local agent config, not
+  repo content (a Claude Code session, for example, reads its own pool location
+  and naming scheme from `~/.claude`).
+- When to isolate: the coordinating agent works in the shared working dir, and
+  read-only parallel helpers (search, analysis, edits, typecheck) share it too.
+  Any parallel agent that does non-read-only work (tests, tools, anything that
+  writes `data/`) runs in its own disposable worktree — never sharing the working
+  dir. Setup is ~3s and a full unit run there matches the main dir, so isolation
+  is nearly free; keeping it the only mode means no shared-`data/` collisions to
+  guard against.
 - Assign a unique `PORT_BASE` per worktree (for example `5100`, `5200`) to
   avoid collisions across dev servers, tests, and collab services.
 - Treat each repo/worktree as owning a 100-port block starting at its assigned
@@ -48,6 +60,9 @@ When editing docs, keep external references in a final `References` section.
   worktrees); cross-WD agent state belongs under `~/.claude/` instead.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
+  Exception: the `feature-flow` skill is self-authorizing — within a
+  `/feature-flow` run, commits on the confirmed task branch are allowed per that
+  skill’s permission model (still never pushing without an explicit ask).
 - The Git index may be used by the developer as private review bookkeeping.
   Treat staged vs unstaged state as semantically invisible: it does not mark
   files as done, final, approved, protected, or out of scope. When the agreed
@@ -80,6 +95,17 @@ When editing docs, keep external references in a final `References` section.
   the codebase already settles. This refines—does not weaken—the "ask first on
   tradeoffs / when in doubt" rules above: ask about real forks the code can't
   answer, not ones you haven't yet checked.
+- Land artifacts for review; don't paste them. When something is meant for the
+  user to review—a doc, a spec, a config, a code change—edit it in the working
+  dir (uncommitted by default) and point at it, rather than reproducing it as a
+  long block in the chat. The user reviews changes directly in the repo with
+  their own tooling and should not read the same content twice. Treat editing as
+  cheap; the expensive thing is the user re-reading. "Ready for your review"
+  means the artifact is in the WD, not that it has been described well enough in
+  chat to approve. Chat carries decisions, questions, and pointers; the repo
+  carries content. This does not silence genuine questions or confirmations for
+  real forks—it changes the default from describe-then-maybe-write to
+  write-then-review.
 - For UI behavior or rendering questions, always use Chrome DevTools to verify the
   live page before concluding on layout, interaction, or accessibility.
 - Use DevTools snapshots, screenshots, and in-page inspection as the primary source
@@ -214,12 +240,9 @@ Determine agent mode in this order:
 ## Tools
 
 - `pnpm run dev:init` is the one-shot workspace bootstrap. It runs
-  `pnpm i --frozen-lockfile`, fetches the pinned Lexical sources, and hydrates
-  `data/.vendor/lexical`. Use it when you clone RemDo for the first time—or if
-  you blow away `node_modules`/`data/.vendor`. Skip it in workspaces that are
-  already initialized so you don’t clobber local caches.
-- `data/.vendor/lexical` is our read-only mirror of the upstream Lexical repo at
-  the exact version declared in `package.json`. **Always inspect Lexical sources
-  here first** (avoid `node_modules`, which may contain minified bundles). Never
-  edit files in `.vendor`; rerun `pnpm run dev:init` if you need a fresh copy.
+  `pnpm i --frozen-lockfile`. Use it when you clone RemDo for the first time—or
+  if you blow away `node_modules`. Skip it in workspaces that are already
+  initialized so you don’t clobber local caches.
+- To inspect Lexical sources, read `node_modules/lexical/src/` — the pinned
+  package ships readable TypeScript source (not just bundles).
 - Use the GitHub CLI (gh) to check repository and Actions status on GitHub.

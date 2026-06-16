@@ -2,13 +2,13 @@
 
 ## Git Workflow
 
-RemDo protects the shared history by keeping `main` locked down: no direct
-pushes, and every change flows through a reviewed pull request. Cut topic
-branches from `main` so review surfaces against the canonical baseline. `dev`
-is the integration/staging branch—use it for coordination and test merges, but
-it does not need a perfectly linear history.
+`origin/main` is the canonical review baseline; `dev` is the integration/staging
+branch and does not need a perfectly linear history. Do the work on topic
+branches kept to a single concern, and mark each branch's start with the
+`wip-base` tag so reviews diff against the right base (see the `feature-flow`
+skill for the mechanism).
 
-Create topic branches off `main` using clear prefixes so intent is obvious:
+Name topic branches with clear prefixes so intent is obvious:
 
 - `feat/` for new user-facing capabilities.
 - `fix/` for bug patches.
@@ -16,9 +16,6 @@ Create topic branches off `main` using clear prefixes so intent is obvious:
   behavior.
 - `chore/` for maintenance tasks such as dependency bumps or tooling tweaks.
 - `docs/` for documentation-only work.
-
-Push early and keep the branch focused on a single concern so reviews stay
-quick.
 
 ## Runtime Baseline
 
@@ -63,8 +60,49 @@ Default policy:
 
 ## Documentation
 
-See `docs/index.md` for documentation navigation and maintenance rules:
-documentation map, doc workflow, and documentation invariants.
+`docs/index.md` is the documentation map (every doc plus its summary); use it to
+navigate. The doc workflow and invariants below govern how docs are written and
+maintained.
+
+### Doc Workflow
+
+1. Before coding, identify the feature area and read the matching sections from
+   the `docs/index.md` map; do not reread unrelated docs.
+2. While working, deep-link to the authoritative doc (e.g.,
+   `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
+   source of truth.
+3. After modifying documentation, refresh the `docs/index.md` map so the
+   pointers stay current. Do not add update-tracking sections to AGENTS.md.
+
+### Documentation invariants
+
+1. **Single source per topic.** Define each behavior once in the doc best suited
+   to it; eliminate duplicates and replace any extra copies with pointers.
+2. **Top-down linking.** Prefer links from higher-level docs (index, concepts)
+   into detailed docs (selection, indent/outdent, reordering); same-level links
+   only when they add clear value. Point to another doc once per section, not in
+   every note — a single deferral covers the section.
+3. **Self-contained behavior.** Behavior must be clear without external
+   sources. Put external references in final `References`; keep useful internal
+   links inline.
+4. **Coherence checks.** When editing a doc, ensure the change aligns with
+   existing resolutions and update related docs/maps if needed.
+5. **Intentional gaps.** Stable docs describe the intended behavior. Track gaps,
+   partial status, and implementation sequencing in `docs/todo.md`.
+6. **Planning boundary.** Stable docs describe target behavior. Put planning
+   status, current-vs-future notes, and deferral decisions in `docs/todo.md`.
+7. **Behavior changes require doc updates.** When behavior changes, update the
+   affected docs in the same change. If no doc update is needed, explicitly
+   state why.
+8. **Move/rename hygiene.** When moving or renaming docs, update all inbound
+   links and the documentation map in the same change; do not leave temporary
+   broken references.
+9. **Minimal by default.** State the rule, not the inventory. Cut a clause unless
+   its absence would let someone misuse the contract. This removes: things the
+   reader can confirm in code (component lists, constants/offsets, accessor or
+   file names, "where X lives" pointers — good design makes that findable),
+   rationale (why-not justifications, prior-art name-drops), and how-to-use steps
+   (a feature one would reach through the app, not the docs).
 
 ## Editor Feature Modules
 
