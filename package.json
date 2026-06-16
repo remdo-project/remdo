@@ -96,8 +96,7 @@
     "test:unit:watch": "cross-env NODE_ENV=test COLLAB_ENABLED=false ./tools/env.sh pnpm exec vitest --watch --ui",
     "typecheck": "timeout ${TEST_TIMEOUT:-120}s tsc",
     "typecheck:tests": "timeout ${TEST_TIMEOUT:-120}s pnpm exec tsc -p tsconfig.tests.json --pretty false",
-    "typecheck:watch": "tsc --watch",
-    "vendor:lexical": "./tools/vendor-lexical.sh"
+    "typecheck:watch": "tsc --watch"
   },
   "dependencies": {
     "@better-auth/oauth-provider": "catalog:",

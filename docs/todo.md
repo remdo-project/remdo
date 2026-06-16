@@ -254,10 +254,6 @@ Remaining issues to fold in or fix directly:
 
 ## feature-flow follow-ups
 
-- Make parallel agent work safe/cheap: audit remaining hardcoded `data/` paths
-  (eslint cache, `data/test-results`, `data/dist`) to respect `DATA_DIR` like
-  coverage now does (✅ vitest coverage). Then settle the WD-vs-worktree
-  isolation rule in AGENTS.md and a one-shot worktree-setup helper.
 - Try adding a convergence check to the implementation phase (verify the result
   actually reaches the spec's described state, not just that checks pass).
 - `--changed` test shortcuts give a false green on config-only edits — needs an
