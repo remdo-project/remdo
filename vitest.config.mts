@@ -18,6 +18,17 @@ export default defineConfig({
       ...configDefaults.include,
       'tests/unit/**/*.spec.{ts,tsx}',
     ],
+    // Root config/manifest edits affect every test but aren't imported by any
+    // test file, so `--changed` would otherwise find nothing and false-pass.
+    // `--changed` matches these against absolute paths, so patterns need a `**/`
+    // prefix and no trailing `/**` (the vitest defaults assume config is a dir).
+    forceRerunTriggers: [
+      ...configDefaults.forceRerunTriggers,
+      '**/vitest.config.*',
+      '**/package.json',
+      '**/pnpm-lock.yaml',
+      '**/tsconfig*.json',
+    ],
     exclude: [
       ...configDefaults.exclude,
       '**/.pnpm-store/**',

@@ -256,8 +256,6 @@ Remaining issues to fold in or fix directly:
 
 - Try adding a convergence check to the implementation phase (verify the result
   actually reaches the spec's described state, not just that checks pass).
-- `--changed` test shortcuts give a false green on config-only edits — needs an
-  explicit slice.
 - Clean up stale prunable worktree `remdo-7000-wt` if abandoned (not mine).
 
 ## Later follow-ups
