@@ -13,7 +13,7 @@ import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { createUserDocument } from '#server/documents/current-user';
 import type { YSweetDocumentTokenManager } from '#server/collab-token';
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
-import { restoreEditorStateDefaults } from '#tests-common/editor-state-defaults';
+import { readFixtureState } from '#tests-common/fixtures';
 import { STABLE_AUTH_USERS, provisionDevUsers } from '../lib/stable-auth-users';
 import type { StableAuthUser } from '../lib/stable-auth-users';
 import { waitForEditorUpdate, withHeadlessCollabSession } from '../lib/headless-collab-session';
@@ -62,11 +62,6 @@ function listSeededDocuments(documents: RegisteredDocument[], ownerUserId: strin
   );
 }
 
-async function readFixtureState(name: string): Promise<SerializedEditorState> {
-  const raw = await fs.readFile(path.join(FIXTURE_DIR, `${name}.json`), 'utf8');
-  return restoreEditorStateDefaults(JSON.parse(raw) as SerializedEditorState);
-}
-
 async function seedDocumentContent(docId: string, serialized: SerializedEditorState): Promise<void> {
   await withHeadlessCollabSession(docId, (editor) => {
     const runtimeState = prepareEditorStateForRuntime(serialized, docId);
@@ -74,7 +69,7 @@ async function seedDocumentContent(docId: string, serialized: SerializedEditorSt
     const loaded = waitForEditorUpdate(editor);
     editor.setEditorState(parsed);
     return loaded;
-  });
+  }, { waitForPersist: true });
 }
 
 async function deleteSeededDocument(

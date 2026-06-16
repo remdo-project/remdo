@@ -102,20 +102,34 @@ async function waitForPersistedData(docId: string, timeoutMs = 15_000): Promise<
   throw new Error(`Timed out waiting for ${target}`);
 }
 
+interface HeadlessCollabSessionOptions {
+  /**
+   * After `run` resolves, wait for the collab server to flush the document to
+   * disk (`data.ysweet`). Set this for write sessions (dev data seeding) where
+   * the caller needs durability before exit. Leave `false` for read-only
+   * sessions (snapshot): the read already produced its output, and a doc whose
+   * `data.ysweet` is not yet on disk would otherwise make the read time out.
+   */
+  waitForPersist?: boolean;
+}
+
 /**
- * Attach a headless Lexical editor to a collab document, run `run(editor)` once
- * the initial Yjs state has synced into the editor, then wait for the server to
- * persist. Used to read documents out (snapshot) and to write fixture content in
- * (dev data seeding) without a browser.
+ * Attach a headless Lexical editor to a collab document and run `run(editor)`
+ * once the initial Yjs state has synced into the editor. Used to read documents
+ * out (snapshot) and to write fixture content in (dev data seeding) without a
+ * browser.
  *
  * `run` is invoked with a hydrated editor. If it mutates the editor (e.g.
  * `setEditorState`), it should return a promise that resolves once that update
  * has flushed (see `waitForEditorUpdate`); the session awaits `run`'s result
- * before syncing and persisting, so the write reaches the server.
+ * before the final sync, so the write reaches the server. Pass
+ * `{ waitForPersist: true }` to additionally block until the server has flushed
+ * the document to disk.
  */
 export async function withHeadlessCollabSession<T>(
   docId: string,
   run: (editor: LexicalEditor) => Promise<T> | T,
+  { waitForPersist = false }: HeadlessCollabSessionOptions = {},
 ): Promise<T> {
   const docMap = new Map<string, Doc>();
   const session = new CollabSession({
@@ -178,6 +192,8 @@ export async function withHeadlessCollabSession<T>(
     }
   }
 
-  await waitForPersistedData(docId);
+  if (waitForPersist) {
+    await waitForPersistedData(docId);
+  }
   return result;
 }
