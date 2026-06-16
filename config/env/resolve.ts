@@ -53,8 +53,11 @@ function resolveAuthUrl(parsed: ParsedEnv): string {
 }
 
 function validateProdServer(parsed: ParsedEnv): void {
-  // Production utilities such as backup load config without app auth secrets.
-  // Once AUTH_SECRET is present, treat the process as the server app boundary.
+  // The app-server boundary is signalled by AUTH_SECRET being present: the
+  // container bootstraps it for the API process, while operational utilities
+  // (backup/snapshot, run via `env -u AUTH_SECRET` in the entrypoint) load this
+  // same config without it and must skip the server-only requirement checks.
+  // This is intentional, not a "secret happens to be set" coincidence.
   if (parsed.NODE_ENV !== 'production' || !parsed.AUTH_SECRET) {
     return;
   }

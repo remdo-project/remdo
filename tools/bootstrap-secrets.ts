@@ -143,17 +143,23 @@ export function resolveYSweetPair({
 
   const filePath = path.join(secretsDir(dataDir), YSWEET_FILE);
   if (fs.existsSync(filePath)) {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    } catch {
-      throw new Error('persisted ysweet.json is not valid JSON');
+    const raw = fs.readFileSync(filePath, 'utf8');
+    // A present-but-blank file is treated as absent (it self-heals by generating,
+    // matching the auth-secret path) rather than throwing on JSON.parse(''). A
+    // non-blank but malformed file is genuine corruption and still throws.
+    if (raw.trim() !== '') {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        throw new Error('persisted ysweet.json is not valid JSON');
+      }
+      const fields = (typeof parsed === 'object' && parsed !== null ? parsed : {}) as Record<string, unknown>;
+      if (!isPresent(fields.privateKey) || !isPresent(fields.serverToken)) {
+        throw new Error('persisted ysweet.json is missing privateKey/serverToken');
+      }
+      return { privateKey: fields.privateKey, serverToken: fields.serverToken };
     }
-    const fields = (typeof parsed === 'object' && parsed !== null ? parsed : {}) as Record<string, unknown>;
-    if (!isPresent(fields.privateKey) || !isPresent(fields.serverToken)) {
-      throw new Error('persisted ysweet.json is missing privateKey/serverToken');
-    }
-    return { privateKey: fields.privateKey, serverToken: fields.serverToken };
   }
 
   // About to generate fresh: refuse if an existing dataset is present, so an

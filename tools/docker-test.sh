@@ -244,11 +244,14 @@ check_backup_contains() {
   local target_file="$2"
   local label="$3"
 
-  if grep -Fq -- "${expected}" "${target_file}"; then
+  # Capture grep's status directly: after a closed `if grep; then ...; fi` the
+  # `$?` is the if-statement's exit (0), not grep's, which would mask a miss.
+  local status=0
+  grep -Fq -- "${expected}" "${target_file}" || status=$?
+  if [[ "${status}" -eq 0 ]]; then
     return 0
   fi
 
-  local status=$?
   if [[ "${status}" -eq 1 ]]; then
     echo "Backup ${label} missing expected content (${expected}): ${target_file}" >&2
     return 1

@@ -190,6 +190,27 @@ describe('bootstrap-secrets', () => {
       expect(generate).not.toHaveBeenCalled();
     });
 
+    it('treats a present-but-blank pair file as absent and generates instead', () => {
+      const dataDir = tempDataDir();
+      const secretsDir = path.join(dataDir, 'secrets');
+      fs.mkdirSync(secretsDir, { recursive: true });
+      fs.writeFileSync(path.join(secretsDir, 'ysweet.json'), '  \n');
+      const generate = vi.fn(fakeGenerator);
+      const result = resolveYSweetPair({
+        dataDir,
+        envAuthKey: undefined,
+        envServerToken: undefined,
+        generate,
+      });
+      expect(result).toEqual({ privateKey: 'fake-private-key', serverToken: 'fake-server-token' });
+      expect(generate).toHaveBeenCalledOnce();
+      // The blank file is overwritten with the freshly generated pair.
+      expect(JSON.parse(fs.readFileSync(path.join(secretsDir, 'ysweet.json'), 'utf8'))).toEqual({
+        privateKey: 'fake-private-key',
+        serverToken: 'fake-server-token',
+      });
+    });
+
     it('throws a clear error (not a TypeError) when a persisted field is a non-string', () => {
       const dataDir = tempDataDir();
       const secretsDir = path.join(dataDir, 'secrets');

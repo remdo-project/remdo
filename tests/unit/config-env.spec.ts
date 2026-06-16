@@ -3,7 +3,6 @@ import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { resolveConfig } from '#config/env/resolve';
 import type { EnvKey } from '#config/env/schema';
-import { CLIENT_KEY_LIST } from '#config/env/schema';
 
 type EnvValues = Partial<Record<EnvKey, string | boolean>>;
 
@@ -188,11 +187,25 @@ describe('config env resolve', () => {
       APP_PUBLIC_URL: 'https://remdo.example.com',
     });
 
-    expect(Object.keys(resolved.client).sort()).toEqual([...CLIENT_KEY_LIST].sort());
+    // Assert against a hardcoded literal, not CLIENT_KEY_LIST: pickClientEnv
+    // builds the client from CLIENT_KEY_LIST, so comparing against it would be
+    // tautological and could not catch a server secret wrongly added to the list.
+    expect(Object.keys(resolved.client).sort()).toEqual(['COLLAB_ENABLED', 'DEV_DOCUMENT_ID']);
     expect(resolved.client.DEV_DOCUMENT_ID).toBe('testDevDoc');
     expect(resolved.client.COLLAB_ENABLED).toBe(true);
-    expect(resolved.client).not.toHaveProperty('AUTH_SECRET');
-    expect(resolved.client).not.toHaveProperty('AUTH_URL');
+    // No server-only value may reach the client config (it feeds the browser bundle).
+    for (const serverKey of [
+      'AUTH_SECRET',
+      'ADMIN_SECRET',
+      'YSWEET_AUTH_KEY',
+      'YSWEET_SERVER_TOKEN',
+      'AUTH_URL',
+      'APP_PUBLIC_URL',
+      'API_SERVER_PORT',
+      'ALLOW_SIGNUP',
+    ]) {
+      expect(resolved.client).not.toHaveProperty(serverKey);
+    }
   });
 
   it('rejects a non-boolean COLLAB_ENABLED and names the variable', () => {
