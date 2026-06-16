@@ -3,6 +3,10 @@
 ## About this file (scratchpad)
 
 This file is an intentionally messy scratchpad for in-flight work, not a spec.
+Entries are short reminders of things to maybe do later, not agreed decisions or
+write-ups. Keep each to a line or two; being vague is fine if it keeps it short.
+Don't add findings, measurements, or rationale here — that belongs in the work
+itself when it happens.
 
 Rules:
 
@@ -247,6 +251,18 @@ Remaining issues to fold in or fix directly:
      or `ignore`, especially:
      `glob@11.1.0`, `source-map@0.8.0-beta.0`, `sourcemap-codec@1.4.8`, and the
      `@typescript-eslint/*` peer mismatch against `typescript 6`.
+
+## feature-flow follow-ups
+
+- Make parallel agent work safe/cheap: audit remaining hardcoded `data/` paths
+  (eslint cache, `data/test-results`, `data/dist`) to respect `DATA_DIR` like
+  coverage now does (✅ vitest coverage). Then settle the WD-vs-worktree
+  isolation rule in AGENTS.md and a one-shot worktree-setup helper.
+- Try adding a convergence check to the implementation phase (verify the result
+  actually reaches the spec's described state, not just that checks pass).
+- `--changed` test shortcuts give a false green on config-only edits — needs an
+  explicit slice.
+- Clean up stale prunable worktree `remdo-7000-wt` if abandoned (not mine).
 
 ## Later follow-ups
 

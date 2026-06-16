@@ -48,6 +48,9 @@ When editing docs, keep external references in a final `References` section.
   worktrees); cross-WD agent state belongs under `~/.claude/` instead.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
+  Exception: the `feature-flow` skill is self-authorizing — within a
+  `/feature-flow` run, commits on the confirmed task branch are allowed per that
+  skill’s permission model (still never pushing without an explicit ask).
 - The Git index may be used by the developer as private review bookkeeping.
   Treat staged vs unstaged state as semantically invisible: it does not mark
   files as done, final, approved, protected, or out of scope. When the agreed
@@ -80,6 +83,17 @@ When editing docs, keep external references in a final `References` section.
   the codebase already settles. This refines—does not weaken—the "ask first on
   tradeoffs / when in doubt" rules above: ask about real forks the code can't
   answer, not ones you haven't yet checked.
+- Land artifacts for review; don't paste them. When something is meant for the
+  user to review—a doc, a spec, a config, a code change—edit it in the working
+  dir (uncommitted by default) and point at it, rather than reproducing it as a
+  long block in the chat. The user reviews changes directly in the repo with
+  their own tooling and should not read the same content twice. Treat editing as
+  cheap; the expensive thing is the user re-reading. "Ready for your review"
+  means the artifact is in the WD, not that it has been described well enough in
+  chat to approve. Chat carries decisions, questions, and pointers; the repo
+  carries content. This does not silence genuine questions or confirmations for
+  real forks—it changes the default from describe-then-maybe-write to
+  write-then-review.
 - For UI behavior or rendering questions, always use Chrome DevTools to verify the
   live page before concluding on layout, interaction, or accessibility.
 - Use DevTools snapshots, screenshots, and in-page inspection as the primary source

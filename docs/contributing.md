@@ -2,13 +2,13 @@
 
 ## Git Workflow
 
-RemDo protects the shared history by keeping `main` locked down: no direct
-pushes, and every change flows through a reviewed pull request. Cut topic
-branches from `main` so review surfaces against the canonical baseline. `dev`
-is the integration/staging branch—use it for coordination and test merges, but
-it does not need a perfectly linear history.
+`origin/main` is the canonical review baseline; `dev` is the integration/staging
+branch and does not need a perfectly linear history. Do the work on topic
+branches kept to a single concern, and mark each branch's start with the
+`wip-base` tag so reviews diff against the right base (see the `feature-flow`
+skill for the mechanism).
 
-Create topic branches off `main` using clear prefixes so intent is obvious:
+Name topic branches with clear prefixes so intent is obvious:
 
 - `feat/` for new user-facing capabilities.
 - `fix/` for bug patches.
@@ -16,9 +16,6 @@ Create topic branches off `main` using clear prefixes so intent is obvious:
   behavior.
 - `chore/` for maintenance tasks such as dependency bumps or tooling tweaks.
 - `docs/` for documentation-only work.
-
-Push early and keep the branch focused on a single concern so reviews stay
-quick.
 
 ## Runtime Baseline
 

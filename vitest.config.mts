@@ -1,4 +1,5 @@
 import process from "node:process";
+import path from "node:path";
 import { config } from './config';
 import { VITEST_DEFAULT_TEST_TIMEOUT_MS } from './tests/unit/_support/timeouts';
 import { createViteSharedConfig } from './config/vite/shared';
@@ -37,7 +38,7 @@ export default defineConfig({
     teardownTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
     coverage: {
       provider: 'v8' as const,
-      reportsDirectory: 'data/coverage',
+      reportsDirectory: path.join(config.env.DATA_DIR, 'coverage'),
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/main.tsx'],
     },
