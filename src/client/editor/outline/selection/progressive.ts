@@ -28,10 +28,7 @@ export const INITIAL_PROGRESSIVE_STATE: ProgressiveSelectionState = emptyLadder(
 
 export interface ProgressivePlanResult {
   anchorKey: string;
-  stage: number;
   plan: ProgressivePlan;
-  repeatStage?: boolean;
-  isShrink?: boolean;
 }
 
 // Signals that the directional path popped past the bottom of the ladder and
@@ -148,14 +145,14 @@ export function $computeProgressivePlan(
     if (boundaryRoot) {
       const clampedPlan = $createSubtreePlan(boundaryRoot);
       if (clampedPlan) {
-        return { anchorKey, stage: progressionRef.current.stack.length, plan: clampedPlan };
+        return { anchorKey, plan: clampedPlan };
       }
     }
     return null;
   }
 
   progressionRef.current = ladder;
-  return { anchorKey, stage: ladder.stack.length, plan };
+  return { anchorKey, plan };
 }
 
 /**
@@ -235,7 +232,7 @@ export function $computeDirectionalPlan(
       return { collapse: true, anchorKey };
     }
     progressionRef.current = next;
-    return { anchorKey, stage: next.stack.length, plan };
+    return { anchorKey, plan };
   }
 
   // Growth: push the next rung (fresh ladder when not continuing).
@@ -256,7 +253,7 @@ export function $computeDirectionalPlan(
   }
 
   progressionRef.current = next;
-  return { anchorKey, stage: next.stack.length, plan };
+  return { anchorKey, plan };
 }
 
 export function $applyProgressivePlan(result: ProgressivePlanResult): boolean {

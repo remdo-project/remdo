@@ -101,7 +101,10 @@ it perturbs the replay, evaluated from the anchor outward:
    shape, including subtree growth/shrink of swept notes. No visible disruption.
 2. A rung no longer resolves (its target was deleted, or re-parented so the rung
    can no longer reach it) → the ladder truncates at that rung and drops every
-   rung above it, keeping the rungs below.
+   rung above it, keeping the rungs below. A deleted swept sibling usually does
+   *not* truncate: the sibling step simply hoists to the parent instead (tier 1),
+   so truncation happens only when a rung can neither advance nor hoist (for
+   example at the document or zoom boundary).
 3. The anchor note no longer exists → the selection collapses to a caret near
    the former anchor. (An anchor that still exists but moved is not gone; the
    ladder re-replays from its new location.)

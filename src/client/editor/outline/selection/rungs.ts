@@ -68,7 +68,7 @@ export function popStep(state: LadderState): LadderState {
   };
 }
 
-export function $createInlinePlan(item: ListItemNode): ProgressivePlan | null {
+function $createInlinePlan(item: ListItemNode): ProgressivePlan | null {
   if (isEmptyNoteBody(item)) {
     return null;
   }
@@ -87,7 +87,7 @@ export function $createSubtreePlan(item: ListItemNode): ProgressivePlan | null {
   };
 }
 
-export function $hasInlineBoundary(item: ListItemNode): boolean {
+function $hasInlineBoundary(item: ListItemNode): boolean {
   return Boolean(resolveContentBoundaryPoint(item, 'start') && resolveContentBoundaryPoint(item, 'end'));
 }
 
