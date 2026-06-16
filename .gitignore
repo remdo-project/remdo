@@ -20,3 +20,6 @@ Thumbs.db
 
 # per-working-dir agent scratch (plans, mid-task notes); never versioned
 /.agent/
+
+# generated playground explorers, served by the dev server over HTTP
+/public/playground/
