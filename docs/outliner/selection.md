@@ -66,10 +66,12 @@ Direction and reversal:
   direction pops the top rung — exactly the rung that was last pushed. Because a
   `Cmd/Ctrl+A` sibling rung adds a whole sibling slab at once, one reverse press
   retracts that whole slab.
-- Contraction bottoms out at the anchor and then collapses to the caret; once
-  there, further presses in the same direction are no-ops. There is no
-  direction flip — to grow the other way, press the other direction key, which
-  starts a fresh ladder.
+- Contraction bottoms out at the anchor and then collapses to the caret, which
+  fully resets the ladder. From that bare caret, the next `Shift+Arrow` starts a
+  fresh ladder in the pressed direction — `Up` grows up, `Down` grows down — just
+  like beginning a new selection. (The ladder never auto-reverses *while a
+  structural selection still exists*; reversal there only pops toward the
+  anchor.)
 - A press that would extend past the document or zoom boundary is a no-op.
 
 Because the selection is replayed from intent, a collaboration edit reshapes it

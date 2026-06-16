@@ -179,27 +179,13 @@ export function $computeDirectionalPlan(
     return null;
   }
 
-  const stored = progressionRef.current;
-  const storedAnchor = stored.anchorKey ? $getNodeByKey<ListItemNode>(stored.anchorKey) : null;
-  const resolvedAnchor = resolveSelectionPointItem(selection, selection.anchor);
-
-  // Caret no-op memory: after a ladder contracts to a caret, the empty stack
-  // keeps the recorded sweep direction. A further press in the *contraction*
-  // direction (opposite of the sweep) is a no-op (stop-at-anchor, never flip);
-  // a press in the sweep direction re-grows the ladder from the anchor.
-  if (
-    selection.isCollapsed() &&
-    stored.stack.length === 0 &&
-    stored.direction !== null &&
-    storedAnchor &&
-    resolvedAnchor &&
-    storedAnchor.getKey() === resolvedAnchor.getKey()
-  ) {
-    if (direction !== stored.direction) {
-      return { noop: true };
-    }
-    // Sweep direction: fall through and re-grow a fresh ladder.
-  }
+  // Once a ladder has contracted to a bare caret it is fully reset (see the
+  // collapse branch below): there is no caret "direction memory". A Shift+Arrow
+  // on a collapsed caret therefore always starts a fresh ladder in the pressed
+  // direction — Up grows up, Down grows down — matching plain text selection
+  // (anchor+focus) once you are back at the caret. The "no flip" rule applies
+  // only while a structural selection still exists (reversal pops toward the
+  // anchor), not after collapse.
 
   const anchorContent = $resolveProgressionAnchorContent(selection, progressionRef, initialProgression);
   if (!anchorContent) {
@@ -216,11 +202,11 @@ export function $computeDirectionalPlan(
   // Contraction: opposite of the recorded sweep direction.
   if (isContinuing && sweep !== null && direction !== sweep) {
     let next = popStep(ladder);
-    // Collapsing to a caret keeps the empty-stack ladder but RETAINS the sweep
-    // direction so a further press in the contraction direction is a no-op
-    // (stop-at-anchor) while the opposite direction can start a fresh ladder.
+    // Collapsing to a caret fully resets the ladder (no direction memory), so
+    // the next Shift+Arrow starts a fresh ladder in whatever direction is
+    // pressed — plain-text "flip" behavior once back at the caret.
     if (next.stack.length === 0) {
-      progressionRef.current = { anchorKey, stack: [], direction: sweep };
+      progressionRef.current = emptyLadder(anchorKey);
       return { collapse: true, anchorKey };
     }
     // Preserve the sweep-direction memory while contracting so further presses
@@ -228,7 +214,7 @@ export function $computeDirectionalPlan(
     next = { ...next, direction: sweep };
     const plan = $replayLadder(anchorContent, next.stack, boundaryReplayKey);
     if (!plan) {
-      progressionRef.current = { anchorKey, stack: [], direction: sweep };
+      progressionRef.current = emptyLadder(anchorKey);
       return { collapse: true, anchorKey };
     }
     progressionRef.current = next;

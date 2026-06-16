@@ -150,23 +150,12 @@ export function $computeOutlineSelectionSnapshot({
     isLadderStructural &&
     nextProgression.anchorKey === anchorSelectionKey;
 
-  // Caret no-op memory: after contracting the ladder to a caret, the empty
-  // stack retains the sweep direction so a further same-direction Shift+Arrow
-  // is a no-op (stop-at-anchor). Keep that memory alive across plain caret
-  // updates as long as the caret stays on the anchor note; it is cleared once
-  // the caret moves (anchor change) or an explicit collapse resets the ladder.
-  const isCaretMemory =
-    nextProgression.stack.length === 0 &&
-    nextProgression.direction !== null &&
-    anchorSelectionKey !== null &&
-    nextProgression.anchorKey === anchorSelectionKey;
-
   if (isProgressiveTagged) {
     nextUnlock = { ...nextUnlock, pending: false };
   } else if ($isRangeSelection(selection)) {
     if (
       !anchorSelectionKey ||
-      (selection.isCollapsed() && !isCollapsedStructuralIntent && !isCaretMemory) ||
+      (selection.isCollapsed() && !isCollapsedStructuralIntent) ||
       nextProgression.anchorKey !== anchorSelectionKey
     ) {
       resetProgression();
