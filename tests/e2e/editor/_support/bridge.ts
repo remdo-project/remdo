@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { parseDocumentRef } from '#document-routes';
-import { readFixture } from '#tests-common/fixtures';
+import { readFixture } from '#tools/fixtures';
 
 export async function load(page: Page, fixtureName: string): Promise<void> {
   const payload = await readFixture(fixtureName);

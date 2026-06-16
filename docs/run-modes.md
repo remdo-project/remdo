@@ -123,8 +123,20 @@ per-mode facts.
   run the standalone API server with Better Auth plus a SQLite-backed document
   registry.
   Authentication is enforced, and private document access is limited to the
-  registered document owner. `pnpm run dev:users` provisions stable Alice/Bob
-  users in the local auth DB and prints credentials for the normal login form.
+  registered document owner. `pnpm run dev:data-reset` is the everyday dev-data
+  command: it provisions the stable Alice/Bob users and seeds every
+  `tests/fixtures/*.json` as a document owned by each user (titled
+  `fixture: <name>`), so a fresh login always shows browsable content. It is
+  idempotent (ensure + top-up): re-runs replace fixture content in place and
+  never touch a user's other documents. Pass `--fresh` to delete the previously
+  seeded fixture docs (and their collab storage) before reseeding. Run it rarely
+  — typically when you cannot log in as a dev user, to unblock. It requires the
+  dev collab + API stack to be running.
+  `pnpm run dev:oauth-client` is the Docker/OAuth-linking provisioner: it
+  provisions the stable users, prints their credentials, and (when
+  `REMDO_DEV_HOME_ORIGIN` is set) creates or rotates the source OAuth client used
+  for cross-server linking. It is SQL-only and used by the `dev:docker` and
+  Docker e2e flows; developers rarely run it directly.
   Browser clients use the RemDo API Y-Sweet document client token path plus
   `/d/*`; `/doc*` control routes are not routed through the gateway. Y-Sweet
   token URLs use the resolved `AUTH_URL` origin and ignore request forwarding

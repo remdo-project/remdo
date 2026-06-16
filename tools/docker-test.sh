@@ -117,7 +117,7 @@ env \
   DATA_DIR="${SOURCE_DATA_DIR}" \
   PORT="${SOURCE_PORT}" \
   REMDO_DEV_HOME_ORIGIN="${APP_PUBLIC_URL}" \
-  pnpm run dev:users
+  pnpm run dev:oauth-client
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 

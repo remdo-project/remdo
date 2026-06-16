@@ -34,7 +34,7 @@ export default antfu(
   {
     react: true,
     typescript: true,
-    ignores: ['node_modules/**', 'data/**', 'public/**'],
+    ignores: ['node_modules/**', 'data/**', 'public/**', '.agent/**'],
     stylistic: false,
     // disable as they slow down changes a lot (ai assitants in particular)
     rules: {

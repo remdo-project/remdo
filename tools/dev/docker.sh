@@ -31,7 +31,7 @@ echo "Provisioning source OAuth client for ${HOME_ORIGIN}..."
 env \
   AUTH_URL="${SOURCE_ORIGIN}" \
   REMDO_DEV_HOME_ORIGIN="${HOME_ORIGIN}" \
-  pnpm run dev:users
+  pnpm run dev:oauth-client
 
 echo "Provisioning OAuth home users in ${HOME_DATA_DIR}..."
 env \
@@ -39,7 +39,7 @@ env \
   DATA_DIR="${HOME_DATA_DIR}" \
   PORT="${HOME_PORT}" \
   REMDO_DEV_HOME_ORIGIN="${HOME_ORIGIN}" \
-  pnpm run dev:users
+  pnpm run dev:oauth-client
 
 echo "Starting OAuth home: ${HOME_ORIGIN}"
 echo "OAuth home alias: ${HOME_LOCALHOST_ORIGIN}"

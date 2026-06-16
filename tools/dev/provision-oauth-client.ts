@@ -2,11 +2,13 @@
 import process from 'node:process';
 import { config } from '#config';
 import { REMDO_SERVER_OAUTH_SCOPES } from '#server/auth/auth';
-import type { ServerAuth } from '#server/auth/auth';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import { createServerRuntime } from '#server/runtime';
-import { STABLE_AUTH_USERS, createStableAuthUserSessionHeaders } from '../lib/stable-auth-users';
-import type { StableAuthUser } from '../lib/stable-auth-users';
+import {
+  STABLE_AUTH_USERS,
+  createStableAuthUserSessionHeaders,
+  provisionDevUsers,
+} from '../lib/stable-auth-users';
 
 function readDevEnv(value: string, name: string): string {
   const trimmed = value.trim();
@@ -23,21 +25,6 @@ async function oauthClientExists(database: SqliteServerDatabaseClient, clientId:
     .where('clientId', '=', clientId)
     .executeTakeFirst();
   return Boolean(row);
-}
-
-async function provisionDevUser(auth: ServerAuth, user: StableAuthUser): Promise<void> {
-  const response = await auth.createUser(user, new Headers());
-  if (response.ok) {
-    return;
-  }
-  try {
-    await createStableAuthUserSessionHeaders(auth, user);
-    return;
-  } catch {
-    // Fall through to the existing actionable error.
-  }
-
-  throw new Error(`Failed to create or verify ${user.email}. Delete the existing debug user or auth DB.`);
 }
 
 async function provisionDevSourceOAuthClient(): Promise<void> {
@@ -96,19 +83,16 @@ async function provisionDevSourceOAuthClient(): Promise<void> {
 
 async function main(): Promise<void> {
   if (process.argv.length > 2) {
-    throw new Error('Usage: pnpm run dev:users');
+    throw new Error('Usage: pnpm run dev:oauth-client');
   }
   if (!config.isDev) {
-    throw new Error('dev:users only runs in development.');
+    throw new Error('dev:oauth-client only runs in development.');
   }
 
   const runtime = createServerRuntime();
-  const auth = runtime.auth;
   try {
-    await auth.ensureReady();
-    for (const user of Object.values(STABLE_AUTH_USERS)) {
-      await provisionDevUser(auth, user);
-    }
+    await runtime.auth.ensureReady();
+    await provisionDevUsers(runtime.auth);
   } finally {
     await runtime.close();
   }
