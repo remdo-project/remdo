@@ -245,7 +245,8 @@ Choose by the *activity*, not the phase number:
 ## Out of scope (YAGNI)
 
 - No sub-commands or flags — one entry; phases flow naturally.
-- No worktree-by-default — worktree isolation is an opt-in for high-risk tasks.
+- The coordinator runs in the shared WD, not a worktree. Worktree isolation for
+  subagents follows AGENTS.md ("When to isolate") — not restated here.
 - No speculative abstractions or shims (project is pre-1.0).
 
 ## References
