@@ -1,6 +1,6 @@
 import type { ListItemNode } from '@lexical/list';
 import { collapseSelectionToCaret, resolveBoundaryPoint } from '#client/editor/outline/selection/caret';
-import { $applyCaretEdge } from '#client/editor/outline/selection/apply';
+import { $applyCaretEdge, setSelectionBetweenItems } from '#client/editor/outline/selection/apply';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND, PROGRESSIVE_SELECTION_DIRECTION_COMMAND } from '#client/editor/commands';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
@@ -28,7 +28,7 @@ import {
 import type { OutlineSelectionRange } from '#client/editor/outline/selection/model';
 import type { SnapPayload } from '#client/editor/outline/selection/resolve';
 import { $computeOutlineSelectionSnapshot } from '#client/editor/outline/selection/snapshot';
-import type { ProgressiveUnlockState } from '#client/editor/outline/selection/snapshot';
+import type { ProgressiveUnlockState, StructuralReshape } from '#client/editor/outline/selection/snapshot';
 import type { StructuralOverlayConfig } from '#client/editor/outline/selection/overlay';
 import { clearStructuralOverlay, updateStructuralOverlay } from '#client/editor/outline/selection/overlay';
 import { useEffect, useRef } from 'react';
@@ -101,6 +101,44 @@ export function SelectionPlugin() {
       });
     };
 
+    // Re-apply a collaboration/undo/typing reshape to the live Lexical
+    // selection. Tagged progressive + snap so the resulting update is treated
+    // as our own (skips a second reshape and snap re-derivation).
+    const scheduleReshapeSelection = (reshape: StructuralReshape) => {
+      queueMicrotask(() => {
+        if (disposedRef.current) return;
+
+        editor.update(
+          () => {
+            const selection = $getSelection();
+            if (!$isRangeSelection(selection)) {
+              return;
+            }
+
+            if (reshape.kind === 'collapse') {
+              collapseSelectionToCaret(selection);
+              return;
+            }
+
+            const startItem = $getNodeByKey<ListItemNode>(reshape.plan.startKey);
+            const endItem = $getNodeByKey<ListItemNode>(reshape.plan.endKey);
+            if (!startItem || !endItem) {
+              return;
+            }
+
+            setSelectionBetweenItems(
+              selection,
+              startItem,
+              endItem,
+              reshape.plan.startMode,
+              reshape.plan.endMode
+            );
+          },
+          { tag: [PROGRESSIVE_SELECTION_TAG, SNAP_SELECTION_TAG] }
+        );
+      });
+    };
+
     const renderStructuralHighlight = (
       range: OutlineSelectionRange | null,
       isActive: boolean,
@@ -114,13 +152,18 @@ export function SelectionPlugin() {
       renderStructuralHighlight(null, editor.selection.isStructural(), rootElement ?? undefined);
     });
 
-    const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags }) => {
-      const { payload, hasStructuralSelection, structuralRange, outlineSelection, progression, unlock } =
+    const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags, dirtyElements, dirtyLeaves }) => {
+      // The tree changed (collaboration, undo/redo, typing) when this update
+      // touched any node — as opposed to a selection-only change such as a
+      // Shift+Click extension. Only a tree change re-replays the ladder.
+      const treeChanged = dirtyElements.size > 0 || dirtyLeaves.size > 0;
+      const { payload, hasStructuralSelection, structuralRange, outlineSelection, progression, unlock, reshape } =
         editorState.read(() =>
           $computeOutlineSelectionSnapshot({
             selection: $getSelection(),
             isProgressiveTagged: tags.has(PROGRESSIVE_SELECTION_TAG),
             isSnapTagged: tags.has(SNAP_SELECTION_TAG),
+            treeChanged,
             progression: ladderRef.current,
             unlock: unlockRef.current,
             initialProgression: INITIAL_PROGRESSIVE_STATE,
@@ -133,6 +176,14 @@ export function SelectionPlugin() {
       const hasHighlight = hasStructuralSelection && structuralRange !== null;
       renderStructuralHighlight(structuralRange, hasHighlight);
       editor.selection.set(outlineSelection);
+
+      // A collaboration/undo/typing update reshaped the structural ladder. The
+      // snapshot already updated the outline store + highlight from the
+      // re-replayed ladder; here we re-apply the reshape to the live Lexical
+      // selection so the DOM range follows the remote tree change.
+      if (reshape) {
+        scheduleReshapeSelection(reshape);
+      }
 
       if (!payload) {
         return;
