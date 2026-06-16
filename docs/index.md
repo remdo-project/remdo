@@ -24,9 +24,10 @@ outdated or a doc’s role materially changes.
 - `docs/config.md` (Medium). Configuration boundary: the single config owner,
   the settable input variables vs. derived values, dev/prod port regimes,
   `APP_PUBLIC_URL`-vs-bind-`PORT` separation, and the secret bootstrap contract.
-- `docs/contributing.md` (Medium). Runtime baselines, Git workflow/branch
-  conventions, editor feature module layout, and pre-1.0 compatibility policy
-  (no default migration/back-compat requirements).
+- `docs/contributing.md` (Medium). Runtime baselines, Git workflow (local topic
+  branches off the `origin/main` baseline, marked with the `wip-base` tag) and
+  branch-prefix conventions, editor feature module layout, and pre-1.0
+  compatibility policy (no default migration/back-compat requirements).
 - `docs/dev/dependency-maintenance.md` (Medium). Temporary dependency/runtime
   workarounds plus intentionally held-back versions, with current rationale and
   revisit conditions for refresh work.

@@ -49,7 +49,7 @@ export default defineConfig({
     teardownTimeout: VITEST_DEFAULT_TEST_TIMEOUT_MS,
     coverage: {
       provider: 'v8' as const,
-      reportsDirectory: path.join(config.env.DATA_DIR, 'coverage'),
+      reportsDirectory: path.join(config.env.DATA_DIR || 'data', 'coverage'),
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/main.tsx'],
     },
