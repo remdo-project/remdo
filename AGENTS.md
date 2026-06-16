@@ -114,14 +114,17 @@ When editing docs, keep external references in a final `References` section.
 - DevTools bootstrap (Playwright Chromium):
   1. Health check:
      `curl -fsS http://127.0.0.1:9222/json/version >/dev/null`
-  2. If down, run:
+  2. If down, run (resolve the newest installed Chromium build; do not hardcode
+     the build number — it changes on Playwright bumps):
 
      ```sh
      mkdir -p /tmp/pw-devtools-home/.config /tmp/pw-devtools-home/.cache /tmp/pw-cdp-profile
+     PW_DIR="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
+     CHROME=$(ls -d "$PW_DIR"/chromium-*/chrome-linux/chrome | sort -V | tail -1)
      setsid env HOME=/tmp/pw-devtools-home \
        XDG_CONFIG_HOME=/tmp/pw-devtools-home/.config \
        XDG_CACHE_HOME=/tmp/pw-devtools-home/.cache \
-       /home/piotr/.cache/ms-playwright/chromium-1208/chrome-linux/chrome \
+       "$CHROME" \
        --headless=new --no-sandbox --disable-dev-shm-usage --disable-breakpad \
        --disable-crash-reporter --disable-background-networking \
        --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 \
@@ -129,7 +132,12 @@ When editing docs, keep external references in a final `References` section.
        --no-default-browser-check about:blank >/tmp/pw-cdp.log 2>&1 < /dev/null &
      ```
 
-  3. If this flow fails or drifts, report it.
+  3. The `chrome-devtools` MCP server (project `.mcp.json`) attaches to this
+     endpoint via `--browserUrl http://127.0.0.1:9222`; the bundled
+     `chrome-devtools-mcp` plugin is disabled in this project's local settings
+     because it would otherwise launch its own (missing) Chrome. A newly added
+     MCP server only loads on a Claude Code restart.
+  4. If this flow fails or drifts, report it.
 - When presenting multiple options or a list of questions, format them as a
   numbered list.
 - The shared test harness treats console warnings/errors as failures; if you
