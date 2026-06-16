@@ -9,7 +9,7 @@ import type { ProgressiveSelectionState, SnapPayload } from './resolve';
 import {
   $createSnapPayload,
   computeStructuralRangeFromHeads,
-  inferPointerProgressionState,
+  $inferPointerProgressionState,
   resolveSelectionPointItem,
   selectionMatchesPayload,
 } from './resolve';
@@ -17,6 +17,14 @@ import {
 export interface ProgressiveUnlockState {
   pending: boolean;
   reason: 'directional' | 'external';
+}
+
+// Structural intent is derived directly from the ladder: a ladder is
+// structural when its stack carries any non-inline rung (subtree / sibling /
+// hoist). A ladder whose only rung is inline, or an empty stack, is not
+// structural.
+function ladderHasStructuralRung(ladder: ProgressiveSelectionState): boolean {
+  return ladder.stack.some((rung) => rung.kind !== 'inline');
 }
 
 interface OutlineSelectionSnapshot {
@@ -61,22 +69,32 @@ export function $computeOutlineSelectionSnapshot({
     ? resolveSelectionPointItem(selection, selection.anchor)
     : null;
   const anchorSelectionKey = anchorSelectionItem ? anchorSelectionItem.getKey() : null;
+  const isLadderStructural = ladderHasStructuralRung(nextProgression);
   const isCollapsedStructuralIntent =
     isProgressiveTagged &&
     $isRangeSelection(selection) &&
     selection.isCollapsed() &&
     anchorSelectionKey !== null &&
-    nextProgression.stage >= 2 &&
+    isLadderStructural &&
+    nextProgression.anchorKey === anchorSelectionKey;
+
+  // Caret no-op memory: after contracting the ladder to a caret, the empty
+  // stack retains the sweep direction so a further same-direction Shift+Arrow
+  // is a no-op (stop-at-anchor). Keep that memory alive across plain caret
+  // updates as long as the caret stays on the anchor note; it is cleared once
+  // the caret moves (anchor change) or an explicit collapse resets the ladder.
+  const isCaretMemory =
+    nextProgression.stack.length === 0 &&
+    nextProgression.direction !== null &&
+    anchorSelectionKey !== null &&
     nextProgression.anchorKey === anchorSelectionKey;
 
   if (isProgressiveTagged) {
-    const isLocked = $isRangeSelection(selection) && (!selection.isCollapsed() || isCollapsedStructuralIntent);
-    nextProgression = { ...nextProgression, locked: isLocked };
     nextUnlock = { ...nextUnlock, pending: false };
   } else if ($isRangeSelection(selection)) {
     if (
       !anchorSelectionKey ||
-      (selection.isCollapsed() && !isCollapsedStructuralIntent) ||
+      (selection.isCollapsed() && !isCollapsedStructuralIntent && !isCaretMemory) ||
       nextProgression.anchorKey !== anchorSelectionKey
     ) {
       resetProgression();
@@ -135,18 +153,19 @@ export function $computeOutlineSelectionSnapshot({
 
   const hasMultiNoteRange = headItems.length > 1;
   const hasMultiNoteSelection = getSelectedNotes(selection).length > 1;
-  const isProgressiveStructural = nextProgression.locked && nextProgression.stage >= 2;
+  // Structural intent comes from the ladder (single source of truth); the
+  // multi-note checks cover pointer selections that have not yet seeded one.
+  const isProgressiveStructural = ladderHasStructuralRung(nextProgression);
   const hasStructuralIntent = isProgressiveStructural || hasMultiNoteRange || hasMultiNoteSelection;
   hasStructuralSelection = hasStructuralIntent && structuralRange !== null;
-  if (!nextProgression.locked && hasMultiNoteRange) {
-    const inferredProgression = inferPointerProgressionState(selection, headItems);
+  if (!isProgressiveStructural && hasMultiNoteRange) {
+    const inferredProgression = $inferPointerProgressionState(selection, headItems);
     if (inferredProgression) {
       nextProgression = inferredProgression;
     }
   }
 
-  const overrideAnchorKey =
-    nextProgression.locked && nextProgression.stage >= 2 ? nextProgression.anchorKey : null;
+  const overrideAnchorKey = ladderHasStructuralRung(nextProgression) ? nextProgression.anchorKey : null;
 
   if (!isSnapTagged && headItems.length >= 2) {
     const candidate = $createSnapPayload(selection, headItems, overrideAnchorKey);
@@ -155,7 +174,7 @@ export function $computeOutlineSelectionSnapshot({
     }
   }
 
-  const stage = nextProgression.locked ? nextProgression.stage : hasStructuralSelection ? 2 : 1;
+  const stage = nextProgression.stack.length > 0 ? nextProgression.stack.length : hasStructuralSelection ? 2 : 1;
 
   outlineSelection = {
     kind: hasStructuralSelection ? 'structural' : 'inline',

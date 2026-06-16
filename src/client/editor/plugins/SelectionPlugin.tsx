@@ -1,5 +1,4 @@
 import type { ListItemNode } from '@lexical/list';
-import { $isListNode } from '@lexical/list';
 import { collapseSelectionToCaret, resolveBoundaryPoint } from '#client/editor/outline/selection/caret';
 import { $applyCaretEdge } from '#client/editor/outline/selection/apply';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND, PROGRESSIVE_SELECTION_DIRECTION_COMMAND } from '#client/editor/commands';
@@ -10,7 +9,6 @@ import {
   $applyProgressivePlan,
   $computeDirectionalPlan,
   $computeProgressivePlan,
-  $isDirectionalBoundary,
   INITIAL_PROGRESSIVE_STATE,
 } from '#client/editor/outline/selection/progressive';
 import type { ProgressivePlanResult } from '#client/editor/outline/selection/progressive';
@@ -28,15 +26,12 @@ import {
   SELECT_ALL_COMMAND,
 } from 'lexical';
 import type { OutlineSelectionRange } from '#client/editor/outline/selection/model';
-import type { ProgressiveSelectionState, SnapPayload } from '#client/editor/outline/selection/resolve';
+import type { SnapPayload } from '#client/editor/outline/selection/resolve';
 import { $computeOutlineSelectionSnapshot } from '#client/editor/outline/selection/snapshot';
 import type { ProgressiveUnlockState } from '#client/editor/outline/selection/snapshot';
 import type { StructuralOverlayConfig } from '#client/editor/outline/selection/overlay';
 import { clearStructuralOverlay, updateStructuralOverlay } from '#client/editor/outline/selection/overlay';
 import { useEffect, useRef } from 'react';
-import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { getContiguousSelectionHeads } from '#client/editor/outline/selection/heads';
-import { getParentContentItem } from '#client/editor/outline/selection/tree';
 
 const PROGRESSIVE_SELECTION_TAG = 'selection:progressive-range';
 const SNAP_SELECTION_TAG = 'selection:snap-range';
@@ -46,16 +41,9 @@ const STRUCTURAL_OVERLAY: StructuralOverlayConfig = {
   heightVar: '--structural-selection-height',
 };
 
-function getStoredStage(result: ProgressivePlanResult): number {
-  if (result.repeatStage && result.stage > 0) {
-    return result.stage - 1;
-  }
-  return result.stage;
-}
-
 export function SelectionPlugin() {
   const [editor] = useLexicalComposerContext();
-  const progressionRef = useRef(INITIAL_PROGRESSIVE_STATE);
+  const ladderRef = useRef(INITIAL_PROGRESSIVE_STATE);
   const unlockRef = useRef<ProgressiveUnlockState>({ pending: false, reason: 'external' });
   const pendingSnapPayloadRef = useRef<SnapPayload | null>(null);
   const pendingSnapScheduledRef = useRef(false);
@@ -113,59 +101,6 @@ export function SelectionPlugin() {
       });
     };
 
-    const $inferSelectionDirection = (
-      anchorKey: string,
-      fallback: ProgressiveSelectionState['lastDirection']
-    ): ProgressiveSelectionState['lastDirection'] => {
-      const selection = $getSelection();
-      if (!$isRangeSelection(selection)) {
-        return fallback ?? null;
-      }
-
-      const heads = getContiguousSelectionHeads(selection);
-      if (heads.length <= 1) {
-        return fallback ?? null;
-      }
-
-      const anchorNode = $getNodeByKey<ListItemNode>(anchorKey);
-      if (!anchorNode) {
-        return fallback ?? null;
-      }
-
-      const anchorContent = resolveContentItemFromNode(anchorNode);
-      if (!anchorContent) {
-        return fallback ?? null;
-      }
-      const parentList = heads[0]!.getParent();
-      if (!$isListNode(parentList)) {
-        return fallback ?? null;
-      }
-
-      let current: ListItemNode | null = anchorContent;
-      while (current && current.getParent() !== parentList) {
-        current = getParentContentItem(current);
-      }
-
-      if (!current) {
-        return fallback ?? null;
-      }
-
-      const index = heads.findIndex((head) => head.getKey() === current.getKey());
-      if (index === -1) {
-        return fallback ?? 'down';
-      }
-
-      if (index === 0) {
-        return 'down';
-      }
-
-      if (index === heads.length - 1) {
-        return 'up';
-      }
-
-      return fallback ?? 'down';
-    };
-
     const renderStructuralHighlight = (
       range: OutlineSelectionRange | null,
       isActive: boolean,
@@ -186,13 +121,13 @@ export function SelectionPlugin() {
             selection: $getSelection(),
             isProgressiveTagged: tags.has(PROGRESSIVE_SELECTION_TAG),
             isSnapTagged: tags.has(SNAP_SELECTION_TAG),
-            progression: progressionRef.current,
+            progression: ladderRef.current,
             unlock: unlockRef.current,
             initialProgression: INITIAL_PROGRESSIVE_STATE,
           })
         );
 
-      progressionRef.current = progression;
+      ladderRef.current = progression;
       unlockRef.current = unlock;
 
       const hasHighlight = hasStructuralSelection && structuralRange !== null;
@@ -209,25 +144,14 @@ export function SelectionPlugin() {
     });
 
     const $applyPlan = (planResult: ProgressivePlanResult) => {
+      // The ladder ref was already advanced by $computeProgressivePlan; here we
+      // only apply the plan and roll the ladder back if the selection fails.
       $addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
 
       const applied = $applyProgressivePlan(planResult);
       if (!applied) {
-        progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-        return;
+        ladderRef.current = INITIAL_PROGRESSIVE_STATE;
       }
-
-      const nextDirection =
-        planResult.stage >= 3
-          ? $inferSelectionDirection(planResult.anchorKey, progressionRef.current.lastDirection)
-          : null;
-
-      progressionRef.current = {
-        anchorKey: planResult.anchorKey,
-        stage: getStoredStage(planResult),
-        locked: true,
-        lastDirection: nextDirection,
-      };
     };
 
     const $collapseStructuralSelectionToCaretAndReset = (
@@ -260,7 +184,7 @@ export function SelectionPlugin() {
         }
 
         if (handled) {
-          progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+          ladderRef.current = INITIAL_PROGRESSIVE_STATE;
           unlockRef.current = { pending: false, reason: 'external' };
         }
       }
@@ -274,7 +198,7 @@ export function SelectionPlugin() {
         const zoomBoundaryKey = getZoomBoundary(editor);
         const planResult = editor
           .getEditorState()
-          .read(() => $computeProgressivePlan(progressionRef, INITIAL_PROGRESSIVE_STATE, zoomBoundaryKey));
+          .read(() => $computeProgressivePlan(ladderRef, INITIAL_PROGRESSIVE_STATE, zoomBoundaryKey));
 
         if (!planResult) {
           return false;
@@ -333,50 +257,37 @@ export function SelectionPlugin() {
 
     const $runDirectionalPlan = (direction: 'up' | 'down') => {
       const zoomBoundaryKey = getZoomBoundary(editor);
-      const isBoundary = editor.getEditorState().read(() => {
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection)) {
-          return false;
-        }
-        if (!editor.selection.isStructural()) {
-          return false;
-        }
-        return $isDirectionalBoundary(selection, direction, zoomBoundaryKey);
-      });
-
-      if (isBoundary) {
-        return;
-      }
 
       unlockRef.current = { pending: true, reason: 'directional' };
 
       $addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
 
-      const planResult = $computeDirectionalPlan(
-        progressionRef,
-        direction,
-        INITIAL_PROGRESSIVE_STATE,
-        zoomBoundaryKey
-      );
-      if (!planResult) {
-        progressionRef.current = INITIAL_PROGRESSIVE_STATE;
+      // $computeDirectionalPlan owns the ladder ref: it pushes/pops the ladder
+      // and returns either a plan, a collapse signal (popped to caret), a no-op
+      // (stop-at-anchor / boundary), or null on an unresolvable selection.
+      const result = $computeDirectionalPlan(ladderRef, direction, INITIAL_PROGRESSIVE_STATE, zoomBoundaryKey);
+
+      if (!result) {
+        ladderRef.current = INITIAL_PROGRESSIVE_STATE;
         return;
       }
 
-      const applied = $applyProgressivePlan(planResult);
+      if ('noop' in result) {
+        return;
+      }
+
+      if ('collapse' in result) {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          collapseSelectionToCaret(selection);
+        }
+        return;
+      }
+
+      const applied = $applyProgressivePlan(result);
       if (!applied) {
-        progressionRef.current = INITIAL_PROGRESSIVE_STATE;
-        return;
+        ladderRef.current = INITIAL_PROGRESSIVE_STATE;
       }
-
-      const lastDirection = planResult.isShrink ? progressionRef.current.lastDirection : direction;
-
-      progressionRef.current = {
-        anchorKey: planResult.anchorKey,
-        stage: getStoredStage(planResult),
-        locked: true,
-        lastDirection,
-      };
     };
 
     const unregisterDirectionalCommand = editor.registerCommand(

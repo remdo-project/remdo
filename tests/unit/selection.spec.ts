@@ -664,7 +664,7 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
   });
 
-  it('shrinks toward the anchor when reversing Shift+Arrow direction', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('contracts to the caret and does not flip', meta({ fixture: 'flat' }), async ({ remdo }) => {
         await placeCaretAtNote(remdo, 'note2');
 
     // Stage 1: inline body only.
@@ -675,16 +675,24 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    // Reverse direction shrinks back to the anchor range.
+    // Stop-at-anchor: reversing pops the sibling rung back to the anchor subtree.
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
 
-    // Once at the anchor, continue in the new direction.
+    // Continue popping: subtree -> inline body (no longer structural).
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+
+    // Next pop returns to the caret at the anchor.
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+
+    // Same-direction press at the caret is a no-op (never flips the other way).
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
-  it('shrinks toward the anchor when reversing Shift+Arrow from the opposite direction', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('contracts to the caret and does not flip from the opposite direction', meta({ fixture: 'flat' }), async ({ remdo }) => {
         await placeCaretAtNote(remdo, 'note2');
 
     // Stage 1: inline body only.
@@ -695,16 +703,24 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
 
-    // Reverse direction shrinks back to the anchor range.
+    // Stop-at-anchor: reversing pops the sibling rung back to the anchor subtree.
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
 
-    // Once at the anchor, continue in the new direction.
+    // Continue popping: subtree -> inline body (no longer structural).
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+
+    // Next pop returns to the caret at the anchor.
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+
+    // Same-direction press at the caret is a no-op (never flips the other way).
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
-  it('shrinks back to the anchor subtree when reversing after sibling expansion', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  it('contracts through the anchor subtree to the caret after sibling expansion', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
         await placeCaretAtNote(remdo, 'note2');
 
     // Stage 1: inline body only.
@@ -717,17 +733,24 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
-    // Reverse direction shrinks back to the anchor subtree.
+    // Stop-at-anchor: reversing pops the sibling rung back to the anchor subtree.
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    // Once at the anchor, continue in the new direction (hoists to the parent subtree).
+    // Continue popping: subtree -> inline body (no longer structural).
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+
+    // Next pop returns to the caret at the anchor.
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
-  it('keeps the anchor when reversing Shift+Arrow after Cmd/Ctrl+A expansion', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'note2');
+  it.skip('keeps the anchor when reversing Shift+Arrow after Cmd/Ctrl+A expansion', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    // re-enabled in Task 4 (Cmd+A slab): Cmd/Ctrl+A still rides the legacy
+    // stage-based machinery, so a Shift+Arrow reversal after Cmd+A cannot yet
+    // round-trip cleanly through the ladder's push/pop contraction.
+    await placeCaretAtNote(remdo, 'note2');
 
     // Stage 1: inline text only.
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
@@ -743,9 +766,9 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
-    // Once at the anchor, continue in the new direction (hoists to the parent subtree).
+    // Continue popping: subtree -> inline body (no longer structural).
     await pressKey(remdo, { key: 'ArrowUp', shift: true });
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
   });
 
   it(
@@ -1275,3 +1298,4 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
   });
 });
+

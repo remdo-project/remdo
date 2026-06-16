@@ -1,40 +1,42 @@
-import type { ListItemNode, ListNode } from '@lexical/list';
+import type { ListItemNode } from '@lexical/list';
 import { $isListNode } from '@lexical/list';
 import type { RangeSelection } from 'lexical';
 import { $getNodeByKey, $getRoot, $getSelection, $isRangeSelection } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
-import { getPreviousContentSibling } from '#client/editor/outline/list-structure';
 import { $requireRootContentList } from '#client/editor/outline/schema';
 
 import { selectInlineContent, selectNoteBody, setSelectionBetweenItems } from './apply';
-import { getContiguousSelectionHeads } from './heads';
 import { isEmptyNoteBody } from './note-body';
 import type { ProgressiveSelectionState } from './resolve';
 import { resolveSelectionPointItem } from './resolve';
-import { $createInlinePlan, $createSubtreePlan } from './rungs';
-import type { ProgressivePlan } from './rungs';
+import {
+  $createInlinePlan,
+  $createSubtreePlan,
+  $replayLadder,
+  emptyLadder,
+  popStep,
+  pushStep,
+} from './rungs';
+import type { LadderState, ProgressivePlan, Rung } from './rungs';
 import {
   getContentSiblingsForItem,
   getFirstDescendantListItem,
   getLastDescendantListItem,
-  getNextContentSibling,
   getParentContentItem,
   getSubtreeTail,
   isContentDescendantOf,
-  sortHeadsByDocumentOrder,
 } from './tree';
 
 interface ProgressiveSelectionRef {
   current: ProgressiveSelectionState;
 }
 
-export const INITIAL_PROGRESSIVE_STATE: ProgressiveSelectionState = {
-  anchorKey: null,
-  stage: 0,
-  locked: false,
-  lastDirection: null,
-};
+// Empty ladder constant. `anchorKey: ''` is the canonical "no anchor yet"
+// sentinel: it never equals a real Lexical node key, so the snapshot's
+// anchor-match checks and the directional path's "continuing" check both
+// treat it as a fresh start.
+export const INITIAL_PROGRESSIVE_STATE: ProgressiveSelectionState = emptyLadder('');
 
 export interface ProgressivePlanResult {
   anchorKey: string;
@@ -42,6 +44,41 @@ export interface ProgressivePlanResult {
   plan: ProgressivePlan;
   repeatStage?: boolean;
   isShrink?: boolean;
+}
+
+// Signals that the directional path popped past the bottom of the ladder and
+// the selection should collapse to a caret at the anchor.
+export interface DirectionalCollapseResult {
+  collapse: true;
+  anchorKey: string;
+}
+
+// Signals that the press had no effect (same-direction press at a caret, or a
+// growth push blocked by the document/zoom boundary). The ladder is unchanged.
+export interface DirectionalNoopResult {
+  noop: true;
+}
+
+/**
+ * Synthesize a ladder whose stack length encodes a Cmd/Ctrl+A stage so the
+ * shared ref can stay a single LadderState while Task 4 still drives Cmd+A by
+ * stage number. Rung kinds are chosen only so structural-intent derivation
+ * (any non-inline rung) matches the stage: 0 -> inline, 1 -> subtree,
+ * >=2 -> sibling. The stack is not replayed for Cmd+A. TODO(Task 4): route
+ * Cmd+A through the ladder so this synthesis can go away.
+ */
+function ladderForStage(anchorKey: string, stage: number): LadderState {
+  const stack: Rung[] = [];
+  for (let depth = 0; depth < stage; depth += 1) {
+    if (depth === 0) {
+      stack.push({ kind: 'inline' });
+    } else if (depth === 1) {
+      stack.push({ kind: 'subtree' });
+    } else {
+      stack.push({ kind: 'sibling', direction: 'down' });
+    }
+  }
+  return { anchorKey, stack, direction: null };
 }
 
 function $resolveBoundaryRoot(boundaryKey: string | null | undefined): ListItemNode | null {
@@ -72,11 +109,13 @@ function $resolveProgressionAnchorContent(
   if (selection.isCollapsed()) {
     resolvedAnchorItem = resolveSelectionPointItem(selection, selection.anchor);
     const resolvedAnchorKey = resolvedAnchorItem ? resolvedAnchorItem.getKey() : null;
+    const ladder = progressionRef.current;
+    const isStructural = ladder.stack.some((rung) => rung.kind !== 'inline');
     const shouldReset =
-      !progressionRef.current.anchorKey ||
-      progressionRef.current.stage < 2 ||
+      !ladder.anchorKey ||
+      !isStructural ||
       !resolvedAnchorKey ||
-      progressionRef.current.anchorKey !== resolvedAnchorKey;
+      ladder.anchorKey !== resolvedAnchorKey;
     if (shouldReset) {
       progressionRef.current = initialProgression;
     }
@@ -125,7 +164,7 @@ export function $computeProgressivePlan(
 
   const anchorKey = anchorContent.getKey();
   const isContinuing = progressionRef.current.anchorKey === anchorKey;
-  const nextStage = isContinuing ? progressionRef.current.stage + 1 : 1;
+  const nextStage = isContinuing ? progressionRef.current.stack.length + 1 : 1;
 
   const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
   const planEntry = $buildPlanForStage(anchorContent, nextStage, boundaryRoot);
@@ -134,6 +173,10 @@ export function $computeProgressivePlan(
     return null;
   }
 
+  // Encode the Cmd/Ctrl+A stage into the ladder so the shared ref stays a
+  // single LadderState. TODO(Task 4): route Cmd+A through the ladder directly.
+  progressionRef.current = ladderForStage(anchorKey, planEntry.stage);
+
   return {
     anchorKey,
     stage: planEntry.stage,
@@ -141,16 +184,50 @@ export function $computeProgressivePlan(
   };
 }
 
+/**
+ * Route a Shift+Arrow press through the rung ladder (push/pop + replay).
+ *
+ * The ladder is the single source of truth. Growth (sweep direction, or any
+ * direction before a sweep is set) pushes the next rung; contraction (opposite
+ * of the recorded sweep direction) pops the top rung. Contracting past the
+ * bottom of the stack collapses to a caret. A same-direction press once the
+ * ladder is back at a caret is a no-op (stop-at-anchor, never flip).
+ *
+ * Returns a plan to apply, a collapse signal, a no-op signal, or null when the
+ * selection/anchor cannot be resolved (caller resets the ladder).
+ */
 export function $computeDirectionalPlan(
   progressionRef: ProgressiveSelectionRef,
   direction: 'up' | 'down',
   initialProgression: ProgressiveSelectionState,
   boundaryKey: string | null = null
-): ProgressivePlanResult | null {
+): ProgressivePlanResult | DirectionalCollapseResult | DirectionalNoopResult | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
     progressionRef.current = initialProgression;
     return null;
+  }
+
+  const stored = progressionRef.current;
+  const storedAnchor = stored.anchorKey ? $getNodeByKey<ListItemNode>(stored.anchorKey) : null;
+  const resolvedAnchor = resolveSelectionPointItem(selection, selection.anchor);
+
+  // Caret no-op memory: after a ladder contracts to a caret, the empty stack
+  // keeps the recorded sweep direction. A further press in the *contraction*
+  // direction (opposite of the sweep) is a no-op (stop-at-anchor, never flip);
+  // a press in the sweep direction re-grows the ladder from the anchor.
+  if (
+    selection.isCollapsed() &&
+    stored.stack.length === 0 &&
+    stored.direction !== null &&
+    storedAnchor &&
+    resolvedAnchor &&
+    storedAnchor.getKey() === resolvedAnchor.getKey()
+  ) {
+    if (direction !== stored.direction) {
+      return { noop: true };
+    }
+    // Sweep direction: fall through and re-grow a fresh ladder.
   }
 
   const anchorContent = $resolveProgressionAnchorContent(selection, progressionRef, initialProgression);
@@ -159,33 +236,53 @@ export function $computeDirectionalPlan(
   }
 
   const anchorKey = anchorContent.getKey();
-  const lastDirection = progressionRef.current.lastDirection;
-  if (lastDirection && lastDirection !== direction && progressionRef.current.locked) {
-    const shrinkPlan = $buildDirectionalShrinkPlan(anchorContent, selection, lastDirection);
-    if (shrinkPlan) {
-      return shrinkPlan;
-    }
-  }
-
-  const isContinuing = progressionRef.current.locked && progressionRef.current.anchorKey === anchorKey;
-  let stage = isContinuing ? progressionRef.current.stage : 0;
-  const heads = getContiguousSelectionHeads(selection);
+  const ladder = progressionRef.current;
+  const isContinuing = ladder.anchorKey === anchorKey && ladder.stack.length > 0;
+  const sweep = isContinuing ? ladder.direction : null;
   const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
+  const boundaryReplayKey = boundaryRoot ? boundaryRoot.getKey() : null;
 
-  const MAX_STAGE = 64;
-  while (stage < MAX_STAGE + 1) {
-    stage += 1;
-    const planResult = $buildDirectionalStagePlan(anchorContent, heads, stage, direction, boundaryRoot);
-    if (planResult) {
-      return planResult;
+  // Contraction: opposite of the recorded sweep direction.
+  if (isContinuing && sweep !== null && direction !== sweep) {
+    let next = popStep(ladder);
+    // Collapsing to a caret keeps the empty-stack ladder but RETAINS the sweep
+    // direction so a further press in the contraction direction is a no-op
+    // (stop-at-anchor) while the opposite direction can start a fresh ladder.
+    if (next.stack.length === 0) {
+      progressionRef.current = { anchorKey, stack: [], direction: sweep };
+      return { collapse: true, anchorKey };
     }
-
-    if (stage >= MAX_STAGE) {
-      break;
+    // Preserve the sweep-direction memory while contracting so further presses
+    // keep popping (popStep itself drops it once no sibling rung remains).
+    next = { ...next, direction: sweep };
+    const plan = $replayLadder(anchorContent, next.stack, boundaryReplayKey);
+    if (!plan) {
+      progressionRef.current = { anchorKey, stack: [], direction: sweep };
+      return { collapse: true, anchorKey };
     }
+    progressionRef.current = next;
+    return { anchorKey, stage: next.stack.length, plan };
   }
 
-  return null;
+  // Growth: push the next rung (fresh ladder when not continuing).
+  const base = isContinuing ? ladder : emptyLadder(anchorKey);
+  let next = pushStep(base, direction);
+  let plan = $replayLadder(anchorContent, next.stack, boundaryReplayKey);
+
+  // Skip an empty inline rung: if the freshly pushed rung produced no plan (an
+  // empty note body has no inline boundary), push one more to reach subtree.
+  if (!plan && next.stack.length === 1) {
+    next = pushStep(next, direction);
+    plan = $replayLadder(anchorContent, next.stack, boundaryReplayKey);
+  }
+
+  if (!plan) {
+    // Boundary push (past document/zoom root) — no-op, keep the current ladder.
+    return { noop: true };
+  }
+
+  progressionRef.current = next;
+  return { anchorKey, stage: next.stack.length, plan };
 }
 
 export function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
@@ -279,225 +376,6 @@ function $buildPlanForStage(
   return $buildPlanForStage(anchorContent, stage + 1, boundaryRoot);
 }
 
-function $buildDirectionalStagePlan(
-  anchorContent: ListItemNode,
-  heads: ListItemNode[],
-  stage: number,
-  direction: 'up' | 'down',
-  boundaryRoot: ListItemNode | null
-): ProgressivePlanResult | null {
-  const anchorKey = anchorContent.getKey();
-  const resolvedHeads = heads.length > 0 ? heads : [anchorContent];
-
-  if (stage === 1) {
-    const inlinePlan = $createInlinePlan(anchorContent);
-    return inlinePlan ? { anchorKey, stage: 1, plan: inlinePlan } : null;
-  }
-
-  if (stage === 2) {
-    const subtreePlan = $createSubtreePlan(anchorContent);
-    return subtreePlan ? { anchorKey, stage: 2, plan: subtreePlan } : null;
-  }
-
-  const relative = stage - 3;
-  if (relative < 0) {
-    return null;
-  }
-
-  const levelsUp = Math.floor((relative + 1) / 2);
-  const isSiblingStage = relative % 2 === 0;
-  const target = levelsUp === 0 ? anchorContent : ascendContentItem(anchorContent, levelsUp);
-
-  if (!target || (boundaryRoot && !isContentDescendantOf(target, boundaryRoot))) {
-    const docPlan = $resolveDocumentPlan(boundaryRoot);
-    if (!docPlan) {
-      return null;
-    }
-    return { anchorKey, stage, plan: docPlan };
-  }
-
-  const allHeads = resolvedHeads.length > 0 ? resolvedHeads : [anchorContent];
-  const sortedHeads = sortHeadsByDocumentOrder(allHeads);
-
-  if (isSiblingStage) {
-    if (boundaryRoot && target.getKey() === boundaryRoot.getKey()) {
-      const docPlan = $resolveDocumentPlan(boundaryRoot);
-      return docPlan ? { anchorKey, stage, plan: docPlan } : null;
-    }
-    return $buildDirectionalSiblingPlan(target, resolvedHeads, sortedHeads, direction, anchorKey, stage);
-  }
-
-  return $buildDirectionalAncestorPlan(target, resolvedHeads, anchorKey, stage);
-}
-
-function $buildDirectionalShrinkPlan(
-  anchorContent: ListItemNode,
-  selection: RangeSelection,
-  lastDirection: 'up' | 'down'
-): ProgressivePlanResult | null {
-  const anchorKey = anchorContent.getKey();
-  const heads = getContiguousSelectionHeads(selection);
-  if (heads.length === 0) {
-    return null;
-  }
-
-  const sortedHeads = sortHeadsByDocumentOrder(heads);
-  const anchorHead = sortedHeads[0]!.getKey() === anchorKey && sortedHeads.length === 1;
-  if (anchorHead) {
-    return null;
-  }
-
-  if (sortedHeads.length === 1) {
-    const head = sortedHeads[0]!;
-    if (!isAncestorOfAnchor(head, anchorContent)) {
-      return null;
-    }
-
-    const anchorChild = findChildOnPath(head, anchorContent);
-    if (!anchorChild) {
-      return null;
-    }
-
-    const siblings = getContentSiblingsForItem(anchorChild);
-    const siblingPlan = $createSiblingRangePlan(anchorChild);
-    if (siblingPlan) {
-      const stageInfo = inferSiblingStage(anchorContent, siblings);
-      if (!stageInfo) {
-        return null;
-      }
-      return {
-        anchorKey,
-        stage: stageInfo.stage,
-        plan: siblingPlan,
-        repeatStage: stageInfo.repeatStage,
-        isShrink: true,
-      };
-    }
-
-    const subtreePlan = $createSubtreePlan(anchorChild);
-    if (!subtreePlan) {
-      return null;
-    }
-
-    return {
-      anchorKey,
-      stage: 2,
-      plan: subtreePlan,
-      isShrink: true,
-    };
-  }
-
-  const newHeads =
-    lastDirection === 'down' ? sortedHeads.slice(0, -1) : sortedHeads.slice(1);
-  if (newHeads.length === 0) {
-    return null;
-  }
-
-  const plan = buildRangePlanFromHeads(newHeads);
-  const stageInfo = inferSiblingStage(anchorContent, newHeads);
-  if (!stageInfo) {
-    return null;
-  }
-
-  return {
-    anchorKey,
-    stage: stageInfo.stage,
-    plan,
-    repeatStage: stageInfo.repeatStage,
-    isShrink: true,
-  };
-}
-
-function $buildDirectionalSiblingPlan(
-  target: ListItemNode,
-  resolvedHeads: ListItemNode[],
-  sortedHeads: ListItemNode[],
-  direction: 'up' | 'down',
-  anchorKey: string,
-  stage: number
-): ProgressivePlanResult | null {
-  const siblingList = target.getParent();
-  if (!$isListNode(siblingList)) {
-    return null;
-  }
-
-  const headsAtLevel = getHeadsSharingParent(resolvedHeads, siblingList);
-  if (headsAtLevel.length === 0) {
-    headsAtLevel.push(target);
-  }
-  const sortedLevelHeads = sortHeadsByDocumentOrder(headsAtLevel);
-
-  if (direction === 'down') {
-    const forwardBoundary = sortedLevelHeads.at(-1)!;
-    const sibling = getNextContentSibling(forwardBoundary);
-    if (!sibling) {
-      return null;
-    }
-
-    const plan: ProgressivePlan = {
-      type: 'range',
-      startKey: sortedHeads[0]!.getKey(),
-      endKey: getSubtreeTail(sibling).getKey(),
-      startMode: 'content',
-      endMode: 'subtree',
-    };
-
-    const repeatStage = Boolean(getNextContentSibling(sibling));
-
-    return {
-      anchorKey,
-      stage,
-      plan,
-      repeatStage,
-    };
-  }
-
-  const backwardBoundary = sortedLevelHeads[0]!;
-  const sibling = getPreviousContentSibling(backwardBoundary);
-  if (!sibling) {
-    return null;
-  }
-
-  const plan: ProgressivePlan = {
-    type: 'range',
-    startKey: sibling.getKey(),
-    endKey: getSubtreeTail(sortedHeads.at(-1)!).getKey(),
-    startMode: 'content',
-    endMode: 'subtree',
-  };
-
-  const repeatStage = Boolean(getPreviousContentSibling(sibling));
-
-  return {
-    anchorKey,
-    stage,
-    plan,
-    repeatStage,
-  };
-}
-
-function $buildDirectionalAncestorPlan(
-  target: ListItemNode,
-  resolvedHeads: ListItemNode[],
-  anchorKey: string,
-  stage: number
-): ProgressivePlanResult | null {
-  const alreadySelected = resolvedHeads.some((head) => head.getKey() === target.getKey());
-  if (alreadySelected) {
-    return null;
-  }
-
-  const plan = $createSubtreePlan(target);
-  if (!plan) {
-    return null;
-  }
-
-  return {
-    anchorKey,
-    stage,
-    plan,
-  };
-}
 
 function $createNoteBodyPlan(item: ListItemNode): ProgressivePlan | null {
   return {
@@ -555,135 +433,4 @@ function ascendContentItem(item: ListItemNode, levels: number): ListItemNode | n
   }
 
   return current;
-}
-
-function getHeadsSharingParent(heads: ListItemNode[], parentList: ListNode): ListItemNode[] {
-  return heads.filter((head) => head.getParent() === parentList);
-}
-
-function $getDocumentBoundaryItems(): { start: ListItemNode; end: ListItemNode } | null {
-  const rootList = $requireRootContentList();
-  const firstItem = getFirstDescendantListItem(rootList);
-  const lastItem = getLastDescendantListItem(rootList);
-  if (!firstItem || !lastItem) {
-    return null;
-  }
-
-  return { start: firstItem, end: getSubtreeTail(lastItem) };
-}
-
-function $resolveBoundaryItems(boundaryRoot: ListItemNode | null): { start: ListItemNode; end: ListItemNode } | null {
-  if (boundaryRoot) {
-    return { start: boundaryRoot, end: getSubtreeTail(boundaryRoot) };
-  }
-  return $getDocumentBoundaryItems();
-}
-
-export function $isDirectionalBoundary(
-  selection: RangeSelection,
-  direction: 'up' | 'down',
-  boundaryKey: string | null = null
-): boolean {
-  const heads = getContiguousSelectionHeads(selection);
-  if (heads.length === 0) {
-    return false;
-  }
-
-  const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
-  const boundary = $resolveBoundaryItems(boundaryRoot);
-  if (!boundary) {
-    return false;
-  }
-
-  const sortedHeads = sortHeadsByDocumentOrder(heads);
-  if (direction === 'down') {
-    const visualEnd = getSubtreeTail(sortedHeads.at(-1)!);
-    return visualEnd.getKey() === boundary.end.getKey();
-  }
-
-  const visualStart = sortedHeads[0]!;
-  return visualStart.getKey() === boundary.start.getKey();
-}
-
-function buildRangePlanFromHeads(heads: ListItemNode[]): ProgressivePlan {
-  const sorted = sortHeadsByDocumentOrder(heads);
-  const startKey = sorted[0]!.getKey();
-  const endKey = getSubtreeTail(sorted.at(-1)!).getKey();
-  return {
-    type: 'range',
-    startKey,
-    endKey,
-    startMode: 'content',
-    endMode: 'subtree',
-  };
-}
-
-function inferSiblingStage(
-  anchorContent: ListItemNode,
-  heads: ListItemNode[]
-): { stage: number; repeatStage: boolean } | null {
-  if (heads.length === 0) {
-    return null;
-  }
-
-  const parentList = heads[0]!.getParent();
-  if (!$isListNode(parentList)) {
-    return null;
-  }
-
-  const levelsUp = getLevelsUpToParent(anchorContent, parentList);
-  if (levelsUp === null) {
-    return null;
-  }
-
-  const isAnchorOnly = heads.length === 1 && heads[0]!.getKey() === anchorContent.getKey();
-  const stage = isAnchorOnly ? 2 : 3 + levelsUp * 2;
-  if (stage === 2) {
-    return { stage, repeatStage: false };
-  }
-
-  const anchorAtLevel = levelsUp === 0 ? anchorContent : ascendContentItem(anchorContent, levelsUp);
-  if (!anchorAtLevel) {
-    return { stage, repeatStage: false };
-  }
-
-  const siblings = getContentSiblingsForItem(anchorAtLevel);
-  return { stage, repeatStage: heads.length < siblings.length };
-}
-
-function getLevelsUpToParent(anchorContent: ListItemNode, parentList: ListNode): number | null {
-  let current: ListItemNode | null = anchorContent;
-  let levels = 0;
-  while (current) {
-    if (current.getParent() === parentList) {
-      return levels;
-    }
-    current = getParentContentItem(current);
-    levels += 1;
-  }
-  return null;
-}
-
-function isAncestorOfAnchor(candidate: ListItemNode, anchorContent: ListItemNode): boolean {
-  let current: ListItemNode | null = anchorContent;
-  while (current) {
-    if (current.getKey() === candidate.getKey()) {
-      return true;
-    }
-    current = getParentContentItem(current);
-  }
-  return false;
-}
-
-function findChildOnPath(ancestor: ListItemNode, anchorContent: ListItemNode): ListItemNode | null {
-  let current: ListItemNode | null = anchorContent;
-  let parent = getParentContentItem(current);
-  while (parent) {
-    if (parent.getKey() === ancestor.getKey()) {
-      return current;
-    }
-    current = parent;
-    parent = getParentContentItem(current);
-  }
-  return null;
 }
