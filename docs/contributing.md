@@ -79,10 +79,10 @@ to), see `docs/principles.md`.
 
 1. **Single source per topic.** Define each behavior once in the doc best suited
    to it; eliminate duplicates and replace any extra copies with pointers.
-2. **Top-down linking.** Prefer links from higher-level docs (index, concepts)
-   into detailed docs (selection, indent/outdent, reordering); same-level links
-   only when they add clear value. Point to another doc once per section, not in
-   every note — a single deferral covers the section.
+2. **Top-down linking.** Prefer links from higher-level docs into the detailed
+   docs they summarize; same-level links only when they add clear value. Point to
+   another doc once per section, not in every note — a single deferral covers the
+   section.
 3. **Self-contained behavior.** Behavior must be clear without external
    sources. Put external references in final `References`; keep useful internal
    links inline.
