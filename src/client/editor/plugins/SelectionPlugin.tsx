@@ -47,6 +47,8 @@ export function SelectionPlugin() {
   const unlockRef = useRef<ProgressiveUnlockState>({ pending: false, reason: 'external' });
   const pendingSnapPayloadRef = useRef<SnapPayload | null>(null);
   const pendingSnapScheduledRef = useRef(false);
+  const pendingReshapeRef = useRef<StructuralReshape | null>(null);
+  const pendingReshapeScheduledRef = useRef(false);
 
   useEffect(() => {
     const disposedRef = { current: false };
@@ -105,8 +107,20 @@ export function SelectionPlugin() {
     // selection. Tagged progressive + snap so the resulting update is treated
     // as our own (skips a second reshape and snap re-derivation).
     const scheduleReshapeSelection = (reshape: StructuralReshape) => {
+      // Coalesce: keep only the latest reshape and run a single microtask, so
+      // two updates in one task can't apply a stale-then-fresh selection in
+      // sequence (mirrors scheduleSnapSelection).
+      pendingReshapeRef.current = reshape;
+      if (pendingReshapeScheduledRef.current) return;
+      pendingReshapeScheduledRef.current = true;
+
       queueMicrotask(() => {
+        pendingReshapeScheduledRef.current = false;
         if (disposedRef.current) return;
+
+        const nextReshape = pendingReshapeRef.current;
+        pendingReshapeRef.current = null;
+        if (!nextReshape) return;
 
         editor.update(
           () => {
@@ -115,13 +129,13 @@ export function SelectionPlugin() {
               return;
             }
 
-            if (reshape.kind === 'collapse') {
+            if (nextReshape.kind === 'collapse') {
               collapseSelectionToCaret(selection);
               return;
             }
 
-            const startItem = $getNodeByKey<ListItemNode>(reshape.plan.startKey);
-            const endItem = $getNodeByKey<ListItemNode>(reshape.plan.endKey);
+            const startItem = $getNodeByKey<ListItemNode>(nextReshape.plan.startKey);
+            const endItem = $getNodeByKey<ListItemNode>(nextReshape.plan.endKey);
             if (!startItem || !endItem) {
               return;
             }
@@ -130,8 +144,8 @@ export function SelectionPlugin() {
               selection,
               startItem,
               endItem,
-              reshape.plan.startMode,
-              reshape.plan.endMode
+              nextReshape.plan.startMode,
+              nextReshape.plan.endMode
             );
           },
           { tag: [PROGRESSIVE_SELECTION_TAG, SNAP_SELECTION_TAG] }
@@ -157,6 +171,7 @@ export function SelectionPlugin() {
       // touched any node — as opposed to a selection-only change such as a
       // Shift+Click extension. Only a tree change re-replays the ladder.
       const treeChanged = dirtyElements.size > 0 || dirtyLeaves.size > 0;
+      const boundaryKey = getZoomBoundary(editor);
       const { payload, hasStructuralSelection, structuralRange, outlineSelection, progression, unlock, reshape } =
         editorState.read(() =>
           $computeOutlineSelectionSnapshot({
@@ -167,6 +182,7 @@ export function SelectionPlugin() {
             progression: ladderRef.current,
             unlock: unlockRef.current,
             initialProgression: INITIAL_PROGRESSIVE_STATE,
+            boundaryKey,
           })
         );
 

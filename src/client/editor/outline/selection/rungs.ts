@@ -39,6 +39,13 @@ export function emptyLadder(anchorKey: string): LadderState {
   return { anchorKey, stack: [], direction: null };
 }
 
+// A ladder is structural when its stack carries any non-inline rung
+// (subtree / sibling / hoist). An empty stack, or an inline-only stack, is not
+// structural.
+export function ladderHasStructuralRung(ladder: LadderState): boolean {
+  return ladder.stack.some((rung) => rung.kind !== 'inline');
+}
+
 // The next rung kind for a push, given the current stack depth.
 function nextKind(depth: number): Rung['kind'] {
   if (depth === 0) return 'inline';

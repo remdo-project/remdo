@@ -14,21 +14,13 @@ import {
   resolveSelectionPointItem,
   selectionMatchesPayload,
 } from './resolve';
-import { $replayLadder } from './rungs';
+import { $replayLadder, ladderHasStructuralRung } from './rungs';
 import type { ProgressivePlan } from './rungs';
 import { getParentContentItem } from './tree';
 
 export interface ProgressiveUnlockState {
   pending: boolean;
   reason: 'directional' | 'external';
-}
-
-// Structural intent is derived directly from the ladder: a ladder is
-// structural when its stack carries any non-inline rung (subtree / sibling /
-// hoist). A ladder whose only rung is inline, or an empty stack, is not
-// structural.
-function ladderHasStructuralRung(ladder: ProgressiveSelectionState): boolean {
-  return ladder.stack.some((rung) => rung.kind !== 'inline');
 }
 
 // A re-replay plan the plugin must re-apply to the live Lexical selection so
@@ -70,11 +62,13 @@ function $rangeFromReplayPlan(
 // tier-4 collapse).
 function $reshapeStructuralLadder(
   anchorItem: ListItemNode,
-  ladder: ProgressiveSelectionState
+  ladder: ProgressiveSelectionState,
+  boundaryKey: string | null
 ): { plan: Extract<ProgressivePlan, { type: 'range' }>; ladder: ProgressiveSelectionState } | null {
   // Tier 1/2: the full stack still replays — the selection simply follows the
-  // remote reshape (e.g. a swept subtree gaining a child).
-  const full = $replayLadder(anchorItem, ladder.stack);
+  // remote reshape (e.g. a swept subtree gaining a child). Honor the zoom
+  // boundary so a reshape never extends outside the zoomed subtree.
+  const full = $replayLadder(anchorItem, ladder.stack, boundaryKey);
   if (full && full.type === 'range') {
     return { plan: full, ladder };
   }
@@ -83,7 +77,7 @@ function $reshapeStructuralLadder(
   // replays to a range (drop the first failing rung and everything above it).
   for (let length = ladder.stack.length - 1; length >= 1; length -= 1) {
     const prefix = ladder.stack.slice(0, length);
-    const plan = $replayLadder(anchorItem, prefix);
+    const plan = $replayLadder(anchorItem, prefix, boundaryKey);
     if (plan && plan.type === 'range') {
       return { plan, ladder: { ...ladder, stack: prefix } };
     }
@@ -113,6 +107,9 @@ interface OutlineSelectionSnapshotInput {
   progression: ProgressiveSelectionState;
   unlock: ProgressiveUnlockState;
   initialProgression: ProgressiveSelectionState;
+  // Zoom boundary (zoom root key) or null at the document root. A reshape must
+  // stay inside this boundary, just like the keyboard command paths.
+  boundaryKey: string | null;
 }
 
 export function $computeOutlineSelectionSnapshot({
@@ -123,6 +120,7 @@ export function $computeOutlineSelectionSnapshot({
   progression,
   unlock,
   initialProgression,
+  boundaryKey,
 }: OutlineSelectionSnapshotInput): OutlineSelectionSnapshot {
   let payload: SnapPayload | null = null;
   let structuralRange: OutlineSelectionRange | null = null;
@@ -187,14 +185,17 @@ export function $computeOutlineSelectionSnapshot({
       resetProgression();
       reshape = { kind: 'collapse' };
     } else {
-      const reshaped = $reshapeStructuralLadder(anchorContent, nextProgression);
-      if (reshaped) {
+      const reshaped = $reshapeStructuralLadder(anchorContent, nextProgression, boundaryKey);
+      const reshapedRange = reshaped ? $rangeFromReplayPlan(reshaped.plan) : null;
+      if (reshaped && reshapedRange) {
         // Tier 1/2 (full stack replays) or tier 3 (longest valid prefix).
         nextProgression = reshaped.ladder;
         reshape = { kind: 'range', plan: reshaped.plan };
-        structuralRange = $rangeFromReplayPlan(reshaped.plan);
+        structuralRange = reshapedRange;
       } else {
-        // No prefix replays even though the anchor is alive — collapse.
+        // No prefix replays, or the replayed plan can't be resolved to a live
+        // range (nodes mid-reconciliation) — reset and collapse rather than
+        // leaving a structural ladder with no visible range.
         resetProgression();
         reshape = { kind: 'collapse' };
       }

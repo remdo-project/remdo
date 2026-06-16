@@ -11,6 +11,7 @@ import {
   $createSubtreePlan,
   $replayLadder,
   emptyLadder,
+  ladderHasStructuralRung,
   popStep,
   pushStep,
 } from './rungs';
@@ -66,7 +67,7 @@ function $resolveProgressionAnchorContent(
     resolvedAnchorItem = resolveSelectionPointItem(selection, selection.anchor);
     const resolvedAnchorKey = resolvedAnchorItem ? resolvedAnchorItem.getKey() : null;
     const ladder = progressionRef.current;
-    const isStructural = ladder.stack.some((rung) => rung.kind !== 'inline');
+    const isStructural = ladderHasStructuralRung(ladder);
     const shouldReset =
       !ladder.anchorKey ||
       !isStructural ||

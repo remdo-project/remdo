@@ -233,6 +233,16 @@ export function $inferPointerProgressionState(
     return null;
   }
 
+  // Only seed a ladder for a same-level sibling slab. Cross-level heads can't be
+  // reached by sibling sweeps from the anchor's level, so seeding would exhaust
+  // the replay loop and fall back to an anchor-subtree-only ladder that silently
+  // drops the rest of the pointer selection. Bail instead and leave the existing
+  // ladder untouched.
+  const headParent = heads[0]!.getParent();
+  if (!heads.every((head) => head.getParent() === headParent)) {
+    return null;
+  }
+
   const sorted = sortHeadsByDocumentOrder(heads);
   const slabStartKey = sorted[0]!.getKey();
   const slabEndKey = getSubtreeTail(sorted.at(-1)!).getKey();
