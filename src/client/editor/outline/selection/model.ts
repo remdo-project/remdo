@@ -11,7 +11,6 @@ export interface OutlineSelectionRange {
 
 export interface OutlineSelection {
   kind: OutlineSelectionKind;
-  stage: number;
   anchorKey: string | null;
   focusKey: string | null;
   range: OutlineSelectionRange | null;

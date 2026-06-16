@@ -97,6 +97,36 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
     });
   });
 
+  it("tier 1: hoists instead of truncating when a deleted swept sibling can still hoist", meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    const secondary = await createCollabPeer(remdo);
+    expect(readOutline(secondary)).toEqual(readOutline(remdo));
+
+    // On A: anchor note2 subtree, then sweep down to sibling note4
+    // (anchor note2 → note2, note3, note4).
+    await placeCaretAtNote(remdo, 'note2');
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    });
+
+    // On B: delete the swept sibling note4. note2 still has a parent (note1) to
+    // hoist into, so the sibling rung resolves by hoisting rather than truncating.
+    await removeNote(secondary, 'note4');
+
+    await waitFor(() => {
+      expect(readOutline(remdo)).toEqual(readOutline(secondary));
+      expect(noteIds(remdo)).not.toContain('note4');
+    });
+
+    // A's selection reshapes (tier 1) to the hoisted parent subtree, not a
+    // truncation back to the anchor.
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
+    });
+  });
+
   it("tier 4: collapses to a caret when the anchor note is deleted", meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     const secondary = await createCollabPeer(remdo);
     expect(readOutline(secondary)).toEqual(readOutline(remdo));

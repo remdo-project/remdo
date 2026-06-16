@@ -238,7 +238,6 @@ export function $computeOutlineSelectionSnapshot({
       hasStructuralSelection = true;
       outlineSelection = {
         kind: 'structural',
-        stage: nextProgression.stack.length > 0 ? nextProgression.stack.length : 2,
         anchorKey: nextProgression.anchorKey,
         focusKey,
         range: structuralRange,
@@ -249,7 +248,6 @@ export function $computeOutlineSelectionSnapshot({
       structuralRange = null;
       outlineSelection = {
         kind: 'caret',
-        stage: 0,
         anchorKey,
         focusKey,
         range: null,
@@ -271,7 +269,6 @@ export function $computeOutlineSelectionSnapshot({
   if (selection.isCollapsed() && !isCollapsedStructuralIntent) {
     outlineSelection = {
       kind: 'caret',
-      stage: 0,
       anchorKey,
       focusKey,
       range: null,
@@ -321,11 +318,8 @@ export function $computeOutlineSelectionSnapshot({
     }
   }
 
-  const stage = nextProgression.stack.length > 0 ? nextProgression.stack.length : hasStructuralSelection ? 2 : 1;
-
   outlineSelection = {
     kind: hasStructuralSelection ? 'structural' : 'inline',
-    stage,
     anchorKey,
     focusKey,
     range: hasStructuralSelection ? structuralRange : null,

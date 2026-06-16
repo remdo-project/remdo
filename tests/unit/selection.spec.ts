@@ -934,7 +934,6 @@ describe('selection plugin', () => {
 
     remdo.editor.selection.set({
       kind: 'structural',
-      stage: 2,
       anchorKey: null,
       focusKey: null,
       range: {
