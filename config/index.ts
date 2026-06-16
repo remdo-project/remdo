@@ -1,17 +1,17 @@
 /* eslint-disable node/prefer-global/process */
 /* eslint-disable node/no-process-env */
 /* eslint-disable no-restricted-syntax */
-import { loadEnv } from './_internal/env/load';
+import { resolveConfig } from './env/resolve';
 
 // eslint-disable-next-line ts/no-unnecessary-condition -- in browser process is a stub with no versions
 const isNodeRuntime = Boolean(globalThis.process?.versions?.node);
 
 const loaded = (() => {
   if (isNodeRuntime) {
-    return loadEnv((key) => process.env[key]);
+    return resolveConfig((key) => process.env[key]);
   }
 
-  return loadEnv((key) => {
+  return resolveConfig((key) => {
     if (key === 'NODE_ENV') {
       return import.meta.env.MODE;
     }

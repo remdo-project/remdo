@@ -10,42 +10,46 @@ remdo_load_dotenv "${ROOT_DIR}"
 NODE_ENV=production
 export NODE_ENV
 
-if [[ -n "${APP_PUBLIC_URL:-}" ]]; then
-  if ! PORT="$(node -e '
-    const url = new URL(process.argv[1]);
-    const port = url.port || (url.protocol === "https:" ? "443" : url.protocol === "http:" ? "80" : "");
-    if (!port) process.exit(1);
-    console.log(port);
-  ' "${APP_PUBLIC_URL}")"; then
-    echo "APP_PUBLIC_URL must be an absolute http(s) URL." >&2
-    exit 1
-  fi
-  # shellcheck disable=SC2034 # consumed by the sourced tools/env.defaults.sh.
-  REMDO_PRESERVE_PORT=true
-  export PORT
-fi
+# In prod the listen PORT is an independent input (platform-injected, else 8080),
+# never derived from APP_PUBLIC_URL. Default it before sourcing env defaults so the
+# ${PORT:=...} there respects this value instead of PORT_BASE.
+: "${PORT:=8080}"
+export PORT
 
-: "${RUN_MODE_PORT_SHIFT:=40}"
 remdo_load_env_defaults "${ROOT_DIR}"
 if [[ -z "${APP_PUBLIC_URL:-}" ]]; then
   remdo_configure_docker_runtime
 fi
 # PORT is already validated by remdo_load_env_defaults above; remdo_configure_docker_runtime
-# only derives APP_PUBLIC_URL from it and never changes it.
+# only derives APP_PUBLIC_URL from it (URL-from-PORT) and never changes it. When
+# APP_PUBLIC_URL is set, it is used as-is and PORT is left untouched.
 
-: "${AUTH_SECRET:?Set AUTH_SECRET in .env}"
+# The launcher publishes only -p ${PORT}:${PORT}. If APP_PUBLIC_URL advertises a
+# different explicit port, a directly-exposed (un-proxied) deploy is unreachable
+# at that URL. This is fine behind a TLS-terminating proxy (Render, Caddy) that
+# forwards :443 -> PORT, so warn rather than fail.
+if [[ -n "${APP_PUBLIC_URL:-}" ]]; then
+  app_public_url_port="$(node -e '
+    const url = new URL(process.argv[1]);
+    process.stdout.write(url.port);
+  ' "${APP_PUBLIC_URL}" 2>/dev/null || true)"
+  if [[ -n "${app_public_url_port}" && "${app_public_url_port}" != "${PORT}" ]]; then
+    echo "Warning: APP_PUBLIC_URL port (${app_public_url_port}) differs from the published PORT (${PORT})." >&2
+    echo "         A directly-exposed container will not be reachable at ${APP_PUBLIC_URL};" >&2
+    echo "         this is only correct behind a proxy that forwards to PORT ${PORT}." >&2
+  fi
+fi
+
+# Operators set only ADMIN_SECRET (never auto-generated). AUTH_SECRET and the
+# Y-Sweet auth_key/server_token pair are bootstrapped inside the container from
+# the persistent DATA_DIR mount; pass them through only when explicitly provided.
 : "${ADMIN_SECRET:?Set ADMIN_SECRET in .env}"
-: "${YSWEET_AUTH_KEY:?Set YSWEET_AUTH_KEY in .env}"
-: "${YSWEET_SERVER_TOKEN:?Set YSWEET_SERVER_TOKEN in .env}"
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 remdo_require_rootless_docker
 
 DOCKER_ENV_ARGS=(
-  -e AUTH_SECRET="${AUTH_SECRET}"
   -e ADMIN_SECRET="${ADMIN_SECRET}"
-  -e YSWEET_AUTH_KEY="${YSWEET_AUTH_KEY}"
-  -e YSWEET_SERVER_TOKEN="${YSWEET_SERVER_TOKEN}"
   -e APP_PUBLIC_URL="${APP_PUBLIC_URL}"
   -e ALLOW_SIGNUP="${ALLOW_SIGNUP}"
   -e LINKABLE_REMDO_SERVERS_JSON="${LINKABLE_REMDO_SERVERS_JSON:-}"
@@ -54,6 +58,18 @@ DOCKER_ENV_ARGS=(
   -e PORT_BASE="${PORT_BASE}"
   -e PORT="${PORT}"
 )
+
+# Forward bootstrap-managed secrets only when the operator set them explicitly,
+# so empty values never shadow the in-container bootstrap.
+if [[ -n "${AUTH_SECRET:-}" ]]; then
+  DOCKER_ENV_ARGS+=(-e AUTH_SECRET="${AUTH_SECRET}")
+fi
+if [[ -n "${YSWEET_AUTH_KEY:-}" ]]; then
+  DOCKER_ENV_ARGS+=(-e YSWEET_AUTH_KEY="${YSWEET_AUTH_KEY}")
+fi
+if [[ -n "${YSWEET_SERVER_TOKEN:-}" ]]; then
+  DOCKER_ENV_ARGS+=(-e YSWEET_SERVER_TOKEN="${YSWEET_SERVER_TOKEN}")
+fi
 
 echo "Docker target: ${APP_PUBLIC_URL}"
 DOCKER_RUN_ARGS=(--rm --userns=host)

@@ -6,17 +6,7 @@
 : "${NODE_ENV:=development}"
 : "${HOST:=localhost}"
 : "${PORT_BASE:=4000}"
-: "${RUN_MODE_PORT_SHIFT:=0}"
-requested_run_mode_port_shift="${RUN_MODE_PORT_SHIFT}"
-unshifted_port_base="${PORT_BASE}"
-run_mode_port_base=$((PORT_BASE + requested_run_mode_port_shift))
-if [ "${requested_run_mode_port_shift}" != "0" ] \
-  && [ "${REMDO_PRESERVE_PORT:-false}" != "true" ] \
-  && [ "${PORT:-}" = "${unshifted_port_base}" ]; then
-  unset PORT
-fi
-RUN_MODE_PORT_SHIFT=0
-: "${PORT:=$((run_mode_port_base + 0))}"
+: "${PORT:=$((PORT_BASE + 0))}"
 : "${COLLAB_ENABLED:=true}"
 : "${DEV_DOCUMENT_ID:=devDoc}"
 : "${CI:=false}"
@@ -24,14 +14,17 @@ RUN_MODE_PORT_SHIFT=0
 : "${TMPDIR:=${REMDO_ROOT%/}/node_modules/.cache/vitest-tmp}" # Keep Vitest temp files out of repo root and shared with vitest-preview.
 : "${DATA_DIR:=${REMDO_ROOT%/}/data}"
 
-# Derive service/tool ports from the run-mode port base to keep local runs predictable.
-: "${HMR_PORT:=$((run_mode_port_base + 1))}"
-: "${VITEST_PORT:=$((run_mode_port_base + 2))}"
-: "${VITEST_PREVIEW_PORT:=$((run_mode_port_base + 3))}"
-: "${COLLAB_SERVER_PORT:=$((run_mode_port_base + 4))}"
-: "${PREVIEW_PORT:=$((run_mode_port_base + 5))}"
-: "${PLAYWRIGHT_UI_PORT:=$((run_mode_port_base + 6))}"
-: "${API_SERVER_PORT:=$((run_mode_port_base + 11))}"
+# Derive service/tool ports directly from PORT_BASE to keep local runs predictable.
+# Offsets +7..+10 are intentionally reserved for the Docker E2E containers
+# (tools/docker-test.sh runs its gateway at +7 and bootstrap scenario at +8); do
+# not assign them to a derived service port here.
+: "${HMR_PORT:=$((PORT_BASE + 1))}"
+: "${VITEST_PORT:=$((PORT_BASE + 2))}"
+: "${VITEST_PREVIEW_PORT:=$((PORT_BASE + 3))}"
+: "${COLLAB_SERVER_PORT:=$((PORT_BASE + 4))}"
+: "${PREVIEW_PORT:=$((PORT_BASE + 5))}"
+: "${PLAYWRIGHT_UI_PORT:=$((PORT_BASE + 6))}"
+: "${API_SERVER_PORT:=$((PORT_BASE + 11))}"
 : "${YSWEET_CONNECTION_STRING:=ys://127.0.0.1:${COLLAB_SERVER_PORT}}"
 
 if [ -z "${AUTH_SECRET:-}" ] && [ "${NODE_ENV}" != "production" ]; then
@@ -49,13 +42,10 @@ fi
 
 : "${REMDO_DEV_OAUTH_CLIENT_ID:=remdo-home-dev}"
 : "${REMDO_DEV_OAUTH_CLIENT_SECRET:=remdo-dev-client-secret-0123456789}"
-remdo_dev_default_origin="http://localhost:${PORT}"
-: "${REMDO_DEV_HOME_ORIGIN:=${remdo_dev_default_origin}}"
-if [ "${NODE_ENV}" = "development" ] && [ -z "${AUTH_URL+x}" ]; then
-  if [ "${requested_run_mode_port_shift}" = "0" ]; then
-    AUTH_URL="${remdo_dev_default_origin}"
-  fi
-fi
+: "${REMDO_DEV_HOME_ORIGIN:=http://localhost:${PORT}}"
+# AUTH_URL is not derived here: the TS config owner (config/env/resolve.ts)
+# computes the identical dev value (http://<host>:<PORT>) and is the single
+# source every consumer reads through config.env.AUTH_URL.
 
 case "${NODE_ENV}" in
   production)
@@ -68,7 +58,7 @@ esac
 
 # Chromium refuses to connect to these ports (ERR_UNSAFE_PORT). Exposed as a
 # function so callers that resolve the public port later (e.g. the prod launcher
-# deriving PORT from APP_PUBLIC_URL) can re-validate it.
+# validating its independent listen PORT) can re-validate it.
 # Variables are _rbsp_-prefixed because POSIX sh has no `local`; this avoids
 # leaking them into the global scope of every script that sources this file.
 remdo_assert_browser_safe_port() {
@@ -107,9 +97,9 @@ if [ "${NODE_ENV}" != "production" ]; then
   done
 fi
 
-export NODE_ENV HOST PORT_BASE RUN_MODE_PORT_SHIFT PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI VITEST_PREVIEW TMPDIR
+export NODE_ENV HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI VITEST_PREVIEW TMPDIR
 export HMR_PORT VITEST_PORT VITEST_PREVIEW_PORT COLLAB_SERVER_PORT API_SERVER_PORT YSWEET_CONNECTION_STRING
 export PREVIEW_PORT PLAYWRIGHT_UI_PORT
-export AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_PUBLIC_URL AUTH_URL ALLOW_SIGNUP
+export AUTH_SECRET ADMIN_SECRET YSWEET_AUTH_KEY YSWEET_SERVER_TOKEN APP_PUBLIC_URL ALLOW_SIGNUP
 export LINKABLE_REMDO_SERVERS_JSON REMDO_DEV_HOME_ORIGIN
 export REMDO_DEV_OAUTH_CLIENT_ID REMDO_DEV_OAUTH_CLIENT_SECRET

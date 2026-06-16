@@ -103,6 +103,7 @@ catalog:
   ws: 8.21.0
   y-sweet: ^0.9.1
   yjs: ^13.6.31
+  zod: ^4.4.3
 
 onlyBuiltDependencies:
   - '@ast-grep/cli'

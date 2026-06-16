@@ -17,15 +17,18 @@ DOCKER_E2E_AUTH_STATE_PATH="${TEST_DATA_DIR%/}/docker-e2e-auth-state.json"
 DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH="${TEST_DATA_DIR%/}/docker-e2e-smoke-document-id.txt"
 DOCKER_HOME_DATA_DIR="${TEST_DATA_DIR%/}/home"
 SOURCE_DATA_DIR="${TEST_DATA_DIR%/}/source"
-SOURCE_RUN_MODE_PORT_SHIFT=70
+SOURCE_PORT_SHIFT=70
 
-: "${RUN_MODE_PORT_SHIFT:=7}"
 remdo_load_env_defaults "${ROOT_DIR}"
+# The containerized gateway runs on PORT_BASE+7 and the standalone source dev
+# server on a separate PORT_BASE+70 range. PORT is the single bind input now, so
+# pin the gateway port directly and re-validate it as browser-facing.
+PORT="$((PORT_BASE + 7))"
+remdo_assert_browser_safe_port "${PORT}"
 APP_PUBLIC_URL="http://${DOCKER_TEST_BROWSER_HOST}:${PORT}"
 
-SOURCE_PORT="$((PORT_BASE + SOURCE_RUN_MODE_PORT_SHIFT))"
-SOURCE_COLLAB_SERVER_PORT="$((PORT_BASE + SOURCE_RUN_MODE_PORT_SHIFT + 4))"
-SOURCE_API_SERVER_PORT="$((PORT_BASE + SOURCE_RUN_MODE_PORT_SHIFT + 11))"
+SOURCE_PORT="$((PORT_BASE + SOURCE_PORT_SHIFT))"
+SOURCE_COLLAB_SERVER_PORT="$((PORT_BASE + SOURCE_PORT_SHIFT + 4))"
 SOURCE_YSWEET_CONNECTION_STRING="ys://127.0.0.1:${SOURCE_COLLAB_SERVER_PORT}"
 SOURCE_ORIGIN="http://localhost:${SOURCE_PORT}"
 source_token_host="$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9.]*\).*/\1/p')"
@@ -41,22 +44,56 @@ HEALTH_URL="${APP_PUBLIC_URL%/}/health"
 DATA_CLEANED="false"
 DOCKER_RUN_ARGS=()
 
+# Sourcing env.defaults.sh at the top exported the gateway PORT_BASE-derived
+# service ports into this process. Any child that re-derives from a shifted
+# PORT_BASE (the source dev server) must clear them first, or the inherited
+# gateway-range values win. Keep this list in sync with the derived ports in
+# tools/env.defaults.sh (PORT is passed explicitly per child, so it is not here).
+CLEAR_DERIVED_PORTS=(
+  -u HMR_PORT -u VITEST_PORT -u VITEST_PREVIEW_PORT -u COLLAB_SERVER_PORT
+  -u PREVIEW_PORT -u PLAYWRIGHT_UI_PORT -u API_SERVER_PORT
+)
+
+# Second scenario: a fresh, ADMIN_SECRET-only container that forces the
+# in-container bootstrap-secrets.ts to GENERATE and PERSIST AUTH_SECRET and the
+# Y-Sweet pair. Distinct port (PORT_BASE+8) so it cannot collide with the main
+# gateway (PORT_BASE+7) or the source dev range (PORT_BASE+70). Its data dir is a
+# fresh empty mount so the persistence guard does not fire on first boot.
+BOOTSTRAP_PORT="$((PORT_BASE + 8))"
+remdo_assert_browser_safe_port "${BOOTSTRAP_PORT}"
+BOOTSTRAP_CONTAINER_NAME="${IMAGE_NAME}-${BOOTSTRAP_PORT}"
+BOOTSTRAP_APP_PUBLIC_URL="http://${DOCKER_TEST_BROWSER_HOST}:${BOOTSTRAP_PORT}"
+BOOTSTRAP_HEALTH_URL="${BOOTSTRAP_APP_PUBLIC_URL%/}/health"
+BOOTSTRAP_DATA_DIR="${TEST_DATA_DIR%/}/bootstrap-home"
+
 if remdo_docker_daemon_is_rootless; then
   DOCKER_RUN_ARGS+=(--userns=host)
 fi
+
+# Wipe a host-mounted data dir from inside the container so container-owned
+# (often root-owned, on a rootful daemon) files are removed by a process with the
+# right uid; fall back to a throwaway container if the live one is already gone.
+wipe_container_data() {
+  local container_name="$1"
+  local host_data_dir="$2"
+
+  if docker exec "${container_name}" sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' \
+    >/dev/null 2>&1; then
+    return
+  fi
+  if docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
+    docker run --rm "${DOCKER_RUN_ARGS[@]}" -v "${host_data_dir}:/app/data" "${IMAGE_NAME}" \
+      sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' >/dev/null 2>&1 || true
+  fi
+}
 
 cleanup_data_dir() {
   if [[ "${DATA_CLEANED}" == "true" ]]; then
     return
   fi
 
-  if ! docker exec "${CONTAINER_NAME}" sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' \
-    >/dev/null 2>&1; then
-    if docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
-      docker run --rm "${DOCKER_RUN_ARGS[@]}" -v "${DOCKER_HOME_DATA_DIR}:/app/data" "${IMAGE_NAME}" \
-        sh -c 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?*' >/dev/null 2>&1 || true
-    fi
-  fi
+  wipe_container_data "${CONTAINER_NAME}" "${DOCKER_HOME_DATA_DIR}"
+  wipe_container_data "${BOOTSTRAP_CONTAINER_NAME}" "${BOOTSTRAP_DATA_DIR}"
 
   rm -rf "${TEST_DATA_DIR}" >/dev/null 2>&1 || true
   DATA_CLEANED="true"
@@ -65,12 +102,16 @@ cleanup_data_dir() {
 cleanup() {
   cleanup_data_dir
   docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+  docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
 
 echo "Provisioning source OAuth client for ${APP_PUBLIC_URL}..."
+# dev:users only reads AUTH_URL + the OAuth client vars (not the derived service
+# ports), so the gateway port exports do not need clearing here.
 env \
   AUTH_URL="${SOURCE_ORIGIN}" \
   DATA_DIR="${SOURCE_DATA_DIR}" \
@@ -128,14 +169,17 @@ PLAYWRIGHT_ENV=(
   YSWEET_SERVER_TOKEN="${DOCKER_TEST_YSWEET_SERVER_TOKEN}"
 )
 
-if ! env "${PLAYWRIGHT_ENV[@]}" \
+# The source dev server re-derives its range from a shifted PORT_BASE, so clear
+# the inherited gateway-range derived ports (see CLEAR_DERIVED_PORTS) and let
+# env.defaults.sh recompute them. PORT and YSWEET_CONNECTION_STRING stay explicit
+# as the source's pinned inputs.
+if ! env "${CLEAR_DERIVED_PORTS[@]}" \
+  "${PLAYWRIGHT_ENV[@]}" \
   DATA_DIR="${SOURCE_DATA_DIR}" \
   HOST=0.0.0.0 \
+  PORT_BASE="$((PORT_BASE + SOURCE_PORT_SHIFT))" \
   PORT="${SOURCE_PORT}" \
-  COLLAB_SERVER_PORT="${SOURCE_COLLAB_SERVER_PORT}" \
-  API_SERVER_PORT="${SOURCE_API_SERVER_PORT}" \
   YSWEET_CONNECTION_STRING="${SOURCE_YSWEET_CONNECTION_STRING}" \
-  RUN_MODE_PORT_SHIFT="${SOURCE_RUN_MODE_PORT_SHIFT}" \
   E2E_WRITE_STORAGE_STATE="${DOCKER_E2E_AUTH_STATE_PATH}" \
   E2E_STORAGE_STATE="${DOCKER_E2E_AUTH_STATE_PATH}" \
   E2E_WRITE_SMOKE_DOCUMENT_ID="${DOCKER_E2E_SMOKE_DOCUMENT_ID_PATH}" \
@@ -221,11 +265,14 @@ check_backup_contains() {
   local target_file="$2"
   local label="$3"
 
-  if grep -Fq -- "${expected}" "${target_file}"; then
+  # Capture grep's status directly: after a closed `if grep; then ...; fi` the
+  # `$?` is the if-statement's exit (0), not grep's, which would mask a miss.
+  local status=0
+  grep -Fq -- "${expected}" "${target_file}" || status=$?
+  if [[ "${status}" -eq 0 ]]; then
     return 0
   fi
 
-  local status=$?
   if [[ "${status}" -eq 1 ]]; then
     echo "Backup ${label} missing expected content (${expected}): ${target_file}" >&2
     return 1
@@ -252,4 +299,138 @@ for expected in "note1" "note2" "note3"; do
 done
 
 echo "Docker backup OK: ${BACKUP_DIR}"
+
+# ---------------------------------------------------------------------------
+# Scenario 2: ADMIN_SECRET-only bootstrap (secret generation + persistence).
+#
+# The main suite above passes every secret explicitly, exercising only the
+# "env-provided" branch of tools/bootstrap-secrets.ts. This scenario closes the
+# integration gap: it runs a fresh container with ONLY ADMIN_SECRET (no
+# AUTH_SECRET, no Y-Sweet pair) against an empty data mount, so the entrypoint's
+# bootstrap GENERATES and PERSISTS AUTH_SECRET and the Y-Sweet pair, then proves
+# a restart reuses them without rotation and that the self-generated AUTH_SECRET
+# drives a working app.
+echo "Running ADMIN_SECRET-only bootstrap scenario on ${BOOTSTRAP_APP_PUBLIC_URL}..."
+
+bootstrap_fail() {
+  docker logs "${BOOTSTRAP_CONTAINER_NAME}" || true
+  echo "ADMIN_SECRET-only bootstrap scenario failed: $1" >&2
+  exit 1
+}
+
+bootstrap_wait_healthy() {
+  local ready="false"
+  local _
+  for _ in {1..20}; do
+    if curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${BOOTSTRAP_PORT}:127.0.0.1" \
+      -kfsS "${BOOTSTRAP_HEALTH_URL}" >/dev/null 2>&1; then
+      ready="true"
+      break
+    fi
+    sleep 0.5
+  done
+  [[ "${ready}" == "true" ]]
+}
+
+# Override PORT so remdo_docker_run publishes the distinct bootstrap port. Pass
+# ONLY ADMIN_SECRET (+ APP_PUBLIC_URL, HOST, PORT_BASE, PORT). AUTH_SECRET and the
+# Y-Sweet pair are intentionally absent so the entrypoint bootstrap generates and
+# persists them under the mounted /app/data/secrets.
+PORT="${BOOTSTRAP_PORT}" remdo_docker_run "${IMAGE_NAME}" "${BOOTSTRAP_DATA_DIR}" \
+  -d --name "${BOOTSTRAP_CONTAINER_NAME}" "${DOCKER_RUN_ARGS[@]}" \
+  -e ADMIN_SECRET="${DOCKER_TEST_ADMIN_SECRET}" \
+  -e APP_PUBLIC_URL="${BOOTSTRAP_APP_PUBLIC_URL}" \
+  -e HOST=127.0.0.1 \
+  -e PORT_BASE="${PORT_BASE}" \
+  -e PORT="${BOOTSTRAP_PORT}"
+
+# (a) The ADMIN_SECRET-only container boots healthy.
+if ! bootstrap_wait_healthy; then
+  bootstrap_fail "container did not become healthy at ${BOOTSTRAP_HEALTH_URL}"
+fi
+echo "Bootstrap scenario healthy: ${BOOTSTRAP_HEALTH_URL}"
+
+# (b) The generated secret files exist with the expected restrictive modes. One
+# `docker exec stat` over all targets (modes only, no secret values logged)
+# yields "<path> <mode>" lines we assert against the expected map.
+bootstrap_modes="$(docker exec "${BOOTSTRAP_CONTAINER_NAME}" \
+  stat -c '%n %a' \
+  /app/data/secrets \
+  /app/data/secrets/auth-secret \
+  /app/data/secrets/ysweet.json 2>/dev/null || true)"
+
+assert_bootstrap_mode() {
+  local target="$1"
+  local expected="$2"
+  local label="$3"
+  local actual
+  actual="$(awk -v t="${target}" '$1 == t { print $2 }' <<<"${bootstrap_modes}")"
+  if [[ "${actual}" != "${expected}" ]]; then
+    bootstrap_fail "${label} expected mode ${expected} but got '${actual}' (${target})"
+  fi
+}
+
+assert_bootstrap_mode "/app/data/secrets" "700" "secrets dir"
+assert_bootstrap_mode "/app/data/secrets/auth-secret" "600" "auth-secret file"
+assert_bootstrap_mode "/app/data/secrets/ysweet.json" "600" "ysweet.json file"
+echo "Bootstrap scenario generated secrets with 0700 dir / 0600 files."
+
+# (c) Restart reuses the persisted secrets without rotation. Capture the file
+# digests BEFORE restart (sha256 inside the container so secret values never
+# leave it), restart with the SAME data dir, and assert the digests are
+# unchanged AND the container still boots healthy (proving the persistence guard
+# did NOT fire — a fired guard exits non-zero and the container would crash-loop
+# instead of becoming healthy).
+bootstrap_digests() {
+  docker exec "${BOOTSTRAP_CONTAINER_NAME}" sh -c \
+    'sha256sum /app/data/secrets/auth-secret /app/data/secrets/ysweet.json' 2>/dev/null \
+    | awk '{ print $1 }'
+}
+
+digests_before="$(bootstrap_digests)"
+if [[ -z "${digests_before}" ]]; then
+  bootstrap_fail "could not read secret digests before restart"
+fi
+
+docker restart "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 \
+  || bootstrap_fail "docker restart failed"
+
+if ! bootstrap_wait_healthy; then
+  bootstrap_fail "container did not become healthy after restart (persistence guard may have fired)"
+fi
+
+digests_after="$(bootstrap_digests)"
+if [[ "${digests_before}" != "${digests_after}" ]]; then
+  bootstrap_fail "secret files rotated across restart (expected reuse)"
+fi
+echo "Bootstrap scenario reused persisted secrets across restart (no rotation)."
+
+# (d) Smoke: prove the self-generated AUTH_SECRET drives a working app.
+#
+# Choice: POST /api/admin/users with the ADMIN_SECRET. This is the lightest
+# scriptable check that genuinely exercises the generated secret: the route
+# authorizes with ADMIN_SECRET and then calls Better Auth's createUser, and
+# Better Auth is initialized with the bootstrapped AUTH_SECRET. If AUTH_SECRET
+# were missing or non-functional the container would not have started (the
+# entrypoint asserts it) and user creation would not succeed, so a 2xx here
+# proves ADMIN_SECRET + the generated AUTH_SECRET work end to end. We do not
+# assert the generated Y-Sweet token value (the host cannot know it). Omitting
+# the Origin header keeps Hono's CSRF middleware satisfied (it only rejects a
+# present, mismatched Origin), matching how the Playwright API context provisions
+# users.
+bootstrap_smoke_status="$(curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${BOOTSTRAP_PORT}:127.0.0.1" \
+  -ksS -o /dev/null -w '%{http_code}' \
+  -X POST "${BOOTSTRAP_APP_PUBLIC_URL%/}/api/admin/users" \
+  -H 'content-type: application/json' \
+  --data '{"adminSecret":"'"${DOCKER_TEST_ADMIN_SECRET}"'","name":"Bootstrap Smoke","email":"bootstrap-smoke@example.com","password":"bootstrap-smoke-password"}' \
+  2>/dev/null || true)"
+
+if [[ "${bootstrap_smoke_status}" != 2?? ]]; then
+  bootstrap_fail "admin provisioning smoke returned HTTP ${bootstrap_smoke_status} (expected 2xx)"
+fi
+echo "Bootstrap scenario admin provisioning OK (HTTP ${bootstrap_smoke_status})."
+
+docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
+echo "ADMIN_SECRET-only bootstrap scenario OK."
+
 cleanup_data_dir

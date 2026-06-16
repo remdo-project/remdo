@@ -2,7 +2,8 @@
   "type": "module",
   "packageManager": "pnpm@10.27.0+sha512.72d699da16b1179c14ba9e64dc71c9a40988cbdc65c264cb0e489db7de917f20dcf4d64d8723625f2969ba52d4b7e2a1170682d9ac2a5dcaeaab732b7e16f04a",
   "imports": {
-    "#config": "./config/index.ts"
+    "#config": "./config/index.ts",
+    "#config/*": "./config/*"
   },
   "engines": {
     "node": "24.12.x"
@@ -52,7 +53,7 @@
     "dev:api": "./tools/env.sh tsx ./tools/remdo-api-server.ts",
     "dev:collab": "./tools/env.sh tsx ./tools/collab-server.ts",
     "dev:init": "./tools/dev-init.sh",
-    "dev:pwa": "RUN_MODE_PORT_SHIFT=20 ./tools/env.sh sh -c 'PREVIEW_PORT=\"$PORT\" pnpm run build && PREVIEW_PORT=\"$PORT\" concurrently \"pnpm run build:watch\" \"pnpm run dev:api\" \"pnpm run dev:collab\" \"pnpm run preview\"'",
+    "dev:pwa": "./tools/dev/pwa.sh",
     "dev:docker": "./tools/dev/docker.sh",
     "dev:users": "./tools/env.sh tsx ./tools/dev/users.ts",
     "dev:web": "./tools/env.sh vite",
@@ -129,7 +130,8 @@
     "vite-plugin-pwa": "catalog:",
     "workbox-window": "catalog:",
     "ws": "catalog:",
-    "yjs": "catalog:"
+    "yjs": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",

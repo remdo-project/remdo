@@ -26,6 +26,9 @@ Runtime configuration has one boundary: application code consumes resolved
 platform settings, and tests are inputs or projections around that boundary, not
 separate product contracts. Stable policy belongs in code and tests; this doc
 records the intent that should stay true across implementations.
+[docs/config.md](./config.md) owns the configuration contract: settable inputs,
+derived values, port regimes, and secret bootstrap. This doc records only the
+per-mode facts.
 
 ## End-user app modes
 
@@ -50,26 +53,23 @@ records the intent that should stay true across implementations.
 - Notes:
   1. launch with `tools/prod/docker.sh`
   2. requires a local rootless Docker daemon
-  3. required: `AUTH_SECRET`, `ADMIN_SECRET`, `YSWEET_AUTH_KEY`, and
-     `YSWEET_SERVER_TOKEN` from the environment or `.env`
-  4. optional: `APP_PUBLIC_URL`; when omitted, the launcher uses
-     `https://<detected-host>:(PORT_BASE + 40)`
-  5. the script publishes the port from `APP_PUBLIC_URL` and prints that URL
-     before startup; use that URL
-  6. local Docker uses self-signed HTTPS by default
-  7. current server runtime runs both the RemDo API process and the Y-Sweet
+  3. operators set `ADMIN_SECRET`; the rest bootstrap on first run
+  4. set `APP_PUBLIC_URL` to the canonical public URL; the launcher prints it
+     before startup, use that URL
+  5. local Docker uses self-signed HTTPS by default
+  6. current server runtime runs both the RemDo API process and the Y-Sweet
      collaboration server behind the same gateway
-  8. Better Auth runs inside the RemDo API process and stores users/sessions
+  7. Better Auth runs inside the RemDo API process and stores users/sessions
      in the same SQLite database file as the document registry; the registry
      owns document ownership, document titles, document access, and per-user
      data/home rows, while Y-Sweet persists normal documents and the read-only
      user-data projection
-  9. browser clients reach collaboration through RemDo API Y-Sweet document
+  8. browser clients reach collaboration through RemDo API Y-Sweet document
      client token issuance and the proxied Y-Sweet sync path (`/d/*`), not
      direct Y-Sweet document-control routes
-  10. the collaboration server runs with Y-Sweet auth enabled; Y-Sweet startup
-      uses `YSWEET_AUTH_KEY`, while the RemDo API uses the matching
-      `YSWEET_SERVER_TOKEN` server token
+  9. the collaboration server runs with Y-Sweet auth enabled; Y-Sweet startup
+     uses the bootstrapped auth key, while the RemDo API uses the matching
+     server token from the same pair
 
 ### Managed cloud app server
 
@@ -80,11 +80,11 @@ records the intent that should stay true across implementations.
 - Data boundary: provider-hosted persistent storage under the operator's
   account.
 - Notes:
-  1. required in the Render Dashboard: `AUTH_SECRET`, `ADMIN_SECRET`,
-     `YSWEET_AUTH_KEY`, `YSWEET_SERVER_TOKEN`, and `APP_PUBLIC_URL`
+  1. required in the Render Dashboard: `ADMIN_SECRET` and `APP_PUBLIC_URL`; the
+     rest bootstrap onto the mounted disk, which must be persistent
   2. `ALLOW_SIGNUP` should stay `false`
-  3. the service listens on `:${PORT}` and Render terminates public HTTPS;
-     internal service ports derive from `PORT_BASE`
+  3. the service binds the Render-injected `PORT` and Render terminates public
+     HTTPS
   4. backup workflow for hosted prod is still undefined
   5. current server runtime runs both the RemDo API process and the Y-Sweet
      collaboration server behind the same gateway
@@ -96,8 +96,8 @@ records the intent that should stay true across implementations.
      client token issuance and the proxied Y-Sweet sync path (`/d/*`), not
      direct Y-Sweet document-control routes
   8. the collaboration server runs with Y-Sweet auth enabled; Y-Sweet startup
-     uses `YSWEET_AUTH_KEY`, while the RemDo API uses the matching
-     `YSWEET_SERVER_TOKEN` server token
+     uses the bootstrapped auth key, while the RemDo API uses the matching
+     server token from the same pair
 
 ## Development and verification modes
 
@@ -108,18 +108,16 @@ records the intent that should stay true across implementations.
 - Platform: local machine.
 - Data boundary: local repo-owned development data.
 - Notes: most local runs can stay on defaults; copy `.env.example` to `.env`
-  only when overrides are needed. `PORT_BASE` anchors the local dev port range:
-  `PORT` uses `+0`, HMR `+1`, Vitest preview `+3`, collaboration `+4`, preview
-  `+5`, Playwright UI `+6`, and the standalone API server `+11`. Process
-  environment values override `.env`, so one-off runs can use inline values
-  such as `PORT_BASE=4800 ...` without editing local defaults. `pnpm run
-  dev:pwa` uses `PORT_BASE + 20` for its range and serves the PWA preview on
-  that shifted `PORT`, so it can run beside `pnpm run dev`. `pnpm run
-  dev:docker` starts a Docker home server at `127.0.0.1:(PORT_BASE + 40)` for
-  manual OAuth linking against the dev server, and redirects the matching
-  `localhost` URL to that canonical browser origin. Start the source dev server with
-  `HOST=0.0.0.0 pnpm run dev` so the Docker home can exchange OAuth tokens with
-  it.
+  only when overrides are needed. `PORT_BASE` is the one dev port knob and
+  anchors the local dev port range. Process environment values override
+  `.env`, so one-off runs can use inline values such as `PORT_BASE=4800 ...`
+  without editing local defaults. `pnpm run dev:pwa` uses `PORT_BASE + 20` for
+  its range and serves the PWA preview on that shifted `PORT`, so it can run
+  beside `pnpm run dev`. `pnpm run dev:docker` starts a Docker home server at
+  `127.0.0.1:(PORT_BASE + 40)` for manual OAuth linking against the dev server,
+  and redirects the matching `localhost` URL to that canonical browser origin.
+  Start the source dev server with `HOST=0.0.0.0 pnpm run dev` so the Docker
+  home can exchange OAuth tokens with it.
   Current dev mode runs the web app with the RemDo API mounted in the Vite dev
   server, plus the Y-Sweet collaboration server and preview helper. Server modes
   run the standalone API server with Better Auth plus a SQLite-backed document
@@ -130,8 +128,7 @@ records the intent that should stay true across implementations.
   Browser clients use the RemDo API Y-Sweet document client token path plus
   `/d/*`; `/doc*` control routes are not routed through the gateway. Y-Sweet
   token URLs use the resolved `AUTH_URL` origin and ignore request forwarding
-  headers. Y-Sweet auth uses a matched development default key/server-token pair
-  unless `YSWEET_AUTH_KEY` and `YSWEET_SERVER_TOKEN` are set.
+  headers. Y-Sweet auth uses a matched development default key/server-token pair.
 
 ### Unit and collab tests
 

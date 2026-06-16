@@ -78,7 +78,6 @@ describe('prod Docker launcher', () => {
         AUTH_URL: '',
         PORT: '',
         PORT_BASE: '',
-        RUN_MODE_PORT_SHIFT: '',
         ...overrides,
       },
     });
@@ -87,19 +86,16 @@ describe('prod Docker launcher', () => {
     return { result, dockerCalls };
   }
 
-  it('launches when only a Caddy-internal derived port lands on a Chromium-blocked port', () => {
-    // The launcher's +40 shift derives PREVIEW_PORT=4045 (PORT_BASE 4000), which
-    // is on Chromium's blocked-port list. Inside the prod container every derived
-    // service is reached through Caddy, so only the public PORT (8080) is
-    // browser-facing; a blocked derived port must not abort the prod launch.
+  it('defaults the listen PORT to 8080 and derives the target from it', () => {
+    // No PORT and no APP_PUBLIC_URL: PORT is an independent prod input that
+    // defaults to 8080, and the launcher derives APP_PUBLIC_URL = https://<host>:<PORT>.
     const { result, dockerCalls } = runLauncher({
       PORT_BASE: '4000',
-      APP_PUBLIC_URL: 'https://remdo-test:8080',
     });
 
     expect(result.status).toBe(0);
     expect(result.stderr).not.toContain('blocked by Chromium');
-    expect(result.stdout).toContain('Docker target: https://remdo-test:8080');
+    expect(result.stdout).toContain('Docker target: https://remdo-test.shared:8080');
 
     expect(dockerCalls).toContain('build ');
     expect(dockerCalls).toContain('info --format {{json .SecurityOptions}}');
@@ -109,19 +105,21 @@ describe('prod Docker launcher', () => {
     expect(dockerCalls).toContain('-p 8080:8080');
   });
 
-  it('aborts when the browser-facing PORT is a Chromium-blocked port', () => {
-    // 6666 is on Chromium's blocked list; serving the public site there would
-    // give real users ERR_UNSAFE_PORT, so the launcher must refuse to start.
-    const { result } = runLauncher({
+  it('honors an explicit PORT and derives the target from it', () => {
+    const { result, dockerCalls } = runLauncher({
       PORT_BASE: '4000',
-      APP_PUBLIC_URL: 'https://remdo-test:6666',
+      PORT: '9090',
     });
 
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('Port 6666 is blocked by Chromium');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Docker target: https://remdo-test.shared:9090');
+    expect(dockerCalls).toContain('-e PORT=9090');
+    expect(dockerCalls).toContain('-p 9090:9090');
   });
 
-  it('derives the public port and target from APP_PUBLIC_URL', () => {
+  it('does not derive PORT from APP_PUBLIC_URL', () => {
+    // APP_PUBLIC_URL is the public identity only; its :443 must not change the
+    // browser-facing bind PORT, which stays at the independent default 8080.
     const { result, dockerCalls } = runLauncher({
       PORT_BASE: '4000',
       APP_PUBLIC_URL: 'https://remdo-test.example:443',
@@ -129,36 +127,86 @@ describe('prod Docker launcher', () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Docker target: https://remdo-test.example:443');
-    expect(dockerCalls).toContain('-e PORT=443');
-    expect(dockerCalls).toContain('-p 443:443');
-  });
-
-  it('validates the APP_PUBLIC_URL port instead of a provisional shifted PORT', () => {
-    // PORT_BASE 4005 would derive provisional PORT=4045 with the prod +40 shift,
-    // but explicit APP_PUBLIC_URL owns the browser-facing port.
-    const { result, dockerCalls } = runLauncher({
-      PORT_BASE: '4005',
-      APP_PUBLIC_URL: 'https://remdo-test:8080',
-    });
-
-    expect(result.status).toBe(0);
-    expect(result.stderr).not.toContain('Port 4045 is blocked by Chromium');
-    expect(result.stdout).toContain('Docker target: https://remdo-test:8080');
-    expect(dockerCalls).toContain('-e PORT_BASE=4005');
+    expect(dockerCalls).toContain('-e APP_PUBLIC_URL=https://remdo-test.example:443');
     expect(dockerCalls).toContain('-e PORT=8080');
     expect(dockerCalls).toContain('-p 8080:8080');
   });
 
-  it('preserves an APP_PUBLIC_URL port that matches PORT_BASE', () => {
+  it('uses an explicit APP_PUBLIC_URL as-is while PORT stays independent', () => {
     const { result, dockerCalls } = runLauncher({
       PORT_BASE: '4000',
-      APP_PUBLIC_URL: 'https://remdo-test:4000',
+      PORT: '8080',
+      APP_PUBLIC_URL: 'https://remdo.example.com',
     });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Docker target: https://remdo-test:4000');
-    expect(dockerCalls).toContain('-e PORT_BASE=4000');
-    expect(dockerCalls).toContain('-e PORT=4000');
-    expect(dockerCalls).toContain('-p 4000:4000');
+    expect(result.stdout).toContain('Docker target: https://remdo.example.com');
+    expect(dockerCalls).toContain('-e APP_PUBLIC_URL=https://remdo.example.com');
+    expect(dockerCalls).toContain('-e PORT=8080');
+    expect(dockerCalls).toContain('-p 8080:8080');
+  });
+
+  it('warns (without failing) when APP_PUBLIC_URL advertises a port != the bind PORT', () => {
+    const { result } = runLauncher({
+      PORT_BASE: '4000',
+      PORT: '8080',
+      APP_PUBLIC_URL: 'https://remdo.example.com:8443',
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toContain('APP_PUBLIC_URL port (8443) differs from the published PORT (8080)');
+  });
+
+  it('does not warn for a default-port (proxy-fronted) APP_PUBLIC_URL', () => {
+    const { result } = runLauncher({
+      PORT_BASE: '4000',
+      PORT: '8080',
+      APP_PUBLIC_URL: 'https://remdo.example.com',
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).not.toContain('differs from the published PORT');
+  });
+
+  it('forwards AUTH_SECRET and the Y-Sweet pair to the container when set', () => {
+    // runLauncher passes all three secrets by default; assert they reach docker.
+    const { result, dockerCalls } = runLauncher({
+      PORT_BASE: '4000',
+    });
+
+    expect(result.status).toBe(0);
+    expect(dockerCalls).toContain('-e ADMIN_SECRET=production-admin-secret-0123456789');
+    expect(dockerCalls).toContain('-e AUTH_SECRET=production-auth-secret-0123456789');
+    expect(dockerCalls).toContain('-e YSWEET_AUTH_KEY=production-ysweet-auth-key');
+    expect(dockerCalls).toContain('-e YSWEET_SERVER_TOKEN=production-ysweet-server-token');
+  });
+
+  it('omits the bootstrap-managed secrets when unset, so the in-container bootstrap runs', () => {
+    // Empty values count as unset; only ADMIN_SECRET (required) is forwarded, the
+    // rest are left for the container to bootstrap from its persistent DATA_DIR.
+    const { result, dockerCalls } = runLauncher({
+      PORT_BASE: '4000',
+      AUTH_SECRET: '',
+      YSWEET_AUTH_KEY: '',
+      YSWEET_SERVER_TOKEN: '',
+    });
+
+    expect(result.status).toBe(0);
+    expect(dockerCalls).toContain('-e ADMIN_SECRET=production-admin-secret-0123456789');
+    expect(dockerCalls).not.toContain('-e AUTH_SECRET=');
+    expect(dockerCalls).not.toContain('-e YSWEET_AUTH_KEY=');
+    expect(dockerCalls).not.toContain('-e YSWEET_SERVER_TOKEN=');
+  });
+
+  it('aborts when the browser-facing PORT is a Chromium-blocked port', () => {
+    // 6666 is on Chromium's blocked list; serving the public site there would
+    // give real users ERR_UNSAFE_PORT, so the launcher must refuse to start.
+    const { result } = runLauncher({
+      PORT_BASE: '4000',
+      PORT: '6666',
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('Port 6666 is blocked by Chromium');
   });
 });

@@ -66,6 +66,12 @@ When editing docs, keep external references in a final `References` section.
   first before implementing one.
 - Don't assume that the request is always clear, if in doubt ask before
   proceeding.
+- Investigate before asking. If a question could be answered by reading the code,
+  config, build, or docs in reasonable time, gather that data first and ask only
+  the genuine residual doubt (or proceed if none remains). Don't surface a choice
+  the codebase already settles. This refines—does not weaken—the "ask first on
+  tradeoffs / when in doubt" rules above: ask about real forks the code can't
+  answer, not ones you haven't yet checked.
 - For UI behavior or rendering questions, always use Chrome DevTools to verify the
   live page before concluding on layout, interaction, or accessibility.
 - Use DevTools snapshots, screenshots, and in-page inspection as the primary source

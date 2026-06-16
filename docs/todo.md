@@ -78,19 +78,14 @@ Rules:
   recover cleanly. This is not required for sharing, but it is the same header
   area and async-command UX pattern as the sharing control.
 
-## Production environment secrets follow-ups
+## One-service-per-container split
 
-- Reduce the number of required production secret env vars where possible.
-  `AUTH_SECRET`, `ADMIN_SECRET`, `YSWEET_AUTH_KEY`, and `YSWEET_SERVER_TOKEN`
-  are all currently operator-provided, which makes first-run setup easy to get
-  wrong.
-- Consider a production bootstrap/generation flow for secrets that can safely be
-  created by RemDo itself. Keep generated values stable after first run, make
-  rotation explicit, and do not hide secrets that operators must back up or move
-  between hosts.
-- Decide which secrets must remain distinct product concepts. For example,
-  session/auth signing, admin provisioning, and Y-Sweet auth may deserve
-  separate keys even if generation is automated.
+- Docker treats running the client, API, and Y-Sweet collaboration server in a
+  single image as a multiple-services-per-container anti-pattern, and that shape
+  is what forces the multi-port machinery. Splitting into separate containers
+  (compose / managed multi-service) would let each service bind a fixed port and
+  delete most of the config module (see [docs/config.md](./config.md)), but it is
+  a larger deployment/Dockerfile/Caddy change.
 
 ## Document import / upload follow-ups
 
