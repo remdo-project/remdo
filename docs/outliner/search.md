@@ -13,6 +13,10 @@ behavior and the planned slash-prefixed navigation flow.
   intended for quick tree navigation rather than text matching.
 - **Inline completion:** a non-committed ghost suggestion shown inside
   the search input that can be accepted as typed text.
+- **Compact row:** the default rendering for a non-highlighted result — its own
+  text plus a one-line parent-and-count context.
+- **Expanded row:** the rendering for the single highlighted result — an ancestor
+  breadcrumb (ending in the match) plus a preview of its first children.
 
 ## Scope and boundaries
 
@@ -83,3 +87,39 @@ behavior and the planned slash-prefixed navigation flow.
     selected.
 35. In flat results, non-leaf notes show a muted `/...` suffix hint; leaf notes
     show no suffix.
+
+## Result row context
+
+Result rows carry enough structural context to tell apart matches that share the
+same text, without zooming into one (which ends Search Mode). Exactly one row —
+the highlighted one — is expanded; all others are compact. Context re-renders as
+the highlight moves.
+
+1. A compact row shows the note's own text, followed by a muted context line
+   naming its immediate parent and its direct-children count. Top-level notes
+   (no parent) show only the children count.
+2. The matched query term is highlighted within the note's text wherever that
+   text appears in the row (the compact text line, or the breadcrumb's match
+   crumb on the expanded row).
+3. The highlighted row is expanded instead of compact: it shows an ancestor
+   breadcrumb whose final crumb is the matched note itself, followed by a preview
+   of the match's first two direct children.
+4. The breadcrumb lists the ancestor chain from the document root down to and
+   including the matched note, and always stays on a single line. It fits the
+   line under a combined budget that sacrifices depth before width:
+   - **Depth.** The first and last crumbs (root context and the matched note) are
+     always kept. When the chain exceeds four crumbs the middle collapses to a
+     single `⋯` crumb between the first two and last two; the `⋯` crumb exposes
+     the hidden crumb labels (in order) as a tooltip.
+   - **Width.** Crumbs share the available row width: each shrinks and overflows
+     with an ellipsis rather than wrapping, so the breadcrumb uses more of a wide
+     results pane and tightens on a narrow one (adjusting on resize). The matched
+     (last) crumb shrinks last, keeping the most disambiguating crumb readable. A
+     crumb truncated by width exposes its full label as a tooltip.
+5. Every ancestor crumb (not the final match crumb) is activatable; activating it
+   zooms that ancestor and ends Search Mode, exactly like accepting a result.
+6. The child preview shows the first two direct children of the match. A match
+   with no children shows no preview; a match with more than two children
+   indicates the remaining count.
+7. Result row context is sourced from the active document's search candidates and
+   appears only once those candidates are available.
