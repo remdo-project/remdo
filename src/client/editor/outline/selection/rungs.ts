@@ -13,13 +13,16 @@ export type Direction = 'up' | 'down';
 export type Rung =
   | { kind: 'inline' }
   | { kind: 'subtree' } // anchor note + subtree; direction-neutral
-  | { kind: 'sibling'; direction: Direction }
-  | { kind: 'hoist' };
+  | { kind: 'sibling'; direction: Direction }; // a sibling step also hoists when siblings run out
 
 export interface LadderState {
   anchorKey: string;
   stack: Rung[];
-  direction: Direction | null; // sweep direction, set on first sweep step
+  // The direction the ladder was last GROWN. Set on every push (including the
+  // direction-neutral inline/subtree rungs) so reversal can contract from any
+  // rung — pressing the opposite of `direction` pops the top rung; pressing the
+  // same direction grows. null only when the stack is empty (a bare caret).
+  direction: Direction | null;
 }
 
 export type ProgressivePlan =
@@ -57,21 +60,23 @@ function nextKind(depth: number): Rung['kind'] {
 export function pushStep(state: LadderState, direction: Direction): LadderState {
   const kind = nextKind(state.stack.length);
   const rung: Rung = kind === 'sibling' ? { kind, direction } : { kind };
-  const sweep = kind === 'sibling' || kind === 'hoist';
+  // Record the growth direction on every push (even direction-neutral
+  // inline/subtree rungs) so reversal can contract from any rung.
   return {
     anchorKey: state.anchorKey,
     stack: [...state.stack, rung],
-    direction: sweep ? direction : state.direction,
+    direction,
   };
 }
 
 export function popStep(state: LadderState): LadderState {
   const stack = state.stack.slice(0, -1);
-  const lastSweep = [...stack].reverse().find((r): r is Extract<Rung, { kind: 'sibling' }> => r.kind === 'sibling');
+  // Contraction doesn't change which way the ladder was grown; only an empty
+  // stack (back to a caret) clears the growth direction.
   return {
     anchorKey: state.anchorKey,
     stack,
-    direction: lastSweep ? lastSweep.direction : null,
+    direction: stack.length === 0 ? null : state.direction,
   };
 }
 
@@ -121,9 +126,11 @@ export function $replayLadder(
   slab = false
 ): ProgressivePlan | null {
   const boundaryRoot = boundaryKey ? $getNodeByKey<ListItemNode>(boundaryKey) : null;
+  const withinBoundary = (item: ListItemNode): boolean =>
+    !boundaryRoot || isContentDescendantOf(item, boundaryRoot) || item.getKey() === boundaryRoot.getKey();
 
   // contextItem tracks the "active level" item for hoist/sibling navigation.
-  // It starts at the anchor and shifts up when a hoist rung is processed.
+  // It starts at the anchor and shifts up when a sibling step hoists.
   let contextItem: ListItemNode = anchorItem;
 
   // startHead/endHead are the content items at the range boundaries (pre-subtree-tail).
@@ -153,35 +160,17 @@ export function $replayLadder(
       continue;
     }
 
-    if (rung.kind === 'hoist') {
-      const parent = getParentContentItem(contextItem);
-      if (!parent) {
-        return null;
-      }
-      if (boundaryRoot && !isContentDescendantOf(parent, boundaryRoot) && parent.getKey() !== boundaryRoot.getKey()) {
-        return null;
-      }
-      contextItem = parent;
-      startHead = parent;
-      endHead = parent;
-      continue;
-    }
-
-    // The only remaining rung kind is 'sibling'. A sweep step advances one
-    // position in the sweep direction at the current level (contextItem). If a
-    // sibling exists there, extend the range to it and its subtree; otherwise
-    // hoist to the parent level and take the parent's whole subtree (the hoist
-    // itself is the step). A step that can neither advance nor hoist (past the
-    // document/zoom root) is unresolvable.
+    // Sibling rung. A sweep step advances one position in the sweep direction at
+    // the current level (contextItem). If a sibling exists there, extend the
+    // range to it and its subtree; otherwise hoist to the parent level and take
+    // the parent's whole subtree (the hoist itself is the step). A step that can
+    // neither advance nor hoist (past the document/zoom root) is unresolvable.
     //
     // In slab mode the range extends to the LAST sibling in the direction
     // (instead of just one), selecting the entire remaining slab in one press.
     // Hoist behaviour is unchanged.
     const sibling =
       rung.direction === 'down' ? getNextContentSibling(contextItem) : getPreviousContentSibling(contextItem);
-
-    const withinBoundary = (item: ListItemNode): boolean =>
-      !boundaryRoot || isContentDescendantOf(item, boundaryRoot) || item.getKey() === boundaryRoot.getKey();
 
     if (slab) {
       // Slab mode: extend the range to ALL siblings at the current level

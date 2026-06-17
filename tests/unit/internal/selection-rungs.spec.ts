@@ -79,13 +79,15 @@ function $buildTreeComplex(): Map<string, string> {
 }
 
 describe('selection rungs (pure algebra)', () => {
-  it('starts empty and pushes the first structural rung as a neutral subtree', () => {
+  it('records the growth direction on every push, including the inline/subtree rungs', () => {
     const l0 = emptyLadder('anchorKey');
     expect(l0.stack).toEqual([]);
+    expect(l0.direction).toBeNull(); // empty stack = no growth direction
     const l1 = pushStep(l0, 'down'); // inline body
-    const l2 = pushStep(l1, 'down'); // note + subtree (direction-neutral)
+    expect(l1.direction).toBe('down'); // growth direction set from the first push
+    const l2 = pushStep(l1, 'down'); // note + subtree (content-neutral, still records direction)
     expect(l2.stack.at(-1)).toMatchObject({ kind: 'subtree' });
-    expect(l2.direction).toBeNull(); // not set until the first sweep
+    expect(l2.direction).toBe('down');
   });
 
   it('pop is the exact inverse of push', () => {
@@ -93,11 +95,12 @@ describe('selection rungs (pure algebra)', () => {
     expect(popStep(l)).toEqual(pushStep(pushStep(emptyLadder('a'), 'down'), 'down'));
   });
 
-  it('records sweep direction on the first sweep step', () => {
-    let l = pushStep(pushStep(emptyLadder('a'), 'down'), 'down'); // inline, subtree
-    l = pushStep(l, 'down'); // first sweep -> direction down
+  it('keeps the growth direction while contracting, clearing it only at an empty stack', () => {
+    let l = pushStep(pushStep(pushStep(emptyLadder('a'), 'down'), 'down'), 'down'); // inline, subtree, sibling
     expect(l.direction).toBe('down');
-    l = popStep(popStep(popStep(l))); // back to empty
+    l = popStep(l); // sibling popped — still growing 'down'
+    expect(l.direction).toBe('down');
+    l = popStep(popStep(l)); // back to empty
     expect(l.stack).toEqual([]);
     expect(l.direction).toBeNull();
   });
@@ -171,7 +174,7 @@ describe('$replayLadder', () => {
   );
 
   it(
-    'stack [subtree, hoist] -> note1 subtree note1..note4',
+    'sibling step hoists to the parent when siblings run out -> note1..note4',
     meta({ fixture: 'flat' }),
     async () => {
       const { editor, dispose } = createListEditor();
@@ -182,9 +185,11 @@ describe('$replayLadder', () => {
         await act(async () => {
           editor.update(() => {
             const keys = $buildTreeComplex();
-            const note2 = $getNodeByKey<ListItemNode>(keys.get('note2')!)!;
+            // note4 is the last child of note1; a sibling-down step has no next
+            // sibling, so it hoists to note1 and takes note1's whole subtree.
+            const note4 = $getNodeByKey<ListItemNode>(keys.get('note4')!)!;
 
-            const plan = $replayLadder(note2, [{ kind: 'subtree' }, { kind: 'hoist' }]);
+            const plan = $replayLadder(note4, [{ kind: 'subtree' }, { kind: 'sibling', direction: 'down' }]);
 
             if (plan && plan.type === 'range') {
               startId = $getNoteId($getNodeByKey<ListItemNode>(plan.startKey)!);
@@ -193,7 +198,7 @@ describe('$replayLadder', () => {
           });
         });
 
-        // hoist from note2 -> parent note1; subtree of note1 covers note1..note4
+        // hoist from note4 -> parent note1; subtree of note1 covers note1..note4
         expect(startId).toBe('note1');
         expect(endId).toBe('note4');
       } finally {

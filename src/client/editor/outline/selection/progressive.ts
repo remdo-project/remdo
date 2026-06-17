@@ -56,6 +56,26 @@ function $resolveBoundaryRoot(boundaryKey: string | null | undefined): ListItemN
   return node;
 }
 
+// Push one rung onto `base` and replay it. If the freshly pushed rung produced
+// no plan because it was an empty inline rung (an empty note body has no inline
+// boundary), push one more to reach the subtree rung — so growth never stalls on
+// an empty body. Shared by the Shift+Arrow and Cmd/Ctrl+A growth paths.
+function $growLadder(
+  base: ProgressiveSelectionState,
+  anchorContent: ListItemNode,
+  direction: 'up' | 'down',
+  boundaryReplayKey: string | null,
+  slab: boolean
+): { ladder: ProgressiveSelectionState; plan: ProgressivePlan | null } {
+  let ladder = pushStep(base, direction);
+  let plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, slab);
+  if (!plan && ladder.stack.length === 1) {
+    ladder = pushStep(ladder, direction);
+    plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, slab);
+  }
+  return { ladder, plan };
+}
+
 function $resolveProgressionAnchorContent(
   selection: RangeSelection,
   progressionRef: ProgressiveSelectionRef,
@@ -131,15 +151,7 @@ export function $computeProgressivePlan(
   // Shift+Arrow read as contraction. Start from a down-oriented base when
   // continuing, or an empty ladder on a fresh anchor.
   const base = isContinuing ? { ...progressionRef.current, direction: 'down' as const } : emptyLadder(anchorKey);
-  let ladder = pushStep(base, 'down');
-  let plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, true);
-
-  // Skip an empty inline rung: if the anchor note has no inline boundary (empty
-  // body), push one more rung to reach subtree, matching Shift+Arrow behaviour.
-  if (!plan && ladder.stack.length === 1) {
-    ladder = pushStep(ladder, 'down');
-    plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, true);
-  }
+  const { ladder, plan } = $growLadder(base, anchorContent, 'down', boundaryReplayKey, true);
 
   if (!plan) {
     // Replay blocked by the zoom boundary or document root. Clamp to the zoom
@@ -203,19 +215,18 @@ export function $computeDirectionalPlan(
   const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
   const boundaryReplayKey = boundaryRoot ? boundaryRoot.getKey() : null;
 
-  // Contraction: opposite of the recorded sweep direction.
+  // Contraction: a press opposite to the direction the ladder was grown pops the
+  // top rung. This works from any rung (including the direction-neutral inline /
+  // subtree rungs at the bottom) because `direction` is the growth direction,
+  // recorded on every push and preserved by popStep until the stack is empty.
   if (isContinuing && sweep !== null && direction !== sweep) {
-    let next = popStep(ladder);
-    // Collapsing to a caret fully resets the ladder (no direction memory), so
-    // the next Shift+Arrow starts a fresh ladder in whatever direction is
-    // pressed — plain-text "flip" behavior once back at the caret.
+    const next = popStep(ladder);
+    // Popped back to a bare caret: reset fully so the next Shift+Arrow starts a
+    // fresh ladder in the pressed direction ("flip" once back at the caret).
     if (next.stack.length === 0) {
       progressionRef.current = emptyLadder(anchorKey);
       return { collapse: true, anchorKey };
     }
-    // Preserve the sweep-direction memory while contracting so further presses
-    // keep popping (popStep itself drops it once no sibling rung remains).
-    next = { ...next, direction: sweep };
     const plan = $replayLadder(anchorContent, next.stack, boundaryReplayKey);
     if (!plan) {
       progressionRef.current = emptyLadder(anchorKey);
@@ -227,15 +238,7 @@ export function $computeDirectionalPlan(
 
   // Growth: push the next rung (fresh ladder when not continuing).
   const base = isContinuing ? ladder : emptyLadder(anchorKey);
-  let next = pushStep(base, direction);
-  let plan = $replayLadder(anchorContent, next.stack, boundaryReplayKey);
-
-  // Skip an empty inline rung: if the freshly pushed rung produced no plan (an
-  // empty note body has no inline boundary), push one more to reach subtree.
-  if (!plan && next.stack.length === 1) {
-    next = pushStep(next, direction);
-    plan = $replayLadder(anchorContent, next.stack, boundaryReplayKey);
-  }
+  const { ladder: next, plan } = $growLadder(base, anchorContent, direction, boundaryReplayKey, false);
 
   if (!plan) {
     // Boundary push (past document/zoom root) — no-op, keep the current ladder.

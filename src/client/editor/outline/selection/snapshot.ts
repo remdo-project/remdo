@@ -79,6 +79,8 @@ function $reshapeStructuralLadder(
     const prefix = ladder.stack.slice(0, length);
     const plan = $replayLadder(anchorItem, prefix, boundaryKey);
     if (plan && plan.type === 'range') {
+      // Truncation keeps the ladder's growth direction (a collab reshape isn't a
+      // user reversal); only the stack shrinks.
       return { plan, ladder: { ...ladder, stack: prefix } };
     }
   }

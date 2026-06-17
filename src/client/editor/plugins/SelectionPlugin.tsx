@@ -45,11 +45,6 @@ export function SelectionPlugin() {
   const [editor] = useLexicalComposerContext();
   const ladderRef = useRef(INITIAL_PROGRESSIVE_STATE);
   const unlockRef = useRef<ProgressiveUnlockState>({ pending: false, reason: 'external' });
-  const pendingSnapPayloadRef = useRef<SnapPayload | null>(null);
-  const pendingSnapScheduledRef = useRef(false);
-  const pendingReshapeRef = useRef<StructuralReshape | null>(null);
-  const pendingReshapeScheduledRef = useRef(false);
-
   useEffect(() => {
     const disposedRef = { current: false };
     installOutlineSelectionHelpers(editor);
@@ -64,94 +59,79 @@ export function SelectionPlugin() {
       }
     };
 
-    const scheduleSnapSelection = (payload: SnapPayload) => {
-      pendingSnapPayloadRef.current = payload;
-      if (pendingSnapScheduledRef.current) return;
-      pendingSnapScheduledRef.current = true;
-
-      queueMicrotask(() => {
-        pendingSnapScheduledRef.current = false;
-        if (disposedRef.current) return;
-
-        const nextPayload = pendingSnapPayloadRef.current;
-        pendingSnapPayloadRef.current = null;
-        if (!nextPayload) return;
-
-        editor.update(
-          () => {
-            const selection = $getSelection();
-            if (!$isRangeSelection(selection)) {
-              return;
-            }
-
-            const anchorItem = $getNodeByKey<ListItemNode>(nextPayload.anchorKey);
-            const focusItem = $getNodeByKey<ListItemNode>(nextPayload.focusKey);
-            if (!anchorItem || !focusItem) {
-              return;
-            }
-
-            const anchorPoint = resolveBoundaryPoint(anchorItem, nextPayload.anchorEdge);
-            const focusPoint = resolveBoundaryPoint(focusItem, nextPayload.focusEdge);
-            if (!anchorPoint || !focusPoint) {
-              return;
-            }
-
-            selection.setTextNodeRange(anchorPoint.node, anchorPoint.offset, focusPoint.node, focusPoint.offset);
-          },
-          { tag: SNAP_SELECTION_TAG }
-        );
-      });
+    // A coalescing microtask scheduler: repeated calls keep only the latest
+    // value and run `flush` once on the next microtask, so two updates in one
+    // task can't apply a stale-then-fresh selection in sequence.
+    const makeCoalescingScheduler = <T,>(flush: (value: T) => void): ((value: T) => void) => {
+      let pending: T | null = null;
+      let scheduled = false;
+      return (value: T) => {
+        pending = value;
+        if (scheduled) return;
+        scheduled = true;
+        queueMicrotask(() => {
+          scheduled = false;
+          const next = pending;
+          pending = null;
+          if (disposedRef.current || next === null) return;
+          flush(next);
+        });
+      };
     };
+
+    const scheduleSnapSelection = makeCoalescingScheduler<SnapPayload>((payload) => {
+      editor.update(
+        () => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) {
+            return;
+          }
+
+          const anchorItem = $getNodeByKey<ListItemNode>(payload.anchorKey);
+          const focusItem = $getNodeByKey<ListItemNode>(payload.focusKey);
+          if (!anchorItem || !focusItem) {
+            return;
+          }
+
+          const anchorPoint = resolveBoundaryPoint(anchorItem, payload.anchorEdge);
+          const focusPoint = resolveBoundaryPoint(focusItem, payload.focusEdge);
+          if (!anchorPoint || !focusPoint) {
+            return;
+          }
+
+          selection.setTextNodeRange(anchorPoint.node, anchorPoint.offset, focusPoint.node, focusPoint.offset);
+        },
+        { tag: SNAP_SELECTION_TAG }
+      );
+    });
 
     // Re-apply a collaboration/undo/typing reshape to the live Lexical
     // selection. Tagged progressive + snap so the resulting update is treated
     // as our own (skips a second reshape and snap re-derivation).
-    const scheduleReshapeSelection = (reshape: StructuralReshape) => {
-      // Coalesce: keep only the latest reshape and run a single microtask, so
-      // two updates in one task can't apply a stale-then-fresh selection in
-      // sequence (mirrors scheduleSnapSelection).
-      pendingReshapeRef.current = reshape;
-      if (pendingReshapeScheduledRef.current) return;
-      pendingReshapeScheduledRef.current = true;
+    const scheduleReshapeSelection = makeCoalescingScheduler<StructuralReshape>((reshape) => {
+      editor.update(
+        () => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) {
+            return;
+          }
 
-      queueMicrotask(() => {
-        pendingReshapeScheduledRef.current = false;
-        if (disposedRef.current) return;
+          if (reshape.kind === 'collapse') {
+            collapseSelectionToCaret(selection);
+            return;
+          }
 
-        const nextReshape = pendingReshapeRef.current;
-        pendingReshapeRef.current = null;
-        if (!nextReshape) return;
+          const startItem = $getNodeByKey<ListItemNode>(reshape.plan.startKey);
+          const endItem = $getNodeByKey<ListItemNode>(reshape.plan.endKey);
+          if (!startItem || !endItem) {
+            return;
+          }
 
-        editor.update(
-          () => {
-            const selection = $getSelection();
-            if (!$isRangeSelection(selection)) {
-              return;
-            }
-
-            if (nextReshape.kind === 'collapse') {
-              collapseSelectionToCaret(selection);
-              return;
-            }
-
-            const startItem = $getNodeByKey<ListItemNode>(nextReshape.plan.startKey);
-            const endItem = $getNodeByKey<ListItemNode>(nextReshape.plan.endKey);
-            if (!startItem || !endItem) {
-              return;
-            }
-
-            setSelectionBetweenItems(
-              selection,
-              startItem,
-              endItem,
-              nextReshape.plan.startMode,
-              nextReshape.plan.endMode
-            );
-          },
-          { tag: [PROGRESSIVE_SELECTION_TAG, SNAP_SELECTION_TAG] }
-        );
-      });
-    };
+          setSelectionBetweenItems(selection, startItem, endItem, reshape.plan.startMode, reshape.plan.endMode);
+        },
+        { tag: [PROGRESSIVE_SELECTION_TAG, SNAP_SELECTION_TAG] }
+      );
+    });
 
     const renderStructuralHighlight = (
       range: OutlineSelectionRange | null,

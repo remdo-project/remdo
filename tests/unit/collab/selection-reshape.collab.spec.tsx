@@ -4,7 +4,7 @@ import { waitFor } from '@testing-library/react';
 import type { ListItemNode } from '@lexical/list';
 import { $getNodeByKey } from 'lexical';
 
-import { pressKey, readOutline, getNoteKey, placeCaretAtNote, meta } from '#tests';
+import { pressKey, readOutline, getNoteKey, placeCaretAtNote, typeText, meta } from '#tests';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
 import { flattenOutline } from '#tests-common/outline';
@@ -124,6 +124,24 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
     // truncation back to the anchor.
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
+    });
+  });
+
+  it("keeps the structural selection through a remote edit into the anchor note", meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    // Guards against the "anchor shift desync" concern: a remote edit that does
+    // NOT delete the anchor note must keep the selection structural and anchored
+    // (Lexical keeps the live anchor on its note, so the ladder still matches).
+    const secondary = await createCollabPeer(remdo);
+    await selectNote2Subtree(remdo);
+
+    await placeCaretAtNote(secondary, 'note2', 0);
+    await typeText(secondary, 'x');
+    await waitFor(() => {
+      expect(readOutline(remdo)).toEqual(readOutline(secondary));
+    });
+
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
     });
   });
 
