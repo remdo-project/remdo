@@ -15,7 +15,6 @@ trustPolicyExclude:
   - semver@6.3.1
 
 updateNotifier: false
-
 overrides:
   '@babel/plugin-transform-modules-systemjs': '>=7.29.4 <8'
   '@eslint/config-array>minimatch': 3.1.5
@@ -106,7 +105,6 @@ catalog:
   y-sweet: ^0.9.1
   yjs: ^13.6.31
   zod: ^4.4.3
-
 onlyBuiltDependencies:
   - '@ast-grep/cli'
   - '@swc/core'
@@ -114,8 +112,10 @@ onlyBuiltDependencies:
   - esbuild
   - leveldown
   - y-sweet
-
 packageExtensions:
   eslint-plugin-compat:
     dependencies:
       caniuse-lite: 1.0.30001785
+
+
+
