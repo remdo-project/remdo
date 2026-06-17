@@ -1303,5 +1303,42 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'ArrowDown', shift: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4', 'note5'] });
   });
+
+  it('keeps Cmd/Ctrl+A direction-neutral after an upward Shift+Arrow sweep', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    // Sweep upward first (records an 'up' sweep direction on the ladder).
+    await placeCaretAtNote(remdo, 'note5');
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note5'] });
+
+    // Cmd+A expands outward regardless of the prior sweep direction.
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({
+      state: 'structural',
+      notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'],
+    });
+
+    // A following Shift+Arrow contracts toward the anchor (Cmd+A left no 'up'
+    // bias): Shift+Up reverses Cmd+A's outward growth rather than no-op'ing.
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note5'] });
+  });
+
+  it('expands Cmd/Ctrl+A the same whether or not a prior sweep ran', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Fresh Cmd+A.
+    await placeCaretAtNote(remdo, 'note2');
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
+
+    // Same anchor, but an upward sweep first — Cmd+A reaches the identical slab.
+    await placeCaretAtNote(remdo, 'note2');
+    await pressKey(remdo, { key: 'ArrowUp', shift: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
+  });
 });
 

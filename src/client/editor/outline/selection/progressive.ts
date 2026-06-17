@@ -124,17 +124,20 @@ export function $computeProgressivePlan(
   const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
   const boundaryReplayKey = boundaryRoot ? boundaryRoot.getKey() : null;
 
-  // Build the next rung: start from an empty ladder on a fresh anchor, or push
-  // one more step on the existing ladder when continuing. Cmd+A only ever grows.
-  const base = isContinuing ? progressionRef.current : emptyLadder(anchorKey);
-  const direction = progressionRef.current.direction ?? 'down';
-  let ladder = pushStep(base, direction);
+  // Cmd+A is direction-neutral: it only ever grows the ladder outward, and its
+  // slab rung selects the whole sibling group regardless of direction. So it
+  // always pushes in the canonical 'down' direction — it never inherits a prior
+  // Shift+Arrow sweep, and never leaves an 'up' bias that would make a following
+  // Shift+Arrow read as contraction. Start from a down-oriented base when
+  // continuing, or an empty ladder on a fresh anchor.
+  const base = isContinuing ? { ...progressionRef.current, direction: 'down' as const } : emptyLadder(anchorKey);
+  let ladder = pushStep(base, 'down');
   let plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, true);
 
   // Skip an empty inline rung: if the anchor note has no inline boundary (empty
   // body), push one more rung to reach subtree, matching Shift+Arrow behaviour.
   if (!plan && ladder.stack.length === 1) {
-    ladder = pushStep(ladder, direction);
+    ladder = pushStep(ladder, 'down');
     plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, true);
   }
 

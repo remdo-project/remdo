@@ -73,6 +73,9 @@ Direction and reversal:
   structural selection still exists*; reversal there only pops toward the
   anchor.)
 - A press that would extend past the document or zoom boundary is a no-op.
+- `Cmd/Ctrl+A` is direction-neutral: it only ever grows the ladder outward (its
+  slab rung covers the whole sibling group either way), so it never inherits a
+  prior `Shift+Arrow` sweep direction and never biases the next `Shift+Arrow`.
 
 Because the selection is replayed from intent, a collaboration edit reshapes it
 in place where possible; the disturbance tiers are defined in
@@ -84,7 +87,7 @@ in place where possible; the disturbance tiers are defined in
 | ----- | ------ |
 | `Shift+Left/Right` | Inline-only text selection inside the active note; a no-op at the note boundary. |
 | `Shift+Up/Down` | Walk the selection ladder one note at a time in that direction (push the next rung, or pop on reversal). |
-| `Cmd/Ctrl+A` | Walk the same ladder one rung per press, adding the whole sibling slab of a sibling rung at once. |
+| `Cmd/Ctrl+A` | Grow the same ladder outward one rung per press (direction-neutral), adding the whole sibling slab of a sibling rung at once. |
 | `Shift+Click` | Extend to the clicked note, producing a contiguous note range; the anchor is the click origin and the resulting range seeds the ladder so later `Shift+Up/Down` can pop it. |
 | Drag | Highlights text until it crosses a note boundary, then snaps to whole notes. |
 | Long-press (touch) | Enters caret selection; dragging handles behaves like text selection until it crosses a boundary, then snaps to whole notes. |
