@@ -26,7 +26,11 @@ export async function waitForEditableEditor(page: Page): Promise<void> {
 export function allowOfflineDisconnectedConsoleIssue(page: Page): void {
   setExpectedConsoleIssues(
     page,
-    ['net::ERR_INTERNET_DISCONNECTED', 'Failed to get client token'],
+    // Offline `/api/*` requests are handled by the service worker's NetworkOnly
+    // route. Chromium surfaces a service-worker-mediated offline fetch failure as
+    // `net::ERR_FAILED` rather than the bare `net::ERR_INTERNET_DISCONNECTED`, and
+    // which code wins is timing-dependent, so both are expected here.
+    ['net::ERR_INTERNET_DISCONNECTED', 'net::ERR_FAILED', 'Failed to get client token'],
     { mode: 'allowContains' },
   );
 }

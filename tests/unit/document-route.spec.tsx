@@ -211,7 +211,7 @@ describe('document route', () => {
 
   const clickNewDocument = async () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByRole('option', { name: 'New' }));
+    fireEvent.click(await screen.findByRole('option', { hidden: true, name: 'New' }));
   };
 
   const clickUploadDocument = async () => {
@@ -224,7 +224,7 @@ describe('document route', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
 
-    const newOption = await screen.findByRole('option', { name: 'New' });
+    const newOption = await screen.findByRole('option', { hidden: true, name: 'New' });
     const uploadOption = (await screen.findByText('Upload')).closest('[role="option"]');
     expect(uploadOption).not.toBeNull();
     expect(newOption.compareDocumentPosition(uploadOption!) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
@@ -339,7 +339,7 @@ describe('document route', () => {
     const router = renderDocumentRoute(createDocumentPath('testDoc'));
 
     fireEvent.click(await screen.findByRole('button', { name: 'Choose document' }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Source Document' }));
+    fireEvent.click(await screen.findByRole('option', { hidden: true, name: 'Source Document' }));
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe(createDocumentPath('sourceDoc'));
