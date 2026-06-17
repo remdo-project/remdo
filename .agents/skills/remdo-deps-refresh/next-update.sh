@@ -65,13 +65,23 @@ step() {
   echo "next-update: '${label}' no-op."
 }
 
+# Refresh the lockfile, then normalize pnpm-workspace.yaml. `pnpm update` rewrites
+# the catalog in a compact, possibly-unsorted form that the repo's lint (CI=1
+# eslint, yaml/sort-keys + blank-line style) rejects; without the fix the two
+# fight forever and the step never reaches a no-op. `CI=1 eslint --fix` produces
+# the lint-clean, stable form, so the step is idempotent and the loop converges.
+lockfile_update() {
+  pnpm update --latest --workspace-root
+  CI=1 pnpm exec eslint --fix pnpm-workspace.yaml
+}
+
 # --- the ordered update list -------------------------------------------------
 # One coherent item per step. The lockfile is a single item (its gate is the full
 # suite). The out-of-lockfile pins are separate items so a break is isolated to
 # one tool. The final guard runs the repo's own pin-policy check.
 
 step "lockfile deps"   "pnpm-lock.yaml pnpm-workspace.yaml" \
-  pnpm update --latest --workspace-root
+  lockfile_update
 
 step "pnpm pin"        "package.json" \
   sh "${SCRIPT_DIR}/bump-pnpm-pin.sh"

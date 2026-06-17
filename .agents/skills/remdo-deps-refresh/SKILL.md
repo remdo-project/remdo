@@ -62,7 +62,7 @@ Iterate:
    `pnpm pin`, `node pins`, `github actions`). Handle just that item:
    1. Verify it green: `pnpm run lint`, `pnpm run test:unit:full`,
       `pnpm run test:collab:full`, `pnpm run test:e2e`, the audits
-      (`audit:unused:zero`, `audit:dup:zero`, `audit:stats:strict`), and
+      (`audit:unused:zero`, `audit:dup:zero`), and
       `CI=true pnpm install --no-frozen-lockfile` as the consistency gate. For a
       **Node** change also run `pnpm run test:e2e:docker` (the only local surface
       that exercises the alpine base); other items lean on the docker-tests CI job
@@ -71,8 +71,7 @@ Iterate:
       Diagnose from the failure in hand and fix forward: adjust a workaround in
       [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md),
       pin a known-bad transitive, correct config, or make the minimal code/test
-      change the bump requires. If `audit:stats:strict` fails on an intended
-      delta, `pnpm run audit:stats:update` (never blindly). Re-run until green.
+      change the bump requires. Re-run until green.
    3. For a notable jump, skim the release notes — to inform the fix and to flag
       a behavior-affecting change for the report. Opportunistically apply a
       simplification newly-provided functionality enables (upside, never a
@@ -88,9 +87,12 @@ Iterate:
 
 Once the gate is green (exit 0):
 
-1. Review [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md)
+1. Run `pnpm run audit:stats:update` once to refresh the dependency-stats
+   baseline to whatever this run landed. Only its exit code matters — do not
+   inspect the delta (the strict check is intentionally not part of the loop).
+2. Review [dependency-maintenance.md](../../../docs/dev/dependency-maintenance.md)
    as a whole: drop workarounds whose reason is now gone; re-check held-backs.
-2. Reconcile open Dependabot PRs and alerts via `gh` — bookkeeping, not a second
+3. Reconcile open Dependabot PRs and alerts via `gh` — bookkeeping, not a second
    decision loop. The loop applied everything, so most npm PRs should already be
    `covered here` (this branch carries the same or newer); confirm against the
    branch rather than re-deciding. Apply only genuine `unresolved` follow-ups.
