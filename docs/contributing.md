@@ -5,8 +5,8 @@
 `origin/main` is the canonical review baseline; `dev` is the integration/staging
 branch and does not need a perfectly linear history. Do the work on topic
 branches kept to a single concern, and mark each branch's start with the
-`wip-base` tag so reviews diff against the right base (see the `feature-flow`
-skill for the mechanism).
+`wip-base` tag so reviews diff against the right base (see the
+`remdo-feature-flow` skill for the mechanism).
 
 Name topic branches with clear prefixes so intent is obvious:
 

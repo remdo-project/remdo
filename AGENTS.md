@@ -60,8 +60,8 @@ When editing docs, keep external references in a final `References` section.
   worktrees); cross-WD agent state belongs under `~/.claude/` instead.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
-  Exception: the `feature-flow` skill is self-authorizing — within a
-  `/feature-flow` run, commits on the confirmed task branch are allowed per that
+  Exception: the `remdo-feature-flow` skill is self-authorizing — within a
+  `/remdo-feature-flow` run, commits on the confirmed task branch are allowed per that
   skill’s permission model (still never pushing without an explicit ask).
 - The Git index may be used by the developer as private review bookkeeping.
   Treat staged vs unstaged state as semantically invisible: it does not mark

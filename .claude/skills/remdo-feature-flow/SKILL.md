@@ -1,5 +1,5 @@
 ---
-name: feature-flow
+name: remdo-feature-flow
 description: Use when starting a self-contained bigger change — a new feature or a redesign of something that does not exist yet — and the user wants to drive it from a vague idea to finished, reviewed, locally-committed work. Triggers include "let's design X", "I want to build/redesign X", "feature flow", or a vague drafted idea handed over for development. The user gates only on intent (the spec), not on a detailed plan; execution is autonomous with review/simplify/verify baked into done.
 ---
 

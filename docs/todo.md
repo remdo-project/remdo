@@ -252,7 +252,7 @@ Remaining issues to fold in or fix directly:
      `glob@11.1.0`, `source-map@0.8.0-beta.0`, `sourcemap-codec@1.4.8`, and the
      `@typescript-eslint/*` peer mismatch against `typescript 6`.
 
-## feature-flow follow-ups
+## remdo-feature-flow follow-ups
 
 - Try adding a convergence check to the implementation phase (verify the result
   actually reaches the spec's described state, not just that checks pass).
