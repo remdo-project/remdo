@@ -62,7 +62,8 @@ Default policy:
 
 `docs/index.md` is the documentation map (every doc plus its summary); use it to
 navigate. The doc workflow and invariants below govern how docs are written and
-maintained.
+maintained. For RemDo's product principles (what the docs must stay faithful
+to), see `docs/principles.md`.
 
 ### Doc Workflow
 
@@ -78,31 +79,31 @@ maintained.
 
 1. **Single source per topic.** Define each behavior once in the doc best suited
    to it; eliminate duplicates and replace any extra copies with pointers.
-2. **Top-down linking.** Prefer links from higher-level docs (index, concepts)
-   into detailed docs (selection, indent/outdent, reordering); same-level links
-   only when they add clear value. Point to another doc once per section, not in
-   every note — a single deferral covers the section.
+2. **Top-down linking.** Prefer links from higher-level docs into the detailed
+   docs they summarize; same-level links only when they add clear value. Point to
+   another doc once per section, not in every note — a single deferral covers the
+   section.
 3. **Self-contained behavior.** Behavior must be clear without external
    sources. Put external references in final `References`; keep useful internal
    links inline.
 4. **Coherence checks.** When editing a doc, ensure the change aligns with
    existing resolutions and update related docs/maps if needed.
-5. **Intentional gaps.** Stable docs describe the intended behavior. Track gaps,
-   partial status, and implementation sequencing in `docs/todo.md`.
-6. **Planning boundary.** Stable docs describe target behavior. Put planning
-   status, current-vs-future notes, and deferral decisions in `docs/todo.md`.
-7. **Behavior changes require doc updates.** When behavior changes, update the
+5. **Target behavior only.** Stable docs describe the intended/target behavior.
+   Track everything provisional — gaps, partial status, implementation
+   sequencing, current-vs-future notes, deferral decisions — in `docs/todo.md`.
+6. **Behavior changes require doc updates.** When behavior changes, update the
    affected docs in the same change. If no doc update is needed, explicitly
    state why.
-8. **Move/rename hygiene.** When moving or renaming docs, update all inbound
-   links and the documentation map in the same change; do not leave temporary
+7. **Move/rename hygiene.** When moving or renaming docs, update all inbound
+   references — including from code, skills, and AGENTS.md, not just doc-to-doc
+   links — and the documentation map in the same change; do not leave temporary
    broken references.
-9. **Minimal by default.** State the rule, not the inventory. Cut a clause unless
-   its absence would let someone misuse the contract. This removes: things the
-   reader can confirm in code (component lists, constants/offsets, accessor or
-   file names, "where X lives" pointers — good design makes that findable),
-   rationale (why-not justifications, prior-art name-drops), and how-to-use steps
-   (a feature one would reach through the app, not the docs).
+8. **Minimal by default.** State the rule, not the inventory. Cut a clause unless
+   its absence would let someone misuse the contract. Examples of what to cut:
+   things the reader can confirm in code (component lists, constants/offsets,
+   accessor or file names, "where X lives" pointers — good design makes that
+   findable), rationale (why-not justifications, prior-art name-drops), and
+   how-to-use steps (a feature one would reach through the app, not the docs).
 
 ## Editor Feature Modules
 

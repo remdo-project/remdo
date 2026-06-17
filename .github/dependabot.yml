@@ -1,13 +1,14 @@
 version: 2
 updates:
+  # npm is the only ecosystem here. These PRs are alerts to run the deps-refresh
+  # skill (which batches and test-gates every upgrade, incl. tooling pins and
+  # GitHub Actions majors), not things merged individually. Default
+  # open-pull-requests-limit (5) so pending work stays visible.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
       day: sunday
-
-    open-pull-requests-limit: 1
-
     groups:
       weekly-all:
         patterns:

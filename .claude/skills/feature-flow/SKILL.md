@@ -67,7 +67,7 @@ if everything already works as described (per the `docs/` invariant: stable docs
 describe *target* behavior). Edit the relevant docs under `docs/` — or add new
 docs that clearly match the existing structure — to describe the design as the
 new reality. Track any not-yet-built parts, gaps, or sequencing in `docs/todo.md`
-(invariants 5–6), not as caveats in the prose.
+(the "Target behavior only" invariant), not as caveats in the prose.
 
 Comply with the existing doc governance (the invariants in
 `docs/contributing.md#documentation`) so static checks are satisfied (no wasted
