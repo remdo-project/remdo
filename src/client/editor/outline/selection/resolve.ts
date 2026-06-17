@@ -11,7 +11,9 @@ import { isPointAtBoundary } from './caret';
 import { getContiguousSelectionHeads } from './heads';
 import type { OutlineSelectionRange } from './model';
 import { isEmptyNoteBody } from './note-body';
-import { getNextContentSibling, getSubtreeTail, normalizeContentRange } from './tree';
+import type { Direction, LadderState, Rung } from './rungs';
+import { $replayLadder } from './rungs';
+import { getNextContentSibling, getSubtreeTail, normalizeContentRange, sortHeadsByDocumentOrder } from './tree';
 
 export interface SnapPayload {
   anchorKey: string;
@@ -20,12 +22,10 @@ export interface SnapPayload {
   focusEdge: 'start' | 'end';
 }
 
-export interface ProgressiveSelectionState {
-  anchorKey: string | null;
-  stage: number;
-  locked: boolean;
-  lastDirection: 'up' | 'down' | null;
-}
+// The ladder is the single source of truth for progressive selection state.
+// `ProgressiveSelectionState` remains as an alias so existing call sites that
+// only ever pass the state around keep typechecking.
+export type ProgressiveSelectionState = LadderState;
 
 export function resolveSelectionPointItem(
   selection: RangeSelection,
@@ -209,7 +209,17 @@ export function computeStructuralRangeFromHeads(heads: ListItemNode[]): OutlineS
   } satisfies OutlineSelectionRange;
 }
 
-export function inferPointerProgressionState(
+/**
+ * Seed a rung ladder from a pointer-created (or pointer-tweaked) structural
+ * selection so a subsequent Shift+Arrow continues — or reverses — the sweep from
+ * the right place. We anchor at the selection's anchor note, then replay one
+ * sweep step at a time (reusing $replayLadder so no traversal is duplicated)
+ * until the replayed range reaches the far edge of the live selection. The
+ * resulting stack is `[subtree, sibling×N]` in the inferred sweep direction, so
+ * a following Shift+Arrow pops the last sibling exactly. Pointer slabs are
+ * always structural, so the inline rung (rung 1) is irrelevant and omitted.
+ */
+export function $inferPointerProgressionState(
   selection: RangeSelection,
   noteItems: ListItemNode[]
 ): ProgressiveSelectionState | null {
@@ -222,15 +232,44 @@ export function inferPointerProgressionState(
   if (heads.length <= 1) {
     return null;
   }
-  const firstParent = heads[0]!.getParent();
-  if (!heads.every((head: ListItemNode) => head.getParent() === firstParent)) {
+
+  // Only seed a ladder for a same-level sibling slab. Cross-level heads can't be
+  // reached by sibling sweeps from the anchor's level, so seeding would exhaust
+  // the replay loop and fall back to an anchor-subtree-only ladder that silently
+  // drops the rest of the pointer selection. Bail instead and leave the existing
+  // ladder untouched.
+  const headParent = heads[0]!.getParent();
+  if (!heads.every((head) => head.getParent() === headParent)) {
     return null;
   }
 
-  return {
-    anchorKey: anchorContent.getKey(),
-    stage: 3,
-    locked: true,
-    lastDirection: null,
+  const sorted = sortHeadsByDocumentOrder(heads);
+  const slabStartKey = sorted[0]!.getKey();
+  const slabEndKey = getSubtreeTail(sorted.at(-1)!).getKey();
+  const anchorKey = anchorContent.getKey();
+
+  // Sweep away from the anchor: if the anchor sits at the slab's start, the
+  // selection grew downward; otherwise treat it as an upward sweep.
+  const direction: Direction = slabStartKey === anchorKey ? 'down' : 'up';
+
+  const rangeReachesFarEdge = (plan: ReturnType<typeof $replayLadder>): boolean => {
+    if (!plan || plan.type !== 'range') {
+      return false;
+    }
+    return direction === 'down' ? plan.endKey === slabEndKey : plan.startKey === slabStartKey;
   };
+
+  // Start at the anchor subtree (rung 2); pointer slabs are always structural,
+  // so the inline rung is irrelevant here.
+  const stack: Rung[] = [{ kind: 'subtree' }];
+  const MAX_STEPS = 64;
+  for (let step = 0; step < MAX_STEPS; step += 1) {
+    if (rangeReachesFarEdge($replayLadder(anchorContent, stack))) {
+      return { anchorKey, stack: [...stack], direction: stack.length > 1 ? direction : null };
+    }
+    stack.push({ kind: 'sibling', direction });
+  }
+
+  // Fall back to the anchor subtree so the selection still reads as structural.
+  return { anchorKey, stack: [{ kind: 'subtree' }], direction: null };
 }

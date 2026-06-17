@@ -111,25 +111,12 @@ When editing docs, keep external references in a final `References` section.
 - Use DevTools snapshots, screenshots, and in-page inspection as the primary source
   of truth when checking “what this looks like” or confirming browser-side
   changes.
-- DevTools bootstrap (Playwright Chromium):
-  1. Health check:
-     `curl -fsS http://127.0.0.1:9222/json/version >/dev/null`
-  2. If down, run:
-
-     ```sh
-     mkdir -p /tmp/pw-devtools-home/.config /tmp/pw-devtools-home/.cache /tmp/pw-cdp-profile
-     setsid env HOME=/tmp/pw-devtools-home \
-       XDG_CONFIG_HOME=/tmp/pw-devtools-home/.config \
-       XDG_CACHE_HOME=/tmp/pw-devtools-home/.cache \
-       /home/piotr/.cache/ms-playwright/chromium-1208/chrome-linux/chrome \
-       --headless=new --no-sandbox --disable-dev-shm-usage --disable-breakpad \
-       --disable-crash-reporter --disable-background-networking \
-       --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 \
-       --user-data-dir=/tmp/pw-cdp-profile --no-first-run \
-       --no-default-browser-check about:blank >/tmp/pw-cdp.log 2>&1 < /dev/null &
-     ```
-
-  3. If this flow fails or drifts, report it.
+- DevTools bootstrap: the `chrome-devtools` MCP attaches to a shared headless
+  CDP endpoint on `127.0.0.1:9222` (host/user-level MCP config, not in this
+  repo). If the endpoint is down, run `ensure-cdp` to start it; the MCP itself
+  loads only on a Claude Code restart. To reach the app, open
+  `http://127.0.0.1:5000/` and sign in as a dev user / open a fixture doc per
+  [docs/run-modes.md](docs/run-modes.md). If this flow fails or drifts, report it.
 - When presenting multiple options or a list of questions, format them as a
   numbered list.
 - The shared test harness treats console warnings/errors as failures; if you

@@ -132,6 +132,11 @@ per-mode facts.
   seeded fixture docs (and their collab storage) before reseeding. Run it rarely
   — typically when you cannot log in as a dev user, to unblock. It requires the
   dev collab + API stack to be running.
+  To open the app in a browser: load `http://127.0.0.1:5000/`; if it lands on
+  `/login`, sign in as a stable dev user (Alice/Bob; credentials live in
+  `tools/lib/stable-auth-users.ts`). Seeded fixtures appear as documents titled
+  `fixture: <name>` (for example `fixture: tree-complex`) and are opened from the
+  document chooser.
   `pnpm run dev:oauth-client` is the Docker/OAuth-linking provisioner: it
   provisions the stable users, prints their credentials, and (when
   `REMDO_DEV_HOME_ORIGIN` is set) creates or rotates the source OAuth client used

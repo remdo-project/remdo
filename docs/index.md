@@ -78,7 +78,9 @@ outdated or a doc’s role materially changes.
   invalid slash paths staying empty, non-mutating arrow cycling in slash mode,
   inline-completion acceptance with `ArrowRight`, combobox/listbox
   accessibility semantics, and non-leaf `/...` result hints.
-- `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
+- `docs/outliner/selection.md` (Long). Selection states and whole-note
+  snapping, the anchored intent-replay selection ladder (symmetric grow/shrink),
+  input bindings, collaboration reshaping tiers, and command compatibility.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
   scope, breadcrumbs, and routing.
 - `docs/performance/client-side-perf-tests.md` (Medium). Minimal client-side
