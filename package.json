@@ -48,7 +48,7 @@
     "backup": "./tools/env.sh tsx ./tools/snapshot/backup.ts --md",
     "build": "./tools/env.sh vite build",
     "build:watch": "./tools/env.sh vite build --watch",
-    "deps:refresh": "sh ./tools/refresh-workspace-deps.sh",
+    "deps:next": "sh ./.agents/skills/remdo-deps-refresh/next-update.sh",
     "dev": "concurrently \"pnpm run dev:web\" \"pnpm run dev:collab\" \"pnpm run test:preview\"",
     "dev:api": "./tools/env.sh tsx ./tools/remdo-api-server.ts",
     "dev:collab": "./tools/env.sh tsx ./tools/collab-server.ts",
