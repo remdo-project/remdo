@@ -154,12 +154,21 @@ export function $computeProgressivePlan(
   const { ladder, plan } = $growLadder(base, anchorContent, 'down', boundaryReplayKey, true);
 
   if (!plan) {
-    // Replay blocked by the zoom boundary or document root. Clamp to the zoom
-    // root's subtree so the handler stays at the maximum reachable selection
-    // instead of falling through to the default browser Cmd+A. Leave the ladder
-    // unchanged (don't persist the blocked rung).
+    // The freshly pushed rung ran past the edge: either the zoom boundary or the
+    // document root. Clamp to the maximum reachable selection so the handler still
+    // claims the event instead of falling through to the default browser Cmd+A.
+    // Leave the ladder unchanged (don't persist the blocked rung).
     if (boundaryRoot) {
+      // Zoom boundary: clamp to the zoom root's subtree.
       const clampedPlan = $createSubtreePlan(boundaryRoot);
+      if (clampedPlan) {
+        return { anchorKey, plan: clampedPlan };
+      }
+    } else {
+      // Document root (no zoom): replay the last good ladder — the whole-document
+      // slab the previous press already reached — so a further Cmd+A is a handled
+      // no-op rather than a fall-through.
+      const clampedPlan = $replayLadder(anchorContent, base.stack, boundaryReplayKey, true);
       if (clampedPlan) {
         return { anchorKey, plan: clampedPlan };
       }

@@ -1,4 +1,4 @@
-import { waitFor } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { Outline } from '#tests';
 import {
@@ -19,7 +19,7 @@ import {
   typeText,
   meta,
 } from '#tests';
-import { $getSelection, $isRangeSelection } from 'lexical';
+import { $getSelection, $isRangeSelection, SELECT_ALL_COMMAND } from 'lexical';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '#client/editor/commands';
 
 const TREE_COMPLEX_OUTLINE: Outline = [
@@ -1059,6 +1059,30 @@ describe('selection plugin', () => {
     await placeCaretAtNote(remdo, 'note4');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note4' });
+  });
+
+  it('handles Cmd/Ctrl+A at the document boundary instead of falling through to default', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2');
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true }); // inline
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true }); // structural note2
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true }); // whole-document slab
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
+
+    // Another Cmd+A with no zoom boundary must stay handled (the command claims
+    // the event and clamps to the whole document) rather than returning false and
+    // letting the browser/Lexical default select-all take over. A bare
+    // toMatchSelection assertion can't see the difference because the default
+    // re-selects the same range — so assert the event was actually consumed.
+    const event = new KeyboardEvent('keydown', { key: 'a', metaKey: true, ctrlKey: true, cancelable: true });
+    let handled = false;
+    await act(async () => {
+      handled = remdo.editor.dispatchCommand(SELECT_ALL_COMMAND, event);
+    });
+
+    expect(handled).toBe(true);
+    expect(event.defaultPrevented).toBe(true);
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
   });
 
   it('resets the Cmd/Ctrl+A ladder after placing the caret within the same note', meta({ fixture: 'flat' }), async ({ remdo }) => {
