@@ -31,10 +31,6 @@ export class NoteBodyNode extends ElementNode {
     return $createNoteBodyNode().updateFromJSON(serializedNode);
   }
 
-  exportJSON(): SerializedNoteBodyNode {
-    return super.exportJSON();
-  }
-
   createDOM(config: EditorConfig): HTMLElement {
     const element = document.createElement('div');
     const className = config.theme.noteBody;
