@@ -1,7 +1,10 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 
-import { isChildrenWrapper } from './list-structure';
+import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
+import { getBodyWrapper, isChildrenWrapper } from './list-structure';
+
+const isWrapperItem = (node: ListItemNode): boolean => isChildrenWrapper(node) || isBodyWrapper(node);
 
 type TraverseResult = void | boolean;
 type ContentItemVisitor = (item: ListItemNode, ancestors: ListItemNode[]) => TraverseResult;
@@ -13,7 +16,9 @@ interface ContentFrame {
 }
 
 function getNestedListForContentItem(item: ListItemNode): ListNode | null {
-  const wrapper = item.getNextSibling();
+  // The children-wrapper sits after the note, after any body-wrapper.
+  const bodyWrapper = getBodyWrapper(item);
+  const wrapper = (bodyWrapper ?? item).getNextSibling();
   if (!isChildrenWrapper(wrapper)) {
     return null;
   }
@@ -40,7 +45,7 @@ function forEachContentItemFrameInOutline(rootList: ListNode, visit: ContentItem
 
     const child = frame.children[frame.childIndex];
     frame.childIndex += 1;
-    if (!$isListItemNode(child) || isChildrenWrapper(child)) {
+    if (!$isListItemNode(child) || isWrapperItem(child)) {
       continue;
     }
 
