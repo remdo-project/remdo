@@ -6,7 +6,7 @@ import { reportInvariant } from '#client/editor/invariant';
 import { $isSelectionInNoteBody } from '#client/editor/features/note-body/note-body-ops';
 
 import type { OutlineSelection, OutlineSelectionRange } from './model';
-import { getContiguousSelectionHeads, getSelectedNotes } from './heads';
+import { getContiguousSelectionHeads, $getSelectedNotes } from './heads';
 import type { ProgressiveSelectionState, SnapPayload } from './resolve';
 import {
   $createSnapPayload,
@@ -304,7 +304,7 @@ export function $computeOutlineSelectionSnapshot({
   }
 
   const hasMultiNoteRange = headItems.length > 1;
-  const hasMultiNoteSelection = getSelectedNotes(selection).length > 1;
+  const hasMultiNoteSelection = $getSelectedNotes(selection).length > 1;
   // Structural intent comes from the ladder (single source of truth); the
   // multi-note checks cover pointer selections that have not yet seeded one.
   const isProgressiveStructural = ladderHasStructuralRung(nextProgression);

@@ -45,8 +45,10 @@ export const findNearestListItem = (node: LexicalNode | null): ListItemNode | nu
 
 // A list item is a content note unless it is one of the adjacency wrappers
 // (children-wrapper holding a nested list, or body-wrapper holding a note body).
+const isWrapperItem = (item: ListItemNode): boolean => isChildrenWrapper(item) || isBodyWrapper(item);
+
 const isContentItem = (node: LexicalNode | null | undefined): node is ListItemNode =>
-  $isListItemNode(node) && !isChildrenWrapper(node) && !isBodyWrapper(node);
+  $isListItemNode(node) && !isWrapperItem(node);
 
 export const getContentSiblings = (list: ListNode): ListItemNode[] => {
   const items: ListItemNode[] = [];
@@ -70,7 +72,7 @@ export const getPreviousContentSibling = (item: ListItemNode): ListItemNode | nu
 };
 
 export const getContentListItem = (item: ListItemNode): ListItemNode => {
-  if (isContentItem(item)) {
+  if (!isWrapperItem(item)) {
     return item;
   }
 

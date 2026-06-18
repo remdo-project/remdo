@@ -28,7 +28,7 @@ const ROOT_TYPE = 'root';
 const NOTE_BODY_TYPE = 'note-body';
 
 // A body-wrapper is a list item whose single child is a note-body element.
-function isBodyWrapperNode(node: SerializedLexicalNode | undefined | null): node is NodeWithChildren {
+function isBodyWrapperNode(node: SerializedLexicalNode | undefined | null): boolean {
   if (!isNodeWithChildren(node) || node.type !== LIST_ITEM_TYPE) {
     return false;
   }

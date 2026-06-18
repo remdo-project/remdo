@@ -1,13 +1,14 @@
-import { $createListItemNode, $isListItemNode, ListItemNode } from '@lexical/list';
-import {
-  $applyNodeReplacement,
-  ElementNode,
-  type EditorConfig,
-  type LexicalNode,
-  type SerializedElementNode,
-} from 'lexical';
+import type { ListItemNode } from '@lexical/list';
+import { $createListItemNode, $isListItemNode } from '@lexical/list';
+import { $applyNodeReplacement, ElementNode } from 'lexical';
+import type { EditorConfig, LexicalNode, SerializedElementNode } from 'lexical';
 
 export type SerializedNoteBodyNode = SerializedElementNode;
+
+// A body-wrapper is a ListItemNode whose single child is a NoteBodyNode. The
+// distinct branded type lets callers narrow from a plain ListItemNode (and keeps
+// the type guard from being a no-op when applied to an already-narrowed item).
+export type BodyWrapperNode = ListItemNode & { readonly __bodyWrapper: unique symbol };
 
 /**
  * A note body is a rich-text region attached to a note (see
@@ -70,7 +71,7 @@ export function $isNoteBodyNode(node: LexicalNode | null | undefined): node is N
  * (exactly one child) for the same reason as children-wrappers: destructive
  * structural operations must never misclassify it.
  */
-export function isBodyWrapper(node: LexicalNode | null | undefined): node is ListItemNode {
+export function isBodyWrapper(node: LexicalNode | null | undefined): node is BodyWrapperNode {
   if (!$isListItemNode(node)) {
     return false;
   }

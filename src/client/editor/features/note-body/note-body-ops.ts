@@ -4,7 +4,8 @@ import { $createTextNode } from 'lexical';
 import type { LexicalNode, RangeSelection } from 'lexical';
 
 import { getBodyWrapper } from '#client/editor/outline/list-structure';
-import { $createBodyWrapper, $isNoteBodyNode, NoteBodyNode } from './note-body-node';
+import type { NoteBodyNode } from './note-body-node';
+import { $createBodyWrapper, $isNoteBodyNode } from './note-body-node';
 
 /** The note body element attached to a note, or null if the note has none. */
 export function getNoteBody(note: ListItemNode): NoteBodyNode | null {

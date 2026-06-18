@@ -16,7 +16,7 @@ import {
 import { useEffect } from 'react';
 
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { NoteBodyNode } from './note-body-node';
+import type { NoteBodyNode } from './note-body-node';
 import { $addNoteBody, $getNoteBodyFromNode, $removeNoteBody, isNoteBodyEmpty } from './note-body-ops';
 import './note-body.css';
 

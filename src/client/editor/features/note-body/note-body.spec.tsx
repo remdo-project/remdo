@@ -8,7 +8,7 @@ import {
 } from '#tests';
 
 describe('note body (docs/outliner/body.md)', () => {
-  it('Shift+Enter on a note adds a body and moves the caret into it', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('shift+Enter on a note adds a body and moves the caret into it', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'a body');
@@ -20,7 +20,7 @@ describe('note body (docs/outliner/body.md)', () => {
     ]);
   });
 
-  it('Shift+Enter on a note that already has a body focuses the existing body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('shift+Enter on a note that already has a body focuses the existing body', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'first');
@@ -50,7 +50,7 @@ describe('note body (docs/outliner/body.md)', () => {
     ]);
   });
 
-  it('Backspace on an empty body removes it and returns the caret to the note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('backspace on an empty body removes it and returns the caret to the note', meta({ fixture: 'flat' }), async ({ remdo }) => {
     // A freshly created body is empty; Backspace on it removes the body.
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });
@@ -64,7 +64,7 @@ describe('note body (docs/outliner/body.md)', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
   });
 
-  it('Delete on an empty body removes it and returns the caret to the note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('delete on an empty body removes it and returns the caret to the note', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });
     await pressKey(remdo, { key: 'Delete' });

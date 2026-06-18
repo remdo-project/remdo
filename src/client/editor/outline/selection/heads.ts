@@ -82,7 +82,7 @@ export function getContiguousSelectionHeads(selection: RangeSelection): ListItem
   return siblings.slice(first, last + 1);
 }
 
-export function getSelectedNotes(selection: RangeSelection): ListItemNode[] {
+export function $getSelectedNotes(selection: RangeSelection): ListItemNode[] {
   const ordered: ListItemNode[] = [];
   const seen = new Set<string>();
 

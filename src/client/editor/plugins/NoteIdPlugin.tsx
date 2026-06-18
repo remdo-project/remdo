@@ -162,16 +162,8 @@ function $isCaretWithinMarkedSelection(marker: CutMarker, selection: BaseSelecti
 }
 
 function $ensureNoteId(item: ListItemNode) {
-  if (isChildrenWrapper(item) || isBodyWrapper(item)) {
-    // Adjacency wrappers are not notes; strip any stale noteId that may have
-    // been assigned before the wrapper's content settled.
-    if ($getNoteId(item)) {
-      $setState(item, noteIdState, undefined);
-    }
-    return;
-  }
-
-  if ($getNoteId(item)) {
+  // Adjacency wrappers (children-wrapper, body-wrapper) are not notes.
+  if (isChildrenWrapper(item) || isBodyWrapper(item) || $getNoteId(item)) {
     return;
   }
 
