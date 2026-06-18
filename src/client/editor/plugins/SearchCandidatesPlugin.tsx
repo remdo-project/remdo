@@ -22,7 +22,9 @@ function entriesMatch(
       const rightCandidate = rightEntries[index];
       return rightCandidate !== undefined &&
         leftCandidate.noteId === rightCandidate.noteId &&
-        leftCandidate.text === rightCandidate.text;
+        leftCandidate.text === rightCandidate.text &&
+        leftCandidate.listType === rightCandidate.listType &&
+        leftCandidate.checked === rightCandidate.checked;
     });
 }
 
