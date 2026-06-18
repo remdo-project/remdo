@@ -3,6 +3,8 @@ import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
+import { $getNoteBodyFromNode } from '#client/editor/features/note-body/note-body-ops';
+import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
 import { getContentSiblings, isChildrenWrapper } from '../list-structure';
 import { resolveContentItemFromNode } from '../schema';
 import { getNextContentSibling, normalizeContentRange } from './tree';
@@ -87,6 +89,12 @@ export function getSelectedNotes(selection: RangeSelection): ListItemNode[] {
   const candidates: LexicalNode[] = selection.getNodes();
 
   for (const node of candidates) {
+    // A body (or its wrapper) belongs to a note already covered by the range;
+    // it is not a note of its own and must not be treated as a stray selection.
+    if ($getNoteBodyFromNode(node) || isBodyWrapper(node)) {
+      continue;
+    }
+
     const contentItem = resolveContentItemFromNode(node);
     if (!contentItem) {
       reportInvariant({

@@ -4,7 +4,7 @@ import type { LexicalNode } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
 import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
-import { getContentSiblings, isChildrenWrapper, maybeRemoveEmptyWrapper } from '../list-structure';
+import { getBodyWrapper, getContentSiblings, isChildrenWrapper, maybeRemoveEmptyWrapper } from '../list-structure';
 
 // A content note is a list item that is neither adjacency wrapper.
 const isContentItem = (node: LexicalNode | null | undefined): node is ListItemNode =>
@@ -238,6 +238,12 @@ export function removeNoteSubtree(item: ListItemNode) {
   const wrapper = getWrapperForContent(item);
   if (wrapper) {
     wrapper.remove();
+  }
+
+  // The body-wrapper (if any) travels with the note.
+  const bodyWrapper = getBodyWrapper(item);
+  if (bodyWrapper) {
+    bodyWrapper.remove();
   }
 
   item.remove();
