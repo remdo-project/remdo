@@ -35,6 +35,7 @@ details.
    placement invariants.
 15. **Reordering (drag & drop):** `./drag-and-drop.md` — not supported yet; future plan lives here.
 16. **Deletion:** `./deletion.md` — caret vs. structural deletion semantics, merge/no-op rules, and spacing contract.
+17. **Note body:** `./body.md` — optional rich-text region attached to a note (`Shift+Enter`), with its own trapped selection world outside the note tree and ladder.
 
 ## Glossary (minimal)
 

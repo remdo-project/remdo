@@ -258,6 +258,15 @@ Remaining issues to fold in or fix directly:
   actually reaches the spec's described state, not just that checks pass).
 - Clean up stale prunable worktree `remdo-7000-wt` if abandoned (not mine).
 
+## Note body (WIP)
+
+- Feature is in design/build. `docs/outliner/body.md` top section reads as
+  target behavior, but nothing is implemented yet; treat the whole feature as
+  unbuilt until the node model lands.
+- Open decisions still unresolved (see `docs/outliner/body.md` "Open decisions"):
+  cardinality, live collab inside the body, persistence/export, empty-body
+  lifecycle, and the node-model fork.
+
 ## Later follow-ups
 
 - Cross-server OAuth setup: add an operator-facing way to register or import
