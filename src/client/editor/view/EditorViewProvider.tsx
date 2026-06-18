@@ -9,15 +9,10 @@ export interface EditorViewBindings {
   onZoomNoteIdChange?: (noteId: string | null) => void;
 }
 
-/** Runs `fn` against the live editor's SDK notes inside an editor read. Null
- *  before the editor has registered (no document ready). */
+/** Runs `fn` against the live editor's SDK notes inside an editor read. Returns
+ *  null before the editor has registered (no document ready). Re-created on each
+ *  editor edit so consumers recompute by identity. */
 export type SearchNotesReader = <T>(fn: (notes: EditorNotes) => T) => T | null;
-
-interface SearchNotesAccess {
-  /** Bumped whenever the editor content changes, so consumers recompute. */
-  version: number;
-  read: SearchNotesReader;
-}
 
 const NULL_SEARCH_NOTES_READER: SearchNotesReader = () => null;
 
@@ -31,7 +26,7 @@ const EditorViewContext = createContext<{
   zoomPath: NotePathItem[];
   requestZoomNoteId: (noteId: string | null) => void;
   setZoomPath: (path: NotePathItem[]) => void;
-  searchNotes: SearchNotesAccess;
+  searchNotes: SearchNotesReader;
   registerSearchNotesReader: (reader: SearchNotesReader | null) => void;
 } | null>(null);
 
@@ -68,18 +63,18 @@ export function EditorViewProvider({
   }, []);
 
   // The editor (inside the composer) registers a reader bound to its live state;
-  // the route reads search candidates through it. Re-registering on each editor
-  // edit bumps `version`, so consumers recompute — the same "read once per edit"
-  // refresh the snapshot used to provide, without a materialized snapshot.
-  const [searchNotes, setSearchNotes] = useState<SearchNotesAccess>({
-    version: 0,
-    read: NULL_SEARCH_NOTES_READER,
-  });
+  // the route reads search candidates through it. The plugin re-registers on each
+  // editor edit, giving a fresh reader identity, so consumers recompute — the
+  // "read once per edit" refresh the snapshot used to provide, without a
+  // materialized snapshot. A reader bound to unchanged state is wrapped fresh so
+  // its identity still changes.
+  const [searchNotes, setSearchNotes] = useState<SearchNotesReader>(() => NULL_SEARCH_NOTES_READER);
   const registerSearchNotesReader = useCallback((reader: SearchNotesReader | null) => {
-    setSearchNotes((current) => ({
-      version: current.version + 1,
-      read: reader ?? NULL_SEARCH_NOTES_READER,
-    }));
+    // Wrap so each registration yields a fresh reader identity (consumers
+    // recompute by identity), even when the plugin re-registers the same reader.
+    const next = reader ?? NULL_SEARCH_NOTES_READER;
+    const fresh: SearchNotesReader = (fn) => next(fn);
+    setSearchNotes(() => fresh);
   }, []);
 
   const value = useMemo(() => ({
@@ -132,7 +127,7 @@ export function useRegisterSearchNotesReader() {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- Safe: hook reads provider-owned editor view state.
-export function useSearchNotes(): SearchNotesAccess {
+export function useSearchNotes(): SearchNotesReader {
   const context = useEditorViewContext();
   return context.searchNotes;
 }

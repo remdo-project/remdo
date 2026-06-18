@@ -395,7 +395,7 @@ function DocumentRouteContent({
   const searchNotes = useSearchNotes();
   const ancestorPathByNoteId = useMemo(() => {
     const paths: Record<string, NotePathItem[]> = {};
-    searchNotes.read((notes) => {
+    searchNotes((notes) => {
       for (const result of flatResults) {
         const path: NotePathItem[] = [];
         let note: EditorNote | null = notes.note(result.noteId);

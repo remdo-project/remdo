@@ -196,12 +196,12 @@ export function useDocumentSearchModel({
   // snapshot is held — the flat list and child map are recomputed on change.
   const searchNotes = useSearchNotes();
   const currentDocumentCandidates = useMemo<SearchCandidateState>(
-    () => searchNotes.read((notes) => ({
+    () => searchNotes((notes) => ({
       ready: true,
       allCandidates: collectSearchCandidates(notes),
       childCandidateMap: collectChildCandidateMap(notes),
     })) ?? EMPTY_SEARCH_CANDIDATE_STATE,
-    // version drives recompute; searchNotes identity changes with it.
+    // searchNotes identity changes per editor edit, driving recompute.
     [searchNotes],
   );
   const currentDocumentCandidatesReady = currentDocumentCandidates.ready;
