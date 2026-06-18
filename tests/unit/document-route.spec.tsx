@@ -757,7 +757,7 @@ describe('document route', () => {
       },
     };
 
-    it('shows a compact parent and direct-children count on non-highlighted rows', async () => {
+    it('gives every result the same breadcrumb layout regardless of highlight', async () => {
       setSnapshot(contextSnapshot);
       renderDocumentRoute();
 
@@ -765,14 +765,16 @@ describe('document route', () => {
       searchInput.focus();
       fireEvent.change(searchInput, { target: { value: 'sub' } });
 
-      const subOne = await screen.findByRole('option', { name: 'sub two' });
-      expect(subOne.querySelector('.document-search-result-context')?.textContent)
-        .toContain('TODO refine estimates');
-      expect(subOne.querySelector('.document-search-result-context')?.textContent)
-        .toContain('0 children');
+      // 'sub two' is not the highlighted row, yet it still renders the breadcrumb
+      // (ending in its own text) — so moving the highlight never re-lays-out rows.
+      const subTwo = await screen.findByRole('option', { name: 'sub two' });
+      expect(subTwo.getAttribute('data-search-result-active')).toBeNull();
+      const matchCrumb = subTwo.querySelector('[data-search-result-match-crumb]');
+      expect(matchCrumb?.textContent).toBe('sub two');
+      expect(subTwo.querySelector('.document-search-result-breadcrumb')).not.toBeNull();
     });
 
-    it('renders a compact row text as its own outline item with marker and checked state', async () => {
+    it('marks the matched note crumb checked when the result is a checked note', async () => {
       setSnapshot(contextSnapshot);
       renderDocumentRoute();
 
@@ -780,12 +782,11 @@ describe('document route', () => {
       searchInput.focus();
       fireEvent.change(searchInput, { target: { value: 'sub' } });
 
-      // 'sub two' is a checked check-list note → its compact text renders as a
-      // checked outline item, matching the editor.
+      // 'sub two' is a checked check-list note → its match crumb is struck through.
       const subTwo = await screen.findByRole('option', { name: 'sub two' });
-      const item = subTwo.querySelector('.document-search-result-text .list-item');
-      expect(item?.classList.contains('list-item-checked')).toBe(true);
-      expect(item?.getAttribute('data-note-checked')).toBe('true');
+      const matchCrumb = subTwo.querySelector('[data-search-result-match-crumb]');
+      expect(matchCrumb?.getAttribute('data-note-checked')).toBe('true');
+      expect(matchCrumb?.classList.contains('document-search-result-crumb--checked')).toBe(true);
     });
 
     it('strikes through the match crumb when the matched note is checked', async () => {

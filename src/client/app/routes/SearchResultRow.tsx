@@ -16,12 +16,9 @@ interface SearchResultRowProps {
   checked: boolean;
   childPreview: ChildPreviewItem[];
   childCount: number;
-  expanded: boolean;
-  listType: NoteListType;
   onSelectAncestor: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
   onSelectAncestorPointerDown: (event: ReactPointerEvent<HTMLElement>, noteId: string) => void;
   query: string;
-  text: string;
 }
 
 const BREADCRUMB_VISIBLE_LIMIT = 4;
@@ -185,46 +182,18 @@ function ResultBreadcrumb({
   );
 }
 
+// Every result row renders the same layout — breadcrumb (ending in the matched
+// note) plus child preview — so moving the highlight only restyles the selected
+// row and never re-lays-out the list.
 export function SearchResultRow({
   ancestorPath,
   checked,
   childPreview,
   childCount,
-  expanded,
-  listType,
   onSelectAncestor,
   onSelectAncestorPointerDown,
   query,
-  text,
 }: SearchResultRowProps) {
-  const displayText = text.length > 0 ? text : '(empty note)';
-
-  if (!expanded) {
-    const parentLabel = ancestorPath.length >= 2
-      ? formatNavigationLabel(ancestorPath[ancestorPath.length - 2]!.label)
-      : null;
-    const ListTag = listType === 'number' ? 'ol' : 'ul';
-    const listClassName = listType === 'number' ? 'list-ol' : 'list-ul';
-    return (
-      <>
-        {/* The row's own text renders as a single outline item so its marker and
-            checked state match the editor, the same way the child preview does. */}
-        <ListTag className={`document-search-result-text remdo-outline ${listClassName}`}>
-          <li
-            className={childItemClassName(listType, checked)}
-            data-note-checked={checked ? 'true' : undefined}
-          >
-            <HighlightedText query={query} text={displayText} />
-          </li>
-        </ListTag>
-        <span className="document-search-result-context">
-          {parentLabel ? <>in <span className="document-search-result-parent">{parentLabel}</span> · </> : null}
-          {childCount} {childCount === 1 ? 'child' : 'children'}
-        </span>
-      </>
-    );
-  }
-
   const remaining = childCount - childPreview.length;
   return (
     <>

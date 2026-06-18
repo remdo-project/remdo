@@ -575,7 +575,6 @@ function DocumentRouteContent({
                   aria-selected={isActive}
                   className="document-search-results-item"
                   data-search-result-active={isActive ? 'true' : undefined}
-                  data-search-result-expanded={isActive ? 'true' : undefined}
                   data-search-result-has-children={hasChildren ? 'true' : undefined}
                   data-search-result-item
                   data-search-result-label={result.text}
@@ -594,12 +593,9 @@ function DocumentRouteContent({
                     checked={result.checked}
                     childCount={children.length}
                     childPreview={children.slice(0, CHILD_PREVIEW_LIMIT)}
-                    expanded={isActive}
-                    listType={result.listType}
                     onSelectAncestor={handleSearchResultClick}
                     onSelectAncestorPointerDown={handleSearchResultPointerDown}
                     query={isSlashMode ? '' : searchQuery}
-                    text={result.text}
                   />
                 </li>
               );

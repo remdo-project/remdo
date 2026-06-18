@@ -13,10 +13,10 @@ behavior and the planned slash-prefixed navigation flow.
   intended for quick tree navigation rather than text matching.
 - **Inline completion:** a non-committed ghost suggestion shown inside
   the search input that can be accepted as typed text.
-- **Compact row:** the default rendering for a non-highlighted result — its own
-  text plus a one-line parent-and-count context.
-- **Expanded row:** the rendering for the single highlighted result — an ancestor
-  breadcrumb (ending in the match) plus a preview of its first children.
+- **Result row:** the rendering for a single search result — an ancestor
+  breadcrumb (ending in the matched note) plus a preview of its first children.
+  Every result uses this same layout; highlighting only restyles a row, it does
+  not change its shape.
 
 ## Scope and boundaries
 
@@ -86,27 +86,22 @@ behavior and the planned slash-prefixed navigation flow.
 34. Search results expose listbox semantics and mark the highlighted result as
     selected.
 35. In slash-navigation flat results, non-leaf notes show a muted `/...` suffix
-    hint; leaf notes show no suffix. In text-search results the compact context
-    line (rule 1 below) carries the children count instead, so no `/...` suffix
+    hint; leaf notes show no suffix. In text-search results the child preview
+    (see Result row context) conveys children instead, so no `/...` suffix
     appears there.
 
 ## Result row context
 
 Result rows carry enough structural context to tell apart matches that share the
-same text, without zooming into one (which ends Search Mode). Exactly one row —
-the highlighted one — is expanded; all others are compact. Context re-renders as
-the highlight moves.
+same text, without zooming into one (which ends Search Mode). Every row uses the
+same layout regardless of highlight, so moving the highlight only restyles the
+selected row and never re-lays-out the list.
 
-1. A compact row shows the note's own text, followed by a muted context line
-   naming its immediate parent and its direct-children count. Top-level notes
-   (no parent) show only the children count.
-2. The matched query term is highlighted within the note's text wherever that
-   text appears in the row (the compact text line, or the breadcrumb's match
-   crumb on the expanded row).
-3. The highlighted row is expanded instead of compact: it shows an ancestor
-   breadcrumb whose final crumb is the matched note itself, followed by a preview
-   of the match's first two direct children.
-4. The breadcrumb lists the ancestor chain from the document root down to and
+1. Every result row shows an ancestor breadcrumb whose final crumb is the matched
+   note itself, followed by a preview of the match's first two direct children.
+2. The matched query term is highlighted within the matched note's text in the
+   breadcrumb's final crumb.
+3. The breadcrumb lists the ancestor chain from the document root down to and
    including the matched note, and always stays on a single line. It fits the
    line under a combined budget that sacrifices depth before width:
    - **Depth.** The first and last crumbs (root context and the matched note) are
@@ -118,15 +113,13 @@ the highlight moves.
      results pane and tightens on a narrow one (adjusting on resize). The matched
      (last) crumb shrinks last, keeping the most disambiguating crumb readable. A
      crumb truncated by width exposes its full label as a tooltip.
-5. Every ancestor crumb (not the final match crumb) is activatable; activating it
+4. Every ancestor crumb (not the final match crumb) is activatable; activating it
    zooms that ancestor and ends Search Mode, exactly like accepting a result.
-6. Each result note renders with the outline's own list markers — bullet,
-   number, or checkbox per its list type, and a checked note struck through — so
-   a result reads as it does in the editor. On a compact row this is its text
-   line; on the expanded row the matched note's crumb carries the struck-through
-   state.
-7. The child preview shows the first two direct children of the match with the
-   same outline rendering as rule 6. A match with no children shows no preview; a
+5. Each result note renders with the outline's own list markers — bullet, number,
+   or checkbox per its list type, and a checked note struck through — so a result
+   reads as it does in the editor. The matched note's crumb carries this state.
+6. The child preview shows the first two direct children of the match with the
+   same outline rendering as rule 5. A match with no children shows no preview; a
    match with more than two children indicates the remaining count.
-8. Result row context is sourced from the active document's search candidates and
+7. Result row context is sourced from the active document's search candidates and
    appears only once those candidates are available.
