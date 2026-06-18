@@ -139,15 +139,21 @@
   display: none;
 }
 
-/* Anchor results to the same horizontal start as the editor outline: the
-   container padding matches the editor pane, and each result's text is indented
-   by the editor's note-text indent (list indent + bullet allowance) using the
-   shared `.remdo-outline` variables, so the first result lands on the first
-   note's column without any measurement. */
+/* Anchor results to the editor outline's first note, both axes, so opening
+   search doesn't shift the first row:
+   - Horizontal: the `xl` inline padding matches the editor pane, and each result's
+     text is indented by the note-text indent (list indent + bullet allowance) via
+     the shared `.remdo-outline` variables.
+   - Vertical: the editor pane offsets its first note by `lg` (its padding-top).
+     Each result card adds its own padding-top on top of this section, so the
+     section's padding-top is `lg` minus the card padding, keeping the first
+     result's text on the editor's note-text row. */
 .document-search-results {
   --remdo-indent: var(--mantine-spacing-sm);
   --remdo-bullet-allowance: calc(0.4em + 0.6em);
-  padding: var(--mantine-spacing-md) var(--mantine-spacing-xl);
+  padding: calc(var(--mantine-spacing-lg) - var(--mantine-spacing-xs))
+    var(--mantine-spacing-xl)
+    var(--mantine-spacing-md);
 }
 
 .document-search-results-list {

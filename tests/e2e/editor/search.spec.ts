@@ -32,6 +32,42 @@ test.describe('Search', () => {
     expect(style.boxShadow === 'none' && style.backgroundColor === 'rgba(0, 0, 0, 0)').toBe(false);
   });
 
+  test('anchors the first result to the editor first-note text on open', async ({ page, editor }) => {
+    await editor.load('tree');
+
+    const shell = editorLocator(page)
+      .locator('xpath=ancestor-or-self::*[contains(@class,"document-editor-shell")]');
+
+    // Editor's first note text position, before search opens.
+    const firstNoteText = editorLocator(page).locator('.list-item').first();
+    await expect(firstNoteText).toBeVisible();
+    const editorRect = await firstNoteText.evaluate((el: HTMLElement) => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const r = range.getBoundingClientRect();
+      return { left: r.left, top: r.top };
+    });
+
+    // Open search with an empty query so the first note is the first result.
+    const searchInput = page.getByRole('combobox', { name: 'Search document' });
+    await searchInput.click();
+    await searchInput.fill('');
+
+    const firstResultText = shell.locator('[data-search-result-match]').first();
+    await expect(firstResultText).toBeVisible();
+    const resultRect = await firstResultText.evaluate((el: HTMLElement) => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const r = range.getBoundingClientRect();
+      return { left: r.left, top: r.top };
+    });
+
+    // The first result's text must land on the editor's note-text column and row,
+    // so opening search does not visibly shift the first note (allow 1px rounding).
+    expect(Math.abs(resultRect.left - editorRect.left)).toBeLessThanOrEqual(1);
+    expect(Math.abs(resultRect.top - editorRect.top)).toBeLessThanOrEqual(1);
+  });
+
   test('supports slash navigation with inline completion acceptance and Enter zoom', async ({ page, editor }) => {
     await editor.load('tree-complex');
 
