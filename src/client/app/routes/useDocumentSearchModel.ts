@@ -8,15 +8,18 @@ import type {
   SyntheticEvent,
 } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { ROOT_SEARCH_SCOPE_ID } from '#client/editor/search/search-candidates';
-import type { SearchCandidate, SearchCandidateSnapshot } from '#client/editor/search/search-candidates';
-import type { NotePathItem } from '#client/editor/outline/note-traversal';
+import {
+  collectChildCandidateMap,
+  collectSearchCandidates,
+  ROOT_SEARCH_SCOPE_ID,
+} from '#client/editor/search/search-candidates';
+import type { SearchCandidate } from '#client/editor/search/search-candidates';
+import { useSearchNotes } from '#client/editor/view/EditorViewProvider';
 
 interface SearchCandidateState {
-  sourceDocId: string;
+  ready: boolean;
   allCandidates: SearchCandidate[];
   childCandidateMap: Record<string, SearchCandidate[]>;
-  ancestorPathMap: Record<string, NotePathItem[]>;
 }
 
 interface UseDocumentSearchModelOptions {
@@ -26,11 +29,9 @@ interface UseDocumentSearchModelOptions {
 }
 
 interface UseDocumentSearchModelResult {
-  ancestorPathMap: Record<string, NotePathItem[]>;
   childCandidateMap: Record<string, SearchCandidate[]>;
   flatResults: SearchCandidate[];
   handleSearchBlur: () => void;
-  handleSearchCandidatesChange: (snapshot: SearchCandidateSnapshot | null) => void;
   handleSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleSearchCompositionEnd: (event: CompositionEvent<HTMLInputElement>) => void;
   handleSearchCompositionStart: (_event: CompositionEvent<HTMLInputElement>) => void;
@@ -53,10 +54,9 @@ interface UseDocumentSearchModelResult {
 const EMPTY_SEARCH_CANDIDATES: SearchCandidate[] = [];
 const EMPTY_NOTE_IDS: string[] = [];
 const EMPTY_SEARCH_CANDIDATE_STATE: SearchCandidateState = {
-  sourceDocId: '',
+  ready: false,
   allCandidates: EMPTY_SEARCH_CANDIDATES,
   childCandidateMap: {},
-  ancestorPathMap: {},
 };
 const INVALID_SEARCH_SCOPE_ID = '__invalid_search_scope__';
 
@@ -182,9 +182,6 @@ export function useDocumentSearchModel({
     (_current: string | null, next: string | null) => next,
     null
   );
-  const [currentDocumentCandidateState, setCurrentDocumentCandidateState] = useState(
-    EMPTY_SEARCH_CANDIDATE_STATE
-  );
   const [slashScopeState, setSlashScopeState] = useState({
     sourceDocId: docId,
     pathNoteIds: EMPTY_NOTE_IDS,
@@ -193,11 +190,21 @@ export function useDocumentSearchModel({
   const [searchInputComposing, setSearchInputComposing] = useState(false);
   const ignoreNextSearchBlurRef = useRef(false);
   const pendingEditorFocusAfterSearchExitRef = useRef(false);
-  const currentDocumentCandidatesReady = currentDocumentCandidateState.sourceDocId === docId;
 
-  const currentDocumentCandidates = currentDocumentCandidateState.sourceDocId === docId
-    ? currentDocumentCandidateState
-    : { ...EMPTY_SEARCH_CANDIDATE_STATE, sourceDocId: docId };
+  // Candidates derive from the editor through the SDK accessor (read once per
+  // edit; `version` changes when the editor content does). No materialized
+  // snapshot is held — the flat list and child map are recomputed on change.
+  const searchNotes = useSearchNotes();
+  const currentDocumentCandidates = useMemo<SearchCandidateState>(
+    () => searchNotes.read((notes) => ({
+      ready: true,
+      allCandidates: collectSearchCandidates(notes),
+      childCandidateMap: collectChildCandidateMap(notes),
+    })) ?? EMPTY_SEARCH_CANDIDATE_STATE,
+    // version drives recompute; searchNotes identity changes with it.
+    [searchNotes],
+  );
+  const currentDocumentCandidatesReady = currentDocumentCandidates.ready;
   const searchModeActive = searchModeRequested && currentDocumentCandidatesReady;
   const slashScopePathNoteIds = slashScopeState.sourceDocId === docId
     ? slashScopeState.pathNoteIds
@@ -323,21 +330,6 @@ export function useDocumentSearchModel({
     updateSlashScopePath,
   ]);
 
-  const handleSearchCandidatesChange = useCallback((snapshot: SearchCandidateSnapshot | null) => {
-    if (!snapshot) {
-      setCurrentDocumentCandidateState(EMPTY_SEARCH_CANDIDATE_STATE);
-      return;
-    }
-
-    // The plugin builds a fresh snapshot per emit and never mutates it after
-    // handing it off, so the model can hold its arrays/maps by reference.
-    setCurrentDocumentCandidateState({
-      sourceDocId: docId,
-      allCandidates: snapshot.allCandidates,
-      childCandidateMap: snapshot.childCandidateMap,
-      ancestorPathMap: snapshot.ancestorPathMap,
-    });
-  }, [docId]);
 
   const closeSearchAndFocusEditor = useCallback(() => {
     setSearchModeRequested(false);
@@ -478,11 +470,9 @@ export function useDocumentSearchModel({
 
   const highlightedResultNoteId = searchModeActive ? resolvedHighlightedNoteId : null;
   return {
-    ancestorPathMap: currentDocumentCandidates.ancestorPathMap,
     childCandidateMap: currentDocumentCandidates.childCandidateMap,
     flatResults,
     handleSearchBlur,
-    handleSearchCandidatesChange,
     handleSearchChange,
     handleSearchCompositionEnd,
     handleSearchCompositionStart,

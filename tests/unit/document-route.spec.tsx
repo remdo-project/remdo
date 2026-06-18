@@ -12,7 +12,13 @@ import {
 
 import { ROOT_SEARCH_SCOPE_ID } from '#client/editor/search/search-candidates';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
-import { useEditorViewActions, useZoomNoteId } from '#client/editor/view/EditorViewProvider';
+import type { EditorNote, EditorNotes } from '#note-sdk';
+import {
+  useEditorViewActions,
+  useRegisterSearchNotesReader,
+  useZoomNoteId,
+} from '#client/editor/view/EditorViewProvider';
+import type { SearchNotesReader } from '#client/editor/view/EditorViewProvider';
 import DocumentRoute from '#client/app/routes/DocumentRoute';
 import * as pendingDocumentImports from '#client/editor/runtime/pending-document-import';
 import { createDocumentPath, createDocumentSyncTokenApiPath, parseDocumentRef } from '#document-routes';
@@ -35,31 +41,60 @@ interface TestSearchSnapshot {
   ancestorPathMap?: Record<string, NotePathItem[]>;
 }
 
-// Mirrors the real SearchCandidatesPlugin: derive each note's root-to-note
-// ancestor path from the child map so existing inline snapshots stay valid.
-function deriveAncestorPathMap(
-  childCandidateMap: TestSearchSnapshot['childCandidateMap']
-): Record<string, NotePathItem[]> {
-  const ancestorPathMap: Record<string, NotePathItem[]> = {};
-  const roots = childCandidateMap[ROOT_SEARCH_SCOPE_ID] ?? [];
-  const stack: Array<{ noteId: string; text: string; ancestors: NotePathItem[] }> = roots
-    .map((note) => ({ ...note, ancestors: [] }));
-
-  while (stack.length > 0) {
-    const { noteId, text, ancestors } = stack.pop()!;
-    const path = [...ancestors, { noteId, label: text }];
-    ancestorPathMap[noteId] = path;
-    for (const child of childCandidateMap[noteId] ?? []) {
-      stack.push({ ...child, ancestors: path });
+// Builds an in-memory EditorNotes from a snapshot's childCandidateMap (which
+// encodes the tree: root scope + per-note children). The real search model and
+// route logic then run against it through the SDK, exercising production code
+// paths (collectors, parent() walk) rather than pre-baked maps.
+function createTestEditorNotes(snapshot: TestSearchSnapshot): EditorNotes {
+  const childMap = snapshot.childCandidateMap;
+  const byId = new Map<string, TestSearchCandidate>();
+  const parentOf = new Map<string, string | null>();
+  for (const candidate of snapshot.allCandidates) {
+    byId.set(candidate.noteId, candidate);
+  }
+  for (const [scopeId, children] of Object.entries(childMap)) {
+    for (const child of children) {
+      byId.set(child.noteId, child);
+      parentOf.set(child.noteId, scopeId === ROOT_SEARCH_SCOPE_ID ? null : scopeId);
     }
   }
 
-  return ancestorPathMap;
+  const makeNote = (noteId: string): EditorNote => {
+    const candidate = byId.get(noteId);
+    const note: EditorNote = {
+      id: () => noteId,
+      kind: () => 'editor-note',
+      attached: () => byId.has(noteId),
+      text: () => candidate?.text ?? '',
+      listType: () => candidate?.listType ?? 'bullet',
+      checked: () => candidate?.checked ?? false,
+      parent: () => {
+        const parentId = parentOf.get(noteId) ?? null;
+        return parentId === null ? null : makeNote(parentId);
+      },
+      children: () => (childMap[noteId] ?? []).map((child) => makeNote(child.noteId)),
+      create: () => { throw new Error('create() is not used in document route tests.'); },
+      as: ((kind: string) => {
+        if (kind !== 'editor-note') {
+          throw new Error(`mock note is editor-note, not ${kind}`);
+        }
+        return note;
+      }) as EditorNote['as'],
+    };
+    return note;
+  };
+
+  const roots = (childMap[ROOT_SEARCH_SCOPE_ID] ?? []).map((child) => makeNote(child.noteId));
+  return {
+    currentDocument: () => ({ children: () => roots }),
+    note: (noteId: string) => makeNote(noteId),
+  } as unknown as EditorNotes;
 }
 
 interface MockSearchGlobals {
-  __remdoMockSearchCandidateEmitters?: Record<string, () => void>;
-  __remdoMockSearchCandidateResetters?: Record<string, () => void>;
+  // Re-applies the current __remdoMockSearchCandidatesByDoc[docId] to the SDK
+  // accessor (registers/clears the reader), simulating an editor update.
+  __remdoMockSearchNotesRefresh?: Record<string, () => void>;
   __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
   __remdoMockZoomPathByDoc?: Record<string, Record<string, NotePathItem[]>>;
 }
@@ -88,7 +123,6 @@ const defaultSnapshot = {
 
 interface MockEditorProps {
   docId: string;
-  onSearchCandidatesChange?: (snapshot: TestSearchSnapshot | null) => void;
   searchModeRequested?: boolean;
   sourceId?: string | null;
   sourceOrigin?: string | null;
@@ -98,48 +132,48 @@ let mockEditorInstanceCounter = 0;
 
 function MockEditor({
   docId,
-  onSearchCandidatesChange,
   searchModeRequested,
   sourceId = null,
   sourceOrigin = null,
 }: MockEditorProps) {
   const zoomNoteId = useZoomNoteId();
   const { setZoomPath } = useEditorViewActions();
+  const registerSearchNotesReader = useRegisterSearchNotesReader();
 
   React.useEffect(() => {
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
     setZoomPath(zoomNoteId ? globals.__remdoMockZoomPathByDoc?.[docId]?.[zoomNoteId] ?? [] : []);
   }, [docId, setZoomPath, zoomNoteId]);
 
+  // The real plugin mounts only while search is requested; mirror that, and
+  // serve the test snapshot as an SDK accessor (the new boundary). A `null`
+  // selection means "candidates not ready yet" (no reader registered).
   React.useEffect(() => {
+    if (!searchModeRequested) {
+      return;
+    }
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
-    const emitCurrentSnapshot = () => {
+    const applyCurrent = () => {
       const candidateSelection = globals.__remdoMockSearchCandidatesByDoc?.[docId];
       if (candidateSelection === null) {
+        registerSearchNotesReader(null);
         return;
       }
-      const sdkSnapshot: TestSearchSnapshot = candidateSelection ?? defaultSnapshot;
-      onSearchCandidatesChange?.({
-        ...sdkSnapshot,
-        ancestorPathMap: sdkSnapshot.ancestorPathMap ?? deriveAncestorPathMap(sdkSnapshot.childCandidateMap),
-      });
+      const snapshot: TestSearchSnapshot = candidateSelection ?? defaultSnapshot;
+      const notes = createTestEditorNotes(snapshot);
+      const reader: SearchNotesReader = (fn) => fn(notes);
+      registerSearchNotesReader(reader);
     };
 
-    emitCurrentSnapshot();
-    (globals.__remdoMockSearchCandidateEmitters ??= {})[docId] = emitCurrentSnapshot;
-    (globals.__remdoMockSearchCandidateResetters ??= {})[docId] = () => {
-      onSearchCandidatesChange?.(null);
-    };
+    applyCurrent();
+    (globals.__remdoMockSearchNotesRefresh ??= {})[docId] = applyCurrent;
     return () => {
-      if (globals.__remdoMockSearchCandidateEmitters?.[docId] === emitCurrentSnapshot) {
-        delete globals.__remdoMockSearchCandidateEmitters[docId];
+      if (globals.__remdoMockSearchNotesRefresh?.[docId] === applyCurrent) {
+        delete globals.__remdoMockSearchNotesRefresh[docId];
       }
-      if (globals.__remdoMockSearchCandidateResetters?.[docId]) {
-        delete globals.__remdoMockSearchCandidateResetters[docId];
-      }
-      onSearchCandidatesChange?.(null);
+      registerSearchNotesReader(null);
     };
-  }, [docId, onSearchCandidatesChange]);
+  }, [docId, registerSearchNotesReader, searchModeRequested]);
 
   const instanceId = React.useRef(`instance-${++mockEditorInstanceCounter}`).current;
   return (
@@ -182,8 +216,7 @@ describe('document route', () => {
     mockEditorInstanceCounter = 0;
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
     globals.__remdoMockSearchCandidatesByDoc = undefined;
-    globals.__remdoMockSearchCandidateEmitters = undefined;
-    globals.__remdoMockSearchCandidateResetters = undefined;
+    globals.__remdoMockSearchNotesRefresh = undefined;
     globals.__remdoMockZoomPathByDoc = undefined;
     document.title = 'RemDo';
   });
@@ -1540,7 +1573,7 @@ describe('document route', () => {
       expect(screen.queryByText('No notes')).toBeNull();
     });
 
-    globals.__remdoMockSearchCandidateEmitters?.routeDoc?.();
+    globals.__remdoMockSearchNotesRefresh?.routeDoc?.();
 
     await waitFor(() => {
       expect(getActiveResultLabel()).toBe('fresh result');
@@ -1570,7 +1603,9 @@ describe('document route', () => {
       expect(getActiveResultLabel()).toBe('shared result');
     });
 
-    globals.__remdoMockSearchCandidateResetters?.routeDoc?.();
+    // Invalidate: candidates become unavailable, then refresh clears the reader.
+    globals.__remdoMockSearchCandidatesByDoc = { routeDoc: null };
+    globals.__remdoMockSearchNotesRefresh?.routeDoc?.();
 
     await waitFor(() => {
       expect(screen.queryByTestId('document-search-results')).toBeNull();
@@ -1587,7 +1622,7 @@ describe('document route', () => {
         },
       },
     };
-    globals.__remdoMockSearchCandidateEmitters?.routeDoc?.();
+    globals.__remdoMockSearchNotesRefresh?.routeDoc?.();
 
     await waitFor(() => {
       expect(getActiveResultLabel()).toBe('fresh result');
@@ -1733,7 +1768,7 @@ describe('document route', () => {
         },
       },
     };
-    globals.__remdoMockSearchCandidateEmitters?.routeDoc?.();
+    globals.__remdoMockSearchNotesRefresh?.routeDoc?.();
 
     await screen.findByText('No matches');
     expect(document.querySelectorAll('[data-search-result-item]')).toHaveLength(0);

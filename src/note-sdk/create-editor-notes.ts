@@ -60,6 +60,10 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
       text: () => adapter.textOf(noteId),
       listType: () => adapter.listTypeOf(noteId),
       checked: () => adapter.checkedOf(noteId),
+      parent: () => {
+        const parentId = adapter.parentIdOf(noteId);
+        return parentId === null ? null : createHandle(parentId);
+      },
       children: () => adapter.childrenOf(noteId).map((childId) => createHandle(childId)),
       create,
       as: createNoteAs(noteId, kind, () => handle),

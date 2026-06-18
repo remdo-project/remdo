@@ -30,6 +30,7 @@ import {
 } from '#client/editor/outline/selection/structural-range';
 import {
   getNestedList,
+  getParentContentItem,
   isContentDescendantOf,
   removeNoteHeads,
 } from '#client/editor/outline/selection/tree';
@@ -301,6 +302,10 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
       return $isListNode(parent) ? parent.getListType() : 'bullet';
     },
     checkedOf: (noteId) => $getNoteChecked($requireNoteById(noteId)) === true,
+    parentIdOf: (noteId) => {
+      const parent = getParentContentItem($requireNoteById(noteId));
+      return parent ? $getNoteId(parent) : null;
+    },
     childrenOf: (noteId) => {
       const current = $requireNoteById(noteId);
 

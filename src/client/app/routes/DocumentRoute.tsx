@@ -5,11 +5,11 @@ import { useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocumentSourcesLoading, useUserData } from '#client/app/documents/user-data';
 import Editor from '#client/editor/Editor';
 import { ZoomBreadcrumbs } from '#client/editor/zoom/ZoomBreadcrumbs';
-import { EditorViewProvider, useEditorViewActions, useZoomPath } from '#client/editor/view/EditorViewProvider';
+import { EditorViewProvider, useEditorViewActions, useSearchNotes, useZoomPath } from '#client/editor/view/EditorViewProvider';
 import { registerPendingDocumentImport } from '#client/editor/runtime/pending-document-import';
 import { createDocumentPath, createDocumentSyncTokenApiPath, parseDocumentRef } from '#document-routes';
 import type { ParsedDocumentRef } from '#document-routes';
-import type { DocumentSourceNote } from '#note-sdk';
+import type { DocumentSourceNote, EditorNote } from '#note-sdk';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import {
   APP_TITLE,
@@ -238,11 +238,9 @@ function DocumentRouteContent({
   }, []);
 
   const {
-    ancestorPathMap,
     childCandidateMap,
     flatResults,
     handleSearchBlur,
-    handleSearchCandidatesChange,
     handleSearchChange,
     handleSearchCompositionEnd,
     handleSearchCompositionStart,
@@ -391,6 +389,25 @@ function DocumentRouteContent({
     })),
   })).filter((source) => source.options.length > 0), [currentDocumentSource, docId, documentSources]);
   const documentOptionsCount = documentGroups.reduce((count, group) => count + group.options.length, 0);
+
+  // Derive each rendered result's ancestor path lazily through the SDK (walking
+  // parent() up), only for the rows actually shown — no document-wide map.
+  const searchNotes = useSearchNotes();
+  const ancestorPathByNoteId = useMemo(() => {
+    const paths: Record<string, NotePathItem[]> = {};
+    searchNotes.read((notes) => {
+      for (const result of flatResults) {
+        const path: NotePathItem[] = [];
+        let note: EditorNote | null = notes.note(result.noteId);
+        while (note) {
+          path.push({ noteId: note.id(), label: note.text() });
+          note = note.parent();
+        }
+        paths[result.noteId] = path.reverse();
+      }
+    });
+    return paths;
+  }, [flatResults, searchNotes]);
 
   const highlightedResultIndex = highlightedResultNoteId
     ? flatResults.findIndex((result) => result.noteId === highlightedResultNoteId)
@@ -589,7 +606,7 @@ function DocumentRouteContent({
                   role="option"
                 >
                   <SearchResultRow
-                    ancestorPath={ancestorPathMap[result.noteId] ?? EMPTY_ANCESTOR_PATH}
+                    ancestorPath={ancestorPathByNoteId[result.noteId] ?? EMPTY_ANCESTOR_PATH}
                     checked={result.checked}
                     childCount={children.length}
                     childPreview={children.slice(0, CHILD_PREVIEW_LIMIT)}
@@ -626,7 +643,6 @@ function DocumentRouteContent({
             docId={docId}
             sourceOrigin={currentDocumentSourceOrigin}
             sourceId={currentDocumentSourceId}
-            onSearchCandidatesChange={handleSearchCandidatesChange}
             searchModeRequested={searchModeRequested}
             statusPortalRoot={statusHost}
             onPendingDocumentImportError={handlePendingDocumentImportError}

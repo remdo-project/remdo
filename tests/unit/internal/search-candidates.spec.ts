@@ -14,10 +14,8 @@ import type {
   UserDataNote,
 } from '#note-sdk';
 import {
-  collectAncestorPathMap,
   collectChildCandidateMap,
   collectSearchCandidates,
-  collectSearchCandidateSnapshot,
   ROOT_SEARCH_SCOPE_ID,
 } from '#client/editor/search/search-candidates';
 
@@ -47,6 +45,7 @@ function createMockEditorNote(
   options: { listType?: NoteListType; checked?: boolean } = {}
 ): EditorNote {
   const kind = () => 'editor-note' as const;
+  const parent: EditorNote | null = null;
   const note: EditorNote = {
     id: () => id,
     kind,
@@ -54,12 +53,16 @@ function createMockEditorNote(
     text: () => text,
     listType: () => options.listType ?? 'bullet',
     checked: () => options.checked ?? false,
+    parent: () => parent,
     children: () => children,
     create: () => {
       throw new Error('Editor note creation is not used in search candidate tests.');
     },
     as: createMockNoteAs(id, kind, () => note),
   };
+  for (const child of children) {
+    (child as { parent: () => EditorNote | null }).parent = () => note;
+  }
   return note;
 }
 
@@ -190,36 +193,6 @@ describe('search candidates', () => {
     ]);
   });
 
-  it('maps each note to its root-to-note inclusive ancestor path', () => {
-    const top = createMockEditorNote('top', 'Top', [
-      createMockEditorNote('child-a', 'Child A'),
-      createMockEditorNote('child-b', 'Child B', [createMockEditorNote('leaf', 'Leaf')]),
-    ]);
-    const sibling = createMockEditorNote('sibling', 'Sibling');
-
-    const ancestorPathMap = collectAncestorPathMap({
-      currentDocument: () => createMockDocumentNote([top, sibling]),
-    });
-
-    expect(ancestorPathMap).toEqual({
-      top: [{ noteId: 'top', label: 'Top' }],
-      'child-a': [
-        { noteId: 'top', label: 'Top' },
-        { noteId: 'child-a', label: 'Child A' },
-      ],
-      'child-b': [
-        { noteId: 'top', label: 'Top' },
-        { noteId: 'child-b', label: 'Child B' },
-      ],
-      leaf: [
-        { noteId: 'top', label: 'Top' },
-        { noteId: 'child-b', label: 'Child B' },
-        { noteId: 'leaf', label: 'Leaf' },
-      ],
-      sibling: [{ noteId: 'sibling', label: 'Sibling' }],
-    });
-  });
-
   it('reads note-head text only from the real lexical adapter shape', meta({ fixture: 'basic' }), async ({ remdo }) => {
     const result = remdo.validate(() => {
       const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
@@ -252,9 +225,9 @@ describe('search candidates', () => {
       currentDocument: () => createMockDocumentNote([root]),
     };
 
-    const { allCandidates, childCandidateMap, ancestorPathMap } = collectSearchCandidateSnapshot(sdk);
+    const allCandidates = collectSearchCandidates(sdk);
+    const childCandidateMap = collectChildCandidateMap(sdk);
 
-    expect(ancestorPathMap[`deep-${depth - 1}`]).toHaveLength(depth);
     expect(allCandidates).toHaveLength(depth);
     expect(allCandidates[0]).toEqual({ noteId: 'deep-0', text: 'Deep 0', listType: 'bullet', checked: false });
     expect(allCandidates.at(-1)).toEqual({
@@ -266,31 +239,5 @@ describe('search candidates', () => {
     expect(childCandidateMap[ROOT_SEARCH_SCOPE_ID]).toEqual([{ noteId: 'deep-0', text: 'Deep 0', listType: 'bullet', checked: false }]);
     expect(childCandidateMap['deep-0']).toEqual([{ noteId: 'deep-1', text: 'Deep 1', listType: 'bullet', checked: false }]);
     expect(childCandidateMap[`deep-${depth - 1}`]).toEqual([]);
-  });
-
-  it('single-pass snapshot matches the three standalone collectors', () => {
-    const top = createMockEditorNote('top', 'Top', [
-      createMockEditorNote('child-a', 'Child A', [], { listType: 'number' }),
-      createMockEditorNote('child-b', 'Child B', [
-        createMockEditorNote('leaf', 'Leaf', [], { listType: 'check', checked: true }),
-      ]),
-    ]);
-    const sibling = createMockEditorNote('sibling', 'Sibling');
-    const sdk = { currentDocument: () => createMockDocumentNote([top, sibling]) };
-
-    expect(collectSearchCandidateSnapshot(sdk)).toEqual({
-      allCandidates: collectSearchCandidates(sdk),
-      childCandidateMap: collectChildCandidateMap(sdk),
-      ancestorPathMap: collectAncestorPathMap(sdk),
-    });
-  });
-
-  it('single-pass snapshot handles an empty document', () => {
-    const sdk = { currentDocument: () => createMockDocumentNote([]) };
-    expect(collectSearchCandidateSnapshot(sdk)).toEqual({
-      allCandidates: [],
-      childCandidateMap: { [ROOT_SEARCH_SCOPE_ID]: [] },
-      ancestorPathMap: {},
-    });
   });
 });

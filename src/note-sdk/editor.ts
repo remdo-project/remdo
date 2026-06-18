@@ -10,6 +10,8 @@ export type NoteListType = 'bullet' | 'number' | 'check';
 export interface EditorNote extends Note<'editor-note'> {
   /** True when the note still exists in the current editor state. */
   attached: () => boolean;
+  /** Returns the parent editor note, or null for a top-level note. */
+  parent: () => EditorNote | null;
   /** Returns direct child editor notes. Throws when the note does not exist. */
   children: () => readonly EditorNote[];
   /** Marker style of the list this note belongs to. */
@@ -77,6 +79,8 @@ export interface EditorNotesAdapter extends EditorNotesBase {
   listTypeOf: (noteId: NoteId) => NoteListType;
   /** Reads checked state (false unless the note is in a check list). Throws when note does not exist. */
   checkedOf: (noteId: NoteId) => boolean;
+  /** Reads the parent note id, or null for a top-level note. Throws when note does not exist. */
+  parentIdOf: (noteId: NoteId) => NoteId | null;
   /** Reads direct child ids. Throws when note does not exist. */
   childrenOf: (noteId: NoteId) => readonly NoteId[];
 }

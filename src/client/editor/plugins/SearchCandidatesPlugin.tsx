@@ -1,138 +1,43 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
-import { collectSearchCandidateSnapshot } from '#client/editor/search/search-candidates';
-import type { SearchCandidateSnapshot } from '#client/editor/search/search-candidates';
+import { useRegisterSearchNotesReader } from '#client/editor/view/EditorViewProvider';
+import type { SearchNotesReader } from '#client/editor/view/EditorViewProvider';
 
 interface SearchCandidatesPluginProps {
   docId: string;
-  onCandidatesChange?: (snapshot: SearchCandidateSnapshot | null) => void;
 }
 
-function entriesMatch(
-  leftEntries: SearchCandidateSnapshot['allCandidates'],
-  rightEntries: SearchCandidateSnapshot['allCandidates']
-): boolean {
-  return leftEntries.length === rightEntries.length &&
-    leftEntries.every((leftCandidate, index) => {
-      const rightCandidate = rightEntries[index];
-      return rightCandidate !== undefined &&
-        leftCandidate.noteId === rightCandidate.noteId &&
-        leftCandidate.text === rightCandidate.text &&
-        leftCandidate.listType === rightCandidate.listType &&
-        leftCandidate.checked === rightCandidate.checked;
-    });
-}
-
-function mapsMatch(
-  leftMap: SearchCandidateSnapshot['childCandidateMap'],
-  rightMap: SearchCandidateSnapshot['childCandidateMap']
-): boolean {
-  const leftNoteIds = Object.keys(leftMap);
-  if (leftNoteIds.length !== Object.keys(rightMap).length) {
-    return false;
-  }
-
-  return leftNoteIds.every((noteId) => {
-    const rightCandidates = rightMap[noteId];
-    return rightCandidates !== undefined &&
-      entriesMatch(leftMap[noteId] ?? [], rightCandidates);
-  });
-}
-
-function pathsMatch(
-  leftPath: SearchCandidateSnapshot['ancestorPathMap'][string],
-  rightPath: SearchCandidateSnapshot['ancestorPathMap'][string]
-): boolean {
-  return leftPath.length === rightPath.length &&
-    leftPath.every((leftItem, index) => {
-      const rightItem = rightPath[index];
-      return rightItem !== undefined &&
-        leftItem.noteId === rightItem.noteId &&
-        leftItem.label === rightItem.label;
-    });
-}
-
-function ancestorMapsMatch(
-  leftMap: SearchCandidateSnapshot['ancestorPathMap'],
-  rightMap: SearchCandidateSnapshot['ancestorPathMap']
-): boolean {
-  const leftNoteIds = Object.keys(leftMap);
-  if (leftNoteIds.length !== Object.keys(rightMap).length) {
-    return false;
-  }
-
-  return leftNoteIds.every((noteId) => {
-    const rightPath = rightMap[noteId];
-    return rightPath !== undefined &&
-      pathsMatch(leftMap[noteId] ?? [], rightPath);
-  });
-}
-
-function signaturesMatch(
-  left: SearchCandidateSnapshot,
-  right: SearchCandidateSnapshot
-): boolean {
-  return entriesMatch(left.allCandidates, right.allCandidates) &&
-    mapsMatch(left.childCandidateMap, right.childCandidateMap) &&
-    ancestorMapsMatch(left.ancestorPathMap, right.ancestorPathMap);
-}
-
-const emptySnapshot: SearchCandidateSnapshot = {
-  allCandidates: [],
-  childCandidateMap: {},
-  ancestorPathMap: {},
-};
-
-export function SearchCandidatesPlugin({
-  docId,
-  onCandidatesChange,
-}: SearchCandidatesPluginProps) {
+// Exposes the document's notes to the search UI (which renders outside the
+// composer) through the editor view provider, instead of materializing a
+// snapshot. Registers a reader bound to the live editor state, and re-registers
+// on each content edit so consumers recompute — the "read once per edit" refresh
+// the snapshot used to provide. Unregisters on unmount.
+export function SearchCandidatesPlugin({ docId }: SearchCandidatesPluginProps) {
   const [editor] = useLexicalComposerContext();
   const editorNotes = useMemo(() => createLexicalEditorNotes({ editor, docId }), [docId, editor]);
-  const previousSnapshotRef = useRef(emptySnapshot);
-
-  const emitCandidates = useCallback((snapshot: SearchCandidateSnapshot) => {
-    if (signaturesMatch(previousSnapshotRef.current, snapshot)) {
-      return;
-    }
-
-    previousSnapshotRef.current = snapshot;
-    onCandidatesChange?.(snapshot);
-  }, [onCandidatesChange]);
-
-  const readAndEmitCandidates = useCallback((editorState = editor.getEditorState()) => {
-    const snapshot = editorState.read(() => collectSearchCandidateSnapshot(editorNotes));
-    emitCandidates(snapshot);
-  }, [editor, editorNotes, emitCandidates]);
+  const registerSearchNotesReader = useRegisterSearchNotesReader();
 
   useEffect(() => {
-    previousSnapshotRef.current = emptySnapshot;
-    readAndEmitCandidates();
-  }, [docId, readAndEmitCandidates]);
+    const reader: SearchNotesReader = (fn) => editor.getEditorState().read(() => fn(editorNotes));
+    registerSearchNotesReader(reader);
 
-  useEffect(() => {
-    return editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, editorState }) => {
+    const unregisterUpdate = editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
       if (dirtyElements.size === 0 && dirtyLeaves.size === 0) {
         return;
       }
-      readAndEmitCandidates(editorState);
+      registerSearchNotesReader(reader);
     });
-  }, [editor, readAndEmitCandidates]);
-
-  useEffect(() => {
-    return editor.registerRootListener(() => {
-      previousSnapshotRef.current = emptySnapshot;
-      readAndEmitCandidates();
+    const unregisterRoot = editor.registerRootListener(() => {
+      registerSearchNotesReader(reader);
     });
-  }, [editor, readAndEmitCandidates]);
 
-  useEffect(() => {
     return () => {
-      previousSnapshotRef.current = emptySnapshot;
-      onCandidatesChange?.(null);
+      unregisterUpdate();
+      unregisterRoot();
+      registerSearchNotesReader(null);
     };
-  }, [onCandidatesChange]);
+  }, [editor, editorNotes, registerSearchNotesReader]);
 
   return null;
 }
