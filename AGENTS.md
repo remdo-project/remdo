@@ -10,11 +10,17 @@ Target runtimes and browser support are defined in `docs/contributing.md`. Rely
 on those baselines—no legacy browser shims.
 
 AGENTS.md is the only doc you must read at the start of every session. Do one
-full pass through the `docs/` folder when you onboard, then revisit only the
-sections relevant to your current task. For documentation navigation and
-navigation (the map), use `docs/index.md`; for the doc workflow and invariants,
-see `docs/contributing.md#documentation`.
-When editing docs, keep external references in a final `References` section.
+full pass through the `docs/` folder when you onboard; after that, before coding,
+identify the feature area and read the matching sections from the `docs/index.md`
+map (the documentation navigation) — do not reread unrelated docs. For the
+documentation invariants, see `docs/contributing.md#documentation`.
+
+When working, deep-link to the authoritative doc (e.g.,
+`docs/contributing.md#git-workflow`) in discussions or PRs so others know the
+source of truth. When a change supersedes a doc's contract, breaks an inbound
+link, or leaves the `docs/index.md` map out of date, fix it in the same change —
+not a follow-up. If nothing needs updating, say why. Do not add update-tracking
+sections to docs.
 
 ## Safety & Process
 
@@ -60,8 +66,8 @@ When editing docs, keep external references in a final `References` section.
   worktrees); cross-WD agent state belongs under `~/.claude/` instead.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
-  Exception: the `feature-flow` skill is self-authorizing — within a
-  `/feature-flow` run, commits on the confirmed task branch are allowed per that
+  Exception: the `remdo-feature-flow` skill is self-authorizing — within a
+  `/remdo-feature-flow` run, commits on the confirmed task branch are allowed per that
   skill’s permission model (still never pushing without an explicit ask).
 - The Git index may be used by the developer as private review bookkeeping.
   Treat staged vs unstaged state as semantically invisible: it does not mark
