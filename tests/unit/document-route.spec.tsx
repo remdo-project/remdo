@@ -38,7 +38,6 @@ interface TestSearchCandidate {
 interface TestSearchSnapshot {
   allCandidates: TestSearchCandidate[];
   childCandidateMap: Record<string, TestSearchCandidate[]>;
-  ancestorPathMap?: Record<string, NotePathItem[]>;
 }
 
 // Builds an in-memory EditorNotes from a snapshot's childCandidateMap (which
