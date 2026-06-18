@@ -139,13 +139,21 @@
   display: none;
 }
 
+/* Anchor results to the same horizontal start as the editor outline: the
+   container padding matches the editor pane, and each result's text is indented
+   by the editor's note-text indent (list indent + bullet allowance) using the
+   shared `.remdo-outline` variables, so the first result lands on the first
+   note's column without any measurement. */
 .document-search-results {
+  --remdo-indent: var(--mantine-spacing-sm);
+  --remdo-bullet-allowance: calc(0.4em + 0.6em);
   padding: var(--mantine-spacing-md) var(--mantine-spacing-xl);
 }
 
 .document-search-results-list {
   margin: 0;
   padding: 0;
+  padding-inline-start: var(--remdo-indent);
   list-style: none;
   display: flex;
   flex-direction: column;
@@ -156,7 +164,8 @@
   border-radius: var(--mantine-radius-xs);
   color: var(--mantine-color-dark-0);
   cursor: pointer;
-  padding: 0.15rem 0.4rem;
+  padding: 0.15rem 0;
+  padding-inline-start: var(--remdo-bullet-allowance);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   min-width: 0;

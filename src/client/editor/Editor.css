@@ -83,6 +83,9 @@
    notes identically. `.editor-root` carries this class plus editor-only chrome. */
 .remdo-outline {
   --remdo-indent: var(--mantine-spacing-sm);
+  /* Horizontal space a note's text sits past its bullet (bullet width + gap).
+     Shared so other surfaces can anchor text to the same column. */
+  --remdo-bullet-allowance: calc(0.4em + 0.6em);
 }
 
 .editor-root {
@@ -226,7 +229,7 @@
   --bullet-mask-repeat: no-repeat;
   list-style-type: none;
   position: relative;
-  padding-left: calc(var(--bullet-width) + var(--bullet-gap));
+  padding-left: var(--remdo-bullet-allowance);
   cursor: text;
   background-repeat: no-repeat;
 }
