@@ -24,6 +24,16 @@ Rules:
 - Make lexical note lookup indexed / amortized `O(1)` and move SDK handle reads
   (`textOf`, `childrenOf`, `hasNote`, `note(...)`) onto that path so search and
   other SDK consumers do not pay scan-based lookup costs per visited note.
+- Converge the ad-hoc editor→outside "snapshots" (search candidates, selection,
+  schema-ready) onto shared SDK primitives over time; each is currently a bespoke
+  plugin+callback projecting editor state across the composer boundary, and the
+  count grows per feature. The search candidate snapshot builds a full
+  `ancestorPathMap` eagerly for every note (sum-of-depths work on each editor
+  update) yet only renders paths for matched rows — acceptable for now; collapses
+  once the SDK exposes ancestor navigation on the indexed-lookup path.
+- Deferred: search results do not reactively refresh on concurrent collab edits
+  while the panel is open (the editor is hidden during search, so local edits
+  can't desync; only remote edits can). Resolve with a reactive SDK later.
 - [Future] Evaluate unifying candidate discovery/query logic between search and
   link picker (search already uses SDK/Lexical candidates; link picker still
   uses its own traversal/filter pipeline).
