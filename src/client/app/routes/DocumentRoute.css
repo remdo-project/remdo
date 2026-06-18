@@ -145,13 +145,16 @@
      text is indented by the note-text indent (list indent + bullet allowance) via
      the shared `.remdo-outline` variables.
    - Vertical: the editor pane offsets its first note by `lg` (its padding-top).
-     Each result card adds its own padding-top on top of this section, so the
-     section's padding-top is `lg` minus the card padding, keeping the first
-     result's text on the editor's note-text row. */
+     Each result card adds its own padding-top (`--result-card-padding`) on top of
+     this section, so the section's padding-top is `lg` minus that, keeping the
+     first result's text on the editor's note-text row. */
 .document-search-results {
   --remdo-indent: var(--mantine-spacing-sm);
   --remdo-bullet-allowance: calc(0.4em + 0.6em);
-  padding: calc(var(--mantine-spacing-lg) - var(--mantine-spacing-xs))
+  /* Internal card padding (half of spacing-xs); shared with the vertical-anchor
+     formula below so the two stay in sync. */
+  --result-card-padding: calc(var(--mantine-spacing-xs) / 2);
+  padding: calc(var(--mantine-spacing-lg) - var(--result-card-padding))
     var(--mantine-spacing-xl)
     var(--mantine-spacing-md);
 }
@@ -175,7 +178,7 @@
   border-radius: var(--mantine-radius-sm);
   color: var(--mantine-color-dark-0);
   cursor: pointer;
-  padding: var(--mantine-spacing-xs);
+  padding: var(--result-card-padding);
   padding-inline-start: calc(var(--remdo-bullet-allowance) - 1px);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
