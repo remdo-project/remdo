@@ -735,6 +735,7 @@ describe('document route', () => {
         { noteId: 'mid', text: 'Q3 planning' },
         { noteId: 'mid2', text: 'Roadmap' },
         { noteId: 'mid3', text: 'Grooming' },
+        { noteId: 'mid4', text: 'Estimates' },
         { noteId: 'parent', text: 'Sprint backlog' },
         { noteId: 'match', text: 'TODO refine estimates' },
         { noteId: 'c1', text: 'sub one', listType: 'number' },
@@ -746,7 +747,8 @@ describe('document route', () => {
         root: [{ noteId: 'mid', text: 'Q3 planning' }],
         mid: [{ noteId: 'mid2', text: 'Roadmap' }],
         mid2: [{ noteId: 'mid3', text: 'Grooming' }],
-        mid3: [{ noteId: 'parent', text: 'Sprint backlog' }],
+        mid3: [{ noteId: 'mid4', text: 'Estimates' }],
+        mid4: [{ noteId: 'parent', text: 'Sprint backlog' }],
         parent: [{ noteId: 'match', text: 'TODO refine estimates' }],
         match: [
           { noteId: 'c1', text: 'sub one', listType: 'number' },
@@ -759,7 +761,7 @@ describe('document route', () => {
       },
     };
 
-    it('gives every result the same breadcrumb layout regardless of highlight', async () => {
+    it('gives every result the same two-line layout regardless of highlight', async () => {
       setSnapshot(contextSnapshot);
       renderDocumentRoute();
 
@@ -767,51 +769,16 @@ describe('document route', () => {
       searchInput.focus();
       fireEvent.change(searchInput, { target: { value: 'sub' } });
 
-      // 'sub two' is not the highlighted row, yet it still renders the breadcrumb
-      // (ending in its own text) — so moving the highlight never re-lays-out rows.
+      // 'sub two' is not the highlighted row, yet it still renders the match label
+      // line plus its ancestor subline — moving the highlight never re-lays-out.
       const subTwo = await screen.findByRole('option', { name: 'sub two' });
       expect(subTwo.getAttribute('data-search-result-active')).toBeNull();
-      const matchCrumb = subTwo.querySelector('[data-search-result-match-crumb]');
-      expect(matchCrumb?.textContent).toBe('sub two');
+      const matchLine = subTwo.querySelector('[data-search-result-match]');
+      expect(matchLine?.textContent).toBe('sub two');
       expect(subTwo.querySelector('.document-search-result-breadcrumb')).not.toBeNull();
     });
 
-    it('marks the matched note crumb checked when the result is a checked note', async () => {
-      setSnapshot(contextSnapshot);
-      renderDocumentRoute();
-
-      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-      searchInput.focus();
-      fireEvent.change(searchInput, { target: { value: 'sub' } });
-
-      // 'sub two' is a checked check-list note → its match crumb is struck through.
-      const subTwo = await screen.findByRole('option', { name: 'sub two' });
-      const matchCrumb = subTwo.querySelector('[data-search-result-match-crumb]');
-      expect(matchCrumb?.getAttribute('data-note-checked')).toBe('true');
-      expect(matchCrumb?.classList.contains('document-search-result-crumb--checked')).toBe(true);
-    });
-
-    it('strikes through the match crumb when the matched note is checked', async () => {
-      setSnapshot({
-        allCandidates: [{ noteId: 'done', text: 'wrap up review', checked: true }],
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'done', text: 'wrap up review', checked: true }],
-          done: [],
-        },
-      });
-      renderDocumentRoute();
-
-      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-      searchInput.focus();
-      fireEvent.change(searchInput, { target: { value: 'wrap' } });
-
-      const active = await screen.findByRole('option', { name: 'wrap up review' });
-      const matchCrumb = active.querySelector('[data-search-result-match-crumb]');
-      expect(matchCrumb?.getAttribute('data-note-checked')).toBe('true');
-      expect(matchCrumb?.classList.contains('document-search-result-crumb--checked')).toBe(true);
-    });
-
-    it('expands the highlighted row with a truncating breadcrumb and child preview', async () => {
+    it('renders the match label without a list marker', async () => {
       setSnapshot(contextSnapshot);
       renderDocumentRoute();
 
@@ -820,13 +787,46 @@ describe('document route', () => {
       fireEvent.change(searchInput, { target: { value: 'refine' } });
 
       const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
-      // Root crumb (Work) is omitted, leaving Q3 / Roadmap / Grooming / Sprint /
-      // match (5) → collapses to first-2 + ⋯ + last-2.
+      const matchLine = active.querySelector('[data-search-result-match]');
+      // The label is a plain element, not an outline list item — no bullet/number.
+      expect(matchLine?.tagName).toBe('DIV');
+      expect(matchLine?.querySelector('.list-item')).toBeNull();
+      expect(active.querySelector('.document-search-result-match ul, .document-search-result-match ol'))
+        .toBeNull();
+    });
+
+    it('strikes through the match label when the matched note is checked', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'sub' } });
+
+      // 'sub two' is a checked note → its label carries data-note-checked (the CSS
+      // strikes it through), even though it has no list marker.
+      const subTwo = await screen.findByRole('option', { name: 'sub two' });
+      const matchLine = subTwo.querySelector('[data-search-result-match]');
+      expect(matchLine?.getAttribute('data-note-checked')).toBe('true');
+    });
+
+    it('expands the highlighted row with a truncating subline and child preview', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'refine' } });
+
+      const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      // Subline excludes the match and the root (Work), leaving Q3 / Roadmap /
+      // Grooming / Estimates / Sprint backlog (5) → first-2 + ⋯ + last-2.
       const crumbs = active.querySelectorAll('.document-search-result-crumb');
       const crumbText = Array.from(crumbs, (crumb) => crumb.textContent);
       expect(crumbText).toContain('⋯');
       expect(crumbText.at(0)).toBe('Q3 planning');
-      expect(crumbText.at(-1)).toContain('TODO refine estimates');
+      expect(crumbText.at(-1)).toBe('Sprint backlog');
+      expect(crumbText).not.toContain('TODO refine estimates');
 
       const ellipsis = active.querySelector('.document-search-result-crumb--ellipsis');
       expect(ellipsis?.getAttribute('title')).toBe('Grooming');
@@ -840,7 +840,7 @@ describe('document route', () => {
         .toBe('+1 more');
     });
 
-    it('omits the root crumb and separates crumbs with a slash', async () => {
+    it('omits the root crumb and separates subline crumbs with a slash', async () => {
       setSnapshot(contextSnapshot);
       renderDocumentRoute();
 

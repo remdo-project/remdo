@@ -596,6 +596,7 @@ function DocumentRouteContent({
                     onSelectAncestor={handleSearchResultClick}
                     onSelectAncestorPointerDown={handleSearchResultPointerDown}
                     query={isSlashMode ? '' : searchQuery}
+                    text={result.text}
                   />
                 </li>
               );

@@ -78,9 +78,9 @@ outdated or a doc’s role materially changes.
   invalid slash paths staying empty, non-mutating arrow cycling in slash mode,
   inline-completion acceptance with `ArrowRight`, combobox/listbox
   accessibility semantics, non-leaf `/...` result hints, and uniform per-result
-  structural context (truncating ancestor breadcrumb ending in the match,
-  clickable crumbs, editor-faithful child preview with per-type list markers, and
-  matched term highlighting).
+  structural context (matched note as primary label with term highlighting, a dim
+  truncating ancestor subline with clickable crumbs, and an editor-faithful child
+  preview with per-type list markers).
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
   scope, breadcrumbs, and routing.

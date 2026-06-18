@@ -19,6 +19,7 @@ interface SearchResultRowProps {
   onSelectAncestor: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
   onSelectAncestorPointerDown: (event: ReactPointerEvent<HTMLElement>, noteId: string) => void;
   query: string;
+  text: string;
 }
 
 const BREADCRUMB_VISIBLE_LIMIT = 4;
@@ -28,13 +29,14 @@ type BreadcrumbCrumb =
   | { kind: 'note'; item: NotePathItem }
   | { kind: 'ellipsis'; hiddenLabels: string[] };
 
-// Collapses a deep ancestor chain to the first/last edges joined by a single
-// ellipsis crumb; shorter chains pass through unchanged. The top-level (root)
-// ancestor is omitted — the document context is implied — but never the matched
-// note itself. Width truncation of individual crumbs is handled in CSS, not here.
+// Builds the ancestor subline crumbs for a match. The matched note (the last
+// element of ancestorPath) is the row's primary line, so it is excluded here, and
+// the top-level (root) ancestor is omitted — document context is implied. A deep
+// chain collapses to first/last edges joined by a single ellipsis crumb; width
+// truncation of individual crumbs is handled in CSS, not here.
 function buildBreadcrumbCrumbs(ancestorPath: NotePathItem[]): BreadcrumbCrumb[] {
-  // Drop the outermost (root) crumb, keeping the match even when it is top-level.
-  const path = ancestorPath.length > 1 ? ancestorPath.slice(1) : ancestorPath;
+  // Ancestors only (drop the matched note), then drop the outermost root crumb.
+  const path = ancestorPath.slice(1, -1);
 
   if (path.length <= BREADCRUMB_VISIBLE_LIMIT) {
     return path.map((item) => ({ kind: 'note', item }));
@@ -95,24 +97,22 @@ function HighlightedText({ query, text }: { query: string; text: string }) {
   );
 }
 
+// The ancestor subline beneath the matched note: the location path, dim and
+// small, with clickable ancestor crumbs. Renders nothing when the match has no
+// shown ancestors (top-level or only-root parent).
 function ResultBreadcrumb({
   ancestorPath,
-  matchChecked,
   onSelectAncestor,
   onSelectAncestorPointerDown,
-  query,
 }: {
   ancestorPath: NotePathItem[];
-  matchChecked: boolean;
   onSelectAncestor: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
   onSelectAncestorPointerDown: (event: ReactPointerEvent<HTMLElement>, noteId: string) => void;
-  query: string;
 }) {
   const crumbs = buildBreadcrumbCrumbs(ancestorPath);
-  const lastNoteIndex = crumbs.reduce(
-    (last, crumb, index) => (crumb.kind === 'note' ? index : last),
-    -1
-  );
+  if (crumbs.length === 0) {
+    return null;
+  }
 
   return (
     <span className="document-search-result-breadcrumb" data-search-result-breadcrumb>
@@ -130,30 +130,6 @@ function ResultBreadcrumb({
                 title={crumb.hiddenLabels.join(' / ')}
               >
                 ⋯
-              </span>
-            </Fragment>
-          );
-        }
-
-        const isMatchCrumb = index === lastNoteIndex;
-        if (isMatchCrumb) {
-          // Highlight against the raw note text (what the query filtered on),
-          // not the length-capped navigation label, so a match past the label
-          // cap is still highlighted. CSS clamps the visible width.
-          const matchText = crumb.item.label.length > 0 ? crumb.item.label : '(empty note)';
-          const matchClassName = matchChecked
-            ? 'document-search-result-crumb document-search-result-crumb--match document-search-result-crumb--checked'
-            : 'document-search-result-crumb document-search-result-crumb--match';
-          return (
-            <Fragment key={crumb.item.noteId}>
-              {separator}
-              <span
-                className={matchClassName}
-                data-note-checked={matchChecked ? 'true' : undefined}
-                data-search-result-match-crumb
-                title={matchText}
-              >
-                <HighlightedText query={query} text={matchText} />
               </span>
             </Fragment>
           );
@@ -186,9 +162,10 @@ function ResultBreadcrumb({
   );
 }
 
-// Every result row renders the same layout — breadcrumb (ending in the matched
-// note) plus child preview — so moving the highlight only restyles the selected
-// row and never re-lays-out the list.
+// Every result row renders the same two-line layout — the matched note as the
+// primary label, the ancestor path as a dim subline beneath it, then the child
+// preview — so moving the highlight only restyles the selected row and never
+// re-lays-out the list.
 export function SearchResultRow({
   ancestorPath,
   checked,
@@ -197,16 +174,26 @@ export function SearchResultRow({
   onSelectAncestor,
   onSelectAncestorPointerDown,
   query,
+  text,
 }: SearchResultRowProps) {
   const remaining = childCount - childPreview.length;
+  const matchText = text.length > 0 ? text : '(empty note)';
   return (
     <>
+      {/* Primary line: the matched note's text. No list marker (bullet/number/
+          checkbox), but text formatting is kept — e.g. checked notes are struck
+          through via data-note-checked. */}
+      <div
+        className="document-search-result-match"
+        data-note-checked={checked ? 'true' : undefined}
+        data-search-result-match
+      >
+        <HighlightedText query={query} text={matchText} />
+      </div>
       <ResultBreadcrumb
         ancestorPath={ancestorPath}
-        matchChecked={checked}
         onSelectAncestor={onSelectAncestor}
         onSelectAncestorPointerDown={onSelectAncestorPointerDown}
-        query={query}
       />
       {childPreview.length > 0 ? (
         <ChildPreview childPreview={childPreview} remaining={remaining} />

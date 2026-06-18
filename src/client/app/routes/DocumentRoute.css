@@ -172,10 +172,10 @@
 }
 
 /* `/...` non-leaf hint applies in slash navigation only; it sits after the
-   match crumb, signalling that the note can be descended into. */
+   matched note's text, signalling that the note can be descended into. */
 .document-search-results[data-search-mode='slash']
   .document-search-results-item[data-search-result-has-children='true']
-  .document-search-result-crumb--match::after {
+  .document-search-result-match::after {
   content: ' /...';
   color: var(--mantine-color-dark-3);
 }
@@ -186,6 +186,16 @@
   box-shadow: var(--focus-ring, 0 0 0 1px rgb(111 138 255 / 0.42), 0 0 0 3px rgb(111 138 255 / 0.11), 0 0 22px 5px rgb(111 138 255 / 0.12));
 }
 
+/* Primary line: the matched note's text. No list marker — text formatting only.
+   A checked note is struck through, mirroring the editor. */
+.document-search-result-match {
+  overflow-wrap: anywhere;
+}
+
+.document-search-result-match[data-note-checked='true'] {
+  text-decoration: line-through;
+}
+
 .document-search-result-mark {
   background: var(--mantine-color-yellow-light, rgb(255 224 102 / 0.28));
   color: inherit;
@@ -193,14 +203,16 @@
   padding: 0 0.05rem;
 }
 
-/* Single-line breadcrumb: crumbs shrink with ellipsis to share the row width;
-   the match crumb shrinks last so it stays readable. */
+/* Ancestor subline: the location path under the matched note — small, dim, and
+   on a single line; crumbs shrink with ellipsis to share the available width. */
 .document-search-result-breadcrumb {
   display: flex;
   align-items: baseline;
   flex-wrap: nowrap;
   min-width: 0;
   gap: 0.15rem;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-2);
 }
 
 .document-search-result-crumb-separator {
@@ -216,13 +228,13 @@
 }
 
 .document-search-result-crumb--ancestor {
-  flex: 0 4 auto;
+  flex: 0 1 auto;
   background: none;
   border: none;
   padding: 0;
   margin: 0;
   font: inherit;
-  color: var(--mantine-color-dark-2);
+  color: inherit;
   cursor: pointer;
   text-align: start;
 }
@@ -235,17 +247,6 @@
   flex: 0 0 auto;
   color: var(--mantine-color-dark-3);
   cursor: default;
-}
-
-.document-search-result-crumb--match {
-  flex: 0 1 auto;
-  color: var(--mantine-color-dark-0);
-  font-weight: 600;
-}
-
-/* A checked match reads as done, mirroring the editor's checked line-through. */
-.document-search-result-crumb--checked {
-  text-decoration: line-through;
 }
 
 /* Child preview reuses the shared `.remdo-outline` list rendering (bullets,
