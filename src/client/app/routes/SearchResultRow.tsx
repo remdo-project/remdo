@@ -29,16 +29,20 @@ type BreadcrumbCrumb =
   | { kind: 'ellipsis'; hiddenLabels: string[] };
 
 // Collapses a deep ancestor chain to the first/last edges joined by a single
-// ellipsis crumb; shorter chains pass through unchanged. Width truncation of
-// individual crumbs is handled in CSS, not here.
+// ellipsis crumb; shorter chains pass through unchanged. The top-level (root)
+// ancestor is omitted — the document context is implied — but never the matched
+// note itself. Width truncation of individual crumbs is handled in CSS, not here.
 function buildBreadcrumbCrumbs(ancestorPath: NotePathItem[]): BreadcrumbCrumb[] {
-  if (ancestorPath.length <= BREADCRUMB_VISIBLE_LIMIT) {
-    return ancestorPath.map((item) => ({ kind: 'note', item }));
+  // Drop the outermost (root) crumb, keeping the match even when it is top-level.
+  const path = ancestorPath.length > 1 ? ancestorPath.slice(1) : ancestorPath;
+
+  if (path.length <= BREADCRUMB_VISIBLE_LIMIT) {
+    return path.map((item) => ({ kind: 'note', item }));
   }
 
-  const head = ancestorPath.slice(0, BREADCRUMB_EDGE_COUNT);
-  const tail = ancestorPath.slice(-BREADCRUMB_EDGE_COUNT);
-  const hidden = ancestorPath.slice(BREADCRUMB_EDGE_COUNT, -BREADCRUMB_EDGE_COUNT);
+  const head = path.slice(0, BREADCRUMB_EDGE_COUNT);
+  const tail = path.slice(-BREADCRUMB_EDGE_COUNT);
+  const hidden = path.slice(BREADCRUMB_EDGE_COUNT, -BREADCRUMB_EDGE_COUNT);
   return [
     ...head.map((item): BreadcrumbCrumb => ({ kind: 'note', item })),
     { kind: 'ellipsis', hiddenLabels: hidden.map((item) => formatNavigationLabel(item.label)) },
@@ -114,7 +118,7 @@ function ResultBreadcrumb({
     <span className="document-search-result-breadcrumb" data-search-result-breadcrumb>
       {crumbs.map((crumb, index) => {
         const separator = index > 0
-          ? <span aria-hidden="true" className="document-search-result-crumb-separator">›</span>
+          ? <span aria-hidden="true" className="document-search-result-crumb-separator">/</span>
           : null;
 
         if (crumb.kind === 'ellipsis') {
@@ -123,7 +127,7 @@ function ResultBreadcrumb({
               {separator}
               <span
                 className="document-search-result-crumb document-search-result-crumb--ellipsis"
-                title={crumb.hiddenLabels.join(' › ')}
+                title={crumb.hiddenLabels.join(' / ')}
               >
                 ⋯
               </span>

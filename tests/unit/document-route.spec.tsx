@@ -734,6 +734,7 @@ describe('document route', () => {
         { noteId: 'root', text: 'Work' },
         { noteId: 'mid', text: 'Q3 planning' },
         { noteId: 'mid2', text: 'Roadmap' },
+        { noteId: 'mid3', text: 'Grooming' },
         { noteId: 'parent', text: 'Sprint backlog' },
         { noteId: 'match', text: 'TODO refine estimates' },
         { noteId: 'c1', text: 'sub one', listType: 'number' },
@@ -744,7 +745,8 @@ describe('document route', () => {
         [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'root', text: 'Work' }],
         root: [{ noteId: 'mid', text: 'Q3 planning' }],
         mid: [{ noteId: 'mid2', text: 'Roadmap' }],
-        mid2: [{ noteId: 'parent', text: 'Sprint backlog' }],
+        mid2: [{ noteId: 'mid3', text: 'Grooming' }],
+        mid3: [{ noteId: 'parent', text: 'Sprint backlog' }],
         parent: [{ noteId: 'match', text: 'TODO refine estimates' }],
         match: [
           { noteId: 'c1', text: 'sub one', listType: 'number' },
@@ -818,16 +820,16 @@ describe('document route', () => {
       fireEvent.change(searchInput, { target: { value: 'refine' } });
 
       const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
-      // Five-deep chain (Work › Q3 › Sprint › TODO, plus document root logic):
-      // collapses to first-2 + ⋯ + last-2.
+      // Root crumb (Work) is omitted, leaving Q3 / Roadmap / Grooming / Sprint /
+      // match (5) → collapses to first-2 + ⋯ + last-2.
       const crumbs = active.querySelectorAll('.document-search-result-crumb');
       const crumbText = Array.from(crumbs, (crumb) => crumb.textContent);
       expect(crumbText).toContain('⋯');
-      expect(crumbText.at(0)).toBe('Work');
+      expect(crumbText.at(0)).toBe('Q3 planning');
       expect(crumbText.at(-1)).toContain('TODO refine estimates');
 
       const ellipsis = active.querySelector('.document-search-result-crumb--ellipsis');
-      expect(ellipsis?.getAttribute('title')).toBe('Roadmap');
+      expect(ellipsis?.getAttribute('title')).toBe('Grooming');
 
       const childTexts = Array.from(
         active.querySelectorAll('.document-search-result-children .list-item'),
@@ -836,6 +838,28 @@ describe('document route', () => {
       expect(childTexts).toEqual(['sub one', 'sub two']);
       expect(active.querySelector('.document-search-result-children-more')?.textContent)
         .toBe('+1 more');
+    });
+
+    it('omits the root crumb and separates crumbs with a slash', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'refine' } });
+
+      const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      // 'Work' (root) is dropped; the first shown crumb is the second level.
+      const ancestorLabels = Array.from(
+        active.querySelectorAll('[data-search-result-ancestor-crumb]'),
+        (crumb) => crumb.textContent
+      );
+      expect(ancestorLabels).not.toContain('Work');
+      expect(ancestorLabels[0]).toBe('Q3 planning');
+
+      const separators = active.querySelectorAll('.document-search-result-crumb-separator');
+      expect(separators.length).toBeGreaterThan(0);
+      separators.forEach((sep) => expect(sep.textContent).toBe('/'));
     });
 
     it('renders child preview with the editor list markup per child list type', async () => {
@@ -897,16 +921,16 @@ describe('document route', () => {
       fireEvent.change(searchInput, { target: { value: 'refine' } });
 
       const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
-      const rootCrumb = Array.from(
+      const ancestorCrumb = Array.from(
         active.querySelectorAll<HTMLElement>('[data-search-result-ancestor-crumb]')
-      ).find((crumb) => crumb.textContent === 'Work');
-      expect(rootCrumb).toBeDefined();
+      ).find((crumb) => crumb.textContent === 'Q3 planning');
+      expect(ancestorCrumb).toBeDefined();
 
-      fireEvent.pointerDown(rootCrumb!);
-      fireEvent.click(rootCrumb!);
+      fireEvent.pointerDown(ancestorCrumb!);
+      fireEvent.click(ancestorCrumb!);
 
       await waitFor(() => {
-        expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc', 'root'));
+        expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc', 'mid'));
         expect(screen.queryByTestId('document-search-results')).toBeNull();
       });
     });

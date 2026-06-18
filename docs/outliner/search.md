@@ -101,25 +101,30 @@ selected row and never re-lays-out the list.
    note itself, followed by a preview of the match's first two direct children.
 2. The matched query term is highlighted within the matched note's text in the
    breadcrumb's final crumb.
-3. The breadcrumb lists the ancestor chain from the document root down to and
-   including the matched note, and always stays on a single line. It fits the
-   line under a combined budget that sacrifices depth before width:
-   - **Depth.** The first and last crumbs (root context and the matched note) are
-     always kept. When the chain exceeds four crumbs the middle collapses to a
-     single `⋯` crumb between the first two and last two; the `⋯` crumb exposes
-     the hidden crumb labels (in order) as a tooltip.
+3. The breadcrumb lists the ancestor chain down to and including the matched
+   note, separated by `/`. The outermost (top-level) crumb is omitted — the
+   document context is implied — except when the matched note is itself top-level,
+   in which case its own crumb is still shown. The breadcrumb always stays on a
+   single line, fitting under a combined budget that sacrifices depth before
+   width:
+   - **Depth.** The first and last shown crumbs are always kept. When the shown
+     chain exceeds four crumbs the middle collapses to a single `⋯` crumb between
+     the first two and last two; the `⋯` crumb exposes the hidden crumb labels (in
+     order) as a tooltip.
    - **Width.** Crumbs share the available row width: each shrinks and overflows
      with an ellipsis rather than wrapping, so the breadcrumb uses more of a wide
      results pane and tightens on a narrow one (adjusting on resize). The matched
      (last) crumb shrinks last, keeping the most disambiguating crumb readable. A
      crumb truncated by width exposes its full label as a tooltip.
-4. Every ancestor crumb (not the final match crumb) is activatable; activating it
+4. Ancestor crumbs are visually subordinate to the match — muted in colour, with
+   an underline only on hover — so the matched note reads as the row's subject.
+5. Every ancestor crumb (not the final match crumb) is activatable; activating it
    zooms that ancestor and ends Search Mode, exactly like accepting a result.
-5. Each result note renders with the outline's own list markers — bullet, number,
+6. Each result note renders with the outline's own list markers — bullet, number,
    or checkbox per its list type, and a checked note struck through — so a result
    reads as it does in the editor. The matched note's crumb carries this state.
-6. The child preview shows the first two direct children of the match with the
-   same outline rendering as rule 5. A match with no children shows no preview; a
+7. The child preview shows the first two direct children of the match with the
+   same outline rendering as rule 6. A match with no children shows no preview; a
    match with more than two children indicates the remaining count.
-7. Result row context is sourced from the active document's search candidates and
+8. Result row context is sourced from the active document's search candidates and
    appears only once those candidates are available.
