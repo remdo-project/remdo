@@ -258,27 +258,21 @@ Remaining issues to fold in or fix directly:
   actually reaches the spec's described state, not just that checks pass).
 - Clean up stale prunable worktree `remdo-7000-wt` if abandoned (not mine).
 
-## Note body (WIP)
+## Note body follow-ups
 
-- Feature is in design/build. `docs/outliner/body.md` top section reads as
-  target behavior, but nothing is implemented yet; treat the whole feature as
-  unbuilt until the node model lands.
-- Node-model fork still open (see `docs/outliner/body.md`): lean is the non-note
-  `ElementNode` block; confirm before building.
-- Research-gate the body deletion model before implementing — the rules are
-  settled but these corner cases need validating (and a cheap-to-implement
-  check): (1) collab race when one client empties+deletes a body while another
-  types into it (check against `selection.md` collaboration reshaping); (2) undo
-  granularity — is "delete empty body" one step, and does undo restore the caret
-  into it; (3) confirm there is no "merge body back into note" gesture beyond the
-  empty-then-delete path.
-- Clipboard: decide whether copying a note that has a body includes the body
-  text when pasting as plain text outside RemDo. Settle in `clipboard.md` when
-  clipboard is next touched; not a body-spec blocker.
+The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
+
 - Clipboard: copy/paste within RemDo currently drops a note's body (the pasted
   copy is a clean note without its body). The body is never corrupted into a
   standalone note — it is just not carried. Make the clipboard payload + paste
   insertion preserve the body-wrapper so a copied note reproduces its body.
+- Clipboard: decide whether copying a note that has a body includes the body
+  text when pasting as plain text outside RemDo. Settle in `clipboard.md` when
+  clipboard is next touched.
+- Body deletion edge cases not yet covered by tests: (1) the collab race when one
+  client empties+deletes a body while another types into it (relate to
+  `selection.md` collaboration reshaping); (2) undo granularity — whether "delete
+  empty body" is a single undo step that restores the caret into the body.
 
 ## Later follow-ups
 

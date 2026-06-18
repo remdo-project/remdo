@@ -47,35 +47,18 @@ Within that world, caret and selection keys behave as follows:
 the boundary; see *Selection and navigation*), so a body is removed only by
 emptying it first.
 
----
+## Node model
 
-## Node-model fork (not yet settled)
-
-Everything above is settled behavior. The node model below is a recommendation,
-not a settled choice.
-
-Body content is collaborative like any other editor content, so the node model
-must put body text in the document's own Yjs-bound tree.
-
-Verified constraint: `@lexical/yjs` treats a `DecoratorNode` as opaque
-(`CollabDecoratorNode`) — it syncs the node's existence and serialized props but
-not the internal state of a nested sub-editor. A `LexicalNestedComposer`
-sub-editor carries its own Yjs binding the parent collab plugin does not manage.
-
-1. **Decorator node + nested sub-editor.** Isolation is structural and free, but
-   the sub-editor's own Yjs binding sits outside document collaboration, so body
-   text would need a separate binding (or lose live collab). Separate undo stack;
-   heaviest to build.
-2. **Custom non-note `ElementNode` block inside the note's `ListItemNode`**
-   (current lean). One editor / one Yjs binding → collaboration, undo,
-   formatting, and persistence come for free. Cost: the block must be actively
-   excluded from every note-enumeration path (vertical nav, ladder,
-   schema/normalization, range selection, deletion-merge).
-3. **Second flagged paragraph inside the note** (rejected). Lightest, but weakest
-   isolation; too easily mistaken for note content; fights the schema.
+A body is a `NoteBodyNode` (a Lexical `ElementNode`) held by a dedicated
+**body-wrapper** `ListItemNode` placed immediately after the note's content item,
+before any children-wrapper — mirroring the children-wrapper pattern so a note's
+nodes read as `[ content item, body-wrapper?, children-wrapper? ]`. Because the
+body lives in the document's own tree as a normal element, collaboration, undo,
+and persistence apply to it exactly as they do to note content (an `ElementNode`
+syncs through `@lexical/yjs`; only decorator nodes are opaque). A body-wrapper is
+never a note: it carries no `noteId` and is excluded from every note-enumeration
+path (navigation, the ladder, schema normalization, range selection, deletion).
 
 ## References
 
 1. Lexical custom nodes: <https://lexical.dev/docs/concepts/nodes>
-2. Lexical nested composer:
-   <https://lexical.dev/docs/api/modules/lexical_react_LexicalNestedComposer>
