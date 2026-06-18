@@ -30,13 +30,13 @@ type BreadcrumbCrumb =
   | { kind: 'ellipsis'; hiddenLabels: string[] };
 
 // Builds the ancestor subline crumbs for a match. The matched note (the last
-// element of ancestorPath) is the row's primary line, so it is excluded here, and
-// the top-level (root) ancestor is omitted — document context is implied. A deep
+// element of ancestorPath) is the row's primary line, so it is excluded here. The
+// full ancestor chain (including the top-level note) is shown for context. A deep
 // chain collapses to first/last edges joined by a single ellipsis crumb; width
 // truncation of individual crumbs is handled in CSS, not here.
 function buildBreadcrumbCrumbs(ancestorPath: NotePathItem[]): BreadcrumbCrumb[] {
-  // Ancestors only (drop the matched note), then drop the outermost root crumb.
-  const path = ancestorPath.slice(1, -1);
+  // Ancestors only — drop the matched note (the primary label), keep the rest.
+  const path = ancestorPath.slice(0, -1);
 
   if (path.length <= BREADCRUMB_VISIBLE_LIMIT) {
     return path.map((item) => ({ kind: 'note', item }));

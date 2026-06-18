@@ -819,17 +819,17 @@ describe('document route', () => {
       fireEvent.change(searchInput, { target: { value: 'refine' } });
 
       const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
-      // Subline excludes the match and the root (Work), leaving Q3 / Roadmap /
-      // Grooming / Estimates / Sprint backlog (5) → first-2 + ⋯ + last-2.
+      // Subline excludes only the match, leaving Work / Q3 / Roadmap / Grooming /
+      // Estimates / Sprint backlog (6) → first-2 + ⋯ + last-2.
       const crumbs = active.querySelectorAll('.document-search-result-crumb');
       const crumbText = Array.from(crumbs, (crumb) => crumb.textContent);
       expect(crumbText).toContain('⋯');
-      expect(crumbText.at(0)).toBe('Q3 planning');
+      expect(crumbText.at(0)).toBe('Work');
       expect(crumbText.at(-1)).toBe('Sprint backlog');
       expect(crumbText).not.toContain('TODO refine estimates');
 
       const ellipsis = active.querySelector('.document-search-result-crumb--ellipsis');
-      expect(ellipsis?.getAttribute('title')).toBe('Grooming');
+      expect(ellipsis?.getAttribute('title')).toBe('Roadmap / Grooming');
 
       const childTexts = Array.from(
         active.querySelectorAll('.document-search-result-children .list-item'),
@@ -840,7 +840,7 @@ describe('document route', () => {
         .toBe('+1 more');
     });
 
-    it('omits the root crumb and separates subline crumbs with a slash', async () => {
+    it('keeps the top-level ancestor and separates subline crumbs with a slash', async () => {
       setSnapshot(contextSnapshot);
       renderDocumentRoute();
 
@@ -849,13 +849,12 @@ describe('document route', () => {
       fireEvent.change(searchInput, { target: { value: 'refine' } });
 
       const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
-      // 'Work' (root) is dropped; the first shown crumb is the second level.
+      // The full chain is shown, starting at the top-level note 'Work'.
       const ancestorLabels = Array.from(
         active.querySelectorAll('[data-search-result-ancestor-crumb]'),
         (crumb) => crumb.textContent
       );
-      expect(ancestorLabels).not.toContain('Work');
-      expect(ancestorLabels[0]).toBe('Q3 planning');
+      expect(ancestorLabels[0]).toBe('Work');
 
       const separators = active.querySelectorAll('.document-search-result-crumb-separator');
       expect(separators.length).toBeGreaterThan(0);

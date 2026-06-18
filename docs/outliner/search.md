@@ -104,11 +104,10 @@ selected row and never re-lays-out the list.
    highlighted within it, and the note's text formatting is preserved (for
    example a checked note is struck through). The label shows no list marker —
    no bullet, number, or checkbox.
-3. The subline lists the ancestor chain (excluding the matched note), separated
-   by `/`. The outermost (top-level) ancestor is omitted — document context is
-   implied — so a match whose only ancestor is top-level shows no subline. The
-   subline stays on a single line, fitting under a combined budget that sacrifices
-   depth before width:
+3. The subline lists the full ancestor chain (excluding the matched note),
+   separated by `/`, including the top-level note for context. A match with no
+   ancestors (itself top-level) shows no subline. The subline stays on a single
+   line, fitting under a combined budget that sacrifices depth before width:
    - **Depth.** The first and last shown crumbs are always kept. When the shown
      chain exceeds four crumbs the middle collapses to a single `⋯` crumb between
      the first two and last two; the `⋯` crumb exposes the hidden crumb labels (in
