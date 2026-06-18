@@ -58,6 +58,8 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
       kind,
       attached: () => adapter.isBounded(noteId),
       text: () => adapter.textOf(noteId),
+      listType: () => adapter.listTypeOf(noteId),
+      checked: () => adapter.checkedOf(noteId),
       children: () => adapter.childrenOf(noteId).map((childId) => createHandle(childId)),
       create,
       as: createNoteAs(noteId, kind, () => handle),

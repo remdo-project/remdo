@@ -22,9 +22,39 @@ vi.mock('#client/app/documents/user-data', async () => {
   return mockUserDataModule();
 });
 
+interface TestSearchCandidate {
+  noteId: string;
+  text: string;
+  listType?: 'bullet' | 'number' | 'check';
+  checked?: boolean;
+}
+
 interface TestSearchSnapshot {
-  allCandidates: Array<{ noteId: string; text: string }>;
-  childCandidateMap: Record<string, Array<{ noteId: string; text: string }>>;
+  allCandidates: TestSearchCandidate[];
+  childCandidateMap: Record<string, TestSearchCandidate[]>;
+  ancestorPathMap?: Record<string, NotePathItem[]>;
+}
+
+// Mirrors the real SearchCandidatesPlugin: derive each note's root-to-note
+// ancestor path from the child map so existing inline snapshots stay valid.
+function deriveAncestorPathMap(
+  childCandidateMap: TestSearchSnapshot['childCandidateMap']
+): Record<string, NotePathItem[]> {
+  const ancestorPathMap: Record<string, NotePathItem[]> = {};
+  const roots = childCandidateMap[ROOT_SEARCH_SCOPE_ID] ?? [];
+  const stack: Array<{ noteId: string; text: string; ancestors: NotePathItem[] }> = roots
+    .map((note) => ({ ...note, ancestors: [] }));
+
+  while (stack.length > 0) {
+    const { noteId, text, ancestors } = stack.pop()!;
+    const path = [...ancestors, { noteId, label: text }];
+    ancestorPathMap[noteId] = path;
+    for (const child of childCandidateMap[noteId] ?? []) {
+      stack.push({ ...child, ancestors: path });
+    }
+  }
+
+  return ancestorPathMap;
 }
 
 interface MockSearchGlobals {
@@ -88,8 +118,11 @@ function MockEditor({
       if (candidateSelection === null) {
         return;
       }
-      const sdkSnapshot = candidateSelection ?? defaultSnapshot;
-      onSearchCandidatesChange?.(sdkSnapshot);
+      const sdkSnapshot: TestSearchSnapshot = candidateSelection ?? defaultSnapshot;
+      onSearchCandidatesChange?.({
+        ...sdkSnapshot,
+        ancestorPathMap: sdkSnapshot.ancestorPathMap ?? deriveAncestorPathMap(sdkSnapshot.childCandidateMap),
+      });
     };
 
     emitCurrentSnapshot();
@@ -184,6 +217,13 @@ describe('document route', () => {
 
   const getActiveSearchResult = () =>
     document.querySelector<HTMLElement>('[data-search-result-item][data-search-result-active="true"]');
+  const getActiveResultLabel = () =>
+    getActiveSearchResult()?.getAttribute('data-search-result-label') ?? null;
+  const getResultLabels = () =>
+    Array.from(
+      document.querySelectorAll<HTMLElement>('[data-search-result-item]'),
+      (item) => item.getAttribute('data-search-result-label')
+    );
   const getInlineCompletion = () =>
     document.querySelector<HTMLElement>('[data-testid="document-search-inline-completion"]');
 
@@ -578,11 +618,10 @@ describe('document route', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
+      expect(getActiveResultLabel()).toBe('note1');
     });
 
-    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-      .map((item) => item.textContent);
+    const resultItems = getResultLabels();
     expect(resultItems).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
   });
 
@@ -597,9 +636,9 @@ describe('document route', () => {
     });
 
     const results = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'));
-    const note1 = results.find((item) => item.textContent === 'note1');
-    const note2 = results.find((item) => item.textContent === 'note2');
-    const note3 = results.find((item) => item.textContent === 'note3');
+    const note1 = results.find((item) => item.getAttribute('data-search-result-label') === 'note1');
+    const note2 = results.find((item) => item.getAttribute('data-search-result-label') === 'note2');
+    const note3 = results.find((item) => item.getAttribute('data-search-result-label') === 'note3');
     expect(note1).toHaveAttribute('data-search-result-has-children', 'true');
     expect(note3).toHaveAttribute('data-search-result-has-children', 'true');
     expect(note2).not.toHaveAttribute('data-search-result-has-children');
@@ -683,6 +722,195 @@ describe('document route', () => {
     });
   });
 
+  describe('result row context', () => {
+    const setSnapshot = (snapshot: TestSearchSnapshot) => {
+      (globalThis as typeof globalThis & MockSearchGlobals).__remdoMockSearchCandidatesByDoc = {
+        routeDoc: snapshot,
+      };
+    };
+
+    const contextSnapshot: TestSearchSnapshot = {
+      allCandidates: [
+        { noteId: 'root', text: 'Work' },
+        { noteId: 'mid', text: 'Q3 planning' },
+        { noteId: 'mid2', text: 'Roadmap' },
+        { noteId: 'parent', text: 'Sprint backlog' },
+        { noteId: 'match', text: 'TODO refine estimates' },
+        { noteId: 'c1', text: 'sub one', listType: 'number' },
+        { noteId: 'c2', text: 'sub two', listType: 'check', checked: true },
+        { noteId: 'c3', text: 'sub three' },
+      ],
+      childCandidateMap: {
+        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'root', text: 'Work' }],
+        root: [{ noteId: 'mid', text: 'Q3 planning' }],
+        mid: [{ noteId: 'mid2', text: 'Roadmap' }],
+        mid2: [{ noteId: 'parent', text: 'Sprint backlog' }],
+        parent: [{ noteId: 'match', text: 'TODO refine estimates' }],
+        match: [
+          { noteId: 'c1', text: 'sub one', listType: 'number' },
+          { noteId: 'c2', text: 'sub two', listType: 'check', checked: true },
+          { noteId: 'c3', text: 'sub three' },
+        ],
+        c1: [],
+        c2: [],
+        c3: [],
+      },
+    };
+
+    it('shows a compact parent and direct-children count on non-highlighted rows', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'sub' } });
+
+      const subOne = await screen.findByRole('option', { name: 'sub two' });
+      expect(subOne.querySelector('.document-search-result-context')?.textContent)
+        .toContain('TODO refine estimates');
+      expect(subOne.querySelector('.document-search-result-context')?.textContent)
+        .toContain('0 children');
+    });
+
+    it('renders a compact row text as its own outline item with marker and checked state', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'sub' } });
+
+      // 'sub two' is a checked check-list note → its compact text renders as a
+      // checked outline item, matching the editor.
+      const subTwo = await screen.findByRole('option', { name: 'sub two' });
+      const item = subTwo.querySelector('.document-search-result-text .list-item');
+      expect(item?.classList.contains('list-item-checked')).toBe(true);
+      expect(item?.getAttribute('data-note-checked')).toBe('true');
+    });
+
+    it('strikes through the match crumb when the matched note is checked', async () => {
+      setSnapshot({
+        allCandidates: [{ noteId: 'done', text: 'wrap up review', checked: true }],
+        childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'done', text: 'wrap up review', checked: true }],
+          done: [],
+        },
+      });
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'wrap' } });
+
+      const active = await screen.findByRole('option', { name: 'wrap up review' });
+      const matchCrumb = active.querySelector('[data-search-result-match-crumb]');
+      expect(matchCrumb?.getAttribute('data-note-checked')).toBe('true');
+      expect(matchCrumb?.classList.contains('document-search-result-crumb--checked')).toBe(true);
+    });
+
+    it('expands the highlighted row with a truncating breadcrumb and child preview', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'refine' } });
+
+      const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      // Five-deep chain (Work › Q3 › Sprint › TODO, plus document root logic):
+      // collapses to first-2 + ⋯ + last-2.
+      const crumbs = active.querySelectorAll('.document-search-result-crumb');
+      const crumbText = Array.from(crumbs, (crumb) => crumb.textContent);
+      expect(crumbText).toContain('⋯');
+      expect(crumbText.at(0)).toBe('Work');
+      expect(crumbText.at(-1)).toContain('TODO refine estimates');
+
+      const ellipsis = active.querySelector('.document-search-result-crumb--ellipsis');
+      expect(ellipsis?.getAttribute('title')).toBe('Roadmap');
+
+      const childTexts = Array.from(
+        active.querySelectorAll('.document-search-result-children .list-item'),
+        (child) => child.textContent
+      );
+      expect(childTexts).toEqual(['sub one', 'sub two']);
+      expect(active.querySelector('.document-search-result-children-more')?.textContent)
+        .toBe('+1 more');
+    });
+
+    it('renders child preview with the editor list markup per child list type', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'refine' } });
+
+      const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      // Preview reuses the shared outline classes so list markers match the editor.
+      expect(active.querySelector('.document-search-result-children.remdo-outline')).not.toBeNull();
+      // First child is a number-list item → ol.list-ol; second is a checked item.
+      expect(active.querySelector('ol.list-ol > .list-item')?.textContent).toBe('sub one');
+      const checked = active.querySelector('.list-item.list-item-checked');
+      expect(checked?.textContent).toBe('sub two');
+    });
+
+    it('highlights the matched query term inside the result text', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'sub' } });
+
+      const subTwo = await screen.findByRole('option', { name: 'sub two' });
+      const mark = subTwo.querySelector('.document-search-result-mark');
+      expect(mark?.textContent).toBe('sub');
+    });
+
+    it('highlights a match past the navigation label length cap on the expanded row', async () => {
+      const longText = `${'x'.repeat(60)} needle tail`;
+      setSnapshot({
+        allCandidates: [{ noteId: 'long', text: longText }],
+        childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'long', text: longText }],
+          long: [],
+        },
+      });
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'needle' } });
+
+      const active = await screen.findByRole('option', { name: longText });
+      const mark = active.querySelector('.document-search-result-mark');
+      expect(mark?.textContent).toBe('needle');
+    });
+
+    it('zooms to an ancestor crumb and closes search when clicked', async () => {
+      setSnapshot(contextSnapshot);
+      const router = renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'refine' } });
+
+      const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      const rootCrumb = Array.from(
+        active.querySelectorAll<HTMLElement>('[data-search-result-ancestor-crumb]')
+      ).find((crumb) => crumb.textContent === 'Work');
+      expect(rootCrumb).toBeDefined();
+
+      fireEvent.pointerDown(rootCrumb!);
+      fireEvent.click(rootCrumb!);
+
+      await waitFor(() => {
+        expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc', 'root'));
+        expect(screen.queryByTestId('document-search-results')).toBeNull();
+      });
+    });
+  });
+
   it('dismisses search on outside primary click without changing the route', async () => {
     const router = renderDocumentRoute();
 
@@ -741,10 +969,9 @@ describe('document route', () => {
     const results = await screen.findByTestId('document-search-results');
     expect(results.dataset.searchMode).toBe('slash');
 
-    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-      .map((item) => item.textContent);
+    const resultItems = getResultLabels();
     expect(resultItems).toEqual(['note1', 'note3', 'note5']);
-    expect(getActiveSearchResult()?.textContent).toBe('note1');
+    expect(getActiveResultLabel()).toBe('note1');
   });
 
   it('shows slash suffix completion and accepts with ArrowRight', async () => {
@@ -904,11 +1131,10 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: '/note1' } });
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
+      expect(getActiveResultLabel()).toBe('note1');
     });
 
-    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-      .map((item) => item.textContent);
+    const resultItems = getResultLabels();
     expect(resultItems).toEqual(['note1']);
   });
 
@@ -920,21 +1146,21 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: '/' } });
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
+      expect(getActiveResultLabel()).toBe('note1');
     });
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note3');
+    expect(getActiveResultLabel()).toBe('note3');
     expect(searchInput).toHaveValue('/');
-    expect(Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'), (item) => item.textContent))
+    expect(getResultLabels())
       .toEqual(['note1', 'note3', 'note5']);
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note5');
+    expect(getActiveResultLabel()).toBe('note5');
     expect(searchInput).toHaveValue('/');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getActiveSearchResult()?.textContent).toBe('note3');
+    expect(getActiveResultLabel()).toBe('note3');
     expect(searchInput).toHaveValue('/');
   });
 
@@ -946,20 +1172,19 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: '/' } });
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
+      expect(getActiveResultLabel()).toBe('note1');
     });
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note3');
+    expect(getActiveResultLabel()).toBe('note3');
     expect(searchInput).toHaveValue('/');
 
     fireEvent.change(searchInput, { target: { value: `${(searchInput as HTMLInputElement).value}/` } });
 
     await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
+      const resultItems = getResultLabels();
       expect(resultItems).toEqual(['note4']);
-      expect(getActiveSearchResult()?.textContent).toBe('note4');
+      expect(getActiveResultLabel()).toBe('note4');
       expect(searchInput).toHaveValue('//');
     });
 
@@ -975,16 +1200,15 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: '/' } });
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
+      expect(getActiveResultLabel()).toBe('note1');
     });
 
     fireEvent.change(searchInput, { target: { value: '/note3/' } });
 
     await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
+      const resultItems = getResultLabels();
       expect(resultItems).toEqual(['note4']);
-      expect(getActiveSearchResult()?.textContent).toBe('note4');
+      expect(getActiveResultLabel()).toBe('note4');
       expect(searchInput).toHaveValue('/note3/');
     });
   });
@@ -997,19 +1221,17 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: '/note1/' } });
 
     await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
+      const resultItems = getResultLabels();
       expect(resultItems).toEqual(['note2']);
-      expect(getActiveSearchResult()?.textContent).toBe('note2');
+      expect(getActiveResultLabel()).toBe('note2');
     });
 
     fireEvent.change(searchInput, { target: { value: '/note3/' } });
 
     await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
+      const resultItems = getResultLabels();
       expect(resultItems).toEqual(['note4']);
-      expect(getActiveSearchResult()?.textContent).toBe('note4');
+      expect(getActiveResultLabel()).toBe('note4');
       expect(searchInput).toHaveValue('/note3/');
     });
   });
@@ -1037,19 +1259,17 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: '/note1/no' } });
 
     await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
+      const resultItems = getResultLabels();
       expect(resultItems).toEqual(['note2']);
-      expect(getActiveSearchResult()?.textContent).toBe('note2');
+      expect(getActiveResultLabel()).toBe('note2');
     });
 
     fireEvent.change(searchInput, { target: { value: '/note3/no' } });
 
     await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
+      const resultItems = getResultLabels();
       expect(resultItems).toEqual(['note4']);
-      expect(getActiveSearchResult()?.textContent).toBe('note4');
+      expect(getActiveResultLabel()).toBe('note4');
       expect(searchInput).toHaveValue('/note3/no');
     });
   });
@@ -1092,7 +1312,7 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: '/' } });
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
+      expect(getActiveResultLabel()).toBe('note1');
     });
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
@@ -1100,14 +1320,14 @@ describe('document route', () => {
 
     fireEvent.change(searchInput, { target: { value: '//' } });
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note4');
+      expect(getActiveResultLabel()).toBe('note4');
     });
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
     expect(searchInput).toHaveValue('//');
 
     fireEvent.change(searchInput, { target: { value: '///' } });
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note6');
+      expect(getActiveResultLabel()).toBe('note6');
     });
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
     expect(searchInput).toHaveValue('///');
@@ -1121,23 +1341,21 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: '/' } });
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
+      expect(getActiveResultLabel()).toBe('note1');
     });
 
     fireEvent.change(searchInput, { target: { value: '//' } });
     await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
+      const resultItems = getResultLabels();
       expect(resultItems).toEqual(['note2']);
-      expect(getActiveSearchResult()?.textContent).toBe('note2');
+      expect(getActiveResultLabel()).toBe('note2');
     });
 
     fireEvent.change(searchInput, { target: { value: '/' } });
     await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
+      const resultItems = getResultLabels();
       expect(resultItems).toEqual(['note1', 'note3', 'note5']);
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
+      expect(getActiveResultLabel()).toBe('note1');
     });
   });
 
@@ -1148,32 +1366,32 @@ describe('document route', () => {
     searchInput.focus();
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
+      expect(getActiveResultLabel()).toBe('note1');
     });
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note2');
+    expect(getActiveResultLabel()).toBe('note2');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note3');
+    expect(getActiveResultLabel()).toBe('note3');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note5');
+    expect(getActiveResultLabel()).toBe('note5');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note5');
+    expect(getActiveResultLabel()).toBe('note5');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getActiveSearchResult()?.textContent).toBe('note4');
+    expect(getActiveResultLabel()).toBe('note4');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getActiveSearchResult()?.textContent).toBe('note1');
+    expect(getActiveResultLabel()).toBe('note1');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getActiveSearchResult()?.textContent).toBe('note1');
+    expect(getActiveResultLabel()).toBe('note1');
   });
 
   it('shows flat results across the whole document while query is non-empty', async () => {
@@ -1184,8 +1402,7 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: 'note' } });
 
     await screen.findByTestId('document-search-results');
-    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-      .map((item) => item.textContent);
+    const resultItems = getResultLabels();
     expect(resultItems).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
     expect(document.querySelector('.document-editor-pane--hidden')).not.toBeNull();
   });
@@ -1212,8 +1429,7 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: 'sdk' } });
 
     await screen.findByTestId('document-search-results');
-    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-      .map((item) => item.textContent);
+    const resultItems = getResultLabels();
 
     expect(resultItems).toEqual(['sdk result']);
   });
@@ -1255,7 +1471,7 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: 'main' } });
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('main only');
+      expect(getActiveResultLabel()).toBe('main only');
     });
 
     await router.navigate(createDocumentPath('other'));
@@ -1303,7 +1519,7 @@ describe('document route', () => {
     globals.__remdoMockSearchCandidateEmitters?.routeDoc?.();
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('fresh result');
+      expect(getActiveResultLabel()).toBe('fresh result');
     });
   });
 
@@ -1327,7 +1543,7 @@ describe('document route', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
-      expect(getActiveSearchResult()?.textContent).toBe('shared result');
+      expect(getActiveResultLabel()).toBe('shared result');
     });
 
     globals.__remdoMockSearchCandidateResetters?.routeDoc?.();
@@ -1350,7 +1566,7 @@ describe('document route', () => {
     globals.__remdoMockSearchCandidateEmitters?.routeDoc?.();
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('fresh result');
+      expect(getActiveResultLabel()).toBe('fresh result');
     });
   });
 
@@ -1378,13 +1594,12 @@ describe('document route', () => {
     searchInput.focus();
     fireEvent.change(searchInput, { target: { value: '/' } });
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
+      expect(getActiveResultLabel()).toBe('note1');
     });
 
     fireEvent.change(searchInput, { target: { value: '//' } });
     await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
+      const resultItems = getResultLabels();
       expect(resultItems).toEqual(['note2']);
       expect(searchInput).toHaveValue('//');
     });
@@ -1395,10 +1610,9 @@ describe('document route', () => {
     otherSearchInput.focus();
 
     await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
+      const resultItems = getResultLabels();
       expect(resultItems).toEqual(['other2']);
-      expect(getActiveSearchResult()?.textContent).toBe('other2');
+      expect(getActiveResultLabel()).toBe('other2');
       expect(otherSearchInput).toHaveValue('//');
     });
   });
@@ -1437,10 +1651,9 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: '/note6/' } });
 
     await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
+      const resultItems = getResultLabels();
       expect(resultItems).toEqual(['note7']);
-      expect(getActiveSearchResult()?.textContent).toBe('note7');
+      expect(getActiveResultLabel()).toBe('note7');
     });
 
     await router.navigate(createDocumentPath('other'));
@@ -1478,10 +1691,9 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: '/note1/' } });
 
     await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
+      const resultItems = getResultLabels();
       expect(resultItems).toEqual(['note2']);
-      expect(getActiveSearchResult()?.textContent).toBe('note2');
+      expect(getActiveResultLabel()).toBe('note2');
     });
 
     globals.__remdoMockSearchCandidatesByDoc = {
@@ -1537,10 +1749,9 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: '/foo/' } });
 
     await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
+      const resultItems = getResultLabels();
       expect(resultItems).toEqual(['foo child']);
-      expect(getActiveSearchResult()?.textContent).toBe('foo child');
+      expect(getActiveResultLabel()).toBe('foo child');
     });
   });
 
@@ -1568,8 +1779,7 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: 'note3' } });
 
     await waitFor(() => {
-      const active = document.querySelector<HTMLElement>('[data-search-result-item][data-search-result-active=\"true\"]');
-      expect(active?.textContent).toBe('note3');
+      expect(getActiveResultLabel()).toBe('note3');
     });
 
     fireEvent.keyDown(searchInput, { key: 'Enter' });
@@ -1588,15 +1798,15 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: '/' } });
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
+      expect(getActiveResultLabel()).toBe('note1');
     });
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note3');
+    expect(getActiveResultLabel()).toBe('note3');
 
     fireEvent.change(searchInput, { target: { value: `${(searchInput as HTMLInputElement).value}/` } });
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note4');
+      expect(getActiveResultLabel()).toBe('note4');
     });
 
     fireEvent.keyDown(searchInput, { key: 'Enter' });

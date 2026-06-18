@@ -79,8 +79,8 @@ outdated or a doc’s role materially changes.
   inline-completion acceptance with `ArrowRight`, combobox/listbox
   accessibility semantics, non-leaf `/...` result hints, and per-result
   structural context (compact parent/count rows, expanded highlighted row with
-  truncating ancestor breadcrumb, clickable crumbs, child preview, and matched
-  term highlighting).
+  truncating ancestor breadcrumb, clickable crumbs, editor-faithful child preview
+  with per-type list markers, and matched term highlighting).
 - `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
   scope, breadcrumbs, and routing.

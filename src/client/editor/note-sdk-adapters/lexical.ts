@@ -1,6 +1,7 @@
 import type { LexicalEditor, LexicalNode } from 'lexical';
 import { $createTextNode, $getNodeByKey, $getSelection, $isRangeSelection, $setState } from 'lexical';
 import { createUniqueNoteId } from '#domain/notes/ids';
+import { $getNoteChecked } from '#client/editor/runtime/checklist-state';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import { noteRangeFromNoteId, noteRangeFromOrderedIds } from '#client/editor/outline/note-range';
 import {
@@ -295,6 +296,11 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
     hasNote: (noteId) => Boolean($resolveNoteById(noteId)),
     isBounded: (noteId) => Boolean($resolveNoteById(noteId)),
     textOf: (noteId) => $requireNoteById(noteId).getTextContent(),
+    listTypeOf: (noteId) => {
+      const parent = $requireNoteById(noteId).getParent();
+      return $isListNode(parent) ? parent.getListType() : 'bullet';
+    },
+    checkedOf: (noteId) => $getNoteChecked($requireNoteById(noteId)) === true,
     childrenOf: (noteId) => {
       const current = $requireNoteById(noteId);
 

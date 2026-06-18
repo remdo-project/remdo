@@ -10,12 +10,17 @@ import { registerPendingDocumentImport } from '#client/editor/runtime/pending-do
 import { createDocumentPath, createDocumentSyncTokenApiPath, parseDocumentRef } from '#document-routes';
 import type { ParsedDocumentRef } from '#document-routes';
 import type { DocumentSourceNote } from '#note-sdk';
+import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import {
   APP_TITLE,
   formatNavigationLabel,
 } from '#client/ui/navigation-label';
 import { useDocumentSearchModel } from './useDocumentSearchModel';
+import { SearchResultRow } from './SearchResultRow';
 import './DocumentRoute.css';
+
+const CHILD_PREVIEW_LIMIT = 2;
+const EMPTY_ANCESTOR_PATH: NotePathItem[] = [];
 
 function isVisibleInCurrentView(element: HTMLElement): boolean {
   if (element.classList.contains('zoom-hidden')) {
@@ -233,6 +238,7 @@ function DocumentRouteContent({
   }, []);
 
   const {
+    ancestorPathMap,
     childCandidateMap,
     flatResults,
     handleSearchBlur,
@@ -560,14 +566,19 @@ function DocumentRouteContent({
             role="listbox"
           >
             {flatResults.length > 0 ? flatResults.map((result, index) => {
-              const hasChildren = (childCandidateMap[result.noteId]?.length ?? 0) > 0;
+              const children = childCandidateMap[result.noteId] ?? [];
+              const hasChildren = children.length > 0;
+              const isActive = result.noteId === highlightedResultNoteId;
               return (
                 <li
-                  aria-selected={result.noteId === highlightedResultNoteId}
+                  aria-label={result.text.length > 0 ? result.text : '(empty note)'}
+                  aria-selected={isActive}
                   className="document-search-results-item"
-                  data-search-result-active={result.noteId === highlightedResultNoteId ? 'true' : undefined}
+                  data-search-result-active={isActive ? 'true' : undefined}
+                  data-search-result-expanded={isActive ? 'true' : undefined}
                   data-search-result-has-children={hasChildren ? 'true' : undefined}
                   data-search-result-item
+                  data-search-result-label={result.text}
                   id={`${searchResultsListboxId}-option-${index}`}
                   key={result.noteId}
                   onClick={(event) => {
@@ -578,7 +589,18 @@ function DocumentRouteContent({
                   }}
                   role="option"
                 >
-                  {result.text.length > 0 ? result.text : '(empty note)'}
+                  <SearchResultRow
+                    ancestorPath={ancestorPathMap[result.noteId] ?? EMPTY_ANCESTOR_PATH}
+                    checked={result.checked}
+                    childCount={children.length}
+                    childPreview={children.slice(0, CHILD_PREVIEW_LIMIT)}
+                    expanded={isActive}
+                    listType={result.listType}
+                    onSelectAncestor={handleSearchResultClick}
+                    onSelectAncestorPointerDown={handleSearchResultPointerDown}
+                    query={isSlashMode ? '' : searchQuery}
+                    text={result.text}
+                  />
                 </li>
               );
             }) : (

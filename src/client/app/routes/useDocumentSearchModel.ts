@@ -9,17 +9,14 @@ import type {
 } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { ROOT_SEARCH_SCOPE_ID } from '#client/editor/search/search-candidates';
-import type { SearchCandidateSnapshot } from '#client/editor/search/search-candidates';
-
-interface SearchCandidate {
-  noteId: string;
-  text: string;
-}
+import type { SearchCandidate, SearchCandidateSnapshot } from '#client/editor/search/search-candidates';
+import type { NotePathItem } from '#client/editor/outline/note-traversal';
 
 interface SearchCandidateState {
   sourceDocId: string;
   allCandidates: SearchCandidate[];
   childCandidateMap: Record<string, SearchCandidate[]>;
+  ancestorPathMap: Record<string, NotePathItem[]>;
 }
 
 interface UseDocumentSearchModelOptions {
@@ -29,6 +26,7 @@ interface UseDocumentSearchModelOptions {
 }
 
 interface UseDocumentSearchModelResult {
+  ancestorPathMap: Record<string, NotePathItem[]>;
   childCandidateMap: Record<string, SearchCandidate[]>;
   flatResults: SearchCandidate[];
   handleSearchBlur: () => void;
@@ -58,16 +56,14 @@ const EMPTY_SEARCH_CANDIDATE_STATE: SearchCandidateState = {
   sourceDocId: '',
   allCandidates: EMPTY_SEARCH_CANDIDATES,
   childCandidateMap: {},
+  ancestorPathMap: {},
 };
 const INVALID_SEARCH_SCOPE_ID = '__invalid_search_scope__';
 
 function mapSearchCandidates(
-  candidates: ReadonlyArray<{ noteId: string; text: string }>
+  candidates: readonly SearchCandidate[]
 ): SearchCandidate[] {
-  return candidates.map((candidate) => ({
-    noteId: candidate.noteId,
-    text: candidate.text,
-  }));
+  return candidates.map((candidate) => ({ ...candidate }));
 }
 
 function countSlashes(query: string): number {
@@ -348,6 +344,7 @@ export function useDocumentSearchModel({
           mapSearchCandidates(candidates),
         ])
       ),
+      ancestorPathMap: snapshot.ancestorPathMap,
     });
   }, [docId]);
 
@@ -490,6 +487,7 @@ export function useDocumentSearchModel({
 
   const highlightedResultNoteId = searchModeActive ? resolvedHighlightedNoteId : null;
   return {
+    ancestorPathMap: currentDocumentCandidates.ancestorPathMap,
     childCandidateMap: currentDocumentCandidates.childCandidateMap,
     flatResults,
     handleSearchBlur,

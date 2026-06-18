@@ -33,6 +33,7 @@ describe('search candidates plugin', () => {
     };
     const collectSearchCandidates = vi.fn(() => [{ noteId: 'note1', text: 'note1' }]);
     const collectChildCandidateMap = vi.fn(() => ({ note1: [] }));
+    const collectAncestorPathMap = vi.fn(() => ({ note1: [{ noteId: 'note1', label: 'note1' }] }));
     lexicalComposerContextEditor = mockEditor;
 
     vi.doMock('@lexical/react/LexicalComposerContext', () => ({
@@ -44,6 +45,7 @@ describe('search candidates plugin', () => {
     vi.doMock('#client/editor/search/search-candidates', () => ({
       collectSearchCandidates,
       collectChildCandidateMap,
+      collectAncestorPathMap,
     }));
 
     const { SearchCandidatesPlugin } = await import('#client/editor/plugins/SearchCandidatesPlugin');
@@ -86,6 +88,7 @@ describe('search candidates plugin', () => {
     vi.doMock('#client/editor/search/search-candidates', () => ({
       collectSearchCandidates: () => [{ noteId: 'note1', text: 'note1' }],
       collectChildCandidateMap: () => ({ note1: [] }),
+      collectAncestorPathMap: () => ({ note1: [{ noteId: 'note1', label: 'note1' }] }),
     }));
 
     const { SearchCandidatesPlugin } = await import('#client/editor/plugins/SearchCandidatesPlugin');
@@ -101,6 +104,7 @@ describe('search candidates plugin', () => {
       expect(handleCandidatesChange).toHaveBeenCalledWith({
         allCandidates: [{ noteId: 'note1', text: 'note1' }],
         childCandidateMap: { note1: [] },
+        ancestorPathMap: { note1: [{ noteId: 'note1', label: 'note1' }] },
       });
     });
 

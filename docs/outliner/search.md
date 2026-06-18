@@ -85,8 +85,10 @@ behavior and the planned slash-prefixed navigation flow.
     state and active descendant linkage.
 34. Search results expose listbox semantics and mark the highlighted result as
     selected.
-35. In flat results, non-leaf notes show a muted `/...` suffix hint; leaf notes
-    show no suffix.
+35. In slash-navigation flat results, non-leaf notes show a muted `/...` suffix
+    hint; leaf notes show no suffix. In text-search results the compact context
+    line (rule 1 below) carries the children count instead, so no `/...` suffix
+    appears there.
 
 ## Result row context
 
@@ -118,8 +120,13 @@ the highlight moves.
      crumb truncated by width exposes its full label as a tooltip.
 5. Every ancestor crumb (not the final match crumb) is activatable; activating it
    zooms that ancestor and ends Search Mode, exactly like accepting a result.
-6. The child preview shows the first two direct children of the match. A match
-   with no children shows no preview; a match with more than two children
-   indicates the remaining count.
-7. Result row context is sourced from the active document's search candidates and
+6. Each result note renders with the outline's own list markers — bullet,
+   number, or checkbox per its list type, and a checked note struck through — so
+   a result reads as it does in the editor. On a compact row this is its text
+   line; on the expanded row the matched note's crumb carries the struck-through
+   state.
+7. The child preview shows the first two direct children of the match with the
+   same outline rendering as rule 6. A match with no children shows no preview; a
+   match with more than two children indicates the remaining count.
+8. Result row context is sourced from the active document's search candidates and
    appears only once those candidates are available.

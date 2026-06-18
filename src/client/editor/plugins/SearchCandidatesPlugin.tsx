@@ -2,6 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
 import {
+  collectAncestorPathMap,
   collectChildCandidateMap,
   collectSearchCandidates,
 } from '#client/editor/search/search-candidates';
@@ -41,17 +42,48 @@ function mapsMatch(
   });
 }
 
+function pathsMatch(
+  leftPath: SearchCandidateSnapshot['ancestorPathMap'][string],
+  rightPath: SearchCandidateSnapshot['ancestorPathMap'][string]
+): boolean {
+  return leftPath.length === rightPath.length &&
+    leftPath.every((leftItem, index) => {
+      const rightItem = rightPath[index];
+      return rightItem !== undefined &&
+        leftItem.noteId === rightItem.noteId &&
+        leftItem.label === rightItem.label;
+    });
+}
+
+function ancestorMapsMatch(
+  leftMap: SearchCandidateSnapshot['ancestorPathMap'],
+  rightMap: SearchCandidateSnapshot['ancestorPathMap']
+): boolean {
+  const leftNoteIds = Object.keys(leftMap);
+  if (leftNoteIds.length !== Object.keys(rightMap).length) {
+    return false;
+  }
+
+  return leftNoteIds.every((noteId) => {
+    const rightPath = rightMap[noteId];
+    return rightPath !== undefined &&
+      pathsMatch(leftMap[noteId] ?? [], rightPath);
+  });
+}
+
 function signaturesMatch(
   left: SearchCandidateSnapshot,
   right: SearchCandidateSnapshot
 ): boolean {
   return entriesMatch(left.allCandidates, right.allCandidates) &&
-    mapsMatch(left.childCandidateMap, right.childCandidateMap);
+    mapsMatch(left.childCandidateMap, right.childCandidateMap) &&
+    ancestorMapsMatch(left.ancestorPathMap, right.ancestorPathMap);
 }
 
 const emptySnapshot: SearchCandidateSnapshot = {
   allCandidates: [],
   childCandidateMap: {},
+  ancestorPathMap: {},
 };
 
 export function SearchCandidatesPlugin({
@@ -75,6 +107,7 @@ export function SearchCandidatesPlugin({
     const snapshot = editorState.read(() => ({
       allCandidates: collectSearchCandidates(editorNotes),
       childCandidateMap: collectChildCandidateMap(editorNotes),
+      ancestorPathMap: collectAncestorPathMap(editorNotes),
     }));
     emitCandidates(snapshot);
   }, [editor, editorNotes, emitCandidates]);

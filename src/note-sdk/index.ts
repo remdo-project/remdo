@@ -16,6 +16,7 @@ export type {
   EditorNote,
   EditorNotes,
   EditorNotesAdapter,
+  NoteListType,
   NoteRange,
   PlaceTarget,
   SelectionSnapshot,

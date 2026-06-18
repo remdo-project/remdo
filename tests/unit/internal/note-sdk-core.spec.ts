@@ -93,6 +93,14 @@ function createMockAdapterFixture(
       hasNote: (noteId) => notes.has(noteId),
       isBounded: (noteId) => notes.has(noteId),
       textOf: (noteId) => requireNote(noteId).text,
+      listTypeOf: (noteId) => {
+        requireNote(noteId);
+        return 'bullet';
+      },
+      checkedOf: (noteId) => {
+        requireNote(noteId);
+        return false;
+      },
       childrenOf: (noteId) => requireNote(noteId).children,
       delete: (range) => {
         requireRange(range);

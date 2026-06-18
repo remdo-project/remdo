@@ -159,9 +159,14 @@
   padding: 0.15rem 0.4rem;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  min-width: 0;
 }
 
-.document-search-results-item[data-search-result-has-children='true']::after {
+/* `/...` non-leaf hint applies to compact text rows only; the expanded row uses
+   a breadcrumb whose match crumb already conveys position. */
+.document-search-results[data-search-mode='slash']
+  .document-search-results-item[data-search-result-has-children='true']:not([data-search-result-expanded='true'])
+  .document-search-result-text .list-item:not(.list-item-checked):not(.list-item-unchecked)::after {
   content: ' /...';
   color: var(--mantine-color-dark-3);
 }
@@ -170,6 +175,111 @@
   --interaction-radius: var(--mantine-radius-xs);
   border-radius: var(--interaction-radius);
   box-shadow: var(--focus-ring, 0 0 0 1px rgb(111 138 255 / 0.42), 0 0 0 3px rgb(111 138 255 / 0.11), 0 0 22px 5px rgb(111 138 255 / 0.12));
+}
+
+/* The compact row text is a single outline item (ul.list-ul / ol.list-ol) so it
+   shows the note's own marker and checked state. Reset list box model and scale
+   it to the row. */
+.document-search-result-text.remdo-outline {
+  margin: 0;
+  padding: 0;
+  overflow-wrap: anywhere;
+}
+
+.document-search-result-text .list-item {
+  cursor: inherit;
+}
+
+.document-search-result-mark {
+  background: var(--mantine-color-yellow-light, rgb(255 224 102 / 0.28));
+  color: inherit;
+  border-radius: var(--mantine-radius-xs);
+  padding: 0 0.05rem;
+}
+
+.document-search-result-context {
+  display: block;
+  margin-top: 0.05rem;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-2);
+}
+
+.document-search-result-parent {
+  color: var(--mantine-color-dark-1);
+}
+
+/* Single-line breadcrumb: crumbs shrink with ellipsis to share the row width;
+   the match crumb shrinks last so it stays readable. */
+.document-search-result-breadcrumb {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.document-search-result-crumb-separator {
+  flex: 0 0 auto;
+  color: var(--mantine-color-dark-3);
+}
+
+.document-search-result-crumb {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.document-search-result-crumb--ancestor {
+  flex: 0 4 auto;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--mantine-color-blue-3);
+  cursor: pointer;
+  text-align: start;
+}
+
+.document-search-result-crumb--ancestor:hover {
+  text-decoration: underline;
+}
+
+.document-search-result-crumb--ellipsis {
+  flex: 0 0 auto;
+  color: var(--mantine-color-dark-3);
+  cursor: default;
+}
+
+.document-search-result-crumb--match {
+  flex: 0 1 auto;
+  color: var(--mantine-color-dark-0);
+  font-weight: 600;
+}
+
+/* A checked match reads as done, mirroring the editor's checked line-through. */
+.document-search-result-crumb--checked {
+  text-decoration: line-through;
+}
+
+/* Child preview reuses the shared `.remdo-outline` list rendering (bullets,
+   checkboxes, counters) so previews match the editor. Only preview-local scale
+   and color are set here. */
+.document-search-result-children.remdo-outline {
+  margin-top: 0.1rem;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-1);
+}
+
+.document-search-result-children .list-item {
+  cursor: default;
+}
+
+.document-search-result-children-more {
+  margin-top: 0.05rem;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-3);
 }
 
 .document-search-results-empty {
