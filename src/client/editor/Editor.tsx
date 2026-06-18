@@ -14,6 +14,7 @@ import { SelectionCollapsePlugin } from './plugins/SelectionCollapsePlugin';
 import { InsertionPlugin } from './plugins/InsertionPlugin';
 import { DeletionPlugin } from './plugins/DeletionPlugin';
 import { DatePlugin } from './features/date/DatePlugin';
+import { NoteBodyPlugin } from './features/note-body/NoteBodyPlugin';
 import { LinksPlugin } from './plugins/LinksPlugin';
 import { RootSchemaPlugin } from './plugins/RootSchemaPlugin';
 import { NoteIdPlugin } from './plugins/NoteIdPlugin';
@@ -116,6 +117,7 @@ function EditorRuntime({
               <KeymapPlugin />
               <IndentationPlugin />
               <ReorderingPlugin />
+              <NoteBodyPlugin />
               <SelectionPlugin />
               <SelectionCollapsePlugin />
               <LinksPlugin />

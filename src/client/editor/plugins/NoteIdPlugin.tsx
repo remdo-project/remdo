@@ -26,6 +26,7 @@ import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { createUniqueNoteId, createNoteIdAvoiding } from '#domain/notes/ids';
 import { $autoExpandIfFolded } from '#client/editor/runtime/fold-state';
+import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
 import { $createNoteLinkNode } from '#client/editor/runtime/note-link-node';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import {
@@ -161,7 +162,16 @@ function $isCaretWithinMarkedSelection(marker: CutMarker, selection: BaseSelecti
 }
 
 function $ensureNoteId(item: ListItemNode) {
-  if (isChildrenWrapper(item) || $getNoteId(item)) {
+  if (isChildrenWrapper(item) || isBodyWrapper(item)) {
+    // Adjacency wrappers are not notes; strip any stale noteId that may have
+    // been assigned before the wrapper's content settled.
+    if ($getNoteId(item)) {
+      $setState(item, noteIdState, undefined);
+    }
+    return;
+  }
+
+  if ($getNoteId(item)) {
     return;
   }
 

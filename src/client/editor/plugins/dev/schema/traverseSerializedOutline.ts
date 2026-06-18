@@ -13,6 +13,7 @@ export interface SerializedOutlineNote {
   folded?: boolean;
   checked?: boolean;
   contentNodes: SerializedLexicalNode[];
+  bodyNodes?: SerializedLexicalNode[];
   children: SerializedOutlineNote[];
 }
 
@@ -24,6 +25,16 @@ interface TraversalResult {
 const LIST_TYPE = 'list';
 const LIST_ITEM_TYPE = 'listitem';
 const ROOT_TYPE = 'root';
+const NOTE_BODY_TYPE = 'note-body';
+
+// A body-wrapper is a list item whose single child is a note-body element.
+function isBodyWrapperNode(node: SerializedLexicalNode | undefined | null): node is NodeWithChildren {
+  if (!isNodeWithChildren(node) || node.type !== LIST_ITEM_TYPE) {
+    return false;
+  }
+  const children = getChildren(node);
+  return children.length === 1 && children[0]?.type === NOTE_BODY_TYPE;
+}
 
 function isNodeWithChildren(node: SerializedLexicalNode | undefined | null): node is NodeWithChildren {
   return Boolean(node && (node as NodeWithChildren).children !== undefined);
@@ -106,6 +117,14 @@ export function traverseSerializedOutline(state: SerializedEditorState): Travers
         continue;
       }
 
+      // A body-wrapper is attached to its preceding note via lookahead below; if
+      // we reach one here it has no preceding content note, which is invalid.
+      if (isBodyWrapperNode(child)) {
+        const prefixStr = formatPath(prefix);
+        fail(`body-wrapper-without-note path=${prefixStr}`);
+        break;
+      }
+
       const childChildren = getChildren(child);
       const nestedLists = childChildren.filter((nested) => nested.type === LIST_TYPE);
       const contentNodes = childChildren.filter((nested) => nested.type !== LIST_TYPE);
@@ -152,6 +171,15 @@ export function traverseSerializedOutline(state: SerializedEditorState): Travers
         contentNodes,
         children: [],
       };
+
+      // A body-wrapper, if present, sits immediately after the note (before the
+      // children-wrapper). Capture its body content and skip it.
+      const bodyWrapper = children[index + 1];
+      if (isBodyWrapperNode(bodyWrapper)) {
+        const bodyNode = getChildren(bodyWrapper)[0];
+        note.bodyNodes = getChildren(bodyNode);
+        index += 1;
+      }
 
       const nextSibling = children[index + 1];
       if (isNodeWithChildren(nextSibling) && nextSibling.type === LIST_ITEM_TYPE) {

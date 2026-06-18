@@ -1,0 +1,19 @@
+/* A note body is a rich-text region attached to a note, rendered set apart from
+   the note's own content (see docs/outliner/body.md). The body-wrapper list item
+   carries no bullet; the body block itself reads as a distinct sub-region. */
+.list-item:has(> .note-body) {
+  list-style: none;
+}
+
+.note-body {
+  margin: 0.15rem 0 0.25rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--mantine-color-gray-4, #ced4da);
+  color: var(--mantine-color-dimmed, #868e96);
+  font-size: 0.9em;
+  line-height: 1.45;
+}
+
+.note-body:empty::before {
+  content: '';
+}

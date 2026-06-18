@@ -3,6 +3,7 @@ import type { BaseSelection } from 'lexical';
 import { $getNodeByKey, $isRangeSelection } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
+import { $isSelectionInNoteBody } from '#client/editor/features/note-body/note-body-ops';
 
 import type { OutlineSelection, OutlineSelectionRange } from './model';
 import { getContiguousSelectionHeads, getSelectedNotes } from './heads';
@@ -124,6 +125,21 @@ export function $computeOutlineSelectionSnapshot({
   initialProgression,
   boundaryKey,
 }: OutlineSelectionSnapshotInput): OutlineSelectionSnapshot {
+  // A selection inside a note body is its own world: it never feeds structural
+  // selection or the ladder. Return a neutral snapshot so the body owns its
+  // caret/range without the outline trying to interpret it structurally.
+  if ($isRangeSelection(selection) && $isSelectionInNoteBody(selection)) {
+    return {
+      payload: null,
+      hasStructuralSelection: false,
+      structuralRange: null,
+      outlineSelection: null,
+      progression: initialProgression,
+      unlock: { pending: false, reason: 'external' },
+      reshape: null,
+    };
+  }
+
   let payload: SnapPayload | null = null;
   let structuralRange: OutlineSelectionRange | null = null;
   let hasStructuralSelection = false;

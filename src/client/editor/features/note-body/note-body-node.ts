@@ -54,14 +54,6 @@ export class NoteBodyNode extends ElementNode {
   canBeEmpty(): true {
     return true;
   }
-
-  canInsertTextBefore(): false {
-    return false;
-  }
-
-  canInsertTextAfter(): false {
-    return false;
-  }
 }
 
 export function $createNoteBodyNode(): NoteBodyNode {

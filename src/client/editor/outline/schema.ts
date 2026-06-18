@@ -4,6 +4,7 @@ import { $getRoot } from 'lexical';
 import type { LexicalNode } from 'lexical';
 
 import { $getNoteId } from '#client/editor/runtime/note-id-state';
+import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
 import { reportInvariant } from '#client/editor/invariant';
 import { findNearestListItem, getContentListItem, isChildrenWrapper } from './list-structure';
 
@@ -38,6 +39,10 @@ export function $resolveRootContentList(): ListNode | null {
 export function resolveContentItemFromNode(node: LexicalNode | null): ListItemNode | null {
   const listItem = findNearestListItem(node);
   if (!listItem) {
+    return null;
+  }
+  // A node inside a body is not note content; it must not resolve to a note.
+  if (isBodyWrapper(listItem)) {
     return null;
   }
   const contentItem = getContentListItem(listItem);
