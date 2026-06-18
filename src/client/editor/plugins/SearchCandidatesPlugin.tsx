@@ -1,11 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
-import {
-  collectAncestorPathMap,
-  collectChildCandidateMap,
-  collectSearchCandidates,
-} from '#client/editor/search/search-candidates';
+import { collectSearchCandidateSnapshot } from '#client/editor/search/search-candidates';
 import type { SearchCandidateSnapshot } from '#client/editor/search/search-candidates';
 
 interface SearchCandidatesPluginProps {
@@ -106,11 +102,7 @@ export function SearchCandidatesPlugin({
   }, [onCandidatesChange]);
 
   const readAndEmitCandidates = useCallback((editorState = editor.getEditorState()) => {
-    const snapshot = editorState.read(() => ({
-      allCandidates: collectSearchCandidates(editorNotes),
-      childCandidateMap: collectChildCandidateMap(editorNotes),
-      ancestorPathMap: collectAncestorPathMap(editorNotes),
-    }));
+    const snapshot = editorState.read(() => collectSearchCandidateSnapshot(editorNotes));
     emitCandidates(snapshot);
   }, [editor, editorNotes, emitCandidates]);
 

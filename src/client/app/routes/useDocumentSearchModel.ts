@@ -60,12 +60,6 @@ const EMPTY_SEARCH_CANDIDATE_STATE: SearchCandidateState = {
 };
 const INVALID_SEARCH_SCOPE_ID = '__invalid_search_scope__';
 
-function mapSearchCandidates(
-  candidates: readonly SearchCandidate[]
-): SearchCandidate[] {
-  return candidates.map((candidate) => ({ ...candidate }));
-}
-
 function countSlashes(query: string): number {
   return query.split('/').length - 1;
 }
@@ -335,15 +329,12 @@ export function useDocumentSearchModel({
       return;
     }
 
+    // The plugin builds a fresh snapshot per emit and never mutates it after
+    // handing it off, so the model can hold its arrays/maps by reference.
     setCurrentDocumentCandidateState({
       sourceDocId: docId,
-      allCandidates: mapSearchCandidates(snapshot.allCandidates),
-      childCandidateMap: Object.fromEntries(
-        Object.entries(snapshot.childCandidateMap).map(([noteId, candidates]) => [
-          noteId,
-          mapSearchCandidates(candidates),
-        ])
-      ),
+      allCandidates: snapshot.allCandidates,
+      childCandidateMap: snapshot.childCandidateMap,
       ancestorPathMap: snapshot.ancestorPathMap,
     });
   }, [docId]);

@@ -17,6 +17,7 @@ import {
   collectAncestorPathMap,
   collectChildCandidateMap,
   collectSearchCandidates,
+  collectSearchCandidateSnapshot,
   ROOT_SEARCH_SCOPE_ID,
 } from '#client/editor/search/search-candidates';
 
@@ -251,9 +252,7 @@ describe('search candidates', () => {
       currentDocument: () => createMockDocumentNote([root]),
     };
 
-    const allCandidates = collectSearchCandidates(sdk);
-    const childCandidateMap = collectChildCandidateMap(sdk);
-    const ancestorPathMap = collectAncestorPathMap(sdk);
+    const { allCandidates, childCandidateMap, ancestorPathMap } = collectSearchCandidateSnapshot(sdk);
 
     expect(ancestorPathMap[`deep-${depth - 1}`]).toHaveLength(depth);
     expect(allCandidates).toHaveLength(depth);
@@ -267,5 +266,31 @@ describe('search candidates', () => {
     expect(childCandidateMap[ROOT_SEARCH_SCOPE_ID]).toEqual([{ noteId: 'deep-0', text: 'Deep 0', listType: 'bullet', checked: false }]);
     expect(childCandidateMap['deep-0']).toEqual([{ noteId: 'deep-1', text: 'Deep 1', listType: 'bullet', checked: false }]);
     expect(childCandidateMap[`deep-${depth - 1}`]).toEqual([]);
+  });
+
+  it('single-pass snapshot matches the three standalone collectors', () => {
+    const top = createMockEditorNote('top', 'Top', [
+      createMockEditorNote('child-a', 'Child A', [], { listType: 'number' }),
+      createMockEditorNote('child-b', 'Child B', [
+        createMockEditorNote('leaf', 'Leaf', [], { listType: 'check', checked: true }),
+      ]),
+    ]);
+    const sibling = createMockEditorNote('sibling', 'Sibling');
+    const sdk = { currentDocument: () => createMockDocumentNote([top, sibling]) };
+
+    expect(collectSearchCandidateSnapshot(sdk)).toEqual({
+      allCandidates: collectSearchCandidates(sdk),
+      childCandidateMap: collectChildCandidateMap(sdk),
+      ancestorPathMap: collectAncestorPathMap(sdk),
+    });
+  });
+
+  it('single-pass snapshot handles an empty document', () => {
+    const sdk = { currentDocument: () => createMockDocumentNote([]) };
+    expect(collectSearchCandidateSnapshot(sdk)).toEqual({
+      allCandidates: [],
+      childCandidateMap: { [ROOT_SEARCH_SCOPE_ID]: [] },
+      ancestorPathMap: {},
+    });
   });
 });

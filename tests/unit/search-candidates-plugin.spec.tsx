@@ -31,9 +31,11 @@ describe('search candidates plugin', () => {
       },
       registerRootListener: () => () => {},
     };
-    const collectSearchCandidates = vi.fn(() => [{ noteId: 'note1', text: 'note1' }]);
-    const collectChildCandidateMap = vi.fn(() => ({ note1: [] }));
-    const collectAncestorPathMap = vi.fn(() => ({ note1: [{ noteId: 'note1', label: 'note1' }] }));
+    const collectSearchCandidateSnapshot = vi.fn(() => ({
+      allCandidates: [{ noteId: 'note1', text: 'note1', listType: 'bullet', checked: false }],
+      childCandidateMap: { note1: [] },
+      ancestorPathMap: { note1: [{ noteId: 'note1', label: 'note1' }] },
+    }));
     lexicalComposerContextEditor = mockEditor;
 
     vi.doMock('@lexical/react/LexicalComposerContext', () => ({
@@ -43,9 +45,7 @@ describe('search candidates plugin', () => {
       createLexicalEditorNotes: () => ({}),
     }));
     vi.doMock('#client/editor/search/search-candidates', () => ({
-      collectSearchCandidates,
-      collectChildCandidateMap,
-      collectAncestorPathMap,
+      collectSearchCandidateSnapshot,
     }));
 
     const { SearchCandidatesPlugin } = await import('#client/editor/plugins/SearchCandidatesPlugin');
@@ -53,8 +53,7 @@ describe('search candidates plugin', () => {
     render(<SearchCandidatesPlugin docId="main" />);
 
     await waitFor(() => {
-      expect(collectSearchCandidates).toHaveBeenCalledTimes(1);
-      expect(collectChildCandidateMap).toHaveBeenCalledTimes(1);
+      expect(collectSearchCandidateSnapshot).toHaveBeenCalledTimes(1);
     });
 
     expect(updateListener).not.toBeNull();
@@ -64,8 +63,8 @@ describe('search candidates plugin', () => {
       editorState: { read },
     });
 
-    expect(collectSearchCandidates).toHaveBeenCalledTimes(1);
-    expect(collectChildCandidateMap).toHaveBeenCalledTimes(1);
+    // Selection-only update (no dirty nodes) must not rebuild.
+    expect(collectSearchCandidateSnapshot).toHaveBeenCalledTimes(1);
   });
 
   it('re-emits candidates when only checked/list-type changes (same text)', async () => {
@@ -83,9 +82,6 @@ describe('search candidates plugin', () => {
     };
     // First read unchecked, then checked — same noteId/text, only `checked` flips.
     let checked = false;
-    const collectChildCandidateMap = vi.fn(() => ({
-      note1: [{ noteId: 'c1', text: 'child', listType: 'check', checked }],
-    }));
     lexicalComposerContextEditor = mockEditor;
 
     vi.doMock('@lexical/react/LexicalComposerContext', () => ({
@@ -95,9 +91,11 @@ describe('search candidates plugin', () => {
       createLexicalEditorNotes: () => ({}),
     }));
     vi.doMock('#client/editor/search/search-candidates', () => ({
-      collectSearchCandidates: () => [{ noteId: 'note1', text: 'note1', listType: 'bullet', checked: false }],
-      collectChildCandidateMap,
-      collectAncestorPathMap: () => ({ note1: [{ noteId: 'note1', label: 'note1' }] }),
+      collectSearchCandidateSnapshot: () => ({
+        allCandidates: [{ noteId: 'note1', text: 'note1', listType: 'bullet', checked: false }],
+        childCandidateMap: { note1: [{ noteId: 'c1', text: 'child', listType: 'check', checked }] },
+        ancestorPathMap: { note1: [{ noteId: 'note1', label: 'note1' }] },
+      }),
     }));
 
     const { SearchCandidatesPlugin } = await import('#client/editor/plugins/SearchCandidatesPlugin');
@@ -137,10 +135,13 @@ describe('search candidates plugin', () => {
     vi.doMock('#client/editor/note-sdk-adapters', () => ({
       createLexicalEditorNotes: () => ({}),
     }));
+    const snapshot = {
+      allCandidates: [{ noteId: 'note1', text: 'note1', listType: 'bullet', checked: false }],
+      childCandidateMap: { note1: [] },
+      ancestorPathMap: { note1: [{ noteId: 'note1', label: 'note1' }] },
+    };
     vi.doMock('#client/editor/search/search-candidates', () => ({
-      collectSearchCandidates: () => [{ noteId: 'note1', text: 'note1' }],
-      collectChildCandidateMap: () => ({ note1: [] }),
-      collectAncestorPathMap: () => ({ note1: [{ noteId: 'note1', label: 'note1' }] }),
+      collectSearchCandidateSnapshot: () => snapshot,
     }));
 
     const { SearchCandidatesPlugin } = await import('#client/editor/plugins/SearchCandidatesPlugin');
@@ -153,11 +154,7 @@ describe('search candidates plugin', () => {
     );
 
     await waitFor(() => {
-      expect(handleCandidatesChange).toHaveBeenCalledWith({
-        allCandidates: [{ noteId: 'note1', text: 'note1' }],
-        childCandidateMap: { note1: [] },
-        ancestorPathMap: { note1: [{ noteId: 'note1', label: 'note1' }] },
-      });
+      expect(handleCandidatesChange).toHaveBeenCalledWith(snapshot);
     });
 
     unmount();
