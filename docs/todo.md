@@ -275,6 +275,10 @@ Remaining issues to fold in or fix directly:
 - Clipboard: decide whether copying a note that has a body includes the body
   text when pasting as plain text outside RemDo. Settle in `clipboard.md` when
   clipboard is next touched; not a body-spec blocker.
+- Clipboard: copy/paste within RemDo currently drops a note's body (the pasted
+  copy is a clean note without its body). The body is never corrupted into a
+  standalone note — it is just not carried. Make the clipboard payload + paste
+  insertion preserve the body-wrapper so a copied note reproduces its body.
 
 ## Later follow-ups
 

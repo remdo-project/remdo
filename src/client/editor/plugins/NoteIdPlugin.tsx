@@ -34,6 +34,7 @@ import {
   getContentSiblings,
   insertBefore,
   isChildrenWrapper,
+  isContentItem,
   flattenNoteNodes,
 } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
@@ -187,7 +188,7 @@ function $getPlainTextFromClipboardNodes(nodes: LexicalNode[]): string {
   const lines: string[] = [];
   let hasListItems = false;
   for (const item of items) {
-    if ($isListItemNode(item) && !isChildrenWrapper(item)) {
+    if (isContentItem(item)) {
       hasListItems = true;
       lines.push(item.getTextContent());
     }
@@ -211,7 +212,7 @@ function $extractInlineClipboardNodes(nodes: LexicalNode[]): LexicalNode[] {
   const items = $extractClipboardListChildren(nodes);
   if (items.length === 1) {
     const [item] = items;
-    if ($isListItemNode(item) && !isChildrenWrapper(item)) {
+    if (isContentItem(item)) {
       return item.getChildren().map($cloneClipboardNodeTree);
     }
   }
@@ -346,7 +347,7 @@ function $regenerateClipboardNoteIds(nodes: LexicalNode[], reservedIds: Set<stri
       continue;
     }
 
-    if ($isListItemNode(node) && !isChildrenWrapper(node)) {
+    if (isContentItem(node)) {
       const next = createNoteIdAvoiding(reservedIds);
       $setState(node, noteIdState, next);
       reservedIds.add(next);
@@ -547,7 +548,7 @@ function $insertNodesAtSelection(
   let lastInserted: ListItemNode | null = null;
   for (let i = nodes.length - 1; i >= 0; i -= 1) {
     const node = nodes[i];
-    if ($isListItemNode(node) && !isChildrenWrapper(node)) {
+    if (isContentItem(node)) {
       lastInserted = node;
       break;
     }

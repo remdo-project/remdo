@@ -47,7 +47,7 @@ export const findNearestListItem = (node: LexicalNode | null): ListItemNode | nu
 // (children-wrapper holding a nested list, or body-wrapper holding a note body).
 const isWrapperItem = (item: ListItemNode): boolean => isChildrenWrapper(item) || isBodyWrapper(item);
 
-const isContentItem = (node: LexicalNode | null | undefined): node is ListItemNode =>
+export const isContentItem = (node: LexicalNode | null | undefined): node is ListItemNode =>
   $isListItemNode(node) && !isWrapperItem(node);
 
 export const getContentSiblings = (list: ListNode): ListItemNode[] => {

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  copySelection,
+  pastePayload,
   placeCaretAtNote,
   pressKey,
   selectStructuralNotes,
@@ -117,5 +119,26 @@ describe('note body (docs/outliner/body.md)', () => {
     // the body is not an additional structural note.
     await selectStructuralNotes(remdo, 'note1', 'note2');
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+  });
+
+  it('copy/paste of a note with a body never turns the body into a standalone note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'note2 body');
+
+    await selectStructuralNotes(remdo, 'note2', 'note2');
+    const payload = await copySelection(remdo);
+
+    await selectStructuralNotes(remdo, 'note3', 'note3');
+    await pastePayload(remdo, payload);
+
+    // The pasted copy is a clean note. Carrying the body across clipboard is a
+    // tracked follow-up (docs/todo.md); the invariant enforced here is that the
+    // body never leaks out as its own standalone note with a noteId.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', body: 'note2 body' },
+      { noteId: null, text: 'note2' },
+    ]);
   });
 });
