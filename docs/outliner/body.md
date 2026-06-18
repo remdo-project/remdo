@@ -9,8 +9,10 @@ with its own selection that stays separate from the structural note tree.
 ## Core behavior
 
 1. **Add gesture.** `Shift+Enter` on a note adds a body below that note's content
-   and moves the caret into it.
-2. **Ownership.** A body belongs to one note; any note may have one.
+   and moves the caret into it. If the note already has a body, the gesture moves
+   the caret to the start of the existing body instead of adding another.
+2. **Ownership.** A note has at most one body, and a body belongs to that one
+   note.
 3. **Visually distinct.** A body renders set apart from the note's content.
 4. **Inline formatting.** Body text supports the same key-driven inline
    formatting as note content; there is no separate formatting UI.
@@ -33,35 +35,37 @@ Within that world, caret and selection keys behave as follows:
 
 ## Lifecycle
 
-Removing all text from a body deletes the body.
+1. **Created empty.** `Shift+Enter` commits the body immediately; an empty body
+   is kept.
+2. **Deleted when empty.** `Backspace` or `Delete` on an empty body removes it
+   and returns the caret to its note. Emptying a body's last character only
+   empties it — the next `Backspace`/`Delete` removes it.
+3. **Select-all delete.** Selecting all of a body's text and pressing
+   `Delete`/`Backspace` removes the body in one step.
+
+`Backspace` at the start of a non-empty body is a no-op (the caret is trapped at
+the boundary; see *Selection and navigation*), so a body is removed only by
+emptying it first.
 
 ---
 
-## Open decisions (not yet settled)
+## Node-model fork (not yet settled)
 
-Everything above is settled behavior. The items below are unresolved; answering
-them should mostly **add** to the sections above rather than change them.
+Everything above is settled behavior. The node model below is a recommendation,
+not a settled choice.
 
-1. **Cardinality.** One body per note, or many? `Shift+Enter` when a body already
-   exists → focus the existing one vs. add another. (Affects *Add gesture* and
-   *Ownership*.)
-2. **Live collaboration inside the body** at launch, or a follow-up? Biggest scope
-   lever; drives the node-model fork below.
-3. **Persistence / export.** How a body renders in Markdown/clipboard export
-   (blockquote, indented text, omitted for now). (Adds an *Export* section.)
-4. **Empty-body lifecycle.** Does `Shift+Enter` commit an empty body immediately,
-   or is a body persisted only once non-empty? (Refines *Lifecycle*.)
-
-### Node-model fork (implementation, pending the decisions above)
+Body content is collaborative like any other editor content, so the node model
+must put body text in the document's own Yjs-bound tree.
 
 Verified constraint: `@lexical/yjs` treats a `DecoratorNode` as opaque
 (`CollabDecoratorNode`) — it syncs the node's existence and serialized props but
 not the internal state of a nested sub-editor. A `LexicalNestedComposer`
 sub-editor carries its own Yjs binding the parent collab plugin does not manage.
 
-1. **Decorator node + nested sub-editor.** Isolation is structural and free.
-   Cost: a separate Yjs binding per body or no live collab inside it; separate
-   undo stack; heaviest to build.
+1. **Decorator node + nested sub-editor.** Isolation is structural and free, but
+   the sub-editor's own Yjs binding sits outside document collaboration, so body
+   text would need a separate binding (or lose live collab). Separate undo stack;
+   heaviest to build.
 2. **Custom non-note `ElementNode` block inside the note's `ListItemNode`**
    (current lean). One editor / one Yjs binding → collaboration, undo,
    formatting, and persistence come for free. Cost: the block must be actively

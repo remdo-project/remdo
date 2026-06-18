@@ -263,9 +263,18 @@ Remaining issues to fold in or fix directly:
 - Feature is in design/build. `docs/outliner/body.md` top section reads as
   target behavior, but nothing is implemented yet; treat the whole feature as
   unbuilt until the node model lands.
-- Open decisions still unresolved (see `docs/outliner/body.md` "Open decisions"):
-  cardinality, live collab inside the body, persistence/export, empty-body
-  lifecycle, and the node-model fork.
+- Node-model fork still open (see `docs/outliner/body.md`): lean is the non-note
+  `ElementNode` block; confirm before building.
+- Research-gate the body deletion model before implementing — the rules are
+  settled but these corner cases need validating (and a cheap-to-implement
+  check): (1) collab race when one client empties+deletes a body while another
+  types into it (check against `selection.md` collaboration reshaping); (2) undo
+  granularity — is "delete empty body" one step, and does undo restore the caret
+  into it; (3) confirm there is no "merge body back into note" gesture beyond the
+  empty-then-delete path.
+- Clipboard: decide whether copying a note that has a body includes the body
+  text when pasting as plain text outside RemDo. Settle in `clipboard.md` when
+  clipboard is next touched; not a body-spec blocker.
 
 ## Later follow-ups
 
