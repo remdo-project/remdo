@@ -27,9 +27,10 @@ selection never extends out into the note tree.
 Within that world, keys behave as follows:
 
 1. **Arrows are one-way.** Caret arrow navigation never enters a body from
-   outside — moving between notes skips over it. But once the caret is inside a
-   body, any arrow that crosses a boundary leaves it. The only ways into a body
-   are the add/focus gesture and clicking.
+   outside: it is transparent to vertical movement, which lands exactly where it
+   would if the body were not there (the next or previous note in document
+   order). But once the caret is inside a body, any arrow that crosses a boundary
+   leaves it. The only ways into a body are the add/focus gesture and clicking.
 2. **`Enter` inserts a line break.** Inside a body, `Enter` adds a newline (the
    body is multi-line), rather than creating a note as it does in note content.
 3. **`Cmd/Ctrl+A` is local.** Inside a body it selects that body's text only and

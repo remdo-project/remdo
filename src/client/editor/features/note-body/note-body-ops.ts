@@ -9,12 +9,13 @@ import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
 import {
   getFirstDescendantListItem,
+  getLastDescendantListItem,
   getNestedList,
   getNextContentSibling,
   getParentContentItem,
 } from '#client/editor/outline/selection/tree';
 import type { NoteBodyNode } from './note-body-node';
-import { $createBodyWrapper, $isNoteBodyNode, isBodyWrapper } from './note-body-node';
+import { $createBodyWrapper, $isNoteBodyNode } from './note-body-node';
 
 /** The note body element attached to a note, or null if the note has none. */
 export function getNoteBody(note: ListItemNode): NoteBodyNode | null {
@@ -62,6 +63,19 @@ function $noteBelow(note: ListItemNode): ListItemNode | null {
 }
 
 /**
+ * The content note directly above `note` in document order, ignoring any body:
+ * the previous content sibling's deepest last descendant (its visually-last
+ * line), otherwise the parent. Null at the top.
+ */
+function $noteAbove(note: ListItemNode): ListItemNode | null {
+  const previous = getPreviousContentSibling(note);
+  if (previous) {
+    return $isNoteFolded(previous) ? previous : getLastDescendantListItem(getNestedList(previous)) ?? previous;
+  }
+  return getParentContentItem(note);
+}
+
+/**
  * When a plain vertical arrow from a content note would move into an adjacent
  * body, redirect the caret past the body so navigation never stops in one
  * (a content note is a single line, so the move always lands in the body).
@@ -92,16 +106,14 @@ export function $skipBodyForVerticalNav(direction: 'up' | 'down'): boolean {
     return true;
   }
 
-  // up: skip only when the note sits directly after a body-wrapper.
-  const previous = note.getPreviousSibling();
-  if (!isBodyWrapper(previous)) {
+  // up: the note above in document order is the visual line above. If it has a
+  // body, native Up would land in that body — redirect to the note's end so the
+  // body stays transparent.
+  const above = $noteAbove(note);
+  if (!above || !getBodyWrapper(above)) {
     return false;
   }
-  const owner = getPreviousContentSibling(previous);
-  if (!owner) {
-    return false;
-  }
-  $selectItemEdge(owner, 'end');
+  $selectItemEdge(above, 'end');
   return true;
 }
 

@@ -4,10 +4,13 @@ import {
   pastePayload,
   placeCaretAtNote,
   pressKey,
+  readCaretNoteId,
   selectStructuralNotes,
   typeText,
   meta,
 } from '#tests';
+import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import { $skipBodyForVerticalNav } from './note-body-ops';
 
 describe('note body (docs/outliner/body.md)', () => {
   it('shift+Enter on a note adds a body and moves the caret into it', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -177,5 +180,65 @@ describe('note body (docs/outliner/body.md)', () => {
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
+  });
+});
+
+// Vertical arrow navigation is transparent to a body: it lands where it would if
+// the body were not there. jsdom does not move the caret on arrow keys, so these
+// exercise the model-level skip directly (placing the caret, then invoking the
+// redirect the arrow command performs).
+describe('note body vertical navigation (docs/outliner/body.md)', () => {
+  async function addBodyTo(remdo: RemdoTestApi, noteId: string, text: string) {
+    await placeCaretAtNote(remdo, noteId, Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, text);
+  }
+
+  it('down from a flat note with a body lands on the next sibling, skipping the body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await addBodyTo(remdo, 'note1', 'body');
+    await placeCaretAtNote(remdo, 'note1', 0);
+
+    let handled = false;
+    await remdo.mutate(() => {
+      handled = $skipBodyForVerticalNav('down');
+    });
+    expect(handled).toBe(true);
+    expect(readCaretNoteId(remdo)).toBe('note2');
+  });
+
+  it('down from a note with a body and children lands on the first child, skipping the body', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    // tree: note1; note2 > note3. Body on note2 (which has child note3).
+    await addBodyTo(remdo, 'note2', 'body');
+    await placeCaretAtNote(remdo, 'note2', 0);
+
+    let handled = false;
+    await remdo.mutate(() => {
+      handled = $skipBodyForVerticalNav('down');
+    });
+    expect(handled).toBe(true);
+    expect(readCaretNoteId(remdo)).toBe('note3');
+  });
+
+  it('up into a nested body redirects to the body owner, not the body', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    // note2 > note3 (leaf); note4 is note2's sibling. Body on note3 renders just
+    // above note4, so Up from note4 must reach note3, not its body.
+    await addBodyTo(remdo, 'note3', 'body');
+    await placeCaretAtNote(remdo, 'note4', 0);
+
+    let handled = false;
+    await remdo.mutate(() => {
+      handled = $skipBodyForVerticalNav('up');
+    });
+    expect(handled).toBe(true);
+    expect(readCaretNoteId(remdo)).toBe('note3');
+  });
+
+  it('up from a note not below any body is left to native movement', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await addBodyTo(remdo, 'note1', 'body');
+    await placeCaretAtNote(remdo, 'note3', 0);
+
+    // note3 sits below note2 (no body), so the body skip does not apply.
+    const handled = remdo.validate(() => $skipBodyForVerticalNav('up'));
+    expect(handled).toBe(false);
   });
 });
