@@ -78,14 +78,13 @@ between RemDo-owned note links and generic external links.
    word alongside a word from the note surfaces that nested note.
 3. The current note is excluded from results (self-links are out of scope in
    this phase).
-4. v1 ranking uses no scoring; after filtering, results keep document order.
-5. Picker rows show the minimal ancestor context needed to disambiguate duplicate
+4. Picker rows show the minimal ancestor context needed to disambiguate duplicate
    titles in the current result set.
-6. If results are still visually identical after full ancestor context, they
+5. If results are still visually identical after full ancestor context, they
    remain untied and are shown in document order.
-7. No-match state is a single non-selectable `No results...` row.
-8. Creating new notes from the picker is out of scope in this phase.
-9. Query text accepts spaces and punctuation.
+6. No-match state is a single non-selectable `No results...` row.
+7. Creating new notes from the picker is out of scope in this phase.
+8. Query text accepts spaces and punctuation.
 
 ## Picker interaction
 
