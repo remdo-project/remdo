@@ -32,6 +32,11 @@ function collectTextContent(node: SerializedLexicalNode | null | undefined): str
     return typeof isoDate === 'string' ? formatDateNodeLabel(isoDate) : '';
   }
 
+  // Mirror Lexical's LineBreakNode.getTextContent(), which yields '\n'.
+  if (node.type === 'linebreak') {
+    return '\n';
+  }
+
   const maybeText: unknown = (node as { text?: unknown }).text;
   const text = typeof maybeText === 'string' ? maybeText : '';
   const childrenText = getChildren(node).map(collectTextContent).join('');

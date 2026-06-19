@@ -191,15 +191,13 @@ describe('note body (docs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Enter' });
     await typeText(remdo, 'two');
 
-    // No new note was created; the body now holds a line break between the two
-    // typed segments.
+    // No new note was created; the body holds a line break (read as '\n')
+    // between the two typed segments.
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'onetwo' },
+      { noteId: 'note1', text: 'note1', body: 'one\ntwo' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
-
-    expect(JSON.stringify(remdo.getEditorState())).toContain('"linebreak"');
   });
 
   it('enter confirms an @ note-link inside a body instead of inserting a line break', meta({ fixture: 'flat' }), async ({ remdo }) => {
