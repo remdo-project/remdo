@@ -143,4 +143,28 @@ test.describe('Search', () => {
     await expect(rows.first()).not.toHaveAttribute('data-search-result-active', 'true');
     await expect(shell.locator('[data-testid="document-search-results"]')).toHaveCount(1);
   });
+
+  test.describe('touch', () => {
+    test.use({ hasTouch: true });
+
+    test('tapping a result zooms it', async ({ page, editor }) => {
+      await editor.load('tree');
+
+      const shell = editorLocator(page)
+        .locator('xpath=ancestor-or-self::*[contains(@class,"document-editor-shell")]');
+      const resultItems = shell.locator('[data-search-result-item]');
+      const searchInput = page.getByRole('combobox', { name: 'Search document' });
+
+      await searchInput.click();
+      await searchInput.fill('note3');
+      await expect(resultItems).toHaveCount(1);
+
+      // A real touch tap must zoom too — the compatibility mousedown fires before
+      // the synthesized click, keeping focus on the input so the tap isn't lost.
+      await resultItems.first().tap();
+
+      await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note3'));
+      await expect(shell.locator('[data-testid="document-search-results"]')).toHaveCount(0);
+    });
+  });
 });
