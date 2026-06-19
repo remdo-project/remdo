@@ -168,6 +168,68 @@ describe('note body (docs/outliner/body.md)', () => {
     ]);
   });
 
+  // Note-merge body contract (docs/outliner/body.md "Note merge"). Backspace at
+  // note2's start merges note2 into note1.
+  it('merging two notes with no bodies works as usual', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Backspace' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1 note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('merging carries the body when only the merged-away note has one', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Body on note2 (the note that gets merged away).
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'note2 body');
+
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Backspace' });
+
+    // note2 merges into note1; its body survives on the result note1.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1 note2', body: 'note2 body' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('merging keeps the body when only the surviving note has one', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Body on note1 (the surviving note).
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'note1 body');
+
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Backspace' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1 note2', body: 'note1 body' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('merging two notes that both have a body is a no-op', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'note1 body');
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'note2 body');
+
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Backspace' });
+
+    // Nothing merges — both notes and both bodies are intact.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'note1 body' },
+      { noteId: 'note2', text: 'note2', body: 'note2 body' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
   it('undo restores a deleted body and its text as one step; redo removes it again', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });

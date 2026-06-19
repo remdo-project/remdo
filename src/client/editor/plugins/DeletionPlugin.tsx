@@ -18,6 +18,7 @@ import { useEffect, useState } from 'react';
 import {
   $getOrCreateChildList,
   flattenNoteNodes,
+  getBodyWrapper,
   getContentSiblings,
   getPreviousContentSibling,
   insertBefore,
@@ -56,6 +57,16 @@ function getParentNote(list: ListNode): ListItemNode | null {
 
   // The parent note sits before the children-wrapper, after any body-wrapper.
   return getPreviousContentSibling(wrapper);
+}
+
+// Before `removed` is deleted in a merge, carry its body (if any) to `survivor`.
+// The both-bodies case is rejected earlier, so the survivor has no body here; the
+// body-wrapper sits immediately after the survivor's content item.
+function $carryBodyToSurvivor(removed: ListItemNode, survivor: ListItemNode): void {
+  const bodyWrapper = getBodyWrapper(removed);
+  if (bodyWrapper) {
+    survivor.insertAfter(bodyWrapper);
+  }
 }
 
 function getFirstChildContentItem(item: ListItemNode): ListItemNode | null {
@@ -366,18 +377,28 @@ export function DeletionPlugin() {
         return true;
       }
 
+      // Body merge contract (docs/outliner/body.md "Note merge"): if both notes
+      // have a body the merge is a no-op so no body is lost. Otherwise the merge
+      // proceeds and the surviving note keeps the single body, carrying it over
+      // from the removed note when needed.
+      if (getBodyWrapper(current) && getBodyWrapper(target)) {
+        return true;
+      }
+
       const currentHasChildren = noteHasChildren(current);
       const targetHasChildren = noteHasChildren(target);
       const currentIsEmptyLeaf = !currentHasChildren && isEmptyNote(current);
       const targetIsEmptyLeaf = !targetHasChildren && isEmptyNote(target);
 
       if (targetIsEmptyLeaf) {
+        $carryBodyToSurvivor(target, current);
         removeNoteSubtree(target);
         $selectItemEdge(current, 'start');
         return true;
       }
 
       if (currentIsEmptyLeaf) {
+        $carryBodyToSurvivor(current, target);
         removeNoteSubtree(current);
         $selectItemEdge(target, 'end');
         return true;
@@ -394,6 +415,7 @@ export function DeletionPlugin() {
         $moveChildrenToTarget(current, target, targetIsParent ? 'replace' : 'append');
       }
 
+      $carryBodyToSurvivor(current, target);
       removeNoteSubtree(current);
       if ($isRangeSelection(selection)) {
         selection.dirty = true;
