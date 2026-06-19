@@ -41,8 +41,7 @@ outdated or a doc’s role materially changes.
   length bucket. Doc workflow and invariants live in `docs/contributing.md`.
 - `docs/outliner/body.md` (Short). Note body: optional rich-text region attached
   to a note via `Shift+Enter`, with a trapped local selection world outside the
-  note tree and selection ladder, plus its node model (a `NoteBodyNode` held by
-  an adjacent body-wrapper list item).
+  note tree and selection ladder.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.

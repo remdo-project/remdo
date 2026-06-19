@@ -42,6 +42,12 @@ Rules:
   reads the previous node's rendered text and sees a non-boundary character.
   Fix should treat inline non-text nodes as boundaries and consider common,
   related UX guidelines.
+- Date picker popover display is degraded: the calendar renders but the popover
+  has no container background/border (bleeds into the page) and shows a stray
+  vertical-bar artifact. Functional (dates clickable), styling only.
+- Date picker re-opens on caret navigation: arrowing the cursor to just after an
+  existing `!` re-triggers the picker. It should open only when `!` is typed, not
+  when navigating around one.
 
 ## Document access and sharing
 

@@ -51,19 +51,3 @@ Within that world, keys behave as follows:
 
 `Backspace` at the start of a non-empty body is a no-op — it never merges the
 body into the note above — so a body is removed only by emptying it first.
-
-## Node model
-
-A body is a `NoteBodyNode` (a Lexical `ElementNode`) held by a dedicated
-**body-wrapper** `ListItemNode` placed immediately after the note's content item,
-before any children-wrapper — mirroring the children-wrapper pattern so a note's
-nodes read as `[ content item, body-wrapper?, children-wrapper? ]`. Because the
-body lives in the document's own tree as a normal element, collaboration, undo,
-and persistence apply to it exactly as they do to note content (an `ElementNode`
-syncs through `@lexical/yjs`; only decorator nodes are opaque). A body-wrapper is
-never a note: it carries no `noteId` and is excluded from every note-enumeration
-path (navigation, the ladder, schema normalization, range selection, deletion).
-
-## References
-
-1. Lexical custom nodes: <https://lexical.dev/docs/concepts/nodes>
