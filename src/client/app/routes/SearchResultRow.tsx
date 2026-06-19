@@ -3,7 +3,7 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import type { NoteListType } from '#note-sdk';
 import { queryMatchRanges } from '#client/search/query-match';
-import { formatNavigationLabel } from '#client/ui/navigation-label';
+import { UNTITLED_LABEL, formatNavigationLabel, normalizeNavigationLabel } from '#client/ui/navigation-label';
 
 interface ChildPreviewItem {
   noteId: string;
@@ -132,7 +132,10 @@ function ResultBreadcrumb({
           );
         }
 
-        const label = formatNavigationLabel(crumb.item.label);
+        // Normalize whitespace but keep the full label: width clipping is the
+        // CSS ellipsis's job (see .document-search-result-crumb), and the title
+        // must expose the full text the spec promises on a width-truncated crumb.
+        const label = normalizeNavigationLabel(crumb.item.label) || UNTITLED_LABEL;
         return (
           <Fragment key={crumb.item.noteId}>
             {separator}

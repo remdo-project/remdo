@@ -1008,6 +1008,35 @@ describe('document route', () => {
       expect(mark?.textContent).toBe('needle');
     });
 
+    it('keeps the full ancestor label on the crumb and its tooltip for CSS clipping', async () => {
+      const longAncestor = 'Engineering '.repeat(8).trim(); // > 48 chars, no hard cap
+      setSnapshot({
+        allCandidates: [
+          { noteId: 'parent', text: longAncestor },
+          { noteId: 'child', text: 'sprint task' },
+        ],
+        childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'parent', text: longAncestor }],
+          parent: [{ noteId: 'child', text: 'sprint task' }],
+          child: [],
+        },
+      });
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'sprint' } });
+
+      const active = await screen.findByRole('option', { name: 'sprint task' });
+      const crumb = active.querySelector<HTMLElement>('[data-search-result-ancestor-crumb]');
+      expect(crumb).not.toBeNull();
+      // Full label (not the 48-char "..." form): CSS handles the visual ellipsis,
+      // and the tooltip must recover the complete text.
+      expect(crumb!.textContent).toBe(longAncestor);
+      expect(crumb!.getAttribute('title')).toBe(longAncestor);
+      expect(crumb!.textContent).not.toContain('...');
+    });
+
     it('zooms to an ancestor crumb and closes search when clicked', async () => {
       setSnapshot(contextSnapshot);
       const router = renderDocumentRoute();
