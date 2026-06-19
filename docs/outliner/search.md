@@ -9,8 +9,6 @@ and zooming to a result.
 
 - **Search Mode:** active while the search box has focus.
 - **Highlighted note:** the single note currently targeted by search navigation.
-- **Path:** a note's ancestor chain from the top-level note down to and including
-  the note itself.
 - **Result row:** the rendering for a single search result (see Result row
   context).
 
@@ -34,9 +32,8 @@ and zooming to a result.
 6. Typing in the search box filters flat results by query matching. The query is
    a plain-text field split on whitespace into tokens (order-independent; extra
    whitespace ignored). A note matches when every token is a case-insensitive
-   substring of some entry in the note's path, and at least one token matches the
-   note's own text. So `r p` matches `Q3 planning` (`r` in its `Work` ancestor,
-   `p` in the note) and `Hiring plan` (both in the note). Results stay in document
+   substring of some entry in the note's [note path](./concepts.md#definitions),
+   and at least one token matches the note's own text. Results stay in document
    order. Matched tokens are highlighted wherever they occur — in the note label
    or an ancestor crumb. The note-link picker (see [Links](./links.md)) uses this
    same query matching.
