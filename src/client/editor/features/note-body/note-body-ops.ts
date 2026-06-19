@@ -4,10 +4,11 @@ import { $createTextNode, $getSelection, $isRangeSelection } from 'lexical';
 import type { LexicalNode, RangeSelection } from 'lexical';
 
 import { getBodyWrapper, getPreviousContentSibling } from '#client/editor/outline/list-structure';
+import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
 import { getNextContentSibling } from '#client/editor/outline/selection/tree';
 import type { NoteBodyNode } from './note-body-node';
-import { $createBodyWrapper, $isNoteBodyNode } from './note-body-node';
+import { $createBodyWrapper, $isNoteBodyNode, isBodyWrapper } from './note-body-node';
 
 /** The note body element attached to a note, or null if the note has none. */
 export function getNoteBody(note: ListItemNode): NoteBodyNode | null {
@@ -32,41 +33,44 @@ export function $getNoteBodyFromNode(node: LexicalNode | null): NoteBodyNode | n
 }
 
 /**
- * If a plain vertical-arrow move landed the caret inside a body (entering from
- * an adjacent note), push it through to the content note on the far side, so
- * arrow navigation never stops in a body. Down lands on the note after the body;
- * up lands on the body's owner note.
+ * When a plain vertical arrow from a content note would move into an adjacent
+ * body, redirect the caret past the body so navigation never stops in one
+ * (a content note is a single line, so the move always lands in the body).
+ * `down` from a note with a body lands on the note after the body; `up` from the
+ * note directly after a body lands on the body's owner note. Returns true when it
+ * redirected, false to fall through to native movement.
  */
-export function $skipBodyForVerticalNav(direction: 'up' | 'down'): void {
+export function $skipBodyForVerticalNav(direction: 'up' | 'down'): boolean {
   const selection = $getSelection();
   if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-    return;
+    return false;
   }
-  const body = $getNoteBodyFromNode(selection.anchor.getNode());
-  if (!body) {
-    return;
+  const note = resolveContentItemFromNode(selection.anchor.getNode());
+  if (!note) {
+    return false;
   }
-  const wrapper = body.getParent();
-  if (!$isListItemNode(wrapper)) {
-    return;
-  }
-  const owner = getPreviousContentSibling(wrapper);
 
-  if (direction === 'up') {
-    if (owner) {
-      $selectItemEdge(owner, 'end');
+  if (direction === 'down') {
+    const wrapper = getBodyWrapper(note);
+    if (!wrapper) {
+      return false;
     }
-    return;
+    const next = getNextContentSibling(wrapper);
+    $selectItemEdge(next ?? note, next ? 'start' : 'end');
+    return true;
   }
 
-  // down: land on the note after the body, or fall back to the owner's end so
-  // the caret never strands inside the body when it has no following note.
-  const next = getNextContentSibling(wrapper);
-  if (next) {
-    $selectItemEdge(next, 'start');
-  } else if (owner) {
-    $selectItemEdge(owner, 'end');
+  // up: skip only when the note sits directly after a body-wrapper.
+  const previous = note.getPreviousSibling();
+  if (!isBodyWrapper(previous)) {
+    return false;
   }
+  const owner = getPreviousContentSibling(previous);
+  if (!owner) {
+    return false;
+  }
+  $selectItemEdge(owner, 'end');
+  return true;
 }
 
 /** True when either end of the selection sits inside a note body. */

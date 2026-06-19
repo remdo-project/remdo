@@ -4,16 +4,14 @@ import {
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_CRITICAL,
-  COMMAND_PRIORITY_LOW,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
   KEY_ENTER_COMMAND,
   SELECT_ALL_COMMAND,
-  SELECTION_CHANGE_COMMAND,
 } from 'lexical';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import type { NoteBodyNode } from './note-body-node';
@@ -47,9 +45,6 @@ function $getActiveNoteBody(): NoteBodyNode | null {
 
 export function NoteBodyPlugin() {
   const [editor] = useLexicalComposerContext();
-  // Set when a plain Up/Down is pressed with the caret outside any body, so the
-  // update listener can push the caret through a body it skipped into.
-  const pendingSkipRef = useRef<VerticalDirection | null>(null);
 
   useEffect(() => {
     const $onVerticalArrow = (direction: VerticalDirection, event: KeyboardEvent | null): boolean => {
@@ -57,10 +52,13 @@ export function NoteBodyPlugin() {
       if (event && (event.shiftKey || event.altKey || event.metaKey || event.ctrlKey)) {
         return false;
       }
-      // Arm the skip only when the caret starts outside a body; once inside, the
-      // body owns its own vertical movement (and arrows leave it freely).
-      pendingSkipRef.current = $getActiveNoteBody() ? null : direction;
-      return false;
+      // Inside a body the arrow leaves freely (native); only skip when entering
+      // from outside. A content note is a single line, so a vertical arrow toward
+      // an adjacent body always lands in it — redirect past the body instead.
+      if ($getActiveNoteBody()) {
+        return false;
+      }
+      return $skipBodyForVerticalNav(direction) ? stop(event) : false;
     };
 
     return mergeRegister(
@@ -73,21 +71,6 @@ export function NoteBodyPlugin() {
         KEY_ARROW_DOWN_COMMAND,
         (event) => $onVerticalArrow('down', event),
         COMMAND_PRIORITY_CRITICAL
-      ),
-      // After the default move runs (reported as a selection change), if a
-      // primed Up/Down landed the caret inside a body, push it through to the
-      // content note on the far side.
-      editor.registerCommand(
-        SELECTION_CHANGE_COMMAND,
-        () => {
-          const direction = pendingSkipRef.current;
-          pendingSkipRef.current = null;
-          if (direction) {
-            $skipBodyForVerticalNav(direction);
-          }
-          return false;
-        },
-        COMMAND_PRIORITY_LOW
       ),
       // Enter inside a body inserts a line break (the body is multi-line);
       // Shift+Enter on a note adds or focuses its body.
