@@ -13,10 +13,8 @@ behavior and the planned slash-prefixed navigation flow.
   intended for quick tree navigation rather than text matching.
 - **Inline completion:** a non-committed ghost suggestion shown inside
   the search input that can be accepted as typed text.
-- **Result row:** the rendering for a single search result — the matched note as
-  the primary label, a dim ancestor-path subline beneath it, and a preview of its
-  first children. Every result uses this same layout; highlighting only restyles a
-  row, it does not change its shape.
+- **Result row:** the rendering for a single search result (see Result row
+  context).
 
 ## Scope and boundaries
 
@@ -39,10 +37,9 @@ behavior and the planned slash-prefixed navigation flow.
    a plain-text field split on whitespace into tokens, and a note matches when
    every token occurs as a case-insensitive substring of its text. Tokens are
    order-independent and extra whitespace is ignored, so `refine todo` and a
-   padded, reordered `todo refine` match the same notes. No fuzzy matching and no ranking
-   (results stay in document order). The matched tokens are highlighted in the
-   result text. The note-link picker (see [Links](./links.md)) uses this same
-   query matching.
+   padded, reordered `todo refine` match the same notes. Results stay in document
+   order. The matched tokens are highlighted in the result text. The note-link
+   picker (see [Links](./links.md)) uses this same query matching.
 7. `ArrowDown` highlights the next flat result.
 8. `ArrowUp` highlights the previous flat result.
 9. Arrow navigation stops at the first/last available note (no wraparound).
