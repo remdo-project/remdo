@@ -1,4 +1,5 @@
 import { $getNoteId } from '#client/editor/runtime/note-id-state';
+import { matchesQuery } from '#client/search/query-match';
 import { forEachContentItemWithAncestorsInOutline } from '#client/editor/outline/list-traversal';
 import { $requireRootContentList } from '#client/editor/outline/schema';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
@@ -38,9 +39,7 @@ export function filterLinkableNotes(notes: LinkableNote[], query: string): Linka
   if (query.length === 0) {
     return notes;
   }
-
-  const needle = query.toLocaleLowerCase();
-  return notes.filter((note) => note.title.toLocaleLowerCase().includes(needle));
+  return notes.filter((note) => matchesQuery(note.title, query));
 }
 
 function computeDisplayContexts(notes: LinkableNote[]): Map<number, string | null> {

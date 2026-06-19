@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import type { NoteListType } from '#note-sdk';
+import { queryMatchRanges } from '#client/search/query-match';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
 
 interface ChildPreviewItem {
@@ -58,26 +59,23 @@ interface HighlightSegment {
   value: string;
 }
 
-// Splits text into alternating plain/match segments for a case-insensitive
-// query so the matched term can be wrapped in <mark>. Empty query yields a
-// single plain segment. The offset gives each segment a stable React key.
+// Splits text into alternating plain/match segments so each query token's
+// occurrences can be wrapped in <mark>. Matching mirrors the search filter
+// (tokenized, case-insensitive); the offset gives each segment a stable key.
 function highlightSegments(text: string, query: string): HighlightSegment[] {
-  const needle = query.trim().toLocaleLowerCase();
-  if (needle.length === 0) {
+  const ranges = queryMatchRanges(text, query);
+  if (ranges.length === 0) {
     return [{ match: false, offset: 0, value: text }];
   }
 
   const segments: HighlightSegment[] = [];
-  const haystack = text.toLocaleLowerCase();
   let cursor = 0;
-  let matchIndex = haystack.indexOf(needle, cursor);
-  while (matchIndex !== -1) {
-    if (matchIndex > cursor) {
-      segments.push({ match: false, offset: cursor, value: text.slice(cursor, matchIndex) });
+  for (const range of ranges) {
+    if (range.start > cursor) {
+      segments.push({ match: false, offset: cursor, value: text.slice(cursor, range.start) });
     }
-    segments.push({ match: true, offset: matchIndex, value: text.slice(matchIndex, matchIndex + needle.length) });
-    cursor = matchIndex + needle.length;
-    matchIndex = haystack.indexOf(needle, cursor);
+    segments.push({ match: true, offset: range.start, value: text.slice(range.start, range.end) });
+    cursor = range.end;
   }
   if (cursor < text.length) {
     segments.push({ match: false, offset: cursor, value: text.slice(cursor) });

@@ -36,15 +36,11 @@ Rules:
   can't desync; only remote edits can). The accessor re-registers per local edit
   ("pretend reactivity"); a reactive SDK would extend that to remote edits without
   changing consumers.
-- [Future] Evaluate unifying candidate discovery/query logic between search and
-  link picker (search already uses SDK/Lexical candidates; link picker still
-  uses its own traversal/filter pipeline).
-- [Future] Define shared search/link-query matching semantics before normalizing
-  result labels: whitespace-insensitive lookup (trim/collapse between words),
-  fuzzy matching, and shared ranking/disambiguation rules. Note: result-row term
-  highlighting deliberately runs against the raw note text (what the filter
-  matches), so it stays correct only as long as the filter is also raw; revisit
-  together when matching semantics are normalized.
+- [Future] Unify candidate discovery between search and the link picker: query
+  matching is now shared (`#client/search/query-match`), but the link picker
+  still has its own traversal/index pipeline distinct from the search SDK walk.
+- [Future] Richer query matching if wanted: fuzzy matching and result ranking
+  (today's shared matcher is tokenized substring, order-independent, unranked).
 
 ## Editor feature module follow-ups
 

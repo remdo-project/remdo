@@ -35,8 +35,14 @@ behavior and the planned slash-prefixed navigation flow.
    search candidates are available.
 4. Search Mode has exactly one highlighted note when candidates exist.
 5. When query text is empty, flat results include all document notes.
-6. Typing in the search box filters flat results to notes whose text matches
-   the query text (plain text match; no fuzzy matching).
+6. Typing in the search box filters flat results by query matching: the query is
+   a plain-text field split on whitespace into tokens, and a note matches when
+   every token occurs as a case-insensitive substring of its text. Tokens are
+   order-independent and extra whitespace is ignored, so `refine todo` and a
+   padded, reordered `todo refine` match the same notes. No fuzzy matching and no ranking
+   (results stay in document order). The matched tokens are highlighted in the
+   result text. The note-link picker (see [Links](./links.md)) uses this same
+   query matching.
 7. `ArrowDown` highlights the next flat result.
 8. `ArrowUp` highlights the previous flat result.
 9. Arrow navigation stops at the first/last available note (no wraparound).

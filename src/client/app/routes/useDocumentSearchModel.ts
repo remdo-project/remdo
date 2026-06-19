@@ -14,6 +14,7 @@ import {
   ROOT_SEARCH_SCOPE_ID,
 } from '#client/editor/search/search-candidates';
 import type { SearchCandidate } from '#client/editor/search/search-candidates';
+import { matchesQuery } from '#client/search/query-match';
 import { useSearchNotes } from '#client/editor/view/EditorViewProvider';
 
 interface SearchCandidateState {
@@ -64,11 +65,11 @@ function countSlashes(query: string): number {
   return query.split('/').length - 1;
 }
 
-function filterCandidates(candidates: SearchCandidate[], needle: string): SearchCandidate[] {
-  if (needle.length === 0) {
+function filterCandidates(candidates: SearchCandidate[], query: string): SearchCandidate[] {
+  if (query.length === 0) {
     return candidates;
   }
-  return candidates.filter((candidate) => candidate.text.toLocaleLowerCase().includes(needle));
+  return candidates.filter((candidate) => matchesQuery(candidate.text, query));
 }
 
 function matchCompletedSegmentCandidates(candidates: SearchCandidate[], segment: string): SearchCandidate[] {
@@ -220,20 +221,20 @@ export function useDocumentSearchModel({
   );
   const isSlashMode = searchModeActive && searchQuery.startsWith('/');
   const slashScopeParentNoteId = resolvedSlashScopePathNoteIds.at(-1) ?? ROOT_SEARCH_SCOPE_ID;
-  const textNeedle = searchQuery.toLocaleLowerCase();
-  const slashSegmentNeedle = searchQuery.slice(searchQuery.lastIndexOf('/') + 1).toLocaleLowerCase();
+  const textQuery = searchQuery;
+  const slashSegmentQuery = searchQuery.slice(searchQuery.lastIndexOf('/') + 1);
 
   const textResults = useMemo(
-    () => filterCandidates(currentDocumentCandidates.allCandidates, textNeedle),
-    [currentDocumentCandidates.allCandidates, textNeedle]
+    () => filterCandidates(currentDocumentCandidates.allCandidates, textQuery),
+    [currentDocumentCandidates.allCandidates, textQuery]
   );
   const slashScopeCandidates = useMemo(
     () => currentDocumentCandidates.childCandidateMap[slashScopeParentNoteId] ?? EMPTY_SEARCH_CANDIDATES,
     [currentDocumentCandidates.childCandidateMap, slashScopeParentNoteId]
   );
   const slashResults = useMemo(
-    () => filterCandidates(slashScopeCandidates, slashSegmentNeedle),
-    [slashScopeCandidates, slashSegmentNeedle]
+    () => filterCandidates(slashScopeCandidates, slashSegmentQuery),
+    [slashScopeCandidates, slashSegmentQuery]
   );
   const flatResults = isSlashMode ? slashResults : textResults;
   const navigationCandidates = searchModeActive ? flatResults : EMPTY_SEARCH_CANDIDATES;

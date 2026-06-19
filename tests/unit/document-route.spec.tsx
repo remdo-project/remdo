@@ -923,6 +923,20 @@ describe('document route', () => {
       expect(mark?.textContent).toBe('sub');
     });
 
+    it('matches multiple tokens order-independently and highlights each', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      // 'TODO refine estimates' matches the out-of-order, whitespace-padded query.
+      fireEvent.change(searchInput, { target: { value: '  estimates   todo ' } });
+
+      const match = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      const marks = Array.from(match.querySelectorAll('.document-search-result-mark'), (m) => m.textContent);
+      expect(marks).toEqual(['TODO', 'estimates']);
+    });
+
     it('highlights a match past the navigation label length cap on the expanded row', async () => {
       const longText = `${'x'.repeat(60)} needle tail`;
       setSnapshot({
