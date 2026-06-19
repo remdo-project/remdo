@@ -1,12 +1,24 @@
 /* A note body is a rich-text region attached to a note, rendered set apart from
-   the note's own content (see docs/outliner/body.md). The body-wrapper list item
-   carries no bullet; the body block itself reads as a distinct sub-region. */
+   the note's own content (see docs/outliner/body.md). The body-wrapper is an
+   li.list-item like any note, so it must be excluded from every list marker:
+   the bullet (::before), the ordered-list counter (increment + number), and the
+   checklist checkbox (::after). Otherwise a body looks and counts like an extra
+   note in numbered/check lists. */
 .editor-root li.list-item:has(> .note-body) {
   list-style: none;
 }
 
-/* Suppress the custom bullet that .list-item::before would otherwise render. */
-.editor-root li.list-item:has(> .note-body)::before {
+/* Stop the ordered-list counter from incrementing on / numbering the wrapper.
+   Specificity must match the ordered-list counter rules in Editor.css. */
+.editor-root ol.list-ol > li.list-item:not(.list-nested-item):has(> .note-body) {
+  counter-increment: none;
+}
+
+.editor-root li.list-item:has(> .note-body)::before,
+.editor-root li.list-item:has(> .note-body)::after,
+.editor-root ol.list-ol > li.list-item:not(.list-nested-item):has(> .note-body)::before,
+.editor-root li.list-item.list-item-checked:has(> .note-body)::after,
+.editor-root li.list-item.list-item-unchecked:has(> .note-body)::after {
   content: none;
 }
 
