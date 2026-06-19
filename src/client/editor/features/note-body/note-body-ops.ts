@@ -4,9 +4,15 @@ import { $createTextNode, $getSelection, $isRangeSelection } from 'lexical';
 import type { LexicalNode, RangeSelection } from 'lexical';
 
 import { getBodyWrapper, getPreviousContentSibling } from '#client/editor/outline/list-structure';
+import { $isNoteFolded } from '#client/editor/runtime/fold-state';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
-import { getNextContentSibling } from '#client/editor/outline/selection/tree';
+import {
+  getFirstDescendantListItem,
+  getNestedList,
+  getNextContentSibling,
+  getParentContentItem,
+} from '#client/editor/outline/selection/tree';
 import type { NoteBodyNode } from './note-body-node';
 import { $createBodyWrapper, $isNoteBodyNode, isBodyWrapper } from './note-body-node';
 
@@ -33,6 +39,29 @@ export function $getNoteBodyFromNode(node: LexicalNode | null): NoteBodyNode | n
 }
 
 /**
+ * The content note directly below `note` in document order, ignoring any body:
+ * its first child when expanded with children, otherwise the next content
+ * sibling, climbing to ancestors when `note` is a last child. Null at the end.
+ */
+function $noteBelow(note: ListItemNode): ListItemNode | null {
+  if (!$isNoteFolded(note)) {
+    const firstChild = getFirstDescendantListItem(getNestedList(note));
+    if (firstChild) {
+      return firstChild;
+    }
+  }
+  let current: ListItemNode | null = note;
+  while (current) {
+    const next = getNextContentSibling(current);
+    if (next) {
+      return next;
+    }
+    current = getParentContentItem(current);
+  }
+  return null;
+}
+
+/**
  * When a plain vertical arrow from a content note would move into an adjacent
  * body, redirect the caret past the body so navigation never stops in one
  * (a content note is a single line, so the move always lands in the body).
@@ -51,12 +80,15 @@ export function $skipBodyForVerticalNav(direction: 'up' | 'down'): boolean {
   }
 
   if (direction === 'down') {
-    const wrapper = getBodyWrapper(note);
-    if (!wrapper) {
+    if (!getBodyWrapper(note)) {
       return false;
     }
-    const next = getNextContentSibling(wrapper);
-    $selectItemEdge(next ?? note, next ? 'start' : 'end');
+    // The body is transparent: land where Down would go if it did not exist —
+    // the note's first child (expanded) or the next note in document order, and
+    // when nothing is below, the note's own text end (matching native last-line
+    // behavior). Either way, consume the event so native nav cannot enter body.
+    const target = $noteBelow(note);
+    $selectItemEdge(target ?? note, target ? 'start' : 'end');
     return true;
   }
 
