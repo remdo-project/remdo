@@ -99,4 +99,25 @@ test.describe('Search', () => {
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note3'));
   });
+
+  test('zooms the clicked result and closes search', async ({ page, editor }) => {
+    await editor.load('tree');
+
+    const shell = editorLocator(page)
+      .locator('xpath=ancestor-or-self::*[contains(@class,"document-editor-shell")]');
+    const resultItems = shell.locator('[data-search-result-item]');
+    const searchInput = page.getByRole('combobox', { name: 'Search document' });
+
+    await searchInput.click();
+    await searchInput.fill('note3');
+    await expect(resultItems).toHaveCount(1);
+    await expect(resultItems.first()).toContainText('note3');
+
+    // A real mouse click on the result row must zoom it and end Search Mode,
+    // exactly like accepting it with Enter.
+    await resultItems.first().click();
+
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note3'));
+    await expect(shell.locator('[data-testid="document-search-results"]')).toHaveCount(0);
+  });
 });

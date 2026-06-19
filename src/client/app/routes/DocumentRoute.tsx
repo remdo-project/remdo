@@ -576,6 +576,12 @@ function DocumentRouteContent({
                   onClick={(event) => {
                     handleSearchResultClick(event, result.noteId);
                   }}
+                  onMouseDown={(event) => {
+                    // Keep focus on the search input through the press: otherwise
+                    // the mousedown blurs it, the blur dismisses Search Mode, and
+                    // the results unmount before this row's click can zoom.
+                    event.preventDefault();
+                  }}
                   role="option"
                 >
                   <SearchResultRow

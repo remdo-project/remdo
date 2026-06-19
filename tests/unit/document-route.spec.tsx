@@ -747,6 +747,14 @@ describe('document route', () => {
     fireEvent.pointerDown(result);
     expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc'));
     expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
+
+    // mousedown must be default-prevented so the press doesn't blur the search
+    // input and dismiss the results before the click can zoom (jsdom can't model
+    // the native blur, so assert the guard directly; the e2e covers the real
+    // trusted-click path).
+    const notPrevented = fireEvent.mouseDown(result);
+    expect(notPrevented).toBe(false);
+
     fireEvent.click(result);
 
     await waitFor(() => {
