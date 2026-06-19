@@ -4,7 +4,7 @@ import type { LexicalNode, RangeSelection } from 'lexical';
 import { $getNodeByKey } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
-import { isChildrenWrapper } from '#client/editor/outline/list-structure';
+import { getPreviousContentSibling, isChildrenWrapper, isWrapperItem } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 
 import { isPointAtBoundary } from './caret';
@@ -63,16 +63,13 @@ export function resolveSelectionPointItem(
     return null;
   }
 
-  if (!isChildrenWrapper(child)) {
+  // An element point landing on a wrapper (children- or body-wrapper) resolves
+  // to the content item that owns it.
+  if (!isWrapperItem(child)) {
     return child;
   }
-
-  const previous = child.getPreviousSibling();
-  if ($isListItemNode(previous) && !isChildrenWrapper(previous)) {
-    return previous;
-  }
-
-  return null;
+  const owner = getPreviousContentSibling(child);
+  return owner ?? null;
 }
 
 function resolveEmptySiblingFromBoundary(
