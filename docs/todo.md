@@ -221,6 +221,15 @@ Remaining issues to fold in or fix directly:
   Prefer simple explicit test actions (for example dispatching the real zoom
   command, or at most a thin helper around it) over smart harness metadata that
   adds API surface, hides behavior setup, and cannot be changed mid-test.
+- Collab full-suite flakiness on high-core machines (~10%/run, different
+  unrelated test each time, isolation-clean, CI never sees it). Cause: vitest
+  worker count scales to cores (no `maxForks` cap) but the 5s per-test timeout
+  and single shared collab server don't, so ~10 workers starve under contention;
+  CI's 2-core runner accidentally stays under the budget. Proposed first fix: cap
+  `poolOptions.forks.maxForks` (~4 / `'50%'`) and raise the timeout on the
+  subprocess-spawning files (`snapshot-backup`, `prod-docker-launcher`,
+  `config-env`, `docker-entrypoint-env`, `snapshot.collab`). Verify with
+  `test:collab:repeat`.
 
 ## Warning and drift detection follow-ups
 
