@@ -33,6 +33,34 @@ function stop(event: KeyboardEvent | null): true {
   return true;
 }
 
+/**
+ * True when a collapsed caret sits at the body's leading edge (backward) or
+ * trailing edge (forward) — the boundaries where a delete would otherwise reach
+ * into the surrounding notes.
+ */
+function $isCaretAtBodyEdge(body: NoteBodyNode, direction: 'backward' | 'forward'): boolean {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+    return false;
+  }
+  const point = selection.anchor;
+  const node = point.getNode();
+
+  if (direction === 'backward') {
+    const first = body.getFirstDescendant();
+    if (first === null) {
+      return point.getNode() === body && point.offset === 0;
+    }
+    return node === first && point.offset === 0;
+  }
+
+  const last = body.getLastDescendant();
+  if (last === null) {
+    return point.getNode() === body;
+  }
+  return node === last && point.offset === last.getTextContentSize();
+}
+
 /** The note body containing the current caret/selection, or null. */
 function $getActiveNoteBody(): NoteBodyNode | null {
   const selection = $getSelection();
@@ -119,12 +147,12 @@ export function NoteBodyPlugin() {
       // Delete on an already-empty body removes it and returns to the note.
       editor.registerCommand(
         KEY_BACKSPACE_COMMAND,
-        (event: KeyboardEvent | null) => $handleBodyDelete(event),
+        (event: KeyboardEvent | null) => $handleBodyDelete('backward', event),
         COMMAND_PRIORITY_CRITICAL
       ),
       editor.registerCommand(
         KEY_DELETE_COMMAND,
-        (event: KeyboardEvent | null) => $handleBodyDelete(event),
+        (event: KeyboardEvent | null) => $handleBodyDelete('forward', event),
         COMMAND_PRIORITY_CRITICAL
       )
     );
@@ -133,7 +161,7 @@ export function NoteBodyPlugin() {
   return null;
 }
 
-function $handleBodyDelete(event: KeyboardEvent | null): boolean {
+function $handleBodyDelete(direction: 'backward' | 'forward', event: KeyboardEvent | null): boolean {
   const body = $getActiveNoteBody();
   if (!body) {
     return false;
@@ -142,8 +170,7 @@ function $handleBodyDelete(event: KeyboardEvent | null): boolean {
     $removeNoteBody(body);
     return stop(event);
   }
-  // Non-empty: let the default delete edit the text. The body is removed only
-  // once it becomes empty (next press), or via select-all + delete.
+
   const selection = $getSelection();
   if ($isRangeSelection(selection) && !selection.isCollapsed()) {
     // Select-all (or any full-text range) + delete: if the whole body text is
@@ -153,6 +180,11 @@ function $handleBodyDelete(event: KeyboardEvent | null): boolean {
       $removeNoteBody(body);
       return stop(event);
     }
+    return false;
   }
-  return false;
+
+  // Collapsed caret at a body boundary is a no-op: a body never merges into the
+  // surrounding notes (Backspace at the start / Delete at the end). Otherwise let
+  // the default delete edit the body text in place.
+  return $isCaretAtBodyEdge(body, direction) ? stop(event) : false;
 }

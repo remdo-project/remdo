@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { REDO_COMMAND, UNDO_COMMAND } from 'lexical';
+import { act } from '@testing-library/react';
+import { REDO_COMMAND, UNDO_COMMAND, $getRoot  } from 'lexical';
 import {
   copySelection,
   pastePayload,
@@ -11,7 +12,11 @@ import {
   meta,
 } from '#tests';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
-import { $skipBodyForVerticalNav } from './note-body-ops';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { getBodyWrapper } from '#client/editor/outline/list-structure';
+import { $getNoteId } from '#client/editor/runtime/note-id-state';
+import { $normalizeNoteIdsOnLoad } from '#client/editor/plugins/note-id-normalization';
+import { getNoteBody, $skipBodyForVerticalNav } from './note-body-ops';
 
 describe('note body (docs/outliner/body.md)', () => {
   it('shift+Enter on a note adds a body and moves the caret into it', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -97,6 +102,70 @@ describe('note body (docs/outliner/body.md)', () => {
       { noteId: 'note3', text: 'note3' },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+  });
+
+  it('backspace at the start of a non-empty body is a no-op and never merges into the note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'bodytext');
+
+    // Caret at the very start of the body, then Backspace.
+    await remdo.mutate(() => {
+      getNoteBody($findNoteById('note1')!)!.selectStart();
+    });
+    await pressKey(remdo, { key: 'Backspace' });
+
+    // Body and note both intact — no merge.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'bodytext' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('backspace at the start of a child whose parent has a body merges into the parent, not the body', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    // tree: note1; note2 > note3. Give note2 (the parent) a body.
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'pbody');
+
+    // Backspace at the start of the child note3 must merge it into note2 (its
+    // real parent), leaving note2's body intact — never into the body-wrapper.
+    await placeCaretAtNote(remdo, 'note3', 0);
+    await pressKey(remdo, { key: 'Backspace' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2 note3', body: 'pbody' },
+    ]);
+  });
+
+  it('load-time note-id normalization leaves the body-wrapper id-less (no missing-note-id)', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'bodytext');
+
+    // Simulate a fresh document load. The body-wrapper must not be treated as a
+    // note: it keeps no noteId and the normalizer reports no missing-note-id
+    // invariant (which the harness would surface as a console error → failure).
+    // Run via editor.update directly since a correct normalize is a no-op here.
+    await act(async () => {
+      remdo.editor.update(() => {
+        $normalizeNoteIdsOnLoad($getRoot(), remdo.getCollabDocId());
+      });
+    });
+
+    const wrapperHasNoId = remdo.validate(() => {
+      const wrapper = getBodyWrapper($findNoteById('note1')!)!;
+      return $getNoteId(wrapper) === null;
+    });
+    expect(wrapperHasNoId).toBe(true);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'bodytext' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
   });
 
   it('undo restores a deleted body and its text as one step; redo removes it again', meta({ fixture: 'flat' }), async ({ remdo }) => {

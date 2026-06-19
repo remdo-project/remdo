@@ -4,7 +4,7 @@ import type { LexicalNode } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
 import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
-import { getBodyWrapper, getContentSiblings, isChildrenWrapper, maybeRemoveEmptyWrapper } from '../list-structure';
+import { getBodyWrapper, getContentSiblings, getPreviousContentSibling, isChildrenWrapper, maybeRemoveEmptyWrapper } from '../list-structure';
 
 // A content note is a list item that is neither adjacency wrapper.
 const isContentItem = (node: LexicalNode | null | undefined): node is ListItemNode =>
@@ -81,8 +81,9 @@ export function getParentContentItem(item: ListItemNode): ListItemNode | null {
     return null;
   }
 
-  const parentContent = parentWrapper.getPreviousSibling();
-  if ($isListItemNode(parentContent) && !isChildrenWrapper(parentContent)) {
+  // The parent note sits before the children-wrapper, after any body-wrapper.
+  const parentContent = getPreviousContentSibling(parentWrapper);
+  if (parentContent) {
     return parentContent;
   }
 
@@ -90,7 +91,7 @@ export function getParentContentItem(item: ListItemNode): ListItemNode | null {
     message: 'Parent content sibling is not a list item',
     context: {
       itemKey: item.getKey(),
-      parentSiblingType: parentContent?.getType ? parentContent.getType() : undefined,
+      parentSiblingType: parentWrapper.getPreviousSibling()?.getType(),
     },
   });
   return null;

@@ -21,7 +21,6 @@ import {
   getContentSiblings,
   getPreviousContentSibling,
   insertBefore,
-  isChildrenWrapper,
 } from '#client/editor/outline/list-structure';
 import {
   $requireRootContentList,
@@ -55,12 +54,8 @@ function getParentNote(list: ListNode): ListItemNode | null {
     return null;
   }
 
-  const parent = wrapper.getPreviousSibling();
-  if ($isListItemNode(parent) && !isChildrenWrapper(parent)) {
-    return parent;
-  }
-
-  return null;
+  // The parent note sits before the children-wrapper, after any body-wrapper.
+  return getPreviousContentSibling(wrapper);
 }
 
 function getFirstChildContentItem(item: ListItemNode): ListItemNode | null {
