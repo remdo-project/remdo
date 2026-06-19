@@ -1,9 +1,11 @@
 import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
-import { $createTextNode } from 'lexical';
+import { $createTextNode, $getSelection, $isRangeSelection } from 'lexical';
 import type { LexicalNode, RangeSelection } from 'lexical';
 
-import { getBodyWrapper } from '#client/editor/outline/list-structure';
+import { getBodyWrapper, getPreviousContentSibling } from '#client/editor/outline/list-structure';
+import { $selectItemEdge } from '#client/editor/outline/selection/caret';
+import { getNextContentSibling } from '#client/editor/outline/selection/tree';
 import type { NoteBodyNode } from './note-body-node';
 import { $createBodyWrapper, $isNoteBodyNode } from './note-body-node';
 
@@ -27,6 +29,44 @@ export function $getNoteBodyFromNode(node: LexicalNode | null): NoteBodyNode | n
     current = current.getParent();
   }
   return null;
+}
+
+/**
+ * If a plain vertical-arrow move landed the caret inside a body (entering from
+ * an adjacent note), push it through to the content note on the far side, so
+ * arrow navigation never stops in a body. Down lands on the note after the body;
+ * up lands on the body's owner note.
+ */
+export function $skipBodyForVerticalNav(direction: 'up' | 'down'): void {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+    return;
+  }
+  const body = $getNoteBodyFromNode(selection.anchor.getNode());
+  if (!body) {
+    return;
+  }
+  const wrapper = body.getParent();
+  if (!$isListItemNode(wrapper)) {
+    return;
+  }
+  const owner = getPreviousContentSibling(wrapper);
+
+  if (direction === 'up') {
+    if (owner) {
+      $selectItemEdge(owner, 'end');
+    }
+    return;
+  }
+
+  // down: land on the note after the body, or fall back to the owner's end so
+  // the caret never strands inside the body when it has no following note.
+  const next = getNextContentSibling(wrapper);
+  if (next) {
+    $selectItemEdge(next, 'start');
+  } else if (owner) {
+    $selectItemEdge(owner, 'end');
+  }
 }
 
 /** True when either end of the selection sits inside a note body. */

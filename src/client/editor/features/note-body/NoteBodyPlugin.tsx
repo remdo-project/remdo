@@ -4,23 +4,29 @@ import {
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_CRITICAL,
+  COMMAND_PRIORITY_LOW,
   KEY_ARROW_DOWN_COMMAND,
-  KEY_ARROW_LEFT_COMMAND,
-  KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
   KEY_ENTER_COMMAND,
   SELECT_ALL_COMMAND,
+  SELECTION_CHANGE_COMMAND,
 } from 'lexical';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import type { NoteBodyNode } from './note-body-node';
-import { $addNoteBody, $getNoteBodyFromNode, $removeNoteBody, isNoteBodyEmpty } from './note-body-ops';
+import {
+  $addNoteBody,
+  $getNoteBodyFromNode,
+  $removeNoteBody,
+  $skipBodyForVerticalNav,
+  isNoteBodyEmpty,
+} from './note-body-ops';
 import './note-body.css';
 
-type ArrowDirection = 'up' | 'down' | 'left' | 'right';
+type VerticalDirection = 'up' | 'down';
 
 function stop(event: KeyboardEvent | null): true {
   event?.preventDefault();
@@ -39,81 +45,66 @@ function $getActiveNoteBody(): NoteBodyNode | null {
   return anchorBody && anchorBody === focusBody ? anchorBody : null;
 }
 
-/**
- * True when a plain arrow press would move the caret out of the body in the
- * given direction. Up/Down always escape (a body is one logical line for
- * vertical nav); Left/Right escape only at the body's text boundaries.
- */
-function $arrowWouldLeaveBody(body: NoteBodyNode, direction: ArrowDirection): boolean {
-  const selection = $getSelection();
-  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-    return false;
-  }
-
-  if (direction === 'up' || direction === 'down') {
-    return true;
-  }
-
-  const size = body.getTextContentSize();
-  const offset = $bodyCaretOffset(body);
-  if (offset === null) {
-    return false;
-  }
-  return direction === 'left' ? offset === 0 : offset === size;
-}
-
-/** Caret offset within the body's flattened text, or null if not collapsed. */
-function $bodyCaretOffset(body: NoteBodyNode): number | null {
-  const selection = $getSelection();
-  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-    return null;
-  }
-  const anchor = selection.anchor;
-  const node = anchor.getNode();
-  let offset = anchor.type === 'text' ? anchor.offset : 0;
-  // Sum the text length of everything before the anchor node within the body.
-  let cursor = node.getPreviousSibling();
-  while (cursor && $getNoteBodyFromNode(cursor) === body) {
-    offset += cursor.getTextContentSize();
-    cursor = cursor.getPreviousSibling();
-  }
-  return offset;
-}
-
 export function NoteBodyPlugin() {
   const [editor] = useLexicalComposerContext();
+  // Set when a plain Up/Down is pressed with the caret outside any body, so the
+  // update listener can push the caret through a body it skipped into.
+  const pendingSkipRef = useRef<VerticalDirection | null>(null);
 
   useEffect(() => {
-    const $handleArrow = (direction: ArrowDirection, event: KeyboardEvent | null): boolean => {
-      // Plain arrows only; modified arrows (shift/alt/meta/ctrl) are handled
-      // elsewhere or fall through.
+    const $onVerticalArrow = (direction: VerticalDirection, event: KeyboardEvent | null): boolean => {
+      // Plain arrows only; let modified arrows fall through to other handlers.
       if (event && (event.shiftKey || event.altKey || event.metaKey || event.ctrlKey)) {
         return false;
       }
-      const body = $getActiveNoteBody();
-      if (!body) {
-        return false;
-      }
-      // Trap the caret: block any arrow that would leave the body.
-      return $arrowWouldLeaveBody(body, direction) ? stop(event) : false;
+      // Arm the skip only when the caret starts outside a body; once inside, the
+      // body owns its own vertical movement (and arrows leave it freely).
+      pendingSkipRef.current = $getActiveNoteBody() ? null : direction;
+      return false;
     };
 
     return mergeRegister(
-      // Shift+Enter on a note: add or focus its body. Registered with a plain
-      // Enter command guarded on shiftKey so it pre-empts default insertion.
+      editor.registerCommand(
+        KEY_ARROW_UP_COMMAND,
+        (event) => $onVerticalArrow('up', event),
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_ARROW_DOWN_COMMAND,
+        (event) => $onVerticalArrow('down', event),
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      // After the default move runs (reported as a selection change), if a
+      // primed Up/Down landed the caret inside a body, push it through to the
+      // content note on the far side.
+      editor.registerCommand(
+        SELECTION_CHANGE_COMMAND,
+        () => {
+          const direction = pendingSkipRef.current;
+          pendingSkipRef.current = null;
+          if (direction) {
+            $skipBodyForVerticalNav(direction);
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_LOW
+      ),
+      // Enter inside a body inserts a line break (the body is multi-line);
+      // Shift+Enter on a note adds or focuses its body.
       editor.registerCommand(
         KEY_ENTER_COMMAND,
         (event: KeyboardEvent | null) => {
-          if (!event || !event.shiftKey) {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) {
             return false;
           }
-          // Already inside a body: Shift+Enter is a no-op here for now (the body
-          // is single-block; let the editor ignore it rather than split notes).
+
           if ($getActiveNoteBody()) {
+            selection.insertLineBreak();
             return stop(event);
           }
-          const selection = $getSelection();
-          if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+
+          if (!event?.shiftKey || !selection.isCollapsed()) {
             return false;
           }
           const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
@@ -136,26 +127,6 @@ export function NoteBodyPlugin() {
           body.select(0, body.getChildrenSize());
           return stop(event);
         },
-        COMMAND_PRIORITY_CRITICAL
-      ),
-      editor.registerCommand(
-        KEY_ARROW_UP_COMMAND,
-        (event) => $handleArrow('up', event),
-        COMMAND_PRIORITY_CRITICAL
-      ),
-      editor.registerCommand(
-        KEY_ARROW_DOWN_COMMAND,
-        (event) => $handleArrow('down', event),
-        COMMAND_PRIORITY_CRITICAL
-      ),
-      editor.registerCommand(
-        KEY_ARROW_LEFT_COMMAND,
-        (event) => $handleArrow('left', event),
-        COMMAND_PRIORITY_CRITICAL
-      ),
-      editor.registerCommand(
-        KEY_ARROW_RIGHT_COMMAND,
-        (event) => $handleArrow('right', event),
         COMMAND_PRIORITY_CRITICAL
       ),
       // Deletion: removing all text from a body deletes the body. Backspace or

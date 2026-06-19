@@ -69,6 +69,12 @@ sections to docs.
   Exception: the `remdo-feature-flow` skill is self-authorizing — within a
   `/remdo-feature-flow` run, commits on the confirmed task branch are allowed per that
   skill’s permission model (still never pushing without an explicit ask).
+- Uncommitted state may be incoherent; commits should not be. The working tree
+  is scratch that is allowed to be mid-transformation (e.g. docs ahead of code) —
+  don't raise such incoherencies while they stay uncommitted. At commit time,
+  either the committed state is coherent or an ultra-short `docs/todo.md` trigger
+  covers the gap (per `docs/contributing.md#documentation` invariant 9); add that
+  trigger yourself and note it in the commit rather than asking.
 - The Git index may be used by the developer as private review bookkeeping.
   Treat staged vs unstaged state as semantically invisible: it does not mark
   files as done, final, approved, protected, or out of scope. When the agreed

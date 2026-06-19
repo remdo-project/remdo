@@ -141,4 +141,41 @@ describe('note body (docs/outliner/body.md)', () => {
       { noteId: null, text: 'note2' },
     ]);
   });
+
+  it('enter inside a body inserts a line break instead of creating a note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'one');
+    await pressKey(remdo, { key: 'Enter' });
+    await typeText(remdo, 'two');
+
+    // No new note was created; the body now holds a line break between the two
+    // typed segments.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'onetwo' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    expect(JSON.stringify(remdo.getEditorState())).toContain('"linebreak"');
+  });
+
+  it('enter at the end of a note that has a body inserts the new sibling after the body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'b');
+
+    // Caret at the end of note1, then Enter: the new note must land after the
+    // body, never between note1 and its body.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter' });
+    await typeText(remdo, 'X');
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'b' },
+      { noteId: null, text: 'X' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
 });

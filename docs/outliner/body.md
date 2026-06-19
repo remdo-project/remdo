@@ -24,12 +24,14 @@ its body is included as part of that note; the ladder (see
 [Selection](./selection.md)) never selects a body's text on its own, and a body's
 selection never extends out into the note tree.
 
-Within that world, caret and selection keys behave as follows:
+Within that world, keys behave as follows:
 
-1. **Vertical nav skips it.** `Up`/`Down` caret movement between notes never stops
-   in a body.
-2. **Caret is trapped.** Arrow keys keep the caret inside the body, stopping at
-   its boundaries.
+1. **Arrows are one-way.** Caret arrow navigation never enters a body from
+   outside — moving between notes skips over it. But once the caret is inside a
+   body, any arrow that crosses a boundary leaves it. The only ways into a body
+   are the add/focus gesture and clicking.
+2. **`Enter` inserts a line break.** Inside a body, `Enter` adds a newline (the
+   body is multi-line), rather than creating a note as it does in note content.
 3. **`Cmd/Ctrl+A` is local.** Inside a body it selects that body's text only and
    never advances the selection ladder.
 
@@ -43,9 +45,8 @@ Within that world, caret and selection keys behave as follows:
 3. **Select-all delete.** Selecting all of a body's text and pressing
    `Delete`/`Backspace` removes the body in one step.
 
-`Backspace` at the start of a non-empty body is a no-op (the caret is trapped at
-the boundary; see *Selection and navigation*), so a body is removed only by
-emptying it first.
+`Backspace` at the start of a non-empty body is a no-op — it never merges the
+body into the note above — so a body is removed only by emptying it first.
 
 ## Node model
 

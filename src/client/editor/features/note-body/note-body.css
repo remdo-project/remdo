@@ -12,8 +12,6 @@
 
 .note-body {
   margin: 0.1rem 0 0.2rem;
-  padding-left: 0.7rem;
-  border-left: 2px solid var(--mantine-color-gray-4, #ced4da);
   color: var(--mantine-color-dimmed, #868e96);
   font-size: 0.9em;
   line-height: 1.45;

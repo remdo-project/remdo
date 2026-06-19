@@ -18,7 +18,7 @@ import type { LexicalNode } from 'lexical';
 import { useEffect } from 'react';
 import { $isNoteFolded } from '#client/editor/runtime/fold-state';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { $getOrCreateChildList, insertBefore } from '#client/editor/outline/list-structure';
+import { $getOrCreateChildList, getBodyWrapper, insertBefore } from '#client/editor/outline/list-structure';
 import { resolveBoundaryPoint } from '#client/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '#client/editor/outline/selection/caret-placement';
 import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
@@ -64,7 +64,9 @@ function $handleEnterAtEnd(contentItem: ListItemNode) {
   }
 
   const newSibling = $createNote('');
-  contentItem.insertAfter(newSibling);
+  // A next sibling goes after the note's body-wrapper (if any), not between the
+  // note and its body.
+  (getBodyWrapper(contentItem) ?? contentItem).insertAfter(newSibling);
   const textNode = newSibling.getChildren().find($isTextNode);
   textNode?.select(0, 0);
 }
