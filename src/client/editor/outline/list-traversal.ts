@@ -1,11 +1,7 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $isListItemNode, $isListNode } from '@lexical/list';
-import type { LexicalNode } from 'lexical';
 
-import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
-import { getBodyWrapper, isChildrenWrapper } from './list-structure';
-
-const isWrapperItem = (node: LexicalNode): boolean => isChildrenWrapper(node) || isBodyWrapper(node);
+import { getBodyWrapper, isChildrenWrapper, isWrapperItem } from './list-structure';
 
 type TraverseResult = void | boolean;
 type ContentItemVisitor = (item: ListItemNode, ancestors: ListItemNode[]) => TraverseResult;

@@ -45,7 +45,8 @@ export const findNearestListItem = (node: LexicalNode | null): ListItemNode | nu
 
 // A list item is a content note unless it is one of the adjacency wrappers
 // (children-wrapper holding a nested list, or body-wrapper holding a note body).
-const isWrapperItem = (item: ListItemNode): boolean => isChildrenWrapper(item) || isBodyWrapper(item);
+export const isWrapperItem = (node: LexicalNode | null | undefined): boolean =>
+  isChildrenWrapper(node) || isBodyWrapper(node);
 
 export const isContentItem = (node: LexicalNode | null | undefined): node is ListItemNode =>
   $isListItemNode(node) && !isWrapperItem(node);

@@ -4,11 +4,7 @@ import type { LexicalNode } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
 import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
-import { getBodyWrapper, getContentSiblings, getPreviousContentSibling, isChildrenWrapper, maybeRemoveEmptyWrapper } from '../list-structure';
-
-// A content note is a list item that is neither adjacency wrapper.
-const isContentItem = (node: LexicalNode | null | undefined): node is ListItemNode =>
-  $isListItemNode(node) && !isChildrenWrapper(node) && !isBodyWrapper(node);
+import { getBodyWrapper, getContentSiblings, getPreviousContentSibling, isChildrenWrapper, isContentItem, maybeRemoveEmptyWrapper } from '../list-structure';
 
 export function normalizeContentRange(
   start: ListItemNode,
