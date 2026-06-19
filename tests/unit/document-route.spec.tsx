@@ -1030,6 +1030,28 @@ describe('document route', () => {
         expect(screen.queryByTestId('document-search-results')).toBeNull();
       });
     });
+
+    it('prevents default on crumb mousedown so the search input keeps focus', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'refine' } });
+
+      const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      const ancestorCrumb = Array.from(
+        active.querySelectorAll<HTMLElement>('[data-search-result-ancestor-crumb]')
+      ).find((crumb) => crumb.textContent === 'Q3 planning');
+      expect(ancestorCrumb).toBeDefined();
+
+      // mousedown must be default-prevented: otherwise the focusable crumb button
+      // steals focus, blurs the search input, and the dismiss-on-blur unmounts the
+      // results before the crumb's click can zoom. fireEvent returns false when a
+      // handler called preventDefault.
+      const notPrevented = fireEvent.mouseDown(ancestorCrumb!);
+      expect(notPrevented).toBe(false);
+    });
   });
 
   it('dismisses search on outside primary click without changing the route', async () => {

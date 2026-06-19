@@ -146,6 +146,12 @@ function ResultBreadcrumb({
                 event.stopPropagation();
                 onSelectAncestor(event, crumb.item.noteId);
               }}
+              onMouseDown={(event) => {
+                // Keep focus on the search input: a focusable button would
+                // otherwise steal it on press, blurring the input and dismissing
+                // the results before this crumb's click can zoom.
+                event.preventDefault();
+              }}
               onPointerDown={(event) => {
                 onSelectAncestorPointerDown(event, crumb.item.noteId);
               }}
