@@ -45,6 +45,8 @@ Within that world, keys behave as follows:
    empties it — the next `Backspace`/`Delete` removes it.
 3. **Select-all delete.** Selecting all of a body's text and pressing
    `Delete`/`Backspace` removes the body in one step.
+4. **Undo restores it.** Undoing a body deletion restores the body and its text
+   as a single step.
 
 `Backspace` at the start of a non-empty body is a no-op — it never merges the
 body into the note above — so a body is removed only by emptying it first.

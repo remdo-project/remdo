@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { REDO_COMMAND, UNDO_COMMAND } from 'lexical';
 import {
   copySelection,
   pastePayload,
@@ -96,6 +97,44 @@ describe('note body (docs/outliner/body.md)', () => {
       { noteId: 'note3', text: 'note3' },
     ]);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+  });
+
+  it('undo restores a deleted body and its text as one step; redo removes it again', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'body text');
+    await remdo.waitForSynced();
+
+    // Separate creating the body from deleting it past the collab undo capture
+    // window (Yjs UndoManager coalesces create+delete within ~500ms into a
+    // no-op step), so this exercises the real "create, later delete, undo" flow.
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'Delete' });
+    await remdo.waitForSynced();
+
+    const withBody = [
+      { noteId: 'note1', text: 'note1', body: 'body text' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ];
+    const withoutBody = [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ];
+    expect(remdo).toMatchOutline(withoutBody);
+
+    // One undo brings the body and its text back (selection is not asserted:
+    // undo restores structure/content, not the caret).
+    await remdo.dispatchCommand(UNDO_COMMAND);
+    await remdo.waitForSynced();
+    expect(remdo).toMatchOutline(withBody);
+
+    await remdo.dispatchCommand(REDO_COMMAND);
+    await remdo.waitForSynced();
+    expect(remdo).toMatchOutline(withoutBody);
   });
 
   it('a body travels with its note: structural delete removes the note and its body', meta({ fixture: 'flat' }), async ({ remdo }) => {

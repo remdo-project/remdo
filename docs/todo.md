@@ -269,10 +269,10 @@ The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
 - Clipboard: decide whether copying a note that has a body includes the body
   text when pasting as plain text outside RemDo. Settle in `clipboard.md` when
   clipboard is next touched.
-- Body deletion edge cases not yet covered by tests: (1) the collab race when one
-  client empties+deletes a body while another types into it (relate to
-  `selection.md` collaboration reshaping); (2) undo granularity — whether "delete
-  empty body" is a single undo step that restores the caret into the body.
+- Undo does not restore selection under collaboration (Lexical's `@lexical/yjs`
+  V2 history only persists structure, not the caret). This is global, not
+  body-specific — RemDo's undo tests assert structure only. Decide if restoring
+  selection on undo is worth wiring the Yjs `UndoManager` StackItem `meta`.
 
 ## Later follow-ups
 
