@@ -202,6 +202,35 @@ describe('note body (docs/outliner/body.md)', () => {
     expect(JSON.stringify(remdo.getEditorState())).toContain('"linebreak"');
   });
 
+  it('enter confirms an @ note-link inside a body instead of inserting a line break', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'see @note2');
+    await pressKey(remdo, { key: 'Enter' });
+
+    // The picker confirmed the link (body shows the linked title and a trailing
+    // space), and Enter did not insert a line break.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'see note2 ' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+    expect(JSON.stringify(remdo.getEditorState())).not.toContain('"linebreak"');
+  });
+
+  it('tab confirms an @ note-link inside a body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'see @note3');
+    await pressKey(remdo, { key: 'Tab' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'see note3 ' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
   it('enter at the end of a note that has a body inserts the new sibling after the body', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });

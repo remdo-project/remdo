@@ -14,8 +14,9 @@ with its own selection that stays separate from the structural note tree.
 2. **Ownership.** A note has at most one body, and a body belongs to that one
    note.
 3. **Visually distinct.** A body renders set apart from the note's content.
-4. **Inline formatting.** Body text supports the same key-driven inline
-   formatting as note content; there is no separate formatting UI.
+4. **Inline content.** Body text supports the same key-driven inline content as
+   note content — inline formatting (no separate formatting UI) and `@` note
+   links (see [Links](./links.md)), including the picker's `Enter`/`Tab` confirm.
 
 ## Selection and navigation
 

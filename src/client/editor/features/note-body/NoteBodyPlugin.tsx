@@ -4,6 +4,7 @@ import {
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_CRITICAL,
+  COMMAND_PRIORITY_HIGH,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
@@ -73,7 +74,9 @@ export function NoteBodyPlugin() {
         COMMAND_PRIORITY_CRITICAL
       ),
       // Enter inside a body inserts a line break (the body is multi-line);
-      // Shift+Enter on a note adds or focuses its body.
+      // Shift+Enter on a note adds or focuses its body. Registered at HIGH (not
+      // CRITICAL) so an open typeahead — e.g. the `@` link picker — confirms its
+      // option on Enter first, matching how note insertion defers to the picker.
       editor.registerCommand(
         KEY_ENTER_COMMAND,
         (event: KeyboardEvent | null) => {
@@ -97,7 +100,7 @@ export function NoteBodyPlugin() {
           $addNoteBody(contentItem);
           return stop(event);
         },
-        COMMAND_PRIORITY_CRITICAL
+        COMMAND_PRIORITY_HIGH
       ),
       // Cmd/Ctrl+A inside a body selects the body's text only; never the ladder.
       editor.registerCommand(
