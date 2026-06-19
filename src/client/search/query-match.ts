@@ -1,11 +1,14 @@
 // Shared query matching for the document search and the note-link picker.
 //
-// Semantics: case-insensitive, tokenized substring AND. The query is split on
-// whitespace into tokens; a candidate matches when every token occurs as a
-// substring of its text. Tokens are order-independent ("foo bar" and "  bar\tfoo"
-// match the same candidates) and extra whitespace in the query is irrelevant.
-// No fuzzy matching and no ranking — matches are returned in candidate order by
-// the caller. Empty query matches everything.
+// Semantics: case-insensitive, tokenized substring AND, scoped to a note's path.
+// The query is split on whitespace into tokens; a note matches when every token
+// is a substring of some entry in its path (ancestor chain + the note itself) and
+// at least one token is a substring of the note's own text. Tokens are
+// order-independent ("foo bar" and "  bar\tfoo" match the same notes) and extra
+// whitespace is irrelevant. The leaf-first guard (≥1 token on the note itself)
+// keeps an ancestor match from pulling in its whole subtree. No fuzzy matching
+// and no ranking — matches are returned in candidate order by the caller. Empty
+// query matches everything.
 //
 // This is pure query semantics over plain strings; it deliberately lives outside
 // the note SDK (which owns note access, not matching).
@@ -20,15 +23,27 @@ export function tokenizeQuery(query: string): string[] {
   return query.toLocaleLowerCase().split(/\s+/u).filter((token) => token.length > 0);
 }
 
-/** True when every query token is a substring of `text` (case-insensitive). An
- *  empty query (no tokens) matches everything. */
-export function matchesQuery(text: string, query: string): boolean {
+/** Path-scoped match: `path` is the note's ancestor chain plus the note's own
+ *  text as the last entry. Matches when every token is a substring of some path
+ *  entry AND at least one token is a substring of the last entry (the note
+ *  itself). Empty query matches everything. */
+export function matchesPathQuery(path: readonly string[], query: string): boolean {
   const tokens = tokenizeQuery(query);
   if (tokens.length === 0) {
     return true;
   }
-  const haystack = text.toLocaleLowerCase();
-  return tokens.every((token) => haystack.includes(token));
+  const haystack = path.map((entry) => entry.toLocaleLowerCase());
+  const ownText = haystack.at(-1) ?? '';
+  let anyOnOwnText = false;
+  for (const token of tokens) {
+    if (!haystack.some((entry) => entry.includes(token))) {
+      return false;
+    }
+    if (ownText.includes(token)) {
+      anyOnOwnText = true;
+    }
+  }
+  return anyOnOwnText;
 }
 
 /** Ranges (in `text`'s own indices) where any query token occurs, for

@@ -16,7 +16,6 @@ import type {
 import {
   collectChildCandidateMap,
   collectSearchCandidates,
-  ROOT_SEARCH_SCOPE_ID,
 } from '#client/editor/search/search-candidates';
 
 function createMockNoteAs(noteId: string, kind: () => NoteKind, self: () => Note): Note['as'] {
@@ -118,11 +117,11 @@ describe('search candidates', () => {
     });
 
     expect(candidates).toEqual([
-      { noteId: 'top', text: 'Top', listType: 'bullet', checked: false },
-      { noteId: 'child-a', text: 'Child A', listType: 'bullet', checked: false },
-      { noteId: 'child-b', text: 'Child B', listType: 'bullet', checked: false },
-      { noteId: 'leaf', text: 'Leaf', listType: 'bullet', checked: false },
-      { noteId: 'sibling', text: 'Sibling', listType: 'bullet', checked: false },
+      { noteId: 'top', text: 'Top', listType: 'bullet', checked: false, pathText: ['Top'] },
+      { noteId: 'child-a', text: 'Child A', listType: 'bullet', checked: false, pathText: ['Top', 'Child A'] },
+      { noteId: 'child-b', text: 'Child B', listType: 'bullet', checked: false, pathText: ['Top', 'Child B'] },
+      { noteId: 'leaf', text: 'Leaf', listType: 'bullet', checked: false, pathText: ['Top', 'Child B', 'Leaf'] },
+      { noteId: 'sibling', text: 'Sibling', listType: 'bullet', checked: false, pathText: ['Sibling'] },
     ]);
   });
 
@@ -134,23 +133,7 @@ describe('search candidates', () => {
     expect(candidates).toEqual([]);
   });
 
-  it('stores slash-root candidates under the synthetic root scope key', () => {
-    const top = createMockEditorNote('top', 'Top', [
-      createMockEditorNote('child-a', 'Child A'),
-    ]);
-    const sibling = createMockEditorNote('sibling', 'Sibling');
-
-    const childCandidateMap = collectChildCandidateMap({
-      currentDocument: () => createMockDocumentNote([top, sibling]),
-    });
-
-    expect(childCandidateMap[ROOT_SEARCH_SCOPE_ID]).toEqual([
-      { noteId: 'top', text: 'Top', listType: 'bullet', checked: false },
-      { noteId: 'sibling', text: 'Sibling', listType: 'bullet', checked: false },
-    ]);
-  });
-
-  it('collects per-note direct children for slash descent mode', () => {
+  it('collects per-note direct children keyed by parent note id', () => {
     const top = createMockEditorNote('top', 'Top', [
       createMockEditorNote('child-a', 'Child A'),
       createMockEditorNote('child-b', 'Child B', [createMockEditorNote('leaf', 'Leaf')]),
@@ -162,16 +145,12 @@ describe('search candidates', () => {
     });
 
     expect(childCandidateMap).toEqual({
-      [ROOT_SEARCH_SCOPE_ID]: [
-        { noteId: 'top', text: 'Top', listType: 'bullet', checked: false },
-        { noteId: 'sibling', text: 'Sibling', listType: 'bullet', checked: false },
-      ],
       top: [
-        { noteId: 'child-a', text: 'Child A', listType: 'bullet', checked: false },
-        { noteId: 'child-b', text: 'Child B', listType: 'bullet', checked: false },
+        { noteId: 'child-a', text: 'Child A', listType: 'bullet', checked: false, pathText: ['Top', 'Child A'] },
+        { noteId: 'child-b', text: 'Child B', listType: 'bullet', checked: false, pathText: ['Top', 'Child B'] },
       ],
       'child-a': [],
-      'child-b': [{ noteId: 'leaf', text: 'Leaf', listType: 'bullet', checked: false }],
+      'child-b': [{ noteId: 'leaf', text: 'Leaf', listType: 'bullet', checked: false, pathText: ['Top', 'Child B', 'Leaf'] }],
       leaf: [],
       sibling: [],
     });
@@ -188,8 +167,8 @@ describe('search candidates', () => {
     });
 
     expect(childCandidateMap.top).toEqual([
-      { noteId: 'step-1', text: 'Step one', listType: 'number', checked: false },
-      { noteId: 'done', text: 'Done item', listType: 'check', checked: true },
+      { noteId: 'step-1', text: 'Step one', listType: 'number', checked: false, pathText: ['Top', 'Step one'] },
+      { noteId: 'done', text: 'Done item', listType: 'check', checked: true, pathText: ['Top', 'Done item'] },
     ]);
   });
 
@@ -203,16 +182,12 @@ describe('search candidates', () => {
     });
 
     expect(result.allCandidates).toEqual([
-      { noteId: 'note1', text: 'note1', listType: 'bullet', checked: false },
-      { noteId: 'note2', text: 'note2', listType: 'bullet', checked: false },
-      { noteId: 'note3', text: 'note3', listType: 'bullet', checked: false },
+      { noteId: 'note1', text: 'note1', listType: 'bullet', checked: false, pathText: ['note1'] },
+      { noteId: 'note2', text: 'note2', listType: 'bullet', checked: false, pathText: ['note1', 'note2'] },
+      { noteId: 'note3', text: 'note3', listType: 'bullet', checked: false, pathText: ['note3'] },
     ]);
     expect(result.childCandidateMap).toEqual({
-      [ROOT_SEARCH_SCOPE_ID]: [
-        { noteId: 'note1', text: 'note1', listType: 'bullet', checked: false },
-        { noteId: 'note3', text: 'note3', listType: 'bullet', checked: false },
-      ],
-      note1: [{ noteId: 'note2', text: 'note2', listType: 'bullet', checked: false }],
+      note1: [{ noteId: 'note2', text: 'note2', listType: 'bullet', checked: false, pathText: ['note1', 'note2'] }],
       note2: [],
       note3: [],
     });
@@ -229,15 +204,17 @@ describe('search candidates', () => {
     const childCandidateMap = collectChildCandidateMap(sdk);
 
     expect(allCandidates).toHaveLength(depth);
-    expect(allCandidates[0]).toEqual({ noteId: 'deep-0', text: 'Deep 0', listType: 'bullet', checked: false });
+    expect(allCandidates[0]).toEqual({ noteId: 'deep-0', text: 'Deep 0', listType: 'bullet', checked: false, pathText: ['Deep 0'] });
     expect(allCandidates.at(-1)).toEqual({
       noteId: `deep-${depth - 1}`,
       text: `Deep ${depth - 1}`,
       listType: 'bullet',
       checked: false,
+      pathText: Array.from({ length: depth }, (_unused, index) => `Deep ${index}`),
     });
-    expect(childCandidateMap[ROOT_SEARCH_SCOPE_ID]).toEqual([{ noteId: 'deep-0', text: 'Deep 0', listType: 'bullet', checked: false }]);
-    expect(childCandidateMap['deep-0']).toEqual([{ noteId: 'deep-1', text: 'Deep 1', listType: 'bullet', checked: false }]);
+    expect(childCandidateMap['deep-0']).toEqual([
+      { noteId: 'deep-1', text: 'Deep 1', listType: 'bullet', checked: false, pathText: ['Deep 0', 'Deep 1'] },
+    ]);
     expect(childCandidateMap[`deep-${depth - 1}`]).toEqual([]);
   });
 });

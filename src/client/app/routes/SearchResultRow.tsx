@@ -102,10 +102,12 @@ function ResultBreadcrumb({
   ancestorPath,
   onSelectAncestor,
   onSelectAncestorPointerDown,
+  query,
 }: {
   ancestorPath: NotePathItem[];
   onSelectAncestor: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
   onSelectAncestorPointerDown: (event: ReactPointerEvent<HTMLElement>, noteId: string) => void;
+  query: string;
 }) {
   const crumbs = buildBreadcrumbCrumbs(ancestorPath);
   if (crumbs.length === 0) {
@@ -151,7 +153,7 @@ function ResultBreadcrumb({
               title={label}
               type="button"
             >
-              {label}
+              <HighlightedText query={query} text={label} />
             </button>
           </Fragment>
         );
@@ -192,6 +194,7 @@ export function SearchResultRow({
         ancestorPath={ancestorPath}
         onSelectAncestor={onSelectAncestor}
         onSelectAncestorPointerDown={onSelectAncestorPointerDown}
+        query={query}
       />
       {childPreview.length > 0 ? (
         <ChildPreview childPreview={childPreview} remaining={remaining} />

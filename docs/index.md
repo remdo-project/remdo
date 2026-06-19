@@ -74,13 +74,12 @@ outdated or a doc’s role materially changes.
   parent-sibling reparent, outdent, then no-op.
 - `docs/outliner/search.md` (Long). Search behavior: focus-driven mode
   entry/exit, single highlighted note in always-flat results (including empty
-  query), text-match filtering, Enter-to-zoom, slash root/depth navigation,
-  invalid slash paths staying empty, non-mutating arrow cycling in slash mode,
-  inline-completion acceptance with `ArrowRight`, combobox/listbox
-  accessibility semantics, non-leaf `/...` result hints, and uniform per-result
-  structural context (matched note as primary label with term highlighting, a dim
-  truncating ancestor subline with clickable crumbs, and an editor-faithful child
-  preview with per-type list markers).
+  query), path-token query matching (order-independent substring tokens over a
+  note's ancestor path, with at least one token on the note itself), Enter-to-zoom,
+  arrow navigation, combobox/listbox accessibility semantics, and uniform
+  per-result structural context (matched note as primary label, a dim truncating
+  ancestor subline with clickable crumbs and token highlighting, and an
+  editor-faithful child preview with per-type list markers).
 - `docs/outliner/selection.md` (Long). Selection states and whole-note
   snapping, the anchored intent-replay selection ladder (symmetric grow/shrink),
   input bindings, collaboration reshaping tiers, and command compatibility.

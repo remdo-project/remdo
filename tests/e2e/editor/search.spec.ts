@@ -68,39 +68,35 @@ test.describe('Search', () => {
     expect(Math.abs(resultRect.top - editorRect.top)).toBeLessThanOrEqual(1);
   });
 
-  test('supports slash navigation with inline completion acceptance and Enter zoom', async ({ page, editor }) => {
-    await editor.load('tree-complex');
+  test('matches notes by path tokens and zooms the highlighted result on Enter', async ({ page, editor }) => {
+    // tree fixture: note1 and note2 are top-level siblings; note3 is nested under
+    // note2, so note3's path is [note2, note3].
+    await editor.load('tree');
 
+    const shell = editorLocator(page)
+      .locator('xpath=ancestor-or-self::*[contains(@class,"document-editor-shell")]');
+    const resultItems = shell.locator('[data-search-result-item]');
     const searchInput = page.getByRole('combobox', { name: 'Search document' });
-    const activeResult = editorLocator(page)
-      .locator('xpath=ancestor-or-self::*[contains(@class,"document-editor-shell")]')
-      .locator('[data-search-result-item][data-search-result-active="true"]')
-      .first();
 
     await searchInput.click();
-    await searchInput.fill('/');
-    await expect(activeResult).toContainText('note1');
 
-    await page.keyboard.press('ArrowDown');
-    await expect(activeResult).toContainText('note5');
-    await expect(searchInput).toHaveValue('/');
+    // An ancestor token plus a leaf token matches the nested note: 'note2' hits
+    // note3's ancestor and 'note3' hits the note itself.
+    await searchInput.fill('note2 note3');
+    await expect(resultItems).toHaveCount(1);
+    await expect(resultItems.first()).toContainText('note3');
 
-    await page.keyboard.press('ArrowUp');
-    await expect(activeResult).toContainText('note1');
-    await expect(searchInput).toHaveValue('/');
+    // The leaf-first guard keeps an ancestor-only token from pulling in the
+    // subtree: 'note2' matches note2 itself but not its descendant note3.
+    await searchInput.fill('note2');
+    await expect(resultItems).toHaveCount(1);
+    await expect(resultItems.first()).toContainText('note2');
 
-    await searchInput.fill('/no');
-    const inlineCompletion = page.getByTestId('document-search-inline-completion');
-    await expect(inlineCompletion).toHaveAttribute('data-inline-completion-text', 'te1');
-
-    await page.keyboard.press('ArrowRight');
-    await expect(searchInput).toHaveValue('/note1');
-
-    await page.keyboard.press('ArrowRight');
-    await expect(searchInput).toHaveValue('/note1/');
-    await expect(activeResult).toContainText('note2');
-
+    // Enter zooms the highlighted (first) result and exits search mode.
+    await searchInput.fill('note3');
+    const activeResult = resultItems.first();
+    await expect(activeResult).toContainText('note3');
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note2'));
+    await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note3'));
   });
 });

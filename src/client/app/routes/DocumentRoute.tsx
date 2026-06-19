@@ -249,17 +249,11 @@ function DocumentRouteContent({
     handleSearchKeyDown,
     handleSearchResultClick,
     handleSearchResultPointerDown,
-    handleSearchSelect,
     highlightedResultNoteId,
-    inlineCompletionHint,
-    inlineCompletionText,
-    inlineCompletionVisible,
-    isSlashMode,
     searchModeActive,
     searchModeRequested,
     searchQuery,
   } = useDocumentSearchModel({
-    docId,
     focusEditorInput,
     setZoomNoteId: requestZoomNoteId,
   });
@@ -499,43 +493,27 @@ function DocumentRouteContent({
           />
         </div>
         <div className="document-header-actions">
-          <div className="document-header-search-shell">
-            <TextInput
-              aria-label="Search document"
-              aria-activedescendant={searchModeActive ? activeResultOptionId : undefined}
-              aria-autocomplete={inlineCompletionVisible ? 'both' : 'list'}
-              aria-controls={searchModeActive ? searchResultsListboxId : undefined}
-              aria-expanded={searchModeActive}
-              aria-haspopup="listbox"
-              className="document-header-search remdo-interaction-surface"
-              leftSection={<IconSearch aria-hidden="true" size={14} />}
-              onBlur={handleSearchBlur}
-              onChange={handleSearchChange}
-              onCompositionEnd={handleSearchCompositionEnd}
-              onCompositionStart={handleSearchCompositionStart}
-              onFocus={handleSearchFocus}
-              onKeyDown={handleSearchKeyDown}
-              onSelect={handleSearchSelect}
-              placeholder={searchModeActive ? '' : 'Search'}
-              ref={searchInputRef}
-              role="combobox"
-              size="xs"
-              value={searchQuery}
-            />
-            {inlineCompletionVisible ? (
-              <div
-                aria-hidden="true"
-                className="document-header-search-inline-completion"
-                data-inline-completion-hint={inlineCompletionHint}
-                data-inline-completion-text={inlineCompletionText}
-                data-testid="document-search-inline-completion"
-              >
-                <span className="document-header-search-inline-prefix">{searchQuery}</span>
-                <span className="document-header-search-inline-suffix">{inlineCompletionText}</span>
-                <span className="document-header-search-inline-hint">{inlineCompletionHint}</span>
-              </div>
-            ) : null}
-          </div>
+          <TextInput
+            aria-label="Search document"
+            aria-activedescendant={searchModeActive ? activeResultOptionId : undefined}
+            aria-autocomplete="list"
+            aria-controls={searchModeActive ? searchResultsListboxId : undefined}
+            aria-expanded={searchModeActive}
+            aria-haspopup="listbox"
+            className="document-header-search remdo-interaction-surface"
+            leftSection={<IconSearch aria-hidden="true" size={14} />}
+            onBlur={handleSearchBlur}
+            onChange={handleSearchChange}
+            onCompositionEnd={handleSearchCompositionEnd}
+            onCompositionStart={handleSearchCompositionStart}
+            onFocus={handleSearchFocus}
+            onKeyDown={handleSearchKeyDown}
+            placeholder={searchModeActive ? '' : 'Search'}
+            ref={searchInputRef}
+            role="combobox"
+            size="xs"
+            value={searchQuery}
+          />
           <div className="document-header-status" ref={setStatusHost} />
         </div>
         <input
@@ -572,7 +550,6 @@ function DocumentRouteContent({
       {searchModeActive ? (
         <section
           className="document-search-results"
-          data-search-mode={isSlashMode ? 'slash' : 'text'}
           data-testid="document-search-results"
           ref={searchResultsRef}
         >
@@ -612,7 +589,7 @@ function DocumentRouteContent({
                     childPreview={children.slice(0, CHILD_PREVIEW_LIMIT)}
                     onSelectAncestor={handleSearchResultClick}
                     onSelectAncestorPointerDown={handleSearchResultPointerDown}
-                    query={isSlashMode ? '' : searchQuery}
+                    query={searchQuery}
                     text={result.text}
                   />
                 </li>

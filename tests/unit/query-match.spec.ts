@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchesQuery, queryMatchRanges, tokenizeQuery } from '#client/search/query-match';
+import { matchesPathQuery, queryMatchRanges, tokenizeQuery } from '#client/search/query-match';
 
 describe('tokenizeQuery', () => {
   it('lowercases and splits on whitespace runs, dropping empties', () => {
@@ -12,33 +12,49 @@ describe('tokenizeQuery', () => {
   });
 });
 
-describe('matchesQuery', () => {
+describe('matchesPathQuery', () => {
   it('matches everything for an empty query', () => {
-    expect(matchesQuery('anything', '')).toBe(true);
-    expect(matchesQuery('', '   ')).toBe(true);
+    expect(matchesPathQuery(['Work', 'anything'], '')).toBe(true);
+    expect(matchesPathQuery([''], '   ')).toBe(true);
   });
 
-  it('is case-insensitive substring matching', () => {
-    expect(matchesQuery('Sprint Backlog', 'sprint')).toBe(true);
-    expect(matchesQuery('Sprint Backlog', 'BACK')).toBe(true);
-    expect(matchesQuery('Sprint Backlog', 'xyz')).toBe(false);
+  it('matches case-insensitive substrings against a single-entry path', () => {
+    expect(matchesPathQuery(['Sprint Backlog'], 'sprint')).toBe(true);
+    expect(matchesPathQuery(['Sprint Backlog'], 'BACK')).toBe(true);
+    expect(matchesPathQuery(['Sprint Backlog'], 'xyz')).toBe(false);
   });
 
   it('requires every token (AND), order-independent', () => {
-    expect(matchesQuery('TODO refine estimates', 'refine todo')).toBe(true);
-    expect(matchesQuery('TODO refine estimates', 'todo missing')).toBe(false);
+    expect(matchesPathQuery(['TODO refine estimates'], 'refine todo')).toBe(true);
+    expect(matchesPathQuery(['TODO refine estimates'], 'todo missing')).toBe(false);
   });
 
   it('ignores extra whitespace in the query', () => {
-    expect(matchesQuery('foo and bar', '  bar\t  foo  ')).toBe(true);
+    expect(matchesPathQuery(['foo and bar'], '  bar\t  foo  ')).toBe(true);
   });
 
   it('matches each token as a substring (not whole-word)', () => {
-    // "road" and "map" are both substrings of "roadmapping".
-    expect(matchesQuery('Roadmapping', 'road map')).toBe(true);
-    expect(matchesQuery('Roadmap planning', 'map plan')).toBe(true);
-    // "xmap" is not a substring anywhere.
-    expect(matchesQuery('Roadmap planning', 'plan xmap')).toBe(false);
+    expect(matchesPathQuery(['Roadmapping'], 'road map')).toBe(true);
+    expect(matchesPathQuery(['Roadmap planning'], 'map plan')).toBe(true);
+    expect(matchesPathQuery(['Roadmap planning'], 'plan xmap')).toBe(false);
+  });
+
+  it('lets a token match an ancestor as long as one token hits the note itself', () => {
+    // 'r' is in the 'Work' ancestor, 'p' is in the note 'Q3 planning'.
+    expect(matchesPathQuery(['Work', 'Q3 planning'], 'r p')).toBe(true);
+    // Both tokens hit the note itself.
+    expect(matchesPathQuery(['Work', 'Hiring plan'], 'r p')).toBe(true);
+  });
+
+  it('requires at least one token on the note itself (leaf-first guard)', () => {
+    // Every token matches only the ancestor, none the note → excluded, so an
+    // ancestor match never pulls in the whole subtree.
+    expect(matchesPathQuery(['Work', 'Q3 planning'], 'work')).toBe(false);
+    expect(matchesPathQuery(['Engineering', 'Hiring'], 'eng')).toBe(false);
+  });
+
+  it('fails when a token matches nowhere in the path', () => {
+    expect(matchesPathQuery(['Work', 'Q3 planning'], 'plan zzz')).toBe(false);
   });
 });
 
