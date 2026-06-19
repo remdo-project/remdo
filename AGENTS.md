@@ -10,11 +10,17 @@ Target runtimes and browser support are defined in `docs/contributing.md`. Rely
 on those baselines—no legacy browser shims.
 
 AGENTS.md is the only doc you must read at the start of every session. Do one
-full pass through the `docs/` folder when you onboard, then revisit only the
-sections relevant to your current task. For documentation navigation and
-navigation (the map), use `docs/index.md`; for the doc workflow and invariants,
-see `docs/contributing.md#documentation`.
-When editing docs, keep external references in a final `References` section.
+full pass through the `docs/` folder when you onboard; after that, before coding,
+identify the feature area and read the matching sections from the `docs/index.md`
+map (the documentation navigation) — do not reread unrelated docs. For the
+documentation invariants, see `docs/contributing.md#documentation`.
+
+When working, deep-link to the authoritative doc (e.g.,
+`docs/contributing.md#git-workflow`) in discussions or PRs so others know the
+source of truth. When a change supersedes a doc's contract, breaks an inbound
+link, or leaves the `docs/index.md` map out of date, fix it in the same change —
+not a follow-up. If nothing needs updating, say why. Do not add update-tracking
+sections to docs.
 
 ## Safety & Process
 
@@ -111,25 +117,12 @@ When editing docs, keep external references in a final `References` section.
 - Use DevTools snapshots, screenshots, and in-page inspection as the primary source
   of truth when checking “what this looks like” or confirming browser-side
   changes.
-- DevTools bootstrap (Playwright Chromium):
-  1. Health check:
-     `curl -fsS http://127.0.0.1:9222/json/version >/dev/null`
-  2. If down, run:
-
-     ```sh
-     mkdir -p /tmp/pw-devtools-home/.config /tmp/pw-devtools-home/.cache /tmp/pw-cdp-profile
-     setsid env HOME=/tmp/pw-devtools-home \
-       XDG_CONFIG_HOME=/tmp/pw-devtools-home/.config \
-       XDG_CACHE_HOME=/tmp/pw-devtools-home/.cache \
-       /home/piotr/.cache/ms-playwright/chromium-1208/chrome-linux/chrome \
-       --headless=new --no-sandbox --disable-dev-shm-usage --disable-breakpad \
-       --disable-crash-reporter --disable-background-networking \
-       --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 \
-       --user-data-dir=/tmp/pw-cdp-profile --no-first-run \
-       --no-default-browser-check about:blank >/tmp/pw-cdp.log 2>&1 < /dev/null &
-     ```
-
-  3. If this flow fails or drifts, report it.
+- DevTools bootstrap: the `chrome-devtools` MCP attaches to a shared headless
+  CDP endpoint on `127.0.0.1:9222` (host/user-level MCP config, not in this
+  repo). If the endpoint is down, run `ensure-cdp` to start it; the MCP itself
+  loads only on a Claude Code restart. To reach the app, open
+  `http://127.0.0.1:5000/` and sign in as a dev user / open a fixture doc per
+  [docs/run-modes.md](docs/run-modes.md). If this flow fails or drifts, report it.
 - When presenting multiple options or a list of questions, format them as a
   numbered list.
 - The shared test harness treats console warnings/errors as failures; if you

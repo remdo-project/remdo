@@ -61,49 +61,39 @@ Default policy:
 ## Documentation
 
 `docs/index.md` is the documentation map (every doc plus its summary); use it to
-navigate. The doc workflow and invariants below govern how docs are written and
-maintained. For RemDo's product principles (what the docs must stay faithful
-to), see `docs/principles.md`.
-
-### Doc Workflow
-
-1. Before coding, identify the feature area and read the matching sections from
-   the `docs/index.md` map; do not reread unrelated docs.
-2. While working, deep-link to the authoritative doc (e.g.,
-   `docs/contributing.md#git-workflow`) in discussions or PRs so others know the
-   source of truth.
-3. After modifying documentation, refresh the `docs/index.md` map so the
-   pointers stay current. Do not add update-tracking sections to AGENTS.md.
+navigate. The invariants below govern how docs are written and maintained; the
+agent-facing doc workflow (read before coding, deep-link to sources, fix
+superseded docs in the same change) lives in `AGENTS.md`.
 
 ### Documentation invariants
 
-1. **Single source per topic.** Define each behavior once in the doc best suited
-   to it; eliminate duplicates and replace any extra copies with pointers.
-2. **Top-down linking.** Prefer links from higher-level docs into the detailed
-   docs they summarize; same-level links only when they add clear value. Point to
-   another doc once per section, not in every note — a single deferral covers the
-   section.
-3. **Self-contained behavior.** Behavior must be clear without external
-   sources. Put external references in final `References`; keep useful internal
-   links inline.
-4. **Coherence checks.** When editing a doc, ensure the change aligns with
-   existing resolutions and update related docs/maps if needed.
-5. **Target behavior only.** Stable docs describe the intended/target behavior.
-   Track everything provisional — gaps, partial status, implementation
-   sequencing, current-vs-future notes, deferral decisions — in `docs/todo.md`.
-6. **Behavior changes require doc updates.** When behavior changes, update the
-   affected docs in the same change. If no doc update is needed, explicitly
-   state why.
-7. **Move/rename hygiene.** When moving or renaming docs, update all inbound
-   references — including from code, skills, and AGENTS.md, not just doc-to-doc
-   links — and the documentation map in the same change; do not leave temporary
-   broken references.
-8. **Minimal by default.** State the rule, not the inventory. Cut a clause unless
-   its absence would let someone misuse the contract. Examples of what to cut:
-   things the reader can confirm in code (component lists, constants/offsets,
-   accessor or file names, "where X lives" pointers — good design makes that
-   findable), rationale (why-not justifications, prior-art name-drops), and
-   how-to-use steps (a feature one would reach through the app, not the docs).
+These invariants apply to every doc in the corpus.
+
+1. **Single source per topic.** Each behavior MUST be defined exactly once, in
+   the doc best suited to it. Likewise, each precise term MUST be defined once —
+   in concepts or the glossary — and MUST NOT be redefined or shadowed by any
+   other doc.
+2. **Top-down linking.** Links SHOULD point from higher-level docs into detailed
+   ones. Same-level links SHOULD appear only where they add clear value.
+3. **Self-contained behavior.** A doc's behavior MUST be clear without external
+   sources. External references MUST be confined to a final `References`
+   section; useful internal links MAY stay inline.
+4. **Cross-doc consistency.** Two docs MUST NOT make contradictory claims about
+   the intended system.
+5. **Spec, not status.** Docs MUST describe target behavior only. Gaps, partial
+   status, sequencing, current-vs-future notes, and deferral decisions MUST live
+   in `docs/todo.md`.
+6. **No superseded contract.** A doc MUST NOT describe behavior the project has
+   deliberately moved away from.
+7. **No broken links.** Every inbound link MUST resolve, and the documentation
+   map MUST be current.
+8. **Minimal by default.** State the rule, not the inventory: a clause MUST be
+   omitted unless its absence would let someone misuse the contract. This
+   includes anything the reader can confirm in code, plus rationale and how-to
+   steps.
+9. **No untracked divergence.** Any divergence between a doc's claim and the code
+   MUST be recorded in `docs/todo.md`. A recorded divergence that no longer
+   exists MUST have its entry deleted.
 
 ## Editor Feature Modules
 

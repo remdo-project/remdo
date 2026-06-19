@@ -81,7 +81,9 @@ outdated or a doc’s role materially changes.
   structural context (matched note as primary label with term highlighting, a dim
   truncating ancestor subline with clickable crumbs, and an editor-faithful child
   preview with per-type list markers).
-- `docs/outliner/selection.md` (Long). Cursor/selection ladder, command compatibility, directional boundary rules.
+- `docs/outliner/selection.md` (Long). Selection states and whole-note
+  snapping, the anchored intent-replay selection ladder (symmetric grow/shrink),
+  input bindings, collaboration reshaping tiers, and command compatibility.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
   scope, breadcrumbs, and routing.
 - `docs/performance/client-side-perf-tests.md` (Medium). Minimal client-side
