@@ -248,7 +248,6 @@ function DocumentRouteContent({
     handleSearchFocus,
     handleSearchKeyDown,
     handleSearchResultClick,
-    handleSearchResultPointerDown,
     highlightedResultNoteId,
     searchModeActive,
     searchModeRequested,
@@ -577,9 +576,6 @@ function DocumentRouteContent({
                   onClick={(event) => {
                     handleSearchResultClick(event, result.noteId);
                   }}
-                  onPointerDown={(event) => {
-                    handleSearchResultPointerDown(event, result.noteId);
-                  }}
                   role="option"
                 >
                   <SearchResultRow
@@ -588,7 +584,6 @@ function DocumentRouteContent({
                     childCount={children.length}
                     childPreview={children.slice(0, CHILD_PREVIEW_LIMIT)}
                     onSelectAncestor={handleSearchResultClick}
-                    onSelectAncestorPointerDown={handleSearchResultPointerDown}
                     query={searchQuery}
                     text={result.text}
                   />

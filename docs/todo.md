@@ -49,11 +49,6 @@ Rules:
 - [Future] Unify candidate discovery between search and the link picker: query
   matching is now shared (`#client/search/query-match`), but the link picker
   still has its own traversal/index pipeline distinct from the search SDK walk.
-- The `ignoreNextSearchBlurRef` + `queueMicrotask` blur guard on result
-  pointerdown may now be vestigial: result rows aren't focusable (no blur on
-  press) and ancestor crumbs keep focus via `onMouseDown` preventDefault, so
-  nothing relies on the microtask clearing before blur. Consider removing the
-  guard after confirming no browser blurs the input on a result-row press.
 
 ## Editor feature module follow-ups
 

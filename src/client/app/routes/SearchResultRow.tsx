@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import type { NoteListType } from '#note-sdk';
 import { queryMatchRanges } from '#client/search/query-match';
@@ -18,7 +18,6 @@ interface SearchResultRowProps {
   childPreview: ChildPreviewItem[];
   childCount: number;
   onSelectAncestor: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
-  onSelectAncestorPointerDown: (event: ReactPointerEvent<HTMLElement>, noteId: string) => void;
   query: string;
   text: string;
 }
@@ -101,12 +100,10 @@ function HighlightedText({ query, text }: { query: string; text: string }) {
 function ResultBreadcrumb({
   ancestorPath,
   onSelectAncestor,
-  onSelectAncestorPointerDown,
   query,
 }: {
   ancestorPath: NotePathItem[];
   onSelectAncestor: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
-  onSelectAncestorPointerDown: (event: ReactPointerEvent<HTMLElement>, noteId: string) => void;
   query: string;
 }) {
   const crumbs = buildBreadcrumbCrumbs(ancestorPath);
@@ -152,9 +149,6 @@ function ResultBreadcrumb({
                 // the results before this crumb's click can zoom.
                 event.preventDefault();
               }}
-              onPointerDown={(event) => {
-                onSelectAncestorPointerDown(event, crumb.item.noteId);
-              }}
               tabIndex={-1}
               title={label}
               type="button"
@@ -178,7 +172,6 @@ export function SearchResultRow({
   childPreview,
   childCount,
   onSelectAncestor,
-  onSelectAncestorPointerDown,
   query,
   text,
 }: SearchResultRowProps) {
@@ -199,7 +192,6 @@ export function SearchResultRow({
       <ResultBreadcrumb
         ancestorPath={ancestorPath}
         onSelectAncestor={onSelectAncestor}
-        onSelectAncestorPointerDown={onSelectAncestorPointerDown}
         query={query}
       />
       {childPreview.length > 0 ? (

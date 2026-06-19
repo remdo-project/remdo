@@ -4,7 +4,6 @@ import type {
   FocusEvent,
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
-  PointerEvent as ReactPointerEvent,
 } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
@@ -37,7 +36,6 @@ interface UseDocumentSearchModelResult {
   handleSearchFocus: (event: FocusEvent<HTMLInputElement>) => void;
   handleSearchKeyDown: (event: ReactKeyboardEvent<HTMLInputElement>) => void;
   handleSearchResultClick: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
-  handleSearchResultPointerDown: (event: ReactPointerEvent<HTMLElement>, noteId: string) => void;
   highlightedResultNoteId: string | null;
   searchModeActive: boolean;
   searchModeRequested: boolean;
@@ -107,7 +105,6 @@ export function useDocumentSearchModel({
     null
   );
   const [searchInputComposing, setSearchInputComposing] = useState(false);
-  const ignoreNextSearchBlurRef = useRef(false);
   const pendingEditorFocusAfterSearchExitRef = useRef(false);
 
   // Candidates derive from the editor through the SDK accessor (read once per
@@ -215,23 +212,6 @@ export function useDocumentSearchModel({
     acceptSearchResult(highlightedNavigationCandidate.noteId);
   };
 
-  const handleSearchResultPointerDown = (
-    event: ReactPointerEvent<HTMLElement>,
-    _noteId: string
-  ) => {
-    if (!event.isPrimary) {
-      return;
-    }
-    if (event.pointerType === 'mouse' && event.button !== 0) {
-      return;
-    }
-
-    ignoreNextSearchBlurRef.current = true;
-    queueMicrotask(() => {
-      ignoreNextSearchBlurRef.current = false;
-    });
-  };
-
   const handleSearchResultClick = (event: ReactMouseEvent<HTMLElement>, noteId: string) => {
     if (event.button !== 0) {
       return;
@@ -244,9 +224,6 @@ export function useDocumentSearchModel({
   };
 
   const handleSearchBlur = () => {
-    if (ignoreNextSearchBlurRef.current) {
-      return;
-    }
     dismissSearch();
   };
 
@@ -274,7 +251,6 @@ export function useDocumentSearchModel({
     handleSearchFocus,
     handleSearchKeyDown,
     handleSearchResultClick,
-    handleSearchResultPointerDown,
     highlightedResultNoteId,
     searchModeActive,
     searchModeRequested,

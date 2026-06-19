@@ -1022,7 +1022,6 @@ describe('document route', () => {
       ).find((crumb) => crumb.textContent === 'Q3 planning');
       expect(ancestorCrumb).toBeDefined();
 
-      fireEvent.pointerDown(ancestorCrumb!);
       fireEvent.click(ancestorCrumb!);
 
       await waitFor(() => {
