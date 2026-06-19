@@ -36,6 +36,7 @@ interface UseDocumentSearchModelResult {
   handleSearchFocus: (event: FocusEvent<HTMLInputElement>) => void;
   handleSearchKeyDown: (event: ReactKeyboardEvent<HTMLInputElement>) => void;
   handleSearchResultClick: (event: ReactMouseEvent<HTMLElement>, noteId: string) => void;
+  handleSearchResultPointerEnter: (noteId: string) => void;
   highlightedResultNoteId: string | null;
   searchModeActive: boolean;
   searchModeRequested: boolean;
@@ -219,6 +220,10 @@ export function useDocumentSearchModel({
     acceptSearchResult(noteId);
   };
 
+  const handleSearchResultPointerEnter = (noteId: string) => {
+    setHighlightedNoteId(noteId);
+  };
+
   const handleSearchFocus = (_event: FocusEvent<HTMLInputElement>) => {
     setSearchModeRequested(true);
   };
@@ -251,6 +256,7 @@ export function useDocumentSearchModel({
     handleSearchFocus,
     handleSearchKeyDown,
     handleSearchResultClick,
+    handleSearchResultPointerEnter,
     highlightedResultNoteId,
     searchModeActive,
     searchModeRequested,

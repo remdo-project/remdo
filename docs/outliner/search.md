@@ -40,13 +40,15 @@ and zooming to a result.
 7. `ArrowDown` highlights the next flat result.
 8. `ArrowUp` highlights the previous flat result.
 9. Arrow navigation stops at the first/last available note (no wraparound).
-10. If flat results are empty, there is no highlighted note.
-11. Search Mode ends when the search box loses focus.
-12. `Enter` moves focus to the editor and zooms to the highlighted note.
-13. `Escape` moves focus to the editor.
-14. Search input exposes combobox semantics for assistive tech, including popup
+10. Pointer hover over a flat result highlights it, the same as arrow navigation
+    (without moving focus out of the search box).
+11. If flat results are empty, there is no highlighted note.
+12. Search Mode ends when the search box loses focus.
+13. `Enter` moves focus to the editor and zooms to the highlighted note.
+14. `Escape` moves focus to the editor.
+15. Search input exposes combobox semantics for assistive tech, including popup
     state and active descendant linkage.
-15. Search results expose listbox semantics and mark the highlighted result as
+16. Search results expose listbox semantics and mark the highlighted result as
     selected.
 
 ## Result row context

@@ -1180,6 +1180,26 @@ describe('document route', () => {
     expect(getActiveResultLabel()).toBe('note1');
   });
 
+  it('highlights a flat result on hover, like arrow navigation', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    await waitFor(() => {
+      expect(getActiveResultLabel()).toBe('note1');
+    });
+
+    fireEvent.mouseEnter(await screen.findByRole('option', { name: 'note4' }));
+    expect(getActiveResultLabel()).toBe('note4');
+
+    fireEvent.mouseEnter(await screen.findByRole('option', { name: 'note2' }));
+    expect(getActiveResultLabel()).toBe('note2');
+
+    // Hover does not move focus out of the search box (Search Mode stays open).
+    expect(searchInput).toHaveFocus();
+    expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
+  });
+
   it('shows flat results across the whole document while query is non-empty', async () => {
     renderDocumentRoute();
 

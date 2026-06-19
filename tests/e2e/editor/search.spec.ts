@@ -120,4 +120,27 @@ test.describe('Search', () => {
     await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note3'));
     await expect(shell.locator('[data-testid="document-search-results"]')).toHaveCount(0);
   });
+
+  test('hovering a result makes it the active row', async ({ page, editor }) => {
+    await editor.load('tree');
+
+    const shell = editorLocator(page)
+      .locator('xpath=ancestor-or-self::*[contains(@class,"document-editor-shell")]');
+    const searchInput = page.getByRole('combobox', { name: 'Search document' });
+
+    await searchInput.click();
+    await searchInput.fill('note');
+
+    const rows = shell.locator('[data-search-result-item]');
+    // The first result is active on open.
+    await expect(rows.first()).toHaveAttribute('data-search-result-active', 'true');
+
+    // Hovering a different row moves the active highlight to it, and search stays
+    // open (hover must not blur the input).
+    const second = rows.nth(1);
+    await second.hover();
+    await expect(second).toHaveAttribute('data-search-result-active', 'true');
+    await expect(rows.first()).not.toHaveAttribute('data-search-result-active', 'true');
+    await expect(shell.locator('[data-testid="document-search-results"]')).toHaveCount(1);
+  });
 });

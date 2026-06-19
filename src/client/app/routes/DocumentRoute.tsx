@@ -248,6 +248,7 @@ function DocumentRouteContent({
     handleSearchFocus,
     handleSearchKeyDown,
     handleSearchResultClick,
+    handleSearchResultPointerEnter,
     highlightedResultNoteId,
     searchModeActive,
     searchModeRequested,
@@ -581,6 +582,9 @@ function DocumentRouteContent({
                     // the mousedown blurs it, the blur dismisses Search Mode, and
                     // the results unmount before this row's click can zoom.
                     event.preventDefault();
+                  }}
+                  onMouseEnter={() => {
+                    handleSearchResultPointerEnter(result.noteId);
                   }}
                   role="option"
                 >
