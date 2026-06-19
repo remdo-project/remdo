@@ -84,7 +84,6 @@ between RemDo-owned note links and generic external links.
    remain untied and are shown in document order.
 6. No-match state is a single non-selectable `No results...` row.
 7. Creating new notes from the picker is out of scope in this phase.
-8. Query text accepts spaces and punctuation.
 
 ## Picker interaction
 
