@@ -13,7 +13,9 @@ import type { DocumentSourceNote, EditorNote } from '#note-sdk';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import {
   APP_TITLE,
+  UNTITLED_LABEL,
   formatNavigationLabel,
+  normalizeNavigationLabel,
 } from '#client/ui/navigation-label';
 import { useDocumentSearchModel } from './useDocumentSearchModel';
 import { SearchResultRow } from './SearchResultRow';
@@ -21,6 +23,22 @@ import './DocumentRoute.css';
 
 const CHILD_PREVIEW_LIMIT = 2;
 const EMPTY_ANCESTOR_PATH: NotePathItem[] = [];
+
+// Accessible name for a search result option. Includes the ancestor path so
+// results that share the same note text stay distinguishable without sight —
+// the disambiguation the visible row provides via the breadcrumb subline.
+// `path` is the note's full path (ancestors + the note itself, the note last).
+function buildSearchResultAccessibleName(text: string, path: NotePathItem[]): string {
+  const name = normalizeNavigationLabel(text) || UNTITLED_LABEL;
+  const ancestors = path.slice(0, -1);
+  if (ancestors.length === 0) {
+    return name;
+  }
+  const context = ancestors
+    .map((item) => normalizeNavigationLabel(item.label) || UNTITLED_LABEL)
+    .join(' / ');
+  return `${name}, in ${context}`;
+}
 
 function isVisibleInCurrentView(element: HTMLElement): boolean {
   if (element.classList.contains('zoom-hidden')) {
@@ -563,9 +581,10 @@ function DocumentRouteContent({
               const children = childCandidateMap[result.noteId] ?? [];
               const hasChildren = children.length > 0;
               const isActive = result.noteId === highlightedResultNoteId;
+              const resultPath = ancestorPathByNoteId[result.noteId] ?? EMPTY_ANCESTOR_PATH;
               return (
                 <li
-                  aria-label={result.text.length > 0 ? result.text : '(empty note)'}
+                  aria-label={buildSearchResultAccessibleName(result.text, resultPath)}
                   aria-selected={isActive}
                   className="document-search-results-item"
                   data-search-result-active={isActive ? 'true' : undefined}
@@ -589,7 +608,7 @@ function DocumentRouteContent({
                   role="option"
                 >
                   <SearchResultRow
-                    ancestorPath={ancestorPathByNoteId[result.noteId] ?? EMPTY_ANCESTOR_PATH}
+                    ancestorPath={resultPath}
                     checked={result.checked}
                     childCount={children.length}
                     childPreview={children.slice(0, CHILD_PREVIEW_LIMIT)}

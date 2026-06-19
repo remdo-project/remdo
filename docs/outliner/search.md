@@ -50,6 +50,9 @@ and zooming to a result.
     state and active descendant linkage.
 16. Search results expose listbox semantics and mark the highlighted result as
     selected.
+17. Each result's accessible name includes its ancestor path context, so results
+    that share the same note text are still distinguishable without sight (the
+    same disambiguation the visible row provides).
 
 ## Result row context
 

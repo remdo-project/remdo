@@ -260,6 +260,18 @@ describe('document route', () => {
       document.querySelectorAll<HTMLElement>('[data-search-result-item]'),
       (item) => item.getAttribute('data-search-result-label')
     );
+  // Find a result row by its stable label attribute, independent of the option's
+  // accessible name (which also carries ancestor-path context for disambiguation).
+  const getResultByLabel = (label: string) => {
+    const row = document.querySelector<HTMLElement>(
+      `[data-search-result-item][data-search-result-label="${label}"]`
+    );
+    if (!row) {
+      throw new Error(`No search result row with label "${label}"`);
+    }
+    return row;
+  };
+  const findResultByLabel = (label: string) => waitFor(() => getResultByLabel(label));
   const createDocumentCollectionSource = (documents: Array<{ id: string; title: string }>) => ({
     children: () => documents,
     byId: (documentId: string) => documents.find((document) => document.id === documentId) ?? null,
@@ -694,7 +706,7 @@ describe('document route', () => {
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
 
-    const secondOption = screen.getByRole('option', { name: 'note2' });
+    const secondOption = getResultByLabel('note2');
     expect(firstOption).toHaveAttribute('aria-selected', 'false');
     expect(secondOption).toHaveAttribute('aria-selected', 'true');
     expect(searchInput).toHaveAttribute('aria-activedescendant', secondOption.id);
@@ -812,7 +824,7 @@ describe('document route', () => {
 
       // 'sub two' is not the highlighted row, yet it still renders the match label
       // line plus its ancestor subline — moving the highlight never re-lays-out.
-      const subTwo = await screen.findByRole('option', { name: 'sub two' });
+      const subTwo = await findResultByLabel('sub two');
       expect(subTwo.getAttribute('data-search-result-active')).toBeNull();
       const matchLine = subTwo.querySelector('[data-search-result-match]');
       expect(matchLine?.textContent).toBe('sub two');
@@ -827,7 +839,7 @@ describe('document route', () => {
       searchInput.focus();
       fireEvent.change(searchInput, { target: { value: 'refine' } });
 
-      const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      const active = await findResultByLabel('TODO refine estimates');
       const matchLine = active.querySelector('[data-search-result-match]');
       // The label is a plain element, not an outline list item — no bullet/number.
       expect(matchLine?.tagName).toBe('DIV');
@@ -846,7 +858,7 @@ describe('document route', () => {
 
       // 'sub two' is a checked note → its label carries data-note-checked (the CSS
       // strikes it through), even though it has no list marker.
-      const subTwo = await screen.findByRole('option', { name: 'sub two' });
+      const subTwo = await findResultByLabel('sub two');
       const matchLine = subTwo.querySelector('[data-search-result-match]');
       expect(matchLine?.getAttribute('data-note-checked')).toBe('true');
     });
@@ -859,7 +871,7 @@ describe('document route', () => {
       searchInput.focus();
       fireEvent.change(searchInput, { target: { value: 'refine' } });
 
-      const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      const active = await findResultByLabel('TODO refine estimates');
       // Subline excludes only the match, leaving Work / Q3 / Roadmap / Grooming /
       // Estimates / Sprint backlog (6) → first-2 + ⋯ + last-2.
       const crumbs = active.querySelectorAll('.document-search-result-crumb');
@@ -889,7 +901,7 @@ describe('document route', () => {
       searchInput.focus();
       fireEvent.change(searchInput, { target: { value: 'refine' } });
 
-      const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      const active = await findResultByLabel('TODO refine estimates');
       // The full chain is shown, starting at the top-level note 'Work'.
       const ancestorLabels = Array.from(
         active.querySelectorAll('[data-search-result-ancestor-crumb]'),
@@ -910,7 +922,7 @@ describe('document route', () => {
       searchInput.focus();
       fireEvent.change(searchInput, { target: { value: 'refine' } });
 
-      const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      const active = await findResultByLabel('TODO refine estimates');
       // Preview reuses the shared outline classes so list markers match the editor.
       expect(active.querySelector('.document-search-result-children.remdo-outline')).not.toBeNull();
       // First child is a number-list item → ol.list-ol; second is a checked item.
@@ -927,7 +939,7 @@ describe('document route', () => {
       searchInput.focus();
       fireEvent.change(searchInput, { target: { value: 'sub' } });
 
-      const subTwo = await screen.findByRole('option', { name: 'sub two' });
+      const subTwo = await findResultByLabel('sub two');
       const mark = subTwo.querySelector('.document-search-result-mark');
       expect(mark?.textContent).toBe('sub');
     });
@@ -941,7 +953,7 @@ describe('document route', () => {
       // 'TODO refine estimates' matches the out-of-order, whitespace-padded query.
       fireEvent.change(searchInput, { target: { value: '  estimates   todo ' } });
 
-      const match = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      const match = await findResultByLabel('TODO refine estimates');
       const labelMarks = Array.from(
         match.querySelectorAll('[data-search-result-match] .document-search-result-mark'),
         (m) => m.textContent
@@ -959,7 +971,7 @@ describe('document route', () => {
       // 'Estimates' ancestor crumb, which is highlighted there too.
       fireEvent.change(searchInput, { target: { value: 'estimates todo' } });
 
-      const match = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      const match = await findResultByLabel('TODO refine estimates');
       const crumbMarks = Array.from(
         match.querySelectorAll('[data-search-result-ancestor-crumb] .document-search-result-mark'),
         (m) => m.textContent
@@ -1035,7 +1047,7 @@ describe('document route', () => {
       searchInput.focus();
       fireEvent.change(searchInput, { target: { value: 'sprint' } });
 
-      const active = await screen.findByRole('option', { name: 'sprint task' });
+      const active = await findResultByLabel('sprint task');
       const crumb = active.querySelector<HTMLElement>('[data-search-result-ancestor-crumb]');
       expect(crumb).not.toBeNull();
       // Full label (not the 48-char "..." form): CSS handles the visual ellipsis,
@@ -1043,6 +1055,37 @@ describe('document route', () => {
       expect(crumb!.textContent).toBe(longAncestor);
       expect(crumb!.getAttribute('title')).toBe(longAncestor);
       expect(crumb!.textContent).not.toContain('...');
+    });
+
+    it('distinguishes same-text results by ancestor context in the accessible name', async () => {
+      setSnapshot({
+        allCandidates: [
+          { noteId: 'work', text: 'Work' },
+          { noteId: 'work-plan', text: 'Plan' },
+          { noteId: 'home', text: 'Home' },
+          { noteId: 'home-plan', text: 'Plan' },
+        ],
+        childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [
+            { noteId: 'work', text: 'Work' },
+            { noteId: 'home', text: 'Home' },
+          ],
+          work: [{ noteId: 'work-plan', text: 'Plan' }],
+          'work-plan': [],
+          home: [{ noteId: 'home-plan', text: 'Plan' }],
+          'home-plan': [],
+        },
+      });
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'Plan' } });
+
+      // Both rows share the text "Plan"; the accessible name carries the ancestor
+      // path so screen-reader users can still tell them apart.
+      await screen.findByRole('option', { name: 'Plan, in Work' });
+      await screen.findByRole('option', { name: 'Plan, in Home' });
     });
 
     it('zooms to an ancestor crumb and closes search when clicked', async () => {
@@ -1053,7 +1096,7 @@ describe('document route', () => {
       searchInput.focus();
       fireEvent.change(searchInput, { target: { value: 'refine' } });
 
-      const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      const active = await findResultByLabel('TODO refine estimates');
       const ancestorCrumb = Array.from(
         active.querySelectorAll<HTMLElement>('[data-search-result-ancestor-crumb]')
       ).find((crumb) => crumb.textContent === 'Q3 planning');
@@ -1075,7 +1118,7 @@ describe('document route', () => {
       searchInput.focus();
       fireEvent.change(searchInput, { target: { value: 'refine' } });
 
-      const active = await screen.findByRole('option', { name: 'TODO refine estimates' });
+      const active = await findResultByLabel('TODO refine estimates');
       const ancestorCrumb = Array.from(
         active.querySelectorAll<HTMLElement>('[data-search-result-ancestor-crumb]')
       ).find((crumb) => crumb.textContent === 'Q3 planning');
@@ -1189,10 +1232,10 @@ describe('document route', () => {
       expect(getActiveResultLabel()).toBe('note1');
     });
 
-    fireEvent.mouseEnter(await screen.findByRole('option', { name: 'note4' }));
+    fireEvent.mouseEnter(await findResultByLabel('note4'));
     expect(getActiveResultLabel()).toBe('note4');
 
-    fireEvent.mouseEnter(await screen.findByRole('option', { name: 'note2' }));
+    fireEvent.mouseEnter(await findResultByLabel('note2'));
     expect(getActiveResultLabel()).toBe('note2');
 
     // Hover does not move focus out of the search box (Search Mode stays open).
