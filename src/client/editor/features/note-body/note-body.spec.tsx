@@ -230,6 +230,41 @@ describe('note body (docs/outliner/body.md)', () => {
     ]);
   });
 
+  it('indenting a note carries its body under the new parent', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'note2 body');
+
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Tab' });
+
+    // note2 indents under note1 with its body intact (not left behind at root).
+    expect(remdo).toMatchOutline([
+      {
+        noteId: 'note1',
+        text: 'note1',
+        children: [{ noteId: 'note2', text: 'note2', body: 'note2 body' }],
+      },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('outdenting a note carries its body back to the outer level', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    // tree: note1; note2 > note3. Body on the child note3, then outdent it.
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'note3 body');
+
+    await placeCaretAtNote(remdo, 'note3', 0);
+    await pressKey(remdo, { key: 'Tab', shift: true });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3', body: 'note3 body' },
+    ]);
+  });
+
   it('undo restores a deleted body and its text as one step; redo removes it again', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });

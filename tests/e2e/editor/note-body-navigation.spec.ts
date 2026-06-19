@@ -71,3 +71,46 @@ test.describe('note body vertical navigation (docs/outliner/body.md)', () => {
     expect((await captureEditorSnapshot(page)).selection?.anchorText).toBe('note2');
   });
 });
+
+/** True when the selection focus (the moving end) sits inside a note body. */
+async function focusInBody(page: Parameters<typeof setCaretAtText>[0]): Promise<boolean> {
+  return page.evaluate(() => {
+    const node = globalThis.getSelection()?.focusNode ?? null;
+    const el = node instanceof Element ? node : node?.parentElement ?? null;
+    return Boolean(el?.closest('.note-body'));
+  });
+}
+
+test.describe('note body shift-arrow selection boundary (docs/outliner/body.md)', () => {
+  test('Shift+ArrowLeft at the body start does not extend the selection out of the body', async ({ page, editor }) => {
+    await editor.load('flat');
+    await addBody(page, 'note1', 'thebody');
+
+    await setCaretAtText(page, 'thebody', 0);
+    await page.keyboard.press('Shift+ArrowLeft');
+
+    expect(await focusInBody(page)).toBe(true);
+  });
+
+  test('Shift+ArrowRight at the body end does not extend the selection out of the body', async ({ page, editor }) => {
+    await editor.load('flat');
+    await addBody(page, 'note1', 'thebody');
+
+    await setCaretAtText(page, 'thebody', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('Shift+ArrowRight');
+
+    expect(await focusInBody(page)).toBe(true);
+  });
+
+  test('Shift+ArrowRight within the body still extends the selection', async ({ page, editor }) => {
+    await editor.load('flat');
+    await addBody(page, 'note1', 'thebody');
+
+    await setCaretAtText(page, 'thebody', 0);
+    await page.keyboard.press('Shift+ArrowRight');
+
+    expect(await focusInBody(page)).toBe(true);
+    const selectedLength = await page.evaluate(() => globalThis.getSelection()?.toString().length ?? 0);
+    expect(selectedLength).toBe(1);
+  });
+});
