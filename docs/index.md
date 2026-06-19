@@ -59,9 +59,9 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,
   rendering, and toggle commands.
 - `docs/outliner/links.md` (Medium). Note-linking behavior and the
-  internal-vs-external link boundary: `@` query flow, whole-document
-  search/ranking, runtime fully qualified link identity, clipboard/persistence
-  docId boundaries, and cross-document boundaries.
+  internal-vs-external link boundary: `@` query flow, path-token picker matching
+  shared with search, ranking, runtime fully qualified link identity,
+  clipboard/persistence docId boundaries, and cross-document boundaries.
 - `docs/outliner/menu.md` (Medium). Quick action menu entry points, note vs.
   children vs. view action scopes, and actions (toggle checked/fold/zoom/child
   list types/fold view to level).

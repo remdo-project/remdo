@@ -71,16 +71,21 @@ between RemDo-owned note links and generic external links.
 
 1. Search scope is the whole current document, including while zoomed into a
    subtree.
-2. The current note is excluded from results (self-links are out of scope in
+2. Filtering uses the same path-token matching as document search (defined in
+   [Search](./search.md#behavior)): a note matches when every query token is a
+   substring of some entry in its path (ancestor titles + the note's own title)
+   and at least one token matches the note's own title. So typing an ancestor's
+   word alongside a word from the note surfaces that nested note.
+3. The current note is excluded from results (self-links are out of scope in
    this phase).
-3. v1 ranking uses no scoring; after filtering, results keep document order.
-4. Picker rows show the minimal ancestor context needed to disambiguate duplicate
+4. v1 ranking uses no scoring; after filtering, results keep document order.
+5. Picker rows show the minimal ancestor context needed to disambiguate duplicate
    titles in the current result set.
-5. If results are still visually identical after full ancestor context, they
+6. If results are still visually identical after full ancestor context, they
    remain untied and are shown in document order.
-6. No-match state is a single non-selectable `No results...` row.
-7. Creating new notes from the picker is out of scope in this phase.
-8. Query text accepts spaces and punctuation.
+7. No-match state is a single non-selectable `No results...` row.
+8. Creating new notes from the picker is out of scope in this phase.
+9. Query text accepts spaces and punctuation.
 
 ## Picker interaction
 
@@ -118,3 +123,8 @@ between RemDo-owned note links and generic external links.
     for inline links, so plain user clicks and test `link.click()` are reliable.
 7. [Future] Improve cross-document link UX beyond identity correctness
    (validation, richer previews, and authoring ergonomics).
+
+## References
+
+- Path-token query matching shared with the picker: [Search](./search.md#behavior).
+- Note/document identity ownership: [Note IDs](./note-ids.md).
