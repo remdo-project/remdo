@@ -123,8 +123,3 @@ between RemDo-owned note links and generic external links.
     for inline links, so plain user clicks and test `link.click()` are reliable.
 7. [Future] Improve cross-document link UX beyond identity correctness
    (validation, richer previews, and authoring ergonomics).
-
-## References
-
-- Path-token query matching shared with the picker: [Search](./search.md#behavior).
-- Note/document identity ownership: [Note IDs](./note-ids.md).
