@@ -134,3 +134,7 @@ selected row and never re-lays-out the list.
    children indicates the remaining count.
 7. Result row context is sourced from the active document's search candidates and
    appears only once those candidates are available.
+
+## Future
+
+- Richer query matching: fuzzy matching and result ranking.

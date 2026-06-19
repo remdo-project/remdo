@@ -80,9 +80,11 @@ These invariants apply to every doc in the corpus.
    section; useful internal links MAY stay inline.
 4. **Cross-doc consistency.** Two docs MUST NOT make contradictory claims about
    the intended system.
-5. **Spec, not status.** Docs MUST describe target behavior only. Gaps, partial
-   status, sequencing, current-vs-future notes, and deferral decisions MUST live
-   in `docs/todo.md`.
+5. **Spec, not status.** A doc's normative spec MUST describe target behavior
+   only. Gaps, partial status, sequencing, and deferral decisions MUST live in
+   `docs/todo.md`. A doc MAY carry a `Future` section listing deferred
+   long-horizon directions as brief triggers (not specs, not target behavior); a
+   direction MAY instead live in `docs/todo.md` — either place is fine.
 6. **No superseded contract.** A doc MUST NOT describe behavior the project has
    deliberately moved away from.
 7. **No broken links.** Every inbound link MUST resolve, and the documentation

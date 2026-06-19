@@ -2,11 +2,15 @@
 
 ## About this file (scratchpad)
 
-This file is an intentionally messy scratchpad for in-flight work, not a spec.
-Entries are short reminders of things to maybe do later, not agreed decisions or
-write-ups. Keep each to a line or two; being vague is fine if it keeps it short.
-Don't add findings, measurements, or rationale here — that belongs in the work
-itself when it happens.
+This file is an intentionally messy scratchpad for current and near-term work —
+things we plan to get back to soon. Entries are short reminders, not agreed
+decisions or write-ups. Keep each to a line or two; being vague is fine if it
+keeps it short. Don't add findings, measurements, or rationale here — that
+belongs in the work itself when it happens.
+
+A long-horizon future direction (deferred indefinitely, not near-term) may live
+here or as a short trigger in the relevant `docs/` spec — whichever fits; neither
+is forced. A spec trigger is rediscovered when that area is worked on again.
 
 Rules:
 
@@ -14,6 +18,12 @@ Rules:
 - Delete sections once fully done (no archive here).
 - Move durable decisions/specs into the relevant doc under `docs/`, leaving a
   link behind.
+
+## Scratchpad maintenance
+
+- Clear out drifted long-horizon items: this file has accumulated entries that
+  are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
+  prune them or relocate to a spec `Future` section per the scope above.
 
 ## Search architecture
 
@@ -39,8 +49,6 @@ Rules:
 - [Future] Unify candidate discovery between search and the link picker: query
   matching is now shared (`#client/search/query-match`), but the link picker
   still has its own traversal/index pipeline distinct from the search SDK walk.
-- [Future] Richer query matching if wanted: fuzzy matching and result ranking
-  (today's shared matcher is tokenized substring, order-independent, unranked).
 
 ## Editor feature module follow-ups
 
