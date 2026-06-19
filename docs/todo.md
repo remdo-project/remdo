@@ -45,11 +45,6 @@ Rules:
   highlighting deliberately runs against the raw note text (what the filter
   matches), so it stays correct only as long as the filter is also raw; revisit
   together when matching semantics are normalized.
-- Decision: every search result row uses the same two-line layout (match label +
-  ancestor subline + child preview); highlight only restyles, never re-lays-out
-  (avoids flicker while arrowing). The `/...` non-leaf suffix is slash-mode only
-  since text rows convey children via the preview (see `docs/outliner/search.md`
-  rule 35).
 
 ## Editor feature module follow-ups
 
