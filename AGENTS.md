@@ -90,6 +90,17 @@ sections to docs.
 - For bug fixes, reproduce the issue with a focused test, command, or browser
   check when practical, then verify the fix with that focused reproducer plus
   the required final checks below.
+- When a unit test is a poor fit for a behavior, escalate rather than retreat:
+  don't contort it into an over-complex unit test, and don't fall back to a
+  manual/live check as the coverage of record — reach for an e2e test
+  (`pnpm test:e2e`). Live/DevTools checks are a development aid, not a substitute
+  for an automated test. If a behavior genuinely ends up covered only by a live
+  check, say so explicitly as a tradeoff in the work summary.
+- Reviewing a change includes judging whether its tests give reasonable coverage
+  of the behavior it claims: each distinct behavior the change introduces or
+  fixes should have a test that would fail if that behavior broke. This is a
+  behavior check, not a line-coverage target — name any behavior left untested as
+  a tradeoff.
 - The `docs/todo.md` summary in `docs/index.md` should remain as-is and should
   not be automatically updated like other doc entries.
 - When writing tests against known fixtures, assume the fixture shape; avoid
