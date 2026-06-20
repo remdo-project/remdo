@@ -87,4 +87,22 @@ describe('queryMatchRanges', () => {
   it('omits tokens that do not occur', () => {
     expect(queryMatchRanges('foo bar', 'foo zzz')).toEqual([{ start: 0, end: 3 }]);
   });
+
+  it('maps ranges back to original indices across length-changing case folds', () => {
+    // "İ".toLocaleLowerCase() === "i̇" (i + combining dot), so the folded string
+    // is one UTF-16 unit longer than the original. The range must point at "stan"
+    // in the ORIGINAL "İstanbul" (indices 1..5), not the folded offsets.
+    const text = 'İstanbul';
+    const ranges = queryMatchRanges(text, 'stan');
+    expect(ranges).toEqual([{ start: 1, end: 5 }]);
+    expect(text.slice(ranges[0]!.start, ranges[0]!.end)).toBe('stan');
+  });
+
+  it('highlights the length-changing character itself when matched', () => {
+    // Matching the folded "i̇" must cover the single original "İ" (indices 0..1).
+    const text = 'İstanbul';
+    const ranges = queryMatchRanges(text, 'i̇stan');
+    expect(ranges).toEqual([{ start: 0, end: 5 }]);
+    expect(text.slice(ranges[0]!.start, ranges[0]!.end)).toBe('İstan');
+  });
 });

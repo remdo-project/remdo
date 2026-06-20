@@ -46,6 +46,28 @@ export function matchesPathQuery(path: readonly string[], query: string): boolea
   return anyOnOwnText;
 }
 
+/** Case-folds `text` for matching while recording, for each UTF-16 unit of the
+ *  folded string, the index in the ORIGINAL `text` it came from. A code point
+ *  whose lowercase form changes length (e.g. `İ` → `i` + combining dot) maps all
+ *  of its folded units back to its single original index; `originalIndex` has one
+ *  trailing entry equal to `text.length` so a match end maps cleanly. */
+function foldWithIndexMap(text: string): { folded: string; originalIndex: number[] } {
+  let folded = '';
+  const originalIndex: number[] = [];
+  let cursor = 0;
+  // Iterate by code point so surrogate pairs fold as a unit.
+  for (const codePoint of text) {
+    const lowered = codePoint.toLocaleLowerCase();
+    folded += lowered;
+    for (let unit = 0; unit < lowered.length; unit += 1) {
+      originalIndex.push(cursor);
+    }
+    cursor += codePoint.length;
+  }
+  originalIndex.push(text.length);
+  return { folded, originalIndex };
+}
+
 /** Ranges (in `text`'s own indices) where any query token occurs, for
  *  highlighting. Overlapping/adjacent ranges are merged; sorted by start. */
 export function queryMatchRanges(text: string, query: string): MatchRange[] {
@@ -54,13 +76,15 @@ export function queryMatchRanges(text: string, query: string): MatchRange[] {
     return [];
   }
 
-  const haystack = text.toLocaleLowerCase();
+  // Match in the folded string, then map offsets back to original indices: a
+  // length-changing lowercase (İ→i̇) otherwise mis-slices the original text.
+  const { folded, originalIndex } = foldWithIndexMap(text);
   const ranges: MatchRange[] = [];
   for (const token of tokens) {
-    let from = haystack.indexOf(token);
+    let from = folded.indexOf(token);
     while (from !== -1) {
-      ranges.push({ start: from, end: from + token.length });
-      from = haystack.indexOf(token, from + token.length);
+      ranges.push({ start: originalIndex[from]!, end: originalIndex[from + token.length]! });
+      from = folded.indexOf(token, from + token.length);
     }
   }
   if (ranges.length === 0) {
