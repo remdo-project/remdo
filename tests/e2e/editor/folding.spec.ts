@@ -38,6 +38,29 @@ test.describe('Folding', () => {
     ]);
   });
 
+  test('folding a note that has a body still hides its children', async ({ page, editor }) => {
+    // tree: note1; note2 > note3. Give note2 a body so a body-wrapper sits
+    // between note2 and its children-wrapper, then fold and verify the child
+    // hides (the fold CSS must reach across the body-wrapper).
+    await editor.load('tree');
+
+    await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('note2 body');
+
+    const listItem = editorLocator(page).locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note2' }).first();
+    const childItem = editorLocator(page).locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note3' }).first();
+    await expect(childItem).toBeVisible();
+
+    await setCaretAtText(page, 'note2', 0);
+    const foldMenu = await openNoteMenu(page, 'note2', { anchor: 'caret', openMethod: 'shortcut' });
+    await foldMenu.pressShortcut('f');
+    await foldMenu.expectClosed();
+
+    await expect(listItem).toHaveAttribute('data-folded', 'true');
+    await expect(childItem).toBeHidden();
+  });
+
   test('opening note menu via shortcut does not toggle folding', async ({ page, editor }) => {
     await editor.load('tree');
 

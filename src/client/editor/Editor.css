@@ -225,14 +225,24 @@
   background-repeat: no-repeat;
 }
 
-.editor-root li.list-item[data-folded='true'] + li.list-nested-item {
+/* A folded note hides its children-wrapper. When the note has a body, the
+   body-wrapper sits between the note and the children-wrapper, so each fold rule
+   needs a variant that reaches across it. The hide and zoom-unhide selectors
+   target disjoint DOM (body present vs not), so the cross-block specificity
+   ordering is not a real override. */
+/* stylelint-disable no-descending-specificity */
+.editor-root li.list-item[data-folded='true'] + li.list-nested-item,
+.editor-root li.list-item[data-folded='true'] + li.list-item:has(> .note-body) + li.list-nested-item {
   display: none;
 }
 
 .editor-root li.list-item[data-folded='true'][data-zoom-root='true'] + li.list-nested-item,
-.editor-root li.list-item[data-folded='true'] + li.list-nested-item[data-zoom-flatten='true'] {
+.editor-root li.list-item[data-folded='true'] + li.list-nested-item[data-zoom-flatten='true'],
+.editor-root li.list-item[data-folded='true'][data-zoom-root='true'] + li.list-item:has(> .note-body) + li.list-nested-item,
+.editor-root li.list-item[data-folded='true'] + li.list-item:has(> .note-body) + li.list-nested-item[data-zoom-flatten='true'] {
   display: list-item;
 }
+/* stylelint-enable no-descending-specificity */
 
 .editor-root li.list-item[data-folded='true'] {
   --bullet-mask-image: url('/icons/bullet-circle-dot.svg');

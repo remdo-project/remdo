@@ -6,7 +6,7 @@ import type { LexicalNode, RangeSelection } from 'lexical';
 import { getBodyWrapper, getPreviousContentSibling } from '#client/editor/outline/list-structure';
 import { $isNoteFolded } from '#client/editor/runtime/fold-state';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { $selectItemEdge } from '#client/editor/outline/selection/caret';
+import { $selectItemEdge, isPointAtBoundary } from '#client/editor/outline/selection/caret';
 import {
   getFirstDescendantListItem,
   getLastDescendantListItem,
@@ -109,6 +109,48 @@ export function $skipBodyForVerticalNav(direction: 'up' | 'down'): boolean {
   // up: the note above in document order is the visual line above. If it has a
   // body, native Up would land in that body — redirect to the note's end so the
   // body stays transparent.
+  const above = $noteAbove(note);
+  if (!above || !getBodyWrapper(above)) {
+    return false;
+  }
+  $selectItemEdge(above, 'end');
+  return true;
+}
+
+/**
+ * When a plain horizontal arrow would step the caret out of a content note into
+ * an adjacent body, redirect past the body so arrows never enter one from
+ * outside. `right` at a note's end skips to the next note; `left` at a note's
+ * start (when the note follows a body) skips to that body's owner note. Only
+ * acts at the note boundary; otherwise the arrow moves within the note text.
+ */
+export function $skipBodyForHorizontalNav(direction: 'left' | 'right'): boolean {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+    return false;
+  }
+  const note = resolveContentItemFromNode(selection.anchor.getNode());
+  if (!note) {
+    return false;
+  }
+
+  if (direction === 'right') {
+    if (!getBodyWrapper(note) || !isPointAtBoundary(selection.anchor, note, 'end')) {
+      return false;
+    }
+    // Body is transparent: a note's last child or its next note in document
+    // order. No note after the body → no-op (consume, do not enter the body).
+    const target = $noteBelow(note);
+    if (target) {
+      $selectItemEdge(target, 'start');
+    }
+    return true;
+  }
+
+  // left: only at the note's start, and only when a body sits directly before it.
+  if (!isPointAtBoundary(selection.anchor, note, 'start')) {
+    return false;
+  }
   const above = $noteAbove(note);
   if (!above || !getBodyWrapper(above)) {
     return false;

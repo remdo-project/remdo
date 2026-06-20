@@ -70,6 +70,29 @@ test.describe('note body vertical navigation (docs/outliner/body.md)', () => {
     expect(await caretInBody(page)).toBe(false);
     expect((await captureEditorSnapshot(page)).selection?.anchorText).toBe('note2');
   });
+
+  test('ArrowRight at the end of a note with a body skips the body to the next note', async ({ page, editor }) => {
+    await editor.load('flat');
+    await addBody(page, 'note1', 'thebody');
+
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('ArrowRight');
+
+    expect(await caretInBody(page)).toBe(false);
+    expect((await captureEditorSnapshot(page)).selection?.anchorText).toBe('note2');
+  });
+
+  test('ArrowLeft at the start of the note after a body skips the body to its owner', async ({ page, editor }) => {
+    await editor.load('flat');
+    await addBody(page, 'note1', 'thebody');
+
+    // note2 sits after note1's body; ArrowLeft at note2's start reaches note1.
+    await setCaretAtText(page, 'note2', 0);
+    await page.keyboard.press('ArrowLeft');
+
+    expect(await caretInBody(page)).toBe(false);
+    expect((await captureEditorSnapshot(page)).selection?.anchorText).toBe('note1');
+  });
 });
 
 /** True when the selection focus (the moving end) sits inside a note body. */

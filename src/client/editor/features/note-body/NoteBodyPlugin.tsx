@@ -23,6 +23,7 @@ import {
   $addNoteBody,
   $getNoteBodyFromNode,
   $removeNoteBody,
+  $skipBodyForHorizontalNav,
   $skipBodyForVerticalNav,
   isNoteBodyEmpty,
 } from './note-body-ops';
@@ -109,11 +110,13 @@ export function NoteBodyPlugin() {
       if (event && (event.altKey || event.metaKey || event.ctrlKey)) {
         return false;
       }
-      // Plain vertical arrows: inside a body the caret leaves freely (native);
-      // only skip when entering from outside (a content note is one line, so a
-      // vertical arrow toward an adjacent body lands in it — redirect past it).
-      if (direction === 'left' || direction === 'right' || $getActiveNoteBody()) {
+      // Plain arrows: inside a body the caret leaves freely (native); only skip
+      // when entering from outside, so an arrow never lands in a body.
+      if ($getActiveNoteBody()) {
         return false;
+      }
+      if (direction === 'left' || direction === 'right') {
+        return $skipBodyForHorizontalNav(direction) ? stop(event) : false;
       }
       return $skipBodyForVerticalNav(direction) ? stop(event) : false;
     };
