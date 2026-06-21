@@ -78,21 +78,30 @@
   color: var(--mantine-color-gray-0);
 }
 
+/* Shared outline rendering scope: the list/marker rules below target
+   `.remdo-outline` so any surface (the editor, the search result preview) renders
+   notes identically. `.editor-root` carries this class plus editor-only chrome. */
+.remdo-outline {
+  --remdo-indent: var(--mantine-spacing-sm);
+  /* Horizontal space a note's text sits past its bullet (bullet width + gap).
+     Shared so other surfaces can anchor text to the same column. */
+  --remdo-bullet-allowance: calc(0.4em + 0.6em);
+}
+
 .editor-root {
   min-height: 240px;
   font-family: var(--mantine-font-family);
   font-size: var(--mantine-font-size-md);
   line-height: 1.6;
   color: var(--mantine-color-dark-0);
-  --remdo-indent: var(--mantine-spacing-sm);
 }
 
 .editor-paragraph {
   margin: 0 0 var(--mantine-spacing-md) 0;
 }
 
-.editor-root ul,
-.editor-root ol {
+.remdo-outline ul,
+.remdo-outline ol {
   margin: 0;
   margin-inline-start: 0;
   padding-left: var(--remdo-indent);
@@ -203,11 +212,11 @@
   color: var(--mantine-color-blue-2);
 }
 
-.editor-root li.list-nested-item {
+.remdo-outline li.list-nested-item {
   list-style-type: none;
 }
 
-.editor-root li.list-item {
+.remdo-outline li.list-item {
   --list-line-height: 1.6em;
   --indicator-color: var(--mantine-color-dark-2);
   --checkbox-color: var(--mantine-color-dark-2);
@@ -220,7 +229,7 @@
   --bullet-mask-repeat: no-repeat;
   list-style-type: none;
   position: relative;
-  padding-left: calc(var(--bullet-width) + var(--bullet-gap));
+  padding-left: var(--remdo-bullet-allowance);
   cursor: text;
   background-repeat: no-repeat;
 }
@@ -242,7 +251,7 @@
   --bullet-mask-image: url('/icons/bullet-circle.svg');
 }
 
-.editor-root li.list-item::before {
+.remdo-outline li.list-item::before {
   content: '';
   position: absolute;
   left: var(--bullet-left);
@@ -263,8 +272,8 @@
   pointer-events: none;
 }
 
-.editor-root li.list-item.list-item-checked::after,
-.editor-root li.list-item.list-item-unchecked::after {
+.remdo-outline li.list-item.list-item-checked::after,
+.remdo-outline li.list-item.list-item-unchecked::after {
   content: '';
   position: absolute;
   left: var(--checkbox-left);
@@ -291,20 +300,20 @@
   outline: none;
 }
 
-.editor-root ol.list-ol {
+.remdo-outline ol.list-ol {
   counter-reset: remdo-ordered;
 }
 
-.editor-root ol.list-ol > li.list-item {
+.remdo-outline ol.list-ol > li.list-item {
   --bullet-width: 0.4em;
   --bullet-gap: 0.6em;
 }
 
-.editor-root ol.list-ol > li.list-item:not(.list-nested-item) {
+.remdo-outline ol.list-ol > li.list-item:not(.list-nested-item) {
   counter-increment: remdo-ordered;
 }
 
-.editor-root ol.list-ol > li.list-item:not(.list-nested-item)::before {
+.remdo-outline ol.list-ol > li.list-item:not(.list-nested-item)::before {
   content: counter(remdo-ordered) '.';
   background-color: transparent;
   mask-image: none;
@@ -321,8 +330,8 @@
   top: 0;
 }
 
-.editor-root li.list-item.list-item-checked,
-.editor-root li.list-item.list-item-unchecked {
+.remdo-outline li.list-item.list-item-checked,
+.remdo-outline li.list-item.list-item-unchecked {
   --checkbox-left: calc(var(--bullet-left) + var(--bullet-width) + var(--checkbox-gap));
   --checkbox-width: 0.85em;
   --checkbox-gap: 0.35em;
@@ -352,12 +361,12 @@
   color: var(--mantine-color-dark-2);
 }
 
-.editor-root li.list-item.list-item-checked {
+.remdo-outline li.list-item.list-item-checked {
   --checkbox-mask-image: url('/icons/checkbox-checked.svg');
   text-decoration: line-through;
 }
 
-.editor-root li.list-item[data-note-checked='true'] {
+.remdo-outline li.list-item[data-note-checked='true'] {
   text-decoration: line-through;
 }
 
@@ -487,13 +496,13 @@
   font-size: var(--mantine-font-size-xs);
 }
 
-.editor-root li.list-item.list-nested-item::before,
-.editor-root li.list-item.list-nested-item::after {
+.remdo-outline li.list-item.list-nested-item::before,
+.remdo-outline li.list-item.list-nested-item::after {
   content: '';
   display: none;
 }
 
-.editor-root li.list-item.list-nested-item {
+.remdo-outline li.list-item.list-nested-item {
   cursor: default;
 }
 

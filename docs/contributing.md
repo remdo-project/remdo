@@ -76,13 +76,16 @@ These invariants apply to every doc in the corpus.
 2. **Top-down linking.** Links SHOULD point from higher-level docs into detailed
    ones. Same-level links SHOULD appear only where they add clear value.
 3. **Self-contained behavior.** A doc's behavior MUST be clear without external
-   sources. External references MUST be confined to a final `References`
-   section; useful internal links MAY stay inline.
+   sources. A final `References` section is for external sources only (specs,
+   standards, third-party docs) and MUST contain all of them; cross-doc links
+   within this corpus MUST be inline, never collected into `References`.
 4. **Cross-doc consistency.** Two docs MUST NOT make contradictory claims about
    the intended system.
-5. **Spec, not status.** Docs MUST describe target behavior only. Gaps, partial
-   status, sequencing, current-vs-future notes, and deferral decisions MUST live
-   in `docs/todo.md`.
+5. **Spec, not status.** A doc's normative spec MUST describe target behavior
+   only. Gaps, partial status, sequencing, and deferral decisions MUST live in
+   `docs/todo.md`. A doc MAY carry a `Future` section listing deferred
+   long-horizon directions as brief triggers (not specs, not target behavior); a
+   direction MAY instead live in `docs/todo.md` — either place is fine.
 6. **No superseded contract.** A doc MUST NOT describe behavior the project has
    deliberately moved away from.
 7. **No broken links.** Every inbound link MUST resolve, and the documentation

@@ -27,7 +27,6 @@ import { NoteControlsPlugin } from './plugins/NoteControlsPlugin';
 import { NoteMenuPlugin } from './plugins/NoteMenuPlugin';
 import { SearchCandidatesPlugin } from './plugins/SearchCandidatesPlugin';
 import { PendingDocumentImportPlugin } from './plugins/PendingDocumentImportPlugin';
-import type { SearchCandidateSnapshot } from './search/search-candidates';
 import './Editor.css';
 
 interface EditorProps {
@@ -39,7 +38,6 @@ interface EditorProps {
   sourceOrigin?: string | null;
   sourceId?: string | null;
   searchModeRequested?: boolean;
-  onSearchCandidatesChange?: (snapshot: SearchCandidateSnapshot | null) => void;
   onPendingDocumentImportError?: (error: Error) => void;
 }
 
@@ -52,7 +50,6 @@ export default function Editor({
   sourceOrigin = null,
   sourceId = null,
   searchModeRequested,
-  onSearchCandidatesChange,
   onPendingDocumentImportError,
 }: EditorProps) {
   const editorInitialConfig = createEditorInitialConfig();
@@ -67,7 +64,6 @@ export default function Editor({
             onTestBridgeDispose={onTestBridgeDispose}
             searchModeRequested={searchModeRequested}
             statusPortalRoot={statusPortalRoot}
-            onSearchCandidatesChange={onSearchCandidatesChange}
             onPendingDocumentImportError={onPendingDocumentImportError}
           >
             {children}
@@ -85,7 +81,6 @@ function EditorRuntime({
   onTestBridgeDispose,
   statusPortalRoot,
   searchModeRequested,
-  onSearchCandidatesChange,
   onPendingDocumentImportError,
 }: EditorProps) {
   const offlineDocumentUnavailable = useOfflineDocumentUnavailable();
@@ -129,10 +124,7 @@ function EditorRuntime({
               <ZoomPlugin />
               <ZoomVisibilityPlugin />
               {searchModeRequested ? (
-                <SearchCandidatesPlugin
-                  docId={docId}
-                  onCandidatesChange={onSearchCandidatesChange}
-                />
+                <SearchCandidatesPlugin docId={docId} />
               ) : null}
               <CheckListPlugin />
               <ListPlugin hasStrictIndent />
