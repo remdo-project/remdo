@@ -10,14 +10,14 @@ import {
   collectChildCandidateMap,
   collectSearchCandidates,
 } from '#client/editor/search/search-candidates';
-import type { SearchCandidate } from '#client/editor/search/search-candidates';
+import type { ChildCandidate, SearchCandidate } from '#client/editor/search/search-candidates';
 import { matchesPathQuery } from '#client/search/query-match';
 import { useSearchNotes } from '#client/editor/view/EditorViewProvider';
 
 interface SearchCandidateState {
   ready: boolean;
   allCandidates: SearchCandidate[];
-  childCandidateMap: Record<string, SearchCandidate[]>;
+  childCandidateMap: Record<string, ChildCandidate[]>;
 }
 
 interface UseDocumentSearchModelOptions {
@@ -26,7 +26,7 @@ interface UseDocumentSearchModelOptions {
 }
 
 interface UseDocumentSearchModelResult {
-  childCandidateMap: Record<string, SearchCandidate[]>;
+  childCandidateMap: Record<string, ChildCandidate[]>;
   flatResults: SearchCandidate[];
   handleSearchBlur: () => void;
   handleSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
