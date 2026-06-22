@@ -3,8 +3,9 @@
 ## Purpose
 
 A **body** is an optional rich-text region attached to a single note, shown
-below the note's [content](./concepts.md). It is a self-contained editing region
-with its own selection that stays separate from the structural note tree.
+below the note's [content](./concepts.md). It is itself a kind of note (see
+[Concepts](./concepts.md#note-kinds)) owned by its editor note — a restricted one
+with no id and no children of its own.
 
 ## Core behavior
 
@@ -20,12 +21,21 @@ with its own selection that stays separate from the structural note tree.
 
 ## Selection and navigation
 
-A body is a self-contained selection world. When a note is selected structurally,
-its body is included as part of that note; the ladder (see
-[Selection](./selection.md)) never selects a body's text on its own, and a body's
-selection never extends out into the note tree.
+A body is a kind of note (see [Concepts](./concepts.md#note-kinds)) owned by its
+editor note. For selection, a note's content and its body are two distinct
+**regions**:
 
-Within that world, keys behave as follows:
+- An inline selection lives within exactly one region — one note's content, or
+  one body — and never spans the two.
+- A selection spanning a note's content and its own body is structural, limited
+  to that single note (a note is never selected structurally without its body).
+- Any selection crossing two notes — including one with an endpoint inside a
+  body — is structural and snaps to whole notes (see [Selection](./selection.md)).
+- A body is never a structural head on its own: it can be selected only inline,
+  or structurally as part of its owning note. The ladder never selects a body's
+  text by itself.
+
+Within a body, keys behave as follows:
 
 1. **Arrows are one-way.** Caret arrow navigation never enters a body from
    outside: it is transparent to vertical movement, which lands exactly where it
