@@ -1,11 +1,11 @@
 import type { ListItemNode } from '@lexical/list';
-import { $isListItemNode, $isListNode } from '@lexical/list';
+import { $isListNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
 import { $getNoteBodyFromNode } from '#client/editor/features/note-body/note-body-ops';
 import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
-import { getContentSiblings, isChildrenWrapper } from '../list-structure';
+import { getContentSiblings, isContentItem } from '../list-structure';
 import { resolveContentItemFromNode } from '../schema';
 import { getNextContentSibling, normalizeContentRange } from './tree';
 
@@ -133,7 +133,7 @@ function resolveElementSelectionHeads(selection: RangeSelection): ListItemNode[]
   const slice = anchorNode.getChildren().slice(start, end);
   const heads: ListItemNode[] = [];
   for (const child of slice) {
-    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+    if (isContentItem(child)) {
       heads.push(child);
     }
   }
