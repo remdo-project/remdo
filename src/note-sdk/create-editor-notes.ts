@@ -1,5 +1,6 @@
 import type { DocumentAccessNote, DocumentNote } from './documents';
 import type {
+  BodyNote,
   EditorNote,
   EditorNotes,
   EditorNotesAdapter,
@@ -47,6 +48,17 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
     return position;
   };
 
+  const createBodyHandle = (ownerId: NoteId): BodyNote => {
+    const kind = () => 'body' as const;
+    const handle: BodyNote = {
+      kind,
+      text: () => adapter.bodyTextOf(ownerId) ?? '',
+      children: () => [],
+      as: createNoteAs(ownerId, kind, () => handle),
+    };
+    return handle;
+  };
+
   const createHandle = (noteId: NoteId): EditorNote => {
     const kind = () => 'editor-note' as const;
     function create(arg1: string | ChildPosition, arg2?: string): EditorNote {
@@ -60,6 +72,7 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
       text: () => adapter.textOf(noteId),
       children: () => adapter.childrenOf(noteId).map((childId) => createHandle(childId)),
       create,
+      body: () => (adapter.bodyTextOf(noteId) === null ? null : createBodyHandle(noteId)),
       as: createNoteAs(noteId, kind, () => handle),
     };
     return handle;

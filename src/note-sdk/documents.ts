@@ -1,7 +1,7 @@
 import type { EditorNote } from './editor';
-import type { ChildPosition, CollectionNote, Note } from './notes';
+import type { AddressableNote, ChildPosition, CollectionNote } from './notes';
 
-export interface UserDataNote extends Note<'user-data'> {
+export interface UserDataNote extends AddressableNote<'user-data'> {
   /** Returns the user's home document note. */
   homeDocument: () => DocumentNote;
   /** Returns document lists grouped by current and linked source servers. */
@@ -19,7 +19,7 @@ export interface UserDocumentsNote extends CollectionNote<DocumentNote> {
 
 export type DocumentSourcesNote = CollectionNote<DocumentSourceNote>;
 
-export interface DocumentSourceNote extends Note<'document-source'> {
+export interface DocumentSourceNote extends AddressableNote<'document-source'> {
   /** Returns the source server origin, when the source is remote. */
   baseUrl: () => string | null;
   /** Returns documents projected by this source. */
@@ -28,7 +28,7 @@ export interface DocumentSourceNote extends Note<'document-source'> {
   local: () => boolean;
 }
 
-export interface DocumentNote extends Note<'document'> {
+export interface DocumentNote extends AddressableNote<'document'> {
   /** Returns direct access grants for this document. */
   access: () => CollectionNote<DocumentAccessNote>;
   /** Returns direct document-root editor notes in display order. */
@@ -44,7 +44,7 @@ export interface DocumentNote extends Note<'document'> {
   shareWith: (email: string) => Promise<DocumentAccessNote>;
 }
 
-export interface DocumentAccessNote extends Note<'document-access'> {
+export interface DocumentAccessNote extends AddressableNote<'document-access'> {
   /** Returns the shared user's email address. */
   email: () => string;
   /** Returns the shared user's local auth user id. */
@@ -55,7 +55,7 @@ export interface DocumentAccessNote extends Note<'document-access'> {
 
 export type SourceServersNote = CollectionNote<SourceServerNote>;
 
-export interface SourceServerNote extends Note<'source-server'> {
+export interface SourceServerNote extends AddressableNote<'source-server'> {
   /** Returns the source server origin. */
   baseUrl: () => string;
   /** Returns whether the current user has linked this source server. */

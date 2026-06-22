@@ -13,6 +13,7 @@ import {
   isChildrenWrapper,
   maybeRemoveEmptyWrapper,
 } from '#client/editor/outline/list-structure';
+import { getNoteBody } from '#client/editor/features/note-body/note-body-ops';
 import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '#client/editor/outline/note-ops';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $requireContentItemNoteId, $requireRootContentList, resolveContentItemFromNode } from '#client/editor/outline/schema';
@@ -295,6 +296,10 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
     hasNote: (noteId) => Boolean($resolveNoteById(noteId)),
     isBounded: (noteId) => Boolean($resolveNoteById(noteId)),
     textOf: (noteId) => $requireNoteById(noteId).getTextContent(),
+    bodyTextOf: (noteId) => {
+      const body = getNoteBody($requireNoteById(noteId));
+      return body === null ? null : body.getTextContent();
+    },
     childrenOf: (noteId) => {
       const current = $requireNoteById(noteId);
 
