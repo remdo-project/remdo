@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { act } from '@testing-library/react';
-import { REDO_COMMAND, UNDO_COMMAND, $getRoot  } from 'lexical';
+import { REDO_COMMAND, UNDO_COMMAND, $getRoot, $getSelection, $isTextNode  } from 'lexical';
 import {
   copySelection,
   pastePayload,
@@ -19,6 +19,7 @@ import { isBodyWrapper } from './note-body-node';
 import { $getNoteId } from '#client/editor/runtime/note-id-state';
 import { $normalizeNoteIdsOnLoad } from '#client/editor/plugins/note-id-normalization';
 import { getNoteBody, $skipBodyForVerticalNav } from './note-body-ops';
+import { $resolveLinkPickerOptions } from '#client/editor/plugins/note-link/options';
 
 describe('note body (docs/outliner/body.md)', () => {
   it('shift+Enter on a note adds a body and moves the caret into it', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -415,6 +416,22 @@ describe('note body (docs/outliner/body.md)', () => {
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
+  });
+
+  it('the @ link picker inside a body excludes the body\'s own note (no self-link)', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'x');
+
+    // With the caret in note1's body, the picker's note context is note1, so
+    // note1 is filtered out of the candidates — a body link behaves like a
+    // note-content link, and self-links are out of scope.
+    const noteIds = remdo.validate(() => {
+      const anchor = $getSelection()!.getNodes().find($isTextNode)!;
+      return $resolveLinkPickerOptions('', anchor).map((option) => option.noteId);
+    });
+    expect(noteIds).not.toContain('note1');
+    expect(noteIds).toContain('note2');
   });
 
   it('enter at the end of a note that has a body inserts the new sibling after the body', meta({ fixture: 'flat' }), async ({ remdo }) => {
