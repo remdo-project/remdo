@@ -52,7 +52,17 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
     const kind = () => 'body' as const;
     const handle: BodyNote = {
       kind,
-      text: () => adapter.bodyTextOf(ownerId) ?? '',
+      // The owner returns null from bodyTextOf once the body (or the note) is
+      // gone. Throw rather than report an empty body, so a stale handle to a
+      // removed body is distinguishable from an existing empty one — matching the
+      // base Note.text() contract that a missing note throws.
+      text: () => {
+        const text = adapter.bodyTextOf(ownerId);
+        if (text === null) {
+          throw new NoteNotFoundError(ownerId);
+        }
+        return text;
+      },
       children: () => [],
       as: createNoteAs(ownerId, kind, () => handle),
     };
