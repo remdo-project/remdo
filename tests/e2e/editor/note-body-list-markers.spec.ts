@@ -42,4 +42,16 @@ test.describe('note body list markers (docs/outliner/body.md)', () => {
 
     expect(await bodyWrapperPseudoContent(page, '::after')).toBe('none');
   });
+
+  test('a body in a check list is not exposed as a checkbox to accessibility', async ({ page, editor }) => {
+    // tree-list-types: note4 lives in a check list. A leaf li in a check list
+    // would otherwise get role="checkbox"/aria-checked from Lexical; a body is
+    // not a checklist item, so those must be stripped (docs/outliner/body.md).
+    await editor.load('tree-list-types');
+    await addBody(page, 'note4', 'thebody');
+
+    const wrapper = editorLocator(page).locator('li.list-item:has(> .note-body)').first();
+    await expect(wrapper).not.toHaveAttribute('role', 'checkbox');
+    await expect(wrapper).not.toHaveAttribute('aria-checked');
+  });
 });

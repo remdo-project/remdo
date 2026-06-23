@@ -14,10 +14,12 @@ import {
   KEY_ENTER_COMMAND,
   SELECT_ALL_COMMAND,
 } from 'lexical';
-import type { Point } from 'lexical';
+import type { LexicalEditor, Point } from 'lexical';
 import { useEffect } from 'react';
 
-import { resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { forEachListItemInOutline } from '#client/editor/outline/list-traversal';
+import { resolveContentItemFromNode, $resolveRootContentList } from '#client/editor/outline/schema';
+import { isBodyWrapper } from './note-body-node';
 import type { NoteBodyNode } from './note-body-node';
 import {
   $addNoteBody,
@@ -28,6 +30,43 @@ import {
   isNoteBodyEmpty,
 } from './note-body-ops';
 import './note-body.css';
+
+// A body-wrapper is a leaf `ListItemNode`, so in a checklist Lexical's list DOM
+// gives it checkbox semantics (`role="checkbox"`, `aria-checked`, `tabindex`)
+// every time it reconciles. A body is not a checklist item, so after each update
+// strip those from every body-wrapper element, keeping it out of the checkbox
+// accessibility tree and hit-testing (the visual checkbox is hidden in CSS).
+function stripBodyWrapperCheckboxSemantics(editor: LexicalEditor): void {
+  const wrapperKeys = editor.getEditorState().read(() => {
+    const rootList = $resolveRootContentList();
+    if (!rootList) {
+      return [];
+    }
+    const keys: string[] = [];
+    forEachListItemInOutline(rootList, (item) => {
+      if (isBodyWrapper(item)) {
+        keys.push(item.getKey());
+      }
+    });
+    return keys;
+  });
+  for (const key of wrapperKeys) {
+    const element = editor.getElementByKey(key);
+    if (!element) {
+      continue;
+    }
+    element.removeAttribute('role');
+    element.removeAttribute('aria-checked');
+    element.removeAttribute('tabindex');
+  }
+}
+
+function registerBodyWrapperCheckboxCleanup(editor: LexicalEditor): () => void {
+  stripBodyWrapperCheckboxSemantics(editor);
+  return editor.registerUpdateListener(() => {
+    stripBodyWrapperCheckboxSemantics(editor);
+  });
+}
 
 function stop(event: KeyboardEvent | null): true {
   event?.preventDefault();
@@ -122,6 +161,7 @@ export function NoteBodyPlugin() {
     };
 
     return mergeRegister(
+      registerBodyWrapperCheckboxCleanup(editor),
       editor.registerCommand(
         KEY_ARROW_UP_COMMAND,
         (event) => $onArrow('up', event),
