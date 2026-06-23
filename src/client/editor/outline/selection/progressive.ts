@@ -6,7 +6,7 @@ import { reportInvariant } from '#client/editor/invariant';
 
 import { selectInlineContent, selectNoteBody, setSelectionBetweenItems } from './apply';
 import type { ProgressiveSelectionState } from './resolve';
-import { resolveSelectionPointItem } from './resolve';
+import { $resolveSelectionPointItem } from './resolve';
 import {
   $createSubtreePlan,
   $replayLadder,
@@ -84,7 +84,7 @@ function $resolveProgressionAnchorContent(
 ): ListItemNode | null {
   let resolvedAnchorItem: ListItemNode | null = null;
   if (selection.isCollapsed()) {
-    resolvedAnchorItem = resolveSelectionPointItem(selection, selection.anchor);
+    resolvedAnchorItem = $resolveSelectionPointItem(selection, selection.anchor);
     const resolvedAnchorKey = resolvedAnchorItem ? resolvedAnchorItem.getKey() : null;
     const ladder = progressionRef.current;
     const isStructural = ladderHasStructuralRung(ladder);
@@ -107,7 +107,7 @@ function $resolveProgressionAnchorContent(
   }
 
   if (!anchorContent) {
-    const anchorItem = resolvedAnchorItem ?? resolveSelectionPointItem(selection, selection.anchor);
+    const anchorItem = resolvedAnchorItem ?? $resolveSelectionPointItem(selection, selection.anchor);
     if (!anchorItem) {
       onMissingAnchor?.();
       progressionRef.current = initialProgression;

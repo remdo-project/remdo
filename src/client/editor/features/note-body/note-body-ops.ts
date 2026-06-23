@@ -159,12 +159,50 @@ export function $skipBodyForHorizontalNav(direction: 'left' | 'right'): boolean 
   return true;
 }
 
-/** True when either end of the selection sits inside a note body. */
-export function $isSelectionInNoteBody(selection: RangeSelection): boolean {
-  return (
-    $getNoteBodyFromNode(selection.anchor.getNode()) !== null ||
-    $getNoteBodyFromNode(selection.focus.getNode()) !== null
-  );
+/**
+ * The content note that owns `body` — the content sibling before the body's
+ * wrapper list item — or null. (The body lives in a body-wrapper adjacent to its
+ * note; see `docs/outliner/body.md`.)
+ */
+export function $getNoteForBody(body: NoteBodyNode): ListItemNode | null {
+  const wrapper = body.getParent();
+  return $isListItemNode(wrapper) ? getPreviousContentSibling(wrapper) : null;
+}
+
+/**
+ * Resolve a selection point's node to the content note of its region: a node
+ * inside a body resolves to that body's owner note (for selection the body is
+ * part of its note), otherwise to the content note the node sits in. Used by the
+ * structural snap so a range with a body endpoint snaps around whole notes.
+ */
+export function $resolveNoteForSelectionPoint(node: LexicalNode | null): ListItemNode | null {
+  const body = $getNoteBodyFromNode(node);
+  if (body) {
+    return $getNoteForBody(body);
+  }
+  return resolveContentItemFromNode(node);
+}
+
+/**
+ * True when the whole selection sits inside a single note body — an inline range
+ * within one body, which the outline leaves alone. A selection with only one end
+ * in a body, or ends in two different bodies, crosses a region boundary and is a
+ * structural selection instead (see `docs/outliner/body.md`).
+ */
+export function $isSelectionWithinOneBody(selection: RangeSelection): boolean {
+  const anchorBody = $getNoteBodyFromNode(selection.anchor.getNode());
+  return anchorBody !== null && anchorBody === $getNoteBodyFromNode(selection.focus.getNode());
+}
+
+/**
+ * True when the selection's two ends sit in different regions — a note's content
+ * and a body, or two different bodies. Crossing a region boundary is always a
+ * structural selection, even within a single note (content ↔ its own body),
+ * which is why this is distinct from the multi-note checks. A selection wholly
+ * within one region (one content note, or one body) returns false.
+ */
+export function $selectionCrossesRegionBoundary(selection: RangeSelection): boolean {
+  return $getNoteBodyFromNode(selection.anchor.getNode()) !== $getNoteBodyFromNode(selection.focus.getNode());
 }
 
 /**

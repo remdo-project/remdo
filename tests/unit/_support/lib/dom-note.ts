@@ -23,3 +23,19 @@ export function getNoteTextNode(remdo: RemdoTestApi, noteId: string): Text {
   }
   return textNode;
 }
+
+// The first text node inside the body attached to `noteId`. The body lives in a
+// body-wrapper, the note element's next `li` sibling; its `.note-body` holds the
+// body text.
+export function getNoteBodyTextNode(remdo: RemdoTestApi, noteId: string): Text {
+  const bodyElement = getNoteElement(remdo, noteId).nextElementSibling?.querySelector('.note-body');
+  if (!bodyElement) {
+    throw new TypeError(`Expected body element for noteId: ${noteId}`);
+  }
+  const walker = document.createTreeWalker(bodyElement, NodeFilter.SHOW_TEXT);
+  const textNode = walker.nextNode();
+  if (!(textNode instanceof Text)) {
+    throw new TypeError(`Expected body text node for noteId: ${noteId}`);
+  }
+  return textNode;
+}

@@ -1,6 +1,6 @@
 import type { BaseSelection } from 'lexical';
 import { $isRangeSelection } from 'lexical';
-import { $getSelectedNotes, getContiguousSelectionHeads } from './heads';
+import { $getSelectedNotes, $getContiguousSelectionHeads } from './heads';
 import type { OutlineSelection, OutlineSelectionRange } from './model';
 import { $resolveStructuralHeadsFromRange } from './range';
 import { computeStructuralRangeFromHeads } from './resolve';
@@ -33,7 +33,7 @@ export function $resolveStructuralRangeFromLexicalSelection(
     return null;
   }
 
-  let heads = getContiguousSelectionHeads(selection);
+  let heads = $getContiguousSelectionHeads(selection);
   if (heads.length === 0 && selection.isCollapsed() && allowCollapsedSingleNote) {
     const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
     if (contentItem) {

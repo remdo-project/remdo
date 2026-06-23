@@ -3,7 +3,7 @@ import { $isListNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
-import { $getNoteBodyFromNode } from '#client/editor/features/note-body/note-body-ops';
+import { $getNoteBodyFromNode, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
 import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
 import { getContentSiblings, isContentItem } from '../list-structure';
 import { resolveContentItemFromNode } from '../schema';
@@ -12,7 +12,7 @@ import { getNextContentSibling, normalizeContentRange } from './tree';
 // Returns the contiguous sibling slab that spans anchor/focus as the set of
 // top-most selected heads (dropping descendants when an ancestor is selected).
 // Returns an empty array when the selection cannot be normalized to a single sibling run.
-export function getContiguousSelectionHeads(selection: RangeSelection): ListItemNode[] {
+export function $getContiguousSelectionHeads(selection: RangeSelection): ListItemNode[] {
   if (selection.isCollapsed()) {
     return [];
   }
@@ -22,8 +22,8 @@ export function getContiguousSelectionHeads(selection: RangeSelection): ListItem
     return elementSelectionHeads;
   }
 
-  const anchorItem = resolveContentItemFromNode(selection.anchor.getNode());
-  const focusItem = resolveContentItemFromNode(selection.focus.getNode());
+  const anchorItem = $resolveNoteForSelectionPoint(selection.anchor.getNode());
+  const focusItem = $resolveNoteForSelectionPoint(selection.focus.getNode());
   if (!anchorItem || !focusItem) {
     reportInvariant({
       message: 'Selection anchor/focus is not within list items.',
@@ -88,10 +88,25 @@ export function $getSelectedNotes(selection: RangeSelection): ListItemNode[] {
 
   const candidates: LexicalNode[] = selection.getNodes();
 
+  const pushNote = (note: ListItemNode) => {
+    const key = note.getKey();
+    if (seen.has(key)) return;
+    seen.add(key);
+    ordered.push(note);
+  };
+
   for (const node of candidates) {
-    // A body (or its wrapper) belongs to a note already covered by the range;
-    // it is not a note of its own and must not be treated as a stray selection.
-    if ($getNoteBodyFromNode(node) || isBodyWrapper(node)) {
+    // A node inside a body belongs to that body's owner note (for selection the
+    // body is part of its note); resolve to the owner rather than treat it as a
+    // stray. A bare body-wrapper carries no note of its own.
+    if ($getNoteBodyFromNode(node)) {
+      const owner = $resolveNoteForSelectionPoint(node);
+      if (owner) {
+        pushNote(owner);
+      }
+      continue;
+    }
+    if (isBodyWrapper(node)) {
       continue;
     }
 
@@ -104,10 +119,7 @@ export function $getSelectedNotes(selection: RangeSelection): ListItemNode[] {
       continue;
     }
 
-    const key = contentItem.getKey();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    ordered.push(contentItem);
+    pushNote(contentItem);
   }
 
   return ordered;
