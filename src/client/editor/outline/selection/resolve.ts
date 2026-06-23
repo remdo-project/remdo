@@ -5,7 +5,7 @@ import { $getNodeByKey } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
 import { $getNoteBodyFromNode, $getNoteForBody } from '#client/editor/features/note-body/note-body-ops';
-import { getPreviousContentSibling, isChildrenWrapper, isWrapperItem } from '#client/editor/outline/list-structure';
+import { getBodyWrapper, getPreviousContentSibling, isChildrenWrapper, isWrapperItem } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 
 import { isPointAtBoundary } from './caret';
@@ -203,7 +203,11 @@ export function computeStructuralRangeFromHeads(heads: ListItemNode[]): OutlineS
   const caretItems = noteItems;
   const caretStartItem = caretItems[0]!;
   const caretEndItem = caretItems.at(-1)!;
-  const visualEndItem = getSubtreeTail(caretEndItem);
+  const tailItem = getSubtreeTail(caretEndItem);
+  // The visual range must reach the tail note's body (a body-wrapper li renders
+  // below the note), so the highlight/collapse range covers what a structural
+  // delete removes — including a single note selected together with its body.
+  const visualEndItem = getBodyWrapper(tailItem) ?? tailItem;
 
   return {
     headStartKey: caretStartItem.getKey(),

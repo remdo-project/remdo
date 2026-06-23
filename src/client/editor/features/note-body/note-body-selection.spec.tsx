@@ -10,6 +10,8 @@ import {
   meta,
 } from '#tests';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { getBodyWrapper } from '#client/editor/outline/list-structure';
 
 // Selection contract for note bodies (docs/outliner/body.md "Selection and
 // navigation"): a note's content and its body are two distinct regions. An
@@ -39,6 +41,11 @@ describe('note body selection contract (docs/outliner/body.md)', () => {
     // Content ↔ own body crosses a region boundary within one note → structural,
     // limited to that note (a note is never selected structurally without its body).
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1'] });
+
+    // The structural range's visual tail reaches note1's body-wrapper, so the
+    // highlight covers the body that a structural delete would also remove.
+    const bodyWrapperKey = remdo.validate(() => getBodyWrapper($findNoteById('note1')!)!.getKey());
+    expect(remdo.editor.selection.get()?.range?.visualEndKey).toBe(bodyWrapperKey);
   });
 
   it('caret in a note, shift-click into ANOTHER note body is structural over both notes', meta({ fixture: 'flat' }), async ({ remdo }) => {

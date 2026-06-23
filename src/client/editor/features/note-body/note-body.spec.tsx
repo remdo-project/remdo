@@ -14,6 +14,8 @@ import {
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getBodyWrapper } from '#client/editor/outline/list-structure';
+import { getSubtreeTail } from '#client/editor/outline/selection/tree';
+import { isBodyWrapper } from './note-body-node';
 import { $getNoteId } from '#client/editor/runtime/note-id-state';
 import { $normalizeNoteIdsOnLoad } from '#client/editor/plugins/note-id-normalization';
 import { getNoteBody, $skipBodyForVerticalNav } from './note-body-ops';
@@ -138,6 +140,26 @@ describe('note body (docs/outliner/body.md)', () => {
       { noteId: 'note1', text: 'note1' },
       { noteId: 'note2', text: 'note2 note3', body: 'pbody' },
     ]);
+  });
+
+  it('the subtree tail of a note skips a trailing body on its deepest last child', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    // tree: note1; note2 > note3. Give note3 (note2's deepest last child) a body.
+    // getSubtreeTail(note2) must return note3 (the deepest content note), not its
+    // body-wrapper — otherwise document-order merges target the wrapper and
+    // corrupt the outline.
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'cbody');
+
+    const tail = remdo.validate(() => {
+      const note2 = $findNoteById('note2')!;
+      const tailItem = getSubtreeTail(note2);
+      return { isBody: getBodyWrapper(tailItem) !== null, isWrapper: isBodyWrapper(tailItem), text: tailItem.getTextContent() };
+    });
+    // The tail is note3's content item (it has a body), never the body-wrapper.
+    expect(tail.isWrapper).toBe(false);
+    expect(tail.isBody).toBe(true);
+    expect(tail.text).toBe('note3');
   });
 
   it('load-time note-id normalization leaves the body-wrapper id-less (no missing-note-id)', meta({ fixture: 'flat' }), async ({ remdo }) => {

@@ -118,8 +118,11 @@ export function getSubtreeTail(item: ListItemNode): ListItemNode {
   let current = item;
   let nestedList = getNestedList(current);
   while (nestedList) {
-    const lastChild = nestedList.getLastChild();
-    if (!$isListItemNode(lastChild)) {
+    // The last list child can be a trailing wrapper (a body-wrapper, or a
+    // children-wrapper for a nested subtree); the subtree tail is the deepest
+    // content note, so take the last content sibling.
+    const lastChild = getContentSiblings(nestedList).at(-1);
+    if (!lastChild) {
       break;
     }
 

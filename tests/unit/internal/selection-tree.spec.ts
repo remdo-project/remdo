@@ -149,7 +149,8 @@ describe('selection tree helpers', () => {
       expect(result).not.toBeNull();
       expect(result!.count).toBe(depth);
       expect(result!.firstId).toBe('deep0');
-      expect(result!.tailId).toBeNull();
+      // getSubtreeTail returns the deepest content note, not a trailing wrapper.
+      expect(result!.tailId).toBe(`deep${depth - 1}`);
       expect(result!.lastId).toBe(`deep${depth - 1}`);
       expect(result!.lastCollectedId).toBe(`deep${depth - 1}`);
       expect(result!.leafNoteId).toBe(`deep${depth - 1}`);
