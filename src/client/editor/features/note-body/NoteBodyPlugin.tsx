@@ -200,10 +200,11 @@ export function NoteBodyPlugin() {
       if (event && (event.altKey || event.metaKey || event.ctrlKey)) {
         return false;
       }
-      // Defer to an open note-link picker so plain Up/Down navigate its options
+      // Defer Up/Down to an open note-link picker so they navigate its options
       // rather than redirecting the caret past an adjacent body (the picker's
-      // arrow handlers run at the same priority but mount after this plugin).
-      if (isNoteLinkPickerOpen()) {
+      // arrow handlers run at the same priority but mount after this plugin). The
+      // picker ignores Left/Right, so those still run the body-skip below.
+      if ((direction === 'up' || direction === 'down') && isNoteLinkPickerOpen()) {
         return false;
       }
       // Plain arrows: inside a body the caret leaves freely (native); only skip

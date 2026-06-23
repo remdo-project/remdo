@@ -127,6 +127,16 @@ test.describe('note links', () => {
     await expect(listbox).toHaveAttribute('aria-activedescendant', note3Id!);
     await expect(note3Option).toHaveAttribute('aria-selected', 'true');
     await expect(note2Option).toHaveAttribute('aria-selected', 'false');
+
+    // The picker ignores Left/Right, so ArrowRight must still run body navigation
+    // (skip past the body) rather than entering it from outside the note.
+    await page.keyboard.press('ArrowRight');
+    const focusInBody = await page.evaluate(() => {
+      const node = globalThis.getSelection()?.focusNode ?? null;
+      const el = node instanceof Element ? node : node?.parentElement ?? null;
+      return Boolean(el?.closest('.note-body'));
+    });
+    expect(focusInBody).toBe(false);
   });
 
   test('pressing Enter on no-results closes picker and keeps typed query text', async ({ page, editor }) => {
