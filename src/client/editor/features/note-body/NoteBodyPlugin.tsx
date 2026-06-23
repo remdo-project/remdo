@@ -83,17 +83,21 @@ function stop(event: KeyboardEvent | null): true {
 function $pointAtBodyEdge(body: NoteBodyNode, point: Point, edge: 'leading' | 'trailing'): boolean {
   const node = point.getNode();
   if (edge === 'leading') {
-    const first = body.getFirstDescendant();
-    if (first === null) {
-      return node === body && point.offset === 0;
+    // An element point on the body itself at offset 0 is the leading edge (e.g.
+    // an empty body, or a leading blank line where the caret sits on the body).
+    if (node === body) {
+      return point.offset === 0;
     }
-    return node === first && point.offset === 0;
+    const first = body.getFirstDescendant();
+    return first !== null && node === first && point.offset === 0;
+  }
+  // A trailing blank line leaves the caret on the body element at its last child
+  // offset rather than on a text descendant, so treat that as the trailing edge.
+  if (node === body) {
+    return point.offset === body.getChildrenSize();
   }
   const last = body.getLastDescendant();
-  if (last === null) {
-    return node === body;
-  }
-  return node === last && point.offset === last.getTextContentSize();
+  return last !== null && node === last && point.offset === last.getTextContentSize();
 }
 
 /**

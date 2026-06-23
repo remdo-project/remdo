@@ -126,6 +126,23 @@ describe('note body (docs/outliner/body.md)', () => {
     ]);
   });
 
+  it('delete at a trailing blank body line is a no-op and never pulls in the next note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A trailing Enter leaves the caret on the body element (offset === child
+    // count), not on a text descendant. Delete there must stay a no-op and not
+    // merge note2 into the body.
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'one');
+    await pressKey(remdo, { key: 'Enter' });
+    await pressKey(remdo, { key: 'Delete' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'one\n' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
   it('backspace at the start of a child whose parent has a body merges into the parent, not the body', meta({ fixture: 'tree' }), async ({ remdo }) => {
     // tree: note1; note2 > note3. Give note2 (the parent) a body.
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
