@@ -2,6 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { mergeRegister } from '@lexical/utils';
 import {
   $getSelection,
+  $isLineBreakNode,
   $isRangeSelection,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_HIGH,
@@ -95,6 +96,41 @@ function $pointAtBodyEdge(body: NoteBodyNode, point: Point, edge: 'leading' | 't
   return node === last && point.offset === last.getTextContentSize();
 }
 
+/**
+ * True when `point` sits on the body's first (`leading`) or last (`trailing`)
+ * visual line — no line break separates the point from that boundary. A vertical
+ * move off the edge line leaves the body, so a shifted vertical arrow there must
+ * be blocked, not only at the exact text edge (a single-line body has no
+ * interior line, so any Shift+Down/Up would otherwise escape). Lines are split by
+ * line break nodes that are direct children of the body.
+ */
+function $pointOnBodyEdgeLine(body: NoteBodyNode, point: Point, edge: 'leading' | 'trailing'): boolean {
+  const node = point.getNode();
+  if (node !== body && !body.isParentOf(node)) {
+    return false;
+  }
+  // Line breaks are direct children of the body. Locate the point's position by
+  // the index of its top-level child (the body child that is, or contains, the
+  // point's node); a point directly on the body uses its own offset.
+  const children = body.getChildren();
+  const pointChildIndex =
+    node === body ? point.offset : children.findIndex((child) => child === node || child.isParentOf(node));
+  for (const [index, child] of children.entries()) {
+    if (!$isLineBreakNode(child)) {
+      continue;
+    }
+    // A line break after the point's position means it is not on the last line;
+    // one before means it is not on the first line.
+    if (edge === 'trailing' && index >= pointChildIndex) {
+      return false;
+    }
+    if (edge === 'leading' && index < pointChildIndex) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /** True when a collapsed caret sits at the body's leading/trailing edge. */
 function $isCaretAtBodyEdge(body: NoteBodyNode, direction: 'backward' | 'forward'): boolean {
   const selection = $getSelection();
@@ -121,6 +157,12 @@ function $shouldBlockBodyShiftArrow(direction: ArrowDirection): boolean {
     return false;
   }
   const edge = direction === 'left' || direction === 'up' ? 'leading' : 'trailing';
+  // Vertical arrows move by visual line, so block from anywhere on the body's
+  // edge line (a single-line body always escapes). Horizontal arrows move by
+  // character, so only block at the exact text edge.
+  if (direction === 'up' || direction === 'down') {
+    return $pointOnBodyEdgeLine(body, selection.focus, edge);
+  }
   return $pointAtBodyEdge(body, selection.focus, edge);
 }
 

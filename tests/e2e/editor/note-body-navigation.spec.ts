@@ -136,4 +136,42 @@ test.describe('note body shift-arrow selection boundary (docs/outliner/body.md)'
     const selectedLength = await page.evaluate(() => globalThis.getSelection()?.toString().length ?? 0);
     expect(selectedLength).toBe(1);
   });
+
+  test('Shift+ArrowDown from mid-text in a single-line body does not extend out', async ({ page, editor }) => {
+    await editor.load('flat');
+    await addBody(page, 'note1', 'thebody');
+
+    // Caret mid-text (not at the trailing edge); a single-line body has no line
+    // below, so Shift+ArrowDown must not extend the focus into the next note.
+    await setCaretAtText(page, 'thebody', 3);
+    await page.keyboard.press('Shift+ArrowDown');
+
+    expect(await focusInBody(page)).toBe(true);
+  });
+
+  test('Shift+ArrowUp from mid-text in a single-line body does not extend out', async ({ page, editor }) => {
+    await editor.load('flat');
+    await addBody(page, 'note2', 'thebody');
+
+    await setCaretAtText(page, 'thebody', 3);
+    await page.keyboard.press('Shift+ArrowUp');
+
+    expect(await focusInBody(page)).toBe(true);
+  });
+
+  test('Shift+ArrowDown from the last line of a multi-line body does not extend out', async ({ page, editor }) => {
+    await editor.load('flat');
+    // Two-line body: 'one\ntwo'. The caret sits mid-text on the last line; with
+    // no line below inside the body, Shift+ArrowDown must not escape to note2.
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('one');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('two');
+
+    await setCaretAtText(page, 'two', 1);
+    await page.keyboard.press('Shift+ArrowDown');
+
+    expect(await focusInBody(page)).toBe(true);
+  });
 });
