@@ -108,4 +108,43 @@ test.describe('Folding', () => {
     expect(selection?.anchorText).toContain('note2');
     expect(selection?.anchorOffset).toBe((selection?.anchorText ?? '').length);
   });
+
+  test('folding collapses a caret inside a descendant body to the folded note', async ({ page, editor }) => {
+    // tree: note1; note2 > note3. Give note3 a body and leave the caret in it,
+    // then fold note2. The caret must collapse to note2, not stay stranded in
+    // the now-hidden body.
+    await editor.load('tree');
+
+    await setCaretAtText(page, 'note3', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('the body');
+
+    const listItem = editorLocator(page).locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note2' }).first();
+    const listItemBox = (await listItem.boundingBox())!;
+    await page.mouse.move(listItemBox.x + listItemBox.width / 2, listItemBox.y + listItemBox.height / 2);
+    const foldButton = editorLocator(page).locator('.note-controls__button--expanded');
+    await expect(foldButton).toBeVisible();
+    await foldButton.click();
+
+    await expect(listItem).toHaveAttribute('data-folded', 'true');
+
+    const selection = await page.evaluate(() => {
+      const sel = globalThis.getSelection();
+      if (!sel || sel.rangeCount === 0) {
+        return null;
+      }
+      const anchor = sel.anchorNode;
+      const el = anchor instanceof Element ? anchor : anchor?.parentElement ?? null;
+      return {
+        isCollapsed: sel.isCollapsed,
+        anchorText: anchor?.textContent ?? null,
+        inBody: Boolean(el?.closest('.note-body')),
+      };
+    });
+
+    expect(selection).not.toBeNull();
+    expect(selection?.isCollapsed).toBe(true);
+    expect(selection?.inBody).toBe(false);
+    expect(selection?.anchorText).toContain('note2');
+  });
 });
