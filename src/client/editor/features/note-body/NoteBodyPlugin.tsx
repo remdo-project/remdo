@@ -166,6 +166,11 @@ function $shouldBlockBodyShiftArrow(direction: ArrowDirection): boolean {
   return $pointAtBodyEdge(body, selection.focus, edge);
 }
 
+/** True when the `@` note-link picker is currently open in the document. */
+function isNoteLinkPickerOpen(): boolean {
+  return document.querySelector('[data-note-link-picker]') !== null;
+}
+
 /** The note body containing the current caret/selection, or null. */
 function $getActiveNoteBody(): NoteBodyNode | null {
   const selection = $getSelection();
@@ -189,6 +194,12 @@ export function NoteBodyPlugin() {
       }
       // Other modified arrows are handled elsewhere.
       if (event && (event.altKey || event.metaKey || event.ctrlKey)) {
+        return false;
+      }
+      // Defer to an open note-link picker so plain Up/Down navigate its options
+      // rather than redirecting the caret past an adjacent body (the picker's
+      // arrow handlers run at the same priority but mount after this plugin).
+      if (isNoteLinkPickerOpen()) {
         return false;
       }
       // Plain arrows: inside a body the caret leaves freely (native); only skip

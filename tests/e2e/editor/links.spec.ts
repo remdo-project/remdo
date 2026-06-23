@@ -101,6 +101,34 @@ test.describe('note links', () => {
     await expect(note3Option).toHaveAttribute('aria-selected', 'false');
   });
 
+  test('arrow keys navigate the picker even when the editing note has a body', async ({ page, editor }) => {
+    // A note with an adjacent body would otherwise have its plain Up/Down arrows
+    // intercepted by body navigation; an open picker must take them first.
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('the body');
+
+    // Back to note1's content, then open the @ picker.
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.type('@note');
+
+    const listbox = editorLocator(page).locator('.note-link-picker[role="listbox"]');
+    const options = listbox.locator('[data-note-link-picker-item]');
+    const note2Option = options.filter({ hasText: 'note2' }).first();
+    const note3Option = options.filter({ hasText: 'note3' }).first();
+    await expect(options).toHaveCount(2);
+
+    const note3Id = await note3Option.getAttribute('id');
+
+    // ArrowDown moves the active option to note3 (it does not redirect the caret
+    // past the body).
+    await page.keyboard.press('ArrowDown');
+    await expect(listbox).toHaveAttribute('aria-activedescendant', note3Id!);
+    await expect(note3Option).toHaveAttribute('aria-selected', 'true');
+    await expect(note2Option).toHaveAttribute('aria-selected', 'false');
+  });
+
   test('pressing Enter on no-results closes picker and keeps typed query text', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
