@@ -258,6 +258,18 @@ Remaining issues to fold in or fix directly:
      `glob@11.1.0`, `source-map@0.8.0-beta.0`, `sourcemap-codec@1.4.8`, and the
      `@typescript-eslint/*` peer mismatch against `typescript 6`.
 
+## Dev environment: inotify watch exhaustion
+
+`data/collab/` grows unbounded (one dir per ephemeral dev/test doc), and editors
+watch it, exhausting `fs.inotify.max_user_watches` across worktrees so the Vite
+e2e dev server can't start (`ENOSPC`). Did a one-off prune of stale entries.
+Durable fixes:
+
+- Add `files.watcherExclude` for `**/data/**` and `**/node_modules/**` (editor
+  config; `.gitignore` is not honored by watchers).
+- Cap/rotate the `data/collab/` store, or have the test harness clean its collab
+  docs after runs, so it can't grow unbounded again.
+
 ## remdo-feature-flow follow-ups
 
 - Try adding a convergence check to the implementation phase (verify the result
