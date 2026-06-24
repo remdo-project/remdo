@@ -12,8 +12,10 @@ Object.defineProperty(globalThis, 'matchMedia', {
   })),
 });
 
-// jsdom's Range omits getBoundingClientRect, but Lexical calls it when scrolling
-// collapsed selections into view. Provide a no-op shim to avoid noisy errors.
+// TODO: jsdom's `Range` omits getBoundingClientRect, but Lexical calls it when
+// scrolling collapsed selections into view. No-op shim avoids noisy errors.
+// Obsolete when jsdom implements it (or Lexical stops calling it): delete this
+// block and run `pnpm run test:unit:full`.
 // eslint-disable-next-line ts/no-unnecessary-condition
 if (typeof Range !== 'undefined' && !Range.prototype.getBoundingClientRect) {
   Range.prototype.getBoundingClientRect = () => ({
@@ -37,13 +39,18 @@ const MockResizeObserver = class MockResizeObserver {
 (globalThis as typeof globalThis & { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
   MockResizeObserver;
 
-// Lexical's clipboard helpers reference DragEvent for instance checks; jsdom doesn't provide it.
+// TODO: Lexical's clipboard helpers reference `DragEvent` for instance checks;
+// jsdom doesn't provide it. Obsolete when jsdom adds it (or the checks
+// disappear): delete this block and run `pnpm run test:unit:full`.
 if (typeof DragEvent === 'undefined') {
   const MockDragEvent = class MockDragEvent extends Event {};
   (globalThis as typeof globalThis & { DragEvent: typeof DragEvent }).DragEvent =
     MockDragEvent as unknown as typeof DragEvent;
 }
 
+// TODO: jsdom lacks a usable `ClipboardEvent` with `clipboardData`. Obsolete
+// when jsdom provides enough native support for these tests: delete this block
+// and run `pnpm run test:unit:full`.
 if (typeof ClipboardEvent === 'undefined') {
   const MockClipboardEvent = class MockClipboardEvent extends Event {
     readonly clipboardData: DataTransfer | null;

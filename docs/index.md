@@ -30,9 +30,10 @@ outdated or a doc’s role materially changes.
   branch-prefix conventions, editor feature module layout, pre-1.0 compatibility
   policy (no default migration/back-compat requirements), and the doc
   workflow + documentation invariants.
-- `docs/dev/dependency-maintenance.md` (Medium). Temporary dependency/runtime
-  workarounds plus intentionally held-back versions, with current rationale and
-  revisit conditions for refresh work.
+- `docs/dev/dependency-maintenance.md` (Medium). Standing policy for dependency
+  refresh work — durable rules and self-healing mechanisms (pnpm release-age
+  gate, build-script approval, Node/Docker base lag). Individual workarounds live
+  as `TODO:`/`FIXME:` markers at their code sites, not here.
 - `docs/run-modes.md` (Long). Supported run modes: local dev, test stacks, CI,
   self-hosted app runtimes, managed cloud, and backup execution.
 - `docs/hints.md` (Short). UX hint concepts for search, note controls, and

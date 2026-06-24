@@ -29,13 +29,50 @@ SETUP_PNPM="${ROOT_DIR}/.github/actions/setup-pnpm/action.yml"
 current="$(sed -n 's/^nodeVersion: \([0-9][0-9.]*\)/\1/p' "${WORKSPACE_YAML}")"
 [ -n "${current}" ] || { echo "bump-node-pins: no nodeVersion in ${WORKSPACE_YAML}." >&2; exit 1; }
 
-# Latest Node LTS, full version, from the official dist index (newest LTS entry).
-latest="$(curl -fsS https://nodejs.org/dist/index.json \
-  | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));const l=d.find(r=>r.lts);process.stdout.write(l?l.version.replace(/^v/,""):"")')"
-case "${latest}" in
-  [0-9]*.[0-9]*.[0-9]*) : ;;
-  *) echo "bump-node-pins: could not resolve a latest LTS Node version (got '${latest}')." >&2; exit 1 ;;
-esac
+# Resolve to the newest LTS version whose `node:<minor>-alpine` Docker base is
+# ALSO published — the Dockerfile FROM tags lag the nodejs.org release by a few
+# days, so the plain "latest LTS" can point at a base image that does not exist
+# yet (e.g. 24.18.0 released while only node:24.17-alpine is on Docker Hub),
+# which fails the docker e2e build. We walk the newest LTS major's minors
+# newest-first and pick the first whose alpine tag resolves; the held-back
+# fresher minor upgrades automatically once its image publishes. All four pins
+# use that one version.
+#
+# Two guards keep a transient failure from silently mis-resolving:
+#   - The Docker Hub check distinguishes 404 ("image absent" — keep walking) from
+#     any other outcome (429/5xx/000 network error — abort), so "couldn't check"
+#     never reads as "doesn't exist" and demotes the pin to a stale minor.
+#   - The walk is bounded to the newest LTS major; it never falls through to an
+#     older major (which would silently downgrade the pin). If no minor of the
+#     newest major has an image yet, we abort rather than cross the boundary.
+lts_versions="$(curl -fsS https://nodejs.org/dist/index.json \
+  | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));process.stdout.write(d.filter(r=>r.lts).map(r=>r.version.replace(/^v/,"")).join("\n"))')"
+[ -n "${lts_versions}" ] || { echo "bump-node-pins: could not fetch the Node LTS list from nodejs.org/dist." >&2; exit 1; }
+
+newest_major=""
+latest=""
+for v in ${lts_versions}; do
+  case "${v}" in
+    [0-9]*.[0-9]*.[0-9]*) : ;;
+    *) continue ;;
+  esac
+  major="${v%%.*}"
+  # Pin the newest LTS major and never look past it: a lower major resolving its
+  # image is not a valid "latest", it is a downgrade.
+  [ -n "${newest_major}" ] || newest_major="${major}"
+  [ "${major}" = "${newest_major}" ] || break
+
+  m="${v%.*}"
+  # GET the Docker Hub tag for node:<minor>-alpine and branch on the status.
+  status="$(curl -fsSL -o /dev/null -w '%{http_code}' \
+    "https://hub.docker.com/v2/repositories/library/node/tags/${m}-alpine" 2>/dev/null || true)"
+  case "${status}" in
+    200) latest="${v}"; break ;;
+    404) continue ;;  # image not published yet — try the next-older minor
+    *) echo "bump-node-pins: Docker Hub tag check for node:${m}-alpine failed (HTTP '${status}'); aborting rather than mis-resolving the pin." >&2; exit 1 ;;
+  esac
+done
+[ -n "${latest}" ] || { echo "bump-node-pins: no published node:<minor>-alpine image for the newest LTS major (${newest_major}.x) yet; not crossing to an older major." >&2; exit 1; }
 
 minor="${latest%.*}"   # 24.16.0 -> 24.16
 

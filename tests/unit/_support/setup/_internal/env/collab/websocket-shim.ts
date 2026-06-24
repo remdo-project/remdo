@@ -18,7 +18,10 @@ if (
   && !shimDisabled
   && !patchedGlobal[SHIM_FLAG]
 ) {
-  // Use ws in collab tests to avoid undici/jsdom Event realm mismatches during sockets.
+  // TODO: jsdom/Node `WebSocket` (undici) breaks collab tests with an `Event`
+  // realm mismatch, so swap in `ws` for collab sockets. Obsolete when
+  // `pnpm run test:collab:full` stays green with
+  // REMDO_DISABLE_COLLAB_WEBSOCKET_SHIM=1 — then delete this shim.
   patchedGlobal.WebSocket = WebSocket as unknown as typeof globalThis.WebSocket;
   patchedGlobal[SHIM_FLAG] = true;
 }

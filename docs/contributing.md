@@ -98,6 +98,22 @@ These invariants apply to every doc in the corpus.
    MUST be recorded in `docs/todo.md`. A recorded divergence that no longer
    exists MUST have its entry deleted.
 
+## Code Comments
+
+`TODO:` and `FIXME:` are the only tracked comment markers — use them for any
+comment worth tracking (a workaround, a deferred fix, a known gap), and don't
+invent other prefixes (`WORKAROUND:`, `HACK:`, `NOTE:` to-do, etc.). `FIXME:`
+marks something wrong that should be fixed; `TODO:` marks intentional,
+working-but-revisit code. State the rationale and, where one exists, the
+one-line probe that proves the comment obsolete (delete the shim / flip the flag
+/ run the suite) right there in the comment.
+
+Because these markers are scanned and tracked (e.g. the dependency-refresh skill
+reviews `TODO:`/`FIXME:` at dependency-related sites), trust them as the record:
+once a workaround is a tracked marker at its code site, do **not** add a second
+tracker for it elsewhere (a `docs/` list, a `docs/todo.md` line). The comment
+travels with the code and is seen on deletion; a duplicate note only drifts.
+
 ## Editor Feature Modules
 
 Use `src/client/editor/features/<feature>/` for cohesive editor features that
