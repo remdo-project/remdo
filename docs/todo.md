@@ -237,7 +237,14 @@ Remaining issues to fold in or fix directly:
   `poolOptions.forks.maxForks` (~4 / `'50%'`) and raise the timeout on the
   subprocess-spawning files (`snapshot-backup`, `prod-docker-launcher`,
   `config-env`, `docker-entrypoint-env`, `snapshot.collab`). Verify with
-  `test:collab:repeat`.
+  `test:collab:repeat`. (Distinct from the e2e readiness flake below.)
+- e2e `TestBridgePlugin: collaboration readiness timed out` flake (CI, ~1/99,
+  different test each time; seen on `editor/deletion.spec.ts` `editor.load(...)`).
+  Preceded by a vite `/d` ws-proxy `ECONNRESET` — a dropped collab websocket
+  blows the 2000ms `waitForCollaborationReady` budget in `TestBridgePlugin.tsx`.
+  Repro odds: `pnpm run test:e2e:repeat`. Candidate fixes: retry/reconnect around
+  `collab.awaitSynced`, or raise/derive the readiness budget. Don't mask it by
+  blanket-bumping the timeout without confirming the ws drop is the cause.
 
 ## Warning and drift detection follow-ups
 
@@ -258,9 +265,13 @@ Remaining issues to fold in or fix directly:
   2. Add a plain `pnpm run build` validation surface to CI and/or the dependency
      refresh flow so build warnings are reviewed explicitly instead of only via
      Docker logs.
-  3. Revisit pnpm build-script policy: consider moving from
-     `onlyBuiltDependencies` to `allowBuilds` and enabling
-     `strictDepBuilds: true`.
+  3. Add `TODO:`/`FIXME:` scanning to the dependency-refresh skill: surface
+     dependency-related markers, run each one's stated probe, and drop the
+     workaround (and marker) when it passes — so workarounds self-heal instead of
+     accumulating. See `docs/contributing.md#code-comments`. While here, revisit
+     the marker convention itself for ways to make it more reliable/self-healing
+     (e.g. a more scannable shape for trackable workarounds, lint-enforced
+     expiry, reconciling existing markers) — open-ended, not yet scoped.
 
 - Warning policy / classify-or-suppress:
   1. Decide how to handle the Vite large-chunk warning: real size budget,

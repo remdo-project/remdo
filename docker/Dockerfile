@@ -1,7 +1,7 @@
 ###############################
 # Builder: compile SPA assets #
 ###############################
-FROM node:24.12-alpine AS builder
+FROM node:24.17-alpine AS builder
 
 WORKDIR /app
 
@@ -67,7 +67,7 @@ RUN mkdir -p /usr/local/bin \
 ############################
 # Runner: serve SPA + YJS  #
 ############################
-FROM node:24.12-alpine AS runner
+FROM node:24.17-alpine AS runner
 
 ENV YSWEET_VERSION=^0.9.1
 ENV NODE_ENV=production

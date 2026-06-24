@@ -42,8 +42,6 @@ export default antfu(
       'perfectionist/sort-named-imports': 'off',
       'perfectionist/sort-exports': 'off',
       'perfectionist/sort-named-exports': 'off',
-      'unicorn/no-unused-properties': 'error',
-      'unicorn/no-useless-undefined': 'error',
       'antfu/no-top-level-await': 'off',
       'no-unreachable': 'error',
     },
@@ -96,6 +94,14 @@ export default antfu(
   {
     files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,mts,cts}'],
     rules: {
+      // TODO: scoped to JS/TS rather than set globally because these unicorn
+      // rules don't support the jsonc/x language, and @antfu/eslint-config
+      // (>= 9.1.0) hard-errors when they're enabled over its JSONC config block.
+      // Obsolete when the rules support `jsonc` (or antfu stops applying
+      // top-level overrides to its JSONC block): move them back to the global
+      // rules block and run `pnpm run lint`.
+      'unicorn/no-unused-properties': 'error',
+      'unicorn/no-useless-undefined': 'error',
       semi: ['error', 'always'],
       'node/no-process-env': [
         'error',
