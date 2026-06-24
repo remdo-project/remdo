@@ -138,7 +138,12 @@ sections to docs.
   CDP endpoint on `127.0.0.1:9222` (host/user-level MCP config, not in this
   repo). If the endpoint is down, run `ensure-cdp` to start it; the MCP itself
   loads only on a Claude Code restart. To reach the app, open
-  `http://127.0.0.1:5000/` and sign in as a dev user / open a fixture doc per
+  `http://127.0.0.1:<PORT>/` where `<PORT>` is **this** working dir's app port —
+  read it from this WD's `.env`/env (`PORT`, which defaults to `PORT_BASE + 0`;
+  see `tools/env.defaults.sh`). Do not assume a fixed port: each working
+  dir/worktree owns its own `PORT_BASE` block, and the shared CDP endpoint can
+  reach servers from other WDs too, so a hardcoded port may land you on a
+  different checkout's build. Then sign in as a dev user / open a fixture doc per
   [docs/run-modes.md](docs/run-modes.md). If this flow fails or drifts, report it.
 - When presenting multiple options or a list of questions, format them as a
   numbered list.

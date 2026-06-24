@@ -4,11 +4,20 @@ import type { AddressableNote, ChildPosition, Note, NoteId, RelativePlacement } 
 type DocumentId = string;
 type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
 
+/** Marker style of the list a note belongs to. */
+export type NoteListType = 'bullet' | 'number' | 'check';
+
 export interface EditorNote extends AddressableNote<'editor-note'> {
   /** True when the note still exists in the current editor state. */
   attached: () => boolean;
+  /** Returns the parent editor note, or null for a top-level note. */
+  parent: () => EditorNote | null;
   /** Returns direct child editor notes. Throws when the note does not exist. */
   children: () => readonly EditorNote[];
+  /** Marker style of the list this note belongs to. */
+  listType: () => NoteListType;
+  /** Checked state; relevant only when listType is 'check' (false otherwise). */
+  checked: () => boolean;
   /** Creates and places a child editor note relative to this note. */
   create: {
     (text: string): EditorNote;
@@ -79,6 +88,12 @@ export interface EditorNotesAdapter extends EditorNotesBase {
   isBounded: (noteId: NoteId) => boolean;
   /** Reads note text. Throws when note does not exist. */
   textOf: (noteId: NoteId) => string;
+  /** Reads the marker style of the note's list. Throws when note does not exist. */
+  listTypeOf: (noteId: NoteId) => NoteListType;
+  /** Reads checked state (false unless the note is in a check list). Throws when note does not exist. */
+  checkedOf: (noteId: NoteId) => boolean;
+  /** Reads the parent note id, or null for a top-level note. Throws when note does not exist. */
+  parentIdOf: (noteId: NoteId) => NoteId | null;
   /** Reads direct child ids. Throws when note does not exist. */
   childrenOf: (noteId: NoteId) => readonly NoteId[];
   /** Reads the note's body text, or null when it has no body. */

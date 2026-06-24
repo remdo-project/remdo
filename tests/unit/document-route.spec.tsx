@@ -10,9 +10,14 @@ import {
   setTestDocumentSourcesLoading,
 } from '#tests';
 
-import { ROOT_SEARCH_SCOPE_ID } from '#client/editor/search/search-candidates';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
-import { useEditorViewActions, useZoomNoteId } from '#client/editor/view/EditorViewProvider';
+import type { EditorNote, EditorNotes } from '#note-sdk';
+import {
+  useEditorViewActions,
+  useRegisterSearchNotesReader,
+  useZoomNoteId,
+} from '#client/editor/view/EditorViewProvider';
+import type { SearchNotesReader } from '#client/editor/view/EditorViewProvider';
 import DocumentRoute from '#client/app/routes/DocumentRoute';
 import * as pendingDocumentImports from '#client/editor/runtime/pending-document-import';
 import { createDocumentPath, createDocumentSyncTokenApiPath, parseDocumentRef } from '#document-routes';
@@ -22,14 +27,78 @@ vi.mock('#client/app/documents/user-data', async () => {
   return mockUserDataModule();
 });
 
+// Local sentinel for the test snapshot's childCandidateMap: its key for the
+// document's top-level notes. The snapshots use it only to declare tree shape;
+// production keys child maps strictly by parent note id.
+const ROOT_SEARCH_SCOPE_ID = '__document_root__';
+
+interface TestSearchCandidate {
+  noteId: string;
+  text: string;
+  listType?: 'bullet' | 'number' | 'check';
+  checked?: boolean;
+}
+
 interface TestSearchSnapshot {
-  allCandidates: Array<{ noteId: string; text: string }>;
-  childCandidateMap: Record<string, Array<{ noteId: string; text: string }>>;
+  allCandidates: TestSearchCandidate[];
+  childCandidateMap: Record<string, TestSearchCandidate[]>;
+}
+
+// Builds an in-memory EditorNotes from a snapshot's childCandidateMap (which
+// encodes the tree: root scope + per-note children). The real search model and
+// route logic then run against it through the SDK, exercising production code
+// paths (collectors, parent() walk) rather than pre-baked maps.
+function createTestEditorNotes(snapshot: TestSearchSnapshot): EditorNotes {
+  const childMap = snapshot.childCandidateMap;
+  const byId = new Map<string, TestSearchCandidate>();
+  const parentOf = new Map<string, string | null>();
+  for (const candidate of snapshot.allCandidates) {
+    byId.set(candidate.noteId, candidate);
+  }
+  for (const [scopeId, children] of Object.entries(childMap)) {
+    for (const child of children) {
+      byId.set(child.noteId, child);
+      parentOf.set(child.noteId, scopeId === ROOT_SEARCH_SCOPE_ID ? null : scopeId);
+    }
+  }
+
+  const makeNote = (noteId: string): EditorNote => {
+    const candidate = byId.get(noteId);
+    const note: EditorNote = {
+      id: () => noteId,
+      kind: () => 'editor-note',
+      attached: () => byId.has(noteId),
+      text: () => candidate?.text ?? '',
+      listType: () => candidate?.listType ?? 'bullet',
+      checked: () => candidate?.checked ?? false,
+      parent: () => {
+        const parentId = parentOf.get(noteId) ?? null;
+        return parentId === null ? null : makeNote(parentId);
+      },
+      children: () => (childMap[noteId] ?? []).map((child) => makeNote(child.noteId)),
+      create: () => { throw new Error('create() is not used in document route tests.'); },
+      body: () => null,
+      as: ((kind: string) => {
+        if (kind !== 'editor-note') {
+          throw new Error(`mock note is editor-note, not ${kind}`);
+        }
+        return note;
+      }) as EditorNote['as'],
+    };
+    return note;
+  };
+
+  const roots = (childMap[ROOT_SEARCH_SCOPE_ID] ?? []).map((child) => makeNote(child.noteId));
+  return {
+    currentDocument: () => ({ children: () => roots }),
+    note: (noteId: string) => makeNote(noteId),
+  } as unknown as EditorNotes;
 }
 
 interface MockSearchGlobals {
-  __remdoMockSearchCandidateEmitters?: Record<string, () => void>;
-  __remdoMockSearchCandidateResetters?: Record<string, () => void>;
+  // Re-applies the current __remdoMockSearchCandidatesByDoc[docId] to the SDK
+  // accessor (registers/clears the reader), simulating an editor update.
+  __remdoMockSearchNotesRefresh?: Record<string, () => void>;
   __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
   __remdoMockZoomPathByDoc?: Record<string, Record<string, NotePathItem[]>>;
 }
@@ -58,7 +127,6 @@ const defaultSnapshot = {
 
 interface MockEditorProps {
   docId: string;
-  onSearchCandidatesChange?: (snapshot: TestSearchSnapshot | null) => void;
   searchModeRequested?: boolean;
   sourceId?: string | null;
   sourceOrigin?: string | null;
@@ -68,45 +136,48 @@ let mockEditorInstanceCounter = 0;
 
 function MockEditor({
   docId,
-  onSearchCandidatesChange,
   searchModeRequested,
   sourceId = null,
   sourceOrigin = null,
 }: MockEditorProps) {
   const zoomNoteId = useZoomNoteId();
   const { setZoomPath } = useEditorViewActions();
+  const registerSearchNotesReader = useRegisterSearchNotesReader();
 
   React.useEffect(() => {
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
     setZoomPath(zoomNoteId ? globals.__remdoMockZoomPathByDoc?.[docId]?.[zoomNoteId] ?? [] : []);
   }, [docId, setZoomPath, zoomNoteId]);
 
+  // The real plugin mounts only while search is requested; mirror that, and
+  // serve the test snapshot as an SDK accessor (the new boundary). A `null`
+  // selection means "candidates not ready yet" (no reader registered).
   React.useEffect(() => {
+    if (!searchModeRequested) {
+      return;
+    }
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
-    const emitCurrentSnapshot = () => {
+    const applyCurrent = () => {
       const candidateSelection = globals.__remdoMockSearchCandidatesByDoc?.[docId];
       if (candidateSelection === null) {
+        registerSearchNotesReader(null);
         return;
       }
-      const sdkSnapshot = candidateSelection ?? defaultSnapshot;
-      onSearchCandidatesChange?.(sdkSnapshot);
+      const snapshot: TestSearchSnapshot = candidateSelection ?? defaultSnapshot;
+      const notes = createTestEditorNotes(snapshot);
+      const reader: SearchNotesReader = (fn) => fn(notes);
+      registerSearchNotesReader(reader);
     };
 
-    emitCurrentSnapshot();
-    (globals.__remdoMockSearchCandidateEmitters ??= {})[docId] = emitCurrentSnapshot;
-    (globals.__remdoMockSearchCandidateResetters ??= {})[docId] = () => {
-      onSearchCandidatesChange?.(null);
-    };
+    applyCurrent();
+    (globals.__remdoMockSearchNotesRefresh ??= {})[docId] = applyCurrent;
     return () => {
-      if (globals.__remdoMockSearchCandidateEmitters?.[docId] === emitCurrentSnapshot) {
-        delete globals.__remdoMockSearchCandidateEmitters[docId];
+      if (globals.__remdoMockSearchNotesRefresh?.[docId] === applyCurrent) {
+        delete globals.__remdoMockSearchNotesRefresh[docId];
       }
-      if (globals.__remdoMockSearchCandidateResetters?.[docId]) {
-        delete globals.__remdoMockSearchCandidateResetters[docId];
-      }
-      onSearchCandidatesChange?.(null);
+      registerSearchNotesReader(null);
     };
-  }, [docId, onSearchCandidatesChange]);
+  }, [docId, registerSearchNotesReader, searchModeRequested]);
 
   const instanceId = React.useRef(`instance-${++mockEditorInstanceCounter}`).current;
   return (
@@ -149,8 +220,7 @@ describe('document route', () => {
     mockEditorInstanceCounter = 0;
     const globals = globalThis as typeof globalThis & MockSearchGlobals;
     globals.__remdoMockSearchCandidatesByDoc = undefined;
-    globals.__remdoMockSearchCandidateEmitters = undefined;
-    globals.__remdoMockSearchCandidateResetters = undefined;
+    globals.__remdoMockSearchNotesRefresh = undefined;
     globals.__remdoMockZoomPathByDoc = undefined;
     document.title = 'RemDo';
   });
@@ -184,9 +254,25 @@ describe('document route', () => {
 
   const getActiveSearchResult = () =>
     document.querySelector<HTMLElement>('[data-search-result-item][data-search-result-active="true"]');
-  const getInlineCompletion = () =>
-    document.querySelector<HTMLElement>('[data-testid="document-search-inline-completion"]');
-
+  const getActiveResultLabel = () =>
+    getActiveSearchResult()?.getAttribute('data-search-result-label') ?? null;
+  const getResultLabels = () =>
+    Array.from(
+      document.querySelectorAll<HTMLElement>('[data-search-result-item]'),
+      (item) => item.getAttribute('data-search-result-label')
+    );
+  // Find a result row by its stable label attribute, independent of the option's
+  // accessible name (which also carries ancestor-path context for disambiguation).
+  const getResultByLabel = (label: string) => {
+    const row = document.querySelector<HTMLElement>(
+      `[data-search-result-item][data-search-result-label="${label}"]`
+    );
+    if (!row) {
+      throw new Error(`No search result row with label "${label}"`);
+    }
+    return row;
+  };
+  const findResultByLabel = (label: string) => waitFor(() => getResultByLabel(label));
   const createDocumentCollectionSource = (documents: Array<{ id: string; title: string }>) => ({
     children: () => documents,
     byId: (documentId: string) => documents.find((document) => document.id === documentId) ?? null,
@@ -578,11 +664,10 @@ describe('document route', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
+      expect(getActiveResultLabel()).toBe('note1');
     });
 
-    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-      .map((item) => item.textContent);
+    const resultItems = getResultLabels();
     expect(resultItems).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
   });
 
@@ -597,9 +682,9 @@ describe('document route', () => {
     });
 
     const results = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'));
-    const note1 = results.find((item) => item.textContent === 'note1');
-    const note2 = results.find((item) => item.textContent === 'note2');
-    const note3 = results.find((item) => item.textContent === 'note3');
+    const note1 = results.find((item) => item.getAttribute('data-search-result-label') === 'note1');
+    const note2 = results.find((item) => item.getAttribute('data-search-result-label') === 'note2');
+    const note3 = results.find((item) => item.getAttribute('data-search-result-label') === 'note3');
     expect(note1).toHaveAttribute('data-search-result-has-children', 'true');
     expect(note3).toHaveAttribute('data-search-result-has-children', 'true');
     expect(note2).not.toHaveAttribute('data-search-result-has-children');
@@ -622,7 +707,7 @@ describe('document route', () => {
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
 
-    const secondOption = screen.getByRole('option', { name: 'note2' });
+    const secondOption = getResultByLabel('note2');
     expect(firstOption).toHaveAttribute('aria-selected', 'false');
     expect(secondOption).toHaveAttribute('aria-selected', 'true');
     expect(searchInput).toHaveAttribute('aria-activedescendant', secondOption.id);
@@ -675,11 +760,377 @@ describe('document route', () => {
     fireEvent.pointerDown(result);
     expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc'));
     expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
+
+    // mousedown must be default-prevented so the press doesn't blur the search
+    // input and dismiss the results before the click can zoom (jsdom can't model
+    // the native blur, so assert the guard directly; the e2e covers the real
+    // trusted-click path).
+    const notPrevented = fireEvent.mouseDown(result);
+    expect(notPrevented).toBe(false);
+
     fireEvent.click(result);
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc', 'note3'));
       expect(screen.queryByTestId('document-search-results')).toBeNull();
+    });
+  });
+
+  describe('result row context', () => {
+    const setSnapshot = (snapshot: TestSearchSnapshot) => {
+      (globalThis as typeof globalThis & MockSearchGlobals).__remdoMockSearchCandidatesByDoc = {
+        routeDoc: snapshot,
+      };
+    };
+
+    const contextSnapshot: TestSearchSnapshot = {
+      allCandidates: [
+        { noteId: 'root', text: 'Work' },
+        { noteId: 'mid', text: 'Q3 planning' },
+        { noteId: 'mid2', text: 'Roadmap' },
+        { noteId: 'mid3', text: 'Grooming' },
+        { noteId: 'mid4', text: 'Estimates' },
+        { noteId: 'parent', text: 'Sprint backlog' },
+        { noteId: 'match', text: 'TODO refine estimates' },
+        { noteId: 'c1', text: 'sub one', listType: 'number' },
+        { noteId: 'c2', text: 'sub two', listType: 'check', checked: true },
+        { noteId: 'c3', text: 'sub three' },
+      ],
+      childCandidateMap: {
+        [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'root', text: 'Work' }],
+        root: [{ noteId: 'mid', text: 'Q3 planning' }],
+        mid: [{ noteId: 'mid2', text: 'Roadmap' }],
+        mid2: [{ noteId: 'mid3', text: 'Grooming' }],
+        mid3: [{ noteId: 'mid4', text: 'Estimates' }],
+        mid4: [{ noteId: 'parent', text: 'Sprint backlog' }],
+        parent: [{ noteId: 'match', text: 'TODO refine estimates' }],
+        match: [
+          { noteId: 'c1', text: 'sub one', listType: 'number' },
+          { noteId: 'c2', text: 'sub two', listType: 'check', checked: true },
+          { noteId: 'c3', text: 'sub three' },
+        ],
+        c1: [],
+        c2: [],
+        c3: [],
+      },
+    };
+
+    it('gives every result the same two-line layout regardless of highlight', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'sub' } });
+
+      // 'sub two' is not the highlighted row, yet it still renders the match label
+      // line plus its ancestor subline — moving the highlight never re-lays-out.
+      const subTwo = await findResultByLabel('sub two');
+      expect(subTwo.getAttribute('data-search-result-active')).toBeNull();
+      const matchLine = subTwo.querySelector('[data-search-result-match]');
+      expect(matchLine?.textContent).toBe('sub two');
+      expect(subTwo.querySelector('.document-search-result-breadcrumb')).not.toBeNull();
+    });
+
+    it('renders the match label without a list marker', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'refine' } });
+
+      const active = await findResultByLabel('TODO refine estimates');
+      const matchLine = active.querySelector('[data-search-result-match]');
+      // The label is a plain element, not an outline list item — no bullet/number.
+      expect(matchLine?.tagName).toBe('DIV');
+      expect(matchLine?.querySelector('.list-item')).toBeNull();
+      expect(active.querySelector('.document-search-result-match ul, .document-search-result-match ol'))
+        .toBeNull();
+    });
+
+    it('strikes through the match label when the matched note is checked', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'sub' } });
+
+      // 'sub two' is a checked note → its label carries data-note-checked (the CSS
+      // strikes it through), even though it has no list marker.
+      const subTwo = await findResultByLabel('sub two');
+      const matchLine = subTwo.querySelector('[data-search-result-match]');
+      expect(matchLine?.getAttribute('data-note-checked')).toBe('true');
+    });
+
+    it('expands the highlighted row with a truncating subline and child preview', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'refine' } });
+
+      const active = await findResultByLabel('TODO refine estimates');
+      // Subline excludes only the match, leaving Work / Q3 / Roadmap / Grooming /
+      // Estimates / Sprint backlog (6) → first-2 + ⋯ + last-2.
+      const crumbs = active.querySelectorAll('.document-search-result-crumb');
+      const crumbText = Array.from(crumbs, (crumb) => crumb.textContent);
+      expect(crumbText).toContain('⋯');
+      expect(crumbText.at(0)).toBe('Work');
+      expect(crumbText.at(-1)).toBe('Sprint backlog');
+      expect(crumbText).not.toContain('TODO refine estimates');
+
+      const ellipsis = active.querySelector('.document-search-result-crumb--ellipsis');
+      expect(ellipsis?.getAttribute('title')).toBe('Roadmap / Grooming');
+
+      const childTexts = Array.from(
+        active.querySelectorAll('.document-search-result-children .list-item'),
+        (child) => child.textContent
+      );
+      expect(childTexts).toEqual(['sub one', 'sub two']);
+      expect(active.querySelector('.document-search-result-children-more')?.textContent)
+        .toBe('+1 more');
+    });
+
+    it('keeps the top-level ancestor and separates subline crumbs with a slash', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'refine' } });
+
+      const active = await findResultByLabel('TODO refine estimates');
+      // The full chain is shown, starting at the top-level note 'Work'.
+      const ancestorLabels = Array.from(
+        active.querySelectorAll('[data-search-result-ancestor-crumb]'),
+        (crumb) => crumb.textContent
+      );
+      expect(ancestorLabels[0]).toBe('Work');
+
+      const separators = active.querySelectorAll('.document-search-result-crumb-separator');
+      expect(separators.length).toBeGreaterThan(0);
+      separators.forEach((sep) => expect(sep.textContent).toBe('/'));
+    });
+
+    it('renders child preview with the editor list markup per child list type', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'refine' } });
+
+      const active = await findResultByLabel('TODO refine estimates');
+      // Preview reuses the shared outline classes so list markers match the editor.
+      expect(active.querySelector('.document-search-result-children.remdo-outline')).not.toBeNull();
+      // First child is a number-list item → ol.list-ol; second is a checked item.
+      expect(active.querySelector('ol.list-ol > .list-item')?.textContent).toBe('sub one');
+      const checked = active.querySelector('.list-item.list-item-checked');
+      expect(checked?.textContent).toBe('sub two');
+    });
+
+    it('highlights the matched query term inside the result text', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'sub' } });
+
+      const subTwo = await findResultByLabel('sub two');
+      const mark = subTwo.querySelector('.document-search-result-mark');
+      expect(mark?.textContent).toBe('sub');
+    });
+
+    it('matches multiple tokens order-independently and highlights each', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      // 'TODO refine estimates' matches the out-of-order, whitespace-padded query.
+      fireEvent.change(searchInput, { target: { value: '  estimates   todo ' } });
+
+      const match = await findResultByLabel('TODO refine estimates');
+      const labelMarks = Array.from(
+        match.querySelectorAll('[data-search-result-match] .document-search-result-mark'),
+        (m) => m.textContent
+      );
+      expect(labelMarks).toEqual(['TODO', 'estimates']);
+    });
+
+    it('highlights tokens that matched an ancestor inside its crumb', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      // 'todo' hits the match itself (leaf guard); 'estimates' also hits the
+      // 'Estimates' ancestor crumb, which is highlighted there too.
+      fireEvent.change(searchInput, { target: { value: 'estimates todo' } });
+
+      const match = await findResultByLabel('TODO refine estimates');
+      const crumbMarks = Array.from(
+        match.querySelectorAll('[data-search-result-ancestor-crumb] .document-search-result-mark'),
+        (m) => m.textContent
+      );
+      expect(crumbMarks).toEqual(['Estimates']);
+    });
+
+    it('matches a note via an ancestor token as long as one token hits the note', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      // 'work' matches only the 'Work' ancestor; 'todo' matches the note itself.
+      fireEvent.change(searchInput, { target: { value: 'work todo' } });
+
+      await waitFor(() => {
+        expect(getResultLabels()).toEqual(['TODO refine estimates']);
+      });
+    });
+
+    it('excludes descendants whose only match is an ancestor token', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      // 'work' hits the 'Work' note itself, so it matches; its descendants have
+      // 'work' only in their ancestor path, so the leaf-first guard drops them.
+      fireEvent.change(searchInput, { target: { value: 'work' } });
+
+      await waitFor(() => {
+        expect(getResultLabels()).toEqual(['Work']);
+      });
+    });
+
+    it('highlights a match past the navigation label length cap on the expanded row', async () => {
+      const longText = `${'x'.repeat(60)} needle tail`;
+      setSnapshot({
+        allCandidates: [{ noteId: 'long', text: longText }],
+        childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'long', text: longText }],
+          long: [],
+        },
+      });
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'needle' } });
+
+      const active = await screen.findByRole('option', { name: longText });
+      const mark = active.querySelector('.document-search-result-mark');
+      expect(mark?.textContent).toBe('needle');
+    });
+
+    it('keeps the full ancestor label on the crumb and its tooltip for CSS clipping', async () => {
+      const longAncestor = 'Engineering '.repeat(8).trim(); // > 48 chars, no hard cap
+      setSnapshot({
+        allCandidates: [
+          { noteId: 'parent', text: longAncestor },
+          { noteId: 'child', text: 'sprint task' },
+        ],
+        childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'parent', text: longAncestor }],
+          parent: [{ noteId: 'child', text: 'sprint task' }],
+          child: [],
+        },
+      });
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'sprint' } });
+
+      const active = await findResultByLabel('sprint task');
+      const crumb = active.querySelector<HTMLElement>('[data-search-result-ancestor-crumb]');
+      expect(crumb).not.toBeNull();
+      // Full label (not the 48-char "..." form): CSS handles the visual ellipsis,
+      // and the tooltip must recover the complete text.
+      expect(crumb!.textContent).toBe(longAncestor);
+      expect(crumb!.getAttribute('title')).toBe(longAncestor);
+      expect(crumb!.textContent).not.toContain('...');
+    });
+
+    it('distinguishes same-text results by ancestor context in the accessible name', async () => {
+      setSnapshot({
+        allCandidates: [
+          { noteId: 'work', text: 'Work' },
+          { noteId: 'work-plan', text: 'Plan' },
+          { noteId: 'home', text: 'Home' },
+          { noteId: 'home-plan', text: 'Plan' },
+        ],
+        childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: [
+            { noteId: 'work', text: 'Work' },
+            { noteId: 'home', text: 'Home' },
+          ],
+          work: [{ noteId: 'work-plan', text: 'Plan' }],
+          'work-plan': [],
+          home: [{ noteId: 'home-plan', text: 'Plan' }],
+          'home-plan': [],
+        },
+      });
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'Plan' } });
+
+      // Both rows share the text "Plan"; the accessible name carries the ancestor
+      // path so screen-reader users can still tell them apart.
+      await screen.findByRole('option', { name: 'Plan, in Work' });
+      await screen.findByRole('option', { name: 'Plan, in Home' });
+    });
+
+    it('zooms to an ancestor crumb and closes search when clicked', async () => {
+      setSnapshot(contextSnapshot);
+      const router = renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'refine' } });
+
+      const active = await findResultByLabel('TODO refine estimates');
+      const ancestorCrumb = Array.from(
+        active.querySelectorAll<HTMLElement>('[data-search-result-ancestor-crumb]')
+      ).find((crumb) => crumb.textContent === 'Q3 planning');
+      expect(ancestorCrumb).toBeDefined();
+
+      fireEvent.click(ancestorCrumb!);
+
+      await waitFor(() => {
+        expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc', 'mid'));
+        expect(screen.queryByTestId('document-search-results')).toBeNull();
+      });
+    });
+
+    it('prevents default on crumb mousedown so the search input keeps focus', async () => {
+      setSnapshot(contextSnapshot);
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      fireEvent.change(searchInput, { target: { value: 'refine' } });
+
+      const active = await findResultByLabel('TODO refine estimates');
+      const ancestorCrumb = Array.from(
+        active.querySelectorAll<HTMLElement>('[data-search-result-ancestor-crumb]')
+      ).find((crumb) => crumb.textContent === 'Q3 planning');
+      expect(ancestorCrumb).toBeDefined();
+
+      // mousedown must be default-prevented: otherwise the focusable crumb button
+      // steals focus, blurs the search input, and the dismiss-on-blur unmounts the
+      // results before the crumb's click can zoom. fireEvent returns false when a
+      // handler called preventDefault.
+      const notPrevented = fireEvent.mouseDown(ancestorCrumb!);
+      expect(notPrevented).toBe(false);
     });
   });
 
@@ -701,126 +1152,6 @@ describe('document route', () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc'));
       expect(screen.queryByTestId('document-search-results')).toBeNull();
-    });
-  });
-
-  it('shows slash inline completion on empty query and accepts it on ArrowRight', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-
-    await waitFor(() => {
-      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('/');
-      expect(getInlineCompletion()?.dataset.inlineCompletionHint).toBe('→');
-    });
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowRight' });
-    expect(searchInput).toHaveValue('/');
-  });
-
-  it('does not show inline completion for non-empty text mode queries', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: 'note' } });
-
-    await waitFor(() => {
-      expect(getInlineCompletion()).toBeNull();
-    });
-  });
-
-  it('switches to slash mode and shows top-level candidates for "/"', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/' } });
-
-    const results = await screen.findByTestId('document-search-results');
-    expect(results.dataset.searchMode).toBe('slash');
-
-    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-      .map((item) => item.textContent);
-    expect(resultItems).toEqual(['note1', 'note3', 'note5']);
-    expect(getActiveSearchResult()?.textContent).toBe('note1');
-  });
-
-  it('shows slash suffix completion and accepts with ArrowRight', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/no' } });
-
-    await waitFor(() => {
-      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('te1');
-    });
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowRight' });
-    expect(searchInput).toHaveValue('/note1');
-  });
-
-  it('shows slash continuation completion for exact match with children', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/note3' } });
-
-    await waitFor(() => {
-      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('/');
-    });
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowRight' });
-    expect(searchInput).toHaveValue('/note3/');
-  });
-
-  it('hides slash continuation completion for exact match without children', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/note5' } });
-
-    await waitFor(() => {
-      expect(getInlineCompletion()).toBeNull();
-    });
-  });
-
-  it('does not alter query on ArrowRight when inline completion is hidden', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: 'note' } });
-    await waitFor(() => {
-      expect(getInlineCompletion()).toBeNull();
-    });
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowRight' });
-    expect(searchInput).toHaveValue('note');
-  });
-
-  it('hides inline completion during composition and restores it afterward', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-
-    await waitFor(() => {
-      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('/');
-    });
-
-    fireEvent.compositionStart(searchInput);
-    await waitFor(() => {
-      expect(getInlineCompletion()).toBeNull();
-    });
-
-    fireEvent.compositionEnd(searchInput);
-    await waitFor(() => {
-      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('/');
     });
   });
 
@@ -858,289 +1189,6 @@ describe('document route', () => {
     expect(document.activeElement).not.toHaveClass('editor-input');
   });
 
-  it('hides inline completion when caret is not at input end', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/no' } });
-
-    await waitFor(() => {
-      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('te1');
-    });
-
-    (searchInput as HTMLInputElement).setSelectionRange(1, 1);
-    fireEvent.select(searchInput);
-
-    await waitFor(() => {
-      expect(getInlineCompletion()).toBeNull();
-    });
-  });
-
-  it('hides inline completion when selection is non-collapsed', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/no' } });
-
-    await waitFor(() => {
-      expect(getInlineCompletion()?.dataset.inlineCompletionText).toBe('te1');
-    });
-
-    (searchInput as HTMLInputElement).setSelectionRange(1, 3);
-    fireEvent.select(searchInput);
-
-    await waitFor(() => {
-      expect(getInlineCompletion()).toBeNull();
-    });
-  });
-
-  it('filters slash results to notes matching the visible segment', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/note1' } });
-
-    await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
-    });
-
-    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-      .map((item) => item.textContent);
-    expect(resultItems).toEqual(['note1']);
-  });
-
-  it('slash arrow cycling changes highlight without mutating query', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/' } });
-
-    await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
-    });
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note3');
-    expect(searchInput).toHaveValue('/');
-    expect(Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'), (item) => item.textContent))
-      .toEqual(['note1', 'note3', 'note5']);
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note5');
-    expect(searchInput).toHaveValue('/');
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getActiveSearchResult()?.textContent).toBe('note3');
-    expect(searchInput).toHaveValue('/');
-  });
-
-  it('descends slash scope to highlighted note children after appending "/"', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/' } });
-
-    await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
-    });
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note3');
-    expect(searchInput).toHaveValue('/');
-
-    fireEvent.change(searchInput, { target: { value: `${(searchInput as HTMLInputElement).value}/` } });
-
-    await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
-      expect(resultItems).toEqual(['note4']);
-      expect(getActiveSearchResult()?.textContent).toBe('note4');
-      expect(searchInput).toHaveValue('//');
-    });
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(searchInput).toHaveValue('//');
-  });
-
-  it('resolves slash descent from the changed query segment when pasting a trailing slash path', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/' } });
-
-    await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
-    });
-
-    fireEvent.change(searchInput, { target: { value: '/note3/' } });
-
-    await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
-      expect(resultItems).toEqual(['note4']);
-      expect(getActiveSearchResult()?.textContent).toBe('note4');
-      expect(searchInput).toHaveValue('/note3/');
-    });
-  });
-
-  it('replaces an existing descended slash path from the new query segment', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/note1/' } });
-
-    await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
-      expect(resultItems).toEqual(['note2']);
-      expect(getActiveSearchResult()?.textContent).toBe('note2');
-    });
-
-    fireEvent.change(searchInput, { target: { value: '/note3/' } });
-
-    await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
-      expect(resultItems).toEqual(['note4']);
-      expect(getActiveSearchResult()?.textContent).toBe('note4');
-      expect(searchInput).toHaveValue('/note3/');
-    });
-  });
-
-  it('keeps invalid trailing slash paths empty instead of falling back to root results', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/missing/' } });
-
-    await screen.findByText('No matches');
-    expect(getActiveSearchResult()).toBeNull();
-    expect(searchInput).toHaveValue('/missing/');
-
-    fireEvent.keyDown(searchInput, { key: 'Enter' });
-    expect(searchInput).toHaveFocus();
-  });
-
-  it('recomputes slash scope when an earlier completed segment changes at the same depth', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/note1/no' } });
-
-    await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
-      expect(resultItems).toEqual(['note2']);
-      expect(getActiveSearchResult()?.textContent).toBe('note2');
-    });
-
-    fireEvent.change(searchInput, { target: { value: '/note3/no' } });
-
-    await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
-      expect(resultItems).toEqual(['note4']);
-      expect(getActiveSearchResult()?.textContent).toBe('note4');
-      expect(searchInput).toHaveValue('/note3/no');
-    });
-  });
-
-  it('supports deeper slash scope descent without query auto-write', async () => {
-    (
-      globalThis as typeof globalThis & {
-        __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
-      }
-    ).__remdoMockSearchCandidatesByDoc = {
-      routeDoc: {
-        allCandidates: [
-          { noteId: 'note1', text: 'note1' },
-          { noteId: 'note2', text: 'note2' },
-          { noteId: 'note3', text: 'note3' },
-          { noteId: 'note4', text: 'note4' },
-          { noteId: 'note5', text: 'note5' },
-          { noteId: 'note6', text: 'note6' },
-        ],
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [
-            { noteId: 'note1', text: 'note1' },
-            { noteId: 'note3', text: 'note3' },
-            { noteId: 'note5', text: 'note5' },
-          ],
-          note1: [{ noteId: 'note2', text: 'note2' }],
-          note2: [],
-          note3: [{ noteId: 'note4', text: 'note4' }],
-          note4: [{ noteId: 'note6', text: 'note6' }],
-          note5: [],
-          note6: [],
-        },
-      },
-    };
-
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/' } });
-
-    await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
-    });
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(searchInput).toHaveValue('/');
-
-    fireEvent.change(searchInput, { target: { value: '//' } });
-    await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note4');
-    });
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(searchInput).toHaveValue('//');
-
-    fireEvent.change(searchInput, { target: { value: '///' } });
-    await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note6');
-    });
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(searchInput).toHaveValue('///');
-  });
-
-  it('moves slash scope back up when trailing slash is removed', async () => {
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/' } });
-
-    await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
-    });
-
-    fireEvent.change(searchInput, { target: { value: '//' } });
-    await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
-      expect(resultItems).toEqual(['note2']);
-      expect(getActiveSearchResult()?.textContent).toBe('note2');
-    });
-
-    fireEvent.change(searchInput, { target: { value: '/' } });
-    await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
-      expect(resultItems).toEqual(['note1', 'note3', 'note5']);
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
-    });
-  });
-
   it('moves highlight with arrows over flat results without wraparound', async () => {
     renderDocumentRoute();
 
@@ -1148,32 +1196,52 @@ describe('document route', () => {
     searchInput.focus();
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
+      expect(getActiveResultLabel()).toBe('note1');
     });
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note2');
+    expect(getActiveResultLabel()).toBe('note2');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note3');
+    expect(getActiveResultLabel()).toBe('note3');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note5');
+    expect(getActiveResultLabel()).toBe('note5');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note5');
+    expect(getActiveResultLabel()).toBe('note5');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getActiveSearchResult()?.textContent).toBe('note4');
+    expect(getActiveResultLabel()).toBe('note4');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getActiveSearchResult()?.textContent).toBe('note1');
+    expect(getActiveResultLabel()).toBe('note1');
 
     fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getActiveSearchResult()?.textContent).toBe('note1');
+    expect(getActiveResultLabel()).toBe('note1');
+  });
+
+  it('highlights a flat result on hover, like arrow navigation', async () => {
+    renderDocumentRoute();
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    searchInput.focus();
+    await waitFor(() => {
+      expect(getActiveResultLabel()).toBe('note1');
+    });
+
+    fireEvent.mouseEnter(await findResultByLabel('note4'));
+    expect(getActiveResultLabel()).toBe('note4');
+
+    fireEvent.mouseEnter(await findResultByLabel('note2'));
+    expect(getActiveResultLabel()).toBe('note2');
+
+    // Hover does not move focus out of the search box (Search Mode stays open).
+    expect(searchInput).toHaveFocus();
+    expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
   });
 
   it('shows flat results across the whole document while query is non-empty', async () => {
@@ -1184,8 +1252,7 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: 'note' } });
 
     await screen.findByTestId('document-search-results');
-    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-      .map((item) => item.textContent);
+    const resultItems = getResultLabels();
     expect(resultItems).toEqual(['note1', 'note2', 'note3', 'note4', 'note5']);
     expect(document.querySelector('.document-editor-pane--hidden')).not.toBeNull();
   });
@@ -1212,8 +1279,7 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: 'sdk' } });
 
     await screen.findByTestId('document-search-results');
-    const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-      .map((item) => item.textContent);
+    const resultItems = getResultLabels();
 
     expect(resultItems).toEqual(['sdk result']);
   });
@@ -1255,7 +1321,7 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: 'main' } });
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('main only');
+      expect(getActiveResultLabel()).toBe('main only');
     });
 
     await router.navigate(createDocumentPath('other'));
@@ -1300,10 +1366,10 @@ describe('document route', () => {
       expect(screen.queryByText('No notes')).toBeNull();
     });
 
-    globals.__remdoMockSearchCandidateEmitters?.routeDoc?.();
+    globals.__remdoMockSearchNotesRefresh?.routeDoc?.();
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('fresh result');
+      expect(getActiveResultLabel()).toBe('fresh result');
     });
   });
 
@@ -1327,10 +1393,12 @@ describe('document route', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
-      expect(getActiveSearchResult()?.textContent).toBe('shared result');
+      expect(getActiveResultLabel()).toBe('shared result');
     });
 
-    globals.__remdoMockSearchCandidateResetters?.routeDoc?.();
+    // Invalidate: candidates become unavailable, then refresh clears the reader.
+    globals.__remdoMockSearchCandidatesByDoc = { routeDoc: null };
+    globals.__remdoMockSearchNotesRefresh?.routeDoc?.();
 
     await waitFor(() => {
       expect(screen.queryByTestId('document-search-results')).toBeNull();
@@ -1347,217 +1415,11 @@ describe('document route', () => {
         },
       },
     };
-    globals.__remdoMockSearchCandidateEmitters?.routeDoc?.();
+    globals.__remdoMockSearchNotesRefresh?.routeDoc?.();
 
     await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('fresh result');
+      expect(getActiveResultLabel()).toBe('fresh result');
     });
-  });
-
-  it('re-resolves slash scope path when switching documents', async () => {
-    (
-      globalThis as typeof globalThis & {
-        __remdoMockSearchCandidatesByDoc?: Record<string, TestSearchSnapshot | null>;
-      }
-    ).__remdoMockSearchCandidatesByDoc = {
-      other: {
-        allCandidates: [
-          { noteId: 'other1', text: 'other1' },
-          { noteId: 'other2', text: 'other2' },
-        ],
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'other1', text: 'other1' }],
-          other1: [{ noteId: 'other2', text: 'other2' }],
-          other2: [],
-        },
-      },
-    };
-
-    const router = renderDocumentRoute();
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/' } });
-    await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
-    });
-
-    fireEvent.change(searchInput, { target: { value: '//' } });
-    await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
-      expect(resultItems).toEqual(['note2']);
-      expect(searchInput).toHaveValue('//');
-    });
-
-    await router.navigate(createDocumentPath('other'));
-
-    const otherSearchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    otherSearchInput.focus();
-
-    await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
-      expect(resultItems).toEqual(['other2']);
-      expect(getActiveSearchResult()?.textContent).toBe('other2');
-      expect(otherSearchInput).toHaveValue('//');
-    });
-  });
-
-  it('re-resolves completed slash queries when switching documents', async () => {
-    (
-      globalThis as typeof globalThis & MockSearchGlobals
-    ).__remdoMockSearchCandidatesByDoc = {
-      routeDoc: {
-        allCandidates: [
-          { noteId: 'note6', text: 'note6' },
-          { noteId: 'note7', text: 'note7' },
-        ],
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'note6', text: 'note6' }],
-          note6: [{ noteId: 'note7', text: 'note7' }],
-          note7: [],
-        },
-      },
-      other: {
-        allCandidates: [
-          { noteId: 'other1', text: 'other1' },
-          { noteId: 'other2', text: 'other2' },
-        ],
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'other1', text: 'other1' }],
-          other1: [{ noteId: 'other2', text: 'other2' }],
-          other2: [],
-        },
-      },
-    };
-
-    const router = renderDocumentRoute();
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/note6/' } });
-
-    await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
-      expect(resultItems).toEqual(['note7']);
-      expect(getActiveSearchResult()?.textContent).toBe('note7');
-    });
-
-    await router.navigate(createDocumentPath('other'));
-
-    const otherSearchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    otherSearchInput.focus();
-
-    await screen.findByText('No matches');
-    expect(document.querySelectorAll('[data-search-result-item]')).toHaveLength(0);
-    expect(otherSearchInput).toHaveValue('/note6/');
-
-    fireEvent.keyDown(otherSearchInput, { key: 'Enter' });
-    expect(router.state.location.pathname).toBe(createDocumentPath('other'));
-  });
-
-  it('recomputes completed slash paths when sdk candidates change', async () => {
-    const globals = globalThis as typeof globalThis & MockSearchGlobals;
-    globals.__remdoMockSearchCandidatesByDoc = {
-      routeDoc: {
-        allCandidates: [
-          { noteId: 'note1', text: 'note1' },
-          { noteId: 'note2', text: 'note2' },
-        ],
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'note1', text: 'note1' }],
-          note1: [{ noteId: 'note2', text: 'note2' }],
-          note2: [],
-        },
-      },
-    };
-
-    const router = renderDocumentRoute();
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/note1/' } });
-
-    await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
-      expect(resultItems).toEqual(['note2']);
-      expect(getActiveSearchResult()?.textContent).toBe('note2');
-    });
-
-    globals.__remdoMockSearchCandidatesByDoc = {
-      routeDoc: {
-        allCandidates: [
-          { noteId: 'renamed', text: 'renamed' },
-          { noteId: 'note2', text: 'note2' },
-        ],
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [{ noteId: 'renamed', text: 'renamed' }],
-          renamed: [{ noteId: 'note2', text: 'note2' }],
-          note2: [],
-        },
-      },
-    };
-    globals.__remdoMockSearchCandidateEmitters?.routeDoc?.();
-
-    await screen.findByText('No matches');
-    expect(document.querySelectorAll('[data-search-result-item]')).toHaveLength(0);
-    expect(searchInput).toHaveValue('/note1/');
-
-    fireEvent.keyDown(searchInput, { key: 'Enter' });
-    expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc'));
-  });
-
-  it('matches completed slash segments exactly instead of by substring', async () => {
-    const globals = globalThis as typeof globalThis & MockSearchGlobals;
-    globals.__remdoMockSearchCandidatesByDoc = {
-      routeDoc: {
-        allCandidates: [
-          { noteId: 'barfoo', text: 'barfoo' },
-          { noteId: 'barfoo-child', text: 'barfoo child' },
-          { noteId: 'foo', text: 'foo' },
-          { noteId: 'foo-child', text: 'foo child' },
-        ],
-        childCandidateMap: {
-          [ROOT_SEARCH_SCOPE_ID]: [
-            { noteId: 'barfoo', text: 'barfoo' },
-            { noteId: 'foo', text: 'foo' },
-          ],
-          barfoo: [{ noteId: 'barfoo-child', text: 'barfoo child' }],
-          'barfoo-child': [],
-          foo: [{ noteId: 'foo-child', text: 'foo child' }],
-          'foo-child': [],
-        },
-      },
-    };
-
-    renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/foo/' } });
-
-    await waitFor(() => {
-      const resultItems = Array.from(document.querySelectorAll<HTMLElement>('[data-search-result-item]'))
-        .map((item) => item.textContent);
-      expect(resultItems).toEqual(['foo child']);
-      expect(getActiveSearchResult()?.textContent).toBe('foo child');
-    });
-  });
-
-  it('zooms to document root on Enter when query is exactly "/"', async () => {
-    const router = renderDocumentRoute(createDocumentPath('routeDoc', 'note3'));
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/' } });
-    await screen.findByTestId('document-search-results');
-
-    fireEvent.keyDown(searchInput, { key: 'Enter' });
-
-    await waitFor(() => {
-      expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc'));
-    });
-    expect(document.activeElement).toHaveClass('editor-input');
   });
 
   it('zooms to highlighted flat result on Enter and moves focus to editor', async () => {
@@ -1568,41 +1430,13 @@ describe('document route', () => {
     fireEvent.change(searchInput, { target: { value: 'note3' } });
 
     await waitFor(() => {
-      const active = document.querySelector<HTMLElement>('[data-search-result-item][data-search-result-active=\"true\"]');
-      expect(active?.textContent).toBe('note3');
+      expect(getActiveResultLabel()).toBe('note3');
     });
 
     fireEvent.keyDown(searchInput, { key: 'Enter' });
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc', 'note3'));
-    });
-    expect(document.activeElement).toHaveClass('editor-input');
-  });
-
-  it('zooms to highlighted slash descendant on Enter', async () => {
-    const router = renderDocumentRoute();
-
-    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    searchInput.focus();
-    fireEvent.change(searchInput, { target: { value: '/' } });
-
-    await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note1');
-    });
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveSearchResult()?.textContent).toBe('note3');
-
-    fireEvent.change(searchInput, { target: { value: `${(searchInput as HTMLInputElement).value}/` } });
-    await waitFor(() => {
-      expect(getActiveSearchResult()?.textContent).toBe('note4');
-    });
-
-    fireEvent.keyDown(searchInput, { key: 'Enter' });
-
-    await waitFor(() => {
-      expect(router.state.location.pathname).toBe(createDocumentPath('routeDoc', 'note4'));
     });
     expect(document.activeElement).toHaveClass('editor-input');
   });
