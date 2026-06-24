@@ -39,7 +39,7 @@ import {
   isContentItem,
   flattenNoteNodes,
 } from '#client/editor/outline/list-structure';
-import { getNoteBody } from '#client/editor/features/note-body/note-body-ops';
+import { getNoteBody, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
@@ -107,7 +107,9 @@ function getClipboardPayload(event: ClipboardEvent | KeyboardEvent | InputEvent 
 }
 
 function $getContentKeyFromNode(node: LexicalNode | null): string | null {
-  return resolveContentItemFromNode(node)?.getKey() ?? null;
+  // A node inside a body belongs to its owner note, so a dirty key under a cut
+  // note's body maps back to that note — editing the body invalidates the cut.
+  return $resolveNoteForSelectionPoint(node)?.getKey() ?? null;
 }
 
 function $getContentKeyFromNodeKey(key: string): string | null {

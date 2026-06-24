@@ -36,6 +36,8 @@ import {
 } from '#tests';
 import { createUniqueNoteId, createNoteIdAvoiding } from '#domain/notes/ids';
 import { noteIdState } from '#client/editor/runtime/note-id-state';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { getNoteBody } from '#client/editor/features/note-body/note-body-ops';
 import { renderRemdoEditor } from './collab/_support/render-editor';
 
 function findSerializedListItem(node: SerializedLexicalNode, noteId: string): SerializedNoteListItemNode | null {
@@ -682,6 +684,33 @@ describe('note ids on paste', () => {
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
       { noteId: 'note2', text: 'note2 edited' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('drops cut markers after editing a cut note\'s body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Give note2 a body, cut it, then edit inside the body. The body is part of
+    // the cut note, so the edit must cancel the pending cut — a later paste does
+    // not move the (now-edited) note.
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'body');
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    // Edit inside note2's body.
+    await remdo.mutate(() => {
+      getNoteBody($findNoteById('note2')!)!.selectEnd();
+    });
+    await typeText(remdo, ' more');
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', body: 'body more' },
       { noteId: 'note3', text: 'note3' },
     ]);
   });
