@@ -188,16 +188,12 @@ function buildListItemsFromPlainText(text: string): ListItemNode[] {
 
 function $getPlainTextFromClipboardNodes(nodes: LexicalNode[]): string {
   const items = $extractClipboardListChildren(nodes);
-  const lines: string[] = [];
-  let hasListItems = false;
-  for (const item of items) {
-    if (isContentItem(item)) {
-      hasListItems = true;
-      lines.push(item.getTextContent());
-    }
-  }
-  if (hasListItems) {
-    return lines.join('\n');
+  const contentItems = items.filter(isContentItem);
+  if (contentItems.length > 0) {
+    // Each note's own text, then its body text, then its sub-notes — the same
+    // traversal as structural copy, so a copied note's body is not dropped when
+    // it is pasted over an inline selection.
+    return contentItems.flatMap(noteClipboardPlainText).join('\n');
   }
   return nodes.map((node) => node.getTextContent()).join('\n');
 }

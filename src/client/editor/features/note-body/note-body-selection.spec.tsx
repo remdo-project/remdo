@@ -77,6 +77,35 @@ describe('note body selection contract (docs/outliner/body.md)', () => {
     expect(remdo.editor.selection.isStructural()).toBe(false);
   });
 
+  it('extending a selection across lines within a multi-line body stays inline', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Build a 3-line body, then extend from the first line to the last line —
+    // the path a Shift+ArrowDown takes between interior body lines. The whole
+    // range is within one body, so it must stay inline (the body owns its
+    // selection world), not advance the structural ladder.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'line one');
+    await pressKey(remdo, { key: 'Enter' });
+    await typeText(remdo, 'line two');
+    await pressKey(remdo, { key: 'Enter' });
+    await typeText(remdo, 'line three');
+
+    const bodyElement = remdo.validate(() =>
+      getBodyWrapper($findNoteById('note1')!)!.getKey()
+    );
+    const wrapperEl = remdo.editor.getElementByKey(bodyElement)!;
+    const textNodes: Text[] = [];
+    const walker = document.createTreeWalker(wrapperEl, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      textNodes.push(n as Text);
+    }
+
+    await collapseDomSelectionAtNode(textNodes[0]!, 0);
+    await extendDomSelectionToNode(textNodes.at(-1)!, 4);
+
+    expect(remdo.editor.selection.isStructural()).toBe(false);
+  });
+
   it('caret in a body, shift-click into ANOTHER body is structural over both notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await addBody(remdo, 'note1', 'bodyone');
     await addBody(remdo, 'note2', 'bodytwo');

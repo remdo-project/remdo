@@ -11,6 +11,7 @@ import {
   placeCaretAtNote,
   pressKey,
   readCaretNoteId,
+  selectEntireNote,
   selectStructuralNotes,
   typeText,
   meta,
@@ -447,6 +448,26 @@ describe('note body (docs/outliner/body.md)', () => {
     // Inline copy is just text — the rich payload is Lexical's default text copy,
     // not a whole-note structure; plain text is the selected characters.
     expect(clipboard.getData('text/plain')).toBe('body');
+  });
+
+  it('pasting a copied body-note over an inline selection keeps the body text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'note2 body');
+
+    await selectStructuralNotes(remdo, 'note2', 'note2');
+    const payload = await copySelection(remdo);
+
+    // Paste over an inline selection of note3: the note text replaces note3's
+    // text and the body text follows as a child note — the body is not dropped.
+    await selectEntireNote(remdo, 'note3');
+    await pastePayload(remdo, payload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', body: 'note2 body' },
+      { noteId: 'note3', text: 'note2', children: [{ noteId: null, text: 'note2 body' }] },
+    ]);
   });
 
   it('enter inside a body inserts a line break instead of creating a note', meta({ fixture: 'flat' }), async ({ remdo }) => {
