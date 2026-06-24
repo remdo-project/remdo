@@ -36,7 +36,7 @@ overrides:
   table>ajv: 8.18.0
 
 catalog:
-  '@antfu/eslint-config': 9.0.0
+  '@antfu/eslint-config': 9.1.0
   '@ast-grep/cli': ^0.44.0
   '@better-auth/oauth-provider': 1.6.20
   '@eslint-react/eslint-plugin': ^5.9.2
@@ -52,12 +52,12 @@ catalog:
   '@mantine/core': ^9.4.0
   '@mantine/dates': 9.4.0
   '@mantine/hooks': ^9.4.0
-  '@playwright/test': ^1.61.0
+  '@playwright/test': ^1.61.1
   '@tabler/icons-react': ^3.44.0
   '@testing-library/jest-dom': ^6.9.1
   '@testing-library/react': ^16.3.2
   '@types/better-sqlite3': ^7.6.13
-  '@types/estree': ^1.0.9
+  '@types/estree': ^0.0.51
   '@types/jsdom': ^28.0.3
   '@types/linkify-it': ^5.0.0
   '@types/node': ^26.0.0
@@ -82,13 +82,13 @@ catalog:
   jiti: ^2.7.0
   jscpd: ^5.0.11
   jsdom: ^29.1.1
-  knip: ^6.18.0
+  knip: ^6.19.0
   kysely: ^0.29.2
   lexical: ^0.45.0
   linkify-it: ^5.0.1
   markdownlint-cli2: ^0.22.1
   nanoid: ^5.1.15
-  playwright: ^1.61.0
+  playwright: ^1.61.1
   react: ^19.2.7
   react-dom: ^19.2.7
   react-router-dom: ^7.18.0
