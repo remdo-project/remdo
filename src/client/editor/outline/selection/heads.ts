@@ -3,7 +3,7 @@ import { $isListNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
-import { $getNoteBodyFromNode, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
+import { $getNoteBodyFromNode, $getNoteForBody, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
 import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
 import { getContentSiblings, isContentItem } from '../list-structure';
 import { resolveContentItemFromNode } from '../schema';
@@ -99,8 +99,9 @@ export function $getSelectedNotes(selection: RangeSelection): ListItemNode[] {
     // A node inside a body belongs to that body's owner note (for selection the
     // body is part of its note); resolve to the owner rather than treat it as a
     // stray. A bare body-wrapper carries no note of its own.
-    if ($getNoteBodyFromNode(node)) {
-      const owner = $resolveNoteForSelectionPoint(node);
+    const body = $getNoteBodyFromNode(node);
+    if (body) {
+      const owner = $getNoteForBody(body);
       if (owner) {
         pushNote(owner);
       }

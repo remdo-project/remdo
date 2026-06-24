@@ -10,18 +10,20 @@ export function getNoteElement(remdo: RemdoTestApi, noteId: string) {
   return element;
 }
 
-export function getNoteTextNode(remdo: RemdoTestApi, noteId: string): Text {
-  const noteElement = getNoteElement(remdo, noteId);
-  const textElement = noteElement.querySelector('[data-lexical-text="true"]');
-  if (!textElement) {
-    throw new TypeError(`Expected text element for noteId: ${noteId}`);
+function firstTextNodeIn(element: Element | null | undefined, label: string): Text {
+  if (!element) {
+    throw new TypeError(`Expected element for ${label}`);
   }
-  const walker = document.createTreeWalker(textElement, NodeFilter.SHOW_TEXT);
-  const textNode = walker.nextNode();
+  const textNode = document.createTreeWalker(element, NodeFilter.SHOW_TEXT).nextNode();
   if (!(textNode instanceof Text)) {
-    throw new TypeError(`Expected text node for noteId: ${noteId}`);
+    throw new TypeError(`Expected text node for ${label}`);
   }
   return textNode;
+}
+
+export function getNoteTextNode(remdo: RemdoTestApi, noteId: string): Text {
+  const textElement = getNoteElement(remdo, noteId).querySelector('[data-lexical-text="true"]');
+  return firstTextNodeIn(textElement, `noteId: ${noteId}`);
 }
 
 // The first text node inside the body attached to `noteId`. The body lives in a
@@ -29,13 +31,5 @@ export function getNoteTextNode(remdo: RemdoTestApi, noteId: string): Text {
 // body text.
 export function getNoteBodyTextNode(remdo: RemdoTestApi, noteId: string): Text {
   const bodyElement = getNoteElement(remdo, noteId).nextElementSibling?.querySelector('.note-body');
-  if (!bodyElement) {
-    throw new TypeError(`Expected body element for noteId: ${noteId}`);
-  }
-  const walker = document.createTreeWalker(bodyElement, NodeFilter.SHOW_TEXT);
-  const textNode = walker.nextNode();
-  if (!(textNode instanceof Text)) {
-    throw new TypeError(`Expected body text node for noteId: ${noteId}`);
-  }
-  return textNode;
+  return firstTextNodeIn(bodyElement, `body of noteId: ${noteId}`);
 }

@@ -1,3 +1,4 @@
+import { $isListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { mergeRegister } from '@lexical/utils';
 import {
@@ -32,11 +33,13 @@ import {
 } from './note-body-ops';
 import './note-body.css';
 
-// A body-wrapper is a leaf `ListItemNode`, so in a checklist Lexical's list DOM
-// gives it checkbox semantics (`role="checkbox"`, `aria-checked`, `tabindex`)
-// every time it reconciles. A body is not a checklist item, so after each update
-// strip those from every body-wrapper element, keeping it out of the checkbox
-// accessibility tree and hit-testing (the visual checkbox is hidden in CSS).
+// A body-wrapper is a leaf `ListItemNode`, so in a check list Lexical's list DOM
+// re-adds checkbox semantics (`role="checkbox"`, `aria-checked`, `tabindex`) on
+// every reconcile of the wrapper. A body is not a checklist item, so after each
+// update strip those from every body-wrapper inside a check list, keeping it out
+// of the checkbox accessibility tree and hit-testing (the visual checkbox is
+// hidden in CSS). Only check lists apply these attributes, so a body-wrapper in a
+// bullet/number list is left untouched.
 function stripBodyWrapperCheckboxSemantics(editor: LexicalEditor): void {
   const wrapperKeys = editor.getEditorState().read(() => {
     const rootList = $resolveRootContentList();
@@ -45,7 +48,8 @@ function stripBodyWrapperCheckboxSemantics(editor: LexicalEditor): void {
     }
     const keys: string[] = [];
     forEachListItemInOutline(rootList, (item) => {
-      if (isBodyWrapper(item)) {
+      const parent = item.getParent();
+      if (isBodyWrapper(item) && $isListNode(parent) && parent.getListType() === 'check') {
         keys.push(item.getKey());
       }
     });

@@ -25,8 +25,6 @@ export interface EditorNote extends AddressableNote<'editor-note'> {
  * `docs/outliner/body.md`.
  */
 export interface BodyNote extends Note<'body'> {
-  /** Returns the body's text. */
-  text: () => string;
   /** A body has no child notes. */
   children: () => readonly never[];
 }
