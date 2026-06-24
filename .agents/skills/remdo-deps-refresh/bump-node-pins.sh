@@ -42,25 +42,31 @@ current="$(sed -n 's/^nodeVersion: \([0-9][0-9.]*\)/\1/p' "${WORKSPACE_YAML}")"
 #   - The Docker Hub check distinguishes 404 ("image absent" — keep walking) from
 #     any other outcome (429/5xx/000 network error — abort), so "couldn't check"
 #     never reads as "doesn't exist" and demotes the pin to a stale minor.
-#   - The walk is bounded to the newest LTS major; it never falls through to an
-#     older major (which would silently downgrade the pin). If no minor of the
-#     newest major has an image yet, we abort rather than cross the boundary.
+#   - The walk is bounded to the newest LTS major; an entry from any other major
+#     is skipped, never pinned (that would silently downgrade). The index is
+#     date-sorted, so an older major's patch can interleave between two newest-
+#     major minors — we must skip those entries, not stop at them, or we'd abort
+#     before reaching a published older minor of the newest major. If no minor of
+#     the newest major has an image yet, we abort rather than cross majors.
 lts_versions="$(curl -fsS https://nodejs.org/dist/index.json \
   | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));process.stdout.write(d.filter(r=>r.lts).map(r=>r.version.replace(/^v/,"")).join("\n"))')"
 [ -n "${lts_versions}" ] || { echo "bump-node-pins: could not fetch the Node LTS list from nodejs.org/dist." >&2; exit 1; }
 
+# Newest LTS major = the major of the first (newest-by-date) valid entry.
 newest_major=""
+for v in ${lts_versions}; do
+  case "${v}" in [0-9]*.[0-9]*.[0-9]*) newest_major="${v%%.*}"; break ;; esac
+done
+[ -n "${newest_major}" ] || { echo "bump-node-pins: no valid LTS version in the Node dist index." >&2; exit 1; }
+
 latest=""
 for v in ${lts_versions}; do
   case "${v}" in
     [0-9]*.[0-9]*.[0-9]*) : ;;
     *) continue ;;
   esac
-  major="${v%%.*}"
-  # Pin the newest LTS major and never look past it: a lower major resolving its
-  # image is not a valid "latest", it is a downgrade.
-  [ -n "${newest_major}" ] || newest_major="${major}"
-  [ "${major}" = "${newest_major}" ] || break
+  # Only consider the newest major; skip interleaved older-major releases.
+  [ "${v%%.*}" = "${newest_major}" ] || continue
 
   m="${v%.*}"
   # GET the Docker Hub tag for node:<minor>-alpine and branch on the status.
