@@ -15,7 +15,7 @@ import {
   getParentContentItem,
 } from '#client/editor/outline/selection/tree';
 import type { NoteBodyNode } from './note-body-node';
-import { $createBodyWrapper, $isNoteBodyNode } from './note-body-node';
+import { $createBodyWrapper, $isNoteBodyNode, isBodyWrapper } from './note-body-node';
 
 /** The note body element attached to a note, or null if the note has none. */
 export function getNoteBody(note: ListItemNode): NoteBodyNode | null {
@@ -25,6 +25,36 @@ export function getNoteBody(note: ListItemNode): NoteBodyNode | null {
   }
   const body = wrapper.getFirstChild();
   return $isNoteBodyNode(body) ? body : null;
+}
+
+/**
+ * Reconcile concurrently-created body-wrappers so a note keeps at most one body
+ * (the documented invariant). Under collaboration, two `Shift+Enter`s on the
+ * same body-less note can each insert a body-wrapper before either syncs; on
+ * merge the note ends up with several. Keep the first body and fold every later
+ * body-wrapper's content into it, dropping the now-empty wrappers. A node
+ * transform runs this until the tree is stable.
+ */
+export function $reconcileNoteBodyWrappers(note: ListItemNode): void {
+  const firstWrapper = getBodyWrapper(note);
+  if (!firstWrapper) {
+    return;
+  }
+  const firstBody = firstWrapper.getFirstChild();
+  if (!$isNoteBodyNode(firstBody)) {
+    return;
+  }
+  // Any further body-wrapper directly after the first is a duplicate.
+  let next = firstWrapper.getNextSibling();
+  while ($isListItemNode(next) && isBodyWrapper(next)) {
+    const after = next.getNextSibling();
+    const duplicateBody = next.getFirstChild();
+    if ($isNoteBodyNode(duplicateBody)) {
+      firstBody.append(...duplicateBody.getChildren());
+    }
+    next.remove();
+    next = after;
+  }
 }
 
 /** Walk up from any node to the enclosing note body, or null. */

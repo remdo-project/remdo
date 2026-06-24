@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { act } from '@testing-library/react';
-import { REDO_COMMAND, UNDO_COMMAND, $getRoot, $getSelection, $isTextNode  } from 'lexical';
+import { REDO_COMMAND, UNDO_COMMAND, $createTextNode, $getRoot, $getSelection, $isTextNode  } from 'lexical';
 import {
   collapseDomSelectionAtNode,
   copySelection,
@@ -20,7 +20,7 @@ import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getBodyWrapper } from '#client/editor/outline/list-structure';
 import { getSubtreeTail } from '#client/editor/outline/selection/tree';
-import { isBodyWrapper } from './note-body-node';
+import { $createBodyWrapper, $isNoteBodyNode, isBodyWrapper } from './note-body-node';
 import { $getNoteId } from '#client/editor/runtime/note-id-state';
 import { $normalizeNoteIdsOnLoad } from '#client/editor/plugins/note-id-normalization';
 import { getNoteBody, $skipBodyForVerticalNav } from './note-body-ops';
@@ -271,6 +271,35 @@ describe('note body (docs/outliner/body.md)', () => {
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1', body: 'note1 body' },
       { noteId: 'note2', text: 'note2', body: 'note2 body' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('reconciles duplicate body-wrappers (concurrent Shift+Enter under collab) into one body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // One body via the normal gesture.
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'first');
+
+    // Simulate the collab merge end-state: a second body-wrapper inserted after
+    // the first (each collaborator's Shift+Enter passed the local body check
+    // before syncing). The body node transform must fold them back into one body
+    // so the at-most-one-body invariant holds and the second body is not orphaned.
+    await act(async () => {
+      remdo.editor.update(() => {
+        const firstWrapper = getBodyWrapper($findNoteById('note1')!)!;
+        const second = $createBodyWrapper();
+        const body = second.getFirstChild();
+        if ($isNoteBodyNode(body)) {
+          body.append($createTextNode('second'));
+        }
+        firstWrapper.insertAfter(second);
+      });
+    });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'firstsecond' },
+      { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
   });

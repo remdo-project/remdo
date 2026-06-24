@@ -1,4 +1,4 @@
-import { $isListNode } from '@lexical/list';
+import { $isListNode, ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { mergeRegister } from '@lexical/utils';
 import {
@@ -20,6 +20,7 @@ import type { LexicalEditor, Point } from 'lexical';
 import { useEffect } from 'react';
 
 import { forEachListItemInOutline } from '#client/editor/outline/list-traversal';
+import { getPreviousContentSibling, isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode, $resolveRootContentList } from '#client/editor/outline/schema';
 import { isBodyWrapper } from './note-body-node';
 import type { NoteBodyNode } from './note-body-node';
@@ -27,6 +28,7 @@ import {
   $addNoteBody,
   $getNoteBodyFromNode,
   $getSelectionBody,
+  $reconcileNoteBodyWrappers,
   $removeNoteBody,
   $skipBodyForHorizontalNav,
   $skipBodyForVerticalNav,
@@ -220,6 +222,21 @@ export function NoteBodyPlugin() {
 
     return mergeRegister(
       registerBodyWrapperCheckboxCleanup(editor),
+      // Keep a note to at most one body: concurrent Shift+Enter under collab can
+      // produce duplicate body-wrappers, which this folds back into one. A newly
+      // inserted duplicate marks the wrapper dirty (not the owner note), so
+      // resolve the owner from either a content item or a body-wrapper.
+      editor.registerNodeTransform(ListItemNode, (node) => {
+        // The owner note is the content sibling before a (just-inserted)
+        // body-wrapper, otherwise `node` itself unless it is a children-wrapper.
+        if (isChildrenWrapper(node)) {
+          return;
+        }
+        const note = isBodyWrapper(node) ? getPreviousContentSibling(node) : node;
+        if (note) {
+          $reconcileNoteBodyWrappers(note);
+        }
+      }),
       editor.registerCommand(
         KEY_ARROW_UP_COMMAND,
         (event) => $onArrow('up', event),
