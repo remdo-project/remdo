@@ -5,7 +5,7 @@ import {
 } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect, useRef } from 'react';
-import { setZoomBoundary } from '#client/editor/outline/selection/boundary';
+import { setEditingScope } from '#client/editor/outline/editing-scope';
 import type { UpdateListenerPayload } from 'lexical';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { useCollaborationStatus } from '#client/editor/plugins/collaboration/CollaborationProvider';
@@ -22,7 +22,7 @@ import { useZoomBulletInteractions } from './useZoomBulletInteractions';
 const EMPTY_ZOOM_STATE = {
   root: null,
   path: [] as NotePathItem[],
-  zoomBoundaryKey: null as string | null,
+  editingScopeKey: null as string | null,
   selectionInZoomRoot: false,
 };
 
@@ -44,19 +44,19 @@ export function ZoomPlugin() {
     zoomNoteIdRef.current = resolveZoomNoteId(zoomNoteId);
     const noteId = zoomNoteIdRef.current;
     if (!noteId) {
-      setZoomBoundary(editor, null);
+      setEditingScope(editor, null);
       return;
     }
 
-    let zoomBoundaryKey: string | null = null;
+    let editingScopeKey: string | null = null;
     editor.getEditorState().read(() => {
       const root = $findNoteById(noteId);
       if (!root) {
         return;
       }
-      zoomBoundaryKey = root.getKey();
+      editingScopeKey = root.getKey();
     });
-    setZoomBoundary(editor, zoomBoundaryKey);
+    setEditingScope(editor, editingScopeKey);
   }, [editor, zoomNoteId]);
 
   useEffect(() => {
@@ -107,12 +107,12 @@ export function ZoomPlugin() {
         return {
           root,
           path: $getNoteAncestorPath(root),
-          zoomBoundaryKey: root.getKey(),
+          editingScopeKey: root.getKey(),
           selectionInZoomRoot,
         };
       });
 
-      setZoomBoundary(editor, resolved.zoomBoundaryKey ?? null);
+      setEditingScope(editor, resolved.editingScopeKey ?? null);
 
       if (!areNotePathsEqual(resolved.path, lastPathRef.current)) {
         lastPathRef.current = resolved.path;

@@ -16,7 +16,7 @@ import {
 import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '#client/editor/outline/note-ops';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $requireContentItemNoteId, $requireRootContentList, resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
+import { $resolveEditingScopeRoot } from '#client/editor/outline/editing-scope';
 import type { OutlineSelectionRange } from '#client/editor/outline/selection/model';
 import { $resolveStructuralHeadsFromRange } from '#client/editor/outline/selection/range';
 import {
@@ -63,7 +63,7 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
     }
     return note;
   };
-  const $resolveBoundaryRoot = () => $resolveZoomBoundaryRoot(editor);
+  const $resolveScopeRoot = () => $resolveEditingScopeRoot(editor);
   const $resolveRangeNotes = (range: NoteRange): ListItemNode[] | null => {
     const start = $requireNoteById(range.start);
     const end = $requireNoteById(range.end);
@@ -326,28 +326,28 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return indentNotes(resolved, $resolveBoundaryRoot());
+      return indentNotes(resolved, $resolveScopeRoot());
     },
     outdent: (range) => {
       const resolved = $resolveRangeNotes(range);
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return outdentNotes(resolved, $resolveBoundaryRoot());
+      return outdentNotes(resolved, $resolveScopeRoot());
     },
     moveUp: (range) => {
       const resolved = $resolveRangeNotes(range);
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return moveNotesUp(resolved, $resolveBoundaryRoot());
+      return moveNotesUp(resolved, $resolveScopeRoot());
     },
     moveDown: (range) => {
       const resolved = $resolveRangeNotes(range);
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return moveNotesDown(resolved, $resolveBoundaryRoot());
+      return moveNotesDown(resolved, $resolveScopeRoot());
     },
   };
 }

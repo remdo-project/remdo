@@ -64,12 +64,12 @@ function $rangeFromReplayPlan(
 function $reshapeStructuralLadder(
   anchorItem: ListItemNode,
   ladder: ProgressiveSelectionState,
-  boundaryKey: string | null
+  scopeKey: string | null
 ): { plan: Extract<ProgressivePlan, { type: 'range' }>; ladder: ProgressiveSelectionState } | null {
   // Tier 1/2: the full stack still replays — the selection simply follows the
-  // remote reshape (e.g. a swept subtree gaining a child). Honor the zoom
-  // boundary so a reshape never extends outside the zoomed subtree.
-  const full = $replayLadder(anchorItem, ladder.stack, boundaryKey);
+  // remote reshape (e.g. a swept subtree gaining a child). Honor the editing
+  // scope so a reshape never extends outside the scoped subtree.
+  const full = $replayLadder(anchorItem, ladder.stack, scopeKey);
   if (full && full.type === 'range') {
     return { plan: full, ladder };
   }
@@ -78,7 +78,7 @@ function $reshapeStructuralLadder(
   // replays to a range (drop the first failing rung and everything above it).
   for (let length = ladder.stack.length - 1; length >= 1; length -= 1) {
     const prefix = ladder.stack.slice(0, length);
-    const plan = $replayLadder(anchorItem, prefix, boundaryKey);
+    const plan = $replayLadder(anchorItem, prefix, scopeKey);
     if (plan && plan.type === 'range') {
       // Truncation keeps the ladder's growth direction (a collab reshape isn't a
       // user reversal); only the stack shrinks.
@@ -110,9 +110,9 @@ interface OutlineSelectionSnapshotInput {
   progression: ProgressiveSelectionState;
   unlock: ProgressiveUnlockState;
   initialProgression: ProgressiveSelectionState;
-  // Zoom boundary (zoom root key) or null at the document root. A reshape must
+  // Editing scope (scope root key) or null at the document root. A reshape must
   // stay inside this boundary, just like the keyboard command paths.
-  boundaryKey: string | null;
+  scopeKey: string | null;
 }
 
 export function $computeOutlineSelectionSnapshot({
@@ -123,7 +123,7 @@ export function $computeOutlineSelectionSnapshot({
   progression,
   unlock,
   initialProgression,
-  boundaryKey,
+  scopeKey,
 }: OutlineSelectionSnapshotInput): OutlineSelectionSnapshot {
   // A selection inside a note body is its own world: it never feeds structural
   // selection or the ladder. Return a neutral snapshot so the body owns its
@@ -203,7 +203,7 @@ export function $computeOutlineSelectionSnapshot({
       resetProgression();
       reshape = { kind: 'collapse' };
     } else {
-      const reshaped = $reshapeStructuralLadder(anchorContent, nextProgression, boundaryKey);
+      const reshaped = $reshapeStructuralLadder(anchorContent, nextProgression, scopeKey);
       const reshapedRange = reshaped ? $rangeFromReplayPlan(reshaped.plan) : null;
       if (reshaped && reshapedRange) {
         // Tier 1/2 (full stack replays) or tier 3 (longest valid prefix).

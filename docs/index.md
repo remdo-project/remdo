@@ -44,7 +44,8 @@ outdated or a doc’s role materially changes.
   note tree and selection ladder.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
-- `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
+- `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, the
+  shared editing-scope concept, adapters, fixtures.
 - `docs/outliner/dates.md` (Medium). Inline date node behavior: `!` picker
   trigger boundaries, insert/edit interactions, default date handling, dismissal
   keys, outside-click handling, atomic token keyboard behavior, and future
@@ -84,8 +85,8 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/selection.md` (Long). Selection states and whole-note
   snapping, the anchored intent-replay selection ladder (symmetric grow/shrink),
   input bindings, collaboration reshaping tiers, and command compatibility.
-- `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
-  scope, breadcrumbs, and routing.
+- `docs/outliner/zoom.md` (Medium). Subtree zoom view, the editing scope zoom
+  sets, breadcrumbs, and routing.
 - `docs/performance/client-side-perf-tests.md` (Medium). Minimal client-side
   perf baseline spec: median metric and core modes/operations/workloads, plus
   optional experiments (warmups, thresholds, baselines, and gating).

@@ -38,7 +38,7 @@ import {
   flattenNoteNodes,
 } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
+import { getEditingScope } from '#client/editor/outline/editing-scope';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '#client/editor/outline/selection/caret-placement';
 import { $resolveStructuralDeletionHeads } from '#client/editor/outline/selection/deletion';
@@ -133,14 +133,14 @@ function hasBoundaryDirtyKey(marker: CutMarker, keys: NodeKey[], state: EditorSt
   }
 
   return state.read(() => {
-    const boundaryKeys = $collectStructuralItemKeysFromRange(marker.range);
-    if (boundaryKeys.size === 0) {
+    const markerKeys = $collectStructuralItemKeysFromRange(marker.range);
+    if (markerKeys.size === 0) {
       return false;
     }
 
     for (const key of keys) {
       const contentKey = $getContentKeyFromNodeKey(key);
-      if (contentKey && boundaryKeys.has(contentKey)) {
+      if (contentKey && markerKeys.has(contentKey)) {
         return true;
       }
     }
@@ -472,13 +472,13 @@ function $insertNodesAtSelection(
     if (orderedHeads.length === 0) {
       return false;
     }
-    const zoomBoundaryKey = getZoomBoundary(editor);
-    const zoomRootHead =
-      zoomBoundaryKey === null ? null : orderedHeads.find((head) => head.getKey() === zoomBoundaryKey) ?? null;
-    if (zoomRootHead) {
-      parentList = $getOrCreateChildList(zoomRootHead);
+    const editingScopeKey = getEditingScope(editor);
+    const scopeRootHead =
+      editingScopeKey === null ? null : orderedHeads.find((head) => head.getKey() === editingScopeKey) ?? null;
+    if (scopeRootHead) {
+      parentList = $getOrCreateChildList(scopeRootHead);
       nextSibling = getFirstDescendantListItem(parentList);
-      const replacementHeads = orderedHeads.filter((head) => head !== zoomRootHead);
+      const replacementHeads = orderedHeads.filter((head) => head !== scopeRootHead);
       orderedHeads = replacementHeads.length > 0 ? replacementHeads : getContentSiblings(parentList);
     } else {
       const lastHead = orderedHeads.at(-1)!;
@@ -501,18 +501,18 @@ function $insertNodesAtSelection(
     if (!placement) {
       return false;
     }
-    const zoomBoundaryKey = getZoomBoundary(editor);
-    const isZoomRoot = zoomBoundaryKey !== null && contentItem.getKey() === zoomBoundaryKey;
+    const editingScopeKey = getEditingScope(editor);
+    const isScopeRoot = editingScopeKey !== null && contentItem.getKey() === editingScopeKey;
 
     if (placement === 'start') {
-      if (isZoomRoot) {
+      if (isScopeRoot) {
         parentList = $getOrCreateChildList(contentItem);
         nextSibling = getFirstDescendantListItem(parentList);
       } else {
         nextSibling = contentItem;
       }
     } else if (placement === 'middle') {
-      if (isZoomRoot) {
+      if (isScopeRoot) {
         parentList = $getOrCreateChildList(contentItem);
         const split = $splitContentItemAtSelection(contentItem, selection, 'first-child');
         nextSibling = split ?? getFirstDescendantListItem(parentList);
@@ -521,7 +521,7 @@ function $insertNodesAtSelection(
         nextSibling = split ? contentItem : getNextContentSibling(contentItem);
       }
     } else {
-      if (isZoomRoot) {
+      if (isScopeRoot) {
         parentList = $getOrCreateChildList(contentItem);
         nextSibling = getFirstDescendantListItem(parentList);
       } else {

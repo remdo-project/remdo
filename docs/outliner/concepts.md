@@ -52,6 +52,12 @@ notes:
 - **Document root note:** the special root note that represents the document
   itself. It has no parent and is not directly selectable; all top-level notes
   are its children.
+- **Editing scope:** the active subtree that bounds selection and structural
+  editing. Its **scope root** is the note whose subtree edits stay within: no
+  selection or structural operation crosses it. When no scope is active the
+  editing scope is the whole document (the document root note). The editing
+  scope is producer-neutral: any feature may set it, and zoom is the current
+  producer (see `./zoom.md`).
 
 ---
 

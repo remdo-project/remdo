@@ -40,16 +40,16 @@ export interface DirectionalCollapseResult {
 }
 
 // Signals that the press had no effect (same-direction press at a caret, or a
-// growth push blocked by the document/zoom boundary). The ladder is unchanged.
+// growth push blocked by the editing scope). The ladder is unchanged.
 export interface DirectionalNoopResult {
   noop: true;
 }
 
-function $resolveBoundaryRoot(boundaryKey: string | null | undefined): ListItemNode | null {
-  if (!boundaryKey) {
+function $resolveScopeRoot(scopeKey: string | null | undefined): ListItemNode | null {
+  if (!scopeKey) {
     return null;
   }
-  const node = $getNodeByKey<ListItemNode>(boundaryKey);
+  const node = $getNodeByKey<ListItemNode>(scopeKey);
   if (!node) {
     return null;
   }
@@ -64,14 +64,14 @@ function $growLadder(
   base: ProgressiveSelectionState,
   anchorContent: ListItemNode,
   direction: 'up' | 'down',
-  boundaryReplayKey: string | null,
+  scopeReplayKey: string | null,
   slab: boolean
 ): { ladder: ProgressiveSelectionState; plan: ProgressivePlan | null } {
   let ladder = pushStep(base, direction);
-  let plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, slab);
+  let plan = $replayLadder(anchorContent, ladder.stack, scopeReplayKey, slab);
   if (!plan && ladder.stack.length === 1) {
     ladder = pushStep(ladder, direction);
-    plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, slab);
+    plan = $replayLadder(anchorContent, ladder.stack, scopeReplayKey, slab);
   }
   return { ladder, plan };
 }
@@ -122,7 +122,7 @@ function $resolveProgressionAnchorContent(
 export function $computeProgressivePlan(
   progressionRef: ProgressiveSelectionRef,
   initialProgression: ProgressiveSelectionState,
-  boundaryKey: string | null = null
+  scopeKey: string | null = null
 ): ProgressivePlanResult | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
@@ -141,8 +141,8 @@ export function $computeProgressivePlan(
 
   const anchorKey = anchorContent.getKey();
   const isContinuing = progressionRef.current.anchorKey === anchorKey;
-  const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
-  const boundaryReplayKey = boundaryRoot ? boundaryRoot.getKey() : null;
+  const scopeRoot = $resolveScopeRoot(scopeKey);
+  const scopeReplayKey = scopeRoot ? scopeRoot.getKey() : null;
 
   // Cmd+A is direction-neutral: it only ever grows the ladder outward, and its
   // slab rung selects the whole sibling group regardless of direction. So it
@@ -151,24 +151,24 @@ export function $computeProgressivePlan(
   // Shift+Arrow read as contraction. Start from a down-oriented base when
   // continuing, or an empty ladder on a fresh anchor.
   const base = isContinuing ? { ...progressionRef.current, direction: 'down' as const } : emptyLadder(anchorKey);
-  const { ladder, plan } = $growLadder(base, anchorContent, 'down', boundaryReplayKey, true);
+  const { ladder, plan } = $growLadder(base, anchorContent, 'down', scopeReplayKey, true);
 
   if (!plan) {
-    // The freshly pushed rung ran past the edge: either the zoom boundary or the
-    // document root. Clamp to the maximum reachable selection so the handler still
-    // claims the event instead of falling through to the default browser Cmd+A.
-    // Leave the ladder unchanged (don't persist the blocked rung).
-    if (boundaryRoot) {
-      // Zoom boundary: clamp to the zoom root's subtree.
-      const clampedPlan = $createSubtreePlan(boundaryRoot);
+    // The freshly pushed rung ran past the edge: either the editing scope root or
+    // the document root. Clamp to the maximum reachable selection so the handler
+    // still claims the event instead of falling through to the default browser
+    // Cmd+A. Leave the ladder unchanged (don't persist the blocked rung).
+    if (scopeRoot) {
+      // Scoped: clamp to the scope root's subtree.
+      const clampedPlan = $createSubtreePlan(scopeRoot);
       if (clampedPlan) {
         return { anchorKey, plan: clampedPlan };
       }
     } else {
-      // Document root (no zoom): replay the last good ladder — the whole-document
+      // Document root (no scope): replay the last good ladder — the whole-document
       // slab the previous press already reached — so a further Cmd+A is a handled
       // no-op rather than a fall-through.
-      const clampedPlan = $replayLadder(anchorContent, base.stack, boundaryReplayKey, true);
+      const clampedPlan = $replayLadder(anchorContent, base.stack, scopeReplayKey, true);
       if (clampedPlan) {
         return { anchorKey, plan: clampedPlan };
       }
@@ -196,7 +196,7 @@ export function $computeDirectionalPlan(
   progressionRef: ProgressiveSelectionRef,
   direction: 'up' | 'down',
   initialProgression: ProgressiveSelectionState,
-  boundaryKey: string | null = null
+  scopeKey: string | null = null
 ): ProgressivePlanResult | DirectionalCollapseResult | DirectionalNoopResult | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
@@ -221,8 +221,8 @@ export function $computeDirectionalPlan(
   const ladder = progressionRef.current;
   const isContinuing = ladder.anchorKey === anchorKey && ladder.stack.length > 0;
   const sweep = isContinuing ? ladder.direction : null;
-  const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
-  const boundaryReplayKey = boundaryRoot ? boundaryRoot.getKey() : null;
+  const scopeRoot = $resolveScopeRoot(scopeKey);
+  const scopeReplayKey = scopeRoot ? scopeRoot.getKey() : null;
 
   // Contraction: a press opposite to the direction the ladder was grown pops the
   // top rung. This works from any rung (including the direction-neutral inline /
@@ -236,7 +236,7 @@ export function $computeDirectionalPlan(
       progressionRef.current = emptyLadder(anchorKey);
       return { collapse: true, anchorKey };
     }
-    const plan = $replayLadder(anchorContent, next.stack, boundaryReplayKey);
+    const plan = $replayLadder(anchorContent, next.stack, scopeReplayKey);
     if (!plan) {
       progressionRef.current = emptyLadder(anchorKey);
       return { collapse: true, anchorKey };
@@ -247,10 +247,10 @@ export function $computeDirectionalPlan(
 
   // Growth: push the next rung (fresh ladder when not continuing).
   const base = isContinuing ? ladder : emptyLadder(anchorKey);
-  const { ladder: next, plan } = $growLadder(base, anchorContent, direction, boundaryReplayKey, false);
+  const { ladder: next, plan } = $growLadder(base, anchorContent, direction, scopeReplayKey, false);
 
   if (!plan) {
-    // Boundary push (past document/zoom root) — no-op, keep the current ladder.
+    // Scope push (past document/scope root) — no-op, keep the current ladder.
     return { noop: true };
   }
 

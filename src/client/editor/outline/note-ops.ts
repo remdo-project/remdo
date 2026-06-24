@@ -15,7 +15,7 @@ import {
   maybeRemoveEmptyWrapper,
 } from './list-structure';
 import { resolveContentItemFromNode } from './schema';
-import { isWithinZoomBoundary } from './selection/boundary';
+import { isWithinEditingScope } from './editing-scope';
 import { getContiguousSelectionHeads } from './selection/heads';
 import { resolveContiguousSiblingRangeFromHeads } from './selection/sibling-run';
 import { getNextContentSibling, getParentContentItem, isContentDescendantOf } from './selection/tree';
@@ -34,8 +34,8 @@ export function resolveRangeSelectionHeads(selection: RangeSelection): ListItemN
   return contentItem ? [contentItem] : [];
 }
 
-function canIndentNote(noteItem: ListItemNode, boundaryRoot: ListItemNode | null): boolean {
-  if (!isWithinZoomBoundary(noteItem, boundaryRoot)) {
+function canIndentNote(noteItem: ListItemNode, scopeRoot: ListItemNode | null): boolean {
+  if (!isWithinEditingScope(noteItem, scopeRoot)) {
     return false;
   }
 
@@ -44,11 +44,11 @@ function canIndentNote(noteItem: ListItemNode, boundaryRoot: ListItemNode | null
     return false;
   }
 
-  return isWithinZoomBoundary(previous, boundaryRoot);
+  return isWithinEditingScope(previous, scopeRoot);
 }
 
-function canOutdentNote(noteItem: ListItemNode, boundaryRoot: ListItemNode | null): boolean {
-  if (!isWithinZoomBoundary(noteItem, boundaryRoot)) {
+function canOutdentNote(noteItem: ListItemNode, scopeRoot: ListItemNode | null): boolean {
+  if (!isWithinEditingScope(noteItem, scopeRoot)) {
     return false;
   }
 
@@ -57,23 +57,23 @@ function canOutdentNote(noteItem: ListItemNode, boundaryRoot: ListItemNode | nul
     return false;
   }
 
-  if (!boundaryRoot) {
+  if (!scopeRoot) {
     return true;
   }
 
-  if (!isContentDescendantOf(parent, boundaryRoot)) {
+  if (!isContentDescendantOf(parent, scopeRoot)) {
     return false;
   }
 
-  return parent.getKey() !== boundaryRoot.getKey();
+  return parent.getKey() !== scopeRoot.getKey();
 }
 
-function $indentNotes(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
+function $indentNotes(notes: ListItemNode[], scopeRoot: ListItemNode | null): boolean {
   if (notes.length === 0) {
     return false;
   }
 
-  if (!notes.every((item) => canIndentNote(item, boundaryRoot))) {
+  if (!notes.every((item) => canIndentNote(item, scopeRoot))) {
     return false;
   }
 
@@ -85,17 +85,17 @@ function $indentNotes(notes: ListItemNode[], boundaryRoot: ListItemNode | null):
 }
 export const indentNotes = $indentNotes;
 
-function $indentNotesInRange(range: OutlineSelectionRange, boundaryRoot: ListItemNode | null): boolean {
-  return indentNotes($resolveStructuralHeadsFromRange(range), boundaryRoot);
+function $indentNotesInRange(range: OutlineSelectionRange, scopeRoot: ListItemNode | null): boolean {
+  return indentNotes($resolveStructuralHeadsFromRange(range), scopeRoot);
 }
 export const indentNotesInRange = $indentNotesInRange;
 
-function $outdentNotes(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
+function $outdentNotes(notes: ListItemNode[], scopeRoot: ListItemNode | null): boolean {
   if (notes.length === 0) {
     return false;
   }
 
-  if (!notes.every((item) => canOutdentNote(item, boundaryRoot))) {
+  if (!notes.every((item) => canOutdentNote(item, scopeRoot))) {
     return false;
   }
 
@@ -107,8 +107,8 @@ function $outdentNotes(notes: ListItemNode[], boundaryRoot: ListItemNode | null)
 }
 export const outdentNotes = $outdentNotes;
 
-function $outdentNotesInRange(range: OutlineSelectionRange, boundaryRoot: ListItemNode | null): boolean {
-  return outdentNotes($resolveStructuralHeadsFromRange(range), boundaryRoot);
+function $outdentNotesInRange(range: OutlineSelectionRange, scopeRoot: ListItemNode | null): boolean {
+  return outdentNotes($resolveStructuralHeadsFromRange(range), scopeRoot);
 }
 export const outdentNotesInRange = $outdentNotesInRange;
 
@@ -122,9 +122,9 @@ interface ParentMoveContext {
 
 function resolveMoveLeadNote(
   notes: ListItemNode[],
-  boundaryRoot: ListItemNode | null
+  scopeRoot: ListItemNode | null
 ): ListItemNode | null {
-  if (!notes.every((note) => isWithinZoomBoundary(note, boundaryRoot))) {
+  if (!notes.every((note) => isWithinEditingScope(note, scopeRoot))) {
     return null;
   }
 
@@ -133,9 +133,9 @@ function resolveMoveLeadNote(
 
 function resolveParentMoveContext(
   notes: ListItemNode[],
-  boundaryRoot: ListItemNode | null
+  scopeRoot: ListItemNode | null
 ): ParentMoveContext | null {
-  const firstNote = resolveMoveLeadNote(notes, boundaryRoot);
+  const firstNote = resolveMoveLeadNote(notes, scopeRoot);
   if (!firstNote) {
     return null;
   }
@@ -149,7 +149,7 @@ function resolveParentMoveContext(
   if (!parentContent) {
     return null;
   }
-  if (!isWithinZoomBoundary(parentContent, boundaryRoot)) {
+  if (!isWithinEditingScope(parentContent, scopeRoot)) {
     return null;
   }
 
@@ -160,9 +160,9 @@ function moveWithinList(
   notes: ListItemNode[],
   siblings: ListItemNode[],
   direction: MoveDirection,
-  boundaryRoot: ListItemNode | null
+  scopeRoot: ListItemNode | null
 ): boolean {
-  const firstNote = resolveMoveLeadNote(notes, boundaryRoot);
+  const firstNote = resolveMoveLeadNote(notes, scopeRoot);
   if (!firstNote) {
     return false;
   }
@@ -175,7 +175,7 @@ function moveWithinList(
   const targetSibling = direction === 'down'
     ? siblings[startIndex + notes.length]
     : siblings[startIndex - 1];
-  if (!targetSibling || !isWithinZoomBoundary(targetSibling, boundaryRoot)) {
+  if (!targetSibling || !isWithinEditingScope(targetSibling, scopeRoot)) {
     return false;
   }
   const nodesToMove = flattenNoteNodes(notes);
@@ -196,9 +196,9 @@ function moveWithinList(
 function $moveToParentSiblingChildList(
   notes: ListItemNode[],
   direction: MoveDirection,
-  boundaryRoot: ListItemNode | null
+  scopeRoot: ListItemNode | null
 ): boolean {
-  const context = resolveParentMoveContext(notes, boundaryRoot);
+  const context = resolveParentMoveContext(notes, scopeRoot);
   if (!context) {
     return false;
   }
@@ -211,7 +211,7 @@ function $moveToParentSiblingChildList(
   if (!targetParent) {
     return false;
   }
-  if (!isWithinZoomBoundary(targetParent, boundaryRoot)) {
+  if (!isWithinEditingScope(targetParent, scopeRoot)) {
     return false;
   }
 
@@ -234,14 +234,14 @@ function $moveToParentSiblingChildList(
   return true;
 }
 
-function outdentMoveFallback(notes: ListItemNode[], direction: MoveDirection, boundaryRoot: ListItemNode | null): boolean {
-  const context = resolveParentMoveContext(notes, boundaryRoot);
+function outdentMoveFallback(notes: ListItemNode[], direction: MoveDirection, scopeRoot: ListItemNode | null): boolean {
+  const context = resolveParentMoveContext(notes, scopeRoot);
   if (!context) {
     return false;
   }
 
   const { parentContent, sourceList } = context;
-  if (boundaryRoot && parentContent.getKey() === boundaryRoot.getKey()) {
+  if (scopeRoot && parentContent.getKey() === scopeRoot.getKey()) {
     return false;
   }
 
@@ -261,20 +261,20 @@ function outdentMoveFallback(notes: ListItemNode[], direction: MoveDirection, bo
   return true;
 }
 
-function resolveMovableHeads(notes: ListItemNode[], boundaryRoot: ListItemNode | null): ListItemNode[] | null {
+function resolveMovableHeads(notes: ListItemNode[], scopeRoot: ListItemNode | null): ListItemNode[] | null {
   if (notes.length === 0) {
     return null;
   }
 
-  if (boundaryRoot && !notes.every((note) => isWithinZoomBoundary(note, boundaryRoot))) {
+  if (scopeRoot && !notes.every((note) => isWithinEditingScope(note, scopeRoot))) {
     return null;
   }
 
   return resolveContiguousSiblingRangeFromHeads(notes);
 }
 
-function $moveNotes(notes: ListItemNode[], direction: MoveDirection, boundaryRoot: ListItemNode | null): boolean {
-  const movableHeads = resolveMovableHeads(notes, boundaryRoot);
+function $moveNotes(notes: ListItemNode[], direction: MoveDirection, scopeRoot: ListItemNode | null): boolean {
+  const movableHeads = resolveMovableHeads(notes, scopeRoot);
   if (!movableHeads || movableHeads.length === 0) {
     return false;
   }
@@ -286,28 +286,28 @@ function $moveNotes(notes: ListItemNode[], direction: MoveDirection, boundaryRoo
 
   const siblings = getContentSiblings(parentList);
   return (
-    moveWithinList(movableHeads, siblings, direction, boundaryRoot)
-    || $moveToParentSiblingChildList(movableHeads, direction, boundaryRoot)
-    || outdentMoveFallback(movableHeads, direction, boundaryRoot)
+    moveWithinList(movableHeads, siblings, direction, scopeRoot)
+    || $moveToParentSiblingChildList(movableHeads, direction, scopeRoot)
+    || outdentMoveFallback(movableHeads, direction, scopeRoot)
   );
 }
 
-function $moveNotesDown(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
-  return $moveNotes(notes, 'down', boundaryRoot);
+function $moveNotesDown(notes: ListItemNode[], scopeRoot: ListItemNode | null): boolean {
+  return $moveNotes(notes, 'down', scopeRoot);
 }
 export const moveNotesDown = $moveNotesDown;
 
-function $moveNotesDownInRange(range: OutlineSelectionRange, boundaryRoot: ListItemNode | null): boolean {
-  return moveNotesDown($resolveStructuralHeadsFromRange(range), boundaryRoot);
+function $moveNotesDownInRange(range: OutlineSelectionRange, scopeRoot: ListItemNode | null): boolean {
+  return moveNotesDown($resolveStructuralHeadsFromRange(range), scopeRoot);
 }
 export const moveNotesDownInRange = $moveNotesDownInRange;
 
-function $moveNotesUp(notes: ListItemNode[], boundaryRoot: ListItemNode | null): boolean {
-  return $moveNotes(notes, 'up', boundaryRoot);
+function $moveNotesUp(notes: ListItemNode[], scopeRoot: ListItemNode | null): boolean {
+  return $moveNotes(notes, 'up', scopeRoot);
 }
 export const moveNotesUp = $moveNotesUp;
 
-function $moveNotesUpInRange(range: OutlineSelectionRange, boundaryRoot: ListItemNode | null): boolean {
-  return moveNotesUp($resolveStructuralHeadsFromRange(range), boundaryRoot);
+function $moveNotesUpInRange(range: OutlineSelectionRange, scopeRoot: ListItemNode | null): boolean {
+  return moveNotesUp($resolveStructuralHeadsFromRange(range), scopeRoot);
 }
 export const moveNotesUpInRange = $moveNotesUpInRange;

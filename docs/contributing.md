@@ -103,6 +103,22 @@ tests. Colocated `*.spec.ts` and `*.spec.tsx` files in these feature folders are
 part of the unit test inventory and should follow the same test rules as
 `tests/unit`.
 
+A feature folder owns code the feature is the sole consumer of, and dependencies
+point one way: a feature MAY import from `outline/`, `runtime/`, `view/`,
+`commands.ts`, and similar shared modules, but those shared modules MUST NOT
+import from a feature folder.
+
+When several shared modules need a capability, that capability is shared
+infrastructure and lives in the shared layer under a producer-neutral name — not
+in the folder of whichever feature first needed it. A feature then *produces*
+into that infrastructure rather than owning it. For example, the editing scope
+(the active subtree that bounds selection and structural editing) is owned by
+`outline/` because many shared modules across selection, editing, and view
+consume it; zoom is merely the feature that currently sets it. Naming a
+shared concept after its first producer is the anti-pattern to avoid: it forces
+either a dependency inversion or a feature-named symbol threaded through
+unrelated shared code.
+
 Keep durable product behavior in `docs/`; source feature folders should not
 replace the stable behavior specs.
 

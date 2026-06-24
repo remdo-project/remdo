@@ -2,7 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { COMMAND_PRIORITY_LOW, KEY_TAB_COMMAND } from 'lexical';
 import { useEffect } from 'react';
 import { indentNotesInRange, outdentNotesInRange } from '#client/editor/outline/note-ops';
-import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
+import { $resolveEditingScopeRoot } from '#client/editor/outline/editing-scope';
 import { $resolveSelectedNoteRange } from './selected-note-range';
 
 export function IndentationPlugin() {
@@ -18,12 +18,12 @@ export function IndentationPlugin() {
         }
 
         event.preventDefault();
-        const boundaryRoot = $resolveZoomBoundaryRoot(editor);
+        const scopeRoot = $resolveEditingScopeRoot(editor);
 
         if (event.shiftKey) {
-          outdentNotesInRange(range, boundaryRoot);
+          outdentNotesInRange(range, scopeRoot);
         } else {
-          indentNotesInRange(range, boundaryRoot);
+          indentNotesInRange(range, scopeRoot);
         }
 
         return true;

@@ -35,8 +35,15 @@ Rules:
 
 - [Future] Audit existing editor capabilities for migration into
   `src/client/editor/features/<feature>/` when they own a cohesive plugin plus
-  related nodes, helpers, UI, and focused unit tests. Likely candidates include
-  note links and search, but keep migrations incremental and behavior-neutral.
+  related nodes, helpers, UI, and focused unit tests. Zoom is migrated (view,
+  plugins, breadcrumbs, helpers, and specs under `features/zoom/`); as part of
+  it the shared "zoom boundary" was renamed to the producer-neutral **editing
+  scope** primitive in `outline/editing-scope.ts`, with zoom as its sole current
+  producer (see `docs/outliner/concepts.md` and the dependency rule in
+  `docs/contributing.md#editor-feature-modules`). Remaining ranked candidates:
+  note links (most spread), search, folding, list types, then note menu/controls
+  (after the commands it dispatches move). Keep migrations incremental and
+  behavior-neutral.
 - Pressing a hot key just after a node with text content (for example `!` right
   after an existing date node) fails to trigger, because the boundary check
   reads the previous node's rendered text and sees a non-boundary character.

@@ -8,7 +8,7 @@ import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW }
 import { $isNoteFolded, $setNoteFolded } from '#client/editor/runtime/fold-state';
 import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/commands';
 import { forEachContentItemInOutline, forEachContentItemWithAncestorsInOutline } from '#client/editor/outline/list-traversal';
-import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
+import { $resolveEditingScopeRoot } from '#client/editor/outline/editing-scope';
 import { $resolveRootContentList, resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
@@ -37,14 +37,15 @@ const $applyFoldViewToLevel = (editor: LexicalEditor, level: number): boolean =>
     return false;
   }
 
-  const boundaryRoot = $resolveZoomBoundaryRoot(editor);
-  const boundaryKey = boundaryRoot?.getKey() ?? null;
+  const scopeRoot = $resolveEditingScopeRoot(editor);
+  const scopeKey = scopeRoot?.getKey() ?? null;
   let changed = false;
 
   forEachContentItemWithAncestorsInOutline(rootList, (item, ancestors) => {
-    // The zoom root keeps its own children visible while zoomed, regardless of
-    // its stored folded state. Deeper descendants still follow fold-to-level.
-    if (boundaryKey && item.getKey() === boundaryKey) {
+    // The scope root keeps its own children visible while scoped (e.g. zoomed),
+    // regardless of its stored folded state. Deeper descendants still follow
+    // fold-to-level.
+    if (scopeKey && item.getKey() === scopeKey) {
       if ($isNoteFolded(item)) {
         $setNoteFolded(item, false);
         changed = true;
@@ -52,14 +53,14 @@ const $applyFoldViewToLevel = (editor: LexicalEditor, level: number): boolean =>
       return;
     }
 
-    const boundaryIndex = boundaryKey
-      ? ancestors.findIndex((ancestor) => ancestor.getKey() === boundaryKey)
+    const scopeIndex = scopeKey
+      ? ancestors.findIndex((ancestor) => ancestor.getKey() === scopeKey)
       : -1;
-    if (boundaryKey && boundaryIndex === -1) {
+    if (scopeKey && scopeIndex === -1) {
       return;
     }
 
-    const depth = ancestors.length - boundaryIndex;
+    const depth = ancestors.length - scopeIndex;
     const nextFolded = level > 0 && depth === level && noteHasChildren(item);
     if ($isNoteFolded(item) !== nextFolded) {
       $setNoteFolded(item, nextFolded);

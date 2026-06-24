@@ -112,7 +112,7 @@ function $hasInlineBoundary(item: ListItemNode): boolean {
  *
  * @param anchorItem  The anchor content ListItemNode.
  * @param stack       Ordered list of rungs to replay.
- * @param boundaryKey Optional zoom boundary: never extend outside that root's subtree.
+ * @param scopeKey Optional editing scope: never extend outside that root's subtree.
  * @param slab        When true, a `sibling` rung extends the range all the way to the
  *                    last sibling in its direction at the current level (instead of
  *                    advancing one position). Used by Cmd/Ctrl+A to select the whole
@@ -122,12 +122,12 @@ function $hasInlineBoundary(item: ListItemNode): boolean {
 export function $replayLadder(
   anchorItem: ListItemNode,
   stack: Rung[],
-  boundaryKey: string | null = null,
+  scopeKey: string | null = null,
   slab = false
 ): ProgressivePlan | null {
-  const boundaryRoot = boundaryKey ? $getNodeByKey<ListItemNode>(boundaryKey) : null;
-  const withinBoundary = (item: ListItemNode): boolean =>
-    !boundaryRoot || isContentDescendantOf(item, boundaryRoot) || item.getKey() === boundaryRoot.getKey();
+  const scopeRoot = scopeKey ? $getNodeByKey<ListItemNode>(scopeKey) : null;
+  const withinScope = (item: ListItemNode): boolean =>
+    !scopeRoot || isContentDescendantOf(item, scopeRoot) || item.getKey() === scopeRoot.getKey();
 
   // contextItem tracks the "active level" item for hoist/sibling navigation.
   // It starts at the anchor and shifts up when a sibling step hoists.
@@ -164,7 +164,7 @@ export function $replayLadder(
     // the current level (contextItem). If a sibling exists there, extend the
     // range to it and its subtree; otherwise hoist to the parent level and take
     // the parent's whole subtree (the hoist itself is the step). A step that can
-    // neither advance nor hoist (past the document/zoom root) is unresolvable.
+    // neither advance nor hoist (past the document/scope root) is unresolvable.
     //
     // In slab mode the range extends to the LAST sibling in the direction
     // (instead of just one), selecting the entire remaining slab in one press.
@@ -182,7 +182,7 @@ export function $replayLadder(
       //   - The range already covers the full slab (detected by startHead/endHead
       //     already pinned to first/last), meaning a previous slab rung consumed
       //     this level. The next rung should escalate to the parent.
-      const allSiblings = getContentSiblingsForItem(contextItem).filter(withinBoundary);
+      const allSiblings = getContentSiblingsForItem(contextItem).filter(withinScope);
       const firstSib = allSiblings[0];
       const lastSib = allSiblings.at(-1);
       const alreadyFullSlab =
@@ -197,7 +197,7 @@ export function $replayLadder(
         continue;
       }
       // Single-item sibling list or already covering the full slab: fall through to hoist.
-    } else if (sibling && withinBoundary(sibling)) {
+    } else if (sibling && withinScope(sibling)) {
       contextItem = sibling;
       if (rung.direction === 'down') {
         endHead = sibling;
@@ -208,7 +208,7 @@ export function $replayLadder(
     }
 
     const parent = getParentContentItem(contextItem);
-    if (!parent || !withinBoundary(parent)) {
+    if (!parent || !withinScope(parent)) {
       return null;
     }
     contextItem = parent;

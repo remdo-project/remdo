@@ -11,7 +11,7 @@ details.
 1. **Concept & invariants:** `./concepts.md` — canonical note model (structure/content/props) and adapter framing.
 2. **Note identity:** `./note-ids.md` — `noteId` invariants, lifecycle, and global reference rules.
 3. **Selection:** `./selection.md` — whole-note, contiguous slab selection model and shortcut ladder.
-4. **Zoom view:** `./zoom.md` — subtree isolation, zoom-boundary editing scope,
+4. **Zoom view:** `./zoom.md` — subtree isolation, the editing scope it sets,
    breadcrumbs, and route state.
 5. **Folding:** `./folding.md` — collapse/expand note subtrees, visibility
    filtering, persistence, and view-scoped fold-to-level commands.
@@ -35,7 +35,9 @@ details.
    placement invariants.
 15. **Reordering (drag & drop):** `./drag-and-drop.md` — not supported yet; future plan lives here.
 16. **Deletion:** `./deletion.md` — caret vs. structural deletion semantics, merge/no-op rules, and spacing contract.
-17. **Note body:** `./body.md` — optional rich-text region attached to a note (`Shift+Enter`), with its own trapped selection world outside the note tree and ladder.
+17. **Note body:** `./body.md` — optional rich-text region attached to a note
+   (`Shift+Enter`), with its own trapped selection world outside the note tree
+   and ladder.
 
 ## Glossary (minimal)
 

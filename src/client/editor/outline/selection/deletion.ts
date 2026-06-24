@@ -2,7 +2,7 @@ import type { ListItemNode } from '@lexical/list';
 import type { BaseSelection } from 'lexical';
 import { $isRangeSelection } from 'lexical';
 import { getPreviousContentSibling } from '../list-structure';
-import { isWithinZoomBoundary } from './boundary';
+import { isWithinEditingScope } from '../editing-scope';
 import { getContiguousSelectionHeads } from './heads';
 import type { OutlineSelectionRange } from './model';
 import { $resolveStructuralHeadsFromRange } from './range';
@@ -43,7 +43,7 @@ export function $resolveStructuralDeletionHeads(
 export function $resolveStructuralDeletionTargets(
   range: OutlineSelectionRange,
   selection: BaseSelection | null,
-  boundaryRoot: ListItemNode | null
+  scopeRoot: ListItemNode | null
 ): StructuralDeletionTargets | null {
   const heads = $resolveStructuralDeletionHeads(range, selection);
   if (heads.length === 0) {
@@ -52,7 +52,7 @@ export function $resolveStructuralDeletionTargets(
 
   const lastHead = heads.at(-1)!;
   const nextSibling = getNextContentSibling(lastHead);
-  if (nextSibling && isWithinZoomBoundary(nextSibling, boundaryRoot)) {
+  if (nextSibling && isWithinEditingScope(nextSibling, scopeRoot)) {
     return {
       heads,
       caretPlan: { target: nextSibling, edge: 'start' },
@@ -61,7 +61,7 @@ export function $resolveStructuralDeletionTargets(
 
   const firstHead = heads[0]!;
   const previousSibling = getPreviousContentSibling(firstHead);
-  if (previousSibling && isWithinZoomBoundary(previousSibling, boundaryRoot)) {
+  if (previousSibling && isWithinEditingScope(previousSibling, scopeRoot)) {
     return {
       heads,
       caretPlan: { target: getSubtreeTail(previousSibling), edge: 'end' },
@@ -69,7 +69,7 @@ export function $resolveStructuralDeletionTargets(
   }
 
   const parentNote = getParentContentItem(firstHead);
-  if (parentNote && isWithinZoomBoundary(parentNote, boundaryRoot)) {
+  if (parentNote && isWithinEditingScope(parentNote, scopeRoot)) {
     return {
       heads,
       caretPlan: { target: parentNote, edge: 'end' },

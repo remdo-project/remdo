@@ -21,7 +21,7 @@ import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $getOrCreateChildList, getBodyWrapper, insertBefore } from '#client/editor/outline/list-structure';
 import { resolveBoundaryPoint } from '#client/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '#client/editor/outline/selection/caret-placement';
-import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
+import { getEditingScope } from '#client/editor/outline/editing-scope';
 import { getNestedList, noteHasChildren } from '#client/editor/outline/selection/tree';
 
 function $createNote(text: string): ListItemNode {
@@ -208,14 +208,14 @@ export function InsertionPlugin() {
           if (!contentItem) {
             return false;
           }
-          const zoomBoundaryKey = getZoomBoundary(editor);
-          const isZoomRoot = zoomBoundaryKey !== null && contentItem.getKey() === zoomBoundaryKey;
+          const editingScopeKey = getEditingScope(editor);
+          const isScopeRoot = editingScopeKey !== null && contentItem.getKey() === editingScopeKey;
 
           const placement = resolveCaretPlacement(selection, contentItem);
           if (placement === 'start') {
             event?.preventDefault();
             event?.stopPropagation();
-            if (isZoomRoot) {
+            if (isScopeRoot) {
               $insertEmptyFirstChild(contentItem);
             } else {
               $handleEnterAtStart(contentItem);
@@ -226,7 +226,7 @@ export function InsertionPlugin() {
           if (placement === 'end') {
             event?.preventDefault();
             event?.stopPropagation();
-            if (isZoomRoot) {
+            if (isScopeRoot) {
               $insertEmptyFirstChild(contentItem);
             } else {
               $handleEnterAtEnd(contentItem);
@@ -235,7 +235,7 @@ export function InsertionPlugin() {
           }
 
           if (placement === 'middle') {
-            const split = $splitContentItemAtSelection(contentItem, selection, isZoomRoot ? 'first-child' : 'sibling');
+            const split = $splitContentItemAtSelection(contentItem, selection, isScopeRoot ? 'first-child' : 'sibling');
             if (!split) {
               return false;
             }

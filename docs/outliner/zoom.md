@@ -3,9 +3,9 @@
 ## Purpose
 
 Define the user-visible behavior for isolating a single note and its
-subtree. Zoom is both a presentation filter and an editing scope boundary:
-while zoomed, editing stays inside the visible subtree. It is distinct from
-caret/selection state in the editor.
+subtree. Zoom is a presentation filter that also sets the
+[editing scope](./concepts.md): while zoomed, editing stays inside the visible
+subtree. It is distinct from caret/selection state in the editor.
 
 ## Definitions
 
@@ -13,11 +13,19 @@ caret/selection state in the editor.
   document root note represents the full document view).
 - **Zoom root:** The note whose subtree is displayed for the current zoom
   target.
-- **Zoom boundary:** The zoom root plus all of its descendants.
-- **View actions:** Commands that operate on the current zoom boundary rather
+- **Zoom boundary:** The zoom root plus all of its descendants — the
+  [editing scope](./concepts.md) while zoom is the producer. Other docs use
+  this term for the subtree that bounds an operation when zoom is active.
+- **View actions:** Commands that operate on the current editing scope rather
   than on a single note.
 - **Zoom path:** The ordered list of ancestors from the document to the zoom
   root, used for breadcrumbs.
+
+Entering zoom sets the [editing scope](./concepts.md) to the zoom root, so
+selection and structural editing stay inside the zoomed subtree; clearing zoom
+restores the whole-document scope. Zoom is a presentation filter that also acts
+as a producer of the editing scope — the bounding behavior itself is the shared
+editing-scope contract, not zoom-specific.
 
 ## Core behavior
 
@@ -29,10 +37,10 @@ caret/selection state in the editor.
 3. Zoom does not introduce a new note type or structural level. Note identities
    and collaboration semantics are unchanged.
 4. While zoomed, selection expansion (including Select All) is bounded to the
-   zoom root. Within that boundary, selection behavior matches
-   [Selection](./selection.md).
-5. While zoomed, edits are bounded to the zoom boundary. Commands must not
-   create, merge, move, or target notes outside that boundary.
+   zoom root via the editing scope. Within that scope, selection behavior
+   matches [Selection](./selection.md).
+5. While zoomed, edits are bounded to the editing scope. Commands must not
+   create, merge, move, or target notes outside the scope root's subtree.
 6. The zoom root is presented distinctly from ordinary note rows. It remains
    editable, but it serves as the local title/heading for the zoomed view
    rather than reading as just another sibling in the list.

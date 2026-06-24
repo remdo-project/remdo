@@ -139,7 +139,7 @@ function MockZoomBreadcrumbs({ documentControl }: { documentControl: React.React
 
 vi.mock('#client/editor/Editor', () => ({ default: MockEditor }));
 
-vi.mock('#client/editor/zoom/ZoomBreadcrumbs', () => ({
+vi.mock('#client/editor/features/zoom/ZoomBreadcrumbs', () => ({
   ZoomBreadcrumbs: MockZoomBreadcrumbs,
 }));
 
