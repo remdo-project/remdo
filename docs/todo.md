@@ -237,7 +237,14 @@ Remaining issues to fold in or fix directly:
   `poolOptions.forks.maxForks` (~4 / `'50%'`) and raise the timeout on the
   subprocess-spawning files (`snapshot-backup`, `prod-docker-launcher`,
   `config-env`, `docker-entrypoint-env`, `snapshot.collab`). Verify with
-  `test:collab:repeat`.
+  `test:collab:repeat`. (Distinct from the e2e readiness flake below.)
+- e2e `TestBridgePlugin: collaboration readiness timed out` flake (CI, ~1/99,
+  different test each time; seen on `editor/deletion.spec.ts` `editor.load(...)`).
+  Preceded by a vite `/d` ws-proxy `ECONNRESET` — a dropped collab websocket
+  blows the 2000ms `waitForCollaborationReady` budget in `TestBridgePlugin.tsx`.
+  Repro odds: `pnpm run test:e2e:repeat`. Candidate fixes: retry/reconnect around
+  `collab.awaitSynced`, or raise/derive the readiness budget. Don't mask it by
+  blanket-bumping the timeout without confirming the ws drop is the cause.
 
 ## Warning and drift detection follow-ups
 
