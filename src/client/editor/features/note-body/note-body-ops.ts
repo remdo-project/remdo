@@ -275,14 +275,9 @@ export function $addNoteBody(note: ListItemNode): NoteBodyNode {
 
 /** Remove a note body and place the caret back at the end of its note. */
 export function $removeNoteBody(body: NoteBodyNode): void {
-  const wrapper = body.getParent();
-  const note = wrapper && $isListItemNode(wrapper) ? wrapper.getPreviousSibling() : null;
-  if (wrapper) {
-    wrapper.remove();
-  }
-  if ($isListItemNode(note)) {
-    note.selectEnd();
-  }
+  const note = $getNoteForBody(body);
+  body.getParent()?.remove();
+  note?.selectEnd();
 }
 
 /** True when the body has no text content (after trimming whitespace). */

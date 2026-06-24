@@ -2,6 +2,7 @@ import { $isListNode, ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { mergeRegister } from '@lexical/utils';
 import {
+  $getNodeByKey,
   $getSelection,
   $isLineBreakNode,
   $isRangeSelection,
@@ -43,20 +44,14 @@ import './note-body.css';
 // of the checkbox accessibility tree and hit-testing (the visual checkbox is
 // hidden in CSS). Only check lists apply these attributes, so a body-wrapper in a
 // bullet/number list is left untouched.
-function stripBodyWrapperCheckboxSemantics(editor: LexicalEditor): void {
+// Lexical re-adds the attributes when it reconciles a wrapper's `<li>`, so only
+// the keys dirtied by the update can have stale semantics. `null` means strip
+// every body-wrapper (the initial sweep, before any dirty set exists).
+function stripBodyWrapperCheckboxSemantics(editor: LexicalEditor, dirtyElements: Iterable<string> | null): void {
   const wrapperKeys = editor.getEditorState().read(() => {
-    const rootList = $resolveRootContentList();
-    if (!rootList) {
-      return [];
-    }
-    const keys: string[] = [];
-    forEachListItemInOutline(rootList, (item) => {
-      const parent = item.getParent();
-      if (isBodyWrapper(item) && $isListNode(parent) && parent.getListType() === 'check') {
-        keys.push(item.getKey());
-      }
-    });
-    return keys;
+    return dirtyElements === null
+      ? $collectAllBodyWrapperKeys()
+      : [...dirtyElements].filter((key) => $isCheckListBodyWrapper($getNodeByKey(key)));
   });
   for (const key of wrapperKeys) {
     const element = editor.getElementByKey(key);
@@ -69,10 +64,35 @@ function stripBodyWrapperCheckboxSemantics(editor: LexicalEditor): void {
   }
 }
 
+function $isCheckListBodyWrapper(node: ReturnType<typeof $getNodeByKey>): boolean {
+  if (!(node instanceof ListItemNode) || !isBodyWrapper(node)) {
+    return false;
+  }
+  const parent = node.getParent();
+  return $isListNode(parent) && parent.getListType() === 'check';
+}
+
+function $collectAllBodyWrapperKeys(): string[] {
+  const rootList = $resolveRootContentList();
+  if (!rootList) {
+    return [];
+  }
+  const keys: string[] = [];
+  forEachListItemInOutline(rootList, (item) => {
+    if ($isCheckListBodyWrapper(item)) {
+      keys.push(item.getKey());
+    }
+  });
+  return keys;
+}
+
 function registerBodyWrapperCheckboxCleanup(editor: LexicalEditor): () => void {
-  stripBodyWrapperCheckboxSemantics(editor);
-  return editor.registerUpdateListener(() => {
-    stripBodyWrapperCheckboxSemantics(editor);
+  stripBodyWrapperCheckboxSemantics(editor, null);
+  return editor.registerUpdateListener(({ dirtyElements }) => {
+    if (dirtyElements.size === 0) {
+      return;
+    }
+    stripBodyWrapperCheckboxSemantics(editor, dirtyElements.keys());
   });
 }
 
