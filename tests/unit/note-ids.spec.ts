@@ -228,6 +228,31 @@ describe('note ids on paste', () => {
     expect(new Set(noteIds).size).toBe(outline.length);
   });
 
+  it('pasting a note over a body-text selection does not replace the owner note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A selection wholly inside note1's body is inline (the body is its own
+    // region), so pasting a copied note must edit the body text, never run a
+    // structural replace of note1. Regression: body-aware head resolution used to
+    // map the body-local selection to a one-note structural head.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'bodytext');
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await copySelection(remdo);
+
+    // Select all of note1's body text, then paste the copied note onto it.
+    await remdo.mutate(() => {
+      const body = getNoteBody($findNoteById('note1')!)!;
+      body.select(0, body.getChildrenSize());
+    });
+    await pastePayload(remdo, clipboardPayload);
+
+    // note1 survives (was not structurally replaced) and note2 is untouched.
+    const outline = readOutline(remdo);
+    expect(outline.find((note) => note.noteId === 'note1')).toBeDefined();
+    expect(outline.find((note) => note.noteId === 'note2')?.text).toBe('note2');
+  });
+
   it('assigns fresh noteIds when pasting multiple copied notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectNoteRange(remdo, 'note1', 'note2');
     await waitFor(() => {

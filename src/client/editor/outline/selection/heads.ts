@@ -3,7 +3,12 @@ import { $isListNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
-import { $getNoteBodyFromNode, $getNoteForBody, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
+import {
+  $getNoteBodyFromNode,
+  $getNoteForBody,
+  $isSelectionWithinOneBody,
+  $resolveNoteForSelectionPoint,
+} from '#client/editor/features/note-body/note-body-ops';
 import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
 import { getContentSiblings, isContentItem } from '../list-structure';
 import { resolveContentItemFromNode } from '../schema';
@@ -14,6 +19,14 @@ import { getNextContentSibling, normalizeContentRange } from './tree';
 // Returns an empty array when the selection cannot be normalized to a single sibling run.
 export function $getContiguousSelectionHeads(selection: RangeSelection): ListItemNode[] {
   if (selection.isCollapsed()) {
+    return [];
+  }
+
+  // A selection wholly inside one body is inline (the body is its own region, see
+  // docs/outliner/body.md), so it has no structural head slab. Resolving its ends
+  // would map both to the owner note and yield a spurious one-note structural
+  // head, making structural callers (e.g. paste) act on the whole note.
+  if ($isSelectionWithinOneBody(selection)) {
     return [];
   }
 
