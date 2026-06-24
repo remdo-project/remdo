@@ -26,6 +26,7 @@ import type { NoteBodyNode } from './note-body-node';
 import {
   $addNoteBody,
   $getNoteBodyFromNode,
+  $getSelectionBody,
   $removeNoteBody,
   $skipBodyForHorizontalNav,
   $skipBodyForVerticalNav,
@@ -182,12 +183,7 @@ function isNoteLinkPickerOpen(): boolean {
 /** The note body containing the current caret/selection, or null. */
 function $getActiveNoteBody(): NoteBodyNode | null {
   const selection = $getSelection();
-  if (!$isRangeSelection(selection)) {
-    return null;
-  }
-  const anchorBody = $getNoteBodyFromNode(selection.anchor.getNode());
-  const focusBody = $getNoteBodyFromNode(selection.focus.getNode());
-  return anchorBody && anchorBody === focusBody ? anchorBody : null;
+  return $isRangeSelection(selection) ? $getSelectionBody(selection) : null;
 }
 
 export function NoteBodyPlugin() {

@@ -184,14 +184,25 @@ export function $resolveNoteForSelectionPoint(node: LexicalNode | null): ListIte
 }
 
 /**
+ * The single note body the whole selection sits inside, or null when it does not
+ * (one end outside a body, or ends in two different bodies). A collapsed caret in
+ * a body returns that body.
+ */
+export function $getSelectionBody(selection: RangeSelection): NoteBodyNode | null {
+  const anchorBody = $getNoteBodyFromNode(selection.anchor.getNode());
+  return anchorBody !== null && anchorBody === $getNoteBodyFromNode(selection.focus.getNode())
+    ? anchorBody
+    : null;
+}
+
+/**
  * True when the whole selection sits inside a single note body — an inline range
  * within one body, which the outline leaves alone. A selection with only one end
  * in a body, or ends in two different bodies, crosses a region boundary and is a
  * structural selection instead (see `docs/outliner/body.md`).
  */
 export function $isSelectionWithinOneBody(selection: RangeSelection): boolean {
-  const anchorBody = $getNoteBodyFromNode(selection.anchor.getNode());
-  return anchorBody !== null && anchorBody === $getNoteBodyFromNode(selection.focus.getNode());
+  return $getSelectionBody(selection) !== null;
 }
 
 /**

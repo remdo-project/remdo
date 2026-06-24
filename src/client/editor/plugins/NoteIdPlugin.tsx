@@ -29,6 +29,7 @@ import { $autoExpandIfFolded } from '#client/editor/runtime/fold-state';
 import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
 import { $createNoteLinkNode } from '#client/editor/runtime/note-link-node';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
+import { isSerializedBodyWrapper } from '#client/editor/runtime/serialized-note-types';
 import {
   $getOrCreateChildList,
   getBodyWrapper,
@@ -447,20 +448,10 @@ function $injectNoteBodiesIntoClipboardNodes(nodes: SerializedLexicalNode[]): vo
     // A body-wrapper that already sits inside the selection's range is serialized
     // by Lexical (between two selected notes); only inject when it is missing, so
     // a note never ends up with two body-wrappers.
-    if (body && !isSerializedNoteBodyWrapper(nodes[i + 1])) {
+    if (body && !isSerializedBodyWrapper(nodes[i + 1])) {
       nodes.splice(i + 1, 0, serializeNodeTree(body));
     }
   }
-}
-
-// True when a serialized list item is a body-wrapper (its sole child is a note
-// body), mirroring the live `isBodyWrapper` predicate.
-function isSerializedNoteBodyWrapper(node: SerializedElement | undefined): boolean {
-  const children = node?.children;
-  return node?.type === 'listitem'
-    && Array.isArray(children)
-    && children.length === 1
-    && children[0]?.type === 'note-body';
 }
 
 // The plain-text line(s) a note contributes: its own text, then its body's text.
@@ -523,6 +514,24 @@ function $populateClipboardFromSelection(
   event.preventDefault();
   setLexicalClipboardDataTransfer(event.clipboardData, data);
   return true;
+}
+
+// The whole-note (structural) context a copy or cut acts on: the current
+// selection, its structural range, and the selected note heads. Null when the
+// selection is not a non-empty whole-note selection (inline selections defer to
+// Lexical's default copy).
+function $resolveStructuralClipboardContext(
+  editor: LexicalEditor
+): { selection: BaseSelection | null; selectionRange: OutlineSelectionRange; heads: ListItemNode[] } | null {
+  const selection = $getSelection();
+  const selectionRange =
+    $resolveStructuralRangeFromOutlineSelection(editor.selection.get())
+    ?? $resolveStructuralRangeFromLexicalSelection(selection, { requireMultipleHeads: true });
+  if (!selectionRange) {
+    return null;
+  }
+  const heads = $resolveStructuralDeletionHeads(selectionRange, selection);
+  return heads.length === 0 ? null : { selection, selectionRange, heads };
 }
 
 function $insertNodesAtSelection(
@@ -703,15 +712,11 @@ export function NoteIdPlugin() {
           // For a whole-note (structural) selection, build the clipboard from the
           // selected notes so each note carries its body and sub-notes. Inline
           // selections fall through to Lexical's default text/rich-text copy.
-          const selection = $getSelection();
-          const selectionRange =
-            $resolveStructuralRangeFromOutlineSelection(editor.selection.get())
-            ?? $resolveStructuralRangeFromLexicalSelection(selection, { requireMultipleHeads: true });
-          if (!selectionRange) {
+          const context = $resolveStructuralClipboardContext(editor);
+          if (!context) {
             return false;
           }
-          const heads = $resolveStructuralDeletionHeads(selectionRange, selection);
-          return $populateClipboardFromSelection(editor, heads, selection, event, false);
+          return $populateClipboardFromSelection(editor, context.heads, context.selection, event, false);
         },
         COMMAND_PRIORITY_CRITICAL
       ),
@@ -721,25 +726,16 @@ export function NoteIdPlugin() {
           // Runs inside Lexical's command update context. Populate the clipboard,
           // then collapse in the same update so the committed selection (and the
           // outline-selection snapshot derived from it) is observed atomically.
-          const selection = $getSelection();
-          const selectionRange =
-            $resolveStructuralRangeFromOutlineSelection(editor.selection.get())
-            ?? $resolveStructuralRangeFromLexicalSelection(selection, { requireMultipleHeads: true });
-
-          if (!selectionRange) {
-            return false;
-          }
-
-          const heads = $resolveStructuralDeletionHeads(selectionRange, selection);
-          if (heads.length === 0) {
+          const context = $resolveStructuralClipboardContext(editor);
+          if (!context) {
             return false;
           }
 
           const marker: CutMarker = {
-            markedKeys: $collectStructuralItemKeysFromRange(selectionRange),
-            range: selectionRange,
+            markedKeys: $collectStructuralItemKeysFromRange(context.selectionRange),
+            range: context.selectionRange,
           };
-          $populateClipboardFromSelection(editor, heads, selection, event, true);
+          $populateClipboardFromSelection(editor, context.heads, context.selection, event, true);
           setCutMarker(marker);
           editor.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'start' });
           return true;
