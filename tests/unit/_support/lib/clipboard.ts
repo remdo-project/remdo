@@ -94,6 +94,14 @@ export async function copySelection(remdo: RemdoTestApi) {
   return readClipboardPayload(clipboardEvent, 'copy');
 }
 
+// Copies the current selection and returns the populated clipboard data so tests
+// can read individual flavors (e.g. 'text/plain' for paste outside RemDo).
+export async function copySelectionClipboardData(remdo: RemdoTestApi): Promise<DataTransfer> {
+  const clipboardEvent = createClipboardEvent(undefined, 'copy');
+  await remdo.dispatchCommand(COPY_COMMAND, clipboardEvent, { expect: 'any' });
+  return clipboardEvent.clipboardData!;
+}
+
 export async function pastePayload(remdo: RemdoTestApi, payload: unknown) {
   await remdo.dispatchCommand(PASTE_COMMAND, createClipboardEvent(payload));
 }

@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { act } from '@testing-library/react';
 import { REDO_COMMAND, UNDO_COMMAND, $getRoot, $getSelection, $isTextNode  } from 'lexical';
 import {
+  collapseDomSelectionAtNode,
   copySelection,
+  copySelectionClipboardData,
+  extendDomSelectionToNode,
+  getNoteBodyTextNode,
   pastePayload,
   placeCaretAtNote,
   pressKey,
@@ -369,7 +373,7 @@ describe('note body (docs/outliner/body.md)', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
   });
 
-  it('copy/paste of a note with a body never turns the body into a standalone note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('copy/paste of a note with a body reproduces the body and never leaks it as a standalone note', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'note2 body');
@@ -380,14 +384,69 @@ describe('note body (docs/outliner/body.md)', () => {
     await selectStructuralNotes(remdo, 'note3', 'note3');
     await pastePayload(remdo, payload);
 
-    // The pasted copy is a clean note. Carrying the body across clipboard is a
-    // tracked follow-up (docs/todo.md); the invariant enforced here is that the
-    // body never leaks out as its own standalone note with a noteId.
+    // The body is content the note owns, so the pasted copy carries it — and the
+    // body never appears as its own standalone note (it stays attached as a body).
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
       { noteId: 'note2', text: 'note2', body: 'note2 body' },
-      { noteId: null, text: 'note2' },
+      { noteId: null, text: 'note2', body: 'note2 body' },
     ]);
+  });
+
+  it('copying a multi-note structural range carries each note with its own body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Give note1 and note2 each a body, select both, copy, paste after note3.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'b1');
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'b2');
+
+    await selectStructuralNotes(remdo, 'note1', 'note2');
+    const payload = await copySelection(remdo);
+
+    // Paste over a structural selection replaces it, so the two pasted copies
+    // take note3's place. Both carry their own bodies.
+    await selectStructuralNotes(remdo, 'note3', 'note3');
+    await pastePayload(remdo, payload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'b1' },
+      { noteId: 'note2', text: 'note2', body: 'b2' },
+      { noteId: null, text: 'note1', body: 'b1' },
+      { noteId: null, text: 'note2', body: 'b2' },
+    ]);
+  });
+
+  it('copying a note with a body includes the body text in the plain-text flavor (paste outside RemDo)', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'note2 body');
+
+    await selectStructuralNotes(remdo, 'note2', 'note2');
+    const clipboard = await copySelectionClipboardData(remdo);
+
+    // Plain text = the note line, then the body line — what the user sees.
+    expect(clipboard.getData('text/plain')).toBe('note2\nnote2 body');
+  });
+
+  it('inline copy of body text is plain text only and creates no note structure', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'bodytext');
+
+    // Select a few characters inside the body (an inline, non-structural range).
+    await remdo.mutate(() => {
+      getNoteBody($findNoteById('note1')!)!.select(0, 0);
+    });
+    const bodyTextNode = getNoteBodyTextNode(remdo, 'note1');
+    await collapseDomSelectionAtNode(bodyTextNode, 0);
+    await extendDomSelectionToNode(bodyTextNode, 4);
+
+    const clipboard = await copySelectionClipboardData(remdo);
+    // Inline copy is just text — the rich payload is Lexical's default text copy,
+    // not a whole-note structure; plain text is the selected characters.
+    expect(clipboard.getData('text/plain')).toBe('body');
   });
 
   it('enter inside a body inserts a line break instead of creating a note', meta({ fixture: 'flat' }), async ({ remdo }) => {

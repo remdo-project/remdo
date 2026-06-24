@@ -31,12 +31,15 @@ import { $createNoteLinkNode } from '#client/editor/runtime/note-link-node';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import {
   $getOrCreateChildList,
+  getBodyWrapper,
   getContentSiblings,
   insertBefore,
   isChildrenWrapper,
   isContentItem,
   flattenNoteNodes,
 } from '#client/editor/outline/list-structure';
+import { getNoteBody } from '#client/editor/features/note-body/note-body-ops';
+import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
@@ -415,37 +418,110 @@ function $extractClipboardListChildren(nodes: LexicalNode[]): LexicalNode[] {
   return extracted;
 }
 
+// Serialize a node and its full subtree to the clipboard JSON shape. A node's
+// own exportJSON() does not include children (the export traversal fills them),
+// so recurse explicitly.
+function serializeNodeTree(node: LexicalNode): SerializedLexicalNode {
+  const json = node.exportJSON() as SerializedLexicalNode & { children?: SerializedLexicalNode[] };
+  if ($isElementNode(node)) {
+    json.children = node.getChildren().map(serializeNodeTree);
+  }
+  return json;
+}
+
+type SerializedElement = SerializedLexicalNode & { noteId?: string; children?: SerializedLexicalNode[] };
+
+// Splice each note's body-wrapper into Lexical's serialized clipboard nodes,
+// right after the note's content list item, so a copied note carries its body.
+// Lexical's serialization already produces the correct content shape (inline for
+// a bare note, list-wrapped when structural) but omits the body-wrapper, which is
+// not part of the selection's node span; this adds it from the live note. Walks
+// the whole tree so a sub-note's body (in a nested children list) is carried too.
+function $injectNoteBodiesIntoClipboardNodes(nodes: SerializedLexicalNode[]): void {
+  for (let i = nodes.length - 1; i >= 0; i -= 1) {
+    const node = nodes[i] as SerializedElement;
+    if (Array.isArray(node.children)) {
+      $injectNoteBodiesIntoClipboardNodes(node.children);
+    }
+    if (node.type !== 'listitem' || typeof node.noteId !== 'string') {
+      continue;
+    }
+    const note = $findNoteById(node.noteId);
+    const body = note ? getBodyWrapper(note) : null;
+    // A body-wrapper that already sits inside the selection's range is serialized
+    // by Lexical (between two selected notes); only inject when it is missing, so
+    // a note never ends up with two body-wrappers.
+    if (body && !isSerializedNoteBodyWrapper(nodes[i + 1])) {
+      nodes.splice(i + 1, 0, serializeNodeTree(body));
+    }
+  }
+}
+
+// True when a serialized list item is a body-wrapper (its sole child is a note
+// body), mirroring the live `isBodyWrapper` predicate.
+function isSerializedNoteBodyWrapper(node: SerializedElement | undefined): boolean {
+  const children = node?.children;
+  return node?.type === 'listitem'
+    && Array.isArray(children)
+    && children.length === 1
+    && children[0]?.type === 'note-body';
+}
+
+// The plain-text line(s) a note contributes: its own text, then its body's text.
+function noteClipboardPlainText(note: ListItemNode): string[] {
+  const lines = [getNoteOwnText(note)];
+  const body = getNoteBody(note);
+  if (body) {
+    lines.push(body.getTextContent());
+  }
+  const nested = getNestedList(note);
+  if (nested) {
+    for (const child of getContentSiblings(nested)) {
+      lines.push(...noteClipboardPlainText(child));
+    }
+  }
+  return lines;
+}
+
+// Whole-note clipboard population (copy/cut). A note's body and sub-notes are
+// content it owns, so they travel with it. Reuse Lexical's serialization for the
+// content/links/structure and inject the body-wrappers it omits; build the plain
+// text as each note's own text followed by its body text. `isCut` tags the
+// payload so a same-document cut-paste can move the originals. Returns false for
+// non-structural selections, leaving inline copy to Lexical's default handler.
 function $populateClipboardFromSelection(
   editor: LexicalEditor,
+  heads: ListItemNode[],
   selection: BaseSelection | null,
-  event: ClipboardEvent | KeyboardEvent | null
+  event: ClipboardEvent | KeyboardEvent | null,
+  isCut: boolean
 ): boolean {
-  if (!isClipboardEvent(event) || !event.clipboardData) {
+  if (!isClipboardEvent(event) || !event.clipboardData || heads.length === 0) {
     return false;
   }
 
-  if (!$isRangeSelection(selection) || selection.isCollapsed()) {
-    return false;
-  }
-
-  const data: LexicalClipboardData = {
-    'text/plain': selection.getTextContent(),
-  };
-  const html = $getHtmlContent(editor, selection);
-  if (html) {
-    data['text/html'] = html;
-  }
   const lexical = $getLexicalContent(editor, selection);
   if (!lexical) {
     return false;
   }
-
+  let payload: ClipboardPayload;
   try {
-    const payload = JSON.parse(lexical) as ClipboardPayload;
-    payload.remdoCut = true;
-    data['application/x-lexical-editor'] = JSON.stringify(payload);
+    payload = JSON.parse(lexical) as ClipboardPayload;
   } catch {
     return false;
+  }
+  $injectNoteBodiesIntoClipboardNodes(payload.nodes);
+  if (isCut) {
+    payload.remdoCut = true;
+  }
+
+  const data: LexicalClipboardData = {
+    'text/plain': heads.flatMap(noteClipboardPlainText).join('\n'),
+    'application/x-lexical-editor': JSON.stringify(payload),
+  };
+  const html = $getHtmlContent(editor, selection);
+  if (html) {
+    data['text/html'] = html;
   }
 
   event.preventDefault();
@@ -626,9 +702,20 @@ export function NoteIdPlugin() {
       }),
       editor.registerCommand(
         COPY_COMMAND,
-        () => {
+        (event) => {
           setCutMarker(null);
-          return false;
+          // For a whole-note (structural) selection, build the clipboard from the
+          // selected notes so each note carries its body and sub-notes. Inline
+          // selections fall through to Lexical's default text/rich-text copy.
+          const selection = $getSelection();
+          const selectionRange =
+            $resolveStructuralRangeFromOutlineSelection(editor.selection.get())
+            ?? $resolveStructuralRangeFromLexicalSelection(selection, { requireMultipleHeads: true });
+          if (!selectionRange) {
+            return false;
+          }
+          const heads = $resolveStructuralDeletionHeads(selectionRange, selection);
+          return $populateClipboardFromSelection(editor, heads, selection, event, false);
         },
         COMMAND_PRIORITY_CRITICAL
       ),
@@ -656,7 +743,7 @@ export function NoteIdPlugin() {
             markedKeys: $collectStructuralItemKeysFromRange(selectionRange),
             range: selectionRange,
           };
-          $populateClipboardFromSelection(editor, selection, event);
+          $populateClipboardFromSelection(editor, heads, selection, event, true);
           setCutMarker(marker);
           editor.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'start' });
           return true;

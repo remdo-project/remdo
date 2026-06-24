@@ -9,8 +9,9 @@ live in [Links](./links.md).
 
 ## Structural selections (note range)
 
-- Copy duplicates the selected notes (including their subtrees) and leaves the
-  document unchanged.
+- Copy duplicates the selected notes (including their subtrees and each note's
+  [body](./body.md)) and leaves the document unchanged. A note's body is content
+  it owns, so it travels with the note across copy, cut, and paste.
 - Copy captures the notes as they are at the moment you copy; later edits to the
   originals do not change what gets pasted.
 - Cut prepares the selected notes to be moved; they stay in place until you
@@ -30,6 +31,9 @@ live in [Links](./links.md).
   and the cut remains pending.
 - Starting a new copy/cut, or pasting unrelated content, cancels the pending
   cut.
+- Pasting a copied note **outside** RemDo (plain text) includes each note's own
+  text, then its body text on the following line(s), then its sub-notes — the
+  order the note reads on screen.
 
 ## Inline selection (single note)
 

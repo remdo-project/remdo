@@ -13,7 +13,9 @@ with no id and no children of its own.
    and moves the caret into it. If the note already has a body, the gesture moves
    the caret to the start of the existing body instead of adding another.
 2. **Ownership.** A note has at most one body, and a body belongs to that one
-   note.
+   note. The body is content the note owns, so it travels with the note —
+   through indent/outdent, reorder, structural delete, and
+   [clipboard](./clipboard.md) copy/cut/paste.
 3. **Visually distinct.** A body renders set apart from the note's content.
 4. **Inline content.** Body text supports the same key-driven inline content as
    note content — inline formatting (no separate formatting UI) and `@` note
