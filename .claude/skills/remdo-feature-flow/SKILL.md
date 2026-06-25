@@ -224,8 +224,9 @@ branch, so the new branch starts clean and merges back easily later:
 Forking off an in-progress feature branch works as-is: the new branch starts at
 that feature's published tip, so `wip-base..HEAD` is only the new branch's own
 work. The invariant `wip-base..HEAD` = the branch's own work is what `remdo-sync`
-preserves when it later moves `wip-base`. **Never set or move the tag silently**;
-the user confirms.
+preserves when it later moves `wip-base`. Setting or moving the tag is authorized
+only as part of these flows (this skill at creation, `remdo-sync` after a merge);
+never move it ad hoc, out of band.
 
 ### Branch naming
 

@@ -74,8 +74,8 @@ instead — that is the complexity this gate deliberately avoids.
    ```
 
    The pulled-in commits now fall *inside* the base and drop out of
-   `wip-base..HEAD`, restoring the invariant. Moving the tag needs the user's
-   confirmation (`remdo-feature-flow` "Branch base").
+   `wip-base..HEAD`, restoring the invariant. Moving the tag here is part of the
+   sync the user invoked — no separate confirmation (see Permissions).
 
 ## Permissions
 
