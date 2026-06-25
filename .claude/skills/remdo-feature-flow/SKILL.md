@@ -37,7 +37,10 @@ Everything else is a thin chat pointer.
 
 The user states the vague idea: what they know, what they are unsure about. No
 structure required. **Verify every fact the user asserts before building on it** —
-never rely on an unchecked user claim.
+never rely on an unchecked user claim. Record what you verified and the outcome
+in the working artifact at `.agent/plans/<YYYY-MM-DD>-<feature>.md` (see Phase 4),
+so the basis for the design survives beyond this session's memory rather than
+being silently carried.
 
 ## Phase 2 — Dialog
 
@@ -61,7 +64,11 @@ the user launches it; you do not start it on your own.
 
 During dialog, ask whether the change is one concern or several — structural
 splits (separate phases, separate specs, separate tasks) are cheap to make now
-and expensive once code is written.
+and expensive once code is written. Record the decisions dialog produces — the
+split choice, and why a design was chosen over alternatives — in `docs/todo.md`:
+the spec describes target behavior only (invariant #5), so the *why* lives there
+until it moves into a `docs/` rationale or is dropped, rather than being
+memory-carried.
 
 ## Phase 3 — Spec approval (the one user gate)
 
@@ -98,9 +105,10 @@ commits, stashes, or sets them aside first.
 
 ## Phase 4 — Autonomous execution
 
-1. Write the **detailed plan as a disposable working artifact** at
-   `.agent/plans/<YYYY-MM-DD>-<feature>.md` — your working memory and audit
-   trail, **not** a user gate. Rewrite it freely as you learn.
+1. Grow the **disposable working artifact** at
+   `.agent/plans/<YYYY-MM-DD>-<feature>.md` (started in Phase 1 with the verified
+   facts) into the detailed plan — your working memory and audit trail, **not** a
+   user gate. Rewrite it freely as you learn.
 2. Run the **gap-closing loop**: repeatedly ask *"what is the remaining distance
    to the spec's described state, and what is the next step that closes it?"* and
    take that step. The true goal is always the spec's described state, coherent
@@ -121,8 +129,10 @@ commits, stashes, or sets them aside first.
    spec's described state stays the gap-closing loop's job above.
 4. **Mid-work decisions:** small blast radius (a later reversal would not waste
    the work) → use judgment, **record it in `docs/todo.md`**, keep moving.
-   Genuine large-blast-radius fork → stop. Stops are rare; a stop is **signal**
-   for the retro (under-specified spec), never blame.
+   Genuine large-blast-radius fork → stop, **recording the fork, the options, and
+   what it blocks on in `docs/todo.md`** (not just chat) so the retro and any
+   later session have the specifics. Stops are rare; a stop is **signal** for the
+   retro (under-specified spec), never blame.
 
 Deferrals, postponed decisions, and gaps go to `docs/todo.md` — not the dialog,
 where both parties lose them from context. Follow that file's rules (mark `✅
