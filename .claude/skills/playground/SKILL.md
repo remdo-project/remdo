@@ -15,7 +15,9 @@ Read the official skill and its templates first; they hold the patterns,
 prompt-output style, state model, and per-type guidance:
 
 - `~/.claude/plugins/cache/claude-plugins-official/playground/unknown/skills/playground/SKILL.md`
-- `~/.claude/plugins/cache/claude-plugins-official/playground/unknown/skills/playground/templates/` — `design-playground.md`, `data-explorer.md`, `concept-map.md`, `document-critique.md`, `diff-review.md`, `code-map.md`
+- `~/.claude/plugins/cache/claude-plugins-official/playground/unknown/skills/playground/templates/` —
+  `design-playground.md`, `data-explorer.md`, `concept-map.md`,
+  `document-critique.md`, `diff-review.md`, `code-map.md`
 
 Follow that skill's "How to use" and "Core requirements" as written, then apply
 the RemDo deltas below (they win on conflict).

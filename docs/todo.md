@@ -293,9 +293,13 @@ Remaining issues to fold in or fix directly:
 
 ## remdo-feature-flow follow-ups
 
-- Try adding a convergence check to the implementation phase (verify the result
-  actually reaches the spec's described state, not just that checks pass).
 - Clean up stale prunable worktree `remdo-7000-wt` if abandoned (not mine).
+
+## remdo-refine follow-ups
+
+- Add more external review tools/skills/programs worth considering in the refine
+  ladder beyond `codex review` (e.g. other reviewers or static analyzers);
+  evaluate each for fit and independence before adding a rung.
 
 ## Later follow-ups
 

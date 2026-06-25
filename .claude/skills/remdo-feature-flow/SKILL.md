@@ -1,25 +1,28 @@
 ---
 name: remdo-feature-flow
-description: Use when starting a self-contained bigger change — a new feature or a redesign of something that does not exist yet — and the user wants to drive it from a vague idea to finished, reviewed, locally-committed work. Triggers include "let's design X", "I want to build/redesign X", "feature flow", or a vague drafted idea handed over for development. The user gates only on intent (the spec), not on a detailed plan; execution is autonomous with review/simplify/verify baked into done.
+description: Use when starting a self-contained bigger change — a new feature or a redesign of something that does not exist yet — and the user wants to drive it from a vague idea to finished, reviewed, locally-committed work. Triggers include "let's design X", "I want to build/redesign X", "feature flow", or a vague drafted idea handed over for development. The user gates only on intent (the spec), not on a detailed plan; execution is autonomous, with the quality loop (via `remdo-refine`) baked into done.
 ---
 
 # Feature Flow
 
 ## Overview
 
-Drive a self-contained bigger change through five phases: draft → dialog → spec
-approval → autonomous execution → report+retro, plus **Research** — an optional
-heavyweight capability the dialog and execution phases can invoke when a question
-needs prior-art weight. This skill is a **conductor** — it sequences existing
-skills (`superpowers:brainstorming`, `superpowers:writing-plans`,
-`superpowers:dispatching-parallel-agents`, `superpowers:using-git-worktrees`,
-`superpowers:requesting-code-review`, `/simplify`,
-`superpowers:verification-before-completion`, `/code-review`) and sets the
-autonomy policies below. It does not reimplement them.
+Drive a self-contained bigger change from a vague idea to finished, reviewed,
+locally-committed work. This skill is a **conductor**: it sequences existing
+skills (named per phase below and in `References`) and sets the autonomy policies
+— it does not reimplement them.
 
 The user reviews **intent**, not steps. The spec is the durable goal; the plan is
 disposable. Execution converges on the spec autonomously; review, simplify, and
 verify are part of "done," not user commands.
+
+## Capability assumption (durable)
+
+This skill follows the **Skill authoring** rule in `AGENTS.md`: assume every run
+is performed by a model at least as capable as the current one, so it encodes
+*intent* and keeps strictness to the reasonable minimum rather than baking in
+assumptions a better future run would have to undo. That shapes every phase
+below.
 
 ## Review surfaces
 
@@ -34,7 +37,10 @@ Everything else is a thin chat pointer.
 
 The user states the vague idea: what they know, what they are unsure about. No
 structure required. **Verify every fact the user asserts before building on it** —
-never rely on an unchecked user claim.
+never rely on an unchecked user claim. Record what you verified and the outcome
+in the working artifact at `.agent/plans/<YYYY-MM-DD>-<feature>.md` (see Phase 4),
+so the basis for the design survives beyond this session's memory rather than
+being silently carried.
 
 ## Phase 2 — Dialog
 
@@ -58,7 +64,11 @@ the user launches it; you do not start it on your own.
 
 During dialog, ask whether the change is one concern or several — structural
 splits (separate phases, separate specs, separate tasks) are cheap to make now
-and expensive once code is written.
+and expensive once code is written. Record the decisions dialog produces — the
+split choice, and why a design was chosen over alternatives — in `docs/todo.md`:
+the spec describes target behavior only (invariant #5), so the *why* lives there
+until it moves into a `docs/` rationale or is dropped, rather than being
+memory-carried.
 
 ## Phase 3 — Spec approval (the one user gate)
 
@@ -69,12 +79,10 @@ docs that clearly match the existing structure — to describe the design as the
 new reality. Track any not-yet-built parts, gaps, or sequencing in `docs/todo.md`
 (the "Target behavior only" invariant), not as caveats in the prose.
 
-Comply with the existing doc governance (the invariants in
-`docs/contributing.md#documentation`) so static checks are satisfied (no wasted
-rework): single source per topic, top-down linking, self-contained behavior with
-external refs in a final `References` section, and **refresh the `docs/index.md`
-map for any doc edited** — except the `docs/todo.md` summary, which stays as-is. Aim for a minimal, coherent,
-non-redundant end state, even at the cost of larger doc edits.
+Comply with the documentation invariants
+(`docs/contributing.md#documentation`) so static checks pass without rework, and
+aim for a minimal, coherent, non-redundant end state even at the cost of larger
+doc edits.
 
 `.agent/specs/...` is **not** a review surface — it is your own scratch/cache for
 talking to tools and subagents. Do not ask the user to review it.
@@ -84,29 +92,49 @@ which docs changed, plus a ~5-bullet approach summary — not the design pasted
 inline). The user does **not** review a detailed plan. This is the only mandatory
 user gate.
 
+On approval, **create the task branch** (the commit-to-build point — dialog runs
+on the current branch and no branch exists until here, so a dropped idea never
+leaves a stray branch). The Phase-3 spec edits do live in the working tree on the
+current branch, though: if the user rejects at the gate, **revert them** before
+exiting — don't leave unapproved `docs/`/`docs/todo.md` changes behind. Confirm
+branch name/prefix (see "Branch naming") and create it per "Branch base" below;
+the approved spec docs are the branch's first commit.
+
+The tree must hold **only this flow's own changes** before that first commit —
+if it had pre-existing unrelated edits when the run started, **stop**: committing
+or branching could sweep them in, and refine later needs a clean tree. The user
+commits, stashes, or sets them aside first.
+
 ## Phase 4 — Autonomous execution
 
-1. Write the **detailed plan as a disposable working artifact** at
-   `.agent/plans/<YYYY-MM-DD>-<feature>.md` — your working memory and audit
-   trail, **not** a user gate. Rewrite it freely as you learn.
+1. Grow the **disposable working artifact** at
+   `.agent/plans/<YYYY-MM-DD>-<feature>.md` (started in Phase 1 with the verified
+   facts) into the detailed plan — your working memory and audit trail, **not** a
+   user gate. Rewrite it freely as you learn.
 2. Run the **gap-closing loop**: repeatedly ask *"what is the remaining distance
    to the spec's described state, and what is the next step that closes it?"* and
    take that step. The true goal is always the spec's described state, coherent
-   with prior docs.
-3. **Review / simplify / verify are part of done** — run automatically, then
-   iterate on findings:
-   - `superpowers:requesting-code-review` or `/code-review` at high effort,
-     diffing against `wip-base` (see "Branch base");
-   - `/simplify`;
-   - the local-agent final checks: `pnpm run lint`; `pnpm run test:unit` for
-     behavior/code changes; `pnpm run test:collab` when collaboration risk
-     exists (see AGENTS.md "Checks").
-   Fix what is safe and behavior-preserving; **defer tradeoffs to
-   `docs/todo.md`** (non-blocking).
+   with prior docs. Use the right process skill for each step as it warrants —
+   `superpowers:test-driven-development` for new behavior,
+   `superpowers:systematic-debugging` for a bug or unexpected failure — rather
+   than writing ad hoc.
+3. **Refine is part of done** — once the gap-closing loop reaches the spec's
+   described state, **commit the phase-4 work** (refine and sync both need a clean
+   tree; refine reviews the committed `wip-base..HEAD` range). If `origin/main` has
+   advanced since branch creation (cheap `git fetch` check), **suggest `remdo-sync`**
+   next — now that the tree is clean it can run — so refine reviews against current
+   `main` and the eventual PR stays clean (non-blocking; sync may be gated). Then
+   run the **`remdo-refine`** skill. It owns the quality loop (simplify → internal review → external Codex
+   review, looping to a clean pass), the **tradeoff/blocker policy** for review
+   findings (defined there, not restated here), and the final checks for the
+   current agent mode at the end. Refine converges *code quality*; reaching the
+   spec's described state stays the gap-closing loop's job above.
 4. **Mid-work decisions:** small blast radius (a later reversal would not waste
    the work) → use judgment, **record it in `docs/todo.md`**, keep moving.
-   Genuine large-blast-radius fork → stop. Stops are rare; a stop is **signal**
-   for the retro (under-specified spec), never blame.
+   Genuine large-blast-radius fork → stop, **recording the fork, the options, and
+   what it blocks on in `docs/todo.md`** (not just chat) so the retro and any
+   later session have the specifics. Stops are rare; a stop is **signal** for the
+   retro (under-specified spec), never blame.
 
 Deferrals, postponed decisions, and gaps go to `docs/todo.md` — not the dialog,
 where both parties lose them from context. Follow that file's rules (mark `✅
@@ -118,20 +146,22 @@ Iterate until the spec's state is reached or a true blocker hits.
 
 ## Phase 5 — Report + retro
 
-The report **indexes the diff**, it does not re-narrate it. Changes sit in the
-WD (uncommitted by default; see "Commit timing") for the user's `git diff` loop.
-Thin chat summary:
+The report **indexes the diff**, it does not re-narrate it. The work is on the
+task branch for the user's `git diff wip-base` loop. Thin chat summary:
 
 1. What changed — pointing at files/areas, not prose-narrating each edit.
-2. Tradeoffs taken (and why).
-3. A pointer to the `docs/todo.md` entries added this run (deferrals/decisions) —
-   reference, do not repeat them.
-4. Any blocker, with all data already gathered so unblocking is fast.
-5. **Workflow retro:** what would make the next run smoother. Fold concrete,
+2. A pointer to the `docs/todo.md` entries added this run — tradeoffs taken
+   (each is a deferral until a final decision is deliberately taken),
+   deferrals, and decisions. Reference them; do not repeat them in chat.
+3. Any blocker, with all data already gathered so unblocking is fast.
+4. **Workflow retro:** what would make the next run smoother. Fold concrete,
    stable improvements back into this file; cross-session notes go to
    `~/.claude/memory/`.
 
-After the user reviews the diff, commit per "Commit timing."
+The work is already committed (through refine) by this point; phase 5 is review,
+not a commit step. Integration is the next, separate step the user launches —
+`superpowers:finishing-a-development-branch` (merge to `dev` / push + open PR /
+keep), with push and PR still gated on the user's explicit ask.
 
 ## Research (optional capability)
 
@@ -171,8 +201,10 @@ a task branch. Within a run:
 
 - **Local commits on a confirmed task branch: allowed.** Never directly onto
   `dev` or `main`.
-- **Push / pull / mutating fetch / opening PRs: never without the user's
-  explicit ask.** The user owns the remote.
+- **`git fetch`: always allowed** — it only updates remote-tracking refs, never
+  your work or the remote.
+- **Push / pull / opening PRs: never without the user's explicit ask.** The user
+  owns the remote (and pull, which mutates the branch).
 - **Branch creation and cross-branch ops** (checkout-other, merge, rebase-onto,
   cherry-pick): require user confirmation.
 - **Web read/search: allowed by default.**
@@ -182,51 +214,42 @@ are unchanged here — see AGENTS.md, not repeated.
 
 ### Commit timing
 
-Work stays **uncommitted by default** during phase 4 — the working tree is the
-user's review surface. Commit **with or after the user's nod at phase 5**.
-Exception: if a run is long enough that losing uncommitted work would hurt,
-commit at natural safe-points during the run (still on the confirmed task
-branch).
+Committing phase-4 work before refine (Phase 4) does not change the review
+surface: `git diff wip-base` shows committed and uncommitted work alike. Commit
+on the task branch only; never push without the user's explicit ask.
 
 ### Branch base: the `wip-base` tag
 
-A local tag **`wip-base`** marks the start of work. It is the single base for
-every diff, for both user and agent — `git diff wip-base..HEAD` (history),
-`git diff wip-base` (with uncommitted tree). **Default all mid-work and end-of-
-work diff/review checks to `wip-base`.**
+A local tag **`wip-base`** marks the start of work — the single base for every
+diff, for both user and agent (`git diff wip-base..HEAD`, `git diff wip-base`).
+**Default all mid-work and end-of-work diff/review checks to `wip-base`.**
 
-At branch creation, place the tag at the branch's **real fork point**:
+**Creating the branch** (Phase 3) forks from the *published* state of the current
+branch, so the new branch starts clean and merges back easily later:
 
-```sh
-CUR=$(git branch --show-current); HEADC=$(git rev-parse HEAD); BASE=""
-for ref in $(git for-each-ref --format='%(refname:short)' refs/heads | grep -vx "$CUR"); do
-  mb=$(git merge-base HEAD "$ref") || continue
-  [ "$mb" = "$HEADC" ] && continue
-  if [ -z "$BASE" ] || git merge-base --is-ancestor "$BASE" "$mb"; then BASE=$mb; fi
-done
-: "${BASE:=$(git merge-base origin/main HEAD)}"
-git tag -f wip-base "$BASE"   # only with user confirmation — see movement rule
-```
+1. `git fetch` (unconditional — fetch is always allowed).
+2. If `origin/<current-branch>` does not exist → **stop and ask** what to fork
+   from (don't guess a base for an unpushed branch).
+3. If local `<current-branch>` is **ahead** of `origin/<current-branch>` (unpushed
+   commits) → **stop**: those commits would be left out of the new branch and
+   could be forgotten. The user pushes or handles them first.
+4. Otherwise create the branch off `origin/<current-branch>` and anchor
+   `wip-base` there (its tip is the fork point). If that base is behind or
+   diverged from `origin/main`, **warn but proceed** (non-blocking) — forking off
+   an in-progress branch is fine; `remdo-sync` handles catching up later.
 
-Baseline is **`origin/main`**, not local `main` (which lags). Recording the actual
-parent keeps branching off ahead-of-baseline work (e.g. `dev`) from flooding
-reviews with unrelated commits. Same fork-detection as `remdo-sweep`, retargeted
-to `origin/main`. `origin/main` is only as fresh as the last fetch and the user
-owns pull — do **not** fetch silently; if it looks stale or
-`git rev-parse origin/main` errors, ask the user to fetch before placing the tag.
-
-**Movement rule (safety-critical — a local tag has no remote safety rail).**
-`wip-base` is created or moved **only with the user's confirmation** — this
-includes re-pointing it at a new task's start and re-anchoring after a rebase
-shifts the fork point. The agent never moves it silently. If the base
-legitimately changes, propose the move and wait for the nod; until then, keep
-diffing against the existing tag.
+Forking off an in-progress feature branch works as-is: the new branch starts at
+that feature's published tip, so `wip-base..HEAD` is only the new branch's own
+work. The invariant `wip-base..HEAD` = the branch's own work is what `remdo-sync`
+preserves when it later moves `wip-base`. Setting or moving the tag is authorized
+only as part of these flows (this skill at creation, `remdo-sync` after a merge);
+never move it ad hoc, out of band.
 
 ### Branch naming
 
 Prefixes from `docs/contributing.md`: `feat/`, `fix/`, `refactor/`, `chore/`,
-`docs/`. Default to an `origin/main`-based branch; the user confirms branch
-creation and may redirect to current `HEAD` when building on in-progress work.
+`docs/`. The base is the published current branch per "Branch base" above; the
+user confirms the name.
 
 ## Execution model (runtime decision)
 
@@ -251,11 +274,15 @@ Choose by the *activity*, not the phase number:
 
 ## References
 
-- Sequenced skills: `superpowers:brainstorming`, `superpowers:writing-plans`,
-  `superpowers:executing-plans`, `superpowers:dispatching-parallel-agents`,
-  `superpowers:using-git-worktrees`, `superpowers:requesting-code-review`,
-  `superpowers:verification-before-completion`, `/simplify`, `/code-review`.
-- Fork-point detection: `.codex/skills/remdo-sweep/SKILL.md`.
+- Sequenced skills: `superpowers:brainstorming`,
+  `superpowers:dispatching-parallel-agents`, `superpowers:using-git-worktrees`,
+  `superpowers:verification-before-completion`.
+- Phase-4 implementation discipline: `superpowers:test-driven-development`,
+  `superpowers:systematic-debugging`.
+- Phase-4 quality loop (simplify / internal review / external Codex review):
+  `remdo-refine` skill.
+- Keeping `wip-base` current against `origin/main`: `remdo-sync` skill.
+- Integration after report (merge / PR): `superpowers:finishing-a-development-branch`.
 - Doc map (navigation): `docs/index.md`. Doc workflow + invariants (spec-as-docs
   must comply): `docs/contributing.md#documentation`. Deferral/todo rules:
   `docs/todo.md`.
