@@ -316,6 +316,14 @@ The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
   no-op (cut stays pending) since a body can't hold notes. Pin the final
   semantics (no-op vs. move-as-flattened-text) in the cut/paste redesign;
   `NoteIdPlugin` `SELECTION_INSERT_CLIPBOARD_NODES_COMMAND` body branch.
+- "this li is a body-wrapper" is re-derived in three layers: the post-reconcile
+  `role`/`aria-checked`/`tabindex` strip (`NoteBodyPlugin`), the click hit-guard
+  (`CheckListPlugin` `isBodyWrapperElement`), and the `:has(> .note-body)` marker
+  + fold CSS. A `BodyWrapperNode extends ListItemNode` owning a stable class from
+  `createDOM` would collapse all three (and let `isBodyWrapper` use `instanceof`).
+  Deferred: it adds a custom node type + changes the collab-serialized wrapper
+  shape; the strip listener is the one piece fighting Lexical rather than
+  extending it.
 
 ## Later follow-ups
 

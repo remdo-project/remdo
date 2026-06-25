@@ -26,7 +26,6 @@ import { useEffect, useRef } from 'react';
 import { mergeRegister } from '@lexical/utils';
 import { createUniqueNoteId, createNoteIdAvoiding } from '#domain/notes/ids';
 import { $autoExpandIfFolded } from '#client/editor/runtime/fold-state';
-import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
 import { $createNoteLinkNode } from '#client/editor/runtime/note-link-node';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import { isSerializedBodyWrapper } from '#client/editor/runtime/serialized-note-types';
@@ -35,8 +34,8 @@ import {
   getBodyWrapper,
   getContentSiblings,
   insertBefore,
-  isChildrenWrapper,
   isContentItem,
+  isWrapperItem,
   flattenNoteNodes,
 } from '#client/editor/outline/list-structure';
 import { getNoteBody, $getSelectionBody, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
@@ -172,7 +171,7 @@ function $isCaretWithinMarkedSelection(marker: CutMarker, selection: BaseSelecti
 
 function $ensureNoteId(item: ListItemNode) {
   // Adjacency wrappers (children-wrapper, body-wrapper) are not notes.
-  if (isChildrenWrapper(item) || isBodyWrapper(item) || $getNoteId(item)) {
+  if (isWrapperItem(item) || $getNoteId(item)) {
     return;
   }
 
