@@ -486,6 +486,28 @@ function $injectNoteBodiesIntoClipboardNodes(nodes: SerializedLexicalNode[]): vo
   }
 }
 
+// Replace each serialized note's own (inline) content with the live note's full
+// own content, leaving any nested children list untouched. A structural copy is
+// whole-note, but Lexical serializes the partial text under the selection's
+// boundary heads; this restores the complete label (text, note links, dates) so
+// an internal paste recreates the whole note. Recurses into nested lists.
+function $restoreFullNoteContentInClipboardNodes(nodes: SerializedLexicalNode[]): void {
+  for (const node of nodes) {
+    const element = node as SerializedElement;
+    if (element.type === 'listitem' && typeof element.noteId === 'string' && Array.isArray(element.children)) {
+      const note = $findNoteById(element.noteId);
+      if (note) {
+        const ownContent = note.getChildren().filter((child) => !$isListNode(child)).map(serializeNodeTree);
+        const nestedList = element.children.filter((child) => child.type === 'list');
+        element.children = [...ownContent, ...nestedList];
+      }
+    }
+    if (Array.isArray(element.children)) {
+      $restoreFullNoteContentInClipboardNodes(element.children);
+    }
+  }
+}
+
 // The plain-text line(s) a note contributes: its own text, then its body's text.
 function noteClipboardPlainText(note: ListItemNode): string[] {
   const lines = [getNoteOwnText(note)];
@@ -530,6 +552,11 @@ function $populateClipboardFromSelection(
     return false;
   }
   $injectNoteBodiesIntoClipboardNodes(payload.nodes);
+  // A structural selection acts on whole notes, but the native RangeSelection may
+  // only partially cover a head's label (a drag from mid-label into its body),
+  // so Lexical serializes a truncated label. Restore each note's full own content
+  // from the live tree, matching the plain-text flavor.
+  $restoreFullNoteContentInClipboardNodes(payload.nodes);
   if (isCut) {
     payload.remdoCut = true;
   }

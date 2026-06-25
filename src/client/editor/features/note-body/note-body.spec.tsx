@@ -641,6 +641,31 @@ describe('note body (docs/outliner/body.md)', () => {
     expect(copies.every((note) => note.body === 'body')).toBe(true);
   });
 
+  it('structural copy starting mid-label into a body copies the whole note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Drag from the MIDDLE of note1's label into its body: still a structural
+    // whole-note selection. The internal payload must carry the full label
+    // ('note1'), not the selected suffix ('te1'), so an internal paste recreates
+    // the complete note — matching the plain-text flavor.
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'body');
+
+    // Anchor at label offset 2 ("no|te1"), extend into the body.
+    await collapseDomSelectionAtNode(getNoteTextNode(remdo, 'note1'), 2);
+    await extendDomSelectionToNode(getNoteBodyTextNode(remdo, 'note1'), 2);
+
+    const payload = await copySelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await selectStructuralNotes(remdo, 'note3');
+    await pastePayload(remdo, payload);
+
+    // The pasted copy carries the full label and body, not 'te1' / 'bo'.
+    const copies = readOutline(remdo).filter((note) => note.text === 'note1');
+    expect(copies).toHaveLength(2);
+    expect(copies.every((note) => note.body === 'body')).toBe(true);
+  });
+
   it('pasting a copied body-note over an inline selection keeps the body text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });
