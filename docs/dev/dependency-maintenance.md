@@ -21,9 +21,12 @@ loudly instead.
   resolved until they are a day old (supply-chain buffer). We keep the default.
   The refresh `pnpm update --latest` naturally holds too-fresh bumps and applies
   each one automatically on the next run once it ages in — so packages held back
-  *only* by this gate are never listed below; the gate tracks them, not us. It is
-  enforced on the *lockfile* at install time (CI runs `--frozen-lockfile`), which
-  is what the Dependabot cooldown below works around.
+  *only* by this gate are never listed below; the gate tracks them, not us. On
+  every install pnpm's lockfile verification pass also re-applies the gate to each
+  existing lockfile entry (independent of `minimumReleaseAgeStrict`, which only
+  governs *resolution*), so even `--frozen-lockfile` in CI hard-fails
+  (`ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`) on a committed entry younger than the
+  window — which is what the Dependabot cooldown below works around.
 - Build-script approval uses the `allowBuilds` map in `pnpm-workspace.yaml`
   (`onlyBuiltDependencies` was removed in pnpm 11). With `strictDepBuilds: true`
   (enabled), an install fails (exit 1) when any in-tree dep has a build script
@@ -37,8 +40,9 @@ loudly instead.
 - Dependabot PRs are alerts to run the refresh skill, never merged per-dependency
   (see `.github/dependabot.yml`). A `cooldown` of `default-days: 2` keeps their CI
   green anyway: without it, Dependabot pins versions published in the last day,
-  which `minimumReleaseAge` (above) then rejects at install time so every job
-  fails before tests. The buffer is 2 days, not 1, because cooldown is evaluated
+  which the `minimumReleaseAge` verification pass (above) then rejects at install
+  time so every job fails before tests. The buffer is 2 days, not 1, because
+  cooldown is evaluated
   when the PR opens but pnpm re-measures age at CI-install minutes later — a
   package right at the 24h edge would still trip the gate.
 
