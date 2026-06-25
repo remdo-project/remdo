@@ -1,20 +1,20 @@
 {
-  "generatedAt": "2026-06-24T11:44:56.067Z",
+  "generatedAt": "2026-06-25T18:28:24.548Z",
   "files": {
-    "totalFiles": 522,
-    "textFiles": 519,
+    "totalFiles": 524,
+    "textFiles": 521,
     "byType": {
       "ts": {
         "files": 318,
-        "lines": 31494
+        "lines": 31507
       },
       "tsx": {
         "files": 70,
         "lines": 11105
       },
       "md": {
-        "files": 35,
-        "lines": 3092
+        "files": 37,
+        "lines": 3333
       },
       "json": {
         "files": 30,
@@ -22,11 +22,11 @@
       },
       "sh": {
         "files": 19,
-        "lines": 1175
+        "lines": 1199
       },
       "yml": {
         "files": 13,
-        "lines": 225
+        "lines": 230
       },
       "css": {
         "files": 8,
@@ -38,11 +38,11 @@
       },
       "mts": {
         "files": 4,
-        "lines": 492
+        "lines": 495
       },
       "yaml": {
         "files": 3,
-        "lines": 145
+        "lines": 144
       },
       "jsonc": {
         "files": 2,
@@ -90,8 +90,8 @@
   },
   "totals": {
     "files": {
-      "files": 518,
-      "lines": 51151
+      "files": 520,
+      "lines": 51436
     },
     "tests": {
       "totalUnique": 919
