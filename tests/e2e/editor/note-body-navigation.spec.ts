@@ -1,5 +1,5 @@
 import { expect, test } from '#editor/fixtures';
-import { setCaretAtText } from '#editor/locators';
+import { editorLocator, setCaretAtText } from '#editor/locators';
 import { captureEditorSnapshot } from '#editor/state';
 
 // Vertical arrow navigation is transparent to a note body (see
@@ -32,6 +32,38 @@ test.describe('note body vertical navigation (docs/outliner/body.md)', () => {
 
     expect(await caretInBody(page)).toBe(false);
     expect((await captureEditorSnapshot(page)).selection?.anchorText).toBe('note2');
+  });
+
+  test('ArrowDown within a soft-wrapped note with a body moves to the next visual line', async ({ page, editor }) => {
+    await editor.load('flat');
+    // Replace note1's label with long text that wraps over several visual lines,
+    // then give it a body. ArrowDown from the FIRST visual line must move to the
+    // second visual line within note1 — not skip past the body to note2.
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('Control+A');
+    const longLabel = 'wordy '.repeat(60).trim();
+    await page.keyboard.type(longLabel);
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('thebody');
+
+    // Confirm note1's label actually wraps, else the test is vacuous.
+    const wraps = await editorLocator(page)
+      .locator('li.list-item', { hasText: 'wordy' })
+      .first()
+      .evaluate((el) => {
+        const text = el.querySelector('[data-lexical-text="true"]') ?? el;
+        const rect = text.getBoundingClientRect();
+        const line = Number.parseFloat(getComputedStyle(el).lineHeight) || 16;
+        return rect.height > line * 1.5;
+      });
+    expect(wraps).toBe(true);
+
+    await setCaretAtText(page, longLabel, 0);
+    await page.keyboard.press('ArrowDown');
+
+    // Still in note1's label (moved down a wrapped line), not in the body, not note2.
+    expect(await caretInBody(page)).toBe(false);
+    expect((await captureEditorSnapshot(page)).selection?.anchorText).toBe(longLabel);
   });
 
   test('ArrowDown from a note with a body and children lands on the first child', async ({ page, editor }) => {

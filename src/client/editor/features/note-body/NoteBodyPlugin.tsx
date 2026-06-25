@@ -29,6 +29,7 @@ import {
   $addNoteBody,
   $getNoteBodyFromNode,
   $getSelectionBody,
+  $isCaretOnElementEdgeVisualLine,
   $reconcileNoteBodyWrappers,
   $removeNoteBody,
   $skipBodyForHorizontalNav,
@@ -114,40 +115,13 @@ function $isCaretAtBodyEdge(body: NoteBodyNode, direction: 'backward' | 'forward
 
 type ArrowDirection = 'up' | 'down' | 'left' | 'right';
 
-/**
- * True when the caret sits on the body's first (`leading`) or last (`trailing`)
- * visual line, measured from the live DOM so soft-wrapped lines count too. A
- * vertical move off the edge visual line leaves the body. Compares the caret's
- * client rect against the body's box: the caret is on the leading line when its
- * top is within one line height of the body's top, on the trailing line when its
- * bottom is within one line height of the body's bottom. Returns null when the
- * geometry can't be read (no rendered caret), so callers fall back to the
- * node-level hard-break check.
- */
 function $isCaretOnBodyEdgeVisualLine(
   editor: LexicalEditor,
   body: NoteBodyNode,
   edge: 'leading' | 'trailing'
 ): boolean | null {
   const bodyElement = editor.getElementByKey(body.getKey());
-  const domSelection = getDOMSelection(editor._window);
-  if (!bodyElement || !domSelection || domSelection.rangeCount === 0) {
-    return null;
-  }
-  const caretRect = domSelection.getRangeAt(0).getBoundingClientRect();
-  const bodyRect = bodyElement.getBoundingClientRect();
-  // A collapsed caret in an empty line can report a zero-size rect; treat that
-  // as unreadable so the hard-break fallback decides.
-  if (caretRect.height === 0 && caretRect.top === 0 && caretRect.bottom === 0) {
-    return null;
-  }
-  // One line's worth of tolerance: the rendered line height, falling back to the
-  // caret's own height. Half a line is enough to disambiguate adjacent lines.
-  const lineHeight = Number.parseFloat(getComputedStyle(bodyElement).lineHeight) || caretRect.height || 0;
-  const tolerance = lineHeight * 0.75;
-  return edge === 'leading'
-    ? caretRect.top - bodyRect.top <= tolerance
-    : bodyRect.bottom - caretRect.bottom <= tolerance;
+  return bodyElement === null ? null : $isCaretOnElementEdgeVisualLine(editor, bodyElement, edge);
 }
 
 /**
@@ -244,7 +218,7 @@ export function NoteBodyPlugin() {
       if (direction === 'left' || direction === 'right') {
         return $skipBodyForHorizontalNav(direction, boundaryRoot) ? stop(event) : false;
       }
-      return $skipBodyForVerticalNav(direction, boundaryRoot) ? stop(event) : false;
+      return $skipBodyForVerticalNav(editor, direction, boundaryRoot) ? stop(event) : false;
     };
 
     return mergeRegister(

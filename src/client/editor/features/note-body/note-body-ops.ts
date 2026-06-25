@@ -1,7 +1,7 @@
 import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
-import { $createTextNode, $getSelection, $isRangeSelection } from 'lexical';
-import type { LexicalNode, RangeSelection } from 'lexical';
+import { $createTextNode, $getSelection, $isRangeSelection, getDOMSelection } from 'lexical';
+import type { LexicalEditor, LexicalNode, RangeSelection } from 'lexical';
 
 import { getBodyWrapper, getPreviousContentSibling } from '#client/editor/outline/list-structure';
 import { $isNoteFolded } from '#client/editor/runtime/fold-state';
@@ -107,14 +107,69 @@ function $noteAbove(note: ListItemNode): ListItemNode | null {
 }
 
 /**
- * When a plain vertical arrow from a content note would move into an adjacent
- * body, redirect the caret past the body so navigation never stops in one
- * (a content note is a single line, so the move always lands in the body).
- * `down` from a note with a body lands on the note after the body; `up` from the
- * note directly after a body lands on the body's owner note. Returns true when it
- * redirected, false to fall through to native movement.
+ * True when the collapsed caret sits on `element`'s first (`leading`) or last
+ * (`trailing`) *visual* line, measured from the live DOM so soft-wrapped lines
+ * count. Compares the caret's client rect against the element's box: leading when
+ * the caret top is within ~one line of the element top, trailing when the caret
+ * bottom is within ~one line of the element bottom. Returns null when the
+ * geometry can't be read (no rendered caret), so callers fall back.
  */
-export function $skipBodyForVerticalNav(direction: 'up' | 'down', boundaryRoot: ListItemNode | null): boolean {
+export function $isCaretOnElementEdgeVisualLine(
+  editor: LexicalEditor,
+  element: HTMLElement,
+  edge: 'leading' | 'trailing'
+): boolean | null {
+  const domSelection = getDOMSelection(editor._window);
+  if (!domSelection || domSelection.rangeCount === 0) {
+    return null;
+  }
+  const caretRect = domSelection.getRangeAt(0).getBoundingClientRect();
+  const elementRect = element.getBoundingClientRect();
+  // A collapsed caret on an empty line can report a zero-size rect; treat that
+  // as unreadable so the caller's fallback decides.
+  if (caretRect.height === 0 && caretRect.top === 0 && caretRect.bottom === 0) {
+    return null;
+  }
+  // One line's worth of tolerance: the rendered line height, falling back to the
+  // caret's own height. Three-quarters of a line disambiguates adjacent lines.
+  const lineHeight = Number.parseFloat(getComputedStyle(element).lineHeight) || caretRect.height || 0;
+  const tolerance = lineHeight * 0.75;
+  return edge === 'leading'
+    ? caretRect.top - elementRect.top <= tolerance
+    : elementRect.bottom - caretRect.bottom <= tolerance;
+}
+
+// Is the caret on the visual edge line of `note`'s content toward `edge`? A
+// note's label can soft-wrap over several visual lines, so a vertical arrow only
+// leaves the note (into an adjacent body) from the edge line; from an interior
+// wrapped line it must move within the note. Unknown geometry (null) is treated
+// as "on the edge" so the body stays transparent in the common single-line case.
+function $caretOnNoteEdgeLine(
+  editor: LexicalEditor,
+  note: ListItemNode,
+  edge: 'leading' | 'trailing'
+): boolean {
+  const element = editor.getElementByKey(note.getKey());
+  if (!element) {
+    return true;
+  }
+  return $isCaretOnElementEdgeVisualLine(editor, element, edge) ?? true;
+}
+
+/**
+ * When a plain vertical arrow from a content note would move into an adjacent
+ * body, redirect the caret past the body so navigation never stops in one. The
+ * note's label may soft-wrap, so only redirect from the note's edge visual line
+ * (toward the arrow); from an interior wrapped line, native movement handles the
+ * within-note step. `down` from a note with a body lands on the note after the
+ * body; `up` from the note directly after a body lands on the body's owner note.
+ * Returns true when it redirected, false to fall through to native movement.
+ */
+export function $skipBodyForVerticalNav(
+  editor: LexicalEditor,
+  direction: 'up' | 'down',
+  boundaryRoot: ListItemNode | null
+): boolean {
   const selection = $getSelection();
   if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
     return false;
@@ -125,7 +180,7 @@ export function $skipBodyForVerticalNav(direction: 'up' | 'down', boundaryRoot: 
   }
 
   if (direction === 'down') {
-    if (!getBodyWrapper(note)) {
+    if (!getBodyWrapper(note) || !$caretOnNoteEdgeLine(editor, note, 'trailing')) {
       return false;
     }
     // The body is transparent: land where Down would go if it did not exist —
@@ -140,8 +195,12 @@ export function $skipBodyForVerticalNav(direction: 'up' | 'down', boundaryRoot: 
 
   // up: the note above in document order is the visual line above. If it has a
   // body, native Up would land in that body — redirect to the note's end so the
-  // body stays transparent. A note above the zoom boundary is hidden, so leave
-  // native nav to handle the boundary.
+  // body stays transparent. Only from the note's first visual line; an interior
+  // wrapped line moves natively. A note above the zoom boundary is hidden, so
+  // leave native nav to handle the boundary.
+  if (!$caretOnNoteEdgeLine(editor, note, 'leading')) {
+    return false;
+  }
   const above = $noteAbove(note);
   if (!above || !isWithinZoomBoundary(above, boundaryRoot) || !getBodyWrapper(above)) {
     return false;

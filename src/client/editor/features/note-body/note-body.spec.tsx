@@ -826,7 +826,7 @@ describe('note body vertical navigation (docs/outliner/body.md)', () => {
 
     let handled = false;
     await remdo.mutate(() => {
-      handled = $skipBodyForVerticalNav('down', null);
+      handled = $skipBodyForVerticalNav(remdo.editor, 'down', null);
     });
     expect(handled).toBe(true);
     expect(readCaretNoteId(remdo)).toBe('note2');
@@ -839,7 +839,7 @@ describe('note body vertical navigation (docs/outliner/body.md)', () => {
 
     let handled = false;
     await remdo.mutate(() => {
-      handled = $skipBodyForVerticalNav('down', null);
+      handled = $skipBodyForVerticalNav(remdo.editor, 'down', null);
     });
     expect(handled).toBe(true);
     expect(readCaretNoteId(remdo)).toBe('note3');
@@ -853,7 +853,7 @@ describe('note body vertical navigation (docs/outliner/body.md)', () => {
 
     let handled = false;
     await remdo.mutate(() => {
-      handled = $skipBodyForVerticalNav('up', null);
+      handled = $skipBodyForVerticalNav(remdo.editor, 'up', null);
     });
     expect(handled).toBe(true);
     expect(readCaretNoteId(remdo)).toBe('note3');
@@ -864,7 +864,7 @@ describe('note body vertical navigation (docs/outliner/body.md)', () => {
     await placeCaretAtNote(remdo, 'note3', 0);
 
     // note3 sits below note2 (no body), so the body skip does not apply.
-    const handled = remdo.validate(() => $skipBodyForVerticalNav('up', null));
+    const handled = remdo.validate(() => $skipBodyForVerticalNav(remdo.editor, 'up', null));
     expect(handled).toBe(false);
   });
 
@@ -879,7 +879,7 @@ describe('note body vertical navigation (docs/outliner/body.md)', () => {
     let handled = false;
     await remdo.mutate(() => {
       const boundaryRoot = $findNoteById('note1')!;
-      handled = $skipBodyForVerticalNav('down', boundaryRoot);
+      handled = $skipBodyForVerticalNav(remdo.editor, 'down', boundaryRoot);
     });
     expect(handled).toBe(true);
     expect(readCaretNoteId(remdo)).toBe('note1');
