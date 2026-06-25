@@ -66,9 +66,10 @@ sections to docs.
   worktrees); cross-WD agent state belongs under `~/.claude/` instead.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
-  Exception: the `remdo-feature-flow` skill is self-authorizing — within a
-  `/remdo-feature-flow` run, commits on the confirmed task branch are allowed per that
-  skill’s permission model (still never pushing without an explicit ask).
+  Exception: the `remdo-feature-flow` and `remdo-refine` skills are
+  self-authorizing — within such a run, commits on the confirmed task branch are
+  allowed per that skill’s permission model (never on `dev`/`main`, still never
+  pushing without an explicit ask).
 - `git fetch` is always allowed (it only updates remote-tracking refs, never your
   work or the remote). Push, pull, mutating fetch refspecs, and opening PRs are
   not — they cross into the remote or rewrite your branch, and the user owns them.

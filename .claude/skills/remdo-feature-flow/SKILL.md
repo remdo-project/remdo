@@ -104,12 +104,12 @@ approved spec docs are the branch's first commit.
    `superpowers:systematic-debugging` for a bug or unexpected failure — rather
    than writing ad hoc.
 3. **Refine is part of done** — once the gap-closing loop reaches the spec's
-   described state: if `origin/main` has advanced since branch creation (cheap
-   `git fetch` check), **suggest `remdo-sync`** first so refine reviews against
-   current `main` and the eventual PR stays clean (non-blocking — sync may be
-   gated). Then **commit the phase-4 work** (refine reviews the committed
-   `wip-base..HEAD` range and requires a clean tree) and run the **`remdo-refine`**
-   skill. It owns the quality loop (simplify → internal review → external Codex
+   described state, **commit the phase-4 work** (refine and sync both need a clean
+   tree; refine reviews the committed `wip-base..HEAD` range). If `origin/main` has
+   advanced since branch creation (cheap `git fetch` check), **suggest `remdo-sync`**
+   next — now that the tree is clean it can run — so refine reviews against current
+   `main` and the eventual PR stays clean (non-blocking; sync may be gated). Then
+   run the **`remdo-refine`** skill. It owns the quality loop (simplify → internal review → external Codex
    review, looping to a clean pass), the **tradeoff/blocker policy** for review
    findings (defined there, not restated here), and the local-agent final checks
    at the end. Refine converges *code quality*; reaching the spec's described

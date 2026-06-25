@@ -2,11 +2,13 @@
 
 ## Git Workflow
 
-`origin/main` is the canonical review baseline; `dev` is the integration/staging
-branch and does not need a perfectly linear history. Do the work on topic
-branches kept to a single concern, and mark each branch's start with the
-`wip-base` tag so reviews diff against the right base (see the
-`remdo-feature-flow` skill for the mechanism).
+`origin/main` is the canonical **PR/review baseline** — what work is ultimately
+diffed against to merge; `dev` is the integration/staging branch and does not
+need a perfectly linear history. Do the work on topic branches kept to a single
+concern. A branch's **fork point** is wherever it was cut — usually `dev`, or
+another in-progress branch when stacking work — which is not always `origin/main`;
+the `wip-base` tag marks that fork point so local reviews diff against the
+branch's own work (see the `remdo-feature-flow` skill for the mechanism).
 
 Name topic branches with clear prefixes so intent is obvious:
 
@@ -67,10 +69,14 @@ superseded docs in the same change) lives in `AGENTS.md`.
 
 ### Documentation invariants
 
-These invariants apply to every doc in the corpus and to agent skill files
-(`.claude/skills/**`), which carry the same risks. The only corpus-specific part
-is the `docs/index.md` map (#7): skills are not mapped, so that clause is a no-op
-for them.
+These invariants apply to every doc in the corpus. Agent skill files
+(`.claude/skills/**`) carry the same redundancy and consistency risks, so the
+content invariants apply to them too: single source (#1), cross-doc consistency
+(#4), spec not status (#5), no superseded contract (#6), minimal (#8), and no
+untracked divergence (#9). The corpus-shape invariants do not: skills are not in
+the `docs/index.md` map (#7), and they use their final `References` section for
+cross-skill links, not the external-only form invariants #2 and #3 mandate for
+the corpus.
 
 1. **Single source per topic.** Each behavior MUST be defined exactly once, in
    the doc best suited to it. Likewise, each precise term MUST be defined once —
