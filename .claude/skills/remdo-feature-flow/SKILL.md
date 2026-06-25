@@ -92,11 +92,13 @@ which docs changed, plus a ~5-bullet approach summary — not the design pasted
 inline). The user does **not** review a detailed plan. This is the only mandatory
 user gate.
 
-On approval, **create the task branch** (the commit-to-build point — dialog and
-the spec gate run on the current branch, so nothing is committed and no branch
-exists until here; a dropped idea leaves nothing to clean up). Confirm branch
-name/prefix (see "Branch naming") and create it per "Branch base" below. The
-approved spec docs are the branch's first commit.
+On approval, **create the task branch** (the commit-to-build point — dialog runs
+on the current branch and no branch exists until here, so a dropped idea never
+leaves a stray branch). The Phase-3 spec edits do live in the working tree on the
+current branch, though: if the user rejects at the gate, **revert them** before
+exiting — don't leave unapproved `docs/`/`docs/todo.md` changes behind. Confirm
+branch name/prefix (see "Branch naming") and create it per "Branch base" below;
+the approved spec docs are the branch's first commit.
 
 The tree must hold **only this flow's own changes** before that first commit —
 if it had pre-existing unrelated edits when the run started, **stop**: committing
