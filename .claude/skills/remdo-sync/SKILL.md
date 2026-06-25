@@ -74,7 +74,14 @@ re-fork from current `origin/main` rather than waiting on sync.
    When a resolution is not clearly correct, **do not guess** — leave it
    conflicted and **call it out** with file/region and what is unclear. Do not
    finish a half-resolved merge silently. Bias to callout when unsure.
-6. **Re-anchor `wip-base`** to the now-reachable `origin/main`:
+
+   **Commit the merge before continuing.** On a conflicted merge, `HEAD` stays at
+   the pre-merge commit until you `git merge --continue` (or `git commit`), so the
+   merge commit must exist before step 6 — otherwise `merge-base` in step 6 reads
+   the old `HEAD` and re-anchors `wip-base` to the wrong base. If conflicts can't
+   be safely resolved, stop with the callout and **do not** re-anchor.
+6. **Re-anchor `wip-base`** to the now-reachable `origin/main` (only once the merge
+   commit exists — `HEAD` is the merge):
 
    ```sh
    git tag -f wip-base "$(git merge-base origin/main HEAD)"
