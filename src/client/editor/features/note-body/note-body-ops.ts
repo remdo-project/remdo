@@ -195,14 +195,16 @@ export function $skipBodyForVerticalNav(
 
   // up: the note above in document order is the visual line above. If it has a
   // body, native Up would land in that body — redirect to the note's end so the
-  // body stays transparent. Only from the note's first visual line; an interior
-  // wrapped line moves natively. A note above the zoom boundary is hidden, so
-  // leave native nav to handle the boundary.
-  if (!$caretOnNoteEdgeLine(editor, note, 'leading')) {
-    return false;
-  }
+  // body stays transparent. A note above the zoom boundary is hidden, so leave
+  // native nav to handle the boundary. (Structural checks first, so a plain Up in
+  // a bodyless note doesn't pay the geometry read below.)
   const above = $noteAbove(note);
   if (!above || !isWithinZoomBoundary(above, boundaryRoot) || !getBodyWrapper(above)) {
+    return false;
+  }
+  // Only redirect from the note's first visual line; an interior wrapped line
+  // moves natively.
+  if (!$caretOnNoteEdgeLine(editor, note, 'leading')) {
     return false;
   }
   $selectItemEdge(above, 'end');
