@@ -5,6 +5,7 @@ import { $createParagraphNode, $setState } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
 import { getBodyWrapper, getPreviousContentSibling, insertBefore, isChildrenWrapper } from '#client/editor/outline/list-structure';
+import { getWrapperForContent } from '#client/editor/outline/selection/tree';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { noteIdState } from '#client/editor/runtime/note-id-state';
 
@@ -208,11 +209,10 @@ function normalizeOrphanWrappers(list: ListNode): void {
       continue;
     }
 
-    // The canonical children-wrapper sits after the content note's body-wrapper
-    // (if any), so look past it to find the existing wrapper to merge into.
-    const previousWrapper = getBodyWrapper(previousContent)?.getNextSibling()
-      ?? previousContent.getNextSibling();
-    if (isChildrenWrapper(previousWrapper)) {
+    // The previous note's own children-wrapper (looking past its body-wrapper)
+    // is where this orphan duplicate merges back in.
+    const previousWrapper = getWrapperForContent(previousContent);
+    if (previousWrapper) {
       reportInvariant({
         message: 'orphan-wrapper-merged-into-previous',
         context: { wrapperKey: child.getKey(), targetWrapperKey: previousWrapper.getKey() },
