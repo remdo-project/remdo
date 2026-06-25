@@ -47,6 +47,11 @@ sync would pull in commits that are not this branch's work, and that it will be
 possible once the base lands in `origin/main`. Do not try to sync from the parent
 instead — that is the complexity this gate deliberately avoids.
 
+The gate assumes the parent merges with **preserved commit identity** (a merge
+commit, this repo's PR mode). If a parent is **squash-merged**, its commits get a
+new identity and never become ancestors, so the gate stays blocked permanently —
+re-fork from current `origin/main` rather than waiting on sync.
+
 ## Preconditions (warn and stop)
 
 - **Task branch only** — not `dev`/`main`.
