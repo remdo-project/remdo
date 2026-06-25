@@ -69,14 +69,11 @@ superseded docs in the same change) lives in `AGENTS.md`.
 
 ### Documentation invariants
 
-These invariants apply to every doc in the corpus. Agent skill files
-(`.claude/skills/**`) carry the same redundancy and consistency risks, so the
-content invariants apply to them too: single source (#1), cross-doc consistency
-(#4), spec not status (#5), no superseded contract (#6), minimal (#8), and no
-untracked divergence (#9). The corpus-shape invariants do not: skills are not in
-the `docs/index.md` map (#7), and they use their final `References` section for
-cross-skill links, not the external-only form invariants #2 and #3 mandate for
-the corpus.
+These invariants apply to every doc in the corpus, and to agent skill files
+(`.claude/skills/**`), which carry the same risks — except where an invariant is
+inherently about the corpus's shape rather than a doc's content: skills are not in
+the documentation map, and their `References` sections link sibling skills rather
+than only external sources.
 
 1. **Single source per topic.** Each behavior MUST be defined exactly once, in
    the doc best suited to it. Likewise, each precise term MUST be defined once —
