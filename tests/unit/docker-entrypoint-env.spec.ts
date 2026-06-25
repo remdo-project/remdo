@@ -85,6 +85,41 @@ describe('docker entrypoint Caddy environment', () => {
   });
 });
 
+describe('docker entrypoint HOST default', () => {
+  // The entrypoint pins HOST to the IPv4 loopback so the API server does not
+  // bind IPv6-only (`localhost` can resolve to ::1), which would leave Caddy's
+  // 127.0.0.1 upstreams unreachable. Extract the defaulting line from the real
+  // entrypoint so the test tracks the source rather than a hard-coded copy.
+  function resolveHost(overrides: NodeJS.ProcessEnv): string {
+    const output = execFileSync(
+      'sh',
+      [
+        '-c',
+        [
+          String.raw`eval "$(grep -E '^: "\$\{HOST:=' docker/entrypoint.sh)"`,
+          'printf "%s" "$HOST"',
+        ].join('; '),
+      ],
+      {
+        env: {
+          PATH: process.env.PATH,
+          ...overrides,
+        },
+        encoding: 'utf8',
+      }
+    );
+    return output;
+  }
+
+  it('defaults HOST to the IPv4 loopback', () => {
+    expect(resolveHost({})).toBe('127.0.0.1');
+  });
+
+  it('honors an explicit HOST override', () => {
+    expect(resolveHost({ HOST: '0.0.0.0' })).toBe('0.0.0.0');
+  });
+});
+
 describe('docker entrypoint API secret validation', () => {
   it('requires AUTH_SECRET', () => {
     const result = runEntryPointEnv('remdo_require_api_secrets', {

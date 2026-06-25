@@ -14,6 +14,14 @@ export REMDO_ROOT
 : "${XDG_CONFIG_HOME:=${DATA_DIR%/}/.config}"
 export XDG_DATA_HOME XDG_CONFIG_HOME
 
+# Bind loopback services on IPv4. Caddy proxies to 127.0.0.1 upstreams, but
+# `localhost` (the env.defaults.sh default) can resolve to ::1 first, so the API
+# server would listen IPv6-only and Caddy's IPv4 dial gets connection-refused.
+# Pin HOST to the IPv4 loopback the Caddyfile uses. Override-able for callers
+# (e.g. the docker E2E) that set it explicitly.
+: "${HOST:=127.0.0.1}"
+export HOST
+
 remdo_configure_caddy_env
 
 # Bootstrap secrets (production only). Resolves AUTH_SECRET and the Y-Sweet
