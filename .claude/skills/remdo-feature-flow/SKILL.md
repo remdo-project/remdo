@@ -72,12 +72,10 @@ docs that clearly match the existing structure — to describe the design as the
 new reality. Track any not-yet-built parts, gaps, or sequencing in `docs/todo.md`
 (the "Target behavior only" invariant), not as caveats in the prose.
 
-Comply with the existing doc governance (the invariants in
-`docs/contributing.md#documentation`) so static checks are satisfied (no wasted
-rework): single source per topic, top-down linking, self-contained behavior with
-external refs in a final `References` section, and **refresh the `docs/index.md`
-map for any doc edited** — except the `docs/todo.md` summary, which stays as-is. Aim for a minimal, coherent,
-non-redundant end state, even at the cost of larger doc edits.
+Comply with the documentation invariants
+(`docs/contributing.md#documentation`) so static checks pass without rework, and
+aim for a minimal, coherent, non-redundant end state even at the cost of larger
+doc edits.
 
 `.agent/specs/...` is **not** a review surface — it is your own scratch/cache for
 talking to tools and subagents. Do not ask the user to review it.
@@ -132,8 +130,7 @@ Iterate until the spec's state is reached or a true blocker hits.
 ## Phase 5 — Report + retro
 
 The report **indexes the diff**, it does not re-narrate it. The work is on the
-task branch (committed through refine; see "Commit timing") for the user's
-`git diff wip-base` loop. Thin chat summary:
+task branch for the user's `git diff wip-base` loop. Thin chat summary:
 
 1. What changed — pointing at files/areas, not prose-narrating each edit.
 2. Tradeoffs taken (and why).
