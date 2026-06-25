@@ -9,6 +9,15 @@ updates:
     schedule:
       interval: weekly
       day: sunday
+    # Don't propose a version until it is 2 days old. pnpm's minimumReleaseAge
+    # (24h, enforced on the lockfile at install time) otherwise rejects the
+    # too-fresh entries Dependabot picks, so every PR's CI fails at install. The
+    # 2-day buffer (vs 1) clears that race: cooldown is checked when the PR opens,
+    # but pnpm re-measures age at CI-install minutes later, so a package right at
+    # 24h could still trip the gate. With this, PRs land green and stay readable
+    # alerts. Aligns with docs/dev/dependency-maintenance.md#pnpm.
+    cooldown:
+      default-days: 2
     groups:
       weekly-all:
         patterns:
