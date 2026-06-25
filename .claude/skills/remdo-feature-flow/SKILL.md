@@ -111,9 +111,9 @@ approved spec docs are the branch's first commit.
    `main` and the eventual PR stays clean (non-blocking; sync may be gated). Then
    run the **`remdo-refine`** skill. It owns the quality loop (simplify → internal review → external Codex
    review, looping to a clean pass), the **tradeoff/blocker policy** for review
-   findings (defined there, not restated here), and the local-agent final checks
-   at the end. Refine converges *code quality*; reaching the spec's described
-   state stays the gap-closing loop's job above.
+   findings (defined there, not restated here), and the final checks for the
+   current agent mode at the end. Refine converges *code quality*; reaching the
+   spec's described state stays the gap-closing loop's job above.
 4. **Mid-work decisions:** small blast radius (a later reversal would not waste
    the work) → use judgment, **record it in `docs/todo.md`**, keep moving.
    Genuine large-blast-radius fork → stop. Stops are rare; a stop is **signal**
