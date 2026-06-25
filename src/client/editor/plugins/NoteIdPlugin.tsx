@@ -804,12 +804,13 @@ export function NoteIdPlugin() {
               return true;
             }
 
-            // Cut content pasted into a (non-cut) body lands as text, not list
-            // nodes; the move completes and the cut clears.
-            if (pasteBody && $isRangeSelection(payload.selection)) {
-              setCutMarker(null);
+            // A body is rich text and cannot structurally hold the cut notes, so
+            // there is no valid move target here. Interim behavior: no-op, leave
+            // the cut pending (never inject list nodes into the body, and never
+            // copy-without-moving). Final semantics are deferred to the cut/paste
+            // redesign — see docs/todo.md.
+            if (pasteBody) {
               lastPasteSelectionRangeRef.current = null;
-              payload.selection.insertText($getPlainTextFromClipboardNodes(payload.nodes));
               return true;
             }
 

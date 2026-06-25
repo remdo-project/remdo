@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { act } from '@testing-library/react';
-import { REDO_COMMAND, UNDO_COMMAND, $createTextNode, $getRoot, $getSelection, $isTextNode  } from 'lexical';
+import { $createListItemNode, $createListNode } from '@lexical/list';
+import { REDO_COMMAND, UNDO_COMMAND, $createTextNode, $getRoot, $getSelection, $isTextNode, $setState  } from 'lexical';
+import { $normalizeOutlineRoot } from '#client/editor/outline/normalization';
 import {
   collapseDomSelectionAtNode,
   copySelection,
@@ -21,12 +23,65 @@ import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getBodyWrapper } from '#client/editor/outline/list-structure';
 import { getSubtreeTail } from '#client/editor/outline/selection/tree';
 import { $createBodyWrapper, $isNoteBodyNode, isBodyWrapper } from './note-body-node';
-import { $getNoteId } from '#client/editor/runtime/note-id-state';
+import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import { $normalizeNoteIdsOnLoad } from '#client/editor/plugins/note-id-normalization';
 import { getNoteBody, $skipBodyForVerticalNav } from './note-body-ops';
 import { $resolveLinkPickerOptions } from '#client/editor/plugins/note-link/options';
 
 describe('note body (docs/outliner/body.md)', () => {
+  it('normalization merges a duplicate child-wrapper past a body-wrapper', meta({
+    expectedConsoleIssues: ['runtime.invariant orphan-wrapper-merged-into-previous'],
+  }), async ({ remdo }) => {
+    // Malformed shape: note1, body-wrapper, children-wrapper(note2), then an
+    // orphan duplicate children-wrapper(note3). The repair must look past the
+    // body-wrapper to find note1's real children-wrapper and merge note3 into it,
+    // not hoist note3 as a sibling note.
+    await remdo.mutate(() => {
+      const root = $getRoot();
+      root.clear();
+
+      const $buildChildWrapper = (noteId: string, text: string) => {
+        const wrapper = $createListItemNode();
+        const innerList = $createListNode('bullet');
+        const note = $createListItemNode();
+        note.append($createTextNode(text));
+        $setState(note, noteIdState, noteId);
+        innerList.append(note);
+        wrapper.append(innerList);
+        return wrapper;
+      };
+
+      const list = $createListNode('bullet');
+      const note1 = $createListItemNode();
+      note1.append($createTextNode('note1'));
+      $setState(note1, noteIdState, 'note1');
+
+      const bodyWrapper = $createBodyWrapper();
+      const body = bodyWrapper.getFirstChild();
+      if ($isNoteBodyNode(body)) {
+        body.append($createTextNode('thebody'));
+      }
+
+      list.append(note1, bodyWrapper, $buildChildWrapper('note2', 'child2'), $buildChildWrapper('note3', 'child3'));
+      root.append(list);
+
+      $normalizeOutlineRoot(root);
+    });
+
+    // note3 merged in as a sibling of note2 under note1 (not hoisted to root).
+    expect(remdo).toMatchOutline([
+      {
+        noteId: 'note1',
+        text: 'note1',
+        body: 'thebody',
+        children: [
+          { noteId: 'note2', text: 'child2' },
+          { noteId: 'note3', text: 'child3' },
+        ],
+      },
+    ]);
+  });
+
   it('shift+Enter on a note adds a body and moves the caret into it', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });

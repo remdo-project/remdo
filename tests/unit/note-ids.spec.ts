@@ -748,6 +748,41 @@ describe('note ids on paste', () => {
     ]);
   });
 
+  it('pasting a cut into a non-cut note\'s body is an interim no-op (cut stays pending)', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A body can't structurally hold notes, so there is no valid move target.
+    // Interim behavior (final semantics deferred to the cut/paste redesign, see
+    // docs/todo.md): the paste does nothing and the cut stays pending — it must
+    // never inject list nodes into the body nor copy the text without moving.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'b1');
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    // Caret inside note1's body (note1 is NOT cut), then paste the cut.
+    await remdo.mutate(() => {
+      getNoteBody($findNoteById('note1')!)!.selectEnd();
+    });
+    await pastePayload(remdo, clipboardPayload);
+
+    // No-op: note1's body unchanged, note2 still in place.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'b1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    // Cut still pending: pasting elsewhere completes the move.
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'b1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2' },
+    ]);
+  });
+
   it('drops cut markers after editing a cut note\'s body', meta({ fixture: 'flat' }), async ({ remdo }) => {
     // Give note2 a body, cut it, then edit inside the body. The body is part of
     // the cut note, so the edit must cancel the pending cut — a later paste does

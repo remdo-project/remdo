@@ -208,7 +208,10 @@ function normalizeOrphanWrappers(list: ListNode): void {
       continue;
     }
 
-    const previousWrapper = previousContent.getNextSibling();
+    // The canonical children-wrapper sits after the content note's body-wrapper
+    // (if any), so look past it to find the existing wrapper to merge into.
+    const previousWrapper = getBodyWrapper(previousContent)?.getNextSibling()
+      ?? previousContent.getNextSibling();
     if (isChildrenWrapper(previousWrapper)) {
       reportInvariant({
         message: 'orphan-wrapper-merged-into-previous',
