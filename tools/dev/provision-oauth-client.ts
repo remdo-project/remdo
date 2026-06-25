@@ -101,7 +101,8 @@ async function main(): Promise<void> {
     console.info(`${label}:`);
     console.info(`  Email: ${user.email}`);
     // Public dev fixture credentials; this command is dev-only and prints them intentionally.
-    // codeql[js/clear-text-logging]
+    // The CodeQL js/clear-text-logging alert is dismissed as a false positive in
+    // code scanning (default setup ignores inline // codeql[...] suppressions).
     console.info(`  Password: ${user.password}`);
   }
   await provisionDevSourceOAuthClient();

@@ -25,14 +25,16 @@ outdated or a doc’s role materially changes.
 - `docs/config.md` (Medium). Configuration boundary: the single config owner,
   the settable input variables vs. derived values, dev/prod port regimes,
   `APP_PUBLIC_URL`-vs-bind-`PORT` separation, and the secret bootstrap contract.
-- `docs/contributing.md` (Medium). Runtime baselines, Git workflow (local topic
-  branches off the `origin/main` baseline, marked with the `wip-base` tag) and
+- `docs/contributing.md` (Medium). Runtime baselines, Git workflow (`origin/main`
+  as PR baseline, the branch fork point marked with the `wip-base` tag) and
   branch-prefix conventions, editor feature module layout, pre-1.0 compatibility
   policy (no default migration/back-compat requirements), and the doc
   workflow + documentation invariants.
-- `docs/dev/dependency-maintenance.md` (Medium). Temporary dependency/runtime
-  workarounds plus intentionally held-back versions, with current rationale and
-  revisit conditions for refresh work.
+- `docs/dev/dependency-maintenance.md` (Medium). Standing policy for dependency
+  refresh work — durable rules and self-healing mechanisms (pnpm release-age
+  gate, Dependabot cooldown alignment, build-script approval, Node/Docker base
+  lag). Individual workarounds live as `TODO:`/`FIXME:` markers at their code
+  sites, not here.
 - `docs/run-modes.md` (Long). Supported run modes: local dev, test stacks, CI,
   self-hosted app runtimes, managed cloud, and backup execution.
 - `docs/hints.md` (Short). UX hint concepts for search, note controls, and

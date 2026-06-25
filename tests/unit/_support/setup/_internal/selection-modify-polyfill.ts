@@ -1,3 +1,5 @@
+// TODO: jsdom does not implement `Selection.modify`. Self-healing — the guard
+// below throws once the test env provides it natively, prompting removal.
 const proto = Selection.prototype as Selection & { modify?: unknown };
 
 if (typeof proto.modify === 'function') {

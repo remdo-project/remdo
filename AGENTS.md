@@ -66,9 +66,13 @@ sections to docs.
   worktrees); cross-WD agent state belongs under `~/.claude/` instead.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
-  Exception: the `remdo-feature-flow` skill is self-authorizing — within a
-  `/remdo-feature-flow` run, commits on the confirmed task branch are allowed per that
-  skill’s permission model (still never pushing without an explicit ask).
+  Exception: the `remdo-feature-flow`, `remdo-refine`, and `remdo-sync` skills are
+  self-authorizing — within such a run, commits on the confirmed task branch are
+  allowed per that skill’s permission model (never on `dev`/`main`, still never
+  pushing without an explicit ask).
+- `git fetch` is always allowed (it only updates remote-tracking refs, never your
+  work or the remote). Push, pull, mutating fetch refspecs, and opening PRs are
+  not — they cross into the remote or rewrite your branch, and the user owns them.
 - Uncommitted state may be incoherent; commits should not be. The working tree
   is scratch that is allowed to be mid-transformation (e.g. docs ahead of code) —
   don't raise such incoherencies while they stay uncommitted. At commit time,
@@ -155,6 +159,17 @@ sections to docs.
   not just a topical overlap); add one tail line `Suppressed N finding(s)
   already tracked in docs/todo.md` (omit when `N` is 0). Forward this rule to any
   finder/reviewer subagents you spawn.
+
+## Skill authoring
+
+When writing or editing an agent skill, assume every run is performed by a model
+**at least as capable as the current one**. Encode *intent* — what the skill is
+for and the policies that constrain it — and make a step deterministic only where
+the path is genuinely clear. Keep strictness to the reasonable minimum; do not
+bake in assumptions, caps, or defensive scaffolding tuned to today's model that
+would constrain a future run that may do it better. When unsure, state the intent
+and trust the running model to meet it (mirrors `docs/principles.md`: current
+code does not define the long-term shape).
 
 ## Agent mode
 
