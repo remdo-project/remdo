@@ -56,7 +56,11 @@ instead — that is the complexity this gate deliberately avoids.
 
 1. **Fetch.** `git fetch --prune` (always allowed — it only updates
    remote-tracking refs).
-2. **Already current** — `origin/main` not ahead → no-op; report and stop.
+2. **No merge needed** — `origin/main` already reachable from `HEAD` (nothing to
+   merge). Skip to step 7 to re-anchor `wip-base` anyway: if the tag lags behind
+   the reachable `origin/main` (e.g. a prior manual merge, or a sync interrupted
+   after merging but before re-anchoring), the invariant is still broken until
+   the tag moves. If the tag is already current, this is a no-op; report and stop.
 3. **Check the gate** above. False → stop with the explanation. True → continue.
 4. **Probe for conflicts without touching the tree** — `git merge-tree
    --write-tree --merge-base $(git merge-base HEAD origin/main) HEAD origin/main`.
