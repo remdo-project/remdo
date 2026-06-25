@@ -169,6 +169,27 @@ describe('note body (docs/outliner/body.md)', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
   });
 
+  it('select-all + Delete inside a multi-line body removes the whole body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A body with hard line breaks: the whole-body-emptied check must count the
+    // selection and the body identically (line breaks included), so select-all
+    // then Delete removes the wrapper rather than leaving an empty body behind.
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'one');
+    await pressKey(remdo, { key: 'Enter' });
+    await typeText(remdo, 'two');
+
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'Delete' });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+  });
+
   it('delete on an empty label whose note has a non-empty body keeps the body', meta({ fixture: 'flat' }), async ({ remdo }) => {
     // note2 gets a body, then its label is emptied. Pressing Delete at the end of
     // the empty label must not drop the note as an empty leaf (that would remove
@@ -612,6 +633,27 @@ describe('note body (docs/outliner/body.md)', () => {
     // Inline copy is just text — the rich payload is Lexical's default text copy,
     // not a whole-note structure; plain text is the selected characters.
     expect(clipboard.getData('text/plain')).toBe('body');
+  });
+
+  it('copying a whole note carries its body to the pasted copy', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A clean whole-note structural copy (not spanning into the body) must carry
+    // the body in the lexical payload, so an internal paste recreates the note
+    // with its body — matching the plain-text flavor.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'thebody');
+
+    await selectStructuralNotes(remdo, 'note1');
+    const payload = await copySelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await selectStructuralNotes(remdo, 'note3');
+    await pastePayload(remdo, payload);
+
+    // Both note1 and its pasted copy carry the body.
+    const copies = readOutline(remdo).filter((note) => note.text === 'note1');
+    expect(copies).toHaveLength(2);
+    expect(copies.every((note) => note.body === 'thebody')).toBe(true);
   });
 
   it('structural copy spanning into part of a body copies the whole body', meta({ fixture: 'flat' }), async ({ remdo }) => {
