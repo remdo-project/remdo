@@ -21,10 +21,9 @@ loudly instead.
   resolved until they are a day old (supply-chain buffer). We keep the default.
   The refresh `pnpm update --latest` naturally holds too-fresh bumps and applies
   each one automatically on the next run once it ages in — so packages held back
-  *only* by this gate are never listed below; the gate tracks them, not us.
-  Because this is enforced on the *lockfile* at install time (CI runs
-  `--frozen-lockfile`), a committed lockfile carrying a <24h entry fails CI
-  outright — see the Dependabot cooldown note below.
+  *only* by this gate are never listed below; the gate tracks them, not us. It is
+  enforced on the *lockfile* at install time (CI runs `--frozen-lockfile`), which
+  is what the Dependabot cooldown below works around.
 
 ### Dependabot
 
