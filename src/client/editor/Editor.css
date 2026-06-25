@@ -544,6 +544,7 @@
   background-color: var(--indicator-color);
 }
 
-.editor-root li.list-item.zoom-hidden {
+.editor-root li.list-item.zoom-hidden,
+.editor-root li.note-body-wrapper.zoom-hidden {
   display: none;
 }
