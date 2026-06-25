@@ -434,6 +434,30 @@ describe('note body (docs/outliner/body.md)', () => {
     ]);
   });
 
+  it('indent with the caret inside a body indents the owning note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // The body travels with its note through indent (docs/outliner/body.md), so a
+    // note-level command invoked from within the body acts on the owner note —
+    // not a no-op just because the caret sits in the body.
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'note2 body');
+
+    // Caret stays inside note2's body, then Tab.
+    await remdo.mutate(() => {
+      getNoteBody($findNoteById('note2')!)!.selectEnd();
+    });
+    await pressKey(remdo, { key: 'Tab' });
+
+    expect(remdo).toMatchOutline([
+      {
+        noteId: 'note1',
+        text: 'note1',
+        children: [{ noteId: 'note2', text: 'note2', body: 'note2 body' }],
+      },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
   it('outdenting a note carries its body back to the outer level', meta({ fixture: 'tree' }), async ({ remdo }) => {
     // tree: note1; note2 > note3. Body on the child note3, then outdent it.
     await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
