@@ -56,30 +56,29 @@ instead — that is the complexity this gate deliberately avoids.
 
 1. **Fetch.** `git fetch --prune` (always allowed — it only updates
    remote-tracking refs).
-2. **No merge needed** — `origin/main` already reachable from `HEAD` (nothing to
-   merge). Skip to step 7 to re-anchor `wip-base` anyway: if the tag lags behind
-   the reachable `origin/main` (e.g. a prior manual merge, or a sync interrupted
-   after merging but before re-anchoring), the invariant is still broken until
-   the tag moves. If the tag is already current, this is a no-op; report and stop.
-3. **Check the gate** above. False → stop with the explanation. True → continue.
+2. **Check the gate** above — always, before any merge or re-anchor. False → stop
+   with the explanation. True → continue.
+3. **Already up to date?** If `origin/main` is already reachable from `HEAD`
+   (nothing to merge — e.g. a prior manual merge, or a sync interrupted before the
+   re-anchor), skip the merge and go straight to step 6 to fix the tag.
 4. **Probe for conflicts without touching the tree** — `git merge-tree
    --write-tree --merge-base $(git merge-base HEAD origin/main) HEAD origin/main`.
-5. **Merge.** `git merge origin/main`.
-6. **Resolve carefully** (if conflicts). Resolve only conflicts you can
-   **determine are safe** — take the time to be sure: read both sides' intent, the
-   surrounding code, `git log`/`git blame`, related changes. When a resolution is
-   not clearly correct, **do not guess** — leave it conflicted and **call it
-   out** with file/region and what is unclear. Do not finish a half-resolved merge
-   silently. Bias to callout when unsure.
-7. **Re-anchor `wip-base`** to the merged-in `origin/main`:
+5. **Merge** (and resolve, if conflicts). `git merge origin/main`. Resolve only
+   conflicts you can **determine are safe** — take the time to be sure: read both
+   sides' intent, the surrounding code, `git log`/`git blame`, related changes.
+   When a resolution is not clearly correct, **do not guess** — leave it
+   conflicted and **call it out** with file/region and what is unclear. Do not
+   finish a half-resolved merge silently. Bias to callout when unsure.
+6. **Re-anchor `wip-base`** to the now-reachable `origin/main`:
 
    ```sh
    git tag -f wip-base "$(git merge-base origin/main HEAD)"
    ```
 
-   The pulled-in commits now fall *inside* the base and drop out of
-   `wip-base..HEAD`, restoring the invariant. Moving the tag here is part of the
-   sync the user invoked — no separate confirmation (see Permissions).
+   The pulled-in (or already-present) commits fall *inside* the base and drop out
+   of `wip-base..HEAD`, restoring the invariant. A no-op if the tag was already
+   current. Moving the tag here is part of the sync the user invoked — no separate
+   confirmation (see Permissions).
 
 ## Permissions
 
