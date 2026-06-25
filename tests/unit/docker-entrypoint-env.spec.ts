@@ -88,15 +88,23 @@ describe('docker entrypoint Caddy environment', () => {
 describe('docker entrypoint HOST default', () => {
   // The entrypoint pins HOST to the IPv4 loopback so the API server does not
   // bind IPv6-only (`localhost` can resolve to ::1), which would leave Caddy's
-  // 127.0.0.1 upstreams unreachable. Extract the defaulting line from the real
-  // entrypoint so the test tracks the source rather than a hard-coded copy.
+  // 127.0.0.1 upstreams unreachable. This is order-sensitive: env.defaults.sh
+  // also defaults HOST (to `localhost`), so the entrypoint must set it *before*
+  // sourcing those defaults. Run the real entrypoint up to and including the
+  // defaults source, then read HOST — this catches the ordering, which an
+  // isolated eval of the pin line would miss.
   function resolveHost(overrides: NodeJS.ProcessEnv): string {
     const output = execFileSync(
       'sh',
       [
         '-c',
         [
-          String.raw`eval "$(grep -E '^: "\$\{HOST:=' docker/entrypoint.sh)"`,
+          // Replay the entrypoint prologue: REMDO_ROOT default + the HOST pin,
+          // then source env.defaults.sh exactly as the entrypoint does. Slicing
+          // the file up to the defaults source keeps the test bound to the real
+          // ordering instead of a copied snippet.
+          'export REMDO_ROOT="$PWD"',
+          String.raw`eval "$(sed -n '/^: "\${HOST:=/,/^\. .*env\.defaults\.sh/p' docker/entrypoint.sh | sed 's#/usr/local/share/remdo/env.defaults.sh#tools/env.defaults.sh#')"`,
           'printf "%s" "$HOST"',
         ].join('; '),
       ],
@@ -111,7 +119,7 @@ describe('docker entrypoint HOST default', () => {
     return output;
   }
 
-  it('defaults HOST to the IPv4 loopback', () => {
+  it('defaults HOST to the IPv4 loopback even after sourcing env.defaults.sh', () => {
     expect(resolveHost({})).toBe('127.0.0.1');
   });
 
