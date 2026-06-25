@@ -1,5 +1,4 @@
 export type {
-  AddressableNote,
   CollectionNote,
   Note,
   NoteId,

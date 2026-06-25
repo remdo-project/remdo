@@ -48,7 +48,7 @@ export class NoteBodyNode extends ElementNode {
   }
 }
 
-export function $createNoteBodyNode(): NoteBodyNode {
+function $createNoteBodyNode(): NoteBodyNode {
   return $applyNodeReplacement(new NoteBodyNode());
 }
 
