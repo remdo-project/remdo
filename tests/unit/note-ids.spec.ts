@@ -276,6 +276,29 @@ describe('note ids on paste', () => {
     expect(new Set(noteIds).size).toBe(outline.length);
   });
 
+  it('preserves a note link when a copied note is pasted into a body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A body is rich text, so pasting copied note content into it must keep
+    // inline rich nodes (note links, formatting) rather than flatten to plain
+    // text. note1 gets a note link, is copied, then pasted into note3's body.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@note2');
+    await pressKey(remdo, { key: 'Enter' });
+
+    await selectStructuralNotes(remdo, 'note1');
+    const clipboardPayload = await copySelection(remdo);
+
+    // Give note3 a body and put the caret in it, then paste.
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await pastePayload(remdo, clipboardPayload);
+
+    // Two note links now exist: note1's original and the one preserved in the
+    // body (not downgraded to plain text, which would leave only one).
+    const rootListNode = getSerializedRootListNode(remdo) as SerializedLexicalNode;
+    const links = collectSerializedNoteLinksInNodes([rootListNode]);
+    expect(links.filter((link) => link.noteId === 'note2')).toHaveLength(2);
+  });
+
   it('materializes same-document note-link docId in clipboard payload', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, '@note2');

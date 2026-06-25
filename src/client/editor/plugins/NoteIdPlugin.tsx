@@ -1,7 +1,7 @@
 import { $createListItemNode, $isListItemNode, $isListNode, ListItemNode } from '@lexical/list';
 import type { ListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import type { BaseSelection, EditorState, LexicalEditor, LexicalNode, NodeKey, SerializedLexicalNode } from 'lexical';
+import type { BaseSelection, EditorState, LexicalEditor, LexicalNode, NodeKey, RangeSelection, SerializedLexicalNode } from 'lexical';
 import { $getHtmlContent, $getLexicalContent, setLexicalClipboardDataTransfer } from '@lexical/clipboard';
 import type { LexicalClipboardData } from '@lexical/clipboard';
 import {
@@ -234,6 +234,19 @@ function $extractInlineClipboardNodes(nodes: LexicalNode[]): LexicalNode[] {
   }
 
   return [];
+}
+
+// Insert clipboard nodes into a note body (rich text). Inline content (a single
+// copied note's children, or already-inline nodes) keeps its rich nodes — note
+// links, date tokens, formatting — via `$insertNodes`. A structural/multi-note
+// payload cannot live in a body as structure, so it flattens to plain text.
+function $insertClipboardNodesIntoBody(selection: RangeSelection, nodes: LexicalNode[]): void {
+  const inlineNodes = $extractInlineClipboardNodes(nodes);
+  if (inlineNodes.length > 0) {
+    $insertNodes(inlineNodes);
+  } else {
+    selection.insertText($getPlainTextFromClipboardNodes(nodes));
+  }
 }
 
 function $resolvePasteSelectionRange(
@@ -767,10 +780,10 @@ export function NoteIdPlugin() {
           // must first honor the cut no-op rule below (pasting inside the cut
           // boundary does nothing and leaves the cut pending), so it is handled
           // within the wasCutPaste block.
-          if (pasteBody && !wasCutPaste) {
+          if (pasteBody && !wasCutPaste && $isRangeSelection(payload.selection)) {
             setCutMarker(null);
             lastPasteSelectionRangeRef.current = null;
-            payload.selection.insertText($getPlainTextFromClipboardNodes(payload.nodes));
+            $insertClipboardNodesIntoBody(payload.selection, payload.nodes);
             return true;
           }
 
