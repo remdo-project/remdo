@@ -24,6 +24,13 @@ loudly instead.
   *only* by this gate are never listed below; the gate tracks them, not us. It is
   enforced on the *lockfile* at install time (CI runs `--frozen-lockfile`), which
   is what the Dependabot cooldown below works around.
+- Build-script approval uses the `allowBuilds` map in `pnpm-workspace.yaml`
+  (`onlyBuiltDependencies` was removed in pnpm 11). With `strictDepBuilds: true`
+  (enabled), an install fails (exit 1) when any in-tree dep has a build script
+  not listed in `allowBuilds`, instead of just warning. When that happens — e.g.
+  a refresh pulls in a new build-script dep — add the dep to `allowBuilds` with
+  `true` (trusted to build) or `false` (blocked) before the install can proceed.
+  Keep `allowBuilds` limited to deps actually in the tree; drop stale entries.
 
 ### Dependabot
 
@@ -34,13 +41,6 @@ loudly instead.
   fails before tests. The buffer is 2 days, not 1, because cooldown is evaluated
   when the PR opens but pnpm re-measures age at CI-install minutes later — a
   package right at the 24h edge would still trip the gate.
-- Build-script approval uses the `allowBuilds` map in `pnpm-workspace.yaml`
-  (`onlyBuiltDependencies` was removed in pnpm 11). With `strictDepBuilds: true`
-  (enabled), an install fails (exit 1) when any in-tree dep has a build script
-  not listed in `allowBuilds`, instead of just warning. When that happens — e.g.
-  a refresh pulls in a new build-script dep — add the dep to `allowBuilds` with
-  `true` (trusted to build) or `false` (blocked) before the install can proceed.
-  Keep `allowBuilds` limited to deps actually in the tree; drop stale entries.
 
 ### Node / Docker base lag
 
