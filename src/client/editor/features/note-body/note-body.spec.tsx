@@ -112,6 +112,35 @@ describe('note body (docs/outliner/body.md)', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
   });
 
+  it('delete on an empty label whose note has a non-empty body keeps the body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // note2 gets a body, then its label is emptied. Pressing Delete at the end of
+    // the empty label must not drop the note as an empty leaf (that would remove
+    // the body-wrapper and lose the text). Instead it merges with the next note
+    // per the body merge contract (docs/outliner/body.md "Note merge", case 2):
+    // the survivor keeps the single body.
+    await placeCaretAtNote(remdo, 'note2', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'keepme');
+
+    await remdo.mutate(() => {
+      const note = $findNoteById('note2')!;
+      for (const child of note.getChildren()) {
+        if ($isTextNode(child)) {
+          child.remove();
+        }
+      }
+      note.selectEnd();
+    });
+    await pressKey(remdo, { key: 'Delete' });
+
+    // note2 (empty label, one body) merges into note3; the body survives on the
+    // surviving note rather than being silently deleted.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3', body: 'keepme' },
+    ]);
+  });
+
   it('backspace at the start of a non-empty body is a no-op and never merges into the note', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });
@@ -126,6 +155,31 @@ describe('note body (docs/outliner/body.md)', () => {
     // Body and note both intact — no merge.
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1', body: 'bodytext' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('pasting a copied note inside a body inserts its text, never list nodes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A body is rich text. Pasting a RemDo-copied note while the caret is in a
+    // body must drop the note's plain text into the body, not insert list items
+    // (which would break the outline). Regression: the inline-paste detection
+    // ignored body selections and fell through to the structural insert.
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'body');
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await copySelection(remdo);
+
+    await remdo.mutate(() => {
+      getNoteBody($findNoteById('note1')!)!.selectEnd();
+    });
+    await pastePayload(remdo, clipboardPayload);
+
+    // Outline stays valid: note2's text landed in note1's body; no extra note.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'bodynote2' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);

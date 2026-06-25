@@ -39,7 +39,7 @@ import {
   isContentItem,
   flattenNoteNodes,
 } from '#client/editor/outline/list-structure';
-import { getNoteBody, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
+import { getNoteBody, $getSelectionBody, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
@@ -753,6 +753,20 @@ export function NoteIdPlugin() {
 
           const wasCutPaste = lastPasteWasCutRef.current;
           lastPasteWasCutRef.current = false;
+
+          // A selection inside a body is rich text, not outline structure: paste
+          // the clipboard's plain text into the body (never list nodes, which
+          // would break the outline). This also covers a collapsed caret.
+          if ($isRangeSelection(payload.selection)) {
+            const body = $getSelectionBody(payload.selection);
+            if (body) {
+              setCutMarker(null);
+              lastPasteSelectionRangeRef.current = null;
+              payload.selection.insertText($getPlainTextFromClipboardNodes(payload.nodes));
+              return true;
+            }
+          }
+
           const marker = cutMarkerRef.current;
           const outlineSelection = editor.selection.get();
           const isInlineSelection =
@@ -885,6 +899,16 @@ export function NoteIdPlugin() {
           }
 
           const selection = $getSelection();
+
+          // A selection inside a body is rich text: paste the plain text into the
+          // body (with line breaks), never as list nodes that break the outline.
+          if ($isRangeSelection(selection) && $getSelectionBody(selection)) {
+            lastPasteSelectionRangeRef.current = null;
+            selection.insertText(plainText);
+            event.preventDefault();
+            return true;
+          }
+
           const isInlineSelection =
             outlineSelection?.kind !== 'structural' && $isInlineSelectionWithinSingleNote(selection);
           const selectionRange = $resolvePasteSelectionRange(

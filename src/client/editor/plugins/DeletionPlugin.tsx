@@ -45,6 +45,7 @@ import {
   removeNoteSubtree,
   isContentDescendantOf,
 } from '#client/editor/outline/selection/tree';
+import { getNoteBody, isNoteBodyEmpty } from '#client/editor/features/note-body/note-body-ops';
 
 const TRAILING_WHITESPACE_PATTERN = /\s$/;
 const LEADING_WHITESPACE_PATTERN = /^\s/;
@@ -156,6 +157,13 @@ function $setItemText(item: ListItemNode, text: string): TextNode {
 
 function isEmptyNote(item: ListItemNode): boolean {
   return item.getTextContent().trim().length === 0;
+}
+
+// True when the note has no body or an empty one. A non-empty body means the
+// note carries content beyond its label, so it must not be removed as empty.
+function $noteBodyIsEmpty(item: ListItemNode): boolean {
+  const body = getNoteBody(item);
+  return body === null || isNoteBodyEmpty(body);
 }
 
 function getChildContentItems(item: ListItemNode): ListItemNode[] {
@@ -469,7 +477,12 @@ export function DeletionPlugin() {
           boundaryRoot !== null && nextNote !== null && !isContentDescendantOf(nextNote, boundaryRoot);
 
         const currentHasChildren = noteHasChildren(contentItem);
-        const currentIsEmptyLeaf = !currentHasChildren && isEmptyNote(contentItem);
+        // A note that owns a non-empty body is not a removable empty leaf: the
+        // Delete fast path removes the whole subtree (body-wrapper included)
+        // without carrying the body, so treating it as empty would lose the body
+        // text. Fall through to the merge path, which carries the body over.
+        const currentIsEmptyLeaf =
+          !currentHasChildren && isEmptyNote(contentItem) && $noteBodyIsEmpty(contentItem);
 
         if (currentIsEmptyLeaf) {
           if (boundaryRoot && contentItem.getKey() === boundaryRoot.getKey() && (!nextNote || nextNoteOutsideBoundary)) {
