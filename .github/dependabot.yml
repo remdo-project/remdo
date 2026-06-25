@@ -9,6 +9,11 @@ updates:
     schedule:
       interval: weekly
       day: sunday
+    # Hold each version 2 days before proposing it, so PRs clear pnpm's
+    # minimumReleaseAge gate and land green. Rationale (incl. why 2, not 1):
+    # docs/dev/dependency-maintenance.md, "Dependabot".
+    cooldown:
+      default-days: 2
     groups:
       weekly-all:
         patterns:
