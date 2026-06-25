@@ -3,9 +3,8 @@
 ## Purpose
 
 A **body** is an optional rich-text region attached to a single note, shown
-below the note's [content](./concepts.md). It is itself a kind of note (see
-[Concepts](./concepts.md#note-kinds)) owned by its editor note — a restricted one
-with no id and no children of its own.
+below the note's [content](./concepts.md). It is itself a restricted kind of note
+owned by its editor note (see [Concepts](./concepts.md#note-kinds)).
 
 ## Core behavior
 
@@ -23,9 +22,7 @@ with no id and no children of its own.
 
 ## Selection and navigation
 
-A body is a kind of note (see [Concepts](./concepts.md#note-kinds)) owned by its
-editor note. For selection, a note's content and its body are two distinct
-**regions**:
+For selection, a note's content and its body are two distinct **regions**:
 
 - An inline selection lives within exactly one region — one note's content, or
   one body — and never spans the two.
@@ -33,9 +30,8 @@ editor note. For selection, a note's content and its body are two distinct
   to that single note (a note is never selected structurally without its body).
 - Any selection crossing two notes — including one with an endpoint inside a
   body — is structural and snaps to whole notes (see [Selection](./selection.md)).
-- A body is never a structural head on its own: it can be selected only inline,
-  or structurally as part of its owning note. The ladder never selects a body's
-  text by itself.
+- The ladder never selects a body's text by itself (a body is never a structural
+  head on its own — see [Concepts](./concepts.md#note-kinds)).
 
 Within a body, keys behave as follows:
 
