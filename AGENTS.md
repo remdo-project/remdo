@@ -66,15 +66,19 @@ sections to docs.
   worktrees); cross-WD agent state belongs under `~/.claude/` instead.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
-  Exception: the `remdo-feature-flow` skill is self-authorizing — within a
-  `/remdo-feature-flow` run, commits on the confirmed task branch are allowed per that
-  skill’s permission model (still never pushing without an explicit ask).
+  Exception: the `remdo-feature-flow`, `remdo-refine`, and `remdo-sync` skills are
+  self-authorizing — within such a run, commits on the confirmed task branch are
+  allowed per that skill’s permission model (never on `dev`/`main`, still never
+  pushing without an explicit ask).
 - Uncommitted state may be incoherent; commits should not be. The working tree
   is scratch that is allowed to be mid-transformation (e.g. docs ahead of code) —
   don't raise such incoherencies while they stay uncommitted. At commit time,
   either the committed state is coherent or an ultra-short `docs/todo.md` trigger
   covers the gap (per `docs/contributing.md#documentation` invariant 9); add that
   trigger yourself and note it in the commit rather than asking.
+- `git fetch` is always allowed (it only updates remote-tracking refs, never your
+  work or the remote). Push, pull, mutating fetch refspecs, and opening PRs are
+  not — they cross into the remote or rewrite your branch, and the user owns them.
 - The Git index may be used by the developer as private review bookkeeping.
   Treat staged vs unstaged state as semantically invisible: it does not mark
   files as done, final, approved, protected, or out of scope. When the agreed
@@ -138,7 +142,12 @@ sections to docs.
   CDP endpoint on `127.0.0.1:9222` (host/user-level MCP config, not in this
   repo). If the endpoint is down, run `ensure-cdp` to start it; the MCP itself
   loads only on a Claude Code restart. To reach the app, open
-  `http://127.0.0.1:5000/` and sign in as a dev user / open a fixture doc per
+  `http://127.0.0.1:<PORT>/` where `<PORT>` is **this** working dir's app port —
+  read it from this WD's `.env`/env (`PORT`, which defaults to `PORT_BASE + 0`;
+  see `tools/env.defaults.sh`). Do not assume a fixed port: each working
+  dir/worktree owns its own `PORT_BASE` block, and the shared CDP endpoint can
+  reach servers from other WDs too, so a hardcoded port may land you on a
+  different checkout's build. Then sign in as a dev user / open a fixture doc per
   [docs/run-modes.md](docs/run-modes.md). If this flow fails or drifts, report it.
 - When presenting multiple options or a list of questions, format them as a
   numbered list.
@@ -150,6 +159,17 @@ sections to docs.
   not just a topical overlap); add one tail line `Suppressed N finding(s)
   already tracked in docs/todo.md` (omit when `N` is 0). Forward this rule to any
   finder/reviewer subagents you spawn.
+
+## Skill authoring
+
+When writing or editing an agent skill, assume every run is performed by a model
+**at least as capable as the current one**. Encode *intent* — what the skill is
+for and the policies that constrain it — and make a step deterministic only where
+the path is genuinely clear. Keep strictness to the reasonable minimum; do not
+bake in assumptions, caps, or defensive scaffolding tuned to today's model that
+would constrain a future run that may do it better. When unsure, state the intent
+and trust the running model to meet it (mirrors `docs/principles.md`: current
+code does not define the long-term shape).
 
 ## Agent mode
 

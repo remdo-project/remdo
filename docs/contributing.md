@@ -2,11 +2,13 @@
 
 ## Git Workflow
 
-`origin/main` is the canonical review baseline; `dev` is the integration/staging
-branch and does not need a perfectly linear history. Do the work on topic
-branches kept to a single concern, and mark each branch's start with the
-`wip-base` tag so reviews diff against the right base (see the
-`remdo-feature-flow` skill for the mechanism).
+`origin/main` is the canonical **PR/review baseline** — what work is ultimately
+diffed against to merge; `dev` is the integration/staging branch and does not
+need a perfectly linear history. Do the work on topic branches kept to a single
+concern. A branch's **fork point** is wherever it was cut — usually `dev`, or
+another in-progress branch when stacking work — which is not always `origin/main`;
+the `wip-base` tag marks that fork point so local reviews diff against the
+branch's own work (see the `remdo-feature-flow` skill for the mechanism).
 
 Name topic branches with clear prefixes so intent is obvious:
 
@@ -67,7 +69,11 @@ superseded docs in the same change) lives in `AGENTS.md`.
 
 ### Documentation invariants
 
-These invariants apply to every doc in the corpus.
+These invariants apply to every doc in the corpus, and to agent skill files
+(`.claude/skills/**`), which carry the same risks — except where an invariant is
+inherently about the corpus's shape rather than a doc's content: skills are not in
+the documentation map, and their `References` sections link sibling skills rather
+than only external sources.
 
 1. **Single source per topic.** Each behavior MUST be defined exactly once, in
    the doc best suited to it. Likewise, each precise term MUST be defined once —
@@ -76,13 +82,16 @@ These invariants apply to every doc in the corpus.
 2. **Top-down linking.** Links SHOULD point from higher-level docs into detailed
    ones. Same-level links SHOULD appear only where they add clear value.
 3. **Self-contained behavior.** A doc's behavior MUST be clear without external
-   sources. External references MUST be confined to a final `References`
-   section; useful internal links MAY stay inline.
+   sources. A final `References` section is for external sources only (specs,
+   standards, third-party docs) and MUST contain all of them; cross-doc links
+   within this corpus MUST be inline, never collected into `References`.
 4. **Cross-doc consistency.** Two docs MUST NOT make contradictory claims about
    the intended system.
-5. **Spec, not status.** Docs MUST describe target behavior only. Gaps, partial
-   status, sequencing, current-vs-future notes, and deferral decisions MUST live
-   in `docs/todo.md`.
+5. **Spec, not status.** A doc's normative spec MUST describe target behavior
+   only. Gaps, partial status, sequencing, and deferral decisions MUST live in
+   `docs/todo.md`. A doc MAY carry a `Future` section listing deferred
+   long-horizon directions as brief triggers (not specs, not target behavior); a
+   direction MAY instead live in `docs/todo.md` — either place is fine.
 6. **No superseded contract.** A doc MUST NOT describe behavior the project has
    deliberately moved away from.
 7. **No broken links.** Every inbound link MUST resolve, and the documentation
@@ -94,6 +103,22 @@ These invariants apply to every doc in the corpus.
 9. **No untracked divergence.** Any divergence between a doc's claim and the code
    MUST be recorded in `docs/todo.md`. A recorded divergence that no longer
    exists MUST have its entry deleted.
+
+## Code Comments
+
+`TODO:` and `FIXME:` are the only tracked comment markers — use them for any
+comment worth tracking (a workaround, a deferred fix, a known gap), and don't
+invent other prefixes (`WORKAROUND:`, `HACK:`, `NOTE:` to-do, etc.). `FIXME:`
+marks something wrong that should be fixed; `TODO:` marks intentional,
+working-but-revisit code. State the rationale and, where one exists, the
+one-line probe that proves the comment obsolete (delete the shim / flip the flag
+/ run the suite) right there in the comment.
+
+Because these markers are scanned and tracked (e.g. the dependency-refresh skill
+reviews `TODO:`/`FIXME:` at dependency-related sites), trust them as the record:
+once a workaround is a tracked marker at its code site, do **not** add a second
+tracker for it elsewhere (a `docs/` list, a `docs/todo.md` line). The comment
+travels with the code and is seen on deletion; a duplicate note only drifts.
 
 ## Editor Feature Modules
 

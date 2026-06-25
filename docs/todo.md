@@ -2,11 +2,15 @@
 
 ## About this file (scratchpad)
 
-This file is an intentionally messy scratchpad for in-flight work, not a spec.
-Entries are short reminders of things to maybe do later, not agreed decisions or
-write-ups. Keep each to a line or two; being vague is fine if it keeps it short.
-Don't add findings, measurements, or rationale here — that belongs in the work
-itself when it happens.
+This file is an intentionally messy scratchpad for current and near-term work —
+things we plan to get back to soon. Entries are short reminders, not agreed
+decisions or write-ups. Keep each to a line or two; being vague is fine if it
+keeps it short. Don't add findings, measurements, or rationale here — that
+belongs in the work itself when it happens.
+
+A long-horizon future direction (deferred indefinitely, not near-term) may live
+here or as a short trigger in the relevant `docs/` spec — whichever fits; neither
+is forced. A spec trigger is rediscovered when that area is worked on again.
 
 Rules:
 
@@ -14,6 +18,12 @@ Rules:
 - Delete sections once fully done (no archive here).
 - Move durable decisions/specs into the relevant doc under `docs/`, leaving a
   link behind.
+
+## Scratchpad maintenance
+
+- Clear out drifted long-horizon items: this file has accumulated entries that
+  are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
+  prune them or relocate to a spec `Future` section per the scope above.
 
 ## Search architecture
 
@@ -24,12 +34,21 @@ Rules:
 - Make lexical note lookup indexed / amortized `O(1)` and move SDK handle reads
   (`textOf`, `childrenOf`, `hasNote`, `note(...)`) onto that path so search and
   other SDK consumers do not pay scan-based lookup costs per visited note.
-- [Future] Evaluate unifying candidate discovery/query logic between search and
-  link picker (search already uses SDK/Lexical candidates; link picker still
-  uses its own traversal/filter pipeline).
-- [Future] Define shared search/link-query matching semantics before normalizing
-  result labels: whitespace-insensitive lookup (trim/collapse between words),
-  fuzzy matching, and shared ranking/disambiguation rules.
+- Search now reads the editor through the SDK (`EditorNote` handles, including
+  `parent()`) via a `searchNotes` accessor on the editor view provider — no
+  materialized snapshot. Remaining ad-hoc projections (selection, schema-ready)
+  could converge onto the same accessor pattern over time.
+- Search candidate reads are O(n) per keystroke (live SDK walks; `parent()` and
+  by-id reads scan the outline). Accepted; collapses onto the indexed-lookup work
+  above with no change to the search-side API (the accessor reads stay the same).
+- Deferred: search results do not reactively refresh on concurrent collab edits
+  while the panel is open (the editor is hidden during search, so local edits
+  can't desync; only remote edits can). The accessor re-registers per local edit
+  ("pretend reactivity"); a reactive SDK would extend that to remote edits without
+  changing consumers.
+- [Future] Unify candidate discovery between search and the link picker: query
+  matching is now shared (`#client/search/query-match`), but the link picker
+  still has its own traversal/index pipeline distinct from the search SDK walk.
 
 ## Editor feature module follow-ups
 
@@ -223,6 +242,22 @@ Remaining issues to fold in or fix directly:
   Prefer simple explicit test actions (for example dispatching the real zoom
   command, or at most a thin helper around it) over smart harness metadata that
   adds API surface, hides behavior setup, and cannot be changed mid-test.
+- Collab full-suite flakiness on high-core machines (~10%/run, different
+  unrelated test each time, isolation-clean, CI never sees it). Cause: vitest
+  worker count scales to cores (no `maxForks` cap) but the 5s per-test timeout
+  and single shared collab server don't, so ~10 workers starve under contention;
+  CI's 2-core runner accidentally stays under the budget. Proposed first fix: cap
+  `poolOptions.forks.maxForks` (~4 / `'50%'`) and raise the timeout on the
+  subprocess-spawning files (`snapshot-backup`, `prod-docker-launcher`,
+  `config-env`, `docker-entrypoint-env`, `snapshot.collab`). Verify with
+  `test:collab:repeat`. (Distinct from the e2e readiness flake below.)
+- e2e `TestBridgePlugin: collaboration readiness timed out` flake (CI, ~1/99,
+  different test each time; seen on `editor/deletion.spec.ts` `editor.load(...)`).
+  Preceded by a vite `/d` ws-proxy `ECONNRESET` — a dropped collab websocket
+  blows the 2000ms `waitForCollaborationReady` budget in `TestBridgePlugin.tsx`.
+  Repro odds: `pnpm run test:e2e:repeat`. Candidate fixes: retry/reconnect around
+  `collab.awaitSynced`, or raise/derive the readiness budget. Don't mask it by
+  blanket-bumping the timeout without confirming the ws drop is the cause.
 
 ## Warning and drift detection follow-ups
 
@@ -243,9 +278,13 @@ Remaining issues to fold in or fix directly:
   2. Add a plain `pnpm run build` validation surface to CI and/or the dependency
      refresh flow so build warnings are reviewed explicitly instead of only via
      Docker logs.
-  3. Revisit pnpm build-script policy: consider moving from
-     `onlyBuiltDependencies` to `allowBuilds` and enabling
-     `strictDepBuilds: true`.
+  3. Add `TODO:`/`FIXME:` scanning to the dependency-refresh skill: surface
+     dependency-related markers, run each one's stated probe, and drop the
+     workaround (and marker) when it passes — so workarounds self-heal instead of
+     accumulating. See `docs/contributing.md#code-comments`. While here, revisit
+     the marker convention itself for ways to make it more reliable/self-healing
+     (e.g. a more scannable shape for trackable workarounds, lint-enforced
+     expiry, reconciling existing markers) — open-ended, not yet scoped.
 
 - Warning policy / classify-or-suppress:
   1. Decide how to handle the Vite large-chunk warning: real size budget,
@@ -267,8 +306,6 @@ Remaining issues to fold in or fix directly:
 
 ## remdo-feature-flow follow-ups
 
-- Try adding a convergence check to the implementation phase (verify the result
-  actually reaches the spec's described state, not just that checks pass).
 - Clean up stale prunable worktree `remdo-7000-wt` if abandoned (not mine).
 
 ## Note body follow-ups
@@ -286,6 +323,12 @@ The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
   V2 history only persists structure, not the caret). This is global, not
   body-specific — RemDo's undo tests assert structure only. Decide if restoring
   selection on undo is worth wiring the Yjs `UndoManager` StackItem `meta`.
+
+## remdo-refine follow-ups
+
+- Add more external review tools/skills/programs worth considering in the refine
+  ladder beyond `codex review` (e.g. other reviewers or static analyzers);
+  evaluate each for fit and independence before adding a rung.
 
 ## Later follow-ups
 

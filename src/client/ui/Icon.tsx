@@ -1,10 +1,6 @@
 import type { ComponentType, SVGProps } from 'react';
 
-const ICON_SIZES = {
-  inline: 18,
-  button: 20,
-} as const;
-
+const DEFAULT_ICON_SIZE = 18;
 const DEFAULT_ICON_STROKE = 2;
 
 type IconBaseProps = Omit<SVGProps<SVGSVGElement>, 'stroke'> & {
@@ -23,7 +19,7 @@ interface IconProps extends IconBaseProps {
 // Decorative icons should set aria-hidden; icon-only buttons should set aria-label.
 export function Icon({
   icon: Icon,
-  size = ICON_SIZES.inline,
+  size = DEFAULT_ICON_SIZE,
   stroke = DEFAULT_ICON_STROKE,
   ...rest
 }: IconProps) {

@@ -1,13 +1,19 @@
-import { render, waitFor } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+type UpdateListener = (payload: {
+  dirtyElements: Map<string, boolean>;
+  dirtyLeaves: Set<string>;
+}) => void;
 
 interface MockEditor {
   getEditorState: () => { read: (callback: () => unknown) => unknown };
-  registerUpdateListener: (listener: ((payload: { dirtyElements: Map<string, boolean>; dirtyLeaves: Set<string>; editorState: { read: (callback: () => unknown) => unknown } }) => void) | null) => () => void;
-  registerRootListener: () => () => void;
+  registerUpdateListener: (listener: UpdateListener) => () => void;
+  registerRootListener: (listener: () => void) => () => void;
 }
 
 let lexicalComposerContextEditor: MockEditor | null = null;
+let registerSearchNotesReader: ReturnType<typeof vi.fn>;
 
 function mockLexicalComposerContext() {
   return [lexicalComposerContextEditor] as const;
@@ -17,22 +23,19 @@ describe('search candidates plugin', () => {
   beforeEach(() => {
     vi.resetModules();
     lexicalComposerContextEditor = null;
+    registerSearchNotesReader = vi.fn();
   });
 
-  it('skips rebuilding candidates on selection-only updates', async () => {
-    const read = vi.fn((callback: () => unknown) => callback());
-    let updateListener: ((payload: { dirtyElements: Map<string, boolean>; dirtyLeaves: Set<string>; editorState: { read: typeof read } }) => void) | null = null;
-
-    const mockEditor = {
-      getEditorState: () => ({ read }),
-      registerUpdateListener: (listener: typeof updateListener) => {
+  async function renderPlugin() {
+    let updateListener: UpdateListener | null = null;
+    const mockEditor: MockEditor = {
+      getEditorState: () => ({ read: (callback: () => unknown) => callback() }),
+      registerUpdateListener: (listener) => {
         updateListener = listener;
         return () => {};
       },
       registerRootListener: () => () => {},
     };
-    const collectSearchCandidates = vi.fn(() => [{ noteId: 'note1', text: 'note1' }]);
-    const collectChildCandidateMap = vi.fn(() => ({ note1: [] }));
     lexicalComposerContextEditor = mockEditor;
 
     vi.doMock('@lexical/react/LexicalComposerContext', () => ({
@@ -41,71 +44,45 @@ describe('search candidates plugin', () => {
     vi.doMock('#client/editor/note-sdk-adapters', () => ({
       createLexicalEditorNotes: () => ({}),
     }));
-    vi.doMock('#client/editor/search/search-candidates', () => ({
-      collectSearchCandidates,
-      collectChildCandidateMap,
+    vi.doMock('#client/editor/view/EditorViewProvider', () => ({
+      // eslint-disable-next-line react/no-unnecessary-use-prefix -- Mock of a real hook; must keep the name.
+      useRegisterSearchNotesReader: () => registerSearchNotesReader,
     }));
 
     const { SearchCandidatesPlugin } = await import('#client/editor/plugins/SearchCandidatesPlugin');
+    const view = render(<SearchCandidatesPlugin docId="main" />);
+    return { view, fireUpdate: (payload: Parameters<UpdateListener>[0]) => updateListener!(payload) };
+  }
 
-    render(<SearchCandidatesPlugin docId="main" />);
+  it('registers a reader on mount and unregisters on unmount', async () => {
+    const { view } = await renderPlugin();
 
-    await waitFor(() => {
-      expect(collectSearchCandidates).toHaveBeenCalledTimes(1);
-      expect(collectChildCandidateMap).toHaveBeenCalledTimes(1);
-    });
+    // Mount registers a reader (a function).
+    expect(registerSearchNotesReader).toHaveBeenCalledTimes(1);
+    expect(typeof registerSearchNotesReader.mock.calls[0]![0]).toBe('function');
 
-    expect(updateListener).not.toBeNull();
-    updateListener!({
-      dirtyElements: new Map(),
-      dirtyLeaves: new Set(),
-      editorState: { read },
-    });
-
-    expect(collectSearchCandidates).toHaveBeenCalledTimes(1);
-    expect(collectChildCandidateMap).toHaveBeenCalledTimes(1);
+    view.unmount();
+    // Unmount clears the reader.
+    expect(registerSearchNotesReader).toHaveBeenLastCalledWith(null);
   });
 
-  it('invalidates candidates on unmount instead of publishing an empty snapshot', async () => {
-    const handleCandidatesChange = vi.fn();
-    const mockEditor = {
-      getEditorState: () => ({
-        read: (callback: () => unknown) => callback(),
-      }),
-      registerUpdateListener: () => () => {},
-      registerRootListener: () => () => {},
-    };
-    lexicalComposerContextEditor = mockEditor;
+  it('re-registers on a content edit but not on a selection-only update', async () => {
+    const { fireUpdate } = await renderPlugin();
+    expect(registerSearchNotesReader).toHaveBeenCalledTimes(1);
 
-    vi.doMock('@lexical/react/LexicalComposerContext', () => ({
-      useLexicalComposerContext: mockLexicalComposerContext,
-    }));
-    vi.doMock('#client/editor/note-sdk-adapters', () => ({
-      createLexicalEditorNotes: () => ({}),
-    }));
-    vi.doMock('#client/editor/search/search-candidates', () => ({
-      collectSearchCandidates: () => [{ noteId: 'note1', text: 'note1' }],
-      collectChildCandidateMap: () => ({ note1: [] }),
-    }));
+    // Selection-only update (no dirty nodes) must not re-register.
+    fireUpdate({ dirtyElements: new Map(), dirtyLeaves: new Set() });
+    expect(registerSearchNotesReader).toHaveBeenCalledTimes(1);
 
-    const { SearchCandidatesPlugin } = await import('#client/editor/plugins/SearchCandidatesPlugin');
+    // A content edit re-registers, bumping the consumer's version.
+    fireUpdate({ dirtyElements: new Map([['k', true]]), dirtyLeaves: new Set() });
+    expect(registerSearchNotesReader).toHaveBeenCalledTimes(2);
+  });
 
-    const { unmount } = render(
-      <SearchCandidatesPlugin
-        docId="main"
-        onCandidatesChange={handleCandidatesChange}
-      />
-    );
-
-    await waitFor(() => {
-      expect(handleCandidatesChange).toHaveBeenCalledWith({
-        allCandidates: [{ noteId: 'note1', text: 'note1' }],
-        childCandidateMap: { note1: [] },
-      });
-    });
-
-    unmount();
-
-    expect(handleCandidatesChange).toHaveBeenLastCalledWith(null);
+  it('the registered reader reads notes through an editor read', async () => {
+    await renderPlugin();
+    const reader = registerSearchNotesReader.mock.calls[0]![0] as <T>(fn: (notes: unknown) => T) => T;
+    // The reader runs fn against the (mock) SDK notes and returns its result.
+    expect(reader((notes) => notes)).toEqual({});
   });
 });

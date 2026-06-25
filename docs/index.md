@@ -25,14 +25,15 @@ outdated or a doc’s role materially changes.
 - `docs/config.md` (Medium). Configuration boundary: the single config owner,
   the settable input variables vs. derived values, dev/prod port regimes,
   `APP_PUBLIC_URL`-vs-bind-`PORT` separation, and the secret bootstrap contract.
-- `docs/contributing.md` (Medium). Runtime baselines, Git workflow (local topic
-  branches off the `origin/main` baseline, marked with the `wip-base` tag) and
+- `docs/contributing.md` (Medium). Runtime baselines, Git workflow (`origin/main`
+  as PR baseline, the branch fork point marked with the `wip-base` tag) and
   branch-prefix conventions, editor feature module layout, pre-1.0 compatibility
   policy (no default migration/back-compat requirements), and the doc
   workflow + documentation invariants.
-- `docs/dev/dependency-maintenance.md` (Medium). Temporary dependency/runtime
-  workarounds plus intentionally held-back versions, with current rationale and
-  revisit conditions for refresh work.
+- `docs/dev/dependency-maintenance.md` (Medium). Standing policy for dependency
+  refresh work — durable rules and self-healing mechanisms (pnpm release-age
+  gate, build-script approval, Node/Docker base lag). Individual workarounds live
+  as `TODO:`/`FIXME:` markers at their code sites, not here.
 - `docs/run-modes.md` (Long). Supported run modes: local dev, test stacks, CI,
   self-hosted app runtimes, managed cloud, and backup execution.
 - `docs/hints.md` (Short). UX hint concepts for search, note controls, and
@@ -63,9 +64,9 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,
   rendering, and toggle commands.
 - `docs/outliner/links.md` (Medium). Note-linking behavior and the
-  internal-vs-external link boundary: `@` query flow, whole-document
-  search/ranking, runtime fully qualified link identity, clipboard/persistence
-  docId boundaries, and cross-document boundaries.
+  internal-vs-external link boundary: `@` query flow, path-token picker matching
+  shared with search, ranking, runtime fully qualified link identity,
+  clipboard/persistence docId boundaries, and cross-document boundaries.
 - `docs/outliner/menu.md` (Medium). Quick action menu entry points, note vs.
   children vs. view action scopes, and actions (toggle checked/fold/zoom/child
   list types/fold view to level).
@@ -76,12 +77,14 @@ outdated or a doc’s role materially changes.
   semantics; indent/outdent rules; deletion-merge exception.
 - `docs/outliner/reordering.md` (Short). Directional reorder fallback cascade: swap,
   parent-sibling reparent, outdent, then no-op.
-- `docs/outliner/search.md` (Short). Search behavior: focus-driven mode
+- `docs/outliner/search.md` (Long). Search behavior: focus-driven mode
   entry/exit, single highlighted note in always-flat results (including empty
-  query), text-match filtering, Enter-to-zoom, slash root/depth navigation,
-  invalid slash paths staying empty, non-mutating arrow cycling in slash mode,
-  inline-completion acceptance with `ArrowRight`, combobox/listbox
-  accessibility semantics, and non-leaf `/...` result hints.
+  query), path-token query matching (order-independent substring tokens over a
+  note's ancestor path, with at least one token on the note itself), Enter-to-zoom,
+  click/hover and arrow navigation, combobox/listbox accessibility semantics, and uniform
+  per-result structural context (matched note as primary label, a dim truncating
+  ancestor subline with clickable crumbs and token highlighting, and an
+  editor-faithful child preview with per-type list markers).
 - `docs/outliner/selection.md` (Long). Selection states and whole-note
   snapping, the anchored intent-replay selection ladder (symmetric grow/shrink),
   input bindings, collaboration reshaping tiers, and command compatibility.

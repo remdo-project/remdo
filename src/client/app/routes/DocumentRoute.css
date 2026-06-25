@@ -28,42 +28,11 @@
   flex-shrink: 0;
 }
 
-.document-header-search-shell {
-  position: relative;
-}
-
 .document-header-search {
   min-width: 10rem;
   width: 16rem;
   max-width: 22vw;
   --interaction-radius: var(--mantine-radius-sm);
-}
-
-.document-header-search-inline-completion {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  padding-inline-start: 1.75rem;
-  padding-inline-end: 0.625rem;
-  white-space: pre;
-  font-size: var(--mantine-font-size-xs);
-  line-height: 1.75rem;
-}
-
-.document-header-search-inline-prefix {
-  visibility: hidden;
-}
-
-.document-header-search-inline-suffix {
-  color: var(--mantine-color-dark-2);
-}
-
-.document-header-search-inline-hint {
-  color: var(--mantine-color-dark-3);
-  margin-inline-start: 0.35rem;
 }
 
 .document-header-doc-menu {
@@ -139,37 +108,139 @@
   display: none;
 }
 
+/* Anchor results to the editor outline's first note, both axes, so opening
+   search doesn't shift the first row:
+   - Horizontal: the `xl` inline padding matches the editor pane, and each result's
+     text is indented by the note-text indent (list indent + bullet allowance) via
+     the shared `.remdo-outline` variables.
+   - Vertical: the editor pane offsets its first note by `lg` (its padding-top).
+     Each result card adds its own padding-top (`--result-card-padding`) on top of
+     this section, so the section's padding-top is `lg` minus that, keeping the
+     first result's text on the editor's note-text row. */
 .document-search-results {
-  padding: var(--mantine-spacing-md) var(--mantine-spacing-xl);
+  --remdo-indent: var(--mantine-spacing-sm);
+  --remdo-bullet-allowance: calc(0.4em + 0.6em);
+  /* Internal card padding (half of spacing-xs); shared with the vertical-anchor
+     formula below so the two stay in sync. */
+  --result-card-padding: calc(var(--mantine-spacing-xs) / 2);
+  padding: calc(var(--mantine-spacing-lg) - var(--result-card-padding))
+    var(--mantine-spacing-xl)
+    var(--mantine-spacing-md);
 }
 
 .document-search-results-list {
   margin: 0;
   padding: 0;
+  padding-inline-start: var(--remdo-indent);
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: calc(var(--mantine-spacing-xs) / 2);
 }
 
+/* Each result is its own card surface; the active focus ring (below) overlays on
+   top of it. The 1px border is offset out of the inline-start padding so the
+   match text still lands on the editor's note-text column. */
 .document-search-results-item {
-  border-radius: var(--mantine-radius-xs);
+  background: var(--mantine-color-dark-6);
+  border: 1px solid var(--mantine-color-dark-5);
+  border-radius: var(--mantine-radius-sm);
   color: var(--mantine-color-dark-0);
   cursor: pointer;
-  padding: 0.15rem 0.4rem;
+  padding: var(--result-card-padding);
+  padding-inline-start: calc(var(--remdo-bullet-allowance) - 1px);
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* Active result: focus ring overlaid on the card surface. */
+.document-search-results-item[data-search-result-active='true'] {
+  --interaction-radius: var(--mantine-radius-sm);
+  border-radius: var(--interaction-radius);
+  box-shadow: var(--focus-ring, 0 0 0 1px rgb(111 138 255 / 0.42), 0 0 0 3px rgb(111 138 255 / 0.11), 0 0 22px 5px rgb(111 138 255 / 0.12));
+}
+
+/* Primary line: the matched note's text. No list marker — text formatting only.
+   A checked note is struck through, mirroring the editor. */
+.document-search-result-match {
   overflow-wrap: anywhere;
 }
 
-.document-search-results-item[data-search-result-has-children='true']::after {
-  content: ' /...';
+.document-search-result-match[data-note-checked='true'] {
+  text-decoration: line-through;
+}
+
+.document-search-result-mark {
+  background: var(--mantine-color-yellow-light, rgb(255 224 102 / 0.28));
+  color: inherit;
+  border-radius: var(--mantine-radius-xs);
+  padding: 0 0.05rem;
+}
+
+/* Ancestor subline: the location path under the matched note — small, dim, and
+   on a single line; crumbs shrink with ellipsis to share the available width. */
+.document-search-result-breadcrumb {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  min-width: 0;
+  gap: 0.15rem;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-2);
+}
+
+.document-search-result-crumb-separator {
+  flex: 0 0 auto;
   color: var(--mantine-color-dark-3);
 }
 
-.document-search-results-item[data-search-result-active='true'] {
-  --interaction-radius: var(--mantine-radius-xs);
-  border-radius: var(--interaction-radius);
-  box-shadow: var(--focus-ring, 0 0 0 1px rgb(111 138 255 / 0.42), 0 0 0 3px rgb(111 138 255 / 0.11), 0 0 22px 5px rgb(111 138 255 / 0.12));
+.document-search-result-crumb {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.document-search-result-crumb--ancestor {
+  flex: 0 1 auto;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+
+.document-search-result-crumb--ancestor:hover {
+  text-decoration: underline;
+}
+
+.document-search-result-crumb--ellipsis {
+  flex: 0 0 auto;
+  color: var(--mantine-color-dark-3);
+  cursor: default;
+}
+
+/* Child preview reuses the shared `.remdo-outline` list rendering (bullets,
+   checkboxes, counters) so previews match the editor. Only preview-local scale
+   and color are set here. */
+.document-search-result-children.remdo-outline {
+  margin-top: 0.1rem;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-1);
+}
+
+.document-search-result-children .list-item {
+  cursor: default;
+}
+
+.document-search-result-children-more {
+  margin-top: 0.05rem;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-3);
 }
 
 .document-search-results-empty {

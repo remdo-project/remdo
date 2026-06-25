@@ -5,17 +5,40 @@ import { useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocumentSourcesLoading, useUserData } from '#client/app/documents/user-data';
 import Editor from '#client/editor/Editor';
 import { ZoomBreadcrumbs } from '#client/editor/features/zoom/ZoomBreadcrumbs';
-import { EditorViewProvider, useEditorViewActions, useZoomPath } from '#client/editor/view/EditorViewProvider';
+import { EditorViewProvider, useEditorViewActions, useSearchNotes, useZoomPath } from '#client/editor/view/EditorViewProvider';
 import { registerPendingDocumentImport } from '#client/editor/runtime/pending-document-import';
 import { createDocumentPath, createDocumentSyncTokenApiPath, parseDocumentRef } from '#document-routes';
 import type { ParsedDocumentRef } from '#document-routes';
-import type { DocumentSourceNote } from '#note-sdk';
+import type { DocumentSourceNote, EditorNote } from '#note-sdk';
+import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import {
   APP_TITLE,
+  UNTITLED_LABEL,
   formatNavigationLabel,
+  normalizeNavigationLabel,
 } from '#client/ui/navigation-label';
 import { useDocumentSearchModel } from './useDocumentSearchModel';
+import { SearchResultRow } from './SearchResultRow';
 import './DocumentRoute.css';
+
+const CHILD_PREVIEW_LIMIT = 2;
+const EMPTY_ANCESTOR_PATH: NotePathItem[] = [];
+
+// Accessible name for a search result option. Includes the ancestor path so
+// results that share the same note text stay distinguishable without sight —
+// the disambiguation the visible row provides via the breadcrumb subline.
+// `path` is the note's full path (ancestors + the note itself, the note last).
+function buildSearchResultAccessibleName(text: string, path: NotePathItem[]): string {
+  const name = normalizeNavigationLabel(text) || UNTITLED_LABEL;
+  const ancestors = path.slice(0, -1);
+  if (ancestors.length === 0) {
+    return name;
+  }
+  const context = ancestors
+    .map((item) => normalizeNavigationLabel(item.label) || UNTITLED_LABEL)
+    .join(' / ');
+  return `${name}, in ${context}`;
+}
 
 function isVisibleInCurrentView(element: HTMLElement): boolean {
   if (element.classList.contains('zoom-hidden')) {
@@ -236,7 +259,6 @@ function DocumentRouteContent({
     childCandidateMap,
     flatResults,
     handleSearchBlur,
-    handleSearchCandidatesChange,
     handleSearchChange,
     handleSearchCompositionEnd,
     handleSearchCompositionStart,
@@ -244,18 +266,12 @@ function DocumentRouteContent({
     handleSearchFocus,
     handleSearchKeyDown,
     handleSearchResultClick,
-    handleSearchResultPointerDown,
-    handleSearchSelect,
+    handleSearchResultPointerEnter,
     highlightedResultNoteId,
-    inlineCompletionHint,
-    inlineCompletionText,
-    inlineCompletionVisible,
-    isSlashMode,
     searchModeActive,
     searchModeRequested,
     searchQuery,
   } = useDocumentSearchModel({
-    docId,
     focusEditorInput,
     setZoomNoteId: requestZoomNoteId,
   });
@@ -386,6 +402,25 @@ function DocumentRouteContent({
   })).filter((source) => source.options.length > 0), [currentDocumentSource, docId, documentSources]);
   const documentOptionsCount = documentGroups.reduce((count, group) => count + group.options.length, 0);
 
+  // Derive each rendered result's ancestor path lazily through the SDK (walking
+  // parent() up), only for the rows actually shown — no document-wide map.
+  const searchNotes = useSearchNotes();
+  const ancestorPathByNoteId = useMemo(() => {
+    const paths: Record<string, NotePathItem[]> = {};
+    searchNotes((notes) => {
+      for (const result of flatResults) {
+        const path: NotePathItem[] = [];
+        let note: EditorNote | null = notes.note(result.noteId);
+        while (note) {
+          path.push({ noteId: note.id(), label: note.text() });
+          note = note.parent();
+        }
+        paths[result.noteId] = path.reverse();
+      }
+    });
+    return paths;
+  }, [flatResults, searchNotes]);
+
   const highlightedResultIndex = highlightedResultNoteId
     ? flatResults.findIndex((result) => result.noteId === highlightedResultNoteId)
     : -1;
@@ -476,43 +511,27 @@ function DocumentRouteContent({
           />
         </div>
         <div className="document-header-actions">
-          <div className="document-header-search-shell">
-            <TextInput
-              aria-label="Search document"
-              aria-activedescendant={searchModeActive ? activeResultOptionId : undefined}
-              aria-autocomplete={inlineCompletionVisible ? 'both' : 'list'}
-              aria-controls={searchModeActive ? searchResultsListboxId : undefined}
-              aria-expanded={searchModeActive}
-              aria-haspopup="listbox"
-              className="document-header-search remdo-interaction-surface"
-              leftSection={<IconSearch aria-hidden="true" size={14} />}
-              onBlur={handleSearchBlur}
-              onChange={handleSearchChange}
-              onCompositionEnd={handleSearchCompositionEnd}
-              onCompositionStart={handleSearchCompositionStart}
-              onFocus={handleSearchFocus}
-              onKeyDown={handleSearchKeyDown}
-              onSelect={handleSearchSelect}
-              placeholder={searchModeActive ? '' : 'Search'}
-              ref={searchInputRef}
-              role="combobox"
-              size="xs"
-              value={searchQuery}
-            />
-            {inlineCompletionVisible ? (
-              <div
-                aria-hidden="true"
-                className="document-header-search-inline-completion"
-                data-inline-completion-hint={inlineCompletionHint}
-                data-inline-completion-text={inlineCompletionText}
-                data-testid="document-search-inline-completion"
-              >
-                <span className="document-header-search-inline-prefix">{searchQuery}</span>
-                <span className="document-header-search-inline-suffix">{inlineCompletionText}</span>
-                <span className="document-header-search-inline-hint">{inlineCompletionHint}</span>
-              </div>
-            ) : null}
-          </div>
+          <TextInput
+            aria-label="Search document"
+            aria-activedescendant={searchModeActive ? activeResultOptionId : undefined}
+            aria-autocomplete="list"
+            aria-controls={searchModeActive ? searchResultsListboxId : undefined}
+            aria-expanded={searchModeActive}
+            aria-haspopup="listbox"
+            className="document-header-search remdo-interaction-surface"
+            leftSection={<IconSearch aria-hidden="true" size={14} />}
+            onBlur={handleSearchBlur}
+            onChange={handleSearchChange}
+            onCompositionEnd={handleSearchCompositionEnd}
+            onCompositionStart={handleSearchCompositionStart}
+            onFocus={handleSearchFocus}
+            onKeyDown={handleSearchKeyDown}
+            placeholder={searchModeActive ? '' : 'Search'}
+            ref={searchInputRef}
+            role="combobox"
+            size="xs"
+            value={searchQuery}
+          />
           <div className="document-header-status" ref={setStatusHost} />
         </div>
         <input
@@ -549,7 +568,6 @@ function DocumentRouteContent({
       {searchModeActive ? (
         <section
           className="document-search-results"
-          data-search-mode={isSlashMode ? 'slash' : 'text'}
           data-testid="document-search-results"
           ref={searchResultsRef}
         >
@@ -560,25 +578,44 @@ function DocumentRouteContent({
             role="listbox"
           >
             {flatResults.length > 0 ? flatResults.map((result, index) => {
-              const hasChildren = (childCandidateMap[result.noteId]?.length ?? 0) > 0;
+              const children = childCandidateMap[result.noteId] ?? [];
+              const hasChildren = children.length > 0;
+              const isActive = result.noteId === highlightedResultNoteId;
+              const resultPath = ancestorPathByNoteId[result.noteId] ?? EMPTY_ANCESTOR_PATH;
               return (
                 <li
-                  aria-selected={result.noteId === highlightedResultNoteId}
+                  aria-label={buildSearchResultAccessibleName(result.text, resultPath)}
+                  aria-selected={isActive}
                   className="document-search-results-item"
-                  data-search-result-active={result.noteId === highlightedResultNoteId ? 'true' : undefined}
+                  data-search-result-active={isActive ? 'true' : undefined}
                   data-search-result-has-children={hasChildren ? 'true' : undefined}
                   data-search-result-item
+                  data-search-result-label={result.text}
                   id={`${searchResultsListboxId}-option-${index}`}
                   key={result.noteId}
                   onClick={(event) => {
                     handleSearchResultClick(event, result.noteId);
                   }}
-                  onPointerDown={(event) => {
-                    handleSearchResultPointerDown(event, result.noteId);
+                  onMouseDown={(event) => {
+                    // Keep focus on the search input through the press: otherwise
+                    // the mousedown blurs it, the blur dismisses Search Mode, and
+                    // the results unmount before this row's click can zoom.
+                    event.preventDefault();
+                  }}
+                  onMouseEnter={() => {
+                    handleSearchResultPointerEnter(result.noteId);
                   }}
                   role="option"
                 >
-                  {result.text.length > 0 ? result.text : '(empty note)'}
+                  <SearchResultRow
+                    ancestorPath={resultPath}
+                    checked={result.checked}
+                    childCount={children.length}
+                    childPreview={children.slice(0, CHILD_PREVIEW_LIMIT)}
+                    onSelectAncestor={handleSearchResultClick}
+                    query={searchQuery}
+                    text={result.text}
+                  />
                 </li>
               );
             }) : (
@@ -607,7 +644,6 @@ function DocumentRouteContent({
             docId={docId}
             sourceOrigin={currentDocumentSourceOrigin}
             sourceId={currentDocumentSourceId}
-            onSearchCandidatesChange={handleSearchCandidatesChange}
             searchModeRequested={searchModeRequested}
             statusPortalRoot={statusHost}
             onPendingDocumentImportError={handlePendingDocumentImportError}

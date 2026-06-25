@@ -52,6 +52,9 @@ notes:
 - **Document root note:** the special root note that represents the document
   itself. It has no parent and is not directly selectable; all top-level notes
   are its children.
+- **Note path:** the ordered chain of notes from a top-level note down to and
+  including the note itself — its ancestors followed by the note. The document
+  root note is not part of any note path.
 - **Editing scope:** the active subtree that bounds selection and structural
   editing. Its **scope root** is the note whose subtree edits stay within: no
   selection or structural operation crosses it. When no scope is active the

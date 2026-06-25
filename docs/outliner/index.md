@@ -21,10 +21,10 @@ details.
    future editable-date and picker-keyboard boundaries.
 8. **Links:** `./links.md` — initial note-linking behavior, picker/query rules, and future boundaries.
 9. **Search mode:** `./search.md` — focused search navigation flow (single
-  highlight, always-flat results (empty query shows all notes), text-match
-  filtering, Enter-to-zoom, slash root/depth navigation with non-mutating arrow
-  cycling, inline-completion acceptance with `ArrowRight`, combobox/listbox
-  accessibility semantics, and non-leaf `/...` result hints.
+  highlight, always-flat results (empty query shows all notes), path-token
+  query matching with token highlighting in the label and ancestor crumbs,
+  arrow navigation, Enter-to-zoom, and combobox/listbox accessibility
+  semantics.
 10. **Quick action menu:** `./menu.md` — row/caret entry points plus note,
    children, and view actions.
 11. **Clipboard:** `./clipboard.md` — cut/copy/paste behavior, caret placement, and move rules.
