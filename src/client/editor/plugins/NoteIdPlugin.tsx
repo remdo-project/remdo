@@ -465,10 +465,16 @@ function $injectNoteBodiesIntoClipboardNodes(nodes: SerializedLexicalNode[]): vo
     }
     const note = $findNoteById(node.noteId);
     const body = note ? getBodyWrapper(note) : null;
-    // A body-wrapper that already sits inside the selection's range is serialized
-    // by Lexical (between two selected notes); only inject when it is missing, so
-    // a note never ends up with two body-wrappers.
-    if (body && !isSerializedBodyWrapper(nodes[i + 1])) {
+    if (!body) {
+      continue;
+    }
+    // Always carry the full live body. Lexical may already have serialized a
+    // body-wrapper here — either the complete one (between two selected notes) or
+    // a partial one when a structural selection ends mid-body — so replace any
+    // existing serialized body-wrapper rather than appending a second.
+    if (isSerializedBodyWrapper(nodes[i + 1])) {
+      nodes.splice(i + 1, 1, serializeNodeTree(body));
+    } else {
       nodes.splice(i + 1, 0, serializeNodeTree(body));
     }
   }

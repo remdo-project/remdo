@@ -9,10 +9,12 @@ import {
   copySelectionClipboardData,
   extendDomSelectionToNode,
   getNoteBodyTextNode,
+  getNoteTextNode,
   pastePayload,
   placeCaretAtNote,
   pressKey,
   readCaretNoteId,
+  readOutline,
   selectEntireNote,
   selectStructuralNotes,
   typeText,
@@ -586,6 +588,33 @@ describe('note body (docs/outliner/body.md)', () => {
     // Inline copy is just text — the rich payload is Lexical's default text copy,
     // not a whole-note structure; plain text is the selected characters.
     expect(clipboard.getData('text/plain')).toBe('body');
+  });
+
+  it('structural copy spanning into part of a body copies the whole body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Drag from note1's label into the middle of its body: the selection crosses
+    // the content↔body boundary, so it is structural (whole notes). The internal
+    // clipboard payload must carry note1's FULL body, not just the selected
+    // prefix, so an internal paste recreates the note with the complete body.
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'body');
+
+    // Anchor in the label, extend into the body after 2 chars ("bo").
+    const labelTextNode = getNoteTextNode(remdo, 'note1');
+    await collapseDomSelectionAtNode(labelTextNode, 0);
+    await extendDomSelectionToNode(getNoteBodyTextNode(remdo, 'note1'), 2);
+
+    const payload = await copySelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await selectStructuralNotes(remdo, 'note3');
+    await pastePayload(remdo, payload);
+
+    // Both the original note1 and its pasted copy carry the full body 'body',
+    // not the selected prefix 'bo'. The paste regenerates the copy's noteId.
+    const copies = readOutline(remdo).filter((note) => note.text === 'note1');
+    expect(copies).toHaveLength(2);
+    expect(copies.every((note) => note.body === 'body')).toBe(true);
   });
 
   it('pasting a copied body-note over an inline selection keeps the body text', meta({ fixture: 'flat' }), async ({ remdo }) => {
