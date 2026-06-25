@@ -91,6 +91,11 @@ exists until here; a dropped idea leaves nothing to clean up). Confirm branch
 name/prefix (see "Branch naming") and create it per "Branch base" below. The
 approved spec docs are the branch's first commit.
 
+The tree must hold **only this flow's own changes** before that first commit —
+if it had pre-existing unrelated edits when the run started, **stop**: committing
+or branching could sweep them in, and refine later needs a clean tree. The user
+commits, stashes, or sets them aside first.
+
 ## Phase 4 — Autonomous execution
 
 1. Write the **detailed plan as a disposable working artifact** at
