@@ -75,14 +75,7 @@ function cloneWrapperAfterNoteId(remdo: RemdoTestApi, noteId: string): Serialize
   const listNode = getSerializedRootListNode(remdo);
   const children = listNode.children as SerializedNoteListItemNode[];
   const index = children.findIndex((child) => child.type === 'listitem' && child.noteId === noteId);
-  if (index === -1) {
-    throw new Error(`Expected wrapper list item after noteId ${noteId}`);
-  }
-  const wrapper = children[index + 1];
-  if (wrapper && wrapper.type === 'listitem') {
-    return structuredClone(wrapper);
-  }
-  throw new Error(`Expected wrapper list item after noteId ${noteId}`);
+  return structuredClone(children[index + 1]!);
 }
 
 function setSerializedText(node: SerializedLexicalNode, text: string): void {

@@ -5,7 +5,7 @@ import { $setState } from 'lexical';
 
 import { createNoteIdAvoiding } from '#domain/notes/ids';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
-import { isChildrenWrapper, isWrapperItem } from '#client/editor/outline/list-structure';
+import { isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
 import { reportInvariant } from '#client/editor/invariant';
 
@@ -23,8 +23,9 @@ function formatTextSnippet(text: string): string {
 }
 
 function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, path: number[]) {
-  // Adjacency wrappers (children-wrapper, body-wrapper) are not notes.
-  if (isWrapperItem(item)) {
+  // A children-wrapper is not a note. (Body-wrappers are already skipped by the
+  // sole caller before this point.)
+  if (isChildrenWrapper(item)) {
     return;
   }
   const noteId = $getNoteId(item);
