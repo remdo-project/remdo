@@ -81,9 +81,10 @@ anything with a defensible best-effort resolution is a tradeoff, not a blocker.
 
 ## Verification
 
-When the loop settles, run the local-agent final checks (`AGENTS.md` "Checks"). A
-failure caused by an applied fix re-enters the loop; a pre-existing unrelated
-failure is reported, not fixed here.
+When the loop settles, run the final checks for the **current agent mode**
+(`AGENTS.md` "Checks" — local-agent or cloud, e.g. cloud requires the `:full`
+suites). A failure caused by an applied fix re-enters the loop; a pre-existing
+unrelated failure is reported, not fixed here.
 
 ## Permissions
 

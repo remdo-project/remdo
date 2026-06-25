@@ -66,7 +66,7 @@ sections to docs.
   worktrees); cross-WD agent state belongs under `~/.claude/` instead.
 - Never stage or commit unless the user literally says “commit” (or explicitly
   agrees to your request to commit). When in doubt, assume the answer is “no”.
-  Exception: the `remdo-feature-flow` and `remdo-refine` skills are
+  Exception: the `remdo-feature-flow`, `remdo-refine`, and `remdo-sync` skills are
   self-authorizing — within such a run, commits on the confirmed task branch are
   allowed per that skill’s permission model (never on `dev`/`main`, still never
   pushing without an explicit ask).
