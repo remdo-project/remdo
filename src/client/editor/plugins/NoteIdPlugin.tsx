@@ -841,10 +841,12 @@ export function NoteIdPlugin() {
             payload.selection,
             lastPasteSelectionRangeRef.current
           );
+          // The cached range has now been consumed; clear it so it can't leak
+          // into the next paste, regardless of which exit path below runs.
+          lastPasteSelectionRangeRef.current = null;
 
           if (wasCutPaste) {
             if (!marker) {
-              lastPasteSelectionRangeRef.current = null;
               return true;
             }
 
@@ -858,7 +860,6 @@ export function NoteIdPlugin() {
               caretInMarked ||
               (selectedMarkedKeys !== null && [...selectedMarkedKeys].some((key) => marker.markedKeys.has(key)));
             if (intersection) {
-              lastPasteSelectionRangeRef.current = null;
               return true;
             }
 
@@ -868,7 +869,6 @@ export function NoteIdPlugin() {
             // copy-without-moving). Final semantics are deferred to the cut/paste
             // redesign — see docs/todo.md.
             if (pasteBody) {
-              lastPasteSelectionRangeRef.current = null;
               return true;
             }
 
@@ -883,14 +883,12 @@ export function NoteIdPlugin() {
                 insertionRange = null;
               }
               setCutMarker(null);
-              lastPasteSelectionRangeRef.current = null;
               if ($insertNodesAtSelection(editor, insertionRange, insertionSelection, nodesToMove)) {
                 return true;
               }
             }
 
             setCutMarker(null);
-            lastPasteSelectionRangeRef.current = null;
             return true;
           }
 
@@ -904,7 +902,6 @@ export function NoteIdPlugin() {
               const [firstLine, ...restLines] = lines;
               payload.selection.insertText(firstLine ?? '');
               $insertFirstChildNotes(inlineContentItem, restLines);
-              lastPasteSelectionRangeRef.current = null;
               return true;
             }
 
@@ -914,7 +911,6 @@ export function NoteIdPlugin() {
             } else {
               payload.selection.insertText(text);
             }
-            lastPasteSelectionRangeRef.current = null;
             return true;
           }
 
@@ -924,7 +920,6 @@ export function NoteIdPlugin() {
           }
           $regenerateClipboardNoteIds(payload.nodes, reservedIds);
           const insertNodes = $extractClipboardListChildren(payload.nodes);
-          lastPasteSelectionRangeRef.current = null;
           return $insertNodesAtSelection(editor, selectionRange, payload.selection, insertNodes);
         },
         COMMAND_PRIORITY_LOW
