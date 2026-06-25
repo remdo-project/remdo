@@ -713,6 +713,41 @@ describe('note ids on paste', () => {
     ]);
   });
 
+  it('pasting inside a cut note\'s own body is a no-op and leaves the cut pending', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Cut note2 (with a body), then paste with the caret inside note2's body.
+    // The body is inside the cut boundary, so per docs/outliner/clipboard.md the
+    // paste does nothing and the cut stays pending — no text is inserted into the
+    // body and the note is not duplicated.
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'body');
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    // Caret inside note2's own body, then paste the cut.
+    await remdo.mutate(() => {
+      getNoteBody($findNoteById('note2')!)!.selectEnd();
+    });
+    await pastePayload(remdo, clipboardPayload);
+
+    // No-op: note2 unchanged (body not duplicated), nothing moved.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', body: 'body' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    // The cut is still pending: pasting elsewhere now moves note2.
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2', body: 'body' },
+    ]);
+  });
+
   it('drops cut markers after editing a cut note\'s body', meta({ fixture: 'flat' }), async ({ remdo }) => {
     // Give note2 a body, cut it, then edit inside the body. The body is part of
     // the cut note, so the edit must cancel the pending cut — a later paste does

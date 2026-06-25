@@ -160,7 +160,9 @@ function $isCaretWithinMarkedSelection(marker: CutMarker, selection: BaseSelecti
     return false;
   }
 
-  const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
+  // A caret inside a cut note's body is still inside the cut boundary (the body
+  // travels with the note), so resolve body points to their owner note.
+  const contentItem = $resolveNoteForSelectionPoint(selection.anchor.getNode());
   if (!contentItem) {
     return false;
   }
@@ -754,17 +756,22 @@ export function NoteIdPlugin() {
           const wasCutPaste = lastPasteWasCutRef.current;
           lastPasteWasCutRef.current = false;
 
-          // A selection inside a body is rich text, not outline structure: paste
-          // the clipboard's plain text into the body (never list nodes, which
-          // would break the outline). This also covers a collapsed caret.
-          if ($isRangeSelection(payload.selection)) {
-            const body = $getSelectionBody(payload.selection);
-            if (body) {
-              setCutMarker(null);
-              lastPasteSelectionRangeRef.current = null;
-              payload.selection.insertText($getPlainTextFromClipboardNodes(payload.nodes));
-              return true;
-            }
+          // A selection inside a body is rich text, not outline structure, so a
+          // paste there inserts the clipboard's plain text (never list nodes,
+          // which would break the outline). This also covers a collapsed caret.
+          const pasteBody = $isRangeSelection(payload.selection)
+            ? $getSelectionBody(payload.selection)
+            : null;
+
+          // For a non-cut paste the body insert is unconditional; a cut-paste
+          // must first honor the cut no-op rule below (pasting inside the cut
+          // boundary does nothing and leaves the cut pending), so it is handled
+          // within the wasCutPaste block.
+          if (pasteBody && !wasCutPaste) {
+            setCutMarker(null);
+            lastPasteSelectionRangeRef.current = null;
+            payload.selection.insertText($getPlainTextFromClipboardNodes(payload.nodes));
+            return true;
           }
 
           const marker = cutMarkerRef.current;
@@ -794,6 +801,15 @@ export function NoteIdPlugin() {
               (selectedMarkedKeys !== null && [...selectedMarkedKeys].some((key) => marker.markedKeys.has(key)));
             if (intersection) {
               lastPasteSelectionRangeRef.current = null;
+              return true;
+            }
+
+            // Cut content pasted into a (non-cut) body lands as text, not list
+            // nodes; the move completes and the cut clears.
+            if (pasteBody && $isRangeSelection(payload.selection)) {
+              setCutMarker(null);
+              lastPasteSelectionRangeRef.current = null;
+              payload.selection.insertText($getPlainTextFromClipboardNodes(payload.nodes));
               return true;
             }
 
