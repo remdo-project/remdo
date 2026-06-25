@@ -23,6 +23,7 @@ import { useEffect } from 'react';
 import { forEachListItemInOutline } from '#client/editor/outline/list-traversal';
 import { getPreviousContentSibling, isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode, $resolveRootContentList } from '#client/editor/outline/schema';
+import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
 import { isBodyWrapper } from './note-body-node';
 import type { NoteBodyNode } from './note-body-node';
 import {
@@ -234,10 +235,11 @@ export function NoteBodyPlugin() {
       if ($getActiveNoteBody()) {
         return false;
       }
+      const boundaryRoot = $resolveZoomBoundaryRoot(editor);
       if (direction === 'left' || direction === 'right') {
-        return $skipBodyForHorizontalNav(direction) ? stop(event) : false;
+        return $skipBodyForHorizontalNav(direction, boundaryRoot) ? stop(event) : false;
       }
-      return $skipBodyForVerticalNav(direction) ? stop(event) : false;
+      return $skipBodyForVerticalNav(direction, boundaryRoot) ? stop(event) : false;
     };
 
     return mergeRegister(

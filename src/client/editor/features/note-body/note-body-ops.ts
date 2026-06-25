@@ -6,6 +6,7 @@ import type { LexicalNode, RangeSelection } from 'lexical';
 import { getBodyWrapper, getPreviousContentSibling } from '#client/editor/outline/list-structure';
 import { $isNoteFolded } from '#client/editor/runtime/fold-state';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { isWithinZoomBoundary } from '#client/editor/outline/selection/boundary';
 import { $selectItemEdge, isPointAtBoundary } from '#client/editor/outline/selection/caret';
 import {
   getFirstDescendantListItem,
@@ -113,7 +114,7 @@ function $noteAbove(note: ListItemNode): ListItemNode | null {
  * note directly after a body lands on the body's owner note. Returns true when it
  * redirected, false to fall through to native movement.
  */
-export function $skipBodyForVerticalNav(direction: 'up' | 'down'): boolean {
+export function $skipBodyForVerticalNav(direction: 'up' | 'down', boundaryRoot: ListItemNode | null): boolean {
   const selection = $getSelection();
   if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
     return false;
@@ -130,21 +131,30 @@ export function $skipBodyForVerticalNav(direction: 'up' | 'down'): boolean {
     // The body is transparent: land where Down would go if it did not exist —
     // the note's first child (expanded) or the next note in document order, and
     // when nothing is below, the note's own text end (matching native last-line
-    // behavior). Either way, consume the event so native nav cannot enter body.
-    const target = $noteBelow(note);
+    // behavior). A target outside the zoom boundary is hidden, so treat it as
+    // nothing-below. Either way, consume the event so native nav cannot enter body.
+    const target = $noteBelowWithinBoundary(note, boundaryRoot);
     $selectItemEdge(target ?? note, target ? 'start' : 'end');
     return true;
   }
 
   // up: the note above in document order is the visual line above. If it has a
   // body, native Up would land in that body — redirect to the note's end so the
-  // body stays transparent.
+  // body stays transparent. A note above the zoom boundary is hidden, so leave
+  // native nav to handle the boundary.
   const above = $noteAbove(note);
-  if (!above || !getBodyWrapper(above)) {
+  if (!above || !isWithinZoomBoundary(above, boundaryRoot) || !getBodyWrapper(above)) {
     return false;
   }
   $selectItemEdge(above, 'end');
   return true;
+}
+
+// The note below `note` (ignoring its body) that is still inside the zoom
+// boundary, or null when the next note is hidden by the zoom or there is none.
+function $noteBelowWithinBoundary(note: ListItemNode, boundaryRoot: ListItemNode | null): ListItemNode | null {
+  const target = $noteBelow(note);
+  return target && isWithinZoomBoundary(target, boundaryRoot) ? target : null;
 }
 
 /**
@@ -154,7 +164,7 @@ export function $skipBodyForVerticalNav(direction: 'up' | 'down'): boolean {
  * start (when the note follows a body) skips to that body's owner note. Only
  * acts at the note boundary; otherwise the arrow moves within the note text.
  */
-export function $skipBodyForHorizontalNav(direction: 'left' | 'right'): boolean {
+export function $skipBodyForHorizontalNav(direction: 'left' | 'right', boundaryRoot: ListItemNode | null): boolean {
   const selection = $getSelection();
   if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
     return false;
@@ -169,8 +179,9 @@ export function $skipBodyForHorizontalNav(direction: 'left' | 'right'): boolean 
       return false;
     }
     // Body is transparent: a note's last child or its next note in document
-    // order. No note after the body → no-op (consume, do not enter the body).
-    const target = $noteBelow(note);
+    // order. No note after the body (or one hidden by the zoom boundary) → no-op
+    // (consume, do not enter the body and do not escape the zoom).
+    const target = $noteBelowWithinBoundary(note, boundaryRoot);
     if (target) {
       $selectItemEdge(target, 'start');
     }
@@ -182,7 +193,7 @@ export function $skipBodyForHorizontalNav(direction: 'left' | 'right'): boolean 
     return false;
   }
   const above = $noteAbove(note);
-  if (!above || !getBodyWrapper(above)) {
+  if (!above || !isWithinZoomBoundary(above, boundaryRoot) || !getBodyWrapper(above)) {
     return false;
   }
   $selectItemEdge(above, 'end');

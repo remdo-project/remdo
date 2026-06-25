@@ -706,7 +706,7 @@ describe('note body vertical navigation (docs/outliner/body.md)', () => {
 
     let handled = false;
     await remdo.mutate(() => {
-      handled = $skipBodyForVerticalNav('down');
+      handled = $skipBodyForVerticalNav('down', null);
     });
     expect(handled).toBe(true);
     expect(readCaretNoteId(remdo)).toBe('note2');
@@ -719,7 +719,7 @@ describe('note body vertical navigation (docs/outliner/body.md)', () => {
 
     let handled = false;
     await remdo.mutate(() => {
-      handled = $skipBodyForVerticalNav('down');
+      handled = $skipBodyForVerticalNav('down', null);
     });
     expect(handled).toBe(true);
     expect(readCaretNoteId(remdo)).toBe('note3');
@@ -733,7 +733,7 @@ describe('note body vertical navigation (docs/outliner/body.md)', () => {
 
     let handled = false;
     await remdo.mutate(() => {
-      handled = $skipBodyForVerticalNav('up');
+      handled = $skipBodyForVerticalNav('up', null);
     });
     expect(handled).toBe(true);
     expect(readCaretNoteId(remdo)).toBe('note3');
@@ -744,7 +744,24 @@ describe('note body vertical navigation (docs/outliner/body.md)', () => {
     await placeCaretAtNote(remdo, 'note3', 0);
 
     // note3 sits below note2 (no body), so the body skip does not apply.
-    const handled = remdo.validate(() => $skipBodyForVerticalNav('up'));
+    const handled = remdo.validate(() => $skipBodyForVerticalNav('up', null));
     expect(handled).toBe(false);
+  });
+
+  it('down from a zoomed leaf with a body stays inside the zoom boundary', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Zoom into note1 (a leaf with a body). Its next document-order note (note2)
+    // is outside the zoom subtree and hidden, so Down must not escape there — it
+    // stays on note1 (the event is still consumed so native nav can't enter the
+    // body).
+    await addBodyTo(remdo, 'note1', 'body');
+    await placeCaretAtNote(remdo, 'note1', 0);
+
+    let handled = false;
+    await remdo.mutate(() => {
+      const boundaryRoot = $findNoteById('note1')!;
+      handled = $skipBodyForVerticalNav('down', boundaryRoot);
+    });
+    expect(handled).toBe(true);
+    expect(readCaretNoteId(remdo)).toBe('note1');
   });
 });
