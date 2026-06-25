@@ -32,9 +32,8 @@ outdated or a doc’s role materially changes.
   workflow + documentation invariants.
 - `docs/dev/dependency-maintenance.md` (Medium). Standing policy for dependency
   refresh work — durable rules and self-healing mechanisms (pnpm release-age
-  gate, Dependabot cooldown alignment, build-script approval, Node/Docker base
-  lag). Individual workarounds live as `TODO:`/`FIXME:` markers at their code
-  sites, not here.
+  gate, build-script approval, Node/Docker base lag). Individual workarounds live
+  as `TODO:`/`FIXME:` markers at their code sites, not here.
 - `docs/run-modes.md` (Long). Supported run modes: local dev, test stacks, CI,
   self-hosted app runtimes, managed cloud, and backup execution.
 - `docs/hints.md` (Short). UX hint concepts for search, note controls, and
