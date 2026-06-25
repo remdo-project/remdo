@@ -84,8 +84,11 @@ anything with a defensible best-effort resolution is a tradeoff, not a blocker.
 
 When the loop settles, run the final checks for the **current agent mode**
 (`AGENTS.md` "Checks" — local-agent or cloud, e.g. cloud requires the `:full`
-suites). A failure caused by an applied fix re-enters the loop; a pre-existing
-unrelated failure is reported, not fixed here.
+suites), plus **`pnpm run audit:cleanup`** — the deterministic backstop for the
+simplify rung (ast-grep anti-patterns, `knip` dead code, `jscpd` duplication),
+which local-agent checks otherwise skip and only CI catches. A failure caused by
+an applied fix re-enters the loop; a pre-existing unrelated failure is reported,
+not fixed here.
 
 ## Permissions
 
