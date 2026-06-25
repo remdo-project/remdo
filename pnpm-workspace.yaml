@@ -2,7 +2,7 @@ catalogMode: prefer
 
 engineStrict: true
 
-nodeVersion: 24.17.0
+nodeVersion: 24.18.0
 
 shellEmulator: true
 
