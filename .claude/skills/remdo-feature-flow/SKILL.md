@@ -197,11 +197,9 @@ are unchanged here — see AGENTS.md, not repeated.
 
 ### Commit timing
 
-Work may stay uncommitted while building, but **phase-4 work is committed before
-the refine step** (refine reviews the committed `wip-base..HEAD` range). This does
-not change the user's review surface: `git diff wip-base` shows committed and
-uncommitted work alike, so the phase-5 review reads the same either way. Commit on
-the confirmed task branch only; never push without the user's explicit ask.
+Committing phase-4 work before refine (Phase 4) does not change the review
+surface: `git diff wip-base` shows committed and uncommitted work alike. Commit
+on the task branch only; never push without the user's explicit ask.
 
 ### Branch base: the `wip-base` tag
 
@@ -258,9 +256,9 @@ Choose by the *activity*, not the phase number:
 
 ## References
 
-- Sequenced skills: `superpowers:brainstorming`, `superpowers:writing-plans`,
-  `superpowers:executing-plans`, `superpowers:dispatching-parallel-agents`,
-  `superpowers:using-git-worktrees`, `superpowers:verification-before-completion`.
+- Sequenced skills: `superpowers:brainstorming`,
+  `superpowers:dispatching-parallel-agents`, `superpowers:using-git-worktrees`,
+  `superpowers:verification-before-completion`.
 - Phase-4 implementation discipline: `superpowers:test-driven-development`,
   `superpowers:systematic-debugging`.
 - Phase-4 quality loop (simplify / internal review / external Codex review):
