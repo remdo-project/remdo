@@ -67,7 +67,10 @@ superseded docs in the same change) lives in `AGENTS.md`.
 
 ### Documentation invariants
 
-These invariants apply to every doc in the corpus.
+These invariants apply to every doc in the corpus and to agent skill files
+(`.claude/skills/**`), which carry the same risks. The only corpus-specific part
+is the `docs/index.md` map (#7): skills are not mapped, so that clause is a no-op
+for them.
 
 1. **Single source per topic.** Each behavior MUST be defined exactly once, in
    the doc best suited to it. Likewise, each precise term MUST be defined once —
