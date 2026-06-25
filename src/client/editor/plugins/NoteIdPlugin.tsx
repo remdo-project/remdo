@@ -497,7 +497,10 @@ function $restoreFullNoteContentInClipboardNodes(nodes: SerializedLexicalNode[])
     if (element.type === 'listitem' && typeof element.noteId === 'string' && Array.isArray(element.children)) {
       const note = $findNoteById(element.noteId);
       if (note) {
-        const ownContent = note.getChildren().filter((child) => !$isListNode(child)).map(serializeNodeTree);
+        // A content note's direct children are its own inline content (text,
+        // note links, dates); its sub-notes live in a sibling children-wrapper,
+        // which Lexical serializes as a nested `list` child here — keep that.
+        const ownContent = note.getChildren().map(serializeNodeTree);
         const nestedList = element.children.filter((child) => child.type === 'list');
         element.children = [...ownContent, ...nestedList];
       }
