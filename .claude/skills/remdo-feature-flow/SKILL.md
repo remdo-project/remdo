@@ -138,11 +138,11 @@ The report **indexes the diff**, it does not re-narrate it. The work is on the
 task branch for the user's `git diff wip-base` loop. Thin chat summary:
 
 1. What changed — pointing at files/areas, not prose-narrating each edit.
-2. Tradeoffs taken (and why).
-3. A pointer to the `docs/todo.md` entries added this run (deferrals/decisions) —
-   reference, do not repeat them.
-4. Any blocker, with all data already gathered so unblocking is fast.
-5. **Workflow retro:** what would make the next run smoother. Fold concrete,
+2. A pointer to the `docs/todo.md` entries added this run — tradeoffs taken
+   (each is a deferral until a final decision is deliberately taken),
+   deferrals, and decisions. Reference them; do not repeat them in chat.
+3. Any blocker, with all data already gathered so unblocking is fast.
+4. **Workflow retro:** what would make the next run smoother. Fold concrete,
    stable improvements back into this file; cross-session notes go to
    `~/.claude/memory/`.
 

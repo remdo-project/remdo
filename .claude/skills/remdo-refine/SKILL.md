@@ -69,9 +69,10 @@ post-fix code first.
 
 - **Approved fix** — clearly correct and safe (or an intended change the diff owns).
   Apply and commit it; the run is not done.
-- **Tradeoff** — a real choice with no single correct answer. Solve it best-effort,
-  record it in `docs/todo.md`, keep going. Never blocks; reported at the end,
-  already resolved.
+- **Tradeoff** — a real choice with no single correct answer. Solve it best-effort
+  and **record it in `docs/todo.md`** — a tradeoff is a deferral until a final
+  decision is deliberately taken, so the entry persists until then (don't leave it
+  only chat-remembered). Never blocks; the end report points at the entry.
 - **Reject** — not a real issue, or out of scope. Drop it.
 
 **Done** when a full cycle produces zero approved fixes. **Stuck** (stop and
