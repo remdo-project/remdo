@@ -3,6 +3,7 @@ import {
   $createParagraphNode,
   $createTextNode,
   $getRoot,
+  $isLineBreakNode,
   $setState,
 } from 'lexical';
 import { waitFor } from '@testing-library/react';
@@ -297,6 +298,28 @@ describe('note ids on paste', () => {
     const rootListNode = getSerializedRootListNode(remdo) as SerializedLexicalNode;
     const links = collectSerializedNoteLinksInNodes([rootListNode]);
     expect(links.filter((link) => link.noteId === 'note2')).toHaveLength(2);
+  });
+
+  it('pasting a multi-note payload into a body uses line breaks, not literal newlines', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A multi-note structural payload can't live in a body as structure, so it
+    // flattens to text — but the body's line representation is LineBreakNodes,
+    // not literal "\n" in a text node (the body line nav scans for LineBreakNode
+    // children). Copy two notes, paste into note3's body, expect a line break.
+    await selectNoteRange(remdo, 'note1', 'note2');
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+    });
+    const clipboardPayload = await copySelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await pastePayload(remdo, clipboardPayload);
+
+    const lineBreaks = remdo.editor.getEditorState().read(() => {
+      const body = getNoteBody($findNoteById('note3')!)!;
+      return body.getChildren().filter($isLineBreakNode).length;
+    });
+    expect(lineBreaks).toBeGreaterThan(0);
   });
 
   it('materializes same-document note-link docId in clipboard payload', meta({ fixture: 'flat' }), async ({ remdo }) => {

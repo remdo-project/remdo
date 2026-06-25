@@ -245,7 +245,10 @@ function $insertClipboardNodesIntoBody(selection: RangeSelection, nodes: Lexical
   if (inlineNodes.length > 0) {
     $insertNodes(inlineNodes);
   } else {
-    selection.insertText($getPlainTextFromClipboardNodes(nodes));
+    // A flattened multi-note payload is multi-line; insertRawText turns the
+    // newlines into LineBreakNodes (the body's line representation) rather than
+    // literal "\n" inside a text node, which the body line nav relies on.
+    selection.insertRawText($getPlainTextFromClipboardNodes(nodes));
   }
 }
 
@@ -931,10 +934,12 @@ export function NoteIdPlugin() {
           const selection = $getSelection();
 
           // A selection inside a body is rich text: paste the plain text into the
-          // body (with line breaks), never as list nodes that break the outline.
+          // body, never as list nodes that break the outline. insertRawText turns
+          // newlines into LineBreakNodes (the body's line representation that line
+          // nav relies on), not literal "\n" inside a text node.
           if ($isRangeSelection(selection) && $getSelectionBody(selection)) {
             lastPasteSelectionRangeRef.current = null;
-            selection.insertText(plainText);
+            selection.insertRawText(plainText);
             event.preventDefault();
             return true;
           }
