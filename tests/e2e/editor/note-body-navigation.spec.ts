@@ -174,4 +174,33 @@ test.describe('note body shift-arrow selection boundary (docs/outliner/body.md)'
 
     expect(await focusInBody(page)).toBe(true);
   });
+
+  test('Shift+ArrowDown from the first visual line of a soft-wrapped body extends within it', async ({ page, editor }) => {
+    await editor.load('flat');
+    // A long body with NO hard line breaks that wraps over several visual lines.
+    // The body's line boundaries are visual, not LineBreakNodes, so the caret on
+    // the first visual line is not the last line — Shift+ArrowDown must extend
+    // the selection down a wrapped line (staying in the body), not be blocked.
+    const longBody = 'wordy '.repeat(60).trim();
+    await addBody(page, 'note1', longBody);
+
+    // Confirm the body actually wraps (more than ~1.5 line tall), else the test
+    // is vacuous in this layout.
+    const wraps = await page.evaluate(() => {
+      const el = document.querySelector('.note-body');
+      if (!el) return false;
+      const rect = el.getBoundingClientRect();
+      const line = Number.parseFloat(getComputedStyle(el).lineHeight) || 16;
+      return rect.height > line * 1.5;
+    });
+    expect(wraps).toBe(true);
+
+    await setCaretAtText(page, longBody, 0);
+    await page.keyboard.press('Shift+ArrowDown');
+
+    // The selection extended (non-collapsed) and stayed inside the body.
+    expect(await focusInBody(page)).toBe(true);
+    const isCollapsed = await page.evaluate(() => globalThis.getSelection()?.isCollapsed ?? true);
+    expect(isCollapsed).toBe(false);
+  });
 });

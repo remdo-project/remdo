@@ -6,6 +6,7 @@ import {
   $getSelection,
   $isLineBreakNode,
   $isRangeSelection,
+  getDOMSelection,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_HIGH,
   KEY_ARROW_DOWN_COMMAND,
@@ -175,11 +176,57 @@ function $isCaretAtBodyEdge(body: NoteBodyNode, direction: 'backward' | 'forward
 type ArrowDirection = 'up' | 'down' | 'left' | 'right';
 
 /**
- * A body is a self-contained selection world, so a Shift+Arrow must never extend
- * the selection out of it. Block a shifted arrow when the focus is inside a body
- * and already at the boundary toward the arrow's direction.
+ * True when the caret sits on the body's first (`leading`) or last (`trailing`)
+ * visual line, measured from the live DOM so soft-wrapped lines count too. A
+ * vertical move off the edge visual line leaves the body. Compares the caret's
+ * client rect against the body's box: the caret is on the leading line when its
+ * top is within one line height of the body's top, on the trailing line when its
+ * bottom is within one line height of the body's bottom. Returns null when the
+ * geometry can't be read (no rendered caret), so callers fall back to the
+ * node-level hard-break check.
  */
-function $shouldBlockBodyShiftArrow(direction: ArrowDirection): boolean {
+function $isCaretOnBodyEdgeVisualLine(
+  editor: LexicalEditor,
+  body: NoteBodyNode,
+  edge: 'leading' | 'trailing'
+): boolean | null {
+  const bodyElement = editor.getElementByKey(body.getKey());
+  const domSelection = getDOMSelection(editor._window);
+  if (!bodyElement || !domSelection || domSelection.rangeCount === 0) {
+    return null;
+  }
+  const caretRect = domSelection.getRangeAt(0).getBoundingClientRect();
+  const bodyRect = bodyElement.getBoundingClientRect();
+  // A collapsed caret in an empty line can report a zero-size rect; treat that
+  // as unreadable so the hard-break fallback decides.
+  if (caretRect.height === 0 && caretRect.top === 0 && caretRect.bottom === 0) {
+    return null;
+  }
+  // One line's worth of tolerance: the rendered line height, falling back to the
+  // caret's own height. Half a line is enough to disambiguate adjacent lines.
+  const lineHeight = Number.parseFloat(getComputedStyle(bodyElement).lineHeight) || caretRect.height || 0;
+  const tolerance = lineHeight * 0.75;
+  return edge === 'leading'
+    ? caretRect.top - bodyRect.top <= tolerance
+    : bodyRect.bottom - caretRect.bottom <= tolerance;
+}
+
+/**
+ * Handle a Shift+Arrow whose focus is inside a body. A body is a self-contained
+ * selection world, so the selection must never extend out of it, and a vertical
+ * Shift+Arrow must not fall through to the structural selection ladder (which
+ * `SelectionPlugin` drives off Shift+Up/Down). Returns true when the event was
+ * consumed (blocked at the edge, or extended within the body), false to let
+ * native handling run (horizontal arrows away from the edge).
+ *
+ * - Horizontal (`left`/`right`): block only at the exact text edge; otherwise
+ *   native character extension runs (the ladder ignores horizontal arrows).
+ * - Vertical (`up`/`down`): the ladder would hijack it, so always consume.
+ *   Block on the body's edge *visual* line (soft wrap included); on an interior
+ *   line, extend the selection by one visual line via the DOM, keeping it in the
+ *   body and stopping the ladder.
+ */
+function $handleBodyShiftArrow(editor: LexicalEditor, direction: ArrowDirection): boolean {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
     return false;
@@ -189,13 +236,19 @@ function $shouldBlockBodyShiftArrow(direction: ArrowDirection): boolean {
     return false;
   }
   const edge = direction === 'left' || direction === 'up' ? 'leading' : 'trailing';
-  // Vertical arrows move by visual line, so block from anywhere on the body's
-  // edge line (a single-line body always escapes). Horizontal arrows move by
-  // character, so only block at the exact text edge.
-  if (direction === 'up' || direction === 'down') {
-    return $pointOnBodyEdgeLine(body, selection.focus, edge);
+
+  if (direction === 'left' || direction === 'right') {
+    return $pointAtBodyEdge(body, selection.focus, edge);
   }
-  return $pointAtBodyEdge(body, selection.focus, edge);
+
+  // Vertical: block on the edge visual line; otherwise extend by a visual line.
+  const onEdgeLine =
+    $isCaretOnBodyEdgeVisualLine(editor, body, edge) ?? $pointOnBodyEdgeLine(body, selection.focus, edge);
+  if (!onEdgeLine) {
+    const domSelection = getDOMSelection(editor._window);
+    domSelection?.modify('extend', direction === 'up' ? 'backward' : 'forward', 'line');
+  }
+  return true;
 }
 
 /** True when the `@` note-link picker is currently open in the document. */
@@ -217,7 +270,7 @@ export function NoteBodyPlugin() {
       // Shift+Arrow: a body owns its selection world, so block extension out of
       // it at the boundary (other modifiers fall through).
       if (event?.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
-        return $shouldBlockBodyShiftArrow(direction) ? stop(event) : false;
+        return $handleBodyShiftArrow(editor, direction) ? stop(event) : false;
       }
       // Other modified arrows are handled elsewhere.
       if (event && (event.altKey || event.metaKey || event.ctrlKey)) {
