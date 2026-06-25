@@ -241,14 +241,14 @@
    ordering is not a real override. */
 /* stylelint-disable no-descending-specificity */
 .editor-root li.list-item[data-folded='true'] + li.list-nested-item,
-.editor-root li.list-item[data-folded='true'] + li.list-item:has(> .note-body) + li.list-nested-item {
+.editor-root li.list-item[data-folded='true'] + li.note-body-wrapper + li.list-nested-item {
   display: none;
 }
 
 .editor-root li.list-item[data-folded='true'][data-zoom-root='true'] + li.list-nested-item,
 .editor-root li.list-item[data-folded='true'] + li.list-nested-item[data-zoom-flatten='true'],
-.editor-root li.list-item[data-folded='true'][data-zoom-root='true'] + li.list-item:has(> .note-body) + li.list-nested-item,
-.editor-root li.list-item[data-folded='true'] + li.list-item:has(> .note-body) + li.list-nested-item[data-zoom-flatten='true'] {
+.editor-root li.list-item[data-folded='true'][data-zoom-root='true'] + li.note-body-wrapper + li.list-nested-item,
+.editor-root li.list-item[data-folded='true'] + li.note-body-wrapper + li.list-nested-item[data-zoom-flatten='true'] {
   display: list-item;
 }
 /* stylelint-enable no-descending-specificity */

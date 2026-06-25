@@ -6,6 +6,7 @@ export const editorTheme: EditorThemeClasses = {
   root: 'editor-root remdo-outline',
   paragraph: 'editor-paragraph',
   noteBody: 'note-body',
+  noteBodyWrapper: 'note-body-wrapper',
   link: 'text-link',
   text: {
     bold: 'text-bold',

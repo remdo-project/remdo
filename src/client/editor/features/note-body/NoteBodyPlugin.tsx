@@ -1,8 +1,7 @@
-import { $isListNode, ListItemNode } from '@lexical/list';
+import { ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { mergeRegister } from '@lexical/utils';
 import {
-  $getNodeByKey,
   $getSelection,
   $isLineBreakNode,
   $isRangeSelection,
@@ -21,11 +20,10 @@ import {
 import type { LexicalEditor, Point } from 'lexical';
 import { useEffect } from 'react';
 
-import { forEachListItemInOutline } from '#client/editor/outline/list-traversal';
 import { getPreviousContentSibling, isChildrenWrapper } from '#client/editor/outline/list-structure';
-import { resolveContentItemFromNode, $resolveRootContentList } from '#client/editor/outline/schema';
+import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
-import { isBodyWrapper } from './note-body-node';
+import { BodyWrapperNode, isBodyWrapper } from './note-body-node';
 import type { NoteBodyNode } from './note-body-node';
 import {
   $addNoteBody,
@@ -38,65 +36,6 @@ import {
   isNoteBodyEmpty,
 } from './note-body-ops';
 import './note-body.css';
-
-// A body-wrapper is a leaf `ListItemNode`, so in a check list Lexical's list DOM
-// re-adds checkbox semantics (`role="checkbox"`, `aria-checked`, `tabindex`) on
-// every reconcile of the wrapper. A body is not a checklist item, so after each
-// update strip those from every body-wrapper inside a check list, keeping it out
-// of the checkbox accessibility tree and hit-testing (the visual checkbox is
-// hidden in CSS). Only check lists apply these attributes, so a body-wrapper in a
-// bullet/number list is left untouched.
-// Lexical re-adds the attributes when it reconciles a wrapper's `<li>`, so only
-// the keys dirtied by the update can have stale semantics. `null` means strip
-// every body-wrapper (the initial sweep, before any dirty set exists).
-function stripBodyWrapperCheckboxSemantics(editor: LexicalEditor, dirtyElements: Iterable<string> | null): void {
-  const wrapperKeys = editor.getEditorState().read(() => {
-    return dirtyElements === null
-      ? $collectAllBodyWrapperKeys()
-      : [...dirtyElements].filter((key) => $isCheckListBodyWrapper($getNodeByKey(key)));
-  });
-  for (const key of wrapperKeys) {
-    const element = editor.getElementByKey(key);
-    if (!element) {
-      continue;
-    }
-    element.removeAttribute('role');
-    element.removeAttribute('aria-checked');
-    element.removeAttribute('tabindex');
-  }
-}
-
-function $isCheckListBodyWrapper(node: ReturnType<typeof $getNodeByKey>): boolean {
-  if (!(node instanceof ListItemNode) || !isBodyWrapper(node)) {
-    return false;
-  }
-  const parent = node.getParent();
-  return $isListNode(parent) && parent.getListType() === 'check';
-}
-
-function $collectAllBodyWrapperKeys(): string[] {
-  const rootList = $resolveRootContentList();
-  if (!rootList) {
-    return [];
-  }
-  const keys: string[] = [];
-  forEachListItemInOutline(rootList, (item) => {
-    if ($isCheckListBodyWrapper(item)) {
-      keys.push(item.getKey());
-    }
-  });
-  return keys;
-}
-
-function registerBodyWrapperCheckboxCleanup(editor: LexicalEditor): () => void {
-  stripBodyWrapperCheckboxSemantics(editor, null);
-  return editor.registerUpdateListener(({ dirtyElements }) => {
-    if (dirtyElements.size === 0) {
-      return;
-    }
-    stripBodyWrapperCheckboxSemantics(editor, dirtyElements.keys());
-  });
-}
 
 function stop(event: KeyboardEvent | null): true {
   event?.preventDefault();
@@ -251,6 +190,19 @@ function $handleBodyShiftArrow(editor: LexicalEditor, direction: ArrowDirection)
   return true;
 }
 
+// Fold any duplicate body-wrappers under a note back into one. The dirty node is
+// the owner note itself (a content item), or a body-wrapper whose owner is the
+// content sibling before it; children-wrappers are not notes.
+function $reconcileFromDirtyListItem(node: ListItemNode): void {
+  if (isChildrenWrapper(node)) {
+    return;
+  }
+  const note = isBodyWrapper(node) ? getPreviousContentSibling(node) : node;
+  if (note) {
+    $reconcileNoteBodyWrappers(note);
+  }
+}
+
 /** True when the `@` note-link picker is currently open in the document. */
 function isNoteLinkPickerOpen(): boolean {
   return document.querySelector('[data-note-link-picker]') !== null;
@@ -296,22 +248,13 @@ export function NoteBodyPlugin() {
     };
 
     return mergeRegister(
-      registerBodyWrapperCheckboxCleanup(editor),
       // Keep a note to at most one body: concurrent Shift+Enter under collab can
       // produce duplicate body-wrappers, which this folds back into one. A newly
-      // inserted duplicate marks the wrapper dirty (not the owner note), so
-      // resolve the owner from either a content item or a body-wrapper.
-      editor.registerNodeTransform(ListItemNode, (node) => {
-        // The owner note is the content sibling before a (just-inserted)
-        // body-wrapper, otherwise `node` itself unless it is a children-wrapper.
-        if (isChildrenWrapper(node)) {
-          return;
-        }
-        const note = isBodyWrapper(node) ? getPreviousContentSibling(node) : node;
-        if (note) {
-          $reconcileNoteBodyWrappers(note);
-        }
-      }),
+      // inserted duplicate marks the body-wrapper dirty (not the owner note), so
+      // the transform is registered for both node types and resolves the owner
+      // from either a content item or a body-wrapper.
+      editor.registerNodeTransform(ListItemNode, $reconcileFromDirtyListItem),
+      editor.registerNodeTransform(BodyWrapperNode, $reconcileFromDirtyListItem),
       editor.registerCommand(
         KEY_ARROW_UP_COMMAND,
         (event) => $onArrow('up', event),

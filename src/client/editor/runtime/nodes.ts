@@ -4,7 +4,7 @@ import { ListItemNode, ListNode } from '@lexical/list';
 
 import { ensureFoldStateConfig } from './fold-state';
 import { DateNode } from '../features/date/date-node';
-import { NoteBodyNode } from '../features/note-body/note-body-node';
+import { BodyWrapperNode, NoteBodyNode } from '../features/note-body/note-body-node';
 import { NoteLinkNode } from './note-link-node';
 import { ensureNoteIdStateConfig } from './note-id-state';
 
@@ -14,6 +14,7 @@ ensureFoldStateConfig();
 export const editorNodes: InitialConfigType['nodes'] = [
   ListNode,
   ListItemNode,
+  BodyWrapperNode,
   LinkNode,
   AutoLinkNode,
   NoteLinkNode,

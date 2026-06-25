@@ -1,25 +1,10 @@
 /* A note body is a rich-text region attached to a note, rendered set apart from
-   the note's own content (see docs/outliner/body.md). The body-wrapper is an
-   li.list-item like any note, so it must be excluded from every list marker:
-   the bullet (::before), the ordered-list counter (increment + number), and the
-   checklist checkbox (::after). Otherwise a body looks and counts like an extra
-   note in numbered/check lists. */
-.editor-root li.list-item:has(> .note-body) {
+   the note's own content (see docs/outliner/body.md). It lives in a dedicated
+   `.note-body-wrapper` <li> (the BodyWrapperNode), which carries no `.list-item`
+   class — so every list marker (bullet, ordered counter, checkbox), all of which
+   target `li.list-item`, naturally skips it; no marker suppression is needed. */
+.note-body-wrapper {
   list-style: none;
-}
-
-/* Stop the ordered-list counter from incrementing on / numbering the wrapper.
-   Specificity must match the ordered-list counter rules in Editor.css. */
-.editor-root ol.list-ol > li.list-item:not(.list-nested-item):has(> .note-body) {
-  counter-increment: none;
-}
-
-.editor-root li.list-item:has(> .note-body)::before,
-.editor-root li.list-item:has(> .note-body)::after,
-.editor-root ol.list-ol > li.list-item:not(.list-nested-item):has(> .note-body)::before,
-.editor-root li.list-item.list-item-checked:has(> .note-body)::after,
-.editor-root li.list-item.list-item-unchecked:has(> .note-body)::after {
-  content: none;
 }
 
 .note-body {

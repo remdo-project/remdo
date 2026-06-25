@@ -15,14 +15,10 @@ import { requireContentItemFromNode, resolveContentItemFromNode } from '#client/
 import { getParentContentItem, getSubtreeItems } from '#client/editor/outline/selection/tree';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 
+// A body-wrapper renders as `.note-body-wrapper`, never a checklist `<li>`, so it
+// is naturally excluded here — no body-specific guard needed.
 const isChecklistItem = (element: HTMLElement): boolean =>
   element.classList.contains('list-item-checked') || element.classList.contains('list-item-unchecked');
-
-// A body-wrapper `<li>` holds a note body, not a note. In a check list it still
-// carries the checked/unchecked classes (so it inherits the checkbox hit area),
-// but it must never toggle a checkbox — clicking its slot should place the caret.
-const isBodyWrapperElement = (element: HTMLElement): boolean =>
-  element.querySelector(':scope > .note-body') !== null;
 
 const $resolveContentItemByKey = (key: string): ListItemNode | null => {
   const node = $getNodeByKey<ListItemNode>(key);
@@ -105,7 +101,7 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
       return;
     }
     const listItem = event.target.closest<HTMLElement>('li.list-item');
-    if (!listItem || !isChecklistItem(listItem) || isBodyWrapperElement(listItem)) {
+    if (!listItem || !isChecklistItem(listItem)) {
       return;
     }
     if (isBulletHit(listItem, event as PointerEvent)) {
@@ -128,7 +124,7 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
       return;
     }
     const listItem = event.target.closest<HTMLElement>('li.list-item');
-    if (!listItem || !isChecklistItem(listItem) || isBodyWrapperElement(listItem)) {
+    if (!listItem || !isChecklistItem(listItem)) {
       return;
     }
     if (isBulletHit(listItem, event as PointerEvent)) {

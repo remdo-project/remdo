@@ -104,7 +104,7 @@ export function traverseSerializedOutline(state: SerializedEditorState): Travers
 
     for (let index = 0; index < children.length; index += 1) {
       const child = children[index];
-      if (!isNodeWithChildren(child) || child.type !== LIST_ITEM_TYPE) {
+      if (!isNodeWithChildren(child) || (child.type !== LIST_ITEM_TYPE && !isSerializedBodyWrapper(child))) {
         continue;
       }
 

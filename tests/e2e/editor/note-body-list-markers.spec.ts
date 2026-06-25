@@ -1,10 +1,11 @@
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, setCaretAtText } from '#editor/locators';
 
-// A body-wrapper is an li.list-item like any note, so in numbered and check
-// lists it must not show a list marker or count as a note (see
-// docs/outliner/body.md). These assert the computed marker state in a real
-// browser, where the ordered-counter / checkbox rules actually apply.
+// A body-wrapper is a dedicated `.note-body-wrapper` <li> (the BodyWrapperNode),
+// not a `.list-item`, so list markers (bullet, ordered counter, checkbox) — which
+// all target `li.list-item` — never apply to it, and it is never a checkbox in
+// the accessibility tree (see docs/outliner/body.md). These assert that computed
+// state in a real browser, where the marker rules actually apply.
 
 async function addBody(page: Parameters<typeof setCaretAtText>[0], noteLabel: string, bodyText: string) {
   await setCaretAtText(page, noteLabel, Number.POSITIVE_INFINITY);
@@ -12,12 +13,13 @@ async function addBody(page: Parameters<typeof setCaretAtText>[0], noteLabel: st
   await page.keyboard.type(bodyText);
 }
 
+function bodyWrapper(page: Parameters<typeof setCaretAtText>[0]) {
+  return editorLocator(page).locator('li.note-body-wrapper').first();
+}
+
 /** The computed pseudo-element `content` for the li that holds the body. */
 function bodyWrapperPseudoContent(page: Parameters<typeof setCaretAtText>[0], pseudo: '::before' | '::after') {
-  return editorLocator(page)
-    .locator('li.list-item:has(> .note-body)')
-    .first()
-    .evaluate((el, p) => globalThis.getComputedStyle(el, p).content, pseudo);
+  return bodyWrapper(page).evaluate((el, p) => globalThis.getComputedStyle(el, p).content, pseudo);
 }
 
 test.describe('note body list markers (docs/outliner/body.md)', () => {
@@ -28,10 +30,9 @@ test.describe('note body list markers (docs/outliner/body.md)', () => {
 
     // The body-wrapper neither numbers nor increments the ordered counter.
     expect(await bodyWrapperPseudoContent(page, '::before')).toBe('none');
-    const wrapperIncrement = await editorLocator(page)
-      .locator('li.list-item:has(> .note-body)')
-      .first()
-      .evaluate((el) => globalThis.getComputedStyle(el).counterIncrement);
+    const wrapperIncrement = await bodyWrapper(page).evaluate(
+      (el) => globalThis.getComputedStyle(el).counterIncrement
+    );
     expect(wrapperIncrement).toBe('none');
   });
 
@@ -43,48 +44,26 @@ test.describe('note body list markers (docs/outliner/body.md)', () => {
     expect(await bodyWrapperPseudoContent(page, '::after')).toBe('none');
   });
 
-  test('clicking the checkbox slot beside a body does not toggle the body-wrapper', async ({ page, editor }) => {
-    // tree-list-types: note4 lives in a check list. The body-wrapper still
-    // carries the unchecked class (and so the checkbox hit area), but it is not a
-    // checklist item — clicking its hidden checkbox slot must not check it.
+  test('a body in a check list carries no checkbox classes or hit area', async ({ page, editor }) => {
+    // tree-list-types: note4 lives in a check list. The body-wrapper is not a
+    // list item, so it never gets the checked/unchecked classes that would give
+    // it a checkbox hit area — clicking beside the body cannot toggle anything.
     await editor.load('tree-list-types');
     await addBody(page, 'note4', 'thebody');
 
-    const wrapper = editorLocator(page).locator('li.list-item:has(> .note-body)').first();
-    await expect(wrapper).toHaveClass(/list-item-unchecked/);
-
-    // Click inside the checkbox slot: liRect.left + (--checkbox-left .. +width).
-    // The custom properties are calc() strings, so resolve them to px by probing
-    // an element whose width is set to each value.
-    const slot = await wrapper.evaluate((el) => {
-      const rect = el.getBoundingClientRect();
-      const resolvePx = (property: string) => {
-        const probe = document.createElement('div');
-        probe.style.position = 'absolute';
-        probe.style.width = `var(${property})`;
-        el.append(probe);
-        const px = probe.getBoundingClientRect().width;
-        probe.remove();
-        return px;
-      };
-      const left = resolvePx('--checkbox-left');
-      const width = resolvePx('--checkbox-width');
-      return { x: rect.left + left + width / 2, y: rect.top + rect.height / 2 };
-    });
-    await page.mouse.click(slot.x, slot.y);
-
-    await expect(wrapper).toHaveClass(/list-item-unchecked/);
+    const wrapper = bodyWrapper(page);
     await expect(wrapper).not.toHaveClass(/list-item-checked/);
+    await expect(wrapper).not.toHaveClass(/list-item-unchecked/);
+    await expect(wrapper).not.toHaveClass(/\blist-item\b/);
   });
 
   test('a body in a check list is not exposed as a checkbox to accessibility', async ({ page, editor }) => {
-    // tree-list-types: note4 lives in a check list. A leaf li in a check list
-    // would otherwise get role="checkbox"/aria-checked from Lexical; a body is
-    // not a checklist item, so those must be stripped (docs/outliner/body.md).
+    // The BodyWrapperNode's DOM never emits checkbox semantics, so there is
+    // nothing to strip and nothing exposed.
     await editor.load('tree-list-types');
     await addBody(page, 'note4', 'thebody');
 
-    const wrapper = editorLocator(page).locator('li.list-item:has(> .note-body)').first();
+    const wrapper = bodyWrapper(page);
     await expect(wrapper).not.toHaveAttribute('role', 'checkbox');
     await expect(wrapper).not.toHaveAttribute('aria-checked');
   });
