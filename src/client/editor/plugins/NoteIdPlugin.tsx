@@ -410,7 +410,14 @@ function $insertInternalLinkFromPlainText(
     return false;
   }
 
-  if (!selection.isCollapsed() && !$isInlineSelectionWithinSingleNote(selection)) {
+  // A note link can replace a selection that stays within one editable region:
+  // a collapsed caret, an inline range within one note's content, or a range
+  // within one body (bodies are rich text and support note links).
+  if (
+    !selection.isCollapsed() &&
+    !$isInlineSelectionWithinSingleNote(selection) &&
+    !$getSelectionBody(selection)
+  ) {
     return false;
   }
 
