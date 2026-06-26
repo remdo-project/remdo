@@ -4,7 +4,7 @@ import { IconChevronDown, IconPlus, IconSearch, IconUpload } from '@tabler/icons
 import { useLoaderData, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocumentSourcesLoading, useUserData } from '#client/app/documents/user-data';
 import Editor from '#client/editor/Editor';
-import { ZoomBreadcrumbs } from '#client/editor/zoom/ZoomBreadcrumbs';
+import { ZoomBreadcrumbs } from '#client/editor/features/zoom/ZoomBreadcrumbs';
 import { EditorViewProvider, useEditorViewActions, useSearchNotes, useZoomPath } from '#client/editor/view/EditorViewProvider';
 import { registerPendingDocumentImport } from '#client/editor/runtime/pending-document-import';
 import { createDocumentPath, createDocumentSyncTokenApiPath, parseDocumentRef } from '#document-routes';
