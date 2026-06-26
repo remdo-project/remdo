@@ -6,14 +6,29 @@ updates:
   # open-pull-requests-limit (5) so pending work stays visible.
   - package-ecosystem: npm
     directory: /
+    # Check daily so a genuinely-overdue version surfaces within ~24h of crossing
+    # the grace window below, instead of waiting for a weekly slot.
     schedule:
-      interval: weekly
-      day: sunday
-    # Hold each version 2 days before proposing it, so PRs clear pnpm's
-    # minimumReleaseAge gate and land green. Rationale (incl. why 2, not 1):
-    # docs/dev/dependency-maintenance.md, "Dependabot".
+      interval: daily
+    # Grace window: hold each version 9 days before proposing it. This is a
+    # staleness nag tuned to a weekly manual refresh, not a per-version merge
+    # queue: 9 > the 7-day refresh interval, so a repo kept up on cadence shows
+    # NO version-update PR at all — an open PR means a version has been available
+    # longer than the grace window, i.e. the refresh is actually overdue. 9 =
+    # 7-day interval + 2 days slack (the +2 also clears pnpm's 24h release-age
+    # gate edge, the same reason this was never 1). Security fixes are unaffected:
+    # cooldown gates version updates only; Dependabot security updates bypass it.
+    # Rationale: docs/dev/dependency-maintenance.md, "Dependabot".
     cooldown:
-      default-days: 2
+      default-days: 9
+    # Tag every PR as a refresh-skill trigger, not work to merge per-dependency.
+    # `labels` REPLACES Dependabot's defaults, so the conventional `dependencies`
+    # label is listed too. Dependabot only applies labels that already exist in
+    # the repo (it won't create them) — `deps-refresh-trigger` must be created
+    # repo-side; see docs/todo.md "Dependency process".
+    labels:
+      - dependencies
+      - deps-refresh-trigger
     groups:
       weekly-all:
         patterns:
