@@ -177,9 +177,13 @@ function $reconcileFromDirtyListItem(node: ListItemNode): void {
   }
 }
 
-/** True when the `@` note-link picker is currently open in the document. */
-function isNoteLinkPickerOpen(): boolean {
-  return document.querySelector('[data-note-link-picker]') !== null;
+/**
+ * True when an inline picker/typeahead (the `@` note-link picker or the `!` date
+ * picker) is open. Its own CRITICAL arrow handlers should own Up/Down then, so
+ * the body-skip must stand down rather than consume the key and close the menu.
+ */
+function isInlinePickerOpen(): boolean {
+  return document.querySelector('[data-note-link-picker], [data-date-picker]') !== null;
 }
 
 /** The note body containing the current caret/selection, or null. */
@@ -202,11 +206,12 @@ export function NoteBodyPlugin() {
       if (event && (event.altKey || event.metaKey || event.ctrlKey)) {
         return false;
       }
-      // Defer Up/Down to an open note-link picker so they navigate its options
-      // rather than redirecting the caret past an adjacent body (the picker's
-      // arrow handlers run at the same priority but mount after this plugin). The
-      // picker ignores Left/Right, so those still run the body-skip below.
-      if ((direction === 'up' || direction === 'down') && isNoteLinkPickerOpen()) {
+      // Defer Up/Down to an open inline picker (note-link or date) so they drive
+      // it rather than redirecting the caret past an adjacent body — the body-skip
+      // would otherwise consume the key and close the menu (the picker's arrow
+      // handlers run at the same priority but mount after this plugin). Pickers
+      // ignore Left/Right, so those still run the body-skip below.
+      if ((direction === 'up' || direction === 'down') && isInlinePickerOpen()) {
         return false;
       }
       // Plain arrows: inside a body the caret leaves freely (native); only skip
