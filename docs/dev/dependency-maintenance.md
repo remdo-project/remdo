@@ -37,15 +37,11 @@ loudly instead.
 
 ### Dependabot
 
-Three independent clocks govern dependencies; keep them separate.
+Dependabot drives two separate signals, on clocks independent of each other and of
+the pnpm release-age gate above: version-update PRs as a *staleness nag* (here),
+and security alerts as a *vulnerability* alarm (next section). Keep them separate.
 
-1. **pnpm 24h release-age gate** (above) — the supply-chain trust floor. We keep
-   the default and don't second-guess it.
-2. **Dependabot version-update PRs** — a *staleness nag*, tuned below.
-3. **Dependabot security alerts** ("Security alerts" section) — a *vulnerability*
-   alarm, on its own zero-delay clock.
-
-Dependabot version-update PRs are alerts to run the refresh skill, never merged
+Version-update PRs are alerts to run the refresh skill, never merged
 per-dependency. The intent shapes the config in `.github/dependabot.yml` (which
 carries the exact values and their arithmetic — not repeated here):
 
@@ -56,8 +52,8 @@ carries the exact values and their arithmetic — not repeated here):
   window — the refresh is genuinely overdue. (The grace also absorbs the pnpm
   release-age edge from the gate above; that's why it was never as low as a day.)
 - **Prompt once overdue.** The cooldown gates *eligibility*; the check schedule
-  gates *latency-to-nag*. Checking daily means an overdue version surfaces within
-  about a day rather than waiting for a weekly slot.
+  gates *latency-to-nag*. A short check interval surfaces an overdue version
+  quickly instead of holding it for a weekly slot.
 - **Self-labelling.** PRs are tagged so an open one reads as "trigger the refresh
   skill," not "merge me."
 
