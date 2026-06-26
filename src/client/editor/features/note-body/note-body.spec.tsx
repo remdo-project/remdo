@@ -436,6 +436,38 @@ describe('note body (docs/outliner/body.md)', () => {
     ]);
   });
 
+  it('reconciles a body-wrapper stranded after the children-wrapper back into place', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    // tree: note1; note2 > note3. Give note2 a body so its siblings are
+    // [note2, body-wrapper, children-wrapper(note3)].
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'note2 body');
+
+    // Simulate a concurrent collab merge that orders the wrappers as
+    // [note2, children-wrapper, body-wrapper] — getBodyWrapper (immediate
+    // sibling) would then miss the body and leave it orphaned. Moving the
+    // body-wrapper marks it dirty, so the reconcile transform must move it back
+    // to immediately after note2, keeping the body reachable.
+    await act(async () => {
+      remdo.editor.update(() => {
+        const note2 = $findNoteById('note2')!;
+        const bodyWrapper = getBodyWrapper(note2)!;
+        const childrenWrapper = bodyWrapper.getNextSibling()!;
+        childrenWrapper.insertAfter(bodyWrapper);
+      });
+    });
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      {
+        noteId: 'note2',
+        text: 'note2',
+        body: 'note2 body',
+        children: [{ noteId: 'note3', text: 'note3' }],
+      },
+    ]);
+  });
+
   it('indenting a note carries its body under the new parent', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter', shift: true });

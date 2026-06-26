@@ -37,7 +37,25 @@ export function getNoteBody(note: ListItemNode): NoteBodyNode | null {
  * transform runs this until the tree is stable.
  */
 export function $reconcileNoteBodyWrappers(note: ListItemNode): void {
-  const firstWrapper = getBodyWrapper(note);
+  // Collect every body-wrapper in the note's adjacency run (its siblings up to
+  // the next content note — body-wrapper(s) and an optional children-wrapper, in
+  // any order). A concurrent collab merge can land a body-wrapper after the
+  // children-wrapper (`note, children-wrapper, body-wrapper`), where the
+  // immediate-sibling getBodyWrapper would miss it and leave the body orphaned.
+  // The run ends at the next content note (a body-wrapper / children-wrapper are
+  // not content items); collect every body-wrapper before it.
+  const runEnd = getNextContentSibling(note);
+  const bodyWrappers: ListItemNode[] = [];
+  let sibling: LexicalNode | null = note.getNextSibling();
+  while (sibling !== null && sibling !== runEnd) {
+    const after: LexicalNode | null = sibling.getNextSibling();
+    if (isBodyWrapper(sibling)) {
+      bodyWrappers.push(sibling);
+    }
+    sibling = after;
+  }
+
+  const [firstWrapper, ...duplicateWrappers] = bodyWrappers;
   if (!firstWrapper) {
     return;
   }
@@ -45,16 +63,19 @@ export function $reconcileNoteBodyWrappers(note: ListItemNode): void {
   if (!$isNoteBodyNode(firstBody)) {
     return;
   }
-  // Any further body-wrapper directly after the first is a duplicate.
-  let next = firstWrapper.getNextSibling();
-  while ($isListItemNode(next) && isBodyWrapper(next)) {
-    const after = next.getNextSibling();
-    const duplicateBody = next.getFirstChild();
+  // The body-wrapper belongs immediately after the note (before any
+  // children-wrapper). Move it there if a merge stranded it elsewhere.
+  if (note.getNextSibling() !== firstWrapper) {
+    note.insertAfter(firstWrapper);
+  }
+  // Fold every other body-wrapper's content into the first and drop it, so the
+  // note keeps at most one body.
+  for (const duplicate of duplicateWrappers) {
+    const duplicateBody = duplicate.getFirstChild();
     if ($isNoteBodyNode(duplicateBody)) {
       firstBody.append(...duplicateBody.getChildren());
     }
-    next.remove();
-    next = after;
+    duplicate.remove();
   }
 }
 
