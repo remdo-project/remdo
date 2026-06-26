@@ -22,7 +22,12 @@ updates:
     cooldown:
       default-days: 9
     # Tag every PR as a refresh-skill trigger, not work to merge per-dependency.
+    # `labels` REPLACES Dependabot's defaults, so the conventional `dependencies`
+    # label is listed too. Dependabot only applies labels that already exist in
+    # the repo (it won't create them) — `deps-refresh-trigger` must be created
+    # repo-side; see docs/todo.md "Dependency process".
     labels:
+      - dependencies
       - deps-refresh-trigger
     groups:
       weekly-all:

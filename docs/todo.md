@@ -315,6 +315,10 @@ Durable fixes:
   security updates** are ON (Settings → Security & analysis). The new
   dependency-maintenance.md "Security alerts" policy assumes this state. Couldn't
   verify via API (403).
+- Create the `deps-refresh-trigger` repo label (`gh label create
+  deps-refresh-trigger`): Dependabot only applies labels that already exist, so
+  until it's created the self-labelling in dependabot.yml is a no-op. (Left
+  repo-side, not auto-created, to keep outward-facing repo changes with the user.)
 - Dangling PR #332 is the old-2-day-cooldown artifact (5 bumps that were too fresh
   when the last refresh ran ~1h before Dependabot). Under the new 9-day grace it
   wouldn't have appeared. Close it / fold into the next manual refresh; it's a nag,
