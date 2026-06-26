@@ -311,9 +311,9 @@ Durable fixes:
 
 ## Dependency process (staleness + security)
 
-- Repo settings: confirm **Dependabot alerts** and **Dependabot security updates**
-  are ON (Settings → Security & analysis). The "Security alerts" policy assumes
-  this; verified enabled (alerts via API, security updates via UI).
+- **Dependabot alerts** and **Dependabot security updates** are ON (Settings →
+  Security & analysis), which the "Security alerts" policy relies on — verified
+  enabled (alerts via API, security updates via UI).
 - Close the last phantom Dependabot version-update PR (#338): it proposed a
   downgrade because Dependabot misread the pnpm catalog. With `dependabot.yml`
   removed, no new version-update PRs will open; just close the open one.
