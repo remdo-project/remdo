@@ -309,6 +309,17 @@ Durable fixes:
 - Cap/rotate the `data/collab/` store, or have the test harness clean its collab
   docs after runs, so it can't grow unbounded again.
 
+## Dependency process (staleness + security)
+
+- Repo settings outside the diff: confirm **Dependabot alerts** and **Dependabot
+  security updates** are ON (Settings → Security & analysis). The new
+  dependency-maintenance.md "Security alerts" policy assumes this state. Couldn't
+  verify via API (403).
+- Dangling PR #332 is the old-2-day-cooldown artifact (5 bumps that were too fresh
+  when the last refresh ran ~1h before Dependabot). Under the new 9-day grace it
+  wouldn't have appeared. Close it / fold into the next manual refresh; it's a nag,
+  not work.
+
 ## remdo-feature-flow follow-ups
 
 - Clean up stale prunable worktree `remdo-7000-wt` if abandoned (not mine).
