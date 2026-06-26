@@ -235,4 +235,30 @@ test.describe('note body shift-arrow selection boundary (docs/outliner/body.md)'
     const isCollapsed = await page.evaluate(() => globalThis.getSelection()?.isCollapsed ?? true);
     expect(isCollapsed).toBe(false);
   });
+
+  test('Shift+ArrowUp shrinks an extended selection within a soft-wrapped body', async ({ page, editor }) => {
+    await editor.load('flat');
+    // Long wrapping body; extend down a visual line, then back up. The edge check
+    // must measure the moving focus caret, not the whole selection — otherwise the
+    // extended range's top sits at the body top and Shift+ArrowUp is wrongly
+    // blocked as if at the leading edge instead of shrinking the selection.
+    const longBody = 'wordy '.repeat(60).trim();
+    await addBody(page, 'note1', longBody);
+
+    await setCaretAtText(page, longBody, 0);
+    // Extend two visual lines down so the focus is well past the leading line and
+    // the selection's union spans the body top — the case that exposed the bug.
+    await page.keyboard.press('Shift+ArrowDown');
+    await page.keyboard.press('Shift+ArrowDown');
+    const extended = await page.evaluate(() => globalThis.getSelection()?.toString().length ?? 0);
+    expect(extended).toBeGreaterThan(0);
+
+    await page.keyboard.press('Shift+ArrowUp');
+    const shrunk = await page.evaluate(() => globalThis.getSelection()?.toString().length ?? 0);
+
+    // The focus moved back up (selection shrank) and stayed in the body — not
+    // blocked at a leading edge misread from the whole selection's bounds.
+    expect(await focusInBody(page)).toBe(true);
+    expect(shrunk).toBeLessThan(extended);
+  });
 });
