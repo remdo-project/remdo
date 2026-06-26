@@ -43,7 +43,13 @@ tree stays clean for the next pass.
 ## The ladder
 
 Three passes, cheapest and most local first, most independent last. Each reviews
-the same `wip-base..HEAD` range:
+the same `wip-base..HEAD` range.
+
+**Run each in-session review pass (1 and 2) as a fresh, context-limited
+subagent** given only the range — the coordinating session's memory of
+implementing and reviewing the diff would bias it toward parts it thinks it
+cleaned. Pass 3 (codex, a separate process) gets this fresh read for free. The
+coordinating session triages the returned findings and owns the loop.
 
 1. **Simplify** — `/simplify`, plus a **doc-minimalism lens** for prose
    (`docs/**`, skill files): read each touched doc/skill *whole* in load order
@@ -100,9 +106,14 @@ run, that skill's commit policy already governs.
 ## Final report
 
 Index the result, do not re-narrate it: scope and base; cycle count and why the
-loop ended; fixes applied (pointing at files, not prose); tradeoffs taken with a
-pointer to their `docs/todo.md` entries; any blocker with its gathered data; and
-the final checks with pass/fail.
+loop ended; fixes applied (pointing at files, not prose, with a tally of how many
+came from the **latest commit** vs. **earlier branch work** — where in
+`wip-base..HEAD` each finding sat); tradeoffs taken with a pointer to their
+`docs/todo.md` entries; any blocker with its gathered data; and the final checks
+with pass/fail.
+
+Then one **per-rung counts** line each for simplify / internal / external: how
+many times it ran, findings it surfaced, and findings applied.
 
 ## References
 
