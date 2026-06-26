@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { meta } from '#tests';
 import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
 import type {
+  BodyNote,
   CollectionNote,
   DocumentNote,
   DocumentAccessNote,
@@ -20,6 +21,7 @@ import {
 
 function createMockNoteAs(noteId: string, kind: () => NoteKind, self: () => Note): Note['as'] {
   function asNote(kindToMatch: 'editor-note'): EditorNote;
+  function asNote(kindToMatch: 'body'): BodyNote;
   function asNote(kindToMatch: 'user-data'): UserDataNote;
   function asNote(kindToMatch: 'document'): DocumentNote;
   function asNote(kindToMatch: 'document-access'): DocumentAccessNote;
@@ -57,6 +59,7 @@ function createMockEditorNote(
     create: () => {
       throw new Error('Editor note creation is not used in search candidate tests.');
     },
+    body: () => null,
     as: createMockNoteAs(id, kind, () => note),
   };
   for (const child of children) {

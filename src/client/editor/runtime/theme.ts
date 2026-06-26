@@ -5,6 +5,8 @@ export const editorTheme: EditorThemeClasses = {
   // ordered counters); `editor-root` adds editor-only chrome and interaction state.
   root: 'editor-root remdo-outline',
   paragraph: 'editor-paragraph',
+  noteBody: 'note-body',
+  noteBodyWrapper: 'note-body-wrapper',
   link: 'text-link',
   text: {
     bold: 'text-bold',

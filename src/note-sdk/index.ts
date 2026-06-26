@@ -13,6 +13,7 @@ export type {
 } from './documents';
 export type { UserDocument } from '#domain/documents/user-data';
 export type {
+  BodyNote,
   EditorNote,
   EditorNotes,
   EditorNotesAdapter,

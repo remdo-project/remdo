@@ -17,11 +17,11 @@ function createMockAdapterFixture(
   adapter: EditorNotesAdapter;
   userData: Parameters<typeof createUserDataRootNote>[0];
   sourceServers: SourceServer[];
-  notes: Map<string, { text: string; children: string[] }>;
+  notes: Map<string, { text: string; children: string[]; body?: string }>;
   placeCalls: Array<{ range: NoteRange; target: PlaceTarget }>;
 } {
   const resolvedSelection = adapterSelection ?? { kind: 'caret', range: { start: 'b', end: 'b' } };
-  const notes = new Map<string, { text: string; children: string[] }>([
+  const notes = new Map<string, { text: string; children: string[]; body?: string }>([
     ['a', { text: 'A', children: ['b', 'c'] }],
     ['b', { text: 'B', children: [] }],
     ['c', { text: 'C', children: [] }],
@@ -51,7 +51,7 @@ function createMockAdapterFixture(
     },
   ];
 
-  const requireNote = (noteId: string): { text: string; children: string[] } => {
+  const requireNote = (noteId: string): { text: string; children: string[]; body?: string } => {
     const note = notes.get(noteId);
     if (!note) {
       throw new NoteNotFoundError(noteId);
@@ -93,6 +93,7 @@ function createMockAdapterFixture(
       hasNote: (noteId) => notes.has(noteId),
       isBounded: (noteId) => notes.has(noteId),
       textOf: (noteId) => requireNote(noteId).text,
+      bodyTextOf: (noteId) => requireNote(noteId).body ?? null,
       listTypeOf: (noteId) => {
         requireNote(noteId);
         return 'bullet';

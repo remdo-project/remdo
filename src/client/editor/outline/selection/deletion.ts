@@ -3,7 +3,7 @@ import type { BaseSelection } from 'lexical';
 import { $isRangeSelection } from 'lexical';
 import { getPreviousContentSibling } from '../list-structure';
 import { isWithinZoomBoundary } from './boundary';
-import { getContiguousSelectionHeads } from './heads';
+import { $getContiguousSelectionHeads } from './heads';
 import type { OutlineSelectionRange } from './model';
 import { $resolveStructuralHeadsFromRange } from './range';
 import {
@@ -37,7 +37,7 @@ export function $resolveStructuralDeletionHeads(
     return [];
   }
 
-  return sortHeadsByDocumentOrder(getContiguousSelectionHeads(selection));
+  return sortHeadsByDocumentOrder($getContiguousSelectionHeads(selection));
 }
 
 export function $resolveStructuralDeletionTargets(

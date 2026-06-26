@@ -3,7 +3,8 @@ import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
-import { getContentSiblings, isChildrenWrapper, maybeRemoveEmptyWrapper } from '../list-structure';
+import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
+import { getBodyWrapper, getContentSiblings, getPreviousContentSibling, isChildrenWrapper, isContentItem, maybeRemoveEmptyWrapper } from '../list-structure';
 
 export function normalizeContentRange(
   start: ListItemNode,
@@ -76,8 +77,9 @@ export function getParentContentItem(item: ListItemNode): ListItemNode | null {
     return null;
   }
 
-  const parentContent = parentWrapper.getPreviousSibling();
-  if ($isListItemNode(parentContent) && !isChildrenWrapper(parentContent)) {
+  // The parent note sits before the children-wrapper, after any body-wrapper.
+  const parentContent = getPreviousContentSibling(parentWrapper);
+  if (parentContent) {
     return parentContent;
   }
 
@@ -85,7 +87,7 @@ export function getParentContentItem(item: ListItemNode): ListItemNode | null {
     message: 'Parent content sibling is not a list item',
     context: {
       itemKey: item.getKey(),
-      parentSiblingType: parentContent?.getType ? parentContent.getType() : undefined,
+      parentSiblingType: parentWrapper.getPreviousSibling()?.getType(),
     },
   });
   return null;
@@ -104,7 +106,7 @@ export function getContentSiblingsForItem(item: ListItemNode): ListItemNode[] {
 export function getNextContentSibling(item: ListItemNode): ListItemNode | null {
   let sibling: LexicalNode | null = item.getNextSibling();
   while (sibling) {
-    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
+    if (isContentItem(sibling)) {
       return sibling;
     }
     sibling = sibling.getNextSibling();
@@ -116,8 +118,11 @@ export function getSubtreeTail(item: ListItemNode): ListItemNode {
   let current = item;
   let nestedList = getNestedList(current);
   while (nestedList) {
-    const lastChild = nestedList.getLastChild();
-    if (!$isListItemNode(lastChild)) {
+    // The last list child can be a trailing wrapper (a body-wrapper, or a
+    // children-wrapper for a nested subtree); the subtree tail is the deepest
+    // content note, so take the last content sibling.
+    const lastChild = getContentSiblings(nestedList).at(-1);
+    if (!lastChild) {
       break;
     }
 
@@ -163,7 +168,7 @@ export function getSubtreeItems(item: ListItemNode): ListItemNode[] {
     const children = nested.getChildren();
     for (let i = children.length - 1; i >= 0; i -= 1) {
       const child = children[i];
-      if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+      if (isContentItem(child)) {
         stack.push(child);
       }
     }
@@ -178,7 +183,7 @@ export function getFirstDescendantListItem(node: LexicalNode | null): ListItemNo
   }
 
   for (const child of node.getChildren()) {
-    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+    if (isContentItem(child)) {
       return child;
     }
   }
@@ -199,7 +204,7 @@ export function getLastDescendantListItem(node: LexicalNode | null): ListItemNod
     let lastContentChild: ListItemNode | null = null;
     for (let i = children.length - 1; i >= 0; i -= 1) {
       const child = children[i];
-      if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+      if (isContentItem(child)) {
         lastContentChild = child;
         break;
       }
@@ -218,11 +223,12 @@ export function getLastDescendantListItem(node: LexicalNode | null): ListItemNod
 }
 
 export function getWrapperForContent(item: ListItemNode): ListItemNode | null {
-  const next = item.getNextSibling();
-  if (!isChildrenWrapper(next)) {
-    return null;
+  // The children-wrapper sits after the note, after any body-wrapper.
+  let next = item.getNextSibling();
+  if (isBodyWrapper(next)) {
+    next = next.getNextSibling();
   }
-  return next;
+  return isChildrenWrapper(next) ? next : null;
 }
 
 export function removeNoteSubtree(item: ListItemNode) {
@@ -232,6 +238,12 @@ export function removeNoteSubtree(item: ListItemNode) {
   const wrapper = getWrapperForContent(item);
   if (wrapper) {
     wrapper.remove();
+  }
+
+  // The body-wrapper (if any) travels with the note.
+  const bodyWrapper = getBodyWrapper(item);
+  if (bodyWrapper) {
+    bodyWrapper.remove();
   }
 
   item.remove();

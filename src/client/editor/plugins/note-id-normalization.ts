@@ -6,6 +6,7 @@ import { $setState } from 'lexical';
 import { createNoteIdAvoiding } from '#domain/notes/ids';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import { isChildrenWrapper } from '#client/editor/outline/list-structure';
+import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
 import { reportInvariant } from '#client/editor/invariant';
 
 function formatPath(path: number[]): string {
@@ -22,6 +23,8 @@ function formatTextSnippet(text: string): string {
 }
 
 function $normalizeNoteIdOnLoad(item: ListItemNode, usedIds: Set<string>, path: number[]) {
+  // A children-wrapper is not a note. (Body-wrappers are already skipped by the
+  // sole caller before this point.)
   if (isChildrenWrapper(item)) {
     return;
   }
@@ -83,6 +86,11 @@ function $normalizeListNoteIds(list: ListNode, usedIds: Set<string>, prefix: num
           prefix: [...frame.prefix, wrapperIndex],
         });
       }
+      continue;
+    }
+
+    // A body-wrapper is not a note: skip it without advancing the note index.
+    if (isBodyWrapper(child)) {
       continue;
     }
 

@@ -3,16 +3,17 @@ import type { BaseSelection } from 'lexical';
 import { $getNodeByKey, $isRangeSelection } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
+import { $isSelectionWithinOneBody, $selectionCrossesRegionBoundary } from '#client/editor/features/note-body/note-body-ops';
 
 import type { OutlineSelection, OutlineSelectionRange } from './model';
-import { getContiguousSelectionHeads, getSelectedNotes } from './heads';
+import { $getContiguousSelectionHeads, $getSelectedNotes } from './heads';
 import type { ProgressiveSelectionState, SnapPayload } from './resolve';
 import {
   $createSnapPayload,
   computeStructuralRangeFromHeads,
   $inferPointerProgressionState,
-  resolveSelectionPointItem,
-  selectionMatchesPayload,
+  $resolveSelectionPointItem,
+  $selectionMatchesPayload,
 } from './resolve';
 import { $replayLadder, ladderHasStructuralRung } from './rungs';
 import type { ProgressivePlan } from './rungs';
@@ -124,6 +125,23 @@ export function $computeOutlineSelectionSnapshot({
   initialProgression,
   boundaryKey,
 }: OutlineSelectionSnapshotInput): OutlineSelectionSnapshot {
+  // An inline range wholly inside one body is its own region: it never feeds
+  // structural selection or the ladder. Return a neutral snapshot so the body
+  // owns its caret/range. A selection that crosses out of a body — into the
+  // owning note's content or into another note — falls through to the structural
+  // snap below (see docs/outliner/body.md "Selection and navigation").
+  if ($isRangeSelection(selection) && $isSelectionWithinOneBody(selection)) {
+    return {
+      payload: null,
+      hasStructuralSelection: false,
+      structuralRange: null,
+      outlineSelection: null,
+      progression: initialProgression,
+      unlock: { pending: false, reason: 'external' },
+      reshape: null,
+    };
+  }
+
   let payload: SnapPayload | null = null;
   let structuralRange: OutlineSelectionRange | null = null;
   let hasStructuralSelection = false;
@@ -138,7 +156,7 @@ export function $computeOutlineSelectionSnapshot({
   };
 
   const anchorSelectionItem = $isRangeSelection(selection)
-    ? resolveSelectionPointItem(selection, selection.anchor)
+    ? $resolveSelectionPointItem(selection, selection.anchor)
     : null;
   const anchorSelectionKey = anchorSelectionItem ? anchorSelectionItem.getKey() : null;
   const isLadderStructural = ladderHasStructuralRung(nextProgression);
@@ -216,8 +234,8 @@ export function $computeOutlineSelectionSnapshot({
     };
   }
 
-  const anchorItem = anchorSelectionItem ?? resolveSelectionPointItem(selection, selection.anchor);
-  const focusItem = resolveSelectionPointItem(selection, selection.focus);
+  const anchorItem = anchorSelectionItem ?? $resolveSelectionPointItem(selection, selection.anchor);
+  const focusItem = $resolveSelectionPointItem(selection, selection.focus);
   const anchorKey = anchorItem ? anchorItem.getKey() : null;
   const focusKey = focusItem ? focusItem.getKey() : null;
   const isBackward = selection.isBackward();
@@ -278,7 +296,7 @@ export function $computeOutlineSelectionSnapshot({
     };
   }
 
-  const headItems = selection.isCollapsed() ? (anchorItem ? [anchorItem] : []) : getContiguousSelectionHeads(selection);
+  const headItems = selection.isCollapsed() ? (anchorItem ? [anchorItem] : []) : $getContiguousSelectionHeads(selection);
   structuralRange = computeStructuralRangeFromHeads(headItems);
   if (headItems.length > 0 && !structuralRange) {
     reportInvariant({
@@ -288,11 +306,17 @@ export function $computeOutlineSelectionSnapshot({
   }
 
   const hasMultiNoteRange = headItems.length > 1;
-  const hasMultiNoteSelection = getSelectedNotes(selection).length > 1;
+  const hasMultiNoteSelection = $getSelectedNotes(selection).length > 1;
+  // A selection crossing a region boundary (a note's content and a body, or two
+  // bodies) is structural even within one note: content ↔ its own body selects
+  // that whole note (a note is never selected structurally without its body).
+  const crossesRegionBoundary =
+    !selection.isCollapsed() && $selectionCrossesRegionBoundary(selection);
   // Structural intent comes from the ladder (single source of truth); the
   // multi-note checks cover pointer selections that have not yet seeded one.
   const isProgressiveStructural = ladderHasStructuralRung(nextProgression);
-  const hasStructuralIntent = isProgressiveStructural || hasMultiNoteRange || hasMultiNoteSelection;
+  const hasStructuralIntent =
+    isProgressiveStructural || hasMultiNoteRange || hasMultiNoteSelection || crossesRegionBoundary;
   hasStructuralSelection = hasStructuralIntent && structuralRange !== null;
   if (!isProgressiveStructural && hasMultiNoteRange) {
     const inferredProgression = $inferPointerProgressionState(selection, headItems);
@@ -305,7 +329,7 @@ export function $computeOutlineSelectionSnapshot({
 
   if (!isSnapTagged && headItems.length >= 2) {
     const candidate = $createSnapPayload(selection, headItems, overrideAnchorKey);
-    if (candidate && !selectionMatchesPayload(selection, candidate)) {
+    if (candidate && !$selectionMatchesPayload(selection, candidate)) {
       payload = candidate;
     }
   }
@@ -329,4 +353,4 @@ export function $computeOutlineSelectionSnapshot({
   };
 }
 
-// resolveSelectionPointItem moved to selection/resolve.ts
+// $resolveSelectionPointItem moved to selection/resolve.ts

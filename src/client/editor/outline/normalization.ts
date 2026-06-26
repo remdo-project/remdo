@@ -4,9 +4,17 @@ import type { RootNode } from 'lexical';
 import { $createParagraphNode, $setState } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
-import { getPreviousContentSibling, insertBefore, isChildrenWrapper } from '#client/editor/outline/list-structure';
+import { getBodyWrapper, getPreviousContentSibling, insertBefore, isChildrenWrapper } from '#client/editor/outline/list-structure';
+import { getWrapperForContent } from '#client/editor/outline/selection/tree';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { noteIdState } from '#client/editor/runtime/note-id-state';
+
+// A children-wrapper is correctly placed when it directly follows its content
+// item, or follows that content item's body-wrapper (which sits in between).
+function $isContentImmediatelyBeforeWrapper(content: ListItemNode, wrapper: ListItemNode): boolean {
+  const previous = wrapper.getPreviousSibling();
+  return previous === content || previous === getBodyWrapper(content);
+}
 
 export function $normalizeOutlineRoot(
   root: RootNode,
@@ -130,7 +138,7 @@ function hasOrphanWrapper(list: ListNode): boolean {
         return true;
       }
 
-      if (child.getPreviousSibling() !== previousContent) {
+      if (!$isContentImmediatelyBeforeWrapper(previousContent, child)) {
         return true;
       }
 
@@ -189,7 +197,7 @@ function normalizeOrphanWrappers(list: ListNode): void {
       continue;
     }
 
-    if (child.getPreviousSibling() === previousContent) {
+    if ($isContentImmediatelyBeforeWrapper(previousContent, child)) {
       const nested = child.getFirstChild();
       if ($isListNode(nested)) {
         stack.push({
@@ -201,8 +209,10 @@ function normalizeOrphanWrappers(list: ListNode): void {
       continue;
     }
 
-    const previousWrapper = previousContent.getNextSibling();
-    if (isChildrenWrapper(previousWrapper)) {
+    // The previous note's own children-wrapper (looking past its body-wrapper)
+    // is where this orphan duplicate merges back in.
+    const previousWrapper = getWrapperForContent(previousContent);
+    if (previousWrapper) {
       reportInvariant({
         message: 'orphan-wrapper-merged-into-previous',
         context: { wrapperKey: child.getKey(), targetWrapperKey: previousWrapper.getKey() },

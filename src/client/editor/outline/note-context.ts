@@ -6,6 +6,7 @@ import {
   $requireContentItemNoteId,
   resolveContentItemFromNode,
 } from './schema';
+import { $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
 
 export function $resolveContentNoteFromDOMNode(node: Node | null): ListItemNode | null {
   if (!node) {
@@ -15,7 +16,10 @@ export function $resolveContentNoteFromDOMNode(node: Node | null): ListItemNode 
 }
 
 export function $resolveNoteIdFromNode(node: LexicalNode | null): string | null {
-  const contentItem = resolveContentItemFromNode(node);
+  // A node inside a body belongs to that body's owner note (body content behaves
+  // like note content — e.g. an `@` link typed in a body resolves to its note,
+  // so the picker can exclude that note and avoid a self-link).
+  const contentItem = $resolveNoteForSelectionPoint(node);
   if (!contentItem) {
     return null;
   }

@@ -4,11 +4,12 @@ import type { LexicalNode, RangeSelection } from 'lexical';
 import { $getNodeByKey } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
-import { isChildrenWrapper } from '#client/editor/outline/list-structure';
+import { $getNoteBodyFromNode, $getNoteForBody } from '#client/editor/features/note-body/note-body-ops';
+import { getBodyWrapper, getPreviousContentSibling, isChildrenWrapper, isWrapperItem } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 
 import { isPointAtBoundary } from './caret';
-import { getContiguousSelectionHeads } from './heads';
+import { $getContiguousSelectionHeads } from './heads';
 import type { OutlineSelectionRange } from './model';
 import { isEmptyNoteBody } from './note-body';
 import type { Direction, LadderState, Rung } from './rungs';
@@ -27,11 +28,19 @@ export interface SnapPayload {
 // only ever pass the state around keep typechecking.
 export type ProgressiveSelectionState = LadderState;
 
-export function resolveSelectionPointItem(
+export function $resolveSelectionPointItem(
   selection: RangeSelection,
   point: RangeSelection['anchor']
 ): ListItemNode | null {
   const pointNode = point.getNode();
+
+  // A point inside a body resolves to the body's owner note: for selection the
+  // body is part of its note, so a cross-region range snaps around the owner.
+  const body = $getNoteBodyFromNode(pointNode);
+  if (body) {
+    return $getNoteForBody(body);
+  }
+
   const direct = resolveContentItemFromNode(pointNode);
   if (direct) {
     const content = direct;
@@ -63,16 +72,13 @@ export function resolveSelectionPointItem(
     return null;
   }
 
-  if (!isChildrenWrapper(child)) {
+  // An element point landing on a wrapper (children- or body-wrapper) resolves
+  // to the content item that owns it.
+  if (!isWrapperItem(child)) {
     return child;
   }
-
-  const previous = child.getPreviousSibling();
-  if ($isListItemNode(previous) && !isChildrenWrapper(previous)) {
-    return previous;
-  }
-
-  return null;
+  const owner = getPreviousContentSibling(child);
+  return owner ?? null;
 }
 
 function resolveEmptySiblingFromBoundary(
@@ -132,9 +138,9 @@ function resolveEmptySiblingFromBoundary(
   return null;
 }
 
-export function selectionMatchesPayload(selection: RangeSelection, payload: SnapPayload): boolean {
-  const anchorItem = resolveSelectionPointItem(selection, selection.anchor);
-  const focusItem = resolveSelectionPointItem(selection, selection.focus);
+export function $selectionMatchesPayload(selection: RangeSelection, payload: SnapPayload): boolean {
+  const anchorItem = $resolveSelectionPointItem(selection, selection.anchor);
+  const focusItem = $resolveSelectionPointItem(selection, selection.focus);
   if (!anchorItem || !focusItem) {
     return false;
   }
@@ -160,8 +166,8 @@ export function $createSnapPayload(
 
   const anchorNode = overrideAnchorKey
     ? $getNodeByKey<ListItemNode>(overrideAnchorKey)
-    : resolveSelectionPointItem(selection, selection.anchor);
-  const focusNode = resolveSelectionPointItem(selection, selection.focus);
+    : $resolveSelectionPointItem(selection, selection.anchor);
+  const focusNode = $resolveSelectionPointItem(selection, selection.focus);
   if (!anchorNode || !focusNode) {
     return null;
   }
@@ -197,7 +203,11 @@ export function computeStructuralRangeFromHeads(heads: ListItemNode[]): OutlineS
   const caretItems = noteItems;
   const caretStartItem = caretItems[0]!;
   const caretEndItem = caretItems.at(-1)!;
-  const visualEndItem = getSubtreeTail(caretEndItem);
+  const tailItem = getSubtreeTail(caretEndItem);
+  // The visual range must reach the tail note's body (a body-wrapper li renders
+  // below the note), so the highlight/collapse range covers what a structural
+  // delete removes — including a single note selected together with its body.
+  const visualEndItem = getBodyWrapper(tailItem) ?? tailItem;
 
   return {
     headStartKey: caretStartItem.getKey(),
@@ -223,12 +233,12 @@ export function $inferPointerProgressionState(
   selection: RangeSelection,
   noteItems: ListItemNode[]
 ): ProgressiveSelectionState | null {
-  const anchorItem = resolveSelectionPointItem(selection, selection.anchor);
+  const anchorItem = $resolveSelectionPointItem(selection, selection.anchor);
   if (!anchorItem) {
     return null;
   }
   const anchorContent = anchorItem;
-  const heads = noteItems.length > 0 ? noteItems : getContiguousSelectionHeads(selection);
+  const heads = noteItems.length > 0 ? noteItems : $getContiguousSelectionHeads(selection);
   if (heads.length <= 1) {
     return null;
   }

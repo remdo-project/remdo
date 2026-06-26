@@ -10,6 +10,7 @@ import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/edito
 import { forEachContentItemInOutline, forEachContentItemWithAncestorsInOutline } from '#client/editor/outline/list-traversal';
 import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
 import { $resolveRootContentList, resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
 import { isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
 import type { OutlineSelection } from '#client/editor/outline/selection/model';
@@ -91,8 +92,11 @@ const $shouldCollapseSelection = (
     return false;
   }
 
-  const anchorItem = resolveContentItemFromNode(selection.anchor.getNode());
-  const focusItem = resolveContentItemFromNode(selection.focus.getNode());
+  // Resolve body endpoints to their owner note so a caret inside a descendant's
+  // body still counts as a selection within the folded subtree (otherwise the
+  // caret would be stranded in hidden content after folding the ancestor).
+  const anchorItem = $resolveNoteForSelectionPoint(selection.anchor.getNode());
+  const focusItem = $resolveNoteForSelectionPoint(selection.focus.getNode());
   if (!anchorItem && !focusItem) {
     return false;
   }

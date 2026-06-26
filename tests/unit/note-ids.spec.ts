@@ -3,6 +3,7 @@ import {
   $createParagraphNode,
   $createTextNode,
   $getRoot,
+  $isLineBreakNode,
   $setState,
 } from 'lexical';
 import { waitFor } from '@testing-library/react';
@@ -36,6 +37,8 @@ import {
 } from '#tests';
 import { createUniqueNoteId, createNoteIdAvoiding } from '#domain/notes/ids';
 import { noteIdState } from '#client/editor/runtime/note-id-state';
+import { $findNoteById } from '#client/editor/outline/note-traversal';
+import { getNoteBody } from '#client/editor/features/note-body/note-body-ops';
 import { renderRemdoEditor } from './collab/_support/render-editor';
 
 function findSerializedListItem(node: SerializedLexicalNode, noteId: string): SerializedNoteListItemNode | null {
@@ -72,14 +75,7 @@ function cloneWrapperAfterNoteId(remdo: RemdoTestApi, noteId: string): Serialize
   const listNode = getSerializedRootListNode(remdo);
   const children = listNode.children as SerializedNoteListItemNode[];
   const index = children.findIndex((child) => child.type === 'listitem' && child.noteId === noteId);
-  if (index === -1) {
-    throw new Error(`Expected wrapper list item after noteId ${noteId}`);
-  }
-  const wrapper = children[index + 1];
-  if (wrapper && wrapper.type === 'listitem') {
-    return structuredClone(wrapper);
-  }
-  throw new Error(`Expected wrapper list item after noteId ${noteId}`);
+  return structuredClone(children[index + 1]!);
 }
 
 function setSerializedText(node: SerializedLexicalNode, text: string): void {
@@ -226,6 +222,31 @@ describe('note ids on paste', () => {
     expect(new Set(noteIds).size).toBe(outline.length);
   });
 
+  it('pasting a note over a body-text selection does not replace the owner note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A selection wholly inside note1's body is inline (the body is its own
+    // region), so pasting a copied note must edit the body text, never run a
+    // structural replace of note1. Regression: body-aware head resolution used to
+    // map the body-local selection to a one-note structural head.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'bodytext');
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await copySelection(remdo);
+
+    // Select all of note1's body text, then paste the copied note onto it.
+    await remdo.mutate(() => {
+      const body = getNoteBody($findNoteById('note1')!)!;
+      body.select(0, body.getChildrenSize());
+    });
+    await pastePayload(remdo, clipboardPayload);
+
+    // note1 survives (was not structurally replaced) and note2 is untouched.
+    const outline = readOutline(remdo);
+    expect(outline.find((note) => note.noteId === 'note1')).toBeDefined();
+    expect(outline.find((note) => note.noteId === 'note2')?.text).toBe('note2');
+  });
+
   it('assigns fresh noteIds when pasting multiple copied notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectNoteRange(remdo, 'note1', 'note2');
     await waitFor(() => {
@@ -247,6 +268,51 @@ describe('note ids on paste', () => {
     const outline = readOutline(remdo);
     const noteIds = outline.map((note) => note.noteId);
     expect(new Set(noteIds).size).toBe(outline.length);
+  });
+
+  it('preserves a note link when a copied note is pasted into a body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A body is rich text, so pasting copied note content into it must keep
+    // inline rich nodes (note links, formatting) rather than flatten to plain
+    // text. note1 gets a note link, is copied, then pasted into note3's body.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@note2');
+    await pressKey(remdo, { key: 'Enter' });
+
+    await selectStructuralNotes(remdo, 'note1');
+    const clipboardPayload = await copySelection(remdo);
+
+    // Give note3 a body and put the caret in it, then paste.
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await pastePayload(remdo, clipboardPayload);
+
+    // Two note links now exist: note1's original and the one preserved in the
+    // body (not downgraded to plain text, which would leave only one).
+    const rootListNode = getSerializedRootListNode(remdo) as SerializedLexicalNode;
+    const links = collectSerializedNoteLinksInNodes([rootListNode]);
+    expect(links.filter((link) => link.noteId === 'note2')).toHaveLength(2);
+  });
+
+  it('pasting a multi-note payload into a body uses line breaks, not literal newlines', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A multi-note structural payload can't live in a body as structure, so it
+    // flattens to text — but the body's line representation is LineBreakNodes,
+    // not literal "\n" in a text node (the body line nav scans for LineBreakNode
+    // children). Copy two notes, paste into note3's body, expect a line break.
+    await selectNoteRange(remdo, 'note1', 'note2');
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2'] });
+    });
+    const clipboardPayload = await copySelection(remdo);
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await pastePayload(remdo, clipboardPayload);
+
+    const lineBreaks = remdo.editor.getEditorState().read(() => {
+      const body = getNoteBody($findNoteById('note3')!)!;
+      return body.getChildren().filter($isLineBreakNode).length;
+    });
+    expect(lineBreaks).toBeGreaterThan(0);
   });
 
   it('materializes same-document note-link docId in clipboard payload', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -682,6 +748,103 @@ describe('note ids on paste', () => {
     expect(remdo).toMatchOutline([
       { noteId: 'note1', text: 'note1' },
       { noteId: 'note2', text: 'note2 edited' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('pasting inside a cut note\'s own body is a no-op and leaves the cut pending', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Cut note2 (with a body), then paste with the caret inside note2's body.
+    // The body is inside the cut boundary, so per docs/outliner/clipboard.md the
+    // paste does nothing and the cut stays pending — no text is inserted into the
+    // body and the note is not duplicated.
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'body');
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    // Caret inside note2's own body, then paste the cut.
+    await remdo.mutate(() => {
+      getNoteBody($findNoteById('note2')!)!.selectEnd();
+    });
+    await pastePayload(remdo, clipboardPayload);
+
+    // No-op: note2 unchanged (body not duplicated), nothing moved.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', body: 'body' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    // The cut is still pending: pasting elsewhere now moves note2.
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2', body: 'body' },
+    ]);
+  });
+
+  it('pasting a cut into a non-cut note\'s body is an interim no-op (cut stays pending)', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A body can't structurally hold notes, so there is no valid move target.
+    // Interim behavior (final semantics deferred to the cut/paste redesign, see
+    // docs/todo.md): the paste does nothing and the cut stays pending — it must
+    // never inject list nodes into the body nor copy the text without moving.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'b1');
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    // Caret inside note1's body (note1 is NOT cut), then paste the cut.
+    await remdo.mutate(() => {
+      getNoteBody($findNoteById('note1')!)!.selectEnd();
+    });
+    await pastePayload(remdo, clipboardPayload);
+
+    // No-op: note1's body unchanged, note2 still in place.
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'b1' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+
+    // Cut still pending: pasting elsewhere completes the move.
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1', body: 'b1' },
+      { noteId: 'note3', text: 'note3' },
+      { noteId: 'note2', text: 'note2' },
+    ]);
+  });
+
+  it('drops cut markers after editing a cut note\'s body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Give note2 a body, cut it, then edit inside the body. The body is part of
+    // the cut note, so the edit must cancel the pending cut — a later paste does
+    // not move the (now-edited) note.
+    await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'body');
+
+    await selectStructuralNotes(remdo, 'note2');
+    const clipboardPayload = await cutSelection(remdo);
+
+    // Edit inside note2's body.
+    await remdo.mutate(() => {
+      getNoteBody($findNoteById('note2')!)!.selectEnd();
+    });
+    await typeText(remdo, ' more');
+
+    await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+    await pastePayload(remdo, clipboardPayload);
+
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', body: 'body more' },
       { noteId: 'note3', text: 'note3' },
     ]);
   });

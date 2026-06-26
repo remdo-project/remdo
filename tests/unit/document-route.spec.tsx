@@ -77,6 +77,7 @@ function createTestEditorNotes(snapshot: TestSearchSnapshot): EditorNotes {
       },
       children: () => (childMap[noteId] ?? []).map((child) => makeNote(child.noteId)),
       create: () => { throw new Error('create() is not used in document route tests.'); },
+      body: () => null,
       as: ((kind: string) => {
         if (kind !== 'editor-note') {
           throw new Error(`mock note is editor-note, not ${kind}`);

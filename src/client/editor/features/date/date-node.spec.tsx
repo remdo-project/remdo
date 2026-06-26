@@ -257,6 +257,24 @@ describe('date nodes', () => {
     }
   });
 
+  it('keeps the ! picker open on ArrowDown when the note has a body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A note with a body has a body-skip arrow handler; it must defer Up/Down to
+    // an open picker rather than consume the key and move the caret past the body
+    // (which would close the picker). Regression: the body-skip only deferred for
+    // the note-link picker, not the date picker.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'a body');
+
+    // Open the ! picker at the end of note1's label.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' !');
+    expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
+
+    await pressKey(remdo, { key: 'ArrowDown' });
+    expect(document.querySelector('[data-date-picker]')).not.toBeNull();
+  });
+
   it('uses the current local date when a long-lived editor opens the ! picker again', meta({ fixture: 'flat' }), async ({ remdo }) => {
     vi.useFakeTimers({ toFake: ['Date'] });
     try {

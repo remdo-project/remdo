@@ -15,6 +15,8 @@ import { requireContentItemFromNode, resolveContentItemFromNode } from '#client/
 import { getParentContentItem, getSubtreeItems } from '#client/editor/outline/selection/tree';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 
+// A body-wrapper renders as `.note-body-wrapper`, never a checklist `<li>`, so it
+// is naturally excluded here — no body-specific guard needed.
 const isChecklistItem = (element: HTMLElement): boolean =>
   element.classList.contains('list-item-checked') || element.classList.contains('list-item-unchecked');
 

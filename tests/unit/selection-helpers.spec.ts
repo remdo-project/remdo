@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { $getSelection, $isRangeSelection } from 'lexical';
 import type { RangeSelection } from 'lexical';
 
-import { getContiguousSelectionHeads } from '#client/editor/outline/selection/heads';
+import { $getContiguousSelectionHeads } from '#client/editor/outline/selection/heads';
 import { $getNoteIdOrThrow, placeCaretAtNote, selectNoteRange, meta } from '#tests';
 
 describe('structural selection helper', () => {
@@ -12,7 +12,7 @@ describe('structural selection helper', () => {
     const heads = remdo.validate(() => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
-      const result = getContiguousSelectionHeads(selection as RangeSelection);
+      const result = $getContiguousSelectionHeads(selection as RangeSelection);
       return result.map((item) => $getNoteIdOrThrow(item));
     });
 
@@ -25,7 +25,7 @@ describe('structural selection helper', () => {
     const slice = remdo.validate(() => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
-      return getContiguousSelectionHeads(selection as RangeSelection);
+      return $getContiguousSelectionHeads(selection as RangeSelection);
     });
 
     expect(slice).toEqual([]);
@@ -37,7 +37,7 @@ describe('structural selection helper', () => {
     const heads = remdo.validate(() => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
-      const result = getContiguousSelectionHeads(selection as RangeSelection);
+      const result = $getContiguousSelectionHeads(selection as RangeSelection);
       return result.map((item) => $getNoteIdOrThrow(item));
     });
 

@@ -1,0 +1,15 @@
+/* A note body is a rich-text region attached to a note, rendered set apart from
+   the note's own content (see docs/outliner/body.md). It lives in a dedicated
+   `.note-body-wrapper` <li> (the BodyWrapperNode), which carries no `.list-item`
+   class — so every list marker (bullet, ordered counter, checkbox), all of which
+   target `li.list-item`, naturally skips it; no marker suppression is needed. */
+.note-body-wrapper {
+  list-style: none;
+}
+
+.note-body {
+  margin: 0.1rem 0 0.2rem;
+  color: var(--mantine-color-dimmed, #868e96);
+  font-size: 0.9em;
+  line-height: 1.45;
+}
