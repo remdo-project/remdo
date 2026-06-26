@@ -18,7 +18,7 @@ import { getNoteBody, $resolveNoteForSelectionPoint } from '#client/editor/featu
 import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '#client/editor/outline/note-ops';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $requireContentItemNoteId, $requireRootContentList } from '#client/editor/outline/schema';
-import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
+import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
 import type { OutlineSelectionRange } from '#client/editor/outline/selection/model';
 import { $resolveStructuralHeadsFromRange } from '#client/editor/outline/selection/range';
 import {
@@ -66,7 +66,7 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
     }
     return note;
   };
-  const $resolveBoundaryRoot = () => $resolveZoomBoundaryRoot(editor);
+  const $resolveCurrentZoomRoot = () => $resolveZoomRoot(editor);
   const $resolveRangeNotes = (range: NoteRange): ListItemNode[] | null => {
     const start = $requireNoteById(range.start);
     const end = $requireNoteById(range.end);
@@ -345,28 +345,28 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return indentNotes(resolved, $resolveBoundaryRoot());
+      return indentNotes(resolved, $resolveCurrentZoomRoot());
     },
     outdent: (range) => {
       const resolved = $resolveRangeNotes(range);
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return outdentNotes(resolved, $resolveBoundaryRoot());
+      return outdentNotes(resolved, $resolveCurrentZoomRoot());
     },
     moveUp: (range) => {
       const resolved = $resolveRangeNotes(range);
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return moveNotesUp(resolved, $resolveBoundaryRoot());
+      return moveNotesUp(resolved, $resolveCurrentZoomRoot());
     },
     moveDown: (range) => {
       const resolved = $resolveRangeNotes(range);
       if (!resolved || resolved.length === 0) {
         return false;
       }
-      return moveNotesDown(resolved, $resolveBoundaryRoot());
+      return moveNotesDown(resolved, $resolveCurrentZoomRoot());
     },
   };
 }

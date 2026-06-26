@@ -29,7 +29,7 @@ import {
   resolveContentItemFromNode,
 } from '#client/editor/outline/schema';
 import { $normalizeOutlineRoot } from '#client/editor/outline/normalization';
-import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
+import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
 import {
   $resolveStructuralDeletionTargets,
@@ -323,8 +323,8 @@ export function DeletionPlugin() {
       }
 
       const selection = $getSelection();
-      const boundaryRoot = $resolveZoomBoundaryRoot(editor);
-      const structuralTargets = $resolveStructuralDeletionTargets(structuralRange, selection, boundaryRoot);
+      const zoomRoot = $resolveZoomRoot(editor);
+      const structuralTargets = $resolveStructuralDeletionTargets(structuralRange, selection, zoomRoot);
       if (!structuralTargets) {
         return false;
       }
@@ -338,8 +338,8 @@ export function DeletionPlugin() {
         caretApplied = $selectItemEdge(structuralTargets.caretPlan.target, structuralTargets.caretPlan.edge);
       }
 
-      if (!caretApplied && boundaryRoot && boundaryRoot.isAttached()) {
-        caretApplied = $selectItemEdge(boundaryRoot, 'start');
+      if (!caretApplied && zoomRoot && zoomRoot.isAttached()) {
+        caretApplied = $selectItemEdge(zoomRoot, 'start');
       }
 
       if (!caretApplied) {
@@ -446,8 +446,8 @@ export function DeletionPlugin() {
 
         event?.preventDefault();
         event?.stopPropagation();
-        const boundaryRoot = $resolveZoomBoundaryRoot(editor);
-        if (boundaryRoot && contentItem.getKey() === boundaryRoot.getKey()) {
+        const zoomRoot = $resolveZoomRoot(editor);
+        if (zoomRoot && contentItem.getKey() === zoomRoot.getKey()) {
           return true;
         }
 
@@ -471,10 +471,10 @@ export function DeletionPlugin() {
 
         event?.preventDefault();
         event?.stopPropagation();
-        const boundaryRoot = $resolveZoomBoundaryRoot(editor);
+        const zoomRoot = $resolveZoomRoot(editor);
         const nextNote = getNextNoteInDocumentOrder(contentItem);
-        const nextNoteOutsideBoundary =
-          boundaryRoot !== null && nextNote !== null && !isContentDescendantOf(nextNote, boundaryRoot);
+        const nextNoteOutsideZoomRoot =
+          zoomRoot !== null && nextNote !== null && !isContentDescendantOf(nextNote, zoomRoot);
 
         const currentHasChildren = noteHasChildren(contentItem);
         // A note that owns a non-empty body is not a removable empty leaf: the
@@ -485,7 +485,7 @@ export function DeletionPlugin() {
           !currentHasChildren && isEmptyNote(contentItem) && $noteBodyIsEmpty(contentItem);
 
         if (currentIsEmptyLeaf) {
-          if (boundaryRoot && contentItem.getKey() === boundaryRoot.getKey() && (!nextNote || nextNoteOutsideBoundary)) {
+          if (zoomRoot && contentItem.getKey() === zoomRoot.getKey() && (!nextNote || nextNoteOutsideZoomRoot)) {
             return true;
           }
 
@@ -506,7 +506,7 @@ export function DeletionPlugin() {
         if (!nextNote) {
           return true;
         }
-        if (nextNoteOutsideBoundary) {
+        if (nextNoteOutsideZoomRoot) {
           return true;
         }
 

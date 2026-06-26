@@ -21,7 +21,7 @@ import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { $getOrCreateChildList, getBodyWrapper, insertBefore } from '#client/editor/outline/list-structure';
 import { resolveBoundaryPoint } from '#client/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '#client/editor/outline/selection/caret-placement';
-import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
+import { getZoomRoot } from '#client/editor/features/zoom/zoom-root';
 import { getNestedList, noteHasChildren } from '#client/editor/outline/selection/tree';
 
 function $createNote(text: string): ListItemNode {
@@ -208,8 +208,8 @@ export function InsertionPlugin() {
           if (!contentItem) {
             return false;
           }
-          const zoomBoundaryKey = getZoomBoundary(editor);
-          const isZoomRoot = zoomBoundaryKey !== null && contentItem.getKey() === zoomBoundaryKey;
+          const zoomRootKey = getZoomRoot(editor);
+          const isZoomRoot = zoomRootKey !== null && contentItem.getKey() === zoomRootKey;
 
           const placement = resolveCaretPlacement(selection, contentItem);
           if (placement === 'start') {
