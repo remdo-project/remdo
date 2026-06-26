@@ -128,6 +128,16 @@ tests. Colocated `*.spec.ts` and `*.spec.tsx` files in these feature folders are
 part of the unit test inventory and should follow the same test rules as
 `tests/unit`.
 
+Dependencies point one way: a feature MAY import from the shared base
+(`runtime/`, `outline/`) and from other features, but the shared base MUST NOT
+import a feature. A capability that is genuinely one feature's concern is owned
+by that feature and other modules ask it by name — for example zoom owns the
+current zoom root (`features/zoom/zoom-root.ts`) and selection/editing code asks
+zoom for it, while the generic "is this within a bounding subtree" check stays in
+`outline/` (`isWithinBoundary`). Known exception to repay: several `outline/`
+modules still import note-body primitives from `features/note-body/` (see
+`docs/todo.md`); do not add new shared→feature imports.
+
 Keep durable product behavior in `docs/`; source feature folders should not
 replace the stable behavior specs.
 
