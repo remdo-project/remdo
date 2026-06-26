@@ -2,7 +2,6 @@ import type { ListItemNode } from '@lexical/list';
 import type { BaseSelection } from 'lexical';
 import { $isRangeSelection } from 'lexical';
 import { getPreviousContentSibling } from '../list-structure';
-import { isWithinZoomBoundary } from './boundary';
 import { $getContiguousSelectionHeads } from './heads';
 import type { OutlineSelectionRange } from './model';
 import { $resolveStructuralHeadsFromRange } from './range';
@@ -10,6 +9,7 @@ import {
   getParentContentItem,
   getNextContentSibling,
   getSubtreeTail,
+  isWithinBoundary,
   removeNoteHeads,
   sortHeadsByDocumentOrder,
 } from './tree';
@@ -52,7 +52,7 @@ export function $resolveStructuralDeletionTargets(
 
   const lastHead = heads.at(-1)!;
   const nextSibling = getNextContentSibling(lastHead);
-  if (nextSibling && isWithinZoomBoundary(nextSibling, boundaryRoot)) {
+  if (nextSibling && isWithinBoundary(nextSibling, boundaryRoot)) {
     return {
       heads,
       caretPlan: { target: nextSibling, edge: 'start' },
@@ -61,7 +61,7 @@ export function $resolveStructuralDeletionTargets(
 
   const firstHead = heads[0]!;
   const previousSibling = getPreviousContentSibling(firstHead);
-  if (previousSibling && isWithinZoomBoundary(previousSibling, boundaryRoot)) {
+  if (previousSibling && isWithinBoundary(previousSibling, boundaryRoot)) {
     return {
       heads,
       caretPlan: { target: getSubtreeTail(previousSibling), edge: 'end' },
@@ -69,7 +69,7 @@ export function $resolveStructuralDeletionTargets(
   }
 
   const parentNote = getParentContentItem(firstHead);
-  if (parentNote && isWithinZoomBoundary(parentNote, boundaryRoot)) {
+  if (parentNote && isWithinBoundary(parentNote, boundaryRoot)) {
     return {
       heads,
       caretPlan: { target: parentNote, edge: 'end' },
