@@ -27,7 +27,7 @@ variables — is derived or bootstrapped, never set in the normal path.
 | `DATA_DIR`        | optional   | optional           | Persistence root for data and bootstrapped secrets; prod should point it at a persistent mount. |
 | `PORT_BASE`       | optional   | —                  | Dev port base; `PORT` and all secondary ports derive from it. |
 | `PORT`            | derived    | optional           | Listen/bind port only; the one prod knob, defaults to `8080`. |
-| `HOST`            | optional   | fixed in-container | Bind host.                                                    |
+| `HOST`            | optional   | fixed in-container | Bind host. The container entrypoint pins it to `127.0.0.1` so the API listens on the IPv4 loopback Caddy proxies to (`localhost` can resolve to `::1`, leaving the API IPv6-only and unreachable). |
 | `APP_PUBLIC_URL`  | —          | required           | Canonical public origin (see below).                          |
 | `ADMIN_SECRET`    | optional   | required           | Operator secret for admin provisioning.                       |
 | `ALLOW_SIGNUP`    | optional   | optional           | Signup policy. Defaults true outside production, false in it. |

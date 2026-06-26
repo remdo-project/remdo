@@ -5,6 +5,16 @@ set -euo pipefail
 : "${REMDO_ROOT:=/app}"
 export REMDO_ROOT
 
+# Bind loopback services on IPv4. Caddy proxies to 127.0.0.1 upstreams, but
+# `localhost` (the env.defaults.sh default) can resolve to ::1 first, so the API
+# server would listen IPv6-only and Caddy's IPv4 dial gets connection-refused.
+# Pin HOST to the IPv4 loopback the Caddyfile uses. This must run BEFORE
+# env.defaults.sh, which itself defaults HOST to `localhost`; setting it here
+# makes that default a no-op while still honouring an explicit operator HOST
+# (e.g. the docker E2E's HOST=0.0.0.0 source container).
+: "${HOST:=127.0.0.1}"
+export HOST
+
 # shellcheck disable=SC1091 # provided by the image build.
 . /usr/local/share/remdo/env.defaults.sh
 # shellcheck disable=SC1091 # provided by the image build.
