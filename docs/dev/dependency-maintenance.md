@@ -50,9 +50,10 @@ touches), so they are pure noise. Do **not** re-add a version-update config unti
 Dependabot supports pnpm catalogs.
 
 Staleness is detected by the refresh itself, not by Dependabot: the
-`remdo-deps-refresh` skill's `next-update.sh` reads the catalog correctly and
-reports whether anything is available to update. The "am I behind?" signal is
-running that skill on a regular cadence — there is no automated nag.
+`remdo-deps-refresh` skill runs `pnpm update --latest`, which resolves the catalog
+correctly, and its `next-update.sh` reports (by exit code) whether a step changed
+anything. The "am I behind?" signal is running that skill on a regular cadence —
+there is no automated nag.
 
 ### Security alerts
 

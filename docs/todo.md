@@ -311,22 +311,12 @@ Durable fixes:
 
 ## Dependency process (staleness + security)
 
-- Repo settings outside the diff: confirm **Dependabot alerts** and **Dependabot
-  security updates** are ON (Settings → Security & analysis). The new
-  dependency-maintenance.md "Security alerts" policy assumes this state. Couldn't
-  verify via API (403).
-- Create the `deps-refresh-trigger` repo label (`gh label create
-  deps-refresh-trigger`): Dependabot only applies labels that already exist, so
-  until it's created the self-labelling in dependabot.yml is a no-op. (Left
-  repo-side, not auto-created, to keep outward-facing repo changes with the user.)
-- Tradeoff (accepted): `labels` is ecosystem-wide, so security-update PRs also get
-  `deps-refresh-trigger`. Accepted rather than adding a labeling Action (rejected
-  custom wiring) — the alert/email is the real alarm, and the skill reconciles all
-  Dependabot PRs anyway. Revisit only if security PRs need to stand out visually.
-- Dangling PR #332 is the old-2-day-cooldown artifact (5 bumps that were too fresh
-  when the last refresh ran ~1h before Dependabot). Under the new 9-day grace it
-  wouldn't have appeared. Close it / fold into the next manual refresh; it's a nag,
-  not work.
+- Repo settings: confirm **Dependabot alerts** and **Dependabot security updates**
+  are ON (Settings → Security & analysis). The "Security alerts" policy assumes
+  this; verified enabled (alerts via API, security updates via UI).
+- Close the last phantom Dependabot version-update PR (#338): it proposed a
+  downgrade because Dependabot misread the pnpm catalog. With `dependabot.yml`
+  removed, no new version-update PRs will open; just close the open one.
 
 ## remdo-feature-flow follow-ups
 
