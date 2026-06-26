@@ -113,7 +113,7 @@ came from the **latest commit** vs. **earlier branch work** — where in
 with pass/fail.
 
 Then one **per-rung counts** line each for simplify / internal / external: how
-many times it ran findings it surfaced, and findings applied.
+many times it ran, findings it surfaced, and findings applied.
 
 ## References
 
