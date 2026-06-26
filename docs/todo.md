@@ -309,15 +309,6 @@ Durable fixes:
 - Cap/rotate the `data/collab/` store, or have the test harness clean its collab
   docs after runs, so it can't grow unbounded again.
 
-## Dependency process (staleness + security)
-
-- **Dependabot alerts** and **Dependabot security updates** are ON (Settings →
-  Security & analysis), which the "Security alerts" policy relies on — verified
-  enabled (alerts via API, security updates via UI).
-- Close the last phantom Dependabot version-update PR (#338): it proposed a
-  downgrade because Dependabot misread the pnpm catalog. With `dependabot.yml`
-  removed, no new version-update PRs will open; just close the open one.
-
 ## remdo-feature-flow follow-ups
 
 - Clean up stale prunable worktree `remdo-7000-wt` if abandoned (not mine).
