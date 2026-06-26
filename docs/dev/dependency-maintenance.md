@@ -72,6 +72,12 @@ knows, and security-update PRs bypass the cooldown entirely (it gates version
 updates only). So the wide grace window delays routine bumps without ever slowing
 a fix for a real vulnerability.
 
+The alert and the email are the alarm — not any PR. A Dependabot security-update
+PR inherits the same `deps-refresh-trigger` label as a staleness PR (the label is
+ecosystem-wide), and that is fine: the refresh skill reconciles every Dependabot
+PR regardless of kind, and the real-time alarm has already fired through the alert
+channel, so the shared label never masks a vulnerability.
+
 The `audit:security` script remains a local/manual cross-check; it is
 intentionally **not** wired into CI — GitHub's alerts are the source of truth, and
 a CI audit gate would block unrelated work on an advisory that the refresh skill,

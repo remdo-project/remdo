@@ -319,6 +319,10 @@ Durable fixes:
   deps-refresh-trigger`): Dependabot only applies labels that already exist, so
   until it's created the self-labelling in dependabot.yml is a no-op. (Left
   repo-side, not auto-created, to keep outward-facing repo changes with the user.)
+- Tradeoff (accepted): `labels` is ecosystem-wide, so security-update PRs also get
+  `deps-refresh-trigger`. Accepted rather than adding a labeling Action (rejected
+  custom wiring) — the alert/email is the real alarm, and the skill reconciles all
+  Dependabot PRs anyway. Revisit only if security PRs need to stand out visually.
 - Dangling PR #332 is the old-2-day-cooldown artifact (5 bumps that were too fresh
   when the last refresh ran ~1h before Dependabot). Under the new 9-day grace it
   wouldn't have appeared. Close it / fold into the next manual refresh; it's a nag,
