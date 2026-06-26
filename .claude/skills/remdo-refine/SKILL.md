@@ -106,13 +106,14 @@ run, that skill's commit policy already governs.
 ## Final report
 
 Index the result, do not re-narrate it: scope and base; cycle count and why the
-loop ended; fixes applied (pointing at files, not prose); tradeoffs taken with a
-pointer to their `docs/todo.md` entries; any blocker with its gathered data; and
-the final checks with pass/fail.
+loop ended; fixes applied (pointing at files, not prose, with a tally of how many
+came from the **latest commit** vs. **earlier branch work** — where in
+`wip-base..HEAD` each finding sat); tradeoffs taken with a pointer to their
+`docs/todo.md` entries; any blocker with its gathered data; and the final checks
+with pass/fail.
 
-For each applied fix, note whether it originated in the **latest commit** or in
-**earlier branch work** (where in `wip-base..HEAD` the finding sat) — this
-surfaces whether findings cluster in just-written vs. older code.
+Then one **per-rung counts** line each for simplify / internal / external: how
+many times it ran findings it surfaced, and findings applied.
 
 ## References
 
