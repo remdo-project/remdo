@@ -308,6 +308,13 @@ export function isContentDescendantOf(candidate: ListItemNode, ancestor: ListIte
   return false;
 }
 
+// True when `item` is `boundary` or a content-descendant of it. A null boundary
+// means "no limit" — everything is within. Generic tree geometry: callers supply
+// the boundary node (zoom supplies the zoom root; see features/zoom/zoom-root.ts).
+export function isWithinBoundary(item: ListItemNode, boundary: ListItemNode | null): boolean {
+  return boundary === null || isContentDescendantOf(item, boundary);
+}
+
 function getNodePath(node: ListItemNode): number[] {
   const path: number[] = [];
   let child: LexicalNode = node;
