@@ -51,8 +51,8 @@ implementing and reviewing the diff would bias it toward parts it thinks it
 cleaned. Pass 3 (codex, a separate process) gets this fresh read for free. The
 coordinating session triages the returned findings and owns the loop.
 
-1. **Simplify** — `/simplify` against `wip-base` (pass the base explicitly, or it
-   diffs only the latest commit), plus a **doc-minimalism lens** for prose
+1. **Simplify** — `/simplify` over the whole `wip-base..HEAD` range, plus a
+   **doc-minimalism lens** for prose
    (`docs/**`, skill files): read each touched doc/skill *whole* in load order
    (entry doc → its dependencies → the file), and for each paragraph ask whether
    it earns its place — is it **new** (not already stated upstream), **necessary**

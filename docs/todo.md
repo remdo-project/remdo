@@ -300,6 +300,12 @@ Remaining issues to fold in or fix directly:
 - Add more external review tools/skills/programs worth considering in the refine
   ladder beyond `codex review` (e.g. other reviewers or static analyzers);
   evaluate each for fit and independence before adding a rung.
+- Decide whether the Final-report per-fix origin note (latest commit vs. earlier
+  branch work) stays. It is the data source for judging a future recent-first
+  pre-pass, but it is prescriptive telemetry in a section framed as "index, do
+  not re-narrate" and sits in mild tension with the "encode intent" authoring
+  rule. Keep it until enough runs either justify the pre-pass or show the signal
+  is not worth the per-fix bookkeeping, then drop or formalize it.
 
 ## Later follow-ups
 
