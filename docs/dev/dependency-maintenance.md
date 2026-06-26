@@ -36,34 +36,38 @@ loudly instead.
   `true` (trusted to build) or `false` (blocked) before the install can proceed.
   Keep `allowBuilds` limited to deps actually in the tree; drop stale entries.
 
-### Dependabot
+### Dependabot version updates: deliberately off
 
-Dependabot provides two separate signals, independent of each other and of the
-pnpm release-age gate above: version-update PRs as a *staleness reminder* (here),
-and security alerts as a *vulnerability* alarm (next section). Keep them separate.
+There is **no `.github/dependabot.yml`**, and Dependabot version-update PRs are
+**not** used here — on purpose. Dependabot supports pnpm only through **v10**
+([supported ecosystems][dependabot-pnpm]), but this repo pins **pnpm 11**
+(`packageManager` in `package.json`). Against a pnpm-11 workspace its older
+resolver reads a stale version from the lockfile graph and opens *wrong* PRs —
+e.g. proposing a **downgrade** of a dependency you have already advanced past
+(catalogs themselves are supported since [2025-02-04][dependabot-catalogs]; the
+pnpm-version gap is the blocker, not catalog support). The PRs are never merged
+anyway (a per-package bump can't carry a coherently regenerated pnpm lockfile, and
+the refresh also moves pnpm/Node/Actions pins Dependabot never touches), so they
+are pure noise. Do **not** re-add a version-update config until Dependabot
+supports **pnpm 11**.
 
-Version-update PRs are reminders to run the refresh skill, never merged
-per-dependency (a per-package bump can't carry a coherently regenerated lockfile,
-and the refresh also moves pnpm/Node/Actions pins Dependabot doesn't touch). The
-config in `.github/dependabot.yml` is deliberately minimal — a weekly, grouped PR
-with a 9-day cooldown:
+[dependabot-pnpm]: https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories
+[dependabot-catalogs]: https://github.blog/changelog/2025-02-04-dependabot-now-supports-pnpm-workspace-catalogs-ga/
 
-- **A grace-period reminder, not a merge queue.** The 9-day cooldown is wider than
-  the weekly refresh cadence, so a repo refreshed on schedule clears every bump
-  before it ages into reminder range and sees **no** PR at all. A PR appearing
-  means a version has sat available longer than that — the refresh is overdue.
-- **One grouped PR.** All packages are grouped, so the reminder is a single PR to
-  glance at, not one per dependency. Whether its CI is red or green is irrelevant
-  — it is never merged; it is the cue to run the skill.
+Staleness is detected by the refresh itself, not by Dependabot: the
+`remdo-deps-refresh` skill runs `pnpm update --latest`, which resolves the catalog
+correctly, and its `next-update.sh` reports (by exit code) whether a step changed
+anything. The "am I behind?" signal is running that skill on a regular cadence —
+there is no automated nag.
 
 ### Security alerts
 
-Known-vulnerability response is **independent of the staleness reminder above**
+Known-vulnerability response is **independent of the version-update story above**
 and runs on GitHub's native, default mechanism — no custom config, no CI gate.
 Repo settings keep **Dependabot alerts** and **Dependabot security updates**
-enabled (Settings → Security & analysis); these work independently of
-`dependabot.yml`, so advisories reach us as soon as GitHub knows, never gated by
-the staleness cooldown.
+enabled (Settings → Security & analysis); these work independently of any
+`dependabot.yml` (so its absence does not disable them), and advisories reach us
+as soon as GitHub knows.
 
 The `audit:security` script remains a local/manual cross-check; it is
 intentionally **not** wired into CI — GitHub's alerts are the source of truth, and
