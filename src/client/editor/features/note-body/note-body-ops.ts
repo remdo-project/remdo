@@ -147,9 +147,10 @@ export function $isCaretOnElementEdgeVisualLine(
   // Measure the focus (moving) caret, not the whole selection: a non-collapsed
   // selection (e.g. an in-progress Shift+Arrow extension) would otherwise report
   // the union of its visual lines, putting both edges at the element's bounds.
-  const focusRange = document.createRange();
+  // Create the range in the editor's window document to stay window-relative
+  // (consistent with getDOMSelection(editor._window) above).
+  const focusRange = (editor._window ?? window).document.createRange();
   focusRange.setStart(domSelection.focusNode, domSelection.focusOffset);
-  focusRange.collapse(true);
   const caretRect = focusRange.getBoundingClientRect();
   const elementRect = element.getBoundingClientRect();
   // A collapsed caret on an empty line can report a zero-size rect; treat that
