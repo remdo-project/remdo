@@ -30,7 +30,7 @@ outdated or a doc’s role materially changes.
   branch-prefix conventions, editor feature module layout, pre-1.0 compatibility
   policy (no default migration/back-compat requirements), and the doc
   workflow + documentation invariants.
-- `docs/dev/dependency-maintenance.md` (Medium). Standing policy for dependency
+- `docs/dev/dependency-maintenance.md` (Long). Standing policy for dependency
   refresh work — durable rules and self-healing mechanisms (pnpm release-age
   gate, Dependabot as a grace-period staleness nag, independent security alerts,
   build-script approval, Node/Docker base lag). Individual workarounds live as
