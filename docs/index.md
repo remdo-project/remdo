@@ -41,6 +41,9 @@ outdated or a doc’s role materially changes.
   structural selection guidance.
 - `docs/index.md` (Medium). Documentation map: every doc plus its summary and
   length bucket. Doc workflow and invariants live in `docs/contributing.md`.
+- `docs/outliner/body.md` (Short). Note body: optional rich-text region attached
+  to a note via `Shift+Enter`, with its own trapped inline selection world (it is
+  still a restricted kind of note, selectable structurally as part of its owner).
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.

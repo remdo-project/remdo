@@ -1,10 +1,10 @@
 import type { BaseSelection } from 'lexical';
 import { $isRangeSelection } from 'lexical';
-import { getSelectedNotes, getContiguousSelectionHeads } from './heads';
+import { $getSelectedNotes, $getContiguousSelectionHeads } from './heads';
 import type { OutlineSelection, OutlineSelectionRange } from './model';
 import { $resolveStructuralHeadsFromRange } from './range';
 import { computeStructuralRangeFromHeads } from './resolve';
-import { resolveContentItemFromNode } from '../schema';
+import { $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
 
 interface ResolveStructuralRangeOptions {
   allowCollapsedSingleNote?: boolean;
@@ -33,9 +33,12 @@ export function $resolveStructuralRangeFromLexicalSelection(
     return null;
   }
 
-  let heads = getContiguousSelectionHeads(selection);
+  let heads = $getContiguousSelectionHeads(selection);
   if (heads.length === 0 && selection.isCollapsed() && allowCollapsedSingleNote) {
-    const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
+    // A caret inside a body resolves to its owner note: the body travels with the
+    // note through indent/outdent and reorder (docs/outliner/body.md), so those
+    // note-level commands act on the owner when invoked from body text.
+    const contentItem = $resolveNoteForSelectionPoint(selection.anchor.getNode());
     if (contentItem) {
       heads = [contentItem];
     }
@@ -48,7 +51,7 @@ export function $resolveStructuralRangeFromLexicalSelection(
     return null;
   }
 
-  if (allowMultiNoteSelection && heads.length <= 1 && getSelectedNotes(selection).length <= 1) {
+  if (allowMultiNoteSelection && heads.length <= 1 && $getSelectedNotes(selection).length <= 1) {
     return null;
   }
 

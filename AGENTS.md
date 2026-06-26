@@ -76,6 +76,12 @@ sections to docs.
 - `git fetch` is always allowed (it only updates remote-tracking refs, never your
   work or the remote). Push, pull, mutating fetch refspecs, and opening PRs are
   not — they cross into the remote or rewrite your branch, and the user owns them.
+- Uncommitted state may be incoherent; commits should not be. The working tree
+  is scratch that is allowed to be mid-transformation (e.g. docs ahead of code) —
+  don't raise such incoherencies while they stay uncommitted. At commit time,
+  either the committed state is coherent or an ultra-short `docs/todo.md` trigger
+  covers the gap (per `docs/contributing.md#documentation` invariant 9); add that
+  trigger yourself and note it in the commit rather than asking.
 - The Git index may be used by the developer as private review bookkeeping.
   Treat staged vs unstaged state as semantically invisible: it does not mark
   files as done, final, approved, protected, or out of scope. When the agreed
@@ -91,6 +97,17 @@ sections to docs.
 - For bug fixes, reproduce the issue with a focused test, command, or browser
   check when practical, then verify the fix with that focused reproducer plus
   the required final checks below.
+- When a unit test is a poor fit for a behavior, escalate rather than retreat:
+  don't contort it into an over-complex unit test, and don't fall back to a
+  manual/live check as the coverage of record — reach for an e2e test
+  (`pnpm test:e2e`). Live/DevTools checks are a development aid, not a substitute
+  for an automated test. If a behavior genuinely ends up covered only by a live
+  check, say so explicitly as a tradeoff in the work summary.
+- Reviewing a change includes judging whether its tests give reasonable coverage
+  of the behavior it claims: each distinct behavior the change introduces or
+  fixes should have a test that would fail if that behavior broke. This is a
+  behavior check, not a line-coverage target — name any behavior left untested as
+  a tradeoff.
 - The `docs/todo.md` summary in `docs/index.md` should remain as-is and should
   not be automatically updated like other doc entries.
 - When writing tests against known fixtures, assume the fixture shape; avoid

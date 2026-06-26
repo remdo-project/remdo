@@ -18,10 +18,10 @@ import { useEffect, useState } from 'react';
 import {
   $getOrCreateChildList,
   flattenNoteNodes,
+  getBodyWrapper,
   getContentSiblings,
   getPreviousContentSibling,
   insertBefore,
-  isChildrenWrapper,
 } from '#client/editor/outline/list-structure';
 import {
   $requireRootContentList,
@@ -45,6 +45,7 @@ import {
   removeNoteSubtree,
   isContentDescendantOf,
 } from '#client/editor/outline/selection/tree';
+import { getNoteBody, isNoteBodyEmpty } from '#client/editor/features/note-body/note-body-ops';
 
 const TRAILING_WHITESPACE_PATTERN = /\s$/;
 const LEADING_WHITESPACE_PATTERN = /^\s/;
@@ -55,12 +56,18 @@ function getParentNote(list: ListNode): ListItemNode | null {
     return null;
   }
 
-  const parent = wrapper.getPreviousSibling();
-  if ($isListItemNode(parent) && !isChildrenWrapper(parent)) {
-    return parent;
-  }
+  // The parent note sits before the children-wrapper, after any body-wrapper.
+  return getPreviousContentSibling(wrapper);
+}
 
-  return null;
+// Before `removed` is deleted in a merge, carry its body (if any) to `survivor`.
+// The both-bodies case is rejected earlier, so the survivor has no body here; the
+// body-wrapper sits immediately after the survivor's content item.
+function $carryBodyToSurvivor(removed: ListItemNode, survivor: ListItemNode): void {
+  const bodyWrapper = getBodyWrapper(removed);
+  if (bodyWrapper) {
+    survivor.insertAfter(bodyWrapper);
+  }
 }
 
 function getFirstChildContentItem(item: ListItemNode): ListItemNode | null {
@@ -150,6 +157,13 @@ function $setItemText(item: ListItemNode, text: string): TextNode {
 
 function isEmptyNote(item: ListItemNode): boolean {
   return item.getTextContent().trim().length === 0;
+}
+
+// True when the note has no body or an empty one. A non-empty body means the
+// note carries content beyond its label, so it must not be removed as empty.
+function $noteBodyIsEmpty(item: ListItemNode): boolean {
+  const body = getNoteBody(item);
+  return body === null || isNoteBodyEmpty(body);
 }
 
 function getChildContentItems(item: ListItemNode): ListItemNode[] {
@@ -371,18 +385,28 @@ export function DeletionPlugin() {
         return true;
       }
 
+      // Body merge contract (docs/outliner/body.md "Note merge"): if both notes
+      // have a body the merge is a no-op so no body is lost. Otherwise the merge
+      // proceeds and the surviving note keeps the single body, carrying it over
+      // from the removed note when needed.
+      if (getBodyWrapper(current) && getBodyWrapper(target)) {
+        return true;
+      }
+
       const currentHasChildren = noteHasChildren(current);
       const targetHasChildren = noteHasChildren(target);
       const currentIsEmptyLeaf = !currentHasChildren && isEmptyNote(current);
       const targetIsEmptyLeaf = !targetHasChildren && isEmptyNote(target);
 
       if (targetIsEmptyLeaf) {
+        $carryBodyToSurvivor(target, current);
         removeNoteSubtree(target);
         $selectItemEdge(current, 'start');
         return true;
       }
 
       if (currentIsEmptyLeaf) {
+        $carryBodyToSurvivor(current, target);
         removeNoteSubtree(current);
         $selectItemEdge(target, 'end');
         return true;
@@ -399,6 +423,7 @@ export function DeletionPlugin() {
         $moveChildrenToTarget(current, target, targetIsParent ? 'replace' : 'append');
       }
 
+      $carryBodyToSurvivor(current, target);
       removeNoteSubtree(current);
       if ($isRangeSelection(selection)) {
         selection.dirty = true;
@@ -452,7 +477,12 @@ export function DeletionPlugin() {
           boundaryRoot !== null && nextNote !== null && !isContentDescendantOf(nextNote, boundaryRoot);
 
         const currentHasChildren = noteHasChildren(contentItem);
-        const currentIsEmptyLeaf = !currentHasChildren && isEmptyNote(contentItem);
+        // A note that owns a non-empty body is not a removable empty leaf: the
+        // Delete fast path removes the whole subtree (body-wrapper included)
+        // without carrying the body, so treating it as empty would lose the body
+        // text. Fall through to the merge path, which carries the body over.
+        const currentIsEmptyLeaf =
+          !currentHasChildren && isEmptyNote(contentItem) && $noteBodyIsEmpty(contentItem);
 
         if (currentIsEmptyLeaf) {
           if (boundaryRoot && contentItem.getKey() === boundaryRoot.getKey() && (!nextNote || nextNoteOutsideBoundary)) {

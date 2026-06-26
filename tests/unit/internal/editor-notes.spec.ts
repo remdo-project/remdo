@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { meta, placeCaretAtNote, readOutline, selectNoteRange } from '#tests';
+import { meta, placeCaretAtNote, pressKey, readOutline, selectNoteRange, typeText } from '#tests';
 import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
 import { NoteNotFoundError } from '#note-sdk';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
@@ -326,5 +326,74 @@ describe('editor notes', () => {
       expect(note.attached()).toBe(false);
       expect(() => note.text()).toThrow(NoteNotFoundError);
     });
+  });
+
+  it('exposes a note body as a body-kind note reached via body()', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A note with no body returns null.
+    const noBody = remdo.validate(() => {
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      return sdk.note('note1').body();
+    });
+    expect(noBody).toBeNull();
+
+    // Add a body to note1, then read it through body().
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'the body');
+
+    const body = remdo.validate(() => {
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const handle = sdk.note('note1').body();
+      if (handle === null) {
+        throw new Error('Expected note1 to have a body');
+      }
+      return { kind: handle.kind(), text: handle.text(), childCount: handle.children().length };
+    });
+    expect(body.kind).toBe('body');
+    expect(body.text).toBe('the body');
+    expect(body.childCount).toBe(0);
+  });
+
+  it('a body handle whose body was removed throws from text(), not an empty string', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Create a body, capture a handle, then remove the body. The stale handle
+    // must report absence (throw), not a deleted body as an empty one.
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'the body');
+
+    const captured = remdo.validate(() => {
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      const body = sdk.note('note1').body()!;
+      return { body, text: body.text() };
+    });
+    expect(captured.text).toBe('the body');
+
+    // Remove the body (select all of its text, then Delete removes the body).
+    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+    await pressKey(remdo, { key: 'Delete' });
+
+    // The captured handle's text() now throws because the body is gone, rather
+    // than reporting it as an empty body.
+    expect(() => remdo.validate(() => captured.body.text())).toThrow(NoteNotFoundError);
+  });
+
+  it('a caret inside a body reports a caret selection on the owning note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Adding a body leaves the caret inside it.
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'the body');
+
+    const selection = remdo.validate(() => {
+      const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
+      return sdk.selection();
+    });
+
+    // The body is part of its note for selection, so the caret resolves to note1
+    // rather than dropping to kind:'none'.
+    expect(selection.kind).toBe('caret');
+    if (selection.kind === 'caret') {
+      expect(selection.range.start).toBe('note1');
+      expect(selection.range.end).toBe('note1');
+    }
   });
 });

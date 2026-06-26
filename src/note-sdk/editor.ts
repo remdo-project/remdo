@@ -1,5 +1,5 @@
 import type { DocumentNote } from './documents';
-import type { ChildPosition, Note, NoteId, RelativePlacement } from './notes';
+import type { AddressableNote, ChildPosition, Note, NoteId, RelativePlacement } from './notes';
 
 type DocumentId = string;
 type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
@@ -7,7 +7,7 @@ type NoteSelectionKind = 'none' | 'caret' | 'inline' | 'structural';
 /** Marker style of the list a note belongs to. */
 export type NoteListType = 'bullet' | 'number' | 'check';
 
-export interface EditorNote extends Note<'editor-note'> {
+export interface EditorNote extends AddressableNote<'editor-note'> {
   /** True when the note still exists in the current editor state. */
   attached: () => boolean;
   /** Returns the parent editor note, or null for a top-level note. */
@@ -23,6 +23,19 @@ export interface EditorNote extends Note<'editor-note'> {
     (text: string): EditorNote;
     (position: ChildPosition, text: string): EditorNote;
   };
+  /** Returns this note's body, or null when it has none. */
+  body: () => BodyNote | null;
+}
+
+/**
+ * A note's optional rich-text region. A body is a kind of note owned by its
+ * editor note, but a restricted one: it has no id, no children, and is reached
+ * only from its owning note (never through that note's children). See
+ * `docs/outliner/body.md`.
+ */
+export interface BodyNote extends Note<'body'> {
+  /** A body has no child notes. */
+  children: () => readonly never[];
 }
 
 export interface NoteRange {
@@ -83,4 +96,6 @@ export interface EditorNotesAdapter extends EditorNotesBase {
   parentIdOf: (noteId: NoteId) => NoteId | null;
   /** Reads direct child ids. Throws when note does not exist. */
   childrenOf: (noteId: NoteId) => readonly NoteId[];
+  /** Reads the note's body text, or null when it has no body. */
+  bodyTextOf: (noteId: NoteId) => string | null;
 }

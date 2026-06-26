@@ -16,12 +16,12 @@ import {
 } from './list-structure';
 import { resolveContentItemFromNode } from './schema';
 import { isWithinZoomBoundary } from './selection/boundary';
-import { getContiguousSelectionHeads } from './selection/heads';
+import { $getContiguousSelectionHeads } from './selection/heads';
 import { resolveContiguousSiblingRangeFromHeads } from './selection/sibling-run';
 import { getNextContentSibling, getParentContentItem, isContentDescendantOf } from './selection/tree';
 
-export function resolveRangeSelectionHeads(selection: RangeSelection): ListItemNode[] {
-  const heads = getContiguousSelectionHeads(selection);
+export function $resolveRangeSelectionHeads(selection: RangeSelection): ListItemNode[] {
+  const heads = $getContiguousSelectionHeads(selection);
   if (heads.length > 0) {
     return heads;
   }

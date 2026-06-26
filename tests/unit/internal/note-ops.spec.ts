@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { meta, placeCaretAtNote, selectNoteRange } from '#tests';
 import { $getSelection, $isRangeSelection } from 'lexical';
-import { moveNotesDown, resolveRangeSelectionHeads } from '#client/editor/outline/note-ops';
+import { moveNotesDown, $resolveRangeSelectionHeads } from '#client/editor/outline/note-ops';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 
 describe('note ops', () => {
@@ -14,7 +14,7 @@ describe('note ops', () => {
         return [];
       }
 
-      return resolveRangeSelectionHeads(selection).map((item) => item.getKey());
+      return $resolveRangeSelectionHeads(selection).map((item) => item.getKey());
     });
 
     const expected = remdo.validate(() => $findNoteById('note2')!.getKey());
@@ -30,7 +30,7 @@ describe('note ops', () => {
         return [];
       }
 
-      return resolveRangeSelectionHeads(selection).map((item) => item.getKey());
+      return $resolveRangeSelectionHeads(selection).map((item) => item.getKey());
     });
 
     const expected = remdo.validate(() => [$findNoteById('note2')!.getKey(), $findNoteById('note3')!.getKey()]);

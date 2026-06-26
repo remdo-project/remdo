@@ -1,5 +1,6 @@
 import type { DocumentAccessNote, DocumentNote } from './documents';
 import type {
+  BodyNote,
   EditorNote,
   EditorNotes,
   EditorNotesAdapter,
@@ -47,6 +48,27 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
     return position;
   };
 
+  const createBodyHandle = (ownerId: NoteId): BodyNote => {
+    const kind = () => 'body' as const;
+    const handle: BodyNote = {
+      kind,
+      // The owner returns null from bodyTextOf once the body (or the note) is
+      // gone. Throw rather than report an empty body, so a stale handle to a
+      // removed body is distinguishable from an existing empty one — matching the
+      // base Note.text() contract that a missing note throws.
+      text: () => {
+        const text = adapter.bodyTextOf(ownerId);
+        if (text === null) {
+          throw new NoteNotFoundError(ownerId);
+        }
+        return text;
+      },
+      children: () => [],
+      as: createNoteAs(ownerId, kind, () => handle),
+    };
+    return handle;
+  };
+
   const createHandle = (noteId: NoteId): EditorNote => {
     const kind = () => 'editor-note' as const;
     function create(arg1: string | ChildPosition, arg2?: string): EditorNote {
@@ -66,6 +88,7 @@ export function createEditorNotes(adapter: EditorNotesAdapter): EditorNotes {
       },
       children: () => adapter.childrenOf(noteId).map((childId) => createHandle(childId)),
       create,
+      body: () => (adapter.bodyTextOf(noteId) === null ? null : createBodyHandle(noteId)),
       as: createNoteAs(noteId, kind, () => handle),
     };
     return handle;

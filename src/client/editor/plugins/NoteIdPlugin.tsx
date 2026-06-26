@@ -1,7 +1,7 @@
 import { $createListItemNode, $isListItemNode, $isListNode, ListItemNode } from '@lexical/list';
 import type { ListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import type { BaseSelection, EditorState, LexicalEditor, LexicalNode, NodeKey, SerializedLexicalNode } from 'lexical';
+import type { BaseSelection, EditorState, LexicalEditor, LexicalNode, NodeKey, RangeSelection, SerializedLexicalNode } from 'lexical';
 import { $getHtmlContent, $getLexicalContent, setLexicalClipboardDataTransfer } from '@lexical/clipboard';
 import type { LexicalClipboardData } from '@lexical/clipboard';
 import {
@@ -28,13 +28,18 @@ import { createUniqueNoteId, createNoteIdAvoiding } from '#domain/notes/ids';
 import { $autoExpandIfFolded } from '#client/editor/runtime/fold-state';
 import { $createNoteLinkNode } from '#client/editor/runtime/note-link-node';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
+import { isSerializedBodyWrapper } from '#client/editor/runtime/serialized-note-types';
 import {
   $getOrCreateChildList,
+  getBodyWrapper,
   getContentSiblings,
   insertBefore,
-  isChildrenWrapper,
+  isContentItem,
+  isWrapperItem,
   flattenNoteNodes,
 } from '#client/editor/outline/list-structure';
+import { getNoteBody, $getSelectionBody, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
+import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
@@ -101,7 +106,9 @@ function getClipboardPayload(event: ClipboardEvent | KeyboardEvent | InputEvent 
 }
 
 function $getContentKeyFromNode(node: LexicalNode | null): string | null {
-  return resolveContentItemFromNode(node)?.getKey() ?? null;
+  // A node inside a body belongs to its owner note, so a dirty key under a cut
+  // note's body maps back to that note — editing the body invalidates the cut.
+  return $resolveNoteForSelectionPoint(node)?.getKey() ?? null;
 }
 
 function $getContentKeyFromNodeKey(key: string): string | null {
@@ -152,7 +159,9 @@ function $isCaretWithinMarkedSelection(marker: CutMarker, selection: BaseSelecti
     return false;
   }
 
-  const contentItem = resolveContentItemFromNode(selection.anchor.getNode());
+  // A caret inside a cut note's body is still inside the cut boundary (the body
+  // travels with the note), so resolve body points to their owner note.
+  const contentItem = $resolveNoteForSelectionPoint(selection.anchor.getNode());
   if (!contentItem) {
     return false;
   }
@@ -161,7 +170,8 @@ function $isCaretWithinMarkedSelection(marker: CutMarker, selection: BaseSelecti
 }
 
 function $ensureNoteId(item: ListItemNode) {
-  if (isChildrenWrapper(item) || $getNoteId(item)) {
+  // Adjacency wrappers (children-wrapper, body-wrapper) are not notes.
+  if (isWrapperItem(item) || $getNoteId(item)) {
     return;
   }
 
@@ -182,16 +192,12 @@ function buildListItemsFromPlainText(text: string): ListItemNode[] {
 
 function $getPlainTextFromClipboardNodes(nodes: LexicalNode[]): string {
   const items = $extractClipboardListChildren(nodes);
-  const lines: string[] = [];
-  let hasListItems = false;
-  for (const item of items) {
-    if ($isListItemNode(item) && !isChildrenWrapper(item)) {
-      hasListItems = true;
-      lines.push(item.getTextContent());
-    }
-  }
-  if (hasListItems) {
-    return lines.join('\n');
+  const contentItems = items.filter(isContentItem);
+  if (contentItems.length > 0) {
+    // Each note's own text, then its body text, then its sub-notes — the same
+    // traversal as structural copy, so a copied note's body is not dropped when
+    // it is pasted over an inline selection.
+    return contentItems.flatMap(noteClipboardPlainText).join('\n');
   }
   return nodes.map((node) => node.getTextContent()).join('\n');
 }
@@ -209,7 +215,7 @@ function $extractInlineClipboardNodes(nodes: LexicalNode[]): LexicalNode[] {
   const items = $extractClipboardListChildren(nodes);
   if (items.length === 1) {
     const [item] = items;
-    if ($isListItemNode(item) && !isChildrenWrapper(item)) {
+    if (isContentItem(item)) {
       return item.getChildren().map($cloneClipboardNodeTree);
     }
   }
@@ -227,6 +233,22 @@ function $extractInlineClipboardNodes(nodes: LexicalNode[]): LexicalNode[] {
   }
 
   return [];
+}
+
+// Insert clipboard nodes into a note body (rich text). Inline content (a single
+// copied note's children, or already-inline nodes) keeps its rich nodes — note
+// links, date tokens, formatting — via `$insertNodes`. A structural/multi-note
+// payload cannot live in a body as structure, so it flattens to plain text.
+function $insertClipboardNodesIntoBody(selection: RangeSelection, nodes: LexicalNode[]): void {
+  const inlineNodes = $extractInlineClipboardNodes(nodes);
+  if (inlineNodes.length > 0) {
+    $insertNodes(inlineNodes);
+  } else {
+    // A flattened multi-note payload is multi-line; insertRawText turns the
+    // newlines into LineBreakNodes (the body's line representation) rather than
+    // literal "\n" inside a text node, which the body line nav relies on.
+    selection.insertRawText($getPlainTextFromClipboardNodes(nodes));
+  }
 }
 
 function $resolvePasteSelectionRange(
@@ -344,7 +366,7 @@ function $regenerateClipboardNoteIds(nodes: LexicalNode[], reservedIds: Set<stri
       continue;
     }
 
-    if ($isListItemNode(node) && !isChildrenWrapper(node)) {
+    if (isContentItem(node)) {
       const next = createNoteIdAvoiding(reservedIds);
       $setState(node, noteIdState, next);
       reservedIds.add(next);
@@ -387,7 +409,14 @@ function $insertInternalLinkFromPlainText(
     return false;
   }
 
-  if (!selection.isCollapsed() && !$isInlineSelectionWithinSingleNote(selection)) {
+  // A note link can replace a selection that stays within one editable region:
+  // a collapsed caret, an inline range within one note's content, or a range
+  // within one body (bodies are rich text and support note links).
+  if (
+    !selection.isCollapsed() &&
+    !$isInlineSelectionWithinSingleNote(selection) &&
+    !$getSelectionBody(selection)
+  ) {
     return false;
   }
 
@@ -412,42 +441,159 @@ function $extractClipboardListChildren(nodes: LexicalNode[]): LexicalNode[] {
   return extracted;
 }
 
+// Serialize a node and its full subtree to the clipboard JSON shape. A node's
+// own exportJSON() does not include children (the export traversal fills them),
+// so recurse explicitly.
+function serializeNodeTree(node: LexicalNode): SerializedLexicalNode {
+  const json = node.exportJSON() as SerializedLexicalNode & { children?: SerializedLexicalNode[] };
+  if ($isElementNode(node)) {
+    json.children = node.getChildren().map(serializeNodeTree);
+  }
+  return json;
+}
+
+type SerializedElement = SerializedLexicalNode & { noteId?: string; children?: SerializedLexicalNode[] };
+
+// Splice each note's body-wrapper into Lexical's serialized clipboard nodes,
+// right after the note's content list item, so a copied note carries its body.
+// Lexical's serialization already produces the correct content shape (inline for
+// a bare note, list-wrapped when structural) but omits the body-wrapper, which is
+// not part of the selection's node span; this adds it from the live note. Walks
+// the whole tree so a sub-note's body (in a nested children list) is carried too.
+function $injectNoteBodiesIntoClipboardNodes(nodes: SerializedLexicalNode[]): void {
+  for (let i = nodes.length - 1; i >= 0; i -= 1) {
+    const node = nodes[i] as SerializedElement;
+    if (Array.isArray(node.children)) {
+      $injectNoteBodiesIntoClipboardNodes(node.children);
+    }
+    if (node.type !== 'listitem' || typeof node.noteId !== 'string') {
+      continue;
+    }
+    const note = $findNoteById(node.noteId);
+    const body = note ? getBodyWrapper(note) : null;
+    if (!body) {
+      continue;
+    }
+    // Always carry the full live body. Lexical may already have serialized a
+    // body-wrapper here — either the complete one (between two selected notes) or
+    // a partial one when a structural selection ends mid-body — so replace any
+    // existing serialized body-wrapper rather than appending a second.
+    if (isSerializedBodyWrapper(nodes[i + 1])) {
+      nodes.splice(i + 1, 1, serializeNodeTree(body));
+    } else {
+      nodes.splice(i + 1, 0, serializeNodeTree(body));
+    }
+  }
+}
+
+// Replace each serialized note's own (inline) content with the live note's full
+// own content, leaving any nested children list untouched. A structural copy is
+// whole-note, but Lexical serializes the partial text under the selection's
+// boundary heads; this restores the complete label (text, note links, dates) so
+// an internal paste recreates the whole note. Recurses into nested lists.
+function $restoreFullNoteContentInClipboardNodes(nodes: SerializedLexicalNode[]): void {
+  for (const node of nodes) {
+    const element = node as SerializedElement;
+    if (element.type === 'listitem' && typeof element.noteId === 'string' && Array.isArray(element.children)) {
+      const note = $findNoteById(element.noteId);
+      if (note) {
+        // A content note's direct children are its own inline content (text,
+        // note links, dates); its sub-notes live in a sibling children-wrapper,
+        // which Lexical serializes as a nested `list` child here — keep that.
+        const ownContent = note.getChildren().map(serializeNodeTree);
+        const nestedList = element.children.filter((child) => child.type === 'list');
+        element.children = [...ownContent, ...nestedList];
+      }
+    }
+    if (Array.isArray(element.children)) {
+      $restoreFullNoteContentInClipboardNodes(element.children);
+    }
+  }
+}
+
+// The plain-text line(s) a note contributes: its own text, then its body's text.
+function noteClipboardPlainText(note: ListItemNode): string[] {
+  const lines = [getNoteOwnText(note)];
+  const body = getNoteBody(note);
+  if (body) {
+    lines.push(body.getTextContent());
+  }
+  const nested = getNestedList(note);
+  if (nested) {
+    for (const child of getContentSiblings(nested)) {
+      lines.push(...noteClipboardPlainText(child));
+    }
+  }
+  return lines;
+}
+
+// Whole-note clipboard population (copy/cut). A note's body and sub-notes are
+// content it owns, so they travel with it. Reuse Lexical's serialization for the
+// content/links/structure and inject the body-wrappers it omits; build the plain
+// text as each note's own text followed by its body text. `isCut` tags the
+// payload so a same-document cut-paste can move the originals. Returns false for
+// non-structural selections, leaving inline copy to Lexical's default handler.
 function $populateClipboardFromSelection(
   editor: LexicalEditor,
+  heads: ListItemNode[],
   selection: BaseSelection | null,
-  event: ClipboardEvent | KeyboardEvent | null
+  event: ClipboardEvent | KeyboardEvent | null,
+  isCut: boolean
 ): boolean {
-  if (!isClipboardEvent(event) || !event.clipboardData) {
+  if (!isClipboardEvent(event) || !event.clipboardData || heads.length === 0) {
     return false;
   }
 
-  if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+  const lexical = $getLexicalContent(editor, selection);
+  if (!lexical) {
     return false;
+  }
+  let payload: ClipboardPayload;
+  try {
+    payload = JSON.parse(lexical) as ClipboardPayload;
+  } catch {
+    return false;
+  }
+  $injectNoteBodiesIntoClipboardNodes(payload.nodes);
+  // A structural selection acts on whole notes, but the native RangeSelection may
+  // only partially cover a head's label (a drag from mid-label into its body),
+  // so Lexical serializes a truncated label. Restore each note's full own content
+  // from the live tree, matching the plain-text flavor.
+  $restoreFullNoteContentInClipboardNodes(payload.nodes);
+  if (isCut) {
+    payload.remdoCut = true;
   }
 
   const data: LexicalClipboardData = {
-    'text/plain': selection.getTextContent(),
+    'text/plain': heads.flatMap(noteClipboardPlainText).join('\n'),
+    'application/x-lexical-editor': JSON.stringify(payload),
   };
   const html = $getHtmlContent(editor, selection);
   if (html) {
     data['text/html'] = html;
   }
-  const lexical = $getLexicalContent(editor, selection);
-  if (!lexical) {
-    return false;
-  }
-
-  try {
-    const payload = JSON.parse(lexical) as ClipboardPayload;
-    payload.remdoCut = true;
-    data['application/x-lexical-editor'] = JSON.stringify(payload);
-  } catch {
-    return false;
-  }
 
   event.preventDefault();
   setLexicalClipboardDataTransfer(event.clipboardData, data);
   return true;
+}
+
+// The whole-note (structural) context a copy or cut acts on: the current
+// selection, its structural range, and the selected note heads. Null when the
+// selection is not a non-empty whole-note selection (inline selections defer to
+// Lexical's default copy).
+function $resolveStructuralClipboardContext(
+  editor: LexicalEditor
+): { selection: BaseSelection | null; selectionRange: OutlineSelectionRange; heads: ListItemNode[] } | null {
+  const selection = $getSelection();
+  const selectionRange =
+    $resolveStructuralRangeFromOutlineSelection(editor.selection.get())
+    ?? $resolveStructuralRangeFromLexicalSelection(selection, { requireMultipleHeads: true });
+  if (!selectionRange) {
+    return null;
+  }
+  const heads = $resolveStructuralDeletionHeads(selectionRange, selection);
+  return heads.length === 0 ? null : { selection, selectionRange, heads };
 }
 
 function $insertNodesAtSelection(
@@ -545,7 +691,7 @@ function $insertNodesAtSelection(
   let lastInserted: ListItemNode | null = null;
   for (let i = nodes.length - 1; i >= 0; i -= 1) {
     const node = nodes[i];
-    if ($isListItemNode(node) && !isChildrenWrapper(node)) {
+    if (isContentItem(node)) {
       lastInserted = node;
       break;
     }
@@ -623,9 +769,16 @@ export function NoteIdPlugin() {
       }),
       editor.registerCommand(
         COPY_COMMAND,
-        () => {
+        (event) => {
           setCutMarker(null);
-          return false;
+          // For a whole-note (structural) selection, build the clipboard from the
+          // selected notes so each note carries its body and sub-notes. Inline
+          // selections fall through to Lexical's default text/rich-text copy.
+          const context = $resolveStructuralClipboardContext(editor);
+          if (!context) {
+            return false;
+          }
+          return $populateClipboardFromSelection(editor, context.heads, context.selection, event, false);
         },
         COMMAND_PRIORITY_CRITICAL
       ),
@@ -635,25 +788,16 @@ export function NoteIdPlugin() {
           // Runs inside Lexical's command update context. Populate the clipboard,
           // then collapse in the same update so the committed selection (and the
           // outline-selection snapshot derived from it) is observed atomically.
-          const selection = $getSelection();
-          const selectionRange =
-            $resolveStructuralRangeFromOutlineSelection(editor.selection.get())
-            ?? $resolveStructuralRangeFromLexicalSelection(selection, { requireMultipleHeads: true });
-
-          if (!selectionRange) {
-            return false;
-          }
-
-          const heads = $resolveStructuralDeletionHeads(selectionRange, selection);
-          if (heads.length === 0) {
+          const context = $resolveStructuralClipboardContext(editor);
+          if (!context) {
             return false;
           }
 
           const marker: CutMarker = {
-            markedKeys: $collectStructuralItemKeysFromRange(selectionRange),
-            range: selectionRange,
+            markedKeys: $collectStructuralItemKeysFromRange(context.selectionRange),
+            range: context.selectionRange,
           };
-          $populateClipboardFromSelection(editor, selection, event);
+          $populateClipboardFromSelection(editor, context.heads, context.selection, event, true);
           setCutMarker(marker);
           editor.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'start' });
           return true;
@@ -669,6 +813,25 @@ export function NoteIdPlugin() {
 
           const wasCutPaste = lastPasteWasCutRef.current;
           lastPasteWasCutRef.current = false;
+
+          // A selection inside a body is rich text, not outline structure, so a
+          // paste there inserts the clipboard's plain text (never list nodes,
+          // which would break the outline). This also covers a collapsed caret.
+          const pasteBody = $isRangeSelection(payload.selection)
+            ? $getSelectionBody(payload.selection)
+            : null;
+
+          // For a non-cut paste the body insert is unconditional; a cut-paste
+          // must first honor the cut no-op rule below (pasting inside the cut
+          // boundary does nothing and leaves the cut pending), so it is handled
+          // within the wasCutPaste block.
+          if (pasteBody && !wasCutPaste && $isRangeSelection(payload.selection)) {
+            setCutMarker(null);
+            lastPasteSelectionRangeRef.current = null;
+            $insertClipboardNodesIntoBody(payload.selection, payload.nodes);
+            return true;
+          }
+
           const marker = cutMarkerRef.current;
           const outlineSelection = editor.selection.get();
           const isInlineSelection =
@@ -678,10 +841,12 @@ export function NoteIdPlugin() {
             payload.selection,
             lastPasteSelectionRangeRef.current
           );
+          // The cached range has now been consumed; clear it so it can't leak
+          // into the next paste, regardless of which exit path below runs.
+          lastPasteSelectionRangeRef.current = null;
 
           if (wasCutPaste) {
             if (!marker) {
-              lastPasteSelectionRangeRef.current = null;
               return true;
             }
 
@@ -695,7 +860,15 @@ export function NoteIdPlugin() {
               caretInMarked ||
               (selectedMarkedKeys !== null && [...selectedMarkedKeys].some((key) => marker.markedKeys.has(key)));
             if (intersection) {
-              lastPasteSelectionRangeRef.current = null;
+              return true;
+            }
+
+            // A body is rich text and cannot structurally hold the cut notes, so
+            // there is no valid move target here. Interim behavior: no-op, leave
+            // the cut pending (never inject list nodes into the body, and never
+            // copy-without-moving). Final semantics are deferred to the cut/paste
+            // redesign — see docs/todo.md.
+            if (pasteBody) {
               return true;
             }
 
@@ -710,14 +883,12 @@ export function NoteIdPlugin() {
                 insertionRange = null;
               }
               setCutMarker(null);
-              lastPasteSelectionRangeRef.current = null;
               if ($insertNodesAtSelection(editor, insertionRange, insertionSelection, nodesToMove)) {
                 return true;
               }
             }
 
             setCutMarker(null);
-            lastPasteSelectionRangeRef.current = null;
             return true;
           }
 
@@ -731,7 +902,6 @@ export function NoteIdPlugin() {
               const [firstLine, ...restLines] = lines;
               payload.selection.insertText(firstLine ?? '');
               $insertFirstChildNotes(inlineContentItem, restLines);
-              lastPasteSelectionRangeRef.current = null;
               return true;
             }
 
@@ -741,7 +911,6 @@ export function NoteIdPlugin() {
             } else {
               payload.selection.insertText(text);
             }
-            lastPasteSelectionRangeRef.current = null;
             return true;
           }
 
@@ -751,7 +920,6 @@ export function NoteIdPlugin() {
           }
           $regenerateClipboardNoteIds(payload.nodes, reservedIds);
           const insertNodes = $extractClipboardListChildren(payload.nodes);
-          lastPasteSelectionRangeRef.current = null;
           return $insertNodesAtSelection(editor, selectionRange, payload.selection, insertNodes);
         },
         COMMAND_PRIORITY_LOW
@@ -801,6 +969,18 @@ export function NoteIdPlugin() {
           }
 
           const selection = $getSelection();
+
+          // A selection inside a body is rich text: paste the plain text into the
+          // body, never as list nodes that break the outline. insertRawText turns
+          // newlines into LineBreakNodes (the body's line representation that line
+          // nav relies on), not literal "\n" inside a text node.
+          if ($isRangeSelection(selection) && $getSelectionBody(selection)) {
+            lastPasteSelectionRangeRef.current = null;
+            selection.insertRawText(plainText);
+            event.preventDefault();
+            return true;
+          }
+
           const isInlineSelection =
             outlineSelection?.kind !== 'structural' && $isInlineSelectionWithinSingleNote(selection);
           const selectionRange = $resolvePasteSelectionRange(

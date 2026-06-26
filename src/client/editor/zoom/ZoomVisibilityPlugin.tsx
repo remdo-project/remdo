@@ -3,7 +3,7 @@ import { $isListNode } from '@lexical/list';
 import type { LexicalEditor } from 'lexical';
 import { useCallback, useEffect, useRef } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { isChildrenWrapper } from '#client/editor/outline/list-structure';
+import { getBodyWrapper, isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { forEachListItemInOutline } from '#client/editor/outline/list-traversal';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $resolveRootContentList } from '#client/editor/outline/schema';
@@ -25,6 +25,10 @@ const buildVisibleKeys = (root: ListItemNode) => {
   const subtree = getSubtreeItems(root);
   for (const item of subtree) {
     visibleKeys.add(item.getKey());
+    const bodyWrapper = getBodyWrapper(item);
+    if (bodyWrapper) {
+      visibleKeys.add(bodyWrapper.getKey());
+    }
     const wrapper = getWrapperForContent(item);
     if (wrapper) {
       visibleKeys.add(wrapper.getKey());

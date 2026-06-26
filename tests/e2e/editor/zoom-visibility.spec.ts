@@ -74,6 +74,26 @@ test.describe('Zoom visibility', () => {
     await expect(note3).toBeHidden();
   });
 
+  test('hides the body of a non-descendant note when zoomed', async ({ page, editor }) => {
+    await editor.load('basic');
+
+    const editorRoot = editorLocator(page);
+    const note1 = editorRoot.locator('li.list-item', { hasText: 'note1' }).first();
+
+    // Give note3 (a non-descendant of note1) a body, then zoom into note1.
+    await setCaretAtText(page, 'note3', Number.POSITIVE_INFINITY);
+    await page.keyboard.press('Shift+Enter');
+    await page.keyboard.type('note3 body');
+
+    const metrics = await getBulletMetrics(note1);
+    await page.mouse.click(metrics.x, metrics.y);
+
+    // note3 is hidden, and so is its body-wrapper (a .note-body-wrapper, not a
+    // .list-item — it must still match the zoom-hidden rule).
+    await expect(editorRoot.locator('li.list-item', { hasText: 'note3' }).first()).toBeHidden();
+    await expect(editorRoot.locator('li.note-body-wrapper').first()).toBeHidden();
+  });
+
   test('shows direct children of a folded zoom root without clearing the folded state', async ({ page, editor }) => {
     await editor.load('basic');
 

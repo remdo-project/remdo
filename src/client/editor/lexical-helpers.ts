@@ -4,12 +4,7 @@ import {
   $isListNode,
 } from '@lexical/list';
 import { reportInvariant } from '#client/editor/invariant';
-import { $getOrCreateChildList, getPreviousContentSibling, isChildrenWrapper } from '#client/editor/outline/list-structure';
-
-function getNodesToMove(noteItem: ListItemNode): ListItemNode[] {
-  const childWrapper = noteItem.getNextSibling();
-  return isChildrenWrapper(childWrapper) ? [noteItem, childWrapper] : [noteItem];
-}
+import { $getOrCreateChildList, getNodesForNote, getPreviousContentSibling, isChildrenWrapper } from '#client/editor/outline/list-structure';
 
 export function $indentNote(noteItem: ListItemNode) {
   const parentList = noteItem.getParent();
@@ -31,7 +26,7 @@ export function $indentNote(noteItem: ListItemNode) {
   }
 
   const targetList = $getOrCreateChildList(previousContent);
-  targetList.append(...getNodesToMove(noteItem));
+  targetList.append(...getNodesForNote(noteItem));
 }
 
 export function $outdentNote(noteItem: ListItemNode) {
@@ -65,7 +60,7 @@ export function $outdentNote(noteItem: ListItemNode) {
     return;
   }
 
-  const nodesToMove = getNodesToMove(noteItem);
+  const nodesToMove = getNodesForNote(noteItem);
   let referenceNode: ListItemNode = parentWrapper;
 
   for (const node of nodesToMove) {

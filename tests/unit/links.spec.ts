@@ -6,7 +6,18 @@ import { describe, expect, it, vi } from 'vitest';
 import { $isNoteLinkNode } from '#client/editor/runtime/note-link-node';
 import type { RemdoTestApi } from '#client/editor/plugins/dev';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { createDataTransfer, meta, placeCaretAtNote, pressKey, selectEntireNote, typeText } from '#tests';
+import {
+  collapseDomSelectionAtNode,
+  createDataTransfer,
+  extendDomSelectionToNode,
+  getNoteBodyTextNode,
+  meta,
+  placeCaretAtNote,
+  pressKey,
+  selectEntireNote,
+  typeText,
+} from '#tests';
+import { getNoteBody } from '#client/editor/features/note-body/note-body-ops';
 
 async function pastePlainText(remdo: RemdoTestApi, text: string) {
   const transfer = createDataTransfer();
@@ -104,6 +115,29 @@ describe('note links (docs/outliner/links.md)', () => {
       if ($isNoteLinkNode(linkNode)) {
         expect(linkNode.getNoteId()).toBe('note2');
         expect(linkNode.getDocId()).toBe(remdo.getCollabDocId());
+      }
+    });
+  });
+
+  it('pasting a note URL over selected body text creates a note link in the body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A body is rich text and supports note links. Selecting body text and
+    // pasting a note URL must replace it with a note-link node, not plain text.
+    await placeCaretAtNote(remdo, 'note1', 0);
+    await pressKey(remdo, { key: 'Enter', shift: true });
+    await typeText(remdo, 'bodytext');
+
+    // Select the first 4 chars of the body, then paste the note URL over them.
+    const bodyTextNode = getNoteBodyTextNode(remdo, 'note1');
+    await collapseDomSelectionAtNode(bodyTextNode, 0);
+    await extendDomSelectionToNode(bodyTextNode, 4);
+    await pastePlainText(remdo, `/n/${remdo.getCollabDocId()}_note2`);
+
+    remdo.validate(() => {
+      const body = getNoteBody($findNoteById('note1')!)!;
+      const linkNode = body.getChildren().find($isLinkNode)!;
+      expect($isNoteLinkNode(linkNode)).toBe(true);
+      if ($isNoteLinkNode(linkNode)) {
+        expect(linkNode.getNoteId()).toBe('note2');
       }
     });
   });

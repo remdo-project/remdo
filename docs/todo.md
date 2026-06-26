@@ -61,6 +61,12 @@ Rules:
   reads the previous node's rendered text and sees a non-boundary character.
   Fix should treat inline non-text nodes as boundaries and consider common,
   related UX guidelines.
+- Date picker popover display is degraded: the calendar renders but the popover
+  has no container background/border (bleeds into the page) and shows a stray
+  vertical-bar artifact. Functional (dates clickable), styling only.
+- Date picker re-opens on caret navigation: arrowing the cursor to just after an
+  existing `!` re-triggers the picker. It should open only when `!` is typed, not
+  when navigating around one.
 
 ## Document access and sharing
 
@@ -291,9 +297,34 @@ Remaining issues to fold in or fix directly:
      `glob@11.1.0`, `source-map@0.8.0-beta.0`, `sourcemap-codec@1.4.8`, and the
      `@typescript-eslint/*` peer mismatch against `typescript 6`.
 
+## Dev environment: inotify watch exhaustion
+
+`data/collab/` grows unbounded (one dir per ephemeral dev/test doc), and editors
+watch it, exhausting `fs.inotify.max_user_watches` across worktrees so the Vite
+e2e dev server can't start (`ENOSPC`). Did a one-off prune of stale entries.
+Durable fixes:
+
+- Add `files.watcherExclude` for `**/data/**` and `**/node_modules/**` (editor
+  config; `.gitignore` is not honored by watchers).
+- Cap/rotate the `data/collab/` store, or have the test harness clean its collab
+  docs after runs, so it can't grow unbounded again.
+
 ## remdo-feature-flow follow-ups
 
 - Clean up stale prunable worktree `remdo-7000-wt` if abandoned (not mine).
+
+## Note body follow-ups
+
+The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
+
+- Undo does not restore selection under collaboration (Lexical's `@lexical/yjs`
+  V2 history only persists structure, not the caret). This is global, not
+  body-specific — RemDo's undo tests assert structure only. Decide if restoring
+  selection on undo is worth wiring the Yjs `UndoManager` StackItem `meta`.
+- Pasting a pending structural cut into a *non-cut* note's body is currently a
+  no-op (cut stays pending) since a body can't hold notes. Pin the final
+  semantics (no-op vs. move-as-flattened-text) in the cut/paste redesign;
+  `NoteIdPlugin` `SELECTION_INSERT_CLIPBOARD_NODES_COMMAND` body branch.
 
 ## remdo-refine follow-ups
 

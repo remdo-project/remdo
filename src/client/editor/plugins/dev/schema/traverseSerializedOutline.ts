@@ -1,6 +1,7 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
+import { isSerializedBodyWrapper } from '#client/editor/runtime/serialized-note-types';
 
 interface NodeWithChildren extends SerializedLexicalNode {
   children?: SerializedLexicalNode[];
@@ -13,6 +14,7 @@ export interface SerializedOutlineNote {
   folded?: boolean;
   checked?: boolean;
   contentNodes: SerializedLexicalNode[];
+  bodyNodes?: SerializedLexicalNode[];
   children: SerializedOutlineNote[];
 }
 
@@ -102,8 +104,16 @@ export function traverseSerializedOutline(state: SerializedEditorState): Travers
 
     for (let index = 0; index < children.length; index += 1) {
       const child = children[index];
-      if (!isNodeWithChildren(child) || child.type !== LIST_ITEM_TYPE) {
+      if (!isNodeWithChildren(child) || (child.type !== LIST_ITEM_TYPE && !isSerializedBodyWrapper(child))) {
         continue;
+      }
+
+      // A body-wrapper is attached to its preceding note via lookahead below; if
+      // we reach one here it has no preceding content note, which is invalid.
+      if (isSerializedBodyWrapper(child)) {
+        const prefixStr = formatPath(prefix);
+        fail(`body-wrapper-without-note path=${prefixStr}`);
+        break;
       }
 
       const childChildren = getChildren(child);
@@ -152,6 +162,15 @@ export function traverseSerializedOutline(state: SerializedEditorState): Travers
         contentNodes,
         children: [],
       };
+
+      // A body-wrapper, if present, sits immediately after the note (before the
+      // children-wrapper). Capture its body content and skip it.
+      const bodyWrapper = children[index + 1];
+      if (isSerializedBodyWrapper(bodyWrapper)) {
+        const bodyNode = getChildren(bodyWrapper)[0];
+        note.bodyNodes = getChildren(bodyNode);
+        index += 1;
+      }
 
       const nextSibling = children[index + 1];
       if (isNodeWithChildren(nextSibling) && nextSibling.type === LIST_ITEM_TYPE) {

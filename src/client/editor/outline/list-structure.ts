@@ -3,6 +3,7 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
 import { $autoExpandIfFolded } from '#client/editor/runtime/fold-state';
+import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
 import { reportInvariant } from '#client/editor/invariant';
 
 type ChildListItemNode = ListItemNode & { getFirstChild: () => ListNode };
@@ -42,10 +43,18 @@ export const findNearestListItem = (node: LexicalNode | null): ListItemNode | nu
   return null;
 };
 
+// A list item is a content note unless it is one of the adjacency wrappers
+// (children-wrapper holding a nested list, or body-wrapper holding a note body).
+export const isWrapperItem = (node: LexicalNode | null | undefined): boolean =>
+  isChildrenWrapper(node) || isBodyWrapper(node);
+
+export const isContentItem = (node: LexicalNode | null | undefined): node is ListItemNode =>
+  $isListItemNode(node) && !isWrapperItem(node);
+
 export const getContentSiblings = (list: ListNode): ListItemNode[] => {
   const items: ListItemNode[] = [];
   for (const child of list.getChildren()) {
-    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+    if (isContentItem(child)) {
       items.push(child);
     }
   }
@@ -55,7 +64,7 @@ export const getContentSiblings = (list: ListNode): ListItemNode[] => {
 export const getPreviousContentSibling = (item: ListItemNode): ListItemNode | null => {
   let sibling = item.getPreviousSibling();
   while (sibling) {
-    if ($isListItemNode(sibling) && !isChildrenWrapper(sibling)) {
+    if (isContentItem(sibling)) {
       return sibling;
     }
     sibling = sibling.getPreviousSibling();
@@ -64,23 +73,28 @@ export const getPreviousContentSibling = (item: ListItemNode): ListItemNode | nu
 };
 
 export const getContentListItem = (item: ListItemNode): ListItemNode => {
-  if (!isChildrenWrapper(item)) {
+  if (!isWrapperItem(item)) {
     return item;
   }
 
-  const previous = item.getPreviousSibling();
-  if ($isListItemNode(previous) && !isChildrenWrapper(previous)) {
-    return previous;
-  }
+  const previous = getPreviousContentSibling(item);
+  return previous ?? item;
+};
 
-  return item;
+export const getBodyWrapper = (note: ListItemNode): ListItemNode | null => {
+  const next = note.getNextSibling();
+  return isBodyWrapper(next) ? next : null;
 };
 
 export const getNodesForNote = (note: ListItemNode): LexicalNode[] => {
   const nodes: LexicalNode[] = [note];
-  const wrapper = note.getNextSibling();
-  if (isChildrenWrapper(wrapper)) {
-    nodes.push(wrapper);
+  let sibling = note.getNextSibling();
+  if (isBodyWrapper(sibling)) {
+    nodes.push(sibling);
+    sibling = sibling.getNextSibling();
+  }
+  if (isChildrenWrapper(sibling)) {
+    nodes.push(sibling);
   }
   return nodes;
 };
@@ -115,7 +129,11 @@ export const $getOrCreateChildList = (parentNote: ListItemNode): ListNode => {
 
   $autoExpandIfFolded(parentNote);
 
-  const existingWrapper = parentNote.getNextSibling();
+  // The children-wrapper sits after the note, after any body-wrapper.
+  const bodyWrapper = getBodyWrapper(parentNote);
+  const afterNote = bodyWrapper ?? parentNote;
+
+  const existingWrapper = afterNote.getNextSibling();
   if (isChildrenWrapper(existingWrapper)) {
     const childList = existingWrapper.getFirstChild();
     if ($isListNode(childList)) {
@@ -127,7 +145,7 @@ export const $getOrCreateChildList = (parentNote: ListItemNode): ListNode => {
   const wrapper = $createListItemNode();
   const nested = $createListNode(parentList.getListType());
   wrapper.append(nested);
-  parentNote.insertAfter(wrapper);
+  afterNote.insertAfter(wrapper);
   return nested;
 };
 

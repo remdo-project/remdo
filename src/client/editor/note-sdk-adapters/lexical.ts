@@ -14,9 +14,10 @@ import {
   isChildrenWrapper,
   maybeRemoveEmptyWrapper,
 } from '#client/editor/outline/list-structure';
+import { getNoteBody, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
 import { indentNotes, moveNotesDown, moveNotesUp, outdentNotes } from '#client/editor/outline/note-ops';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { $requireContentItemNoteId, $requireRootContentList, resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { $requireContentItemNoteId, $requireRootContentList } from '#client/editor/outline/schema';
 import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
 import type { OutlineSelectionRange } from '#client/editor/outline/selection/model';
 import { $resolveStructuralHeadsFromRange } from '#client/editor/outline/selection/range';
@@ -241,8 +242,11 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
       }
     }
 
-    const item = resolveContentItemFromNode(selection.focus.getNode()) ??
-      resolveContentItemFromNode(selection.anchor.getNode());
+    // A selection inside a body belongs to the body's owner note (for selection
+    // the body is part of its note), so resolve body endpoints to that note
+    // rather than dropping the selection.
+    const item = $resolveNoteForSelectionPoint(selection.focus.getNode()) ??
+      $resolveNoteForSelectionPoint(selection.anchor.getNode());
     if (!item) {
       return { kind: 'none', range: null };
     }
@@ -297,6 +301,10 @@ function createLexicalEditorNotesAdapter({ editor, docId }: LexicalEditorNotesAd
     hasNote: (noteId) => Boolean($resolveNoteById(noteId)),
     isBounded: (noteId) => Boolean($resolveNoteById(noteId)),
     textOf: (noteId) => $requireNoteById(noteId).getTextContent(),
+    bodyTextOf: (noteId) => {
+      const body = getNoteBody($requireNoteById(noteId));
+      return body === null ? null : body.getTextContent();
+    },
     listTypeOf: (noteId) => {
       const parent = $requireNoteById(noteId).getParent();
       return $isListNode(parent) ? parent.getListType() : 'bullet';

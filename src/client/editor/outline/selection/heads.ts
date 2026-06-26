@@ -1,17 +1,32 @@
 import type { ListItemNode } from '@lexical/list';
-import { $isListItemNode, $isListNode } from '@lexical/list';
+import { $isListNode } from '@lexical/list';
 import type { LexicalNode, RangeSelection } from 'lexical';
 
 import { reportInvariant } from '#client/editor/invariant';
-import { getContentSiblings, isChildrenWrapper } from '../list-structure';
+import {
+  $getNoteBodyFromNode,
+  $getNoteForBody,
+  $isSelectionWithinOneBody,
+  $resolveNoteForSelectionPoint,
+} from '#client/editor/features/note-body/note-body-ops';
+import { isBodyWrapper } from '#client/editor/features/note-body/note-body-node';
+import { getContentSiblings, isContentItem } from '../list-structure';
 import { resolveContentItemFromNode } from '../schema';
 import { getNextContentSibling, normalizeContentRange } from './tree';
 
 // Returns the contiguous sibling slab that spans anchor/focus as the set of
 // top-most selected heads (dropping descendants when an ancestor is selected).
 // Returns an empty array when the selection cannot be normalized to a single sibling run.
-export function getContiguousSelectionHeads(selection: RangeSelection): ListItemNode[] {
+export function $getContiguousSelectionHeads(selection: RangeSelection): ListItemNode[] {
   if (selection.isCollapsed()) {
+    return [];
+  }
+
+  // A selection wholly inside one body is inline (the body is its own region, see
+  // docs/outliner/body.md), so it has no structural head slab. Resolving its ends
+  // would map both to the owner note and yield a spurious one-note structural
+  // head, making structural callers (e.g. paste) act on the whole note.
+  if ($isSelectionWithinOneBody(selection)) {
     return [];
   }
 
@@ -20,8 +35,8 @@ export function getContiguousSelectionHeads(selection: RangeSelection): ListItem
     return elementSelectionHeads;
   }
 
-  const anchorItem = resolveContentItemFromNode(selection.anchor.getNode());
-  const focusItem = resolveContentItemFromNode(selection.focus.getNode());
+  const anchorItem = $resolveNoteForSelectionPoint(selection.anchor.getNode());
+  const focusItem = $resolveNoteForSelectionPoint(selection.focus.getNode());
   if (!anchorItem || !focusItem) {
     reportInvariant({
       message: 'Selection anchor/focus is not within list items.',
@@ -80,13 +95,35 @@ export function getContiguousSelectionHeads(selection: RangeSelection): ListItem
   return siblings.slice(first, last + 1);
 }
 
-export function getSelectedNotes(selection: RangeSelection): ListItemNode[] {
+export function $getSelectedNotes(selection: RangeSelection): ListItemNode[] {
   const ordered: ListItemNode[] = [];
   const seen = new Set<string>();
 
   const candidates: LexicalNode[] = selection.getNodes();
 
+  const pushNote = (note: ListItemNode) => {
+    const key = note.getKey();
+    if (seen.has(key)) return;
+    seen.add(key);
+    ordered.push(note);
+  };
+
   for (const node of candidates) {
+    // A node inside a body belongs to that body's owner note (for selection the
+    // body is part of its note); resolve to the owner rather than treat it as a
+    // stray. A bare body-wrapper carries no note of its own.
+    const body = $getNoteBodyFromNode(node);
+    if (body) {
+      const owner = $getNoteForBody(body);
+      if (owner) {
+        pushNote(owner);
+      }
+      continue;
+    }
+    if (isBodyWrapper(node)) {
+      continue;
+    }
+
     const contentItem = resolveContentItemFromNode(node);
     if (!contentItem) {
       reportInvariant({
@@ -96,10 +133,7 @@ export function getSelectedNotes(selection: RangeSelection): ListItemNode[] {
       continue;
     }
 
-    const key = contentItem.getKey();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    ordered.push(contentItem);
+    pushNote(contentItem);
   }
 
   return ordered;
@@ -125,7 +159,7 @@ function resolveElementSelectionHeads(selection: RangeSelection): ListItemNode[]
   const slice = anchorNode.getChildren().slice(start, end);
   const heads: ListItemNode[] = [];
   for (const child of slice) {
-    if ($isListItemNode(child) && !isChildrenWrapper(child)) {
+    if (isContentItem(child)) {
       heads.push(child);
     }
   }
