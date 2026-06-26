@@ -26,7 +26,8 @@ loudly instead.
   existing lockfile entry (independent of `minimumReleaseAgeStrict`, which only
   governs *resolution*), so even `--frozen-lockfile` in CI hard-fails
   (`ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`) on a committed entry younger than the
-  window — which is what the Dependabot cooldown below works around.
+  window. The refresh holds such bumps to the next run, so a committed lockfile
+  never carries a too-fresh entry.
 - Build-script approval uses the `allowBuilds` map in `pnpm-workspace.yaml`
   (`onlyBuiltDependencies` was removed in pnpm 11). With `strictDepBuilds: true`
   (enabled), an install fails (exit 1) when any in-tree dep has a build script
@@ -37,46 +38,32 @@ loudly instead.
 
 ### Dependabot
 
-Dependabot drives two separate signals, on clocks independent of each other and of
-the pnpm release-age gate above: version-update PRs as a *staleness nag* (here),
+Dependabot provides two separate signals, independent of each other and of the
+pnpm release-age gate above: version-update PRs as a *staleness reminder* (here),
 and security alerts as a *vulnerability* alarm (next section). Keep them separate.
 
-Version-update PRs are alerts to run the refresh skill, never merged
-per-dependency. The intent shapes the config in `.github/dependabot.yml` (which
-carries the exact values and their arithmetic — not repeated here):
+Version-update PRs are reminders to run the refresh skill, never merged
+per-dependency (a per-package bump can't carry a coherently regenerated lockfile,
+and the refresh also moves pnpm/Node/Actions pins Dependabot doesn't touch). The
+config in `.github/dependabot.yml` is deliberately minimal — a weekly, grouped PR
+with a 9-day cooldown:
 
-- **A grace-period nag, not a merge queue.** The cooldown is set wider than the
-  refresh interval, so a repo kept up on cadence clears every mergeable bump
-  before it ages into nag range and shows **no** version-update PR at all. An open
-  PR is therefore real signal: a version has been available longer than the grace
-  window — the refresh is genuinely overdue. (The grace also absorbs the pnpm
-  release-age edge from the gate above; that's why it was never as low as a day.)
-- **Prompt once overdue.** The cooldown gates *eligibility*; the check schedule
-  gates *latency-to-nag*. A short check interval surfaces an overdue version
-  quickly instead of holding it for a weekly slot.
-- **Self-labelling.** PRs are tagged so an open one reads as "trigger the refresh
-  skill," not "merge me."
-
-Tradeoff (accepted): a grace window wider than the refresh interval means that if
-the cadence lapses, the first nag arrives that much later than a minimal cooldown
-would give. That is fine because routine staleness and security are decoupled —
-security never waits on this window (next section).
+- **A grace-period reminder, not a merge queue.** The 9-day cooldown is wider than
+  the weekly refresh cadence, so a repo refreshed on schedule clears every bump
+  before it ages into reminder range and sees **no** PR at all. A PR appearing
+  means a version has sat available longer than that — the refresh is overdue.
+- **One grouped PR.** All packages are grouped, so the reminder is a single PR to
+  glance at, not one per dependency. Whether its CI is red or green is irrelevant
+  — it is never merged; it is the cue to run the skill.
 
 ### Security alerts
 
-Known-vulnerability response is **independent of the version-update grace window
-above** and runs on GitHub's native, default mechanism — no custom config, no CI
-gate. Repo settings keep **Dependabot alerts** and **Dependabot security updates**
-enabled (Settings → Security & analysis): advisories reach us as soon as GitHub
-knows, and security-update PRs bypass the cooldown entirely (it gates version
-updates only). So the wide grace window delays routine bumps without ever slowing
-a fix for a real vulnerability.
-
-The alert and the email are the alarm — not any PR. A Dependabot security-update
-PR inherits the same `deps-refresh-trigger` label as a staleness PR (the label is
-ecosystem-wide), and that is fine: the refresh skill reconciles every Dependabot
-PR regardless of kind, and the real-time alarm has already fired through the alert
-channel, so the shared label never masks a vulnerability.
+Known-vulnerability response is **independent of the staleness reminder above**
+and runs on GitHub's native, default mechanism — no custom config, no CI gate.
+Repo settings keep **Dependabot alerts** and **Dependabot security updates**
+enabled (Settings → Security & analysis); these work independently of
+`dependabot.yml`, so advisories reach us as soon as GitHub knows, never gated by
+the staleness cooldown.
 
 The `audit:security` script remains a local/manual cross-check; it is
 intentionally **not** wired into CI — GitHub's alerts are the source of truth, and
