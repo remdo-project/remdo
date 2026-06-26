@@ -43,9 +43,21 @@ tree stays clean for the next pass.
 ## The ladder
 
 Three passes, cheapest and most local first, most independent last. Each reviews
-the same `wip-base..HEAD` range:
+the same `wip-base..HEAD` range.
 
-1. **Simplify** — `/simplify`, plus a **doc-minimalism lens** for prose
+**Run each in-session review pass (1 and 2) as a fresh, context-limited
+subagent** given only the range to review — not in the coordinating session that
+implemented the change and ran prior cycles. A session that just cleaned this
+diff carries the memory to rationalize skipping "already-reviewed" parts and
+under-attend to earlier branch work; a fresh subagent has no such memory and so
+digests the whole range as written. This gives passes 1 and 2 the same
+structural full-scope guarantee that pass 3 (codex, a separate process with no
+context) gets for free. The coordinating session still triages the returned
+findings and owns the loop.
+
+1. **Simplify** — `/simplify` over the whole `wip-base..HEAD` range (pass the base
+   explicitly so it diffs the full range, not just the latest commit), plus a
+   **doc-minimalism lens** for prose
    (`docs/**`, skill files): read each touched doc/skill *whole* in load order
    (entry doc → its dependencies → the file), and for each paragraph ask whether
    it earns its place — is it **new** (not already stated upstream), **necessary**
@@ -103,6 +115,13 @@ Index the result, do not re-narrate it: scope and base; cycle count and why the
 loop ended; fixes applied (pointing at files, not prose); tradeoffs taken with a
 pointer to their `docs/todo.md` entries; any blocker with its gathered data; and
 the final checks with pass/fail.
+
+For each applied fix, note whether it originated in the **latest commit** or in
+**earlier branch work** (where in `wip-base..HEAD` the finding sat). This is
+cheap to emit and, accumulated across runs, reveals whether findings cluster in
+just-written code or spread across the branch — the data that decides whether a
+recent-first quick pre-pass would actually save loop time, or just add per-cycle
+overhead. Until that data exists, the ladder stays three passes.
 
 ## References
 
