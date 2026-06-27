@@ -39,16 +39,15 @@ once, deterministically, in this order:
    intended range obvious (the work just done, the last commit, the last few) —
    state the concrete range you'll use and proceed once it's confirmed.
 
-Refine itself does not infer scope from session context; the caller resolves the
-range and passes it in. Keeping `wip-base` correct is `remdo-sync`'s job, not
-refine's.
+Refine never silently infers the range from session context: it is given one, or
+(case 3) it confirms one before proceeding.
 
 If `origin/main` has advanced past `wip-base` (a cheap `git fetch` check), emit a
 **non-blocking** nudge — "origin/main is newer; consider `remdo-sync`" — and
 continue; a stale base does not stop a refine run.
 
 **The working tree must be clean.** Staged, unstaged, or untracked changes sit
-outside `wip-base..HEAD` and would be silently unreviewed, so if the tree is dirty,
+outside the resolved range and would be silently unreviewed, so if the tree is dirty,
 **warn and stop** until the work is committed (or stashed). This is why
 `remdo-feature-flow` commits its phase-4 work before invoking refine.
 
@@ -123,8 +122,7 @@ commit policy already governs.
 ## Final report
 
 Index the result, do not re-narrate it: scope and base; cycle count and why the
-loop ended; fixes applied (pointing at files, not prose, with a tally of how many
-came from the **latest commit** vs. **earlier branch work** — where in the
+loop ended; fixes applied (pointing at files, not prose, noting where in the
 resolved range each finding sat); tradeoffs taken with a pointer to their
 `docs/todo.md` entries; any blocker with its gathered data; and the final checks
 with pass/fail.
