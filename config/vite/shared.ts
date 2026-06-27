@@ -96,6 +96,9 @@ export function createViteSharedConfig() {
     preview: {
       host,
       port: config.env.PREVIEW_PORT,
+      // Mirror the dev server: accept any Host header (e.g. http://hostname:PORT),
+      // not just localhost, so the prod-build preview is reachable by hostname.
+      allowedHosts: true as const,
       strictPort: true,
       proxy: previewProxy,
     },
