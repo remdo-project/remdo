@@ -28,8 +28,8 @@ scope, every pass, no committed-vs-uncommitted branching. The range is resolved
 once, deterministically, in this order:
 
 1. An **explicit range/base passed at invocation** wins (e.g. the caller says
-   "refine `HEAD~3..HEAD`" or "refine the commit we just made"). Use it verbatim;
-   do not second-guess it.
+   "refine `HEAD~3..HEAD`" or "refine the commit we just made"). Honour it; do
+   not second-guess the intent.
 2. Otherwise default to **`wip-base..HEAD`** (see `remdo-feature-flow` "Branch
    base") — the natural scope on a task branch, where `remdo-sync` keeps
    `wip-base` correct.
@@ -41,6 +41,15 @@ once, deterministically, in this order:
 
 Refine never silently infers the range from session context: it is given one, or
 (case 3) it confirms one before proceeding.
+
+**Anchor the base to a fixed commit SHA, not a relative ref.** The loop commits
+fixes, so `HEAD` advances every cycle. Resolve the range's base **once** to an
+immutable SHA (e.g. `git rev-parse HEAD~3`) and review `<base-sha>..HEAD` on
+every pass — never re-evaluate a relative range like `HEAD~3..HEAD` per cycle,
+which would shift both ends forward and silently drop the oldest commits while
+leaving the new fix commits unreviewed. Anchoring the base and letting only
+`HEAD` move keeps each fix inside the range for the next pass, as the loop
+requires.
 
 When the range is the `wip-base..HEAD` default (case 2), a stale base is worth a
 heads-up: if `origin/main` has advanced past `wip-base` (a cheap `git fetch`
