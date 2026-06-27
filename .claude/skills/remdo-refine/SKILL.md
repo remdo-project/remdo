@@ -49,7 +49,8 @@ every pass — never re-evaluate a relative range like `HEAD~3..HEAD` per cycle,
 which would shift both ends forward and silently drop the oldest commits while
 leaving the new fix commits unreviewed. Anchoring the base and letting only
 `HEAD` move keeps each fix inside the range for the next pass, as the loop
-requires.
+requires. (This matters only when the base is HEAD-relative; it is a no-op when
+the base is already a SHA or a fixed ref like `wip-base`.)
 
 When the range is the `wip-base..HEAD` default (case 2), a stale base is worth a
 heads-up: if `origin/main` has advanced past `wip-base` (a cheap `git fetch`
