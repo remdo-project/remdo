@@ -83,6 +83,14 @@ Iterate:
    an infinite loop.
 4. Repeat until the gate exits 0.
 
+## Permissions
+
+Running this skill is an explicitly declared autonomous scope (per AGENTS.md):
+the loop commits each healed upgrade as it goes, so invoking it authorizes those
+commits **on `dev`** — never on `main`, and never push. Pushing to `dev` to
+trigger the CI matrix, where the loop relies on it, stays a separate explicit ask
+by the user.
+
 ## Finish
 
 Once the gate is green (exit 0):

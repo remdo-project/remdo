@@ -1,6 +1,6 @@
 ---
 name: remdo-refine
-description: Use to run the autonomous quality loop over a task branch's committed work (`wip-base..HEAD`, clean tree) — simplify, review at max effort, then external Codex review, looping until a clean pass. Triggers include "refine this", "run the refine ladder", "review/simplify/fix loop", or `remdo-feature-flow` calling it after implementation. Commit your work first; it does not review uncommitted changes.
+description: Use to run the autonomous quality loop over a committed range on the current branch (defaults to `wip-base..HEAD`, accepts an explicit range, clean tree) — simplify, review at max effort, then external Codex review, looping until a clean pass. Triggers include "refine this", "run the refine ladder", "review/simplify/fix loop", or `remdo-feature-flow` calling it after implementation. Commit your work first; it does not review uncommitted changes.
 ---
 
 # Refine
@@ -23,27 +23,55 @@ below is a judgement, not a tuned number.
 
 ## Scope
 
-Refine works on the committed range **`wip-base..HEAD`** (see `remdo-feature-flow`
-"Branch base"). One base, one scope, every pass — no committed-vs-uncommitted
-branching. Keeping `wip-base` correct is `remdo-sync`'s job, not refine's.
+Refine works on a single committed range, fixed at invocation — one base, one
+scope, every pass, no committed-vs-uncommitted branching. The range is resolved
+once, deterministically, in this order:
 
-If `origin/main` has advanced past `wip-base` (a cheap `git fetch` check), emit a
-**non-blocking** nudge — "origin/main is newer; consider `remdo-sync`" — and
-continue; a stale base does not stop a refine run.
+1. An **explicit range/base passed at invocation** wins (e.g. the caller says
+   "refine `HEAD~3..HEAD`" or "refine the commit we just made"). Honour it; do
+   not second-guess the intent.
+2. Otherwise default to **`wip-base..HEAD`** (see `remdo-feature-flow` "Branch
+   base") — the natural scope on a task branch, where `remdo-sync` keeps
+   `wip-base` correct.
+3. If `wip-base` is absent or stale for the current branch (typically on `dev`,
+   which is not a task branch), there is no meaningful default: **ask for an
+   explicit range rather than guessing**. The conversation usually makes the
+   intended range obvious (the work just done, the last commit, the last few) —
+   state the concrete range you'll use and proceed once it's confirmed.
+
+Refine never silently infers the range from session context: it is given one, or
+(case 3) it confirms one before proceeding.
+
+**Anchor the base to a fixed commit SHA, not a relative ref.** The loop commits
+fixes, so `HEAD` advances every cycle. Resolve the range's base **once** to an
+immutable SHA (e.g. `git rev-parse HEAD~3`) and review `<base-sha>..HEAD` on
+every pass — never re-evaluate a relative range like `HEAD~3..HEAD` per cycle,
+which would shift both ends forward and silently drop the oldest commits while
+leaving the new fix commits unreviewed. Anchoring the base and letting only
+`HEAD` move keeps each fix inside the range for the next pass, as the loop
+requires. (This matters only when the base is HEAD-relative; it is a no-op when
+the base is already a SHA or a fixed ref like `wip-base`.)
+
+When the range is the `wip-base..HEAD` default (case 2), a stale base is worth a
+heads-up: if `origin/main` has advanced past `wip-base` (a cheap `git fetch`
+check), emit a **non-blocking** nudge — "origin/main is newer; consider
+`remdo-sync`" — and continue; a stale base does not stop a refine run. Skip this
+for an explicit range or a non-task branch, where `wip-base` and `remdo-sync` do
+not apply.
 
 **The working tree must be clean.** Staged, unstaged, or untracked changes sit
-outside `wip-base..HEAD` and would be silently unreviewed, so if the tree is dirty,
+outside the resolved range and would be silently unreviewed, so if the tree is dirty,
 **warn and stop** until the work is committed (or stashed). This is why
 `remdo-feature-flow` commits its phase-4 work before invoking refine.
 
 So that each cycle reviews the previous one's result, **commit every applied
-fix** before re-running the ladder — the fix then lands in `wip-base..HEAD` and the
-tree stays clean for the next pass.
+fix** before re-running the ladder — the fix then lands inside the resolved range
+and the tree stays clean for the next pass.
 
 ## The ladder
 
 Three passes, cheapest and most local first, most independent last. Each reviews
-the same `wip-base..HEAD` range.
+the same resolved range.
 
 **Run each in-session review pass (1 and 2) as a fresh, context-limited
 subagent** given only the range — the coordinating session's memory of
@@ -60,10 +88,11 @@ coordinating session triages the returned findings and owns the loop.
    where self-containment matters (not a full restatement). Reading the whole
    touched file, not just the diff hunk, is what catches redundancy against
    unchanged upstream text.
-2. **Internal review** — `/code-review` at high/max effort against `wip-base`.
-3. **External review** — `codex review --base wip-base` for an independent outside
-   read. Give it **scope only, no review angle** — leading prompt framing defeats
-   the point.
+2. **Internal review** — `/code-review` at max effort against the resolved
+   range's base.
+3. **External review** — `codex review --base <range base>` for an independent
+   outside read. Give it **scope only, no review angle** — leading prompt framing
+   defeats the point.
 
 Forward the `AGENTS.md` findings-suppression rule to every pass and subagent.
 
@@ -98,17 +127,18 @@ not fixed here.
 
 ## Permissions
 
-Refine commits each fix, so invoking it is authorization to commit on the current
-**task branch** — never on `dev`/`main`, and never push. If run on `dev`/`main`,
-warn and stop (same guard as the dirty-tree check). Inside a `remdo-feature-flow`
-run, that skill's commit policy already governs.
+Refine commits each fix, so invoking it is an explicitly declared autonomous
+scope (per AGENTS.md): authorization to commit **on the current branch** — never
+push. The dropped task-branch restriction lets it run on `dev` as readily as a
+feature branch, but **`main` stays protected**: if invoked on `main`, warn and
+stop (same guard as the dirty-tree check) rather than self-committing there.
+Inside a `remdo-feature-flow` run, that skill's commit policy already governs.
 
 ## Final report
 
 Index the result, do not re-narrate it: scope and base; cycle count and why the
-loop ended; fixes applied (pointing at files, not prose, with a tally of how many
-came from the **latest commit** vs. **earlier branch work** — where in
-`wip-base..HEAD` each finding sat); tradeoffs taken with a pointer to their
+loop ended; fixes applied (pointing at files, not prose, noting where in the
+resolved range each finding sat); tradeoffs taken with a pointer to their
 `docs/todo.md` entries; any blocker with its gathered data; and the final checks
 with pass/fail.
 

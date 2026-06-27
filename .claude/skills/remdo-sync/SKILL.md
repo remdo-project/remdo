@@ -94,11 +94,11 @@ re-fork from current `origin/main` rather than waiting on sync.
 
 ## Permissions
 
-Invoking this skill authorizes, on the current **task branch**: `git fetch`
-(always), `git merge origin/main`, conflict-resolution edits, the merge commit,
-and moving the `wip-base` tag. It **never** rebases, force-pushes, or pushes;
-never touches `dev`/`main`; and pull (which mutates your branch outside this
-flow) stays the user's.
+Invoking this skill is an explicitly declared autonomous scope (per AGENTS.md):
+it authorizes, on the current **task branch**, `git fetch` (always),
+`git merge origin/main`, conflict-resolution edits, the merge commit, and moving
+the `wip-base` tag. It **never** rebases, force-pushes, or pushes; and pull
+(which mutates your branch outside this flow) stays the user's.
 
 ## Final report
 

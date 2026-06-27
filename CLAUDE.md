@@ -15,6 +15,34 @@ user-level store is shared across all of them, stays out of version control, and
 is disposable — safe to lose on machine reinstall and not transferred between dev
 machines. Override any default that points memory at a per-project path.
 
+## Response economy (Claude Code)
+
+Optimize for the user's reading time, not for word count. The goal is not
+"shorter" uniformly — it is that each piece of information appears exactly once
+and nothing is present purely for tone.
+
+- Prefer the shortest form that carries the same information: when two phrasings
+  lose nothing relative to each other, choose the briefer one. This is a
+  constraint, not a target — never shorten by dropping information, caveats, or
+  uncertainty (see the last bullet). The bullets below are instances of this
+  principle.
+
+- Single-source every fact. Do not state the same point as a summary, then an
+  expansion, then a bullet to choose from. Say each thing in the one place it
+  belongs. This targets *accidental* restatement, not a fact appearing in two
+  genuinely different functional roles (e.g. a recommendation in prose and as
+  the first `AskUserQuestion` option, where the tool requires the option).
+- No closing recap that merely restates the body. Keep a final line only when it
+  carries something new — a status, a next action, or a caveat.
+- Cut tone-only content. Apply the test: would removing this sentence lose any
+  fact, option, or caveat? If no, drop it. This bans crediting/blaming or
+  re-litigating who was right, reassurance, throat-clearing, and re-affirming
+  that the request will be done. Politeness that costs no extra sentence (neutral
+  tone, an inline "thanks") is fine; spending a sentence or clause on tone is not.
+- Never trim for brevity at the cost of trust. Removing redundancy and tone is
+  the lever; caveats, uncertainty, and disagreement are never cut to look
+  concise.
+
 ## Superpowers plan/spec output location
 
 When a superpowers skill (or any planning/brainstorming workflow) saves an
@@ -36,6 +64,7 @@ steps if UI-reachable, else the exact technical conditions (say so if no user
 can hit it). Close with `Suppressed N finding(s) already tracked in docs/todo.md`
 (omit when `N` is 0).
 
+<!-- markdownlint-disable MD013 -->
 > Code review — 2 findings (1 high, 1 low)
 
 **1. — 🔺 High · Confirmed**
@@ -49,3 +78,4 @@ Rollback `catch` can mask the original error
 `tools/snapshot/backup.ts:144`
 **What happens:** If the restore rename inside the `catch` throws, it shadows the real publish error.
 **Repro:** Not user-reproducible — needs the publish rename to fail and the rollback rename to also fail (e.g. a leftover `documents/` dir).
+<!-- markdownlint-enable MD013 -->

@@ -69,7 +69,7 @@
     "lint:md": "timeout ${TEST_TIMEOUT:-120}s pnpm run lint:md:raw",
     "lint:md:file": "timeout ${TEST_TIMEOUT:-120}s pnpm run lint:md:file:raw --",
     "lint:md:file:raw": "markdownlint-cli2 --no-globs",
-    "lint:md:raw": "markdownlint-cli2 \"AGENTS.md\" \"docs/**/*.md\" \".claude/skills/**/*.md\" \".codex/skills/**/*.md\"",
+    "lint:md:raw": "sh tools/lint-md.sh",
     "preview": "./tools/env.sh vite preview",
     "test": "pnpm run test:unit",
     "verify:ci": "pnpm install --frozen-lockfile --lockfile-only && pnpm run lint && pnpm run test:unit:full && pnpm run test:collab:full && pnpm run test:e2e:all && pnpm run audit:all",
