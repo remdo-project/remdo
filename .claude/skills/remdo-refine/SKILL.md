@@ -42,9 +42,12 @@ once, deterministically, in this order:
 Refine never silently infers the range from session context: it is given one, or
 (case 3) it confirms one before proceeding.
 
-If `origin/main` has advanced past `wip-base` (a cheap `git fetch` check), emit a
-**non-blocking** nudge — "origin/main is newer; consider `remdo-sync`" — and
-continue; a stale base does not stop a refine run.
+When the range is the `wip-base..HEAD` default (case 2), a stale base is worth a
+heads-up: if `origin/main` has advanced past `wip-base` (a cheap `git fetch`
+check), emit a **non-blocking** nudge — "origin/main is newer; consider
+`remdo-sync`" — and continue; a stale base does not stop a refine run. Skip this
+for an explicit range or a non-task branch, where `wip-base` and `remdo-sync` do
+not apply.
 
 **The working tree must be clean.** Staged, unstaged, or untracked changes sit
 outside the resolved range and would be silently unreviewed, so if the tree is dirty,
