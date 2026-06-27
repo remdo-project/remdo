@@ -13,7 +13,11 @@
 set -eu
 
 files=$(git ls-files '*.md' | while IFS= read -r f; do
+  # Trailing `:` keeps the loop body's exit status 0 even when the last path is
+  # a deleted-but-unstaged file (the `[ -e ]` test fails); otherwise the `while`
+  # subshell would exit non-zero and `set -e` would abort before linting.
   [ -e "$f" ] && printf '%s\n' "$f"
+  :
 done)
 
 [ -n "$files" ] || exit 0
