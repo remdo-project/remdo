@@ -64,15 +64,23 @@ sections to docs.
   gitignored and excluded from linting, so write throwaway working files here
   rather than under versioned paths like `docs/`. It is per-WD (not shared across
   worktrees); cross-WD agent state belongs under `~/.claude/` instead.
-- Never stage or commit unless the user literally says “commit” (or explicitly
-  agrees to your request to commit). When in doubt, assume the answer is “no”.
-  Exception: self-authorizing skills (`remdo-feature-flow`, `remdo-refine`,
-  `remdo-sync`, `remdo-deps-refresh`) may commit within their run, each only as
-  its own permission model allows — that model defines the branch scope, so
-  honour it rather than this default. By those models, feature-flow/refine/sync
-  commit on the confirmed task branch (never `dev`/`main`), while deps-refresh
-  lands its loop on `dev` (never `main`). Self-authorization covers commits only;
-  pushing still needs an explicit ask.
+- Never stage or commit unless you are operating under an **explicitly declared
+  autonomous scope**. When in doubt, assume the answer is “no”: make the changes,
+  leave them uncommitted, and point the user at them. A declared autonomous scope
+  comes from exactly one of:
+  1. The user explicitly authorizes a commit (literally says “commit”, or agrees
+     to your request to commit) — covers that one action.
+  2. The user explicitly hands you autonomous work (e.g. “work autonomously on
+     X”, “take this to done”) — covers commits made converging on that work.
+  3. A running skill declares an autonomous scope in its own SKILL.md. The
+     skill's declaration is the authorization and carries its own branch scope;
+     honour that scope rather than this default. (Self-authorizing skills today:
+     `remdo-feature-flow`, `remdo-refine`, `remdo-sync`, `remdo-deps-refresh` —
+     each states its scope where it lives, so this list is illustrative, not the
+     source of authority.)
+  Plain requests to update/change/fix/do X are **not** an autonomous-scope
+  declaration: produce the changes uncommitted and point at them. Authorization
+  covers commits only; pushing always needs an explicit, separate ask.
 - `git fetch` is always allowed (it only updates remote-tracking refs, never your
   work or the remote). Push, pull, mutating fetch refspecs, and opening PRs are
   not — they cross into the remote or rewrite your branch, and the user owns them.
@@ -154,6 +162,11 @@ sections to docs.
   [docs/run-modes.md](docs/run-modes.md). If this flow fails or drifts, report it.
 - When presenting multiple options or a list of questions, format them as a
   numbered list.
+- When presenting options to choose between, mark one **(Recommended)** and give
+  the reasoning for it. Scale the pros/cons to the weight of the decision: full
+  pros/cons for real forks, a one-line "why" for trivial picks. When it is
+  genuinely a toss-up with no basis to prefer one, say so and name the single
+  deciding factor for the user rather than manufacturing a pick.
 - The shared test harness treats console warnings/errors as failures; if you
   need temporary instrumentation during debugging, prefer `console.log` or
   `console.info` and remove the statements before finishing a task.
