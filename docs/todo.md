@@ -371,10 +371,3 @@ The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
   eventually be keyed to the active Better Auth session, or invalidated by a
   clear shared auth-state boundary, so same-tab identity changes cannot reuse
   stale home/user-data document ids.
-- Markdown lint scope (tradeoff, decided): `lint:md` is driven by
-  `git ls-files '*.md'`, so a brand-new untracked `.md` is not linted until
-  staged. Chosen deliberately over a filesystem glob because tracked-only
-  needs no ignore list and never lints scratch dirs (`.agent/`, `.remember/`,
-  `.git/`), and CI only sees committed state anyway. Revisit only if pre-stage
-  linting of new docs becomes a real need — then a `**/*.md` glob with explicit
-  `.remember`/`.git` ignores plus `gitignore: true` is the alternative.
