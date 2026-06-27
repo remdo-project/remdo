@@ -5,7 +5,7 @@ import { mergeRegister } from '@lexical/utils';
 import { useEffect } from 'react';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '#client/editor/commands';
 import { moveNotesDownInRange, moveNotesUpInRange } from '#client/editor/outline/note-ops';
-import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
+import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
 import { $resolveSelectedNoteRange } from './selected-note-range';
 
 type MoveDirection = 'up' | 'down';
@@ -18,8 +18,8 @@ function $moveSelection(
   if (!range) {
     return false;
   }
-  const boundaryRoot = $resolveZoomBoundaryRoot(editor);
-  return direction === 'up' ? moveNotesUpInRange(range, boundaryRoot) : moveNotesDownInRange(range, boundaryRoot);
+  const zoomRoot = $resolveZoomRoot(editor);
+  return direction === 'up' ? moveNotesUpInRange(range, zoomRoot) : moveNotesDownInRange(range, zoomRoot);
 }
 
 export function ReorderingPlugin() {

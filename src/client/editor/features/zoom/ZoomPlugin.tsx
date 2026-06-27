@@ -5,7 +5,7 @@ import {
 } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect, useRef } from 'react';
-import { setZoomBoundary } from '#client/editor/outline/selection/boundary';
+import { setZoomRoot } from './zoom-root';
 import type { UpdateListenerPayload } from 'lexical';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { useCollaborationStatus } from '#client/editor/plugins/collaboration/CollaborationProvider';
@@ -22,7 +22,7 @@ import { useZoomBulletInteractions } from './useZoomBulletInteractions';
 const EMPTY_ZOOM_STATE = {
   root: null,
   path: [] as NotePathItem[],
-  zoomBoundaryKey: null as string | null,
+  zoomRootKey: null as string | null,
   selectionInZoomRoot: false,
 };
 
@@ -44,19 +44,19 @@ export function ZoomPlugin() {
     zoomNoteIdRef.current = resolveZoomNoteId(zoomNoteId);
     const noteId = zoomNoteIdRef.current;
     if (!noteId) {
-      setZoomBoundary(editor, null);
+      setZoomRoot(editor, null);
       return;
     }
 
-    let zoomBoundaryKey: string | null = null;
+    let zoomRootKey: string | null = null;
     editor.getEditorState().read(() => {
       const root = $findNoteById(noteId);
       if (!root) {
         return;
       }
-      zoomBoundaryKey = root.getKey();
+      zoomRootKey = root.getKey();
     });
-    setZoomBoundary(editor, zoomBoundaryKey);
+    setZoomRoot(editor, zoomRootKey);
   }, [editor, zoomNoteId]);
 
   useEffect(() => {
@@ -107,12 +107,12 @@ export function ZoomPlugin() {
         return {
           root,
           path: $getNoteAncestorPath(root),
-          zoomBoundaryKey: root.getKey(),
+          zoomRootKey: root.getKey(),
           selectionInZoomRoot,
         };
       });
 
-      setZoomBoundary(editor, resolved.zoomBoundaryKey ?? null);
+      setZoomRoot(editor, resolved.zoomRootKey ?? null);
 
       if (!areNotePathsEqual(resolved.path, lastPathRef.current)) {
         lastPathRef.current = resolved.path;

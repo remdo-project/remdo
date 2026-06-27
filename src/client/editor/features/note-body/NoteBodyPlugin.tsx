@@ -22,7 +22,7 @@ import { useEffect } from 'react';
 
 import { getPreviousContentSibling, isChildrenWrapper } from '#client/editor/outline/list-structure';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { $resolveZoomBoundaryRoot } from '#client/editor/outline/selection/boundary';
+import { $resolveZoomRoot } from '#client/editor/features/zoom/zoom-root';
 import { BodyWrapperNode, isBodyWrapper } from './note-body-node';
 import type { NoteBodyNode } from './note-body-node';
 import {
@@ -219,11 +219,11 @@ export function NoteBodyPlugin() {
       if ($getActiveNoteBody()) {
         return false;
       }
-      const boundaryRoot = $resolveZoomBoundaryRoot(editor);
+      const zoomRoot = $resolveZoomRoot(editor);
       if (direction === 'left' || direction === 'right') {
-        return $skipBodyForHorizontalNav(direction, boundaryRoot) ? stop(event) : false;
+        return $skipBodyForHorizontalNav(direction, zoomRoot) ? stop(event) : false;
       }
-      return $skipBodyForVerticalNav(editor, direction, boundaryRoot) ? stop(event) : false;
+      return $skipBodyForVerticalNav(editor, direction, zoomRoot) ? stop(event) : false;
     };
 
     return mergeRegister(

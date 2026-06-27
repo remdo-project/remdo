@@ -3,8 +3,8 @@
 ## Purpose
 
 Define the user-visible behavior for isolating a single note and its
-subtree. Zoom is both a presentation filter and an editing scope boundary:
-while zoomed, editing stays inside the visible subtree. It is distinct from
+subtree. Zoom is both a presentation filter and an editing boundary: while
+zoomed, editing stays inside the visible subtree. It is distinct from
 caret/selection state in the editor.
 
 ## Definitions
@@ -13,7 +13,10 @@ caret/selection state in the editor.
   document root note represents the full document view).
 - **Zoom root:** The note whose subtree is displayed for the current zoom
   target.
-- **Zoom boundary:** The zoom root plus all of its descendants.
+- **Zoom boundary:** The zoom root plus all of its descendants — the subtree
+  edits are bounded to while zoomed. In code this bound is the zoom root
+  (`features/zoom/zoom-root.ts`); the generic membership check lives in
+  `outline/` (`isWithinBoundary`).
 - **View actions:** Commands that operate on the current zoom boundary rather
   than on a single note.
 - **Zoom path:** The ordered list of ancestors from the document to the zoom

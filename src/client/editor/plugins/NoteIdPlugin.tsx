@@ -41,7 +41,7 @@ import {
 import { getNoteBody, $getSelectionBody, $resolveNoteForSelectionPoint } from '#client/editor/features/note-body/note-body-ops';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
+import { getZoomRoot } from '#client/editor/features/zoom/zoom-root';
 import { $selectItemEdge } from '#client/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '#client/editor/outline/selection/caret-placement';
 import { $resolveStructuralDeletionHeads } from '#client/editor/outline/selection/deletion';
@@ -615,9 +615,9 @@ function $insertNodesAtSelection(
     if (orderedHeads.length === 0) {
       return false;
     }
-    const zoomBoundaryKey = getZoomBoundary(editor);
+    const zoomRootKey = getZoomRoot(editor);
     const zoomRootHead =
-      zoomBoundaryKey === null ? null : orderedHeads.find((head) => head.getKey() === zoomBoundaryKey) ?? null;
+      zoomRootKey === null ? null : orderedHeads.find((head) => head.getKey() === zoomRootKey) ?? null;
     if (zoomRootHead) {
       parentList = $getOrCreateChildList(zoomRootHead);
       nextSibling = getFirstDescendantListItem(parentList);
@@ -644,8 +644,8 @@ function $insertNodesAtSelection(
     if (!placement) {
       return false;
     }
-    const zoomBoundaryKey = getZoomBoundary(editor);
-    const isZoomRoot = zoomBoundaryKey !== null && contentItem.getKey() === zoomBoundaryKey;
+    const zoomRootKey = getZoomRoot(editor);
+    const isZoomRoot = zoomRootKey !== null && contentItem.getKey() === zoomRootKey;
 
     if (placement === 'start') {
       if (isZoomRoot) {

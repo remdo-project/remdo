@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-id-state';
 import { meta } from '#tests';
 import { $normalizeNoteIdsOnLoad } from '#client/editor/plugins/note-id-normalization';
-import { getLastDescendantListItem, getSubtreeItems, getSubtreeTail } from '#client/editor/outline/selection/tree';
+import { getLastDescendantListItem, getSubtreeItems, getSubtreeTail, isWithinBoundary } from '#client/editor/outline/selection/tree';
 
 function createListEditor(): { editor: LexicalEditor; dispose: () => void } {
   const editor = createEditor({
@@ -154,6 +154,77 @@ describe('selection tree helpers', () => {
       expect(result!.lastId).toBe(`deep${depth - 1}`);
       expect(result!.lastCollectedId).toBe(`deep${depth - 1}`);
       expect(result!.leafNoteId).toBe(`deep${depth - 1}`);
+    } finally {
+      dispose();
+    }
+  });
+});
+
+describe('isWithinBoundary', () => {
+  // Builds: root0 (with nested child0) and a top-level sibling outside0.
+  // Returns the three content items by role.
+  function $buildBoundaryOutline(): { root0: ListItemNode; child0: ListItemNode; outside0: ListItemNode } {
+    const root = $getRoot();
+    root.clear();
+    const rootList = $createListNode('bullet');
+    root.append(rootList);
+
+    const root0 = $createListItemNode();
+    $setState(root0, noteIdState, 'root0');
+    root0.append($createTextNode('root0'));
+    rootList.append(root0);
+
+    const wrapper = $createListItemNode();
+    const nested = $createListNode('bullet');
+    wrapper.append(nested);
+    rootList.append(wrapper);
+
+    const child0 = $createListItemNode();
+    $setState(child0, noteIdState, 'child0');
+    child0.append($createTextNode('child0'));
+    nested.append(child0);
+
+    const outside0 = $createListItemNode();
+    $setState(outside0, noteIdState, 'outside0');
+    outside0.append($createTextNode('outside0'));
+    rootList.append(outside0);
+
+    return { root0, child0, outside0 };
+  }
+
+  it('a null boundary means no limit — every item is within', meta({ fixture: 'flat' }), async () => {
+    const { editor, dispose } = createListEditor();
+    try {
+      let results: boolean[] = [];
+      await act(async () => {
+        editor.update(() => {
+          const { root0, child0, outside0 } = $buildBoundaryOutline();
+          results = [root0, child0, outside0].map((item) => isWithinBoundary(item, null));
+        });
+      });
+      expect(results).toEqual([true, true, true]);
+    } finally {
+      dispose();
+    }
+  });
+
+  it('the boundary root and its descendants are within; outside notes are not', meta({ fixture: 'flat' }), async () => {
+    const { editor, dispose } = createListEditor();
+    try {
+      let rootWithin = false;
+      let childWithin = false;
+      let outsideWithin = false;
+      await act(async () => {
+        editor.update(() => {
+          const { root0, child0, outside0 } = $buildBoundaryOutline();
+          rootWithin = isWithinBoundary(root0, root0);
+          childWithin = isWithinBoundary(child0, root0);
+          outsideWithin = isWithinBoundary(outside0, root0);
+        });
+      });
+      expect(rootWithin).toBe(true);
+      expect(childWithin).toBe(true);
+      expect(outsideWithin).toBe(false);
     } finally {
       dispose();
     }

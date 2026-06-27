@@ -56,6 +56,13 @@ Rules:
   `src/client/editor/features/<feature>/` when they own a cohesive plugin plus
   related nodes, helpers, UI, and focused unit tests. Likely candidates include
   note links and search, but keep migrations incremental and behavior-neutral.
+- Hoist the shared note-body primitives out of `features/note-body/` into the
+  shared layer: several `outline/` and `runtime/` modules import `isBodyWrapper`,
+  `$resolveNoteForSelectionPoint`, and body-selection helpers from
+  `note-body-node`/`note-body-ops`, violating the one-way feature→shared rule in
+  `docs/contributing.md#editor-feature-modules`. Move the cross-cutting body
+  primitives (the note-kind predicates and selection resolvers many shared
+  modules consume) to `outline/`, leaving feature-specific logic behind.
 - Pressing a hot key just after a node with text content (for example `!` right
   after an existing date node) fails to trigger, because the boundary check
   reads the previous node's rendered text and sees a non-boundary character.

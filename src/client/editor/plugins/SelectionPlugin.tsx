@@ -3,7 +3,7 @@ import { collapseSelectionToCaret, resolveBoundaryPoint } from '#client/editor/o
 import { $applyCaretEdge, setSelectionBetweenItems } from '#client/editor/outline/selection/apply';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND, PROGRESSIVE_SELECTION_DIRECTION_COMMAND } from '#client/editor/commands';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
-import { getZoomBoundary } from '#client/editor/outline/selection/boundary';
+import { getZoomRoot } from '#client/editor/features/zoom/zoom-root';
 import { $shouldBlockHorizontalArrow } from '#client/editor/outline/selection/navigation';
 import {
   $applyProgressivePlan,
@@ -151,7 +151,7 @@ export function SelectionPlugin() {
       // touched any node — as opposed to a selection-only change such as a
       // Shift+Click extension. Only a tree change re-replays the ladder.
       const treeChanged = dirtyElements.size > 0 || dirtyLeaves.size > 0;
-      const boundaryKey = getZoomBoundary(editor);
+      const zoomRootKey = getZoomRoot(editor);
       const { payload, hasStructuralSelection, structuralRange, outlineSelection, progression, unlock, reshape } =
         editorState.read(() =>
           $computeOutlineSelectionSnapshot({
@@ -162,7 +162,7 @@ export function SelectionPlugin() {
             progression: ladderRef.current,
             unlock: unlockRef.current,
             initialProgression: INITIAL_PROGRESSIVE_STATE,
-            boundaryKey,
+            boundaryKey: zoomRootKey,
           })
         );
 
@@ -242,10 +242,10 @@ export function SelectionPlugin() {
     const unregisterSelectAll = editor.registerCommand(
       SELECT_ALL_COMMAND,
       (event: KeyboardEvent | null) => {
-        const zoomBoundaryKey = getZoomBoundary(editor);
+        const zoomRootKey = getZoomRoot(editor);
         const planResult = editor
           .getEditorState()
-          .read(() => $computeProgressivePlan(ladderRef, INITIAL_PROGRESSIVE_STATE, zoomBoundaryKey));
+          .read(() => $computeProgressivePlan(ladderRef, INITIAL_PROGRESSIVE_STATE, zoomRootKey));
 
         if (!planResult) {
           return false;
@@ -303,7 +303,7 @@ export function SelectionPlugin() {
     );
 
     const $runDirectionalPlan = (direction: 'up' | 'down') => {
-      const zoomBoundaryKey = getZoomBoundary(editor);
+      const zoomRootKey = getZoomRoot(editor);
 
       unlockRef.current = { pending: true, reason: 'directional' };
 
@@ -312,7 +312,7 @@ export function SelectionPlugin() {
       // $computeDirectionalPlan owns the ladder ref: it pushes/pops the ladder
       // and returns either a plan, a collapse signal (popped to caret), a no-op
       // (stop-at-anchor / boundary), or null on an unresolvable selection.
-      const result = $computeDirectionalPlan(ladderRef, direction, INITIAL_PROGRESSIVE_STATE, zoomBoundaryKey);
+      const result = $computeDirectionalPlan(ladderRef, direction, INITIAL_PROGRESSIVE_STATE, zoomRootKey);
 
       if (!result) {
         ladderRef.current = INITIAL_PROGRESSIVE_STATE;

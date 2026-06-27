@@ -6,7 +6,6 @@ import type { LexicalEditor, LexicalNode, RangeSelection } from 'lexical';
 import { getBodyWrapper, getPreviousContentSibling } from '#client/editor/outline/list-structure';
 import { $isNoteFolded } from '#client/editor/runtime/fold-state';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { isWithinZoomBoundary } from '#client/editor/outline/selection/boundary';
 import { $selectItemEdge, isPointAtBoundary } from '#client/editor/outline/selection/caret';
 import {
   getFirstDescendantListItem,
@@ -14,6 +13,7 @@ import {
   getNestedList,
   getNextContentSibling,
   getParentContentItem,
+  isWithinBoundary,
 } from '#client/editor/outline/selection/tree';
 import type { NoteBodyNode } from './note-body-node';
 import { $createBodyWrapper, $isNoteBodyNode, isBodyWrapper } from './note-body-node';
@@ -227,7 +227,7 @@ export function $skipBodyForVerticalNav(
   // native nav to handle the boundary. (Structural checks first, so a plain Up in
   // a bodyless note doesn't pay the geometry read below.)
   const above = $noteAbove(note);
-  if (!above || !isWithinZoomBoundary(above, boundaryRoot) || !getBodyWrapper(above)) {
+  if (!above || !isWithinBoundary(above, boundaryRoot) || !getBodyWrapper(above)) {
     return false;
   }
   // Only redirect from the note's first visual line; an interior wrapped line
@@ -243,7 +243,7 @@ export function $skipBodyForVerticalNav(
 // boundary, or null when the next note is hidden by the zoom or there is none.
 function $noteBelowWithinBoundary(note: ListItemNode, boundaryRoot: ListItemNode | null): ListItemNode | null {
   const target = $noteBelow(note);
-  return target && isWithinZoomBoundary(target, boundaryRoot) ? target : null;
+  return target && isWithinBoundary(target, boundaryRoot) ? target : null;
 }
 
 /**
@@ -282,7 +282,7 @@ export function $skipBodyForHorizontalNav(direction: 'left' | 'right', boundaryR
     return false;
   }
   const above = $noteAbove(note);
-  if (!above || !isWithinZoomBoundary(above, boundaryRoot) || !getBodyWrapper(above)) {
+  if (!above || !isWithinBoundary(above, boundaryRoot) || !getBodyWrapper(above)) {
     return false;
   }
   $selectItemEdge(above, 'end');
