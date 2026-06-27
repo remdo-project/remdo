@@ -128,9 +128,11 @@ not fixed here.
 ## Permissions
 
 Refine commits each fix, so invoking it is an explicitly declared autonomous
-scope (per AGENTS.md): authorization to commit **on the current branch**,
-whatever it is — never push. Inside a `remdo-feature-flow` run, that skill's
-commit policy already governs.
+scope (per AGENTS.md): authorization to commit **on the current branch** — never
+push. The dropped task-branch restriction lets it run on `dev` as readily as a
+feature branch, but **`main` stays protected**: if invoked on `main`, warn and
+stop (same guard as the dirty-tree check) rather than self-committing there.
+Inside a `remdo-feature-flow` run, that skill's commit policy already governs.
 
 ## Final report
 
