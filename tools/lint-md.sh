@@ -13,24 +13,21 @@
 # but feeding a missing path to markdownlint errors, which would break the normal
 # (unstaged) workflow on any doc deletion or rename.
 #
-# Markdown paths in this repo contain no spaces or newlines, so newline-delimited
-# iteration is safe here and keeps the script POSIX sh (dash) compatible.
+# The whole pipeline is NUL-delimited. Untracked paths are arbitrary user-created
+# files, so — unlike tracked paths — they may contain spaces or newlines; a
+# whitespace-split pipeline would feed split fragments to markdownlint, which
+# silently lints nothing for them and lets a misnamed new doc bypass the linter.
 set -eu
 
+# Tracked plus new-not-gitignored Markdown, NUL-delimited.
 list_md() {
-  git ls-files '*.md'                      # tracked
-  git ls-files --others --exclude-standard '*.md'  # new, not gitignored
+  git ls-files -z '*.md'
+  git ls-files -z --others --exclude-standard '*.md'
 }
 
-files=$(list_md | while IFS= read -r f; do
-  # Trailing `:` keeps the loop body's exit status 0 even when the last path is
-  # a deleted-but-unstaged file (the `[ -e ]` test fails); otherwise the `while`
-  # subshell would exit non-zero and `set -e` would abort before linting.
-  [ -e "$f" ] && printf '%s\n' "$f"
-  :
-done)
-
-[ -n "$files" ] || exit 0
-
-# shellcheck disable=SC2086 # word-splitting is intentional: one arg per path.
-printf '%s\n' "$files" | xargs -r markdownlint-cli2 --no-globs
+# Keep only paths that still exist on disk; batched (one `sh` for the whole set),
+# re-emitting NUL-delimited so spaces/newlines in paths survive to markdownlint.
+# shellcheck disable=SC2016 # $f must expand in the child sh -c, not here.
+list_md \
+  | xargs -0 -r sh -c 'for f do [ -e "$f" ] && printf "%s\0" "$f"; done' _ \
+  | xargs -0 -r markdownlint-cli2 --no-globs
