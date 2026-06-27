@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { config } from '#config';
 import { resolveActor, resolveActorResolution } from '#server/auth/actor';
 import { createAuthTrustedOrigins } from '#server/auth/auth';
 import { createTestResource } from '../_support/test-resource';
@@ -82,10 +83,26 @@ describe('server auth trusted origins', () => {
     expect(createAuthTrustedOrigins('http://127.0.0.1:4000', {
       machineHostname: 'dev-vm',
       mode: 'development',
+      previewPort: 4000,
     })).toEqual([
       'http://127.0.0.1:4000',
       'http://localhost:4000',
       'http://dev-vm:4000',
+    ]);
+  });
+
+  it('also trusts the preview port so a hostname-addressed preview can sign in', () => {
+    expect(createAuthTrustedOrigins('http://127.0.0.1:4000', {
+      machineHostname: 'dev-vm',
+      mode: 'development',
+      previewPort: 4005,
+    })).toEqual([
+      'http://127.0.0.1:4000',
+      'http://localhost:4000',
+      'http://dev-vm:4000',
+      'http://localhost:4005',
+      'http://127.0.0.1:4005',
+      'http://dev-vm:4005',
     ]);
   });
 
@@ -106,6 +123,27 @@ describe('server auth trusted origins', () => {
         'content-type': 'application/json',
         cookie: headers.get('cookie') ?? '',
         origin: 'http://localhost:4000',
+      },
+      body: '{}',
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  it('accepts mutating auth requests from a preview-port origin', async () => {
+    // The harness auth (baseURL port 4000) also trusts the configured preview
+    // port, so a request whose Origin is the preview app server is not rejected
+    // as cross-origin — this is what lets a hostname-addressed `vite preview`
+    // sign in instead of bouncing to the offline page.
+    const harness = createHarness();
+    const headers = await harness.createSessionHeaders();
+
+    const response = await harness.app.request('/api/auth/sign-out', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        cookie: headers.get('cookie') ?? '',
+        origin: `http://localhost:${config.env.PREVIEW_PORT}`,
       },
       body: '{}',
     });
