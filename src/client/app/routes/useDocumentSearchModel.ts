@@ -25,9 +25,17 @@ interface UseDocumentSearchModelOptions {
   setZoomNoteId: (noteId: string | null) => void;
 }
 
+// Cap the rendered flat results: a large document otherwise matches hundreds of
+// notes (every note on an empty query), and rendering each row — with its child
+// preview and per-row ancestor-path walk — is what makes opening search on a big
+// outline feel slow. The first results in document order are the useful ones;
+// the rest are reachable by typing a more specific query.
+export const SEARCH_RESULT_LIMIT = 10;
+
 interface UseDocumentSearchModelResult {
   childCandidateMap: Record<string, ChildCandidate[]>;
   flatResults: SearchCandidate[];
+  totalResultCount: number;
   handleSearchBlur: () => void;
   handleSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleSearchCompositionEnd: (event: CompositionEvent<HTMLInputElement>) => void;
@@ -124,9 +132,18 @@ export function useDocumentSearchModel({
   const currentDocumentCandidatesReady = currentDocumentCandidates.ready;
   const searchModeActive = searchModeRequested && currentDocumentCandidatesReady;
 
-  const flatResults = useMemo(
+  const matchedResults = useMemo(
     () => filterCandidates(currentDocumentCandidates.allCandidates, searchQuery),
     [currentDocumentCandidates.allCandidates, searchQuery]
+  );
+  // Render (and navigate) only the first SEARCH_RESULT_LIMIT matches; the total
+  // drives the "showing N of M" truncation hint.
+  const totalResultCount = matchedResults.length;
+  const flatResults = useMemo(
+    () => (matchedResults.length > SEARCH_RESULT_LIMIT
+      ? matchedResults.slice(0, SEARCH_RESULT_LIMIT)
+      : matchedResults),
+    [matchedResults]
   );
   const navigationCandidates = searchModeActive ? flatResults : EMPTY_SEARCH_CANDIDATES;
   const resolvedHighlightedNoteId = useMemo(
@@ -248,6 +265,7 @@ export function useDocumentSearchModel({
   return {
     childCandidateMap: currentDocumentCandidates.childCandidateMap,
     flatResults,
+    totalResultCount,
     handleSearchBlur,
     handleSearchChange,
     handleSearchCompositionEnd,

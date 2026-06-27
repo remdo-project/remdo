@@ -258,6 +258,7 @@ function DocumentRouteContent({
   const {
     childCandidateMap,
     flatResults,
+    totalResultCount,
     handleSearchBlur,
     handleSearchChange,
     handleSearchCompositionEnd,
@@ -628,6 +629,17 @@ function DocumentRouteContent({
                 {searchQuery.length > 0 ? 'No matches' : 'No notes'}
               </li>
             )}
+            {totalResultCount > flatResults.length ? (
+              // Non-interactive cue that the list is capped — not a `role="option"`,
+              // so it stays out of arrow navigation and active-descendant linkage.
+              <li
+                aria-disabled="true"
+                className="document-search-results-truncation"
+                data-search-result-truncation
+              >
+                {`Showing ${flatResults.length} of ${totalResultCount} — refine your search`}
+              </li>
+            ) : null}
           </ol>
         </section>
       ) : null}

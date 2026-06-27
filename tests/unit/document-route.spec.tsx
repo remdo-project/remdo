@@ -1134,6 +1134,84 @@ describe('document route', () => {
     });
   });
 
+  describe('result limit', () => {
+    // A flat document of 12 top-level notes: 'note01'..'note12'. Empty query
+    // matches every one, so it exercises the cap (10) plus truncation hint.
+    const manyNotesSnapshot = (): TestSearchSnapshot => {
+      const ids = Array.from({ length: 12 }, (_unused, i) => `note${String(i + 1).padStart(2, '0')}`);
+      return {
+        allCandidates: ids.map((id) => ({ noteId: id, text: id })),
+        childCandidateMap: {
+          [ROOT_SEARCH_SCOPE_ID]: ids.map((id) => ({ noteId: id, text: id })),
+          ...Object.fromEntries(ids.map((id) => [id, []])),
+        },
+      };
+    };
+
+    const setManyNotes = () => {
+      (globalThis as typeof globalThis & MockSearchGlobals).__remdoMockSearchCandidatesByDoc = {
+        routeDoc: manyNotesSnapshot(),
+      };
+    };
+
+    it('caps flat results at ten and reports the truncated total', async () => {
+      setManyNotes();
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
+      });
+
+      // Only the first ten notes in document order render as result rows.
+      const labels = getResultLabels();
+      expect(labels).toEqual([
+        'note01', 'note02', 'note03', 'note04', 'note05',
+        'note06', 'note07', 'note08', 'note09', 'note10',
+      ]);
+
+      // The truncation row reports shown/total and is not a navigable option.
+      const truncation = document.querySelector<HTMLElement>('[data-search-result-truncation]');
+      expect(truncation?.textContent).toBe('Showing 10 of 12 — refine your search');
+      expect(truncation?.getAttribute('role')).not.toBe('option');
+    });
+
+    it('stops arrow navigation at the capped tenth result', async () => {
+      setManyNotes();
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      await waitFor(() => {
+        expect(getActiveResultLabel()).toBe('note01');
+      });
+
+      // Pressing ArrowDown past the cap settles on the tenth row, never the
+      // eleventh/twelfth (which are not rendered or navigable).
+      for (let i = 0; i < 15; i += 1) {
+        fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
+      }
+      await waitFor(() => {
+        expect(getActiveResultLabel()).toBe('note10');
+      });
+    });
+
+    it('omits the truncation row when results fit within the cap', async () => {
+      // The default route fixture has five notes — fewer than the cap.
+      renderDocumentRoute();
+
+      const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+      searchInput.focus();
+      await waitFor(() => {
+        expect(screen.getByTestId('document-search-results')).toBeInTheDocument();
+      });
+
+      expect(document.querySelector('[data-search-result-truncation]')).toBeNull();
+    });
+  });
+
   it('dismisses search on outside primary click without changing the route', async () => {
     const router = renderDocumentRoute();
 
