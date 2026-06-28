@@ -60,8 +60,9 @@ export function deriveAuthTrustedOrigins({
 
   appendLocalDevAliases(origins, url.protocol, port, hostname);
 
-  if (previewPort && String(previewPort) !== port) {
-    appendLocalDevAliases(origins, url.protocol, String(previewPort), hostname);
+  const previewPortStr = previewPort ? String(previewPort) : '';
+  if (previewPortStr && previewPortStr !== port) {
+    appendLocalDevAliases(origins, url.protocol, previewPortStr, hostname);
   }
   return origins;
 }

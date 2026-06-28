@@ -89,11 +89,10 @@ Rules:
 
 ## Offline and local persistence follow-ups
 
-- Offline route should redirect away once the page is actually online: the
-  `/offline` route can be reached during a transient failure and then stays put
-  even after connectivity returns. It should re-resolve the session (or watch
-  `navigator.onLine`/an online event) and redirect to the intended destination
-  when online again.
+- Offline route should redirect away once back online: `/offline` is reachable
+  on a transient failure but stays put after connectivity returns. Watch
+  `navigator.onLine`/the online event (or re-resolve the session) and redirect to
+  the intended destination.
 - Offline collaboration retry follow-up: reduce Y-Sweet document client token
   fetch and websocket reconnect noise when the app server or collaboration
   server is unavailable. The editor should keep showing a clear disconnected
