@@ -35,7 +35,7 @@ export interface TriggerPopupHandlers<TOption> {
 
 // The range covering the trigger character through the caret — the span a
 // commit replaces — plus the caret's (text) node and the resolved query.
-export interface TriggerCommitTarget {
+interface TriggerCommitTarget {
   range: RangeSelection;
   anchorNode: TextNode;
   query: string;
