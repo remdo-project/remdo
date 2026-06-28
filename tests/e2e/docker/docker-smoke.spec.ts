@@ -259,8 +259,10 @@ test('mutating auth requests are rejected from an untrusted origin and accepted 
     });
     expect(signInResponse.status()).toBe(HTTP_STATUS.OK);
 
-    // Forged Origin: the origin gate rejects the request before it can sign out,
-    // so the isolated session stays valid for the accepted-origin check below.
+    const currentUser = () => isolatedContext.fetch('/api/current-user', { failOnStatusCode: false });
+
+    // Forged Origin: the origin gate rejects the request before the sign-out
+    // handler runs.
     const forgedResponse = await isolatedContext.fetch('/api/auth/sign-out', {
       method: 'POST',
       headers: { 'content-type': 'application/json', origin: 'http://evil.example.com' },
@@ -268,8 +270,13 @@ test('mutating auth requests are rejected from an untrusted origin and accepted 
       failOnStatusCode: false,
     });
     expect(forgedResponse.status()).toBe(HTTP_STATUS.FORBIDDEN);
+    // The rejected request never reached sign-out, so the session is still live.
+    // (sign-out returns 200 even with no session, so this is what makes the
+    // accepted-origin assertion below meaningful rather than a no-op 200.)
+    expect((await currentUser()).status()).toBe(HTTP_STATUS.OK);
 
-    // Same request from the trusted gateway origin: the sign-out succeeds.
+    // Same request from the trusted gateway origin is accepted and actually signs
+    // out: the follow-up current-user read is now unauthenticated.
     const trustedResponse = await isolatedContext.fetch('/api/auth/sign-out', {
       method: 'POST',
       headers: { 'content-type': 'application/json', origin: gatewayOrigin },
@@ -277,6 +284,7 @@ test('mutating auth requests are rejected from an untrusted origin and accepted 
       failOnStatusCode: false,
     });
     expect(trustedResponse.status()).toBe(HTTP_STATUS.OK);
+    expect((await currentUser()).status()).toBe(HTTP_STATUS.UNAUTHORIZED);
   } finally {
     await isolatedContext.dispose();
   }
