@@ -230,6 +230,12 @@ Remaining issues to fold in or fix directly:
 
 ## Test harness follow-ups
 
+- `createServerAppHarness` takes `baseURL` but not `trustedOrigins`, so auth uses
+  the env-derived `config.server.AUTH_TRUSTED_ORIGINS` singleton; the preview-port
+  origin test in `tests/unit/server/auth.spec.ts` passes only because the test
+  env's `PORT`/`PREVIEW_PORT` align with the hardcoded harness `baseURL`. Make it
+  self-contained (thread `trustedOrigins` into the harness, or derive the expected
+  origins from `baseURL`) so it doesn't depend on `env.sh`-populated ports.
 - Redesign `toMatchOutline` note content expectations from flattened text into
   node-level content. Target shape:
   `{ noteId: 'note1', content: [{ text: 'before ' }, { date: '2026-06-10' }, { text: ' after' }] }`.
