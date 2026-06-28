@@ -2,7 +2,7 @@ import type { EditorNote, EditorNotes, NoteListType } from '#note-sdk';
 import { matchesPathQuery } from '#client/search/query-match';
 
 /** A note's render-relevant fields, used for the child preview. */
-export interface ChildCandidate {
+interface ChildCandidate {
   noteId: string;
   text: string;
   listType: NoteListType;

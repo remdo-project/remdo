@@ -30,12 +30,12 @@ interface UseDocumentSearchModelOptions {
   setZoomNoteId: (noteId: string | null) => void;
 }
 
-// Cap the rendered flat results: a large document otherwise matches hundreds of
-// notes (every note on an empty query), and rendering each row — with its child
-// preview and per-row ancestor-path walk — is what makes opening search on a big
-// outline feel slow. The first results in document order are the useful ones;
-// the rest are reachable by typing a more specific query.
-export const SEARCH_RESULT_LIMIT = 10;
+// Cap the flat results: a large document otherwise matches hundreds of notes
+// (every note on an empty query). The cap is applied during collection (see
+// collectDocumentSearchResults), so opening search stays fast. The first results
+// in document order are the useful ones; the rest are reached by a more specific
+// query.
+const SEARCH_RESULT_LIMIT = 10;
 
 interface UseDocumentSearchModelResult {
   childPreviewByNoteId: Record<string, ChildPreview>;
