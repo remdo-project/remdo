@@ -11,6 +11,12 @@ interface OutlineCase {
   outline: Outline;
 }
 
+// Fixtures intentionally excluded from outline-content coverage. `large` is a
+// performance fixture (~600 notes seeded for dev/search profiling, not outline
+// assertions); hand-authoring and maintaining its full expected outline here
+// would add no value.
+const COVERAGE_EXCLUDED_FIXTURES = new Set(['large']);
+
 const CASES: OutlineCase[] = [
   {
     fixture: 'flat',
@@ -130,7 +136,8 @@ describe('toMatchOutline smoke coverage', () => {
     const entries = await fs.readdir(fixturesRoot);
     const fixtureNames = entries
       .filter((entry) => entry.endsWith('.json'))
-      .map((entry) => entry.slice(0, -'.json'.length));
+      .map((entry) => entry.slice(0, -'.json'.length))
+      .filter((fixture) => !COVERAGE_EXCLUDED_FIXTURES.has(fixture));
 
     const sortedFixtureNames = fixtureNames.toSorted();
     const covered = CASES.map(({ fixture }) => fixture).toSorted();

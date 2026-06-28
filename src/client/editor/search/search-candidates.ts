@@ -1,7 +1,8 @@
 import type { EditorNote, EditorNotes, NoteListType } from '#note-sdk';
+import { matchesPathQuery } from '#client/search/query-match';
 
 /** A note's render-relevant fields, used for the child preview. */
-export interface ChildCandidate {
+interface ChildCandidate {
   noteId: string;
   text: string;
   listType: NoteListType;
@@ -12,6 +13,30 @@ export interface ChildCandidate {
  *  chain + own text, own text last) for path-scoped query matching. */
 export interface SearchCandidate extends ChildCandidate {
   pathText: string[];
+}
+
+/** The first few direct children of a result (for the row preview) plus the
+ *  exact total direct-child count (the row shows "+N more" from the remainder). */
+export interface ChildPreview {
+  items: ChildCandidate[];
+  totalCount: number;
+}
+
+export interface DocumentSearchResults {
+  /** Matching notes in document order, capped at the requested limit. */
+  flatResults: SearchCandidate[];
+  /** Child preview keyed by result note id, built only for the shown results. */
+  childPreviewByNoteId: Record<string, ChildPreview>;
+  /** True when at least one match exists beyond the returned results. */
+  hasMore: boolean;
+}
+
+export interface DocumentSearchOptions {
+  query: string;
+  /** Maximum number of matching results to return. */
+  limit: number;
+  /** Maximum direct children to include in each result's preview. */
+  childPreviewLimit: number;
 }
 
 function toChildCandidate(note: EditorNote): ChildCandidate {
@@ -28,8 +53,24 @@ interface CandidateWalkEntry {
   ancestorLabels: string[];
 }
 
-export function collectSearchCandidates(editorNotes: Pick<EditorNotes, 'currentDocument'>): SearchCandidate[] {
-  const candidates: SearchCandidate[] = [];
+/**
+ * Collect the search results in a single capped, query-aware document-order
+ * walk. Matching is applied inline so the walk stops once `limit` matches are
+ * collected (plus a one-past peek to set `hasMore`), instead of building the
+ * whole document's candidate set and slicing afterwards — the cost that makes
+ * opening search on a large outline slow.
+ *
+ * The render-only reads (`listType`/`checked`, child previews) are taken only
+ * for collected results, never for skipped or merely-peeked notes.
+ */
+export function collectDocumentSearchResults(
+  editorNotes: Pick<EditorNotes, 'currentDocument'>,
+  { query, limit, childPreviewLimit }: DocumentSearchOptions,
+): DocumentSearchResults {
+  const flatResults: SearchCandidate[] = [];
+  const childPreviewByNoteId: Record<string, ChildPreview> = {};
+  let hasMore = false;
+
   const stack: CandidateWalkEntry[] = editorNotes.currentDocument().children()
     .toReversed()
     .map((note) => ({ note, ancestorLabels: [] }));
@@ -37,32 +78,32 @@ export function collectSearchCandidates(editorNotes: Pick<EditorNotes, 'currentD
   while (stack.length > 0) {
     const { note, ancestorLabels } = stack.pop()!;
     const pathText = [...ancestorLabels, note.text()];
-    candidates.push({ ...toChildCandidate(note), pathText });
 
+    const matches = matchesPathQuery(pathText, query);
+    if (matches && flatResults.length === limit) {
+      // One match past the limit: enough to report there are more, and the
+      // signal to stop. Bail before reading this note's children — for a large
+      // parent that read maps the whole nested list, a cost we'd never use since
+      // the peeked match is not built into the results.
+      hasMore = true;
+      break;
+    }
+
+    // Children are needed for collected matches (preview) and every note's
+    // traversal, so read them once here — but only past the peek-break above.
     const children = note.children();
+    if (matches) {
+      flatResults.push({ ...toChildCandidate(note), pathText });
+      childPreviewByNoteId[note.id()] = {
+        items: children.slice(0, childPreviewLimit).map(toChildCandidate),
+        totalCount: children.length,
+      };
+    }
+
     for (let index = children.length - 1; index >= 0; index -= 1) {
       stack.push({ note: children[index]!, ancestorLabels: pathText });
     }
   }
 
-  return candidates;
+  return { flatResults, childPreviewByNoteId, hasMore };
 }
-
-export function collectChildCandidateMap(editorNotes: Pick<EditorNotes, 'currentDocument'>): Record<string, ChildCandidate[]> {
-  const rootNotes = editorNotes.currentDocument().children();
-  const childCandidateMap: Record<string, ChildCandidate[]> = {};
-  const stack: EditorNote[] = rootNotes.toReversed();
-
-  while (stack.length > 0) {
-    const note = stack.pop()!;
-    const children = note.children();
-    childCandidateMap[note.id()] = children.map((child) => toChildCandidate(child));
-
-    for (let index = children.length - 1; index >= 0; index -= 1) {
-      stack.push(children[index]!);
-    }
-  }
-
-  return childCandidateMap;
-}
-

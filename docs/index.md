@@ -78,9 +78,10 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/reordering.md` (Short). Directional reorder fallback cascade: swap,
   parent-sibling reparent, outdent, then no-op.
 - `docs/outliner/search.md` (Long). Search behavior: focus-driven mode
-  entry/exit, single highlighted note in always-flat results (including empty
-  query), path-token query matching (order-independent substring tokens over a
-  note's ancestor path, with at least one token on the note itself), Enter-to-zoom,
+  entry/exit, single highlighted note in flat results (including empty query)
+  capped at the first ten matches with a refine-to-narrow cue, path-token query
+  matching (order-independent substring tokens over a note's ancestor path, with
+  at least one token on the note itself), Enter-to-zoom,
   click/hover and arrow navigation, combobox/listbox accessibility semantics, and uniform
   per-result structural context (matched note as primary label, a dim truncating
   ancestor subline with clickable crumbs and token highlighting, and an
