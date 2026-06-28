@@ -25,19 +25,11 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
-## Inline trigger pickers (`@`/`!`) alignment + centralization
+## Inline trigger pickers (`@`/`!`)
 
-- Spec landed: `docs/outliner/triggers.md` (shared lifecycle); `dates.md` and
-  `links.md` now defer to it. Code still implements two divergent engines —
-  build the shared trigger-session engine and retire stock
-  `LexicalTypeaheadMenuPlugin` for dates.
-- Behavior changes to implement: `@` Esc keep (not delete); `@` Backspace delete
-  bare trigger (not keep); `@` boundary-gate; `!` no reopen on caret re-entry.
-- Keep date-token atomic nav + click-to-edit in `DatePlugin` (not the engine).
-  Watch command-priority interleaving (engine trigger commands vs token
-  Backspace/Delete/Esc, body-arrow deferral) — needs targeted tests.
-- Decided: boundary-gate both with no mid-word `@` exception; if `foo@bar`
-  inline linking is ever wanted, add it as an explicit exception then.
+- [Future] Both triggers are boundary-gated with no mid-word exception. If
+  inline `foo@bar`-style linking is ever wanted, add it as an explicit exception
+  to the boundary rule in `docs/outliner/triggers.md`, not a default change.
 
 ## Search architecture
 
