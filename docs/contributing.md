@@ -16,6 +16,7 @@ Name topic branches with clear prefixes so intent is obvious:
 - `fix/` for bug patches.
 - `refactor/` for structural or technical debt cleanups that do not change
   behavior.
+- `perf/` for performance-related work.
 - `chore/` for maintenance tasks such as dependency bumps or tooling tweaks.
 - `docs/` for documentation-only work.
 

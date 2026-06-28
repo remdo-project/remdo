@@ -248,6 +248,13 @@
   color: var(--mantine-color-dark-2);
 }
 
+.document-search-results-truncation {
+  margin: 0;
+  padding-inline-start: calc(var(--remdo-bullet-allowance) - 1px);
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dark-2);
+}
+
 @media (max-width: 48em) {
   .document-header-search {
     min-width: 8rem;
