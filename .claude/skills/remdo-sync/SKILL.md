@@ -57,19 +57,26 @@ re-fork from current `origin/main` rather than waiting on sync.
 
 - **Clean working tree** — merge needs it; commit or stash first.
 
-Sync runs on whatever branch is checked out (no branch-name gate). If `wip-base`
-is not anchored for the current branch, skip the re-anchor (step 6); the merge and
-the gate below still apply.
+Sync runs on whatever branch is checked out (no branch-name gate). `wip-base` is
+a single tag with no branch attached, so first decide whether it is **this
+branch's** anchor — i.e. it marks this branch's fork point (on the branch's own
+history), not a tag left over from another branch's flow. If it is **not** this
+branch's anchor (absent, or pointing into unrelated history), there is no
+branch-own-work invariant to protect: **skip both the gate (step 2) and the
+re-anchor (step 6)** and just merge `origin/main` (steps 1, 3–5). The gate and
+re-anchor below apply only when `wip-base` is this branch's anchor.
 
 ## The flow
 
 1. **Fetch.** `git fetch --prune` (always allowed — it only updates
    remote-tracking refs).
-2. **Check the gate** above — always, before any merge or re-anchor. False → stop
-   with the explanation. True → continue.
+2. **Check the gate** above (only when `wip-base` is this branch's anchor — see
+   Preconditions; otherwise skip to step 3), before any merge or re-anchor. False
+   → stop with the explanation. True → continue.
 3. **Already up to date?** If `origin/main` is already reachable from `HEAD`
    (nothing to merge — e.g. a prior manual merge, or a sync interrupted before the
-   re-anchor), skip the merge and go straight to step 6 to fix the tag.
+   re-anchor), skip the merge and go straight to step 6 to fix the tag (or finish
+   here if step 6 is being skipped).
 4. **Probe for conflicts without touching the tree** — `git merge-tree
    --write-tree --merge-base $(git merge-base HEAD origin/main) HEAD origin/main`.
 5. **Merge** (and resolve, if conflicts). `git merge origin/main`. Resolve only
