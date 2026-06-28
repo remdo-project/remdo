@@ -635,7 +635,9 @@ describe('date nodes', () => {
     await typeText(remdo, ' !');
 
     expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
-    await mouseDownElement(remdo.editor.getRootElement()!);
+    // A pointer press outside the editor and picker dismisses it (clicks inside
+    // the editor dismiss instead by moving the caret off the trigger).
+    await mouseDownElement(document.body);
 
     expect(document.querySelector('[data-date-picker]')).toBeNull();
     expect(remdo).toMatchOutline([
@@ -701,5 +703,19 @@ describe('date nodes', () => {
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
+  });
+
+  it('does not reopen the picker when the caret returns beside an existing !', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Once closed, an existing ! is plain text: only a fresh ! keypress reopens,
+    // never moving the caret back beside it (shared trigger lifecycle).
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' !');
+    await pressKey(remdo, { key: 'Escape' });
+    expect(document.querySelector('[data-date-picker]')).toBeNull();
+
+    // Move the caret off the ! and back beside it.
+    await pressKey(remdo, { key: 'ArrowLeft' });
+    await pressKey(remdo, { key: 'ArrowRight' });
+    expect(document.querySelector('[data-date-picker]')).toBeNull();
   });
 });

@@ -25,6 +25,7 @@ export function NoteLinkPicker({ picker, handlers }: NoteLinkPickerProps) {
   return (
     <div
       className="note-link-picker"
+      data-note-link-picker
       role="listbox"
       aria-label="Link notes"
       aria-activedescendant={activeOptionId}

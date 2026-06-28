@@ -9,7 +9,7 @@ test.describe('note links', () => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
 
-    await page.keyboard.type('@note2');
+    await page.keyboard.type(' @note2');
 
     const picker = editorLocator(page).locator('[data-note-link-picker]');
     await expect(picker).toHaveCount(1);
@@ -21,7 +21,7 @@ test.describe('note links', () => {
     await expect(picker).toHaveCount(0);
     await expect(editorLocator(page).getByRole('link', { name: 'note2' })).toHaveCount(1);
     await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1note2 ' },
+      { noteId: 'note1', text: 'note1 note2 ' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -31,7 +31,7 @@ test.describe('note links', () => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
 
-    await page.keyboard.type('@note2');
+    await page.keyboard.type(' @note2');
     await page.keyboard.press('Enter');
 
     const link = editorLocator(page).getByRole('link', { name: 'note2' });
@@ -46,7 +46,7 @@ test.describe('note links', () => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
 
-    await page.keyboard.type('@note');
+    await page.keyboard.type(' @note');
 
     const picker = editorLocator(page).locator('[data-note-link-picker]');
     const note3Option = picker.locator('[data-note-link-picker-item]').filter({ hasText: 'note3' }).first();
@@ -60,7 +60,7 @@ test.describe('note links', () => {
     await expect(picker).toHaveCount(0);
     await expect(editorLocator(page).getByRole('link', { name: 'note3' })).toHaveCount(1);
     await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1note3 ' },
+      { noteId: 'note1', text: 'note1 note3 ' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -70,7 +70,7 @@ test.describe('note links', () => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
 
-    await page.keyboard.type('@note');
+    await page.keyboard.type(' @note');
 
     const listbox = editorLocator(page).locator('.note-link-picker[role="listbox"]');
     const options = listbox.locator('[data-note-link-picker-item]');
@@ -111,7 +111,7 @@ test.describe('note links', () => {
 
     // Back to note1's content, then open the @ picker.
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
-    await page.keyboard.type('@note');
+    await page.keyboard.type(' @note');
 
     const listbox = editorLocator(page).locator('.note-link-picker[role="listbox"]');
     const options = listbox.locator('[data-note-link-picker-item]');
@@ -143,7 +143,7 @@ test.describe('note links', () => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
 
-    await page.keyboard.type('@missing');
+    await page.keyboard.type(' @missing');
 
     const picker = editorLocator(page).locator('[data-note-link-picker]');
     await expect(picker).toHaveCount(1);
@@ -153,7 +153,7 @@ test.describe('note links', () => {
 
     await expect(picker).toHaveCount(0);
     await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1@missing' },
+      { noteId: 'note1', text: 'note1 @missing' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -163,7 +163,7 @@ test.describe('note links', () => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
 
-    await page.keyboard.type('@note');
+    await page.keyboard.type(' @note');
 
     const picker = editorLocator(page).locator('[data-note-link-picker]');
     await expect(picker).toHaveCount(1);
@@ -174,7 +174,7 @@ test.describe('note links', () => {
 
     await expect(picker).toHaveCount(0);
     await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1@note' },
+      { noteId: 'note1', text: 'note1 @note' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -184,7 +184,7 @@ test.describe('note links', () => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
 
-    await page.keyboard.type('@note');
+    await page.keyboard.type(' @note');
 
     const picker = editorLocator(page).locator('[data-note-link-picker]');
     await expect(picker).toHaveCount(1);
@@ -197,7 +197,7 @@ test.describe('note links', () => {
 
     await expect(picker).toHaveCount(0);
     await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1@note' },
+      { noteId: 'note1', text: 'note1 @note' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -210,7 +210,7 @@ test.describe('note links', () => {
     await editorLocator(page).locator('.editor-input').first().waitFor();
 
     await setCaretAtText(page, 'note3', Number.POSITIVE_INFINITY);
-    await page.keyboard.type('@note1');
+    await page.keyboard.type(' @note1');
 
     const picker = editorLocator(page).locator('[data-note-link-picker]');
     await expect(picker).toHaveCount(1);

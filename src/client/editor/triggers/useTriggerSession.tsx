@@ -223,6 +223,20 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
     return { range, anchorNode, query: resolved.query };
   }, []);
 
+  // Delete the bare trigger character (used by Backspace on an empty query) and
+  // end the session. The commit range over an empty query is exactly the
+  // trigger character.
+  const $deleteTriggerChar = useCallback((): boolean => {
+    const target = $resolveCommitTarget();
+    if (!target) {
+      return false;
+    }
+    $setSelection(target.range);
+    target.range.insertText('');
+    closeSession();
+    return true;
+  }, [$resolveCommitTarget, closeSession]);
+
   // Commit an explicit option over the current trigger span. Used by popups
   // that pick a value directly (e.g. clicking a calendar day) rather than from
   // the resolved option list.
@@ -403,17 +417,21 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       ),
       editor.registerCommand(
         KEY_BACKSPACE_COMMAND,
-        () => {
-          // Backspace is ordinary editing: deleting back past the trigger ends
-          // the session because the match is gone. With an empty query the
-          // trigger char is what gets deleted; let the keystroke through and
-          // close.
+        (event: KeyboardEvent | null) => {
+          // Backspace is ordinary editing. With a non-empty query, let the
+          // keystroke shorten it (the engine re-syncs). With an empty query the
+          // only thing to delete is the trigger character itself: remove it and
+          // end the session.
           const current = pickerRef.current;
           if (!sessionRef.current || !current || current.query.length > 0) {
             return false;
           }
-          closeSession();
-          return false;
+          if (!$deleteTriggerChar()) {
+            return false;
+          }
+          event?.preventDefault();
+          event?.stopPropagation();
+          return true;
         },
         COMMAND_PRIORITY_CRITICAL
       ),
@@ -421,7 +439,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
         closeSession();
       }
     );
-  }, [closeSession, $confirmActiveOption, editor, moveActive, syncFromSelection]);
+  }, [closeSession, $confirmActiveOption, $deleteTriggerChar, editor, moveActive, syncFromSelection]);
 
   useEffect(() => {
     const registerRootBlurListener = (root: HTMLElement | null) => {
