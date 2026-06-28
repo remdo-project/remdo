@@ -45,7 +45,6 @@ export function DevToolbarLinks({ currentDocumentPath }: DevToolbarProps) {
   }
 
   const host = resolveHost();
-  const previewUrl = host ? buildUrl(host, 3) : '#preview';
   const vitestUrl = host ? buildUrl(host, 2, '/__vitest__/') : '#vitest';
   const playwrightUrl = host ? buildUrl({ protocol: 'http:', hostname: 'localhost', basePort: host.basePort }, 6) : '#playwright';
   const lexicalUrl = host
@@ -54,9 +53,6 @@ export function DevToolbarLinks({ currentDocumentPath }: DevToolbarProps) {
 
   return (
     <>
-      <Anchor className="app-header-link" href={previewUrl}>
-        Preview
-      </Anchor>
       <Anchor className="app-header-link" href={vitestUrl}>
         <Icon icon={IconBrandVite} />
         Vitest
