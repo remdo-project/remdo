@@ -18,8 +18,8 @@ const TEST_USER = {
   password: 'server-password-1234',
 } as const;
 export const TEST_ADMIN_SECRET = 'test-admin-secret-0123456789';
-// Fixed preview port for the harness's trusted origins, so origin-acceptance
-// tests are deterministic and independent of the env-derived PREVIEW_PORT.
+// Fixed preview port for the harness's trusted origins, so the derived list is
+// deterministic and independent of the env-derived PREVIEW_PORT.
 export const TEST_PREVIEW_PORT = 4005;
 
 export function createServerAppHarness({
@@ -92,7 +92,6 @@ export function createServerAppHarness({
   return {
     app,
     auth,
-    baseURL,
     trustedOrigins,
     database: client,
     registry,
