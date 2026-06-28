@@ -269,7 +269,7 @@ test('mutating auth requests are rejected from an untrusted origin and accepted 
     });
     expect(forgedResponse.status()).toBe(HTTP_STATUS.FORBIDDEN);
 
-    // The gateway's own origin is trusted, so the same mutating request succeeds.
+    // Same request from the trusted gateway origin: the sign-out succeeds.
     const trustedResponse = await isolatedContext.fetch('/api/auth/sign-out', {
       method: 'POST',
       headers: { 'content-type': 'application/json', origin: gatewayOrigin },
