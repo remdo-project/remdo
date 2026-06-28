@@ -1,0 +1,503 @@
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { mergeRegister } from '@lexical/utils';
+import {
+  $createRangeSelection,
+  $getSelection,
+  $isRangeSelection,
+  $isTextNode,
+  $setSelection,
+  COMMAND_PRIORITY_CRITICAL,
+  COMMAND_PRIORITY_LOW,
+  KEY_ARROW_DOWN_COMMAND,
+  KEY_ARROW_UP_COMMAND,
+  KEY_BACKSPACE_COMMAND,
+  KEY_DOWN_COMMAND,
+  KEY_ENTER_COMMAND,
+  KEY_ESCAPE_COMMAND,
+  KEY_TAB_COMMAND,
+} from 'lexical';
+import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+
+import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
+import { resolveCaretPickerAnchor } from './anchor';
+import { $isTriggerAtBoundary } from './boundary';
+import { $resolveTriggerSession } from './session';
+import type { PickerAnchor, TriggerSession, TriggerSpec } from './types';
+
+interface InternalPickerState<TOption> {
+  query: string;
+  options: TOption[];
+  activeIndex: number;
+  anchor: PickerAnchor;
+}
+
+function clampActiveIndex(activeIndex: number, optionsLength: number): number {
+  if (optionsLength === 0) {
+    return -1;
+  }
+  return Math.max(0, Math.min(activeIndex, optionsLength - 1));
+}
+
+function isTypingTrigger(event: KeyboardEvent, triggerChar: string): boolean {
+  if (event.key !== triggerChar || event.metaKey) {
+    return false;
+  }
+
+  const altGraphActive = event.getModifierState('AltGraph');
+  const ctrlAltChord = event.ctrlKey && event.altKey;
+  if (altGraphActive || ctrlAltChord) {
+    return true;
+  }
+
+  return !event.altKey && !event.ctrlKey;
+}
+
+// The shared inline-trigger lifecycle. Owns open gating (fresh keypress at a
+// boundary, never on caret re-entry), query sync, dismissal, and command
+// wiring; the spec supplies option source, popup, and commit. See
+// docs/outliner/triggers.md.
+export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNode {
+  const [editor] = useLexicalComposerContext();
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(() => {
+    const root = editor.getRootElement();
+    return root ? root.closest<HTMLElement>('.editor-container') : null;
+  });
+  const [picker, setPicker] = useState<InternalPickerState<TOption> | null>(null);
+
+  const pickerRef = useRef<InternalPickerState<TOption> | null>(null);
+  const sessionRef = useRef<TriggerSession | null>(null);
+  const pendingTriggerRef = useRef(false);
+
+  // Hold the spec in a ref so the engine's effects/callbacks do not depend on
+  // its identity. Plugins build their spec inline (a new object each render);
+  // without this, the command-registration effect would tear down and re-run on
+  // every render and its cleanup would close a just-opened session.
+  const specRef = useRef(spec);
+  specRef.current = spec;
+
+  const setPickerState = useCallback((next: InternalPickerState<TOption> | null) => {
+    pickerRef.current = next;
+    setPicker(next);
+  }, []);
+
+  const closeSession = useCallback(() => {
+    sessionRef.current = null;
+    pendingTriggerRef.current = false;
+    setPickerState(null);
+  }, [setPickerState]);
+
+  const syncFromSelection = useCallback(() => {
+    const nextState = editor.getEditorState().read((): {
+      kind: 'update';
+      query: string;
+      options: TOption[];
+      activeIndex: number;
+    } | { kind: 'keep' } | { kind: 'close' } => {
+      if (editor.selection.isStructural()) {
+        return { kind: 'close' };
+      }
+
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+        return sessionRef.current ? { kind: 'keep' } : { kind: 'close' };
+      }
+
+      const anchorNode = selection.anchor.getNode();
+      if (!$isTextNode(anchorNode)) {
+        return sessionRef.current ? { kind: 'keep' } : { kind: 'close' };
+      }
+
+      const caretOffset = selection.anchor.offset;
+      const pendingTrigger = pendingTriggerRef.current;
+      pendingTriggerRef.current = false;
+
+      const currentSession = sessionRef.current;
+      // The open gate: with no live session and no fresh trigger keypress, a
+      // selection change never opens the picker — so returning the caret beside
+      // an existing trigger character does not reopen it.
+      if (!pendingTrigger && !currentSession) {
+        return { kind: 'close' };
+      }
+
+      const seededSession = pendingTrigger
+        ? { textNodeKey: anchorNode.getKey(), triggerOffset: caretOffset - 1 }
+        : currentSession;
+
+      const resolved = $resolveTriggerSession(specRef.current.triggerChar, anchorNode, caretOffset, seededSession);
+      if (!resolved) {
+        sessionRef.current = null;
+        return { kind: 'close' };
+      }
+
+      // On a fresh trigger keypress, only open when the trigger landed at a
+      // boundary. An existing session has already cleared this gate.
+      if (!currentSession && !$isTriggerAtBoundary(resolved.triggerNode, resolved.session.triggerOffset)) {
+        sessionRef.current = null;
+        return { kind: 'close' };
+      }
+
+      sessionRef.current = resolved.session;
+      const options = specRef.current.$resolveOptions(resolved.query, anchorNode);
+      const activeIndex = clampActiveIndex(pickerRef.current?.activeIndex ?? 0, options.length);
+      return { kind: 'update', query: resolved.query, options, activeIndex };
+    });
+
+    if (nextState.kind === 'close') {
+      closeSession();
+      return;
+    }
+    if (nextState.kind === 'keep') {
+      return;
+    }
+
+    const anchor = resolveCaretPickerAnchor(editor);
+    if (!anchor) {
+      closeSession();
+      return;
+    }
+
+    setPickerState({
+      query: nextState.query,
+      options: nextState.options,
+      activeIndex: nextState.activeIndex,
+      anchor,
+    });
+  }, [closeSession, editor, setPickerState]);
+
+  const moveActive = useCallback(
+    (direction: 'up' | 'down') => {
+      const current = pickerRef.current;
+      if (!current || current.options.length === 0) {
+        return;
+      }
+      const delta = direction === 'down' ? 1 : -1;
+      const nextIndex = clampActiveIndex(current.activeIndex + delta, current.options.length);
+      if (nextIndex !== current.activeIndex) {
+        setPickerState({ ...current, activeIndex: nextIndex });
+      }
+    },
+    [setPickerState]
+  );
+
+  const setActiveIndex = useCallback(
+    (index: number) => {
+      const current = pickerRef.current;
+      if (!current || current.options.length === 0) {
+        return;
+      }
+      const nextIndex = clampActiveIndex(index, current.options.length);
+      if (nextIndex !== current.activeIndex) {
+        setPickerState({ ...current, activeIndex: nextIndex });
+      }
+    },
+    [setPickerState]
+  );
+
+  // Build the trigger-through-caret range a commit replaces, re-resolving the
+  // session against the current caret first.
+  const $resolveCommitTarget = useCallback(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+      return null;
+    }
+    const anchorNode = selection.anchor.getNode();
+    if (!$isTextNode(anchorNode)) {
+      return null;
+    }
+    const currentSession = sessionRef.current;
+    if (!currentSession) {
+      return null;
+    }
+    const caretOffset = selection.anchor.offset;
+    const resolved = $resolveTriggerSession(specRef.current.triggerChar, anchorNode, caretOffset, currentSession);
+    if (!resolved) {
+      sessionRef.current = null;
+      return null;
+    }
+    sessionRef.current = resolved.session;
+
+    const range = $createRangeSelection();
+    range.setTextNodeRange(resolved.triggerNode, resolved.session.triggerOffset, anchorNode, caretOffset);
+    return { range, anchorNode, query: resolved.query };
+  }, []);
+
+  // Commit an explicit option over the current trigger span. Used by popups
+  // that pick a value directly (e.g. clicking a calendar day) rather than from
+  // the resolved option list.
+  const $commitOption = useCallback(
+    (option: TOption): boolean => {
+      const target = $resolveCommitTarget();
+      if (!target) {
+        return false;
+      }
+      $setSelection(target.range);
+      specRef.current.$commit(option, target);
+      closeSession();
+      return true;
+    },
+    [$resolveCommitTarget, closeSession]
+  );
+
+  // Confirm the active option from the resolved list (the keyboard/row path).
+  const $confirmActiveOption = useCallback(
+    (forcedActiveIndex?: number): boolean => {
+      const target = $resolveCommitTarget();
+      if (!target) {
+        return false;
+      }
+
+      const options = specRef.current.$resolveOptions(target.query, target.anchorNode);
+      if (options.length === 0) {
+        closeSession();
+        return true;
+      }
+
+      const activeIndex = clampActiveIndex(forcedActiveIndex ?? pickerRef.current?.activeIndex ?? 0, options.length);
+      const activeOption = options[activeIndex];
+      if (!activeOption) {
+        return true;
+      }
+
+      $setSelection(target.range);
+      specRef.current.$commit(activeOption, target);
+      closeSession();
+      return true;
+    },
+    [$resolveCommitTarget, closeSession]
+  );
+
+  const handlePickerMouseDown = useCallback((event: ReactMouseEvent<HTMLElement>) => {
+    // Keep the caret/selection stable while interacting with the picker.
+    event.preventDefault();
+  }, []);
+
+  const handleItemMouseOver = useCallback((index: number) => {
+    setActiveIndex(index);
+  }, [setActiveIndex]);
+
+  const handleItemMouseDown = useCallback(
+    (index: number, event: ReactMouseEvent<HTMLElement>) => {
+      if (event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      editor.update(() => {
+        $confirmActiveOption(index);
+      });
+    },
+    [$confirmActiveOption, editor]
+  );
+
+  const handleCommitOption = useCallback(
+    (option: TOption) => {
+      editor.update(() => {
+        $commitOption(option);
+      });
+    },
+    [$commitOption, editor]
+  );
+
+  useEffect(() => {
+    installOutlineSelectionHelpers(editor);
+    syncFromSelection();
+
+    return mergeRegister(
+      editor.registerRootListener((nextRoot, previousRoot) => {
+        if (previousRoot === nextRoot) {
+          return;
+        }
+        setPortalRoot(nextRoot ? nextRoot.closest<HTMLElement>('.editor-container') : null);
+      }),
+      editor.registerUpdateListener(() => {
+        syncFromSelection();
+      }),
+      editor.registerCommand(
+        KEY_DOWN_COMMAND,
+        (event: KeyboardEvent | null) => {
+          if (!event || sessionRef.current || event.isComposing) {
+            return false;
+          }
+          if (editor.selection.isStructural() || !isTypingTrigger(event, specRef.current.triggerChar)) {
+            return false;
+          }
+          // Arm the open gate; the boundary is checked in syncFromSelection once
+          // the trigger character has been inserted (independent of keystroke
+          // timing).
+          pendingTriggerRef.current = true;
+          return false;
+        },
+        COMMAND_PRIORITY_LOW
+      ),
+      editor.registerCommand(
+        KEY_ARROW_DOWN_COMMAND,
+        (event: KeyboardEvent | null) => {
+          if (!sessionRef.current) {
+            return false;
+          }
+          if (event && (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)) {
+            return false;
+          }
+          event?.preventDefault();
+          event?.stopPropagation();
+          moveActive('down');
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_ARROW_UP_COMMAND,
+        (event: KeyboardEvent | null) => {
+          if (!sessionRef.current) {
+            return false;
+          }
+          if (event && (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)) {
+            return false;
+          }
+          event?.preventDefault();
+          event?.stopPropagation();
+          moveActive('up');
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_ENTER_COMMAND,
+        (event: KeyboardEvent | null) => {
+          if (!$confirmActiveOption()) {
+            return false;
+          }
+          event?.preventDefault();
+          event?.stopPropagation();
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_TAB_COMMAND,
+        (event: KeyboardEvent | null) => {
+          if (!$confirmActiveOption()) {
+            return false;
+          }
+          event?.preventDefault();
+          event?.stopPropagation();
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_ESCAPE_COMMAND,
+        (event: KeyboardEvent | null) => {
+          // Esc closes the picker and keeps the typed trigger as plain text.
+          if (!sessionRef.current) {
+            return false;
+          }
+          closeSession();
+          event?.preventDefault();
+          event?.stopPropagation();
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      editor.registerCommand(
+        KEY_BACKSPACE_COMMAND,
+        () => {
+          // Backspace is ordinary editing: deleting back past the trigger ends
+          // the session because the match is gone. With an empty query the
+          // trigger char is what gets deleted; let the keystroke through and
+          // close.
+          const current = pickerRef.current;
+          if (!sessionRef.current || !current || current.query.length > 0) {
+            return false;
+          }
+          closeSession();
+          return false;
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
+      () => {
+        closeSession();
+      }
+    );
+  }, [closeSession, $confirmActiveOption, editor, moveActive, syncFromSelection]);
+
+  useEffect(() => {
+    const registerRootBlurListener = (root: HTMLElement | null) => {
+      if (!root) {
+        return () => {};
+      }
+      const handleRootBlur = () => {
+        if (sessionRef.current) {
+          closeSession();
+        }
+      };
+      // eslint-disable-next-line react/web-api-no-leaked-event-listener -- removed in returned cleanup.
+      root.addEventListener('blur', handleRootBlur, true);
+      return () => {
+        root.removeEventListener('blur', handleRootBlur, true);
+      };
+    };
+
+    let disposeRootBlurListener = registerRootBlurListener(editor.getRootElement());
+    const unregisterRootListener = editor.registerRootListener((nextRoot, previousRoot) => {
+      if (nextRoot === previousRoot) {
+        return;
+      }
+      disposeRootBlurListener();
+      disposeRootBlurListener = registerRootBlurListener(nextRoot);
+    });
+
+    const handleDocumentMouseDown = (event: MouseEvent) => {
+      if (!sessionRef.current) {
+        return;
+      }
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      const root = editor.getRootElement();
+      if (root && root.contains(target)) {
+        return;
+      }
+      const targetElement = target instanceof Element ? target : target.parentElement;
+      if (targetElement?.closest('[data-trigger-picker]')) {
+        return;
+      }
+      closeSession();
+    };
+    document.addEventListener('mousedown', handleDocumentMouseDown, true);
+
+    return () => {
+      unregisterRootListener();
+      disposeRootBlurListener();
+      document.removeEventListener('mousedown', handleDocumentMouseDown, true);
+    };
+  }, [closeSession, editor]);
+
+  if (!picker || !portalRoot) {
+    return null;
+  }
+
+  // The engine owns the portal and the positioned anchor wrapper (carrying the
+  // shared `data-trigger-picker` dismissal hook); the spec renders only the
+  // popup body.
+  const anchorStyle: CSSProperties = { left: picker.anchor.left, top: picker.anchor.top };
+  return createPortal(
+    <div
+      className="trigger-picker-anchor"
+      style={anchorStyle}
+      data-trigger-picker
+      onMouseDown={handlePickerMouseDown}
+    >
+      {spec.renderPopup(picker, {
+        onPickerMouseDown: handlePickerMouseDown,
+        onItemMouseOver: handleItemMouseOver,
+        onItemMouseDown: handleItemMouseDown,
+        commitOption: handleCommitOption,
+      })}
+    </div>,
+    portalRoot
+  );
+}

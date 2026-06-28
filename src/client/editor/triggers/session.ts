@@ -1,22 +1,25 @@
 import { $getNodeByKey, $isTextNode } from 'lexical';
 import type { LexicalNode, TextNode } from 'lexical';
 
-import type { LinkQuerySession } from './types';
+import type { TriggerSession } from './types';
 
-interface ResolvedLinkQuerySession {
-  session: LinkQuerySession;
+interface ResolvedTriggerSession {
+  session: TriggerSession;
   triggerNode: TextNode;
   query: string;
 }
 
+// Read the query text from just after the trigger character up to the caret,
+// walking across sibling text nodes if the query spans formatting boundaries.
 function readQueryAcrossTextNodes(
+  triggerChar: string,
   triggerNode: TextNode,
   triggerOffset: number,
   anchorNode: TextNode,
   anchorOffset: number
 ): string | null {
   const triggerText = triggerNode.getTextContent();
-  if (triggerOffset < 0 || triggerOffset >= triggerText.length || triggerText[triggerOffset] !== '@') {
+  if (triggerOffset < 0 || triggerOffset >= triggerText.length || triggerText[triggerOffset] !== triggerChar) {
     return null;
   }
 
@@ -50,7 +53,13 @@ function readQueryAcrossTextNodes(
   return null;
 }
 
-function inferSessionFromAnchor(anchorNode: TextNode, caretOffset: number): LinkQuerySession | null {
+// Locate the nearest trigger character at or before the caret, scanning back
+// across sibling text nodes.
+function inferSessionFromAnchor(
+  triggerChar: string,
+  anchorNode: TextNode,
+  caretOffset: number
+): TriggerSession | null {
   let current: TextNode | null = anchorNode;
   while (current) {
     const text = current.getTextContent();
@@ -59,7 +68,7 @@ function inferSessionFromAnchor(anchorNode: TextNode, caretOffset: number): Link
         ? Math.min(caretOffset - 1, text.length - 1)
         : text.length - 1;
     for (let index = startOffset; index >= 0; index -= 1) {
-      if (text[index] === '@') {
+      if (text[index] === triggerChar) {
         return { textNodeKey: current.getKey(), triggerOffset: index };
       }
     }
@@ -70,19 +79,23 @@ function inferSessionFromAnchor(anchorNode: TextNode, caretOffset: number): Link
   return null;
 }
 
-export function $resolveLinkQuerySession(
+// Resolve (or re-resolve) the live session for the current caret. Re-infers from
+// the anchor when the stored session's node or query no longer holds, so the
+// session survives edits inside the query.
+export function $resolveTriggerSession(
+  triggerChar: string,
   anchorNode: TextNode,
   caretOffset: number,
-  currentSession: LinkQuerySession | null
-): ResolvedLinkQuerySession | null {
-  let session = currentSession ?? inferSessionFromAnchor(anchorNode, caretOffset);
+  currentSession: TriggerSession | null
+): ResolvedTriggerSession | null {
+  let session = currentSession ?? inferSessionFromAnchor(triggerChar, anchorNode, caretOffset);
   if (!session) {
     return null;
   }
 
   let triggerNode = $getNodeByKey<TextNode>(session.textNodeKey);
   if (!$isTextNode(triggerNode)) {
-    const inferred = inferSessionFromAnchor(anchorNode, caretOffset);
+    const inferred = inferSessionFromAnchor(triggerChar, anchorNode, caretOffset);
     if (!inferred) {
       return null;
     }
@@ -93,9 +106,9 @@ export function $resolveLinkQuerySession(
     }
   }
 
-  let query = readQueryAcrossTextNodes(triggerNode, session.triggerOffset, anchorNode, caretOffset);
+  let query = readQueryAcrossTextNodes(triggerChar, triggerNode, session.triggerOffset, anchorNode, caretOffset);
   if (query === null) {
-    const inferred = inferSessionFromAnchor(anchorNode, caretOffset);
+    const inferred = inferSessionFromAnchor(triggerChar, anchorNode, caretOffset);
     if (!inferred) {
       return null;
     }
@@ -104,6 +117,7 @@ export function $resolveLinkQuerySession(
       return null;
     }
     const inferredQuery = readQueryAcrossTextNodes(
+      triggerChar,
       inferredTriggerNode,
       inferred.triggerOffset,
       anchorNode,

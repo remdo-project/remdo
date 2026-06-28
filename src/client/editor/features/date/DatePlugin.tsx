@@ -24,12 +24,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
+import { resolveElementPickerAnchor } from '#client/editor/triggers/anchor';
 import { $isDateNode } from './date-node';
 import type { DateNode } from './date-node';
-import { resolveDatePickerElementAnchor } from './anchor';
 import { DatePickerPanel } from './DatePickerPopover';
 import { isInsideDatePicker } from './picker-dom';
-import { DateTypeaheadPlugin } from './DateTypeaheadPlugin';
+import { DateInsertPlugin } from './DateInsertPlugin';
 import type { DatePickerState } from './types';
 import './date.css';
 
@@ -282,7 +282,7 @@ export function DatePlugin() {
         return false;
       }
 
-      const anchor = resolveDatePickerElementAnchor(editor, element);
+      const anchor = resolveElementPickerAnchor(editor, element);
       if (!anchor) {
         return false;
       }
@@ -413,7 +413,7 @@ export function DatePlugin() {
         return;
       }
 
-      const anchor = resolveDatePickerElementAnchor(editor, target.element);
+      const anchor = resolveElementPickerAnchor(editor, target.element);
       if (!anchor) {
         return;
       }
@@ -467,7 +467,7 @@ export function DatePlugin() {
 
   return (
     <>
-      <DateTypeaheadPlugin />
+      <DateInsertPlugin />
       {picker && portalRoot
         ? createPortal(
             <div className="date-picker-anchor" style={{ left: picker.anchor.left, top: picker.anchor.top }}>
