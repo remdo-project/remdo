@@ -78,16 +78,21 @@ export function collectDocumentSearchResults(
   while (stack.length > 0) {
     const { note, ancestorLabels } = stack.pop()!;
     const pathText = [...ancestorLabels, note.text()];
-    const children = note.children();
 
-    if (matchesPathQuery(pathText, query)) {
-      if (flatResults.length === limit) {
-        // One match past the limit: enough to report there are more, and the
-        // signal to stop. This note is not built into the results — no candidate,
-        // no child preview — and its children are never walked.
-        hasMore = true;
-        break;
-      }
+    const matches = matchesPathQuery(pathText, query);
+    if (matches && flatResults.length === limit) {
+      // One match past the limit: enough to report there are more, and the
+      // signal to stop. Bail before reading this note's children — for a large
+      // parent that read maps the whole nested list, a cost we'd never use since
+      // the peeked match is not built into the results.
+      hasMore = true;
+      break;
+    }
+
+    // Children are needed for collected matches (preview) and every note's
+    // traversal, so read them once here — but only past the peek-break above.
+    const children = note.children();
+    if (matches) {
       flatResults.push({ ...toChildCandidate(note), pathText });
       childPreviewByNoteId[note.id()] = {
         items: children.slice(0, childPreviewLimit).map(toChildCandidate),

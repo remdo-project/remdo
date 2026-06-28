@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { meta } from '#tests';
 import { createLexicalEditorNotes } from '#client/editor/note-sdk-adapters';
 import type {
@@ -207,6 +207,22 @@ describe('search candidates', () => {
     expect(flatResults.map((result) => result.noteId)).toEqual(['n0', 'n1', 'n2']);
     // The peeked fourth match is not built into the preview map.
     expect(Object.keys(childPreviewByNoteId)).toEqual(['n0', 'n1', 'n2']);
+  });
+
+  it('does not read children of the one-past-limit peeked match', () => {
+    // The peeked match only sets hasMore; reading its children (which maps the
+    // whole nested list for a large parent via the SDK) would be wasted work.
+    const notes = Array.from({ length: 4 }, (_unused, index) =>
+      createMockEditorNote(`n${index}`, `Note ${index}`));
+    const peeked = notes[3]!;
+    const childrenSpy = vi.spyOn(peeked, 'children');
+
+    const { hasMore } = collectDocumentSearchResults({
+      currentDocument: () => createMockDocumentNote(notes),
+    }, { ...ALL, limit: 3 });
+
+    expect(hasMore).toBe(true);
+    expect(childrenSpy).not.toHaveBeenCalled();
   });
 
   it('does not flag hasMore when matches exactly fill the limit', () => {
