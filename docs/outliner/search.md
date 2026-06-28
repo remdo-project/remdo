@@ -38,15 +38,12 @@ and zooming to a result.
    order. Matched tokens are highlighted wherever they occur — in the note label
    or an ancestor crumb. The note-link picker (see [Links](./links.md)) uses this
    same query matching.
-7. Flat results are capped at the first ten matches in document order. The cap is
-   applied while collecting matches — collection stops once the limit is reached
-   — so opening search and refining a query stay responsive on large documents
-   instead of scanning the whole document to then show ten. When at least one
-   match exists beyond the shown results, a non-interactive trailing row reports
-   that more matches exist (the shown count, without an exact total — the early
-   stop never counts the rest) and prompts refining the query; it is not a result
-   (no highlight, no arrow/hover target, excluded from listbox options). Remaining
-   matches are reached by typing a more specific query, not by scrolling.
+7. Flat results are capped at the first ten matches in document order. When at
+   least one match exists beyond the shown results, a non-interactive trailing
+   row reports that more matches exist (the shown count, with no exact total) and
+   prompts refining the query; it is not a result (no highlight, no arrow/hover
+   target, excluded from listbox options). Remaining matches are reached by typing
+   a more specific query, not by scrolling.
 8. `ArrowDown` highlights the next flat result.
 9. `ArrowUp` highlights the previous flat result.
 10. Arrow navigation stops at the first/last available note (no wraparound).
