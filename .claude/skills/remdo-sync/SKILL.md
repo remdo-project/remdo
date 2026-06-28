@@ -21,9 +21,9 @@ rules a more capable future run would do better.
 
 ## Strategy: merge, never rebase
 
-Integrate `origin/main` with a plain **`git merge origin/main`** — fast-forwarding
-when the branch is merely behind, making a merge commit when it carries its own
-work — never rebase. Merge never rewrites history, so it never needs a force-push
+Integrate `origin/main` with a plain **`git merge origin/main`**, never rebase
+(it fast-forwards or makes a merge commit as needed). Merge never rewrites
+history, so it never needs a force-push
 and never scrambles an open PR's review — the right default for an autonomous
 skill. A user who wants a linear history can rebase by hand; this skill does not,
 and **never pushes**. (See `References` for the rebase-vs-merge tradeoff.)
@@ -57,9 +57,9 @@ re-fork from current `origin/main` rather than waiting on sync.
 
 - **Clean working tree** — merge needs it; commit or stash first.
 
-Sync runs on whatever branch is checked out — it does not gate on branch name. If
-`wip-base` is not anchored for the current branch, skip the re-anchor (step 6);
-the merge and the gate below still apply.
+Sync runs on whatever branch is checked out (no branch-name gate). If `wip-base`
+is not anchored for the current branch, skip the re-anchor (step 6); the merge and
+the gate below still apply.
 
 ## The flow
 
