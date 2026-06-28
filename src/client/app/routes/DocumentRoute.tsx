@@ -632,12 +632,14 @@ function DocumentRouteContent({
             )}
             {hasMoreResults ? (
               // Non-interactive cue that more matches exist beyond the shown
-              // results — not a `role="option"`, so it stays out of arrow
-              // navigation and active-descendant linkage.
+              // results. `role="presentation"` keeps it a valid listbox child
+              // (only options/groups are owned children) while excluding it from
+              // the option set — so it is never an arrow/hover target or an
+              // active-descendant.
               <li
-                aria-disabled="true"
                 className="document-search-results-truncation"
                 data-search-result-truncation
+                role="presentation"
               >
                 {`Showing the first ${flatResults.length} — refine your search`}
               </li>
