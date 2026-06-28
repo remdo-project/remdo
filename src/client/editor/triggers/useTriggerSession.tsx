@@ -40,6 +40,12 @@ function clampActiveIndex(activeIndex: number, optionsLength: number): number {
   return Math.max(0, Math.min(activeIndex, optionsLength - 1));
 }
 
+function completeKeyboardCommand(event: KeyboardEvent | null): true {
+  event?.preventDefault();
+  event?.stopPropagation();
+  return true;
+}
+
 function isTypingTrigger(event: KeyboardEvent, triggerChar: string): boolean {
   if (event.key !== triggerChar || event.metaKey) {
     return false;
@@ -166,21 +172,6 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
     });
   }, [closeSession, editor, setPickerState]);
 
-  const moveActive = useCallback(
-    (direction: 'up' | 'down') => {
-      const current = pickerRef.current;
-      if (!current || current.options.length === 0) {
-        return;
-      }
-      const delta = direction === 'down' ? 1 : -1;
-      const nextIndex = clampActiveIndex(current.activeIndex + delta, current.options.length);
-      if (nextIndex !== current.activeIndex) {
-        setPickerState({ ...current, activeIndex: nextIndex });
-      }
-    },
-    [setPickerState]
-  );
-
   const setActiveIndex = useCallback(
     (index: number) => {
       const current = pickerRef.current;
@@ -193,6 +184,17 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       }
     },
     [setPickerState]
+  );
+
+  const moveActive = useCallback(
+    (direction: 'up' | 'down') => {
+      const current = pickerRef.current;
+      if (!current) {
+        return;
+      }
+      setActiveIndex(current.activeIndex + (direction === 'down' ? 1 : -1));
+    },
+    [setActiveIndex]
   );
 
   // Build the trigger-through-caret range a commit replaces, re-resolving the
@@ -318,6 +320,10 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
     installOutlineSelectionHelpers(editor);
     syncFromSelection();
 
+    // Enter and Tab both confirm the active option.
+    const $handleConfirmCommand = (event: KeyboardEvent | null) =>
+      $confirmActiveOption() ? completeKeyboardCommand(event) : false;
+
     return mergeRegister(
       editor.registerRootListener((nextRoot, previousRoot) => {
         if (previousRoot === nextRoot) {
@@ -354,10 +360,8 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
           if (event && (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)) {
             return false;
           }
-          event?.preventDefault();
-          event?.stopPropagation();
           moveActive('down');
-          return true;
+          return completeKeyboardCommand(event);
         },
         COMMAND_PRIORITY_CRITICAL
       ),
@@ -370,37 +374,13 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
           if (event && (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)) {
             return false;
           }
-          event?.preventDefault();
-          event?.stopPropagation();
           moveActive('up');
-          return true;
+          return completeKeyboardCommand(event);
         },
         COMMAND_PRIORITY_CRITICAL
       ),
-      editor.registerCommand(
-        KEY_ENTER_COMMAND,
-        (event: KeyboardEvent | null) => {
-          if (!$confirmActiveOption()) {
-            return false;
-          }
-          event?.preventDefault();
-          event?.stopPropagation();
-          return true;
-        },
-        COMMAND_PRIORITY_CRITICAL
-      ),
-      editor.registerCommand(
-        KEY_TAB_COMMAND,
-        (event: KeyboardEvent | null) => {
-          if (!$confirmActiveOption()) {
-            return false;
-          }
-          event?.preventDefault();
-          event?.stopPropagation();
-          return true;
-        },
-        COMMAND_PRIORITY_CRITICAL
-      ),
+      editor.registerCommand(KEY_ENTER_COMMAND, $handleConfirmCommand, COMMAND_PRIORITY_CRITICAL),
+      editor.registerCommand(KEY_TAB_COMMAND, $handleConfirmCommand, COMMAND_PRIORITY_CRITICAL),
       editor.registerCommand(
         KEY_ESCAPE_COMMAND,
         (event: KeyboardEvent | null) => {
@@ -409,9 +389,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
             return false;
           }
           closeSession();
-          event?.preventDefault();
-          event?.stopPropagation();
-          return true;
+          return completeKeyboardCommand(event);
         },
         COMMAND_PRIORITY_CRITICAL
       ),
@@ -429,9 +407,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
           if (!$deleteTriggerChar()) {
             return false;
           }
-          event?.preventDefault();
-          event?.stopPropagation();
-          return true;
+          return completeKeyboardCommand(event);
         },
         COMMAND_PRIORITY_CRITICAL
       ),

@@ -75,15 +75,15 @@ Define RemDo-owned inline date behavior in the outliner.
    <https://lexical.dev/docs/react/plugins>
 3. Lexical custom nodes:
    <https://lexical.dev/docs/concepts/nodes>
-3. WAI-ARIA Authoring Practices Guide, combobox pattern:
+4. WAI-ARIA Authoring Practices Guide, combobox pattern:
    <https://www.w3.org/WAI/ARIA/apg/patterns/combobox/>
-4. WAI-ARIA Authoring Practices Guide, date picker dialog example:
+5. WAI-ARIA Authoring Practices Guide, date picker dialog example:
    <https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/>
-5. WAI-ARIA Authoring Practices Guide, date picker combobox example:
+6. WAI-ARIA Authoring Practices Guide, date picker combobox example:
    <https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-datepicker/>
-6. WAI-ARIA Authoring Practices Guide, grid pattern:
+7. WAI-ARIA Authoring Practices Guide, grid pattern:
    <https://www.w3.org/WAI/ARIA/apg/patterns/grid/>
-7. U.S. Web Design System date picker:
+8. U.S. Web Design System date picker:
    <https://designsystem.digital.gov/components/date-picker/>
-8. Material UI chip accessibility:
+9. Material UI chip accessibility:
    <https://mui.com/material-ui/react-chip/>
