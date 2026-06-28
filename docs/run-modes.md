@@ -119,9 +119,8 @@ per-mode facts.
   Start the source dev server with `HOST=0.0.0.0 pnpm run dev` so the Docker
   home can exchange OAuth tokens with it.
   Current dev mode runs the web app with the RemDo API mounted in the Vite dev
-  server, plus the Y-Sweet collaboration server and preview helper. Server modes
-  run the standalone API server with Better Auth plus a SQLite-backed document
-  registry.
+  server, plus the Y-Sweet collaboration server. Server modes run the standalone
+  API server with Better Auth plus a SQLite-backed document registry.
   Authentication is enforced, and private document access is limited to the
   registered document owner. `pnpm run dev:data-reset` is the everyday dev-data
   command: it provisions the stable Alice/Bob users and seeds every
