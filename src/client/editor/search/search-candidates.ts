@@ -83,7 +83,8 @@ export function collectDocumentSearchResults(
     if (matchesPathQuery(pathText, query)) {
       if (flatResults.length === limit) {
         // One match past the limit: enough to report there are more, and the
-        // signal to stop — no further reads, this note is not a result.
+        // signal to stop. This note is not built into the results — no candidate,
+        // no child preview — and its children are never walked.
         hasMore = true;
         break;
       }
