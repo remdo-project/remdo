@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import { resolveLoopbackHost } from '../../src/platform/net/loopback';
+import { deriveAuthTrustedOrigins } from './auth-origins';
 import type { ClientKey, EnvKey } from './schema';
 import { CLIENT_KEY_LIST, envSchema } from './schema';
 
@@ -9,7 +10,7 @@ type ParsedEnv = {
   [K in EnvKey]: z.infer<(typeof envSchema)[K]>;
 };
 
-type ServerEnv = ParsedEnv & { AUTH_URL: string };
+type ServerEnv = ParsedEnv & { AUTH_URL: string; AUTH_TRUSTED_ORIGINS: string[] };
 type ClientEnv = Pick<ParsedEnv, ClientKey>;
 
 const MIN_AUTH_SECRET_LENGTH = 32;
@@ -91,7 +92,10 @@ function pickClientEnv(server: ServerEnv): ClientEnv {
   return Object.fromEntries(entries) as ClientEnv;
 }
 
-export function resolveConfig(getValue: EnvGetter, options: { server?: boolean } = {}) {
+export function resolveConfig(
+  getValue: EnvGetter,
+  options: { server?: boolean; machineHostname?: string } = {},
+) {
   const parsed = parseEnv(getValue);
 
   if (!parsed.NODE_ENV) {
@@ -102,9 +106,18 @@ export function resolveConfig(getValue: EnvGetter, options: { server?: boolean }
     validateProdServer(parsed);
   }
 
+  const authUrl = resolveAuthUrl(parsed);
   const server: ServerEnv = {
     ...parsed,
-    AUTH_URL: resolveAuthUrl(parsed),
+    AUTH_URL: authUrl,
+    // The machine hostname (a Node-only value) is injected by the caller so this
+    // resolver stays runtime-agnostic; the browser passes none.
+    AUTH_TRUSTED_ORIGINS: deriveAuthTrustedOrigins({
+      baseURL: authUrl,
+      isProduction: parsed.NODE_ENV === 'production',
+      hostname: options.machineHostname ?? '',
+      previewPort: parsed.PREVIEW_PORT,
+    }),
   };
   const client = pickClientEnv(server);
 

@@ -1,4 +1,3 @@
-import os from 'node:os';
 import {
   oauthProvider,
   oauthProviderAuthServerMetadata,
@@ -36,56 +35,6 @@ interface OAuthClientCredentials {
   clientSecret: string;
 }
 
-function appendOrigin(origins: string[], origin: string): void {
-  if (!origins.includes(origin)) {
-    origins.push(origin);
-  }
-}
-
-function appendLocalDevAliases(
-  origins: string[],
-  protocol: string,
-  port: string,
-  hostname: string,
-): void {
-  appendOrigin(origins, `${protocol}//localhost:${port}`);
-  appendOrigin(origins, `${protocol}//127.0.0.1:${port}`);
-  if (hostname) {
-    appendOrigin(origins, `${protocol}//${hostname}:${port}`);
-  }
-}
-
-export function createAuthTrustedOrigins(
-  baseURL: string,
-  options: { mode?: string; machineHostname?: string; previewPort?: number } = {},
-): string[] {
-  const baseOrigin = new URL(baseURL).origin;
-  const origins = [baseOrigin];
-  const mode = options.mode ?? config.runtime.mode;
-  if (mode === 'production') {
-    return origins;
-  }
-
-  const url = new URL(baseOrigin);
-  const port = url.port;
-  if (!port) {
-    return origins;
-  }
-
-  const hostname = options.machineHostname ?? os.hostname();
-  appendLocalDevAliases(origins, url.protocol, port, hostname);
-
-  // `vite preview` serves the prod bundle from PREVIEW_PORT, not the dev app
-  // port the auth baseURL is derived from. Trust that origin too so a
-  // hostname-addressed preview can complete its session request instead of
-  // being rejected as cross-origin and falling back to the offline page.
-  const previewPort = options.previewPort ?? config.env.PREVIEW_PORT;
-  if (previewPort && String(previewPort) !== port) {
-    appendLocalDevAliases(origins, url.protocol, String(previewPort), hostname);
-  }
-  return origins;
-}
-
 function createBetterAuthInstance({
   allowSignup,
   baseURL,
@@ -104,7 +53,7 @@ function createBetterAuthInstance({
   return betterAuth({
     basePath: '/api/auth',
     baseURL,
-    trustedOrigins: createAuthTrustedOrigins(baseURL),
+    trustedOrigins: config.server.AUTH_TRUSTED_ORIGINS,
     secret,
     logger: config.isProd ? undefined : { level: 'error' },
     database,

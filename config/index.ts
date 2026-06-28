@@ -8,7 +8,11 @@ const isNodeRuntime = Boolean(globalThis.process?.versions?.node);
 
 const loaded = (() => {
   if (isNodeRuntime) {
-    return resolveConfig((key) => process.env[key]);
+    // Node-only: machine hostname feeds dev auth trusted-origin aliases. Required
+    // lazily inside this branch so the browser bundle never pulls in node:os.
+    // eslint-disable-next-line ts/no-require-imports -- Node-only branch; lazy so the browser bundle skips node:os
+    const machineHostname = (require('node:os') as typeof import('node:os')).hostname();
+    return resolveConfig((key) => process.env[key], { machineHostname });
   }
 
   return resolveConfig((key) => {
