@@ -31,8 +31,11 @@ the rebase-vs-merge tradeoff.)
 ## The invariant and the gate
 
 The job is to keep one invariant true: **`wip-base..HEAD` is exactly the current
-branch's own work — nothing pulled in.** Sync proceeds only when it can preserve
-that; otherwise it **hard-blocks** rather than producing a confusing diff.
+branch's own work — nothing pulled in.** When `wip-base` is this branch's anchor,
+sync proceeds only when it can preserve that invariant; otherwise it
+**hard-blocks** rather than producing a confusing diff. (When there is no such
+anchor, there is no invariant to protect and this gate does not apply — see
+Preconditions.)
 
 The single gate (parent-free, no branch-name tracking):
 
