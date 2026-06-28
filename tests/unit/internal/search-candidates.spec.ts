@@ -14,10 +14,9 @@ import type {
   SourceServerNote,
   UserDataNote,
 } from '#note-sdk';
-import {
-  collectChildCandidateMap,
-  collectSearchCandidates,
-} from '#client/editor/search/search-candidates';
+import { collectDocumentSearchResults } from '#client/editor/search/search-candidates';
+
+const ALL = { query: '', limit: Number.MAX_SAFE_INTEGER, childPreviewLimit: 2 };
 
 function createMockNoteAs(noteId: string, kind: () => NoteKind, self: () => Note): Note['as'] {
   function asNote(kindToMatch: 'editor-note'): EditorNote;
@@ -115,11 +114,12 @@ describe('search candidates', () => {
     ]);
     const sibling = createMockEditorNote('sibling', 'Sibling');
 
-    const candidates = collectSearchCandidates({
+    const { flatResults, hasMore } = collectDocumentSearchResults({
       currentDocument: () => createMockDocumentNote([top, sibling]),
-    });
+    }, ALL);
 
-    expect(candidates).toEqual([
+    expect(hasMore).toBe(false);
+    expect(flatResults).toEqual([
       { noteId: 'top', text: 'Top', listType: 'bullet', checked: false, pathText: ['Top'] },
       { noteId: 'child-a', text: 'Child A', listType: 'bullet', checked: false, pathText: ['Top', 'Child A'] },
       { noteId: 'child-b', text: 'Child B', listType: 'bullet', checked: false, pathText: ['Top', 'Child B'] },
@@ -128,71 +128,114 @@ describe('search candidates', () => {
     ]);
   });
 
-  it('returns an empty list when there are no root notes', () => {
-    const candidates = collectSearchCandidates({
+  it('returns empty results when there are no root notes', () => {
+    const { flatResults, childPreviewByNoteId, hasMore } = collectDocumentSearchResults({
       currentDocument: () => createMockDocumentNote([]),
-    });
+    }, ALL);
 
-    expect(candidates).toEqual([]);
+    expect(flatResults).toEqual([]);
+    expect(childPreviewByNoteId).toEqual({});
+    expect(hasMore).toBe(false);
   });
 
-  it('collects per-note direct children keyed by parent note id', () => {
+  it('builds a child preview with the first N children and the exact total count', () => {
     const top = createMockEditorNote('top', 'Top', [
       createMockEditorNote('child-a', 'Child A'),
       createMockEditorNote('child-b', 'Child B', [createMockEditorNote('leaf', 'Leaf')]),
+      createMockEditorNote('child-c', 'Child C'),
     ]);
-    const sibling = createMockEditorNote('sibling', 'Sibling');
 
-    const childCandidateMap = collectChildCandidateMap({
-      currentDocument: () => createMockDocumentNote([top, sibling]),
-    });
+    const { childPreviewByNoteId } = collectDocumentSearchResults({
+      currentDocument: () => createMockDocumentNote([top]),
+    }, ALL);
 
-    expect(childCandidateMap).toEqual({
-      top: [
+    // childPreviewLimit is 2, but totalCount reflects all three children so the
+    // row can show "+1 more".
+    expect(childPreviewByNoteId.top).toEqual({
+      items: [
         { noteId: 'child-a', text: 'Child A', listType: 'bullet', checked: false },
         { noteId: 'child-b', text: 'Child B', listType: 'bullet', checked: false },
       ],
-      'child-a': [],
-      'child-b': [{ noteId: 'leaf', text: 'Leaf', listType: 'bullet', checked: false }],
-      leaf: [],
-      sibling: [],
+      totalCount: 3,
     });
+    expect(childPreviewByNoteId['child-b']).toEqual({
+      items: [{ noteId: 'leaf', text: 'Leaf', listType: 'bullet', checked: false }],
+      totalCount: 1,
+    });
+    expect(childPreviewByNoteId['child-a']).toEqual({ items: [], totalCount: 0 });
   });
 
-  it('captures list type and checked state per candidate', () => {
+  it('captures list type and checked state per child-preview item', () => {
     const top = createMockEditorNote('top', 'Top', [
       createMockEditorNote('step-1', 'Step one', [], { listType: 'number' }),
       createMockEditorNote('done', 'Done item', [], { listType: 'check', checked: true }),
     ]);
 
-    const childCandidateMap = collectChildCandidateMap({
+    const { childPreviewByNoteId } = collectDocumentSearchResults({
       currentDocument: () => createMockDocumentNote([top]),
-    });
+    }, ALL);
 
-    expect(childCandidateMap.top).toEqual([
+    expect(childPreviewByNoteId.top!.items).toEqual([
       { noteId: 'step-1', text: 'Step one', listType: 'number', checked: false },
       { noteId: 'done', text: 'Done item', listType: 'check', checked: true },
     ]);
   });
 
+  it('filters to query matches in document order', () => {
+    const top = createMockEditorNote('Work', 'Work', [
+      createMockEditorNote('roadmap', 'Roadmap'),
+      createMockEditorNote('groceries', 'Groceries'),
+    ]);
+
+    const { flatResults, hasMore } = collectDocumentSearchResults({
+      currentDocument: () => createMockDocumentNote([top]),
+    }, { ...ALL, query: 'road' });
+
+    expect(hasMore).toBe(false);
+    expect(flatResults.map((result) => result.noteId)).toEqual(['roadmap']);
+  });
+
+  it('caps results at the limit and flags hasMore without returning the extra match', () => {
+    const notes = Array.from({ length: 5 }, (_unused, index) =>
+      createMockEditorNote(`n${index}`, `Note ${index}`));
+
+    const { flatResults, childPreviewByNoteId, hasMore } = collectDocumentSearchResults({
+      currentDocument: () => createMockDocumentNote(notes),
+    }, { ...ALL, limit: 3 });
+
+    expect(hasMore).toBe(true);
+    expect(flatResults.map((result) => result.noteId)).toEqual(['n0', 'n1', 'n2']);
+    // The peeked fourth match is not built into the preview map.
+    expect(Object.keys(childPreviewByNoteId)).toEqual(['n0', 'n1', 'n2']);
+  });
+
+  it('does not flag hasMore when matches exactly fill the limit', () => {
+    const notes = Array.from({ length: 3 }, (_unused, index) =>
+      createMockEditorNote(`n${index}`, `Note ${index}`));
+
+    const { flatResults, hasMore } = collectDocumentSearchResults({
+      currentDocument: () => createMockDocumentNote(notes),
+    }, { ...ALL, limit: 3 });
+
+    expect(hasMore).toBe(false);
+    expect(flatResults).toHaveLength(3);
+  });
+
   it('reads note-head text only from the real lexical adapter shape', meta({ fixture: 'basic' }), async ({ remdo }) => {
     const result = remdo.validate(() => {
       const sdk = createLexicalEditorNotes({ editor: remdo.editor, docId: remdo.getCollabDocId() });
-      return {
-        allCandidates: collectSearchCandidates(sdk),
-        childCandidateMap: collectChildCandidateMap(sdk),
-      };
+      return collectDocumentSearchResults(sdk, ALL);
     });
 
-    expect(result.allCandidates).toEqual([
+    expect(result.flatResults).toEqual([
       { noteId: 'note1', text: 'note1', listType: 'bullet', checked: false, pathText: ['note1'] },
       { noteId: 'note2', text: 'note2', listType: 'bullet', checked: false, pathText: ['note1', 'note2'] },
       { noteId: 'note3', text: 'note3', listType: 'bullet', checked: false, pathText: ['note3'] },
     ]);
-    expect(result.childCandidateMap).toEqual({
-      note1: [{ noteId: 'note2', text: 'note2', listType: 'bullet', checked: false }],
-      note2: [],
-      note3: [],
+    expect(result.childPreviewByNoteId).toEqual({
+      note1: { items: [{ noteId: 'note2', text: 'note2', listType: 'bullet', checked: false }], totalCount: 1 },
+      note2: { items: [], totalCount: 0 },
+      note3: { items: [], totalCount: 0 },
     });
   });
 
@@ -203,21 +246,21 @@ describe('search candidates', () => {
       currentDocument: () => createMockDocumentNote([root]),
     };
 
-    const allCandidates = collectSearchCandidates(sdk);
-    const childCandidateMap = collectChildCandidateMap(sdk);
+    const { flatResults, childPreviewByNoteId } = collectDocumentSearchResults(sdk, ALL);
 
-    expect(allCandidates).toHaveLength(depth);
-    expect(allCandidates[0]).toEqual({ noteId: 'deep-0', text: 'Deep 0', listType: 'bullet', checked: false, pathText: ['Deep 0'] });
-    expect(allCandidates.at(-1)).toEqual({
+    expect(flatResults).toHaveLength(depth);
+    expect(flatResults[0]).toEqual({ noteId: 'deep-0', text: 'Deep 0', listType: 'bullet', checked: false, pathText: ['Deep 0'] });
+    expect(flatResults.at(-1)).toEqual({
       noteId: `deep-${depth - 1}`,
       text: `Deep ${depth - 1}`,
       listType: 'bullet',
       checked: false,
       pathText: Array.from({ length: depth }, (_unused, index) => `Deep ${index}`),
     });
-    expect(childCandidateMap['deep-0']).toEqual([
-      { noteId: 'deep-1', text: 'Deep 1', listType: 'bullet', checked: false },
-    ]);
-    expect(childCandidateMap[`deep-${depth - 1}`]).toEqual([]);
+    expect(childPreviewByNoteId['deep-0']).toEqual({
+      items: [{ noteId: 'deep-1', text: 'Deep 1', listType: 'bullet', checked: false }],
+      totalCount: 1,
+    });
+    expect(childPreviewByNoteId[`deep-${depth - 1}`]).toEqual({ items: [], totalCount: 0 });
   });
 });

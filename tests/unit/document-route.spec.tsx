@@ -1154,7 +1154,7 @@ describe('document route', () => {
       };
     };
 
-    it('caps flat results at ten and reports the truncated total', async () => {
+    it('caps flat results at ten and flags that more matches exist', async () => {
       setManyNotes();
       renderDocumentRoute();
 
@@ -1172,9 +1172,10 @@ describe('document route', () => {
         'note06', 'note07', 'note08', 'note09', 'note10',
       ]);
 
-      // The truncation row reports shown/total and is not a navigable option.
+      // The truncation row reports that more matches exist (without an exact
+      // total, since the capped walk stops early) and is not a navigable option.
       const truncation = document.querySelector<HTMLElement>('[data-search-result-truncation]');
-      expect(truncation?.textContent).toBe('Showing 10 of 12 — refine your search');
+      expect(truncation?.textContent).toBe('Showing the first 10 — refine your search');
       expect(truncation?.getAttribute('role')).not.toBe('option');
     });
 

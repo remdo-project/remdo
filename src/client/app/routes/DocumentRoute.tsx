@@ -11,6 +11,7 @@ import { createDocumentPath, createDocumentSyncTokenApiPath, parseDocumentRef } 
 import type { ParsedDocumentRef } from '#document-routes';
 import type { DocumentSourceNote, EditorNote } from '#note-sdk';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
+import type { ChildPreview } from '#client/editor/search/search-candidates';
 import {
   APP_TITLE,
   UNTITLED_LABEL,
@@ -21,7 +22,7 @@ import { useDocumentSearchModel } from './useDocumentSearchModel';
 import { SearchResultRow } from './SearchResultRow';
 import './DocumentRoute.css';
 
-const CHILD_PREVIEW_LIMIT = 2;
+const EMPTY_CHILD_PREVIEW: ChildPreview = { items: [], totalCount: 0 };
 const EMPTY_ANCESTOR_PATH: NotePathItem[] = [];
 
 // Accessible name for a search result option. Includes the ancestor path so
@@ -256,9 +257,9 @@ function DocumentRouteContent({
   }, []);
 
   const {
-    childCandidateMap,
+    childPreviewByNoteId,
     flatResults,
-    totalResultCount,
+    hasMoreResults,
     handleSearchBlur,
     handleSearchChange,
     handleSearchCompositionEnd,
@@ -579,8 +580,8 @@ function DocumentRouteContent({
             role="listbox"
           >
             {flatResults.length > 0 ? flatResults.map((result, index) => {
-              const children = childCandidateMap[result.noteId] ?? [];
-              const hasChildren = children.length > 0;
+              const childPreview = childPreviewByNoteId[result.noteId] ?? EMPTY_CHILD_PREVIEW;
+              const hasChildren = childPreview.totalCount > 0;
               const isActive = result.noteId === highlightedResultNoteId;
               const resultPath = ancestorPathByNoteId[result.noteId] ?? EMPTY_ANCESTOR_PATH;
               return (
@@ -611,8 +612,8 @@ function DocumentRouteContent({
                   <SearchResultRow
                     ancestorPath={resultPath}
                     checked={result.checked}
-                    childCount={children.length}
-                    childPreview={children.slice(0, CHILD_PREVIEW_LIMIT)}
+                    childCount={childPreview.totalCount}
+                    childPreview={childPreview.items}
                     onSelectAncestor={handleSearchResultClick}
                     query={searchQuery}
                     text={result.text}
@@ -629,15 +630,16 @@ function DocumentRouteContent({
                 {searchQuery.length > 0 ? 'No matches' : 'No notes'}
               </li>
             )}
-            {totalResultCount > flatResults.length ? (
-              // Non-interactive cue that the list is capped — not a `role="option"`,
-              // so it stays out of arrow navigation and active-descendant linkage.
+            {hasMoreResults ? (
+              // Non-interactive cue that more matches exist beyond the shown
+              // results — not a `role="option"`, so it stays out of arrow
+              // navigation and active-descendant linkage.
               <li
                 aria-disabled="true"
                 className="document-search-results-truncation"
                 data-search-result-truncation
               >
-                {`Showing ${flatResults.length} of ${totalResultCount} — refine your search`}
+                {`Showing the first ${flatResults.length} — refine your search`}
               </li>
             ) : null}
           </ol>

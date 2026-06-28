@@ -6,19 +6,24 @@ import type {
   MouseEvent as ReactMouseEvent,
 } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import {
-  collectChildCandidateMap,
-  collectSearchCandidates,
+import { collectDocumentSearchResults } from '#client/editor/search/search-candidates';
+import type {
+  ChildPreview,
+  SearchCandidate,
 } from '#client/editor/search/search-candidates';
-import type { ChildCandidate, SearchCandidate } from '#client/editor/search/search-candidates';
-import { matchesPathQuery } from '#client/search/query-match';
 import { useSearchNotes } from '#client/editor/view/EditorViewProvider';
 
-interface SearchCandidateState {
+interface SearchResultsState {
   ready: boolean;
-  allCandidates: SearchCandidate[];
-  childCandidateMap: Record<string, ChildCandidate[]>;
+  flatResults: SearchCandidate[];
+  childPreviewByNoteId: Record<string, ChildPreview>;
+  hasMore: boolean;
 }
+
+// Direct children shown in each result row's preview (the row reports "+N more"
+// for the remainder); kept beside the result limit since both bound the work the
+// capped collection walk does per result.
+const CHILD_PREVIEW_LIMIT = 2;
 
 interface UseDocumentSearchModelOptions {
   focusEditorInput: () => boolean;
@@ -33,9 +38,9 @@ interface UseDocumentSearchModelOptions {
 export const SEARCH_RESULT_LIMIT = 10;
 
 interface UseDocumentSearchModelResult {
-  childCandidateMap: Record<string, ChildCandidate[]>;
+  childPreviewByNoteId: Record<string, ChildPreview>;
   flatResults: SearchCandidate[];
-  totalResultCount: number;
+  hasMoreResults: boolean;
   handleSearchBlur: () => void;
   handleSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleSearchCompositionEnd: (event: CompositionEvent<HTMLInputElement>) => void;
@@ -52,17 +57,12 @@ interface UseDocumentSearchModelResult {
 }
 
 const EMPTY_SEARCH_CANDIDATES: SearchCandidate[] = [];
-const EMPTY_SEARCH_CANDIDATE_STATE: SearchCandidateState = {
+const EMPTY_SEARCH_RESULTS_STATE: SearchResultsState = {
   ready: false,
-  allCandidates: EMPTY_SEARCH_CANDIDATES,
-  childCandidateMap: {},
+  flatResults: EMPTY_SEARCH_CANDIDATES,
+  childPreviewByNoteId: {},
+  hasMore: false,
 };
-function filterCandidates(candidates: SearchCandidate[], query: string): SearchCandidate[] {
-  if (query.length === 0) {
-    return candidates;
-  }
-  return candidates.filter((candidate) => matchesPathQuery(candidate.pathText, query));
-}
 
 function getNextHighlightedNoteId(
   candidates: SearchCandidate[],
@@ -116,35 +116,27 @@ export function useDocumentSearchModel({
   const [searchInputComposing, setSearchInputComposing] = useState(false);
   const pendingEditorFocusAfterSearchExitRef = useRef(false);
 
-  // Candidates derive from the editor through the SDK accessor (read once per
-  // edit; its identity changes when the editor content does). No materialized
-  // snapshot is held — the flat list and child map are recomputed on change.
+  // Results derive from the editor through the SDK accessor, in one capped,
+  // query-aware walk (see collectDocumentSearchResults). The cap is applied
+  // during collection, so opening search on a large document only visits notes
+  // up to the limit instead of building the whole document's candidate set.
+  // Recomputed per edit (accessor identity) and per query.
   const searchNotes = useSearchNotes();
-  const currentDocumentCandidates = useMemo<SearchCandidateState>(
+  const searchResults = useMemo<SearchResultsState>(
     () => searchNotes((notes) => ({
       ready: true,
-      allCandidates: collectSearchCandidates(notes),
-      childCandidateMap: collectChildCandidateMap(notes),
-    })) ?? EMPTY_SEARCH_CANDIDATE_STATE,
-    // searchNotes identity changes per editor edit, driving recompute.
-    [searchNotes],
+      ...collectDocumentSearchResults(notes, {
+        query: searchQuery,
+        limit: SEARCH_RESULT_LIMIT,
+        childPreviewLimit: CHILD_PREVIEW_LIMIT,
+      }),
+    })) ?? EMPTY_SEARCH_RESULTS_STATE,
+    // searchNotes identity changes per editor edit; searchQuery per keystroke.
+    [searchNotes, searchQuery],
   );
-  const currentDocumentCandidatesReady = currentDocumentCandidates.ready;
-  const searchModeActive = searchModeRequested && currentDocumentCandidatesReady;
+  const searchModeActive = searchModeRequested && searchResults.ready;
 
-  const matchedResults = useMemo(
-    () => filterCandidates(currentDocumentCandidates.allCandidates, searchQuery),
-    [currentDocumentCandidates.allCandidates, searchQuery]
-  );
-  // Render (and navigate) only the first SEARCH_RESULT_LIMIT matches; the total
-  // drives the "showing N of M" truncation hint.
-  const totalResultCount = matchedResults.length;
-  const flatResults = useMemo(
-    () => (matchedResults.length > SEARCH_RESULT_LIMIT
-      ? matchedResults.slice(0, SEARCH_RESULT_LIMIT)
-      : matchedResults),
-    [matchedResults]
-  );
+  const flatResults = searchResults.flatResults;
   const navigationCandidates = searchModeActive ? flatResults : EMPTY_SEARCH_CANDIDATES;
   const resolvedHighlightedNoteId = useMemo(
     () => resolveHighlightedNoteId(navigationCandidates, highlightedNoteId, searchModeActive),
@@ -263,9 +255,9 @@ export function useDocumentSearchModel({
 
   const highlightedResultNoteId = searchModeActive ? resolvedHighlightedNoteId : null;
   return {
-    childCandidateMap: currentDocumentCandidates.childCandidateMap,
+    childPreviewByNoteId: searchResults.childPreviewByNoteId,
     flatResults,
-    totalResultCount,
+    hasMoreResults: searchModeActive && searchResults.hasMore,
     handleSearchBlur,
     handleSearchChange,
     handleSearchCompositionEnd,
