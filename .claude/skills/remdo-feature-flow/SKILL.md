@@ -233,8 +233,14 @@ branch, so the new branch starts clean and merges back easily later:
 3. If local `<current-branch>` is **ahead** of `origin/<current-branch>` (unpushed
    commits) → **stop**: those commits would be left out of the new branch and
    could be forgotten. The user pushes or handles them first.
-4. Otherwise create the branch off `origin/<current-branch>` and anchor
-   `wip-base` there (its tip is the fork point). If that base is behind or
+4. Otherwise create the branch off `origin/<current-branch>` **without setting an
+   upstream** — `git switch -c <name> --no-track origin/<current-branch>` — and
+   anchor `wip-base` there (its tip is the fork point). The `--no-track` matters:
+   a plain start point would set the new branch's upstream to
+   `origin/<current-branch>` (a different name), and the user's first push would
+   then fail under `push.default=simple` with an upstream-name-mismatch error.
+   With no upstream, push (when the user runs it) creates `origin/<same-name>`
+   instead, so the branch name matches end to end. If that base is behind or
    diverged from `origin/main`, **warn but proceed** (non-blocking) — forking off
    an in-progress branch is fine; `remdo-sync` handles catching up later.
 
