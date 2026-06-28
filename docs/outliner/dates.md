@@ -8,25 +8,16 @@ Define RemDo-owned inline date behavior in the outliner.
 
 1. Dates are non-text inline RemDo nodes with a stored ISO date (`YYYY-MM-DD`)
    and a readable local label such as `Jun 10, 2026`.
-2. Typing `!` opens the date picker only at a typeahead boundary: the start of
-   note text, after whitespace, or after opening punctuation (`(`, `[`, `{`).
-3. Typing `!` after non-whitespace prose does not open the picker, so ordinary
-   punctuation like `done!` remains plain text.
-4. The picker starts in insert mode for a typed trigger and uses today's date in
-   the user's local browser date as the initial highlighted value.
-5. Choosing a date replaces the active `!` trigger with a date node followed by
-   a trailing space.
-6. Typing any query text after the `!` closes the picker and leaves the typed
-   text unchanged.
-7. `Enter` and `Tab` confirm the current picker date. If the user has not moved
-   the picker selection, this inserts today's date.
-8. `Escape` closes the picker and keeps the typed `!` as editable text.
-9. `Backspace` on an empty `!` trigger deletes that trigger and closes the
-   picker.
-10. Clicking outside the picker closes it without changing existing text or an
-    existing date.
-11. Clicking an existing date opens the picker in edit mode; choosing a new date
-    updates the same date node.
+2. `!` is an inline trigger character; its open/close/confirm lifecycle is the
+   shared one in [Inline trigger pickers](./triggers.md). The rest of this spec
+   is date-specific.
+3. The only option is today's date (the user's local browser date), shown as the
+   initial highlighted value. Typed query text is not interpreted in this phase
+   (see Non-goals).
+4. Confirming inserts a date node plus a trailing space; with the selection
+   unmoved, that is today's date.
+5. Clicking an existing date opens the picker in *edit* mode and updates that
+   same node — this is opened from a committed token, not a trigger session.
 
 ## Atomic token keyboard behavior
 
@@ -79,9 +70,10 @@ Define RemDo-owned inline date behavior in the outliner.
 
 ## References
 
-1. Lexical React typeahead plugin:
+1. Shared inline trigger lifecycle: [Inline trigger pickers](./triggers.md).
+2. Lexical React typeahead plugin:
    <https://lexical.dev/docs/react/plugins>
-2. Lexical custom nodes:
+3. Lexical custom nodes:
    <https://lexical.dev/docs/concepts/nodes>
 3. WAI-ARIA Authoring Practices Guide, combobox pattern:
    <https://www.w3.org/WAI/ARIA/apg/patterns/combobox/>

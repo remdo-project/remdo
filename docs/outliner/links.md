@@ -25,10 +25,11 @@ between RemDo-owned note links and generic external links.
 3. RemDo classification runs before generic link handling so RemDo-owned note
    refs keep note-link identity/clipboard behavior instead of degrading into
    plain URL links.
-4. Links are created inline through a keyboard-first typeahead flow triggered by
-   `@`.
-5. Link-query mode can start anywhere in note text. Query length minimum is 0,
-   so results may appear immediately.
+4. Links are created inline through `@`, an inline trigger character; its
+   open/close/confirm lifecycle is the shared one in
+   [Inline trigger pickers](./triggers.md) (so an email-like `a@b` stays plain
+   text). The note-link spec defines only what differs.
+5. Query length minimum is 0, so results may appear immediately.
 6. On insertion, note-link display text is copied once from the target note
    title and then
    stored locally (no auto-sync on later target renames in this phase).
@@ -87,25 +88,12 @@ between RemDo-owned note links and generic external links.
 
 ## Picker interaction
 
-1. When filtered results are non-empty, picker always has an active selection
-   (initially the first result in document order).
-2. Arrow navigation is clamped at list boundaries (no wrap-around).
-3. `Enter` confirms the active option.
-4. `Tab` confirms the active option (same behavior as `Enter`).
-5. `Escape` exits link-query mode and removes the current `@query` token.
-6. `Backspace` on an empty query exits link-query mode but leaves `@` as plain
-   text.
-7. Pointer hover updates the active picker row.
-8. Primary-button pointer click on a selectable row confirms that option (same
-   as `Enter`/`Tab`).
-9. Picker semantics expose the active row via listbox `aria-activedescendant`;
-   selectable rows also expose active state with `aria-selected`.
-10. `Enter`/`Tab` on a no-results picker exits link-query mode and leaves the
-    typed `@query` text unchanged.
-11. Clicking outside the editor and picker exits link-query mode and leaves the
-    typed `@query` text unchanged.
-12. Editor blur exits link-query mode and leaves the typed `@query` text
-    unchanged.
+Navigation, confirmation, accessibility, and dismissal are the shared trigger
+lifecycle in [Inline trigger pickers](./triggers.md). Note-link-specific points:
+
+1. The initial active option is the first result in document order.
+2. Confirming inserts a note-link node (`docId` + `noteId`) whose display text is
+   the target note title, plus a trailing space.
 
 ## Non-goals / future
 

@@ -47,10 +47,10 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
-- `docs/outliner/dates.md` (Medium). Inline date node behavior: `!` picker
-  trigger boundaries, insert/edit interactions, default date handling, dismissal
-  keys, outside-click handling, atomic token keyboard behavior, and future
-  editable-date and picker-keyboard boundaries.
+- `docs/outliner/dates.md` (Medium). Inline date node behavior: the
+  `!`-specific picker pieces (today option, edit mode) over the shared trigger
+  lifecycle, atomic token keyboard behavior, and future editable-date and
+  picker-keyboard boundaries.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge/reparent
   rules, spacing.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering placement semantics.
@@ -64,9 +64,10 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,
   rendering, and toggle commands.
 - `docs/outliner/links.md` (Medium). Note-linking behavior and the
-  internal-vs-external link boundary: `@` query flow, path-token picker matching
-  shared with search, ranking, runtime fully qualified link identity,
-  clipboard/persistence docId boundaries, and cross-document boundaries.
+  internal-vs-external link boundary: the `@`-specific query/ranking and commit
+  over the shared trigger lifecycle, path-token picker matching shared with
+  search, runtime fully qualified link identity, clipboard/persistence docId
+  boundaries, and cross-document boundaries.
 - `docs/outliner/menu.md` (Medium). Quick action menu entry points, note vs.
   children vs. view action scopes, and actions (toggle checked/fold/zoom/child
   list types/fold view to level).
@@ -88,6 +89,8 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/selection.md` (Long). Selection states and whole-note
   snapping, the anchored intent-replay selection ladder (symmetric grow/shrink),
   input bindings, collaboration reshaping tiers, and command compatibility.
+- `docs/outliner/triggers.md` (Short). The one lifecycle shared by the `@`/`!`
+  inline trigger pickers: boundary, open-on-keypress, dismissal, confirmation.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
   scope, breadcrumbs, and routing.
 - `docs/performance/client-side-perf-tests.md` (Medium). Minimal client-side
