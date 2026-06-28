@@ -118,7 +118,7 @@ the `wip-base` tag. It **never** rebases, force-pushes, or pushes; and pull
 Index the result: commits pulled in from `origin/main` (count, not a re-narration);
 whether the merge was clean or had conflicts; conflicts auto-resolved (with a
 one-line why-safe each) and conflicts left for the user (with file/region and what
-is unclear); and the new `wip-base` target.
+is unclear); and the new `wip-base` target (or that the re-anchor was skipped).
 
 ## References
 
