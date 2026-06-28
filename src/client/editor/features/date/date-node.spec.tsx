@@ -718,4 +718,18 @@ describe('date nodes', () => {
     await pressKey(remdo, { key: 'ArrowRight' });
     expect(document.querySelector('[data-date-picker]')).toBeNull();
   });
+
+  it('does not open the date picker on top of an open @ link query', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A trigger typed inside another picker's query is ordinary text: typing `!`
+    // while the `@` link picker is open must not stack a second picker.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' @note2');
+    expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
+
+    await typeText(remdo, ' ');
+    await typeText(remdo, '!');
+
+    expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
+    expect(document.querySelector('[data-date-picker]')).toBeNull();
+  });
 });
