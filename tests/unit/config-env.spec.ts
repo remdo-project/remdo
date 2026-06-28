@@ -132,6 +132,25 @@ describe('config env resolve', () => {
     ]);
   });
 
+  it('derives trusted origins from an explicit AUTH_URL on a non-default port', () => {
+    // createServerAuth re-derives from its own baseURL, so an overridden
+    // AUTH_URL must drive the trusted-origin aliases (not the default port).
+    const resolved = resolveTestConfig({
+      NODE_ENV: 'development',
+      AUTH_URL: 'http://127.0.0.1:6100',
+      PREVIEW_PORT: '6105',
+    }, { machineHostname: 'dev-vm' });
+
+    expect(resolved.server.AUTH_TRUSTED_ORIGINS).toEqual([
+      'http://127.0.0.1:6100',
+      'http://localhost:6100',
+      'http://dev-vm:6100',
+      'http://localhost:6105',
+      'http://127.0.0.1:6105',
+      'http://dev-vm:6105',
+    ]);
+  });
+
   it('omits preview-port aliases when it matches the app port', () => {
     const resolved = resolveTestConfig({
       NODE_ENV: 'development',

@@ -9,6 +9,7 @@ import type Database from 'better-sqlite3';
 import { genericOAuth, jwt } from 'better-auth/plugins';
 import type { ExpressionBuilder } from 'kysely';
 import { config } from '#config';
+import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { RemdoDatabase } from '#server/db/schema';
 import type { LinkableRemdoServer } from '#server/remdo-oauth/config';
@@ -148,7 +149,7 @@ export function createServerAuth({
   linkableRemdoServers = getLinkableRemdoServers(),
   oauthClientCredentials,
   secret = config.env.AUTH_SECRET,
-  trustedOrigins = config.server.AUTH_TRUSTED_ORIGINS,
+  trustedOrigins,
 }: CreateServerAuthOptions): ServerAuth {
   if (!baseURL) {
     throw new Error('A canonical public URL is required for auth.');
@@ -158,6 +159,15 @@ export function createServerAuth({
     throw new Error('AUTH_SECRET is required for auth.');
   }
 
+  // Default trusted origins are derived from THIS instance's baseURL (not the
+  // config singleton), so an overridden baseURL still trusts its own origin.
+  const resolvedTrustedOrigins = trustedOrigins ?? deriveAuthTrustedOrigins({
+    baseURL,
+    isProduction: config.isProd,
+    hostname: config.server.MACHINE_HOSTNAME,
+    previewPort: config.env.PREVIEW_PORT,
+  });
+
   const auth = createBetterAuthInstance({
     allowSignup,
     baseURL,
@@ -165,7 +175,7 @@ export function createServerAuth({
     linkableRemdoServers,
     oauthClientCredentials,
     secret,
-    trustedOrigins,
+    trustedOrigins: resolvedTrustedOrigins,
   });
   const userProvisioningAuth = allowSignup
     ? auth
@@ -176,7 +186,7 @@ export function createServerAuth({
         linkableRemdoServers,
         oauthClientCredentials,
         secret,
-        trustedOrigins,
+        trustedOrigins: resolvedTrustedOrigins,
       });
   const handleAuthServerMetadata = oauthProviderAuthServerMetadata(auth);
   const handleOpenIdConfigMetadata = oauthProviderOpenIdConfigMetadata(auth);
