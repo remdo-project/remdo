@@ -28,6 +28,6 @@ exec "${ROOT_DIR}/tools/env.sh" sh -c '
           "pnpm run build:watch" \
           "pnpm run dev:api" \
           "pnpm run dev:collab" \
-          "pnpm run preview"
+          "pnpm run preview:web"
     '\''
 '
