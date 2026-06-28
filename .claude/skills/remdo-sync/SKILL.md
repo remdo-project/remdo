@@ -1,27 +1,28 @@
 ---
 name: remdo-sync
-description: Use to bring the latest `origin/main` into the current task branch and keep `wip-base` correct. Merges (never rebases, never force-pushes), resolves only conflicts it can determine are safe, calls out the rest, and moves `wip-base` to the new fork point so later refine/review diffs show only the branch's own work. Triggers include "sync from main", "update this branch", "pull in main".
+description: Use to bring the latest `origin/main` into the current branch and keep `wip-base` correct. Merges (never rebases, never force-pushes), resolves only conflicts it can determine are safe, calls out the rest, and moves `wip-base` to the new fork point so later refine/review diffs show only the branch's own work. Triggers include "sync from main", "update this branch", "pull in main".
 ---
 
 # Sync
 
 ## Overview
 
-Bring the current task branch up to date with `origin/main` and **re-anchor
-`wip-base`** so `wip-base..HEAD` keeps meaning "this branch's own work" — the
-merged-in `origin/main` commits drop out of the diff. `remdo-feature-flow` sets
-the *first* anchor when it creates the branch; this skill owns every re-anchor
-after that, so review consumers can always trust `wip-base..HEAD` without
-computing a base themselves.
+Bring the current branch up to date with `origin/main` and **re-anchor
+`wip-base`** (when it is anchored for the branch) so `wip-base..HEAD` keeps
+meaning "this branch's own work" — the merged-in `origin/main` commits drop out of
+the diff. `remdo-feature-flow` sets the *first* anchor when it creates the branch;
+this skill owns every re-anchor after that, so review consumers can always trust
+`wip-base..HEAD` without computing a base themselves.
 
 Per the **Skill authoring** rule in `AGENTS.md`, this skill encodes *intent* —
 stay current, never rewrite shared history, keep the base honest — and leaves
 judgement (notably conflict resolution) to the run rather than baking in rigid
 rules a more capable future run would do better.
 
-## Strategy: always merge
+## Strategy: merge, never rebase
 
-Integrate `origin/main` with **`git merge`**, never rebase. Merge never rewrites
+Integrate `origin/main` with a plain **`git merge origin/main`**, never rebase
+(it fast-forwards or makes a merge commit as needed). Merge never rewrites
 history, so it never needs a force-push and never scrambles an open PR's review —
 the right default for an autonomous skill. A user who wants a linear history can
 rebase by hand; this skill does not, and **never pushes**. (See `References` for
@@ -30,8 +31,11 @@ the rebase-vs-merge tradeoff.)
 ## The invariant and the gate
 
 The job is to keep one invariant true: **`wip-base..HEAD` is exactly the current
-branch's own work — nothing pulled in.** Sync proceeds only when it can preserve
-that; otherwise it **hard-blocks** rather than producing a confusing diff.
+branch's own work — nothing pulled in.** When `wip-base` is this branch's anchor,
+sync proceeds only when it can preserve that invariant; otherwise it
+**hard-blocks** rather than producing a confusing diff. (When there is no such
+anchor, there is no invariant to protect and this gate does not apply — see
+Preconditions.)
 
 The single gate (parent-free, no branch-name tracking):
 
@@ -54,18 +58,27 @@ re-fork from current `origin/main` rather than waiting on sync.
 
 ## Preconditions (warn and stop)
 
-- **Task branch only** — not `dev`/`main`.
 - **Clean working tree** — merge needs it; commit or stash first.
+
+Sync runs on whatever branch is checked out (no branch-name gate). `wip-base` is
+a single tag with no branch attached, so first decide whether it is **this
+branch's** anchor — i.e. it marks this branch's fork point, not a tag left over
+from another branch's flow. If it is **not** this branch's anchor (absent, or
+pointing into unrelated history), there is no branch-own-work invariant to
+protect: **skip both the gate (step 2) and the re-anchor (step 6)** and just
+merge `origin/main` (steps 1, 3–5).
 
 ## The flow
 
 1. **Fetch.** `git fetch --prune` (always allowed — it only updates
    remote-tracking refs).
-2. **Check the gate** above — always, before any merge or re-anchor. False → stop
-   with the explanation. True → continue.
+2. **Check the gate** above (only when `wip-base` is this branch's anchor — see
+   Preconditions; otherwise skip to step 3), before any merge or re-anchor. False
+   → stop with the explanation. True → continue.
 3. **Already up to date?** If `origin/main` is already reachable from `HEAD`
    (nothing to merge — e.g. a prior manual merge, or a sync interrupted before the
-   re-anchor), skip the merge and go straight to step 6 to fix the tag.
+   re-anchor), skip the merge and go straight to step 6 to fix the tag (or finish
+   here if step 6 is being skipped).
 4. **Probe for conflicts without touching the tree** — `git merge-tree
    --write-tree --merge-base $(git merge-base HEAD origin/main) HEAD origin/main`.
 5. **Merge** (and resolve, if conflicts). `git merge origin/main`. Resolve only
@@ -95,7 +108,7 @@ re-fork from current `origin/main` rather than waiting on sync.
 ## Permissions
 
 Invoking this skill is an explicitly declared autonomous scope (per AGENTS.md):
-it authorizes, on the current **task branch**, `git fetch` (always),
+it authorizes, on the current branch, `git fetch` (always),
 `git merge origin/main`, conflict-resolution edits, the merge commit, and moving
 the `wip-base` tag. It **never** rebases, force-pushes, or pushes; and pull
 (which mutates your branch outside this flow) stays the user's.
@@ -105,7 +118,7 @@ the `wip-base` tag. It **never** rebases, force-pushes, or pushes; and pull
 Index the result: commits pulled in from `origin/main` (count, not a re-narration);
 whether the merge was clean or had conflicts; conflicts auto-resolved (with a
 one-line why-safe each) and conflicts left for the user (with file/region and what
-is unclear); and the new `wip-base` target.
+is unclear); and the new `wip-base` target (or that the re-anchor was skipped).
 
 ## References
 
