@@ -59,12 +59,11 @@ re-fork from current `origin/main` rather than waiting on sync.
 
 Sync runs on whatever branch is checked out (no branch-name gate). `wip-base` is
 a single tag with no branch attached, so first decide whether it is **this
-branch's** anchor — i.e. it marks this branch's fork point (on the branch's own
-history), not a tag left over from another branch's flow. If it is **not** this
-branch's anchor (absent, or pointing into unrelated history), there is no
-branch-own-work invariant to protect: **skip both the gate (step 2) and the
-re-anchor (step 6)** and just merge `origin/main` (steps 1, 3–5). The gate and
-re-anchor below apply only when `wip-base` is this branch's anchor.
+branch's** anchor — i.e. it marks this branch's fork point, not a tag left over
+from another branch's flow. If it is **not** this branch's anchor (absent, or
+pointing into unrelated history), there is no branch-own-work invariant to
+protect: **skip both the gate (step 2) and the re-anchor (step 6)** and just
+merge `origin/main` (steps 1, 3–5).
 
 ## The flow
 
