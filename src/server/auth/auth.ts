@@ -1,4 +1,3 @@
-import os from 'node:os';
 import {
   oauthProvider,
   oauthProviderAuthServerMetadata,
@@ -10,6 +9,7 @@ import type Database from 'better-sqlite3';
 import { genericOAuth, jwt } from 'better-auth/plugins';
 import type { ExpressionBuilder } from 'kysely';
 import { config } from '#config';
+import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { RemdoDatabase } from '#server/db/schema';
 import type { LinkableRemdoServer } from '#server/remdo-oauth/config';
@@ -22,6 +22,7 @@ interface CreateServerAuthOptions {
   linkableRemdoServers?: readonly LinkableRemdoServer[];
   oauthClientCredentials?: OAuthClientCredentials;
   secret?: string;
+  trustedOrigins?: readonly string[];
 }
 
 export const REMDO_SERVER_OAUTH_SCOPES = [
@@ -36,38 +37,6 @@ interface OAuthClientCredentials {
   clientSecret: string;
 }
 
-function appendOrigin(origins: string[], origin: string): void {
-  if (!origins.includes(origin)) {
-    origins.push(origin);
-  }
-}
-
-export function createAuthTrustedOrigins(
-  baseURL: string,
-  options: { mode?: string; machineHostname?: string } = {},
-): string[] {
-  const baseOrigin = new URL(baseURL).origin;
-  const origins = [baseOrigin];
-  const mode = options.mode ?? config.runtime.mode;
-  if (mode === 'production') {
-    return origins;
-  }
-
-  const url = new URL(baseOrigin);
-  const port = url.port;
-  if (!port) {
-    return origins;
-  }
-
-  appendOrigin(origins, `${url.protocol}//localhost:${port}`);
-  appendOrigin(origins, `${url.protocol}//127.0.0.1:${port}`);
-  const hostname = options.machineHostname ?? os.hostname();
-  if (hostname) {
-    appendOrigin(origins, `${url.protocol}//${hostname}:${port}`);
-  }
-  return origins;
-}
-
 function createBetterAuthInstance({
   allowSignup,
   baseURL,
@@ -75,6 +44,7 @@ function createBetterAuthInstance({
   linkableRemdoServers,
   oauthClientCredentials,
   secret,
+  trustedOrigins,
 }: {
   allowSignup: boolean;
   baseURL: string;
@@ -82,11 +52,12 @@ function createBetterAuthInstance({
   linkableRemdoServers: readonly LinkableRemdoServer[];
   oauthClientCredentials?: OAuthClientCredentials;
   secret: string;
+  trustedOrigins: readonly string[];
 }) {
   return betterAuth({
     basePath: '/api/auth',
     baseURL,
-    trustedOrigins: createAuthTrustedOrigins(baseURL),
+    trustedOrigins: [...trustedOrigins],
     secret,
     logger: config.isProd ? undefined : { level: 'error' },
     database,
@@ -178,6 +149,7 @@ export function createServerAuth({
   linkableRemdoServers = getLinkableRemdoServers(),
   oauthClientCredentials,
   secret = config.env.AUTH_SECRET,
+  trustedOrigins,
 }: CreateServerAuthOptions): ServerAuth {
   if (!baseURL) {
     throw new Error('A canonical public URL is required for auth.');
@@ -187,6 +159,15 @@ export function createServerAuth({
     throw new Error('AUTH_SECRET is required for auth.');
   }
 
+  // Default trusted origins are derived from THIS instance's baseURL (not the
+  // config singleton), so an overridden baseURL still trusts its own origin.
+  const resolvedTrustedOrigins = trustedOrigins ?? deriveAuthTrustedOrigins({
+    baseURL,
+    isProduction: config.isProd,
+    hostname: config.server.MACHINE_HOSTNAME,
+    previewPort: config.env.PREVIEW_PORT,
+  });
+
   const auth = createBetterAuthInstance({
     allowSignup,
     baseURL,
@@ -194,6 +175,7 @@ export function createServerAuth({
     linkableRemdoServers,
     oauthClientCredentials,
     secret,
+    trustedOrigins: resolvedTrustedOrigins,
   });
   const userProvisioningAuth = allowSignup
     ? auth
@@ -204,6 +186,7 @@ export function createServerAuth({
         linkableRemdoServers,
         oauthClientCredentials,
         secret,
+        trustedOrigins: resolvedTrustedOrigins,
       });
   const handleAuthServerMetadata = oauthProviderAuthServerMetadata(auth);
   const handleOpenIdConfigMetadata = oauthProviderOpenIdConfigMetadata(auth);

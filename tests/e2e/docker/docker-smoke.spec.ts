@@ -8,7 +8,7 @@ import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import process from 'node:process';
 import * as Y from 'yjs';
-import { waitForEditableEditor } from './_support/helpers';
+import { DOCKER_TEST_AUTH, waitForEditableEditor } from './_support/helpers';
 
 const USER_DATA_ROOT_NOTE_ID = 'user-data';
 const DOCUMENTS_KEY = 'documents';
@@ -236,4 +236,56 @@ test('user data sync token is read-only and API document creation updates the pr
   expect(readProjectedDocumentIds(new Uint8Array(await finalUpdateResponse.body()))).not.toContain(
     FORGED_USER_DATA_DOCUMENT_ID,
   );
+});
+
+test('mutating auth requests are rejected from an untrusted origin and accepted from the gateway', async ({ page }) => {
+  // Production-only coverage: Better Auth disables its origin/CSRF check under
+  // NODE_ENV=test, so only this Docker (prod) stack actually enforces it. The
+  // gateway origin is the sole trusted origin in production.
+  await page.goto(`/n/${readSmokeDocumentId()}`);
+  const gatewayOrigin = new URL(page.url()).origin;
+
+  // Isolated cookie session so signing out here never disturbs the shared page.
+  const isolatedContext = await playwrightRequest.newContext({
+    baseURL: gatewayOrigin,
+    ignoreHTTPSErrors: true,
+    storageState: { cookies: [], origins: [] },
+  });
+  try {
+    const signInResponse = await isolatedContext.fetch('/api/auth/sign-in/email', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: gatewayOrigin },
+      data: { email: DOCKER_TEST_AUTH.email, password: DOCKER_TEST_AUTH.password },
+    });
+    expect(signInResponse.status()).toBe(HTTP_STATUS.OK);
+
+    const currentUser = () => isolatedContext.fetch('/api/current-user', { failOnStatusCode: false });
+
+    // Forged Origin: the origin gate rejects the request before the sign-out
+    // handler runs.
+    const forgedResponse = await isolatedContext.fetch('/api/auth/sign-out', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: 'http://evil.example.com' },
+      data: {},
+      failOnStatusCode: false,
+    });
+    expect(forgedResponse.status()).toBe(HTTP_STATUS.FORBIDDEN);
+    // The rejected request never reached sign-out, so the session is still live.
+    // (sign-out returns 200 even with no session, so this is what makes the
+    // accepted-origin assertion below meaningful rather than a no-op 200.)
+    expect((await currentUser()).status()).toBe(HTTP_STATUS.OK);
+
+    // Same request from the trusted gateway origin is accepted and actually signs
+    // out: the follow-up current-user read is now unauthenticated.
+    const trustedResponse = await isolatedContext.fetch('/api/auth/sign-out', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: gatewayOrigin },
+      data: {},
+      failOnStatusCode: false,
+    });
+    expect(trustedResponse.status()).toBe(HTTP_STATUS.OK);
+    expect((await currentUser()).status()).toBe(HTTP_STATUS.UNAUTHORIZED);
+  } finally {
+    await isolatedContext.dispose();
+  }
 });

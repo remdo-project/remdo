@@ -114,6 +114,69 @@ describe('config env resolve', () => {
     expect(resolved.server.AUTH_URL).toBe('https://remdo.example.com');
   });
 
+  it('derives dev auth trusted origins for the app port and preview port', () => {
+    const resolved = resolveTestConfig({
+      NODE_ENV: 'development',
+      HOST: '127.0.0.1',
+      PORT: '4000',
+      PREVIEW_PORT: '4005',
+    }, { machineHostname: 'dev-vm' });
+
+    expect(resolved.server.AUTH_TRUSTED_ORIGINS).toEqual([
+      'http://127.0.0.1:4000',
+      'http://localhost:4000',
+      'http://dev-vm:4000',
+      'http://localhost:4005',
+      'http://127.0.0.1:4005',
+      'http://dev-vm:4005',
+    ]);
+  });
+
+  it('derives trusted origins from an explicit AUTH_URL on a non-default port', () => {
+    // createServerAuth re-derives from its own baseURL, so an overridden
+    // AUTH_URL must drive the trusted-origin aliases (not the default port).
+    const resolved = resolveTestConfig({
+      NODE_ENV: 'development',
+      AUTH_URL: 'http://127.0.0.1:6100',
+      PREVIEW_PORT: '6105',
+    }, { machineHostname: 'dev-vm' });
+
+    expect(resolved.server.AUTH_TRUSTED_ORIGINS).toEqual([
+      'http://127.0.0.1:6100',
+      'http://localhost:6100',
+      'http://dev-vm:6100',
+      'http://localhost:6105',
+      'http://127.0.0.1:6105',
+      'http://dev-vm:6105',
+    ]);
+  });
+
+  it('omits preview-port aliases when it matches the app port', () => {
+    const resolved = resolveTestConfig({
+      NODE_ENV: 'development',
+      HOST: '127.0.0.1',
+      PORT: '4000',
+      PREVIEW_PORT: '4000',
+    }, { machineHostname: 'dev-vm' });
+
+    expect(resolved.server.AUTH_TRUSTED_ORIGINS).toEqual([
+      'http://127.0.0.1:4000',
+      'http://localhost:4000',
+      'http://dev-vm:4000',
+    ]);
+  });
+
+  it('restricts auth trusted origins to the public origin in production', () => {
+    const resolved = resolveTestConfig({
+      NODE_ENV: 'production',
+      AUTH_SECRET: 'production-auth-secret-0123456789',
+      ADMIN_SECRET: 'production-admin-secret-0123456789',
+      APP_PUBLIC_URL: 'https://remdo.example.com',
+    }, { machineHostname: 'dev-vm' });
+
+    expect(resolved.server.AUTH_TRUSTED_ORIGINS).toEqual(['https://remdo.example.com']);
+  });
+
   it('rejects a short AUTH_SECRET in production server config', () => {
     expect(() => resolveTestConfig({
       NODE_ENV: 'production',
