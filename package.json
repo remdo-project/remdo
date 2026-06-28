@@ -70,7 +70,7 @@
     "lint:md:file": "timeout ${TEST_TIMEOUT:-120}s pnpm run lint:md:file:raw --",
     "lint:md:file:raw": "markdownlint-cli2 --no-globs",
     "lint:md:raw": "sh tools/lint-md.sh",
-    "preview": "concurrently \"pnpm run preview:web\" \"pnpm run dev:api\" \"pnpm run dev:collab\"",
+    "preview": "pnpm run build && concurrently \"pnpm run preview:web\" \"pnpm run dev:api\" \"pnpm run dev:collab\"",
     "preview:web": "./tools/env.sh vite preview",
     "test": "pnpm run test:unit",
     "verify:ci": "pnpm install --frozen-lockfile --lockfile-only && pnpm run lint && pnpm run test:unit:full && pnpm run test:collab:full && pnpm run test:e2e:all && pnpm run audit:all",
