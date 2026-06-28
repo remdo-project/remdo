@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
 import { createServerApp } from '#server/app';
 import { createServerAuth } from '#server/auth/auth';
 import type { CreateAuthUserInput } from '#server/auth/auth';
@@ -17,6 +18,9 @@ const TEST_USER = {
   password: 'server-password-1234',
 } as const;
 export const TEST_ADMIN_SECRET = 'test-admin-secret-0123456789';
+// Fixed preview port for the harness's trusted origins, so origin-acceptance
+// tests are deterministic and independent of the env-derived PREVIEW_PORT.
+export const TEST_PREVIEW_PORT = 4005;
 
 export function createServerAppHarness({
   adminSecret = TEST_ADMIN_SECRET,
@@ -32,12 +36,21 @@ export function createServerAppHarness({
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-server-auth-'));
   const dbPath = path.join(tempDir, 'remdo.sqlite');
   const client = createServerDatabaseClient({ dbPath });
+  // Derive trusted origins from the harness's own baseURL (not the env singleton)
+  // so the auth instance honours the baseURL it was given.
+  const trustedOrigins = deriveAuthTrustedOrigins({
+    baseURL,
+    isProduction: false,
+    hostname: 'test-host',
+    previewPort: TEST_PREVIEW_PORT,
+  });
   const auth = createServerAuth({
     allowSignup: false,
     baseURL,
     database: client,
     linkableRemdoServers,
     secret: 'test-better-auth-secret-0123456789',
+    trustedOrigins,
   });
   const registry = createDocumentRegistry({ client });
   const collabDocuments = new Map<string, Uint8Array>();
@@ -79,6 +92,8 @@ export function createServerAppHarness({
   return {
     app,
     auth,
+    baseURL,
+    trustedOrigins,
     database: client,
     registry,
     async createSessionHeaders(user: CreateAuthUserInput = TEST_USER) {

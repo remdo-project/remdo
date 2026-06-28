@@ -21,6 +21,7 @@ interface CreateServerAuthOptions {
   linkableRemdoServers?: readonly LinkableRemdoServer[];
   oauthClientCredentials?: OAuthClientCredentials;
   secret?: string;
+  trustedOrigins?: readonly string[];
 }
 
 export const REMDO_SERVER_OAUTH_SCOPES = [
@@ -42,6 +43,7 @@ function createBetterAuthInstance({
   linkableRemdoServers,
   oauthClientCredentials,
   secret,
+  trustedOrigins,
 }: {
   allowSignup: boolean;
   baseURL: string;
@@ -49,11 +51,12 @@ function createBetterAuthInstance({
   linkableRemdoServers: readonly LinkableRemdoServer[];
   oauthClientCredentials?: OAuthClientCredentials;
   secret: string;
+  trustedOrigins: readonly string[];
 }) {
   return betterAuth({
     basePath: '/api/auth',
     baseURL,
-    trustedOrigins: config.server.AUTH_TRUSTED_ORIGINS,
+    trustedOrigins: [...trustedOrigins],
     secret,
     logger: config.isProd ? undefined : { level: 'error' },
     database,
@@ -145,6 +148,7 @@ export function createServerAuth({
   linkableRemdoServers = getLinkableRemdoServers(),
   oauthClientCredentials,
   secret = config.env.AUTH_SECRET,
+  trustedOrigins = config.server.AUTH_TRUSTED_ORIGINS,
 }: CreateServerAuthOptions): ServerAuth {
   if (!baseURL) {
     throw new Error('A canonical public URL is required for auth.');
@@ -161,6 +165,7 @@ export function createServerAuth({
     linkableRemdoServers,
     oauthClientCredentials,
     secret,
+    trustedOrigins,
   });
   const userProvisioningAuth = allowSignup
     ? auth
@@ -171,6 +176,7 @@ export function createServerAuth({
         linkableRemdoServers,
         oauthClientCredentials,
         secret,
+        trustedOrigins,
       });
   const handleAuthServerMetadata = oauthProviderAuthServerMetadata(auth);
   const handleOpenIdConfigMetadata = oauthProviderOpenIdConfigMetadata(auth);
