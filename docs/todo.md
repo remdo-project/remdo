@@ -230,13 +230,6 @@ Remaining issues to fold in or fix directly:
 
 ## Test harness follow-ups
 
-- Better Auth auto-disables its origin/CSRF check under `NODE_ENV=test`
-  (`skipOriginCheck: isTest()`), so no unit/harness test can exercise actual
-  trusted-origin *enforcement* (rejecting an untrusted Origin). Derivation is
-  covered in `config-env.spec.ts` and wiring in `auth.spec.ts`, but enforcement
-  is only validated by the live preview/e2e path. Consider an e2e check, or
-  driving Better Auth with origin-check forced on, if enforcement regressions
-  become a concern.
 - Redesign `toMatchOutline` note content expectations from flattened text into
   node-level content. Target shape:
   `{ noteId: 'note1', content: [{ text: 'before ' }, { date: '2026-06-10' }, { text: ' after' }] }`.
