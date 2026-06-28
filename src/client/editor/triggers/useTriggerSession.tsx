@@ -102,6 +102,9 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       activeIndex: number;
     } | { kind: 'keep' } | { kind: 'close' } => {
       if (editor.selection.isStructural()) {
+        // A structural selection is not a typing context, so a pending trigger
+        // keypress here can never resolve — drop it rather than leave it armed.
+        pendingTriggerRef.current = false;
         return { kind: 'close' };
       }
 
@@ -117,7 +120,6 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
 
       const caretOffset = selection.anchor.offset;
       const pendingTrigger = pendingTriggerRef.current;
-      pendingTriggerRef.current = false;
 
       const currentSession = sessionRef.current;
       // The open gate: with no live session and no fresh trigger keypress, a
@@ -133,9 +135,19 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
 
       const resolved = $resolveTriggerSession(specRef.current.triggerChar, anchorNode, caretOffset, seededSession);
       if (!resolved) {
-        sessionRef.current = null;
-        return { kind: 'close' };
+        // Keep a pending trigger armed: the trigger keypress and the character
+        // insertion are separate editor updates, so an update landing in between
+        // (e.g. a collab patch) must not consume the pending flag against a state
+        // that does not contain the trigger character yet.
+        if (!pendingTrigger) {
+          sessionRef.current = null;
+          return { kind: 'close' };
+        }
+        return { kind: 'keep' };
       }
+
+      // The trigger character is now resolved, so the pending keypress is spent.
+      pendingTriggerRef.current = false;
 
       // On a fresh trigger keypress, only open when the trigger landed at a
       // boundary. An existing session has already cleared this gate.
