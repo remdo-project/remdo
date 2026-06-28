@@ -69,17 +69,11 @@ Rules:
   `docs/contributing.md#editor-feature-modules`. Move the cross-cutting body
   primitives (the note-kind predicates and selection resolvers many shared
   modules consume) to `outline/`, leaving feature-specific logic behind.
-- Pressing a hot key just after a node with text content (for example `!` right
-  after an existing date node) fails to trigger, because the boundary check
-  reads the previous node's rendered text and sees a non-boundary character.
-  Fix should treat inline non-text nodes as boundaries and consider common,
-  related UX guidelines.
-- Date picker popover display is degraded: the calendar renders but the popover
-  has no container background/border (bleeds into the page) and shows a stray
-  vertical-bar artifact. Functional (dates clickable), styling only.
-- Date picker re-opens on caret navigation: arrowing the cursor to just after an
-  existing `!` re-triggers the picker. It should open only when `!` is typed, not
-  when navigating around one.
+- Pressing a trigger just after an inline non-text node (for example `!` or `@`
+  right after an existing date token) fails to open the picker, because the
+  shared boundary check (`triggers/boundary.ts`) reads the previous node's
+  rendered text and sees a non-boundary character. Fix should treat inline
+  non-text nodes as boundaries and consider common, related UX guidelines.
 
 ## Document access and sharing
 
