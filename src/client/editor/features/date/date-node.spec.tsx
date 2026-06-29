@@ -347,6 +347,21 @@ describe('date nodes', () => {
     ]);
   });
 
+  it('opens the picker when ! immediately follows a date token', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A preceding atomic decorator (a date token) is a trigger boundary, even
+    // with no whitespace between it and the `!`. Its rendered label must not be
+    // read as non-boundary prose.
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      note.clear();
+      note.append($createDateNode('2026-06-10'));
+    });
+    await placeCaretNextToDate(remdo, 'after');
+    await typeText(remdo, '!');
+
+    expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
+  });
+
   it('closes the picker when typing query text after !', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, '!t');

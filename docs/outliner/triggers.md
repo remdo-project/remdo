@@ -12,9 +12,10 @@ the WAI-ARIA [combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobo
 ## Lifecycle
 
 1. **Open.** A picker opens only on a fresh keypress of its trigger character at
-   a boundary — the start of note text, after whitespace, or after opening
-   punctuation (`(`, `[`, `{`). So `done!` and `a@b` stay plain text, and moving
-   the caret back beside an already-typed trigger never reopens the picker.
+   a boundary — the start of note text, after whitespace, after opening
+   punctuation (`(`, `[`, `{`), or after an atomic inline token (a decorator node
+   such as a date). So `done!` and `a@b` stay plain text, and moving the caret
+   back beside an already-typed trigger never reopens the picker.
 2. **Query.** While open, the text between the trigger and the caret is the live
    query (it may be empty). When the option list is non-empty it always has one
    active option (initially the first in the source's order).
