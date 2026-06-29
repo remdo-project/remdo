@@ -69,6 +69,21 @@ Rules:
   in the old `@` plugin), not a regression. Alternative: return `false` so Enter
   falls through to a newline after closing. Decide intentionally; if flipped,
   update `triggers.md` #4 and the no-results Enter/Tab tests.
+- Bug (pre-existing, inherited from the old `@` plugin; confirmed reachable for
+  `@` and `!`): with a picker open, moving the caret back beside an *earlier*
+  plain trigger in the same text node retargets the session to it instead of
+  closing — the picker stays open on a trigger the user never freshly typed,
+  violating the open-on-fresh-keypress lifecycle. Cause: the query-null
+  re-inference fallback in `triggers/session.ts` (`$resolveTriggerSession`,
+  ~line 110) calls `inferSessionFromAnchor`, which scans back to any earlier
+  trigger. Needs a careful fix: two naive guards both broke core query typing
+  (closing on `currentSession && query===null`, and restricting re-inference to
+  the same node+offset) — the fallback is load-bearing for normal typing and
+  re-infers different node/offset legitimately, so the fix must distinguish
+  same-logical-trigger split/merge recovery from a genuine retarget. Reproduce
+  via `$resolveTriggerSession` directly (active session offset N, caret moved
+  before it → returns an earlier trigger) and at the engine level (open `!new`
+  after `!old`, set caret after `!old` → picker stays open).
 
 ## Document access and sharing
 
