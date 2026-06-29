@@ -53,7 +53,9 @@ per-mode facts.
 - Notes:
   1. launch with `tools/prod/docker.sh`
   2. requires a local rootless Docker daemon
-  3. operators set `ADMIN_SECRET`; the rest bootstrap on first run
+  3. operators set `ADMIN_SECRET`; the rest bootstrap on first run. The first
+     person to visit admin self-enrollment and present the secret registers and
+     becomes the admin (see [docs/access-model.md](./access-model.md#admin-role))
   4. set `APP_PUBLIC_URL` to the canonical public URL; the launcher prints it
      before startup, use that URL
   5. local Docker uses self-signed HTTPS by default

@@ -45,6 +45,29 @@ Define the access cases RemDo should support.
   last validated bootstrap only for offline reopen; logout clears it with local
   Yjs offline data.
 
+## Admin Role
+
+Some operations are operator-level, not per-document — server administration
+rather than document access. These are gated by a persistent **admin role** on
+the user.
+
+- The role is an authorization source of truth, stored in SQL on the Better Auth
+  user record. The Yjs user-data projection may reflect it for UI, but
+  authorization is always enforced server-side from the SQL record, never from
+  the projection.
+- Every admin API authorizes from the caller's session + role. The admin panel
+  route is gated the same way; a non-admin (or unauthenticated) visitor is sent
+  to admin self-enrollment rather than the panel.
+- Self-enrollment is gated by `ADMIN_SECRET` (see
+  [docs/config.md](./config.md#admin-bootstrap-and-enrollment)): a visitor who
+  presents the secret is granted the admin role. The secret is a shared **gate
+  to acquire the role**, not an identity tied to one user — one enrollment path,
+  and any user who knows the secret can become admin.
+- The secret-gated path can always create the enrolling account, independent of
+  the public-signup policy. So on an empty server it registers the first account
+  and grants the role in one step, and closing public signup never locks out
+  admin bootstrap.
+
 ## CSRF Protection
 
 - Session cookies are SameSite=Lax; app routes use Hono's CSRF middleware to
