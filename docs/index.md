@@ -47,10 +47,10 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
-- `docs/outliner/dates.md` (Medium). Inline date node behavior: the
-  `!`-specific picker pieces (today option, edit mode) over the shared trigger
-  lifecycle, atomic token keyboard behavior, and future editable-date and
-  picker-keyboard boundaries.
+- `docs/outliner/dates.md` (Medium). Inline date node behavior: the `!` picker's
+  preset-list mode and explicitly-entered calendar mode over the shared trigger
+  lifecycle, edit mode, atomic token keyboard behavior, and future typed
+  natural-language date parsing.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge/reparent
   rules, spacing.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering placement semantics.
@@ -91,7 +91,8 @@ outdated or a doc’s role materially changes.
   snapping, the anchored intent-replay selection ladder (symmetric grow/shrink),
   input bindings, collaboration reshaping tiers, and command compatibility.
 - `docs/outliner/triggers.md` (Short). The one lifecycle shared by the `@`/`!`
-  inline trigger pickers: boundary, open-on-keypress, dismissal, confirmation.
+  inline trigger pickers: the span-pinned session, boundary open-on-keypress,
+  caret-leaves-span dismissal, and confirmation.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
   scope, breadcrumbs, and routing.
 - `docs/performance/client-side-perf-tests.md` (Medium). Minimal client-side

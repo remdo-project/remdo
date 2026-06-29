@@ -17,10 +17,11 @@ details.
    filtering, persistence, and view-scoped fold-to-level commands.
 6. **List types:** `./list-types.md` — bullet/number/check semantics and checked state.
 7. **Inline trigger pickers:** `./triggers.md` — the one lifecycle shared by the
-   `@`/`!` trigger menus (boundary, open-on-keypress, dismissal, confirmation).
-8. **Dates:** `./dates.md` — inline date node behavior, the `!`-specific picker
-   pieces (today option, edit mode), atomic token keyboard behavior, and future
-   editable-date and picker-keyboard boundaries.
+   `@`/`!` trigger menus (span-pinned session, boundary open-on-keypress,
+   caret-leaves-span dismissal, confirmation).
+8. **Dates:** `./dates.md` — inline date node behavior, the `!` picker's preset
+   list + calendar mode, edit mode, atomic token keyboard behavior, and future
+   typed natural-language date parsing.
 9. **Links:** `./links.md` — initial note-linking behavior, the `@`-specific
    query/ranking and commit, and future boundaries.
 10. **Search mode:** `./search.md` — focused search navigation flow (single

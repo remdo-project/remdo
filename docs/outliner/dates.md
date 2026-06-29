@@ -8,16 +8,27 @@ Define RemDo-owned inline date behavior in the outliner.
 
 1. Dates are non-text inline RemDo nodes with a stored ISO date (`YYYY-MM-DD`)
    and a readable local label such as `Jun 10, 2026`.
-2. `!` is an inline trigger character; its open/close/confirm lifecycle is the
+2. `!` is an inline trigger character; its open/dismiss/confirm lifecycle is the
    shared one in [Inline trigger pickers](./triggers.md). The rest of this spec
    is date-specific.
-3. The only option is today's date (the user's local browser date), shown as the
-   initial highlighted value. Typed query text is not interpreted in this phase
-   (see Non-goals).
-4. Confirming inserts a date node plus a trailing space; with the selection
-   unmoved, that is today's date.
-5. Clicking an existing date opens the picker in *edit* mode and updates that
-   same node — this is opened from a committed token, not a trigger session.
+3. The picker has two modes. It opens in **list mode**: a one-dimensional list of
+   relative-date presets — `Today` (initially active), `Tomorrow`, `Next week`,
+   and a final `Pick date…` row. List mode is a plain instance of the shared
+   lifecycle (no extra keys of its own).
+4. `Enter` on a relative-date preset commits that date. So the fast path is `!`
+   then `Enter` → today, with no calendar shown. Typed query text after `!` is
+   not interpreted in this phase (see Non-goals), so the presets are the only way
+   to choose without the calendar.
+5. `Enter` (or click) on `Pick date…` enters **calendar mode**: a month grid that
+   owns the arrow keys as its own focus mode — `ArrowUp`/`Down`/`Left`/`Right`
+   move the active day, `Enter` chooses it, and `Escape` leaves calendar mode
+   (back to list mode) without changing anything. Calendar mode is a coherent
+   focus/ARIA mode, not the editor caret floating under a live grid.
+6. Confirming (from either mode) inserts a date node plus a trailing space over
+   the pinned `!` span.
+7. Clicking an existing date opens the picker directly in **edit** mode (the same
+   calendar) and updates that node — this is opened from a committed token, not a
+   trigger session, so the shared lifecycle does not apply.
 
 ## Atomic token keyboard behavior
 
@@ -44,17 +55,10 @@ Define RemDo-owned inline date behavior in the outliner.
 
 1. [Future] Let users edit a date node as ordinary text while preserving date
    identity when possible.
-2. [Future] Support typed date queries or natural-language date parsing after
-   `!`.
-3. [Future] When the date picker is open, let the picker own calendar
-   navigation keys instead of letting arrow keys move the editor caret or date
-   token. The intended direction is: arrow keys move the active day, `Enter` or
-   `Space` chooses it, `Escape` closes without changing the date, and
-   `Backspace`/`Delete` do not mutate editor content while picker interaction is
-   active.
-4. [Future] Decide whether the RemDo picker is modeled as a dialog-style date
-   picker or a combobox grid popup, then align focus management and `Tab`
-   behavior with that chosen pattern.
+2. [Future] Support typed natural-language date parsing after `!` (for example
+   `!tomorrow` or `!next fri`), resolving the query directly and demoting the
+   preset list and calendar to fallbacks. This is the highest-leverage follow-up;
+   the current preset list is the keyboard-fast bridge until it ships.
 
 ## Guideline notes
 

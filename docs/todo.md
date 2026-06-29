@@ -63,30 +63,19 @@ Rules:
   `docs/contributing.md#editor-feature-modules`. Move the cross-cutting body
   primitives (the note-kind predicates and selection resolvers many shared
   modules consume) to `outline/`, leaving feature-specific logic behind.
-- Tradeoff: Enter/Tab on a no-results picker consumes the keystroke (closes,
-  keeps text, no newline) — `useTriggerSession.$confirmActiveOption` empty branch
-  returns `true`; codified in `triggers.md` core behavior #4. Pre-existing (same
-  in the old `@` plugin), not a regression. Alternative: return `false` so Enter
-  falls through to a newline after closing. Decide intentionally; if flipped,
-  update `triggers.md` #4 and the no-results Enter/Tab tests.
-- Bug (pre-existing, inherited from the old `@` plugin; confirmed reachable for
-  `@` and `!`): with a picker open, moving the caret back beside an *earlier*
-  plain trigger in the same text node retargets the session to it instead of
-  closing — the picker stays open on a trigger the user never freshly typed,
-  violating the open-on-fresh-keypress lifecycle. Cause: the query-null
-  re-inference fallback in `triggers/session.ts` (`$resolveTriggerSession`,
-  ~line 110) calls `inferSessionFromAnchor`, which scans back to any earlier
-  trigger. Needs a careful fix: two naive guards both broke core query typing
-  (closing on `currentSession && query===null`, and restricting re-inference to
-  the same node+offset) — the fallback is load-bearing for normal typing and
-  re-infers different node/offset legitimately, so the fix must distinguish
-  same-logical-trigger split/merge recovery from a genuine retarget. The picker
-  is a non-modal popup (it does not trap the caret), so the move is plain arrow
-  navigation. Keyboard-only user repro (verified live, Home doc): type `!`,
-  press `Escape` (leaves a plain `!`), type ` x `, type `!` (opens the picker),
-  then press `ArrowLeft` until the caret sits just after the first `!` — the
-  picker stays open, retargeted to it. Pressing `Enter` then replaces that first
-  `!` with a date, mutating text the user never intended. Same shape for `@`.
+- Implement the trigger-picker UX redesign now specced in `triggers.md` /
+  `dates.md` / `links.md` (design rationale: research + Codex in
+  `.agent/specs/2026-06-29-trigger-picker-ux-design.md`). The redesign supersedes
+  two prior open items: the caret-retarget bug (a picker re-homing onto an earlier
+  trigger — fixed by pinning the session to its origin span and deleting the
+  scan-for-earlier re-inference in `triggers/session.ts`), and the no-results
+  Enter/Tab tradeoff (resolved: Tab no longer commits — it closes and falls
+  through to indent; Enter on no-results closes). Implementation notes: keep a
+  shared lifecycle but per-picker key policy; `!` gains preset-list + calendar
+  modes; point `NoteBodyPlugin.isInlinePickerOpen` at the shared session signal,
+  not the popup `data-*` selectors; commit must re-validate the pinned span;
+  caret into the middle of the query must close. Typed natural-language date
+  parsing stays a later follow-up (see `dates.md` Non-goals).
 
 ## Document access and sharing
 

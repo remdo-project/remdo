@@ -29,7 +29,11 @@ between RemDo-owned note links and generic external links.
    open/close/confirm lifecycle is the shared one in
    [Inline trigger pickers](./triggers.md) (so an email-like `a@b` stays plain
    text). The note-link spec defines only what differs.
-5. Query length minimum is 0, so results may appear immediately.
+5. The query is the text after `@` in the pinned span, length minimum 0, so
+   results may appear immediately. Whitespace is allowed in the query: it is the
+   same whitespace-tokenized path match document search uses (see
+   [Query and ranking](#query-and-ranking)), so a multi-word query like
+   `@parent child` narrows by both tokens rather than terminating at the space.
 6. On insertion, note-link display text is copied once from the target note
    title and then
    stored locally (no auto-sync on later target renames in this phase).
