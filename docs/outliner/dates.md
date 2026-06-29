@@ -53,34 +53,10 @@ Define RemDo-owned inline date behavior in the outliner.
 2. [Future] Support typed date queries or natural-language date parsing after
    `!`.
 
-## Guideline notes
-
-1. WAI-ARIA APG date picker dialog says opening the picker moves focus to the
-   selected or current date, and in the date grid: "`Right Arrow` Moves focus to
-   the next day."
-2. The same APG date picker example says "`ESC` Closes the dialog" and
-   "`Space`, `Enter`" select the date and close the dialog.
-3. WAI-ARIA APG grid pattern says grid widgets use "directional navigation
-   keys" and that `Right Arrow` / `Left Arrow` move focus between cells.
-4. WAI-ARIA APG combobox grid popup says `Enter` accepts the selected value,
-   `Escape` closes the popup, and arrow keys move focus in the grid.
-
 ## References
 
-1. Shared inline trigger lifecycle: [Inline trigger pickers](./triggers.md).
-2. Lexical React typeahead plugin:
-   <https://lexical.dev/docs/react/plugins>
-3. Lexical custom nodes:
+1. Lexical custom nodes:
    <https://lexical.dev/docs/concepts/nodes>
-4. WAI-ARIA Authoring Practices Guide, combobox pattern:
-   <https://www.w3.org/WAI/ARIA/apg/patterns/combobox/>
-5. WAI-ARIA Authoring Practices Guide, date picker dialog example:
+2. WAI-ARIA Authoring Practices Guide, date picker dialog example (the calendar's
+   grid focus and keys):
    <https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/>
-6. WAI-ARIA Authoring Practices Guide, date picker combobox example:
-   <https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-datepicker/>
-7. WAI-ARIA Authoring Practices Guide, grid pattern:
-   <https://www.w3.org/WAI/ARIA/apg/patterns/grid/>
-8. U.S. Web Design System date picker:
-   <https://designsystem.digital.gov/components/date-picker/>
-9. Material UI chip accessibility:
-   <https://mui.com/material-ui/react-chip/>
