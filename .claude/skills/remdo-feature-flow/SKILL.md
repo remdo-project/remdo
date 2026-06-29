@@ -72,13 +72,15 @@ memory-carried.
 
 ## Phase 3 — Spec approval (the one user gate)
 
-**Precondition — only this flow's own changes in the tree.** Before doing
-anything else in this phase, the working tree must hold **only this flow's own
-spec edits**. If it had pre-existing unrelated edits when the run started,
-**stop**: the working-tree refine pass below would sweep them in, and committing
-or branching could too. The user commits or sets them aside first (never do it
-for them — see AGENTS.md). This guarantee is what lets the refine step and branch
-creation below operate on the spec alone.
+**Precondition — no unrelated changes in the tree.** The check is on what the run
+did **not** produce: when the run started, were there pre-existing tracked edits
+unrelated to this flow? If so, **stop** before the refine pass and branch
+creation below — the working-tree refine would sweep them in, and committing or
+branching could too. The user commits or sets them aside first (never do it for
+them — see AGENTS.md). Everything this flow itself produced is fine and expected
+— the spec docs written below, and any flow-owned `docs/todo.md` notes from
+Phase 2 — so a normal clean-start run (where the only changes are this flow's)
+passes this gate; it is not a requirement that "only spec edits" exist.
 
 **The spec is the versioned-doc changes themselves**, written so the docs read as
 if everything already works as described (per the `docs/` invariant: stable docs
@@ -102,8 +104,8 @@ first draft. This gates only the final handoff: dialog (Phase 2) stays fast and
 unrefined, and the pass runs once here at the gate, not per turn. It is
 working-tree scope because no branch exists yet (created on approval below); it
 commits nothing, and a later rejection still reverts the edits cleanly. The
-precondition above guarantees the tree holds only this spec, so the pass sees
-nothing unrelated.
+precondition above guarantees the tree holds only this flow's own changes, so the
+pass sees nothing unrelated.
 
 The user reviews the **`docs/` changes** (the chat message is a thin pointer:
 which docs changed, plus a ~5-bullet approach summary — not the design pasted
