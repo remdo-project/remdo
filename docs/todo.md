@@ -74,6 +74,12 @@ Rules:
   shared boundary check (`triggers/boundary.ts`) reads the previous node's
   rendered text and sees a non-boundary character. Fix should treat inline
   non-text nodes as boundaries and consider common, related UX guidelines.
+- Tradeoff: Enter/Tab on a no-results picker consumes the keystroke (closes,
+  keeps text, no newline) — `useTriggerSession.$confirmActiveOption` empty branch
+  returns `true`; codified in `triggers.md` core behavior #4. Pre-existing (same
+  in the old `@` plugin), not a regression. Alternative: return `false` so Enter
+  falls through to a newline after closing. Decide intentionally; if flipped,
+  update `triggers.md` #4 and the no-results Enter/Tab tests.
 
 ## Document access and sharing
 
