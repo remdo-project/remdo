@@ -80,10 +80,13 @@ Rules:
   (closing on `currentSession && query===null`, and restricting re-inference to
   the same node+offset) — the fallback is load-bearing for normal typing and
   re-infers different node/offset legitimately, so the fix must distinguish
-  same-logical-trigger split/merge recovery from a genuine retarget. Reproduce
-  via `$resolveTriggerSession` directly (active session offset N, caret moved
-  before it → returns an earlier trigger) and at the engine level (open `!new`
-  after `!old`, set caret after `!old` → picker stays open).
+  same-logical-trigger split/merge recovery from a genuine retarget. The picker
+  is a non-modal popup (it does not trap the caret), so the move is plain arrow
+  navigation. Keyboard-only user repro (verified live, Home doc): type `!`,
+  press `Escape` (leaves a plain `!`), type ` x `, type `!` (opens the picker),
+  then press `ArrowLeft` until the caret sits just after the first `!` — the
+  picker stays open, retargeted to it. Pressing `Enter` then replaces that first
+  `!` with a date, mutating text the user never intended. Same shape for `@`.
 
 ## Document access and sharing
 
