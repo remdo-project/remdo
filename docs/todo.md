@@ -71,11 +71,11 @@ Rules:
   scan-for-earlier re-inference in `triggers/session.ts`), and the no-results
   Enter/Tab tradeoff (resolved: Tab no longer commits — it closes and falls
   through to indent; Enter on no-results closes). Implementation notes: keep a
-  shared lifecycle but per-picker key policy; `!` gains preset-list + calendar
-  modes; point `NoteBodyPlugin.isInlinePickerOpen` at the shared session signal,
-  not the popup `data-*` selectors; commit must re-validate the pinned span;
-  caret into the middle of the query must close. Typed natural-language date
-  parsing stays a later follow-up (see `dates.md` Non-goals).
+  shared lifecycle but per-picker key policy; while the `!` calendar is open it
+  owns the arrow keys (caret not free under a live grid); point
+  `NoteBodyPlugin.isInlinePickerOpen` at the shared session signal, not the popup
+  `data-*` selectors; commit must re-validate the pinned span; caret into the
+  middle of the query must close.
 
 ## Document access and sharing
 

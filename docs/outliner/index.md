@@ -19,9 +19,9 @@ details.
 7. **Inline trigger pickers:** `./triggers.md` — the one lifecycle shared by the
    `@`/`!` trigger menus (span-pinned session, boundary open-on-keypress,
    caret-leaves-span dismissal, confirmation).
-8. **Dates:** `./dates.md` — inline date node behavior, the `!` picker's preset
-   list + calendar mode, edit mode, atomic token keyboard behavior, and future
-   typed natural-language date parsing.
+8. **Dates:** `./dates.md` — inline date node behavior, the `!`-specific picker
+   pieces (today default, calendar arrow-key ownership, edit mode), atomic token
+   keyboard behavior, and future editable-date and typed-date-query boundaries.
 9. **Links:** `./links.md` — initial note-linking behavior, the `@`-specific
    query/ranking and commit, and future boundaries.
 10. **Search mode:** `./search.md` — focused search navigation flow (single
