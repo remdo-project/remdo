@@ -25,12 +25,6 @@ Rules:
   are not near-term (e.g. `## Later follow-ups`, scattered `[Future]` entries);
   prune them or relocate to a spec `Future` section per the scope above.
 
-## Inline trigger pickers (`@`/`!`)
-
-- [Future] Both triggers are boundary-gated with no mid-word exception. If
-  inline `foo@bar`-style linking is ever wanted, add it as an explicit exception
-  to the boundary rule in `docs/outliner/triggers.md`, not a default change.
-
 ## Search architecture
 
 - Add a document-level SDK visitor/walker API and use it as the shared
@@ -69,11 +63,6 @@ Rules:
   `docs/contributing.md#editor-feature-modules`. Move the cross-cutting body
   primitives (the note-kind predicates and selection resolvers many shared
   modules consume) to `outline/`, leaving feature-specific logic behind.
-- Pressing a trigger just after an inline non-text node (for example `!` or `@`
-  right after an existing date token) fails to open the picker, because the
-  shared boundary check (`triggers/boundary.ts`) reads the previous node's
-  rendered text and sees a non-boundary character. Fix should treat inline
-  non-text nodes as boundaries and consider common, related UX guidelines.
 - Tradeoff: Enter/Tab on a no-results picker consumes the keystroke (closes,
   keeps text, no newline) — `useTriggerSession.$confirmActiveOption` empty branch
   returns `true`; codified in `triggers.md` core behavior #4. Pre-existing (same
