@@ -145,14 +145,19 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
         return { kind: 'close' };
       }
 
+      // Any selection that is not a collapsed text caret means the user has left
+      // the query (e.g. a node selection from clicking an inline token, or a
+      // range selection). Close the session rather than keep it mounted — a
+      // lingering session would otherwise stack under another picker and consume
+      // Escape/Enter meant for it.
       const selection = $getSelection();
       if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-        return sessionRef.current ? { kind: 'keep' } : { kind: 'close' };
+        return { kind: 'close' };
       }
 
       const anchorNode = selection.anchor.getNode();
       if (!$isTextNode(anchorNode)) {
-        return sessionRef.current ? { kind: 'keep' } : { kind: 'close' };
+        return { kind: 'close' };
       }
 
       const caretOffset = selection.anchor.offset;

@@ -732,4 +732,26 @@ describe('date nodes', () => {
     expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
     expect(document.querySelector('[data-date-picker]')).toBeNull();
   });
+
+  it('closes the open insert picker when an existing date token is clicked', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Clicking a date token makes a node selection (not a collapsed caret), which
+    // means the user left the query. The insert session must close rather than
+    // linger under the edit picker and steal its Escape/Enter handling.
+    await remdo.mutate(() => {
+      const note = $findNoteById('note2')!;
+      note.clear();
+      note.append($createDateNode('2026-06-10'));
+    });
+
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' !');
+    expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
+
+    await clickElement(document.querySelector('[data-date-node-key]')!);
+
+    // Exactly one picker is open: the edit picker, not the stale insert picker.
+    expect(document.querySelector('[data-date-picker-mode="insert"]')).toBeNull();
+    expect(document.querySelector('[data-date-picker-mode="edit"]')).not.toBeNull();
+    expect(document.querySelectorAll('[data-date-picker]')).toHaveLength(1);
+  });
 });
