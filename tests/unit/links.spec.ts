@@ -85,16 +85,35 @@ describe('note links (docs/outliner/links.md)', () => {
     expect(optionTitles).toEqual(['note2', 'note3']);
   });
 
-  it('confirms the active option with Tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('does not confirm on Tab: closes the picker and leaves the @query as text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Tab is structural in an outliner (indent); the picker must not steal it to
+    // commit. Tab closes the picker and the typed @query stays as plain text — no
+    // link is inserted.
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, ' @note3');
     await pressKey(remdo, { key: 'Tab' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note3 ' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getChildren().some($isLinkNode)).toBe(false);
+      expect(note.getTextContent()).toContain('@note3');
+    });
+  });
+
+  it('swallows a modifier+Enter while the picker is open (no commit, no editor command)', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // The picker owns the keyboard: a modifier commit combo it does not declare
+    // (Cmd/Ctrl+Enter, normally toggle-checked) is a no-op while open — it neither
+    // confirms the option nor runs the editor command beneath.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' @note3');
+    await pressKey(remdo, { key: 'Enter', ctrlOrMeta: true });
+
+    expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getChildren().some($isLinkNode)).toBe(false);
+    });
   });
 
   it('pasting the same-document note URL creates a note link with docId', meta({ fixture: 'flat' }), async ({ remdo }) => {

@@ -376,9 +376,28 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
     installOutlineSelectionHelpers(editor);
     syncFromSelection();
 
-    // Enter and Tab both confirm the active option.
-    const $handleConfirmCommand = (event: KeyboardEvent | null) =>
-      $confirmActiveOption() ? completeKeyboardCommand(event) : false;
+    // Plain Enter confirms the active option. A modifier+Enter (e.g.
+    // Cmd/Ctrl+Enter) is owned while the picker is open but is not a commit key:
+    // it is swallowed so it neither confirms nor runs the editor command beneath.
+    const $handleEnterCommand = (event: KeyboardEvent | null) => {
+      if (!sessionRef.current) {
+        return false;
+      }
+      if (event && (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey)) {
+        return completeKeyboardCommand(event);
+      }
+      return $confirmActiveOption() ? completeKeyboardCommand(event) : false;
+    };
+
+    // Tab does not confirm: it closes the picker and falls through to the
+    // editor's normal Tab action (indent). The trigger and query stay as text.
+    const $handleTabCommand = () => {
+      if (!sessionRef.current) {
+        return false;
+      }
+      closeSession();
+      return false;
+    };
 
     return mergeRegister(
       editor.registerRootListener((nextRoot, previousRoot) => {
@@ -440,8 +459,8 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
         },
         COMMAND_PRIORITY_CRITICAL
       ),
-      editor.registerCommand(KEY_ENTER_COMMAND, $handleConfirmCommand, COMMAND_PRIORITY_CRITICAL),
-      editor.registerCommand(KEY_TAB_COMMAND, $handleConfirmCommand, COMMAND_PRIORITY_CRITICAL),
+      editor.registerCommand(KEY_ENTER_COMMAND, $handleEnterCommand, COMMAND_PRIORITY_CRITICAL),
+      editor.registerCommand(KEY_TAB_COMMAND, $handleTabCommand, COMMAND_PRIORITY_CRITICAL),
       editor.registerCommand(
         KEY_ESCAPE_COMMAND,
         (event: KeyboardEvent | null) => {
