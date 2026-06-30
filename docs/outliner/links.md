@@ -101,7 +101,10 @@ specifics:
 1. The initial active option is the first result in document order.
 2. `Enter` or a primary-button click commits the active option; `Tab` does not
    commit — it closes the picker and falls through to indent.
-3. Confirming inserts a note-link node (`docId` + `noteId`) whose display text is
+3. On the no-match state (the `No results...` row, with no active option),
+   `Enter` closes the picker and leaves the typed `@query` as ordinary text — it
+   neither inserts a link nor a newline.
+4. Confirming inserts a note-link node (`docId` + `noteId`) whose display text is
    the target note title, plus a trailing space.
 
 ## Non-goals / future

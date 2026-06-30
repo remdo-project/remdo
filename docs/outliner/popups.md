@@ -32,7 +32,10 @@ specialization of this contract; the contract is independent of how each opens.
    both **cancel** — they close it and apply nothing. The popup never commits on
    blur, light-dismiss, or `Tab`, and never commits an unconfirmed highlight.
    Commit happens only through an explicit per-widget commit action (each widget
-   declares its commit keys); confirming applies the result and closes.
+   declares its commit keys); confirming applies the result and closes. Editor
+   shortcuts a widget does not declare — including modifier combos such as
+   `Cmd`/`Ctrl+Enter` — are owned like any other key (a no-op) while the popup is
+   open, so they do not act on the document underneath.
 5. **`Tab` never inserts a tab.** Each widget declares its `Tab` behavior as one
    of: **close and fall through** to the editor's normal `Tab` action (the popup
    closes, then deliberately routes the key onward — an explicit outcome, not a
@@ -50,26 +53,31 @@ specialization of this contract; the contract is independent of how each opens.
    focus into itself with roving focus. The keyboard-ownership and dismissal rules
    above hold either way.
 
-## The pinned session (trigger pickers)
+## The trigger session (`@` and `!`)
 
-The `@` and `!` pickers are opened by typing a trigger character and share a
-**session pinned to the span of that keypress** — the trigger character and the
-run of text after it, fixed at open time. The session is never re-derived from
-where the caret later sits; it tracks only that one originating span. So a picker
-never retargets onto a different trigger or onto text the user did not freshly
-invoke.
+The `@` and `!` pickers are opened by typing a trigger character. Each is a
+**session anchored to the span of that keypress** — the trigger character and the
+text after it, fixed at open time. The session is never re-derived from where the
+caret later sits, so a picker never retargets onto a different trigger or onto
+text the user did not freshly invoke.
 
 1. **Open.** A picker opens only on a fresh keypress of its trigger character at a
    boundary — the start of note text, after whitespace, after opening punctuation
    (`(`, `[`, `{`), or after an atomic inline token (a decorator node such as a
    date). So `done!` and `a@b` stay plain text, and moving the caret back beside an
-   already-typed trigger never reopens the picker.
-2. **Query.** The query is the text of the pinned span after the trigger; per the
-   editable-span exception it is edited with ordinary typing and `Backspace`.
-3. **Dismiss.** Besides the shared light-dismiss, a picker also closes when the
-   caret leaves the pinned span — an `ArrowLeft`/`ArrowRight` out of it or into its
-   middle — leaving the typed trigger and query as ordinary text. Deleting back
-   past the trigger ends the session because the span no longer holds the trigger.
+   already-typed trigger never reopens the picker. Because an open popup owns the
+   keyboard, a trigger character typed while any popup is open is just a key the
+   open popup owns — it never stacks a second picker.
+2. **Editable query (`@` only).** The `@` picker treats its span as a live query:
+   per the editable-span exception, ordinary typing and `Backspace` edit the text
+   after `@` and refilter. The `!` picker has no query — it opens its calendar
+   immediately (see [Dates](./dates.md)), so a letter typed after `!` is an
+   owned-but-unmapped no-op, not query text.
+3. **Dismiss.** Besides the shared light-dismiss, the `@` picker also closes when
+   the caret leaves its span — an `ArrowLeft`/`ArrowRight` out of it or into its
+   middle — leaving the typed trigger and query as ordinary text; deleting back
+   past the `@` ends the session because the span no longer holds it. (The `!`
+   calendar traps focus, so the caret cannot move while it is open.)
 
 The per-picker specs define the rest: the option source and popup body, the keys
 the popup additionally owns, the focus model, and the commit. Behavior over an

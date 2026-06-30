@@ -80,8 +80,10 @@ Rules:
   - `!` date: becomes a **modal calendar dialog** (focus enters the grid, roving
     tabindex) with full keyboard nav (arrows day/week, Page month, Shift+Page
     year, Home/End week); today preselected, Enter/Space/click commits, `!`+Enter
-    = today; Tab cycles dialog controls; Esc cancels. No presets, no typed parser
-    (Future). Replaces today's click-only insert calendar.
+    = today; Tab cycles dialog controls; Esc cancels. `!` has **no query span** (a
+    letter typed after `!` is an owned no-op, not query text) — the editable query
+    is `@`-only. No presets, no typed parser (Future). Replaces today's click-only
+    insert calendar.
   - note menu: WAI-ARIA menu, roving focus, owns all keys; Tab closes + returns;
     F/Z/digit accelerators replace optional type-ahead. Fold it into the shared
     single-active registry (`activeSessionsByEditor`) — currently it isn't, so a
