@@ -229,32 +229,22 @@ describe('date nodes', () => {
     });
   });
 
-  it('confirms the ! picker with Tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    try {
-      vi.setSystemTime(new Date('2031-01-02T12:00:00'));
+  it('does not confirm the ! picker on Tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Tab no longer commits (docs/outliner/popups.md): it closes the picker and
+    // falls through to indent, leaving the typed `!` as text and inserting no
+    // date. (When ! becomes the modal calendar, Tab will cycle its controls.)
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' !');
+    expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
 
-      await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-      await typeText(remdo, ' !');
+    await pressKey(remdo, { key: 'Tab' });
 
-      expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
-      await pressKey(remdo, { key: 'Tab' });
-
-      expect(document.querySelector('[data-date-picker]')).toBeNull();
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1 Jan 2, 2031 ' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
-
-      remdo.validate(() => {
-        const note = $findNoteById('note1')!;
-        const dateNode = note.getChildren().find($isDateNode)!;
-        expect(dateNode.getIsoDate()).toBe('2031-01-02');
-      });
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(document.querySelector('[data-date-picker]')).toBeNull();
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getChildren().some($isDateNode)).toBe(false);
+      expect(note.getTextContent()).toContain('!');
+    });
   });
 
   it('keeps the ! picker open on ArrowDown when the note has a body', meta({ fixture: 'flat' }), async ({ remdo }) => {

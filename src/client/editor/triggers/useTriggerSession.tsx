@@ -502,10 +502,20 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       if (!root) {
         return () => {};
       }
-      const handleRootBlur = () => {
-        if (sessionRef.current) {
-          closeSession();
+      const handleRootBlur = (event: FocusEvent) => {
+        if (!sessionRef.current) {
+          return;
         }
+        // A focus-trapping popup (the calendar) takes focus out of the editor by
+        // design; don't treat that as a dismiss. Only close if focus left for
+        // somewhere outside both the editor and the popup.
+        if (specRef.current.focusModel === 'trap') {
+          const next = event.relatedTarget;
+          if (next instanceof Element && next.closest('[data-trigger-picker]')) {
+            return;
+          }
+        }
+        closeSession();
       };
       // eslint-disable-next-line react/web-api-no-leaked-event-listener -- removed in returned cleanup.
       root.addEventListener('blur', handleRootBlur, true);

@@ -46,6 +46,14 @@ interface TriggerCommitTarget {
 export interface TriggerSpec<TOption> {
   // The single character that opens this picker (e.g. '@', '!').
   triggerChar: string;
+  // Where keyboard focus lives while the popup is open (see
+  // docs/outliner/popups.md, "Focus model is per-widget"):
+  // - 'editor' (default): DOM focus stays in the editor; the popup is a
+  //   combobox navigated via aria-activedescendant (the `@` picker).
+  // - 'trap': focus moves into the popup, which owns its own keyboard (the `!`
+  //   calendar). The engine does not blur-close such a popup when the editor
+  //   loses focus, and restores the caret on close.
+  focusModel?: 'editor' | 'trap';
   // Resolve the option list for the current query. Runs inside an editor read.
   $resolveOptions: (query: string, anchorNode: TextNode) => TOption[];
   // Insert this trigger's committed content over `range`, replacing the
