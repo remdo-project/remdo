@@ -24,11 +24,13 @@ export const TEST_PREVIEW_PORT = 4005;
 
 export function createServerAppHarness({
   adminSecret = TEST_ADMIN_SECRET,
+  allowSignup = false,
   baseURL = 'http://127.0.0.1:4000',
   linkableRemdoServers = [],
   onUpdateDoc,
 }: {
   adminSecret?: string;
+  allowSignup?: boolean;
   baseURL?: string;
   linkableRemdoServers?: readonly LinkableRemdoServer[];
   onUpdateDoc?: (docId: string, update: Uint8Array) => void | Promise<void>;
@@ -45,7 +47,7 @@ export function createServerAppHarness({
     previewPort: TEST_PREVIEW_PORT,
   });
   const auth = createServerAuth({
-    allowSignup: false,
+    allowSignup,
     baseURL,
     database: client,
     linkableRemdoServers,
