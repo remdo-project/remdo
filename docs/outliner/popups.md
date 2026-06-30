@@ -32,10 +32,10 @@ specialization of this contract; the contract is independent of how each opens.
    both **cancel** — they close it and apply nothing. The popup never commits on
    blur, light-dismiss, or `Tab`, and never commits an unconfirmed highlight.
    Commit happens only through an explicit per-widget commit action (each widget
-   declares its commit keys); confirming applies the result and closes. Editor
-   shortcuts a widget does not declare — including modifier combos such as
-   `Cmd`/`Ctrl+Enter` — are owned like any other key (a no-op) while the popup is
-   open, so they do not act on the document underneath.
+   declares its commit keys); confirming applies the result and closes. This holds
+   for modifier combos too: an editor shortcut a widget does not declare — such as
+   `Cmd`/`Ctrl+Enter` — is owned like any other key, so it does not act on the
+   document underneath.
 5. **`Tab` never inserts a tab.** Each widget declares its `Tab` behavior as one
    of: **close and fall through** to the editor's normal `Tab` action (the popup
    closes, then deliberately routes the key onward — an explicit outcome, not a
@@ -71,8 +71,7 @@ text the user did not freshly invoke.
 2. **Editable query (`@` only).** The `@` picker treats its span as a live query:
    per the editable-span exception, ordinary typing and `Backspace` edit the text
    after `@` and refilter. The `!` picker has no query — it opens its calendar
-   immediately (see [Dates](./dates.md)), so a letter typed after `!` is an
-   owned-but-unmapped no-op, not query text.
+   immediately (see [Dates](./dates.md)), so typing after `!` is not query text.
 3. **Dismiss.** Besides the shared light-dismiss, the `@` picker also closes when
    the caret leaves its span — an `ArrowLeft`/`ArrowRight` out of it or into its
    middle — leaving the typed trigger and query as ordinary text; deleting back
