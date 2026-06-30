@@ -89,16 +89,19 @@ Rules:
 
 ## Admin role follow-ups
 
-Not yet built (docs describe the target; code still uses a per-request
-`ADMIN_SECRET`). PR#1 builds this foundation: persistent admin role (Better Auth
-admin plugin), session+role authz replacing per-action `ADMIN_SECRET`, and
-secret-gated self-enrollment incl. first-admin bootstrap with signup off.
+The persistent admin role + secret-gated self-enrollment foundation is built
+(Better Auth admin plugin, `resolveAdminSessionUserId`, `/api/admin/enroll`).
+Still to come:
 
+- Role-gated admin *panel* route that redirects non-admins to self-enrollment.
+  Deferred until there is panel content to gate — the source-linking PR adds the
+  source-server management UI, so the gated panel ships there. The enrollment
+  route (`/admin/enroll`) already exists.
 - Runtime public-policy toggle (replace `ALLOW_SIGNUP` env with admin-managed,
   DB-backed state). Needs auth hot-swap (rebuild `betterAuth` to flip the
   construction-time `disableSignUp`), so it ships with the source-linking PR that
-  builds that swappable-auth machinery — not PR#1. Until then `ALLOW_SIGNUP` is
-  the signup control.
+  builds that swappable-auth machinery. Until then `ALLOW_SIGNUP` is the signup
+  control.
 
 Deferred hardening on top of that foundation (each is on top of the same gate, so
 deferring does not churn the gate's interface):
