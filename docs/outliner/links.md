@@ -92,11 +92,16 @@ between RemDo-owned note links and generic external links.
 
 ## Picker interaction
 
-Navigation, confirmation, accessibility, and dismissal are the shared trigger
-lifecycle in [Editor popups](./popups.md). Note-link-specific points:
+The `@` picker is the editable-combobox (type-to-filter) specialization of the
+shared [Editor popups](./popups.md) contract: DOM focus stays in the editor while
+the listbox is navigated via `aria-activedescendant`, and the typed query edits
+the pinned span (the editable-span exception). Navigation, confirmation, and
+dismissal are the shared lifecycle; note-link-specific points:
 
 1. The initial active option is the first result in document order.
-2. Confirming inserts a note-link node (`docId` + `noteId`) whose display text is
+2. `Enter` or a primary-button click commits the active option; `Tab` does not
+   commit — it closes the picker and falls through to indent.
+3. Confirming inserts a note-link node (`docId` + `noteId`) whose display text is
    the target note title, plus a trailing space.
 
 ## Non-goals / future

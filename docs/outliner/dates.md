@@ -11,19 +11,24 @@ Define RemDo-owned inline date behavior in the outliner.
 2. `!` is an inline trigger character; its open/dismiss/confirm lifecycle is the
    shared one in [Editor popups](./popups.md). The rest of this spec
    is date-specific.
-3. The only option is today's date (the user's local browser date), shown as the
-   initial highlighted value. Typed query text is not interpreted in this phase
-   (see Non-goals).
-4. While the picker is open the calendar owns arrow-key navigation as its own
-   focus mode — `ArrowUp`/`Down`/`Left`/`Right` move the active day rather than
-   the editor caret, and the caret does not float free under a live grid. This is
-   the shared lifecycle's per-picker key policy for the `!` picker (see
-   [Editor popups](./popups.md)).
-5. Confirming inserts a date node plus a trailing space over the pinned `!` span;
-   with the highlighted day unmoved, that is today's date.
-6. Clicking an existing date opens the picker in *edit* mode and updates that
-   same node — this is opened from a committed token, not a trigger session, so
-   the shared lifecycle does not apply.
+3. The `!` picker is a **modal calendar dialog**: opening it moves focus into a
+   month-grid calendar (the shared contract's per-widget trapping focus model),
+   with today (the user's local browser date) preselected. Typed query text is
+   not interpreted in this phase (see Non-goals), so the calendar is the only way
+   to choose.
+4. The calendar owns its keyboard while open: `ArrowLeft`/`Right` move by a day,
+   `ArrowUp`/`Down` by a week, `Home`/`End` to the start/end of the week,
+   `PageUp`/`PageDown` by a month, `Shift+PageUp`/`PageDown` by a year. The editor
+   caret does not move under the open grid.
+5. `Enter` or `Space` commits the focused day; a primary-button click commits the
+   clicked day. So `!` then `Enter` inserts today (the fast path). `Tab` cycles
+   the dialog's own controls and never leaves it; `Escape` cancels and restores
+   the caret. Committing inserts a date node plus a trailing space over the pinned
+   `!` span.
+6. Clicking an existing date opens the same calendar in *edit* mode and updates
+   that node — this is opened from a committed token, not a trigger session, so
+   the trigger session does not apply (the calendar's keyboard contract still
+   does).
 
 ## Atomic token keyboard behavior
 

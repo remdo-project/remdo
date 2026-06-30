@@ -35,9 +35,13 @@
 
 1. The menu anchors to the triggering note row near the icon.
 2. The menu is an editor popup and follows the shared editor-popup contract in
-   [Editor popups](./popups.md#shared-editor-popup-contract). Beyond
-   that contract: executing an action also closes it, and shortcut letters
-   activate their action immediately.
+   [Editor popups](./popups.md#shared-editor-popup-contract), as the WAI-ARIA menu
+   pattern: it has no query span, so it owns every key; focus moves into the menu
+   (roving over the items). `ArrowUp`/`Down` move the active item, `Enter`/`Space`
+   activate it, `Tab` closes the menu and returns focus to the editor. Beyond the
+   contract: executing an action also closes it, and the shortcut letters and
+   digits below activate their action immediately (these accelerators replace the
+   menu pattern's optional first-letter type-ahead).
 3. When opened from a row, the current note is that row's note. When opened
    from double-Shift, the current note is the caret note.
 4. Structural selections never open multi-note menus; only the focus note is

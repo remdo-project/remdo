@@ -17,12 +17,13 @@ details.
    filtering, persistence, and view-scoped fold-to-level commands.
 6. **List types:** `./list-types.md` — bullet/number/check semantics and checked state.
 7. **Editor popups:** `./popups.md` — the shared contract for transient editor
-   popups (one open at a time, key ownership, dismissal) and the trigger-picker
-   lifecycle built on it (span-pinned session, boundary open-on-keypress,
-   caret-leaves-span dismissal, confirmation).
-8. **Dates:** `./dates.md` — inline date node behavior, the `!`-specific picker
-   pieces (today default, calendar arrow-key ownership, edit mode), atomic token
-   keyboard behavior, and future editable-date and typed-date-query boundaries.
+   popups (keyboard ownership with an editable-span exception, one open at a time,
+   light-dismiss, validated commit, per-widget Tab/focus) and the trigger-picker
+   pinned session built on it.
+8. **Dates:** `./dates.md` — inline date node behavior, the `!` modal
+   calendar-dialog picker (today default, grid keyboard nav, edit mode), atomic
+   token keyboard behavior, and future editable-date and typed-date-query
+   boundaries.
 9. **Links:** `./links.md` — initial note-linking behavior, the `@`-specific
    query/ranking and commit, and future boundaries.
 10. **Search mode:** `./search.md` — focused search navigation flow (single

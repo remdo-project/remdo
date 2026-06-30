@@ -47,9 +47,9 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
-- `docs/outliner/dates.md` (Medium). Inline date node behavior: the `!`-specific
-  picker pieces (today default, calendar arrow-key ownership, edit mode) over the
-  shared trigger lifecycle, atomic token keyboard behavior, and future
+- `docs/outliner/dates.md` (Medium). Inline date node behavior: the `!` modal
+  calendar-dialog picker (today default, full grid keyboard nav, edit mode) over
+  the shared popup contract, atomic token keyboard behavior, and future
   editable-date and typed-date-query boundaries.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge/reparent
   rules, spacing.
@@ -76,10 +76,10 @@ outdated or a doc’s role materially changes.
   `noteRef`.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indentation
   semantics; indent/outdent rules; deletion-merge exception.
-- `docs/outliner/popups.md` (Short). The shared contract for transient editor
-  popups (one open at a time, key ownership, dismissal) plus the trigger-picker
-  lifecycle built on it: span-pinned session, boundary open-on-keypress,
-  caret-leaves-span dismissal, confirmation.
+- `docs/outliner/popups.md` (Medium). The shared contract for transient editor
+  popups — keyboard ownership with an editable-span exception, one open at a time,
+  light-dismiss, validated commit, per-widget Tab and focus model — plus the
+  trigger-picker pinned session built on it.
 - `docs/outliner/reordering.md` (Short). Directional reorder fallback cascade: swap,
   parent-sibling reparent, outdent, then no-op.
 - `docs/outliner/search.md` (Long). Search behavior: focus-driven mode

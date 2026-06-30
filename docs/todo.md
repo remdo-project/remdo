@@ -63,28 +63,33 @@ Rules:
   `docs/contributing.md#editor-feature-modules`. Move the cross-cutting body
   primitives (the note-kind predicates and selection resolvers many shared
   modules consume) to `outline/`, leaving feature-specific logic behind.
-- Implement the trigger-picker UX redesign now specced in `popups.md` /
-  `dates.md` / `links.md` (design rationale: research + Codex in
-  `.agent/specs/2026-06-29-trigger-picker-ux-design.md`). The redesign supersedes
-  two prior open items: the caret-retarget bug (a picker re-homing onto an earlier
-  trigger — fixed by pinning the session to its origin span and deleting the
-  scan-for-earlier re-inference in `triggers/session.ts`), and the no-results
-  Enter/Tab tradeoff (resolved: Tab no longer commits — it closes and falls
-  through to indent; Enter on no-results closes). Implementation notes: keep a
-  shared lifecycle but per-picker key policy; while the `!` calendar is open it
-  owns the arrow keys (caret not free under a live grid); point
-  `NoteBodyPlugin.isInlinePickerOpen` at the shared session signal, not the popup
-  `data-*` selectors; commit must re-validate the pinned span; caret into the
-  middle of the query must close.
-- Divergence (spec ahead of code): `popups.md#shared-editor-popup-contract` now
-  defines one contract for all editor popups, and `menu.md` defers to it, but the
-  quick action menu (`NoteMenuPlugin`) is not yet in the trigger engine's
-  single-active registry (`activeSessionsByEditor`) — so a trigger picker and the
-  note menu can currently both be open at once. Fold the note menu into the
-  shared popup-shell + registry when the trigger-picker redesign is implemented;
-  this also dedups the duplicated portal/anchor/dismissal plumbing between
-  `NoteMenuPlugin` and `useTriggerSession`. Code unification deferred; spec is
-  aligned now.
+- Implement the editor-popup UX redesign now specced in `popups.md` / `dates.md`
+  / `links.md` / `menu.md` (rationale: research + 2 Codex rounds in
+  `.agent/specs/2026-06-30-editor-popups-ux-research.md`). The whole spec is ahead
+  of code. Scope:
+  - Shared contract: a popup **owns the keyboard** (first decision over every key)
+    with an **editable-span exception** (typing edits the query span only); one
+    popup at a time; light-dismiss (Esc + outside-click = cancel, no commit on
+    blur/Tab/unconfirmed-highlight); validated commit (re-resolve pinned target,
+    collab-safe) + restore caret from a model-level node-key anchor; per-widget
+    Tab (close-and-fall-through OR cycle) and per-widget focus model.
+  - `@` link: editable combobox, DOM focus stays in editor (aria-activedescendant);
+    Tab closes + indent (never commits). Fixes the caret-retarget bug by pinning
+    the session to its origin span and deleting the scan-for-earlier re-inference
+    in `triggers/session.ts`.
+  - `!` date: becomes a **modal calendar dialog** (focus enters the grid, roving
+    tabindex) with full keyboard nav (arrows day/week, Page month, Shift+Page
+    year, Home/End week); today preselected, Enter/Space/click commits, `!`+Enter
+    = today; Tab cycles dialog controls; Esc cancels. No presets, no typed parser
+    (Future). Replaces today's click-only insert calendar.
+  - note menu: WAI-ARIA menu, roving focus, owns all keys; Tab closes + returns;
+    F/Z/digit accelerators replace optional type-ahead. Fold it into the shared
+    single-active registry (`activeSessionsByEditor`) — currently it isn't, so a
+    picker and the menu can both be open at once — and dedup the duplicated
+    portal/anchor/dismissal plumbing between `NoteMenuPlugin` and the popup engine.
+  - Cross-cutting: point `NoteBodyPlugin.isInlinePickerOpen` at the shared session
+    signal, not the popup `data-*` selectors; a11y tidy = combobox role on the
+    focused editable host with aria-controls→listbox.
 
 ## Document access and sharing
 
