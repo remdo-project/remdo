@@ -55,9 +55,11 @@ the user.
   user record. The Yjs user-data projection may reflect it for UI, but
   authorization is always enforced server-side from the SQL record, never from
   the projection.
-- Every admin API authorizes from the caller's session + role. The admin panel
-  route is gated the same way; a non-admin (or unauthenticated) visitor is sent
-  to admin self-enrollment rather than the panel.
+- Every admin API authorizes from the caller's session + role — except the
+  self-enrollment endpoint itself, which has no session+role to check (it is how
+  the role is acquired) and is instead gated by `ADMIN_SECRET` (below). The admin
+  panel route is gated by session + role too; a non-admin (or unauthenticated)
+  visitor is sent to self-enrollment rather than the panel.
 - Self-enrollment is gated by `ADMIN_SECRET` (see
   [docs/config.md](./config.md#admin-bootstrap-and-enrollment)): a visitor who
   presents the secret is granted the admin role. The secret is a shared **gate
