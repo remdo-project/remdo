@@ -20,7 +20,10 @@ specialization of this contract; the contract is independent of how each opens.
 2. **The popup owns the keyboard.** While open it has first decision over every
    key: it consumes its navigation, commit, and dismissal keys, and no keystroke
    reaches ordinary text editing — **except** keys that edit the popup's own
-   *pinned span* (see below). A popup with no pinned span owns every key.
+   *pinned span* (see below). A popup with no pinned span owns every key. A key
+   the popup owns but does not act on (for example a letter with no shortcut in a
+   menu or calendar) is a no-op: it is swallowed and changes nothing — it neither
+   reaches the editor nor does anything in the popup.
 3. **Editable-span exception.** A type-to-filter popup pins a span of editor text
    as its query; while the selection is inside that span, ordinary text-editing
    keys (printable characters, `Backspace`) stay the editor's and edit the query.
