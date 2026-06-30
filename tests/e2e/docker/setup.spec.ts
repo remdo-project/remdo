@@ -10,12 +10,12 @@ import {
   waitForServiceWorkerControl,
 } from './_support/helpers';
 
-test('admin provisioning creates a user and opens the editor', async ({ page }) => {
+test('admin self-enrollment creates the first admin and opens the editor', async ({ page }) => {
   await page.goto('/home');
 
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
-  await page.getByRole('link', { name: 'Open admin provisioning' }).click();
-  await expect(page.getByRole('heading', { name: 'Create user' })).toBeVisible();
+  await page.getByRole('link', { name: 'Become admin' }).click();
+  await expect(page.getByRole('heading', { name: 'Become admin' })).toBeVisible();
   await page.fill('input[autocomplete="current-password"]', DOCKER_TEST_ADMIN_SECRET);
   await page.fill('input[autocomplete="name"]', DOCKER_TEST_AUTH.name);
   await page.fill('input[autocomplete="email"]', DOCKER_TEST_AUTH.email);
