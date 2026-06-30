@@ -79,57 +79,64 @@ function inferSessionFromAnchor(
   return null;
 }
 
-// Resolve (or re-resolve) the live session for the current caret. Re-infers from
-// the anchor when the stored session's node or query no longer holds, so the
-// session survives edits inside the query.
-export function $resolveTriggerSession(
+// Open a fresh session: scan back from the caret to the nearest trigger and read
+// its query. Used only when a trigger was just typed; this is the only path that
+// may locate a trigger by scanning, and the caller gates it on a boundary.
+export function $openTriggerSession(
   triggerChar: string,
   anchorNode: TextNode,
-  caretOffset: number,
-  currentSession: TriggerSession | null
+  caretOffset: number
 ): ResolvedTriggerSession | null {
-  let session = currentSession ?? inferSessionFromAnchor(triggerChar, anchorNode, caretOffset);
+  const session = inferSessionFromAnchor(triggerChar, anchorNode, caretOffset);
   if (!session) {
     return null;
   }
-
-  let triggerNode = $getNodeByKey<TextNode>(session.textNodeKey);
+  const triggerNode = $getNodeByKey<TextNode>(session.textNodeKey);
   if (!$isTextNode(triggerNode)) {
-    const inferred = inferSessionFromAnchor(triggerChar, anchorNode, caretOffset);
-    if (!inferred) {
-      return null;
-    }
-    session = inferred;
-    triggerNode = $getNodeByKey<TextNode>(session.textNodeKey);
-    if (!$isTextNode(triggerNode)) {
-      return null;
-    }
+    return null;
   }
-
-  let query = readQueryAcrossTextNodes(triggerChar, triggerNode, session.triggerOffset, anchorNode, caretOffset);
+  const query = readQueryAcrossTextNodes(triggerChar, triggerNode, session.triggerOffset, anchorNode, caretOffset);
   if (query === null) {
-    const inferred = inferSessionFromAnchor(triggerChar, anchorNode, caretOffset);
-    if (!inferred) {
-      return null;
-    }
-    const inferredTriggerNode = $getNodeByKey<TextNode>(inferred.textNodeKey);
-    if (!$isTextNode(inferredTriggerNode)) {
-      return null;
-    }
-    const inferredQuery = readQueryAcrossTextNodes(
-      triggerChar,
-      inferredTriggerNode,
-      inferred.triggerOffset,
-      anchorNode,
-      caretOffset
-    );
-    if (inferredQuery === null) {
-      return null;
-    }
-    session = inferred;
-    triggerNode = inferredTriggerNode;
-    query = inferredQuery;
+    return null;
+  }
+  return { session, triggerNode, query };
+}
+
+// Re-resolve an OPEN session pinned to its origin span, without ever retargeting
+// onto a different trigger:
+//
+// - While the pinned node still exists, the query is read only from that exact
+//   pinned trigger. If it reads null the caret has left the span (e.g. moved
+//   before the trigger or into its middle), so the session closes — it does not
+//   scan back to an earlier trigger.
+// - Only if the pinned node is gone (a text-node split/merge changed its key
+//   while typing) is the trigger re-inferred, and even then it is accepted only
+//   when the re-inferred trigger sits at the same document position as the
+//   pinned one (same forward query), never an earlier trigger.
+export function $resolvePinnedSession(
+  triggerChar: string,
+  anchorNode: TextNode,
+  caretOffset: number,
+  session: TriggerSession
+): ResolvedTriggerSession | null {
+  const pinnedNode = $getNodeByKey<TextNode>(session.textNodeKey);
+  if ($isTextNode(pinnedNode)) {
+    const query = readQueryAcrossTextNodes(triggerChar, pinnedNode, session.triggerOffset, anchorNode, caretOffset);
+    return query === null ? null : { session, triggerNode: pinnedNode, query };
   }
 
-  return { session, triggerNode, query };
+  // Pinned node is gone: recover the same trigger from the current text.
+  const inferred = inferSessionFromAnchor(triggerChar, anchorNode, caretOffset);
+  if (!inferred) {
+    return null;
+  }
+  const inferredNode = $getNodeByKey<TextNode>(inferred.textNodeKey);
+  if (!$isTextNode(inferredNode)) {
+    return null;
+  }
+  const query = readQueryAcrossTextNodes(triggerChar, inferredNode, inferred.triggerOffset, anchorNode, caretOffset);
+  if (query === null) {
+    return null;
+  }
+  return { session: inferred, triggerNode: inferredNode, query };
 }

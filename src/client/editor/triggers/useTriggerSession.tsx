@@ -24,7 +24,7 @@ import { createPortal } from 'react-dom';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { resolveCaretPickerAnchor } from './anchor';
 import { $isTriggerAtBoundary } from './boundary';
-import { $resolveTriggerSession } from './session';
+import { $openTriggerSession, $resolvePinnedSession } from './session';
 import type { PickerAnchor, TriggerSession, TriggerSpec } from './types';
 
 interface InternalPickerState<TOption> {
@@ -171,11 +171,12 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
         return { kind: 'close' };
       }
 
-      const seededSession = pendingTrigger
-        ? { textNodeKey: anchorNode.getKey(), triggerOffset: caretOffset - 1 }
-        : currentSession;
-
-      const resolved = $resolveTriggerSession(specRef.current.triggerChar, anchorNode, caretOffset, seededSession);
+      // A fresh trigger keypress opens a new session by scanning to the trigger;
+      // an already-open session is re-resolved against its pinned span only and
+      // never retargets onto a different trigger.
+      const resolved = currentSession
+        ? $resolvePinnedSession(specRef.current.triggerChar, anchorNode, caretOffset, currentSession)
+        : $openTriggerSession(specRef.current.triggerChar, anchorNode, caretOffset);
       if (!resolved) {
         // Keep a pending trigger armed: the trigger keypress and the character
         // insertion are separate editor updates, so an update landing in between
@@ -267,7 +268,8 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       return null;
     }
     const caretOffset = selection.anchor.offset;
-    const resolved = $resolveTriggerSession(specRef.current.triggerChar, anchorNode, caretOffset, currentSession);
+    // Commit re-validates against the pinned span (never a different trigger).
+    const resolved = $resolvePinnedSession(specRef.current.triggerChar, anchorNode, caretOffset, currentSession);
     if (!resolved) {
       sessionRef.current = null;
       return null;
