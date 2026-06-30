@@ -103,9 +103,9 @@ export default function LoginRoute() {
           </form>
 
           <Text c="dimmed" size="sm">
-            Need to create an account?{' '}
-            <Anchor component={Link} to={`/admin/users/new${location.search}`}>
-              Open admin provisioning
+            Setting up this server?{' '}
+            <Anchor component={Link} to={`/admin/enroll${location.search}`}>
+              Become admin
             </Anchor>
             .
           </Text>

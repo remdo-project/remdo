@@ -2,9 +2,14 @@ import { Alert, Button, Container, Paper, PasswordInput, Stack, Text, TextInput,
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { rememberAuthenticatedSession } from '#client/app/auth/client';
-import { resolveAdminUsersPostCreateDestination } from './admin-users-post-create-destination';
+import { resolveAdminEnrollPostCreateDestination } from './admin-enroll-post-create-destination';
 
-export default function AdminUsersRoute() {
+// Self-enrollment: present the admin secret to acquire the admin role. The
+// account fields create + sign in a first admin on an empty server (works even
+// with public signup off); an already-signed-in visitor is promoted in place,
+// so they may submit with the secret alone. The server gates this on the secret
+// (see docs/access-model.md#admin-role), never on an existing role.
+export default function AdminEnrollRoute() {
   const location = useLocation();
   const navigate = useNavigate();
   const [adminSecret, setAdminSecret] = useState('');
@@ -20,17 +25,19 @@ export default function AdminUsersRoute() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch('/api/admin/users', {
+      const trimmedEmail = email.trim();
+      const trimmedName = name.trim();
+      // Send account fields only when creating an account; an authenticated
+      // visitor promoting in place submits the secret alone.
+      const accountFields = trimmedEmail || trimmedName || password
+        ? { email: trimmedEmail, name: trimmedName, password }
+        : {};
+      const response = await fetch('/api/admin/enroll', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
         },
-        body: JSON.stringify({
-          adminSecret,
-          email: email.trim(),
-          name: name.trim(),
-          password,
-        }),
+        body: JSON.stringify({ adminSecret, ...accountFields }),
       });
 
       if (!response.ok) {
@@ -39,14 +46,14 @@ export default function AdminUsersRoute() {
       }
 
       rememberAuthenticatedSession();
-      const destination = await resolveAdminUsersPostCreateDestination(location.search, globalThis.location.origin);
+      const destination = await resolveAdminEnrollPostCreateDestination(location.search, globalThis.location.origin);
       if (destination.kind === 'assign') {
         globalThis.location.assign(destination.href);
         return;
       }
       void navigate(destination.path, { replace: true });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to create the user.');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to enroll as admin.');
     } finally {
       setPending(false);
     }
@@ -57,14 +64,15 @@ export default function AdminUsersRoute() {
       <Paper withBorder p="xl" radius="md">
         <Stack gap="md">
           <div>
-            <Title order={1}>Create user</Title>
+            <Title order={1}>Become admin</Title>
             <Text c="dimmed" size="sm">
-              Use the server admin secret to provision a RemDo account.
+              Enter the server admin secret. On a new server, also fill in the
+              account fields to register the first admin.
             </Text>
           </div>
 
           {errorMessage && (
-            <Alert color="red" title="User provisioning failed">
+            <Alert color="red" title="Enrollment failed">
               {errorMessage}
             </Alert>
           )}
@@ -84,14 +92,12 @@ export default function AdminUsersRoute() {
                 autoComplete="name"
                 label="Name"
                 onChange={(event) => setName(event.currentTarget.value)}
-                required
                 value={name}
               />
               <TextInput
                 autoComplete="email"
                 label="Email"
                 onChange={(event) => setEmail(event.currentTarget.value)}
-                required
                 type="email"
                 value={email}
               />
@@ -99,11 +105,10 @@ export default function AdminUsersRoute() {
                 autoComplete="new-password"
                 label="Password"
                 onChange={(event) => setPassword(event.currentTarget.value)}
-                required
                 value={password}
               />
               <Button loading={pending} type="submit">
-                Create user
+                Become admin
               </Button>
             </Stack>
           </form>

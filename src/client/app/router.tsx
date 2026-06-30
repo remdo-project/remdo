@@ -2,7 +2,7 @@ import { createBrowserRouter, redirect, redirectDocument } from 'react-router-do
 import App from './App';
 import { resolveSessionGateState } from './auth/client';
 import { getCachedCurrentUserBootstrap, getHomeDocumentId } from './documents/current-user-bootstrap';
-import AdminUsersRoute from './routes/AdminUsersRoute';
+import AdminEnrollRoute from './routes/AdminEnrollRoute';
 import DocumentRoute from './routes/DocumentRoute';
 import LoginRoute from './routes/LoginRoute';
 import LogoutRoute from './routes/LogoutRoute';
@@ -140,8 +140,8 @@ const routes = [
     hydrateFallbackElement,
   },
   {
-    path: '/admin/users/new',
-    element: <AdminUsersRoute />,
+    path: '/admin/enroll',
+    element: <AdminEnrollRoute />,
     hydrateFallbackElement,
   },
   {
