@@ -9,7 +9,7 @@ Define RemDo-owned inline date behavior in the outliner.
 1. Dates are non-text inline RemDo nodes with a stored ISO date (`YYYY-MM-DD`)
    and a readable local label such as `Jun 10, 2026`.
 2. `!` is an inline trigger character; its open/dismiss/confirm lifecycle is the
-   shared one in [Inline trigger pickers](./triggers.md). The rest of this spec
+   shared one in [Editor popups](./popups.md). The rest of this spec
    is date-specific.
 3. The only option is today's date (the user's local browser date), shown as the
    initial highlighted value. Typed query text is not interpreted in this phase
@@ -18,7 +18,7 @@ Define RemDo-owned inline date behavior in the outliner.
    focus mode — `ArrowUp`/`Down`/`Left`/`Right` move the active day rather than
    the editor caret, and the caret does not float free under a live grid. This is
    the shared lifecycle's per-picker key policy for the `!` picker (see
-   [Inline trigger pickers](./triggers.md)).
+   [Editor popups](./popups.md)).
 5. Confirming inserts a date node plus a trailing space over the pinned `!` span;
    with the highlighted day unmoved, that is today's date.
 6. Clicking an existing date opens the picker in *edit* mode and updates that

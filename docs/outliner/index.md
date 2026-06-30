@@ -16,8 +16,9 @@ details.
 5. **Folding:** `./folding.md` — collapse/expand note subtrees, visibility
    filtering, persistence, and view-scoped fold-to-level commands.
 6. **List types:** `./list-types.md` — bullet/number/check semantics and checked state.
-7. **Inline trigger pickers:** `./triggers.md` — the one lifecycle shared by the
-   `@`/`!` trigger menus (span-pinned session, boundary open-on-keypress,
+7. **Editor popups:** `./popups.md` — the shared contract for transient editor
+   popups (one open at a time, key ownership, dismissal) and the trigger-picker
+   lifecycle built on it (span-pinned session, boundary open-on-keypress,
    caret-leaves-span dismissal, confirmation).
 8. **Dates:** `./dates.md` — inline date node behavior, the `!`-specific picker
    pieces (today default, calendar arrow-key ownership, edit mode), atomic token

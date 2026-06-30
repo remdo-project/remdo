@@ -76,6 +76,10 @@ outdated or a doc’s role materially changes.
   `noteRef`.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indentation
   semantics; indent/outdent rules; deletion-merge exception.
+- `docs/outliner/popups.md` (Short). The shared contract for transient editor
+  popups (one open at a time, key ownership, dismissal) plus the trigger-picker
+  lifecycle built on it: span-pinned session, boundary open-on-keypress,
+  caret-leaves-span dismissal, confirmation.
 - `docs/outliner/reordering.md` (Short). Directional reorder fallback cascade: swap,
   parent-sibling reparent, outdent, then no-op.
 - `docs/outliner/search.md` (Long). Search behavior: focus-driven mode
@@ -90,9 +94,6 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/selection.md` (Long). Selection states and whole-note
   snapping, the anchored intent-replay selection ladder (symmetric grow/shrink),
   input bindings, collaboration reshaping tiers, and command compatibility.
-- `docs/outliner/triggers.md` (Short). The one lifecycle shared by the `@`/`!`
-  inline trigger pickers: the span-pinned session, boundary open-on-keypress,
-  caret-leaves-span dismissal, and confirmation.
 - `docs/outliner/zoom.md` (Medium). Subtree zoom view, zoom-boundary editing
   scope, breadcrumbs, and routing.
 - `docs/performance/client-side-perf-tests.md` (Medium). Minimal client-side

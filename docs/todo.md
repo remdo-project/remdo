@@ -63,7 +63,7 @@ Rules:
   `docs/contributing.md#editor-feature-modules`. Move the cross-cutting body
   primitives (the note-kind predicates and selection resolvers many shared
   modules consume) to `outline/`, leaving feature-specific logic behind.
-- Implement the trigger-picker UX redesign now specced in `triggers.md` /
+- Implement the trigger-picker UX redesign now specced in `popups.md` /
   `dates.md` / `links.md` (design rationale: research + Codex in
   `.agent/specs/2026-06-29-trigger-picker-ux-design.md`). The redesign supersedes
   two prior open items: the caret-retarget bug (a picker re-homing onto an earlier
@@ -76,6 +76,15 @@ Rules:
   `NoteBodyPlugin.isInlinePickerOpen` at the shared session signal, not the popup
   `data-*` selectors; commit must re-validate the pinned span; caret into the
   middle of the query must close.
+- Divergence (spec ahead of code): `popups.md#shared-editor-popup-contract` now
+  defines one contract for all editor popups, and `menu.md` defers to it, but the
+  quick action menu (`NoteMenuPlugin`) is not yet in the trigger engine's
+  single-active registry (`activeSessionsByEditor`) — so a trigger picker and the
+  note menu can currently both be open at once. Fold the note menu into the
+  shared popup-shell + registry when the trigger-picker redesign is implemented;
+  this also dedups the duplicated portal/anchor/dismissal plumbing between
+  `NoteMenuPlugin` and `useTriggerSession`. Code unification deferred; spec is
+  aligned now.
 
 ## Document access and sharing
 

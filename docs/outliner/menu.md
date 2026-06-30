@@ -34,17 +34,17 @@
 ## Behavior
 
 1. The menu anchors to the triggering note row near the icon.
-2. The menu closes on click outside, `Escape`, selection change, blur, or after
-   executing an action.
-3. Arrow keys move, `Enter` activates, `Escape` closes, and shortcut letters
-   activate immediately.
-4. When opened from a row, the current note is that row's note. When opened
+2. The menu is an editor popup and follows the shared editor-popup contract in
+   [Editor popups](./popups.md#shared-editor-popup-contract). Beyond
+   that contract: executing an action also closes it, and shortcut letters
+   activate their action immediately.
+3. When opened from a row, the current note is that row's note. When opened
    from double-Shift, the current note is the caret note.
-5. Structural selections never open multi-note menus; only the focus note is
+4. Structural selections never open multi-note menus; only the focus note is
    used as note context.
-6. View actions are not limited to the current note. They act on the current
+5. View actions are not limited to the current note. They act on the current
    zoom boundary even when the menu is opened from a specific row.
-7. While the menu is open, `1`-`9` apply the chosen level and `0` fully
+6. While the menu is open, `1`-`9` apply the chosen level and `0` fully
    unfolds the current zoom boundary.
 
 ## Non-goals
