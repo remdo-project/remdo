@@ -92,11 +92,11 @@ between RemDo-owned note links and generic external links.
 
 ## Picker interaction
 
-The `@` picker is the editable-combobox (type-to-filter) specialization of the
-shared [Editor popups](./popups.md) contract: DOM focus stays in the editor while
-the listbox is navigated via `aria-activedescendant`, and the typed query edits
-the pinned span (the editable-span exception). Navigation, confirmation, and
-dismissal are the shared lifecycle; note-link-specific points:
+The `@` picker is the type-to-filter specialization of the shared
+[Editor popups](./popups.md) contract: it keeps DOM focus in the editor (the
+combobox focus model) and its typed query is the pinned span's editable text.
+Navigation, confirmation, and dismissal are the shared lifecycle; note-link
+specifics:
 
 1. The initial active option is the first result in document order.
 2. `Enter` or a primary-button click commits the active option; `Tab` does not
