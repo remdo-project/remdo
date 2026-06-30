@@ -30,7 +30,7 @@ export function createAdminRoutes({
     }
 
     const session = await auth.getSession(c.req.raw.headers);
-    if (session?.user?.id) {
+    if (session?.user.id) {
       await auth.grantAdminRole(session.user.id);
       return c.json({ ok: true });
     }

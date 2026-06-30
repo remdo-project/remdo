@@ -9,7 +9,7 @@ export async function resolveAdminSessionUserId(
   headers: Headers,
 ): Promise<string | null> {
   const session = await auth.getSession(headers);
-  const userId = session?.user?.id;
+  const userId = session?.user.id;
   if (!userId) {
     return null;
   }
