@@ -97,7 +97,11 @@ export function createServerAppHarness({
     registry,
     async createSessionHeaders(user: CreateAuthUserInput = TEST_USER) {
       await auth.ensureReady();
-      const provisionResponse = await app.request('/api/admin/users', {
+      // Self-enrollment is the secret-gated account-creation path that works with
+      // signup disabled; it also grants the admin role. Test users are therefore
+      // admins, which is irrelevant to the ownership/grant behaviors these
+      // sessions exercise. Role-gating tests create their own non-admin users.
+      const provisionResponse = await app.request('/api/admin/enroll', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',

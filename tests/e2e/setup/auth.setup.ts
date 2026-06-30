@@ -9,7 +9,7 @@ import { E2E_AUTH_ACCOUNT, E2E_STORAGE_STATE_PATH } from '../_support/auth-state
 test('authenticate e2e account', async ({ request }) => {
   cleanupTestAuthData();
 
-  const provisionResponse = await request.post('/api/admin/users', {
+  const provisionResponse = await request.post('/api/admin/enroll', {
     data: {
       ...E2E_AUTH_ACCOUNT,
       adminSecret: config.env.ADMIN_SECRET,

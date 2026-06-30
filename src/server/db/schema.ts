@@ -17,6 +17,8 @@ interface AuthUserTable {
   email: string;
   id: string;
   name: string | null;
+  // Added by the Better Auth admin plugin; null until a role is assigned.
+  role: string | null;
 }
 
 export interface DocumentAccessTable {

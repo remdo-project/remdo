@@ -67,7 +67,7 @@ describe('remdo api app', () => {
       'POST /api/documents',
       'POST /api/documents/:docId/access',
       'POST /api/documents/:docId/sync-tokens',
-      'POST /api/admin/users',
+      'POST /api/admin/enroll',
     ]);
   });
 
@@ -784,14 +784,14 @@ describe('remdo api app', () => {
   it('rejects admin provisioning with a missing or wrong admin secret', async () => {
     const harness = createHarness();
 
-    const missingResponse = await harness.app.request('/api/admin/users', {
+    const missingResponse = await harness.app.request('/api/admin/enroll', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
       },
       body: JSON.stringify(STABLE_AUTH_USERS.alice),
     });
-    const wrongResponse = await harness.app.request('/api/admin/users', {
+    const wrongResponse = await harness.app.request('/api/admin/enroll', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -812,7 +812,7 @@ describe('remdo api app', () => {
   it('rejects admin provisioning when no admin secret is configured', async () => {
     const harness = createHarness({ adminSecret: '' });
 
-    const response = await harness.app.request('/api/admin/users', {
+    const response = await harness.app.request('/api/admin/enroll', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -848,7 +848,7 @@ describe('remdo api app', () => {
       baseURL: 'https://remdo.localhost:4007',
     });
 
-    await harness.app.request('/api/admin/users', {
+    await harness.app.request('/api/admin/enroll', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -881,7 +881,7 @@ describe('remdo api app', () => {
     const harness = createHarness();
     await harness.createSessionHeaders();
 
-    const response = await harness.app.request('/api/admin/users', {
+    const response = await harness.app.request('/api/admin/enroll', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',

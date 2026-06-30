@@ -6,7 +6,7 @@ import {
 import { betterAuth } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import type Database from 'better-sqlite3';
-import { genericOAuth, jwt } from 'better-auth/plugins';
+import { admin, genericOAuth, jwt } from 'better-auth/plugins';
 import type { ExpressionBuilder } from 'kysely';
 import { config } from '#config';
 import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
@@ -66,6 +66,10 @@ function createBetterAuthInstance({
       disableSignUp: !allowSignup,
     },
     plugins: [
+      admin({
+        defaultRole: 'user',
+        adminRoles: ['admin'],
+      }),
       jwt({
         disableSettingJwtHeader: true,
         jwt: {
@@ -132,6 +136,8 @@ export interface ServerAuth {
   createUser: (user: CreateAuthUserInput, headers: Headers) => Promise<Response>;
   ensureReady: () => Promise<void>;
   findUserByEmail: (email: string) => Promise<ServerAuthUser | null>;
+  getUserRole: (userId: string) => Promise<string | null>;
+  grantAdminRole: (userId: string) => Promise<void>;
   handleAuthServerMetadata: (request: Request) => Promise<Response>;
   handleOpenIdConfigMetadata: (request: Request) => Promise<Response>;
   getSession: (headers: Headers) => Promise<Awaited<ReturnType<BetterAuthInstance['api']['getSession']>>>;
@@ -229,6 +235,25 @@ export function createServerAuth({
         .limit(1)
         .executeTakeFirst();
       return row ?? null;
+    },
+    async getUserRole(userId) {
+      const row = await database.db
+        .selectFrom('user')
+        .select('role')
+        .where('id', '=', userId)
+        .limit(1)
+        .executeTakeFirst();
+      return row?.role ?? null;
+    },
+    async grantAdminRole(userId) {
+      // Direct write rather than the admin plugin's setRole: granting the FIRST
+      // admin has no existing admin caller to authorize setRole, and enrollment
+      // is gated by ADMIN_SECRET at the route, not by an admin session.
+      await database.db
+        .updateTable('user')
+        .set({ role: 'admin' })
+        .where('id', '=', userId)
+        .execute();
     },
     getSession(headers) {
       return auth.api.getSession({ headers });
