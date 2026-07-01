@@ -396,6 +396,24 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       editor.registerUpdateListener(() => {
         syncFromSelection();
       }),
+      // While a picker owns the keyboard, swallow app shortcut chords
+      // (Cmd/Ctrl+key) at CRITICAL — before the app keymap's LOW KEY_DOWN handler
+      // — so they do not run editor commands on the document underneath (e.g.
+      // Cmd/Ctrl+Enter toggling the note's checked state). The picker's own keys
+      // (Up/Down/Enter/Tab/Esc) have their own CRITICAL handlers; plain typing,
+      // Backspace, and Left/Right fall through. AltGraph text input (which reports
+      // as Ctrl+Alt) is left alone so it can still edit the query.
+      editor.registerCommand(
+        KEY_DOWN_COMMAND,
+        (event: KeyboardEvent | null) => {
+          if (!event || !sessionRef.current) {
+            return false;
+          }
+          const isAppChord = (event.metaKey || event.ctrlKey) && !event.getModifierState('AltGraph');
+          return isAppChord ? completeKeyboardCommand(event) : false;
+        },
+        COMMAND_PRIORITY_CRITICAL
+      ),
       editor.registerCommand(
         KEY_DOWN_COMMAND,
         (event: KeyboardEvent | null) => {

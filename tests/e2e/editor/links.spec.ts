@@ -27,6 +27,26 @@ test.describe('note links', () => {
     ]);
   });
 
+  test('swallows Ctrl/Cmd+Enter while the @ picker is open (no toggle-checked underneath)', async ({ page, editor }) => {
+    // The picker owns the keyboard: an app shortcut chord (Cmd/Ctrl+Enter, which
+    // toggles the note checked) must not run on the document underneath. Needs a
+    // real browser — the fix is about KEY_DOWN command ordering vs. the app keymap.
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.type(' @note');
+
+    const picker = editorLocator(page).locator('[data-note-link-picker]');
+    await expect(picker).toHaveCount(1);
+
+    const note1 = editorLocator(page).locator('li.list-item', { hasText: 'note1' }).first();
+    await expect(note1).not.toHaveClass(/list-item-checked/);
+    await page.keyboard.press('ControlOrMeta+Enter');
+
+    // The chord did nothing: the note is still unchecked and the picker is open.
+    await expect(note1).not.toHaveClass(/list-item-checked/);
+    await expect(picker).toHaveCount(1);
+  });
+
   test('clicking a note link navigates to zoom target', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
