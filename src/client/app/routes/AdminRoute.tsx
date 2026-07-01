@@ -2,6 +2,7 @@ import { Alert, Anchor, Button, Container, Paper, PasswordInput, Stack, Text, Te
 import { useState } from 'react';
 import { Link, useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import { rememberAuthenticatedSession } from '#client/app/auth/client';
+import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
 import type { AdminRouteState } from './admin-route-loader';
 import { resolveAdminEnrollPostCreateDestination } from './admin-enroll-post-create-destination';
 
@@ -62,6 +63,10 @@ function EnrollForm({ createAccount }: { createAccount: boolean }) {
       }
 
       rememberAuthenticatedSession();
+      // Enrollment changed the role (and may have created the account), so the
+      // cached bootstrap is stale — clear it so the next /api/current-user read
+      // (e.g. returning to /admin) reflects the new admin role.
+      clearCurrentUserBootstrapCache();
       const destination = await resolveAdminEnrollPostCreateDestination(location.search, globalThis.location.origin);
       if (destination.kind === 'assign') {
         globalThis.location.assign(destination.href);
