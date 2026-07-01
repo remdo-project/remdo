@@ -58,6 +58,11 @@ test.describe('date picker (docs/outliner/dates.md)', () => {
     // The picker closed and a date token for the navigated day was inserted.
     await expect(dayButton).toHaveCount(0);
     await expect(editorLocator(page).locator('[data-date-node-key]')).toHaveCount(1);
+    // Focus returns to the editor after committing from the trapping calendar, so
+    // typing continues in the editor rather than being lost on the unmounted grid.
+    const focusInEditor = await page.evaluate(() =>
+      document.activeElement?.closest('.editor-input') !== null);
+    expect(focusInEditor).toBe(true);
   });
 
   test('Tab in the ! calendar closes it and returns focus to the editor', async ({ page, editor }) => {

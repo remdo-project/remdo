@@ -386,6 +386,12 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       editor.update(() => {
         $commitOption(option);
       });
+      // A trap popup (the calendar) holds DOM focus while committing; the popup
+      // then unmounts, so hand focus back to the editor or the next keystroke is
+      // lost. An 'editor'-model popup never took focus, so this is a no-op there.
+      if ((specRef.current.focusModel ?? 'editor') === 'trap') {
+        editor.focus();
+      }
     },
     [$commitOption, editor]
   );
