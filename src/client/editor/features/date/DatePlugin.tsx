@@ -176,6 +176,10 @@ export function DatePlugin() {
     const node = $getNodeByKey(currentPicker.nodeKey);
     if ($isDateNode(node)) {
       node.setIsoDate(isoDate);
+      // Place the caret after the committed token so focus lands sensibly back in
+      // the editor (a keyboard commit from the trapping calendar would otherwise
+      // leave focus on the calendar as it unmounts).
+      $collapseDateTokenSelection(node, 'after');
     }
 
     closePicker();
@@ -208,9 +212,30 @@ export function DatePlugin() {
       editor.update(() => {
         $confirmDate(isoDate);
       });
+      // A calendar commit unmounts the trapping popup; return focus to the editor
+      // (the caret was placed after the token in $confirmDate).
+      editor.focus();
     },
     [$confirmDate, editor]
   );
+
+  // Cancel from inside the focus-trapping calendar (edit mode): close without
+  // changing the date, place the caret after the token, and hand focus back to the
+  // editor. Lexical key commands do not fire while focus is in the calendar, so the
+  // panel calls this directly (Escape/Tab).
+  const handlePickerCancel = useCallback(() => {
+    const currentPicker = pickerRef.current;
+    closePicker();
+    if (currentPicker) {
+      editor.update(() => {
+        const node = $getNodeByKey(currentPicker.nodeKey);
+        if ($isDateNode(node)) {
+          $collapseDateTokenSelection(node, 'after');
+        }
+      });
+    }
+    editor.focus();
+  }, [closePicker, editor]);
 
   const $selectAdjacentDateToken = useCallback(
     (direction: DateTokenSelectionSide, event: KeyboardEvent | null): boolean => {
@@ -471,7 +496,12 @@ export function DatePlugin() {
       {picker && portalRoot
         ? createPortal(
             <div className="date-picker-anchor" style={{ left: picker.anchor.left, top: picker.anchor.top }}>
-              <DatePickerPanel isoDate={picker.isoDate} mode="edit" onChange={handlePickerChange} />
+              <DatePickerPanel
+                isoDate={picker.isoDate}
+                mode="edit"
+                onChange={handlePickerChange}
+                onCancel={handlePickerCancel}
+              />
             </div>,
             portalRoot
           )

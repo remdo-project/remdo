@@ -80,6 +80,60 @@ test.describe('date picker (docs/outliner/dates.md)', () => {
     expect(focusInEditor).toBe(true);
   });
 
+  test('the edit-mode calendar (clicking a date) is keyboard-navigable and commits', async ({ page, editor }) => {
+    // Clicking a committed date opens the same focus-trapping calendar; arrow keys
+    // navigate and Enter commits the changed date, then focus returns to the
+    // editor. Browser-only (needs focus + a real click on the rendered token).
+    await editor.load('basic');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.type(' !');
+    await page.keyboard.press('Enter'); // insert today
+    const token = editorLocator(page).locator('[data-date-node-key]');
+    await expect(token).toHaveCount(1);
+    const originalLabel = (await token.textContent())?.trim();
+
+    // Click the token → edit-mode calendar opens with focus in the grid.
+    await token.click();
+    const dayButton = page.getByRole('button', { name: anyDayButton }).first();
+    await expect(dayButton).toBeVisible();
+    const focusInGrid = await page.evaluate(() =>
+      (document.activeElement as HTMLElement | null)?.hasAttribute('data-date-picker-day') ?? false);
+    expect(focusInGrid).toBe(true);
+
+    // Navigate to another day and commit; the token's date changed and focus is
+    // back in the editor.
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Enter');
+    await expect(dayButton).toHaveCount(0);
+    await expect(token).toHaveCount(1);
+    expect((await token.textContent())?.trim()).not.toBe(originalLabel);
+    const focusInEditor = await page.evaluate(() =>
+      document.activeElement?.closest('.editor-input') !== null);
+    expect(focusInEditor).toBe(true);
+  });
+
+  test('Escape in the edit-mode calendar leaves the date unchanged and restores focus', async ({ page, editor }) => {
+    await editor.load('basic');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.type(' !');
+    await page.keyboard.press('Enter');
+    const token = editorLocator(page).locator('[data-date-node-key]');
+    const originalLabel = (await token.textContent())?.trim();
+
+    await token.click();
+    const dayButton = page.getByRole('button', { name: anyDayButton }).first();
+    await expect(dayButton).toBeVisible();
+
+    // Navigate then Escape: the change is discarded and focus returns to the editor.
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Escape');
+    await expect(dayButton).toHaveCount(0);
+    expect((await token.textContent())?.trim()).toBe(originalLabel);
+    const focusInEditor = await page.evaluate(() =>
+      document.activeElement?.closest('.editor-input') !== null);
+    expect(focusInEditor).toBe(true);
+  });
+
   test('the ! picker does not reopen when the caret returns beside an existing !', async ({ page, editor }) => {
     await editor.load('basic');
 

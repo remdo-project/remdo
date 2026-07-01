@@ -74,7 +74,8 @@ Rules:
   arrow-deferral keyed off the shared signal; `@` combobox ARIA on the editor
   host (role/aria-controls/aria-activedescendant hosted on the focused editor
   root, since the role must sit on the focused element — a picker-owned sub-host
-  would be ARIA-invalid).
+  would be ARIA-invalid); edit-mode date calendar (clicking a committed token) now
+  shares the same focus-trapping keyboard nav as insert.
 - Remaining follow-ups on the redesign (spec ahead of code on these details):
   - Dedup the duplicated portal/anchor/dismissal plumbing between `NoteMenuPlugin`
     and the popup engine (they still each implement it).
@@ -82,13 +83,6 @@ Rules:
     closes+returns; F/Z/digit accelerators vs. the menu pattern's optional
     type-ahead) — the menu was folded into the registry but its keymap was not
     reworked in this pass.
-  - `!` calendar Tab: currently cancels (closes + restores caret) rather than
-    cycling the dialog's own controls — revisit once the calendar has real chrome
-    (month-nav buttons) worth cycling.
-  - Edit-mode date calendar (clicking a committed date token) is mouse-driven: it
-    does not trap focus, so the calendar keyboard contract in `dates.md` applies to
-    the `!` insert picker only. Give edit mode the same focus-trapping keyboard nav
-    (share the `focusModel: 'trap'` path) so a clicked date is editable by keyboard.
 
 ## Document access and sharing
 

@@ -25,10 +25,12 @@ Define RemDo-owned inline date behavior in the outliner.
    `Tab`, which must not escape into browser focus traversal — cancel the calendar
    and restore the caret to the editor. Committing inserts a date node plus a
    trailing space over the pinned `!` span.
-6. Clicking an existing date opens the same calendar in *edit* mode and updates
-   that node. This is opened from a committed token, not a trigger session, so the
-   trigger lifecycle does not apply; the edit-mode calendar is mouse-driven (its
-   keyboard contract is a follow-up, see `docs/todo.md`).
+6. Clicking, or `Enter`/`Space` on a selected date token, opens the same calendar
+   in *edit* mode over that node. It is opened from a committed token rather than a
+   trigger session, so the trigger lifecycle does not apply, but the in-calendar
+   keyboard contract is identical (focus moves into the grid; the keys in 4–5
+   navigate and commit; commit updates the node and places the caret after it,
+   cancel leaves it unchanged).
 
 ## Atomic token keyboard behavior
 
@@ -57,6 +59,9 @@ Define RemDo-owned inline date behavior in the outliner.
    identity when possible.
 2. [Future] Support typed date queries or natural-language date parsing after
    `!`.
+3. [Future] Give the calendar its own chrome (month/year navigation controls) and
+   have `Tab` cycle those controls within the dialog instead of cancelling —
+   currently there are no controls to cycle to, so `Tab` cancels (see 5).
 
 ## References
 

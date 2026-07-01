@@ -520,7 +520,10 @@ describe('date nodes', () => {
     expectDateTokenSelected(remdo);
   });
 
-  it('focuses the editor when clicking a date token from outside the editor', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('opens the edit picker when clicking a date token from outside the editor', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Clicking a committed token opens the edit-mode calendar even when focus was
+    // elsewhere. (The calendar then traps focus into its grid, and Escape closes
+    // it — the in-grid focus move is browser-only, covered by the date e2e.)
     await setupInlineDate(remdo);
     const outsideButton = document.createElement('button');
     document.body.append(outsideButton);
@@ -530,7 +533,6 @@ describe('date nodes', () => {
     await mouseDownElement(getDateElement());
     await clickElement(getDateElement());
 
-    expect(document.activeElement).toBe(remdo.editor.getRootElement());
     expect(document.querySelector('[data-date-picker-mode="edit"]')).not.toBeNull();
 
     await pressKeyOnActiveElement(remdo, 'Escape');

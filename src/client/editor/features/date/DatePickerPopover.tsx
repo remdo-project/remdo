@@ -2,8 +2,6 @@ import { DatePicker } from '@mantine/dates';
 import '@mantine/dates/styles.css';
 import { useEffect, useRef } from 'react';
 
-import { preventPickerMouseDown } from './picker-dom';
-
 type DatePickerMode = 'edit' | 'insert';
 
 interface DatePickerPanelProps {
@@ -14,24 +12,21 @@ interface DatePickerPanelProps {
 }
 
 export function DatePickerPanel({ isoDate, mode, onChange, onCancel }: DatePickerPanelProps) {
-  // Insert mode is a modal calendar dialog: focus moves into the grid so Mantine's
-  // built-in day/week/month keyboard navigation drives it, and Escape/blur are
-  // handled by the shared trigger engine. Edit mode keeps focus in the editor (it
-  // is opened from a committed token, not a trapping session).
-  const trapFocus = mode === 'insert';
+  // Both modes are modal calendar dialogs: focus moves into the grid so Mantine's
+  // built-in day/week/month keyboard navigation drives it, and Escape/Tab are
+  // handled here (Lexical key commands don't fire while focus is in the calendar).
+  // Insert opens from a trigger session; edit opens from a committed token, but the
+  // in-calendar keyboard contract is identical.
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!trapFocus) {
-      return;
-    }
     // Move focus onto the calendar's active day cell — Mantine puts the selected
     // day (or today) in tab order with tabIndex=0 — so arrow keys drive the grid
     // rather than the editor. Scope to day cells so the month-nav header button
     // (also tabbable) is not focused instead.
     const day = containerRef.current?.querySelector<HTMLElement>('[data-date-picker-day][tabindex="0"]');
     day?.focus();
-  }, [trapFocus]);
+  }, []);
 
   return (
     <div
@@ -39,22 +34,17 @@ export function DatePickerPanel({ isoDate, mode, onChange, onCancel }: DatePicke
       className="date-picker-panel"
       data-date-picker
       data-date-picker-mode={mode}
-      onMouseDown={trapFocus ? undefined : preventPickerMouseDown}
-      onKeyDown={
-        trapFocus
-          ? (event) => {
-              // Focus is in the calendar, so Lexical's key commands never fire.
-              // Escape cancels; Tab must not escape into browser focus traversal
-              // (it would leave the popup open with focus outside it) — for now it
-              // also cancels and returns focus to the editor. Both hand focus back.
-              if (event.key === 'Escape' || event.key === 'Tab') {
-                event.preventDefault();
-                event.stopPropagation();
-                onCancel?.();
-              }
-            }
-          : undefined
-      }
+      onKeyDown={(event) => {
+        // Focus is in the calendar, so Lexical's key commands never fire.
+        // Escape cancels; Tab must not escape into browser focus traversal
+        // (it would leave the popup open with focus outside it) — for now it
+        // also cancels and returns focus to the editor. Both hand focus back.
+        if (event.key === 'Escape' || event.key === 'Tab') {
+          event.preventDefault();
+          event.stopPropagation();
+          onCancel?.();
+        }
+      }}
     >
       <DatePicker
         value={isoDate}
