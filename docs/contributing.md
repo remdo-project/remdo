@@ -5,10 +5,11 @@
 `origin/main` is the canonical **PR/review baseline** — what work is ultimately
 diffed against to merge; `dev` is the integration/staging branch and does not
 need a perfectly linear history. Do the work on topic branches kept to a single
-concern. A branch's **fork point** is wherever it was cut — usually `dev`, or
-another in-progress branch when stacking work — which is not always `origin/main`;
-the `wip-base` tag marks that fork point so local reviews diff against the
-branch's own work (see the `remdo-feature-flow` skill for the mechanism).
+concern, forked from `origin/main`. Local reviews diff against the branch's own
+work with the three-dot merge-base range **`origin/main...HEAD`** (or
+`git diff "$(git merge-base origin/main HEAD)"` to include uncommitted work) — no
+tag to maintain, since the merge-base is recomputed from the two refs and stays
+correct even after merging `origin/main` in (see the `remdo-feature-flow` skill).
 
 Name topic branches with clear prefixes so intent is obvious:
 

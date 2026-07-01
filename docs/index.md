@@ -28,9 +28,10 @@ outdated or a doc’s role materially changes.
   `APP_PUBLIC_URL`-vs-bind-`PORT` separation, the secret bootstrap contract, and
   admin enrollment.
 - `docs/contributing.md` (Medium). Runtime baselines, Git workflow (`origin/main`
-  as PR baseline, the branch fork point marked with the `wip-base` tag) and
-  branch-prefix conventions, editor feature module layout, pre-1.0 compatibility
-  policy (no default migration/back-compat requirements), and the doc
+  as PR baseline and fork point, `origin/main...HEAD` merge-base range for local
+  review) and branch-prefix conventions, editor feature module layout, pre-1.0
+  compatibility policy (no default migration/back-compat requirements), and the
+  doc
   workflow + documentation invariants.
 - `docs/dev/dependency-maintenance.md` (Medium). Standing policy for dependency
   refresh work — durable rules and self-healing mechanisms (pnpm release-age
