@@ -63,35 +63,27 @@ Rules:
   `docs/contributing.md#editor-feature-modules`. Move the cross-cutting body
   primitives (the note-kind predicates and selection resolvers many shared
   modules consume) to `outline/`, leaving feature-specific logic behind.
-- Implement the editor-popup UX redesign now specced in `popups.md` / `dates.md`
-  / `links.md` / `menu.md` (rationale: research + 2 Codex rounds in
-  `.agent/specs/2026-06-30-editor-popups-ux-research.md`). The whole spec is ahead
-  of code. Scope:
-  - Shared contract: a popup **owns the keyboard** (first decision over every key)
-    with an **editable-span exception** (typing edits the query span only); one
-    popup at a time; light-dismiss (Esc + outside-click = cancel, no commit on
-    blur/Tab/unconfirmed-highlight); validated commit (re-resolve pinned target,
-    collab-safe) + restore caret from a model-level node-key anchor; per-widget
-    Tab (close-and-fall-through OR cycle) and per-widget focus model.
-  - `@` link: editable combobox, DOM focus stays in editor (aria-activedescendant);
-    Tab closes + indent (never commits). Fixes the caret-retarget bug by pinning
-    the session to its origin span and deleting the scan-for-earlier re-inference
-    in `triggers/session.ts`.
-  - `!` date: becomes a **modal calendar dialog** (focus enters the grid, roving
-    tabindex) with full keyboard nav (arrows day/week, Page month, Shift+Page
-    year, Home/End week); today preselected, Enter/Space/click commits, `!`+Enter
-    = today; Tab cycles dialog controls; Esc cancels. `!` has **no query span** (a
-    letter typed after `!` is an owned no-op, not query text) — the editable query
-    is `@`-only. No presets, no typed parser (Future). Replaces today's click-only
-    insert calendar.
-  - note menu: WAI-ARIA menu, roving focus, owns all keys; Tab closes + returns;
-    F/Z/digit accelerators replace optional type-ahead. Fold it into the shared
-    single-active registry (`activeSessionsByEditor`) — currently it isn't, so a
-    picker and the menu can both be open at once — and dedup the duplicated
-    portal/anchor/dismissal plumbing between `NoteMenuPlugin` and the popup engine.
-  - Cross-cutting: point `NoteBodyPlugin.isInlinePickerOpen` at the shared session
-    signal, not the popup `data-*` selectors; a11y tidy = combobox role on the
-    focused editable host with aria-controls→listbox.
+- Editor-popup UX redesign (spec: `popups.md`/`dates.md`/`links.md`/`menu.md`;
+  rationale in `.agent/specs/2026-06-30-editor-popups-ux-research.md`). Landed:
+  span-pinned session (retarget bug fixed; `triggers/session.ts` split into
+  `$openTriggerSession`/`$resolvePinnedSession`); `@` Tab closes+indents (no
+  commit) and modifier-Enter swallowed; `!` is a modal calendar dialog with
+  focus-into-grid keyboard nav via Mantine (arrows/Page/Home-End), `!`+Enter =
+  today, Esc/outside-click cancel + restore caret; one-open-at-a-time registry
+  (`triggers/active-popup.ts`) with the note menu folded in; `NoteBodyPlugin`
+  arrow-deferral keyed off the shared signal.
+- Remaining follow-ups on the redesign (spec ahead of code on these details):
+  - a11y tidy: put the combobox `role` on the focused editable host with
+    `aria-controls`→listbox (today `role=listbox` sits on the `@` popup).
+  - Dedup the duplicated portal/anchor/dismissal plumbing between `NoteMenuPlugin`
+    and the popup engine (they still each implement it).
+  - Confirm/adjust the menu's per-widget key details against `menu.md` (Tab
+    closes+returns; F/Z/digit accelerators vs. the menu pattern's optional
+    type-ahead) — the menu was folded into the registry but its keymap was not
+    reworked in this pass.
+  - `!` calendar: Tab currently follows the shared close path rather than
+    cycling the dialog's controls per `dates.md` — revisit once the calendar has
+    real chrome (month-nav buttons) worth cycling.
 
 ## Document access and sharing
 
