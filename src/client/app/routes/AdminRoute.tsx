@@ -1,6 +1,6 @@
-import { Alert, Anchor, Button, Container, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Button, Container, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useState } from 'react';
-import { Link, useLoaderData, useLocation, useNavigate } from 'react-router-dom';
+import { useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import { rememberAuthenticatedSession } from '#client/app/auth/client';
 import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
 import type { AdminRouteState } from './admin-route-loader';
@@ -24,15 +24,15 @@ export default function AdminRoute() {
     );
   }
 
-  return <EnrollForm createAccount={state.kind === 'enroll'} />;
+  return <EnrollForm />;
 }
 
-function EnrollForm({ createAccount }: { createAccount: boolean }) {
+// Enrollment always registers a new admin account (the secret gates it, works
+// even with signup disabled). Promoting an existing user is a later, panel-gated
+// capability, so this form has a single mode.
+function EnrollForm() {
   const location = useLocation();
   const navigate = useNavigate();
-  // "Log in first" returns to /admin (with any current search preserved), where
-  // a now-signed-in visitor sees the secret-only promotion form.
-  const loginHref = `/login?next=${encodeURIComponent(`/admin${location.search}`)}`;
   const [adminSecret, setAdminSecret] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -46,15 +46,12 @@ function EnrollForm({ createAccount }: { createAccount: boolean }) {
     setErrorMessage(null);
 
     try {
-      const accountFields = createAccount
-        ? { email: email.trim(), name: name.trim(), password }
-        : {};
       const response = await fetch('/api/admin/enroll', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ adminSecret, ...accountFields }),
+        body: JSON.stringify({ adminSecret, email: email.trim(), name: name.trim(), password }),
       });
 
       if (!response.ok) {
@@ -63,9 +60,8 @@ function EnrollForm({ createAccount }: { createAccount: boolean }) {
       }
 
       rememberAuthenticatedSession();
-      // Enrollment changed the role (and may have created the account), so the
-      // cached bootstrap is stale — clear it so the next /api/current-user read
-      // (e.g. returning to /admin) reflects the new admin role.
+      // Enrollment created + signed in a new admin, so the cached bootstrap is
+      // stale — clear it so the next /api/current-user read reflects the new user.
       clearCurrentUserBootstrapCache();
       const destination = await resolveAdminEnrollPostCreateDestination(location.search, globalThis.location.origin);
       if (destination.kind === 'assign') {
@@ -87,21 +83,10 @@ function EnrollForm({ createAccount }: { createAccount: boolean }) {
           <div>
             <Title order={1}>Become admin</Title>
             <Text c="dimmed" size="sm">
-              {createAccount
-                ? 'Enter the admin secret, plus a name, email, and password to register the first admin.'
-                : 'Enter the admin secret to make your account an admin.'}
+              Enter the admin secret, plus a name, email, and password to register
+              an admin account.
             </Text>
           </div>
-
-          {createAccount && (
-            <Text c="dimmed" size="sm">
-              Already have an account?{' '}
-              <Anchor component={Link} to={loginHref}>
-                Log in first
-              </Anchor>
-              , then enter just the secret.
-            </Text>
-          )}
 
           {errorMessage && (
             <Alert color="red" title="Enrollment failed">
@@ -120,32 +105,28 @@ function EnrollForm({ createAccount }: { createAccount: boolean }) {
                 required
                 value={adminSecret}
               />
-              {createAccount && (
-                <>
-                  <TextInput
-                    autoComplete="name"
-                    label="Name"
-                    onChange={(event) => setName(event.currentTarget.value)}
-                    required
-                    value={name}
-                  />
-                  <TextInput
-                    autoComplete="email"
-                    label="Email"
-                    onChange={(event) => setEmail(event.currentTarget.value)}
-                    required
-                    type="email"
-                    value={email}
-                  />
-                  <PasswordInput
-                    autoComplete="new-password"
-                    label="Password"
-                    onChange={(event) => setPassword(event.currentTarget.value)}
-                    required
-                    value={password}
-                  />
-                </>
-              )}
+              <TextInput
+                autoComplete="name"
+                label="Name"
+                onChange={(event) => setName(event.currentTarget.value)}
+                required
+                value={name}
+              />
+              <TextInput
+                autoComplete="email"
+                label="Email"
+                onChange={(event) => setEmail(event.currentTarget.value)}
+                required
+                type="email"
+                value={email}
+              />
+              <PasswordInput
+                autoComplete="new-password"
+                label="Password"
+                onChange={(event) => setPassword(event.currentTarget.value)}
+                required
+                value={password}
+              />
               <Button loading={pending} type="submit">
                 Become admin
               </Button>

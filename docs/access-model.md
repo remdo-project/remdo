@@ -56,24 +56,21 @@ the user.
   authorization is always enforced server-side from the SQL record, never from
   the projection.
 - Every admin API authorizes from the caller's session + role — except the
-  self-enrollment endpoint itself, which has no session+role to check (it is how
-  the role is acquired) and is instead gated by `ADMIN_SECRET` (below).
-- `/admin` is the single admin entry route. It renders by the caller's session
-  and role: a signed-in admin sees the admin panel; a signed-in non-admin sees
-  the self-enrollment form asking only for the secret (in-place promotion); an
-  unauthenticated visitor is offered both a sign-in link (returning to `/admin`)
-  and the full enrollment form. The client learns the current user's role from
-  the `/api/current-user` bootstrap; this drives rendering only — authorization
-  stays server-side.
+  self-enrollment endpoint, which registers a *new* admin account (no existing
+  session or role to check) and is instead gated by `ADMIN_SECRET` (below).
+- `/admin` is the single admin entry route. It renders by the caller's role: an
+  admin sees the admin panel; anyone else (signed in or not) sees the
+  self-enrollment form. The client learns the current user's role from the
+  `/api/current-user` bootstrap; this drives rendering only — authorization stays
+  server-side.
 - Self-enrollment is gated by `ADMIN_SECRET` (see
-  [docs/config.md](./config.md#admin-bootstrap-and-enrollment)): a visitor who
-  presents the secret is granted the admin role. The secret is a shared **gate
-  to acquire the role**, not an identity tied to one user — one enrollment path,
-  and any user who knows the secret can become admin.
-- The secret-gated path can always create the enrolling account, independent of
-  the public-signup policy. So on an empty server it registers the first account
-  and grants the role in one step, and closing public signup never locks out
-  admin bootstrap.
+  [docs/config.md](./config.md#admin-bootstrap-and-enrollment)) and always
+  **registers a new admin account**: presenting the secret with account details
+  creates the account and grants it the admin role. The secret is a shared gate,
+  not tied to one user — any secret-holder can register an admin account, and it
+  works independently of the public-signup policy (so a private server can still
+  bootstrap and add admins). Promoting an *existing* user is a separate,
+  panel-gated capability (see [docs/todo.md](./todo.md), admin role follow-ups).
 - Admin entry is discoverable by context: a signed-in admin sees an **Admin**
   link in the app toolbar, and a non-public server (closed signup, where
   bootstrapping an admin is expected) surfaces a link to `/admin` from the login

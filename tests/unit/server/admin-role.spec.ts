@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { resolveAdminSessionUserId } from '#server/auth/admin-auth';
 import { extractSessionCookie } from '#server/auth/session-cookie';
 import { createTestResource } from '../_support/test-resource';
 import { createServerAppHarness, TEST_ADMIN_SECRET } from './_support/server-app-harness';
@@ -10,6 +9,12 @@ const ENROLLEE = {
   email: 'enrollee@example.com',
   name: 'Enrollee',
   password: 'enrollee-password-1234',
+} as const;
+
+const OTHER_ENROLLEE = {
+  email: 'other-enrollee@example.com',
+  name: 'Other Enrollee',
+  password: 'other-enrollee-password-1234',
 } as const;
 
 function enroll(
@@ -48,12 +53,14 @@ describe('admin self-enrollment', () => {
     const harness = createHarness();
     const response = await enroll(harness.app, { ...ENROLLEE, adminSecret: TEST_ADMIN_SECRET });
     const headers = new Headers({ cookie: extractSessionCookie(response) });
-    await expect(resolveAdminSessionUserId(harness.auth, headers)).resolves.toBeTypeOf('string');
+    const session = await harness.auth.getSession(headers);
+    expect(session?.user.id).toBeTypeOf('string');
   });
 
-  it('promotes an already-authenticated non-admin caller in place', async () => {
-    // Sign up a plain user (signup-enabled harness), then enroll WITH that
-    // session: the existing account is promoted, no new account is created.
+  it('registers a new admin account rather than promoting the caller in place', async () => {
+    // Enrollment is always account-registration: a signed-in non-admin who
+    // enrolls creates a NEW admin account; their existing account is untouched
+    // (promoting an existing user is the later, panel-gated capability).
     const harness = createHarness({ allowSignup: true });
     const signUp = await harness.app.request('/api/auth/sign-up/email', {
       method: 'POST',
@@ -61,32 +68,24 @@ describe('admin self-enrollment', () => {
       body: JSON.stringify(ENROLLEE),
     });
     const headers = { cookie: extractSessionCookie(signUp) };
-    const userId = await harness.getSessionUserId(new Headers(headers));
-    await expect(harness.auth.getUserRole(userId)).resolves.not.toBe('admin');
+    const existingUserId = await harness.getSessionUserId(new Headers(headers));
 
-    const response = await enroll(harness.app, { adminSecret: TEST_ADMIN_SECRET }, headers);
+    const response = await enroll(harness.app, {
+      ...OTHER_ENROLLEE,
+      adminSecret: TEST_ADMIN_SECRET,
+    }, headers);
     expect(response.ok).toBe(true);
-    await expect(response.json()).resolves.toEqual({ ok: true });
-    await expect(harness.auth.getUserRole(userId)).resolves.toBe('admin');
-    await expect(harness.auth.getUserCount()).resolves.toBe(1);
-  });
-});
 
-describe('resolveAdminSessionUserId', () => {
-  it('returns null without a session', async () => {
-    const harness = createHarness();
-    await expect(resolveAdminSessionUserId(harness.auth, new Headers())).resolves.toBeNull();
+    // The pre-existing account stays a non-admin; a new admin account was created.
+    await expect(harness.auth.getUserRole(existingUserId)).resolves.not.toBe('admin');
+    const created = await harness.auth.findUserByEmail(OTHER_ENROLLEE.email);
+    await expect(harness.auth.getUserRole(created!.id)).resolves.toBe('admin');
+    await expect(harness.auth.getUserCount()).resolves.toBe(2);
   });
 
-  it('returns the user id for an admin session', async () => {
-    const harness = createHarness();
-    const headers = await harness.createSessionHeaders();
-    const userId = await harness.getSessionUserId(headers);
-    await expect(resolveAdminSessionUserId(harness.auth, headers)).resolves.toBe(userId);
-  });
-
-  it('refuses a non-admin session', async () => {
-    // A signup-enabled harness lets us create a plain (non-admin) user.
+  it('leaves a normally-signed-up user without the admin role', async () => {
+    // A signup-enabled harness creates a plain (non-admin) user; only the
+    // secret-gated enroll path grants the admin role.
     const harness = createHarness({ allowSignup: true });
     const signUp = await harness.app.request('/api/auth/sign-up/email', {
       method: 'POST',
@@ -94,11 +93,7 @@ describe('resolveAdminSessionUserId', () => {
       body: JSON.stringify(ENROLLEE),
     });
     expect(signUp.ok).toBe(true);
-    const headers = new Headers({ cookie: extractSessionCookie(signUp) });
-
-    // The session is valid but the user has no admin role.
-    const userId = await harness.getSessionUserId(headers);
+    const userId = await harness.getSessionUserId(new Headers({ cookie: extractSessionCookie(signUp) }));
     await expect(harness.auth.getUserRole(userId)).resolves.not.toBe('admin');
-    await expect(resolveAdminSessionUserId(harness.auth, headers)).resolves.toBeNull();
   });
 });

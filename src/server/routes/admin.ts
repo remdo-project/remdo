@@ -10,12 +10,12 @@ export function createAdminRoutes({
   const routes = new Hono();
 
   // Self-enrollment: the one path to acquire the admin role. Gated by
-  // ADMIN_SECRET, never by a session+role (this is how the role is first
-  // acquired, so there is no admin session to check — see
-  // docs/access-model.md#admin-role). An authenticated caller is promoted in
-  // place; an unauthenticated caller registers an account (works even with
-  // signup disabled, via the provisioning escape hatch) and is promoted, in one
-  // step, so a private server can still bootstrap its first admin.
+  // ADMIN_SECRET, never by a session+role (this is how the role is acquired, so
+  // there is no admin session to check — see docs/access-model.md#admin-role).
+  // It always registers a new account and grants it the role (works even with
+  // signup disabled, via the provisioning escape hatch), so any secret-holder
+  // can create an admin account. Promoting an *existing* user is a later,
+  // panel-gated capability, not this endpoint.
   routes.post('/enroll', async (c) => {
     await auth.ensureReady();
 
@@ -27,12 +27,6 @@ export function createAdminRoutes({
     }>();
     if (!adminSecret || typeof body.adminSecret !== 'string' || !secretsMatch(adminSecret, body.adminSecret)) {
       return c.json({ error: 'Admin secret is invalid.' }, HTTP_STATUS.FORBIDDEN);
-    }
-
-    const session = await auth.getSession(c.req.raw.headers);
-    if (session?.user.id) {
-      await auth.grantAdminRole(session.user.id);
-      return c.json({ ok: true });
     }
 
     const trimmedName = typeof body.name === 'string' ? body.name.trim() : '';
