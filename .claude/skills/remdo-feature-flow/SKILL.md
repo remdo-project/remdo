@@ -44,6 +44,35 @@ being silently carried.
 
 ## Phase 2 — Dialog
 
+**Precondition — design against the same base the fork will use.** Run this
+**before reading any code or docs below**: the spec must be shaped against exactly
+the state the task branch will fork from, or Phase 2 designs against one codebase
+while Phase 3 branches from another. It must gate the dialog, not just branch
+creation — by Phase 3 the wrong context has already shaped the design.
+
+1. **Tree clean of unrelated changes first.** Apply the Phase-3 "no unrelated
+   changes" check *now*, before the fast-forward below can touch the tree — a
+   fast-forward would otherwise silently advance a checkout the run should have
+   stopped on. Pre-existing unrelated edits → stop (as in Phase 3).
+2. `git fetch`, then compare the current branch (usually `dev`) to `origin/main`:
+   - **Ahead** (`git rev-list origin/main..HEAD` non-empty) — the branch holds
+     committed work not yet in `origin/main`. The fork carries only the
+     uncommitted spec (see "Branch base"), so that work would *not* follow, and a
+     spec designed against it would vanish from the task branch. **Stop**: ask the
+     user to land it in `origin/main` first (merge the open `dev`→`main` PR), or to
+     design from a checkout already at `origin/main`.
+   - **Behind** (`git rev-list HEAD..origin/main` non-empty, and *not* also
+     ahead) — merely stale. **Fast-forward to `origin/main`** (`git merge
+     --ff-only origin/main`); safe (no rewrite, no merge commit, nothing lost) and
+     makes the design base match the fork base.
+   - **Diverged** (both ahead and behind) — FF is impossible; treat as *ahead* and
+     stop.
+   - **Even** — proceed.
+3. **Pin the base.** Record the resolved base SHA (`git rev-parse origin/main`) as
+   the fork point for this run. Phase 3 creates the branch from *this pinned SHA*,
+   not a re-fetched `origin/main` — otherwise `origin/main` advancing mid-flow
+   would again split the design base from the fork base.
+
 Conversation plus cheap checks — inline, interactive, no subagents (latency the
 user feels in real time).
 
@@ -81,6 +110,11 @@ them — see AGENTS.md). Everything this flow itself produced is fine and expect
 — the spec docs written below, and any flow-owned `docs/todo.md` notes from
 Phase 2 — so a normal clean-start run (where the only changes are this flow's)
 passes this gate; it is not a requirement that "only spec edits" exist.
+
+This gate assumes the **Phase-2 base check ran** (see Phase 2): it left the
+current branch even with the pinned base SHA and recorded that SHA, which is what
+lets the branch created below fork with no committed work lost and no stale design
+base.
 
 **The spec is the versioned-doc changes themselves**, written so the docs read as
 if everything already works as described (per the `docs/` invariant: stable docs
@@ -220,8 +254,15 @@ a task branch. Within a run:
   `dev` or `main`.
 - **`git fetch`: always allowed** — it only updates remote-tracking refs, never
   your work or the remote.
+- **Fast-forwarding the current branch to `origin/main`** as part of the Phase-2
+  base check: allowed. `git merge --ff-only origin/main` only advances a *behind*
+  branch along existing history — no rewrite, no merge commit, nothing lost — so
+  it is safe autonomously; it fails (and thus never mutates) on a diverged branch,
+  which the base check handles as the *ahead* stop. This is the one exception to
+  the pull/merge line below.
 - **Push / pull / opening PRs: never without the user's explicit ask.** The user
-  owns the remote (and pull, which mutates the branch).
+  owns the remote (and a general pull/merge, which can mutate or diverge the
+  branch — unlike the scoped FF-only above).
 - **Branch creation and cross-branch ops** (checkout-other, merge, rebase-onto,
   cherry-pick): require user confirmation.
 - **Web read/search: allowed by default.**
@@ -247,23 +288,21 @@ diff origin/main` is *not* equivalent — after a merge it diffs against the wro
 point.) **Default all mid-work and end-of-work diff/review checks to this
 merge-base.**
 
-**Creating the branch** (Phase 3) forks from `origin/main`, so the new branch
-starts clean against the base every diff uses and merges back easily later. The
-approved spec is already written as **uncommitted edits on the current branch**
-(usually `dev`), and it must carry across onto the `origin/main` base:
+**Creating the branch** (Phase 3) forks from the **base SHA pinned at Phase 2**
+(step 3 there) — the exact state the spec was designed against — *not* a freshly
+re-fetched `origin/main`, which may have advanced mid-flow and would split the
+fork base from the design base again. The Phase-2 base check left the current
+branch even with that SHA, so only the **uncommitted spec edits** need to carry
+across:
 
-1. `git fetch` (unconditional — fetch is always allowed).
-2. Create the branch with `git switch --merge -c <name> --no-track origin/main`.
-   `--merge` carries the uncommitted spec edits onto the new base even when the
-   current branch has diverged from `origin/main` in a spec-touched file — a plain
-   `git switch -c` would instead **abort and strand the spec** there. `--merge`
-   does a three-way merge of the local edits; a conflict is possible but rare (the
-   spec touched a doc that also differs between `origin/main` and the current
-   branch) — resolve it, keeping the spec's intent. `--no-track` keeps the start
-   point from setting the upstream to `origin/main` (a mismatched name that breaks
-   the user's first push under `push.default=simple`); the user's first push then
-   sets the upstream to `origin/<same-name>` (`git push -u origin HEAD`, or
-   automatically if they have `push.autoSetupRemote`).
+- Create the branch with `git switch --merge -c <name> --no-track <pinned-base-sha>`.
+  `--merge` carries the uncommitted spec edits onto the new base (a plain `git
+  switch -c` would **abort and strand the spec** if a spec-touched file differed);
+  since the current branch is already at the pinned base, a conflict is not
+  expected. `--no-track` keeps the start point from setting the upstream (a
+  mismatched name that breaks the user's first push under `push.default=simple`);
+  the user's first push then sets the upstream to `origin/<same-name>` (`git push
+  -u origin HEAD`, or automatically with `push.autoSetupRemote`).
 
 This flow forks task branches from `origin/main` only. Stacked/dependent branches
 (forking off another in-progress branch) are out of scope — they would make
