@@ -1,6 +1,6 @@
 ---
 name: remdo-refine
-description: Use to run the autonomous quality loop over a diff on the current branch — simplify, review at max effort, then external Codex review, looping until a clean pass. Works on either a committed range (default `wip-base..HEAD`, or an explicit range, clean tree) or the uncommitted working tree (opt-in, for reviewing changes before committing, such as a feature-flow spec). Triggers include "refine this", "run the refine ladder", "review/simplify/fix loop", "refine the uncommitted changes", or `remdo-feature-flow` calling it.
+description: Use to run the autonomous quality loop over a diff on the current branch — simplify, review at max effort, then external Codex review, looping until a clean pass. Works on either a committed range (default `origin/main...HEAD`, or an explicit range, clean tree) or the uncommitted working tree (opt-in, for reviewing changes before committing, such as a feature-flow spec). Triggers include "refine this", "run the refine ladder", "review/simplify/fix loop", "refine the uncommitted changes", or `remdo-feature-flow` calling it.
 ---
 
 # Refine
@@ -34,34 +34,33 @@ The diff is `<base-sha>..HEAD`. Resolved once, deterministically, in this order:
 1. An **explicit range/base passed at invocation** wins (e.g. the caller says
    "refine `HEAD~3..HEAD`" or "refine the commit we just made"). Honour it; do
    not second-guess the intent.
-2. Otherwise default to **`wip-base..HEAD`** (see `remdo-feature-flow` "Branch
-   base") — the natural scope on a task branch, where `remdo-sync` keeps
-   `wip-base` correct.
-3. If `wip-base` is absent or stale for the current branch (typically on `dev`,
-   which is not a task branch), there is no meaningful default: **ask for an
-   explicit range rather than guessing**. The conversation usually makes the
-   intended range obvious (the work just done, the last commit, the last few) —
-   state the concrete range you'll use and proceed once it's confirmed.
+2. Otherwise, **on a task branch forked from `origin/main`**, default to
+   **`origin/main...HEAD`** (see `remdo-feature-flow` "Branch base") — the
+   three-dot merge-base range that is exactly that branch's own work, needing no
+   stored base.
+3. **On an integration branch** (`dev`) or any branch where `origin/main...HEAD`
+   is not one unit of work — many accumulated merges, or no merge-base at all —
+   this default is meaningless (it would sweep in every commit `dev` gathered
+   since it forked from `main`, and refine *commits* fixes across all of it). So
+   **do not default; ask for an explicit range**. The conversation usually makes
+   the intended range obvious (the work just done, the last commit, the last few)
+   — state the concrete range you'll use and proceed once it's confirmed. Refine
+   runs on `dev` per Permissions, but always against a range the caller pins here,
+   never the branch-wide default.
 
 Refine never silently infers the range from session context: it is given one, or
 (case 3) it confirms one before proceeding.
 
 **Anchor the base to a fixed commit SHA, not a relative ref.** The loop commits
 fixes, so `HEAD` advances every cycle. Resolve the range's base **once** to an
-immutable SHA (e.g. `git rev-parse HEAD~3`) and review `<base-sha>..HEAD` on
-every pass — never re-evaluate a relative range like `HEAD~3..HEAD` per cycle,
-which would shift both ends forward and silently drop the oldest commits while
-leaving the new fix commits unreviewed. Anchoring the base and letting only
-`HEAD` move keeps each fix inside the range for the next pass, as the loop
-requires. (This matters only when the base is HEAD-relative; it is a no-op when
-the base is already a SHA or a fixed ref like `wip-base`.)
-
-When the range is the `wip-base..HEAD` default (case 2), a stale base is worth a
-heads-up: if `origin/main` has advanced past `wip-base` (a cheap `git fetch`
-check), emit a **non-blocking** nudge — "origin/main is newer; consider
-`remdo-sync`" — and continue; a stale base does not stop a refine run. Skip this
-for an explicit range or a non-task branch, where `wip-base` and `remdo-sync` do
-not apply.
+immutable SHA and review `<base-sha>..HEAD` on every pass — never re-evaluate a
+range whose base can move per cycle, which would shift the base forward and
+silently drop already-reviewed work. This applies to the `origin/main...HEAD`
+default too: resolve it once with `git merge-base origin/main HEAD` at invocation
+and reuse that SHA, so an `origin/main` that advances mid-loop (or a HEAD-relative
+base like `HEAD~3`) can't move the base under the loop. Anchoring the base and
+letting only `HEAD` move keeps each fix inside the range for the next pass, as the
+loop requires.
 
 **The working tree must be clean** in this scope. Staged, unstaged, or untracked
 changes sit outside the resolved range and would be silently unreviewed, so if
@@ -100,23 +99,31 @@ implementing and reviewing the diff would bias it toward parts it thinks it
 cleaned. Pass 3 (codex, a separate process) gets this fresh read for free. The
 coordinating session triages the returned findings and owns the loop.
 
-1. **Simplify** — `/simplify`, plus a **doc-minimalism lens** for prose
-   (`docs/**`, skill files): read each touched doc/skill *whole* in load order
-   (entry doc → its dependencies → the file), and for each paragraph ask whether
-   it earns its place — is it **new** (not already stated upstream), **necessary**
-   (the reader's next action fails without it), and **single-sourced** (this is
-   its home)? Cut or relocate what fails; allow a one-line cite of a shared rule
-   where self-containment matters (not a full restatement). Reading the whole
-   touched file, not just the diff hunk, is what catches redundancy against
-   unchanged upstream text. Also check each touched doc against the
-   **documentation invariants** (`docs/contributing.md#documentation`) and fix
-   any violation.
+1. **Simplify** — `/simplify` (applies simplifications) together with
+   `remdo-simplify` (a read-only, RemDo-aware finder that *reports* opportunities
+   — ownership boundaries, reuse of existing RemDo/Lexical primitives, doc-invariant
+   violations — but never edits). Run both and apply what survives triage
+   (`remdo-simplify` only reports, so its findings feed the same apply step). Add a
+   **doc-minimalism lens** for prose (`docs/**`, skill files): read each touched
+   doc/skill *whole* in load order (entry doc → its dependencies → the file), and
+   for each paragraph ask whether it earns its place — is it **new** (not already
+   stated upstream), **necessary** (the reader's next action fails without it), and
+   **single-sourced** (this is its home)? Cut or relocate what fails; allow a
+   one-line cite of a shared rule where self-containment matters (not a full
+   restatement). Reading the whole touched file, not just the diff hunk, is what
+   catches redundancy against unchanged upstream text. Also check each touched doc
+   against the **documentation invariants** (`docs/contributing.md#documentation`)
+   and fix any violation.
 2. **Internal review** — `/code-review` at max effort against the diff under
    review (the resolved range's base, or the working-tree changes).
 3. **External review** — `codex review` for an independent outside read:
-   `--base <range base>` in committed-range scope, `--uncommitted` in
-   working-tree scope. Give it **scope only, no review angle** — leading prompt
-   framing defeats the point.
+   `--base <anchored-base-sha>` in committed-range scope, `--uncommitted` in
+   working-tree scope. Pass the base SHA resolved above, **not** `--base
+   origin/main` — codex recomputes its own merge-base from the ref, so a bare
+   `origin/main` would drift if it advances mid-loop, the same drift the
+   SHA-anchoring rule prevents (`--base` accepts a commit SHA, not only a branch).
+   Give it **scope only, no review angle** — leading prompt framing defeats the
+   point.
 
 Forward the `AGENTS.md` findings-suppression rule to every pass and subagent.
 
@@ -189,8 +196,8 @@ many times it ran, findings it surfaced, and findings applied.
 
 ## References
 
-- Sequenced tools: `/simplify`, `/code-review`, `codex review`.
+- Sequenced tools: `/simplify` + `remdo-simplify` skill, `/code-review`, `codex review`.
 - Loop/loop-guard prior art: `remdo-deps-refresh` skill.
 - Branch base and the calling flow: `remdo-feature-flow` skill.
-- Keeping `wip-base` current against `origin/main`: `remdo-sync` skill.
+- Bringing `origin/main` into the branch: `remdo-sync` skill.
 - Skill-authoring rule, findings-suppression, and checks: `AGENTS.md`.

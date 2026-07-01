@@ -44,6 +44,35 @@ being silently carried.
 
 ## Phase 2 — Dialog
 
+**Precondition — design against the same base the fork will use.** Run this
+**before reading any code or docs below**: the spec must be shaped against exactly
+the state the task branch will fork from, or Phase 2 designs against one codebase
+while Phase 3 branches from another. It must gate the dialog, not just branch
+creation — by Phase 3 the wrong context has already shaped the design.
+
+1. **Tree clean of unrelated changes first.** Apply the Phase-3 "no unrelated
+   changes" check *now*, before the fast-forward below can touch the tree — a
+   fast-forward would otherwise silently advance a checkout the run should have
+   stopped on. Pre-existing unrelated edits → stop (as in Phase 3).
+2. `git fetch`, then compare the current branch (usually `dev`) to `origin/main`:
+   - **Ahead** (`git rev-list origin/main..HEAD` non-empty) — the branch holds
+     committed work not yet in `origin/main`. The fork carries only the
+     uncommitted spec (see "Branch base"), so that work would *not* follow, and a
+     spec designed against it would vanish from the task branch. **Stop**: ask the
+     user to land it in `origin/main` first (merge the open `dev`→`main` PR), or to
+     design from a checkout already at `origin/main`.
+   - **Behind** (`git rev-list HEAD..origin/main` non-empty, and *not* also
+     ahead) — merely stale. **Fast-forward to `origin/main`** (`git merge
+     --ff-only origin/main`); safe (no rewrite, no merge commit, nothing lost) and
+     makes the design base match the fork base.
+   - **Diverged** (both ahead and behind) — FF is impossible; treat as *ahead* and
+     stop.
+   - **Even** — proceed.
+3. **Pin the base.** Record the resolved base SHA (`git rev-parse origin/main`) as
+   the fork point for this run. Phase 3 creates the branch from *this pinned SHA*,
+   not a re-fetched `origin/main` — otherwise `origin/main` advancing mid-flow
+   would again split the design base from the fork base.
+
 Conversation plus cheap checks — inline, interactive, no subagents (latency the
 user feels in real time).
 
@@ -81,6 +110,11 @@ them — see AGENTS.md). Everything this flow itself produced is fine and expect
 — the spec docs written below, and any flow-owned `docs/todo.md` notes from
 Phase 2 — so a normal clean-start run (where the only changes are this flow's)
 passes this gate; it is not a requirement that "only spec edits" exist.
+
+This gate assumes the **Phase-2 base check ran** (see Phase 2): it left the
+current branch even with the pinned base SHA and recorded that SHA, which is what
+lets the branch created below fork with no committed work lost and no stale design
+base.
 
 **The spec is the versioned-doc changes themselves**, written so the docs read as
 if everything already works as described (per the `docs/` invariant: stable docs
@@ -136,11 +170,11 @@ above already ensured the tree holds only this flow's changes).
    than writing ad hoc.
 3. **Refine is part of done** — once the gap-closing loop reaches the spec's
    described state, **commit the phase-4 work** (refine and sync both need a clean
-   tree; refine reviews the committed `wip-base..HEAD` range). If `origin/main` has
-   advanced since branch creation (cheap `git fetch` check), **suggest `remdo-sync`**
-   next — now that the tree is clean it can run — so refine reviews against current
-   `main` and the eventual PR stays clean (non-blocking; sync may be gated). Then
-   run the **`remdo-refine`** skill. It owns the quality loop (simplify → internal review → external Codex
+   tree; refine reviews the committed `origin/main...HEAD` range). If `origin/main`
+   has advanced since branch creation (cheap `git fetch` check), **suggest
+   `remdo-sync`** next — now that the tree is clean it can run — so the eventual PR
+   stays clean (non-blocking). Then run the **`remdo-refine`** skill. It owns the
+   quality loop (simplify → internal review → external Codex
    review, looping to a clean pass), the **tradeoff/blocker policy** for review
    findings (defined there, not restated here), and the final checks for the
    current agent mode at the end. Refine converges *code quality*; reaching the
@@ -163,7 +197,8 @@ Iterate until the spec's state is reached or a true blocker hits.
 ## Phase 5 — Report + retro
 
 The report **indexes the diff**, it does not re-narrate it. The work is on the
-task branch for the user's `git diff wip-base` loop. Thin chat summary:
+task branch for the user's `git diff "$(git merge-base origin/main HEAD)"` loop.
+Thin chat summary:
 
 1. What changed — pointing at files/areas, not prose-narrating each edit.
 2. A pointer to the `docs/todo.md` entries added this run — tradeoffs taken
@@ -219,8 +254,15 @@ a task branch. Within a run:
   `dev` or `main`.
 - **`git fetch`: always allowed** — it only updates remote-tracking refs, never
   your work or the remote.
+- **Fast-forwarding the current branch to `origin/main`** as part of the Phase-2
+  base check: allowed. `git merge --ff-only origin/main` only advances a *behind*
+  branch along existing history — no rewrite, no merge commit, nothing lost — so
+  it is safe autonomously; it fails (and thus never mutates) on a diverged branch,
+  which the base check handles as the *ahead* stop. This is the one exception to
+  the pull/merge line below.
 - **Push / pull / opening PRs: never without the user's explicit ask.** The user
-  owns the remote (and pull, which mutates the branch).
+  owns the remote (and a general pull/merge, which can mutate or diverge the
+  branch — unlike the scoped FF-only above).
 - **Branch creation and cross-branch ops** (checkout-other, merge, rebase-onto,
   cherry-pick): require user confirmation.
 - **Web read/search: allowed by default.**
@@ -228,49 +270,51 @@ a task branch. Within a run:
 The global index rules (staged-vs-unstaged invisible; no rearranging the index)
 are unchanged here — see AGENTS.md, not repeated.
 
-### Commit timing
+### Branch base: `origin/main...HEAD`
 
-Committing phase-4 work before refine (Phase 4) does not change the review
-surface: `git diff wip-base` shows committed and uncommitted work alike. Commit
-on the task branch only; never push without the user's explicit ask.
+The single base for every diff, for both user and agent, is the **merge-base of
+`origin/main` and `HEAD`**. Two forms, per what's being reviewed:
 
-### Branch base: the `wip-base` tag
+- **Committed range:** `git diff origin/main...HEAD` (three-dot diffs from the
+  merge-base) — and `codex review --base origin/main` (safe as a one-shot; a
+  looping `remdo-refine` pass anchors to a fixed base SHA instead, see that skill).
+- **Working tree included** (committed + uncommitted — the mid-work review loop):
+  `git diff "$(git merge-base origin/main HEAD)"`.
 
-A local tag **`wip-base`** marks the start of work — the single base for every
-diff, for both user and agent (`git diff wip-base..HEAD`, `git diff wip-base`).
-**Default all mid-work and end-of-work diff/review checks to `wip-base`.**
+Always go through the merge-base: it is recomputed from the two refs every time,
+so no base tag is stored and it cannot go stale — it shows exactly this branch's
+own work even after a `remdo-sync` merge moves it forward. (Plain two-dot `git
+diff origin/main` is *not* equivalent — after a merge it diffs against the wrong
+point.) **Default all mid-work and end-of-work diff/review checks to this
+merge-base.**
 
-**Creating the branch** (Phase 3) forks from the *published* state of the current
-branch, so the new branch starts clean and merges back easily later:
+**Creating the branch** (Phase 3) forks from the **base SHA pinned at Phase 2**
+(step 3 there) — the exact state the spec was designed against — *not* a freshly
+re-fetched `origin/main`, which may have advanced mid-flow and would split the
+fork base from the design base again. The Phase-2 base check left the current
+branch even with that SHA, so only the **uncommitted spec edits** need to carry
+across:
 
-1. `git fetch` (unconditional — fetch is always allowed).
-2. If `origin/<current-branch>` does not exist → **stop and ask** what to fork
-   from (don't guess a base for an unpushed branch).
-3. If local `<current-branch>` is **ahead** of `origin/<current-branch>` (unpushed
-   commits) → **stop**: those commits would be left out of the new branch and
-   could be forgotten. The user pushes or handles them first.
-4. Otherwise create the branch with `git switch -c <name> --no-track
-   origin/<current-branch>` and anchor `wip-base` there (its tip is the fork
-   point). `--no-track` keeps the start point from setting the upstream to
-   `origin/<current-branch>` (a mismatched name that breaks the user's first push
-   under `push.default=simple`); the user's first push then sets the upstream to
-   `origin/<same-name>` (`git push -u origin HEAD`, or automatically if they have
-   `push.autoSetupRemote`). If that base is behind or diverged from `origin/main`,
-   **warn but proceed** (non-blocking) — forking off an in-progress branch is fine;
-   `remdo-sync` handles catching up later.
+- Create the branch with `git switch --merge -c <name> --no-track <pinned-base-sha>`.
+  `--merge` carries the uncommitted spec edits onto the new base (a plain `git
+  switch -c` would **abort and strand the spec** if a spec-touched file differed);
+  since the current branch is already at the pinned base, a conflict is not
+  expected. `--no-track` keeps the start point from setting the upstream (a
+  mismatched name that breaks the user's first push under `push.default=simple`);
+  the user's first push then sets the upstream to `origin/<same-name>` (`git push
+  -u origin HEAD`, or automatically with `push.autoSetupRemote`).
 
-Forking off an in-progress feature branch works as-is: the new branch starts at
-that feature's published tip, so `wip-base..HEAD` is only the new branch's own
-work. The invariant `wip-base..HEAD` = the branch's own work is what `remdo-sync`
-preserves when it later moves `wip-base`. Setting or moving the tag is authorized
-only as part of these flows (this skill at creation, `remdo-sync` after a merge);
-never move it ad hoc, out of band.
+This flow forks task branches from `origin/main` only. Stacked/dependent branches
+(forking off another in-progress branch) are out of scope — they would make
+`origin/main...HEAD` include the parent's un-merged work. If you ever need one,
+diff that branch by hand against its parent (`git diff <parent>...HEAD`,
+`codex review --base <parent>`); no skill tracks it.
 
 ### Branch naming
 
 Prefixes from `docs/contributing.md`: `feat/`, `fix/`, `refactor/`, `chore/`,
-`docs/`. The base is the published current branch per "Branch base" above; the
-user confirms the name.
+`docs/`. The base is `origin/main` per "Branch base" above; the user confirms the
+name.
 
 ## Execution model (runtime decision)
 
@@ -302,7 +346,7 @@ Choose by the *activity*, not the phase number:
   `superpowers:systematic-debugging`.
 - Phase-4 quality loop (simplify / internal review / external Codex review):
   `remdo-refine` skill.
-- Keeping `wip-base` current against `origin/main`: `remdo-sync` skill.
+- Bringing `origin/main` into the branch: `remdo-sync` skill.
 - Integration after report (merge / PR): `superpowers:finishing-a-development-branch`.
 - Doc map (navigation): `docs/index.md`. Doc workflow + invariants (spec-as-docs
   must comply): `docs/contributing.md#documentation`. Deferral/todo rules:
