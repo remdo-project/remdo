@@ -132,6 +132,9 @@ test.describe('note links', () => {
 
     await page.keyboard.type(' @note');
 
+    // aria-activedescendant lives on the editor host (the combobox), not the
+    // listbox: the @ picker keeps DOM focus in the editor (see popups.md).
+    const host = editorLocator(page).locator('.editor-input').first();
     const listbox = editorLocator(page).locator('.note-link-picker[role="listbox"]');
     const options = listbox.locator('[data-note-link-picker-item]');
     const note2Option = options.filter({ hasText: 'note2' }).first();
@@ -144,19 +147,19 @@ test.describe('note links', () => {
     expect(note2Id).toBeTruthy();
     expect(note3Id).toBeTruthy();
 
-    await expect(listbox).toHaveAttribute('aria-activedescendant', note2Id!);
+    await expect(host).toHaveAttribute('aria-activedescendant', note2Id!);
     await expect(note2Option).toHaveAttribute('aria-selected', 'true');
     await expect(note3Option).toHaveAttribute('aria-selected', 'false');
 
     await page.keyboard.press('ArrowDown');
 
-    await expect(listbox).toHaveAttribute('aria-activedescendant', note3Id!);
+    await expect(host).toHaveAttribute('aria-activedescendant', note3Id!);
     await expect(note2Option).toHaveAttribute('aria-selected', 'false');
     await expect(note3Option).toHaveAttribute('aria-selected', 'true');
 
     await note2Option.hover();
 
-    await expect(listbox).toHaveAttribute('aria-activedescendant', note2Id!);
+    await expect(host).toHaveAttribute('aria-activedescendant', note2Id!);
     await expect(note2Option).toHaveAttribute('aria-selected', 'true');
     await expect(note3Option).toHaveAttribute('aria-selected', 'false');
   });
@@ -173,6 +176,7 @@ test.describe('note links', () => {
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
     await page.keyboard.type(' @note');
 
+    const host = editorLocator(page).locator('.editor-input').first();
     const listbox = editorLocator(page).locator('.note-link-picker[role="listbox"]');
     const options = listbox.locator('[data-note-link-picker-item]');
     const note2Option = options.filter({ hasText: 'note2' }).first();
@@ -182,9 +186,9 @@ test.describe('note links', () => {
     const note3Id = await note3Option.getAttribute('id');
 
     // ArrowDown moves the active option to note3 (it does not redirect the caret
-    // past the body).
+    // past the body). aria-activedescendant is on the editor host (the combobox).
     await page.keyboard.press('ArrowDown');
-    await expect(listbox).toHaveAttribute('aria-activedescendant', note3Id!);
+    await expect(host).toHaveAttribute('aria-activedescendant', note3Id!);
     await expect(note3Option).toHaveAttribute('aria-selected', 'true');
     await expect(note2Option).toHaveAttribute('aria-selected', 'false');
 

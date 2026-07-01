@@ -478,6 +478,10 @@ export function DatePlugin() {
     const handleDocumentMouseDown = (event: MouseEvent) => {
       if (pickerRef.current && !isInsideDatePicker(event)) {
         closePicker();
+        // The calendar traps focus; without this, closing it on an outside click
+        // abandons focus on <body>. A click landing in the editor refocuses it
+        // anyway, so this is only load-bearing for clicks outside the editor.
+        editor.focus();
       }
     };
     document.addEventListener('mousedown', handleDocumentMouseDown, true);

@@ -105,37 +105,49 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
   // it). Mirror the combobox state onto the root while this picker is open, and
   // clear it on close/unmount. Trap popups (the calendar) manage their own AT
   // state and are skipped.
+  // WAI-ARIA combobox structural attributes, keyed on open/closed only (a boolean),
+  // so they are set once when the picker opens and cleared once when it closes —
+  // not torn down and re-added on every keystroke. `picker` gets a fresh object
+  // identity each sync, so depending on it here would thrash the attributes (and
+  // the AT observing them). Read the spec through specRef for the same reason
+  // (plugins rebuild it inline every render).
+  const isPickerOpen = picker !== null;
   useEffect(() => {
-    if ((spec.focusModel ?? 'editor') !== 'editor') {
+    if ((specRef.current.focusModel ?? 'editor') !== 'editor' || !isPickerOpen) {
       return;
     }
     const root = editor.getRootElement();
     if (!root) {
       return;
     }
-    if (!picker) {
-      root.removeAttribute('role');
-      root.removeAttribute('aria-expanded');
-      root.removeAttribute('aria-controls');
-      root.removeAttribute('aria-activedescendant');
-      return;
-    }
     root.setAttribute('role', 'combobox');
     root.setAttribute('aria-expanded', 'true');
     root.setAttribute('aria-controls', listboxId);
-    const activeDescendantId = spec.getActiveDescendantId?.(picker);
-    if (activeDescendantId) {
-      root.setAttribute('aria-activedescendant', activeDescendantId);
-    } else {
-      root.removeAttribute('aria-activedescendant');
-    }
     return () => {
       root.removeAttribute('role');
       root.removeAttribute('aria-expanded');
       root.removeAttribute('aria-controls');
       root.removeAttribute('aria-activedescendant');
     };
-  }, [editor, listboxId, picker, spec]);
+  }, [editor, listboxId, isPickerOpen]);
+
+  // The active-descendant id changes as the highlight moves, so update just that
+  // attribute per picker state — without re-running the structural effect above.
+  useEffect(() => {
+    if ((specRef.current.focusModel ?? 'editor') !== 'editor' || !picker) {
+      return;
+    }
+    const root = editor.getRootElement();
+    if (!root) {
+      return;
+    }
+    const activeDescendantId = specRef.current.getActiveDescendantId?.(picker);
+    if (activeDescendantId) {
+      root.setAttribute('aria-activedescendant', activeDescendantId);
+    } else {
+      root.removeAttribute('aria-activedescendant');
+    }
+  }, [editor, picker]);
 
   const syncFromSelection = useCallback(() => {
     const nextState = editor.getEditorState().read((): {
