@@ -407,7 +407,7 @@ echo "Bootstrap scenario reused persisted secrets across restart (no rotation)."
 
 # (d) Smoke: prove the self-generated AUTH_SECRET drives a working app.
 #
-# Choice: POST /api/admin/users with the ADMIN_SECRET. This is the lightest
+# Choice: POST /api/admin/enroll with the ADMIN_SECRET. This is the lightest
 # scriptable check that genuinely exercises the generated secret: the route
 # authorizes with ADMIN_SECRET and then calls Better Auth's createUser, and
 # Better Auth is initialized with the bootstrapped AUTH_SECRET. If AUTH_SECRET
@@ -420,7 +420,7 @@ echo "Bootstrap scenario reused persisted secrets across restart (no rotation)."
 # users.
 bootstrap_smoke_status="$(curl --resolve "${DOCKER_TEST_BROWSER_HOST}:${BOOTSTRAP_PORT}:127.0.0.1" \
   -ksS -o /dev/null -w '%{http_code}' \
-  -X POST "${BOOTSTRAP_APP_PUBLIC_URL%/}/api/admin/users" \
+  -X POST "${BOOTSTRAP_APP_PUBLIC_URL%/}/api/admin/enroll" \
   -H 'content-type: application/json' \
   --data '{"adminSecret":"'"${DOCKER_TEST_ADMIN_SECRET}"'","name":"Bootstrap Smoke","email":"bootstrap-smoke@example.com","password":"bootstrap-smoke-password"}' \
   2>/dev/null || true)"

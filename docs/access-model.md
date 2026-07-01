@@ -45,6 +45,38 @@ Define the access cases RemDo should support.
   last validated bootstrap only for offline reopen; logout clears it with local
   Yjs offline data.
 
+## Admin Role
+
+Some operations are operator-level, not per-document — server administration
+rather than document access. These are gated by a persistent **admin role** on
+the user.
+
+- The role is an authorization source of truth, stored in SQL on the Better Auth
+  user record. The Yjs user-data projection may reflect it for UI, but
+  authorization is always enforced server-side from the SQL record, never from
+  the projection.
+- Every admin API authorizes from the caller's session + role — except the
+  self-enrollment endpoint, which registers a *new* admin account (no existing
+  session or role to check) and is instead gated by `ADMIN_SECRET` (below).
+- `/admin` is the single admin entry route. It renders by the caller's role: an
+  admin sees the admin panel; anyone else (signed in or not) sees the
+  self-enrollment form. The client learns the current user's role from the
+  `/api/current-user` bootstrap; this drives rendering only — authorization stays
+  server-side.
+- Self-enrollment is gated by `ADMIN_SECRET` (see
+  [docs/config.md](./config.md#admin-bootstrap-and-enrollment)) and always
+  **registers a new admin account**: presenting the secret with account details
+  creates the account and grants it the admin role. The secret is a shared gate,
+  not tied to one user — any secret-holder can register an admin account, and it
+  works independently of the public-signup policy (so a private server can still
+  bootstrap and add admins). Promoting an *existing* user is a separate,
+  panel-gated capability (see [docs/todo.md](./todo.md), admin role follow-ups).
+- Admin entry is discoverable by context: a signed-in admin sees an **Admin**
+  link in the app toolbar, and a non-public server (closed signup, where
+  bootstrapping an admin is expected) surfaces a link to `/admin` from the login
+  page. A public server omits the login-page link — `/admin` is still reachable
+  directly.
+
 ## CSRF Protection
 
 - Session cookies are SameSite=Lax; app routes use Hono's CSRF middleware to

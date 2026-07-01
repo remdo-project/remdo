@@ -11,7 +11,7 @@ function toApiUrl(pathname: string): string {
 }
 
 async function createOrSignInTestUser(): Promise<string> {
-  const provisionResponse = await fetch(toApiUrl('/api/admin/users'), {
+  const provisionResponse = await fetch(toApiUrl('/api/admin/enroll'), {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

@@ -1,10 +1,36 @@
 import { Alert, Button, Container, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import { rememberAuthenticatedSession } from '#client/app/auth/client';
-import { resolveAdminUsersPostCreateDestination } from './admin-users-post-create-destination';
+import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
+import type { AdminRouteState } from './admin-route-loader';
+import { resolveAdminEnrollPostCreateDestination } from './admin-enroll-post-create-destination';
 
-export default function AdminUsersRoute() {
+export default function AdminRoute() {
+  const state = useLoaderData<AdminRouteState>();
+
+  if (state.kind === 'admin') {
+    return (
+      <Container size="xs" py="xl">
+        <Paper withBorder p="xl" radius="md">
+          <Stack gap="xs">
+            <Title order={1}>Admin</Title>
+            <Text c="dimmed" size="sm">
+              You are an admin. The admin panel arrives with source-server linking.
+            </Text>
+          </Stack>
+        </Paper>
+      </Container>
+    );
+  }
+
+  return <EnrollForm />;
+}
+
+// Enrollment always registers a new admin account (the secret gates it, works
+// even with signup disabled). Promoting an existing user is a later, panel-gated
+// capability, so this form has a single mode.
+function EnrollForm() {
   const location = useLocation();
   const navigate = useNavigate();
   const [adminSecret, setAdminSecret] = useState('');
@@ -20,17 +46,12 @@ export default function AdminUsersRoute() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch('/api/admin/users', {
+      const response = await fetch('/api/admin/enroll', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
         },
-        body: JSON.stringify({
-          adminSecret,
-          email: email.trim(),
-          name: name.trim(),
-          password,
-        }),
+        body: JSON.stringify({ adminSecret, email: email.trim(), name: name.trim(), password }),
       });
 
       if (!response.ok) {
@@ -39,14 +60,17 @@ export default function AdminUsersRoute() {
       }
 
       rememberAuthenticatedSession();
-      const destination = await resolveAdminUsersPostCreateDestination(location.search, globalThis.location.origin);
+      // Enrollment created + signed in a new admin, so the cached bootstrap is
+      // stale — clear it so the next /api/current-user read reflects the new user.
+      clearCurrentUserBootstrapCache();
+      const destination = await resolveAdminEnrollPostCreateDestination(location.search, globalThis.location.origin);
       if (destination.kind === 'assign') {
         globalThis.location.assign(destination.href);
         return;
       }
       void navigate(destination.path, { replace: true });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to create the user.');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to enroll as admin.');
     } finally {
       setPending(false);
     }
@@ -57,14 +81,15 @@ export default function AdminUsersRoute() {
       <Paper withBorder p="xl" radius="md">
         <Stack gap="md">
           <div>
-            <Title order={1}>Create user</Title>
+            <Title order={1}>Become admin</Title>
             <Text c="dimmed" size="sm">
-              Use the server admin secret to provision a RemDo account.
+              Enter the admin secret, plus a name, email, and password to register
+              an admin account.
             </Text>
           </div>
 
           {errorMessage && (
-            <Alert color="red" title="User provisioning failed">
+            <Alert color="red" title="Enrollment failed">
               {errorMessage}
             </Alert>
           )}
@@ -103,7 +128,7 @@ export default function AdminUsersRoute() {
                 value={password}
               />
               <Button loading={pending} type="submit">
-                Create user
+                Become admin
               </Button>
             </Stack>
           </form>

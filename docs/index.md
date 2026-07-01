@@ -17,14 +17,16 @@ outdated or a doc’s role materially changes.
 
 - `docs/access-model.md` (Long). Document access model for RemDo:
   owner-backed access, direct local-user grants, cross-server source linking,
-  deferred public/link access, and authenticated app access.
+  deferred public/link access, authenticated app access, and the persistent
+  admin role.
 - `docs/architecture.md` (Long). Cross-cutting architecture vocabulary for
   delivery surfaces, gateway/origin boundaries, Better Auth identity, document
   identity, Kysely-backed document-registry ownership, collaboration runtime
   building blocks, and multi-hub terms.
 - `docs/config.md` (Medium). Configuration boundary: the single config owner,
   the settable input variables vs. derived values, dev/prod port regimes,
-  `APP_PUBLIC_URL`-vs-bind-`PORT` separation, and the secret bootstrap contract.
+  `APP_PUBLIC_URL`-vs-bind-`PORT` separation, the secret bootstrap contract, and
+  admin enrollment.
 - `docs/contributing.md` (Medium). Runtime baselines, Git workflow (`origin/main`
   as PR baseline, the branch fork point marked with the `wip-base` tag) and
   branch-prefix conventions, editor feature module layout, pre-1.0 compatibility

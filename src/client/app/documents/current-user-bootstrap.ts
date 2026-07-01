@@ -78,6 +78,8 @@ function parseCurrentUserBootstrap(body: Partial<CurrentUserBootstrap>): Current
   return {
     homeDocumentId,
     userDataDocumentId,
+    role: typeof body.role === 'string' ? body.role : null,
+    publicServer: body.publicServer === true,
   };
 }
 

@@ -9,7 +9,14 @@ export function createAdminRoutes({
 }: ServerRouteDependencies) {
   const routes = new Hono();
 
-  routes.post('/users', async (c) => {
+  // Self-enrollment: the one path to acquire the admin role. Gated by
+  // ADMIN_SECRET, never by a session+role (this is how the role is acquired, so
+  // there is no admin session to check — see docs/access-model.md#admin-role).
+  // It always registers a new account and grants it the role (works even with
+  // signup disabled, via the provisioning escape hatch), so any secret-holder
+  // can create an admin account. Promoting an *existing* user is a later,
+  // panel-gated capability, not this endpoint.
+  routes.post('/enroll', async (c) => {
     await auth.ensureReady();
 
     const body = await c.req.json<{
@@ -32,11 +39,22 @@ export function createAdminRoutes({
       return c.json({ error: 'Name, email, and password are required.' }, HTTP_STATUS.BAD_REQUEST);
     }
 
-    return auth.createUser({
+    const createResponse = await auth.createUser({
       name: trimmedName,
       email: trimmedEmail,
       password: body.password,
     }, c.req.raw.headers);
+    if (!createResponse.ok) {
+      return createResponse;
+    }
+
+    const created = await auth.findUserByEmail(trimmedEmail);
+    if (!created) {
+      return c.json({ error: 'Account creation did not persist.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
+    await auth.grantAdminRole(created.id);
+    // Return the create response so its session cookie signs the new admin in.
+    return createResponse;
   });
 
   return routes;

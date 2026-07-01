@@ -2,6 +2,7 @@ import { inspectRoutes } from 'hono/dev';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { config } from '#config';
 import { HTTP_STATUS } from '#platform/http/status';
+import { extractSessionCookie } from '#server/auth/session-cookie';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 import { createTestResource } from '../_support/test-resource';
 import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';
@@ -60,6 +61,7 @@ describe('remdo api app', () => {
       'ALL /api/*',
       'ALL /api/*',
       'GET /api/health',
+      'GET /api/config',
       'GET /api/current-user',
       'GET /api/current-user/source-servers/:serverId/current-user',
       'POST /api/current-user/source-servers/:serverId/documents/:docId/sync-tokens',
@@ -67,7 +69,7 @@ describe('remdo api app', () => {
       'POST /api/documents',
       'POST /api/documents/:docId/access',
       'POST /api/documents/:docId/sync-tokens',
-      'POST /api/admin/users',
+      'POST /api/admin/enroll',
     ]);
   });
 
@@ -157,6 +159,17 @@ describe('remdo api app', () => {
     expect(response.status).toBe(HTTP_STATUS.UNAUTHORIZED);
     await expect(response.json()).resolves.toEqual({ error: 'Authentication required.' });
     await expect(harness.registry.getDocument('main')).resolves.toBeNull();
+  });
+
+  it('serves public config without a session', async () => {
+    const publicHarness = createHarness({ allowSignup: true });
+    const publicResponse = await publicHarness.app.request('/api/config');
+    expect(publicResponse.status).toBe(HTTP_STATUS.OK);
+    await expect(publicResponse.json()).resolves.toEqual({ publicServer: true });
+
+    const privateHarness = createHarness({ allowSignup: false });
+    await expect((await privateHarness.app.request('/api/config')).json())
+      .resolves.toEqual({ publicServer: false });
   });
 
   it('returns 401 for current user without a session', async () => {
@@ -397,6 +410,28 @@ describe('remdo api app', () => {
       ownerUserId: userId,
     });
     expect(harness.readProjectedDocumentIds(firstBootstrap.userDataDocumentId)).toEqual([firstBootstrap.homeDocumentId]);
+  });
+
+  it('reports the admin role and public-server flag in the bootstrap', async () => {
+    // Harness users enroll (admin) and the harness defaults to allowSignup:false.
+    const harness = createHarness();
+    const headers = await harness.createSessionHeaders();
+    const bootstrap = await (await harness.app.request('/api/current-user', { headers })).json();
+    expect(bootstrap).toMatchObject({ role: 'admin', publicServer: false });
+  });
+
+  it('reports a non-admin role and public flag on a public server', async () => {
+    const harness = createHarness({ allowSignup: true });
+    const signUp = await harness.app.request('/api/auth/sign-up/email', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(STABLE_AUTH_USERS.alice),
+    });
+    const headers = new Headers({ cookie: extractSessionCookie(signUp) });
+    const bootstrap = await (await harness.app.request('/api/current-user', { headers })).json();
+    // The admin plugin assigns defaultRole 'user' on creation; only 'admin' is
+    // privileged, so a normal user reads back role 'user' (not admin).
+    expect(bootstrap).toMatchObject({ role: 'user', publicServer: true });
   });
 
   it('projects configured source servers during current-user bootstrap', async () => {
@@ -784,14 +819,14 @@ describe('remdo api app', () => {
   it('rejects admin provisioning with a missing or wrong admin secret', async () => {
     const harness = createHarness();
 
-    const missingResponse = await harness.app.request('/api/admin/users', {
+    const missingResponse = await harness.app.request('/api/admin/enroll', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
       },
       body: JSON.stringify(STABLE_AUTH_USERS.alice),
     });
-    const wrongResponse = await harness.app.request('/api/admin/users', {
+    const wrongResponse = await harness.app.request('/api/admin/enroll', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -812,7 +847,7 @@ describe('remdo api app', () => {
   it('rejects admin provisioning when no admin secret is configured', async () => {
     const harness = createHarness({ adminSecret: '' });
 
-    const response = await harness.app.request('/api/admin/users', {
+    const response = await harness.app.request('/api/admin/enroll', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -848,7 +883,7 @@ describe('remdo api app', () => {
       baseURL: 'https://remdo.localhost:4007',
     });
 
-    await harness.app.request('/api/admin/users', {
+    await harness.app.request('/api/admin/enroll', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -881,7 +916,7 @@ describe('remdo api app', () => {
     const harness = createHarness();
     await harness.createSessionHeaders();
 
-    const response = await harness.app.request('/api/admin/users', {
+    const response = await harness.app.request('/api/admin/enroll', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',

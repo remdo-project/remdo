@@ -29,8 +29,8 @@ variables — is derived or bootstrapped, never set in the normal path.
 | `PORT`            | derived    | optional           | Listen/bind port only; the one prod knob, defaults to `8080`. |
 | `HOST`            | optional   | fixed in-container | Bind host. The container entrypoint pins it to `127.0.0.1` so the API listens on the IPv4 loopback Caddy proxies to (`localhost` can resolve to `::1`, leaving the API IPv6-only and unreachable). |
 | `APP_PUBLIC_URL`  | —          | required           | Canonical public origin (see below).                          |
-| `ADMIN_SECRET`    | optional   | required           | Operator secret for admin provisioning.                       |
-| `ALLOW_SIGNUP`    | optional   | optional           | Signup policy. Defaults true outside production, false in it. |
+| `ADMIN_SECRET`    | optional   | required           | Admin enrollment gate (see below).                            |
+| `ALLOW_SIGNUP`    | optional   | optional           | Signup policy. Defaults true outside production, false in it.  |
 
 ## Derivation rules
 
@@ -66,6 +66,13 @@ Guardrails:
 - In production `DATA_DIR` must be a persistent mount; startup fails loudly
   rather than regenerate secrets against an existing dataset. A persisted
   `DATA_DIR` is single-instance.
+
+## Admin bootstrap and enrollment
+
+`ADMIN_SECRET` is the gate for acquiring the admin role: it is required in
+production and never auto-generated there. The self-enrollment flow it gates
+(including first-admin bootstrap) lives in
+[docs/access-model.md](./access-model.md#admin-role).
 
 ## Validation policy
 

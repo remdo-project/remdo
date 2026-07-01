@@ -13,7 +13,7 @@ export async function createAuthenticatedContext(
   });
 
   try {
-    const response = await apiContext.post('/api/admin/users', {
+    const response = await apiContext.post('/api/admin/enroll', {
       data: {
         ...createTestAuthAccount(),
         adminSecret: config.env.ADMIN_SECRET,

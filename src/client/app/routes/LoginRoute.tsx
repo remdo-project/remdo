@@ -1,6 +1,6 @@
 import { Alert, Anchor, Button, Container, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import { authClient, rememberAuthenticatedSession } from '#client/app/auth/client';
 import { DevToolbar } from './DevToolbar';
 import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
@@ -19,6 +19,9 @@ function readAuthErrorMessage(error: unknown, fallback: string): string {
 export default function LoginRoute() {
   const location = useLocation();
   const navigate = useNavigate();
+  // The public-auth loader returns { publicServer } for unauthenticated visitors.
+  const loaderData = useLoaderData<{ publicServer?: boolean } | null>();
+  const publicServer = loaderData?.publicServer ?? false;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
@@ -102,13 +105,15 @@ export default function LoginRoute() {
             </Stack>
           </form>
 
-          <Text c="dimmed" size="sm">
-            Need to create an account?{' '}
-            <Anchor component={Link} to={`/admin/users/new${location.search}`}>
-              Open admin provisioning
-            </Anchor>
-            .
-          </Text>
+          {!publicServer && (
+            <Text c="dimmed" size="sm">
+              Setting up this server?{' '}
+              <Anchor component={Link} to={`/admin${location.search}`}>
+                Become admin
+              </Anchor>
+              .
+            </Text>
+          )}
         </Stack>
       </Paper>
     </Container>

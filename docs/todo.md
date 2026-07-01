@@ -96,6 +96,47 @@ Rules:
   documented base mechanism: every server must generate random document IDs with
   enough entropy for cross-server uniqueness.
 
+## Admin role follow-ups
+
+The persistent admin role + secret-gated enrollment foundation is built (Better
+Auth admin plugin, `/api/admin/enroll` which registers a new admin account, the
+role-conditional `/admin` route, and `role` on the `/api/current-user`
+bootstrap). Still to come:
+
+- Reconsider `/api/config` vs `/api/health` — maybe one `/api/status` covers both.
+- Admin *panel* content behind `/admin` (the admin branch is a placeholder for
+  now), including **promoting an existing user to admin** and per-admin
+  revocation — the only way today to gain admin is registering a new account via
+  the secret. The session+role authz helper for gating these admin APIs is not
+  built yet (an earlier `resolveAdminSessionUserId` was dropped as unused); the
+  panel PR builds its own gate. The source-linking PR adds the source-server
+  management UI, so the panel ships there.
+- Toolbar **Admin** link for signed-in admins (`App.tsx`). Deferred as
+  pure-additive UI — `App.tsx` is untouched by this PR, so it can land later
+  against the `role`-on-bootstrap that now exists, with no new infra.
+- Runtime public-policy toggle (replace `ALLOW_SIGNUP` env with admin-managed,
+  DB-backed state). Needs auth hot-swap (rebuild `betterAuth` to flip the
+  construction-time `disableSignUp`), so it ships with the source-linking PR that
+  builds that swappable-auth machinery. Until then `ALLOW_SIGNUP` is the signup
+  control.
+
+Deferred hardening on top of that foundation (each is on top of the same gate, so
+deferring does not churn the gate's interface):
+
+- Audit logging + rate limiting on self-enrollment and public-policy changes
+  (one submission now grants a durable role, not a one-off action).
+- `ADMIN_SECRET` rotation lifecycle: define whether rotating affects existing
+  admins or only future enrollment.
+- Split signup policy from source client-registration policy (separate runtime
+  settings + a "public source" preset) once the source-linking work lands.
+- Source-side `clientPrivileges` to restrict raw OAuth client creation — a
+  separate boundary from the home-side role gate.
+- Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
+  the Better Auth admin plugin.
+- Tradeoff (standing): the admin secret is a permanent gate — any user who learns
+  it can self-upgrade, with no per-admin revocation yet. Accepted for
+  single-operator self-host; revisit for public multi-tenant.
+
 ## Offline and local persistence follow-ups
 
 - Offline route should redirect away once back online: `/offline` is reachable

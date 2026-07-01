@@ -1,14 +1,14 @@
 import { isOAuthAuthorizeSearch } from './oauth-authorize-search';
 import { resolvePostAuthPath } from './post-auth-path';
 
-type AdminUsersPostCreateDestination =
+type AdminEnrollPostCreateDestination =
   | { kind: 'assign'; href: string }
   | { kind: 'navigate'; path: string };
 
-export async function resolveAdminUsersPostCreateDestination(
+export async function resolveAdminEnrollPostCreateDestination(
   search: string,
   currentOrigin: string,
-): Promise<AdminUsersPostCreateDestination> {
+): Promise<AdminEnrollPostCreateDestination> {
   if (isOAuthAuthorizeSearch(search)) {
     return {
       kind: 'assign',
