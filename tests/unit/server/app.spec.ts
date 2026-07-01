@@ -2,6 +2,7 @@ import { inspectRoutes } from 'hono/dev';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { config } from '#config';
 import { HTTP_STATUS } from '#platform/http/status';
+import { extractSessionCookie } from '#server/auth/session-cookie';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 import { createTestResource } from '../_support/test-resource';
 import { TEST_ADMIN_SECRET, createServerAppHarness } from './_support/server-app-harness';
@@ -397,6 +398,28 @@ describe('remdo api app', () => {
       ownerUserId: userId,
     });
     expect(harness.readProjectedDocumentIds(firstBootstrap.userDataDocumentId)).toEqual([firstBootstrap.homeDocumentId]);
+  });
+
+  it('reports the admin role and public-server flag in the bootstrap', async () => {
+    // Harness users enroll (admin) and the harness defaults to allowSignup:false.
+    const harness = createHarness();
+    const headers = await harness.createSessionHeaders();
+    const bootstrap = await (await harness.app.request('/api/current-user', { headers })).json();
+    expect(bootstrap).toMatchObject({ role: 'admin', publicServer: false });
+  });
+
+  it('reports a non-admin role and public flag on a public server', async () => {
+    const harness = createHarness({ allowSignup: true });
+    const signUp = await harness.app.request('/api/auth/sign-up/email', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(STABLE_AUTH_USERS.alice),
+    });
+    const headers = new Headers({ cookie: extractSessionCookie(signUp) });
+    const bootstrap = await (await harness.app.request('/api/current-user', { headers })).json();
+    // The admin plugin assigns defaultRole 'user' on creation; only 'admin' is
+    // privileged, so a normal user reads back role 'user' (not admin).
+    expect(bootstrap).toMatchObject({ role: 'user', publicServer: true });
   });
 
   it('projects configured source servers during current-user bootstrap', async () => {
