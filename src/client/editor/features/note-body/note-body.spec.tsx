@@ -792,17 +792,20 @@ describe('note body (docs/outliner/body.md)', () => {
     expect(JSON.stringify(remdo.getEditorState())).not.toContain('"linebreak"');
   });
 
-  it('tab confirms an @ note-link inside a body', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('tab does not confirm an @ note-link inside a body: closes and keeps the text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Tab no longer commits (docs/outliner/popups.md); inside a body it closes the
+    // picker and leaves the typed @query as text, inserting no link.
     await placeCaretAtNote(remdo, 'note1', 0);
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'see @note3');
     await pressKey(remdo, { key: 'Tab' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'see note3 ' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
+    remdo.validate(() => {
+      // No link was inserted: the literal @query text remains in the body.
+      const body = getNoteBody($findNoteById('note1')!)!;
+      expect(body.getTextContent()).toContain('@note3');
+    });
   });
 
   it('the @ link picker inside a body excludes the body\'s own note (no self-link)', meta({ fixture: 'flat' }), async ({ remdo }) => {

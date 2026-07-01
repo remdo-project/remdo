@@ -16,7 +16,6 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
 } from 'lexical';
-import type { LexicalEditor } from 'lexical';
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -24,6 +23,7 @@ import { createPortal } from 'react-dom';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { resolveCaretPickerAnchor } from './anchor';
 import { $isTriggerAtBoundary } from './boundary';
+import { isOtherPopupActive, setPopupActive } from './active-popup';
 import { $openTriggerSession, $resolvePinnedSession } from './session';
 import type { PickerAnchor, TriggerSession, TriggerSpec } from './types';
 
@@ -61,40 +61,6 @@ function isTypingTrigger(event: KeyboardEvent, triggerChar: string): boolean {
   return !event.altKey && !event.ctrlKey;
 }
 
-// Active trigger sessions per editor. Each picker instance (`@`, `!`, …)
-// registers itself while its session is open so that another instance can refuse
-// to open a second picker on top of it — a trigger character typed inside an
-// open query (e.g. `!` inside an `@` link query) is ordinary text, not a new
-// trigger. Keyed by editor so separate editors never block each other.
-const activeSessionsByEditor = new WeakMap<LexicalEditor, Set<symbol>>();
-
-function setSessionActive(editor: LexicalEditor, token: symbol, active: boolean): void {
-  let tokens = activeSessionsByEditor.get(editor);
-  if (!tokens) {
-    tokens = new Set();
-    activeSessionsByEditor.set(editor, tokens);
-  }
-  if (active) {
-    tokens.add(token);
-  } else {
-    tokens.delete(token);
-  }
-}
-
-// Whether any trigger session other than `token` is open in this editor.
-function isOtherSessionActive(editor: LexicalEditor, token: symbol): boolean {
-  const tokens = activeSessionsByEditor.get(editor);
-  if (!tokens) {
-    return false;
-  }
-  for (const active of tokens) {
-    if (active !== token) {
-      return true;
-    }
-  }
-  return false;
-}
-
 // The shared inline-trigger lifecycle. Owns open gating (fresh keypress at a
 // boundary, never on caret re-entry), query sync, dismissal, and command
 // wiring; the spec supplies option source, popup, and commit. See
@@ -121,7 +87,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
 
   const setPickerState = useCallback((next: InternalPickerState<TOption> | null) => {
     pickerRef.current = next;
-    setSessionActive(editor, sessionToken, next !== null);
+    setPopupActive(editor, sessionToken, next !== null);
     setPicker(next);
   }, [editor, sessionToken]);
 
@@ -425,7 +391,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
           }
           // A trigger typed while another picker is open is ordinary query text,
           // not a new trigger — don't stack a second picker on top.
-          if (isOtherSessionActive(editor, sessionToken)) {
+          if (isOtherPopupActive(editor, sessionToken)) {
             return false;
           }
           if (editor.selection.isStructural() || !isTypingTrigger(event, specRef.current.triggerChar)) {

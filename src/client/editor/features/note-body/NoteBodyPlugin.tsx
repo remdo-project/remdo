@@ -1,5 +1,6 @@
 import { ListItemNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { isAnyPopupActive } from '#client/editor/triggers/active-popup';
 import { mergeRegister } from '@lexical/utils';
 import {
   $getSelection,
@@ -177,15 +178,6 @@ function $reconcileFromDirtyListItem(node: ListItemNode): void {
   }
 }
 
-/**
- * True when an inline picker/typeahead (the `@` note-link picker or the `!` date
- * picker) is open. Its own CRITICAL arrow handlers should own Up/Down then, so
- * the body-skip must stand down rather than consume the key and close the menu.
- */
-function isInlinePickerOpen(): boolean {
-  return document.querySelector('[data-note-link-picker], [data-date-picker]') !== null;
-}
-
 /** The note body containing the current caret/selection, or null. */
 function $getActiveNoteBody(): NoteBodyNode | null {
   const selection = $getSelection();
@@ -206,12 +198,13 @@ export function NoteBodyPlugin() {
       if (event && (event.altKey || event.metaKey || event.ctrlKey)) {
         return false;
       }
-      // Defer Up/Down to an open inline picker (note-link or date) so they drive
-      // it rather than redirecting the caret past an adjacent body — the body-skip
-      // would otherwise consume the key and close the menu (the picker's arrow
-      // handlers run at the same priority but mount after this plugin). Pickers
-      // ignore Left/Right, so those still run the body-skip below.
-      if ((direction === 'up' || direction === 'down') && isInlinePickerOpen()) {
+      // Defer Up/Down to an open editor popup so it drives them rather than
+      // redirecting the caret past an adjacent body — the body-skip would
+      // otherwise consume the key and close the popup (its arrow handlers run at
+      // the same priority but mount after this plugin). Keyed off the shared
+      // active-popup signal, not popup DOM markup. Pickers ignore Left/Right, so
+      // those still run the body-skip below.
+      if ((direction === 'up' || direction === 'down') && isAnyPopupActive(editor)) {
         return false;
       }
       // Plain arrows: inside a body the caret leaves freely (native); only skip

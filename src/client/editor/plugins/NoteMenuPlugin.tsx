@@ -21,6 +21,7 @@ import { handleNoteMenuShortcut } from '#client/editor/plugins/note-menu-shortcu
 import type { NoteMenuShortcutEvent } from '#client/editor/plugins/note-menu-shortcuts';
 import { $resolveNoteStateFromDOMNode } from '#client/editor/plugins/note-state';
 import { useZoomNoteId } from '#client/editor/view/EditorViewProvider';
+import { isOtherPopupActive, setPopupActive } from '#client/editor/triggers/active-popup';
 
 interface NoteMenuState {
   noteKey: string;
@@ -67,6 +68,7 @@ const renderShortcutLabel = (label: string, shortcut: string) => {
 
 export function NoteMenuPlugin() {
   const [editor] = useLexicalComposerContext();
+  const popupToken = useRef(Symbol('note-menu')).current;
   const rootRef = useRef(editor.getRootElement());
   const zoomNoteId = useZoomNoteId();
   const zoomNoteIdRef = useRef(zoomNoteId);
@@ -84,8 +86,9 @@ export function NoteMenuPlugin() {
 
   const setMenuState = useCallback((next: NoteMenuState | null) => {
     menuRef.current = next;
+    setPopupActive(editor, popupToken, next !== null);
     setMenu(next);
-  }, []);
+  }, [editor, popupToken]);
 
   const closeMenu = useCallback(() => {
     setMenuState(null);
@@ -311,6 +314,10 @@ export function NoteMenuPlugin() {
     };
 
     const openMenuForKey = (noteKey: string, anchorOverride?: NoteMenuAnchor): boolean => {
+      // One editor popup at a time: don't open the menu on top of an open picker.
+      if (!menuRef.current && isOtherPopupActive(editor, popupToken)) {
+        return false;
+      }
       if (menuRef.current?.noteKey === noteKey) {
         closeMenu();
         return true;
@@ -419,7 +426,7 @@ export function NoteMenuPlugin() {
         closeMenu();
       }
     );
-  }, [closeMenu, editor, setMenuState, syncMenuPosition]);
+  }, [closeMenu, editor, popupToken, setMenuState, syncMenuPosition]);
 
   useEffect(() => {
     zoomNoteIdRef.current = zoomNoteId;
