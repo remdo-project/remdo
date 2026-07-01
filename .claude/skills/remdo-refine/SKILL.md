@@ -99,17 +99,21 @@ implementing and reviewing the diff would bias it toward parts it thinks it
 cleaned. Pass 3 (codex, a separate process) gets this fresh read for free. The
 coordinating session triages the returned findings and owns the loop.
 
-1. **Simplify** — `/simplify`, plus a **doc-minimalism lens** for prose
-   (`docs/**`, skill files): read each touched doc/skill *whole* in load order
-   (entry doc → its dependencies → the file), and for each paragraph ask whether
-   it earns its place — is it **new** (not already stated upstream), **necessary**
-   (the reader's next action fails without it), and **single-sourced** (this is
-   its home)? Cut or relocate what fails; allow a one-line cite of a shared rule
-   where self-containment matters (not a full restatement). Reading the whole
-   touched file, not just the diff hunk, is what catches redundancy against
-   unchanged upstream text. Also check each touched doc against the
-   **documentation invariants** (`docs/contributing.md#documentation`) and fix
-   any violation.
+1. **Simplify** — `/simplify` (applies simplifications) together with
+   `remdo-simplify` (a read-only, RemDo-aware finder that *reports* opportunities
+   — ownership boundaries, reuse of existing RemDo/Lexical primitives, doc-invariant
+   violations — but never edits). Run both and apply what survives triage
+   (`remdo-simplify` only reports, so its findings feed the same apply step). Add a
+   **doc-minimalism lens** for prose (`docs/**`, skill files): read each touched
+   doc/skill *whole* in load order (entry doc → its dependencies → the file), and
+   for each paragraph ask whether it earns its place — is it **new** (not already
+   stated upstream), **necessary** (the reader's next action fails without it), and
+   **single-sourced** (this is its home)? Cut or relocate what fails; allow a
+   one-line cite of a shared rule where self-containment matters (not a full
+   restatement). Reading the whole touched file, not just the diff hunk, is what
+   catches redundancy against unchanged upstream text. Also check each touched doc
+   against the **documentation invariants** (`docs/contributing.md#documentation`)
+   and fix any violation.
 2. **Internal review** — `/code-review` at max effort against the diff under
    review (the resolved range's base, or the working-tree changes).
 3. **External review** — `codex review` for an independent outside read:
@@ -192,7 +196,7 @@ many times it ran, findings it surfaced, and findings applied.
 
 ## References
 
-- Sequenced tools: `/simplify`, `/code-review`, `codex review`.
+- Sequenced tools: `/simplify` + `remdo-simplify` skill, `/code-review`, `codex review`.
 - Loop/loop-guard prior art: `remdo-deps-refresh` skill.
 - Branch base and the calling flow: `remdo-feature-flow` skill.
 - Bringing `origin/main` into the branch: `remdo-sync` skill.
