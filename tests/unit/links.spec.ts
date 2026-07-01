@@ -694,6 +694,9 @@ describe('note links (docs/outliner/links.md)', () => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await typeText(remdo, ' @note');
 
+    // WAI-ARIA combobox: the role and aria-activedescendant live on the editor
+    // host (focus stays there), and aria-controls points at the listbox's id.
+    const host = remdo.editor.getRootElement()!;
     const readPicker = () => {
       const listbox = document.querySelector<HTMLElement>('.note-link-picker[role="listbox"]');
       expect(listbox).not.toBeNull();
@@ -703,15 +706,18 @@ describe('note links (docs/outliner/links.md)', () => {
     };
 
     let picker = readPicker();
+    expect(host.getAttribute('role')).toBe('combobox');
+    expect(host.getAttribute('aria-controls')).toBe(picker.listbox.id);
+    expect(picker.listbox.id).not.toBe('');
     expect(picker.rows[0]!.id).not.toBe('');
     expect(picker.rows[1]!.id).not.toBe('');
-    expect(picker.listbox.getAttribute('aria-activedescendant')).toBe(picker.rows[0]!.id);
+    expect(host.getAttribute('aria-activedescendant')).toBe(picker.rows[0]!.id);
     expect(picker.rows[0]!.getAttribute('aria-selected')).toBe('true');
     expect(picker.rows[1]!.getAttribute('aria-selected')).toBe('false');
 
     await pressKey(remdo, { key: 'ArrowDown' });
     picker = readPicker();
-    expect(picker.listbox.getAttribute('aria-activedescendant')).toBe(picker.rows[1]!.id);
+    expect(host.getAttribute('aria-activedescendant')).toBe(picker.rows[1]!.id);
     expect(picker.rows[0]!.getAttribute('aria-selected')).toBe('false');
     expect(picker.rows[1]!.getAttribute('aria-selected')).toBe('true');
   });

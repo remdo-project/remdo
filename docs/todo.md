@@ -71,10 +71,11 @@ Rules:
   focus-into-grid keyboard nav via Mantine (arrows/Page/Home-End), `!`+Enter =
   today, Esc/outside-click cancel + restore caret; one-open-at-a-time registry
   (`triggers/active-popup.ts`) with the note menu folded in; `NoteBodyPlugin`
-  arrow-deferral keyed off the shared signal.
+  arrow-deferral keyed off the shared signal; `@` combobox ARIA on the editor
+  host (role/aria-controls/aria-activedescendant hosted on the focused editor
+  root, since the role must sit on the focused element — a picker-owned sub-host
+  would be ARIA-invalid).
 - Remaining follow-ups on the redesign (spec ahead of code on these details):
-  - a11y tidy: put the combobox `role` on the focused editable host with
-    `aria-controls`→listbox (today `role=listbox` sits on the `@` popup).
   - Dedup the duplicated portal/anchor/dismissal plumbing between `NoteMenuPlugin`
     and the popup engine (they still each implement it).
   - Confirm/adjust the menu's per-widget key details against `menu.md` (Tab

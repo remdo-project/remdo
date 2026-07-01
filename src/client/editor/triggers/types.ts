@@ -34,6 +34,10 @@ export interface TriggerPopupHandlers<TOption> {
   // Cancel the picker and return focus to the editor. Used by a focus-trapping
   // popup (the calendar), where Lexical key commands do not fire.
   cancel: () => void;
+  // The DOM id a combobox popup must put on its listbox element, so the engine
+  // can point the editor host's `aria-controls` at it (WAI-ARIA combobox: the
+  // role lives on the focused host, not the popup). Undefined for trap popups.
+  listboxId?: string;
 }
 
 // The range covering the trigger character through the caret — the span a
@@ -57,6 +61,11 @@ export interface TriggerSpec<TOption> {
   //   calendar). The engine does not blur-close such a popup when the editor
   //   loses focus, and restores the caret on close.
   focusModel?: 'editor' | 'trap';
+  // For an 'editor'-model combobox: the DOM id of the currently highlighted
+  // option, which the engine mirrors onto the editor host's
+  // `aria-activedescendant`. Must match the `id` the popup renders on that
+  // option. Omit for trap popups (they manage their own focus/AT state).
+  getActiveDescendantId?: (state: TriggerPickerState<TOption>) => string | undefined;
   // Resolve the option list for the current query. Runs inside an editor read.
   $resolveOptions: (query: string, anchorNode: TextNode) => TOption[];
   // Insert this trigger's committed content over `range`, replacing the

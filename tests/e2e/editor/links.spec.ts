@@ -52,6 +52,41 @@ test.describe('note links', () => {
     await expect(picker).toHaveCount(1);
   });
 
+  test('exposes the combobox ARIA contract on the editor host while @ is open', async ({ page, editor }) => {
+    // WAI-ARIA combobox: because the @ picker keeps DOM focus in the editor, the
+    // combobox role lives on the editor host (not the popup), with aria-controls
+    // →listbox and aria-activedescendant→highlighted option. It clears on close.
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+
+    const host = editorLocator(page).locator('.editor-input').first();
+    await expect(host).not.toHaveAttribute('role', 'combobox');
+
+    await page.keyboard.type(' @note2');
+    const picker = editorLocator(page).locator('[data-note-link-picker]');
+    await expect(picker).toHaveCount(1);
+
+    // Role/expanded on the host; aria-controls points at the listbox's id.
+    await expect(host).toHaveAttribute('role', 'combobox');
+    await expect(host).toHaveAttribute('aria-expanded', 'true');
+    const listboxId = await picker.getAttribute('id');
+    expect(listboxId).toBeTruthy();
+    await expect(host).toHaveAttribute('aria-controls', listboxId!);
+
+    // aria-activedescendant on the host matches the highlighted option's id.
+    const activeOption = picker.locator('[data-note-link-picker-item-active="true"]');
+    const activeId = await activeOption.getAttribute('id');
+    expect(activeId).toBeTruthy();
+    await expect(host).toHaveAttribute('aria-activedescendant', activeId!);
+
+    // Escape closes the picker and clears the combobox state from the host.
+    await page.keyboard.press('Escape');
+    await expect(picker).toHaveCount(0);
+    await expect(host).not.toHaveAttribute('role', 'combobox');
+    await expect(host).not.toHaveAttribute('aria-controls', /.*/);
+    await expect(host).not.toHaveAttribute('aria-activedescendant', /.*/);
+  });
+
   test('clicking a note link navigates to zoom target', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);

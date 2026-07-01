@@ -17,7 +17,7 @@ import {
   KEY_TAB_COMMAND,
 } from 'lexical';
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
@@ -68,6 +68,9 @@ function isTypingTrigger(event: KeyboardEvent, triggerChar: string): boolean {
 export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNode {
   const [editor] = useLexicalComposerContext();
   const sessionToken = useRef(Symbol('trigger-session')).current;
+  // Stable id for this picker's listbox, so an 'editor'-model combobox can point
+  // the editor host's aria-controls at it.
+  const listboxId = useId();
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(() => {
     const root = editor.getRootElement();
     return root ? root.closest<HTMLElement>('.editor-container') : null;
@@ -96,6 +99,43 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
     pendingTriggerRef.current = false;
     setPickerState(null);
   }, [setPickerState]);
+
+  // WAI-ARIA combobox: the role lives on the focused host, which for an
+  // 'editor'-model picker is the contenteditable editor root (focus never leaves
+  // it). Mirror the combobox state onto the root while this picker is open, and
+  // clear it on close/unmount. Trap popups (the calendar) manage their own AT
+  // state and are skipped.
+  useEffect(() => {
+    if ((spec.focusModel ?? 'editor') !== 'editor') {
+      return;
+    }
+    const root = editor.getRootElement();
+    if (!root) {
+      return;
+    }
+    if (!picker) {
+      root.removeAttribute('role');
+      root.removeAttribute('aria-expanded');
+      root.removeAttribute('aria-controls');
+      root.removeAttribute('aria-activedescendant');
+      return;
+    }
+    root.setAttribute('role', 'combobox');
+    root.setAttribute('aria-expanded', 'true');
+    root.setAttribute('aria-controls', listboxId);
+    const activeDescendantId = spec.getActiveDescendantId?.(picker);
+    if (activeDescendantId) {
+      root.setAttribute('aria-activedescendant', activeDescendantId);
+    } else {
+      root.removeAttribute('aria-activedescendant');
+    }
+    return () => {
+      root.removeAttribute('role');
+      root.removeAttribute('aria-expanded');
+      root.removeAttribute('aria-controls');
+      root.removeAttribute('aria-activedescendant');
+    };
+  }, [editor, listboxId, picker, spec]);
 
   const syncFromSelection = useCallback(() => {
     const nextState = editor.getEditorState().read((): {
@@ -562,6 +602,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
         onItemMouseDown: handleItemMouseDown,
         commitOption: handleCommitOption,
         cancel: handleCancel,
+        listboxId,
       })}
     </div>,
     portalRoot

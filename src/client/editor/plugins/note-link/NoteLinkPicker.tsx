@@ -2,33 +2,23 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 
 import type { TriggerPickerState, TriggerPopupHandlers } from '#client/editor/triggers/types';
 import type { LinkPickerOption } from '#client/editor/links/note-link-index';
+import { getOptionId } from './option-id';
 
 interface NoteLinkPickerProps {
   picker: TriggerPickerState<LinkPickerOption>;
   handlers: TriggerPopupHandlers<LinkPickerOption>;
 }
 
-function toDomIdFragment(value: string): string {
-  return value.replaceAll(/[^\w-]/g, '-');
-}
-
-function getOptionId(index: number, noteId: string): string {
-  return `note-link-picker-option-${index}-${toDomIdFragment(noteId)}`;
-}
-
 // The note-link popup body. The shared trigger engine owns the portal and the
 // positioned, dismissable anchor wrapper; this renders only the listbox.
 export function NoteLinkPicker({ picker, handlers }: NoteLinkPickerProps) {
-  const activeOption = picker.options[picker.activeIndex];
-  const activeOptionId = activeOption ? getOptionId(picker.activeIndex, activeOption.noteId) : undefined;
-
   return (
     <div
       className="note-link-picker"
       data-note-link-picker
+      id={handlers.listboxId}
       role="listbox"
       aria-label="Link notes"
-      aria-activedescendant={activeOptionId}
       onMouseDown={handlers.onPickerMouseDown}
     >
       {picker.options.length === 0
