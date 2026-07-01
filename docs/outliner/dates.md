@@ -21,14 +21,14 @@ Define RemDo-owned inline date behavior in the outliner.
    `PageUp`/`PageDown` by a month, `Shift+PageUp`/`PageDown` by a year. The editor
    caret does not move under the open grid.
 5. `Enter` or `Space` commits the focused day; a primary-button click commits the
-   clicked day. So `!` then `Enter` inserts today (the fast path). `Tab` cycles
-   the dialog's own controls and never leaves it; `Escape` cancels and restores
-   the caret. Committing inserts a date node plus a trailing space over the pinned
-   `!` span.
+   clicked day. So `!` then `Enter` inserts today (the fast path). `Escape` — and
+   `Tab`, which must not escape into browser focus traversal — cancel the calendar
+   and restore the caret to the editor. Committing inserts a date node plus a
+   trailing space over the pinned `!` span.
 6. Clicking an existing date opens the same calendar in *edit* mode and updates
-   that node — this is opened from a committed token, not a trigger session, so
-   the trigger session does not apply (the calendar's keyboard contract still
-   does).
+   that node. This is opened from a committed token, not a trigger session, so the
+   trigger lifecycle does not apply; the edit-mode calendar is mouse-driven (its
+   keyboard contract is a follow-up, see `docs/todo.md`).
 
 ## Atomic token keyboard behavior
 
