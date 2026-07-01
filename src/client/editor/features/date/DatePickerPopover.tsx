@@ -43,9 +43,11 @@ export function DatePickerPanel({ isoDate, mode, onChange, onCancel }: DatePicke
       onKeyDown={
         trapFocus
           ? (event) => {
-              // Focus is in the calendar, so Lexical's Escape command never fires;
-              // handle cancel here and hand focus back to the editor.
-              if (event.key === 'Escape') {
+              // Focus is in the calendar, so Lexical's key commands never fire.
+              // Escape cancels; Tab must not escape into browser focus traversal
+              // (it would leave the popup open with focus outside it) — for now it
+              // also cancels and returns focus to the editor. Both hand focus back.
+              if (event.key === 'Escape' || event.key === 'Tab') {
                 event.preventDefault();
                 event.stopPropagation();
                 onCancel?.();

@@ -79,10 +79,10 @@ function inferSessionFromAnchor(
   return null;
 }
 
-// Scan back from the caret to the nearest trigger and read its query. This is
-// the only path that locates a trigger by scanning; both a fresh open and a
-// pinned session's node-gone recovery route through it.
-function $resolveFromInferredTrigger(
+// Open a fresh session: scan back from the caret to the nearest trigger and read
+// its query. This is the only path that locates a trigger by scanning; it runs
+// only when a trigger was just typed, and the caller gates it on a boundary.
+export function $openTriggerSession(
   triggerChar: string,
   anchorNode: TextNode,
   caretOffset: number
@@ -102,28 +102,14 @@ function $resolveFromInferredTrigger(
   return { session, triggerNode, query };
 }
 
-// Open a fresh session: scan back from the caret to the nearest trigger and read
-// its query. Used only when a trigger was just typed, and the caller gates it on
-// a boundary.
-export function $openTriggerSession(
-  triggerChar: string,
-  anchorNode: TextNode,
-  caretOffset: number
-): ResolvedTriggerSession | null {
-  return $resolveFromInferredTrigger(triggerChar, anchorNode, caretOffset);
-}
-
-// Re-resolve an OPEN session pinned to its origin span, without ever retargeting
-// onto a different trigger:
-//
-// - While the pinned node still exists, the query is read only from that exact
-//   pinned trigger. If it reads null the caret has left the span (e.g. moved
-//   before the trigger or into its middle), so the session closes — it does not
-//   scan back to an earlier trigger.
-// - Only if the pinned node is gone (a text-node split/merge changed its key
-//   while typing) is the trigger re-inferred, and even then it is accepted only
-//   when the re-inferred trigger sits at the same document position as the
-//   pinned one (same forward query), never an earlier trigger.
+// Re-resolve an OPEN session pinned to its origin span. The query is read only
+// from the exact pinned trigger; if it reads null the caret has left the span
+// (moved before the trigger or into its middle), so the session closes. It never
+// scans back to a different trigger — if the pinned node is gone (its key was
+// rotated by a text-node split/merge), the session closes rather than risk
+// re-homing onto an earlier trigger. (Re-homing onto the same logical trigger
+// after a key rotation is a possible future refinement, but only with a
+// same-position guard; scanning to the nearest trigger is not safe here.)
 export function $resolvePinnedSession(
   triggerChar: string,
   anchorNode: TextNode,
@@ -131,11 +117,9 @@ export function $resolvePinnedSession(
   session: TriggerSession
 ): ResolvedTriggerSession | null {
   const pinnedNode = $getNodeByKey<TextNode>(session.textNodeKey);
-  if ($isTextNode(pinnedNode)) {
-    const query = readQueryAcrossTextNodes(triggerChar, pinnedNode, session.triggerOffset, anchorNode, caretOffset);
-    return query === null ? null : { session, triggerNode: pinnedNode, query };
+  if (!$isTextNode(pinnedNode)) {
+    return null;
   }
-
-  // Pinned node is gone: recover the same trigger from the current text.
-  return $resolveFromInferredTrigger(triggerChar, anchorNode, caretOffset);
+  const query = readQueryAcrossTextNodes(triggerChar, pinnedNode, session.triggerOffset, anchorNode, caretOffset);
+  return query === null ? null : { session, triggerNode: pinnedNode, query };
 }

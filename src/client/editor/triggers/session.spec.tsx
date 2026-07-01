@@ -45,6 +45,23 @@ describe('trigger session resolution', () => {
     expect(result).toBeNull();
   });
 
+  it('closes rather than re-homing when the pinned node is gone', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // If the pinned trigger's node key no longer resolves (a split/merge rotated
+    // it), the session closes instead of scanning back — which could otherwise
+    // latch onto an earlier trigger. Passing a stale key models the node-gone case.
+    let result: unknown;
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      note.clear();
+      note.append($createTextNode('@old @new'));
+      const anchor = note.getFirstChild();
+      result = $isTextNode(anchor)
+        ? $resolvePinnedSession('@', anchor, 9, { textNodeKey: 'stale-missing-key', triggerOffset: 5 })
+        : 'no-text';
+    });
+    expect(result).toBeNull();
+  });
+
   it('opens a fresh session by scanning to the just-typed trigger', meta({ fixture: 'flat' }), async ({ remdo }) => {
     let result: unknown;
     await remdo.mutate(() => {

@@ -60,6 +60,26 @@ test.describe('date picker (docs/outliner/dates.md)', () => {
     await expect(editorLocator(page).locator('[data-date-node-key]')).toHaveCount(1);
   });
 
+  test('Tab in the ! calendar closes it and returns focus to the editor', async ({ page, editor }) => {
+    // The calendar traps focus; Tab must not escape into browser focus traversal
+    // (which would leave the popup open with focus outside it). It cancels and
+    // returns focus to the editor, inserting no date. Browser-only (needs focus).
+    await editor.load('basic');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.type(' !');
+
+    const dayButton = page.getByRole('button', { name: anyDayButton }).first();
+    await expect(dayButton).toBeVisible();
+
+    await page.keyboard.press('Tab');
+    await expect(dayButton).toHaveCount(0); // closed
+    await expect(editorLocator(page).locator('[data-date-node-key]')).toHaveCount(0); // no date inserted
+    // Focus is back in the editor.
+    const focusInEditor = await page.evaluate(() =>
+      document.activeElement?.closest('.editor-input') !== null);
+    expect(focusInEditor).toBe(true);
+  });
+
   test('the ! picker does not reopen when the caret returns beside an existing !', async ({ page, editor }) => {
     await editor.load('basic');
 
