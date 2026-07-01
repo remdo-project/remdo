@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Link, useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import { rememberAuthenticatedSession } from '#client/app/auth/client';
 import type { AdminRouteState } from './admin-route-loader';
-import { createPostAuthNextSearch } from './post-auth-path';
 import { resolveAdminEnrollPostCreateDestination } from './admin-enroll-post-create-destination';
 
 export default function AdminRoute() {
@@ -30,6 +29,9 @@ export default function AdminRoute() {
 function EnrollForm({ createAccount }: { createAccount: boolean }) {
   const location = useLocation();
   const navigate = useNavigate();
+  // "Log in first" returns to /admin (with any current search preserved), where
+  // a now-signed-in visitor sees the secret-only promotion form.
+  const loginHref = `/login?next=${encodeURIComponent(`/admin${location.search}`)}`;
   const [adminSecret, setAdminSecret] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -89,7 +91,7 @@ function EnrollForm({ createAccount }: { createAccount: boolean }) {
           {createAccount && (
             <Text c="dimmed" size="sm">
               Already have an account?{' '}
-              <Anchor component={Link} to={`/login${createPostAuthNextSearch(new Request(globalThis.location.href))}`}>
+              <Anchor component={Link} to={loginHref}>
                 Log in first
               </Anchor>
               , then enter just the secret.
