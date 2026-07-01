@@ -72,6 +72,16 @@ memory-carried.
 
 ## Phase 3 — Spec approval (the one user gate)
 
+**Precondition — no unrelated changes in the tree.** The check is on what the run
+did **not** produce: when the run started, were there pre-existing tracked edits
+unrelated to this flow? If so, **stop** before the refine pass and branch
+creation below — the working-tree refine would sweep them in, and committing or
+branching could too. The user commits or sets them aside first (never do it for
+them — see AGENTS.md). Everything this flow itself produced is fine and expected
+— the spec docs written below, and any flow-owned `docs/todo.md` notes from
+Phase 2 — so a normal clean-start run (where the only changes are this flow's)
+passes this gate; it is not a requirement that "only spec edits" exist.
+
 **The spec is the versioned-doc changes themselves**, written so the docs read as
 if everything already works as described (per the `docs/` invariant: stable docs
 describe *target* behavior). Edit the relevant docs under `docs/` — or add new
@@ -87,6 +97,16 @@ doc edits.
 `.agent/specs/...` is **not** a review surface — it is your own scratch/cache for
 talking to tools and subagents. Do not ask the user to review it.
 
+**Refine the spec before handing it over.** Once the doc changes are written and
+before presenting them, run `remdo-refine` in **working-tree scope** over the
+uncommitted `docs/` edits — so the user reviews already-converged prose, not a
+first draft. This gates only the final handoff: dialog (Phase 2) stays fast and
+unrefined, and the pass runs once here at the gate, not per turn. It is
+working-tree scope because no branch exists yet (created on approval below); it
+commits nothing, and a later rejection still reverts the edits cleanly. The
+precondition above guarantees the tree holds only this flow's own changes, so the
+pass sees nothing unrelated.
+
 The user reviews the **`docs/` changes** (the chat message is a thin pointer:
 which docs changed, plus a ~5-bullet approach summary — not the design pasted
 inline). The user does **not** review a detailed plan. This is the only mandatory
@@ -98,12 +118,8 @@ leaves a stray branch). The Phase-3 spec edits do live in the working tree on th
 current branch, though: if the user rejects at the gate, **revert them** before
 exiting — don't leave unapproved `docs/`/`docs/todo.md` changes behind. Confirm
 branch name/prefix (see "Branch naming") and create it per "Branch base" below;
-the approved spec docs are the branch's first commit.
-
-The tree must hold **only this flow's own changes** before that first commit —
-if it had pre-existing unrelated edits when the run started, **stop**: committing
-or branching could sweep them in, and refine later needs a clean tree. The user
-commits, stashes, or sets them aside first.
+the approved spec docs are the branch's first commit (the Phase-3 precondition
+above already ensured the tree holds only this flow's changes).
 
 ## Phase 4 — Autonomous execution
 
