@@ -63,8 +63,8 @@ Rules:
   `docs/contributing.md#editor-feature-modules`. Move the cross-cutting body
   primitives (the note-kind predicates and selection resolvers many shared
   modules consume) to `outline/`, leaving feature-specific logic behind.
-- Editor-popup UX redesign (spec: `popups.md`/`dates.md`/`links.md`/`menu.md`;
-  rationale in `.agent/specs/2026-06-30-editor-popups-ux-research.md`). Landed:
+- Editor-popup UX redesign (spec: `popups.md`/`dates.md`/`links.md`/`menu.md`).
+  Landed:
   span-pinned session (retarget bug fixed; `triggers/session.ts` split into
   `$openTriggerSession`/`$resolvePinnedSession`); `@` Tab closes+indents (no
   commit) and modifier-Enter swallowed; `!` is a modal calendar dialog with
