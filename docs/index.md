@@ -49,10 +49,10 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/clipboard.md` (Short). Cut/copy/paste rules, inline selection multi-line
   handling, caret placement, and move marker behavior.
 - `docs/outliner/concepts.md` (Medium). Note model, root note, invariants, adapters, fixtures.
-- `docs/outliner/dates.md` (Medium). Inline date node behavior: `!` picker
-  trigger boundaries, insert/edit interactions, default date handling, dismissal
-  keys, outside-click handling, atomic token keyboard behavior, and future
-  editable-date and picker-keyboard boundaries.
+- `docs/outliner/dates.md` (Medium). Inline date node behavior: the `!` modal
+  calendar-dialog picker (today default, full grid keyboard nav, edit mode) over
+  the shared popup contract, atomic token keyboard behavior, and future
+  editable-date and typed-date-query boundaries.
 - `docs/outliner/deletion.md` (Medium). Caret/structural delete semantics, merge/reparent
   rules, spacing.
 - `docs/outliner/drag-and-drop.md` (Short). Pointer reordering placement semantics.
@@ -66,9 +66,10 @@ outdated or a doc’s role materially changes.
 - `docs/outliner/list-types.md` (Short). List types (bullet/number/check), checked state persistence,
   rendering, and toggle commands.
 - `docs/outliner/links.md` (Medium). Note-linking behavior and the
-  internal-vs-external link boundary: `@` query flow, path-token picker matching
-  shared with search, ranking, runtime fully qualified link identity,
-  clipboard/persistence docId boundaries, and cross-document boundaries.
+  internal-vs-external link boundary: the `@`-specific query/ranking and commit
+  over the shared trigger lifecycle, path-token picker matching shared with
+  search, runtime fully qualified link identity, clipboard/persistence docId
+  boundaries, and cross-document boundaries.
 - `docs/outliner/menu.md` (Medium). Quick action menu entry points, note vs.
   children vs. view action scopes, and actions (toggle checked/fold/zoom/child
   list types/fold view to level).
@@ -77,6 +78,10 @@ outdated or a doc’s role materially changes.
   `noteRef`.
 - `docs/outliner/note-structure-rules.md` (Long). Structural invariants and indentation
   semantics; indent/outdent rules; deletion-merge exception.
+- `docs/outliner/popups.md` (Medium). The shared contract for transient editor
+  popups — keyboard ownership with an editable-span exception, one open at a time,
+  light-dismiss, validated commit, per-widget Tab and focus model — plus the
+  trigger-picker pinned session built on it.
 - `docs/outliner/reordering.md` (Short). Directional reorder fallback cascade: swap,
   parent-sibling reparent, outdent, then no-op.
 - `docs/outliner/search.md` (Long). Search behavior: focus-driven mode

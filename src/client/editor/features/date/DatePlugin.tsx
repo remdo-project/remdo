@@ -24,12 +24,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
+import { resolveElementPickerAnchor } from '#client/editor/triggers/anchor';
 import { $isDateNode } from './date-node';
 import type { DateNode } from './date-node';
-import { resolveDatePickerElementAnchor } from './anchor';
 import { DatePickerPanel } from './DatePickerPopover';
 import { isInsideDatePicker } from './picker-dom';
-import { DateTypeaheadPlugin } from './DateTypeaheadPlugin';
+import { DateInsertPlugin } from './DateInsertPlugin';
 import type { DatePickerState } from './types';
 import './date.css';
 
@@ -176,6 +176,10 @@ export function DatePlugin() {
     const node = $getNodeByKey(currentPicker.nodeKey);
     if ($isDateNode(node)) {
       node.setIsoDate(isoDate);
+      // Place the caret after the committed token so focus lands sensibly back in
+      // the editor (a keyboard commit from the trapping calendar would otherwise
+      // leave focus on the calendar as it unmounts).
+      $collapseDateTokenSelection(node, 'after');
     }
 
     closePicker();
@@ -208,9 +212,30 @@ export function DatePlugin() {
       editor.update(() => {
         $confirmDate(isoDate);
       });
+      // A calendar commit unmounts the trapping popup; return focus to the editor
+      // (the caret was placed after the token in $confirmDate).
+      editor.focus();
     },
     [$confirmDate, editor]
   );
+
+  // Cancel from inside the focus-trapping calendar (edit mode): close without
+  // changing the date, place the caret after the token, and hand focus back to the
+  // editor. Lexical key commands do not fire while focus is in the calendar, so the
+  // panel calls this directly (Escape/Tab).
+  const handlePickerCancel = useCallback(() => {
+    const currentPicker = pickerRef.current;
+    closePicker();
+    if (currentPicker) {
+      editor.update(() => {
+        const node = $getNodeByKey(currentPicker.nodeKey);
+        if ($isDateNode(node)) {
+          $collapseDateTokenSelection(node, 'after');
+        }
+      });
+    }
+    editor.focus();
+  }, [closePicker, editor]);
 
   const $selectAdjacentDateToken = useCallback(
     (direction: DateTokenSelectionSide, event: KeyboardEvent | null): boolean => {
@@ -282,7 +307,7 @@ export function DatePlugin() {
         return false;
       }
 
-      const anchor = resolveDatePickerElementAnchor(editor, element);
+      const anchor = resolveElementPickerAnchor(editor, element);
       if (!anchor) {
         return false;
       }
@@ -413,7 +438,7 @@ export function DatePlugin() {
         return;
       }
 
-      const anchor = resolveDatePickerElementAnchor(editor, target.element);
+      const anchor = resolveElementPickerAnchor(editor, target.element);
       if (!anchor) {
         return;
       }
@@ -453,6 +478,10 @@ export function DatePlugin() {
     const handleDocumentMouseDown = (event: MouseEvent) => {
       if (pickerRef.current && !isInsideDatePicker(event)) {
         closePicker();
+        // The calendar traps focus; without this, closing it on an outside click
+        // abandons focus on <body>. A click landing in the editor refocuses it
+        // anyway, so this is only load-bearing for clicks outside the editor.
+        editor.focus();
       }
     };
     document.addEventListener('mousedown', handleDocumentMouseDown, true);
@@ -467,11 +496,16 @@ export function DatePlugin() {
 
   return (
     <>
-      <DateTypeaheadPlugin />
+      <DateInsertPlugin />
       {picker && portalRoot
         ? createPortal(
             <div className="date-picker-anchor" style={{ left: picker.anchor.left, top: picker.anchor.top }}>
-              <DatePickerPanel isoDate={picker.isoDate} mode="edit" onChange={handlePickerChange} />
+              <DatePickerPanel
+                isoDate={picker.isoDate}
+                mode="edit"
+                onChange={handlePickerChange}
+                onCancel={handlePickerCancel}
+              />
             </div>,
             portalRoot
           )

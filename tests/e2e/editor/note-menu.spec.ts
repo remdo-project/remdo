@@ -15,6 +15,32 @@ test.describe('Note menu', () => {
     await menu.expectClosed();
   });
 
+  test('clicking the menu button dismisses an open @ picker and opens the menu', async ({ page, editor }) => {
+    // One popup at a time: the menu button must not go inert while a picker is
+    // open. Clicking it light-dismisses the picker and opens the menu on the same
+    // click (the picker's pointerdown-capture dismissal runs before the button's).
+    await editor.load('tree');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.type(' @note');
+
+    const picker = editorLocator(page).locator('[data-note-link-picker]');
+    await expect(picker).toHaveCount(1);
+
+    const listItem = editorLocator(page)
+      .locator('li.list-item:not(.list-nested-item)')
+      .filter({ hasText: 'note1' })
+      .first();
+    const box = (await listItem.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    const menuButton = editorLocator(page).locator('.note-controls__button--menu');
+    await expect(menuButton).toBeVisible();
+    await menuButton.click();
+
+    // The picker is gone and the menu is open — one click, not two.
+    await expect(picker).toHaveCount(0);
+    await expect(editorLocator(page).locator('[data-note-menu]')).toHaveCount(1);
+  });
+
   test('opens on double-shift and targets the caret note', async ({ page, editor }) => {
     await editor.load('tree');
 

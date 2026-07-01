@@ -63,17 +63,26 @@ Rules:
   `docs/contributing.md#editor-feature-modules`. Move the cross-cutting body
   primitives (the note-kind predicates and selection resolvers many shared
   modules consume) to `outline/`, leaving feature-specific logic behind.
-- Pressing a hot key just after a node with text content (for example `!` right
-  after an existing date node) fails to trigger, because the boundary check
-  reads the previous node's rendered text and sees a non-boundary character.
-  Fix should treat inline non-text nodes as boundaries and consider common,
-  related UX guidelines.
-- Date picker popover display is degraded: the calendar renders but the popover
-  has no container background/border (bleeds into the page) and shows a stray
-  vertical-bar artifact. Functional (dates clickable), styling only.
-- Date picker re-opens on caret navigation: arrowing the cursor to just after an
-  existing `!` re-triggers the picker. It should open only when `!` is typed, not
-  when navigating around one.
+- Editor-popup UX redesign (spec: `popups.md`/`dates.md`/`links.md`/`menu.md`).
+  Landed:
+  span-pinned session (retarget bug fixed; `triggers/session.ts` split into
+  `$openTriggerSession`/`$resolvePinnedSession`); `@` Tab closes+indents (no
+  commit) and modifier-Enter swallowed; `!` is a modal calendar dialog with
+  focus-into-grid keyboard nav via Mantine (arrows/Page/Home-End), `!`+Enter =
+  today, Esc/outside-click cancel + restore caret; one-open-at-a-time registry
+  (`triggers/active-popup.ts`) with the note menu folded in; `NoteBodyPlugin`
+  arrow-deferral keyed off the shared signal; `@` combobox ARIA on the editor
+  host (role/aria-controls/aria-activedescendant hosted on the focused editor
+  root, since the role must sit on the focused element — a picker-owned sub-host
+  would be ARIA-invalid); edit-mode date calendar (clicking a committed token) now
+  shares the same focus-trapping keyboard nav as insert.
+- Remaining follow-ups on the redesign (spec ahead of code on these details):
+  - Dedup the duplicated portal/anchor/dismissal plumbing between `NoteMenuPlugin`
+    and the popup engine (they still each implement it).
+  - Confirm/adjust the menu's per-widget key details against `menu.md` (Tab
+    closes+returns; F/Z/digit accelerators vs. the menu pattern's optional
+    type-ahead) — the menu was folded into the registry but its keymap was not
+    reworked in this pass.
 
 ## Document access and sharing
 

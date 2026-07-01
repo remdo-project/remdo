@@ -10,13 +10,6 @@ import { $resolveNoteIdFromNode } from '#client/editor/outline/note-context';
 
 export const LINK_PICKER_RESULT_LIMIT = 5;
 
-export function clampActiveIndex(activeIndex: number, optionsLength: number): number {
-  if (optionsLength === 0) {
-    return -1;
-  }
-  return Math.max(0, Math.min(activeIndex, optionsLength - 1));
-}
-
 export function $resolveLinkPickerOptions(
   query: string,
   anchorNode: TextNode,
