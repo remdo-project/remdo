@@ -8,25 +8,29 @@ Define RemDo-owned inline date behavior in the outliner.
 
 1. Dates are non-text inline RemDo nodes with a stored ISO date (`YYYY-MM-DD`)
    and a readable local label such as `Jun 10, 2026`.
-2. Typing `!` opens the date picker only at a typeahead boundary: the start of
-   note text, after whitespace, or after opening punctuation (`(`, `[`, `{`).
-3. Typing `!` after non-whitespace prose does not open the picker, so ordinary
-   punctuation like `done!` remains plain text.
-4. The picker starts in insert mode for a typed trigger and uses today's date in
-   the user's local browser date as the initial highlighted value.
-5. Choosing a date replaces the active `!` trigger with a date node followed by
-   a trailing space.
-6. Typing any query text after the `!` closes the picker and leaves the typed
-   text unchanged.
-7. `Enter` and `Tab` confirm the current picker date. If the user has not moved
-   the picker selection, this inserts today's date.
-8. `Escape` closes the picker and keeps the typed `!` as editable text.
-9. `Backspace` on an empty `!` trigger deletes that trigger and closes the
-   picker.
-10. Clicking outside the picker closes it without changing existing text or an
-    existing date.
-11. Clicking an existing date opens the picker in edit mode; choosing a new date
-    updates the same date node.
+2. `!` is an inline trigger character; its open/dismiss/confirm lifecycle is the
+   shared one in [Editor popups](./popups.md). The rest of this spec
+   is date-specific.
+3. The `!` picker is a **modal calendar dialog**: opening it moves focus into a
+   month-grid calendar (the shared contract's per-widget trapping focus model),
+   with today (the user's local browser date) preselected. Typed query text is
+   not interpreted in this phase (see Non-goals), so the calendar is the only way
+   to choose.
+4. The calendar owns its keyboard while open: `ArrowLeft`/`Right` move by a day,
+   `ArrowUp`/`Down` by a week, `Home`/`End` to the start/end of the week,
+   `PageUp`/`PageDown` by a month, `Shift+PageUp`/`PageDown` by a year. The editor
+   caret does not move under the open grid.
+5. `Enter` or `Space` commits the focused day; a primary-button click commits the
+   clicked day. So `!` then `Enter` inserts today (the fast path). `Escape` — and
+   `Tab`, which must not escape into browser focus traversal — cancel the calendar
+   and restore the caret to the editor. Committing inserts a date node plus a
+   trailing space over the pinned `!` span.
+6. Clicking, or `Enter`/`Space` on a selected date token, opens the same calendar
+   in *edit* mode over that node. It is opened from a committed token rather than a
+   trigger session, so the trigger lifecycle does not apply, but the in-calendar
+   keyboard contract is identical (focus moves into the grid; the keys in 4–5
+   navigate and commit; commit updates the node and places the caret after it,
+   cancel leaves it unchanged).
 
 ## Atomic token keyboard behavior
 
@@ -55,43 +59,14 @@ Define RemDo-owned inline date behavior in the outliner.
    identity when possible.
 2. [Future] Support typed date queries or natural-language date parsing after
    `!`.
-3. [Future] When the date picker is open, let the picker own calendar
-   navigation keys instead of letting arrow keys move the editor caret or date
-   token. The intended direction is: arrow keys move the active day, `Enter` or
-   `Space` chooses it, `Escape` closes without changing the date, and
-   `Backspace`/`Delete` do not mutate editor content while picker interaction is
-   active.
-4. [Future] Decide whether the RemDo picker is modeled as a dialog-style date
-   picker or a combobox grid popup, then align focus management and `Tab`
-   behavior with that chosen pattern.
-
-## Guideline notes
-
-1. WAI-ARIA APG date picker dialog says opening the picker moves focus to the
-   selected or current date, and in the date grid: "`Right Arrow` Moves focus to
-   the next day."
-2. The same APG date picker example says "`ESC` Closes the dialog" and
-   "`Space`, `Enter`" select the date and close the dialog.
-3. WAI-ARIA APG grid pattern says grid widgets use "directional navigation
-   keys" and that `Right Arrow` / `Left Arrow` move focus between cells.
-4. WAI-ARIA APG combobox grid popup says `Enter` accepts the selected value,
-   `Escape` closes the popup, and arrow keys move focus in the grid.
+3. [Future] Give the calendar its own chrome (month/year navigation controls) and
+   have `Tab` cycle those controls within the dialog instead of cancelling —
+   currently there are no controls to cycle to, so `Tab` cancels (see 5).
 
 ## References
 
-1. Lexical React typeahead plugin:
-   <https://lexical.dev/docs/react/plugins>
-2. Lexical custom nodes:
+1. Lexical custom nodes:
    <https://lexical.dev/docs/concepts/nodes>
-3. WAI-ARIA Authoring Practices Guide, combobox pattern:
-   <https://www.w3.org/WAI/ARIA/apg/patterns/combobox/>
-4. WAI-ARIA Authoring Practices Guide, date picker dialog example:
+2. WAI-ARIA Authoring Practices Guide, date picker dialog example (the calendar's
+   grid focus and keys):
    <https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/>
-5. WAI-ARIA Authoring Practices Guide, date picker combobox example:
-   <https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-datepicker/>
-6. WAI-ARIA Authoring Practices Guide, grid pattern:
-   <https://www.w3.org/WAI/ARIA/apg/patterns/grid/>
-7. U.S. Web Design System date picker:
-   <https://designsystem.digital.gov/components/date-picker/>
-8. Material UI chip accessibility:
-   <https://mui.com/material-ui/react-chip/>

@@ -457,10 +457,10 @@
   text-decoration-thickness: 2px;
 }
 
-.note-link-picker-anchor {
+.trigger-picker-anchor {
   position: absolute;
   transform: translateY(0);
-  z-index: 3;
+  z-index: 4;
 }
 
 .note-link-picker {

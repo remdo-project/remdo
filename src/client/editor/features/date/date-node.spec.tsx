@@ -229,32 +229,22 @@ describe('date nodes', () => {
     });
   });
 
-  it('confirms the ! picker with Tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    try {
-      vi.setSystemTime(new Date('2031-01-02T12:00:00'));
+  it('does not confirm the ! picker on Tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Tab no longer commits (docs/outliner/popups.md): it closes the picker and
+    // falls through to indent, leaving the typed `!` as text and inserting no
+    // date. (When ! becomes the modal calendar, Tab will cycle its controls.)
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' !');
+    expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
 
-      await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-      await typeText(remdo, ' !');
+    await pressKey(remdo, { key: 'Tab' });
 
-      expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
-      await pressKey(remdo, { key: 'Tab' });
-
-      expect(document.querySelector('[data-date-picker]')).toBeNull();
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1 Jan 2, 2031 ' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
-
-      remdo.validate(() => {
-        const note = $findNoteById('note1')!;
-        const dateNode = note.getChildren().find($isDateNode)!;
-        expect(dateNode.getIsoDate()).toBe('2031-01-02');
-      });
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(document.querySelector('[data-date-picker]')).toBeNull();
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getChildren().some($isDateNode)).toBe(false);
+      expect(note.getTextContent()).toContain('!');
+    });
   });
 
   it('keeps the ! picker open on ArrowDown when the note has a body', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -275,25 +265,16 @@ describe('date nodes', () => {
     expect(document.querySelector('[data-date-picker]')).not.toBeNull();
   });
 
-  it('uses the current local date when a long-lived editor opens the ! picker again', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('uses the current local date when a long-lived editor opens the ! picker', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // The default highlighted day is today, refreshed each open, so an editor that
+    // has survived a midnight rollover still offers the new day (not a stale one).
     vi.useFakeTimers({ toFake: ['Date'] });
     try {
-      vi.setSystemTime(new Date('2031-01-01T12:00:00'));
+      vi.setSystemTime(new Date('2031-01-02T12:00:00'));
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
       await typeText(remdo, ' !');
       expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
-      await pressKey(remdo, { key: 'Escape' });
-
-      vi.setSystemTime(new Date('2031-01-02T12:00:00'));
-      await typeText(remdo, ' !');
-      expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
-      await pressKey(remdo, { key: 'Enter' });
-
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1 ! Jan 2, 2031 ' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
+      await clickPickerDay('2031-01-02');
 
       remdo.validate(() => {
         const note = $findNoteById('note1')!;
@@ -345,6 +326,21 @@ describe('date nodes', () => {
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
+  });
+
+  it('opens the picker when ! immediately follows a date token', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A preceding atomic decorator (a date token) is a trigger boundary, even
+    // with no whitespace between it and the `!`. Its rendered label must not be
+    // read as non-boundary prose.
+    await remdo.mutate(() => {
+      const note = $findNoteById('note1')!;
+      note.clear();
+      note.append($createDateNode('2026-06-10'));
+    });
+    await placeCaretNextToDate(remdo, 'after');
+    await typeText(remdo, '!');
+
+    expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
   });
 
   it('closes the picker when typing query text after !', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -524,7 +520,10 @@ describe('date nodes', () => {
     expectDateTokenSelected(remdo);
   });
 
-  it('focuses the editor when clicking a date token from outside the editor', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('opens the edit picker when clicking a date token from outside the editor', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Clicking a committed token opens the edit-mode calendar even when focus was
+    // elsewhere. (The calendar then traps focus into its grid, and Escape closes
+    // it — the in-grid focus move is browser-only, covered by the date e2e.)
     await setupInlineDate(remdo);
     const outsideButton = document.createElement('button');
     document.body.append(outsideButton);
@@ -534,7 +533,6 @@ describe('date nodes', () => {
     await mouseDownElement(getDateElement());
     await clickElement(getDateElement());
 
-    expect(document.activeElement).toBe(remdo.editor.getRootElement());
     expect(document.querySelector('[data-date-picker-mode="edit"]')).not.toBeNull();
 
     await pressKeyOnActiveElement(remdo, 'Escape');
@@ -635,7 +633,9 @@ describe('date nodes', () => {
     await typeText(remdo, ' !');
 
     expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
-    await mouseDownElement(remdo.editor.getRootElement()!);
+    // A pointer press outside the editor and picker dismisses it (clicks inside
+    // the editor dismiss instead by moving the caret off the trigger).
+    await mouseDownElement(document.body);
 
     expect(document.querySelector('[data-date-picker]')).toBeNull();
     expect(remdo).toMatchOutline([
@@ -701,5 +701,55 @@ describe('date nodes', () => {
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
+  });
+
+  it('does not reopen the picker when the caret returns beside an existing !', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Once closed, an existing ! is plain text: only a fresh ! keypress reopens,
+    // never moving the caret back beside it (shared trigger lifecycle).
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' !');
+    await pressKey(remdo, { key: 'Escape' });
+    expect(document.querySelector('[data-date-picker]')).toBeNull();
+
+    // Move the caret off the ! and back beside it.
+    await pressKey(remdo, { key: 'ArrowLeft' });
+    await pressKey(remdo, { key: 'ArrowRight' });
+    expect(document.querySelector('[data-date-picker]')).toBeNull();
+  });
+
+  it('does not open the date picker on top of an open @ link query', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // A trigger typed inside another picker's query is ordinary text: typing `!`
+    // while the `@` link picker is open must not stack a second picker.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' @note2');
+    expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
+
+    await typeText(remdo, ' ');
+    await typeText(remdo, '!');
+
+    expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
+    expect(document.querySelector('[data-date-picker]')).toBeNull();
+  });
+
+  it('closes the open insert picker when an existing date token is clicked', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Clicking a date token makes a node selection (not a collapsed caret), which
+    // means the user left the query. The insert session must close rather than
+    // linger under the edit picker and steal its Escape/Enter handling.
+    await remdo.mutate(() => {
+      const note = $findNoteById('note2')!;
+      note.clear();
+      note.append($createDateNode('2026-06-10'));
+    });
+
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' !');
+    expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
+
+    await clickElement(document.querySelector('[data-date-node-key]')!);
+
+    // Exactly one picker is open: the edit picker, not the stale insert picker.
+    expect(document.querySelector('[data-date-picker-mode="insert"]')).toBeNull();
+    expect(document.querySelector('[data-date-picker-mode="edit"]')).not.toBeNull();
+    expect(document.querySelectorAll('[data-date-picker]')).toHaveLength(1);
   });
 });

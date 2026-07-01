@@ -18,7 +18,7 @@ owned by its editor note (see [Concepts](./concepts.md#note-kinds)).
 3. **Visually distinct.** A body renders set apart from the note's content.
 4. **Inline content.** Body text supports the same key-driven inline content as
    note content — inline formatting (no separate formatting UI) and `@` note
-   links (see [Links](./links.md)), including the picker's `Enter`/`Tab` confirm.
+   links (see [Links](./links.md)), including the picker's `Enter`-to-confirm.
 
 ## Selection and navigation
 

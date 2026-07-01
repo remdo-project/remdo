@@ -1,7 +1,4 @@
-export interface PickerAnchor {
-  left: number;
-  top: number;
-}
+import type { PickerAnchor } from '#client/editor/triggers/types';
 
 export interface DatePickerState {
   anchor: PickerAnchor;

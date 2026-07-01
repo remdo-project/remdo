@@ -51,11 +51,11 @@ async function typeAltGraphAt(remdo: RemdoTestApi) {
 describe('note links (docs/outliner/links.md)', () => {
   it('inserts a link with Enter and keeps stable note identity in link state', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@note2');
+    await typeText(remdo, ' @note2');
     await pressKey(remdo, { key: 'Enter' });
 
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1note2 ' },
+      { noteId: 'note1', text: 'note1 note2 ' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -75,6 +75,7 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('opens link-query mode when @ is entered with AltGr modifiers', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' ');
     await typeAltGraphAt(remdo);
 
     // Many non-US layouts produce '@' via AltGr (reported as Ctrl+Alt).
@@ -84,16 +85,35 @@ describe('note links (docs/outliner/links.md)', () => {
     expect(optionTitles).toEqual(['note2', 'note3']);
   });
 
-  it('confirms the active option with Tab', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('does not confirm on Tab: closes the picker and leaves the @query as text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Tab is structural in an outliner (indent); the picker must not steal it to
+    // commit. Tab closes the picker and the typed @query stays as plain text — no
+    // link is inserted.
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@note3');
+    await typeText(remdo, ' @note3');
     await pressKey(remdo, { key: 'Tab' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1note3 ' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getChildren().some($isLinkNode)).toBe(false);
+      expect(note.getTextContent()).toContain('@note3');
+    });
+  });
+
+  it('swallows a modifier+Enter while the picker is open (no commit, no editor command)', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // The picker owns the keyboard: a modifier commit combo it does not declare
+    // (Cmd/Ctrl+Enter, normally toggle-checked) is a no-op while open — it neither
+    // confirms the option nor runs the editor command beneath.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' @note3');
+    await pressKey(remdo, { key: 'Enter', ctrlOrMeta: true });
+
+    expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
+    remdo.validate(() => {
+      const note = $findNoteById('note1')!;
+      expect(note.getChildren().some($isLinkNode)).toBe(false);
+    });
   });
 
   it('pasting the same-document note URL creates a note link with docId', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -561,14 +581,14 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('keeps inserted link display text unchanged when the target note is later renamed', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@note2');
+    await typeText(remdo, ' @note2');
     await pressKey(remdo, { key: 'Enter' });
 
     await selectEntireNote(remdo, 'note2');
     await typeText(remdo, 'renamed note2');
 
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1note2 ' },
+      { noteId: 'note1', text: 'note1 note2 ' },
       { noteId: 'note2', text: 'renamed note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -597,7 +617,7 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('accepts spaces and punctuation in link query text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@note2');
+    await typeText(remdo, ' @note2');
     await typeText(remdo, ' !');
 
     const picker = document.querySelector('[data-note-link-picker]');
@@ -609,7 +629,7 @@ describe('note links (docs/outliner/links.md)', () => {
 
     await pressKey(remdo, { key: 'Enter' });
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1@note2 !' },
+      { noteId: 'note1', text: 'note1 @note2 !' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -617,7 +637,7 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('keeps filtered results in document order', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@note');
+    await typeText(remdo, ' @note');
 
     const optionTitles = Array.from(document.querySelectorAll('.note-link-picker__title'), (node) => node.textContent);
     expect(optionTitles).toEqual(['note2', 'note3']);
@@ -625,7 +645,7 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('does not include the current note in picker options', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@note');
+    await typeText(remdo, ' @note');
 
     const optionTitles = Array.from(document.querySelectorAll('.note-link-picker__title'), (node) => node.textContent);
     expect(optionTitles).toEqual(['note1', 'note3']);
@@ -633,7 +653,7 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('shows the no-results row when the query has no matches', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@missing');
+    await typeText(remdo, ' @missing');
 
     expect(document.querySelector('[data-note-link-picker-item]')).toBeNull();
     const listbox = document.querySelector('.note-link-picker[role="listbox"]');
@@ -646,11 +666,11 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('closes link mode on Enter when there are no results and keeps typed text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@missing');
+    await typeText(remdo, ' @missing');
     await pressKey(remdo, { key: 'Enter' });
 
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1@missing' },
+      { noteId: 'note1', text: 'note1 @missing' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -659,11 +679,11 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('closes link mode on Tab when there are no results and keeps typed text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@missing');
+    await typeText(remdo, ' @missing');
     await pressKey(remdo, { key: 'Tab' });
 
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1@missing' },
+      { noteId: 'note1', text: 'note1 @missing' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -672,8 +692,11 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('tracks active option via aria-activedescendant and aria-selected', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@note');
+    await typeText(remdo, ' @note');
 
+    // WAI-ARIA combobox: the role and aria-activedescendant live on the editor
+    // host (focus stays there), and aria-controls points at the listbox's id.
+    const host = remdo.editor.getRootElement()!;
     const readPicker = () => {
       const listbox = document.querySelector<HTMLElement>('.note-link-picker[role="listbox"]');
       expect(listbox).not.toBeNull();
@@ -683,22 +706,26 @@ describe('note links (docs/outliner/links.md)', () => {
     };
 
     let picker = readPicker();
+    expect(host.getAttribute('role')).toBe('combobox');
+    expect(host.getAttribute('aria-controls')).toBe(picker.listbox.id);
+    expect(picker.listbox.id).not.toBe('');
     expect(picker.rows[0]!.id).not.toBe('');
     expect(picker.rows[1]!.id).not.toBe('');
-    expect(picker.listbox.getAttribute('aria-activedescendant')).toBe(picker.rows[0]!.id);
+    expect(host.getAttribute('aria-activedescendant')).toBe(picker.rows[0]!.id);
     expect(picker.rows[0]!.getAttribute('aria-selected')).toBe('true');
     expect(picker.rows[1]!.getAttribute('aria-selected')).toBe('false');
 
     await pressKey(remdo, { key: 'ArrowDown' });
     picker = readPicker();
-    expect(picker.listbox.getAttribute('aria-activedescendant')).toBe(picker.rows[1]!.id);
+    expect(host.getAttribute('aria-activedescendant')).toBe(picker.rows[1]!.id);
     expect(picker.rows[0]!.getAttribute('aria-selected')).toBe('false');
     expect(picker.rows[1]!.getAttribute('aria-selected')).toBe('true');
   });
 
   it('closes link mode on editor blur', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@note');
+    await typeText(remdo, ' @note');
+    expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
 
     const root = remdo.editor.getRootElement();
     expect(root).not.toBeNull();
@@ -707,7 +734,7 @@ describe('note links (docs/outliner/links.md)', () => {
 
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1@note' },
+      { noteId: 'note1', text: 'note1 @note' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -715,14 +742,15 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('closes link mode on outside mouse down', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@note');
+    await typeText(remdo, ' @note');
+    expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
 
     document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     await remdo.waitForSynced();
 
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1@note' },
+      { noteId: 'note1', text: 'note1 @note' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -730,7 +758,7 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('clamps ArrowUp and ArrowDown picker navigation at boundaries', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@');
+    await typeText(remdo, ' @');
 
     const activeTitle = () => document.querySelector('[data-note-link-picker-item-active="true"] .note-link-picker__title')?.textContent;
     expect(activeTitle()).toBe('note2');
@@ -747,7 +775,7 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('confirms a picker option with pointer down', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@note');
+    await typeText(remdo, ' @note');
 
     const rows = [...document.querySelectorAll<HTMLElement>('[data-note-link-picker-item]')];
     expect(rows).toHaveLength(2);
@@ -757,7 +785,7 @@ describe('note links (docs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1note3 ' },
+      { noteId: 'note1', text: 'note1 note3 ' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
@@ -766,7 +794,7 @@ describe('note links (docs/outliner/links.md)', () => {
 
   it('shows minimal ancestor context for duplicate titles', meta({ fixture: 'duplicate-titles' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@task');
+    await typeText(remdo, ' @task');
 
     const rows = [...document.querySelectorAll('[data-note-link-picker-item]')];
     expect(rows).toHaveLength(2);
@@ -779,7 +807,7 @@ describe('note links (docs/outliner/links.md)', () => {
     meta({ fixture: 'tree', viewProps: { zoomNoteId: 'note2' } }),
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
-      await typeText(remdo, '@note1');
+      await typeText(remdo, ' @note1');
       await pressKey(remdo, { key: 'Enter' });
 
       expect(remdo).toMatchOutline([
@@ -787,44 +815,80 @@ describe('note links (docs/outliner/links.md)', () => {
         {
           noteId: 'note2',
           text: 'note2',
-          children: [{ noteId: 'note3', text: 'note3note1 ' }],
+          children: [{ noteId: 'note3', text: 'note3 note1 ' }],
         },
       ]);
     }
   );
 
-  it('removes @query token on Escape', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('closes link mode on Escape and keeps the typed @query', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Escape dismisses the popup without clearing editable text (shared trigger
+    // lifecycle, docs/outliner/triggers.md). The typed @query stays as text.
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@note2');
+    await typeText(remdo, ' @note2');
     await pressKey(remdo, { key: 'Escape' });
 
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note1', text: 'note1 @note2' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
   });
 
-  it('keeps @ as plain text on Backspace when query is empty', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('deletes the bare @ on Backspace and closes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Backspace on an empty query is plain editing: it removes the trigger
+    // character and ends the session (shared trigger lifecycle).
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@');
+    await typeText(remdo, ' @');
     await pressKey(remdo, { key: 'Backspace' });
 
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1@' },
+      { noteId: 'note1', text: 'note1 ' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);
+  });
+
+  it('does not open link mode when @ follows non-whitespace text', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // The trigger is boundary-gated (shared trigger lifecycle): @ after prose
+    // (e.g. an email-like a@b) stays plain text and opens no picker.
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, '@note2');
+
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
+    expect(remdo).toMatchOutline([
+      { noteId: 'note1', text: 'note1@note2' },
+      { noteId: 'note2', text: 'note2' },
+      { noteId: 'note3', text: 'note3' },
+    ]);
+  });
+
+  it('does not reopen link mode when the caret returns beside an existing @', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // Once closed, an existing @ is plain text: only a fresh @ keypress reopens,
+    // never moving the caret back beside it (shared trigger lifecycle).
+    await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
+    await typeText(remdo, ' @');
+    expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
+    await pressKey(remdo, { key: 'Escape' });
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
+
+    // Move the caret off the @ and back beside it.
+    await pressKey(remdo, { key: 'ArrowLeft' });
+    await pressKey(remdo, { key: 'ArrowRight' });
+    expect(document.querySelector('[data-note-link-picker]')).toBeNull();
   });
 
   it('does not reopen link mode after Backspace exits empty query', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@');
+    await typeText(remdo, ' @');
     await pressKey(remdo, { key: 'Backspace' });
     await typeText(remdo, 'n');
 
+    // The @ was deleted by Backspace; typing 'n' is ordinary text, no reopen.
     expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1@n' },
+      { noteId: 'note1', text: 'note1 n' },
       { noteId: 'note2', text: 'note2' },
       { noteId: 'note3', text: 'note3' },
     ]);

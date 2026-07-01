@@ -25,10 +25,15 @@ between RemDo-owned note links and generic external links.
 3. RemDo classification runs before generic link handling so RemDo-owned note
    refs keep note-link identity/clipboard behavior instead of degrading into
    plain URL links.
-4. Links are created inline through a keyboard-first typeahead flow triggered by
-   `@`.
-5. Link-query mode can start anywhere in note text. Query length minimum is 0,
-   so results may appear immediately.
+4. Links are created inline through `@`, an inline trigger character; its
+   open/close/confirm lifecycle is the shared one in
+   [Editor popups](./popups.md) (so an email-like `a@b` stays plain
+   text). The note-link spec defines only what differs.
+5. The query is the text after `@` in the pinned span, length minimum 0, so
+   results may appear immediately. Whitespace is allowed in the query: it is the
+   same whitespace-tokenized path match document search uses (see
+   [Query and ranking](#query-and-ranking)), so a multi-word query like
+   `@parent child` narrows by both tokens rather than terminating at the space.
 6. On insertion, note-link display text is copied once from the target note
    title and then
    stored locally (no auto-sync on later target renames in this phase).
@@ -87,25 +92,20 @@ between RemDo-owned note links and generic external links.
 
 ## Picker interaction
 
-1. When filtered results are non-empty, picker always has an active selection
-   (initially the first result in document order).
-2. Arrow navigation is clamped at list boundaries (no wrap-around).
-3. `Enter` confirms the active option.
-4. `Tab` confirms the active option (same behavior as `Enter`).
-5. `Escape` exits link-query mode and removes the current `@query` token.
-6. `Backspace` on an empty query exits link-query mode but leaves `@` as plain
-   text.
-7. Pointer hover updates the active picker row.
-8. Primary-button pointer click on a selectable row confirms that option (same
-   as `Enter`/`Tab`).
-9. Picker semantics expose the active row via listbox `aria-activedescendant`;
-   selectable rows also expose active state with `aria-selected`.
-10. `Enter`/`Tab` on a no-results picker exits link-query mode and leaves the
-    typed `@query` text unchanged.
-11. Clicking outside the editor and picker exits link-query mode and leaves the
-    typed `@query` text unchanged.
-12. Editor blur exits link-query mode and leaves the typed `@query` text
-    unchanged.
+The `@` picker is the type-to-filter specialization of the shared
+[Editor popups](./popups.md) contract: it keeps DOM focus in the editor (the
+combobox focus model) and its typed query is the pinned span's editable text.
+Navigation, confirmation, and dismissal are the shared lifecycle; note-link
+specifics:
+
+1. The initial active option is the first result in document order.
+2. `Enter` or a primary-button click commits the active option; `Tab` does not
+   commit — it closes the picker and falls through to indent.
+3. On the no-match state (the `No results...` row, with no active option),
+   `Enter` closes the picker and leaves the typed `@query` as ordinary text — it
+   neither inserts a link nor a newline.
+4. Confirming inserts a note-link node (`docId` + `noteId`) whose display text is
+   the target note title, plus a trailing space.
 
 ## Non-goals / future
 

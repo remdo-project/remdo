@@ -16,26 +16,32 @@ details.
 5. **Folding:** `./folding.md` — collapse/expand note subtrees, visibility
    filtering, persistence, and view-scoped fold-to-level commands.
 6. **List types:** `./list-types.md` — bullet/number/check semantics and checked state.
-7. **Dates:** `./dates.md` — inline date node behavior, `!` picker trigger
-   rules, insertion/editing interactions, atomic token keyboard behavior, and
-   future editable-date and picker-keyboard boundaries.
-8. **Links:** `./links.md` — initial note-linking behavior, picker/query rules, and future boundaries.
-9. **Search mode:** `./search.md` — focused search navigation flow (single
+7. **Editor popups:** `./popups.md` — the shared contract for transient editor
+   popups (keyboard ownership with an editable-span exception, one open at a time,
+   light-dismiss, validated commit, per-widget Tab/focus) and the trigger-picker
+   pinned session built on it.
+8. **Dates:** `./dates.md` — inline date node behavior, the `!` modal
+   calendar-dialog picker (today default, grid keyboard nav, edit mode), atomic
+   token keyboard behavior, and future editable-date and typed-date-query
+   boundaries.
+9. **Links:** `./links.md` — initial note-linking behavior, the `@`-specific
+   query/ranking and commit, and future boundaries.
+10. **Search mode:** `./search.md` — focused search navigation flow (single
   highlight, always-flat results (empty query shows all notes), path-token
   query matching with token highlighting in the label and ancestor crumbs,
   arrow navigation, Enter-to-zoom, and combobox/listbox accessibility
   semantics.
-10. **Quick action menu:** `./menu.md` — row/caret entry points plus note,
+11. **Quick action menu:** `./menu.md` — row/caret entry points plus note,
    children, and view actions.
-11. **Clipboard:** `./clipboard.md` — cut/copy/paste behavior, caret placement, and move rules.
-12. **Indent/Outdent & structure rules:** `./note-structure-rules.md` — structural invariants and indent/outdent semantics.
-13. **Insertion (Enter):** `./insertion.md` — caret-mode Enter behaviors
+12. **Clipboard:** `./clipboard.md` — cut/copy/paste behavior, caret placement, and move rules.
+13. **Indent/Outdent & structure rules:** `./note-structure-rules.md` — structural invariants and indent/outdent semantics.
+14. **Insertion (Enter):** `./insertion.md` — caret-mode Enter behaviors
     (start/middle/end), zoom-boundary insertion rules, and focus rules.
-14. **Reordering (keyboard):** `./reordering.md` — Reordering behavior and
+15. **Reordering (keyboard):** `./reordering.md` — Reordering behavior and
    placement invariants.
-15. **Reordering (drag & drop):** `./drag-and-drop.md` — not supported yet; future plan lives here.
-16. **Deletion:** `./deletion.md` — caret vs. structural deletion semantics, merge/no-op rules, and spacing contract.
-17. **Note body:** `./body.md` — optional rich-text region attached to a note (`Shift+Enter`); its inline selection is trapped.
+16. **Reordering (drag & drop):** `./drag-and-drop.md` — not supported yet; future plan lives here.
+17. **Deletion:** `./deletion.md` — caret vs. structural deletion semantics, merge/no-op rules, and spacing contract.
+18. **Note body:** `./body.md` — optional rich-text region attached to a note (`Shift+Enter`); its inline selection is trapped.
 
 ## Glossary (minimal)
 

@@ -275,7 +275,7 @@ describe('note ids on paste', () => {
     // inline rich nodes (note links, formatting) rather than flatten to plain
     // text. note1 gets a note link, is copied, then pasted into note3's body.
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@note2');
+    await typeText(remdo, ' @note2');
     await pressKey(remdo, { key: 'Enter' });
 
     await selectStructuralNotes(remdo, 'note1');
@@ -317,7 +317,7 @@ describe('note ids on paste', () => {
 
   it('materializes same-document note-link docId in clipboard payload', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
-    await typeText(remdo, '@note2');
+    await typeText(remdo, ' @note2');
     await pressKey(remdo, { key: 'Enter' });
 
     await selectStructuralNotes(remdo, 'note1');
@@ -330,7 +330,7 @@ describe('note ids on paste', () => {
     await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
 
-    const copiedNotes = flattenOutline(readOutline(remdo)).filter((node) => node.text === 'note1note2 ');
+    const copiedNotes = flattenOutline(readOutline(remdo)).filter((node) => node.text === 'note1 note2 ');
     const pastedNoteId = copiedNotes.at(-1)!.noteId!;
     const rootListNode = getSerializedRootListNode(remdo) as SerializedLexicalNode;
     const pastedListItem = findSerializedListItem(rootListNode, pastedNoteId)!;
