@@ -372,6 +372,14 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
     [$commitOption, editor]
   );
 
+  // Cancel from inside a focus-trapping popup (the calendar): close and return
+  // focus to the editor. Lexical key commands do not fire while focus is trapped
+  // in the popup, so the popup calls this directly (e.g. on Escape).
+  const handleCancel = useCallback(() => {
+    closeSession();
+    editor.focus();
+  }, [closeSession, editor]);
+
   useEffect(() => {
     installOutlineSelectionHelpers(editor);
     syncFromSelection();
@@ -580,6 +588,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
         onItemMouseOver: handleItemMouseOver,
         onItemMouseDown: handleItemMouseDown,
         commitOption: handleCommitOption,
+        cancel: handleCancel,
       })}
     </div>,
     portalRoot

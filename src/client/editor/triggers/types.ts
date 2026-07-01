@@ -31,6 +31,9 @@ export interface TriggerPopupHandlers<TOption> {
   // Commit an explicit option (for popups that pick a value directly, like a
   // calendar day, rather than from the resolved option list).
   commitOption: (option: TOption) => void;
+  // Cancel the picker and return focus to the editor. Used by a focus-trapping
+  // popup (the calendar), where Lexical key commands do not fire.
+  cancel: () => void;
 }
 
 // The range covering the trigger character through the caret — the span a

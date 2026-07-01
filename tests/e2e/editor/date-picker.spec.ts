@@ -1,5 +1,5 @@
 import { expect, test } from '#editor/fixtures';
-import { setCaretAtText } from '#editor/locators';
+import { editorLocator, setCaretAtText } from '#editor/locators';
 
 // Regression guards for the `!` date picker (docs/outliner/dates.md and the
 // shared trigger lifecycle in docs/outliner/triggers.md). These need a real
@@ -31,6 +31,33 @@ test.describe('date picker (docs/outliner/dates.md)', () => {
       return panel.getBoundingClientRect().width;
     });
     expect(width).toBeGreaterThan(150);
+  });
+
+  test('the ! calendar is keyboard-navigable and commits the focused day', async ({ page, editor }) => {
+    // The ! picker is a modal calendar dialog: focus moves into the grid, arrow
+    // keys navigate days, and Enter commits the focused (not just today's) day.
+    // This is browser-only — jsdom has no focus or native caret.
+    await editor.load('basic');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.type(' !');
+
+    // Focus lands on a day cell (a button). Read the focused day, arrow right one
+    // day, and confirm the DOM focus moved to a different day — i.e. the calendar
+    // grid owns the arrow keys.
+    const dayButton = page.getByRole('button', { name: anyDayButton }).first();
+    await expect(dayButton).toBeVisible();
+    const beforeIso = await page.evaluate(() =>
+      (document.activeElement as HTMLElement | null)?.getAttribute('data-date-picker-day') ?? null);
+    await page.keyboard.press('ArrowRight');
+    const afterIso = await page.evaluate(() =>
+      (document.activeElement as HTMLElement | null)?.getAttribute('data-date-picker-day') ?? null);
+    expect(beforeIso).not.toBeNull();
+    expect(afterIso).not.toBe(beforeIso); // the grid moved focus by a day
+
+    await page.keyboard.press('Enter');
+    // The picker closed and a date token for the navigated day was inserted.
+    await expect(dayButton).toHaveCount(0);
+    await expect(editorLocator(page).locator('[data-date-node-key]')).toHaveCount(1);
   });
 
   test('the ! picker does not reopen when the caret returns beside an existing !', async ({ page, editor }) => {

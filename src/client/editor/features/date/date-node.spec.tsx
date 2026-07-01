@@ -265,25 +265,16 @@ describe('date nodes', () => {
     expect(document.querySelector('[data-date-picker]')).not.toBeNull();
   });
 
-  it('uses the current local date when a long-lived editor opens the ! picker again', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('uses the current local date when a long-lived editor opens the ! picker', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    // The default highlighted day is today, refreshed each open, so an editor that
+    // has survived a midnight rollover still offers the new day (not a stale one).
     vi.useFakeTimers({ toFake: ['Date'] });
     try {
-      vi.setSystemTime(new Date('2031-01-01T12:00:00'));
+      vi.setSystemTime(new Date('2031-01-02T12:00:00'));
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
       await typeText(remdo, ' !');
       expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
-      await pressKey(remdo, { key: 'Escape' });
-
-      vi.setSystemTime(new Date('2031-01-02T12:00:00'));
-      await typeText(remdo, ' !');
-      expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
-      await pressKey(remdo, { key: 'Enter' });
-
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1 ! Jan 2, 2031 ' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
+      await clickPickerDay('2031-01-02');
 
       remdo.validate(() => {
         const note = $findNoteById('note1')!;

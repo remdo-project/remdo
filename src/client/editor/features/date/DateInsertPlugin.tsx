@@ -18,6 +18,8 @@ function getTodayIsoDate(): string {
 export function DateInsertPlugin() {
   const spec: TriggerSpec<string> = {
     triggerChar: '!',
+    // The ! picker is a modal calendar dialog: focus moves into the grid.
+    focusModel: 'trap',
     // Query text is not interpreted in this phase; the only option is today.
     $resolveOptions: () => [getTodayIsoDate()],
     $commit: (isoDate, { range }) => {
@@ -32,6 +34,7 @@ export function DateInsertPlugin() {
             handlers.commitOption(isoDate);
           }
         }}
+        onCancel={handlers.cancel}
       />
     ),
   };
