@@ -43,6 +43,11 @@ test.describe('note links', () => {
     await page.keyboard.press('ControlOrMeta+Enter');
 
     // The chord did nothing: the note is still unchecked and the picker is open.
+    // (The swallow is scoped to the app's structural chords — Cmd/Ctrl+Enter and
+    // Cmd/Ctrl+Shift+Arrow — so ordinary editing chords like paste/copy/undo fall
+    // through and can still edit the query. See useTriggerSession's CRITICAL
+    // KEY_DOWN handler; paste-into-query is covered by inspection, not here, since
+    // driving the OS clipboard in headless Chromium is unreliable.)
     await expect(note1).not.toHaveClass(/list-item-checked/);
     await expect(picker).toHaveCount(1);
   });
