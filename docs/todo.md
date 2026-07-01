@@ -90,13 +90,17 @@ Rules:
 ## Admin role follow-ups
 
 The persistent admin role + secret-gated self-enrollment foundation is built
-(Better Auth admin plugin, `resolveAdminSessionUserId`, `/api/admin/enroll`).
-Still to come:
+(Better Auth admin plugin, `resolveAdminSessionUserId`, `/api/admin/enroll`, the
+role-conditional `/admin` route, and `role` on the `/api/current-user`
+bootstrap). Still to come:
 
-- Role-gated admin *panel* route that redirects non-admins to self-enrollment.
-  Deferred until there is panel content to gate — the source-linking PR adds the
-  source-server management UI, so the gated panel ships there. The enrollment
-  route (`/admin/enroll`) already exists.
+- Reconsider `/api/config` vs `/api/health` — maybe one `/api/status` covers both.
+- Admin *panel* content behind `/admin` (the signed-in-admin branch is a
+  placeholder for now). The source-linking PR adds the source-server management
+  UI, so the panel ships there.
+- Toolbar **Admin** link for signed-in admins (`App.tsx`). Deferred as
+  pure-additive UI — `App.tsx` is untouched by this PR, so it can land later
+  against the `role`-on-bootstrap that now exists, with no new infra.
 - Runtime public-policy toggle (replace `ALLOW_SIGNUP` env with admin-managed,
   DB-backed state). Needs auth hot-swap (rebuild `betterAuth` to flip the
   construction-time `disableSignUp`), so it ships with the source-linking PR that

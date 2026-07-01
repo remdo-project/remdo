@@ -57,9 +57,14 @@ the user.
   the projection.
 - Every admin API authorizes from the caller's session + role — except the
   self-enrollment endpoint itself, which has no session+role to check (it is how
-  the role is acquired) and is instead gated by `ADMIN_SECRET` (below). The admin
-  panel route is gated by session + role too; a non-admin (or unauthenticated)
-  visitor is sent to self-enrollment rather than the panel.
+  the role is acquired) and is instead gated by `ADMIN_SECRET` (below).
+- `/admin` is the single admin entry route. It renders by the caller's session
+  and role: a signed-in admin sees the admin panel; a signed-in non-admin sees
+  the self-enrollment form asking only for the secret (in-place promotion); an
+  unauthenticated visitor is offered both a sign-in link (returning to `/admin`)
+  and the full enrollment form. The client learns the current user's role from
+  the `/api/current-user` bootstrap; this drives rendering only — authorization
+  stays server-side.
 - Self-enrollment is gated by `ADMIN_SECRET` (see
   [docs/config.md](./config.md#admin-bootstrap-and-enrollment)): a visitor who
   presents the secret is granted the admin role. The secret is a shared **gate
@@ -69,6 +74,11 @@ the user.
   the public-signup policy. So on an empty server it registers the first account
   and grants the role in one step, and closing public signup never locks out
   admin bootstrap.
+- Admin entry is discoverable by context: a signed-in admin sees an **Admin**
+  link in the app toolbar, and a non-public server (closed signup, where
+  bootstrapping an admin is expected) surfaces a link to `/admin` from the login
+  page. A public server omits the login-page link — `/admin` is still reachable
+  directly.
 
 ## CSRF Protection
 
