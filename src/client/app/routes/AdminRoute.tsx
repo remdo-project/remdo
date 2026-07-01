@@ -1,15 +1,33 @@
-import { Alert, Button, Container, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Anchor, Button, Container, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import { rememberAuthenticatedSession } from '#client/app/auth/client';
+import type { AdminRouteState } from './admin-route-loader';
+import { createPostAuthNextSearch } from './post-auth-path';
 import { resolveAdminEnrollPostCreateDestination } from './admin-enroll-post-create-destination';
 
-// Self-enrollment: present the admin secret to acquire the admin role. The
-// account fields create + sign in a first admin on an empty server (works even
-// with public signup off); an already-signed-in visitor is promoted in place,
-// so they may submit with the secret alone. The server gates this on the secret
-// (see docs/access-model.md#admin-role), never on an existing role.
-export default function AdminEnrollRoute() {
+export default function AdminRoute() {
+  const state = useLoaderData<AdminRouteState>();
+
+  if (state.kind === 'admin') {
+    return (
+      <Container size="xs" py="xl">
+        <Paper withBorder p="xl" radius="md">
+          <Stack gap="xs">
+            <Title order={1}>Admin</Title>
+            <Text c="dimmed" size="sm">
+              You are an admin. The admin panel arrives with source-server linking.
+            </Text>
+          </Stack>
+        </Paper>
+      </Container>
+    );
+  }
+
+  return <EnrollForm createAccount={state.kind === 'enroll'} />;
+}
+
+function EnrollForm({ createAccount }: { createAccount: boolean }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [adminSecret, setAdminSecret] = useState('');
@@ -25,12 +43,8 @@ export default function AdminEnrollRoute() {
     setErrorMessage(null);
 
     try {
-      const trimmedEmail = email.trim();
-      const trimmedName = name.trim();
-      // Send account fields only when creating an account; an authenticated
-      // visitor promoting in place submits the secret alone.
-      const accountFields = trimmedEmail || trimmedName || password
-        ? { email: trimmedEmail, name: trimmedName, password }
+      const accountFields = createAccount
+        ? { email: email.trim(), name: name.trim(), password }
         : {};
       const response = await fetch('/api/admin/enroll', {
         method: 'POST',
@@ -66,10 +80,21 @@ export default function AdminEnrollRoute() {
           <div>
             <Title order={1}>Become admin</Title>
             <Text c="dimmed" size="sm">
-              Enter the server admin secret. On a new server, also fill in the
-              account fields to register the first admin.
+              {createAccount
+                ? 'Enter the admin secret, plus a name, email, and password to register the first admin.'
+                : 'Enter the admin secret to make your account an admin.'}
             </Text>
           </div>
+
+          {createAccount && (
+            <Text c="dimmed" size="sm">
+              Already have an account?{' '}
+              <Anchor component={Link} to={`/login${createPostAuthNextSearch(new Request(globalThis.location.href))}`}>
+                Log in first
+              </Anchor>
+              , then enter just the secret.
+            </Text>
+          )}
 
           {errorMessage && (
             <Alert color="red" title="Enrollment failed">
@@ -88,25 +113,32 @@ export default function AdminEnrollRoute() {
                 required
                 value={adminSecret}
               />
-              <TextInput
-                autoComplete="name"
-                label="Name"
-                onChange={(event) => setName(event.currentTarget.value)}
-                value={name}
-              />
-              <TextInput
-                autoComplete="email"
-                label="Email"
-                onChange={(event) => setEmail(event.currentTarget.value)}
-                type="email"
-                value={email}
-              />
-              <PasswordInput
-                autoComplete="new-password"
-                label="Password"
-                onChange={(event) => setPassword(event.currentTarget.value)}
-                value={password}
-              />
+              {createAccount && (
+                <>
+                  <TextInput
+                    autoComplete="name"
+                    label="Name"
+                    onChange={(event) => setName(event.currentTarget.value)}
+                    required
+                    value={name}
+                  />
+                  <TextInput
+                    autoComplete="email"
+                    label="Email"
+                    onChange={(event) => setEmail(event.currentTarget.value)}
+                    required
+                    type="email"
+                    value={email}
+                  />
+                  <PasswordInput
+                    autoComplete="new-password"
+                    label="Password"
+                    onChange={(event) => setPassword(event.currentTarget.value)}
+                    required
+                    value={password}
+                  />
+                </>
+              )}
               <Button loading={pending} type="submit">
                 Become admin
               </Button>

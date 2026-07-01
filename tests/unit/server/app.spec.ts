@@ -61,6 +61,7 @@ describe('remdo api app', () => {
       'ALL /api/*',
       'ALL /api/*',
       'GET /api/health',
+      'GET /api/config',
       'GET /api/current-user',
       'GET /api/current-user/source-servers/:serverId/current-user',
       'POST /api/current-user/source-servers/:serverId/documents/:docId/sync-tokens',
@@ -158,6 +159,17 @@ describe('remdo api app', () => {
     expect(response.status).toBe(HTTP_STATUS.UNAUTHORIZED);
     await expect(response.json()).resolves.toEqual({ error: 'Authentication required.' });
     await expect(harness.registry.getDocument('main')).resolves.toBeNull();
+  });
+
+  it('serves public config without a session', async () => {
+    const publicHarness = createHarness({ allowSignup: true });
+    const publicResponse = await publicHarness.app.request('/api/config');
+    expect(publicResponse.status).toBe(HTTP_STATUS.OK);
+    await expect(publicResponse.json()).resolves.toEqual({ publicServer: true });
+
+    const privateHarness = createHarness({ allowSignup: false });
+    await expect((await privateHarness.app.request('/api/config')).json())
+      .resolves.toEqual({ publicServer: false });
   });
 
   it('returns 401 for current user without a session', async () => {

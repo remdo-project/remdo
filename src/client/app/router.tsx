@@ -1,8 +1,10 @@
 import { createBrowserRouter, redirect, redirectDocument } from 'react-router-dom';
 import App from './App';
 import { resolveSessionGateState } from './auth/client';
+import { getPublicClientConfig } from './config';
 import { getCachedCurrentUserBootstrap, getHomeDocumentId } from './documents/current-user-bootstrap';
-import AdminEnrollRoute from './routes/AdminEnrollRoute';
+import AdminRoute from './routes/AdminRoute';
+import { adminRouteLoader } from './routes/admin-route-loader';
 import DocumentRoute from './routes/DocumentRoute';
 import LoginRoute from './routes/LoginRoute';
 import LogoutRoute from './routes/LogoutRoute';
@@ -52,7 +54,8 @@ async function requireAuthenticatedRoute(request: Request) {
 async function requirePublicAuthRoute(request: Request) {
   const sessionState = await resolveSessionGateState();
   if (sessionState.status === 'unauthenticated') {
-    return null;
+    // Carry the public-server flag so the login page can gate its admin link.
+    return { publicServer: (await getPublicClientConfig()).publicServer };
   }
 
   const url = new URL(request.url);
@@ -140,8 +143,9 @@ const routes = [
     hydrateFallbackElement,
   },
   {
-    path: '/admin/enroll',
-    element: <AdminEnrollRoute />,
+    path: '/admin',
+    loader: adminRouteLoader,
+    element: <AdminRoute />,
     hydrateFallbackElement,
   },
   {

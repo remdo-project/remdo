@@ -33,6 +33,12 @@ export function createApiRoutes(dependencies: ServerRouteDependencies) {
     return c.json({ ok: true });
   });
 
+  // Unauthenticated public client config: facts the pre-auth UI needs before a
+  // session exists (e.g. the login page gating its admin link on signup policy).
+  routes.get('/config', (c) => {
+    return c.json({ publicServer: dependencies.auth.allowSignup });
+  });
+
   routes.route('/current-user', createCurrentUserRoutes(dependencies));
   routes.route('/documents', createDocumentRoutes(dependencies));
   routes.route('/admin', createAdminRoutes(dependencies));
