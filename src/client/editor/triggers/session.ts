@@ -79,10 +79,10 @@ function inferSessionFromAnchor(
   return null;
 }
 
-// Open a fresh session: scan back from the caret to the nearest trigger and read
-// its query. Used only when a trigger was just typed; this is the only path that
-// may locate a trigger by scanning, and the caller gates it on a boundary.
-export function $openTriggerSession(
+// Scan back from the caret to the nearest trigger and read its query. This is
+// the only path that locates a trigger by scanning; both a fresh open and a
+// pinned session's node-gone recovery route through it.
+function $resolveFromInferredTrigger(
   triggerChar: string,
   anchorNode: TextNode,
   caretOffset: number
@@ -100,6 +100,17 @@ export function $openTriggerSession(
     return null;
   }
   return { session, triggerNode, query };
+}
+
+// Open a fresh session: scan back from the caret to the nearest trigger and read
+// its query. Used only when a trigger was just typed, and the caller gates it on
+// a boundary.
+export function $openTriggerSession(
+  triggerChar: string,
+  anchorNode: TextNode,
+  caretOffset: number
+): ResolvedTriggerSession | null {
+  return $resolveFromInferredTrigger(triggerChar, anchorNode, caretOffset);
 }
 
 // Re-resolve an OPEN session pinned to its origin span, without ever retargeting
@@ -126,17 +137,5 @@ export function $resolvePinnedSession(
   }
 
   // Pinned node is gone: recover the same trigger from the current text.
-  const inferred = inferSessionFromAnchor(triggerChar, anchorNode, caretOffset);
-  if (!inferred) {
-    return null;
-  }
-  const inferredNode = $getNodeByKey<TextNode>(inferred.textNodeKey);
-  if (!$isTextNode(inferredNode)) {
-    return null;
-  }
-  const query = readQueryAcrossTextNodes(triggerChar, inferredNode, inferred.triggerOffset, anchorNode, caretOffset);
-  if (query === null) {
-    return null;
-  }
-  return { session: inferred, triggerNode: inferredNode, query };
+  return $resolveFromInferredTrigger(triggerChar, anchorNode, caretOffset);
 }

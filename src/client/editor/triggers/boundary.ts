@@ -3,7 +3,7 @@ import type { TextNode } from 'lexical';
 
 // A trigger only opens at a boundary: the start of note text, after whitespace,
 // after opening punctuation, or after an atomic inline token (a decorator node
-// such as a date). See docs/outliner/triggers.md.
+// such as a date). See docs/outliner/popups.md.
 
 const OPENING_BOUNDARY_CHARS = new Set(['(', '[', '{']);
 const WHITESPACE_PATTERN = /\s/u;

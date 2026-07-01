@@ -12,7 +12,7 @@ function getTodayIsoDate(): string {
 
 // Dates are inserted through `!`, an inline trigger character. The shared
 // trigger engine owns the open/dismiss/confirm lifecycle (see
-// docs/outliner/triggers.md); this supplies only the date specifics. The option
+// docs/outliner/popups.md); this supplies only the date specifics. The option
 // value is an ISO date string: the keyboard path (Enter/Tab) confirms today; a
 // calendar day click commits the clicked date directly via `commitOption`.
 export function DateInsertPlugin() {

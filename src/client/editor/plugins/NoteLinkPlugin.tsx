@@ -10,7 +10,7 @@ import { NoteLinkPicker } from './note-link/NoteLinkPicker';
 
 // Note links are inserted through `@`, an inline trigger character. The shared
 // trigger engine owns the open/dismiss/confirm lifecycle (see
-// docs/outliner/triggers.md); this supplies only the note-link specifics:
+// docs/outliner/popups.md); this supplies only the note-link specifics:
 // document-scoped option search, the listbox popup, and the committed link node.
 export function NoteLinkPlugin() {
   const { docId } = useCollaborationStatus();

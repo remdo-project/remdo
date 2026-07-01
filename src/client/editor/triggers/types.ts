@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { RangeSelection, TextNode } from 'lexical';
 
-// Shared by every inline trigger picker. See docs/outliner/triggers.md.
+// Shared by every inline trigger picker. See docs/outliner/popups.md.
 
 export interface PickerAnchor {
   left: number;

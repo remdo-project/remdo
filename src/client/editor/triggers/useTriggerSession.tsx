@@ -64,7 +64,7 @@ function isTypingTrigger(event: KeyboardEvent, triggerChar: string): boolean {
 // The shared inline-trigger lifecycle. Owns open gating (fresh keypress at a
 // boundary, never on caret re-entry), query sync, dismissal, and command
 // wiring; the spec supplies option source, popup, and commit. See
-// docs/outliner/triggers.md.
+// docs/outliner/popups.md.
 export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNode {
   const [editor] = useLexicalComposerContext();
   const sessionToken = useRef(Symbol('trigger-session')).current;
@@ -373,6 +373,19 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       return false;
     };
 
+    // Up/Down move the active option, but only as bare arrows: a modified arrow
+    // (e.g. Shift+Down) is not navigation, so let it fall through to the editor.
+    const $handleMoveCommand = (direction: 'up' | 'down') => (event: KeyboardEvent | null) => {
+      if (!sessionRef.current) {
+        return false;
+      }
+      if (event && (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)) {
+        return false;
+      }
+      moveActive(direction);
+      return completeKeyboardCommand(event);
+    };
+
     return mergeRegister(
       editor.registerRootListener((nextRoot, previousRoot) => {
         if (previousRoot === nextRoot) {
@@ -405,34 +418,8 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
         },
         COMMAND_PRIORITY_LOW
       ),
-      editor.registerCommand(
-        KEY_ARROW_DOWN_COMMAND,
-        (event: KeyboardEvent | null) => {
-          if (!sessionRef.current) {
-            return false;
-          }
-          if (event && (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)) {
-            return false;
-          }
-          moveActive('down');
-          return completeKeyboardCommand(event);
-        },
-        COMMAND_PRIORITY_CRITICAL
-      ),
-      editor.registerCommand(
-        KEY_ARROW_UP_COMMAND,
-        (event: KeyboardEvent | null) => {
-          if (!sessionRef.current) {
-            return false;
-          }
-          if (event && (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)) {
-            return false;
-          }
-          moveActive('up');
-          return completeKeyboardCommand(event);
-        },
-        COMMAND_PRIORITY_CRITICAL
-      ),
+      editor.registerCommand(KEY_ARROW_DOWN_COMMAND, $handleMoveCommand('down'), COMMAND_PRIORITY_CRITICAL),
+      editor.registerCommand(KEY_ARROW_UP_COMMAND, $handleMoveCommand('up'), COMMAND_PRIORITY_CRITICAL),
       editor.registerCommand(KEY_ENTER_COMMAND, $handleEnterCommand, COMMAND_PRIORITY_CRITICAL),
       editor.registerCommand(KEY_TAB_COMMAND, $handleTabCommand, COMMAND_PRIORITY_CRITICAL),
       editor.registerCommand(
