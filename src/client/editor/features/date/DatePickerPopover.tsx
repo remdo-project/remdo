@@ -58,7 +58,10 @@ export function DatePickerPanel({ isoDate, mode, onChange, onCancel }: DatePicke
     >
       <DatePicker
         value={isoDate}
-        defaultDate={isoDate ? new Date(isoDate) : undefined}
+        // Pass the ISO string, not `new Date(isoDate)`: `new Date('YYYY-MM-DD')`
+        // parses as UTC midnight, which is the previous local day west of UTC, so
+        // a first-of-month date could open the calendar on the wrong month.
+        defaultDate={isoDate || undefined}
         onChange={onChange}
         getDayProps={(date) => ({
           // Mantine passes a YYYY-MM-DD string; trim any time suffix defensively.
