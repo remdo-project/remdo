@@ -572,7 +572,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       disposeRootBlurListener = registerRootBlurListener(nextRoot);
     });
 
-    const handleDocumentMouseDown = (event: MouseEvent) => {
+    const handleOutsidePointer = (event: MouseEvent) => {
       if (!sessionRef.current) {
         return;
       }
@@ -590,12 +590,20 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
       }
       closeSession();
     };
-    document.addEventListener('mousedown', handleDocumentMouseDown, true);
+    // Listen on both pointerdown and mousedown, in capture. A note-controls button
+    // (e.g. the menu button) dismisses on its own pointerdown handler and stops
+    // propagation, and fires before mousedown; catching pointerdown in capture
+    // dismisses the picker (and clears the single-open registry) before that
+    // handler runs, so the menu opens on the same click instead of being blocked
+    // by a still-open picker.
+    document.addEventListener('pointerdown', handleOutsidePointer, true);
+    document.addEventListener('mousedown', handleOutsidePointer, true);
 
     return () => {
       unregisterRootListener();
       disposeRootBlurListener();
-      document.removeEventListener('mousedown', handleDocumentMouseDown, true);
+      document.removeEventListener('pointerdown', handleOutsidePointer, true);
+      document.removeEventListener('mousedown', handleOutsidePointer, true);
     };
   }, [closeSession, editor]);
 
