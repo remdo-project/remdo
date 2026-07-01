@@ -5,9 +5,10 @@ export interface PublicClientConfig {
 let cached: PublicClientConfig | null = null;
 
 // Unauthenticated public config for the pre-auth UI (e.g. the login page gating
-// its admin link on signup policy). Cached per session; defaults conservatively
-// to a private server if the request fails, so the admin link is not shown on an
-// uncertain state.
+// its admin link on signup policy). Cached per session. On failure it defaults
+// to `publicServer: true` — the conservative choice, since the login page hides
+// the admin-setup link on a public server, so an unknown policy hides it rather
+// than leaking it on a transient error.
 export async function getPublicClientConfig(): Promise<PublicClientConfig> {
   if (cached) {
     return cached;
@@ -22,6 +23,6 @@ export async function getPublicClientConfig(): Promise<PublicClientConfig> {
   } catch {
     // fall through to the conservative default
   }
-  cached = { publicServer: false };
+  cached = { publicServer: true };
   return cached;
 }
