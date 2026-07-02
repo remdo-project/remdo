@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { resolveActor, resolveActorResolution } from '#server/auth/actor';
+import { normalizeSourceIssuer } from '#server/auth/auth';
 import { createTestResource } from '../_support/test-resource';
 import { createServerAppHarness, TEST_PREVIEW_PORT } from './_support/server-app-harness';
 
@@ -94,5 +95,26 @@ describe('server auth trusted origins', () => {
       `http://127.0.0.1:${TEST_PREVIEW_PORT}`,
       `http://test-host:${TEST_PREVIEW_PORT}`,
     ]);
+  });
+});
+
+describe('normalizeSourceIssuer', () => {
+  it('upgrades a non-loopback http source to https, mirroring Better Auth', () => {
+    // A source served over http still advertises its issuer over https when the
+    // host is not loopback; the home must expect that or issuer validation fails.
+    expect(normalizeSourceIssuer('http://source.example')).toBe('https://source.example');
+    expect(normalizeSourceIssuer('http://192.168.1.10:7070')).toBe('https://192.168.1.10:7070');
+  });
+
+  it('leaves an https source unchanged', () => {
+    expect(normalizeSourceIssuer('https://source.example')).toBe('https://source.example');
+  });
+
+  it('keeps http for loopback hosts (dev)', () => {
+    expect(normalizeSourceIssuer('http://localhost:4000')).toBe('http://localhost:4000');
+    expect(normalizeSourceIssuer('http://127.0.0.1:4000')).toBe('http://127.0.0.1:4000');
+    expect(normalizeSourceIssuer('http://127.0.0.2:4000')).toBe('http://127.0.0.2:4000');
+    expect(normalizeSourceIssuer('http://app.localhost:4000')).toBe('http://app.localhost:4000');
+    expect(normalizeSourceIssuer('http://[::1]:4000')).toBe('http://[::1]:4000');
   });
 });
