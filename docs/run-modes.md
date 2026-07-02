@@ -116,10 +116,12 @@ per-mode facts.
   without editing local defaults. `pnpm run dev:pwa` uses `PORT_BASE + 20` for
   its range and serves the PWA preview on that shifted `PORT`, so it can run
   beside `pnpm run dev`. `pnpm run dev:docker` starts a Docker home server at
-  `127.0.0.1:(PORT_BASE + 40)` for manual OAuth linking against the dev server,
+  `127.0.0.1:(PORT_BASE + 40)` for manual source linking against the dev server,
   and redirects the matching `localhost` URL to that canonical browser origin.
   Start the source dev server with `HOST=0.0.0.0 pnpm run dev` so the Docker
-  home can exchange OAuth tokens with it.
+  home can reach it; the source is linked by its host-IP origin (shared by the
+  browser and the container), and the home is registered on it through the
+  home's `/admin` panel — not preconfigured.
   Current dev mode runs the web app with the RemDo API mounted in the Vite dev
   server, plus the Y-Sweet collaboration server. Server modes run the standalone
   API server with Better Auth plus a SQLite-backed document registry.
@@ -138,11 +140,11 @@ per-mode facts.
   `tools/lib/stable-auth-users.ts`). Seeded fixtures appear as documents titled
   `fixture: <name>` (for example `fixture: tree-complex`) and are opened from the
   document chooser.
-  `pnpm run dev:oauth-client` is the Docker/OAuth-linking provisioner: it
-  provisions the stable users, prints their credentials, and (when
-  `REMDO_DEV_HOME_ORIGIN` is set) creates or rotates the source OAuth client used
-  for cross-server linking. It is SQL-only and used by the `dev:docker` and
-  Docker e2e flows; developers rarely run it directly.
+  `pnpm run dev:users` provisions the stable users and prints their credentials
+  on a target server (via `AUTH_URL`). It is SQL-only and used by the `dev:docker`
+  and Docker e2e flows to seed the source's users; the home's OAuth client is
+  registered at runtime through the `/admin` panel, not provisioned here.
+  Developers rarely run it directly.
   Browser clients use the RemDo API Y-Sweet document client token path plus
   `/d/*`; `/doc*` control routes are not routed through the gateway. Y-Sweet
   token URLs use the resolved `AUTH_URL` origin and ignore request forwarding

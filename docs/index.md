@@ -15,7 +15,7 @@ line (align continuation lines by two spaces).
 Keep the map current—refresh summaries/buckets only when they are materially
 outdated or a doc’s role materially changes.
 
-- `docs/access-model.md` (Long). Document access model for RemDo:
+- `docs/access-model.md` (Very long). Document access model for RemDo:
   owner-backed access, direct local-user grants, cross-server source linking,
   deferred public/link access, authenticated app access, and the persistent
   admin role.
