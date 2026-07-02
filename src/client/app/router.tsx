@@ -5,6 +5,8 @@ import { getPublicClientConfig } from './config';
 import { getCachedCurrentUserBootstrap, getHomeDocumentId } from './documents/current-user-bootstrap';
 import AdminRoute from './routes/AdminRoute';
 import { adminRouteLoader } from './routes/admin-route-loader';
+import OAuthConsentRoute from './routes/OAuthConsentRoute';
+import OAuthRegisterHomeRoute from './routes/OAuthRegisterHomeRoute';
 import DocumentRoute from './routes/DocumentRoute';
 import LoginRoute from './routes/LoginRoute';
 import LogoutRoute from './routes/LogoutRoute';
@@ -146,6 +148,23 @@ const routes = [
     path: '/admin',
     loader: adminRouteLoader,
     element: <AdminRoute />,
+    hydrateFallbackElement,
+  },
+  {
+    // Source-side consent screen: shown when a home's user authorizes the home to
+    // act on their behalf. Reachable only with a source session.
+    path: '/oauth/consent',
+    loader: ({ request }: { request: Request }) => requireAuthenticatedRoute(request),
+    element: <OAuthConsentRoute />,
+    hydrateFallbackElement,
+  },
+  {
+    // Source-side confirmation page a home redirects an admin to, to register the
+    // home as an OAuth client. Requires a source session up front so the user
+    // signs in before authorizing.
+    path: '/oauth/register-home',
+    loader: ({ request }: { request: Request }) => requireAuthenticatedRoute(request),
+    element: <OAuthRegisterHomeRoute />,
     hydrateFallbackElement,
   },
   {

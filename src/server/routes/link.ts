@@ -117,7 +117,7 @@ export function createLinkRoutes({
       return c.json({ error: 'Failed to register the home client.' }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
 
-    const done = new URL(`${homeOrigin}/admin/source-servers`);
+    const done = new URL(`${homeOrigin}/admin`);
     done.searchParams.set('sourceId', homeSourceId);
     done.searchParams.set('handle', handle);
     done.searchParams.set('code', code);

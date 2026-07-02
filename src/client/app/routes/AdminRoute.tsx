@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import { rememberAuthenticatedSession } from '#client/app/auth/client';
 import { clearCurrentUserBootstrapCache } from '#client/app/documents/current-user-bootstrap';
+import AdminSourceServersRoute from './AdminSourceServersRoute';
 import type { AdminRouteState } from './admin-route-loader';
 import { resolveAdminEnrollPostCreateDestination } from './admin-enroll-post-create-destination';
 
@@ -10,18 +11,8 @@ export default function AdminRoute() {
   const state = useLoaderData<AdminRouteState>();
 
   if (state.kind === 'admin') {
-    return (
-      <Container size="xs" py="xl">
-        <Paper withBorder p="xl" radius="md">
-          <Stack gap="xs">
-            <Title order={1}>Admin</Title>
-            <Text c="dimmed" size="sm">
-              You are an admin. The admin panel arrives with source-server linking.
-            </Text>
-          </Stack>
-        </Paper>
-      </Container>
-    );
+    // The admin panel currently manages the home's source servers.
+    return <AdminSourceServersRoute />;
   }
 
   return <EnrollForm />;
