@@ -30,19 +30,20 @@ APP_PUBLIC_URL="http://${DOCKER_TEST_BROWSER_HOST}:${PORT}"
 SOURCE_PORT="$((PORT_BASE + SOURCE_PORT_SHIFT))"
 SOURCE_COLLAB_SERVER_PORT="$((PORT_BASE + SOURCE_PORT_SHIFT + 4))"
 SOURCE_YSWEET_CONNECTION_STRING="ys://127.0.0.1:${SOURCE_COLLAB_SERVER_PORT}"
+# Source servers are admin-managed at runtime (registered through the browser),
+# not env-configured. The home links the source by its browser origin; the
+# containerized home reaches the host source at that SAME origin via
+# `--add-host=localhost:host-gateway` (added to DOCKER_RUN_ARGS below), so
+# in-container `localhost:SOURCE_PORT` routes to the host — no separate token
+# origin, matching the same-origin runtime model.
 SOURCE_ORIGIN="http://localhost:${SOURCE_PORT}"
-source_token_host="$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9.]*\).*/\1/p')"
-if [[ -z "${source_token_host}" ]]; then
-  echo "Failed to detect a source token host address." >&2
-  exit 1
-fi
-SOURCE_TOKEN_ORIGIN="http://${source_token_host}:${SOURCE_PORT}"
-LINKABLE_REMDO_SERVERS_JSON='[{"id":"source","label":"Local dev server","baseUrl":"'"${SOURCE_ORIGIN}"'","tokenBaseUrl":"'"${SOURCE_TOKEN_ORIGIN}"'","clientId":"'"${REMDO_DEV_OAUTH_CLIENT_ID}"'","clientSecret":"'"${REMDO_DEV_OAUTH_CLIENT_SECRET}"'"}]'
 
 CONTAINER_NAME="${IMAGE_NAME}-${PORT}"
 HEALTH_URL="${APP_PUBLIC_URL%/}/health"
 DATA_CLEANED="false"
-DOCKER_RUN_ARGS=()
+# Route in-container `localhost` to the host so the home reaches the host source
+# at the same `localhost:SOURCE_PORT` origin the browser uses (same-origin model).
+DOCKER_RUN_ARGS=(--add-host=localhost:host-gateway)
 
 # Sourcing env.defaults.sh at the top exported the gateway PORT_BASE-derived
 # service ports into this process. Any child that re-derives from a shifted
@@ -109,15 +110,16 @@ trap cleanup EXIT
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 docker rm -f "${BOOTSTRAP_CONTAINER_NAME}" >/dev/null 2>&1 || true
 
-echo "Provisioning source OAuth client for ${APP_PUBLIC_URL}..."
-# dev:users only reads AUTH_URL + the OAuth client vars (not the derived service
-# ports), so the gateway port exports do not need clearing here.
+echo "Provisioning source dev users for ${SOURCE_ORIGIN}..."
+# Seed the stable users the linking flow signs in as on the source. The home
+# registers on the source through the browser (no pre-provisioned OAuth client).
+# dev:users only reads AUTH_URL (not the derived service ports), so the gateway
+# port exports do not need clearing here.
 env \
   AUTH_URL="${SOURCE_ORIGIN}" \
   DATA_DIR="${SOURCE_DATA_DIR}" \
   PORT="${SOURCE_PORT}" \
-  REMDO_DEV_HOME_ORIGIN="${APP_PUBLIC_URL}" \
-  pnpm run dev:oauth-client
+  pnpm run dev:users
 
 remdo_docker_build "${ROOT_DIR}" "${IMAGE_NAME}"
 
@@ -129,8 +131,7 @@ remdo_docker_run "${IMAGE_NAME}" "${DOCKER_HOME_DATA_DIR}" -d --name "${CONTAINE
   -e APP_PUBLIC_URL="${APP_PUBLIC_URL}" \
   -e HOST=127.0.0.1 \
   -e PORT_BASE="${PORT_BASE}" \
-  -e PORT="${PORT}" \
-  -e LINKABLE_REMDO_SERVERS_JSON="${LINKABLE_REMDO_SERVERS_JSON}"
+  -e PORT="${PORT}"
 
 health_ready="false"
 for _ in {1..20}; do
