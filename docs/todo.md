@@ -168,6 +168,11 @@ deferring does not churn the gate's interface):
   `claim-registration`) before `setSourceServerCredentials` persists locally; a
   persist failure strands the flow (code gone, handle kept) and needs a full
   re-register. Make the claim idempotent or persist-before-consume.
+- Re-registering a source overwrites its stored client id/secret but leaves users'
+  existing Better Auth account rows for that `providerId`, so `listLinkedRemdoServerIds`
+  still shows them Linked while their refresh tokens (issued to the old client)
+  fail. Invalidate local account links for a source when its credentials change,
+  or otherwise force affected users through relinking.
 - Multi-admin: admin-grants-admin UI, per-admin revocation; ban/impersonate from
   the Better Auth admin plugin.
 - Tradeoff (standing): the admin secret is a permanent gate — any user who learns

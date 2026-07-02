@@ -68,16 +68,19 @@ test('registers a source, links an account, and opens its Home document', async 
   await page.getByRole('button', { name: 'Link' }).click();
 
   // The link starts OAuth on the source. Bob is already signed in there from
-  // registration, so the source may skip its login and go straight to consent
-  // (or auto-approve). Handle a login form and a consent screen if they appear.
+  // registration, so the source skips its login and shows the consent screen;
+  // approve it to return to the home. (If a login ever does appear, handle it
+  // first.) Each step is a real wait, not a one-shot visibility check that could
+  // race the page load.
   await expect.poll(() => new URL(page.url()).origin).toBe(sourceOrigin);
-  if (await page.getByRole('heading', { name: 'Sign in' }).isVisible().catch(() => false)) {
+  const loginHeading = page.getByRole('heading', { name: 'Sign in' });
+  const consentButton = page.getByRole('button', { name: /allow|authorize|approve|consent/iu });
+  await loginHeading.or(consentButton).first().waitFor({ state: 'visible' });
+  if (await loginHeading.isVisible()) {
     await signInWithVisibleForm(page, STABLE_AUTH_USERS.bob);
   }
-  const consentButton = page.getByRole('button', { name: /allow|authorize|approve|consent/iu });
-  if (await consentButton.isVisible().catch(() => false)) {
-    await consentButton.click();
-  }
+  await consentButton.waitFor({ state: 'visible' });
+  await consentButton.click();
 
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/sharing'));
   await expect(page.getByRole('button', { name: 'Linked' })).toBeVisible();
