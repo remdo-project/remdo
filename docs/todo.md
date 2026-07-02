@@ -116,9 +116,32 @@ bootstrap). Still to come:
   against the `role`-on-bootstrap that now exists, with no new infra.
 - Runtime public-policy toggle (replace `ALLOW_SIGNUP` env with admin-managed,
   DB-backed state). Needs auth hot-swap (rebuild `betterAuth` to flip the
-  construction-time `disableSignUp`), so it ships with the source-linking PR that
-  builds that swappable-auth machinery. Until then `ALLOW_SIGNUP` is the signup
-  control.
+  construction-time `disableSignUp`). The source-linking PR builds the
+  swappable-auth machinery it rides, but the toggle UI is deferred past it — until
+  it lands, `ALLOW_SIGNUP` is the signup control and also the source-side
+  "accept registration" gate.
+
+## Source-linking PR (in progress)
+
+Building: admin-managed source linking. Home admins add + register sources from
+the `/admin` panel (register-home ceremony → persisted credentials →
+swappable-auth activation); the **admin-managed DB model replaces the
+`LINKABLE_REMDO_SERVERS_JSON` env config entirely** (env var removed). Home admin
+actions gate on the admin role; the source accepts registration only from an
+authenticated account while public (`ALLOW_SIGNUP`-backed for now). Ports the
+parked `feat/cross-server-source-linking` reference (register-home, registration
+handles/codes, source-server-store, `createSwappableServerAuth`, `http-origin`
+SSRF/CSRF hardening, OAuth consent) re-gated on the admin role, plus the full
+source-server admin panel and the two-server Docker E2E.
+
+Deferred to follow-up PRs (not this one):
+
+- Runtime public-policy toggle UI (see above) — this PR builds swappable-auth but
+  not the toggle.
+- Source-side `clientPrivileges` (restrict raw `/oauth2/register`) — see hardening
+  list below.
+- Promote-existing-user-to-admin + per-admin revocation in the panel — see the
+  admin-panel item above.
 
 Deferred hardening on top of that foundation (each is on top of the same gate, so
 deferring does not churn the gate's interface):
@@ -395,10 +418,6 @@ The feature is built (see `docs/outliner/body.md`). Remaining follow-ups:
 
 ## Later follow-ups
 
-- Cross-server OAuth setup: add an operator-facing way to register or import
-  RemDo OAuth clients between servers, add the source-server consent UI needed
-  outside trusted dev clients, and extend two-server coverage once the
-  operator client-registration flow is settled.
 - Auth provisioning concepts: revisit user creation, dev fixture users, OAuth
   client creation restrictions, and server registration as separate flows with
   clearer boundaries.
