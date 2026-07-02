@@ -1,0 +1,164 @@
+import { describe, expect, it } from 'vitest';
+import { config } from '#config';
+import { deriveSourceId } from '#server/remdo-oauth/config';
+import { createTestResource } from '../_support/test-resource';
+import { createServerAppHarness } from './_support/server-app-harness';
+
+const createHarness = createTestResource(createServerAppHarness);
+const SOURCE_ID = deriveSourceId('https://source.example');
+
+type Harness = ReturnType<typeof createHarness>;
+
+function postJson(app: Harness['app'], path: string, body: unknown, headers: Headers = new Headers()) {
+  const requestHeaders = new Headers(headers);
+  requestHeaders.set('content-type', 'application/json');
+  return app.request(path, { method: 'POST', headers: requestHeaders, body: JSON.stringify(body) });
+}
+
+// The home admin acts through a session with the admin role (created via
+// enrollment); source-server management and registration gate on that role.
+async function adminHeaders(harness: Harness): Promise<Headers> {
+  return harness.createSessionHeaders();
+}
+
+async function addSource(harness: Harness, headers: Headers): Promise<string> {
+  await postJson(harness.app, '/api/admin/source-servers', { url: 'https://source.example' }, headers);
+  return SOURCE_ID;
+}
+
+async function startRegistration(harness: Harness, headers: Headers, id: string): Promise<string> {
+  const response = await postJson(harness.app, `/api/link/source-servers/${id}/register`, {}, headers);
+  const { redirectUrl } = await response.json() as { redirectUrl: string };
+  return new URL(redirectUrl).searchParams.get('handle')!;
+}
+
+describe('home-side registration initiation', () => {
+  it('requires the admin role', async () => {
+    const harness = createHarness();
+    const headers = await adminHeaders(harness);
+    const id = await addSource(harness, headers);
+    // No session → not an admin → 403.
+    const response = await postJson(harness.app, `/api/link/source-servers/${id}/register`, {});
+    expect(response.status).toBe(403);
+  });
+
+  it('returns a source redirect URL carrying a handle and the home origin', async () => {
+    const harness = createHarness();
+    const headers = await adminHeaders(harness);
+    const id = await addSource(harness, headers);
+    const response = await postJson(harness.app, `/api/link/source-servers/${id}/register`, {}, headers);
+    expect(response.status).toBe(200);
+    const url = new URL((await response.json() as { redirectUrl: string }).redirectUrl);
+    expect(url.origin).toBe('https://source.example');
+    // The browser is sent to the source's confirmation page, not a server route,
+    // so registration is a deliberate POST the source user makes there.
+    expect(url.pathname).toBe('/oauth/register-home');
+    expect(url.searchParams.get('home')).toBe(new URL(config.env.AUTH_URL).origin);
+    expect(url.searchParams.get('handle')).toBeTruthy();
+    expect(url.searchParams.get('state')).toBe(id);
+  });
+});
+
+describe('home-side registration claim', () => {
+  it('rejects a claim without the admin role', async () => {
+    const harness = createHarness();
+    const headers = await adminHeaders(harness);
+    const id = await addSource(harness, headers);
+    const handle = await startRegistration(harness, headers, id);
+    const response = await postJson(harness.app, `/api/link/source-servers/${id}/claim`, { handle, code: 'x' });
+    expect(response.status).toBe(403);
+  });
+
+  it('rejects a claim with an unknown or mismatched handle', async () => {
+    const harness = createHarness();
+    const headers = await adminHeaders(harness);
+    const id = await addSource(harness, headers);
+    const unknown = await postJson(
+      harness.app,
+      `/api/link/source-servers/${id}/claim`,
+      { handle: 'never-issued', code: 'x' },
+      headers,
+    );
+    expect(unknown.status).toBe(403);
+  });
+
+  it('does not burn the handle when the source pull fails, so it can be retried', async () => {
+    const harness = createHarness();
+    const headers = await adminHeaders(harness);
+    const id = await addSource(harness, headers);
+    const handle = await startRegistration(harness, headers, id);
+
+    // The source pull fails here (no real source), so this is a recoverable
+    // error — not a handle/auth failure. The handle must survive for a retry.
+    const first = await postJson(
+      harness.app,
+      `/api/link/source-servers/${id}/claim`,
+      { handle, code: 'some-code' },
+      headers,
+    );
+    expect(first.status).not.toBe(403);
+
+    const retry = await postJson(
+      harness.app,
+      `/api/link/source-servers/${id}/claim`,
+      { handle, code: 'some-code' },
+      headers,
+    );
+    expect(retry.status).not.toBe(403);
+  });
+});
+
+describe('source-side registration', () => {
+  it('requires an authenticated source account to register a home', async () => {
+    const harness = createHarness({ allowSignup: true });
+    const response = await postJson(harness.app, '/api/link/register-home', {
+      handle: 'h',
+      home: 'https://home.example',
+      state: 'sid',
+    });
+    expect(response.status).toBe(401);
+  });
+
+  it('rejects an invalid or non-http(s) home origin', async () => {
+    const harness = createHarness({ allowSignup: true });
+    for (const home of ['not-an-origin', 'ws://home.example', 'ftp://home.example', 'https://home.example/path']) {
+      const response = await postJson(harness.app, '/api/link/register-home', { handle: 'h', home, state: 'sid' });
+      expect(response.status, `home=${home}`).toBe(400);
+    }
+  });
+
+  it('rejects a malformed source id (state) before registration', async () => {
+    const harness = createHarness({ allowSignup: true });
+    for (const state of ['has space', 'path/seg', 'semi;colon']) {
+      const response = await postJson(harness.app, '/api/link/register-home', {
+        handle: 'h',
+        home: 'https://home.example',
+        state,
+      });
+      expect(response.status, `state=${state}`).toBe(400);
+    }
+  });
+
+  it('rejects home registration on a non-public source with 403, not 500', async () => {
+    const harness = createHarness({ allowSignup: false });
+    const headers = await harness.createSessionHeaders();
+    const response = await postJson(harness.app, '/api/link/register-home', {
+      handle: 'h',
+      home: 'https://home.example',
+      state: 'sid',
+    }, headers);
+    expect(response.status).toBe(403);
+  });
+
+  it('refuses claim-registration entirely on a non-public source', async () => {
+    const harness = createHarness({ allowSignup: false });
+    const response = await postJson(harness.app, '/api/link/claim-registration', { code: 'whatever' });
+    expect(response.status).toBe(403);
+  });
+
+  it('rejects claiming an unknown code on a public source', async () => {
+    const harness = createHarness({ allowSignup: true });
+    const response = await postJson(harness.app, '/api/link/claim-registration', { code: 'never-issued' });
+    expect(response.status).toBe(403);
+  });
+});
