@@ -32,6 +32,32 @@ export const REMDO_SERVER_OAUTH_SCOPES = [
   'offline_access',
 ] as const;
 
+// Mirror Better Auth's issuer scheme inference: it advertises a source's issuer
+// over https unless the host is loopback (localhost / .localhost / ::1 / 127.*),
+// so the home must classify the same way or requireIssuerValidation rejects the
+// token as an issuer mismatch.
+function isLoopbackForDevScheme(hostname: string): boolean {
+  return hostname === 'localhost'
+    || hostname.endsWith('.localhost')
+    || hostname === '::1'
+    || hostname.startsWith('127.');
+}
+
+export function normalizeSourceIssuer(baseUrl: string): string {
+  try {
+    const url = new URL(baseUrl);
+    // url.hostname keeps the brackets for IPv6 (e.g. `[::1]`); strip them so the
+    // `::1` loopback check matches, mirroring Better Auth's host normalization.
+    const hostname = url.hostname.replace(/^\[|\]$/gu, '');
+    if (url.protocol !== 'https:' && !isLoopbackForDevScheme(hostname)) {
+      url.protocol = 'https:';
+    }
+    return url.origin;
+  } catch {
+    return baseUrl;
+  }
+}
+
 interface OAuthClientCredentials {
   clientId: string;
   clientSecret: string;
@@ -80,6 +106,16 @@ function createBetterAuthInstance({
       oauthProvider({
         consentPage: '/oauth/consent',
         loginPage: '/login',
+        scopes: [...REMDO_SERVER_OAUTH_SCOPES],
+        // A public server acts as a source: home servers self-register their OAuth
+        // client during registration. Registration is authenticated (Better Auth
+        // binds the client to the signed-in source account) and limited to the
+        // RemDo source scopes; the endpoint stays off on a non-public server.
+        allowDynamicClientRegistration: allowSignup,
+        clientRegistrationDefaultScopes: [...REMDO_SERVER_OAUTH_SCOPES],
+        rateLimit: {
+          register: { window: 60, max: 5 },
+        },
         ...(oauthClientCredentials
           ? {
               generateClientId: () => oauthClientCredentials.clientId,
@@ -104,7 +140,7 @@ function createBetterAuthInstance({
             providerId: server.id,
             authorizationUrl: `${server.baseUrl}/api/auth/oauth2/authorize`,
             tokenUrl: `${server.baseUrl}/api/auth/oauth2/token`,
-            issuer: server.baseUrl,
+            issuer: normalizeSourceIssuer(server.baseUrl),
             requireIssuerValidation: true,
             clientId: server.credentials.clientId,
             clientSecret: server.credentials.clientSecret,

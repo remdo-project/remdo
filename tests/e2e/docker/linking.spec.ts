@@ -1,13 +1,15 @@
 import { expect, setExpectedConsoleIssues, test } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { Buffer } from 'node:buffer';
+import process from 'node:process';
 import { config } from '#config';
 import { STABLE_AUTH_USERS } from '#tools/stable-auth-users';
 import { waitForEditableEditor } from './_support/helpers';
 
-// The source runs on the host; the containerized home reaches it at the same
-// `localhost:PORT` origin the browser uses (--add-host=localhost:host-gateway).
-const sourceOrigin = `http://localhost:${config.env.PORT}`;
+// The source's single origin, shared by the container home and the browser (see
+// playwright.docker.config.ts). The home derives the source id from it.
+// eslint-disable-next-line node/no-process-env -- the Docker runner sets the source origin.
+const sourceOrigin = process.env.REMDO_E2E_SOURCE_ORIGIN ?? `http://localhost:${config.env.PORT}`;
 const homeOrigin = config.env.APP_PUBLIC_URL;
 // The home derives a source's id from its origin (base64url), same as the server.
 const sourceServerId = Buffer.from(sourceOrigin, 'utf8').toString('base64url');
@@ -35,7 +37,7 @@ async function registerSource(page: Page): Promise<void> {
 
   await page.getByLabel('Source server URL').fill(sourceOrigin);
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.getByText(sourceHost)).toBeVisible();
+  await expect(page.getByText(sourceHost, { exact: true })).toBeVisible();
   await expect(page.getByText('Not registered')).toBeVisible();
 
   // Register redirects to the source's confirmation page (top-level nav).
@@ -62,11 +64,20 @@ test('registers a source, links an account, and opens its Home document', async 
   await page.goto('/sharing');
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/sharing'));
   await expect(page.getByText('Remote RemDo servers')).toBeVisible();
-  await expect(page.getByText(sourceHost)).toBeVisible();
+  await expect(page.getByText(sourceHost, { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Link' }).click();
 
+  // The link starts OAuth on the source. Bob is already signed in there from
+  // registration, so the source may skip its login and go straight to consent
+  // (or auto-approve). Handle a login form and a consent screen if they appear.
   await expect.poll(() => new URL(page.url()).origin).toBe(sourceOrigin);
-  await signInWithVisibleForm(page, STABLE_AUTH_USERS.bob);
+  if (await page.getByRole('heading', { name: 'Sign in' }).isVisible().catch(() => false)) {
+    await signInWithVisibleForm(page, STABLE_AUTH_USERS.bob);
+  }
+  const consentButton = page.getByRole('button', { name: /allow|authorize|approve|consent/iu });
+  if (await consentButton.isVisible().catch(() => false)) {
+    await consentButton.click();
+  }
 
   await expect(page).toHaveURL(buildUrl(homeOrigin, '/sharing'));
   await expect(page.getByRole('button', { name: 'Linked' })).toBeVisible();
