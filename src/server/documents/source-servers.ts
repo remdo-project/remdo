@@ -6,7 +6,7 @@ export async function listCurrentUserSourceServers(
   headers: Headers,
 ): Promise<SourceServer[]> {
   const linkedServerIds = await auth.listLinkedRemdoServerIds(headers);
-  return auth.linkableRemdoServers.map((server) => ({
+  return auth.sourceServers.map((server) => ({
     id: server.id,
     label: server.label,
     baseUrl: server.baseUrl,

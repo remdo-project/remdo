@@ -6,7 +6,20 @@ export interface RemdoDatabase {
   document_access: DocumentAccessTable;
   documents: DocumentsTable;
   oauthClient: AuthOauthClientTable;
+  source_servers: SourceServersTable;
   user: AuthUserTable;
+}
+
+// A home's admin-managed linkable source servers. client_id/client_secret are
+// null until the home is registered on that source; a row with credentials
+// becomes a usable OAuth provider at the next auth-instance build.
+export interface SourceServersTable {
+  id: string;
+  label: string;
+  base_url: string;
+  client_id: string | null;
+  client_secret: string | null;
+  created_at: number;
 }
 
 interface AuthOauthClientTable {
@@ -69,5 +82,16 @@ export const CREATE_DOCUMENT_ACCESS_TABLE_SQL = `
     document_id TEXT NOT NULL,
     grantee_user_id TEXT NOT NULL,
     PRIMARY KEY(document_id, grantee_user_id)
+  );
+`;
+
+export const CREATE_SOURCE_SERVERS_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS source_servers (
+    id TEXT PRIMARY KEY,
+    label TEXT NOT NULL,
+    base_url TEXT NOT NULL,
+    client_id TEXT,
+    client_secret TEXT,
+    created_at INTEGER NOT NULL
   );
 `;

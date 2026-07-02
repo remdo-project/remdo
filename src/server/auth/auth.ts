@@ -12,14 +12,14 @@ import { config } from '#config';
 import { deriveAuthTrustedOrigins } from '#config/env/auth-origins';
 import type { SqliteServerDatabaseClient } from '#server/db/client';
 import type { RemdoDatabase } from '#server/db/schema';
-import type { LinkableRemdoServer } from '#server/remdo-oauth/config';
-import { getLinkableRemdoServers } from '#server/remdo-oauth/config';
+import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
+import { readSourceServersSync } from '#server/remdo-oauth/source-server-store';
 
 interface CreateServerAuthOptions {
   allowSignup?: boolean;
   baseURL?: string;
   database: SqliteServerDatabaseClient;
-  linkableRemdoServers?: readonly LinkableRemdoServer[];
+  sourceServers?: readonly StoredSourceServer[];
   oauthClientCredentials?: OAuthClientCredentials;
   secret?: string;
   trustedOrigins?: readonly string[];
@@ -41,7 +41,7 @@ function createBetterAuthInstance({
   allowSignup,
   baseURL,
   database,
-  linkableRemdoServers,
+  sourceServers,
   oauthClientCredentials,
   secret,
   trustedOrigins,
@@ -49,7 +49,7 @@ function createBetterAuthInstance({
   allowSignup: boolean;
   baseURL: string;
   database: Database.Database;
-  linkableRemdoServers: readonly LinkableRemdoServer[];
+  sourceServers: readonly StoredSourceServer[];
   oauthClientCredentials?: OAuthClientCredentials;
   secret: string;
   trustedOrigins: readonly string[];
@@ -92,23 +92,29 @@ function createBetterAuthInstance({
         },
       }),
       genericOAuth({
-        config: linkableRemdoServers.map((server) => {
-          const tokenBaseUrl = server.tokenBaseUrl ?? server.baseUrl;
-          return {
+        // Build a provider only for sources whose OAuth client has been issued
+        // (the home registered on that source). A source added but not yet
+        // registered has no credentials and no provider; it becomes usable at the
+        // next auth-instance build after registration persists its credentials.
+        config: sourceServers.flatMap((server) => {
+          if (!server.credentials) {
+            return [];
+          }
+          return [{
             providerId: server.id,
             authorizationUrl: `${server.baseUrl}/api/auth/oauth2/authorize`,
-            tokenUrl: `${tokenBaseUrl}/api/auth/oauth2/token`,
+            tokenUrl: `${server.baseUrl}/api/auth/oauth2/token`,
             issuer: server.baseUrl,
             requireIssuerValidation: true,
-            clientId: server.clientId,
-            clientSecret: server.clientSecret,
+            clientId: server.credentials.clientId,
+            clientSecret: server.credentials.clientSecret,
             scopes: [...REMDO_SERVER_OAUTH_SCOPES],
             accessType: 'offline',
             pkce: true,
             authorizationUrlParams: {
               resource: server.baseUrl,
             },
-          };
+          }];
         }),
       }),
     ],
@@ -132,7 +138,7 @@ export interface ServerAuthUser {
 export interface ServerAuth {
   allowSignup: boolean;
   auth: BetterAuthInstance;
-  linkableRemdoServers: readonly LinkableRemdoServer[];
+  sourceServers: readonly StoredSourceServer[];
   createUser: (user: CreateAuthUserInput, headers: Headers) => Promise<Response>;
   ensureReady: () => Promise<void>;
   findUserByEmail: (email: string) => Promise<ServerAuthUser | null>;
@@ -152,7 +158,7 @@ export function createServerAuth({
   allowSignup = config.env.ALLOW_SIGNUP,
   baseURL = config.env.AUTH_URL,
   database,
-  linkableRemdoServers = getLinkableRemdoServers(),
+  sourceServers = readSourceServersSync(database),
   oauthClientCredentials,
   secret = config.env.AUTH_SECRET,
   trustedOrigins,
@@ -178,7 +184,7 @@ export function createServerAuth({
     allowSignup,
     baseURL,
     database: database.sqlite,
-    linkableRemdoServers,
+    sourceServers,
     oauthClientCredentials,
     secret,
     trustedOrigins: resolvedTrustedOrigins,
@@ -189,7 +195,7 @@ export function createServerAuth({
         allowSignup: true,
         baseURL,
         database: database.sqlite,
-        linkableRemdoServers,
+        sourceServers,
         oauthClientCredentials,
         secret,
         trustedOrigins: resolvedTrustedOrigins,
@@ -202,7 +208,7 @@ export function createServerAuth({
   return {
     allowSignup,
     auth,
-    linkableRemdoServers,
+    sourceServers,
     createUser(user, headers) {
       return userProvisioningAuth.api.signUpEmail({
         body: user,
@@ -259,7 +265,7 @@ export function createServerAuth({
       return auth.api.getSession({ headers });
     },
     async getLinkedRemdoServerAccessToken(userId, serverId) {
-      if (!linkableRemdoServers.some((server) => server.id === serverId)) {
+      if (!sourceServers.some((server) => server.id === serverId)) {
         return null;
       }
       try {
@@ -299,7 +305,7 @@ export function createServerAuth({
       return new Set(
         accounts
           .map((account) => account.providerId)
-          .filter((providerId) => linkableRemdoServers.some((server) => server.id === providerId)),
+          .filter((providerId) => sourceServers.some((server) => server.id === providerId)),
       );
     },
     async resolveBearerUser(authorization) {
@@ -329,6 +335,38 @@ export function createServerAuth({
       } catch {
         return null;
       }
+    },
+  };
+}
+
+export interface SwappableServerAuth {
+  // A ServerAuth-shaped proxy that always delegates to the current instance, so
+  // route handlers holding this reference transparently see a rebuilt auth.
+  auth: ServerAuth;
+  // Rebuilds the underlying auth from the current DB source list, so a source
+  // registered this session becomes a usable OAuth provider without a restart.
+  rebuild: () => void;
+}
+
+export function createSwappableServerAuth(
+  options: CreateServerAuthOptions,
+): SwappableServerAuth {
+  let current = createServerAuth(options);
+  // The Proxy target is only a structural placeholder; every access reads the
+  // live `current` instance (updated by rebuild()), not the target.
+  const proxy = new Proxy(current, {
+    get(_target, property) {
+      const value = current[property as keyof ServerAuth];
+      return typeof value === 'function' ? value.bind(current) : value;
+    },
+  });
+  return {
+    auth: proxy,
+    rebuild() {
+      current = createServerAuth({
+        ...options,
+        sourceServers: readSourceServersSync(options.database),
+      });
     },
   };
 }

@@ -1,133 +1,53 @@
+import { Buffer } from 'node:buffer';
 import { describe, expect, it } from 'vitest';
-import { parseLinkableRemdoServers } from '#server/remdo-oauth/config';
+import { deriveSourceId, deriveSourceServer } from '#server/remdo-oauth/config';
 
-describe('remdo oauth server config', () => {
-  it('returns no servers for an empty config', () => {
-    expect(parseLinkableRemdoServers('')).toEqual([]);
+function decodeId(id: string): string {
+  return Buffer.from(id, 'base64url').toString('utf8');
+}
+
+describe('deriveSourceServer', () => {
+  it('derives a source entry from a bare-origin URL', () => {
+    const entry = deriveSourceServer('https://source.example');
+    expect(entry).toMatchObject({
+      label: 'source.example',
+      baseUrl: 'https://source.example',
+    });
+    // The id reversibly encodes the full origin.
+    expect(decodeId(entry.id)).toBe('https://source.example');
   });
 
-  it('parses configured linkable RemDo servers', () => {
-    expect(parseLinkableRemdoServers(JSON.stringify([
-      {
-        id: 'source',
-        label: 'Source Server',
-        baseUrl: 'https://source.example',
-        clientId: 'source-client-id',
-        clientSecret: 'source-client-secret',
-      },
-    ]))).toEqual([
-      {
-        id: 'source',
-        label: 'Source Server',
-        baseUrl: 'https://source.example',
-        clientId: 'source-client-id',
-        clientSecret: 'source-client-secret',
-      },
-    ]);
+  it('rejects a URL that is more than a bare origin', () => {
+    expect(() => deriveSourceServer('https://source.example/path'))
+      .toThrow('exactly match a URL origin');
   });
 
-  it('parses a separate token endpoint origin for Docker-hosted clients', () => {
-    expect(parseLinkableRemdoServers(JSON.stringify([
-      {
-        id: 'source',
-        label: 'Source Server',
-        baseUrl: 'https://source.example',
-        tokenBaseUrl: 'http://host.docker.internal:5000',
-        clientId: 'source-client-id',
-        clientSecret: 'source-client-secret',
-      },
-    ]))).toEqual([
-      {
-        id: 'source',
-        label: 'Source Server',
-        baseUrl: 'https://source.example',
-        tokenBaseUrl: 'http://host.docker.internal:5000',
-        clientId: 'source-client-id',
-        clientSecret: 'source-client-secret',
-      },
-    ]);
+  it('rejects an unparseable URL with an actionable error', () => {
+    expect(() => deriveSourceServer('not-a-url'))
+      .toThrow('valid URL origin');
   });
 
-  it('rejects malformed server ids', () => {
-    expect(() => parseLinkableRemdoServers(JSON.stringify([
-      {
-        id: 'server.a',
-        label: 'Source Server',
-        baseUrl: 'https://source.example',
-        clientId: 'source-client-id',
-        clientSecret: 'source-client-secret',
-      },
-    ]))).toThrow('letters, numbers, underscores, or hyphens');
+  it('rejects a non-http(s) origin', () => {
+    expect(() => deriveSourceServer('ftp://source.example'))
+      .toThrow('http(s) URL origin');
+    expect(() => deriveSourceServer('ws://source.example'))
+      .toThrow('http(s) URL origin');
+  });
+});
+
+describe('deriveSourceId', () => {
+  it('is a URL-safe, path-segment-safe encoding', () => {
+    const id = deriveSourceId('https://source.example:8443');
+    expect(id).toMatch(/^[\w-]+$/u);
   });
 
-  it('rejects the reserved local server id', () => {
-    expect(() => parseLinkableRemdoServers(JSON.stringify([
-      {
-        id: 'local',
-        label: 'Source Server',
-        baseUrl: 'https://source.example',
-        clientId: 'source-client-id',
-        clientSecret: 'source-client-secret',
-      },
-    ]))).toThrow('reserved ids');
+  it('gives distinct ids to origins differing only by scheme or port', () => {
+    expect(deriveSourceId('https://source.example')).not.toBe(deriveSourceId('http://source.example'));
+    expect(deriveSourceId('https://source.example')).not.toBe(deriveSourceId('https://source.example:8443'));
   });
 
-  it('rejects non-exact server origins', () => {
-    expect(() => parseLinkableRemdoServers(JSON.stringify([
-      {
-        id: 'source',
-        label: 'Source Server',
-        baseUrl: 'https://source.example/path',
-        clientId: 'source-client-id',
-        clientSecret: 'source-client-secret',
-      },
-    ]))).toThrow('exactly match a URL origin');
-  });
-
-  it('rejects unparseable server origins with an actionable error', () => {
-    expect(() => parseLinkableRemdoServers(JSON.stringify([
-      {
-        id: 'source',
-        label: 'Source Server',
-        baseUrl: 'not a url',
-        clientId: 'source-client-id',
-        clientSecret: 'source-client-secret',
-      },
-    ]))).toThrow('valid URL origin');
-  });
-
-  it('rejects malformed JSON with an actionable error', () => {
-    expect(() => parseLinkableRemdoServers('[{ not valid json }]')).toThrow('valid JSON');
-  });
-
-  it('rejects non-string fields', () => {
-    expect(() => parseLinkableRemdoServers(JSON.stringify([
-      {
-        id: 'source',
-        label: 'Source Server',
-        baseUrl: 'https://source.example',
-        clientId: 123,
-        clientSecret: 'source-client-secret',
-      },
-    ]))).toThrow('string clientId');
-  });
-
-  it('rejects duplicate server ids', () => {
-    expect(() => parseLinkableRemdoServers(JSON.stringify([
-      {
-        id: 'source',
-        label: 'Source Server',
-        baseUrl: 'https://a.example',
-        clientId: 'source-client-id-a',
-        clientSecret: 'source-client-secret-a',
-      },
-      {
-        id: 'source',
-        label: 'Other Source Server',
-        baseUrl: 'https://b.example',
-        clientId: 'source-client-id-b',
-        clientSecret: 'source-client-secret-b',
-      },
-    ]))).toThrow('duplicate server id source');
+  it('gives distinct ids to origins differing only in punctuation', () => {
+    // A slug that collapsed punctuation would alias these; the encoding must not.
+    expect(deriveSourceId('https://foo-bar.example')).not.toBe(deriveSourceId('https://foo.bar.example'));
   });
 });

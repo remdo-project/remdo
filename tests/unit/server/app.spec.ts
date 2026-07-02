@@ -14,9 +14,10 @@ const TEST_SOURCE_SERVER = {
   id: 'source',
   label: 'Source Server',
   baseUrl: 'https://source.example',
-  tokenBaseUrl: 'https://source-token.example',
-  clientId: 'source-client-id',
-  clientSecret: 'source-client-secret',
+  credentials: {
+    clientId: 'source-client-id',
+    clientSecret: 'source-client-secret',
+  },
 } as const;
 
 afterEach(() => {
@@ -26,7 +27,7 @@ afterEach(() => {
 
 function createHarnessWithSourceServer() {
   return createHarness({
-    linkableRemdoServers: [TEST_SOURCE_SERVER],
+    sourceServers: [TEST_SOURCE_SERVER],
   });
 }
 
@@ -241,7 +242,7 @@ describe('remdo api app', () => {
       homeDocumentId: 'sourceHome',
       userDataDocumentId: 'sourceUserData',
     });
-    expect(fetchMock).toHaveBeenCalledWith('https://source-token.example/api/current-user', {
+    expect(fetchMock).toHaveBeenCalledWith('https://source.example/api/current-user', {
       headers: {
         authorization: 'Bearer source-token',
       },
@@ -278,7 +279,7 @@ describe('remdo api app', () => {
       docId: 'sourceDoc',
       url: 'wss://source.example/d/sourceDoc',
     });
-    expect(fetchMock).toHaveBeenCalledWith('https://source-token.example/api/documents/sourceDoc/sync-tokens', {
+    expect(fetchMock).toHaveBeenCalledWith('https://source.example/api/documents/sourceDoc/sync-tokens', {
       method: 'POST',
       headers: {
         authorization: 'Bearer source-token',
@@ -436,13 +437,12 @@ describe('remdo api app', () => {
 
   it('projects configured source servers during current-user bootstrap', async () => {
     const harness = createHarness({
-      linkableRemdoServers: [
+      sourceServers: [
         {
           id: 'source',
           label: 'Source Server',
           baseUrl: 'https://source.example',
-          clientId: 'source-client-id',
-          clientSecret: 'source-client-secret',
+          credentials: { clientId: 'source-client-id', clientSecret: 'source-client-secret' },
         },
       ],
     });
@@ -464,13 +464,12 @@ describe('remdo api app', () => {
 
   it('does not recurse into source server discovery or clear projected source servers for bearer current-user bootstrap', async () => {
     const harness = createHarness({
-      linkableRemdoServers: [
+      sourceServers: [
         {
           id: 'source',
           label: 'Source Server',
           baseUrl: 'https://source.example',
-          clientId: 'source-client-id',
-          clientSecret: 'source-client-secret',
+          credentials: { clientId: 'source-client-id', clientSecret: 'source-client-secret' },
         },
       ],
     });

@@ -21,8 +21,8 @@ function resolveSourceErrorStatus(upstreamStatus: number): 401 | 403 | 404 | 500
     : HTTP_STATUS.INTERNAL_SERVER_ERROR;
 }
 
-function resolveSourceServerApiOrigin(server: { baseUrl: string; tokenBaseUrl?: string }): string {
-  return server.tokenBaseUrl ?? server.baseUrl;
+function resolveSourceServerApiOrigin(server: { baseUrl: string }): string {
+  return server.baseUrl;
 }
 
 export function createSourceServerRoutes({
@@ -32,7 +32,7 @@ export function createSourceServerRoutes({
   const routes = new Hono();
 
   async function resolveSourceAccess(request: Request, serverId: string) {
-    const server = auth.linkableRemdoServers.find((candidate) => candidate.id === serverId);
+    const server = auth.sourceServers.find((candidate) => candidate.id === serverId);
     if (!server) {
       return { kind: 'not-found' as const };
     }
@@ -132,7 +132,7 @@ export function createSourceServerRoutes({
 
   routes.post('/:serverId/account-links', async (c) => {
     const serverId = c.req.param('serverId');
-    const server = auth.linkableRemdoServers.find((candidate) => candidate.id === serverId);
+    const server = auth.sourceServers.find((candidate) => candidate.id === serverId);
     if (!server) {
       return c.json({ error: 'Source server not found.' }, HTTP_STATUS.NOT_FOUND);
     }

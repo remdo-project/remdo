@@ -6,6 +6,7 @@ import { config } from '#config';
 import {
   CREATE_DOCUMENT_ACCESS_TABLE_SQL,
   CREATE_DOCUMENTS_TABLE_SQL,
+  CREATE_SOURCE_SERVERS_TABLE_SQL,
   DOCUMENTS_TABLE_COLUMNS,
 } from './schema';
 import type { RemdoDatabase } from './schema';
@@ -87,6 +88,7 @@ function ensureDocumentAccessTable(sqlite: Database.Database): void {
     assertDocumentAccessTableShape(sqlite);
   }
   sqlite.exec(CREATE_DOCUMENT_ACCESS_TABLE_SQL);
+  sqlite.exec(CREATE_SOURCE_SERVERS_TABLE_SQL);
 }
 
 export function createSqliteServerDatabaseClient({

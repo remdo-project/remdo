@@ -8,7 +8,7 @@ import type { CreateAuthUserInput } from '#server/auth/auth';
 import { extractSessionCookie } from '#server/auth/session-cookie';
 import type { YSweetDocumentTokenManager } from '#server/collab-token';
 import { createServerDatabaseClient } from '#server/db/client';
-import type { LinkableRemdoServer } from '#server/remdo-oauth/config';
+import type { StoredSourceServer } from '#server/remdo-oauth/source-server-store';
 import { createDocumentRegistry } from '#server/documents/document-registry';
 import * as Y from 'yjs';
 
@@ -26,13 +26,13 @@ export function createServerAppHarness({
   adminSecret = TEST_ADMIN_SECRET,
   allowSignup = false,
   baseURL = 'http://127.0.0.1:4000',
-  linkableRemdoServers = [],
+  sourceServers = [],
   onUpdateDoc,
 }: {
   adminSecret?: string;
   allowSignup?: boolean;
   baseURL?: string;
-  linkableRemdoServers?: readonly LinkableRemdoServer[];
+  sourceServers?: readonly StoredSourceServer[];
   onUpdateDoc?: (docId: string, update: Uint8Array) => void | Promise<void>;
 } = {}) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remdo-server-auth-'));
@@ -50,7 +50,7 @@ export function createServerAppHarness({
     allowSignup,
     baseURL,
     database: client,
-    linkableRemdoServers,
+    sourceServers,
     secret: 'test-better-auth-secret-0123456789',
     trustedOrigins,
   });
@@ -86,6 +86,7 @@ export function createServerAppHarness({
   const app = createServerApp({
     adminSecret,
     auth,
+    database: client,
     tokenManager,
     registry,
     logError: () => {},

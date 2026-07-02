@@ -1,96 +1,41 @@
-import { config } from '#config';
-import { normalizeSourceServerId } from '#domain/source-servers';
+import { Buffer } from 'node:buffer';
 
+// A source server's identity, as it appears to the home. Credentials live
+// separately (see StoredSourceServer) because a source exists in the home's
+// admin-managed list before it is registered and issued OAuth credentials.
 export interface LinkableRemdoServer {
   id: string;
   label: string;
   baseUrl: string;
-  tokenBaseUrl?: string;
-  clientId: string;
-  clientSecret: string;
 }
 
-function readServer(entry: unknown): Record<string, unknown> {
-  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-    throw new TypeError('LINKABLE_REMDO_SERVERS_JSON entries must be objects.');
-  }
-  return entry as Record<string, unknown>;
+// Turns a source origin into a stable, URL-safe id usable as the Better Auth
+// providerId, the account-link key, and a callback URL path segment. base64url of
+// the full origin is reversible, so distinct origins always map to distinct ids
+// (a slug that collapsed punctuation would alias e.g. `foo-bar.example` and
+// `foo.bar.example`).
+export function deriveSourceId(origin: string): string {
+  return Buffer.from(origin, 'utf8').toString('base64url');
 }
 
-function readString(server: Record<string, unknown>, field: keyof LinkableRemdoServer): string {
-  const value = server[field];
-  if (typeof value !== 'string' || value.length === 0) {
-    throw new TypeError(`LINKABLE_REMDO_SERVERS_JSON entries require string ${field}.`);
-  }
-  return value;
-}
-
-function readOptionalOrigin(server: Record<string, unknown>, field: 'baseUrl' | 'tokenBaseUrl'): string | undefined {
-  const rawValue = server[field];
-  if (rawValue === undefined) {
-    return undefined;
-  }
-  const value = readString(server, field);
-  let origin: string;
+// Derives a source server entry from a bare-origin URL. Throws on a URL that is
+// not exactly an origin (it carries a path, query, etc.) or is unparseable.
+export function deriveSourceServer(value: string): LinkableRemdoServer {
+  let url: URL;
   try {
-    origin = new URL(value).origin;
+    url = new URL(value);
   } catch {
-    throw new Error(`LINKABLE_REMDO_SERVERS_JSON ${field} must be a valid URL origin.`);
+    throw new Error(`Source server must be a valid URL origin: ${value}`);
   }
-  if (value !== origin) {
-    throw new Error(`LINKABLE_REMDO_SERVERS_JSON ${field} must exactly match a URL origin.`);
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error(`Source server must be an http(s) URL origin: ${value}`);
   }
-  return value;
-}
-
-function readOrigin(server: Record<string, unknown>, field: 'baseUrl' | 'tokenBaseUrl'): string {
-  const value = readOptionalOrigin(server, field);
-  if (!value) {
-    throw new TypeError(`LINKABLE_REMDO_SERVERS_JSON entries require string ${field}.`);
+  if (value !== url.origin) {
+    throw new Error(`Source server must exactly match a URL origin: ${value}`);
   }
-  return value;
-}
-
-export function parseLinkableRemdoServers(raw: string): LinkableRemdoServer[] {
-  const trimmed = raw.trim();
-  if (!trimmed) {
-    return [];
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(trimmed);
-  } catch {
-    throw new TypeError('LINKABLE_REMDO_SERVERS_JSON must be valid JSON.');
-  }
-  if (!Array.isArray(parsed)) {
-    throw new TypeError('LINKABLE_REMDO_SERVERS_JSON must be a JSON array.');
-  }
-
-  const usedIds = new Set<string>();
-  return parsed.map((entry) => {
-    const server = readServer(entry);
-    const id = normalizeSourceServerId(readString(server, 'id'));
-    if (!id) {
-      throw new Error('LINKABLE_REMDO_SERVERS_JSON entries require id to contain only letters, numbers, underscores, or hyphens, and not use reserved ids.');
-    }
-    if (usedIds.has(id)) {
-      throw new Error(`LINKABLE_REMDO_SERVERS_JSON contains duplicate server id ${id}.`);
-    }
-    usedIds.add(id);
-
-    const tokenBaseUrl = readOptionalOrigin(server, 'tokenBaseUrl');
-    return {
-      id,
-      label: readString(server, 'label'),
-      baseUrl: readOrigin(server, 'baseUrl'),
-      ...(tokenBaseUrl ? { tokenBaseUrl } : {}),
-      clientId: readString(server, 'clientId'),
-      clientSecret: readString(server, 'clientSecret'),
-    };
-  });
-}
-
-export function getLinkableRemdoServers(): LinkableRemdoServer[] {
-  return parseLinkableRemdoServers(config.env.LINKABLE_REMDO_SERVERS_JSON);
+  return {
+    id: deriveSourceId(url.origin),
+    label: url.host,
+    baseUrl: url.origin,
+  };
 }

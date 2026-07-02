@@ -32,8 +32,6 @@ export const envSchema = {
   APP_PUBLIC_URL: str,
   // Canonical auth URL. tools/env.defaults.sh derives this for local dev modes.
   AUTH_URL: str,
-  // JSON array of configured source RemDo servers available for OAuth account linking.
-  LINKABLE_REMDO_SERVERS_JSON: str,
   // Stable dev-only OAuth client used by the Docker home server to link the dev source server.
   REMDO_DEV_OAUTH_CLIENT_ID: str,
   REMDO_DEV_OAUTH_CLIENT_SECRET: str,
